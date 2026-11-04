@@ -19,7 +19,7 @@ type Props = {
 export default function FilterBar(p: Props) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const active = !!(p.q || p.subject || p.level || p.area || p.mode || p.priceRange)
-  const secondaryCount = Number(!!p.area) + Number(!!p.mode) + Number(!!p.priceRange)
+  const secondaryCount = Number(!!p.area) + Number(!!p.priceRange)
   return (
     <section className={styles.filterBar} aria-label="Search and filters">
       <div className={styles.segment} role="group" aria-label="I am looking for" style={{ justifySelf: 'start' }}>
@@ -47,15 +47,23 @@ export default function FilterBar(p: Props) {
           {p.subjects.map(item => <button key={item.value} type="button" className={`${styles.chip} ${p.subject === item.value ? styles.chipOn : ''}`} aria-pressed={p.subject === item.value} onClick={() => p.onSubject(item.value)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
         </div>
       </div>}
-      <div className={styles.compactFilterRow}>
+      <div className={styles.filterField}>
+        <span className={styles.subLabel}>Teaching mode</span>
+        <div className={styles.modeChoices} role="group" aria-label="Teaching mode">
+          <button type="button" className={`${styles.segmentBtn} ${p.mode === '' ? styles.segmentOn : ''}`} aria-pressed={p.mode === ''} onClick={() => p.onMode('')}>Any mode</button>
+          <button type="button" className={`${styles.segmentBtn} ${p.mode === 'online' ? styles.segmentOn : ''}`} aria-pressed={p.mode === 'online'} onClick={() => p.onMode('online')}>Online</button>
+          <button type="button" className={`${styles.segmentBtn} ${p.mode === 'physical' ? styles.segmentOn : ''}`} aria-pressed={p.mode === 'physical'} onClick={() => p.onMode('physical')}>In person</button>
+        </div>
+      </div>
+      {p.level && <div className={styles.compactFilterRow}>
         <button type="button" className={styles.compactFilterButton} aria-expanded={filtersOpen} aria-controls="vibetutor-secondary-filters" onClick={() => setFiltersOpen(open => !open)}>
-          <span>Filters</span>
+          <span>More filters</span>
           {secondaryCount > 0 && <span className={styles.compactFilterCount}>{secondaryCount}</span>}
           <span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
         </button>
         {secondaryCount > 0 && <span className={styles.hint}>{secondaryCount} applied</span>}
-      </div>
-      {filtersOpen && <div id="vibetutor-secondary-filters" className={styles.secondaryFilters}>
+      </div>}
+      {p.level && filtersOpen && <div id="vibetutor-secondary-filters" className={styles.secondaryFilters}>
         <label className={styles.filterField}>
           <span className={styles.subLabel}>Location</span>
           <select className={styles.select} value={p.area} onChange={e => p.onArea(e.target.value)} aria-label="Location">
@@ -63,13 +71,6 @@ export default function FilterBar(p: Props) {
             {p.areas.map(item => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
           </select>
         </label>
-        <div className={styles.filterField}>
-          <span className={styles.subLabel}>Teaching mode</span>
-          <div className={styles.segment} role="group" aria-label="Teaching format">
-            <button type="button" className={`${styles.segmentBtn} ${p.mode === '' ? styles.segmentOn : ''}`} aria-pressed={p.mode === ''} onClick={() => p.onMode('')}>Any</button>
-            {p.modes.map(item => <button key={item.value} type="button" className={`${styles.segmentBtn} ${p.mode === item.value ? styles.segmentOn : ''}`} aria-pressed={p.mode === item.value} onClick={() => p.onMode(item.value as Mode)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
-          </div>
-        </div>
         <div className={styles.filterField}>
           <span className={styles.subLabel}>Price per hour</span>
           <div className={styles.chipRow} role="group" aria-label="Price range">
