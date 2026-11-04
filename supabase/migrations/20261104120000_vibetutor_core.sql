@@ -14,6 +14,9 @@ create table if not exists public.vibetutor_tutors (
   area text,
   rate_kes integer check (rate_kes is null or rate_kes > 0),
   available_days text[] not null default '{}',
+  dayparts text[] not null default '{}',
+  holiday_available boolean not null default false,
+  bio text,
   phone text,
   photo_path text,
   status text not null default 'published' check (status in ('published','paused')),
@@ -25,6 +28,9 @@ create table if not exists public.vibetutor_tutors (
 create table if not exists public.vibetutor_requests (
   id uuid primary key default gen_random_uuid(),
   requester_id uuid not null references public.profiles(id) on delete cascade,
+  learner_label text not null default 'Learner',
+  note text,
+  dayparts text[] not null default '{}',
   levels text[] not null default '{}',
   subjects text[] not null default '{}',
   teaching_mode text not null default 'either' check (teaching_mode in ('online','physical','either')),
@@ -57,15 +63,15 @@ create policy vibetutor_requests_owner_all on public.vibetutor_requests
 create or replace view public.vibetutor_public_tutors
   with (security_invoker = false) as
   select profile_id, display_name, levels, subjects, teaching_mode, area,
-         rate_kes, available_days, photo_path, created_at
+         rate_kes, available_days, dayparts, holiday_available, bio, photo_path, created_at
   from public.vibetutor_tutors
   where status = 'published';
 
 -- Signed-in browse: open requests, without phone numbers.
 create or replace view public.vibetutor_open_requests
   with (security_invoker = false) as
-  select id, requester_id, levels, subjects, teaching_mode, area,
-         budget_kes, available_days, created_at
+  select id, learner_label, note, levels, subjects, teaching_mode, area,
+         budget_kes, available_days, dayparts, created_at
   from public.vibetutor_requests
   where status = 'open';
 

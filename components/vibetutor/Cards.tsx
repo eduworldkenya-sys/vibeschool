@@ -17,7 +17,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
             <h3 className={styles.cardTitle}>{t.name}</h3>
             <p className={styles.muted}><Icon name="pin" size={14} /> {t.area}</p>
           </div>
-          <span className={styles.demo}>Example</span>
+          {!t.real && <span className={styles.demo}>Example</span>}
         </div>
         <div className={styles.tags}>{t.subjects.map(s => <span key={s} className={styles.tag}>{s}</span>)}</div>
         <p className={styles.meta}>{t.levels.join(' · ')}</p>
@@ -31,7 +31,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
         <section className={styles.detailModal} role="dialog" aria-modal="true" aria-labelledby={`tutor-${t.id}`}>
           <button type="button" className={styles.modalClose} onClick={() => setOpen(false)} aria-label="Close details">×</button>
-          <span className={styles.demo}>Example profile</span>
+          {!t.real && <span className={styles.demo}>Example profile</span>}
           <h2 id={`tutor-${t.id}`} className={styles.modalTitle}>{t.name}</h2>
           <p className={styles.muted}>{t.area} · {modeLabel(t.mode)}</p>
           <p className={styles.modalText}>{t.bio}</p>
@@ -58,7 +58,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
             <h3 className={styles.cardTitle}>{r.subjects.join(', ')}</h3>
             <p className={styles.muted}>{r.level} · {r.learnerLabel}</p>
           </div>
-          <span className={styles.demo}>Example</span>
+          {!r.real && <span className={styles.demo}>Example</span>}
         </div>
         <div className={styles.tags}><span className={styles.tag}><Icon name="pin" size={13} /> {r.area}</span><span className={styles.tag}>{modeLabel(r.mode)}</span></div>
         <p className={styles.meta}>{summarizeDays(r.days)} · {summarizeParts(r.dayparts)}</p>
@@ -71,7 +71,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
         <section className={styles.detailModal} role="dialog" aria-modal="true" aria-labelledby={`request-${r.id}`}>
           <button type="button" className={styles.modalClose} onClick={() => setOpen(false)} aria-label="Close details">×</button>
-          <span className={styles.demo}>Example request</span>
+          {!r.real && <span className={styles.demo}>Example request</span>}
           <h2 id={`request-${r.id}`} className={styles.modalTitle}>{r.subjects.join(', ')}</h2>
           <p className={styles.muted}>{r.learnerLabel} · {r.level}</p>
           <p className={styles.modalText}>{r.note}</p>

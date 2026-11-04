@@ -5,7 +5,8 @@ import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar, { type FilterOption } from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
 import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
-import { DEMO_REQUESTS, DEMO_TUTORS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetutor/data'
+import { DEMO_REQUESTS, DEMO_TUTORS, LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
+import { fetchLiveListings } from '@/components/vibetutor/listings'
 
 type View = 'tutors' | 'students'
 type Filters = { q: string; subject: string; level: string; area: string; mode: Mode | ''; priceRange: string }
@@ -33,8 +34,17 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const [priceRange, setPriceRange] = useState('')
   const [busy, setBusy] = useState(false)
   const filters: Filters = { q, subject, level, area, mode, priceRange }
+  const [live, setLive] = useState<{ tutors: DemoTutor[]; requests: DemoRequest[] } | null>(null)
+  useEffect(() => {
+    let active = true
+    fetchLiveListings().then(result => { if (active) setLive(result) }).catch(() => { if (active) setLive(null) })
+    return () => { active = false }
+  }, [])
+  // Real listings replace the examples; examples show only while there are none.
+  const tutorSource = live && live.tutors.length ? live.tutors : DEMO_TUTORS
+  const requestSource = live && live.requests.length ? live.requests : DEMO_REQUESTS
 
-  const tutorsFor = (f: Filters) => DEMO_TUTORS.filter(t =>
+  const tutorsFor = (f: Filters) => tutorSource.filter(t =>
     (!f.level || t.levels.includes(f.level)) &&
     (!f.subject || t.subjects.includes(f.subject)) &&
     (!f.area || t.area === f.area) &&
@@ -42,7 +52,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     matchesPrice(t.rateKes, f.priceRange) &&
     matchesText([t.name, t.area, ...t.subjects, ...t.levels], f.q)
   )
-  const requestsFor = (f: Filters) => DEMO_REQUESTS.filter(r =>
+  const requestsFor = (f: Filters) => requestSource.filter(r =>
     (!f.level || r.level === f.level) &&
     (!f.subject || r.subjects.includes(f.subject)) &&
     (!f.area || r.area === f.area) &&
@@ -51,8 +61,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     matchesText([r.learnerLabel, r.area, r.level, ...r.subjects], f.q)
   )
 
-  const tutors = useMemo(() => tutorsFor(filters), [q, subject, level, area, mode, priceRange])
-  const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode, priceRange])
+  const tutors = useMemo(() => tutorsFor(filters), [q, subject, level, area, mode, priceRange, tutorSource])
+  const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode, priceRange, requestSource])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
 
   // Each facet is calculated without its own current selection. This keeps
@@ -69,7 +79,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     return count ? [{ value, label: value, count }] : []
   })
   const areaOptions: FilterOption[] = [...new Set([
-    ...DEMO_TUTORS.map(t => t.area), ...DEMO_REQUESTS.map(r => r.area),
+    ...tutorSource.map(t => t.area), ...requestSource.map(r => r.area),
   ])].flatMap(value => {
     const f = { ...filters, area: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.area === value).length : requestsFor(f).filter(r => r.area === value).length
