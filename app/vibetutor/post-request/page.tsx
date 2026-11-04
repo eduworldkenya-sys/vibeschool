@@ -32,6 +32,21 @@ export default function PostRequest() {
   const availableSubjects = useMemo(() => SUBJECTS_BY_LEVEL[level] || [], [level])
 
   useEffect(() => {
+    const draft = readDraft<RequestDraft>(DRAFT_KEY)
+    if (draft) {
+      setLearner(draft.learner); setSubjects(draft.subjects); setLevel(draft.level)
+      setMode(draft.mode); setArea(draft.area); setDays(draft.days)
+      setBudget(draft.budget); setPhone(draft.phone); setTouched(true)
+    }
+    setReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!ready || !touched) return
+    saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone })
+  }, [ready, touched, learner, subjects, level, mode, area, days, budget, phone])
+
+  useEffect(() => {
     let active = true
     getSupabaseClient().auth.getUser().then(({ data }) => {
       if (!active || !data.user) return
