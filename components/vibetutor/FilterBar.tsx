@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getSupabaseClient } from '@/lib/supabase'
+import { useState } from 'react'
 import styles from './VibeTutor.module.css'
 import Icon from './Icon'
 import { modeLabel, type Mode } from './data'
@@ -19,57 +18,6 @@ type Props = {
 }
 export default function FilterBar(p: Props) {
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [counties, setCounties] = useState<string[]>([])
-  const [subCounties, setSubCounties] = useState<string[]>([])
-  const [wards, setWards] = useState<string[]>([])
-  const [county, setCounty] = useState(p.area)
-  const [subCounty, setSubCounty] = useState('')
-  const [ward, setWard] = useState('')
-  const [locationLoading, setLocationLoading] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    getSupabaseClient().rpc('schools_location_options_public_v1', { p_county: null, p_sub_county: null }).then(({ data, error }) => {
-      if (!active || error) return
-      const options = (data ?? []) as { option_type: string; value: string }[]
-      setCounties(Array.from(new Set(options.filter(item => item.option_type === 'county').map(item => item.value))).sort())
-    })
-    return () => { active = false }
-  }, [])
-
-  useEffect(() => {
-    let active = true
-    if (!county) { setSubCounties([]); return }
-    setLocationLoading(true)
-    getSupabaseClient().rpc('schools_location_options_public_v1', { p_county: county, p_sub_county: null }).then(({ data, error }) => {
-      if (!active) return
-      const options = (data ?? []) as { option_type: string; value: string }[]
-      setSubCounties(error ? [] : Array.from(new Set(options.filter(item => item.option_type === 'sub_county').map(item => item.value))).sort())
-      setLocationLoading(false)
-    })
-    return () => { active = false }
-  }, [county])
-
-  useEffect(() => {
-    let active = true
-    if (!county || !subCounty) { setWards([]); return }
-    setLocationLoading(true)
-    getSupabaseClient().rpc('schools_location_options_public_v1', { p_county: county, p_sub_county: subCounty }).then(({ data, error }) => {
-      if (!active) return
-      const options = (data ?? []) as { option_type: string; value: string }[]
-      setWards(error ? [] : Array.from(new Set(options.filter(item => item.option_type === 'ward').map(item => item.value))).sort())
-      setLocationLoading(false)
-    })
-    return () => { active = false }
-  }, [county, subCounty])
-
-  const chooseCounty = (value: string) => {
-    setCounty(value); setSubCounty(''); setWard(''); p.onArea(value)
-  }
-  useEffect(() => {
-    setCounty(p.area)
-    if (!p.area) { setSubCounty(''); setWard('') }
-  }, [p.area])
 
   const active = !!(p.q || p.subject || p.level || p.area || p.mode || p.priceRange)
   const secondaryCount = Number(!!p.area) + Number(!!p.priceRange)
@@ -117,22 +65,14 @@ export default function FilterBar(p: Props) {
         {secondaryCount > 0 && <span className={styles.hint}>{secondaryCount} applied</span>}
       </div>}
       {p.level && filtersOpen && <div id="vibetutor-secondary-filters" className={styles.secondaryFilters}>
-        <div className={styles.filterField}>
-          <span className={styles.subLabel}>Location · verified VibeSchool areas</span>
-          <select className={styles.select} value={county} onChange={e => chooseCounty(e.target.value)} aria-label="County">
-            <option value="">All counties</option>
-            {counties.map(value => <option key={value} value={value}>{value}</option>)}
+        <label className={styles.filterField}>
+          <span className={styles.subLabel}>Location</span>
+          <select className={styles.select} value={p.area} onChange={e => p.onArea(e.target.value)} aria-label="Location">
+            <option value="">All locations</option>
+            {p.areas.map(item => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
           </select>
-          <select className={styles.select} value={subCounty} onChange={e => { setSubCounty(e.target.value); setWard('') }} aria-label="Sub-county" disabled={!county || locationLoading}>
-            <option value="">All sub-counties</option>
-            {subCounties.map(value => <option key={value} value={value}>{value}</option>)}
-          </select>
-          <select className={styles.select} value={ward} onChange={e => setWard(e.target.value)} aria-label="Ward" disabled={!subCounty || locationLoading}>
-            <option value="">All wards</option>
-            {wards.map(value => <option key={value} value={value}>{value}</option>)}
-          </select>
-          <span className={styles.hint}>Sub-county and ward choices use the verified location directory. Example listings only contain broad areas, so those two levels cannot narrow the sample results yet.</span>
-        </div>
+          <span className={styles.hint}>Location choices reflect the areas available in the current example listings.</span>
+        </label>
         <div className={styles.filterField}>
           <span className={styles.subLabel}>Price per hour</span>
           <div className={styles.chipRow} role="group" aria-label="Price range">
