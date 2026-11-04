@@ -18,6 +18,7 @@ const TABS: { href: string; label: string; icon: IconName; match: (p: string) =>
 export default function Nav() {
   const path = usePathname() ?? ''
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
     const saved = window.localStorage.getItem('vibetutor-theme')
@@ -32,6 +33,7 @@ export default function Nav() {
     const apply = () => {
       const resolved = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme
       const canvas = resolved === 'dark' ? '#201d1d' : '#f5f0e8'
+      setResolvedTheme(resolved)
       document.documentElement.dataset.vtTheme = resolved
       document.documentElement.style.colorScheme = resolved
       // Keep the document canvas in sync with the VibeTutor shell so the
@@ -62,7 +64,7 @@ export default function Nav() {
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
           <Link href="/vibetutor" className={styles.brand} aria-label="VibeTutor home">
-            <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={124} height={32} priority className={styles.brandLogo} />
+            <Image src={resolvedTheme === 'dark' ? '/brand/vibeschool-wordmark-dark.svg' : '/brand/vibeschool-wordmark.svg'} alt="VibeSchool" width={124} height={32} priority className={styles.brandLogo} />
             <span className={styles.brandDivider} aria-hidden="true" />
             <span>VibeTutor</span>
           </Link>
