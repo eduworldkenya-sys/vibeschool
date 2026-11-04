@@ -5,7 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import SchoolLifeParticipation from "./SchoolLifeParticipation";
 
-type Group = { id: string; name: string; mode: string; purpose: string | null; subject_id: string | null; member: boolean; reason: string | null };
+type Group = { id: string; name: string; mode: string; purpose: string | null; subject_id: string | null; expires_at: string | null; subjectName: string | null; member: boolean; reason: string | null };
 type Duty = { id: string; title: string; starts_on: string; ends_on: string; members: { student_id: string; active: boolean }[] };
 type Loan = { id: string; student_id: string; book_title: string; due_date: string; returned_at: string | null };
 type Book = { id: string; title: string; available_copies: number };
@@ -38,12 +38,18 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
   const load = useCallback(async () => {
     if (kind === "activities") return;
     if (kind === "groups") {
-      let query = supabase.from("class_groups").select("id,name,mode,purpose,subject_id")
+      let query = supabase.from("class_groups").select("id,name,mode,purpose,subject_id,expires_at")
         .eq("class_id", classId).is("archived_at", null).or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
       if (subjectId) query = query.eq("subject_id", subjectId);
       const result = await query.order("name");
       if (result.error) throw result.error;
-      const rows: Omit<Group, "member" | "reason">[] = result.data ?? [];
+      const rows: Omit<Group, "member" | "reason" | "subjectName">[] = result.data ?? [];
+      const subjectIds = [...new Set(rows.map(group => group.subject_id).filter((id): id is string => !!id))];
+      const subjectResult = subjectIds.length
+        ? await supabase.from("subjects").select("id,name").in("id", subjectIds)
+        : { data: [], error: null };
+      if (subjectResult.error) throw subjectResult.error;
+      const subjectNames = new Map<string, string>((subjectResult.data ?? []).map((item: { id: string; name: string }): [string, string] => [item.id, item.name]));
       const savedMemberships = rows.length
         ? await supabase.from("class_group_members").select("group_id,student_id").eq("student_id", studentId).in("group_id", rows.map(group => group.id))
         : { data: [], error: null };
@@ -56,7 +62,7 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
         const member = (response.data ?? []).find((item: { student_id: string }) => item.student_id === studentId);
         return { ...group, member: !!member, reason: member?.reason ?? null };
       }));
-      setGroups(resolved);
+      setGroups(resolved.map(group => ({ ...group, subjectName: group.subject_id ? subjectNames.get(group.subject_id) ?? "Subject unavailable" : null })));
     } else {
       if (subjectId) throw new Error("Open the class-teacher view for school-life records.");
       const result = await supabase.rpc("teacher_get_class_operations", { p_class_id: classId });
@@ -85,7 +91,8 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
     {!loading && !error && kind === "groups" && <>
       {!groups.some(group => group.member) && <p>No current group memberships for this learner.</p>}
       {[...groups].sort((a, b) => Number(b.member) - Number(a.member)).map(group => <article key={group.id}>
-        <strong>{group.name}</strong><p>{group.purpose}</p>
+        <strong>{group.name}</strong><p>{group.subjectName ? `Subject: ${group.subjectName}` : "Class-wide group"} · {group.purpose ? `Purpose: ${group.purpose}` : "Purpose not specified"}</p>
+        <p>{group.expires_at ? `Expires ${new Date(group.expires_at).toLocaleDateString("en-KE", { timeZone: "Africa/Nairobi", day: "numeric", month: "short", year: "numeric" })}` : "Review date not recorded"}</p>
         <p>{group.member ? `Member${group.reason && group.mode === "smart" ? ` · ${group.reason}` : ""}` : "Not a member"} · {group.mode === "smart" ? "Smart list" : "Saved group"}</p>
         {group.mode !== "smart" && <button disabled={busy} onClick={() => void act(async () => {
           const result = group.member
