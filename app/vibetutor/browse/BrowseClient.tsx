@@ -5,7 +5,7 @@ import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar, { type FilterOption } from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
 import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
-import { DEMO_REQUESTS, DEMO_TUTORS, LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
+import { LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
 import { fetchLiveListings } from '@/components/vibetutor/listings'
 
 type View = 'tutors' | 'students'
@@ -40,9 +40,10 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     fetchLiveListings().then(result => { if (active) setLive(result) }).catch(() => { if (active) setLive(null) })
     return () => { active = false }
   }, [])
-  // Real listings replace the examples; examples show only while there are none.
-  const tutorSource = live && live.tutors.length ? live.tutors : DEMO_TUTORS
-  const requestSource = live && live.requests.length ? live.requests : DEMO_REQUESTS
+  // Only verified database rows are shown in live marketplace results.
+  // Fictional demo records must never appear as available tutors or learners.
+  const tutorSource = live?.tutors ?? []
+  const requestSource = live?.requests ?? []
 
   const tutorsFor = (f: Filters) => tutorSource.filter(t =>
     (!f.level || t.levels.includes(f.level)) &&
@@ -112,8 +113,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
         onClear={clear} busy={busy} />
       <div className={`${styles.list} ${busy ? styles.dim : ''}`} aria-live="polite">
         {view === 'tutors' && tutors.length === 0 && <div className={styles.emptyState}>
-          <p className={styles.empty}>No example tutors match these filters.</p>
-          <p className={styles.emptyHint}>Try a broader search: clear the subject, widen the price range, choose Any mode, or remove the location filter.</p>
+          <p className={styles.empty}>No tutors are currently listed for these filters.</p>
+          <p className={styles.emptyHint}>Try broadening your search, or check again later.</p>
           <div className={styles.emptyActions}>
             {subject && <button type="button" className={styles.emptyAction} onClick={() => setSubject('')}>Clear subject</button>}
             {priceRange && <button type="button" className={styles.emptyAction} onClick={() => setPriceRange('')}>Any price</button>}
@@ -124,8 +125,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
           </div>
         </div>}
         {view === 'students' && requests.length === 0 && <div className={styles.emptyState}>
-          <p className={styles.empty}>No example requests match these filters.</p>
-          <p className={styles.emptyHint}>Try a broader search: clear the subject, widen the price range, choose Any mode, or remove the location filter.</p>
+          <p className={styles.empty}>No learner requests are currently open for these filters.</p>
+          <p className={styles.emptyHint}>Try broadening your search, or check again later.</p>
           <div className={styles.emptyActions}>
             {subject && <button type="button" className={styles.emptyAction} onClick={() => setSubject('')}>Clear subject</button>}
             {priceRange && <button type="button" className={styles.emptyAction} onClick={() => setPriceRange('')}>Any price</button>}
