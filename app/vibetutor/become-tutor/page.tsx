@@ -75,11 +75,11 @@ export default function BecomeTutor() {
       <header className={styles.formHead}>
         <h1 className={styles.formTitle}>Teach on VibeTutor</h1>
         <p className={styles.muted}>Add your teaching details in one simple form.</p>
-        {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 3 sections complete`}>
+      </header>
+      {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 3 sections complete`}>
           <div className={polish.wizardMeta}><strong>Progress</strong><span>{completion.filter(Boolean).length} of 3 complete</span></div>
           <div className={polish.wizardSteps}>{["Teaching","Tuition details","Availability"].map((label,index)=><span key={label} title={label} aria-label={`${label} ${completion[index]?'complete':'incomplete'}`} className={completion[index]?polish.wizardStepDone:polish.wizardStep}>{completion[index]?'✓':index+1}</span>)}</div>
         </div>}
-      </header>
       <form className={styles.form} onSubmit={e => { e.preventDefault(); if (validForm) { saveDraft<TutorDraft>(DRAFT_KEY, { name, levels, subjects, mode, area, rate, days, phone }); window.location.assign('/login?next=%2Fvibetutor%2Fbecome-tutor') } }}>
         <Field label="Levels you teach" required><ToggleChips label="Levels" options={LEVELS} selected={levels} onToggle={value => updateLevels(toggle(levels, value))} /></Field>
         <Field label="Subjects" required>{levels.length > 0 && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
