@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import styles from './VibeTutor.module.css'
 import Icon from './Icon'
 import { modeLabel, type Mode } from './data'
@@ -16,6 +17,9 @@ type Props = {
   resultCount: number; noun: string; onClear: () => void
 }
 export default function FilterBar(p: Props) {
+  // Filters are collapsed by default so tutor/request cards are visible without scrolling.
+  const [open, setOpen] = useState(false)
+  const filterCount = [p.level, p.subject, p.area, p.mode, p.priceRange].filter(Boolean).length
   const active = !!(p.q || p.subject || p.level || p.area || p.mode || p.priceRange)
   const started = !!(p.q || p.level || p.subject || p.area || p.mode || p.priceRange)
   return (
@@ -24,11 +28,17 @@ export default function FilterBar(p: Props) {
         <button type="button" className={`${styles.segmentBtn} ${p.view === 'tutors' ? styles.segmentOn : ''}`} aria-pressed={p.view === 'tutors'} onClick={() => p.onView('tutors')}>Find a tutor</button>
         <button type="button" className={`${styles.segmentBtn} ${p.view === 'students' ? styles.segmentOn : ''}`} aria-pressed={p.view === 'students'} onClick={() => p.onView('students')}>Find learners</button>
       </div>
-      <label className={styles.searchWrap}>
-        <Icon name="search" size={18} className={styles.searchIcon} />
-        <input className={styles.search} type="search" value={p.q} onChange={e => p.onQ(e.target.value)} placeholder={p.placeholder} aria-label={p.placeholder} />
-      </label>
+      <div className={styles.searchRow}>
+        <label className={styles.searchWrap}>
+          <Icon name="search" size={18} className={styles.searchIcon} />
+          <input className={styles.search} type="search" value={p.q} onChange={e => p.onQ(e.target.value)} placeholder={p.placeholder} aria-label={p.placeholder} />
+        </label>
+        <button type="button" className={styles.filterToggle} aria-expanded={open} aria-controls="vt-filter-panel" onClick={() => setOpen(value => !value)}>
+          Filters{filterCount > 0 && <span className={styles.filterBadge} aria-label={`${filterCount} active`}>{filterCount}</span>}
+        </button>
+      </div>
 
+      {open && <div id="vt-filter-panel" className={styles.filterPanel}>
       <div className={styles.controls}>
         <label className={styles.filterField}>
           <span className={styles.subLabel}>Level</span>
@@ -44,7 +54,7 @@ export default function FilterBar(p: Props) {
             {p.areas.map(item => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
           </select>
         </label>}
-        {started && <div className={styles.filterField}>
+        {started && <div className={`${styles.filterField} ${styles.modeField}`}>
           <span className={styles.subLabel}>Teaching mode</span>
           <div className={styles.segment} role="group" aria-label="Teaching format">
             <button type="button" className={`${styles.segmentBtn} ${p.mode === '' ? styles.segmentOn : ''}`} aria-pressed={p.mode === ''} onClick={() => p.onMode('')}>Any</button>
@@ -75,6 +85,7 @@ export default function FilterBar(p: Props) {
             { value: 'over2000', label: 'KSh 2,000+' },
           ].map(option => <button key={option.value} type="button" className={`${styles.chip} ${p.priceRange === option.value ? styles.chipOn : ''}`} aria-pressed={p.priceRange === option.value} onClick={() => p.onPriceRange(option.value)}>{option.label}</button>)}
         </div>
+      </div>}
       </div>}
       <div className={styles.summary} aria-live="polite">
         <span className={styles.count}>{`${p.resultCount} ${p.noun}${p.resultCount === 1 ? '' : 's'} found`}</span>

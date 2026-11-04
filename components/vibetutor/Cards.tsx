@@ -13,7 +13,6 @@ export function TutorCard({ t }: { t: DemoTutor }) {
     <>
       <article className={styles.card}>
         <div className={styles.cardHead}>
-          <div className={styles.avatar} aria-hidden="true">{t.initials}</div>
           <div className={styles.cardTitleWrap}>
             <h3 className={styles.cardTitle}>{t.name}</h3>
             <p className={styles.muted}><Icon name="pin" size={14} /> {t.area}</p>
