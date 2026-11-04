@@ -34,6 +34,21 @@ export default function BecomeTutor() {
   const availableSubjects = useMemo(() => [...new Set(levels.flatMap(level => SUBJECTS_BY_LEVEL[level] || []))], [levels])
 
   useEffect(() => {
+    const draft = readDraft<TutorDraft>(DRAFT_KEY)
+    if (draft) {
+      setName(draft.name); setLevels(draft.levels); setSubjects(draft.subjects)
+      setMode(draft.mode); setArea(draft.area); setRate(draft.rate)
+      setDays(draft.days); setPhone(draft.phone); setTouched(true)
+    }
+    setReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!ready || !touched) return
+    saveDraft<TutorDraft>(DRAFT_KEY, { name, levels, subjects, mode, area, rate, days, phone })
+  }, [ready, touched, name, levels, subjects, mode, area, rate, days, phone])
+
+  useEffect(() => {
     let active = true
     getSupabaseClient().auth.getUser().then(({ data }) => {
       if (!active || !data.user) return
