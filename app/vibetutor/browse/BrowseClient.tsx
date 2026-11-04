@@ -5,8 +5,8 @@ import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar, { type FilterOption } from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
 import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
-import { DEMO_REQUESTS, DEMO_TUTORS, LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
-import { fetchLiveListings } from '@/components/vibetutor/listings'
+import { LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
+import { fetchLiveListings, type LiveListings } from '@/components/vibetutor/listings'
 
 type View = 'tutors' | 'students'
 type Filters = { q: string; subject: string; level: string; area: string; mode: Mode | ''; priceRange: string }
@@ -33,16 +33,25 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const [mode, setMode] = useState<Mode | ''>('')
   const [priceRange, setPriceRange] = useState('')
   const [busy, setBusy] = useState(false)
+  const [live, setLive] = useState<LiveListings | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
   const filters: Filters = { q, subject, level, area, mode, priceRange }
-  const [live, setLive] = useState<{ tutors: DemoTutor[]; requests: DemoRequest[] } | null>(null)
+
   useEffect(() => {
     let active = true
-    fetchLiveListings().then(result => { if (active) setLive(result) }).catch(() => { if (active) setLive(null) })
+    setLoading(true)
+    setLoadError('')
+    fetchLiveListings()
+      .then(result => { if (active) setLive(result) })
+      .catch(() => { if (active) { setLive(null); setLoadError('We could not load live VibeTutor listings. Check your connection and try again.') } })
+      .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [])
-  // Real listings replace the examples; examples show only while there are none.
-  const tutorSource = live && live.tutors.length ? live.tutors : DEMO_TUTORS
-  const requestSource = live && live.requests.length ? live.requests : DEMO_REQUESTS
+  }, [reloadKey])
+
+  const tutorSource: DemoTutor[] = live?.tutors ?? []
+  const requestSource: DemoRequest[] = live?.requests ?? []
 
   const tutorsFor = (f: Filters) => tutorSource.filter(t =>
     (!f.level || t.levels.includes(f.level)) &&
@@ -65,8 +74,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode, priceRange, requestSource])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
 
-  // Each facet is calculated without its own current selection. This keeps
-  // alternative choices visible while removing choices that cannot match.
+  // Each facet is calculated without its own current selection.
   const levelOptions: FilterOption[] = LEVELS.flatMap(value => {
     const f = { ...filters, level: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.levels.includes(value)).length : requestsFor(f).filter(r => r.level === value).length
@@ -109,11 +117,22 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
         areas={areaOptions} area={area} onArea={setArea}
         modes={modeOptions} mode={mode} onMode={setMode}
         resultCount={currentCount} noun={view === 'tutors' ? 'tutor' : 'request'}
-        onClear={clear} busy={busy} />
-      <div className={`${styles.list} ${busy ? styles.dim : ''}`} aria-live="polite">
-        {view === 'tutors' && tutors.length === 0 && <div className={styles.emptyState}>
-          <p className={styles.empty}>No example tutors match these filters.</p>
-          <p className={styles.emptyHint}>Try a broader search: clear the subject, widen the price range, choose Any mode, or remove the location filter.</p>
+        onClear={clear} busy={busy || loading} />
+      <div className={`${styles.list} ${busy || loading ? styles.dim : ''}`} aria-live="polite" aria-busy={loading}>
+        {loading && <div className={styles.emptyState}><p className={styles.empty}>Loading live listings…</p></div>}
+        {!loading && loadError && <div className={styles.emptyState} role="alert">
+          <p className={styles.empty}>Listings are temporarily unavailable.</p>
+          <p className={styles.emptyHint}>{loadError}</p>
+          <button type="button" className={styles.emptyAction} onClick={() => setReloadKey(value => value + 1)}>Try again</button>
+        </div>}
+        {!loading && !loadError && view === 'students' && !live?.signedIn && <div className={styles.emptyState}>
+          <p className={styles.empty}>Sign in to view learner requests.</p>
+          <p className={styles.emptyHint}>Learner requests are available to signed-in VibeTutor members.</p>
+          <a className={styles.emptyAction} href="/login?next=%2Fvibetutor%2Fbrowse%3Fview%3Dstudents">Sign in</a>
+        </div>}
+        {!loading && !loadError && view === 'tutors' && tutors.length === 0 && <div className={styles.emptyState}>
+          <p className={styles.empty}>{tutorSource.length === 0 ? 'No tutor listings have been published yet.' : 'No tutors match these filters.'}</p>
+          <p className={styles.emptyHint}>{tutorSource.length === 0 ? 'Be the first tutor to publish a listing.' : 'Try a broader search or clear some filters.'}</p>
           <div className={styles.emptyActions}>
             {subject && <button type="button" className={styles.emptyAction} onClick={() => setSubject('')}>Clear subject</button>}
             {priceRange && <button type="button" className={styles.emptyAction} onClick={() => setPriceRange('')}>Any price</button>}
@@ -123,20 +142,20 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
             {(subject || priceRange || mode || area || q || level) && <button type="button" className={styles.emptyAction} onClick={clear}>Clear all</button>}
           </div>
         </div>}
-        {view === 'students' && requests.length === 0 && <div className={styles.emptyState}>
-          <p className={styles.empty}>No example requests match these filters.</p>
-          <p className={styles.emptyHint}>Try a broader search: clear the subject, widen the price range, choose Any mode, or remove the location filter.</p>
+        {!loading && !loadError && view === 'students' && live?.signedIn && requests.length === 0 && <div className={styles.emptyState}>
+          <p className={styles.empty}>{requestSource.length === 0 ? 'No open learner requests yet.' : 'No requests match these filters.'}</p>
+          <p className={styles.emptyHint}>{requestSource.length === 0 ? 'New learner requests will appear here.' : 'Try a broader search or clear some filters.'}</p>
           <div className={styles.emptyActions}>
             {subject && <button type="button" className={styles.emptyAction} onClick={() => setSubject('')}>Clear subject</button>}
-            {priceRange && <button type="button" className={styles.emptyAction} onClick={() => setPriceRange('')}>Any price</button>}
+            {priceRange && <button type="button" className={styles.emptyAction} onClick={() => setPriceRange('')}>Any budget</button>}
             {mode && <button type="button" className={styles.emptyAction} onClick={() => setMode('')}>Any mode</button>}
             {area && <button type="button" className={styles.emptyAction} onClick={() => setArea('')}>Clear location</button>}
             {q && <button type="button" className={styles.emptyAction} onClick={() => setQ('')}>Clear search</button>}
             {(subject || priceRange || mode || area || q || level) && <button type="button" className={styles.emptyAction} onClick={clear}>Clear all</button>}
           </div>
         </div>}
-        {view === 'tutors' && tutors.map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
-        {view === 'students' && requests.map(request => <RequestCard key={request.id} r={request} />)}
+        {!loading && !loadError && view === 'tutors' && tutors.map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
+        {!loading && !loadError && view === 'students' && live?.signedIn && requests.map(request => <RequestCard key={request.id} r={request} />)}
       </div>
       <BackToTop />
     </>
