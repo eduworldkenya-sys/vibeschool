@@ -39,6 +39,139 @@ export type Database = {
   }
   public: {
     Tables: {
+      vibetutor_requests: {
+        Row: {
+          available_days: string[]
+          area: string | null
+          budget_kes: number | null
+          created_at: string
+          dayparts: string[]
+          id: string
+          learner_label: string
+          levels: string[]
+          note: string | null
+          phone: string | null
+          requester_id: string
+          source: string | null
+          status: string
+          subjects: string[]
+          teaching_mode: string
+          updated_at: string
+        }
+        Insert: {
+          available_days?: string[]
+          area?: string | null
+          budget_kes?: number | null
+          created_at?: string
+          dayparts?: string[]
+          id?: string
+          learner_label?: string
+          levels?: string[]
+          note?: string | null
+          phone?: string | null
+          requester_id: string
+          source?: string | null
+          status?: string
+          subjects?: string[]
+          teaching_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          available_days?: string[]
+          area?: string | null
+          budget_kes?: number | null
+          created_at?: string
+          dayparts?: string[]
+          id?: string
+          learner_label?: string
+          levels?: string[]
+          note?: string | null
+          phone?: string | null
+          requester_id?: string
+          source?: string | null
+          status?: string
+          subjects?: string[]
+          teaching_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibetutor_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vibetutor_tutors: {
+        Row: {
+          area: string | null
+          available_days: string[]
+          bio: string | null
+          created_at: string
+          dayparts: string[]
+          display_name: string
+          holiday_available: boolean
+          levels: string[]
+          phone: string | null
+          photo_path: string | null
+          profile_id: string
+          rate_kes: number | null
+          source: string | null
+          status: string
+          subjects: string[]
+          teaching_mode: string
+          updated_at: string
+        }
+        Insert: {
+          area?: string | null
+          available_days?: string[]
+          bio?: string | null
+          created_at?: string
+          dayparts?: string[]
+          display_name: string
+          holiday_available?: boolean
+          levels?: string[]
+          phone?: string | null
+          photo_path?: string | null
+          profile_id: string
+          rate_kes?: number | null
+          source?: string | null
+          status?: string
+          subjects?: string[]
+          teaching_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string | null
+          available_days?: string[]
+          bio?: string | null
+          created_at?: string
+          dayparts?: string[]
+          display_name?: string
+          holiday_available?: boolean
+          levels?: string[]
+          phone?: string | null
+          photo_path?: string | null
+          profile_id?: string
+          rate_kes?: number | null
+          source?: string | null
+          status?: string
+          subjects?: string[]
+          teaching_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibetutor_tutors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academic_terms: {
         Row: {
           academic_year: number
@@ -18542,6 +18675,41 @@ export type Database = {
       }
     }
     Views: {
+      vibetutor_open_requests: {
+        Row: {
+          area: string | null
+          available_days: string[] | null
+          budget_kes: number | null
+          created_at: string | null
+          dayparts: string[] | null
+          id: string | null
+          learner_label: string | null
+          levels: string[] | null
+          note: string | null
+          requester_id: string | null
+          subjects: string[] | null
+          teaching_mode: string | null
+        }
+        Relationships: []
+      }
+      vibetutor_public_tutors: {
+        Row: {
+          area: string | null
+          available_days: string[] | null
+          bio: string | null
+          created_at: string | null
+          dayparts: string[] | null
+          display_name: string | null
+          holiday_available: boolean | null
+          levels: string[] | null
+          photo_path: string | null
+          profile_id: string | null
+          rate_kes: number | null
+          subjects: string[] | null
+          teaching_mode: string | null
+        }
+        Relationships: []
+      }
       exam_bank_health: {
         Row: {
           active_count: number | null

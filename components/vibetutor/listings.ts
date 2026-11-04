@@ -1,13 +1,6 @@
 import { getSupabaseClient } from '@/lib/supabase'
 import type { DayPart, DemoRequest, DemoTutor, Mode } from './data'
 
-// The generated database types do not include the VibeTutor tables yet, so
-// these calls use an untyped view of the same client. Row shapes are checked below.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function untypedClient() {
-  return getSupabaseClient() as unknown as { from: (table: string) => any; auth: ReturnType<typeof getSupabaseClient>['auth'] }
-}
-
 // Live listings from the VibeTutor database. Rows are mapped to the shapes
 // the cards already render. Demo examples are used only when there are none.
 
@@ -27,7 +20,7 @@ function initialsOf(name: string) {
 }
 
 export async function fetchLiveListings(): Promise<{ tutors: DemoTutor[]; requests: DemoRequest[] }> {
-  const client = untypedClient()
+  const client = getSupabaseClient()
   const [tutorsRes, requestsRes] = await Promise.all([
     client.from('vibetutor_public_tutors').select('*').order('created_at', { ascending: false }),
     client.from('vibetutor_open_requests').select('*').order('created_at', { ascending: false }),
@@ -52,7 +45,7 @@ export async function saveTutorListing(input: {
   name: string; levels: string[]; subjects: string[]; mode: Mode; area: string
   rate: string; days: string[]; phone: string
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const client = untypedClient()
+  const client = getSupabaseClient()
   const { data: userData } = await client.auth.getUser()
   if (!userData.user) return { ok: false, error: 'Sign in to publish your listing.' }
   const { error } = await client.from('vibetutor_tutors').upsert({
@@ -68,7 +61,7 @@ export async function saveLearnerRequest(input: {
   learner: string; levels: string[]; subjects: string[]; mode: Mode; area: string
   budget: string; days: string[]; phone: string
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const client = untypedClient()
+  const client = getSupabaseClient()
   const { data: userData } = await client.auth.getUser()
   if (!userData.user) return { ok: false, error: 'Sign in to post your request.' }
   const { error } = await client.from('vibetutor_requests').insert({
