@@ -4,11 +4,11 @@ export type DayPart = 'morning' | 'afternoon' | 'evening' | 'night'
 
 export type DemoTutor = {
   id: string; name: string; initials: string; subjects: string[]; levels: string[]
-  mode: Mode; area: string; rateKes: number; holidayAvailable: boolean; days: string[]; bio: string; experience: string; formatNote: string
+  mode: Mode; area: string; rateKes: number; holidayAvailable: boolean; days: string[]; bio: string; experience: string; formatNote: string; real?: boolean
 }
 export type DemoRequest = {
   id: string; learnerLabel: string; subjects: string[]; level: string; mode: Mode; area: string
-  budgetKes: number; days: string[]; dayparts: DayPart[]; postedDaysAgo: number; note: string
+  budgetKes: number; days: string[]; dayparts: DayPart[]; postedDaysAgo: number; note: string; real?: boolean
 }
 
 export const LEVELS = ['Grade 4–6', 'Grade 7–9', 'Grade 10–12', 'Form 1–4', 'University']
