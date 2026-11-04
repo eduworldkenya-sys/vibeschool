@@ -671,3 +671,7 @@
 .emptyActions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
 .emptyAction { border: 1px solid var(--vt-line); border-radius: 999px; background: var(--vt-surface); color: var(--vt-ink); padding: 7px 11px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .emptyAction:hover { border-color: var(--vt-accent); color: var(--vt-accent); }
+
+
+.formActions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.formActions .btnSubmit { flex: 1 1 220px; }
