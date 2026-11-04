@@ -675,3 +675,28 @@
 
 .formActions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .formActions .btnSubmit { flex: 1 1 220px; }
+
+
+/* Keep the VibeSchool wordmark text and header theme control readable in dark mode.
+   The header sits outside .shell, so it must use explicit dark-theme colours. */
+:global(html[data-vt-theme='dark']) .topbar .brand {
+  color: #f2eee9;
+}
+:global(html[data-vt-theme='dark']) .topbar .brandDivider {
+  background: #625858;
+}
+:global(html[data-vt-theme='dark']) .topbar .themeControl {
+  color: #d1c8c2;
+}
+:global(html[data-vt-theme='dark']) .topbar .themeSelect {
+  color: #f7f2ed;
+  background-color: #332d2d;
+  border-color: #625858;
+}
+:global(html[data-vt-theme='dark']) .topbar .themeSelect option {
+  color: #f7f2ed;
+  background-color: #332d2d;
+}
+:global(html[data-vt-theme='dark']) .topbar .themeSelect:focus-visible {
+  outline-color: #d99aa5;
+}
