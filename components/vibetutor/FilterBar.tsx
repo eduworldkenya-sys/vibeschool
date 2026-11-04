@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import styles from './VibeTutor.module.css'
 import Icon from './Icon'
 import { modeLabel, type Mode } from './data'
@@ -16,8 +17,10 @@ type Props = {
   resultCount: number; noun: string; onClear: () => void; busy: boolean
 }
 export default function FilterBar(p: Props) {
+  const [filtersOpen, setFiltersOpen] = useState(false)
+
   const active = !!(p.q || p.subject || p.level || p.area || p.mode || p.priceRange)
-  const started = !!(p.q || p.level || p.subject || p.area || p.mode || p.priceRange)
+  const secondaryCount = Number(!!p.area) + Number(!!p.priceRange)
   return (
     <section className={styles.filterBar} aria-label="Search and filters">
       <div className={styles.segment} role="group" aria-label="I am looking for" style={{ justifySelf: 'start' }}>
@@ -28,31 +31,13 @@ export default function FilterBar(p: Props) {
         <Icon name="search" size={18} className={styles.searchIcon} />
         <input className={styles.search} type="search" value={p.q} onChange={e => p.onQ(e.target.value)} placeholder={p.placeholder} aria-label={p.placeholder} />
       </label>
-
-      <div className={styles.controls}>
-        <label className={styles.filterField}>
-          <span className={styles.subLabel}>Level</span>
-          <select className={styles.select} value={p.level} onChange={e => p.onLevel(e.target.value)} aria-label="Choose level first">
-            <option value="">All levels</option>
-            {p.levels.map(item => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
-          </select>
-        </label>
-        {started && <label className={styles.filterField}>
-          <span className={styles.subLabel}>Location</span>
-          <select className={styles.select} value={p.area} onChange={e => p.onArea(e.target.value)} aria-label="Location">
-            <option value="">All locations</option>
-            {p.areas.map(item => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
-          </select>
-        </label>}
-        {started && <div className={styles.filterField}>
-          <span className={styles.subLabel}>Teaching mode</span>
-          <div className={styles.segment} role="group" aria-label="Teaching format">
-            <button type="button" className={`${styles.segmentBtn} ${p.mode === '' ? styles.segmentOn : ''}`} aria-pressed={p.mode === ''} onClick={() => p.onMode('')}>Any</button>
-            {p.modes.map(item => <button key={item.value} type="button" className={`${styles.segmentBtn} ${p.mode === item.value ? styles.segmentOn : ''}`} aria-pressed={p.mode === item.value} onClick={() => p.onMode(item.value as Mode)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
-          </div>
-        </div>}
-      </div>
-
+      <label className={styles.filterField}>
+        <span className={styles.subLabel}>Class / level</span>
+        <select className={styles.select} value={p.level} onChange={e => p.onLevel(e.target.value)} aria-label="Choose class or level">
+          <option value="">All levels</option>
+          {p.levels.map(item => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
+        </select>
+      </label>
       {p.level && <div>
         <div className={styles.subjectHeading}>
           <p className={styles.subLabel}>Subject · {p.level}</p>
@@ -63,17 +48,42 @@ export default function FilterBar(p: Props) {
           {p.subjects.map(item => <button key={item.value} type="button" className={`${styles.chip} ${p.subject === item.value ? styles.chipOn : ''}`} aria-pressed={p.subject === item.value} onClick={() => p.onSubject(item.value)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
         </div>
       </div>}
-
-      {started && <div className={styles.filterField}>
-        <span className={styles.subLabel}>Price per hour</span>
-        <div className={styles.chipRow} role="group" aria-label="Price range">
-          {[
-            { value: '', label: 'Any price' },
-            { value: 'under500', label: 'Under KSh 500' },
-            { value: '500to1000', label: 'KSh 500–1,000' },
-            { value: '1000to2000', label: 'KSh 1,000–2,000' },
-            { value: 'over2000', label: 'KSh 2,000+' },
-          ].map(option => <button key={option.value} type="button" className={`${styles.chip} ${p.priceRange === option.value ? styles.chipOn : ''}`} aria-pressed={p.priceRange === option.value} onClick={() => p.onPriceRange(option.value)}>{option.label}</button>)}
+      <div className={styles.filterField}>
+        <span className={styles.subLabel}>Teaching mode</span>
+        <div className={styles.modeChoices} role="group" aria-label="Teaching mode">
+          <button type="button" className={`${styles.segmentBtn} ${p.mode === '' ? styles.segmentOn : ''}`} aria-pressed={p.mode === ''} onClick={() => p.onMode('')}>Any mode</button>
+          <button type="button" className={`${styles.segmentBtn} ${p.mode === 'online' ? styles.segmentOn : ''}`} aria-pressed={p.mode === 'online'} onClick={() => p.onMode('online')}>Online</button>
+          <button type="button" className={`${styles.segmentBtn} ${p.mode === 'physical' ? styles.segmentOn : ''}`} aria-pressed={p.mode === 'physical'} onClick={() => p.onMode('physical')}>In person</button>
+        </div>
+      </div>
+      {p.level && <div className={styles.compactFilterRow}>
+        <button type="button" className={styles.compactFilterButton} aria-expanded={filtersOpen} aria-controls="vibetutor-secondary-filters" onClick={() => setFiltersOpen(open => !open)}>
+          <span>More filters</span>
+          {secondaryCount > 0 && <span className={styles.compactFilterCount}>{secondaryCount}</span>}
+          <span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
+        </button>
+        {secondaryCount > 0 && <span className={styles.hint}>{secondaryCount} applied</span>}
+      </div>}
+      {p.level && filtersOpen && <div id="vibetutor-secondary-filters" className={styles.secondaryFilters}>
+        <label className={styles.filterField}>
+          <span className={styles.subLabel}>Location</span>
+          <select className={styles.select} value={p.area} onChange={e => p.onArea(e.target.value)} aria-label="Location">
+            <option value="">All locations</option>
+            {p.areas.map(item => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
+          </select>
+          <span className={styles.hint}>Location choices reflect the areas available in the current example listings.</span>
+        </label>
+        <div className={styles.filterField}>
+          <span className={styles.subLabel}>Price per hour</span>
+          <div className={styles.chipRow} role="group" aria-label="Price range">
+            {[
+              { value: '', label: 'Any price' },
+              { value: 'under500', label: 'Under KSh 500' },
+              { value: '500to1000', label: 'KSh 500–1,000' },
+              { value: '1000to2000', label: 'KSh 1,000–2,000' },
+              { value: 'over2000', label: 'KSh 2,000+' },
+            ].map(option => <button key={option.value} type="button" className={`${styles.chip} ${p.priceRange === option.value ? styles.chipOn : ''}`} aria-pressed={p.priceRange === option.value} onClick={() => p.onPriceRange(option.value)}>{option.label}</button>)}
+          </div>
         </div>
       </div>}
       <div className={styles.summary} aria-live="polite">

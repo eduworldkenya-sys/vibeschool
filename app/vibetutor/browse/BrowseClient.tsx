@@ -52,7 +52,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   )
 
   const tutors = useMemo(() => tutorsFor(filters), [q, subject, level, area, mode, priceRange])
-  const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode])
+  const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode, priceRange])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
 
   // Each facet is calculated without its own current selection. This keeps
@@ -75,11 +75,10 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.area === value).length : requestsFor(f).filter(r => r.area === value).length
     return count ? [{ value, label: value, count }] : []
   })
-  const modeOptions: FilterOption[] = (['online', 'physical'] as const).flatMap(value => {
-    const f: Filters = { ...filters, mode: '' }
-    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.mode === value || t.mode === 'either').length : requestsFor(f).filter(r => r.mode === value || r.mode === 'either').length
-    return count ? [{ value, label: value === 'online' ? 'Online' : 'In person', count }] : []
-  })
+  const modeOptions: FilterOption[] = [
+    { value: 'online', label: 'Online', count: 0 },
+    { value: 'physical', label: 'In person', count: 0 },
+  ]
 
   useEffect(() => {
     setBusy(true)
@@ -102,8 +101,30 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
         resultCount={currentCount} noun={view === 'tutors' ? 'tutor' : 'request'}
         onClear={clear} busy={busy} />
       <div className={`${styles.list} ${busy ? styles.dim : ''}`} aria-live="polite">
-        {view === 'tutors' && tutors.length === 0 && <p className={styles.empty}>No example tutors match these filters. Remove a filter to broaden your search.</p>}
-        {view === 'students' && requests.length === 0 && <p className={styles.empty}>No example requests match these filters. Remove a filter to broaden your search.</p>}
+        {view === 'tutors' && tutors.length === 0 && <div className={styles.emptyState}>
+          <p className={styles.empty}>No example tutors match these filters.</p>
+          <p className={styles.emptyHint}>Try a broader search: clear the subject, widen the price range, choose Any mode, or remove the location filter.</p>
+          <div className={styles.emptyActions}>
+            {subject && <button type="button" className={styles.emptyAction} onClick={() => setSubject('')}>Clear subject</button>}
+            {priceRange && <button type="button" className={styles.emptyAction} onClick={() => setPriceRange('')}>Any price</button>}
+            {mode && <button type="button" className={styles.emptyAction} onClick={() => setMode('')}>Any mode</button>}
+            {area && <button type="button" className={styles.emptyAction} onClick={() => setArea('')}>Clear location</button>}
+            {q && <button type="button" className={styles.emptyAction} onClick={() => setQ('')}>Clear search</button>}
+            {(subject || priceRange || mode || area || q || level) && <button type="button" className={styles.emptyAction} onClick={clear}>Clear all</button>}
+          </div>
+        </div>}
+        {view === 'students' && requests.length === 0 && <div className={styles.emptyState}>
+          <p className={styles.empty}>No example requests match these filters.</p>
+          <p className={styles.emptyHint}>Try a broader search: clear the subject, widen the price range, choose Any mode, or remove the location filter.</p>
+          <div className={styles.emptyActions}>
+            {subject && <button type="button" className={styles.emptyAction} onClick={() => setSubject('')}>Clear subject</button>}
+            {priceRange && <button type="button" className={styles.emptyAction} onClick={() => setPriceRange('')}>Any price</button>}
+            {mode && <button type="button" className={styles.emptyAction} onClick={() => setMode('')}>Any mode</button>}
+            {area && <button type="button" className={styles.emptyAction} onClick={() => setArea('')}>Clear location</button>}
+            {q && <button type="button" className={styles.emptyAction} onClick={() => setQ('')}>Clear search</button>}
+            {(subject || priceRange || mode || area || q || level) && <button type="button" className={styles.emptyAction} onClick={clear}>Clear all</button>}
+          </div>
+        </div>}
         {view === 'tutors' && tutors.map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
         {view === 'students' && requests.map(request => <RequestCard key={request.id} r={request} />)}
       </div>
