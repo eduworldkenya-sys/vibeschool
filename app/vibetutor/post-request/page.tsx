@@ -59,17 +59,17 @@ export default function PostRequest() {
   }, [])
 
   const clearForm = () => { setLearner(''); setSubjects([]); setLevel(''); setMode('either'); setArea(''); setDays([]); setBudget(''); setPhone(''); setTouched(false); clearDraft(DRAFT_KEY) }
-  const completion = [!!level && subjects.length > 0, !!area, days.length > 0, validKenyanPhone(phone)]
-  const validForm = completion.every(Boolean)
+  const completion = [!!level && subjects.length > 0, !!area, days.length > 0]
+  const validForm = completion.every(Boolean) && validKenyanPhone(phone)
   return (
     <div className={styles.formWrap}>
       <header className={styles.formHead}>
         <h1 className={styles.formTitle}>Request a tutor</h1>
-        <p className={styles.muted}>Tell us what your learner needs in one form.</p>
-        <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
-          <div className={polish.wizardMeta}><strong>Your request</strong><span>{completion.filter(Boolean).length} of 4 complete</span></div>
-          <div className={polish.wizardSteps}>{["Learner","Lessons","Schedule","Contact"].map((label,index)=><span key={label} title={label} aria-label={`${label} ${completion[index]?'complete':'incomplete'}`} className={completion[index]?polish.wizardStepDone:polish.wizardStep}>{completion[index]?'✓':index+1}</span>)}</div>
-        </div>
+        <p className={styles.muted}>Tell us what your learner needs in one simple form.</p>
+        {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 3 sections complete`}>
+          <div className={polish.wizardMeta}><strong>Progress</strong><span>{completion.filter(Boolean).length} of 3 complete</span></div>
+          <div className={polish.wizardSteps}>{["Learning needs","Tuition details","Availability"].map((label,index)=><span key={label} title={label} aria-label={`${label} ${completion[index]?'complete':'incomplete'}`} className={completion[index]?polish.wizardStepDone:polish.wizardStep}>{completion[index]?'✓':index+1}</span>)}</div>
+        </div>}
       </header>
       <form className={styles.form} onSubmit={e => { e.preventDefault(); if (validForm) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone }); window.location.assign('/login?next=%2Fvibetutor%2Fpost-request') } }}>
         <Field label="Level" required><select className={styles.input} value={level} onChange={e => { setTouched(true); setLevel(e.target.value); setSubjects([]) }}><option value="">Choose level</option>{LEVELS.map(item => <option key={item}>{item}</option>)}</select></Field>
