@@ -68,17 +68,17 @@ export default function BecomeTutor() {
   }
   const updatePhone = (value: string) => { setTouched(true); setPhone(value.replace(/[^0-9+ -]/g, '').slice(0, 16)) }
   const clearForm = () => { setName(''); setLevels([]); setSubjects([]); setMode('either'); setArea(''); setRate(''); setDays([]); setPhone(''); setConsent(false); setPhoto(''); setTouched(false); clearDraft(DRAFT_KEY) }
-  const completion = [levels.length > 0 && subjects.length > 0, !!area && Number(rate) > 0, days.length > 0, !!name.trim() && validKenyanPhone(phone) && consent]
-  const validForm = completion.every(Boolean)
+  const completion = [levels.length > 0 && subjects.length > 0, !!area && Number(rate) > 0, days.length > 0]
+  const validForm = completion.every(Boolean) && !!name.trim() && validKenyanPhone(phone) && consent
   return (
     <div className={styles.formWrap}>
       <header className={styles.formHead}>
         <h1 className={styles.formTitle}>Teach on VibeTutor</h1>
-        <p className={styles.muted}>Complete your tutor profile in one form.</p>
-        <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
-          <div className={polish.wizardMeta}><strong>Your profile</strong><span>{completion.filter(Boolean).length} of 4 complete</span></div>
-          <div className={polish.wizardSteps}>{["Teaching","Lessons","Availability","Profile"].map((label,index)=><span key={label} title={label} aria-label={`${label} ${completion[index]?'complete':'incomplete'}`} className={completion[index]?polish.wizardStepDone:polish.wizardStep}>{completion[index]?'✓':index+1}</span>)}</div>
-        </div>
+        <p className={styles.muted}>Add your teaching details in one simple form.</p>
+        {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 3 sections complete`}>
+          <div className={polish.wizardMeta}><strong>Progress</strong><span>{completion.filter(Boolean).length} of 3 complete</span></div>
+          <div className={polish.wizardSteps}>{["Teaching","Tuition details","Availability"].map((label,index)=><span key={label} title={label} aria-label={`${label} ${completion[index]?'complete':'incomplete'}`} className={completion[index]?polish.wizardStepDone:polish.wizardStep}>{completion[index]?'✓':index+1}</span>)}</div>
+        </div>}
       </header>
       <form className={styles.form} onSubmit={e => { e.preventDefault(); if (validForm) { saveDraft<TutorDraft>(DRAFT_KEY, { name, levels, subjects, mode, area, rate, days, phone }); window.location.assign('/login?next=%2Fvibetutor%2Fbecome-tutor') } }}>
         <Field label="Levels you teach" required><ToggleChips label="Levels" options={LEVELS} selected={levels} onToggle={value => updateLevels(toggle(levels, value))} /></Field>
