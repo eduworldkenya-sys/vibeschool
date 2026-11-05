@@ -91,3 +91,5 @@
 @media(max-width:600px){.canonicalPlaceholder{height:110px}.canonicalSection{padding:23px 0}.canonicalHero{padding:18px}.canonicalBody{padding:0 18px 20px}.canonicalManage{gap:10px}}
 
 .schoolCover{height:132px;display:flex;align-items:center;justify-content:center;background:#e3e9ed;color:#758797;border-radius:14px;overflow:hidden}.schoolCoverPhoto{width:100%;height:100%;object-fit:cover}@media(max-width:600px){.schoolCover{height:112px}}
+
+.schoolPageNav{display:flex;gap:4px;overflow-x:auto;padding:12px;background:#fff;border-bottom:1px solid #e2e6e9}.schoolPageNav a{padding:10px 12px;white-space:nowrap;border-radius:8px;color:#435569;text-decoration:none;font-size:14px}.schoolPageNav a[aria-current=page]{background:#e9eef3;color:#152b40;font-weight:700}.schoolPageNav a:focus-visible{outline:2px solid #175a84}
