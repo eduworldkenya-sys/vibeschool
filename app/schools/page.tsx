@@ -32,7 +32,7 @@ export default function SchoolsDirectoryPage(){
    if(cancelled)return
    if(primary.error&&directory.error){setError('Could not load schools. Try again.');setEntries([]);setHasMore(false);setLoading(false);return}
    const a=((primary.data||[]) as School[]).map(s=>({id:s.school_id,name:s.school_name,county:s.county,subCounty:s.sub_county,level:s.school_category,ownership:s.ownership_type,href:'/schools/'+encodeURIComponent(s.school_id)}))
-   const b=((directory.data||[]) as DirectorySchool[]).map(s=>({id:s.directory_id,name:s.school_name,county:s.county,subCounty:s.sub_county,level:s.school_level,ownership:s.ownership_type,href:null}))
+   const b=((directory.data||[]) as DirectorySchool[]).map(s=>({id:s.directory_id,name:s.school_name,county:s.county,subCounty:s.sub_county,level:s.school_level,ownership:s.ownership_type,href:'/schools/directory/'+encodeURIComponent(s.directory_id)+'?name='+encodeURIComponent(s.school_name)}))
    const seen=new Set<string>()
    const merged=[...a,...b].filter(s=>{const k=key(s);if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>x.name.localeCompare(y.name))
    setEntries(merged);setHasMore((primary.data||[]).length===LIMIT||(directory.data||[]).length===LIMIT);setLoading(false)
@@ -53,7 +53,7 @@ export default function SchoolsDirectoryPage(){
    {loading?<p role="status" className={styles.directoryStatus}>Loading schools…</p>:<>
     <div className={styles.directoryList}>{shown.map(s=>{
      const content=<><span className={styles.directoryIcon} aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 21V7l9-4 9 4v14M3 10h18M9 21v-7h6v7M7 13h1m8 0h1"/></svg></span><span className={styles.directoryInfo}><strong>{s.name}</strong><small>{[s.subCounty,s.county,s.level].filter(Boolean).join(' · ')}</small></span>{s.href&&<span className={styles.directoryArrow} aria-hidden="true">›</span>}</>
-     return s.href?<Link className={styles.directoryItem} key={s.id} href={s.href}>{content}</Link>:<div className={styles.directoryItem} key={'directory-'+s.id}>{content}</div>
+     return <Link className={styles.directoryItem} key={s.id} href={s.href!}>{content}</Link>
     })}</div>
     {!entries.length&&!error&&<p className={styles.directoryStatus}>No schools found.</p>}
     {shown.length<entries.length&&<button className={styles.directoryMore} onClick={()=>setPage(p=>p+1)}>Show more schools</button>}
