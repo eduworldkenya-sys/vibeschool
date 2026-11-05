@@ -44,3 +44,12 @@
 .directoryMore{display:block;margin:24px auto;border:1px solid #b7c1cb;background:transparent;color:inherit;border-radius:12px;padding:12px 20px;cursor:pointer}
 @media(prefers-color-scheme:dark){.directorySearch,.directoryIcon{background:#262a30;color:#c1c7d0}.directorySearch input{color:#f2f4f7}.directorySearch input::placeholder{color:#a7adb7}.directoryItem{border-color:#363a41}.directoryInfo small,.directoryArrow,.directoryStatus{color:#a9b0ba}}
 @media(max-width:560px){.directoryMain{padding:30px 20px 64px}.directoryItem{min-height:94px;gap:15px}.directoryIcon{width:48px;height:48px}.directoryInfo strong{font-size:16px}}
+
+/* Historical school coordinates are shown as an approximate pin, not a verified campus entrance. */
+.siteMap{margin-top:20px;border:1px solid #dde7eb;border-radius:16px;overflow:hidden;background:#f7fafb}
+.siteMapLabel{font-size:13px;font-weight:750;color:#344e60;margin:0;padding:14px 16px}
+.siteMapFrame{display:block;width:100%;height:320px;border:0;background:#e5eceb}
+.siteMapFooter{display:flex;gap:12px 18px;align-items:center;flex-wrap:wrap;padding:14px 16px;font-size:13px;line-height:1.5;color:#425b68}
+.siteMapFooter span{flex:1 1 100%;color:#475e6c}
+.siteMapFooter a{color:#0c5c67;font-weight:700;text-underline-offset:3px}
+@media(max-width:560px){.siteMapFrame{height:270px}.siteMapFooter{gap:8px 16px}}
