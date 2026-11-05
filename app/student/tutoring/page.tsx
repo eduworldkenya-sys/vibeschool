@@ -1,11 +1,10 @@
 "use client";
 import { useEffect,useState } from "react";
 import Link from "next/link";
-import {useSearchParams} from "next/navigation";
 import {getSupabaseClient} from "@/lib/supabase";
 export default function StudentTuition(){
- const params=useSearchParams();const [token,setToken]=useState("");const [busy,setBusy]=useState(false);const [notice,setNotice]=useState("");const [error,setError]=useState("");
- useEffect(()=>{setToken(params.get("invite")||"")},[params]);
+ const [token,setToken]=useState("");const [busy,setBusy]=useState(false);const [notice,setNotice]=useState("");const [error,setError]=useState("");
+ useEffect(()=>{setToken(new URLSearchParams(window.location.search).get("invite")||"")},[]);
  async function accept(){setBusy(true);setError("");setNotice("");const db=getSupabaseClient();const {data:auth}=await db.auth.getUser();if(!auth.user){window.location.assign("/login?redirect="+encodeURIComponent("/student/tutoring?invite="+token));return;}
  const {data,error}=await db.rpc("vibetutor_claim_student_invite",{p_token:token.trim()});setBusy(false);
  if(error){setError("This invitation could not be accepted. Confirm the link is valid and you are signed into your learner account.");return;}
