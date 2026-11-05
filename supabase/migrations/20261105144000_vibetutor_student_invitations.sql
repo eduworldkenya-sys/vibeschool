@@ -6,7 +6,7 @@ create table public.vibetutor_student_invitations (
  id uuid primary key default gen_random_uuid(),
  token uuid not null unique default gen_random_uuid(),
  tutor_id uuid not null references public.vibetutor_tutors(profile_id) on delete cascade,
- student_id uuid references public.students(id) on delete set null,
+ student_id uuid references public.students(id) on delete cascade,
  status text not null default 'open' check (status in ('open','pending_guardian','accepted','declined','revoked')),
  created_at timestamptz not null default now(),
  updated_at timestamptz not null default now(),
