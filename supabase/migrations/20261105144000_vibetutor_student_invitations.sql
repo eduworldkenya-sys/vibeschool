@@ -2,6 +2,8 @@
 -- authorization-test: only listing owner creates/revokes invitations; student claims own identity with unguessable token;
 -- authorization-test: only linked guardian can approve minors; no direct client table permissions.
 begin;
+-- access: service-only public.vibetutor_student_invitations
+-- authorization-test: public.vibetutor_student_invitations is not directly accessible by anon/authenticated; only authenticated caller-scoped RPCs may change/list invitations.
 create table public.vibetutor_student_invitations (
  id uuid primary key default gen_random_uuid(),
  token uuid not null unique default gen_random_uuid(),
@@ -93,6 +95,8 @@ grant execute on function public.vibetutor_my_student_invites() to authenticated
 grant execute on function public.vibetutor_revoke_student_invite(uuid) to authenticated;
 -- A private share code belongs to one claimed learner account. It is not an admission number
 -- and does not authorize access to school records.
+-- access: service-only public.vibetutor_student_invite_codes
+-- authorization-test: public.vibetutor_student_invite_codes denies direct anon/authenticated access; learner can read only their own code via authenticated RPC.
 create table public.vibetutor_student_invite_codes (
  student_id uuid primary key references public.students(id) on delete cascade,
  code text not null unique default upper(substr(replace(gen_random_uuid()::text,'-',''),1,16)),
