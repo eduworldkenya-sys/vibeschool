@@ -3,6 +3,7 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { TrackedLink } from "@/components/public/TrackedLink";
 import { BookOpen, CalendarDays, ClipboardCheck, ArrowRight, CheckCircle2, GraduationCap, MessageCircle, BriefcaseBusiness } from "lucide-react";
 import styles from "./TeacherGateway.module.css";
+import TeachingJobs from "./TeachingJobs";
 
 
 export const metadata = {
@@ -51,8 +52,8 @@ export default function TeacherGateway() {
       <section className={styles.jobs} aria-labelledby="teacher-jobs-title">
         <div className={styles.wrap}>
           <div className={styles.jobsHeading}><h2 id="teacher-jobs-title">Teaching jobs</h2><BriefcaseBusiness size={19} aria-hidden="true"/></div>
-          <div className={styles.jobsEmpty} role="status">No teaching vacancies listed yet.</div>
-          <p className={styles.demoNote}>Only approved, current vacancies will appear here when the marketplace is connected.</p>
+          <TeachingJobs />
+          <p className={styles.demoNote}>Only approved, current vacancies appear here.</p>
         </div>
       </section>
       <section className={styles.journey} aria-labelledby="journey-title">
