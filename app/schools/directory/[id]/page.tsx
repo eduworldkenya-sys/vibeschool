@@ -1,10 +1,11 @@
 'use client'
+import { SchoolFooter } from '../../components/SchoolFooter'
 
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { PublicHeader } from '@/components/public/PublicHeader'
-import { PublicFooter } from '@/components/public/PublicFooter'
+
 import { supabase } from '@/lib/supabase'
 import styles from '../../schools.module.css'
 import { SchoolCover } from '../../components/SchoolCover'
@@ -42,5 +43,5 @@ export default function DirectorySchoolPage(){
    <section className={styles.canonicalHero}><SchoolCover name={school.school_name}/><h1 className={styles.canonicalTitle}>{school.school_name}</h1><p className={styles.canonicalLocation}>{[school.sub_county,school.county].filter(Boolean).join(', ')}</p><div className={styles.canonicalChips}>{[school.school_level,school.ownership_type].filter(Boolean).map(value=><span key={value}>{value}</span>)}</div></section>
    <div className={styles.canonicalBody}><section className={styles.canonicalSection}><h2>School information</h2><div className={styles.canonicalFacts}>{facts.map(([label,value])=><div className={styles.canonicalFact} key={label}><span>{label}</span><strong>{value}</strong></div>)}</div></section><p className={styles.canonicalNote}>Directory information · This school has not claimed this page</p></div>
   </>}
- </main><PublicFooter/></div>
+ </main><SchoolFooter name={school?.school_name} location={[school?.sub_county,school?.county].filter(Boolean).join(', ')}/></div>
 }
