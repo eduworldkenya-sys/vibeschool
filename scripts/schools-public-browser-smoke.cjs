@@ -20,7 +20,7 @@ async function verify() {
       const pageErrors = [];
       const networkErrors = [];
       page.on('requestfailed', request => { if(request.url().includes('/rest/v1/rpc/')) networkErrors.push(request.url().split('?')[0]+' '+request.failure()?.errorText); });
-      page.on('response', async response => { if(response.url().includes('/rest/v1/rpc/') && response.status()>=400) networkErrors.push(response.status()+' '+(await response.text()).slice(0,400)); });
+      page.on('response', response => { if(response.url().includes('/rest/v1/rpc/') && response.status()>=400) networkErrors.push(response.status()+' '+response.url().split('?')[0]); });
       page.on('pageerror', error => pageErrors.push(error.message));
       await page.goto(ORIGIN + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
       const mobile = size.width <= 1040;
