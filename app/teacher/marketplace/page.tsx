@@ -99,6 +99,19 @@ export default function TeacherMarketplace(){
   if(e)setError(e.message);else{setSelected(null);setMessage("");setPhone("");setNotice("Interest sent privately to the listing owner.");await load();}
   setBusy(false);
  }
+ async function removeInterest(id:string){
+  setBusy(true);setError("");
+  const {error:e}=await getSupabaseClient().from("teacher_swap_interests").delete().eq("id",id).eq("sender_id",userId!);
+  if(e)setError(e.message);else{setNotice("Interest withdrawn.");await load();}
+  setBusy(false);
+ }
+ async function deleteSwap(){
+  if(!mine||!window.confirm("Delete your swap listing and its interest requests?"))return;
+  setBusy(true);setError("");
+  const {error:e}=await getSupabaseClient().from("teacher_swap_listings").delete().eq("id",mine.id).eq("teacher_id",userId!);
+  if(e)setError(e.message);else{setNotice("Swap listing deleted.");await load();}
+  setBusy(false);
+ }
  async function respond(id:string,status:"accepted"|"declined"){
   setBusy(true);setError("");
   const {error:e}=await getSupabaseClient().from("teacher_swap_interests").update({status}).eq("id",id).eq("listing_id",mine?.id??"");
@@ -119,7 +132,7 @@ export default function TeacherMarketplace(){
     <p className={styles.disclaimer}>Discovery only. Matching is not TSC approval. Complete official transfers through the <a href="https://portal.tsc.go.ke/" target="_blank" rel="noopener noreferrer">TSC portal</a>.</p>
     {notice&&<p className={styles.success} role="status">{notice}</p>}
     {error&&<p className={styles.error} role="alert">{error}</p>}
-    {mine&&!editing&&<section className={styles.mine}><div className={styles.heading}><div><strong>My swap · {mine.status==="published"?"Published":"Paused"}</strong><p>{mine.current_county} → {mine.preferred_county} · {mine.school_level}</p></div><button className={styles.secondary} disabled={busy} onClick={()=>void toggle()}>{mine.status==="published"?"Pause":"Republish"}</button></div>
+    {mine&&!editing&&<section className={styles.mine}><div className={styles.heading}><div><strong>My swap · {mine.status==="published"?"Published":"Paused"}</strong><p>{mine.current_county} → {mine.preferred_county} · {mine.school_level}</p></div><div className={styles.actions}><button className={styles.secondary} disabled={busy} onClick={()=>void toggle()}>{mine.status==="published"?"Pause":"Republish"}</button><button className={styles.secondary} disabled={busy} onClick={()=>void deleteSwap()}>Delete</button></div></div>
       {incoming.length>0&&<div className={styles.requests}><strong>Interest requests ({incoming.length})</strong>{incoming.map(i=><article key={i.id}><p>{i.message||"Interested in your swap."}</p><small>Contact provided: {i.contact_phone} · {i.status}</small>{i.status==="pending"&&<div className={styles.actions}><button disabled={busy} className={styles.primary} onClick={()=>void respond(i.id,"accepted")}>Accept</button><button disabled={busy} className={styles.secondary} onClick={()=>void respond(i.id,"declined")}>Decline</button></div>}</article>)}</div>}
     </section>}
     {editing&&<div className={styles.form}><h3>{mine?"Edit your swap":"Post your swap"}</h3><p>Your account is used automatically. Do not enter your name or personal details in the listing.</p>
@@ -133,6 +146,7 @@ export default function TeacherMarketplace(){
       </div>
       <div className={styles.actions}><button className={styles.primary} disabled={busy} onClick={()=>void save()}>{busy?"Saving…":mine?"Save changes":"Publish swap"}</button><button className={styles.secondary} disabled={busy} onClick={()=>setEditing(false)}>Cancel</button></div>
      </div>}
+    {userId&&interests.some(i=>i.sender_id===userId)&&<section className={styles.mine}><strong>My interest requests</strong><div className={styles.requests}>{interests.filter(i=>i.sender_id===userId).map(i=>{const l=listings.find(l=>l.id===i.listing_id);return <article key={i.id}><p>{l?`${l.current_county} → ${l.preferred_county}`:"Listing unavailable"} · {i.status}</p>{i.status==="pending"&&<button className={styles.secondary} disabled={busy} onClick={()=>void removeInterest(i.id)}>Withdraw</button>}</article>})}</div></section>}
     {!userId&&!loading&&<p className={styles.hint}>You can browse swaps without an account. <Link href="/login?redirect=%2Fteacher%2Fmarketplace">Sign in to post or express interest.</Link></p>}
     <div className={styles.findHeading}><h3>Find swaps</h3><button className={styles.filterButton} onClick={()=>setFilters(!filters)} aria-expanded={filters}><SlidersHorizontal size={17}/> Filters</button></div>
     {filters&&<div className={styles.filters}><label>County<select value={filterCounty} onChange={e=>setFilterCounty(e.target.value)}><option value="">Any county</option>{countryOptions(filterCounty)}</select></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
