@@ -1,0 +1,36 @@
+.page{min-height:100vh;background:#f7f9f6;color:#172b25;font-family:var(--font-jakarta),Arial,sans-serif;line-height:1.55;overflow-x:clip}
+.wrap{width:min(1120px,calc(100% - 36px));margin-inline:auto}
+.hero{padding:clamp(72px,10vw,130px) 0 clamp(72px,9vw,112px);background:radial-gradient(ellipse at 90% 0%,#d8ede2,transparent 52%),linear-gradient(180deg,#f2f8f3,#fff)}
+.eyebrow{font-size:11px;letter-spacing:.13em;font-weight:800;color:#23634d;margin:0 0 16px}
+.hero h1{max-width:850px;font-family:var(--font-display),var(--font-jakarta),sans-serif;font-weight:800;font-size:clamp(42px,7vw,78px);line-height:1.07;letter-spacing:-.055em;margin:0 0 22px}
+.hero h1 span{color:#197452}
+.intro{max-width:670px;font-size:clamp(17px,2.2vw,21px);line-height:1.65;color:#485e54;margin:0}
+.heroActions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:30px}
+.primary,.secondary,.support{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;border-radius:13px;padding:12px 22px;font-size:14px;font-weight:750;text-decoration:none;transition:transform .18s,background .18s}
+.primary{background:#176b4e;color:#fff}.primary:hover{background:#0d523a;transform:translateY(-1px)}
+.secondary{color:#173b2f;background:#fff;border:1px solid #bfd3c7}.secondary:hover{background:#edf7f0}
+.note{display:flex;align-items:center;gap:8px;color:#527061;font-size:13px;margin-top:28px}
+.section{padding:76px 0 86px;background:#fff}.sectionHeading{display:flex;justify-content:space-between;gap:30px;align-items:end;margin-bottom:28px}
+.sectionHeading h2,.journey h2,.workspace h2{font-family:var(--font-display),var(--font-jakarta),sans-serif;font-size:clamp(30px,4vw,46px);letter-spacing:-.04em;line-height:1.15;margin:0}
+.sectionHeading>p{max-width:345px;color:#52665d;margin:0}
+.taskGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+.task{display:flex;flex-direction:column;min-width:0;padding:26px 22px;border:1px solid #dce7de;border-radius:20px;background:#fff;box-shadow:0 5px 20px rgba(15,65,37,.035)}
+.taskIcon{display:grid;place-items:center;width:48px;height:48px;border-radius:13px;color:#126347;background:#e7f4ec;margin-bottom:24px}
+.task h3{font-size:18px;letter-spacing:-.02em;margin:0 0 8px}.task p{font-size:14px;color:#57675e;margin:0 0 25px;flex:1}
+.task a{display:inline-flex;align-items:center;gap:7px;color:#146346;font-size:14px;font-weight:800;text-decoration:none;align-self:flex-start}
+.task a:hover{text-decoration:underline}
+.journey{padding:84px 0;background:#edf5ef}.journeyLead{color:#52665d;max-width:620px;margin:15px 0 34px}
+.journeyGrid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.journeyGrid li{background:#fff;border:1px solid #d8e6dd;border-radius:17px;padding:24px;min-width:0}
+.number{display:inline-flex;align-items:center;justify-content:center;width:43px;height:43px;border-radius:50%;background:#e4f1e8;color:#176b4e;font-weight:800;font-size:14px}
+.journeyGrid h3{font-size:20px;margin:19px 0 6px}.journeyGrid p{font-size:14px;color:#53675b;margin:0}
+.workspace{padding:85px 0}.workspacePanel{background:#173e32;color:#fff;border-radius:26px;padding:clamp(26px,5vw,56px);display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start}
+.workspaceIcon{display:grid;place-items:center;background:#295e47;width:65px;height:65px;border-radius:18px}
+.workspace .eyebrow{color:#b3dec3}.workspace p:not(.eyebrow){color:#d4e4d8;max-width:650px}
+.workspace .primary{background:#e6f4e7;color:#143f2b}.workspace .primary:hover{background:#fff}
+.support{border:1px solid #8caf9a;color:#fff}.support:hover{background:#285444}
+.page a:focus-visible{outline:3px solid #e9a936;outline-offset:4px}
+@media(max-width:960px){.taskGrid,.journeyGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.sectionHeading{align-items:start;flex-direction:column;gap:10px}}
+@media(max-width:600px){.wrap{width:calc(100% - 32px)}.hero{padding:64px 0 70px}.section,.journey,.workspace{padding:56px 0}.taskGrid{gap:11px}.task{padding:18px 15px}.taskIcon{margin-bottom:15px}.task h3{font-size:16px}.task p{font-size:13px}.journeyGrid{gap:10px}.journeyGrid li{padding:17px}.journeyGrid h3{font-size:17px}.workspacePanel{grid-template-columns:1fr;gap:16px;border-radius:19px}.heroActions{align-items:stretch;flex-direction:column}.primary,.secondary,.support{width:100%;min-width:0;text-align:center}.note{align-items:flex-start}}
+@media(max-width:350px){.taskGrid,.journeyGrid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.primary,.secondary,.support{transition:none}.primary:hover{transform:none}}
