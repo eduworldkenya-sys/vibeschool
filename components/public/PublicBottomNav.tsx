@@ -1,3 +1,7 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
+import styles from './PublicBottomNav.module.css'
 import Link from 'next/link'
 
 const items = [
@@ -19,9 +23,15 @@ function NavIcon({ name }: { name: (typeof items)[number]['icon'] }) {
   }
 }
 
+const PUBLIC_ROOTS = new Set(['/', '/teacher', '/schools', '/product', '/about', '/contact', '/institutions', '/pathways', '/trust'])
+
 export function PublicBottomNav() {
+  const pathname = usePathname()
+  // School sites, examinations, and workspaces maintain their own navigation.
+  if (!PUBLIC_ROOTS.has(pathname)) return null
   return (
-    <nav aria-label="Main navigation" style={{
+    <>
+    <nav aria-label="Main navigation" className={styles.nav} style={{
       position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 80,
       paddingBottom: 'env(safe-area-inset-bottom)',
       background: 'rgba(255,255,255,.97)', borderTop: '1px solid #e5e7eb',
@@ -30,10 +40,11 @@ export function PublicBottomNav() {
       <div style={{ width: 'min(640px, 100%)', height: 64, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', alignItems: 'center' }}>
         {items.map((item) => {
           const isCreate = item.icon === 'create'
-          const color = item.icon === 'home' ? '#172033' : '#6b7280'
+          const isActive = pathname === item.href
+          const color = isActive ? '#172033' : '#6b7280'
           return (
-            <Link key={item.label} href={item.href} aria-label={item.label} aria-current={item.icon === 'home' ? 'page' : undefined}
-              style={{ minWidth: 0, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color, textDecoration: 'none', fontSize: 10, fontWeight: item.icon === 'home' ? 800 : 650 }}>
+            <Link key={item.label} href={item.href} aria-label={item.label} aria-current={isActive ? 'page' : undefined}
+              style={{ minWidth: 0, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color, textDecoration: 'none', fontSize: 10, fontWeight: isActive ? 800 : 650 }}>
               <span style={isCreate ? { width: 38, height: 38, marginTop: -18, borderRadius: 14, display: 'grid', placeItems: 'center', background: '#172033', color: '#fff', boxShadow: '0 4px 12px rgba(23,32,51,.2)' } : { display: 'grid', placeItems: 'center', height: 22 }}>
                 <NavIcon name={item.icon}/>
               </span>
@@ -43,5 +54,7 @@ export function PublicBottomNav() {
         })}
       </div>
     </nav>
+    <div className={styles.spacer} aria-hidden="true" />
+    </>
   )
 }
