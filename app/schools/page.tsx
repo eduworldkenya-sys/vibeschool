@@ -13,6 +13,9 @@ const LIMIT=100
 
 export default function SchoolsDirectoryPage(){
  const [query,setQuery]=useState('')
+ // Prevent early typing being discarded before React attaches the input handler.
+ const [ready,setReady]=useState(false)
+ useEffect(()=>{setReady(true)},[])
  const [entries,setEntries]=useState<Entry[]>([])
  const [loading,setLoading]=useState(true)
  const [error,setError]=useState('')
@@ -39,7 +42,7 @@ export default function SchoolsDirectoryPage(){
    <h1 className={styles.directoryTitle}>Find a school</h1>
    <div className={styles.directorySearch}>
     <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
-    <input aria-label="Search schools" type="search" autoComplete="off" placeholder="Search school name..." value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/>
+    <input disabled={!ready} aria-label="Search schools" type="search" autoComplete="off" placeholder="Search school name..." value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/>
    </div>
    <div className={styles.directoryHeading}><h2>{query?'Schools':'All schools'}</h2></div>
    {error&&<div role="alert" className={styles.directoryStatus}>{error} <button onClick={()=>setRetry(v=>v+1)}>Retry</button></div>}
