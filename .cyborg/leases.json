@@ -1,23 +1,19 @@
 [
   {
-    "missionId": "CYBORG-20261030083723-94da15",
-    "runId": "97375cd2-42c2-4fdb-98de-a1ab4a599c50",
+    "missionId": "CYBORG-20261105121428-09e8c3",
+    "runId": "49cd5144-0572-49ba-9fa9-4f393493e6db",
     "paths": [
-      "lib/success-wishes",
-      "app/success-wishes",
-      "app/api/success-wishes",
-      "components/success-wishes",
-      "supabase/migrations",
-      "app/api/hq/success-wishes-ledger",
-      "docs/success-wishes",
-      "qa/success-wishes",
-      ".github/workflows/success-wishes-contracts.yml",
-      "app/api/hq/success-wishes/ledger",
-      "app/hq/success-wishes/ledger",
-      "app/hq/success-wishes/page.tsx",
-      "config/service-role-boundaries.json"
+      "app/school",
+      "app/schools",
+      "lib/school-urls.ts",
+      "supabase/migrations/school_public_urls",
+      "scripts/test-school-urls.mjs",
+      ".github/workflows/school-public-urls.yml",
+      ".github/workflows/schools-public-visitor-smoke.yml",
+      "scripts/schools-public-browser-smoke.cjs",
+      "lib/school-urls-server.ts"
     ],
-    "acquiredAt": "2026-10-30T08:39:34.836Z",
-    "releasedAt": "2026-10-30T09:33:45.395Z"
+    "acquiredAt": "2026-11-05T12:14:51.826Z",
+    "releasedAt": null
   }
 ]

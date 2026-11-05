@@ -3,12 +3,16 @@ on:
   pull_request:
     paths:
       - 'app/schools/**'
+      - 'app/school/**'
+      - 'lib/school-urls*'
       - 'scripts/schools-public-browser-smoke.cjs'
       - '.github/workflows/schools-public-visitor-smoke.yml'
   push:
     branches: [main]
     paths:
       - 'app/schools/**'
+      - 'app/school/**'
+      - 'lib/school-urls*'
       - 'scripts/schools-public-browser-smoke.cjs'
       - '.github/workflows/schools-public-visitor-smoke.yml'
   workflow_dispatch:
@@ -23,7 +27,19 @@ jobs:
           node-version: '22'
       - run: npm install --no-save --ignore-scripts playwright@1.56.1
       - run: npx playwright install --with-deps chromium
+      - name: Start exact candidate against public data
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          npm run dev -- --port 3100 > /tmp/schools-next.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3100/schools > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/schools-next.log
+          exit 1
       - name: Test public Schools experience
         env:
-          VIBESCHOOL_ORIGIN: https://vibeschool.co.ke
+          VIBESCHOOL_ORIGIN: http://127.0.0.1:3100
         run: node scripts/schools-public-browser-smoke.cjs
