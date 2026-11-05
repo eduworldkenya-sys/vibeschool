@@ -111,6 +111,8 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibetutor_revoke_student_invite: { Args: { p_id: string }; Returns: undefined }
       vibetutor_my_student_code: { Args: Record<never, never>; Returns: string }
       vibetutor_invite_student_by_code: { Args: { p_code: string }; Returns: string }
+      vibetutor_search_students: { Args: { p_query: string }; Returns: { id: string; name: string }[] }
+      vibetutor_invite_student: { Args: { p_student_id: string }; Returns: string }
       vibetutor_student_inbox: { Args: Record<never, never>; Returns: { id: string; tutor: string; status: string; created_at: string }[] }
       vibetutor_respond_student_invite: { Args: { p_id: string; p_accept: boolean }; Returns: "accepted" | "pending_guardian" | "declined" }
       preview_timetable_conflicts: { Args: { p_school_id: string; p_teacher_id: string; p_class_id: string; p_subject_id: string; p_day_of_week: number; p_start_time: string; p_end_time: string; p_room?: string | null; p_effective_from?: string | null; p_effective_until?: string | null; p_exclude_slot_id?: string | null }; Returns: { conflict_type: string; conflicting_slot_id: string; conflicting_teacher_id: string | null; conflicting_class_id: string; conflicting_subject_id: string; conflicting_room: string | null; detail: string }[] }
