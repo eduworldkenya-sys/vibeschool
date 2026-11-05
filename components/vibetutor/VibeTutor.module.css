@@ -712,5 +712,5 @@
 :global(html[data-vt-theme='dark']) .chip:focus-visible,
 :global(html[data-vt-theme='dark']) .input:focus-visible,
 :global(html[data-vt-theme='dark']) .search:focus-visible,
-:global(html[data-vt-theme='dark']) button:focus-visible,
-:global(html[data-vt-theme='dark']) a:focus-visible{outline:2px solid #e8a8b4;outline-offset:2px}
+:global(html[data-vt-theme='dark']) .shell button:focus-visible,
+:global(html[data-vt-theme='dark']) .shell a:focus-visible{outline:2px solid #e8a8b4;outline-offset:2px}
