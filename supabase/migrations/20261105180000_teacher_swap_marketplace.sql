@@ -20,7 +20,7 @@ create table if not exists public.teacher_swap_interests (
  listing_id uuid not null references public.teacher_swap_listings(id) on delete cascade,
  sender_id uuid not null references auth.users(id) on delete cascade,
  message text not null default '' check(length(message)<=500),
- contact_phone text not null check(contact_phone ~ '^[+]?[0-9]{10,15}),
+ contact_phone text not null check(contact_phone ~ '^[+]?[0-9]{10,15}$'),
  status text not null default 'pending' check(status in ('pending','accepted','declined')),
  created_at timestamptz not null default now(),
  constraint swap_unique_interest unique(listing_id,sender_id)
