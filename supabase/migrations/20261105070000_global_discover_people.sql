@@ -8,10 +8,10 @@ as $$
  join public.profiles p on p.id=pp.profile_id
  where pp.is_public=true and pp.username is not null and pp.display_name is not null
  and p.account_status='active'::public.account_status and p.is_anonymized=false
- and (length(btrim(coalesce(p_query,'')))=0 or
-      pp.username ilike '%'||replace(replace(replace(left(btrim(p_query),80),'\\','\\\\'),'%','\\%'),'_','\\_')||'%' escape '\'
-      or pp.display_name ilike '%'||replace(replace(replace(left(btrim(p_query),80),'\\','\\\\'),'%','\\%'),'_','\\_')||'%' escape '\'
-      or coalesce(pp.role_label,'') ilike '%'||replace(replace(replace(left(btrim(p_query),80),'\\','\\\\'),'%','\\%'),'_','\\_')||'%' escape '\')
+ and (length(btrim(coalesce(p_query,'')))=0
+      or position(lower(left(btrim(p_query),80)) in lower(pp.username))>0
+      or position(lower(left(btrim(p_query),80)) in lower(pp.display_name))>0
+      or position(lower(left(btrim(p_query),80)) in lower(coalesce(pp.role_label,'')))>0)
  order by pp.updated_at desc, pp.username asc limit least(greatest(coalesce(p_limit,20),1),30)
 $$;
 revoke all on function public.global_discover_people(text,integer) from public;
