@@ -10,8 +10,10 @@ import {SchoolCover} from '../../components/SchoolCover'
 import styles from '../../schools.module.css'
 type School={school_name:string;county:string|null;sub_county:string|null;school_category:string|null;ownership_type:string|null;gender_type:string|null;accommodation_type:string|null;knec_code:string|null;pathway_slug:string|null;pathway_name:string|null;combination_name:string|null}
 const pages=['about','academics','news','contact']
-export default function SchoolSubpage(){
- const {schoolId,section}=useParams<{schoolId:string;section:string}>()
+export default function SchoolSubpage({schoolIdOverride}:{schoolIdOverride?:string}={}){
+ const params=useParams<{schoolId?:string;section:string}>()
+ const schoolId=schoolIdOverride??params.schoolId??''
+ const section=params.section
  const pathname=usePathname()
  const schoolBase=pathname.startsWith('/school/gilgiltownship')?'/school/gilgiltownship':'/schools/'+schoolId
  const [rows,setRows]=useState<School[]>([])
