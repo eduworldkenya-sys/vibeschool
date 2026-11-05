@@ -21,7 +21,7 @@ export function GlobalBottomNav({ isLoggedIn, onAuthPrompt }: GlobalBottomNavPro
 
   const tabs: NavTab[] = [
     { label: 'Home',    path: '/global/dashboard', icon: '🏠' },
-    { label: 'Read',    path: '/global/read',       icon: '📖' },
+    { label: 'Discover', path: '/global/discover', icon: '🔎' },
     { label: 'Create',  path: '/global/create',     icon: '➕', isCenter: true },
     { label: 'Vibes',   path: '/global/vibes',      icon: '✦' },
     { label: 'Profile', path: '/global/profile',    icon: '👤' },
