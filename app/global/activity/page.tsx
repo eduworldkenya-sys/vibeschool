@@ -30,7 +30,7 @@ function dateLabel(value: string | null) {
 }
 
 export default function ActivityPage() {
-  const { isLoggedIn, userId } = useGlobalAuth();
+  const { authReady, isLoggedIn, userId } = useGlobalAuth();
   const router = useRouter();
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [filter, setFilter] = useState<Filter>("All");
@@ -40,6 +40,7 @@ export default function ActivityPage() {
   useEffect(() => {
     let active = true;
     async function load() {
+      if (!authReady) return;
       if (!isLoggedIn || !userId) {
         setItems([]);
         setLoading(false);
@@ -95,7 +96,7 @@ export default function ActivityPage() {
       }
     });
     return () => { active = false; };
-  }, [isLoggedIn, userId]);
+  }, [authReady, isLoggedIn, userId]);
 
   const visible = useMemo(
     () => filter === "All" ? items : items.filter((item) => {
@@ -105,6 +106,8 @@ export default function ActivityPage() {
     }),
     [filter, items]
   );
+
+  if (!authReady) return <main role="status" style={{minHeight:'65dvh',display:'grid',placeItems:'center',color:ACCENT}}>Checking your session…</main>;
 
   if (!isLoggedIn) {
     return (

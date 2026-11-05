@@ -3,6 +3,7 @@
 import { createContext, useContext } from 'react'
 
 export interface GlobalAuthContextType {
+  authReady: boolean
   isLoggedIn: boolean
   userId: string | null
   userName: string | null
@@ -10,6 +11,7 @@ export interface GlobalAuthContextType {
 }
 
 export const GlobalAuthContext = createContext<GlobalAuthContextType>({
+  authReady: false,
   isLoggedIn: false,
   userId: null,
   userName: null,
