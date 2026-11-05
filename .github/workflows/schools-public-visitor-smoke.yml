@@ -1,0 +1,29 @@
+name: Schools Public Visitor Smoke
+on:
+  pull_request:
+    paths:
+      - 'app/schools/**'
+      - 'scripts/schools-public-browser-smoke.cjs'
+      - '.github/workflows/schools-public-visitor-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/schools/**'
+      - 'scripts/schools-public-browser-smoke.cjs'
+      - '.github/workflows/schools-public-visitor-smoke.yml'
+  workflow_dispatch:
+jobs:
+  anonymous-school-journey:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Test public Schools experience
+        env:
+          VIBESCHOOL_ORIGIN: https://vibeschool.co.ke
+        run: node scripts/schools-public-browser-smoke.cjs
