@@ -7,6 +7,7 @@ import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { supabase } from '@/lib/supabase'
 import styles from '../../schools.module.css'
+import { SchoolCover } from '../../components/SchoolCover'
 
 type DirectorySchool={directory_id:string;school_name:string;county:string|null;sub_county:string|null;school_level:string|null;ownership_type:string|null;knec_code:string|null;latitude:number|null;longitude:number|null;is_verified:boolean}
 export default function DirectorySchoolPage(){
@@ -36,18 +37,10 @@ export default function DirectorySchoolPage(){
  ].filter(([,v])=>Boolean(v)):[]
  return <div className={styles.page}><PublicHeader product="Schools"/>
  <main id="main-content" className={styles.directoryMain}>
-  <Link className={styles.back} href="/schools">← All schools</Link>
+  <nav aria-label="Breadcrumb" className={styles.schoolBreadcrumb}><Link href="/schools">Schools</Link><span aria-hidden="true">/</span><span aria-current="page">{school?.school_name||"School"}</span></nav>
   {loading?<p role="status" className={styles.directoryStatus}>Loading school…</p>:error?<p role="alert" className={styles.directoryStatus}>{error}</p>:school&&<>
-   <div className={styles.siteCover} style={{marginTop:24}}>
-    <span className={styles.siteUnclaimed}>Directory school page</span>
-    <div className={styles.siteEmblem} aria-hidden="true">S</div>
-    <h1 className={styles.siteTitle}>{school.school_name}</h1>
-    <p className={styles.siteLocation}>{[school.sub_county,school.county].filter(Boolean).join(' · ')}</p>
-   </div>
-   <section className={styles.siteSection} style={{marginTop:22}}>
-    <h2>School information</h2>
-    <div className={styles.siteFacts}>{facts.map(([label,value])=><div className={styles.siteFact} key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
-   </section>
+   <section className={styles.canonicalHero}><SchoolCover name={school.school_name}/><h1 className={styles.canonicalTitle}>{school.school_name}</h1><p className={styles.canonicalLocation}>{[school.sub_county,school.county].filter(Boolean).join(', ')}</p><div className={styles.canonicalChips}>{[school.school_level,school.ownership_type].filter(Boolean).map(value=><span key={value}>{value}</span>)}</div></section>
+   <div className={styles.canonicalBody}><section className={styles.canonicalSection}><h2>School information</h2><div className={styles.canonicalFacts}>{facts.map(([label,value])=><div className={styles.canonicalFact} key={label}><span>{label}</span><strong>{value}</strong></div>)}</div></section><p className={styles.canonicalNote}>Directory information · This school has not claimed this page</p></div>
   </>}
  </main><PublicFooter/></div>
 }
