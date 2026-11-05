@@ -9,7 +9,6 @@ import { RoleJourneySelector } from '@/components/public/RoleJourneySelector'
 import { ConnectedEducationExplorer } from '@/components/public/ConnectedEducationExplorer'
 import styles from './home.module.css'
 import SuccessWishesFloatingOffer from '@/components/success-wishes/SuccessWishesFloatingOffer'
-import { PublicBottomNav } from '@/components/public/PublicBottomNav'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
@@ -34,7 +33,7 @@ const trust = [
 ]
 
 export default function HomePage() {
-  return <div className={styles.page} style={{ paddingBottom: 76 }}>
+  return <div className={styles.page} >
     <PublicHeader />
     <SuccessWishesFloatingOffer homepage />
     <main id="main-content">
@@ -103,6 +102,5 @@ export default function HomePage() {
       </section>
     </main>
     <PublicFooter />
-    <PublicBottomNav />
   </div>
 }
