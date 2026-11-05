@@ -23,6 +23,9 @@ begin
  if auth.uid() is null or not exists(select 1 from public.vibetutor_tutors where profile_id=auth.uid()) then
    raise exception 'Tutor listing required';
  end if;
+ if (select count(*) from public.vibetutor_student_invitations where tutor_id=auth.uid() and status='open') >= 5 then
+   raise exception 'Maximum of 5 outstanding invitations. Revoke an unused invitation first';
+ end if;
  insert into public.vibetutor_student_invitations(tutor_id) values(auth.uid()) returning token into v_token;
  return v_token;
 end $$;
