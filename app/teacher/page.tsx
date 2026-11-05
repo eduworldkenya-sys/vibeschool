@@ -11,7 +11,7 @@ export const metadata = {
 };
 
 const tasks = [
-  { title: "Lesson plan", href: "/sandbox", Icon: BookOpen },
+  { title: "Lesson plan", href: "/login?redirect=/teacher/lessonplan", Icon: BookOpen },
   { title: "Scheme of work", href: "/login?redirect=/teacher/scheme", Icon: CalendarDays },
   { title: "Quiz", href: "/sandbox", Icon: ClipboardCheck },
   { title: "Revision", href: "/login?redirect=/teacher/assessment", Icon: GraduationCap },
