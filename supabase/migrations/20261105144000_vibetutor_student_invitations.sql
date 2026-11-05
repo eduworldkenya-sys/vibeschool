@@ -101,13 +101,13 @@ create table public.vibetutor_student_invite_codes (
  student_id uuid primary key references public.students(id) on delete cascade,
  code text not null unique default upper(substr(replace(gen_random_uuid()::text,'-',''),1,16)),
  created_at timestamptz not null default now(),
- constraint invite_code_format check (code ~ '^[0-9A-F]{16})
+ constraint invite_code_format check (code ~ '^[0-9A-F]{16}$')
 );
 alter table public.vibetutor_student_invite_codes enable row level security;
 revoke all on public.vibetutor_student_invite_codes from anon,authenticated;
 
 create or replace function public.vibetutor_my_student_code() returns text
-language plpgsql security definer set search_path = '' as $
+language plpgsql security definer set search_path = '' as $$
 declare v_student uuid; v_code text;
 begin
  if auth.uid() is null then raise exception 'Sign in required'; end if;
@@ -118,16 +118,16 @@ begin
  on conflict(student_id) do nothing;
  select code into v_code from public.vibetutor_student_invite_codes where student_id=v_student;
  return v_code;
-end $;
+end $$;
 
 create or replace function public.vibetutor_invite_student_by_code(p_code text) returns text
-language plpgsql security definer set search_path = '' as $
+language plpgsql security definer set search_path = '' as $$
 declare v_student uuid;
 begin
  if auth.uid() is null or not exists(select 1 from public.vibetutor_tutors where profile_id=auth.uid()) then
    raise exception 'Tutor listing required';
  end if;
- if p_code is null or upper(trim(p_code)) !~ '^[0-9A-F]{16} then raise exception 'Invalid student code'; end if;
+ if p_code is null or upper(trim(p_code)) !~ '^[0-9A-F]{16}$' then raise exception 'Invalid student code'; end if;
  if (select count(*) from public.vibetutor_student_invitations
    where tutor_id=auth.uid() and created_at > now()-interval '1 hour') >= 10 then
    raise exception 'Invitation limit reached. Try again later';
@@ -144,10 +144,10 @@ begin
  insert into public.vibetutor_student_invitations(tutor_id,student_id,status)
  values(auth.uid(),v_student,'invited');
  return 'sent';
-end $;
+end $$;
 
 create or replace function public.vibetutor_student_inbox() returns jsonb
-language sql stable security definer set search_path = '' as $
+language sql stable security definer set search_path = '' as $$
  select coalesce(jsonb_agg(jsonb_build_object(
    'id',i.id,'tutor',t.display_name,'status',i.status,'created_at',i.created_at
  ) order by i.created_at desc),'[]'::jsonb)
@@ -158,7 +158,7 @@ language sql stable security definer set search_path = '' as $
 $;
 
 create or replace function public.vibetutor_respond_student_invite(p_id uuid,p_accept boolean) returns text
-language plpgsql security definer set search_path = '' as $
+language plpgsql security definer set search_path = '' as $$
 declare v_student uuid; v_dob date; v_status text;
 begin
  if auth.uid() is null then raise exception 'Sign in required'; end if;
@@ -174,7 +174,7 @@ begin
    else 'pending_guardian' end;
  update public.vibetutor_student_invitations set status=v_status,updated_at=now() where id=p_id;
  return v_status;
-end $;
+end $$;
 
 revoke all on function public.vibetutor_my_student_code() from public,anon;
 revoke all on function public.vibetutor_invite_student_by_code(text) from public,anon;
