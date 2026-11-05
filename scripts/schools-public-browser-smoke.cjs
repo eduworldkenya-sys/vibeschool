@@ -20,7 +20,11 @@ async function verify() {
       const pageErrors = [];
       page.on('pageerror', error => pageErrors.push(error.message));
       await page.goto(ORIGIN + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
-      const schoolLink = page.locator('a[href="/schools"]').first();
+      let schoolLink = page.locator('a[href="/schools"]:visible').first();
+      if (await schoolLink.count() === 0) {
+        await page.getByText('Menu', { exact: true }).first().click();
+        schoolLink = page.locator('a[href="/schools"]:visible').first();
+      }
       await schoolLink.waitFor({ timeout: 20000 });
       await schoolLink.click();
       await page.waitForURL(url => url.pathname === '/schools', { timeout: 20000 });
