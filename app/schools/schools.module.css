@@ -101,3 +101,5 @@
 .schoolApproxMapLinks{display:flex;flex-wrap:wrap;gap:14px;padding:14px 16px;font-size:13px}
 .schoolApproxMapLinks a{color:#135f76;font-weight:700;text-underline-offset:3px}
 @media(max-width:560px){.schoolApproxMapFrame{height:260px}}
+
+.schoolSiteFooter{display:flex;flex-direction:column;gap:14px;padding:24px;background:#f7f8fa;color:#273746;border-top:1px solid #dce1e6;font-size:14px}.schoolSiteFooter strong{font-size:17px}.schoolSiteFooter p{margin:5px 0;color:#637180}.schoolSiteFooter a{color:#176b46;font-weight:700}.schoolSiteFooter small{color:#637180}
