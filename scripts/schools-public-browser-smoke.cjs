@@ -33,7 +33,7 @@ async function verify() {
       await page.waitForURL(url => url.pathname === SCHOOL_PATH, { timeout: 20000 });
       await page.getByRole('heading', { name: 'Gilgil Township', exact: true }).waitFor({ timeout: 25000 });
       for (const section of ['About', 'Academics', 'Contact']) {
-        const link = page.locator('.siteQuickLinks a').getByText(section, { exact: true });
+        const link = page.locator('a[href="' + ({About:'#about-school',Academics:'#school-programmes',Contact:'#school-contact'}[section]) + '"]');
         await link.waitFor();
         assert.ok((await link.getAttribute('href')).startsWith('#'));
       }
