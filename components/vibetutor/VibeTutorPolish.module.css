@@ -45,3 +45,33 @@
 :global(html[data-vt-theme='dark']) .progressRow{color:#d1c8c3}
 :global(html[data-vt-theme='dark']) .progressCopy strong{color:#f2eee9}
 @media(max-width:380px){.wizardStepText{font-size:9px}.wizardStep,.wizardStepDone{min-height:66px;padding:6px 2px}}
+
+
+/* Subtle sticky progress: four small numbered circles, including completed ones. */
+.wizardProgress{
+  position:sticky;top:60px;z-index:18;background:var(--vt-bg);
+  padding:5px 8px 6px;margin:0 0 10px;border-bottom:1px solid var(--vt-line);
+}
+.wizardMeta{font-size:10px;line-height:1.2;margin-bottom:3px;color:var(--vt-muted)}
+.wizardMeta strong{font-size:10px;color:var(--vt-ink)}
+.wizardTrack{height:2px;margin-bottom:6px;background:var(--vt-line)}
+.wizardTrack span{background:var(--vt-accent)}
+.wizardSteps{display:flex;justify-content:center;align-items:center;gap:clamp(13px,6vw,30px);list-style:none;margin:0;padding:0}
+.wizardStep,.wizardStepDone,.wizardStepOn{
+  width:27px;height:27px;min-width:27px;min-height:27px;flex:0 0 27px;
+  padding:0;border-radius:50%;display:grid;place-items:center;
+  background:var(--vt-surface);color:var(--vt-muted);border:1px solid var(--vt-line);
+  box-shadow:none;position:relative
+}
+.wizardStepDone{background:var(--vt-accent-soft);border:2px solid var(--vt-accent);color:var(--vt-ink)}
+.wizardStepNumber{font-size:12px;font-weight:750;line-height:1;color:inherit}
+.wizardStepText{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wizardStepCheck{
+  position:absolute;top:-5px;right:-7px;width:13px;height:13px;
+  border-radius:50%;background:var(--vt-accent);color:#fff;
+  display:grid;place-items:center;font-size:9px;line-height:1;font-weight:800
+}
+:global(html[data-vt-theme='dark']) .wizardStepDone{background:#493137;border-color:#c77b88;color:#f2eee9}
+:global(html[data-vt-theme='dark']) .wizardStepCheck{background:#c77b88;color:#201d1d}
+@media(max-width:720px){.wizardProgress{top:60px;padding:4px 6px 6px}.wizardStep,.wizardStepDone{min-height:27px;padding:0}}
+@media(max-width:380px){.wizardStep,.wizardStepDone{min-height:25px;width:25px;height:25px;min-width:25px;flex-basis:25px}}
