@@ -73,6 +73,7 @@ export default function TeacherTutoringPage() {
       </section>
       <section aria-label="Tutoring tools">
         <h2 style={{ fontSize: 17, margin: "6px 0 12px" }}>Teaching tools</h2>
+        <Link href="/teacher/tutoring/students" style={{ ...linkStyle, marginBottom: 12 }}><Users size={16} aria-hidden="true" /> My students · Invite a learner <ArrowRight size={16} aria-hidden="true" /></Link>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 215px), 1fr))", gap: 10 }}>
           {[
             { icon: Users, title: "My students", text: "A private tutoring learner register is not yet available." },
