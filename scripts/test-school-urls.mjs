@@ -16,10 +16,10 @@ insert into schools_directory(id,name,county,sub_county,type,status) values
 ('00000000-0000-0000-0000-000000000001','St Mary','Nakuru','','Primary','Public'),
 ('00000000-0000-0000-0000-000000000002','St Mary','Nakuru','','Primary','Public'),
 ('00000000-0000-0000-0000-000000000003','St Mary','Nakuru','','Primary','Public');`)
-const sql=readFileSync('supabase/migrations/20261105121605_school_public_urls.sql','utf8')
+const sql=readFileSync('supabase/migrations/20261105122128_school_public_urls.sql','utf8')
 await db.exec(sql)
-await db.exec(readFileSync('supabase/migrations/20261105122327_school_public_url_lookup_performance.sql','utf8'))
-await db.exec(readFileSync('supabase/migrations/20261105122430_school_public_url_indexed_resolution.sql','utf8'))
+await db.exec(readFileSync('supabase/migrations/20261105122401_school_public_url_lookup_performance.sql','utf8'))
+await db.exec(readFileSync('supabase/migrations/20261105122509_school_public_url_indexed_resolution.sql','utf8'))
 const rows=async(q,args=[]) => (await db.query(q,args)).rows
 const resolve=async(slug)=>(await rows('select * from schools_resolve_url_public_v1($1)',[slug]))[0]
 assert.equal((await resolve('gilgiltownship')).source_id,'c51ec2ae-5b70-4f69-887d-54eb9f312db7')
