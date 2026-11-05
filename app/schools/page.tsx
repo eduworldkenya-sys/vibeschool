@@ -6,11 +6,9 @@ import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { supabase } from '@/lib/supabase'
 import styles from './schools.module.css'
+import { schoolUrl, type PublicSchoolAddress } from '@/lib/school-urls'
 
-type School = {school_id:string;school_name:string;county:string|null;sub_county:string|null;school_category:string|null;ownership_type:string|null}
-type DirectorySchool = {directory_id:string;school_name:string;county:string|null;sub_county:string|null;school_level:string|null;ownership_type:string|null}
-type Entry = {id:string;name:string;county:string|null;subCounty:string|null;level:string|null;ownership:string|null;href:string|null}
-const key = (s:Entry) => [s.name,s.county,s.subCounty].map(v=>(v||'').trim().toLocaleLowerCase()).join('|')
+type Entry = {id:string;name:string;county:string|null;subCounty:string|null;level:string|null;ownership:string|null;href:string}
 const LIMIT=100
 
 export default function SchoolsDirectoryPage(){
@@ -26,19 +24,11 @@ export default function SchoolsDirectoryPage(){
   const timer=setTimeout(async()=>{
    setLoading(true);setError('')
    const q=query.trim()
-   const [initialPrimary,directory]=await Promise.all([
-    supabase.rpc('schools_search_public_v2',{p_query:q||null,p_county:null,p_sub_county:null,p_ward:null,p_school_category:null,p_ownership_type:null,p_gender_type:null,p_accommodation_type:null,p_limit:LIMIT}),
-    supabase.rpc('schools_directory_search_public_v1',{p_query:q||null,p_county:null,p_sub_county:null,p_level:null,p_limit:LIMIT})
-   ])
-   let primary=initialPrimary
-   if(primary.error){primary=await supabase.rpc('schools_search_public_v1',{p_query:q||null,p_county:null,p_sub_county:null,p_school_category:null,p_ownership_type:null,p_gender_type:null,p_accommodation_type:null,p_limit:LIMIT})}
+   const result=await supabase.rpc('schools_search_urls_public_v1',{p_query:q||null,p_limit:LIMIT})
    if(cancelled)return
-   if(primary.error&&directory.error){setError('Could not load schools. Try again.');setEntries([]);setHasMore(false);setLoading(false);return}
-   const a=((primary.data||[]) as School[]).map(s=>({id:s.school_id,name:s.school_name,county:s.county,subCounty:s.sub_county,level:s.school_category,ownership:s.ownership_type,href:s.school_id==='c51ec2ae-5b70-4f69-887d-54eb9f312db7'?'/school/gilgiltownship':'/schools/'+encodeURIComponent(s.school_id)}))
-   const b=((directory.data||[]) as DirectorySchool[]).map(s=>({id:s.directory_id,name:s.school_name,county:s.county,subCounty:s.sub_county,level:s.school_level,ownership:s.ownership_type,href:/^gilgil township(?: primary)?(?: school)?$/i.test(s.school_name.trim())&&s.county?.toLowerCase()==='nakuru'?'/school/gilgiltownship':'/schools/directory/'+encodeURIComponent(s.directory_id)+'?name='+encodeURIComponent(s.school_name)}))
-   const seen=new Set<string>()
-   const merged=[...a,...b].filter(s=>{const k=key(s);if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>x.name.localeCompare(y.name))
-   setEntries(merged);setHasMore((primary.data||[]).length===LIMIT||(directory.data||[]).length===LIMIT);setLoading(false)
+   if(result.error){setError('Could not load schools. Try again.');setEntries([]);setHasMore(false);setLoading(false);return}
+   const merged=((result.data||[]) as PublicSchoolAddress[]).map(s=>({id:s.slug,name:s.school_name,county:s.county,subCounty:s.sub_county,level:s.school_level,ownership:s.ownership_type,href:schoolUrl(s.slug)}))
+   setEntries(merged);setHasMore(merged.length===LIMIT);setLoading(false)
   },query?220:0)
   return ()=>{cancelled=true;clearTimeout(timer)}
  },[query,retry])

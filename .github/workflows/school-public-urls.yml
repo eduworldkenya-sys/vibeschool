@@ -1,0 +1,31 @@
+name: School Public URLs
+on:
+  pull_request:
+    paths:
+      - 'app/school/**'
+      - 'app/schools/**'
+      - 'lib/school-urls*'
+      - 'supabase/migrations/*school_public_url*.sql'
+      - 'scripts/test-school-urls.mjs'
+      - '.github/workflows/school-public-urls.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/school/**'
+      - 'app/schools/**'
+      - 'lib/school-urls*'
+      - 'supabase/migrations/*school_public_url*.sql'
+      - 'scripts/test-school-urls.mjs'
+      - '.github/workflows/school-public-urls.yml'
+permissions:
+  contents: read
+jobs:
+  identity-and-url-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --prefix "$RUNNER_TEMP/school-url-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8
+      - run: SCHOOL_URL_PGLITE_MODULE="$RUNNER_TEMP/school-url-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-school-urls.mjs

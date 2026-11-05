@@ -5,14 +5,14 @@ const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const ORIGIN = (process.env.VIBESCHOOL_ORIGIN || 'https://vibeschool.co.ke').replace(/\/$/, '');
 const SCHOOL_ID = 'c51ec2ae-5b70-4f69-887d-54eb9f312db7';
-const SCHOOL_PATH = `/schools/${SCHOOL_ID}`;
+const SCHOOL_PATH = '/school/gilgiltownship';
 const sizes = [
   { width: 320, height: 720 }, { width: 360, height: 780 },
   { width: 390, height: 844 }, { width: 412, height: 915 },
   { width: 768, height: 1024 }, { width: 1280, height: 800 }
 ];
 async function verify() {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_PROXY_SERVER ? { proxy: { server: process.env.PLAYWRIGHT_PROXY_SERVER, bypass: '127.0.0.1,localhost' } } : {}) });
   try {
     for (const size of sizes) {
       const context = await browser.newContext({ viewport: size });
@@ -53,8 +53,29 @@ async function verify() {
       await context.close();
     }
     const page = await browser.newPage();
-    await page.goto(ORIGIN + '/schools/not-a-real-school-id', { waitUntil: 'domcontentloaded' });
-    await page.getByText(/could not be loaded|not available/i).first().waitFor({ timeout: 20000 });
+    for (const path of ['/school/not-a-real-school','/school/gilgiltownship/invalid','/schools/not-a-real-school-id']) {
+      const response=await page.goto(ORIGIN+path,{waitUntil:'domcontentloaded'});
+      assert.equal(response.status(),404,'Unknown school/section must 404');
+    }
+    for (const oldPath of [`/schools/${SCHOOL_ID}`, '/schools/directory/88d921f6-2be1-4abb-ab1b-af82283f07a9?name=wrong-name']) {
+      await page.goto(ORIGIN+oldPath,{waitUntil:'domcontentloaded'});
+      await page.waitForURL(ORIGIN+SCHOOL_PATH);
+      await page.getByRole('heading',{name:'Gilgil Township',exact:true}).waitFor();
+    }
+    await page.goto(ORIGIN+'/schools',{waitUntil:'domcontentloaded'});
+    await page.getByRole('searchbox',{name:/search schools/i}).fill('Municipality Mariakani');
+    const mariakani=page.locator('a[href="/school/municipality-mariakani-primary"]');
+    await mariakani.waitFor({timeout:25000});
+    await mariakani.click();
+    await page.getByRole('heading',{name:'2005 Municipality Mariakani Pri Sch',exact:true}).waitFor();
+    assert.match(await page.locator('main').innerText(),/Laikipia/);
+    for(const section of ['about','academics','news','contact']){
+      await page.goto(ORIGIN+'/school/municipality-mariakani-primary/'+section,{waitUntil:'domcontentloaded'});
+      await page.getByRole('heading',{name:'2005 Municipality Mariakani Pri Sch',exact:true}).waitFor();
+    }
+    await page.goto(ORIGIN+'/schools/directory/3bdac02b-99cb-4342-a969-3a060300858e',{waitUntil:'domcontentloaded'});
+    await page.waitForURL(ORIGIN+'/school/municipality-mariakani-primary');
+    console.log('PASS Mariakani identity, all sections, legacy IDs without name dependency, unknown URL rejection');
     await page.close();
     console.log('PASS invalid-school state');
   } finally {
