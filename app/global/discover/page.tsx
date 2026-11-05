@@ -21,11 +21,11 @@ export default function DiscoverPage(){
     supabase.from('vibe_publications').select('id,title,description,format,created_at,tags').eq('status','published').order('published_at',{ascending:false}).limit(80)
    ]);
    if(!alive)return;
-   if(p.error||s.error||c.error||pubs.error)throw new Error('Discovery could not load. Please try again.');
-   setPeople((p.data??[]) as Person[]);
-   const stories:Entry[]=(s.data??[]).map(x=>({id:x.id,title:x.title??'Untitled story',description:x.description,created_at:x.created_at,kind:'story',href:'/global/read/story/'+x.id,tags:x.tags??[]}));
-   const resources:Entry[]=(c.data??[]).map(x=>({id:x.id,title:x.title??'Untitled resource',description:x.description,created_at:x.created_at,kind:String(x.type??'').toLowerCase().includes('video')?'video':'resource',href:'/global/read/'+x.id,tags:x.tags??[]}));
-   const publications:Entry[]=(pubs.data??[]).map(x=>({id:x.id,title:x.title??'Untitled publication',description:x.description,created_at:x.created_at,kind:'publication',href:'/global/read/publication/'+x.id,tags:x.tags??[]}));
+   if(p.error&&s.error&&c.error&&pubs.error)throw new Error('Discovery sources unavailable.');
+   setPeople((p.error?[]:p.data??[]) as Person[]);
+   const stories:Entry[]=(s.error?[]:s.data??[]).map(x=>({id:x.id,title:x.title??'Untitled story',description:x.description,created_at:x.created_at,kind:'story',href:'/global/read/story/'+x.id,tags:x.tags??[]}));
+   const resources:Entry[]=(c.error?[]:c.data??[]).map(x=>({id:x.id,title:x.title??'Untitled resource',description:x.description,created_at:x.created_at,kind:String(x.type??'').toLowerCase().includes('video')?'video':'resource',href:'/global/read/'+x.id,tags:x.tags??[]}));
+   const publications:Entry[]=(pubs.error?[]:pubs.data??[]).map(x=>({id:x.id,title:x.title??'Untitled publication',description:x.description,created_at:x.created_at,kind:'publication',href:'/global/read/publication/'+x.id,tags:x.tags??[]}));
    setEntries([...stories,...resources,...publications].filter(x=>!q||[x.title,x.description??'',...x.tags].some(v=>v.toLowerCase().includes(q))).sort((a,b)=>new Date(b.created_at??0).getTime()-new Date(a.created_at??0).getTime()));
   }catch{if(alive)setError('Discovery could not load. Please try again.')}finally{if(alive)setLoading(false)}
  },250);return()=>{alive=false;clearTimeout(timeout)}},[query,retry]);
@@ -33,7 +33,7 @@ export default function DiscoverPage(){
  return <main style={{color:'#fff',padding:'8px 0 110px',maxWidth:850,margin:'auto'}}>
  <h1 style={{fontSize:25,margin:'0 0 6px'}}>Discover</h1><p style={{fontSize:13,color:muted,margin:'0 0 18px'}}>Explore public creators, stories and learning resources.</p>
  <label htmlFor="discover-search" style={{display:'block',fontSize:12,marginBottom:7}}>Search VibeSchool</label>
- <input id="discover-search" type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Name, username, topic or subject" style={{width:'100%',boxSizing:'border-box',background:panel,border:'1px solid #3c4556',borderRadius:12,padding:14,color:'#fff',fontSize:15}}/>
+ <input id="discover-search" type="search" value={query} onChange={e=>{setQuery(e.target.value);setKind('All')}} placeholder="Name, username, topic or subject" style={{width:'100%',boxSizing:'border-box',background:panel,border:'1px solid #3c4556',borderRadius:12,padding:14,color:'#fff',fontSize:15}}/>
  {query.trim()&&<nav aria-label="Discovery filters" style={{display:'flex',gap:8,overflowX:'auto',padding:'15px 0'}}>{(['All','People','Stories','Resources','Videos'] as const).map(k=><button key={k} aria-pressed={kind===k} onClick={()=>setKind(k)} style={{whiteSpace:'nowrap',border:'1px solid #3c4556',background:kind===k?accent:panel,color:kind===k?'#090D16':'#fff',borderRadius:20,padding:'9px 12px',fontWeight:700}}>{k}</button>)}</nav>}
  {loading?<p role="status" style={{color:muted}}>Searching…</p>:error?<div role="alert"><p>{error}</p><button onClick={()=>setRetry(x=>x+1)}>Retry</button></div>:<>
  {(kind==='All'||kind==='People')&&<section><h2 style={{fontSize:17}}>People</h2>{people.length===0?<p style={{color:muted,fontSize:13}}>No public profiles found.</p>:<div style={{display:'grid',gap:9}}>{people.map(p=><button key={p.username} onClick={()=>router.push('/global/u/'+encodeURIComponent(p.username))} style={{background:panel,border:'1px solid #30394a',borderRadius:12,padding:14,color:'#fff',textAlign:'left',display:'flex',alignItems:'center',gap:12}}><span style={{width:40,height:40,borderRadius:'50%',background:'#2b3747',display:'grid',placeItems:'center',flexShrink:0,fontWeight:800}}>{p.display_name.slice(0,1).toUpperCase()}</span><span><strong style={{display:'block',fontSize:14}}>{p.display_name}</strong><span style={{fontSize:12,color:muted}}>@{p.username}{p.role_label?' · '+p.role_label:''}</span></span></button>)}</div>}</section>}
