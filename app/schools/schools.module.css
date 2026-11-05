@@ -72,3 +72,20 @@
 @media(max-width:600px){.canonicalHero{margin-top:18px;padding:20px;border-radius:0}.canonicalPlaceholder{height:155px}.canonicalBody{padding:0 20px 26px;border-radius:0}.canonicalSection{padding:32px 0}.canonicalFacts{gap:26px 18px}.canonicalManage{align-items:flex-start}.canonicalManage .secondary{white-space:nowrap}}
 
 .schoolBreadcrumb{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#687783;font-size:14px;margin-bottom:8px}.schoolBreadcrumb a{color:inherit;text-decoration:none}.schoolBreadcrumb a:hover,.schoolBreadcrumb a:focus-visible{text-decoration:underline}.schoolBreadcrumb [aria-current=page]{color:#243849;font-weight:600}@media(prefers-color-scheme:dark){.schoolBreadcrumb{color:#aeb7c2}.schoolBreadcrumb [aria-current=page]{color:#e6e9ee}}
+
+/* Keep the school directory visually integrated with the public site. */
+.canonicalHero{background:#f0f2f5;color:#172431}
+.canonicalPlaceholder{height:112px;background:#e6e9ed;font-size:48px}
+.canonicalTitle{font-size:clamp(28px,4vw,38px);margin:18px 0 8px}
+.canonicalChips{margin-top:14px}
+.canonicalBody{background:#fff;color:#172431}
+.canonicalSection{padding:24px 0}
+.canonicalSection h2{font-size:clamp(20px,2.6vw,25px);margin-bottom:12px}
+.canonicalSection p{font-size:15px;line-height:1.65}
+.canonicalFacts{gap:20px}
+.canonicalFact strong{font-size:15px}
+.canonicalManage{padding-top:22px}
+.canonicalManage strong{font-size:16px}
+.canonicalManage .secondary{font-size:13px;padding:10px 12px}
+@media(prefers-color-scheme:dark){.canonicalHero{background:#f0f2f5;color:#172431}.canonicalPlaceholder{background:#e6e9ed;color:#87939c}.canonicalTitle{color:#172431}.canonicalLocation{color:#596873}.canonicalChips span{background:#fff;color:#23303a}.canonicalBody{background:#fff;color:#172431}.canonicalSection{border-color:#e2e6e9}.canonicalSection p{color:#344653}.canonicalFact span,.canonicalManage p,.canonicalNote{color:#64717d}.canonicalCorrection{color:#49647a}}
+@media(max-width:600px){.canonicalPlaceholder{height:110px}.canonicalSection{padding:23px 0}.canonicalHero{padding:18px}.canonicalBody{padding:0 18px 20px}.canonicalManage{gap:10px}}
