@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import styles from './VibeTutor.module.css'
 import Icon from './Icon'
 import { modeLabel, type Mode } from './data'
@@ -24,7 +25,26 @@ const PRICE_OPTIONS = [
 ]
 
 export default function FilterBar(p: Props) {
+  const [expanded, setExpanded] = useState(false)
   const active = !!(p.q || p.subject || p.level || p.area || p.mode || p.priceRange)
+  const selectedCount = [p.subject, p.level, p.area, p.mode, p.priceRange].filter(Boolean).length
+  const searched = p.q.trim().toLocaleLowerCase()
+  const suggestions = searched
+    ? [
+        ...p.levels.map(item => ({ ...item, kind: 'level' as const })),
+        ...p.subjects.map(item => ({ ...item, kind: 'subject' as const })),
+        ...p.areas.map(item => ({ ...item, kind: 'area' as const })),
+        ...p.modes.filter(item => item.count > 0).map(item => ({ ...item, kind: 'mode' as const })),
+      ].filter(item => item.label.toLocaleLowerCase().includes(searched) ||
+        searched.includes(item.label.toLocaleLowerCase())).slice(0, 5)
+    : []
+  const selectSuggestion = (kind: 'level' | 'subject' | 'area' | 'mode', value: string) => {
+    if (kind === 'level') { p.onLevel(value); p.onSubject('') }
+    else if (kind === 'subject') p.onSubject(value)
+    else if (kind === 'area') p.onArea(value)
+    else p.onMode(value as Mode)
+    p.onQ('')
+  }
   return (
     <section className={styles.filterBar} aria-label="Search and filters">
       <div className={styles.segment} role="group" aria-label="I am looking for" style={{ justifySelf: 'start' }}>
@@ -36,6 +56,19 @@ export default function FilterBar(p: Props) {
         <input className={styles.search} type="search" value={p.q} onChange={e => p.onQ(e.target.value)} placeholder={p.placeholder} aria-label={p.placeholder} />
       </label>
 
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button type="button" className={styles.chip} aria-expanded={expanded} aria-controls="vibetutor-more-filters"
+          onClick={() => setExpanded(value => !value)}>
+          Filters{selectedCount ? ` (${selectedCount})` : ''}
+        </button>
+        {searched && !expanded && suggestions.map(item => (
+          <button key={item.kind + item.value} type="button" className={styles.chip}
+            onClick={() => selectSuggestion(item.kind, item.value)}>
+            {item.label} <span className={styles.optionCount}>{item.count}</span>
+          </button>
+        ))}
+      </div>
+      <div id="vibetutor-more-filters" hidden={!expanded} style={{ display: expanded ? 'grid' : 'none', gap: 14 }}>
       <div className={styles.filterField}>
         <span className={styles.subLabel}>Level</span>
         <div className={styles.chipRow} role="group" aria-label="Level">
@@ -75,6 +108,8 @@ export default function FilterBar(p: Props) {
           {p.subjects.map(item => <button key={item.value} type="button" className={`${styles.chip} ${p.subject === item.value ? styles.chipOn : ''}`} aria-pressed={p.subject === item.value} onClick={() => p.onSubject(item.value)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
         </div>
       </div>}
+
+      </div>
 
       <div className={styles.summary} aria-live="polite">
         <span className={styles.count}>{p.busy ? 'Updating…' : `${p.resultCount} ${p.noun}${p.resultCount === 1 ? '' : 's'} found`}</span>
