@@ -7,6 +7,7 @@ import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { supabase } from '@/lib/supabase'
 import styles from '../schools.module.css'
+import { SchoolCover } from '../components/SchoolCover'
 
 type ProfileRow={school_id:string;school_name:string;county:string|null;sub_county:string|null;school_category:string|null;ownership_type:string|null;gender_type:string|null;accommodation_type:string|null;cluster:string|null;knec_code:string|null;pathway_slug:string|null;pathway_name:string|null;combination_slug:string|null;combination_name:string|null;verified_at:string|null;source_authority:string|null;source_name:string|null;source_url:string|null;source_reference:string|null;source_observed_at:string|null}
 type TrustRow={school_id:string;verified_claim_count:number;profile_completeness:number;trust_state:'canonical_identity'|'verified_claims';last_verified_at:string|null}
@@ -25,7 +26,7 @@ export default function SchoolProfilePage(){
  {loading&&<div className={styles.status}>Loading school profile…</div>}{error&&<div role="alert" className={`${styles.status} ${styles.error}`}>{error}</div>}{!loading&&!error&&!school&&<div className={styles.status}>This school is not available in the public directory.</div>}
  {school&&<>
  <section className={styles.canonicalHero}>
- <div className={styles.canonicalPlaceholder} aria-hidden="true">⌂</div>
+ <SchoolCover name={school.school_name}/>
  <h1 className={styles.canonicalTitle}>{school.school_name}</h1>
  <p className={styles.canonicalLocation}>⌖ {[school.sub_county,school.county].filter(Boolean).join(', ')}</p>
  <div className={styles.canonicalChips}>{[school.school_category,school.ownership_type,school.accommodation_type&&school.accommodation_type+' school'].filter(Boolean).map(v=><span key={v}>{String(v).toLowerCase().replace(/^./,c=>c.toUpperCase())}</span>)}</div>
