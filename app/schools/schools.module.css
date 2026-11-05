@@ -21,3 +21,26 @@
 .siteOfferings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .siteDisclosure{color:#526575;font-size:13px;line-height:1.6;margin:0 2px 8px}
 @media(max-width:600px){.siteCover{border-radius:18px;padding:20px;min-height:340px}.siteFacts,.siteOfferings{grid-template-columns:1fr}.siteQuickLinks a{padding:10px 14px}.siteCoverTop{font-size:12px}}
+
+
+/* Search-first Schools directory; profile/site styles remain unchanged. */
+.directoryMain{width:min(100%,760px);margin:0 auto;min-height:65vh;padding:44px 20px 80px}
+.directoryTitle{font-size:clamp(28px,5vw,38px);font-weight:750;letter-spacing:-.035em;margin:0 0 26px}
+.directorySearch{display:flex;align-items:center;gap:14px;border-radius:18px;background:#eef1f4;color:#64717e;padding:10px 18px;min-height:66px}
+.directorySearch input{background:transparent;border:0;outline:0;min-width:0;flex:1;font:inherit;font-size:16px;color:inherit}
+.directorySearch input::placeholder{color:#77818a}
+.directorySearch:focus-within{outline:2px solid #638bb5;outline-offset:2px}
+.directoryHeading{margin:30px 0 10px}
+.directoryHeading h2{font-size:19px;margin:0}
+.directoryList{display:grid}
+.directoryItem{display:flex;align-items:center;gap:18px;min-height:105px;padding:18px 0;border-bottom:1px solid #e0e5ea;text-decoration:none;color:inherit}
+.directoryItem[href]:hover,.directoryItem[href]:focus-visible{background:rgba(125,140,155,.07)}
+.directoryIcon{width:52px;height:52px;flex:none;display:grid;place-items:center;background:#edf0f3;color:#6a7580;border-radius:14px}
+.directoryInfo{display:grid;gap:8px;min-width:0;flex:1}
+.directoryInfo strong{font-size:17px;line-height:1.35;font-weight:650}
+.directoryInfo small{font-size:13px;line-height:1.4;color:#65717d}
+.directoryArrow{font-size:28px;color:#7b858e}
+.directoryStatus{padding:20px 0;color:#687783}
+.directoryMore{display:block;margin:24px auto;border:1px solid #b7c1cb;background:transparent;color:inherit;border-radius:12px;padding:12px 20px;cursor:pointer}
+@media(prefers-color-scheme:dark){.directorySearch,.directoryIcon{background:#262a30;color:#c1c7d0}.directorySearch input{color:#f2f4f7}.directorySearch input::placeholder{color:#a7adb7}.directoryItem{border-color:#363a41}.directoryInfo small,.directoryArrow,.directoryStatus{color:#a9b0ba}}
+@media(max-width:560px){.directoryMain{padding:30px 20px 64px}.directoryItem{min-height:94px;gap:15px}.directoryIcon{width:48px;height:48px}.directoryInfo strong{font-size:16px}}
