@@ -1,10 +1,11 @@
+import { SchoolFooter } from '../../components/SchoolFooter'
 'use client'
 import Link from 'next/link'
 import {useParams} from 'next/navigation'
 import {useEffect,useState} from 'react'
 import {supabase} from '@/lib/supabase'
 import {PublicHeader} from '@/components/public/PublicHeader'
-import {PublicFooter} from '@/components/public/PublicFooter'
+
 import {SchoolCover} from '../../components/SchoolCover'
 import styles from '../../schools.module.css'
 type School={school_name:string;county:string|null;sub_county:string|null;school_category:string|null;ownership_type:string|null;gender_type:string|null;accommodation_type:string|null;knec_code:string|null;pathway_slug:string|null;pathway_name:string|null;combination_name:string|null}
@@ -29,5 +30,5 @@ export default function SchoolSubpage(){
  {section==='news'&&<p>No official announcements have been published here yet.</p>}
  {section==='contact'&&<><p>{[school.sub_county,school.county,'Kenya'].filter(Boolean).join(', ')}</p><p>Official contact details and exact coordinates have not been published.</p></>}
  </section></div></>}
- </main><PublicFooter/></div>
+ </main><SchoolFooter name={school?.school_name} location={[school?.sub_county,school?.county].filter(Boolean).join(', ')}/></div>
 }
