@@ -37,6 +37,7 @@ export default function BecomeTutor() {
   const [phone, setPhone] = useState('')
   const [consent, setConsent] = useState(false)
   const [signedIn, setSignedIn] = useState(false)
+  const [existingListing, setExistingListing] = useState(false)
   const [authStatus, setAuthStatus] = useState<'checking' | 'signed-in' | 'signed-out' | 'error'>('checking')
   const [authRetryKey, setAuthRetryKey] = useState(0)
   const [ready, setReady] = useState(false)
@@ -69,10 +70,35 @@ export default function BecomeTutor() {
         if (error) { setAuthStatus('error'); return }
         if (!data.user) { setSignedIn(false); setAuthStatus('signed-out'); return }
         const metadata = data.user.user_metadata || {}
+        // Always load the owner's listing before enabling publishing/editing.
+        const client = getSupabaseClient()
+        const { data: listing, error: listingError } = await client.from('vibetutor_tutors')
+          .select('display_name,levels,subjects,teaching_mode,area,rate_kes,available_days,phone')
+          .eq('profile_id', data.user.id).maybeSingle()
+        if (!active) return
+        if (listingError) { setAuthStatus('error'); return }
+        const { data: profile } = await client.from('profiles')
+          .select('full_name').eq('id', data.user.id).maybeSingle()
+        if (!active) return
         setSignedIn(true)
+        setExistingListing(!!listing)
+        if (listing) {
+          setName(listing.display_name || '')
+          setLevels(listing.levels || [])
+          setSubjects(listing.subjects || [])
+          setMode(listing.teaching_mode === 'online' || listing.teaching_mode === 'physical' ? listing.teaching_mode : 'either')
+          setArea(listing.area || '')
+          setRate(listing.rate_kes == null ? '' : String(listing.rate_kes))
+          setDays(listing.available_days || [])
+          setPhone(normalizedPhone(listing.phone || ''))
+          setConsent(true)
+          setTouched(false)
+          clearDraft(DRAFT_KEY)
+        } else {
+          setName(current => current || String(profile?.full_name || metadata.full_name || metadata.name || metadata.display_name || ''))
+          setPhone(current => current || normalizedPhone(String(metadata.phone || data.user?.phone || '')))
+        }
         setAuthStatus('signed-in')
-        setName(current => current || String(metadata.full_name || metadata.name || metadata.display_name || ''))
-        setPhone(current => current || normalizedPhone(String(metadata.phone || data.user?.phone || '')))
       } catch {
         if (active) setAuthStatus('error')
       }
@@ -94,9 +120,9 @@ export default function BecomeTutor() {
   return (
     <div className={styles.formWrap}>
       <header className={styles.formHead}>
-        <h1 className={styles.formTitle}>Teach on VibeTutor</h1>
-        <p className={styles.muted}>Add your teaching details in one simple form.</p>
-        {signedIn && <p className={styles.muted}>Already have a tutor listing? <Link href="/vibetutor/availability">Edit your availability</Link>.</p>}
+        <h1 className={styles.formTitle}>{existingListing ? 'Edit tutor profile' : 'Teach on VibeTutor'}</h1>
+        <p className={styles.muted}>{existingListing ? 'Update your teaching details and availability.' : 'Add your teaching details in one simple form.'}</p>
+        {signedIn && existingListing && <p className={styles.muted}>Your saved details are loaded automatically. <Link href="/vibetutor/availability">Edit only availability</Link>.</p>}
       </header>
       {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
         <div className={polish.wizardMeta}><strong>Profile setup</strong><span>{completion.filter(Boolean).length} of 4 complete</span></div>
@@ -120,7 +146,7 @@ export default function BecomeTutor() {
         <Field label="Name" required><input className={styles.input} value={name} onChange={e => { setTouched(true); setName(e.target.value) }} maxLength={60} autoComplete="name" /></Field>
         <Field label="Phone number" required><input className={styles.input} type="tel" inputMode="numeric" autoComplete="tel" maxLength={13} pattern="(?:0[17][0-9]{8}|[+]?254[17][0-9]{8})" value={phone} onChange={e => updatePhone(e.target.value)}  placeholder="07XXXXXXXX or +2547XXXXXXXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
         <label className={styles.checkRow}><input type="checkbox" checked={consent} onChange={e => { setTouched(true); setConsent(e.target.checked) }} /><span>I agree to be listed on VibeTutor. My phone number stays private.</span></label>
-        <div className={styles.formActions}><button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button><button type="submit" className={styles.btnSubmit} disabled={!validForm || submitting || authStatus === 'checking' || authStatus === 'error'}>{submitting ? 'Publishing…' : 'Create tutor profile'}</button></div>
+        <div className={styles.formActions}>{!existingListing && <button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button>}<button type="submit" className={styles.btnSubmit} disabled={!validForm || submitting || authStatus === 'checking' || authStatus === 'error'}>{submitting ? 'Saving…' : existingListing ? 'Save profile changes' : 'Create tutor profile'}</button></div>
         {authStatus === 'error' && <p role="alert" className={styles.hint}>We could not verify your sign-in. Check your connection and retry before publishing. <button type="button" className={styles.btnSecondary} onClick={() => { setAuthStatus('checking'); setAuthRetryKey(value => value + 1) }}>Retry sign-in check</button></p>}
         {submitError && <p role="alert" className={styles.hint}>{submitError}</p>}
       </form>
