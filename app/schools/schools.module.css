@@ -93,3 +93,11 @@
 .schoolCover{height:132px;display:flex;align-items:center;justify-content:center;background:#e3e9ed;color:#758797;border-radius:14px;overflow:hidden}.schoolCoverPhoto{width:100%;height:100%;object-fit:cover}@media(max-width:600px){.schoolCover{height:112px}}
 
 .schoolPageNav{display:flex;gap:4px;overflow-x:auto;padding:12px;background:#fff;border-bottom:1px solid #e2e6e9}.schoolPageNav a{padding:10px 12px;white-space:nowrap;border-radius:8px;color:#435569;text-decoration:none;font-size:14px}.schoolPageNav a[aria-current=page]{background:#e9eef3;color:#152b40;font-weight:700}.schoolPageNav a:focus-visible{outline:2px solid #175a84}
+
+/* Approximate historic coordinates: map pin is not certified school entrance. */
+.schoolApproxMap{margin-top:16px;border:1px solid #dce4e9;border-radius:14px;overflow:hidden;background:#f7f9fa}
+.schoolApproxMap>p{padding:14px 16px;margin:0;font-size:13px;line-height:1.5;color:#475867}
+.schoolApproxMapFrame{display:block;width:100%;height:320px;border:0;background:#e6ecf0}
+.schoolApproxMapLinks{display:flex;flex-wrap:wrap;gap:14px;padding:14px 16px;font-size:13px}
+.schoolApproxMapLinks a{color:#135f76;font-weight:700;text-underline-offset:3px}
+@media(max-width:560px){.schoolApproxMapFrame{height:260px}}
