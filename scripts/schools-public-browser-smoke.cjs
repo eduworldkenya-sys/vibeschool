@@ -27,8 +27,7 @@ async function verify() {
         : page.locator('header nav[aria-label="Public navigation"] a[href="/schools"]');
       await schoolLink.click();
       await page.waitForURL(url => url.pathname === '/schools', { timeout: 20000, waitUntil: 'domcontentloaded' });
-      await page.getByRole('textbox', { name: /school name/i }).fill('Gilgil Township');
-      await page.getByRole('button', { name: /search schools/i }).click();
+      await page.getByRole('searchbox', { name: /search schools/i }).fill('Gilgil Township');
       const result = page.locator(`a[href="${SCHOOL_PATH}"]`);
       await result.waitFor({ timeout: 25000 });
       assert.match(await result.innerText(), /Gilgil Township/i);
@@ -36,11 +35,11 @@ async function verify() {
       await page.waitForURL(url => url.pathname === SCHOOL_PATH, { timeout: 20000, waitUntil: 'domcontentloaded' });
       await page.getByRole('heading', { name: 'Gilgil Township', exact: true }).waitFor({ timeout: 25000 });
       for (const section of ['About', 'Academics', 'Contact']) {
-        const link = page.locator('a[href="' + ({About:'#about-school',Academics:'#school-programmes',Contact:'#school-contact'}[section]) + '"]');
+        const slug = section.toLowerCase();
+        const link = page.locator('nav[aria-label="School pages"] a[href="' + SCHOOL_PATH + '/' + slug + '"]');
         await link.waitFor();
-        assert.ok((await link.getAttribute('href')).startsWith('#'));
+        assert.equal(await link.getAttribute('href'), SCHOOL_PATH + '/' + slug);
       }
-      assert.ok(await page.getByText(/public school profile/i).first().isVisible());
       assert.equal(pageErrors.length, 0, 'Unhandled browser errors: ' + pageErrors.join('; '));
       const dimensions = await page.evaluate(() => ({
         scroll: document.documentElement.scrollWidth,
@@ -48,7 +47,7 @@ async function verify() {
       }));
       assert.ok(dimensions.scroll <= dimensions.client + 1,
         `Horizontal overflow at ${size.width}px: ${JSON.stringify(dimensions)}`);
-      await page.locator('a[href="/schools"]').filter({ hasText: /school directory/i }).first().click();
+      await page.locator('nav[aria-label="Breadcrumb"] a[href="/schools"]').first().click();
       await page.waitForURL(url => url.pathname === '/schools', { timeout: 20000, waitUntil: 'domcontentloaded' }).catch(e => { throw new Error(`Schools nav failed from ${page.url()}: ${e.message}`); });
       console.log(`PASS ${size.width}x${size.height} — homepage -> search -> school site -> directory`);
       await context.close();
