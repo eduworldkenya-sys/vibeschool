@@ -35,7 +35,7 @@ export default function SchoolsDirectoryPage(){
    if(cancelled)return
    if(primary.error&&directory.error){setError('Could not load schools. Try again.');setEntries([]);setHasMore(false);setLoading(false);return}
    const a=((primary.data||[]) as School[]).map(s=>({id:s.school_id,name:s.school_name,county:s.county,subCounty:s.sub_county,level:s.school_category,ownership:s.ownership_type,href:s.school_id==='c51ec2ae-5b70-4f69-887d-54eb9f312db7'?'/school/gilgiltownship':'/schools/'+encodeURIComponent(s.school_id)}))
-   const b=((directory.data||[]) as DirectorySchool[]).map(s=>({id:s.directory_id,name:s.school_name,county:s.county,subCounty:s.sub_county,level:s.school_level,ownership:s.ownership_type,href:'/schools/directory/'+encodeURIComponent(s.directory_id)+'?name='+encodeURIComponent(s.school_name)}))
+   const b=((directory.data||[]) as DirectorySchool[]).map(s=>({id:s.directory_id,name:s.school_name,county:s.county,subCounty:s.sub_county,level:s.school_level,ownership:s.ownership_type,href:/^gilgil township(?: primary)?(?: school)?$/i.test(s.school_name.trim())&&s.county?.toLowerCase()==='nakuru'?'/school/gilgiltownship':'/schools/directory/'+encodeURIComponent(s.directory_id)+'?name='+encodeURIComponent(s.school_name)}))
    const seen=new Set<string>()
    const merged=[...a,...b].filter(s=>{const k=key(s);if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>x.name.localeCompare(y.name))
    setEntries(merged);setHasMore((primary.data||[]).length===LIMIT||(directory.data||[]).length===LIMIT);setLoading(false)
