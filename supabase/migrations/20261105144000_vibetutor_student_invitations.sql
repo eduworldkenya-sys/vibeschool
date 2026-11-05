@@ -155,7 +155,7 @@ language sql stable security definer set search_path = '' as $$
  join public.students s on s.id=i.student_id and s.deleted_at is null and s.profile_id=auth.uid()
  join public.vibetutor_tutors t on t.profile_id=i.tutor_id
  where i.status in ('invited','pending_guardian','accepted')
-$;
+ $$;
 
 create or replace function public.vibetutor_respond_student_invite(p_id uuid,p_accept boolean) returns text
 language plpgsql security definer set search_path = '' as $$
