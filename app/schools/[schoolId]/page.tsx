@@ -66,7 +66,7 @@ export default function SchoolProfilePage(){
        <a href="https://www.openstreetmap.org/?mlat=-0.501556&mlon=36.323889#map=16/-0.501556/36.323889" target="_blank" rel="noopener noreferrer">Open larger map</a>
        <a href={approximateLocation.source} target="_blank" rel="noopener noreferrer">Location source</a>
      </div>
-   </div>
+   </div>}
  </section>
  <p className={styles.siteDisclosure}>School identity and directory information do not mean that the school has claimed or approved this website. Only verified school representatives can manage published school content.</p>
  </div>
