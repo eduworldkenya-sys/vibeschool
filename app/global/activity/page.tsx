@@ -9,7 +9,7 @@ type ActivityItem = {
   id: string;
   title: string;
   description: string | null;
-  created_at: string;
+  created_at: string | null;
   kind: "post" | "resource" | "video";
   href: string;
 };
@@ -22,7 +22,8 @@ const MUTED = "rgba(255,255,255,.58)";
 const BORDER = "1px solid rgba(255,255,255,.09)";
 const ACCENT = "#CCFF00";
 
-function dateLabel(value: string) {
+function dateLabel(value: string | null) {
+  if (!value) return "Recently";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Recently";
   return new Intl.DateTimeFormat("en-KE", { day: "numeric", month: "short", year: "numeric" }).format(date);
@@ -83,7 +84,7 @@ export default function ActivityPage() {
         href: "/global/read/" + item.id,
       }));
       setItems([...postItems, ...resourceItems].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
       ));
       setLoading(false);
     }
