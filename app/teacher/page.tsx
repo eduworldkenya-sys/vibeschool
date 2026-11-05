@@ -3,6 +3,7 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { TrackedLink } from "@/components/public/TrackedLink";
 import { BookOpen, CalendarDays, ClipboardCheck, Users, ArrowRight, CheckCircle2, GraduationCap, MessageCircle } from "lucide-react";
 import styles from "./TeacherGateway.module.css";
+import TeacherExperiencePreview from "./TeacherExperiencePreview";
 
 export const metadata = {
   title: "For Teachers | VibeSchool",
@@ -30,7 +31,8 @@ export default function TeacherGateway() {
     <PublicHeader product="Teachers" />
     <main id="main-content">
       <section className={styles.hero} aria-labelledby="teacher-hero-title">
-        <div className={styles.wrap}>
+        <div className={`${styles.wrap} ${styles.heroLayout}`}>
+          <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>VIBESCHOOL FOR KENYAN TEACHERS</p>
           <h1 id="teacher-hero-title">Your teaching day, <span>made simpler.</span></h1>
           <p className={styles.intro}>Prepare your lessons, organise your classes and understand what learners need next — in one connected workspace.</p>
@@ -39,6 +41,8 @@ export default function TeacherGateway() {
             <a className={styles.secondary} href="#teaching-tools">Explore teaching tools</a>
           </div>
           <p className={styles.note}><CheckCircle2 size={16} aria-hidden="true"/> Built around the Kenyan curriculum and real classroom work</p>
+          </div>
+          <div className={styles.heroPreview}><TeacherExperiencePreview /></div>
         </div>
       </section>
 
@@ -62,7 +66,7 @@ export default function TeacherGateway() {
         <div className={styles.wrap}>
           <p className={styles.eyebrow}>ONE CONNECTED TEACHING JOURNEY</p>
           <h2 id="journey-title">From preparation to progress.</h2>
-          <p className={styles.journeyLead}>The tools belong to the same teaching journey, so your next action starts with the work you already did.</p>
+          <p className={styles.journeyLead}>Follow a connected teaching journey. Explore the example above, then continue into your real Teacher OS.</p>
           <ol className={styles.journeyGrid}>
             {journey.map((step,index) => <li key={step.title}>
               <span className={styles.number}>{String(index+1).padStart(2,"0")}</span>
