@@ -23,6 +23,8 @@ begin
  v_query := trim(coalesce(p_query,''));
  if length(v_query)<3 or length(v_query)>80 then
    raise exception 'Search using at least 3 letters'; end if;
+ if position('%' in v_query)>0 or position('_' in v_query)>0 or position(chr(92) in v_query)>0 then
+   raise exception 'Search using a student name'; end if;
  if (select count(*) from public.vibetutor_student_search_log
      where tutor_id=auth.uid() and searched_at>now()-interval '1 hour')>=20 then
    raise exception 'Search limit reached; try again later'; end if;
@@ -31,7 +33,7 @@ begin
  select s.id,s.name
  from public.students s
  where s.deleted_at is null and s.profile_id is not null
-   and s.name ilike '%'||replace(replace(replace(v_query,'\\','\\\\'),'%','\\%'),'_','\\_')||'%' escape '\\'
+   and s.name ilike '%'||v_query||'%'
  order by s.name,s.id limit 8;
 end $$;
 
