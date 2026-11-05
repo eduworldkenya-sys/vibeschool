@@ -25,3 +25,23 @@
 :global(html[data-vt-theme='dark']) .photoFallback { background: #493137; color: #f0c5cc; border-color: #665056; }
 :global(html[data-vt-theme='dark']) .progressTrack { stroke: #514747; }
 :global(html[data-vt-theme='dark']) .progressValue { stroke: #c77b88; }
+
+
+/* Four persistent numbered milestones: completion adds a check, never removes the number. */
+.wizardProgress{position:relative;top:auto;padding:14px 0 10px;margin-bottom:14px}
+.wizardTrack{height:6px;background:#e7dfdc}
+.wizardSteps{list-style:none;margin:0;padding:0;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.wizardStep,.wizardStepDone,.wizardStepOn{width:auto;height:auto;min-width:0;min-height:72px;border-radius:10px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;padding:8px 3px;text-align:center;background:var(--vt-surface);color:var(--vt-muted);border:1px solid var(--vt-line);position:relative}
+.wizardStepDone{background:var(--vt-accent-soft);border-color:var(--vt-accent);color:var(--vt-ink)}
+.wizardStepNumber{font-size:15px;font-weight:800;line-height:1.1;color:inherit}
+.wizardStepText{font-size:10px;font-weight:650;line-height:1.25;overflow-wrap:anywhere;color:inherit}
+.wizardStepCheck{position:absolute;right:5px;top:4px;font-size:12px;color:var(--vt-accent);font-weight:900}
+:global(html[data-vt-theme='dark']) .wizardStep{background:var(--vt-surface);border-color:var(--vt-line);color:var(--vt-muted)}
+:global(html[data-vt-theme='dark']) .wizardStepDone{background:#493137;border-color:#c77b88;color:#f2eee9}
+:global(html[data-vt-theme='dark']) .wizardStepCheck{color:#f0c5cc}
+:global(html[data-vt-theme='dark']) .navItem{color:#d1c8c3}
+:global(html[data-vt-theme='dark']) .navActive{color:#f0c5cc}
+:global(html[data-vt-theme='dark']) .navActive:after{background:#c77b88}
+:global(html[data-vt-theme='dark']) .progressRow{color:#d1c8c3}
+:global(html[data-vt-theme='dark']) .progressCopy strong{color:#f2eee9}
+@media(max-width:380px){.wizardStepText{font-size:9px}.wizardStep,.wizardStepDone{min-height:66px;padding:6px 2px}}

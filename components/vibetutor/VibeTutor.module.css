@@ -675,3 +675,42 @@
 
 .formActions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .formActions .btnSubmit { flex: 1 1 220px; }
+
+
+/* Complete dark-mode interactive contrast: shared tokens apply to every VibeTutor route. */
+:global(html[data-vt-theme='dark']) .segmentOn{background:#493137;color:#f5d6db;box-shadow:inset 0 0 0 1px #94616b}
+:global(html[data-vt-theme='dark']) .segmentBtn{color:#d1c8c3}
+:global(html[data-vt-theme='dark']) .segmentOn{color:#f5d6db}
+:global(html[data-vt-theme='dark']) .segment{background:#211e1e;border-color:var(--vt-line)}
+:global(html[data-vt-theme='dark']) .toTop{background:#c77b88;color:#201d1d}
+:global(html[data-vt-theme='dark']) .cardAction{background:#493137;color:#f5d6db;border-color:#94616b}
+:global(html[data-vt-theme='dark']) .cardAction:hover{background:#603b43;border-color:#c77b88}
+:global(html[data-vt-theme='dark']) .filterTag{background:#493137;color:#f5d6db;border-color:#94616b}
+:global(html[data-vt-theme='dark']) .clear,
+:global(html[data-vt-theme='dark']) .inlineAction,
+:global(html[data-vt-theme='dark']) .holiday,
+:global(html[data-vt-theme='dark']) .partIcon{color:#e8a8b4}
+:global(html[data-vt-theme='dark']) .partOn .partState{background:#493137;color:#f5d6db;border-color:#94616b}
+:global(html[data-vt-theme='dark']) .partOn .partLabel{color:#f2eee9}
+:global(html[data-vt-theme='dark']) .partTile:hover{background:#393232;border-color:#94616b}
+:global(html[data-vt-theme='dark']) .modalSignIn,
+:global(html[data-vt-theme='dark']) .btnPrimary,
+:global(html[data-vt-theme='dark']) .btnSubmit:not(:disabled){background:#c77b88;color:#201d1d}
+:global(html[data-vt-theme='dark']) .btnSubmit:disabled{background:#514747;color:#c9bfc0}
+:global(html[data-vt-theme='dark']) .btnPrimary:hover,
+:global(html[data-vt-theme='dark']) .modalSignIn:hover,
+:global(html[data-vt-theme='dark']) .btnSubmit:not(:disabled):hover{background:#e2a0ab}
+:global(html[data-vt-theme='dark']) .stepNum{background:#c77b88;color:#201d1d}
+:global(html[data-vt-theme='dark']) .demo{background:#493b2b;color:#f1d4a5}
+:global(html[data-vt-theme='dark']) .star{color:#e3bb7d}
+:global(html[data-vt-theme='dark']) .btnSecondary:hover,
+:global(html[data-vt-theme='dark']) .emptyAction:hover{background:#393232;color:#f5d6db}
+:global(html[data-vt-theme='dark']) .tabOn{color:#f5d6db}
+:global(html[data-vt-theme='dark']) .emptyState .empty{color:var(--vt-ink)}
+:global(html[data-vt-theme='dark']) .emptyHint{color:var(--vt-muted)}
+:global(html[data-vt-theme='dark']) .success{background:#493137;color:#f5d6db}
+:global(html[data-vt-theme='dark']) .chip:focus-visible,
+:global(html[data-vt-theme='dark']) .input:focus-visible,
+:global(html[data-vt-theme='dark']) .search:focus-visible,
+:global(html[data-vt-theme='dark']) .shell button:focus-visible,
+:global(html[data-vt-theme='dark']) .shell a:focus-visible{outline:2px solid #e8a8b4;outline-offset:2px}

@@ -73,7 +73,7 @@ export default function PostRequest() {
   }, [authRetryKey])
 
   const clearForm = () => { setLearner(''); setSubjects([]); setLevel(''); setMode('either'); setArea(''); setDays([]); setBudget(''); setPhone(''); setTouched(false); clearDraft(DRAFT_KEY) }
-  const completion = [!!level && subjects.length > 0, !!area, days.length > 0]
+  const completion = [!!level && subjects.length > 0, !!area, days.length > 0, validKenyanPhone(phone)]
   const validForm = completion.every(Boolean) && validKenyanPhone(phone)
   return (
     <div className={styles.formWrap}>
@@ -81,10 +81,17 @@ export default function PostRequest() {
         <h1 className={styles.formTitle}>Request a tutor</h1>
         <p className={styles.muted}>Tell us what your learner needs in one simple form.</p>
       </header>
-      {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 3 sections complete`}>
-          <div className={polish.wizardMeta}><strong>Progress</strong><span>{completion.filter(Boolean).length} of 3 complete</span></div>
-          <div className={polish.wizardSteps}>{["Learning needs","Tuition details","Availability"].map((label,index)=><span key={label} title={label} aria-label={`${label} ${completion[index]?'complete':'incomplete'}`} className={completion[index]?polish.wizardStepDone:polish.wizardStep}>{completion[index]?'✓':index+1}</span>)}</div>
-        </div>}
+      <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
+        <div className={polish.wizardMeta}><strong>Profile setup</strong><span>{completion.filter(Boolean).length} of 4 complete</span></div>
+        <div className={polish.wizardTrack} role="progressbar" aria-valuenow={completion.filter(Boolean).length} aria-valuemin={0} aria-valuemax={4} aria-label="Form completion"><span style={{ width: `${completion.filter(Boolean).length * 25}%` }} /></div>
+        <ol className={polish.wizardSteps}>
+          {['Learning needs', 'Tuition details', 'Availability', 'Contact'].map((label,index) => <li key={label} className={completion[index] ? polish.wizardStepDone : polish.wizardStep} aria-label={`Step ${index + 1}: ${label}, ${completion[index] ? 'complete' : 'incomplete'}`}>
+            <span className={polish.wizardStepNumber}>{index + 1}</span>
+            <span className={polish.wizardStepText}>{label}</span>
+            {completion[index] && <span className={polish.wizardStepCheck} aria-hidden="true">✓</span>}
+          </li>)}
+        </ol>
+      </div>
       <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone }); window.location.assign('/login?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); window.location.assign('/vibetutor/browse') } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
         <Field label="Level" required><select className={styles.input} value={level} onChange={e => { setTouched(true); setLevel(e.target.value); setSubjects([]) }}><option value="">Choose level</option>{LEVELS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Subjects" required>{level && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
