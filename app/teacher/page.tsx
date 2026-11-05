@@ -4,6 +4,7 @@ import { TrackedLink } from "@/components/public/TrackedLink";
 import { BookOpen, CalendarDays, ClipboardCheck, ArrowRight, CheckCircle2, GraduationCap, MessageCircle, BriefcaseBusiness } from "lucide-react";
 import styles from "./TeacherGateway.module.css";
 import TeachingJobs from "./TeachingJobs";
+import TeacherExperiencePreview from "./TeacherExperiencePreview";
 
 
 export const metadata = {
@@ -27,13 +28,17 @@ export default function TeacherGateway() {
     <PublicHeader product="Teachers" />
     <main id="main-content">
       <section className={styles.hero} aria-labelledby="teacher-hero-title">
-        <div className={styles.wrap}>
-          <p className={styles.eyebrow}>BUILT FOR KENYAN TEACHERS</p>
-          <h1 id="teacher-hero-title">Your teaching work, made easier.</h1>
-          <p className={styles.intro}>Plan lessons, prepare schemes, assess learners and find teaching resources in one place.</p>
-          <div className={styles.heroActions}>
-            <a className={styles.primary} href="#teaching-tools">Get started <ArrowRight size={18} aria-hidden="true" /></a>
+        <div className={`${styles.wrap} ${styles.heroLayout}`}>
+          <div className={styles.heroCopy}>
+            <p className={styles.eyebrow}>BUILT FOR KENYAN TEACHERS</p>
+            <h1 id="teacher-hero-title">Your teaching work, made easier.</h1>
+            <p className={styles.intro}>Plan lessons, prepare schemes, assess learners and find teaching resources in one place.</p>
+            <div className={styles.heroActions}>
+              <TrackedLink className={styles.primary} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Open Teacher OS <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
+              <a className={styles.secondary} href="#teaching-tools">Explore teaching tools <ArrowRight size={18} aria-hidden="true" /></a>
+            </div>
           </div>
+          <div className={styles.heroPreview}><TeacherExperiencePreview /></div>
         </div>
       </section>
       <section className={styles.section} id="teaching-tools" aria-labelledby="teaching-tools-title">
