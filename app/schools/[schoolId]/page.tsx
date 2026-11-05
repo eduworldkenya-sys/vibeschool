@@ -1,10 +1,11 @@
+import { SchoolFooter } from '../components/SchoolFooter'
 'use client'
 
 import Link from 'next/link'
 import { FormEvent, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { PublicHeader } from '@/components/public/PublicHeader'
-import { PublicFooter } from '@/components/public/PublicFooter'
+
 import { supabase } from '@/lib/supabase'
 import styles from '../schools.module.css'
 import { SchoolCover } from '../components/SchoolCover'
@@ -42,5 +43,5 @@ export default function SchoolProfilePage(){
  </div>
  <section className={`${styles.panel} ${styles.section} ${styles.canonicalAdmin} ${!showClaim?styles.canonicalHidden:""}`}><span className={styles.eyebrow}>SCHOOL MANAGEMENT</span><h2>Do you manage this school?</h2><p className={styles.meta}>Authorized representatives can request management access. Claiming a profile does not make school-supplied information “VibeSchool verified”; evidence remains labelled by source.</p>{!showClaim?<div className={styles.actions}><button className={styles.primary} onClick={()=>{setShowClaim(true);setShowCorrection(false);setFeedback('')}}>Claim this school</button></div>:<form onSubmit={submitClaim}><div className={styles.searchGrid}><label className={styles.field}><span>Your role *</span><input className={styles.input} value={claimRole} onChange={e=>setClaimRole(e.target.value)} placeholder="Headteacher, deputy, administrator…"/></label><label className={styles.field}><span>School contact</span><input className={styles.input} value={claimPhone} onChange={e=>setClaimPhone(e.target.value)} placeholder="Optional phone"/></label><label className={styles.field}><span>Evidence / context</span><input className={styles.input} value={claimEvidence} onChange={e=>setClaimEvidence(e.target.value)} placeholder="How can VibeSchool verify your authority?"/></label></div>{feedback&&<div className={`${styles.status} ${feedback.startsWith('Claim ') ? styles.success:styles.error}`}>{feedback}{feedback.startsWith('Sign in')&&<> <Link href="/login/global">Sign in</Link></>}</div>}<div className={styles.actions}><button className={styles.primary} disabled={saving}>{saving?'Sending…':'Request management access'}</button><button type="button" className={styles.secondary} onClick={()=>setShowClaim(false)}>Cancel</button></div></form>}</section>
  <section className={`${styles.panel} ${styles.section} ${styles.canonicalAdmin} ${!showCorrection?styles.canonicalHidden:""}`}><span className={styles.eyebrow}>COMMUNITY ASSISTED, VERIFIED BEFORE PUBLISHING</span><h2>Something missing or incorrect?</h2><p className={styles.meta}>Send a correction. It enters a review queue and cannot overwrite the canonical school record automatically.</p>{!showCorrection?<div className={styles.actions}><button className={styles.secondary} onClick={()=>{setShowCorrection(true);setShowClaim(false);setFeedback('')}}>Suggest a correction</button></div>:<form onSubmit={submitCorrection}><label className={styles.field}><span>What should VibeSchool check?</span><textarea className={styles.textarea} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Describe the correction and, if possible, the evidence."/></label>{feedback&&<div className={`${styles.status} ${feedback.startsWith('Correction')?styles.success:styles.error}`}>{feedback}{feedback.startsWith('Sign in')&&<> <Link href="/login/global">Sign in</Link></>}</div>}<div className={styles.actions}><button className={styles.primary} disabled={saving}>{saving?'Sending…':'Send for review'}</button><button type="button" className={styles.secondary} onClick={()=>setShowCorrection(false)}>Cancel</button></div></form>}</section>
- </>}</main><PublicFooter/></div>
+ </>}</main><SchoolFooter name={school?.school_name} location={[school?.sub_county,school?.county].filter(Boolean).join(', ')}/></div>
 }
