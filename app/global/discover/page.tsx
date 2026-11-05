@@ -27,7 +27,7 @@ export default function DiscoverPage(){
    setEntries([...stories,...resources].filter(x=>!q||[x.title,x.description??'',...x.tags].some(v=>v.toLowerCase().includes(q))).sort((a,b)=>new Date(b.created_at??0).getTime()-new Date(a.created_at??0).getTime()));
   }catch{if(alive)setError('Discovery could not load. Please try again.')}finally{if(alive)setLoading(false)}
  },250);return()=>{alive=false;clearTimeout(timeout)}},[query]);
- const shown=entries.filter(x=>kind==='All'||kind==='People'?kind!=='People':kind==='Stories'?x.kind==='story':kind==='Videos'?x.kind==='video':x.kind==='resource');
+ const shown=entries.filter(x=>kind==='All'?true:kind==='People'?false:kind==='Stories'?x.kind==='story':kind==='Videos'?x.kind==='video':x.kind==='resource');
  return <main style={{color:'#fff',padding:'8px 0 110px',maxWidth:850,margin:'auto'}}>
  <h1 style={{fontSize:25,margin:'0 0 6px'}}>Discover</h1><p style={{fontSize:13,color:muted,margin:'0 0 18px'}}>Explore public creators, stories and learning resources.</p>
  <label htmlFor="discover-search" style={{display:'block',fontSize:12,marginBottom:7}}>Search VibeSchool</label>
