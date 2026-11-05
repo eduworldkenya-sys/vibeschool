@@ -241,6 +241,15 @@ export default function TeacherProfilePage() {
         </div>
       </section>
 
+      <section aria-label="My tutoring" style={{ background: "var(--teacher-surface, #fff)", border: "1px solid var(--teacher-border, #dfe5de)", borderRadius: 18, padding: 15, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 8 }}>MY TUTORING</div>
+        <div style={{ fontSize: 13, color: "var(--teacher-ink, #1c2923)", marginBottom: 12 }}>Manage your independent tutoring separately from school assignments.</div>
+        <Link href="/vibetutor/become-tutor" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 48, padding: "10px 14px", borderRadius: 12, background: "var(--teacher-canvas, #f5f6f2)", color: "var(--teacher-ink, #1c2923)", fontSize: 14, fontWeight: 750, textDecoration: "none" }}>
+          <span>My tutor listing</span><span aria-hidden="true">→</span>
+        </Link>
+        <Link href="/vibetutor/availability" style={{ display: "inline-block", marginTop: 12, fontSize: 13, fontWeight: 750, color: "var(--teacher-green, #087451)" }}>Edit availability →</Link>
+      </section>
+
       {notice && <div role={notice.kind === "error" ? "alert" : "status"} style={{ borderRadius: 14, padding: 13, marginBottom: 12, fontSize: 13, background: notice.kind === "error" ? "#fef2f2" : "#ecfdf5", color: notice.kind === "error" ? "#991b1b" : "#065f46" }}>{notice.text}</div>}
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
