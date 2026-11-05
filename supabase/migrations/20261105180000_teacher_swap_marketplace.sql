@@ -1,4 +1,6 @@
 -- Teacher Swap V1: discovery listings and private interest, separate from official TSC transfers.
+-- authorization-test: public.teacher_swap_listings (anon reads published only; author owns writes; other user denied)
+-- authorization-test: public.teacher_swap_interests (only sender and listing owner read; only owner responds; no anonymous access)
 create table if not exists public.teacher_swap_listings (
  id uuid primary key default gen_random_uuid(),
  teacher_id uuid not null references auth.users(id) on delete cascade,
