@@ -12,8 +12,8 @@ import { SchoolCover } from '../components/SchoolCover'
 type ProfileRow={school_id:string;school_name:string;county:string|null;sub_county:string|null;school_category:string|null;ownership_type:string|null;gender_type:string|null;accommodation_type:string|null;cluster:string|null;knec_code:string|null;pathway_slug:string|null;pathway_name:string|null;combination_slug:string|null;combination_name:string|null;verified_at:string|null;source_authority:string|null;source_name:string|null;source_url:string|null;source_reference:string|null;source_observed_at:string|null}
 type TrustRow={school_id:string;verified_claim_count:number;profile_completeness:number;trust_state:'canonical_identity'|'verified_claims';last_verified_at:string|null}
 
-export default function SchoolProfilePage(){
- const params=useParams<{schoolId:string}>();const schoolId=params.schoolId
+export default function SchoolProfilePage({schoolIdOverride}:{schoolIdOverride?:string}={}){
+ const params=useParams<{schoolId:string}>();const schoolId=schoolIdOverride??params.schoolId
  const pathname=usePathname()
  const schoolBase=pathname.startsWith('/school/gilgiltownship')?'/school/gilgiltownship':'/schools/'+schoolId
  const [rows,setRows]=useState<ProfileRow[]>([]);const [trust,setTrust]=useState<TrustRow|null>(null);const [loading,setLoading]=useState(true);const [error,setError]=useState('')
