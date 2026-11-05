@@ -20,6 +20,11 @@ export default function SchoolProfilePage(){
  async function submitCorrection(e:FormEvent){e.preventDefault();setFeedback('');if(notes.trim().length<10){setFeedback('Please describe the correction in a little more detail.');return}setSaving(true);const user=await requireUser();if(!user){setSaving(false);setFeedback('Sign in first so VibeSchool can retain and review your correction.');return}const {data,error}=await supabase.rpc('submit_school_correction_request',{p_school_id:schoolId,p_notes:notes.trim(),p_contact_name:null,p_contact_phone:null});setSaving(false);setFeedback(error?'We could not save this correction right now. Please try again.':`Correction ${String(data).slice(0,8)} received for review. The public profile will not change until it is verified.`)}
  async function submitClaim(e:FormEvent){e.preventDefault();setFeedback('');if(claimRole.trim().length<2){setFeedback('Tell us your role at the school.');return}setSaving(true);const user=await requireUser();if(!user){setSaving(false);setFeedback('Sign in first so VibeSchool can verify who is requesting management access.');return}const {data,error}=await supabase.rpc('submit_school_profile_claim_v1',{p_school_id:schoolId,p_role_at_school:claimRole.trim(),p_evidence_note:claimEvidence.trim()||null,p_contact_phone:claimPhone.trim()||null});setSaving(false);setFeedback(error?'We could not submit this claim. It may already be awaiting review.':`Claim ${String(data).slice(0,8)} received. Nothing on the public profile changes until VibeSchool verifies your authority.`)}
  const school=rows[0];const offerings=rows.filter(r=>r.pathway_slug)
+ // A historically sourced, approximate map point for this canonical school identity only.
+ // Never label this coordinate as a verified school entrance or use it to assert present-day location accuracy.
+ const approximateLocation=schoolId==='c51ec2ae-5b70-4f69-887d-54eb9f312db7'
+  ? {latitude:-0.501556,longitude:36.323889,source:'https://data.afro.co.ke/schools/gilgil-township-pri-sch/'}
+  : null
  const completeness=trust?.profile_completeness??0
  return <div className={styles.page}><PublicHeader product="Schools"/><main id="main-content" className={styles.main}><Link href="/schools" className={styles.back}>← School directory</Link>
  {loading&&<div className={styles.status}>Loading school profile…</div>}{error&&<div role="alert" className={`${styles.status} ${styles.error}`}>{error}</div>}{!loading&&!error&&!school&&<div className={styles.status}>This school is not available in the public directory.</div>}
@@ -47,6 +52,21 @@ export default function SchoolProfilePage(){
  <section id="school-contact" className={styles.siteSection}>
    <div className={styles.siteSectionHeading}><span className={styles.eyebrow}>CONTACT & LOCATION</span><h2>Find the school</h2></div>
    <p className={styles.siteBody}>{[school.sub_county,school.county,'Kenya'].filter(Boolean).join(', ')}. Official contact details have not been published on this page.</p>
+   {approximateLocation&&<div className={styles.siteMap}>
+     <p className={styles.siteMapLabel}>Approximate location · historical school record</p>
+     <iframe
+       title={`Approximate map location of ${school.school_name}`}
+       src="https://www.openstreetmap.org/export/embed.html?bbox=36.310000%2C-0.511000%2C36.338000%2C-0.492000&layer=mapnik&marker=-0.501556%2C36.323889"
+       loading="lazy"
+       referrerPolicy="no-referrer"
+       className={styles.siteMapFrame}
+     />
+     <div className={styles.siteMapFooter}>
+       <span>This point comes from an older school directory. It may not mark the current school entrance.</span>
+       <a href="https://www.openstreetmap.org/?mlat=-0.501556&mlon=36.323889#map=16/-0.501556/36.323889" target="_blank" rel="noopener noreferrer">Open larger map</a>
+       <a href={approximateLocation.source} target="_blank" rel="noopener noreferrer">Location source</a>
+     </div>
+   </div>
  </section>
  <p className={styles.siteDisclosure}>School identity and directory information do not mean that the school has claimed or approved this website. Only verified school representatives can manage published school content.</p>
  </div>
