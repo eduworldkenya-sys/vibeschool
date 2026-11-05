@@ -34,3 +34,9 @@
 @media(max-width:600px){.wrap{width:calc(100% - 32px)}.hero{padding:64px 0 70px}.section,.journey,.workspace{padding:56px 0}.taskGrid{gap:11px}.task{padding:18px 15px}.taskIcon{margin-bottom:15px}.task h3{font-size:16px}.task p{font-size:13px}.journeyGrid{gap:10px}.journeyGrid li{padding:17px}.journeyGrid h3{font-size:17px}.workspacePanel{grid-template-columns:1fr;gap:16px;border-radius:19px}.heroActions{align-items:stretch;flex-direction:column}.primary,.secondary,.support{width:100%;min-width:0;text-align:center}.note{align-items:flex-start}}
 @media(max-width:350px){.taskGrid,.journeyGrid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.primary,.secondary,.support{transition:none}.primary:hover{transform:none}}
+
+.heroLayout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);align-items:center;gap:clamp(25px,5vw,70px)}
+.heroCopy{min-width:0}.heroPreview{min-width:0;display:flex;justify-content:flex-end;align-items:center}
+.hero h1{font-size:clamp(42px,5.4vw,70px)}.hero{padding:clamp(48px,7vw,94px) 0}
+@media(max-width:850px){.heroLayout{grid-template-columns:1fr;gap:36px}.heroPreview{justify-content:center}.hero h1{max-width:700px}}
+@media(max-width:600px){.hero{padding:46px 0 58px}.heroPreview{width:100%}.heroPreview>div{max-width:440px}}
