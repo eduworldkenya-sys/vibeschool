@@ -84,8 +84,13 @@ try {
   if (firstFocused.href !== '#main-content') fail(`keyboard: first focus is not skip link (${JSON.stringify(firstFocused)})`)
   if (firstFocused.outline === 'none') fail('keyboard: first focused control has no visible outline')
   await page.keyboard.press('Enter')
-  const hash = await page.evaluate(()=>location.hash)
-  if (hash !== '#main-content') fail(`keyboard: skip link did not target main content (${hash})`)
+  // Allow the browser navigation event to settle after keyboard activation.
+  try {
+    await page.waitForFunction(() => location.hash === '#main-content', { timeout: 3000 })
+  } catch {
+    const hash = await page.evaluate(() => location.hash)
+    fail(`keyboard: skip link did not target main content (${hash})`)
+  }
 
   const menu = page.locator('details summary[aria-label="Open public navigation"]')
   if (await menu.count()) {
