@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 const items = [
   { label: 'Home', href: '/', icon: 'home' },
-  { label: 'Discover', href: '/global', icon: 'discover' },
+  { label: 'Discover', href: '/global/discover', icon: 'discover' },
   { label: 'Create', href: '/global/signup', icon: 'create' },
   { label: 'Activity', href: '/global/activity', icon: 'activity' },
   { label: 'Profile', href: '/global/profile', icon: 'profile' },
