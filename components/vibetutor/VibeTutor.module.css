@@ -714,3 +714,23 @@
 :global(html[data-vt-theme='dark']) .search:focus-visible,
 :global(html[data-vt-theme='dark']) .shell button:focus-visible,
 :global(html[data-vt-theme='dark']) .shell a:focus-visible{outline:2px solid #e8a8b4;outline-offset:2px}
+
+
+/* Compact discovery: search remains primary; filters become a scannable panel. */
+.filterSearchRow{display:flex;align-items:stretch;gap:8px;min-width:0}
+.filterSearchRow .searchWrap{flex:1 1 auto;min-width:0}
+.filterSearchRow .compactFilterButton{flex:0 0 auto;white-space:nowrap}
+.filterSelectGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px;background:var(--vt-bg);border:1px solid var(--vt-line);border-radius:12px}
+.filterSelectField{display:grid;align-content:start;gap:5px;min-width:0}
+.filterSelectField>span{font-size:12px;font-weight:650;color:var(--vt-ink)}
+.filterSelectField .select{min-width:0;cursor:pointer;background:var(--vt-surface)}
+.filterPanelActions{display:flex;align-items:center;flex-wrap:wrap;gap:14px;grid-column:1/-1;padding-top:2px}
+.filterPanelActions .compactFilterButton{background:var(--vt-accent);color:#fff;border-color:var(--vt-accent)}
+.filterSuggestions{display:flex;gap:6px;flex-wrap:wrap}
+.filterSuggestion{font:inherit;font-size:12px;font-weight:600;background:var(--vt-accent-soft);color:var(--vt-ink);border:1px solid var(--vt-line);border-radius:999px;padding:6px 10px;cursor:pointer}
+.filterSuggestion:hover{border-color:var(--vt-accent)}
+:global(html[data-vt-theme='dark']) .filterSelectGrid{background:#211e1e;border-color:var(--vt-line)}
+:global(html[data-vt-theme='dark']) .filterSelectField .select{background:#2b2727;color:#f2eee9}
+:global(html[data-vt-theme='dark']) .filterSuggestion{background:#493137;color:#f5d6db;border-color:#94616b}
+:global(html[data-vt-theme='dark']) .filterPanelActions .compactFilterButton{background:#c77b88;color:#201d1d;border-color:#c77b88}
+@media(max-width:560px){.filterSelectGrid{grid-template-columns:minmax(0,1fr)}.filterSearchRow .compactFilterButton{padding:7px 9px}}
