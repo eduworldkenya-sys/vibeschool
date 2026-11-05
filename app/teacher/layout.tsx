@@ -130,6 +130,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   }, []);
 
   useEffect(() => {
+    if (pathname === "/teacher" || pathname === "/teacher/") return;
     let cancelled = false
 
     async function bootstrapShell() {
@@ -180,11 +181,14 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
     void bootstrapShell()
     return () => { cancelled = true }
-  }, [refreshCredits, router, authRetry]);
+  }, [refreshCredits, router, authRetry, pathname]);
 
   // Onboarding routes are already server-authorized by middleware and must not be
   // blocked by the full Teacher OS bootstrap. A brand-new teacher may not yet
   // have the teacher_profile/school bindings that the operational shell expects.
+  // Public teacher gateway uses the site header/footer, never the authenticated OS shell.
+  if (pathname === "/teacher" || pathname === "/teacher/") return <>{children}</>;
+
   const isOnboardingPath = pathname?.startsWith("/teacher/onboarding") ?? false;
   if (isOnboardingPath) return <div className="teacher-light-surface" style={{ minHeight: "100vh", background: "var(--teacher-canvas, #f5f6f2)", color: "var(--teacher-ink, #1c2923)" }}>{children}</div>;
 
