@@ -1,6 +1,6 @@
 .teaser,.modal{box-sizing:border-box;background:radial-gradient(ellipse at 85% 5%,#294465 0%,#0b1b38 47%,#08152e 100%);color:white;font-family:Arial,Helvetica,sans-serif;border:1px solid #d8b35c;box-shadow:0 12px 35px #0005;overflow:hidden}
 .teaser *, .modal *{box-sizing:border-box}
-.teaser{position:fixed;z-index:70;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:16px;width:min(328px,calc(100vw - 32px));border-radius:15px;background-image:radial-gradient(circle at 96% 10%,#a87a33 0,#1b3054 24%,#09162e 69%);animation:enter .3s ease-out}
+.teaser{position:fixed;z-index:30;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:16px;width:min(328px,calc(100vw - 32px));border-radius:15px;background-image:radial-gradient(circle at 96% 10%,#a87a33 0,#1b3054 24%,#09162e 69%);animation:enter .3s ease-out}
 .teaserOpen{display:flex;flex-direction:column;gap:7px;width:100%;padding:18px 48px 18px 20px;text-align:left;border:0;background:transparent;color:#fff;cursor:pointer}
 .teaserBrand{font-size:9px;font-weight:800;letter-spacing:.14em;color:#efc56d}
 .teaserOpen strong{font-size:23px;color:#f4d17e;line-height:1.15;text-shadow:0 2px 6px #0006}
