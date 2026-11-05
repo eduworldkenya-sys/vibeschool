@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/teacher/TeacherUiContext";
 import { fetchPulseData } from "@/lib/pulse/fetcher";
@@ -444,7 +445,10 @@ export default function PulsePage() {
   };
 
   if (loading && !snap) return <Skeleton />;
-  if (!snap) return <EmptyToday onRetry={() => void boot(true)} />;
+  if (!snap) return <>
+    <EmptyToday onRetry={() => void boot(true)} />
+    <div style={{ margin: 16, padding: 16, ...surface }}><Link href="/vibetutor/my-tutoring">Manage my tutoring →</Link></div>
+  </>;
 
   const safeTodaySlots = snap.todaySlots ?? [];
   const safeMyClasses = snap.myClasses ?? [];
@@ -511,6 +515,7 @@ export default function PulsePage() {
       />
 
       <p className="teacher-today__scope">My day across all classes · selected class shortcuts are shown in Quick tools.</p>
+      <div style={{ padding: "0 16px 12px" }}><Link href="/vibetutor/my-tutoring" style={{ fontSize: 13, fontWeight: 650 }}>My tutoring →</Link></div>
       <div className="studio-pulse-focus">
       <NextTeachingAction
         task={dayResult.tasks[0] ?? null}
