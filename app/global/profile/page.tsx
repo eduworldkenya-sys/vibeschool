@@ -14,12 +14,13 @@ const input:React.CSSProperties={width:'100%',boxSizing:'border-box',background:
 const label:React.CSSProperties={display:'block',color:MUTED,fontSize:12,fontWeight:700,marginBottom:6};
 
 export default function ProfilePage(){
- const {isLoggedIn,userId,userName}=useGlobalAuth(),router=useRouter();
+ const {authReady,isLoggedIn,userId,userName}=useGlobalAuth(),router=useRouter();
  const [draft,setDraft]=useState<Draft>(EMPTY),[items,setItems]=useState<Item[]>([]);
  const [tab,setTab]=useState<'Posts'|'Resources'|'Videos'|'About'|'Activity'>('Posts');
  const [loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [stats,setStats]=useState({stories:0,resources:0,views:0});
  useEffect(()=>{let active=true;async function load(){
+  if(!authReady)return;
   if(!isLoggedIn||!userId){setLoading(false);return}
   const [p,s,r,sv,rv]=await Promise.all([
    supabase.from('global_public_profiles').select('*').eq('profile_id',userId).maybeSingle(),
@@ -37,10 +38,10 @@ export default function ProfilePage(){
   setStats({stories:s.count??stories.length,resources:r.count??resources.length,views});
   setItems([...stories.map(x=>({...x,kind:'story',href:'/global/read/story/'+x.id})),...resources.map(x=>({...x,kind:(x.type??'').toLowerCase().includes('video')?'video':'resource',href:'/global/read/'+x.id}))].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()));
   setLoading(false);
- }load().catch(()=>{if(active){setError('Could not load profile. Refresh and try again.');setLoading(false)}});return()=>{active=false}},[isLoggedIn,userId]);
+ }load().catch(()=>{if(active){setError('Could not load profile. Refresh and try again.');setLoading(false)}});return()=>{active=false}},[authReady,isLoggedIn,userId]);
  const filtered=useMemo(()=>tab==='Posts'?items:tab==='Resources'?items.filter(x=>x.kind==='resource'):tab==='Videos'?items.filter(x=>x.kind==='video'):[],[items,tab]);
  function field<K extends keyof Draft>(k:K,v:Draft[K]){setDraft(d=>({...d,[k]:v}))}
- async function save(e:React.FormEvent){e.preventDefault();setError('');setNotice('');const username=draft.username.trim().toLowerCase().replace(/^@/,'');const name=draft.display_name.trim();
+ async function save(e:React.FormEvent){e.preventDefault();if(!authReady||!userId||saving)return;setError('');setNotice('');const username=draft.username.trim().toLowerCase().replace(/^@/,'');const name=draft.display_name.trim();
   if(draft.is_public&&(!username||name.length<2)){setError('Add a public name and username before publishing your profile.');return}
   if(username&&!/^[a-z0-9_]{3,24}$/.test(username)){setError('Username must be 3–24 lowercase letters, numbers or underscores.');return}
   if(draft.avatar_url&&!/^https?:\/\//i.test(draft.avatar_url.trim())){setError('Photo URL must begin with http:// or https://.');return}
@@ -48,6 +49,7 @@ export default function ProfilePage(){
   if(e2){setError(e2.code==='23505'?'That username is already taken.':e2.message||'Could not save profile.');return}setDraft(d=>({...d,username,display_name:name}));setNotice('Profile saved.');
  }
  async function signOut(){await supabase.auth.signOut();document.cookie='vibe_role=; path=/; max-age=0';router.replace('/global')}
+ if(!authReady)return <div role="status" style={{minHeight:'60dvh',display:'grid',placeItems:'center',color:ACCENT}}>Checking your session…</div>;
  if(!isLoggedIn)return <main style={{minHeight:'65dvh',display:'grid',placeItems:'center',textAlign:'center',padding:24,color:'#fff'}}><div><h1>Your VibeSchool profile</h1><p style={{color:MUTED}}>Sign in to manage your profile and contributions.</p><button onClick={()=>router.push('/global/signup')} style={{background:ACCENT,color:BG,border:0,borderRadius:10,padding:12,fontWeight:800}}>Create account / Sign in</button></div></main>;
  if(loading)return <div style={{minHeight:'60dvh',display:'grid',placeItems:'center',color:ACCENT}}>Loading profile…</div>;
  const name=draft.display_name||userName||'Your profile',initials=name.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
