@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, BookOpen, Users, FolderOpen, Pencil, Clock3, MapPin, GraduationCap, ArrowRight, RefreshCw } from "lucide-react";
+import { CalendarDays, BookOpen, Users, FolderOpen, Pencil, Clock3, GraduationCap, ArrowRight, RefreshCw } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 
 type Listing = {
