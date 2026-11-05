@@ -54,7 +54,7 @@ for fragment in [
     if fragment not in mission: errors.append(f'mission/vision lock missing: {fragment}')
 
 home = text('app/page.tsx')
-for fragment in ['RoleJourneySelector','ConnectedEducationExplorer','SchoolReadinessAssessment','EXPLORE VIBESCHOOL','FOR SCHOOLS & EDUCATION INSTITUTIONS','Pathways','Trust Centre','/product','/institutions']:
+for fragment in ['RoleJourneySelector','ConnectedEducationExplorer','SchoolReadinessAssessment','GET TO KNOW VIBESCHOOL','FOR SCHOOLS &amp; EDUCATION INSTITUTIONS','Pathways','Trust Centre','/product','/institutions']:
     if fragment not in home: errors.append(f'homepage communication missing: {fragment}')
 
 role_selector = text('components/public/RoleJourneySelector.tsx')
