@@ -16,8 +16,9 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
     if (preview) { setVisible(true); setExpanded(true); return }
     try { if (sessionStorage.getItem(SESSION_KEY) === '1') return } catch { /* Browsers can block storage. */ }
     setVisible(true)
+    if (homepage) { setExpanded(false); return }
     try { setExpanded(sessionStorage.getItem(COLLAPSED_KEY) !== '1') } catch { setExpanded(true) }
-  }, [preview])
+  }, [preview, homepage])
 
   useEffect(() => {
     if (!expanded) return
