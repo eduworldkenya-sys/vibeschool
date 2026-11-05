@@ -1,0 +1,6 @@
+.nav { display: none; }
+.spacer { display: none; }
+@media (max-width: 767px) {
+  .nav { display: block; }
+  .spacer { display: block; height: calc(76px + env(safe-area-inset-bottom)); }
+}

@@ -34,7 +34,7 @@ permissions:
 jobs:
   chromium-pwa:
     name: Chromium installability and offline recovery
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
