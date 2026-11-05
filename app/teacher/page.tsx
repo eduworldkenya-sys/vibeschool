@@ -13,7 +13,7 @@ const tasks = [
   { title: "Prepare a scheme", detail: "Organise curriculum work across the term.", href: "/login?redirect=/teacher/scheme", cta: "Open scheme", event: "public_teacher_scheme" as const, Icon: CalendarDays },
   { title: "Plan a lesson", detail: "Turn your plan into tomorrow’s classroom activities.", href: "/login?redirect=/teacher/lessonplan", cta: "Plan a lesson", event: "public_teacher_lesson" as const, Icon: BookOpen },
   { title: "Assess learners", detail: "Prepare practice and review understanding.", href: "/login?redirect=/teacher/assessment", cta: "Open assessment", event: "public_teacher_revision" as const, Icon: ClipboardCheck },
-  { title: "Manage classes", detail: "Return to your learners and class records.", href: "/login?redirect=/teacher/classes", cta: "View classes", event: "public_teacher_lesson" as const, Icon: Users },
+  { title: "Manage classes", detail: "Return to your learners and class records.", href: "/login?redirect=/teacher/classhub", cta: "View classes", event: "public_teacher_lesson" as const, Icon: Users },
 ];
 
 const journey = [
