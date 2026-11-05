@@ -46,6 +46,7 @@ export const teacherTools = {
   me: [
     { label: 'Profile', href: '/teacher/profile', icon: UserRound },
     { label: 'My school', href: '/teacher/schoolhub', icon: School },
+    { label: 'My tutoring', href: '/vibetutor/become-tutor', icon: GraduationCap },
     { label: 'TPAD', href: '/teacher/tpad', icon: ClipboardCheck },
     { label: 'Credits', href: '/teacher/credits', icon: Wallet },
     { label: 'Settings', href: '/teacher/settings', icon: SlidersHorizontal },
