@@ -1,5 +1,5 @@
-import { SchoolFooter } from '../components/SchoolFooter'
 'use client'
+import { SchoolFooter } from '../components/SchoolFooter'
 
 import Link from 'next/link'
 import { FormEvent, useEffect, useState } from 'react'
