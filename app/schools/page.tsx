@@ -26,10 +26,11 @@ export default function SchoolsDirectoryPage(){
   const timer=setTimeout(async()=>{
    setLoading(true);setError('')
    const q=query.trim()
-   let [primary,directory]=await Promise.all([
+   const [initialPrimary,directory]=await Promise.all([
     supabase.rpc('schools_search_public_v2',{p_query:q||null,p_county:null,p_sub_county:null,p_ward:null,p_school_category:null,p_ownership_type:null,p_gender_type:null,p_accommodation_type:null,p_limit:LIMIT}),
     supabase.rpc('schools_directory_search_public_v1',{p_query:q||null,p_county:null,p_sub_county:null,p_level:null,p_limit:LIMIT})
    ])
+   let primary=initialPrimary
    if(primary.error){primary=await supabase.rpc('schools_search_public_v1',{p_query:q||null,p_county:null,p_sub_county:null,p_school_category:null,p_ownership_type:null,p_gender_type:null,p_accommodation_type:null,p_limit:LIMIT})}
    if(cancelled)return
    if(primary.error&&directory.error){setError('Could not load schools. Try again.');setEntries([]);setHasMore(false);setLoading(false);return}
