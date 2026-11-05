@@ -15,8 +15,15 @@ const DRAFT_KEY = 'vibetutor:tutor-form:v1'
 type TutorDraft = { name: string; levels: string[]; subjects: string[]; mode: Mode; area: string; rate: string; days: string[]; phone: string }
 
 const toggle = (list: string[], value: string) => list.includes(value) ? list.filter(x => x !== value) : [...list, value]
-const normalizedPhone = (value: string) => { const digits = value.replace(/\D/g, ''); return digits.length === 10 && digits.startsWith('0') ? '+254' + digits.slice(1) : digits.length === 12 && digits.startsWith('254') ? '+' + digits : value.trim() }
-const validKenyanPhone = (value: string) => /^(?:0[71][0-9]{8}|254[71][0-9]{8}|\+254[71][0-9]{8})$/.test(value.replace(/[\s-]/g, ''))
+// Limit by numbering format as the user types or pastes; never discard leading zeroes.
+const normalizedPhone = (value: string) => {
+  const compact = value.trim().replace(/[^+0-9]/g, '')
+  const digits = compact.replace(/\D/g, '')
+  if (compact.startsWith('+')) return '+' + digits.slice(0, 12)
+  if (digits.startsWith('254')) return digits.slice(0, 12)
+  return digits.slice(0, 10)
+}
+const validKenyanPhone = (value: string) => /^(?:0[71][0-9]{8}|254[71][0-9]{8}|\+254[71][0-9]{8})$/.test(value)
 
 export default function BecomeTutor() {
   const [name, setName] = useState('')
@@ -42,7 +49,7 @@ export default function BecomeTutor() {
     if (draft) {
       setName(draft.name); setLevels(draft.levels); setSubjects(draft.subjects)
       setMode(draft.mode); setArea(draft.area); setRate(draft.rate)
-      setDays(draft.days); setPhone(draft.phone); setTouched(true)
+      setDays(draft.days); setPhone(normalizedPhone(draft.phone)); setTouched(true)
     }
     setReady(true)
   }, [])
@@ -64,7 +71,7 @@ export default function BecomeTutor() {
         setSignedIn(true)
         setAuthStatus('signed-in')
         setName(current => current || String(metadata.full_name || metadata.name || metadata.display_name || ''))
-        setPhone(current => current || String(metadata.phone || data.user?.phone || ''))
+        setPhone(current => current || normalizedPhone(String(metadata.phone || data.user?.phone || '')))
       } catch {
         if (active) setAuthStatus('error')
       }
@@ -79,7 +86,7 @@ export default function BecomeTutor() {
     const allowed = new Set([...new Set(next.flatMap(level => SUBJECTS_BY_LEVEL[level] || []))])
     setSubjects(current => current.filter(subject => allowed.has(subject)))
   }
-  const updatePhone = (value: string) => { setTouched(true); setPhone(value.replace(/[^0-9+ -]/g, '').slice(0, 16)) }
+  const updatePhone = (value: string) => { setTouched(true); setPhone(normalizedPhone(value)) }
   const clearForm = () => { setName(''); setLevels([]); setSubjects([]); setMode('either'); setArea(''); setRate(''); setDays([]); setPhone(''); setConsent(false); setTouched(false); clearDraft(DRAFT_KEY) }
   const completion = [levels.length > 0 && subjects.length > 0, !!area && Number(rate) > 0, days.length > 0, !!name.trim() && validKenyanPhone(phone) && consent]
   const validForm = completion.every(Boolean) && !!name.trim() && validKenyanPhone(phone) && consent
@@ -89,7 +96,7 @@ export default function BecomeTutor() {
         <h1 className={styles.formTitle}>Teach on VibeTutor</h1>
         <p className={styles.muted}>Add your teaching details in one simple form.</p>
       </header>
-      <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
+      {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
         <div className={polish.wizardMeta}><strong>Profile setup</strong><span>{completion.filter(Boolean).length} of 4 complete</span></div>
         <div className={polish.wizardTrack} role="progressbar" aria-valuenow={completion.filter(Boolean).length} aria-valuemin={0} aria-valuemax={4} aria-label="Form completion"><span style={{ width: `${completion.filter(Boolean).length * 25}%` }} /></div>
         <ol className={polish.wizardSteps}>
@@ -99,7 +106,7 @@ export default function BecomeTutor() {
             {completion[index] && <span className={polish.wizardStepCheck} aria-hidden="true">✓</span>}
           </li>)}
         </ol>
-      </div>
+      </div>}
       <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<TutorDraft>(DRAFT_KEY, { name, levels, subjects, mode, area, rate, days, phone }); window.location.assign('/login?redirect=%2Fvibetutor%2Fbecome-tutor'); return } setSubmitError(''); setSubmitting(true); saveTutorListing({ name, levels, subjects, mode, area, rate, days, phone }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); window.location.assign('/vibetutor/browse') } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not save your tutor profile. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
         <Field label="Levels you teach" required><ToggleChips label="Levels" options={LEVELS} selected={levels} onToggle={value => updateLevels(toggle(levels, value))} /></Field>
         <Field label="Subjects" required>{levels.length > 0 && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
@@ -109,7 +116,7 @@ export default function BecomeTutor() {
         <Field label="Days available" required><SchedulePicker days={days} onDays={value => { setTouched(true); setDays(value) }} /></Field>
         {signedIn && <p className={polish.prefillNote}>Account details prefilled where available. You can edit them.</p>}
         <Field label="Name" required><input className={styles.input} value={name} onChange={e => { setTouched(true); setName(e.target.value) }} maxLength={60} autoComplete="name" /></Field>
-        <Field label="Phone number" required><input className={styles.input} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => updatePhone(e.target.value)} onBlur={() => setPhone(current => normalizedPhone(current))} placeholder="07XX XXX XXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
+        <Field label="Phone number" required><input className={styles.input} type="tel" inputMode="numeric" autoComplete="tel" maxLength={13} pattern="(?:0[17][0-9]{8}|[+]?254[17][0-9]{8})" value={phone} onChange={e => updatePhone(e.target.value)}  placeholder="07XXXXXXXX or +2547XXXXXXXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
         <label className={styles.checkRow}><input type="checkbox" checked={consent} onChange={e => { setTouched(true); setConsent(e.target.checked) }} /><span>I agree to be listed on VibeTutor. My phone number stays private.</span></label>
         <div className={styles.formActions}><button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button><button type="submit" className={styles.btnSubmit} disabled={!validForm || submitting || authStatus === 'checking' || authStatus === 'error'}>{submitting ? 'Publishing…' : 'Create tutor profile'}</button></div>
         {authStatus === 'error' && <p role="alert" className={styles.hint}>We could not verify your sign-in. Check your connection and retry before publishing. <button type="button" className={styles.btnSecondary} onClick={() => { setAuthStatus('checking'); setAuthRetryKey(value => value + 1) }}>Retry sign-in check</button></p>}
