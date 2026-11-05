@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import polish from '@/components/vibetutor/VibeTutorPolish.module.css'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import { Field, Segmented, ToggleChips } from '@/components/vibetutor/Form'
@@ -95,6 +96,7 @@ export default function BecomeTutor() {
       <header className={styles.formHead}>
         <h1 className={styles.formTitle}>Teach on VibeTutor</h1>
         <p className={styles.muted}>Add your teaching details in one simple form.</p>
+        {signedIn && <p className={styles.muted}>Already have a tutor listing? <Link href="/vibetutor/availability">Edit your availability</Link>.</p>}
       </header>
       {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
         <div className={polish.wizardMeta}><strong>Profile setup</strong><span>{completion.filter(Boolean).length} of 4 complete</span></div>
