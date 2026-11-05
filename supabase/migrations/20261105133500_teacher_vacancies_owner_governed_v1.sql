@@ -1,4 +1,6 @@
 -- Production applied as Supabase migration teacher_vacancies_owner_governed_v1.
+-- authorization-test: public.teacher_vacancies
+-- Anonymous readers see only published, non-expired rows; platform owner manages records.
 create table if not exists public.teacher_vacancies (
  id uuid primary key default gen_random_uuid(),
  title text not null check (char_length(btrim(title)) between 3 and 160),
