@@ -16,6 +16,7 @@ const HIDE_SHELL_PATHS = [
 export function GlobalShellProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
+  const [authReady, setAuthReady] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [userName, setUserName] = useState<string | null>(null)
@@ -25,8 +26,10 @@ export function GlobalShellProvider({ children }: { children: React.ReactNode })
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
+    let mounted = true
     sb.auth.getUser().then(({ data }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
       const user = data.user
+      if (!mounted) return
       if (user) {
         setIsLoggedIn(true)
         setUserId(user.id)
@@ -37,8 +40,11 @@ export function GlobalShellProvider({ children }: { children: React.ReactNode })
           null
         )
       }
-    })
+      setAuthReady(true)
+    }).catch(() => { if (mounted) setAuthReady(true) })
     const { data: listener } = sb.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
+      setAuthReady(true)
       if (session) {
         setIsLoggedIn(true)
         setUserId(session.user.id)
@@ -54,7 +60,7 @@ export function GlobalShellProvider({ children }: { children: React.ReactNode })
         setUserName(null)
       }
     })
-    return () => listener.subscription.unsubscribe()
+    return () => { mounted = false; listener.subscription.unsubscribe() }
   }, [])
 
   const triggerAuthPrompt = (_action: 'write' | 'vibe' | 'save' | 'create') => {
@@ -64,7 +70,7 @@ export function GlobalShellProvider({ children }: { children: React.ReactNode })
   const hideShell = HIDE_SHELL_PATHS.some(p => pathname.startsWith(p))
 
   return (
-    <GlobalAuthContext.Provider value={{ isLoggedIn, userId, userName, triggerAuthPrompt }}>
+    <GlobalAuthContext.Provider value={{ authReady, isLoggedIn, userId, userName, triggerAuthPrompt }}>
       {!hideShell && <GlobalHeader isLoggedIn={isLoggedIn} userName={userName} />}
       <main style={{
         minHeight: '100dvh',
