@@ -63,6 +63,43 @@ type LiveTeachingOccurrences = {
   Relationships: GeneratedTeachingOccurrences['Relationships']
 }
 
+type LiveTeacherSwapListing = {
+  Row: {
+    id: string; teacher_id: string; current_county: string; current_subcounty: string;
+    preferred_county: string; preferred_subcounty: string | null;
+    school_level: string; subject: string; status: string;
+    created_at: string; updated_at: string
+  }
+  Insert: {
+    id?: string; teacher_id: string; current_county: string; current_subcounty: string;
+    preferred_county: string; preferred_subcounty?: string | null;
+    school_level: string; subject?: string; status?: string;
+    created_at?: string; updated_at?: string
+  }
+  Update: {
+    id?: string; teacher_id?: string; current_county?: string; current_subcounty?: string;
+    preferred_county?: string; preferred_subcounty?: string | null;
+    school_level?: string; subject?: string; status?: string;
+    created_at?: string; updated_at?: string
+  }
+  Relationships: []
+}
+type LiveTeacherSwapInterest = {
+  Row: {
+    id: string; listing_id: string; sender_id: string; message: string;
+    contact_phone: string; status: string; created_at: string
+  }
+  Insert: {
+    id?: string; listing_id: string; sender_id: string; message?: string;
+    contact_phone: string; status?: string; created_at?: string
+  }
+  Update: {
+    id?: string; listing_id?: string; sender_id?: string; message?: string;
+    contact_phone?: string; status?: string; created_at?: string
+  }
+  Relationships: [{ foreignKeyName: "teacher_swap_interests_listing_id_fkey"; columns: ["listing_id"]; isOneToOne: false; referencedRelation: "teacher_swap_listings"; referencedColumns: ["id"] }]
+}
+
 type LiveDatabase = Omit<Database, 'public'> & {
   public: Omit<Database['public'], 'Tables' | 'Functions'> & {
     Functions: Database['public']['Functions'] & {
@@ -92,6 +129,8 @@ type LiveDatabase = Omit<Database, 'public'> & {
       timetable_slots: LiveTimetableSlots
       teaching_occurrences: LiveTeachingOccurrences
       school_periods: LiveSchoolPeriods
+      teacher_swap_listings: LiveTeacherSwapListing
+      teacher_swap_interests: LiveTeacherSwapInterest
     }
   }
 }
