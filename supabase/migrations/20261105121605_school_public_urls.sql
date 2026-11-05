@@ -1,3 +1,7 @@
+-- access: owner-only public.school_public_urls
+-- authorization-test: public.school_public_urls scripts/test-school-urls.mjs (anon SELECT/UPDATE denied)
+-- access: owner-only public.school_public_url_directory_aliases
+-- authorization-test: public.school_public_url_directory_aliases scripts/test-school-urls.mjs (no public table grants)
 -- Stable public addresses. URL allocation never creates/merges school identities.
 -- Registry is private; public RPCs return only the existing public profile projection.
 create table public.school_public_urls (

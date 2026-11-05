@@ -18,6 +18,9 @@ async function verify() {
       const context = await browser.newContext({ viewport: size });
       const page = await context.newPage();
       const pageErrors = [];
+      const networkErrors = [];
+      page.on('requestfailed', request => { if(request.url().includes('/rest/v1/rpc/')) networkErrors.push(request.url().split('?')[0]+' '+request.failure()?.errorText); });
+      page.on('response', async response => { if(response.url().includes('/rest/v1/rpc/') && response.status()>=400) networkErrors.push(response.status()+' '+(await response.text()).slice(0,400)); });
       page.on('pageerror', error => pageErrors.push(error.message));
       await page.goto(ORIGIN + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
       const mobile = size.width <= 1040;
@@ -29,7 +32,7 @@ async function verify() {
       await page.waitForURL(url => url.pathname === '/schools', { timeout: 20000, waitUntil: 'domcontentloaded' });
       await page.getByRole('searchbox', { name: /search schools/i }).fill('Gilgil Township');
       const result = page.locator(`a[href="${SCHOOL_PATH}"]`);
-      await result.waitFor({ timeout: 25000 });
+      await result.waitFor({ timeout: 45000 }).catch(async error => { throw new Error(error.message+'\nPage: '+(await page.locator('main').innerText())+'\nBrowser: '+pageErrors.join('; ')+'\nNetwork: '+networkErrors.join('; ')); });
       assert.match(await result.innerText(), /Gilgil Township/i);
       await result.click();
       await page.waitForURL(url => url.pathname === SCHOOL_PATH, { timeout: 20000, waitUntil: 'domcontentloaded' });

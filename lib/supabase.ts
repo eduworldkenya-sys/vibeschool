@@ -63,9 +63,56 @@ type LiveTeachingOccurrences = {
   Relationships: GeneratedTeachingOccurrences['Relationships']
 }
 
+type LiveTeacherSwapListing = {
+  Row: {
+    id: string; teacher_id: string; current_county: string; current_subcounty: string;
+    preferred_county: string; preferred_subcounty: string | null;
+    school_level: string; subject: string; status: string;
+    created_at: string; updated_at: string
+  }
+  Insert: {
+    id?: string; teacher_id: string; current_county: string; current_subcounty: string;
+    preferred_county: string; preferred_subcounty?: string | null;
+    school_level: string; subject?: string; status?: string;
+    created_at?: string; updated_at?: string
+  }
+  Update: {
+    id?: string; teacher_id?: string; current_county?: string; current_subcounty?: string;
+    preferred_county?: string; preferred_subcounty?: string | null;
+    school_level?: string; subject?: string; status?: string;
+    created_at?: string; updated_at?: string
+  }
+  Relationships: []
+}
+type LiveTeacherSwapInterest = {
+  Row: {
+    id: string; listing_id: string; sender_id: string; message: string;
+    contact_phone: string; status: string; created_at: string
+  }
+  Insert: {
+    id?: string; listing_id: string; sender_id: string; message?: string;
+    contact_phone: string; status?: string; created_at?: string
+  }
+  Update: {
+    id?: string; listing_id?: string; sender_id?: string; message?: string;
+    contact_phone?: string; status?: string; created_at?: string
+  }
+  Relationships: [{ foreignKeyName: "teacher_swap_interests_listing_id_fkey"; columns: ["listing_id"]; isOneToOne: false; referencedRelation: "teacher_swap_listings"; referencedColumns: ["id"] }]
+}
+
 type LiveDatabase = Omit<Database, 'public'> & {
   public: Omit<Database['public'], 'Tables' | 'Functions'> & {
     Functions: Database['public']['Functions'] & {
+      vibetutor_create_student_invite: { Args: Record<never, never>; Returns: string }
+      vibetutor_claim_student_invite: { Args: { p_token: string }; Returns: "accepted" | "pending_guardian" }
+      vibetutor_parent_student_invites: { Args: Record<never, never>; Returns: { id: string; student: string; tutor: string; status: string }[] }
+      vibetutor_decide_student_invite: { Args: { p_id: string; p_approve: boolean }; Returns: undefined }
+      vibetutor_my_student_invites: { Args: Record<never, never>; Returns: { id: string; token: string | null; student: string | null; status: string; created_at: string }[] }
+      vibetutor_revoke_student_invite: { Args: { p_id: string }; Returns: undefined }
+      vibetutor_my_student_code: { Args: Record<never, never>; Returns: string }
+      vibetutor_invite_student_by_code: { Args: { p_code: string }; Returns: string }
+      vibetutor_student_inbox: { Args: Record<never, never>; Returns: { id: string; tutor: string; status: string; created_at: string }[] }
+      vibetutor_respond_student_invite: { Args: { p_id: string; p_accept: boolean }; Returns: "accepted" | "pending_guardian" | "declined" }
       preview_timetable_conflicts: { Args: { p_school_id: string; p_teacher_id: string; p_class_id: string; p_subject_id: string; p_day_of_week: number; p_start_time: string; p_end_time: string; p_room?: string | null; p_effective_from?: string | null; p_effective_until?: string | null; p_exclude_slot_id?: string | null }; Returns: { conflict_type: string; conflicting_slot_id: string; conflicting_teacher_id: string | null; conflicting_class_id: string; conflicting_subject_id: string; conflicting_room: string | null; detail: string }[] }
       get_published_class_timetable: { Args: { p_class_id: string; p_on?: string | null }; Returns: LiveTimetableSlots['Row'][] }
       get_published_teacher_timetable: { Args: { p_teacher_id: string; p_on?: string | null }; Returns: LiveTimetableSlots['Row'][] }
@@ -82,6 +129,8 @@ type LiveDatabase = Omit<Database, 'public'> & {
       timetable_slots: LiveTimetableSlots
       teaching_occurrences: LiveTeachingOccurrences
       school_periods: LiveSchoolPeriods
+      teacher_swap_listings: LiveTeacherSwapListing
+      teacher_swap_interests: LiveTeacherSwapInterest
     }
   }
 }

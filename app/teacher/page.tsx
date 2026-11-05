@@ -1,7 +1,7 @@
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { TrackedLink } from "@/components/public/TrackedLink";
-import { BookOpen, CalendarDays, ClipboardCheck, ArrowRight, CheckCircle2, GraduationCap, MessageCircle, BriefcaseBusiness } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardCheck, ArrowRight, CheckCircle2, GraduationCap, MessageCircle, BriefcaseBusiness, ArrowLeftRight } from "lucide-react";
 import styles from "./TeacherGateway.module.css";
 import TeachingJobs from "./TeachingJobs";
 import TeacherExperiencePreview from "./TeacherExperiencePreview";
@@ -59,6 +59,7 @@ export default function TeacherGateway() {
           <div className={styles.jobsHeading}><h2 id="teacher-jobs-title">Teaching jobs</h2><BriefcaseBusiness size={19} aria-hidden="true"/></div>
           <TeachingJobs />
           <p className={styles.demoNote}>Only approved, current vacancies appear here.</p>
+          <div className={styles.heroActions}><a className={styles.secondary} href="/teacher/marketplace">Explore marketplace · Jobs, Swap & Tutoring <ArrowLeftRight size={18} aria-hidden="true"/></a></div>
         </div>
       </section>
       <section className={styles.journey} aria-labelledby="journey-title">

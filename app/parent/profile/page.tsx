@@ -473,6 +473,7 @@ export default function ParentProfilePage() {
           boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
         }}>
           <SectionLabel>My Children</SectionLabel>
+          <button type="button" onClick={() => router.push('/parent/tutoring')} style={{minHeight:44,padding:'10px 13px',marginBottom:12,borderRadius:10,border:'1px solid #10b981',background:'#ecfdf5',color:'#065f46',fontWeight:750}}>Tuition approvals →</button>
 
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
