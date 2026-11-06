@@ -1,4 +1,5 @@
 "use client"
+import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 
 export const dynamic = "force-dynamic"
@@ -192,10 +193,7 @@ export default function SchoolDiscovery() {
         />
 
         <label htmlFor="school-county" style={{ display: "block", marginTop: 10, marginBottom: 6, fontSize: 13, fontWeight: 700, color: "#344054" }}>County <span style={{ fontWeight: 400, color: "#667085" }}>(optional)</span></label>
-        <select id="school-county" aria-label="County" value={county} onChange={(e) => setCounty(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: 14, borderRadius: 12, border: "1px solid #ccc", fontSize: 16, color: "#101828", background: "#fff", WebkitTextFillColor: "#101828", opacity: 1 }}>
-          <option value="">Any county</option>
-          {COUNTIES.map((c) => <option key={c}>{c}</option>)}
-        </select>
+        <SearchableSelect label="County" value={county} onChange={setCounty} options={COUNTIES} placeholder="Any county" style={{padding:14,borderRadius:12,fontSize:16}}/>
 
         <div style={{ fontSize: 13, color: "#667085", marginTop: 8 }}>
           {lat != null && lng != null ? "📍 Using your location to rank nearby schools." : "💡 Location is optional. If allowed, it helps distinguish schools with the same name."}
