@@ -1,4 +1,5 @@
 "use client"
+import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 
 export const dynamic = "force-dynamic"
 
@@ -26,17 +27,9 @@ const LEVELS = [
   ["SENIOR_SECONDARY", "Senior Secondary", "Grade 10–12"],
 ] as const
 
-const COUNTIES = [
-  "Nakuru", "Nairobi", "Kiambu", "Kisumu", "Mombasa", "Uasin Gishu", "Machakos", "Kakamega",
-  "Meru", "Nyeri", "Kisii", "Baringo", "Bomet", "Bungoma", "Busia", "Embu", "Kajiado",
-  "Kericho", "Kilifi", "Kirinyaga", "Kitui", "Kwale", "Laikipia", "Lamu", "Makueni",
-  "Mandera", "Marsabit", "Migori", "Murang’a", "Nandi", "Narok", "Nyandarua", "Samburu",
-  "Siaya", "Taita Taveta", "Tana River", "Tharaka Nithi", "Trans Nzoia", "Turkana", "Vihiga",
-  "Wajir", "West Pokot",
-]
-
 export default function SchoolDiscovery() {
   const router = useRouter()
+  const { countyNames: COUNTIES, error: countyError } = useKenyaCounties()
   const [level, setLevel] = useState("")
   const [q, setQ] = useState("")
   const [county, setCounty] = useState("")
