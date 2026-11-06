@@ -17,7 +17,7 @@ const INTEREST_SELECT="id,listing_id,sender_id,message,contact_phone,status,crea
 const validPhone=(s:string)=>/^\+?[0-9]{10,15}$/.test(s);
 
 export default function TeacherMarketplace(){
- const { countyNames: COUNTIES, error: countyError } = useKenyaCounties();
+ const { countyNames: COUNTIES } = useKenyaCounties();
  const countryOptions=(_value:string)=> <>{COUNTIES.map(c=><option value={c} key={c}>{c}</option>)}</>;
  const [tab,setTab]=useState<"swap"|"jobs"|"tutoring">("swap");
  const [userId,setUserId]=useState<string|null>(null);
