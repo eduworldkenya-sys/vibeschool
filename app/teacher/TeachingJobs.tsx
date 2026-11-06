@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import SearchableSelect from "@/components/ui/SearchableSelect";
+import { useKenyaCounties, normalizeKenyaCounty } from "@/lib/geography/kenyaCounties";
 import { createClient } from "@supabase/supabase-js";
 import { JOB_SELECT, PublicJob, jobListing, listingDate, provided, validListingId } from "@/lib/public/teacherListings";
 import ListingDetailDialog from "@/components/teacher/marketplace/ListingDetailDialog";
@@ -17,6 +19,7 @@ export default function TeachingJobs() {
   const [retry, setRetry] = useState(0);
   const [query, setQuery] = useState("");
   const [county, setCounty] = useState("");
+  const { counties: officialCounties, countyNames } = useKenyaCounties();
   const [selected, setSelected] = useState<PublicJob | null>(null);
   useEffect(() => {
     let active = true;
@@ -61,17 +64,17 @@ export default function TeachingJobs() {
     const next = new URL(window.location.href); next.searchParams.delete("job");
     window.history.replaceState(null, "", next); setSelected(null); setUnavailable(false);
   }
-  const counties = useMemo(() => [...new Set(jobs.map(j => j.county).filter(Boolean))].sort(), [jobs]);
+  const counties = useMemo(() => countyNames.filter(name => jobs.some(job => normalizeKenyaCounty(job.county, officialCounties) === name)), [countyNames, jobs, officialCounties]);
   const visible = useMemo(() => jobs.filter(j => {
     const term = query.trim().toLocaleLowerCase();
-    return (!county || j.county === county) && (!term || [j.title, j.school_name, j.county, j.location ?? "", j.description ?? ""].some(v => v.toLocaleLowerCase().includes(term)));
-  }), [jobs, county, query]);
+    return (!county || normalizeKenyaCounty(j.county, officialCounties) === county) && (!term || [j.title, j.school_name, j.county, j.location ?? "", j.description ?? ""].some(v => v.toLocaleLowerCase().includes(term)));
+  }), [jobs, county, query, officialCounties]);
   return <div>
     {unavailable && <p role="status" className={styles.empty}>This job is no longer available. <button type="button" onClick={close}>Dismiss</button></p>}
     {loading ? <p role="status">Loading current vacancies…</p> : error ? <div role="alert"><p>Vacancies are temporarily unavailable.</p><button type="button" className={styles.retry} onClick={() => setRetry(n => n + 1)}>Try again</button></div> : jobs.length === 0 ? <p role="status">No approved teaching vacancies are listed right now.</p> : <>
       <div className={styles.filters}>
         <input aria-label="Search teaching vacancies" placeholder="Search jobs or schools" value={query} onChange={e => setQuery(e.target.value)} />
-        <select aria-label="Filter vacancies by county" value={county} onChange={e => setCounty(e.target.value)}><option value="">All counties</option>{counties.map(c => <option key={c} value={c}>{provided(c)}</option>)}</select>
+        <SearchableSelect label="Filter vacancies by county" value={county} onChange={setCounty} options={counties} placeholder="All counties" />
       </div>
       {visible.length === 0 ? <p role="status" className={styles.empty}>No vacancies match these filters.</p> : <div aria-label="Current teaching vacancies" className={styles.cards}>
         {visible.map(job => <article key={job.id} className={styles.card}><button type="button" className={styles.cardButton} onClick={() => open(job)} aria-label={"View job: " + job.title + " at " + job.school_name}>
