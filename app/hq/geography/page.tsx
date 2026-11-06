@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import SearchableSelect from "@/components/ui/SearchableSelect";
 import { HQPage, HQPanel } from "@/components/hq/HQShell"
 import { supabase } from "@/lib/supabase"
 
@@ -18,7 +19,7 @@ const emptySummary:Summary={scope:{},schools:{total:0,verified_geography:0,unres
 const emptyGrowth:Growth={window_days:30,institution_linked_unique_people:0,new_linked_users:0,active_users:0,returning_users:0,new_schools:0,measurement:{certified_from:null,session_kernel_available:false,retention_state:"not_calculated_here"},semantics:{people:"",activity:"",residential_geography_inferred:false},generated_at:""}
 
 function Metric({label,value,note}:{label:string;value:number|string;note?:string}){return <div className="geo-metric"><span>{label}</span><strong>{value}</strong>{note&&<small>{note}</small>}</div>}
-function Field({label,value,onChange,items,disabled=false}:{label:string;value:string;onChange:(value:string)=>void;items:GeoItem[];disabled?:boolean}){return <label className="geo-field"><span>{label}</span><select value={value} onChange={e=>onChange(e.target.value)} disabled={disabled}><option value="">All / national</option>{items.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
+function Field({label,value,onChange,items,disabled=false}:{label:string;value:string;onChange:(value:string)=>void;items:GeoItem[];disabled?:boolean}){const selected=items.find(item=>item.id===value);const names=items.map(item=>item.name);return <label className="geo-field"><span>{label}</span><SearchableSelect label={label} value={selected?.name??""} onChange={name=>onChange(items.find(item=>item.name===name)?.id??"")} options={names} placeholder="Search or select…" disabled={disabled} style={{background:"#091727",color:"#f8fafc",border:"1px solid rgba(148,163,184,.3)"}}/></label>}
 function Evidence({children}:{children:ReactNode}){return <div className="geo-evidence">{children}</div>}
 
 export default function HQGeographyPage(){
