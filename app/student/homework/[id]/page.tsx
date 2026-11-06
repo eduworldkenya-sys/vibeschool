@@ -200,6 +200,7 @@ export default function HomeworkDetailPage() {
         photo_url: photoUrl ?? previous?.photo_url ?? null,
         mark: previous?.mark ?? null,
         feedback: previous?.feedback ?? null,
+        feedback_released_at: previous?.feedback_released_at ?? null,
         submitted_at: result.submittedAt ?? null,
         received_at: result.receivedAt ?? null,
         revision_number: result.revisionNumber,
