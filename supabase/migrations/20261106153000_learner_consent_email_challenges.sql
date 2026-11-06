@@ -12,3 +12,10 @@ create index if not exists learner_consent_learner_user_idx
 -- Existing tables have RLS enabled and no direct client grants.
 revoke all on public.learner_guardian_consent_requests from anon, authenticated;
 revoke all on public.learner_guardian_consent_events from anon, authenticated;
+
+-- The prior private ledger tables revoke anon/authenticated, but did not
+-- grant the server's service_role SQL privileges. Service API writes fail
+-- without explicit grants even though service_role bypasses row policies.
+grant select, insert, update, delete on public.learner_guardian_consent_requests to service_role;
+grant select, insert on public.learner_guardian_consent_events to service_role;
+revoke update, delete on public.learner_guardian_consent_events from service_role;
