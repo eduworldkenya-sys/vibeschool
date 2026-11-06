@@ -16,7 +16,7 @@ dom.window.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('o
 dom.window.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
 const React=await import('react'),{createRoot}=await import('react-dom/client'),{act}=React,require=createRequire(import.meta.url)
 const job={id:'10000000-0000-4000-8000-000000000001',title:'Music Teacher',school_name:'Example School',county:'Meru',location:null,employment_type:null,application_url:'https://school.example/apply',closing_date:null,description:'TSC registration required. Email jobs@school.example. Office: 0723 826181. <script>unsafe()</script>',created_at:'2026-11-06T06:00:00Z',status:'published'}
-const swap={id:'20000000-0000-4000-8000-000000000001',current_county:'Mombasa',current_subcounty:'Nyali',preferred_county:'Nakuru',preferred_subcounty:null,school_level:'Junior School',subject:'',created_at:'2026-11-06T06:00:00Z',status:'published',teacher_id:'PRIVATE-TEACHER',contact_phone:'0711111111',message:'PRIVATE INTEREST'}
+const swap={id:'20000000-0000-4000-8000-000000000001',current_county:'Mombasa',current_subcounty:'Nyali',preferred_county:'Nakuru',preferred_subcounty:null,school_level:'Junior School',subject:'',employment_sector:'tsc',created_at:'2026-11-06T06:00:00Z',status:'published',teacher_id:'PRIVATE-TEACHER',contact_phone:'0711111111',message:'PRIVATE INTEREST'}
 globalThis.__rows={teacher_vacancies:[job],teacher_swap_listings:[swap]};globalThis.__readError=false
 globalThis.__client={from(table){let filters=[],max=Infinity;const q={select(columns){if(columns.includes('contact_phone'))throw Error('Public contact overfetch');return q},eq(k,v){filters.push([k,v]);return q},or(){return q},order(){return q},limit(n){max=n;return q},maybeSingle(){return Promise.resolve(result(true))},then(resolve,reject){return Promise.resolve(result(false)).then(resolve,reject)}};function result(single){const data=(globalThis.__rows[table]||[]).filter(r=>filters.every(([k,v])=>r[k]===v)).slice(0,max);return globalThis.__readError?{data:null,error:new Error('Unavailable')}:{data:single?(data[0]??null):data,error:null}}return q}}
 async function load(entry,{pdfStub=false}={}){
@@ -29,7 +29,11 @@ async function load(entry,{pdfStub=false}={}){
  }}]});return require(outfile)
 }
 const model=await load('lib/public/teacherListings.ts');const listing=model.jobListing(job);const swapModel=model.swapListing(swap)
-assert.equal(model.provided(''), 'Not provided');assert.equal(model.provided('Not specified'),'Not provided')
+assert.equal(model.provided(''), 'Not provided');
+assert.equal(model.swapSectorLabel('tsc'),'TSC teacher (self-declared)');
+assert.equal(model.swapSectorLabel('private'),'Private-school teacher (self-declared)');
+assert.equal(model.swapSectorLabel('unspecified'),'Not provided');
+assert.equal(model.swapListing({...swap,employment_sector:'private'}).fields.find(field=>field.label==='Employment type').value,'Private-school teacher (self-declared)');assert.equal(model.provided('Not specified'),'Not provided')
 assert.equal(listing.fields.find(f=>f.label==='Subjects').value,'Music');assert.equal(listing.actions.length,3)
 assert(listing.actions.some(a=>a.href==='tel:+254723826181'))
 assert.equal(model.jobListing({...job,application_url:'tel:+254723826181'}).actions.filter(a=>a.href.startsWith('tel:')).length,1,'Equivalent local/international contacts deduplicate')
@@ -69,7 +73,9 @@ window.history.replaceState(null,'','/teacher?job=10000000-0000-4000-8000-000000
 window.history.replaceState(null,'','/teacher');globalThis.__readError=true;await render(Jobs);assert(queryByRole(document.body,'alert'));globalThis.__readError=false;await act(async()=>fireEvent.click(button('Try again')));assert(button(/View job:/))
 const FeaturedSwaps=(await load('components/teacher/marketplace/FeaturedSwapStrip.tsx',{pdfStub:true})).default
 const SwapMatcher=await load('components/teacher/marketplace/FeaturedSwapStrip.tsx',{pdfStub:true})
-assert.equal(SwapMatcher.swapMatchScore(swap,{current_county:'Nakuru',preferred_county:'Mombasa',current_subcounty:'Nakuru Town',preferred_subcounty:'Nyali',school_level:'Junior School',subject:'Mathematics'}),5,'Reciprocal county, level and subcounty are explainable');
+assert.equal(SwapMatcher.swapMatchScore(swap,{current_county:'Nakuru',preferred_county:'Mombasa',current_subcounty:'Nakuru Town',preferred_subcounty:'Nyali',school_level:'Junior School',subject:'Mathematics',employment_sector:'tsc'}),5,'Reciprocal county, level and subcounty are explainable');
+assert.equal(SwapMatcher.swapMatchScore({...swap,employment_sector:'tsc'},{current_county:'Nakuru',preferred_county:'Mombasa',current_subcounty:'Nakuru Town',preferred_subcounty:'Nyali',school_level:'Junior School',subject:'',employment_sector:'private'}),0,'Private-school requests cannot rank as TSC reciprocal matches');
+assert.equal(SwapMatcher.swapMatchScore({...swap,employment_sector:'unspecified'},{current_county:'Nakuru',preferred_county:'Mombasa',current_subcounty:'',preferred_subcounty:'',school_level:'Junior School',subject:'',employment_sector:'tsc'}),0,'Unspecified legacy employment cannot be presented as a compatible match');
 assert.equal(SwapMatcher.swapMatchScore(swap,{current_county:'Nairobi',preferred_county:'Mombasa',current_subcounty:'',preferred_subcounty:'',school_level:'Junior School',subject:''}),0,'One-way county is not a reciprocal match');
 const Opportunities=(await load('components/teacher/marketplace/TeacherOpportunities.tsx',{pdfStub:true})).default
 window.history.replaceState(null,'','/teacher');await render(Opportunities);assert.equal(role('tab','Jobs').getAttribute('aria-selected'),'true')
@@ -79,7 +85,9 @@ await act(async()=>fireEvent.click(button('Close listing')));await act(async()=>
 window.history.replaceState(null,'','/teacher?swap='+swap.id);await render(Opportunities);assert(queryByRole(document.body,'dialog'),'Shared swap links select the swap tab and open details')
 await act(async()=>root.unmount())
 const page=fs.readFileSync('app/teacher/page.tsx','utf8');assert(!page.includes('See how your work connects'));assert(!page.includes('Already using VibeSchool?'));assert(page.includes('TeacherExperiencePreview')&&page.includes('/teacher/pulse')&&page.includes('TeacherOpportunities'))
-const managed=fs.readFileSync('app/teacher/marketplace/page.tsx','utf8');assert(managed.includes('ListingDetailDialog')&&managed.includes('swapListing(detail)'));assert(managed.includes('contact_phone:null')&&managed.includes('listing_id:selected,sender_id:userId'));assert(managed.includes('teacher_swap_messages')&&managed.includes('Private swap conversation'));
+const managed=fs.readFileSync('app/teacher/marketplace/page.tsx','utf8');
+assert(managed.includes('employment_sector')&&managed.includes('Choose TSC or private-school employment.'),'A new swap must explicitly declare its employment system');
+const sectorMigration=fs.readFileSync('supabase/migrations/20261106234000_teacher_swap_employment_sector.sql','utf8');assert(sectorMigration.includes("'unspecified'")&&sectorMigration.includes("'tsc'")&&sectorMigration.includes("'private'"),'Preserve unknown legacy sector instead of inventing verified TSC status');assert(managed.includes('ListingDetailDialog')&&managed.includes('swapListing(detail)'));assert(managed.includes('contact_phone:null')&&managed.includes('listing_id:selected,sender_id:userId'));assert(managed.includes('teacher_swap_messages')&&managed.includes('Private swap conversation'));
 const subcountyPicker=fs.readFileSync('components/teacher/marketplace/SwapSubcountyField.tsx','utf8');
 assert(subcountyPicker.includes('list_kenya_subcounties')&&subcountyPicker.includes('p_county_code')&&subcountyPicker.includes('Verified subcounty choices are unavailable.'),'Swap form must use official registry and explain registry failure');
 assert(subcountyPicker.includes('No verified subcounty choices for this county yet.')&&subcountyPicker.includes('Your existing subcounty is not yet in the verified directory.'),'Incomplete official geography must not erase legacy data');

@@ -12,15 +12,15 @@ import ListingDetailDialog from "@/components/teacher/marketplace/ListingDetailD
 import ListingTabs from "@/components/teacher/marketplace/ListingTabs";
 import FeaturedSwapStrip from "@/components/teacher/marketplace/FeaturedSwapStrip";
 import SwapSubcountyField from "@/components/teacher/marketplace/SwapSubcountyField";
-import { swapListing, validListingId } from "@/lib/public/teacherListings";
+import { swapListing, swapSectorLabel, validListingId } from "@/lib/public/teacherListings";
 
 type Level = "Primary" | "Junior School" | "Senior School";
-type Listing = {id:string;teacher_id:string;current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string|null;school_level:Level;subject:string;status:"published"|"paused";created_at:string};
+type Listing = {id:string;teacher_id:string;current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string|null;school_level:Level;subject:string;employment_sector:string;status:"published"|"paused";created_at:string};
 type Interest = {id:string;listing_id:string;sender_id:string;message:string;status:"pending"|"accepted"|"declined"|"blocked";created_at:string};
 type SwapMessage = {id:string;interest_id:string;sender_id:string;body:string;created_at:string};
-type Draft = {current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string;school_level:Level;subject:string};
-const empty:Draft={current_county:"",current_subcounty:"",preferred_county:"",preferred_subcounty:"",school_level:"Primary",subject:""};
-const SELECT="id,teacher_id,current_county,current_subcounty,preferred_county,preferred_subcounty,school_level,subject,status,created_at";
+type Draft = {current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string;school_level:Level;subject:string;employment_sector:string};
+const empty:Draft={current_county:"",current_subcounty:"",preferred_county:"",preferred_subcounty:"",school_level:"Primary",subject:"",employment_sector:""};
+const SELECT="id,teacher_id,current_county,current_subcounty,preferred_county,preferred_subcounty,school_level,subject,employment_sector,status,created_at";
 const INTEREST_SELECT="id,listing_id,sender_id,message,status,created_at";
 
 export default function TeacherMarketplace(){
@@ -79,7 +79,7 @@ export default function TeacherMarketplace(){
  useEffect(()=>{void load();},[load]);
  const outgoing=useMemo(()=>new Set(interests.filter(i=>i.sender_id===userId).map(i=>i.listing_id)),[interests,userId]);
  const visible=useMemo(()=>listings.filter(l=>l.status==="published"&&l.teacher_id!==userId&&(!filterCounty||l.preferred_county===filterCounty||l.current_county===filterCounty)&&(!filterLevel||l.school_level===filterLevel)).sort((a,b)=>{
-   const score=(l:Listing)=>mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level?1:0;
+   const score=(l:Listing)=>mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level&&l.employment_sector===mine.employment_sector&&l.employment_sector!=="unspecified"?1:0;
    return score(b)-score(a);
  }),[listings,userId,filterCounty,filterLevel,mine]);
  const incoming=interests.filter(i=>i.listing_id===mine?.id);
@@ -107,13 +107,14 @@ export default function TeacherMarketplace(){
  }
 
  function startEdit(){
-  if(mine) setDraft({current_county:normalizeKenyaCounty(mine.current_county,counties),current_subcounty:mine.current_subcounty,preferred_county:normalizeKenyaCounty(mine.preferred_county,counties),preferred_subcounty:mine.preferred_subcounty??"",school_level:mine.school_level,subject:mine.subject});
+  if(mine) setDraft({current_county:normalizeKenyaCounty(mine.current_county,counties),current_subcounty:mine.current_subcounty,preferred_county:normalizeKenyaCounty(mine.preferred_county,counties),preferred_subcounty:mine.preferred_subcounty??"",school_level:mine.school_level,subject:mine.subject,employment_sector:mine.employment_sector==="tsc"||mine.employment_sector==="private"?mine.employment_sector:""});
   else setDraft(empty);
   setError("");setNotice("");setEditing(true);
  }
  async function save(){
   if(!userId){setError("Sign in to post a swap.");return;}
   const d={...draft,current_county:normalizeKenyaCounty(draft.current_county,counties),preferred_county:normalizeKenyaCounty(draft.preferred_county,counties),current_subcounty:draft.current_subcounty.trim(),preferred_subcounty:draft.preferred_subcounty.trim(),subject:draft.subject.trim()};
+  if(!["tsc","private"].includes(d.employment_sector)){setError("Choose TSC or private-school employment.");return;}
   if(!COUNTIES.includes(d.current_county)||!COUNTIES.includes(d.preferred_county)||d.current_county===d.preferred_county||d.current_subcounty.length<2){setError("Choose different current and preferred counties, and enter your current sub-county.");return;}
   setBusy(true);setError("");setNotice("");
   try{
@@ -191,16 +192,17 @@ export default function TeacherMarketplace(){
   {tab==="jobs"&&<section className={styles.panel} role="tabpanel" id="managed-opportunities-panel-jobs" aria-labelledby="managed-opportunities-tab-jobs"><h2>Teaching vacancies</h2><TeachingJobs/></section>}
   {tab==="swap"&&<section className={styles.panel} role="tabpanel" id="managed-opportunities-panel-swap" aria-labelledby="managed-opportunities-tab-swap">
     <div className={styles.heading}><div><h2>Teacher Swap</h2><p>Find potential colleagues looking to exchange stations.</p></div><button className={styles.primary} onClick={startEdit}><Plus size={18}/>{mine?"Edit my swap":"Post a swap"}</button></div>
-    <p className={styles.disclaimer}>Discovery only. Matching is not TSC approval. Complete official transfers through the <a href="https://portal.tsc.go.ke/" target="_blank" rel="noopener noreferrer">TSC portal</a>.</p>
+    <p className={styles.disclaimer}>VibeSchool only helps teachers connect. TSC transfers require official approval through the <a href="https://portal.tsc.go.ke/" target="_blank" rel="noopener noreferrer">TSC portal</a>; private-school moves require agreement with the relevant employers.</p>
     {notice&&<p className={styles.success} role="status">{notice}</p>}
     {error&&<p className={styles.error} role="alert">{error}</p>}
-    {mine&&!editing&&<section className={styles.mine}><div className={styles.heading}><div><strong>My swap · {mine.status==="published"?"Published":"Paused"}</strong><p>{mine.current_county} → {mine.preferred_county} · {mine.school_level}</p></div><div className={styles.actions}><button className={styles.secondary} disabled={busy} onClick={()=>void toggle()}>{mine.status==="published"?"Pause":"Republish"}</button><button className={styles.secondary} disabled={busy} onClick={()=>void deleteSwap()}>Delete</button></div></div>
+    {mine&&!editing&&<section className={styles.mine}><div className={styles.heading}><div><strong>My swap · {mine.status==="published"?"Published":"Paused"}</strong><p>{mine.current_county} → {mine.preferred_county} · {mine.school_level} · {swapSectorLabel(mine.employment_sector)}</p></div><div className={styles.actions}><button className={styles.secondary} disabled={busy} onClick={()=>void toggle()}>{mine.status==="published"?"Pause":"Republish"}</button><button className={styles.secondary} disabled={busy} onClick={()=>void deleteSwap()}>Delete</button></div></div>
       {incoming.length>0&&<div className={styles.requests}><strong>Interest requests ({incoming.length})</strong>{incoming.map(i=><article key={i.id}><p>{i.message||"Interested in your swap."}</p><small>Status: {i.status}</small>{i.status==="accepted"&&<button className={styles.secondary} onClick={()=>void openConversation(i.id)}>Open conversation</button>}{i.status==="pending"&&<div className={styles.actions}><button disabled={busy} className={styles.primary} onClick={()=>void respond(i.id,"accepted")}>Accept</button><button disabled={busy} className={styles.secondary} onClick={()=>void respond(i.id,"declined")}>Decline</button></div>}
       {i.status==="accepted"&&<button className={styles.secondary} disabled={busy} onClick={()=>void respond(i.id,"declined")}>End conversation</button>}
       {i.status!=="blocked"?<button className={styles.secondary} disabled={busy} onClick={()=>{if(window.confirm("Block this teacher from contacting you about this swap?"))void respond(i.id,"blocked");}}>Block teacher</button>:<button className={styles.secondary} disabled={busy} onClick={()=>void respond(i.id,"declined")}>Unblock</button>}</article>)}</div>}
     </section>}
     {editing&&<div className={styles.form}><h3>{mine?"Edit your swap":"Post your swap"}</h3><p>Your account is used automatically. Do not enter your name or personal details in the listing.</p>
       <div className={styles.fields}>
+       <label>Employment system<select value={draft.employment_sector} onChange={e=>setDraft({...draft,employment_sector:e.target.value})}><option value="">Choose system</option><option value="tsc">TSC teacher</option><option value="private">Private-school teacher</option></select></label>
        <label>Current county<SearchableSelect label="Current county" value={draft.current_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,current_county:v,current_subcounty:""})}/></label>
        <SwapSubcountyField label="Current sub-county" countyCode={counties.find(c=>c.display_name===draft.current_county)?.code??""} value={draft.current_subcounty} onChange={v=>setDraft(old=>({...old,current_subcounty:v}))}/>
        <label>Preferred county<SearchableSelect label="Preferred county" value={draft.preferred_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,preferred_county:v,preferred_subcounty:""})}/></label>
@@ -216,10 +218,10 @@ export default function TeacherMarketplace(){
     {filters&&<div className={styles.filters}><label>County<SearchableSelect label="Filter county" value={filterCounty} options={COUNTIES} placeholder="Any county" onChange={setFilterCounty}/></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
     {!loading && visible.length > 0 && <FeaturedSwapStrip swaps={visible} mine={mine} onOpen={viewDetails} />}
     {loading?<p role="status">Loading available swaps…</p>:visible.length===0?<p className={styles.empty}>No swap listings match yet. Post yours so teachers can find you.</p>:
-     <div className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level;return <article className={detailStyles.card} key={l.id}>
+     <div className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level&&l.employment_sector===mine.employment_sector&&l.employment_sector!=="unspecified";return <article className={detailStyles.card} key={l.id}>
       <button type="button" className={detailStyles.cardButton} onClick={()=>viewDetails(l)} aria-label={"View swap: "+l.current_county+" to "+l.preferred_county}>
        <span className={detailStyles.badge}>{reverse?"Reverse match":"Teacher swap"}</span><h3>{l.current_county} → {l.preferred_county}</h3>
-       <p>{l.current_subcounty} · {l.school_level}</p><p>Subjects: {l.subject||"Not provided"}</p>
+       <p>{l.current_subcounty} · {l.school_level}</p><p>Subjects: {l.subject||"Not provided"}</p><p>{swapSectorLabel(l.employment_sector)}</p>
        {outgoing.has(l.id)&&<small>Interest already sent</small>}<span className={detailStyles.view}>View details →</span>
       </button>
      </article>})}</div>}
