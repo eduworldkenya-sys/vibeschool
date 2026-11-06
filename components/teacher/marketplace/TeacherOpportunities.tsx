@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import TeachingJobs from "@/app/teacher/TeachingJobs";
-import { PublicSwap, SWAP_SELECT, swapListing, validListingId, provided } from "@/lib/public/teacherListings";
+import { PublicSwap, SWAP_SELECT, swapListing, swapLifecycle, validListingId, provided } from "@/lib/public/teacherListings";
 import ListingDetailDialog from "./ListingDetailDialog";
 import ListingTabs from "./ListingTabs";
 import FeaturedSwapStrip from "./FeaturedSwapStrip";
@@ -50,7 +50,7 @@ function PublicSwaps() {
   function close() {
     const next = new URL(window.location.href); next.searchParams.delete("swap"); window.history.replaceState(null, "", next); setSelected(null); setUnavailable(false);
   }
-  const visible = rows.filter(row => [row.current_county, row.current_subcounty, row.preferred_county, row.preferred_subcounty ?? "", row.subject, row.school_level, row.employment_sector ?? ""].join(" ").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  const visible = rows.filter(row => swapLifecycle(row) === "active").filter(row => [row.current_county, row.current_subcounty, row.preferred_county, row.preferred_subcounty ?? "", row.subject, row.school_level, row.employment_sector ?? ""].join(" ").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   return <div>
     <div className={styles.filters}><input aria-label="Search teacher swaps" placeholder="Search county, school, subject or teacher" value={query} onChange={e => setQuery(e.target.value)} /></div>
     <ExternalSwapReferences query={query} />
