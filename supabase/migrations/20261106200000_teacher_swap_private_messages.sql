@@ -18,6 +18,7 @@ alter table public.teacher_swap_messages enable row level security;
 revoke all on public.teacher_swap_messages from public,anon,authenticated;
 grant select,insert on public.teacher_swap_messages to authenticated;
 
+drop policy if exists "accepted swap participants read messages" on public.teacher_swap_messages;
 create policy "accepted swap participants read messages" on public.teacher_swap_messages
  for select to authenticated using (
  exists (
@@ -26,6 +27,7 @@ create policy "accepted swap participants read messages" on public.teacher_swap_
  and (i.sender_id=(select auth.uid()) or l.teacher_id=(select auth.uid()))
  )
 );
+drop policy if exists "accepted swap participants write own messages" on public.teacher_swap_messages;
 create policy "accepted swap participants write own messages" on public.teacher_swap_messages
  for insert to authenticated with check (
  sender_id=(select auth.uid())
@@ -47,6 +49,7 @@ begin
  return new;
 end $$;
 revoke all on function public.enforce_swap_message_rate() from public,anon,authenticated;
+drop trigger if exists swap_message_rate_before_insert on public.teacher_swap_messages;
 create trigger swap_message_rate_before_insert before insert on public.teacher_swap_messages
  for each row execute function public.enforce_swap_message_rate();
 comment on table public.teacher_swap_messages is 'Accepted swap interest only; no public access or transfer approval implied.';
