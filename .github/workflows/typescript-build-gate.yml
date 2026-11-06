@@ -84,6 +84,7 @@ jobs:
         with:
           prebuild_command: |
             node scripts/test-strategic-remediation-contract.mjs
+            node scripts/test-vacancy-applications.mjs
             npm run typecheck
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

@@ -1,5 +1,4 @@
 import './test-operational-school-authority.mjs'
-import './test-vacancy-applications.mjs'
 import fs from 'node:fs'
 
 function read(path) {
