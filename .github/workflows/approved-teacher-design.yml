@@ -7,6 +7,13 @@ on:
       - 'components/teacher/LessonTeachMode.tsx'
       - 'components/teacher/progress/OutcomeMatrix.tsx'
       - 'components/teacher/progress/LearnerEvidenceChart.tsx'
+      - 'app/teacher/page.tsx'
+      - 'app/teacher/TeachingJobs.tsx'
+      - 'app/teacher/marketplace/**'
+      - 'components/teacher/marketplace/**'
+      - 'lib/public/teacherListings.ts'
+      - 'lib/public/listingPdf.ts'
+      - 'scripts/test-teacher-marketplace-interactions.mjs'
       - 'scripts/test-approved-design-interactions.mjs'
       - '.github/workflows/approved-teacher-design.yml'
   push:
@@ -16,6 +23,13 @@ on:
       - 'components/teacher/LessonTeachMode.tsx'
       - 'components/teacher/progress/OutcomeMatrix.tsx'
       - 'components/teacher/progress/LearnerEvidenceChart.tsx'
+      - 'app/teacher/page.tsx'
+      - 'app/teacher/TeachingJobs.tsx'
+      - 'app/teacher/marketplace/**'
+      - 'components/teacher/marketplace/**'
+      - 'lib/public/teacherListings.ts'
+      - 'lib/public/listingPdf.ts'
+      - 'scripts/test-teacher-marketplace-interactions.mjs'
       - 'scripts/test-approved-design-interactions.mjs'
       - '.github/workflows/approved-teacher-design.yml'
 
@@ -36,3 +50,5 @@ jobs:
         run: npm install --prefix "$RUNNER_TEMP/approved-design-tests" --ignore-scripts --no-audit --no-fund jsdom@30.1.2 esbuild@0.28.2 @testing-library/dom@10.4.2
       - name: Verify approved teaching and learner interactions
         run: PROGRESS_UI_MODULES="$RUNNER_TEMP/approved-design-tests/node_modules" node scripts/test-approved-design-interactions.mjs
+      - name: Verify shared job and swap listing details
+        run: PROGRESS_UI_MODULES="$RUNNER_TEMP/approved-design-tests/node_modules" node scripts/test-teacher-marketplace-interactions.mjs

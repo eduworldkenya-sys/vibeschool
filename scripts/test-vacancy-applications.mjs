@@ -21,8 +21,8 @@ for (const input of [null, '', 'javascript:alert(1)', 'data:text/html,evil', '//
   assert.equal(vacancyApplication(input), null, `Unsafe or malformed application contact accepted: ${input}`)
 }
 const page = fs.readFileSync('app/teacher/TeachingJobs.tsx', 'utf8')
-assert(page.includes('vacancyApplication(j.application_url)'))
-assert(page.includes('Job details'))
+assert(page.includes('ListingDetailDialog') && page.includes('jobListing(selected)'))
+assert(page.includes('View details'))
 assert(page.includes('j.description ??'))
 const hq = fs.readFileSync('app/hq/teacher-vacancies/page.tsx', 'utf8')
 assert(hq.includes('vacancyApplication(form.application_url)'))
