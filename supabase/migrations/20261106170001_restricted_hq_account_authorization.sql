@@ -54,10 +54,39 @@ begin
     ) as s(name, signature, original, replacement)
   loop
     v_oid := to_regprocedure(format('public.%s(%s)',v_name,v_signature));
-    if v_oid is null then raise exception 'Missing function: %(%)',v_name,v_signature; end if;
+    if v_oid is null then
+      -- Optional HQ helpers may not exist in a clean reconstruction. An absent
+      -- function is not an executable access path; core owner gates remain required.
+      if v_name in ('is_platform_owner','hq_assert_owner') then
+        raise exception 'Missing core HQ function: %(%)',v_name,v_signature;
+      end if;
+      continue;
+    end if;
     v_body := pg_get_functiondef(v_oid);
     -- Production may already have the hotfix; rerunning must remain harmless.
     if strpos(v_body,v_to)>0 then continue; end if;
+    -- The pristine schema also contains an older one-line hq_assert_owner.
+    -- Inject the same fail-closed profile check at its first PL/pgSQL BEGIN;
+    -- preserve its existing owner/cron exceptions and every other statement.
+    if v_name='hq_assert_owner' and strpos(v_body,'public.hq_profile_is_active')=0 then
+      if v_body !~* '\mbegin\M' then raise exception 'Signature drift: %',v_name; end if;
+      v_body := regexp_replace(v_body,'\mbegin\M',
+        'BEGIN' || chr(10) ||
+        '  IF auth.uid() IS NOT NULL AND NOT public.hq_profile_is_active(auth.uid()) THEN RAISE EXCEPTION ''HQ access denied'' USING errcode=''42501''; END IF;',
+        'i');
+      execute v_body;
+      continue;
+    end if;
+
+    -- The pristine school-admin helper uses an unaliased school_members table.
+    -- Keep its existing role checks and add the same fail-closed profile guard.
+    if v_name='is_school_admin' and strpos(v_body,'public.hq_profile_is_active')=0 then
+      if v_body !~* '\mselect[[:space:]]+exists' then raise exception 'Signature drift: %',v_name; end if;
+      v_body := regexp_replace(v_body,'\mselect[[:space:]]+exists',
+        'select public.hq_profile_is_active(auth.uid()) and exists','i');
+      execute v_body;
+      continue;
+    end if;
     if strpos(v_body,v_from)=0 then raise exception 'Signature drift: %',v_name; end if;
     if (length(v_body)-length(replace(v_body,v_from,'')))/length(v_from) <> 1 then
       raise exception 'Ambiguous replacement: %',v_name;
