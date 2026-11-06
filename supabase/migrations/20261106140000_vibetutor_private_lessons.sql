@@ -1,5 +1,7 @@
 -- Private one-to-one tuition: accepted invite is the sole access grant.
 begin;
+-- access: service-only public.vibetutor_lessons
+-- authorization-test: public.vibetutor_lessons denies direct anon/authenticated table access; authenticated tutor/student use accepted-invitation-scoped RPCs.
 create table public.vibetutor_lessons (
  id uuid primary key default gen_random_uuid(),
  invitation_id uuid not null references public.vibetutor_student_invitations(id) on delete cascade,
@@ -15,6 +17,8 @@ create table public.vibetutor_lessons (
 create index on public.vibetutor_lessons(invitation_id,starts_at);
 alter table public.vibetutor_lessons enable row level security;
 revoke all on public.vibetutor_lessons from anon,authenticated;
+-- access: service-only public.vibetutor_lesson_messages
+-- authorization-test: public.vibetutor_lesson_messages denies direct anon/authenticated table access; authenticated tutor/student use accepted-invitation-scoped RPCs.
 create table public.vibetutor_lesson_messages(
  id uuid primary key default gen_random_uuid(),
  invitation_id uuid not null references public.vibetutor_student_invitations(id) on delete cascade,
