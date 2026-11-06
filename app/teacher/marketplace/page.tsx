@@ -1,12 +1,16 @@
 "use client";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useKenyaCounties, normalizeKenyaCounty } from "@/lib/geography/kenyaCounties";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, BriefcaseBusiness, GraduationCap, Plus, SlidersHorizontal } from "lucide-react";
+import { Plus, SlidersHorizontal } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 import TeachingJobs from "../TeachingJobs";
 import styles from "./marketplace.module.css";
+import detailStyles from "@/components/teacher/marketplace/listingDetails.module.css";
+import ListingDetailDialog from "@/components/teacher/marketplace/ListingDetailDialog";
+import ListingTabs from "@/components/teacher/marketplace/ListingTabs";
+import { swapListing, validListingId } from "@/lib/public/teacherListings";
 
 type Level = "Primary" | "Junior School" | "Senior School";
 type Listing = {id:string;teacher_id:string;current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string|null;school_level:Level;subject:string;status:"published"|"paused";created_at:string};
@@ -19,7 +23,7 @@ const validPhone=(s:string)=>/^\+?[0-9]{10,15}$/.test(s);
 
 export default function TeacherMarketplace(){
  const { counties, countyNames: COUNTIES } = useKenyaCounties();
- const [tab,setTab]=useState<"swap"|"jobs"|"tutoring">("swap");
+ const [tab,setTab]=useState<"swap"|"jobs">("jobs");
  const [userId,setUserId]=useState<string|null>(null);
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
@@ -35,6 +39,8 @@ export default function TeacherMarketplace(){
  const [message,setMessage]=useState("");
  const [phone,setPhone]=useState("");
  const [selected,setSelected]=useState<string|null>(null);
+ const [detail,setDetail]=useState<Listing|null>(null);
+ const interestInput=useRef<HTMLInputElement>(null);
  const mine=listings.find(l=>l.teacher_id===userId);
  const load=useCallback(async()=>{
   setError("");setLoading(true);
@@ -47,7 +53,14 @@ export default function TeacherMarketplace(){
    if(authError) throw authError;
    if(rowsError) throw rowsError;
    const uid=auth.user?.id??null;
-   setUserId(uid);setListings((rows??[]) as Listing[]);
+   const publicRows=(rows??[]) as Listing[];
+   const sharedId=new URLSearchParams(window.location.search).get("swap");
+   if(validListingId(sharedId)&&!publicRows.some(row=>row.id===sharedId)){
+    const {data:shared,error:sharedError}=await client.from("teacher_swap_listings").select(SELECT).eq("id",sharedId).eq("status","published").maybeSingle();
+    if(sharedError)throw sharedError;
+    if(shared)publicRows.push(shared as Listing);
+   }
+   setUserId(uid);setListings(publicRows);
    if(uid){
     const {data:requests,error:requestError}=await client.from("teacher_swap_interests").select(INTEREST_SELECT).order("created_at",{ascending:false}).limit(200);
     if(requestError) throw requestError;
@@ -63,6 +76,30 @@ export default function TeacherMarketplace(){
    return score(b)-score(a);
  }),[listings,userId,filterCounty,filterLevel,mine]);
  const incoming=interests.filter(i=>i.listing_id===mine?.id);
+ useEffect(()=>{
+  function sync(){
+  const params=new URLSearchParams(window.location.search);
+  if(params.get("tab")==="swap"||params.has("swap"))setTab("swap");
+  const id=params.get("swap");
+  if(loading)return;
+  if(!validListingId(id)){setDetail(null);return;}
+  const row=listings.find(l=>l.id===id&&l.status==="published");
+  if(!row){setNotice("This swap is no longer available.");return;}
+  if(params.get("interest")==="1"&&userId&&row.teacher_id!==userId&&!outgoing.has(id)){
+   setSelected(id);params.delete("swap");params.delete("interest");
+   window.history.replaceState(null,"",window.location.pathname+"?"+params.toString());
+  }else setDetail(row);
+  }
+  sync();window.addEventListener("popstate",sync);return()=>window.removeEventListener("popstate",sync);
+ },[listings,loading,userId,outgoing]);
+ useEffect(()=>{if(selected)interestInput.current?.focus();},[selected]);
+ function viewDetails(row:Listing){
+  const next=new URL(window.location.href);next.searchParams.set("swap",row.id);next.searchParams.delete("interest");window.history.pushState(null,"",next);setError("");setDetail(row);
+ }
+ function closeDetails(){
+  const next=new URL(window.location.href);next.searchParams.delete("swap");next.searchParams.delete("interest");window.history.replaceState(null,"",next);setDetail(null);
+ }
+
  function startEdit(){
   if(mine) setDraft({current_county:normalizeKenyaCounty(mine.current_county,counties),current_subcounty:mine.current_subcounty,preferred_county:normalizeKenyaCounty(mine.preferred_county,counties),preferred_subcounty:mine.preferred_subcounty??"",school_level:mine.school_level,subject:mine.subject});
   else setDraft(empty);
@@ -120,15 +157,10 @@ export default function TeacherMarketplace(){
   setBusy(false);
  }
  return <div className={styles.root}>
-  <header className={styles.header}><p className={styles.kicker}>VIBESCHOOL · TEACHERS</p><h1>Teacher Marketplace</h1><p>Find opportunities, connect with teachers, and manage your listings.</p></header>
-  <nav className={styles.tabs} aria-label="Marketplace sections">
-   <button className={tab==="jobs"?styles.active:""} onClick={()=>setTab("jobs")}><BriefcaseBusiness size={17}/> Jobs</button>
-   <button className={tab==="swap"?styles.active:""} onClick={()=>setTab("swap")}><ArrowLeftRight size={17}/> Swap</button>
-   <button className={tab==="tutoring"?styles.active:""} onClick={()=>setTab("tutoring")}><GraduationCap size={17}/> Tutoring</button>
-  </nav>
-  {tab==="jobs"&&<section className={styles.panel}><h2>Teaching vacancies</h2><TeachingJobs/></section>}
-  {tab==="tutoring"&&<section className={styles.panel}><h2>Independent tutoring</h2><p>Offer lessons independently or discover tutoring opportunities.</p><div className={styles.actions}><Link className={styles.primary} href="/vibetutor/become-tutor">My tutor listing</Link><Link className={styles.secondary} href="/vibetutor/browse">Find tutors</Link></div></section>}
-  {tab==="swap"&&<section className={styles.panel}>
+  <header className={styles.header}><p className={styles.kicker}>VIBESCHOOL · TEACHERS</p><h1>Teacher Marketplace</h1><p>School jobs and station swaps, in one place.</p><Link className={styles.secondary} href="/teacher/tutoring">My tutoring</Link></header>
+  <ListingTabs value={tab} idPrefix="managed-opportunities" onChange={next=>{closeDetails();setTab(next);const url=new URL(window.location.href);url.searchParams.set("tab",next);window.history.replaceState(null,"",url);}} />
+  {tab==="jobs"&&<section className={styles.panel} role="tabpanel" id="managed-opportunities-panel-jobs" aria-labelledby="managed-opportunities-tab-jobs"><h2>Teaching vacancies</h2><TeachingJobs/></section>}
+  {tab==="swap"&&<section className={styles.panel} role="tabpanel" id="managed-opportunities-panel-swap" aria-labelledby="managed-opportunities-tab-swap">
     <div className={styles.heading}><div><h2>Teacher Swap</h2><p>Find potential colleagues looking to exchange stations.</p></div><button className={styles.primary} onClick={startEdit}><Plus size={18}/>{mine?"Edit my swap":"Post a swap"}</button></div>
     <p className={styles.disclaimer}>Discovery only. Matching is not TSC approval. Complete official transfers through the <a href="https://portal.tsc.go.ke/" target="_blank" rel="noopener noreferrer">TSC portal</a>.</p>
     {notice&&<p className={styles.success} role="status">{notice}</p>}
@@ -152,15 +184,17 @@ export default function TeacherMarketplace(){
     <div className={styles.findHeading}><h3>Find swaps</h3><button className={styles.filterButton} onClick={()=>setFilters(!filters)} aria-expanded={filters}><SlidersHorizontal size={17}/> Filters</button></div>
     {filters&&<div className={styles.filters}><label>County<SearchableSelect label="Filter county" value={filterCounty} options={COUNTIES} placeholder="Any county" onChange={setFilterCounty}/></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
     {loading?<p role="status">Loading available swaps…</p>:visible.length===0?<p className={styles.empty}>No swap listings match yet. Post yours so teachers can find you.</p>:
-     <div className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level;return <article className={styles.card} key={l.id}>
-      <div className={styles.cardTop}><strong>{l.current_county} → {l.preferred_county}</strong>{reverse&&<span className={styles.match}>Reverse match</span>}</div>
-      <p>{l.current_subcounty} · {l.school_level}{l.subject?" · "+l.subject:""}</p>
-      {l.preferred_subcounty&&<small>Preferred: {l.preferred_subcounty}</small>}
-      {outgoing.has(l.id)?<p className={styles.sent}>Interest already sent</p>:<button className={styles.secondary} onClick={()=>{setError("");setSelected(l.id)}}>Express interest</button>}
+     <div className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level;return <article className={detailStyles.card} key={l.id}>
+      <button type="button" className={detailStyles.cardButton} onClick={()=>viewDetails(l)} aria-label={"View swap: "+l.current_county+" to "+l.preferred_county}>
+       <span className={detailStyles.badge}>{reverse?"Reverse match":"Teacher swap"}</span><h3>{l.current_county} → {l.preferred_county}</h3>
+       <p>{l.current_subcounty} · {l.school_level}</p><p>Subjects: {l.subject||"Not provided"}</p>
+       {outgoing.has(l.id)&&<small>Interest already sent</small>}<span className={detailStyles.view}>View details →</span>
+      </button>
      </article>})}</div>}
+    {detail&&<ListingDetailDialog key={detail.id} listing={swapListing(detail)} onClose={closeDetails} interest={detail.teacher_id===userId?undefined:{disabled:outgoing.has(detail.id),label:outgoing.has(detail.id)?"Interest already sent":"Express interest",onClick:()=>{const id=detail.id;closeDetails();setSelected(id);}}}/>}
     {selected&&<div className={styles.overlay} role="presentation"><div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="interest-title">
       <h3 id="interest-title">Express interest</h3><p>Your number will be visible only to the listing owner. They can contact you if interested.</p>
-      <label>Contact number<input type="tel" inputMode="tel" value={phone} maxLength={16} placeholder="07… or +254…" onChange={e=>setPhone(e.target.value)}/></label>
+      <label>Contact number<input ref={interestInput} type="tel" inputMode="tel" value={phone} maxLength={16} placeholder="07… or +254…" onChange={e=>setPhone(e.target.value)}/></label>
       <label>Short message (optional)<textarea maxLength={500} rows={3} value={message} onChange={e=>setMessage(e.target.value)} placeholder="I am interested in your swap…"/></label>
       <div className={styles.actions}><button className={styles.primary} disabled={busy} onClick={()=>void sendInterest()}>Send interest</button><button className={styles.secondary} onClick={()=>setSelected(null)}>Cancel</button></div>
       {error&&<p role="alert" className={styles.error}>{error}</p>}

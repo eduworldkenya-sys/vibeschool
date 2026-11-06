@@ -1,9 +1,9 @@
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { TrackedLink } from "@/components/public/TrackedLink";
-import { BookOpen, CalendarDays, ClipboardCheck, ArrowRight, CheckCircle2, GraduationCap, MessageCircle, BriefcaseBusiness, ArrowLeftRight } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardCheck, ArrowRight, GraduationCap, BriefcaseBusiness, ArrowLeftRight } from "lucide-react";
 import styles from "./TeacherGateway.module.css";
-import TeachingJobs from "./TeachingJobs";
+import TeacherOpportunities from "@/components/teacher/marketplace/TeacherOpportunities";
 import TeacherExperiencePreview from "./TeacherExperiencePreview";
 
 
@@ -18,10 +18,6 @@ const tasks = [
   { title: "Quiz", href: "/sandbox", Icon: ClipboardCheck },
   { title: "Revision", href: "/login?redirect=/teacher/assessment", Icon: GraduationCap },
 ];
-
-const journey = ["Plan", "Teach", "Assess", "Improve"];
-
-const whatsapp = "https://wa.me/254728232157?text=" + encodeURIComponent("Hello VibeSchool. I am a teacher interested in VibeSchool teacher access. Please help me get started.");
 
 export default function TeacherGateway() {
   return <div className={styles.page}>
@@ -54,36 +50,12 @@ export default function TeacherGateway() {
           <p className={styles.demoNote}>Explore a public example or sign in to prepare and save your work.</p>
         </div>
       </section>
-      <section className={styles.jobs} aria-labelledby="teacher-jobs-title">
+      <section className={styles.jobs} aria-labelledby="teacher-marketplace-title">
         <div className={styles.wrap}>
-          <div className={styles.jobsHeading}><h2 id="teacher-jobs-title">Teaching jobs</h2><BriefcaseBusiness size={19} aria-hidden="true"/></div>
-          <TeachingJobs />
-          <p className={styles.demoNote}>Only approved, current vacancies appear here.</p>
-          <div className={styles.heroActions}><a className={styles.secondary} href="/teacher/marketplace">Explore marketplace · Jobs, Swap & Tutoring <ArrowLeftRight size={18} aria-hidden="true"/></a></div>
-        </div>
-      </section>
-      <section className={styles.journey} aria-labelledby="journey-title">
-        <div className={styles.wrap}>
-          <h2 id="journey-title">See how your work connects</h2>
-          <ol className={styles.journeyGrid}>
-            {journey.map((step,index)=><li key={step}><span className={styles.number}>{index+1}</span><h3>{step}</h3></li>)}
-          </ol>
-          <p className={styles.journeyLead}>From curriculum planning to learner progress, your teaching work stays connected.</p>
-        </div>
-      </section>
-      <section className={styles.workspace} aria-labelledby="workspace-title">
-        <div className={styles.wrap}>
-          <div className={styles.workspacePanel}>
-            <div className={styles.workspaceIcon}><GraduationCap size={28} aria-hidden="true"/></div>
-            <div>
-              <h2 id="workspace-title">Already using VibeSchool?</h2>
-              <p>Your saved lessons, classes and assessments are waiting.</p>
-              <div className={styles.heroActions}>
-                <TrackedLink className={styles.primary} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Continue to Teacher OS <ArrowRight size={18} aria-hidden="true"/></TrackedLink>
-                <TrackedLink className={styles.support} event="public_teacher_whatsapp" href={whatsapp} external target="_blank" rel="noopener noreferrer"><MessageCircle size={18} aria-hidden="true"/> Ask for help</TrackedLink>
-              </div>
-            </div>
-          </div>
+          <div className={styles.jobsHeading}><h2 id="teacher-marketplace-title">Teacher marketplace</h2><BriefcaseBusiness size={19} aria-hidden="true"/></div>
+          <TeacherOpportunities />
+          <p className={styles.demoNote}>Browse school jobs or find a possible station swap.</p>
+          <div className={styles.heroActions}><a className={styles.secondary} href="/login?redirect=%2Fteacher%2Fmarketplace%3Ftab%3Dswap">Post or manage a swap <ArrowLeftRight size={18} aria-hidden="true"/></a></div>
         </div>
       </section>
     </main>
