@@ -62,7 +62,10 @@ begin
   if v_item ? 'county' and (jsonb_typeof(v_item->'county')<>'string' or length(btrim(v_item->>'county')) not between 2 and 80) then raise exception 'invalid_county';end if;
   if v_item ? 'sub_county' and (jsonb_typeof(v_item->'sub_county')<>'string' or length(btrim(v_item->>'sub_county'))>100) then raise exception 'invalid_sub_county';end if;
   if v_item ? 'type' and (jsonb_typeof(v_item->'type')<>'string' or length(btrim(v_item->>'type')) not between 2 and 80) then raise exception 'invalid_school_level';end if;
-  if v_item ? 'latitude' and not ((v_item->>'latitude')::double precision between -5 and 5 and (v_item->>'longitude')::double precision between 33 and 42) then raise exception 'invalid_coordinates';end if;
+  if v_item ? 'latitude' then
+   if jsonb_typeof(v_item->'latitude')<>'number' or jsonb_typeof(v_item->'longitude')<>'number' then raise exception 'invalid_coordinates'; end if;
+   if not ((v_item->>'latitude')::double precision between -5 and 5 and (v_item->>'longitude')::double precision between 33 and 42) then raise exception 'invalid_coordinates'; end if;
+  end if;
   update public.schools_directory set
    county=case when v_item ? 'county' then btrim(v_item->>'county') else county end,
    sub_county=case when v_item ? 'sub_county' then nullif(btrim(v_item->>'sub_county'),'') else sub_county end,
