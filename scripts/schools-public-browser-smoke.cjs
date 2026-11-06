@@ -86,12 +86,9 @@ async function verify() {
     const county=page.getByRole('combobox',{name:'County'});
     const subCounty=page.getByRole('combobox',{name:'Sub-county'});
     const level=page.getByRole('combobox',{name:'Level'});
-    await county.locator('option[value="Nakuru"]').waitFor({timeout:30000});
-    await county.selectOption('Nakuru');
-    await subCounty.locator('option[value="Gilgil"]').waitFor({timeout:30000});
-    await subCounty.selectOption('Gilgil');
-    await level.locator('option[value="Primary"]').waitFor({timeout:30000});
-    await level.selectOption('Primary');
+    await county.selectOption('Nakuru',{timeout:30000});
+    await subCounty.selectOption('Gilgil',{timeout:30000});
+    await level.selectOption('Primary',{timeout:30000});
     await page.getByRole('searchbox',{name:/search schools/i}).fill('Gilgil Township');
     await page.locator('a[href="/school/gilgiltownship"]').waitFor({timeout:30000});
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
