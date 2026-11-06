@@ -12,6 +12,7 @@ export default function StudentSignupPage() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [issueCode, setIssueCode] = useState('')
+  const [createdAccount, setCreatedAccount] = useState<{ loginId: string; signedIn: boolean } | null>(null)
 
   async function submit() {
     if (busy) return
@@ -36,17 +37,26 @@ export default function StudentSignupPage() {
         return
       }
 
+      // Account creation already succeeded. Preserve its sign-in ID even if the
+      // automatic sign-in loses connectivity, rather than offering setup again.
+      setCreatedAccount({ loginId: created.email.replace(/@vs\.internal$/, ''), signedIn: false })
       const { data: signedIn, error: signInError } = await supabase.auth.signInWithPassword({ email: created.email, password: pin })
-      if (signInError || !signedIn.session) {
-        setMessage('Account created. Sign in with your admission number and PIN.')
-        router.replace('/login/student')
-        return
-      }
-      router.replace('/student')
+      setCreatedAccount({ loginId: created.email.replace(/@vs\.internal$/, ''), signedIn: !signInError && !!signedIn.session })
+      setPin('')
+    } catch {
+      setMessage('Could not finish setup. Check your connection. If your account was created, sign in instead.')
     } finally {
       setBusy(false)
     }
   }
+
+  if (createdAccount) return <main className="shell"><section className="card">
+    <h1>Account created</h1>
+    <p className="lead">Keep your sign-in ID. Use it with your PIN next time.</p>
+    <label htmlFor="created-login-id">Your sign-in ID</label>
+    <input id="created-login-id" value={createdAccount.loginId} readOnly onFocus={e=>e.target.select()} />
+    <button className="primary" disabled={busy} onClick={()=>router.replace(createdAccount.signedIn ? '/student' : '/login/student')}>{busy ? 'Finishing…' : createdAccount.signedIn ? 'Start learning' : 'Sign in'}</button>
+  </section><style jsx>{styles}</style></main>
 
   return <main className="shell"><section className="card">
     <a href="/" className="brand">Vibe<span>School</span></a>

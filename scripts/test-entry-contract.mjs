@@ -10,6 +10,8 @@ const parentSignup = fs.readFileSync('app/signup/parent/page.tsx', 'utf8')
 const studentSignup = fs.readFileSync('app/signup/student/page.tsx', 'utf8')
 const studentAccountRoute = fs.readFileSync('app/api/create-student-account/route.ts', 'utf8')
 const roleLogin = fs.readFileSync('app/login/[role]/page.tsx', 'utf8')
+const authCallback = fs.readFileSync('app/auth/callback/route.ts', 'utf8')
+const guardianConsent = fs.readFileSync('lib/learner/guardian-consent.ts', 'utf8')
 
 const checks = [
   [middleware.includes("loginUrl.pathname = '/login'"), 'protected routes redirect signed-out users to /login'],
@@ -27,12 +29,14 @@ const checks = [
   [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the server-side account creation boundary'],
   [studentAccountRoute.includes("rpc('lookup_student_claim'") && studentAccountRoute.includes("status !== 'ready'") && studentAccountRoute.includes("rpc('finalize_student_provisioning'"), 'learner claim is validated through the canonical server-side provisioning boundary'],
   [studentAccountRoute.includes("case 'class_not_found'") && studentAccountRoute.includes("code: 'class_required'") && studentAccountRoute.includes('!studentId || !studentName || !schoolId'), 'learner credentials require valid school identity and class enrollment'],
-  [studentSignup.includes('parent or guardian can connect separately') && studentSignup.includes('not required before you activate'), 'learner UX explains that family linking is independent of school learner activation'],
-  [roleLogin.includes("href=\"/signup/student\"") && roleLogin.includes("href=\"/signup/parent\""), 'focused sign in connects new learners and parents to direct signup'],
+  [studentSignup.includes('Enter your school learner code and create a PIN.') && studentSignup.includes('No learner code? Ask your school.') && !studentSignup.includes('className="steps"'), 'school learner signup remains clear after its approved copy simplification'],
+  [roleLogin.includes("student: '/signup/student'") && roleLogin.includes("parent: '/signup/parent'") && roleLogin.includes("href={signupLink}"), 'focused sign in connects new learners and parents to direct signup'],
 
   // The selected login page is presentation/intent only. DB access state + onboarding own routing.
   [roleLogin.includes("get_my_auth_access_state") && roleLogin.includes("get_my_onboarding_state") && roleLogin.includes('roleCanVisit(actualRole'), 'focused sign in verifies authoritative role and onboarding state before routing'],
   [roleLogin.includes("student: { label: 'Learner', destination: '/student', email: false }"), 'learner sign in uses admission number and PIN'],
+  [authCallback.includes("const SELF_SERVICE_ROLES = new Set(['teacher', 'parent'])"), 'independent student OAuth signup stays closed until its release gate passes'],
+  [guardianConsent.includes("process.env.LEARNER_GUARDIAN_CONSENT_ENABLED === 'true'"), 'guardian consent service remains explicitly feature gated'],
   [roleLogin.includes("parent: { label: 'Parent', destination: '/parent', email: true }"), 'parent sign in uses the focused parent path'],
   [home.includes("alternates:{canonical:'/'}") || home.includes("alternates: { canonical: '/' }"), 'canonical public homepage declares the root canonical URL'],
   [sitemap.includes('{ url: SITE_URL,'), 'sitemap includes the canonical root'],
