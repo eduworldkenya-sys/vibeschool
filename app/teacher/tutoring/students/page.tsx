@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getSupabaseClient } from "@/lib/supabase";
+import PrivateTuitionTools from "@/components/vibetutor/PrivateTuitionTools";
 type Invite={id:string;token:string|null;student:string|null;status:string;created_at:string};
 const card:React.CSSProperties={background:"#fff",border:"1px solid #dfe5de",borderRadius:16,padding:16};
 export default function TuitionStudents(){
@@ -31,6 +32,6 @@ export default function TuitionStudents(){
  <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
  {r.status==="open"&&r.token&&<><button type="button" onClick={()=>shareWhatsApp(r.token!)} style={{padding:10,borderRadius:10,border:0,background:"#087451",color:"#fff",fontWeight:750}}>Share on WhatsApp</button><button type="button" onClick={()=>void share(r.token!)} style={{padding:10,borderRadius:10,border:"1px solid #087451",background:"#fff",color:"#087451",fontWeight:750}}>Copy link</button></>}
  {["open","invited","pending_guardian","accepted"].includes(r.status)&&<button type="button" disabled={busy} onClick={()=>void revoke(r.id)} style={{padding:10,borderRadius:10,border:"1px solid #ddd",background:"#fff"}}>Remove</button>}
- </div></section>)}
+ </div>{r.status==="accepted"&&<PrivateTuitionTools invitationId={r.id} isTutor={true} />}</section>)}
  </main>;
 }
