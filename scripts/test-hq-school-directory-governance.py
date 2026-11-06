@@ -10,10 +10,10 @@ sql = (Path(__file__).resolve().parents[1] / "supabase/migrations/20261106170000
 checks = {
     "RLS audit": "alter table public.hq_school_directory_edits enable row level security" in sql,
     "private audit": "revoke all on public.hq_school_directory_edits from public,anon,authenticated" in sql,
-    "owner check for both functions": sql.count("if not public.is_platform_owner() then raise exception 'hq_owner_required'") == 2,
+    "owner check for both functions": sql.count("if not public.is_platform_owner() then raise exception 'hq_owner_required'") == 3,
     "authenticated only writer": "grant execute on function public.hq_school_directory_apply_edits_v1(jsonb,text) to authenticated" in sql,
     "public default execution revoked": "revoke all on function public.hq_school_directory_apply_edits_v1(jsonb,text) from public" in sql,
-    "bounded batch": "jsonb_array_length(p_changes) not between 1 and 100" in sql,
+    "private audit history": "revoke all on function public.hq_school_directory_edit_history_v1(uuid,integer) from public" in sql,\n    "bounded batch": "jsonb_array_length(p_changes) not between 1 and 100" in sql,
     "evidence required": "evidence_note_required" in sql,
     "duplicate identity guard": "duplicate_school_id" in sql,
     "field whitelist": "key not in ('id','county','sub_county','type','latitude','longitude')" in sql,
