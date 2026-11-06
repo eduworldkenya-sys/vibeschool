@@ -1,4 +1,5 @@
 "use client";
+import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeftRight, BriefcaseBusiness, GraduationCap, Plus, SlidersHorizontal } from "lucide-react";
@@ -6,7 +7,6 @@ import { getSupabaseClient } from "@/lib/supabase";
 import TeachingJobs from "../TeachingJobs";
 import styles from "./marketplace.module.css";
 
-const COUNTIES = ["Baringo","Bomet","Bungoma","Busia","Elgeyo-Marakwet","Embu","Garissa","Homa Bay","Isiolo","Kajiado","Kakamega","Kericho","Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu","Kitui","Kwale","Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit","Meru","Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi","Narok","Nyamira","Nyandarua","Nyeri","Samburu","Siaya","Taita-Taveta","Tana River","Tharaka-Nithi","Trans Nzoia","Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot"];
 type Level = "Primary" | "Junior School" | "Senior School";
 type Listing = {id:string;teacher_id:string;current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string|null;school_level:Level;subject:string;status:"published"|"paused";created_at:string};
 type Interest = {id:string;listing_id:string;sender_id:string;message:string;contact_phone:string;status:"pending"|"accepted"|"declined";created_at:string};
@@ -15,9 +15,10 @@ const empty:Draft={current_county:"",current_subcounty:"",preferred_county:"",pr
 const SELECT="id,teacher_id,current_county,current_subcounty,preferred_county,preferred_subcounty,school_level,subject,status,created_at";
 const INTEREST_SELECT="id,listing_id,sender_id,message,contact_phone,status,created_at";
 const validPhone=(s:string)=>/^\+?[0-9]{10,15}$/.test(s);
-const countryOptions=(value:string)=> <>{COUNTIES.map(c=><option value={c} key={c}>{c}</option>)}</>;
 
 export default function TeacherMarketplace(){
+ const { countyNames: COUNTIES, error: countyError } = useKenyaCounties();
+ const countryOptions=(_value:string)=> <>{COUNTIES.map(c=><option value={c} key={c}>{c}</option>)}</>;
  const [tab,setTab]=useState<"swap"|"jobs"|"tutoring">("swap");
  const [userId,setUserId]=useState<string|null>(null);
  const [loading,setLoading]=useState(true);
