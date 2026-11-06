@@ -1608,16 +1608,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           {event.suppress_ordinary_teaching ? ' · Ordinary lessons are suppressed.' : ''}
         </div>
       ))}
-      <details className="no-print" style={{margin:'12px 0',padding:12,border:`1px solid ${C.border}`,borderRadius:12}}>
-        <summary style={{cursor:'pointer',fontWeight:700}}>New to timetables? Start here</summary>
-        <ol style={{fontSize:13,lineHeight:1.7}}>
-          <li>Enter the timetable your school already uses. Existing lessons stay in place.</li>
-          <li>Choose Weekly sheet and tap a free teaching period, or use Add lesson.</li>
-          <li>Choose your class and subject. Select one period or consecutive periods for a double.</li>
-          <li>Use Suggest available periods if you need help. Review weekly allocations below.</li>
-        </ol>
-        <p style={{fontSize:13}}>School periods define lesson lengths and breaks. Custom times are for genuine school exceptions. Lesson preparation can happen before or after scheduling.</p>
-      </details>
       {/* Slot list */}
       {view === 'day' && <Card>
         <SectionLabel>
