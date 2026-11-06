@@ -94,7 +94,7 @@ export default function VibeTutorImportsHQ() {
     try{
       const parsed=csvRows(await file.text())
       if(parsed.length>500)throw new Error("Import a maximum of 500 records at a time.")
-      const data=parsed.map(payload)
+      const data=parsed.map(row => payload(row, KENYAN_COUNTIES))
       const {error}=await hqSupabase.from("vibetutor_imports").insert(data)
       if(error)throw new Error("Batch was not saved. Check for invalid fields or duplicate records.")
       await loadRows();setNotice(data.length+" tutor leads imported privately. None were published.")
