@@ -7,6 +7,7 @@ import { PublicSwap, SWAP_SELECT, swapListing, validListingId, provided } from "
 import ListingDetailDialog from "./ListingDetailDialog";
 import ListingTabs from "./ListingTabs";
 import FeaturedSwapStrip from "./FeaturedSwapStrip";
+import ExternalSwapReferences from "./ExternalSwapReferences";
 import styles from "./listingDetails.module.css";
 
 function PublicSwaps() {
@@ -51,6 +52,7 @@ function PublicSwaps() {
   }
   const visible = rows.filter(row => [row.current_county, row.current_subcounty, row.preferred_county, row.preferred_subcounty ?? "", row.subject, row.school_level, row.employment_sector ?? ""].join(" ").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   return <div>
+    <ExternalSwapReferences />
     <p className={styles.status}>Find a possible match. Private messaging opens after both teachers agree.</p>
     {unavailable && <p role="status" className={styles.empty}>This swap is no longer available. <button type="button" onClick={close}>Dismiss</button></p>}
     {loading ? <p role="status">Loading available swaps…</p> : error ? <div role="alert"><p>Swaps are temporarily unavailable.</p><button type="button" className={styles.retry} onClick={() => setRetry(n => n + 1)}>Try again</button></div> : <>
