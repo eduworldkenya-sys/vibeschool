@@ -20,6 +20,7 @@ export default function TeachingJobs() {
   const [query, setQuery] = useState("");
   const [county, setCounty] = useState("");
   const [motionPaused, setMotionPaused] = useState(false);
+  const [showAllJobs, setShowAllJobs] = useState(false);
   const { counties: officialCounties, countyNames } = useKenyaCounties();
   const [selected, setSelected] = useState<PublicJob | null>(null);
   useEffect(() => {
@@ -97,21 +98,26 @@ export default function TeachingJobs() {
   return <div>
     {unavailable && <p role="status" className={styles.empty}>This job is no longer available. <button type="button" onClick={close}>Dismiss</button></p>}
     {loading ? <p role="status">Loading current vacancies…</p> : error ? <div role="alert"><p>Vacancies are temporarily unavailable.</p><button type="button" className={styles.retry} onClick={() => setRetry(n => n + 1)}>Try again</button></div> : jobs.length === 0 ? <p role="status">No approved teaching vacancies are listed right now.</p> : <>
-      <div className={styles.filters}>
-        <input aria-label="Search teaching vacancies" placeholder="Search jobs or schools" value={query} onChange={e => setQuery(e.target.value)} />
-        <SearchableSelect label="Filter vacancies by county" value={county} onChange={setCounty} options={counties} placeholder="All counties" />
-      </div>
       {featured.length > 0 && <section className={styles.featured} aria-labelledby="featured-jobs-title">
         <div className={styles.featuredHeading}><div><p className={styles.badge}>DISCOVER</p><h3 id="featured-jobs-title">Featured opportunities</h3><p>Closing soon and recently posted vacancies</p></div><button type="button" className={styles.motionToggle} aria-pressed={motionPaused} onClick={() => setMotionPaused(value => !value)}>{motionPaused ? "Resume movement" : "Pause movement"}</button></div>
         <div className={styles.featuredViewport}>
           <div className={styles.featuredTrack + (motionPaused ? " " + styles.featuredPaused : "")}>{featuredCards(false)}{featured.length > 1 && featuredCards(true)}</div>
         </div>
       </section>}
+      <div style={{ marginTop: "1rem" }}>
+        <button type="button" className={styles.retry} aria-expanded={showAllJobs} aria-controls="all-teaching-jobs" onClick={() => setShowAllJobs(value => !value)}>{showAllJobs ? "Hide all jobs" : `View all jobs (${jobs.length})`}</button>
+      </div>
+      {showAllJobs && <section id="all-teaching-jobs" aria-label="All teaching jobs">
+        <div className={styles.filters}>
+          <input aria-label="Search teaching vacancies" placeholder="Search jobs or schools" value={query} onChange={e => setQuery(e.target.value)} />
+          <SearchableSelect label="Filter vacancies by county" value={county} onChange={setCounty} options={counties} placeholder="All counties" />
+        </div>
       {visible.length === 0 ? <p role="status" className={styles.empty}>No vacancies match these filters.</p> : <div aria-label="Current teaching vacancies" className={styles.cards}>
         {visible.map(job => <article key={job.id} className={styles.card}><button type="button" className={styles.cardButton} onClick={() => open(job)} aria-label={"View job: " + job.title + " at " + job.school_name}>
           <span className={styles.badge}>School job</span><h3>{job.title}</h3><p>{provided(job.school_name)}</p><p>{provided(job.county)} · {provided(job.location)}</p><small>Closes: {listingDate(job.closing_date)}</small><span className={styles.view}>View details →</span>
         </button></article>)}
       </div>}
+      </section>}
     </>}
     {selected && <ListingDetailDialog key={selected.id} listing={jobListing(selected)} onClose={close} />}
   </div>;
