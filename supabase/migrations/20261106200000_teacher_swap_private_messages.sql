@@ -1,4 +1,5 @@
 -- Private swap conversations are available ONLY after owner acceptance.
+-- authorization-test: public.teacher_swap_messages (anon denied; unrelated authenticated denied; pending interest denied; accepted sender and listing owner read and insert own messages; spoofed sender denied)
 -- No telephone number is required for new interest requests.
 alter table public.teacher_swap_interests alter column contact_phone drop not null;
 alter table public.teacher_swap_interests drop constraint if exists teacher_swap_interests_contact_phone_check;
