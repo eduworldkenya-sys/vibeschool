@@ -71,6 +71,14 @@ begin
       v_to := '  if not public.hq_profile_is_active(v_uid) then raise exception ''HQ access denied'' using errcode=''42501''; end if;'
         || chr(10) || v_from;
     end if;
+    -- The foundational is_school_admin(uuid) function uses an unaliased
+    -- school_members relation. Production may instead have the aliased form.
+    -- Accept only that exact known legacy predicate, retaining the same
+    -- membership and role restrictions in either version.
+    if v_name = 'is_school_admin' and strpos(v_body,v_from)=0 then
+      v_from := 'and profile_id = auth.uid()';
+      v_to := 'and profile_id = auth.uid() and public.hq_profile_is_active(auth.uid())';
+    end if;
     if strpos(v_body,v_from)=0 then raise exception 'Signature drift: %',v_name; end if;
     if (length(v_body)-length(replace(v_body,v_from,'')))/length(v_from) <> 1 then
       raise exception 'Ambiguous replacement: %',v_name;
