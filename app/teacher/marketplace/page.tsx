@@ -1,5 +1,5 @@
 "use client";
-import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
+import { useKenyaCounties, normalizeKenyaCounty } from "@/lib/geography/kenyaCounties";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeftRight, BriefcaseBusiness, GraduationCap, Plus, SlidersHorizontal } from "lucide-react";
@@ -17,8 +17,8 @@ const INTEREST_SELECT="id,listing_id,sender_id,message,contact_phone,status,crea
 const validPhone=(s:string)=>/^\+?[0-9]{10,15}$/.test(s);
 
 export default function TeacherMarketplace(){
- const { countyNames: COUNTIES } = useKenyaCounties();
- const countryOptions=(_value:string)=> <>{COUNTIES.map(c=><option value={c} key={c}>{c}</option>)}</>;
+ const { counties, countyNames: COUNTIES } = useKenyaCounties();
+ const countryOptions=(value:string)=> <>{(value && !COUNTIES.includes(value) ? [value,...COUNTIES] : COUNTIES).map(c=><option value={c} key={c}>{c}</option>)}</>;
  const [tab,setTab]=useState<"swap"|"jobs"|"tutoring">("swap");
  const [userId,setUserId]=useState<string|null>(null);
  const [loading,setLoading]=useState(true);
@@ -64,13 +64,13 @@ export default function TeacherMarketplace(){
  }),[listings,userId,filterCounty,filterLevel,mine]);
  const incoming=interests.filter(i=>i.listing_id===mine?.id);
  function startEdit(){
-  if(mine) setDraft({current_county:mine.current_county,current_subcounty:mine.current_subcounty,preferred_county:mine.preferred_county,preferred_subcounty:mine.preferred_subcounty??"",school_level:mine.school_level,subject:mine.subject});
+  if(mine) setDraft({current_county:normalizeKenyaCounty(mine.current_county,counties),current_subcounty:mine.current_subcounty,preferred_county:normalizeKenyaCounty(mine.preferred_county,counties),preferred_subcounty:mine.preferred_subcounty??"",school_level:mine.school_level,subject:mine.subject});
   else setDraft(empty);
   setError("");setNotice("");setEditing(true);
  }
  async function save(){
   if(!userId){setError("Sign in to post a swap.");return;}
-  const d={...draft,current_subcounty:draft.current_subcounty.trim(),preferred_subcounty:draft.preferred_subcounty.trim(),subject:draft.subject.trim()};
+  const d={...draft,current_county:normalizeKenyaCounty(draft.current_county,counties),preferred_county:normalizeKenyaCounty(draft.preferred_county,counties),current_subcounty:draft.current_subcounty.trim(),preferred_subcounty:draft.preferred_subcounty.trim(),subject:draft.subject.trim()};
   if(!COUNTIES.includes(d.current_county)||!COUNTIES.includes(d.preferred_county)||d.current_county===d.preferred_county||d.current_subcounty.length<2){setError("Choose different current and preferred counties, and enter your current sub-county.");return;}
   setBusy(true);setError("");setNotice("");
   try{
