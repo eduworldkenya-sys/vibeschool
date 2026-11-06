@@ -1,7 +1,7 @@
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { TrackedLink } from "@/components/public/TrackedLink";
-import { BookOpen, CalendarDays, ClipboardCheck, ArrowRight, GraduationCap, BriefcaseBusiness, ArrowLeftRight } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, ArrowLeftRight } from "lucide-react";
 import styles from "./TeacherGateway.module.css";
 import TeacherOpportunities from "@/components/teacher/marketplace/TeacherOpportunities";
 import TeacherExperiencePreview from "./TeacherExperiencePreview";
@@ -11,13 +11,6 @@ export const metadata = {
   title: "For Teachers | VibeSchool",
   description: "Plan lessons, prepare schemes, assess learners and continue your work in VibeSchool Teacher OS.",
 };
-
-const tasks = [
-  { title: "Lesson plan", href: "/login?redirect=/teacher/lessonplan", Icon: BookOpen },
-  { title: "Scheme of work", href: "/login?redirect=/teacher/scheme", Icon: CalendarDays },
-  { title: "Quiz", href: "/sandbox", Icon: ClipboardCheck },
-  { title: "Revision", href: "/login?redirect=/teacher/assessment", Icon: GraduationCap },
-];
 
 export default function TeacherGateway() {
   return <div className={styles.page}>
@@ -31,23 +24,9 @@ export default function TeacherGateway() {
             <p className={styles.intro}>Plan lessons, prepare schemes, assess learners and find teaching resources in one place.</p>
             <div className={styles.heroActions}>
               <TrackedLink className={styles.primary} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Open Teacher OS <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
-              <a className={styles.secondary} href="#teaching-tools">Explore teaching tools <ArrowRight size={18} aria-hidden="true" /></a>
             </div>
           </div>
           <div className={styles.heroPreview}><TeacherExperiencePreview /></div>
-        </div>
-      </section>
-      <section className={styles.section} id="teaching-tools" aria-labelledby="teaching-tools-title">
-        <div className={styles.wrap}>
-          <p className={styles.eyebrow}>TRY VIBESCHOOL</p>
-          <h2 id="teaching-tools-title">What would you like to prepare?</h2>
-          <div className={styles.taskGrid}>
-            {tasks.map(({title,href,Icon}) => <a className={styles.task} href={href} key={title}>
-              <span className={styles.taskIcon}><Icon size={24} aria-hidden="true"/></span>
-              <strong>{title}</strong><ArrowRight size={17} aria-hidden="true"/>
-            </a>)}
-          </div>
-          <p className={styles.demoNote}>Explore a public example or sign in to prepare and save your work.</p>
         </div>
       </section>
       <section className={styles.jobs} aria-labelledby="teacher-marketplace-title">
