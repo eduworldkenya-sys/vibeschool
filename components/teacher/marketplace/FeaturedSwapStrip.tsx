@@ -16,7 +16,7 @@ export function swapMatchScore(candidate: PublicSwap, mine?: MatchProfile | null
   if (clean(candidate.preferred_subcounty) && clean(mine.current_subcounty) === clean(candidate.preferred_subcounty)) score++;
   return score;
 }
-export default function FeaturedSwapStrip({ swaps, onOpen, mine }: { swaps: PublicSwap[]; onOpen: (swap: PublicSwap) => void; mine?: MatchProfile | null }) {
+export default function FeaturedSwapStrip<T extends PublicSwap>({ swaps, onOpen, mine }: { swaps: T[]; onOpen: (swap: T) => void; mine?: MatchProfile | null }) {
   const [paused, setPaused] = useState(false);
   const featured = [...swaps].sort((a, b) => {
     const matching = swapMatchScore(b, mine) - swapMatchScore(a, mine);
