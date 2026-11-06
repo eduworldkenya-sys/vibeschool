@@ -85,6 +85,7 @@ jobs:
           prebuild_command: |
             node scripts/test-strategic-remediation-contract.mjs
             node scripts/test-vacancy-applications.mjs
+            node scripts/test-vibetutor-invitation-handoff.mjs
             npm run test:canonical-references
             npm run test:reference-convergence
             npm run typecheck
