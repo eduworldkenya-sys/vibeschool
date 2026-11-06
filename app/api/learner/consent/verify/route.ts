@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       'A learner has provided your email address as their parent or guardian.\n\n'
       + 'This does not give the learner access to your account or any school records.\n'
       + 'If you are their parent or legal guardian, sign in with this email address, review the details and decide:\n\n'
-      + SITE + '/guardian/consent?token=' + encodeURIComponent(guardianToken)
+      + SITE + '/guardian/consent#token=' + encodeURIComponent(guardianToken)
       + '\n\nThis link expires in 48 hours. Ignore this email if you do not recognize the request.')
 
     await admin.from('learner_guardian_consent_requests')
