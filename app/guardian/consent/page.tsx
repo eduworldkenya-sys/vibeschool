@@ -44,7 +44,7 @@ export default function GuardianConsent() {
       try {
         await reload()
         if (saved) {
-          await send('approve?token=' + encodeURIComponent(saved), 'GET')
+          await send('approve', 'POST', { token: saved, preview: true })
           if (active) setReview(true)
         }
       } catch (err) { if (active) setMessage(err instanceof Error ? err.message : 'Could not open invitation.') }
