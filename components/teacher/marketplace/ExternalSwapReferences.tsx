@@ -65,7 +65,7 @@ export default function ExternalSwapReferences() {
     <div className={styles.featuredHeading}>
       <div><h3>Other public swap requests</h3><p>{examples.length} examples shared from SwapKenya · Source details, not VibeSchool listings</p></div>
     </div>
-    <button type="button" className={styles.retry} aria-expanded={open} aria-controls="external-swap-references" onClick={() => setOpen(value => !value)}>{open ? "Hide external swaps" : "View {examples.length} external swaps"}</button>
+    <button type="button" className={styles.retry} aria-expanded={open} aria-controls="external-swap-references" onClick={() => setOpen(value => !value)}>{open ? "Hide external swaps" : `View ${examples.length} external swaps`}</button>
     {open && <div id="external-swap-references" className={styles.cards}>
       {examples.map(swap => <article className={styles.card} key={swap.reference}>
         <div className={styles.cardButton} style={{cursor: "default"}}>
