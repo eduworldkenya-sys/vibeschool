@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { isAuthSessionMissingError } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabase";
+import PrivateTuitionTools from "@/components/vibetutor/PrivateTuitionTools";
 
 type Invite = { id: string; tutor: string; status: string; created_at: string };
 type Preview = { available: boolean; tutor?: string };
@@ -129,7 +130,7 @@ export default function StudentTuition() {
       </section>
       {connected.length > 0 && <section style={panel}>
         <h2 style={{ fontSize: 17, margin: "0 0 10px" }}>My tutors</h2>
-        {connected.map(row => <p key={row.id} style={{ fontSize: 14 }}><strong>{row.tutor}</strong> · {row.status === "accepted" ? "Connected" : "Awaiting guardian approval"}</p>)}
+        {connected.map(row => <div key={row.id} style={{ fontSize: 14, padding: "10px 0", borderTop: "1px solid #eee" }}><strong>{row.tutor}</strong> · {row.status === "accepted" ? "Connected" : "Awaiting guardian approval"}{row.status === "accepted" && <PrivateTuitionTools invitationId={row.id} isTutor={false} />}</div>)}
       </section>}
       <p style={{ fontSize: 12, opacity: .75 }}>Under-18 tuition connections require approval from a linked parent or guardian. School records are not shared with private tutors.</p>
     </>}
