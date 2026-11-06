@@ -109,6 +109,7 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibetutor_decide_student_invite: { Args: { p_id: string; p_approve: boolean }; Returns: undefined }
       vibetutor_my_student_invites: { Args: Record<never, never>; Returns: { id: string; token: string | null; student: string | null; status: string; created_at: string }[] }
       vibetutor_revoke_student_invite: { Args: { p_id: string }; Returns: undefined }
+      vibetutor_preview_student_invite: { Args: { p_token: string }; Returns: { available: boolean; tutor?: string } }
       vibetutor_my_student_code: { Args: Record<never, never>; Returns: string }
       vibetutor_invite_student_by_code: { Args: { p_code: string }; Returns: string }
       vibetutor_student_inbox: { Args: Record<never, never>; Returns: { id: string; tutor: string; status: string; created_at: string }[] }
