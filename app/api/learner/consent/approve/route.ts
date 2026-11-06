@@ -22,25 +22,6 @@ async function resolve(req: NextRequest, raw: unknown) {
   return { admin, guardian, request: data, token }
 }
 
-export async function GET(req: NextRequest) {
-  if (!consentEnabled()) return json({ error: 'Consent review is unavailable.' }, 503)
-  try {
-    const resolved = await resolve(req, req.nextUrl.searchParams.get('token'))
-    if (!resolved) return json({ error: 'Sign in with the invited, verified guardian email, or request another link.' }, 403)
-    const { request } = resolved
-    return json({
-      request: {
-        purpose: 'personal_learning',
-        relationship: request.guardian_relationship,
-        policy_version: request.policy_version,
-        expires_at: request.token_expires_at,
-      },
-    })
-  } catch {
-    return json({ error: 'Could not load consent request.' }, 500)
-  }
-}
-
 export async function POST(req: NextRequest) {
   if (!consentEnabled()) return json({ error: 'Consent review is unavailable.' }, 503)
   try {
@@ -48,6 +29,14 @@ export async function POST(req: NextRequest) {
     const resolved = await resolve(req, input.token)
     if (!resolved) return json({ error: 'The approval link is invalid, expired, or belongs to another account.' }, 403)
     const { admin, guardian, request, token } = resolved
+    if (input.preview === true) {
+      return json({ request: {
+        purpose: request.consent_purpose,
+        relationship: request.guardian_relationship,
+        policy_version: request.policy_version,
+        expires_at: request.token_expires_at,
+      } })
+    }
     const now = new Date().toISOString()
     if (input.decline === true) {
       const { data: rejected, error: rejectError } = await admin.from('learner_guardian_consent_requests')
