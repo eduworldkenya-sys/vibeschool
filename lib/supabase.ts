@@ -67,19 +67,19 @@ type LiveTeacherSwapListing = {
   Row: {
     id: string; teacher_id: string; current_county: string; current_subcounty: string;
     preferred_county: string; preferred_subcounty: string | null;
-    school_level: string; subject: string; status: string;
+    school_level: string; subject: string; employment_sector: string; status: string;
     created_at: string; updated_at: string
   }
   Insert: {
     id?: string; teacher_id: string; current_county: string; current_subcounty: string;
     preferred_county: string; preferred_subcounty?: string | null;
-    school_level: string; subject?: string; status?: string;
+    school_level: string; subject?: string; employment_sector?: string; status?: string;
     created_at?: string; updated_at?: string
   }
   Update: {
     id?: string; teacher_id?: string; current_county?: string; current_subcounty?: string;
     preferred_county?: string; preferred_subcounty?: string | null;
-    school_level?: string; subject?: string; status?: string;
+    school_level?: string; subject?: string; employment_sector?: string; status?: string;
     created_at?: string; updated_at?: string
   }
   Relationships: []
