@@ -30,6 +30,13 @@ async function load(entry,{pdfStub=false}={}){
 }
 const model=await load('lib/public/teacherListings.ts');const listing=model.jobListing(job);const swapModel=model.swapListing(swap)
 assert.equal(model.provided(''), 'Not provided');
+assert.equal(model.jobLifecycle({...job,closing_date:'2026-11-05'},new Date('2026-11-06T12:00:00Z')),'expired');
+assert.equal(model.jobLifecycle({...job,status:'closed'},new Date('2026-11-06T12:00:00Z')),'closed');
+assert.equal(model.jobLifecycle({...job,closing_date:'2026-11-06'},new Date('2026-11-06T12:00:00Z')),'open');
+assert.equal(model.jobListing({...job,status:'closed'}).actions.length,0);
+assert.equal(model.swapLifecycle({...swap,created_at:'2026-08-01T00:00:00Z'},new Date('2026-11-06T00:00:00Z')),'expired');
+assert.equal(model.swapLifecycle({...swap,created_at:'2026-08-01T00:00:00Z',status:'successful'},new Date('2026-11-06T00:00:00Z')),'successful');
+assert.equal(model.swapLifecycle({...swap,created_at:'2026-11-01T00:00:00Z'},new Date('2026-11-06T00:00:00Z')),'active');
 assert.equal(model.swapSectorLabel('tsc'),'TSC teacher (self-declared)');
 assert.equal(model.swapSectorLabel('private'),'Private-school teacher (self-declared)');
 assert.equal(model.swapSectorLabel('unspecified'),'Not provided');
@@ -66,11 +73,11 @@ await act(async()=>fireEvent.click(document.querySelector('dialog')));assert(!qu
 navigator.share=async data=>{shared=data};await render(Host);await act(async()=>fireEvent.click(button('Share')));assert.equal(shared.url,model.listingUrl('job',job.id,'https://vibeschool.co.ke'))
 navigator.share=undefined;Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{throw Error('Denied')}},configurable:true});await render(Host);await act(async()=>fireEvent.click(button('Share')));assert.equal(document.querySelector('input[readonly]').value,model.listingUrl('job',job.id,'https://vibeschool.co.ke'))
 const Jobs=(await load('app/teacher/TeachingJobs.tsx',{pdfStub:true})).default
-window.history.replaceState(null,'','/teacher');await render(Jobs);assert(!queryByRole(document.body,'button',{name:/^View job:/}),'Full vacancies are initially collapsed');assert(button(/View featured job:/),'Featured jobs remain visible');await act(async()=>fireEvent.click(button(/View all jobs/)));assert(button(/Hide all jobs/));await act(async()=>fireEvent.click(button(/View job:/)));assert(queryByRole(document.body,'dialog'));assert.equal(new URLSearchParams(window.location.search).get('job'),job.id)
+window.history.replaceState(null,'','/teacher');await render(Jobs);assert(!queryByRole(document.body,'button',{name:/^View job:/}),'Full vacancies are initially collapsed');assert(button(/View featured job:/),'Featured jobs remain visible');await act(async()=>fireEvent.click(button(/View open jobs/)));assert(button(/Hide all jobs/));await act(async()=>fireEvent.click(button(/View job:/)));assert(queryByRole(document.body,'dialog'));assert.equal(new URLSearchParams(window.location.search).get('job'),job.id)
 await act(async()=>fireEvent.click(button('Close listing')));assert(!queryByRole(document.body,'dialog'));assert(!window.location.search.includes('job='))
 window.history.replaceState(null,'','/teacher?job='+job.id);await render(Jobs);assert(queryByRole(document.body,'dialog'),'Shared job links open the same popup')
 window.history.replaceState(null,'','/teacher?job=10000000-0000-4000-8000-000000009999');await render(Jobs);assert(document.body.textContent.includes('This job is no longer available'));assert(!queryByRole(document.body,'dialog'))
-window.history.replaceState(null,'','/teacher');globalThis.__readError=true;await render(Jobs);assert(queryByRole(document.body,'alert'));globalThis.__readError=false;await act(async()=>fireEvent.click(button('Try again')));assert(button(/View all jobs/));await act(async()=>fireEvent.click(button(/View all jobs/)));assert(button(/View job:/))
+window.history.replaceState(null,'','/teacher');globalThis.__readError=true;await render(Jobs);assert(queryByRole(document.body,'alert'));globalThis.__readError=false;await act(async()=>fireEvent.click(button('Try again')));assert(button(/View open jobs/));await act(async()=>fireEvent.click(button(/View open jobs/)));assert(button(/View job:/))
 const FeaturedSwaps=(await load('components/teacher/marketplace/FeaturedSwapStrip.tsx',{pdfStub:true})).default
 const SwapMatcher=await load('components/teacher/marketplace/FeaturedSwapStrip.tsx',{pdfStub:true})
 assert.equal(SwapMatcher.swapMatchScore(swap,{current_county:'Nakuru',preferred_county:'Mombasa',current_subcounty:'Nakuru Town',preferred_subcounty:'Nyali',school_level:'Junior School',subject:'Mathematics',employment_sector:'tsc'}),5,'Reciprocal county, level and subcounty are explainable');
@@ -79,9 +86,12 @@ assert.equal(SwapMatcher.swapMatchScore({...swap,employment_sector:'unspecified'
 assert.equal(SwapMatcher.swapMatchScore(swap,{current_county:'Nairobi',preferred_county:'Mombasa',current_subcounty:'',preferred_subcounty:'',school_level:'Junior School',subject:''}),0,'One-way county is not a reciprocal match');
 const Opportunities=(await load('components/teacher/marketplace/TeacherOpportunities.tsx',{pdfStub:true})).default
 window.history.replaceState(null,'','/teacher');await render(Opportunities);assert.equal(role('tab','Jobs').getAttribute('aria-selected'),'true')
-await act(async()=>fireEvent.keyDown(role('tab','Jobs'),{key:'ArrowRight'}));assert.equal(role('tab','Swaps').getAttribute('aria-selected'),'true');assert.equal(document.activeElement.textContent,'Swaps');assert.equal(document.querySelectorAll('article').length,8,'Six external examples plus featured and normal native swap cards are present')
-await act(async()=>fireEvent.click(button('View swap: Maria Ken, Narok to Nairobi')));assert(queryByRole(document.body,'dialog',{name:/Maria Ken swap details/}));await act(async()=>fireEvent.click(button('Close listing')));await act(async()=>fireEvent.change(role('textbox','Search teacher swaps'),{target:{value:'Chemistry'}}));assert(document.body.textContent.includes('Edward Karanja')&&document.body.textContent.includes('James Kuria'));assert(!document.body.textContent.includes('Maria Ken'));await act(async()=>fireEvent.change(role('textbox','Search teacher swaps'),{target:{value:''}}));await act(async()=>fireEvent.click(button('View swap: Mombasa to Nakuru')));assert(queryByRole(document.body,'dialog'));assert(!document.body.textContent.includes(swap.contact_phone));assert(role('link','Express interest').getAttribute('href').includes(encodeURIComponent(swap.id)))
-await act(async()=>fireEvent.click(button('Close listing')));await act(async()=>fireEvent.change(role('textbox','Search teacher swaps'),{target:{value:'No such county'}}));assert(!document.body.textContent.includes('No published swaps match yet') && !document.body.textContent.includes('Maria Ken'),'No misleading empty state and external results respect the search')
+await act(async()=>fireEvent.keyDown(role('tab','Jobs'),{key:'ArrowRight'}));assert.equal(role('tab','Swaps').getAttribute('aria-selected'),'true');assert.equal(document.activeElement.textContent,'Swaps');
+assert(button(/View all swaps/),'Native swaps stay behind the compact disclosure');
+await act(async()=>fireEvent.click(button(/View all swaps/)));
+assert(button('View swap: Mombasa to Nakuru'));
+await act(async()=>fireEvent.click(button('View swap: Mombasa to Nakuru')));assert(queryByRole(document.body,'dialog'));assert(!document.body.textContent.includes(swap.contact_phone));assert(role('link','Express interest').getAttribute('href').includes(encodeURIComponent(swap.id)))
+await act(async()=>fireEvent.click(button('Close listing')));await act(async()=>fireEvent.change(role('textbox','Search teacher swaps'),{target:{value:'No such county'}}));assert(document.body.textContent.includes('No swaps match your search.'));
 window.history.replaceState(null,'','/teacher?swap='+swap.id);await render(Opportunities);assert(queryByRole(document.body,'dialog'),'Shared swap links select the swap tab and open details')
 await act(async()=>root.unmount())
 const page=fs.readFileSync('app/teacher/page.tsx','utf8');assert(!page.includes('See how your work connects'));assert(!page.includes('Already using VibeSchool?'));assert(page.includes('TeacherExperiencePreview')&&page.includes('/teacher/pulse')&&page.includes('TeacherOpportunities'))

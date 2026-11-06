@@ -54,10 +54,31 @@ begin
     ) as s(name, signature, original, replacement)
   loop
     v_oid := to_regprocedure(format('public.%s(%s)',v_name,v_signature));
+    -- hq_check_owner_access is a production-era optional RPC and is not
+    -- created by the canonical zero-to-current migration history. Do not
+    -- fabricate it in a clean build or alter any unrelated authorization.
+    if v_oid is null and v_name = 'hq_check_owner_access' then continue; end if;
     if v_oid is null then raise exception 'Missing function: %(%)',v_name,v_signature; end if;
     v_body := pg_get_functiondef(v_oid);
     -- Production may already have the hotfix; rerunning must remain harmless.
     if strpos(v_body,v_to)>0 then continue; end if;
+    -- A fresh rebuild still has the earlier, owner-only guard from
+    -- 20260812065500. Preserve its postgres cron exception and audit trail
+    -- while inserting the same active-profile gate. Production's newer
+    -- HQ-membership-aware guard above remains unchanged.
+    if v_name = 'hq_assert_owner' and strpos(v_body,v_from)=0 then
+      v_from := '  if not coalesce(public.is_platform_owner(), false) then';
+      v_to := '  if not public.hq_profile_is_active(v_uid) then raise exception ''HQ access denied'' using errcode=''42501''; end if;'
+        || chr(10) || v_from;
+    end if;
+    -- The foundational is_school_admin(uuid) function uses an unaliased
+    -- school_members relation. Production may instead have the aliased form.
+    -- Accept only that exact known legacy predicate, retaining the same
+    -- membership and role restrictions in either version.
+    if v_name = 'is_school_admin' and strpos(v_body,v_from)=0 then
+      v_from := 'and profile_id = auth.uid()';
+      v_to := 'and profile_id = auth.uid() and public.hq_profile_is_active(auth.uid())';
+    end if;
     if strpos(v_body,v_from)=0 then raise exception 'Signature drift: %',v_name; end if;
     if (length(v_body)-length(replace(v_body,v_from,'')))/length(v_from) <> 1 then
       raise exception 'Ambiguous replacement: %',v_name;

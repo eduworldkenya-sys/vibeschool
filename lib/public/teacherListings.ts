@@ -1,10 +1,10 @@
 import { vacancyApplication } from "./vacancyApplication";
 
 export const NOT_PROVIDED = "Not provided";
-export const JOB_SELECT = "id,title,school_name,county,location,employment_type,application_url,closing_date,description,created_at";
-export const SWAP_SELECT = "id,current_county,current_subcounty,preferred_county,preferred_subcounty,school_level,subject,employment_sector,created_at";
-export type PublicJob = { id: string; title: string; school_name: string; county: string; location: string | null; employment_type: string | null; application_url: string | null; closing_date: string | null; description: string | null; created_at?: string };
-export type PublicSwap = { id: string; current_county: string; current_subcounty: string; preferred_county: string; preferred_subcounty: string | null; school_level: string; subject: string; employment_sector?: string | null; created_at: string };
+export const JOB_SELECT = "id,title,school_name,county,location,employment_type,application_url,closing_date,description,created_at,status";
+export const SWAP_SELECT = "id,current_county,current_subcounty,preferred_county,preferred_subcounty,school_level,subject,employment_sector,created_at,status";
+export type PublicJob = { id: string; title: string; school_name: string; county: string; location: string | null; employment_type: string | null; application_url: string | null; closing_date: string | null; description: string | null; created_at?: string; status?: string };
+export type PublicSwap = { id: string; current_county: string; current_subcounty: string; preferred_county: string; preferred_subcounty: string | null; school_level: string; subject: string; employment_sector?: string | null; created_at: string; status?: string };
 export type ListingField = { label: string; value: string };
 export type ListingAction = { href: string; label: string; external: boolean };
 export type TeacherListing = { id: string; kind: "job" | "swap"; title: string; school: string; subtitle: string; fields: ListingField[]; details: string; actions: ListingAction[] };
@@ -16,6 +16,20 @@ export function provided(value: string | null | undefined): string {
 export function listingDate(value: string | null | undefined): string {
   if (!value || !Number.isFinite(new Date(value).getTime())) return NOT_PROVIDED;
   return new Intl.DateTimeFormat("en-KE", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Nairobi" }).format(new Date(value));
+}
+/** Listing end dates are inclusive in the Kenyan local calendar. */
+export function jobLifecycle(job: Pick<PublicJob, "closing_date" | "status">, today = new Date()): "open" | "expired" | "closed" {
+  if (job.status === "closed") return "closed";
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit" }).format(today);
+  return job.closing_date && job.closing_date.slice(0, 10) < day ? "expired" : "open";
+}
+export const SWAP_LIFETIME_DAYS = 90;
+export function swapLifecycle(swap: Pick<PublicSwap, "created_at" | "status">, now = new Date()): "active" | "expired" | "successful" | "paused" {
+  if (swap.status === "successful") return "successful";
+  if (swap.status === "expired") return "expired";
+  const created = Date.parse(swap.created_at);
+  if (Number.isFinite(created) && now.getTime() >= created + SWAP_LIFETIME_DAYS * 86400000) return "expired";
+  return swap.status === "paused" ? "paused" : "active";
 }
 export const validListingId = (value: string | null): value is string => !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
@@ -41,9 +55,9 @@ export function jobListing(job: PublicJob): TeacherListing {
     if (action.external && ["wa.me", "api.whatsapp.com"].includes(new URL(action.href).hostname)) label = "WhatsApp";
     actions.push({ ...action, label });
   };
-  if (job.application_url) add(job.application_url);
-  for (const match of description.matchAll(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g)) add(match[0]);
-  for (const match of description.matchAll(/(?<!\d)(?:\+254|254|0)[17](?:[ -]?\d){8}(?!\d)/g)) add(match[0].replace(/[ -]/g, ""));
+  if (jobLifecycle(job) === "open" && job.application_url) add(job.application_url);
+  if (jobLifecycle(job) === "open") for (const match of description.matchAll(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g)) add(match[0]);
+  if (jobLifecycle(job) === "open") for (const match of description.matchAll(/(?<!\d)(?:\+254|254|0)[17](?:[ -]?\d){8}(?!\d)/g)) add(match[0].replace(/[ -]/g, ""));
   return {
     id: job.id, kind: "job", title: provided(job.title), school: provided(job.school_name), subtitle: `${provided(job.county)} · ${provided(job.location)}`,
     fields: [
@@ -51,7 +65,7 @@ export function jobListing(job: PublicJob): TeacherListing {
       { label: "Location", value: provided(job.location) }, { label: "Subjects", value: provided(subject) },
       { label: "Teaching level", value: provided(level) }, { label: "Employment type", value: provided(job.employment_type) },
       { label: "Start date", value: provided(start) }, { label: "Application deadline", value: listingDate(job.closing_date) },
-      { label: "Published", value: listingDate(job.created_at) },
+      { label: "Published", value: listingDate(job.created_at) }, { label: "Listing status", value: jobLifecycle(job) === "open" ? "Open" : jobLifecycle(job) === "closed" ? "Closed" : "Expired" },
     ], details: provided(job.description), actions,
   };
 }

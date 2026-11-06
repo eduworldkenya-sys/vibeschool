@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import TeachingJobs from "@/app/teacher/TeachingJobs";
-import { PublicSwap, SWAP_SELECT, swapListing, validListingId, provided } from "@/lib/public/teacherListings";
+import { PublicSwap, SWAP_SELECT, swapListing, swapLifecycle, validListingId, provided } from "@/lib/public/teacherListings";
 import ListingDetailDialog from "./ListingDetailDialog";
 import ListingTabs from "./ListingTabs";
 import FeaturedSwapStrip from "./FeaturedSwapStrip";
@@ -38,7 +38,7 @@ function PublicSwaps() {
   useEffect(() => {
     function sync() {
       const id = new URLSearchParams(window.location.search).get("swap");
-      setSelected(rows.find(row => row.id === id) ?? null); setUnavailable(!!id && !rows.some(row => row.id === id) && !loading && !error);
+      setSelected(rows.find(row => row.id === id && swapLifecycle(row) === "active") ?? null); setUnavailable(!!id && !rows.some(row => row.id === id) && !loading && !error);
     }
     sync(); window.addEventListener("popstate", sync); return () => window.removeEventListener("popstate", sync);
   }, [rows, loading, error]);
@@ -49,14 +49,14 @@ function PublicSwaps() {
   function close() {
     const next = new URL(window.location.href); next.searchParams.delete("swap"); window.history.replaceState(null, "", next); setSelected(null); setUnavailable(false);
   }
-  const visible = rows.filter(row => [row.current_county, row.current_subcounty, row.preferred_county, row.preferred_subcounty ?? "", row.subject, row.school_level, row.employment_sector ?? ""].join(" ").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  const visible = rows.filter(row => swapLifecycle(row) === "active").filter(row => [row.current_county, row.current_subcounty, row.preferred_county, row.preferred_subcounty ?? "", row.subject, row.school_level, row.employment_sector ?? ""].join(" ").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   return <div>
-    {rows.length > 0 && <h3>VibeSchool teacher swaps</h3>}
-    {rows.length > 0 && <p className={styles.status}>Private messaging opens after both teachers agree.</p>}
+    {visible.length > 0 && <h3>VibeSchool teacher swaps</h3>}
+    {visible.length > 0 && <p className={styles.status}>Private messaging opens after both teachers agree.</p>}
     {unavailable && <p role="status" className={styles.empty}>This swap is no longer available. <button type="button" onClick={close}>Dismiss</button></p>}
     {loading ? <p role="status">Loading available swaps…</p> : error ? <div role="alert"><p>Swaps are temporarily unavailable.</p><button type="button" className={styles.retry} onClick={() => setRetry(n => n + 1)}>Try again</button></div> : <>
       <FeaturedSwapStrip swaps={visible} onOpen={open} />
-      {rows.length > 0 && <div style={{ marginTop: "1rem" }}><button type="button" className={styles.retry} aria-expanded={showAllSwaps} aria-controls="all-teacher-swaps" onClick={() => setShowAllSwaps(value => !value)}>{showAllSwaps ? "Hide all swaps" : `View all swaps (${rows.length})`}</button></div>}
+      {visible.length > 0 && <div style={{ marginTop: "1rem" }}><button type="button" className={styles.retry} aria-expanded={showAllSwaps} aria-controls="all-teacher-swaps" onClick={() => setShowAllSwaps(value => !value)}>{showAllSwaps ? "Hide all swaps" : `View all swaps (${visible.length})`}</button></div>}
       {showAllSwaps && <section id="all-teacher-swaps" aria-label="All teacher swaps"><div className={styles.filters}><input aria-label="Search teacher swaps" placeholder="Search county, school, subject or teacher" value={query} onChange={e => setQuery(e.target.value)} /></div>
       {visible.length === 0 ? <p role="status" className={styles.empty}>No swaps match your search.</p> : <div className={styles.cards} aria-label="Current VibeSchool teacher swaps">{visible.map(row => <article className={styles.card} key={row.id}><button type="button" className={styles.cardButton} onClick={() => open(row)} aria-label={"View swap: " + row.current_county + " to " + row.preferred_county}><span className={styles.badge}>{row.employment_sector==="tsc"?"TSC swap":row.employment_sector==="private"?"Private-school move":"Teacher swap"}</span><h3>{row.current_county} → {row.preferred_county}</h3><p>{provided(row.current_subcounty)} · {provided(row.school_level)}</p><p>Subjects: {provided(row.subject)}</p><span className={styles.view}>View details →</span></button></article>)}</div>}</section>}
     </>}
