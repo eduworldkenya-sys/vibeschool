@@ -29,7 +29,11 @@ async function load(entry,{pdfStub=false}={}){
  }}]});return require(outfile)
 }
 const model=await load('lib/public/teacherListings.ts');const listing=model.jobListing(job);const swapModel=model.swapListing(swap)
-assert.equal(model.provided(''), 'Not provided');assert.equal(model.provided('Not specified'),'Not provided')
+assert.equal(model.provided(''), 'Not provided');
+assert.equal(model.swapSectorLabel('tsc'),'TSC teacher (self-declared)');
+assert.equal(model.swapSectorLabel('private'),'Private-school teacher (self-declared)');
+assert.equal(model.swapSectorLabel('unspecified'),'Not provided');
+assert.equal(model.swapListing({...swap,employment_sector:'private'}).fields.find(field=>field.label==='Employment type').value,'Private-school teacher (self-declared)');assert.equal(model.provided('Not specified'),'Not provided')
 assert.equal(listing.fields.find(f=>f.label==='Subjects').value,'Music');assert.equal(listing.actions.length,3)
 assert(listing.actions.some(a=>a.href==='tel:+254723826181'))
 assert.equal(model.jobListing({...job,application_url:'tel:+254723826181'}).actions.filter(a=>a.href.startsWith('tel:')).length,1,'Equivalent local/international contacts deduplicate')
@@ -70,6 +74,7 @@ window.history.replaceState(null,'','/teacher');globalThis.__readError=true;awai
 const FeaturedSwaps=(await load('components/teacher/marketplace/FeaturedSwapStrip.tsx',{pdfStub:true})).default
 const SwapMatcher=await load('components/teacher/marketplace/FeaturedSwapStrip.tsx',{pdfStub:true})
 assert.equal(SwapMatcher.swapMatchScore(swap,{current_county:'Nakuru',preferred_county:'Mombasa',current_subcounty:'Nakuru Town',preferred_subcounty:'Nyali',school_level:'Junior School',subject:'Mathematics'}),5,'Reciprocal county, level and subcounty are explainable');
+assert.equal(SwapMatcher.swapMatchScore({...swap,employment_sector:'tsc'},{current_county:'Nakuru',preferred_county:'Mombasa',current_subcounty:'Nakuru Town',preferred_subcounty:'Nyali',school_level:'Junior School',subject:'',employment_sector:'private'}),0,'Private-school requests cannot rank as TSC reciprocal matches');
 assert.equal(SwapMatcher.swapMatchScore(swap,{current_county:'Nairobi',preferred_county:'Mombasa',current_subcounty:'',preferred_subcounty:'',school_level:'Junior School',subject:''}),0,'One-way county is not a reciprocal match');
 const Opportunities=(await load('components/teacher/marketplace/TeacherOpportunities.tsx',{pdfStub:true})).default
 window.history.replaceState(null,'','/teacher');await render(Opportunities);assert.equal(role('tab','Jobs').getAttribute('aria-selected'),'true')
@@ -79,7 +84,9 @@ await act(async()=>fireEvent.click(button('Close listing')));await act(async()=>
 window.history.replaceState(null,'','/teacher?swap='+swap.id);await render(Opportunities);assert(queryByRole(document.body,'dialog'),'Shared swap links select the swap tab and open details')
 await act(async()=>root.unmount())
 const page=fs.readFileSync('app/teacher/page.tsx','utf8');assert(!page.includes('See how your work connects'));assert(!page.includes('Already using VibeSchool?'));assert(page.includes('TeacherExperiencePreview')&&page.includes('/teacher/pulse')&&page.includes('TeacherOpportunities'))
-const managed=fs.readFileSync('app/teacher/marketplace/page.tsx','utf8');assert(managed.includes('ListingDetailDialog')&&managed.includes('swapListing(detail)'));assert(managed.includes('contact_phone:null')&&managed.includes('listing_id:selected,sender_id:userId'));assert(managed.includes('teacher_swap_messages')&&managed.includes('Private swap conversation'));
+const managed=fs.readFileSync('app/teacher/marketplace/page.tsx','utf8');
+assert(managed.includes('employment_sector')&&managed.includes('Choose TSC or private-school employment.'),'A new swap must explicitly declare its employment system');
+const sectorMigration=fs.readFileSync('supabase/migrations/20261106234000_teacher_swap_employment_sector.sql','utf8');assert(sectorMigration.includes("'unspecified'")&&sectorMigration.includes("'tsc'")&&sectorMigration.includes("'private'"),'Preserve unknown legacy sector instead of inventing verified TSC status');assert(managed.includes('ListingDetailDialog')&&managed.includes('swapListing(detail)'));assert(managed.includes('contact_phone:null')&&managed.includes('listing_id:selected,sender_id:userId'));assert(managed.includes('teacher_swap_messages')&&managed.includes('Private swap conversation'));
 const subcountyPicker=fs.readFileSync('components/teacher/marketplace/SwapSubcountyField.tsx','utf8');
 assert(subcountyPicker.includes('list_kenya_subcounties')&&subcountyPicker.includes('p_county_code')&&subcountyPicker.includes('Verified subcounty choices are unavailable.'),'Swap form must use official registry and explain registry failure');
 assert(subcountyPicker.includes('No verified subcounty choices for this county yet.')&&subcountyPicker.includes('Your existing subcounty is not yet in the verified directory.'),'Incomplete official geography must not erase legacy data');
