@@ -87,17 +87,24 @@ type LiveTeacherSwapListing = {
 type LiveTeacherSwapInterest = {
   Row: {
     id: string; listing_id: string; sender_id: string; message: string;
-    contact_phone: string; status: string; created_at: string
+    contact_phone: string | null; status: string; created_at: string
   }
   Insert: {
     id?: string; listing_id: string; sender_id: string; message?: string;
-    contact_phone: string; status?: string; created_at?: string
+    contact_phone?: string | null; status?: string; created_at?: string
   }
   Update: {
     id?: string; listing_id?: string; sender_id?: string; message?: string;
-    contact_phone?: string; status?: string; created_at?: string
+    contact_phone?: string | null; status?: string; created_at?: string
   }
   Relationships: [{ foreignKeyName: "teacher_swap_interests_listing_id_fkey"; columns: ["listing_id"]; isOneToOne: false; referencedRelation: "teacher_swap_listings"; referencedColumns: ["id"] }]
+}
+
+type LiveTeacherSwapMessage = {
+  Row: { id: string; interest_id: string; sender_id: string; body: string; created_at: string }
+  Insert: { id?: string; interest_id: string; sender_id: string; body: string; created_at?: string }
+  Update: { id?: string; interest_id?: string; sender_id?: string; body?: string; created_at?: string }
+  Relationships: [{ foreignKeyName: "teacher_swap_messages_interest_id_fkey"; columns: ["interest_id"]; isOneToOne: false; referencedRelation: "teacher_swap_interests"; referencedColumns: ["id"] }]
 }
 
 type LiveDatabase = Omit<Database, 'public'> & {
@@ -132,6 +139,7 @@ type LiveDatabase = Omit<Database, 'public'> & {
       school_periods: LiveSchoolPeriods
       teacher_swap_listings: LiveTeacherSwapListing
       teacher_swap_interests: LiveTeacherSwapInterest
+      teacher_swap_messages: LiveTeacherSwapMessage
     }
   }
 }
