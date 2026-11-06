@@ -79,6 +79,43 @@ async function verify() {
     await page.goto(ORIGIN+'/schools/directory/3bdac02b-99cb-4342-a969-3a060300858e',{waitUntil:'domcontentloaded'});
     await page.waitForURL(ORIGIN+'/school/municipality-mariakani-primary');
     console.log('PASS Mariakani identity, all sections, legacy IDs without name dependency, unknown URL rejection');
+    // Verify that the production-backed filters refine the national database,
+    // rather than locally filtering a truncated list of school results.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ORIGIN+'/schools',{waitUntil:'domcontentloaded'});
+    const selects=page.locator('main select');
+    assert.equal(await selects.count(),3,'expected county, sub-county and level filters');
+    const county=selects.nth(0);
+    const subCounty=selects.nth(1);
+    const level=selects.nth(2);
+    await county.selectOption('Nakuru',{timeout:30000});
+    await subCounty.selectOption('Gilgil',{timeout:30000});
+    await level.selectOption('Primary',{timeout:30000});
+    await page.getByRole('searchbox',{name:/search schools/i}).fill('Gilgil Township');
+    await page.locator('a[href="/school/gilgiltownship"]').waitFor({timeout:30000});
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+    assert.ok(overflow<=1,'mobile directory filters overflow '+overflow+'px');
+    console.log('PASS county, sub-county, school-level filters and mobile directory width');
+
+    // A listed directory school with coordinates should show an approximate
+    // position, not an assertion that the campus entrance was verified.
+    await page.goto(ORIGIN+'/school/gituamba',{waitUntil:'domcontentloaded'});
+    await page.locator('iframe[title^="Approximate location of"]').waitFor({timeout:30000});
+    assert.match(await page.locator('main').innerText(),/Approximate directory map position/i);
+    assert.ok((await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth))<=1,
+      'mobile map page has horizontal overflow');
+    console.log('PASS approximate school map and mobile layout');
+
+    // A directory record with missing coordinates must remain accessible
+    // and must not display an invented map marker.
+    const noMapResponse=page.waitForResponse(r=>r.url().includes('schools_public_approx_location_v1'),{timeout:30000});
+    await page.goto(ORIGIN+'/school/alliance-girls-high-school',{waitUntil:'domcontentloaded'});
+    await noMapResponse;
+    assert.equal(await page.locator('iframe[title^="Approximate location of"]').count(),0,
+      'a missing-coordinate school unexpectedly rendered a map');
+    assert.match(await page.locator('main').innerText(),/ALLIANCE GIRLS/i);
+    console.log('PASS missing coordinates produce no invented map');
+
     await page.close();
     console.log('PASS invalid-school state');
   } finally {
