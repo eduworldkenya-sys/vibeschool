@@ -27,7 +27,7 @@ export function useKenyaLocation(initial: Partial<HierarchyState> = {}) {
     setWards([]);
     if (!selection.countyCode) { setLoadingSubcounties(false); return; }
     setLoadingSubcounties(true);
-    void getSupabaseClient().rpc("list_kenya_subcounties" as never, { p_county_code: selection.countyCode } as never)
+    void Promise.resolve(getSupabaseClient().rpc("list_kenya_subcounties" as never, { p_county_code: selection.countyCode } as never))
       .then(({ data, error: issue }) => {
         if (!live) return;
         if (issue) { setError("Subcounty options are unavailable."); return; }
@@ -44,7 +44,7 @@ export function useKenyaLocation(initial: Partial<HierarchyState> = {}) {
     setWards([]);
     if (!selection.subcountyId) { setLoadingWards(false); return; }
     setLoadingWards(true);
-    void getSupabaseClient().rpc("list_kenya_wards" as never, { p_subcounty_id: selection.subcountyId } as never)
+    void Promise.resolve(getSupabaseClient().rpc("list_kenya_wards" as never, { p_subcounty_id: selection.subcountyId } as never))
       .then(({ data, error: issue }) => {
         if (!live) return;
         if (issue) { setError("Ward options are unavailable."); return; }
