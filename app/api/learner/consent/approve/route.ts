@@ -45,13 +45,22 @@ export async function POST(req: NextRequest) {
   if (!consentEnabled()) return json({ error: 'Consent review is unavailable.' }, 503)
   try {
     const input = await req.json()
-    if (input.declare_guardianship !== true || input.allow_personal_learning !== true) {
-      return json({ error: 'You must explicitly confirm guardianship and consent.' }, 400)
-    }
     const resolved = await resolve(req, input.token)
     if (!resolved) return json({ error: 'The approval link is invalid, expired, or belongs to another account.' }, 403)
     const { admin, guardian, request, token } = resolved
     const now = new Date().toISOString()
+    if (input.decline === true) {
+      const { data: rejected, error: rejectError } = await admin.from('learner_guardian_consent_requests')
+        .update({ status: 'rejected', token_hash: null, updated_at: now })
+        .eq('id', request.id).eq('status', 'pending').eq('token_hash', tokenHash(token))
+        .select('id').maybeSingle()
+      if (rejectError || !rejected) return json({ error: 'This request was already handled.' }, 409)
+      await recordEvent(admin, rejected.id, 'rejected', 'verified_guardian_declined', guardian.id)
+      return json({ ok: true, message: 'Request declined and recorded.' })
+    }
+    if (input.declare_guardianship !== true || input.allow_personal_learning !== true) {
+      return json({ error: 'Explicit guardianship declaration and consent are required.' }, 400)
+    }
     const { data: approved, error } = await admin.from('learner_guardian_consent_requests')
       .update({
         status: 'approved', guardian_user_id: guardian.id, guardian_email_verified_at: now,
