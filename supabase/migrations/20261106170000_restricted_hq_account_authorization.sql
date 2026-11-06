@@ -56,6 +56,8 @@ begin
     v_oid := to_regprocedure(format('public.%s(%s)',v_name,v_signature));
     if v_oid is null then raise exception 'Missing function: %(%)',v_name,v_signature; end if;
     v_body := pg_get_functiondef(v_oid);
+    -- Production may already have the hotfix; rerunning must remain harmless.
+    if strpos(v_body,v_to)>0 then continue; end if;
     if strpos(v_body,v_from)=0 then raise exception 'Signature drift: %',v_name; end if;
     if (length(v_body)-length(replace(v_body,v_from,'')))/length(v_from) <> 1 then
       raise exception 'Ambiguous replacement: %',v_name;
