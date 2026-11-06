@@ -23,7 +23,7 @@ export default function SearchableSelect({ value, onChange, options, label, plac
   const choices = useMemo(() => {
     const unique = [...new Set([...options, ...(value && !options.includes(value) ? [value] : [])])];
     const key = query.trim().toLocaleLowerCase();
-    return (key ? unique.filter(item => item.toLocaleLowerCase().includes(key)) : unique).slice(0, 30);
+    return (key ? unique.filter(item => item.toLocaleLowerCase().includes(key)) : unique);
   }, [options, query, value]);
 
   function select(next: string) {
@@ -34,6 +34,8 @@ export default function SearchableSelect({ value, onChange, options, label, plac
   }
   function keyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") { setOpen(false); setQuery(""); return; }
+    if (event.key === "Home" && open) { event.preventDefault(); setActive(0); }
+    if (event.key === "End" && open) { event.preventDefault(); setActive(Math.max(0, choices.length - 1)); }
     if (event.key === "ArrowDown") { event.preventDefault(); setOpen(true); setActive(i => Math.min(i + 1, choices.length - 1)); }
     if (event.key === "ArrowUp") { event.preventDefault(); setOpen(true); setActive(i => Math.max(0, i - 1)); }
     if (event.key === "Enter" && open && choices.length) { event.preventDefault(); select(choices[Math.max(0, active)]); }
@@ -59,8 +61,9 @@ export default function SearchableSelect({ value, onChange, options, label, plac
         onClick={() => { if (!disabled) setOpen(true); }}
         onChange={event => { setQuery(event.target.value); setActive(0); setOpen(true); }}
         onKeyDown={keyDown}
-        style={{ width: "100%", boxSizing: "border-box", minHeight: 42, border: "1px solid #b8c3d0", borderRadius: 9, padding: "10px 34px 10px 12px", fontSize: 15, background: "#fff", color: "#182230", ...style }}
+        style={{ width: "100%", boxSizing: "border-box", minHeight: 42, border: "1px solid #b8c3d0", borderRadius: 9, padding: value ? "10px 64px 10px 12px" : "10px 34px 10px 12px", fontSize: 15, background: "#fff", color: "#182230", ...style }}
       />
+      {value && !disabled && !required && <button type="button" aria-label={`Clear ${label}`} onMouseDown={event => event.preventDefault()} onClick={() => { select(""); input.current?.focus(); }} style={{ position: "absolute", top: 2, right: 31, height: 36, width: 31, border: 0, background: "transparent", color: "#475467", cursor: "pointer" }}>×</button>}
       <button type="button" aria-label={open ? "Close suggestions" : "Show choices"} disabled={disabled} onMouseDown={event => event.preventDefault()} onClick={() => { if (open) { setOpen(false); input.current?.blur(); } else { input.current?.focus(); } }} style={{ position: "absolute", top: 2, right: 2, height: 36, width: 31, border: 0, background: "transparent", color: "#475467", cursor: "pointer" }}>⌄</button>
       {open && !disabled && (
         <div id={id} role="listbox" aria-label={`${label} options`} style={{ position: "absolute", zIndex: 100, top: "calc(100% + 4px)", left: 0, right: 0, maxHeight: 240, overflowY: "auto", border: "1px solid #cbd5e1", borderRadius: 10, boxShadow: "0 8px 22px rgba(0,0,0,.14)", background: "#fff" }}>
