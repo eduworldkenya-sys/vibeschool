@@ -54,7 +54,14 @@ begin
     ) as s(name, signature, original, replacement)
   loop
     v_oid := to_regprocedure(format('public.%s(%s)',v_name,v_signature));
-    if v_oid is null then raise exception 'Missing function: %(%)',v_name,v_signature; end if;
+    if v_oid is null then
+      -- Optional HQ helpers may not exist in a clean reconstruction. An absent
+      -- function is not an executable access path; core owner gates remain required.
+      if v_name in ('is_platform_owner','hq_assert_owner') then
+        raise exception 'Missing core HQ function: %(%)',v_name,v_signature;
+      end if;
+      continue;
+    end if;
     v_body := pg_get_functiondef(v_oid);
     -- Production may already have the hotfix; rerunning must remain harmless.
     if strpos(v_body,v_to)>0 then continue; end if;
