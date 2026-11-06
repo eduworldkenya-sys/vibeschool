@@ -11,6 +11,7 @@ import detailStyles from "@/components/teacher/marketplace/listingDetails.module
 import ListingDetailDialog from "@/components/teacher/marketplace/ListingDetailDialog";
 import ListingTabs from "@/components/teacher/marketplace/ListingTabs";
 import FeaturedSwapStrip from "@/components/teacher/marketplace/FeaturedSwapStrip";
+import SwapSubcountyField from "@/components/teacher/marketplace/SwapSubcountyField";
 import { swapListing, validListingId } from "@/lib/public/teacherListings";
 
 type Level = "Primary" | "Junior School" | "Senior School";
@@ -200,10 +201,10 @@ export default function TeacherMarketplace(){
     </section>}
     {editing&&<div className={styles.form}><h3>{mine?"Edit your swap":"Post your swap"}</h3><p>Your account is used automatically. Do not enter your name or personal details in the listing.</p>
       <div className={styles.fields}>
-       <label>Current county<SearchableSelect label="Current county" value={draft.current_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,current_county:v})}/></label>
-       <label>Current sub-county<input maxLength={100} value={draft.current_subcounty} placeholder="e.g. Kasarani" onChange={e=>setDraft({...draft,current_subcounty:e.target.value})}/></label>
-       <label>Preferred county<SearchableSelect label="Preferred county" value={draft.preferred_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,preferred_county:v})}/></label>
-       <label>Preferred sub-county (optional)<input maxLength={100} value={draft.preferred_subcounty} onChange={e=>setDraft({...draft,preferred_subcounty:e.target.value})}/></label>
+       <label>Current county<SearchableSelect label="Current county" value={draft.current_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,current_county:v,current_subcounty:""})}/></label>
+       <SwapSubcountyField label="Current sub-county" countyCode={counties.find(c=>c.display_name===draft.current_county)?.code??""} value={draft.current_subcounty} onChange={v=>setDraft(old=>({...old,current_subcounty:v}))}/>
+       <label>Preferred county<SearchableSelect label="Preferred county" value={draft.preferred_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,preferred_county:v,preferred_subcounty:""})}/></label>
+       <SwapSubcountyField label="Preferred sub-county (optional)" countyCode={counties.find(c=>c.display_name===draft.preferred_county)?.code??""} value={draft.preferred_subcounty} optional onChange={v=>setDraft(old=>({...old,preferred_subcounty:v}))}/>
        <label>School level<select value={draft.school_level} onChange={e=>setDraft({...draft,school_level:e.target.value as Level})}>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label>
        <label>Subject (optional)<input maxLength={100} value={draft.subject} onChange={e=>setDraft({...draft,subject:e.target.value})} placeholder="e.g. Mathematics"/></label>
       </div>
