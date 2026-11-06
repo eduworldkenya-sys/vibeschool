@@ -17,6 +17,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(canonical, 308)
   }
 
+  // Repair links where the query separator was encoded into the pathname.
+  // Redirect only the known marketplace tab link; preserve real query parameters.
+  if (/^\/teacher\/marketplace%3[fF]tab=swap\/?$/.test(pathname)) {
+    const corrected = request.nextUrl.clone()
+    corrected.pathname = '/teacher/marketplace'
+    corrected.searchParams.set('tab', 'swap')
+    return NextResponse.redirect(corrected, 308)
+  }
+
   // Public teacher acquisition surfaces. Operational Teacher OS routes under
   // /teacher/* continue through the existing authenticated authority gate.
   if (pathname === '/teacher' || pathname === '/teacher/') {
