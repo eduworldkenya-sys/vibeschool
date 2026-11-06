@@ -28,3 +28,8 @@
 @media(max-width:600px){.featuredCard{width:215px;flex-basis:215px}.featuredHeading h3{font-size:17px}.featuredHeading p:not(.badge){font-size:12px}.motionToggle{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.featuredTrack{animation:none}.featuredCard{transition:none}}
 @media(prefers-color-scheme:dark){.featuredCard{background:#1d3225;border-color:#3d5947}.featuredButton,.featuredHeading h3{color:#edf6ef}.featuredSchool,.featuredHeading p:not(.badge){color:#b3cbbb}.motionToggle{background:#1b2f23;color:#d4ebdc;border-color:#526f5b}}
+
+/* Public source-attributed transfer route, not a platform verification badge. */
+.swapRoute{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;margin:0 0 23px}.swapRoute>div{display:flex;flex-direction:column;gap:7px;min-width:0;padding:16px;border-radius:12px;background:#f1f6f2}.swapRoute small{font-size:10px;letter-spacing:.07em;color:#52695b;font-weight:800}.swapRoute strong{font-size:19px;overflow-wrap:anywhere}.swapRoute span{font-size:13px;overflow-wrap:anywhere}.swapRoute>span{font-size:22px;color:#176b4e;font-weight:800}
+@media(max-width:600px){.swapRoute{gap:7px}.swapRoute>div{padding:11px}.swapRoute strong{font-size:15px}.swapRoute small{font-size:9px}}
+@media(prefers-color-scheme:dark){.swapRoute>div{background:#1d3225}.swapRoute small{color:#b3cbbb}.swapRoute>span{color:#a8dfbb}}
