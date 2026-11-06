@@ -36,7 +36,7 @@ const fieldStyle = { width: "100%", boxSizing: "border-box" as const, border: "1
 
 export default function AdminSchoolSettingsPage() {
   const router = useRouter()
-  const { countyNames: COUNTIES, error: countyError } = useKenyaCounties()
+  const { countyNames: COUNTIES } = useKenyaCounties()
   const [schoolId, setSchoolId] = useState("")
   const [school, setSchool] = useState<SchoolRow | null>(null)
   const [form, setForm] = useState({ name: "", motto: "", vision: "", county: "", subCounty: "", ward: "", phone: "", postalAddress: "", schoolType: "private", schoolCategory: "primary", establishedYear: "" })
