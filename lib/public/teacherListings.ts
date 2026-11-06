@@ -2,9 +2,9 @@ import { vacancyApplication } from "./vacancyApplication";
 
 export const NOT_PROVIDED = "Not provided";
 export const JOB_SELECT = "id,title,school_name,county,location,employment_type,application_url,closing_date,description,created_at";
-export const SWAP_SELECT = "id,current_county,current_subcounty,preferred_county,preferred_subcounty,school_level,subject,created_at";
+export const SWAP_SELECT = "id,current_county,current_subcounty,preferred_county,preferred_subcounty,school_level,subject,employment_sector,created_at";
 export type PublicJob = { id: string; title: string; school_name: string; county: string; location: string | null; employment_type: string | null; application_url: string | null; closing_date: string | null; description: string | null; created_at?: string };
-export type PublicSwap = { id: string; current_county: string; current_subcounty: string; preferred_county: string; preferred_subcounty: string | null; school_level: string; subject: string; created_at: string };
+export type PublicSwap = { id: string; current_county: string; current_subcounty: string; preferred_county: string; preferred_subcounty: string | null; school_level: string; subject: string; employment_sector?: string | null; created_at: string };
 export type ListingField = { label: string; value: string };
 export type ListingAction = { href: string; label: string; external: boolean };
 export type TeacherListing = { id: string; kind: "job" | "swap"; title: string; school: string; subtitle: string; fields: ListingField[]; details: string; actions: ListingAction[] };
@@ -56,6 +56,10 @@ export function jobListing(job: PublicJob): TeacherListing {
   };
 }
 
+export function swapSectorLabel(value: string | null | undefined): string {
+  return value === "tsc" ? "TSC teacher (self-declared)" : value === "private" ? "Private-school teacher (self-declared)" : NOT_PROVIDED;
+}
+
 export function swapListing(swap: PublicSwap): TeacherListing {
   // Private interest messages and phone numbers are deliberately never projected.
   return {
@@ -64,7 +68,7 @@ export function swapListing(swap: PublicSwap): TeacherListing {
     fields: [
       { label: "School name", value: NOT_PROVIDED }, { label: "County", value: provided(swap.current_county) },
       { label: "Location", value: provided(swap.current_subcounty) }, { label: "Subjects", value: provided(swap.subject) },
-      { label: "Teaching level", value: provided(swap.school_level) }, { label: "Employment type", value: NOT_PROVIDED },
+      { label: "Teaching level", value: provided(swap.school_level) }, { label: "Employment type", value: swapSectorLabel(swap.employment_sector) },
       { label: "Start date", value: NOT_PROVIDED }, { label: "Application deadline", value: NOT_PROVIDED },
       { label: "Published", value: listingDate(swap.created_at) },
       { label: "Current station", value: `${provided(swap.current_county)} · ${provided(swap.current_subcounty)}` },
@@ -74,7 +78,7 @@ export function swapListing(swap: PublicSwap): TeacherListing {
 }
 
 export function listingText(listing: TeacherListing): string {
-  return ["VibeSchool · " + (listing.kind === "job" ? "School job" : "Teacher swap"), listing.title, ...listing.fields.map(f => `${f.label}: ${f.value}`), "", "Full advert & requirements", listing.details, "", ...listing.actions.map(a => `${a.label}: ${a.href}`), ...(listing.kind === "swap" ? ["Private messaging opens after both teachers connect. A match is not official TSC transfer approval."] : [])].join("\n");
+  return ["VibeSchool · " + (listing.kind === "job" ? "School job" : "Teacher swap"), listing.title, ...listing.fields.map(f => `${f.label}: ${f.value}`), "", "Full advert & requirements", listing.details, "", ...listing.actions.map(a => `${a.label}: ${a.href}`), ...(listing.kind === "swap" ? ["Private messaging opens after both teachers connect. VibeSchool does not approve TSC transfers or private-school moves."] : [])].join("\n");
 }
 export function listingUrl(kind: TeacherListing["kind"], id: string, origin: string): string {
   const url = new URL("/teacher", origin); url.searchParams.set(kind, id); return url.href;
