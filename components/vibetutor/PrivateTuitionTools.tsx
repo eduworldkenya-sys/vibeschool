@@ -6,7 +6,7 @@ type Lesson = { id: string; invitation_id: string; title: string; starts_at: str
 type Message = { id: string; body: string; mine: boolean; created_at: string };
 const panel: React.CSSProperties = { background: "#fff", border: "1px solid #dfe5de", padding: 14, borderRadius: 12 };
 const btn: React.CSSProperties = { minHeight: 42, borderRadius: 10, padding: "9px 12px", background: "#087451", color: "white", border: 0, cursor: "pointer" };
-export default function PrivateTuitionTools({ invitationId, isTutor }: { invitationId: string; isTutor: boolean }) {
+export default function PrivateTuitionTools({ invitationId, isTutor, section = "all" }: { invitationId: string; isTutor: boolean; section?: "all" | "lessons" | "messages" }) {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [title, setTitle] = useState("");
@@ -56,7 +56,7 @@ export default function PrivateTuitionTools({ invitationId, isTutor }: { invitat
   return <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
     {error && <p role="alert" style={{ color: "#b91c1c" }}>{error}</p>}
     {notice && <p role="status">{notice}</p>}
-    <section style={panel} aria-label="Private tuition lessons">
+    {(section === "all" || section === "lessons") && <section style={panel} aria-label="Private tuition lessons">
       <h3 style={{ marginTop: 0 }}>Lessons</h3>
       {isTutor && <form onSubmit={e => void schedule(e)} style={{ display: "grid", gap: 9, marginBottom: 16 }}>
         <label>Lesson topic<input required maxLength={120} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Fractions" style={{ display: "block", width: "100%", padding: 10 }} /></label>
@@ -70,8 +70,8 @@ export default function PrivateTuitionTools({ invitationId, isTutor }: { invitat
         {isTutor && l.status === "scheduled" && <button type="button" onClick={() => void cancel(l.id)} disabled={busy} style={{ marginLeft: 10 }}>Cancel</button>}
         <div style={{ marginTop: 8 }}><button type="button" disabled title="Private video classroom is not available yet" style={{ ...btn, background: "#e5e7eb", color: "#555", cursor: "not-allowed" }}>Join lesson — coming soon</button></div>
       </div>)}
-    </section>
-    <section style={panel} aria-label="Private tuition messages">
+    </section>}
+    {(section === "all" || section === "messages") && <section style={panel} aria-label="Private tuition messages">
       <h3 style={{ marginTop: 0 }}>Messages</h3>
       <p style={{ fontSize: 12 }}>Only you and your connected {isTutor ? "student" : "tutor"} can read these messages. Do not share personal contact details.</p>
       <button type="button" onClick={() => void refresh()} style={{ marginBottom: 8 }}>Refresh messages</button>
@@ -83,6 +83,6 @@ export default function PrivateTuitionTools({ invitationId, isTutor }: { invitat
         <label>Write a message<textarea value={message} maxLength={1500} required onChange={e => setMessage(e.target.value)} rows={3} style={{ display: "block", width: "100%", padding: 10 }} /></label>
         <button disabled={busy || !message.trim()} style={btn}>Send message</button>
       </form>
-    </section>
+    </section>}
   </div>;
 }
