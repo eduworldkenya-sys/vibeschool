@@ -1,4 +1,5 @@
 "use client";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useKenyaCounties, normalizeKenyaCounty } from "@/lib/geography/kenyaCounties";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -18,7 +19,6 @@ const validPhone=(s:string)=>/^\+?[0-9]{10,15}$/.test(s);
 
 export default function TeacherMarketplace(){
  const { counties, countyNames: COUNTIES } = useKenyaCounties();
- const countryOptions=(value:string)=> <>{(value && !COUNTIES.includes(value) ? [value,...COUNTIES] : COUNTIES).map(c=><option value={c} key={c}>{c}</option>)}</>;
  const [tab,setTab]=useState<"swap"|"jobs"|"tutoring">("swap");
  const [userId,setUserId]=useState<string|null>(null);
  const [loading,setLoading]=useState(true);
@@ -138,9 +138,9 @@ export default function TeacherMarketplace(){
     </section>}
     {editing&&<div className={styles.form}><h3>{mine?"Edit your swap":"Post your swap"}</h3><p>Your account is used automatically. Do not enter your name or personal details in the listing.</p>
       <div className={styles.fields}>
-       <label>Current county<select value={draft.current_county} onChange={e=>setDraft({...draft,current_county:e.target.value})}><option value="">Choose county</option>{countryOptions(draft.current_county)}</select></label>
+       <label>Current county<SearchableSelect label="Current county" value={draft.current_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,current_county:v})}/></label>
        <label>Current sub-county<input maxLength={100} value={draft.current_subcounty} placeholder="e.g. Kasarani" onChange={e=>setDraft({...draft,current_subcounty:e.target.value})}/></label>
-       <label>Preferred county<select value={draft.preferred_county} onChange={e=>setDraft({...draft,preferred_county:e.target.value})}><option value="">Choose county</option>{countryOptions(draft.preferred_county)}</select></label>
+       <label>Preferred county<SearchableSelect label="Preferred county" value={draft.preferred_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,preferred_county:v})}/></label>
        <label>Preferred sub-county (optional)<input maxLength={100} value={draft.preferred_subcounty} onChange={e=>setDraft({...draft,preferred_subcounty:e.target.value})}/></label>
        <label>School level<select value={draft.school_level} onChange={e=>setDraft({...draft,school_level:e.target.value as Level})}>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label>
        <label>Subject (optional)<input maxLength={100} value={draft.subject} onChange={e=>setDraft({...draft,subject:e.target.value})} placeholder="e.g. Mathematics"/></label>
@@ -150,7 +150,7 @@ export default function TeacherMarketplace(){
     {userId&&interests.some(i=>i.sender_id===userId)&&<section className={styles.mine}><strong>My interest requests</strong><div className={styles.requests}>{interests.filter(i=>i.sender_id===userId).map(i=>{const l=listings.find(l=>l.id===i.listing_id);return <article key={i.id}><p>{l?`${l.current_county} → ${l.preferred_county}`:"Listing unavailable"} · {i.status}</p>{i.status==="pending"&&<button className={styles.secondary} disabled={busy} onClick={()=>void removeInterest(i.id)}>Withdraw</button>}</article>})}</div></section>}
     {!userId&&!loading&&<p className={styles.hint}>You can browse swaps without an account. <Link href="/login?redirect=%2Fteacher%2Fmarketplace">Sign in to post or express interest.</Link></p>}
     <div className={styles.findHeading}><h3>Find swaps</h3><button className={styles.filterButton} onClick={()=>setFilters(!filters)} aria-expanded={filters}><SlidersHorizontal size={17}/> Filters</button></div>
-    {filters&&<div className={styles.filters}><label>County<select value={filterCounty} onChange={e=>setFilterCounty(e.target.value)}><option value="">Any county</option>{countryOptions(filterCounty)}</select></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
+    {filters&&<div className={styles.filters}><label>County<SearchableSelect label="Filter county" value={filterCounty} options={COUNTIES} placeholder="Any county" onChange={setFilterCounty}/></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
     {loading?<p role="status">Loading available swaps…</p>:visible.length===0?<p className={styles.empty}>No swap listings match yet. Post yours so teachers can find you.</p>:
      <div className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level;return <article className={styles.card} key={l.id}>
       <div className={styles.cardTop}><strong>{l.current_county} → {l.preferred_county}</strong>{reverse&&<span className={styles.match}>Reverse match</span>}</div>
