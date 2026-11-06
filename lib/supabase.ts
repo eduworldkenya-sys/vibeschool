@@ -120,6 +120,11 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibetutor_my_student_code: { Args: Record<never, never>; Returns: string }
       vibetutor_invite_student_by_code: { Args: { p_code: string }; Returns: string }
       vibetutor_student_inbox: { Args: Record<never, never>; Returns: { id: string; tutor: string; status: string; created_at: string }[] }
+      vibetutor_my_lessons: { Args: Record<never, never>; Returns: { id: string; invitation_id: string; title: string; starts_at: string; ends_at: string; status: string }[] }
+      vibetutor_my_lesson_messages: { Args: { p_invitation: string }; Returns: { id: string; body: string; mine: boolean; created_at: string }[] }
+      vibetutor_schedule_lesson: { Args: { p_invitation: string; p_title: string; p_start: string; p_end: string }; Returns: string }
+      vibetutor_cancel_lesson: { Args: { p_lesson: string }; Returns: undefined }
+      vibetutor_send_lesson_message: { Args: { p_invitation: string; p_body: string }; Returns: string }
       vibetutor_respond_student_invite: { Args: { p_id: string; p_accept: boolean }; Returns: "accepted" | "pending_guardian" | "declined" }
       preview_timetable_conflicts: { Args: { p_school_id: string; p_teacher_id: string; p_class_id: string; p_subject_id: string; p_day_of_week: number; p_start_time: string; p_end_time: string; p_room?: string | null; p_effective_from?: string | null; p_effective_until?: string | null; p_exclude_slot_id?: string | null }; Returns: { conflict_type: string; conflicting_slot_id: string; conflicting_teacher_id: string | null; conflicting_class_id: string; conflicting_subject_id: string; conflicting_room: string | null; detail: string }[] }
       get_published_class_timetable: { Args: { p_class_id: string; p_on?: string | null }; Returns: LiveTimetableSlots['Row'][] }
