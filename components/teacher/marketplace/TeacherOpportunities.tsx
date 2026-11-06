@@ -7,7 +7,6 @@ import { PublicSwap, SWAP_SELECT, swapListing, validListingId, provided } from "
 import ListingDetailDialog from "./ListingDetailDialog";
 import ListingTabs from "./ListingTabs";
 import FeaturedSwapStrip from "./FeaturedSwapStrip";
-import ExternalSwapReferences from "./ExternalSwapReferences";
 import styles from "./listingDetails.module.css";
 
 function PublicSwaps() {
@@ -53,7 +52,6 @@ function PublicSwaps() {
   const visible = rows.filter(row => [row.current_county, row.current_subcounty, row.preferred_county, row.preferred_subcounty ?? "", row.subject, row.school_level, row.employment_sector ?? ""].join(" ").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   return <div>
     <div className={styles.filters}><input aria-label="Search teacher swaps" placeholder="Search county, school, subject or teacher" value={query} onChange={e => setQuery(e.target.value)} /></div>
-    <ExternalSwapReferences query={query} />
     {rows.length > 0 && <h3>VibeSchool teacher swaps</h3>}
     {rows.length > 0 && <p className={styles.status}>Private messaging opens after both teachers agree.</p>}
     {unavailable && <p role="status" className={styles.empty}>This swap is no longer available. <button type="button" onClick={close}>Dismiss</button></p>}
