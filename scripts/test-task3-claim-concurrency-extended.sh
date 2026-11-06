@@ -35,8 +35,10 @@ done
 "${PSQL[@]}" <<SQL
 insert into public.students(id,name,admission_number,class_id)
 values('$RACE_LEARNER','Twenty Way Claim Learner','T3-CLAIM-20','$CLASS_A');
+insert into public.student_classes(student_id,class_id,school_id,is_current)
+values('$RACE_LEARNER','$CLASS_A','$SCHOOL_ID',true);
 insert into public.student_claim_codes(student_id,code,claimed,role)
-values('$RACE_LEARNER','T3CLAIM20WAY',false,'both');
+values('$RACE_LEARNER','T3CLAIM20WAY',false,'shared');
 SQL
 
 pids=()
@@ -62,6 +64,8 @@ if [[ "$claim_successes" != "1" || "$claim_losers" != "19" || -z "$bound_profile
 fi
 
 # A Parent relationship claim and a Student identity claim use independent lanes.
+# Use the canonical shared credential issued by teacher_generate_shared_claim_code;
+# legacy 'both' is not a parent redemption credential.
 "${PSQL[@]}" <<SQL
 insert into auth.users(id,instance_id,aud,role,email,encrypted_password,created_at,updated_at)
 values('$DUAL_STUDENT','00000000-0000-0000-0000-000000000000','authenticated','authenticated','task3-dual-student@example.invalid','',now(),now());
@@ -70,8 +74,12 @@ values('$DUAL_STUDENT','Task3 Dual Claim Student',null)
 on conflict(id) do update set full_name=excluded.full_name,role=null;
 insert into public.students(id,name,admission_number,class_id)
 values('$DUAL_LEARNER','Dual Lane Claim Learner','T3-DUAL-001','$CLASS_A');
+-- Parent redemption resolves school authority from current canonical enrollment,
+-- rather than the legacy students.class_id field used by the student claim RPC.
+insert into public.student_classes(student_id,class_id,school_id,is_current)
+values('$DUAL_LEARNER','$CLASS_A','$SCHOOL_ID',true);
 insert into public.student_claim_codes(student_id,code,claimed,role)
-values('$DUAL_LEARNER','T3DUALLANE',false,'both');
+values('$DUAL_LEARNER','T3DUALLANE',false,'shared');
 SQL
 
 (run_as "$DUAL_STUDENT" "select public.redeem_student_claim('T3DUALLANE','$DUAL_STUDENT');" "$work/dual.student" || true) & ps=$!
@@ -87,6 +95,7 @@ student_binding=$("${PSQL[@]}" -Atc "select count(*) from public.students where 
 if [[ "$dual_student_success" != "1" || "$dual_parent_success" != "1" || "$dual_state" != "1|1|1|1" || "$parent_link" != "1" || "$student_binding" != "1" ]]; then
   echo "student/parent dual-lane claim race failed: student_success=$dual_student_success parent_success=$dual_parent_success state=$dual_state parent_link=$parent_link student_binding=$student_binding" >&2
   cat "$work/dual.student.err" "$work/dual.parent.err" >&2 || true
+  cat "$work/dual.student" "$work/dual.parent" >&2 || true
   exit 1
 fi
 
