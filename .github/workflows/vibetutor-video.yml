@@ -1,0 +1,23 @@
+name: Private Tuition Video
+on:
+  pull_request:
+    paths:
+      - 'app/api/vibetutor/video/**'
+      - 'app/tuition/lessons/**'
+      - 'components/vibetutor/**'
+      - 'lib/vibetutor/**'
+      - 'scripts/test-vibetutor-video.mjs'
+      - '.github/workflows/vibetutor-video.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  private-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/production-build-contract
+        with:
+          build_application: 'false'
+          prebuild_command: node scripts/test-vibetutor-video.mjs
