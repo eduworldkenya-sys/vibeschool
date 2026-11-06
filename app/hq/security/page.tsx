@@ -14,6 +14,7 @@ export default function HQSecurityPage(){
  return <HQPage title="Security & abuse" description="Monitor suspicious activity without exposing security telemetry to ordinary users." actions={<button onClick={()=>void load()} style={{padding:"9px 12px",borderRadius:9,border:`1px solid ${C.border}`,background:"transparent",color:C.text}}>Refresh</button>}>
   {error&&<div role="alert" style={{color:C.red,marginBottom:12}}>{error}</div>}
   <section style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:10,marginBottom:16}}><HQPanel title="Events"><b style={{fontSize:28}}>{events.length}</b></HQPanel><HQPanel title="Blocked"><b style={{fontSize:28,color:C.red}}>{blocked}</b></HQPanel><HQPanel title="High risk"><b style={{fontSize:28,color:C.amber}}>{risky}</b></HQPanel></section>
+  <p style={{marginBottom:16}}><a href="/hq/learner-consent" style={{color:C.amber,fontWeight:700}}>Learner consent register and totals</a></p>
   <HQPanel title="Recent security events">{loading?<div style={{padding:14,color:C.muted}}>Loading…</div>:events.length===0?<div style={{padding:14,color:C.muted}}>No security events yet.</div>:events.map((e,i)=><div key={`${e.created_at}-${i}`} style={{padding:"11px 0",borderTop:i?`1px solid ${C.border}`:"none",fontSize:12}}><b>{e.event_type}</b> · <span style={{color:e.outcome==='blocked'?C.red:C.muted}}>{e.outcome}</span> · risk {e.risk_score}<div style={{fontSize:10,color:C.muted,marginTop:3}}>{new Date(e.created_at).toLocaleString()} · {e.actor_id||"anonymous"}</div></div>)}</HQPanel>
  </HQPage>
 }
