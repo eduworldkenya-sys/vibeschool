@@ -138,11 +138,11 @@ export default function TeacherMarketplace(){
   if(e)setError(e.message);else{setNotice(mine.status==="published"?"Listing paused.":"Listing published.");await load();}
   setBusy(false);
  }
- async function markSuccessful(){
-  if(!mine||!userId||swapLifecycle(mine)==="successful")return;
+ async function markSuccessful(record: Listing){
+  if(!userId||record.teacher_id!==userId||swapLifecycle(record)==="successful")return;
   if(!window.confirm("Confirm this station swap was successful? The listing will leave active discovery and remain in your history. This does not certify TSC or employer approval."))return;
   setBusy(true);setError("");
-  const {error:e}=await getSupabaseClient().from("teacher_swap_listings").update({status:"successful",updated_at:new Date().toISOString()}).eq("id",mine.id).eq("teacher_id",userId);
+  const {error:e}=await getSupabaseClient().from("teacher_swap_listings").update({status:"successful",updated_at:new Date().toISOString()}).eq("id",record.id).eq("teacher_id",userId);
   if(e)setError(e.message);else{setNotice("Swap marked successful (teacher-reported).");await load();}
   setBusy(false);
  }
@@ -205,12 +205,12 @@ export default function TeacherMarketplace(){
     <p className={styles.disclaimer}>VibeSchool only helps teachers connect. TSC transfers require official approval through the <a href="https://portal.tsc.go.ke/" target="_blank" rel="noopener noreferrer">TSC portal</a>; private-school moves require agreement with the relevant employers.</p>
     {notice&&<p className={styles.success} role="status">{notice}</p>}
     {error&&<p className={styles.error} role="alert">{error}</p>}
-    {mine&&!editing&&<section className={styles.mine}><div className={styles.heading}><div><strong>My swap · {swapLifecycle(mine)==="successful"?"Successful (teacher-reported)":swapLifecycle(mine)==="expired"?"Expired (90 days)":mine.status==="published"?"Published":"Paused"}</strong><p>{mine.current_county} → {mine.preferred_county} · {mine.school_level} · {swapSectorLabel(mine.employment_sector)}</p></div><div className={styles.actions}>{(swapLifecycle(mine)==="active"||swapLifecycle(mine)==="paused")&&<><button className={styles.secondary} disabled={busy} onClick={()=>void toggle()}>{mine.status==="published"?"Pause":"Republish"}</button><button className={styles.primary} disabled={busy} onClick={()=>void markSuccessful()}>Confirm successful</button></>}<button className={styles.secondary} disabled={busy} onClick={()=>void deleteSwap()}>Delete</button></div></div>
+    {mine&&!editing&&<section className={styles.mine}><div className={styles.heading}><div><strong>My swap · {swapLifecycle(mine)==="successful"?"Successful (teacher-reported)":swapLifecycle(mine)==="expired"?"Expired (90 days)":mine.status==="published"?"Published":"Paused"}</strong><p>{mine.current_county} → {mine.preferred_county} · {mine.school_level} · {swapSectorLabel(mine.employment_sector)}</p></div><div className={styles.actions}>{(swapLifecycle(mine)==="active"||swapLifecycle(mine)==="paused")&&<><button className={styles.secondary} disabled={busy} onClick={()=>void toggle()}>{mine.status==="published"?"Pause":"Republish"}</button><button className={styles.primary} disabled={busy} onClick={()=>void markSuccessful(mine)}>Confirm successful</button></>}<button className={styles.secondary} disabled={busy} onClick={()=>void deleteSwap()}>Delete</button></div></div>
       {incoming.length>0&&<div className={styles.requests}><strong>Interest requests ({incoming.length})</strong>{incoming.map(i=><article key={i.id}><p>{i.message||"Interested in your swap."}</p><small>Status: {i.status}</small>{i.status==="accepted"&&<button className={styles.secondary} onClick={()=>void openConversation(i.id)}>Open conversation</button>}{i.status==="pending"&&<div className={styles.actions}><button disabled={busy} className={styles.primary} onClick={()=>void respond(i.id,"accepted")}>Accept</button><button disabled={busy} className={styles.secondary} onClick={()=>void respond(i.id,"declined")}>Decline</button></div>}
       {i.status==="accepted"&&<button className={styles.secondary} disabled={busy} onClick={()=>void respond(i.id,"declined")}>End conversation</button>}
       {i.status!=="blocked"?<button className={styles.secondary} disabled={busy} onClick={()=>{if(window.confirm("Block this teacher from contacting you about this swap?"))void respond(i.id,"blocked");}}>Block teacher</button>:<button className={styles.secondary} disabled={busy} onClick={()=>void respond(i.id,"declined")}>Unblock</button>}</article>)}</div>}
     </section>}
-    {myHistory.length>0&&<section className={styles.mine} aria-label="My past swaps"><strong>My swap history ({myHistory.length})</strong>{myHistory.map(l=><p key={l.id}>{l.current_county} → {l.preferred_county} · {swapLifecycle(l)==="successful"?"Successful (teacher-reported)":"Expired after 90 days"}</p>)}</section>}
+    {myHistory.length>0&&<section className={styles.mine} aria-label="My past swaps"><strong>My swap history ({myHistory.length})</strong>{myHistory.map(l=><div key={l.id}><p>{l.current_county} → {l.preferred_county} · {swapLifecycle(l)==="successful"?"Successful (teacher-reported)":"Expired after 90 days"}</p>{swapLifecycle(l)==="expired"&&<button className={styles.secondary} disabled={busy} onClick={()=>void markSuccessful(l)}>Confirm successful</button>}</div>)}</section>}
     {editing&&<div className={styles.form}><h3>{mine?"Edit your swap":"Post your swap"}</h3><p>Your account is used automatically. Do not enter your name or personal details in the listing.</p>
       <div className={styles.fields}>
        <label>Employment system<select value={draft.employment_sector} onChange={e=>setDraft({...draft,employment_sector:e.target.value})}><option value="">Choose system</option><option value="tsc">TSC teacher</option><option value="private">Private-school teacher</option></select></label>
