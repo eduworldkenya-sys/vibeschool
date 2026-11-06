@@ -4,6 +4,13 @@ import { getSupabaseClient } from "@/lib/supabase";
 
 type Lesson = { id: string; invitation_id: string; title: string; starts_at: string; ends_at: string; status: string };
 type Message = { id: string; body: string; mine: boolean; created_at: string };
+type TuitionRpc = "vibetutor_my_lessons" | "vibetutor_my_lesson_messages" | "vibetutor_schedule_lesson" | "vibetutor_cancel_lesson" | "vibetutor_send_lesson_message";
+type TuitionRpcResult = { data: unknown; error: { message: string } | null };
+function tuitionRpc(name: TuitionRpc, args?: Record<string, unknown>): Promise<TuitionRpcResult> {
+  const db = getSupabaseClient();
+  const rpc = db.rpc as unknown as (name: TuitionRpc, args?: Record<string, unknown>) => Promise<TuitionRpcResult>;
+  return rpc.call(db, name, args);
+}
 const panel: React.CSSProperties = { background: "#fff", border: "1px solid #dfe5de", padding: 14, borderRadius: 12 };
 const btn: React.CSSProperties = { minHeight: 42, borderRadius: 10, padding: "9px 12px", background: "#087451", color: "white", border: 0, cursor: "pointer" };
 export default function PrivateTuitionTools({ invitationId, isTutor }: { invitationId: string; isTutor: boolean }) {
@@ -17,8 +24,7 @@ export default function PrivateTuitionTools({ invitationId, isTutor }: { invitat
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const refresh = useCallback(async () => {
-    const db = getSupabaseClient();
-    const [l, m] = await Promise.all([db.rpc("vibetutor_my_lessons"), db.rpc("vibetutor_my_lesson_messages", { p_invitation: invitationId })]);
+    const [l, m] = await Promise.all([tuitionRpc("vibetutor_my_lessons"), tuitionRpc("vibetutor_my_lesson_messages", { p_invitation: invitationId })]);
     if (l.error || m.error) { setError("Private tuition tools are not available yet."); return; }
     setLessons(((l.data ?? []) as Lesson[]).filter(item => item.invitation_id === invitationId));
     setMessages((m.data ?? []) as Message[]);
@@ -29,7 +35,7 @@ export default function PrivateTuitionTools({ invitationId, isTutor }: { invitat
     if (!start || !title.trim()) return;
     setBusy(true); setError(""); setNotice("");
     const when = new Date(start);
-    const { error: e } = await getSupabaseClient().rpc("vibetutor_schedule_lesson", {
+    const { error: e } = await tuitionRpc("vibetutor_schedule_lesson", {
       p_invitation: invitationId, p_title: title.trim(), p_start: when.toISOString(),
       p_end: new Date(when.getTime() + duration * 60000).toISOString()
     });
@@ -40,7 +46,7 @@ export default function PrivateTuitionTools({ invitationId, isTutor }: { invitat
   }
   async function cancel(id: string) {
     setBusy(true); setError("");
-    const { error: e } = await getSupabaseClient().rpc("vibetutor_cancel_lesson", { p_lesson: id });
+    const { error: e } = await tuitionRpc("vibetutor_cancel_lesson", { p_lesson: id });
     setBusy(false);
     if (e) setError(e.message); else await refresh();
   }
@@ -48,7 +54,7 @@ export default function PrivateTuitionTools({ invitationId, isTutor }: { invitat
     event.preventDefault();
     if (!message.trim()) return;
     setBusy(true); setError("");
-    const { error: e } = await getSupabaseClient().rpc("vibetutor_send_lesson_message", { p_invitation: invitationId, p_body: message.trim() });
+    const { error: e } = await tuitionRpc("vibetutor_send_lesson_message", { p_invitation: invitationId, p_body: message.trim() });
     setBusy(false);
     if (e) { setError(e.message); return; }
     setMessage(""); setNotice("Message sent."); await refresh();
