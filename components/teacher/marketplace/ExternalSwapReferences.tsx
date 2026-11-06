@@ -40,6 +40,18 @@ const examples: ExternalSwap[] = [
     level: "Senior Secondary", subjects: "Mathematics / Business Studies", listed: "1 Nov 2026",
   },
   {
+    reference: "TSE202610294559", name: "Edward Karanja", current: "Nakuru",
+    currentSubcounty: "Nakuru Town East", school: "Langalanga Secondary School",
+    desired: "Kiambu, Murang’a", desiredAreas: "Thika Town",
+    level: "Senior Secondary", subjects: "Biology / Chemistry", listed: "29 Oct 2026",
+  },
+  {
+    reference: "TSE202610290630", name: "James Kuria", current: "Murang’a",
+    currentSubcounty: "Kandara", school: "Kirirwa Secondary School",
+    desired: "Murang’a", desiredAreas: "Kandara",
+    level: "Senior Secondary", subjects: "Mathematics / Chemistry", listed: "29 Oct 2026",
+  },
+  {
     reference: "TSE202610315966", name: "Mark Okeyo", current: "Busia",
     currentSubcounty: "Nambale", school: "Musokoto Secondary School",
     desired: "Homa Bay, Kericho, Kisumu, Kisii", desiredAreas: "Any",
@@ -51,9 +63,9 @@ export default function ExternalSwapReferences() {
   const [open, setOpen] = useState(false);
   return <section aria-label="SwapKenya public swap references">
     <div className={styles.featuredHeading}>
-      <div><h3>Other public swap requests</h3><p>4 examples shared from SwapKenya · Source details, not VibeSchool listings</p></div>
+      <div><h3>Other public swap requests</h3><p>{examples.length} examples shared from SwapKenya · Source details, not VibeSchool listings</p></div>
     </div>
-    <button type="button" className={styles.retry} aria-expanded={open} aria-controls="external-swap-references" onClick={() => setOpen(value => !value)}>{open ? "Hide external swaps" : "View 4 external swaps"}</button>
+    <button type="button" className={styles.retry} aria-expanded={open} aria-controls="external-swap-references" onClick={() => setOpen(value => !value)}>{open ? "Hide external swaps" : "View {examples.length} external swaps"}</button>
     {open && <div id="external-swap-references" className={styles.cards}>
       {examples.map(swap => <article className={styles.card} key={swap.reference}>
         <div className={styles.cardButton} style={{cursor: "default"}}>
