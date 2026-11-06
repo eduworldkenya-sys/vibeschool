@@ -5,9 +5,9 @@ import { Download, Share2, X } from "lucide-react";
 import { TeacherListing, listingText, listingUrl } from "@/lib/public/teacherListings";
 import styles from "./listingDetails.module.css";
 
-type Props = { listing: TeacherListing; onClose: () => void; interest?: { href?: string; onClick?: () => void; disabled?: boolean; label?: string } };
+type Props = { listing: TeacherListing; onClose: () => void; interest?: { href?: string; onClick?: () => void; disabled?: boolean; label?: string }; report?: { onClick: () => void } };
 
-export default function ListingDetailDialog({ listing, onClose, interest }: Props) {
+export default function ListingDetailDialog({ listing, onClose, interest, report }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [notice, setNotice] = useState("");
@@ -55,6 +55,7 @@ export default function ListingDetailDialog({ listing, onClose, interest }: Prop
     <footer className={styles.dialogFooter}>
       {listing.actions.map((action, index) => <a key={action.href} className={index === 0 ? styles.primary : styles.secondary} href={action.href} target={action.external ? "_blank" : undefined} rel={action.external ? "noopener noreferrer" : undefined}>{action.label}</a>)}
       {interest && (interest.href ? <a className={styles.primary} href={interest.href}>{interest.label ?? "Express interest"}</a> : <button type="button" className={styles.primary} onClick={interest.onClick} disabled={interest.disabled}>{interest.label ?? "Express interest"}</button>)}
+      {report && listing.kind === "swap" && <button type="button" className={styles.secondary} onClick={report.onClick}>Report listing</button>}
       <button type="button" className={styles.secondary} onClick={() => void share()}><Share2 size={17} aria-hidden="true" /> Share</button>
       <button type="button" className={styles.secondary} onClick={() => void download()} disabled={downloadBusy}><Download size={17} aria-hidden="true" />{downloadBusy ? "Preparing PDF…" : "Download PDF"}</button>
     </footer>
