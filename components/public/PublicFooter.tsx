@@ -8,7 +8,7 @@ import styles from './PublicShell.module.css'
 const WHATSAPP_URL = 'https://wa.me/254728232157?text=Hello%20VibeSchool%2C%20I%20need%20help%20with...'
 const TIKTOK_URL = 'https://www.tiktok.com/@vibeschoolkenya'
 
-export function PublicFooter() {
+export function PublicFooter({ compact = false }: { compact?: boolean } = {}) {
   const footerRef = useRef<HTMLElement>(null)
   useEffect(() => {
     const media = window.matchMedia('(max-width: 640px)')
@@ -21,6 +21,7 @@ export function PublicFooter() {
     media.addEventListener('change', sync)
     return () => media.removeEventListener('change', sync)
   }, [])
+  if (compact) return <footer ref={footerRef} className={styles.compactFooter}><Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={110} height={28}/><span>© 2026 VibeSchool</span><Link href="/learn/careers">Search careers</Link><TrackedLink href={WHATSAPP_URL} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">Contact VibeSchool</TrackedLink><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link></footer>
   return <footer ref={footerRef} className={styles.footer}>
     <section className={styles.whatsapp} aria-label="VibeSchool support"><div className={styles.whatsappInner}>
       <div className={styles.whatsappText}><strong>Need help or want to talk to VibeSchool?</strong><span>Use WhatsApp for the fastest conversation. Never send passwords, one-time codes or payment credentials.</span></div>

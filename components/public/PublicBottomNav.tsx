@@ -23,11 +23,11 @@ function NavIcon({ name }: { name: (typeof items)[number]['icon'] }) {
   }
 }
 
-const PUBLIC_ROOTS = new Set(['/', '/teacher', '/schools', '/product', '/about', '/contact', '/institutions', '/pathways', '/trust'])
+const PUBLIC_ROOTS = new Set(['/', '/teacher', '/schools', '/product', '/about', '/contact', '/institutions', '/trust'])
 
 export function PublicBottomNav() {
   const pathname = usePathname()
-  // School sites, examinations, and workspaces maintain their own navigation.
+  // School sites, Pathways exploration, examinations, and workspaces maintain their own navigation.
   if (!PUBLIC_ROOTS.has(pathname)) return null
   return (
     <>

@@ -4,7 +4,7 @@ import { TrackedLink } from './TrackedLink'
 import { PublicJourneyTracker } from './PublicJourneyTracker'
 import styles from './PublicShell.module.css'
 
-type PublicHeaderProps = { product?: string }
+type PublicHeaderProps = { product?: string; compact?: boolean }
 
 const navItems = [
   ['/product', 'Product'],
@@ -21,21 +21,22 @@ const navItems = [
   ['/contact', 'Contact'],
 ] as const
 
-export function PublicHeader({ product }: PublicHeaderProps) {
+export function PublicHeader({ product, compact = false }: PublicHeaderProps) {
+  const displayedNav: ReadonlyArray<readonly [string, string]> = compact ? [['/', 'Home'], ['/pathways', 'Pathways']] : navItems
   return <>
     <PublicJourneyTracker />
     <a href="#main-content" className={styles.skip}>Skip to content</a>
-    <header className={styles.header}>
+    <header className={`${styles.header} ${compact ? styles.compactHeader : ''}`}>
       <div className={styles.headerInner}>
         <Link href="/" aria-label="VibeSchool home" className={styles.brand}>
           <span className={styles.productLockup}>
             <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={620} height={160} priority className={styles.logo}/>
-            {product ? <><span className={styles.divider} aria-hidden="true"/><span className={styles.productName}>{product}</span></> : null}
+            {product && !compact ? <><span className={styles.divider} aria-hidden="true"/><span className={styles.productName}>{product}</span></> : null}
           </span>
         </Link>
         <nav className={styles.nav} aria-label="Public navigation">
-          {navItems.map(([href,label]) => <Link key={href} href={href}>{label}</Link>)}
-          <TrackedLink href="/login/global" event="public_auth_signin" className={styles.signin}>Sign in</TrackedLink>
+          {displayedNav.map(([href,label]) => <Link key={href} href={href} aria-current={compact && href === '/pathways' ? 'page' : undefined}>{label}</Link>)}
+          {!compact && <TrackedLink href="/login/global" event="public_auth_signin" className={styles.signin}>Sign in</TrackedLink>}
         </nav>
         <details className={styles.mobileMenu}>
           <summary aria-label="Open public navigation">Menu</summary>

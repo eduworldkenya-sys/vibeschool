@@ -83,6 +83,7 @@ jobs:
           google-chrome --version
           cp "$GITHUB_WORKSPACE/scripts/test-public-browser.mjs" ./test-public-browser.mjs
           cp "$GITHUB_WORKSPACE/scripts/test-public-sandbox.mjs" ./test-public-sandbox.mjs
+          cp "$GITHUB_WORKSPACE/scripts/test-pathways-explorer-browser.mjs" ./test-pathways-explorer-browser.mjs
       - name: Start production server
         env:
           NEXT_TELEMETRY_DISABLED: "1"
@@ -104,7 +105,9 @@ jobs:
         env:
           PUBLIC_TEST_BASE_URL: http://127.0.0.1:3000
           PLAYWRIGHT_BROWSER_CHANNEL: chrome
-        run: node test-public-browser.mjs
+        run: |
+          node test-public-browser.mjs
+          node test-pathways-explorer-browser.mjs
       - name: Run sandbox browser certification
         working-directory: /tmp/vibeschool-public-browser
         env:
