@@ -8,7 +8,7 @@ type MatchProfile = Pick<PublicSwap, "current_county" | "preferred_county" | "cu
 function clean(value: string | null | undefined) { return (value ?? "").trim().toLocaleLowerCase(); }
 export function swapMatchScore(candidate: PublicSwap, mine?: MatchProfile | null): number {
   if (!mine) return 0;
-  if (mine.employment_sector && candidate.employment_sector && mine.employment_sector !== "unspecified" && candidate.employment_sector !== "unspecified" && mine.employment_sector !== candidate.employment_sector) return 0;
+  if (!mine.employment_sector || !candidate.employment_sector || mine.employment_sector === "unspecified" || candidate.employment_sector === "unspecified" || mine.employment_sector !== candidate.employment_sector) return 0;
   if (clean(candidate.current_county) !== clean(mine.preferred_county) || clean(candidate.preferred_county) !== clean(mine.current_county)) return 0;
   let score = 2;
   if (clean(candidate.school_level) === clean(mine.school_level)) score += 2;
