@@ -49,6 +49,18 @@ export async function POST(req: NextRequest) {
       .select('id').eq('profile_id', user.id).limit(1).maybeSingle()
     if (!schoolLearner) return json({ error: 'A school learner identity is required for this flow.' }, 403)
 
+    // Expire abandoned challenges before checking the single-active-request rule.
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+    const { error: expireError } = await admin.from('learner_guardian_consent_requests')
+      .update({ status: 'expired', token_hash: null, learner_token_hash: null, updated_at: new Date().toISOString() })
+      .eq('learner_user_id', user.id).eq('status', 'pending').lt('created_at', cutoff)
+    if (expireError) throw expireError
+    const { data: active, error: activeError } = await admin.from('learner_guardian_consent_requests')
+      .select('id').eq('learner_user_id', user.id)
+      .in('status', ['pending', 'approved']).limit(1).maybeSingle()
+    if (activeError) throw activeError
+    if (active) return json({ error: 'A verification request is already pending or approved.' }, 409)
+
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const { count, error: limitError } = await admin.from('learner_guardian_consent_requests')
       .select('id', { count: 'exact', head: true })
