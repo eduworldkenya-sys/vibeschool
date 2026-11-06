@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, BookOpen, Users, FolderOpen, Pencil, Clock3, GraduationCap, ArrowRight, RefreshCw } from "lucide-react";
+import { CalendarDays, BookOpen, Users, Pencil, Clock3, GraduationCap, ArrowRight, RefreshCw } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 
 type Listing = {
@@ -12,6 +12,8 @@ type Listing = {
   rate_kes: number | null; available_days: string[] | null; status: "published" | "paused";
 };
 type LoadState = "loading" | "ready" | "error";
+type TuitionStudent = { id: string; student: string | null; status: string };
+type TuitionLesson = { id: string; invitation_id: string; title: string; starts_at: string; status: string };
 
 const labels: Record<string, string> = { Mon: "Mon", Tue: "Tue", Wed: "Wed", Thu: "Thu", Fri: "Fri", Sat: "Sat", Sun: "Sun" };
 const order = Object.keys(labels);
@@ -22,6 +24,8 @@ export default function TeacherTutoringPage() {
   const router = useRouter();
   const [state, setState] = useState<LoadState>("loading");
   const [listing, setListing] = useState<Listing | null>(null);
+  const [students, setStudents] = useState<TuitionStudent[] | null>(null);
+  const [lessons, setLessons] = useState<TuitionLesson[] | null>(null);
   const load = useCallback(async () => {
     setState("loading");
     try {
@@ -34,6 +38,14 @@ export default function TeacherTutoringPage() {
         .eq("profile_id", auth.user.id).maybeSingle();
       if (error) throw error;
       setListing(data as Listing | null);
+      // Reuse the same owner-scoped RPCs as My tuition students. Failure in one
+      // summary never blocks listing management or exposes school learner data.
+      const [invitesResult, lessonsResult] = await Promise.all([
+        client.rpc("vibetutor_my_student_invites"),
+        client.rpc("vibetutor_my_lessons"),
+      ]);
+      setStudents(invitesResult.error ? null : (invitesResult.data ?? []).filter(row => row.status === "accepted"));
+      setLessons(lessonsResult.error ? null : (lessonsResult.data ?? []).filter(row => row.status === "scheduled"));
       setState("ready");
     } catch {
       setState("error");
@@ -42,6 +54,9 @@ export default function TeacherTutoringPage() {
   useEffect(() => { void load(); }, [load]);
   const days = order.filter(day => listing?.available_days?.includes(day));
   const subjects = listing?.subjects ?? [];
+  const connectedIds = new Set(students?.map(student => student.id) ?? []);
+  const upcoming = (lessons ?? []).filter(lesson => connectedIds.has(lesson.invitation_id) && new Date(lesson.starts_at).getTime() >= Date.now()).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const nextLesson = upcoming[0];
 
   return <div style={{ maxWidth: 840, margin: "0 auto", padding: "20px 14px 110px", display: "grid", gap: 14, color: "var(--teacher-ink, #1c2923)" }}>
     <div>
@@ -73,18 +88,29 @@ export default function TeacherTutoringPage() {
       </section>
       <section aria-label="Tutoring tools">
         <h2 style={{ fontSize: 17, margin: "6px 0 12px" }}>Teaching tools</h2>
-        <Link href="/teacher/tutoring/students" style={{ ...linkStyle, marginBottom: 12 }}><Users size={16} aria-hidden="true" /> My students · Invite a learner <ArrowRight size={16} aria-hidden="true" /></Link>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 215px), 1fr))", gap: 10 }}>
-          {[
-            { icon: Users, title: "My students", text: "A private tutoring learner register is not yet available." },
-            { icon: Clock3, title: "Timetable", text: "Tuition lesson scheduling is not yet available." },
-            { icon: BookOpen, title: "Subjects", text: subjects.length ? subjects.join(", ") : "Add subjects to your tutor listing." },
-            { icon: FolderOpen, title: "Resources", text: "Private tutoring resources are not yet available." },
-          ].map(item => <div key={item.title} style={{ ...panel, minHeight: 135 }}>
-            <item.icon size={22} aria-hidden="true" style={{ color: "var(--teacher-green, #087451)" }} />
-            <h3 style={{ fontSize: 15, margin: "9px 0 5px" }}>{item.title}</h3>
-            <p style={{ fontSize: 12, lineHeight: 1.55, margin: 0, color: "var(--teacher-muted, #627168)" }}>{item.text}</p>
-          </div>)}
+          <Link href="/teacher/tutoring/students" style={{ ...panel, display: "block", color: "inherit", textDecoration: "none", minHeight: 145 }}>
+            <Users size={22} aria-hidden="true" style={{ color: "var(--teacher-green, #087451)" }} />
+            <h3 style={{ fontSize: 15, margin: "9px 0 5px" }}>My students</h3>
+            <p style={{ fontSize: 13, lineHeight: 1.55, margin: "0 0 8px", color: "var(--teacher-muted, #627168)" }}>
+              {students === null ? "Open connected learners" : students.length === 0 ? "No connected learners yet" : `${students.length} connected ${students.length === 1 ? "learner" : "learners"}`}
+            </p>
+            <span style={{ color: "var(--teacher-green, #087451)", fontSize: 13, fontWeight: 750 }}>Manage students and messages →</span>
+          </Link>
+          <Link href="/teacher/tutoring/students" style={{ ...panel, display: "block", color: "inherit", textDecoration: "none", minHeight: 145 }}>
+            <Clock3 size={22} aria-hidden="true" style={{ color: "var(--teacher-green, #087451)" }} />
+            <h3 style={{ fontSize: 15, margin: "9px 0 5px" }}>Timetable</h3>
+            <p style={{ fontSize: 13, lineHeight: 1.55, margin: "0 0 8px", color: "var(--teacher-muted, #627168)" }}>
+              {lessons === null ? "Open private lessons" : nextLesson ? `Next: ${nextLesson.title} · ${new Date(nextLesson.starts_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}` : "No upcoming lessons"}
+            </p>
+            <span style={{ color: "var(--teacher-green, #087451)", fontSize: 13, fontWeight: 750 }}>Schedule and manage lessons →</span>
+          </Link>
+          <Link href="/vibetutor/become-tutor" style={{ ...panel, display: "block", color: "inherit", textDecoration: "none", minHeight: 145 }}>
+            <BookOpen size={22} aria-hidden="true" style={{ color: "var(--teacher-green, #087451)" }} />
+            <h3 style={{ fontSize: 15, margin: "9px 0 5px" }}>Subjects</h3>
+            <p style={{ fontSize: 13, lineHeight: 1.55, margin: "0 0 8px", color: "var(--teacher-muted, #627168)" }}>{subjects.join(", ") || "Add subjects to your tutor listing"}</p>
+            <span style={{ color: "var(--teacher-green, #087451)", fontSize: 13, fontWeight: 750 }}>Edit subjects →</span>
+          </Link>
         </div>
       </section>
       <p style={{ margin: 0, fontSize: 12, color: "var(--teacher-muted, #627168)" }}><GraduationCap size={14} style={{ verticalAlign: "middle" }} aria-hidden="true" /> Your tutoring listing is separate from school-assigned students, classes and records.</p>
