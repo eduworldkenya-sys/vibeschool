@@ -1,3 +1,5 @@
+-- access: owner-only public.hq_school_directory_edits
+-- authorization-test: public.hq_school_directory_edits scripts/test-hq-school-directory-governance.py (anon table access and RPC updates denied)
 -- HQ-only school directory management.
 -- Never updates is_verified, names, registration codes, canonical IDs or URL slugs.
 -- All changes require evidence notes and preserve an append-only before/after audit trail.
