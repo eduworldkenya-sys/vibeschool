@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { vacancyApplication } from "@/lib/public/vacancyApplication";
 
 type Vacancy = {
   id: string; title: string; school_name: string; county: string;
   location: string | null; employment_type: string | null;
   application_url: string | null; closing_date: string | null;
+  description: string | null;
 };
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -25,7 +27,7 @@ export default function TeachingJobs() {
         const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
         const today = new Date().toISOString().slice(0, 10);
         const { data, error: fetchError } = await client.from("teacher_vacancies")
-          .select("id,title,school_name,county,location,employment_type,application_url,closing_date")
+          .select("id,title,school_name,county,location,employment_type,application_url,closing_date,description")
           .eq("status", "published").or(`closing_date.is.null,closing_date.gte.${today}`)
           .order("created_at", { ascending: false }).limit(50);
         if (fetchError) throw fetchError;
@@ -43,7 +45,7 @@ export default function TeachingJobs() {
   const visible = useMemo(() => jobs.filter(j => {
     const term = query.trim().toLocaleLowerCase();
     return (!county || j.county === county) &&
-      (!term || [j.title, j.school_name, j.county, j.location ?? ""].some(v => v.toLocaleLowerCase().includes(term)));
+      (!term || [j.title, j.school_name, j.county, j.location ?? "", j.description ?? ""].some(v => v.toLocaleLowerCase().includes(term)));
   }), [jobs, county, query]);
   return <div>
     {loading ? <p role="status">Loading current vacancies…</p> :
@@ -67,8 +69,11 @@ export default function TeachingJobs() {
               {j.location && <p style={{ margin: "0 0 8px" }}>{j.location}</p>}
               {j.employment_type && <p style={{ margin: "0 0 8px" }}>{j.employment_type}</p>}
               {j.closing_date && <p>Closes {j.closing_date}</p>}
-              {j.application_url && /^https:\/\//i.test(j.application_url) &&
-                <a href={j.application_url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700, textDecoration: "underline" }}>View application</a>}
+              {j.description && <details style={{ margin: "12px 0" }}><summary style={{ cursor: "pointer", fontWeight: 600 }}>Job details</summary><p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{j.description}</p></details>}
+              {(() => {
+                const application = vacancyApplication(j.application_url);
+                return application && <a href={application.href} target={application.external ? "_blank" : undefined} rel={application.external ? "noopener noreferrer" : undefined} style={{ fontWeight: 700, textDecoration: "underline", overflowWrap: "anywhere" }}>{application.label}</a>;
+              })()}
             </article>)}
           </div>}
       </>}

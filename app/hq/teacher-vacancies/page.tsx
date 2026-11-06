@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { hqSupabase } from "@/lib/hq/supabase";
+import { vacancyApplication } from "@/lib/public/vacancyApplication";
 
 type Vacancy = {
  id: string; title: string; school_name: string; county: string;
  location: string | null; employment_type: string | null;
  application_url: string | null; closing_date: string | null;
  status: "draft" | "review" | "published" | "expired";
+ description: string | null;
 };
-type Draft = Pick<Vacancy, "title" | "school_name" | "county" | "location" | "employment_type" | "application_url" | "closing_date">;
-const empty: Draft = { title: "", school_name: "", county: "", location: "", employment_type: "", application_url: "", closing_date: "" };
+type Draft = Pick<Vacancy, "title" | "school_name" | "county" | "location" | "employment_type" | "application_url" | "closing_date" | "description">;
+const empty: Draft = { title: "", school_name: "", county: "", location: "", employment_type: "", application_url: "", closing_date: "", description: "" };
 const inputStyle = { minHeight: 44, padding: 10, border: "1px solid #9daab6", borderRadius: 8, width: "100%", background: "#fff", color: "#172b25" };
 
 export default function HQTeachingVacancies() {
@@ -22,7 +24,7 @@ export default function HQTeachingVacancies() {
  const [notice, setNotice] = useState("");
  const [ready, setReady] = useState(false);
  const refresh = useCallback(async () => {
-   const { data, error: e } = await hqSupabase.from("teacher_vacancies").select("id,title,school_name,county,location,employment_type,application_url,closing_date,status").order("created_at", { ascending: false }).limit(200);
+   const { data, error: e } = await hqSupabase.from("teacher_vacancies").select("id,title,school_name,county,location,employment_type,application_url,closing_date,status,description").order("created_at", { ascending: false }).limit(200);
    if (e) { setError("Vacancy records are unavailable. Verify the database migration and HQ permissions."); return; }
    setRows((data ?? []) as Vacancy[]);
  }, []);
@@ -39,13 +41,14 @@ export default function HQTeachingVacancies() {
  }, [refresh]);
  function edit(row: Vacancy) {
    setEditing(row.id);
-   setForm({ title: row.title, school_name: row.school_name, county: row.county, location: row.location ?? "", employment_type: row.employment_type ?? "", application_url: row.application_url ?? "", closing_date: row.closing_date ?? "" });
+   setForm({ title: row.title, school_name: row.school_name, county: row.county, location: row.location ?? "", employment_type: row.employment_type ?? "", application_url: row.application_url ?? "", closing_date: row.closing_date ?? "", description: row.description ?? "" });
  }
  async function save() {
    if (!form.title.trim() || !form.school_name.trim() || !form.county.trim()) { setError("Title, school and county are required."); return; }
-   if (form.application_url && !/^https:\/\//i.test(form.application_url)) { setError("Application link must start with https://"); return; }
+   const application = vacancyApplication(form.application_url);
+   if (form.application_url?.trim() && !application) { setError("Enter an HTTPS link, email address or phone number."); return; }
    setBusy(true); setError(""); setNotice("");
-   const payload = { ...form, title: form.title.trim(), school_name: form.school_name.trim(), county: form.county.trim(), location: form.location || null, employment_type: form.employment_type || null, application_url: form.application_url || null, closing_date: form.closing_date || null };
+   const payload = { ...form, title: form.title.trim(), school_name: form.school_name.trim(), county: form.county.trim(), location: form.location || null, employment_type: form.employment_type || null, application_url: application?.href ?? null, closing_date: form.closing_date || null, description: form.description?.trim() || null };
    const result = editing
      ? await hqSupabase.from("teacher_vacancies").update(payload).eq("id", editing)
      : await hqSupabase.from("teacher_vacancies").insert({ ...payload, status: "draft" });
@@ -71,10 +74,11 @@ export default function HQTeachingVacancies() {
        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 12 }}>
          {(["title","school_name","county","location","employment_type","application_url","closing_date"] as const).map(k =>
            <label key={k} style={{ fontWeight: 600 }}>{k.replaceAll("_"," ")}
-             <input style={inputStyle} type={k === "closing_date" ? "date" : k === "application_url" ? "url" : "text"}
+             <input style={inputStyle} type={k === "closing_date" ? "date" : "text"} placeholder={k === "application_url" ? "Website, email or phone" : undefined}
                value={form[k] ?? ""} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))} />
            </label>)}
        </div>
+       <label style={{ display: "block", marginTop: 12, fontWeight: 600 }}>Job details<textarea style={inputStyle} rows={6} maxLength={16000} value={form.description ?? ""} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></label>
        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
          <button disabled={busy} onClick={() => void save()} style={{ padding: 12 }}>Save draft</button>
          {editing && <button disabled={busy} onClick={() => { setEditing(null); setForm(empty); }}>Cancel edit</button>}
