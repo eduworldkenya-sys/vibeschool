@@ -33,7 +33,7 @@ assert.equal(model.provided(''), 'Not provided');
 assert.equal(model.jobLifecycle({...job,closing_date:'2026-11-05'},new Date('2026-11-06T12:00:00Z')),'expired');
 assert.equal(model.jobLifecycle({...job,status:'closed'},new Date('2026-11-06T12:00:00Z')),'closed');
 assert.equal(model.jobLifecycle({...job,closing_date:'2026-11-06'},new Date('2026-11-06T12:00:00Z')),'open');
-assert.equal(model.jobListing({...job,status:'closed'}).actions.length,0,'Closed vacancies are read-only');
+assert.equal(model.jobListing({...job,status:'closed'}).actions.length,0);
 assert.equal(model.swapLifecycle({...swap,created_at:'2026-08-01T00:00:00Z'},new Date('2026-11-06T00:00:00Z')),'expired');
 assert.equal(model.swapLifecycle({...swap,created_at:'2026-08-01T00:00:00Z',status:'successful'},new Date('2026-11-06T00:00:00Z')),'successful');
 assert.equal(model.swapLifecycle({...swap,created_at:'2026-11-01T00:00:00Z'},new Date('2026-11-06T00:00:00Z')),'active');
@@ -86,9 +86,12 @@ assert.equal(SwapMatcher.swapMatchScore({...swap,employment_sector:'unspecified'
 assert.equal(SwapMatcher.swapMatchScore(swap,{current_county:'Nairobi',preferred_county:'Mombasa',current_subcounty:'',preferred_subcounty:'',school_level:'Junior School',subject:''}),0,'One-way county is not a reciprocal match');
 const Opportunities=(await load('components/teacher/marketplace/TeacherOpportunities.tsx',{pdfStub:true})).default
 window.history.replaceState(null,'','/teacher');await render(Opportunities);assert.equal(role('tab','Jobs').getAttribute('aria-selected'),'true')
-await act(async()=>fireEvent.keyDown(role('tab','Jobs'),{key:'ArrowRight'}));assert.equal(role('tab','Swaps').getAttribute('aria-selected'),'true');assert.equal(document.activeElement.textContent,'Swaps');assert.equal(document.querySelectorAll('article').length,8,'Six external examples plus featured and normal native swap cards are present')
-await act(async()=>fireEvent.click(button('View swap: Maria Ken, Narok to Nairobi')));assert(queryByRole(document.body,'dialog',{name:/Maria Ken swap details/}));await act(async()=>fireEvent.click(button('Close listing')));await act(async()=>fireEvent.change(role('textbox','Search teacher swaps'),{target:{value:'Chemistry'}}));assert(document.body.textContent.includes('Edward Karanja')&&document.body.textContent.includes('James Kuria'));assert(!document.body.textContent.includes('Maria Ken'));await act(async()=>fireEvent.change(role('textbox','Search teacher swaps'),{target:{value:''}}));await act(async()=>fireEvent.click(button('View swap: Mombasa to Nakuru')));assert(queryByRole(document.body,'dialog'));assert(!document.body.textContent.includes(swap.contact_phone));assert(role('link','Express interest').getAttribute('href').includes(encodeURIComponent(swap.id)))
-await act(async()=>fireEvent.click(button('Close listing')));await act(async()=>fireEvent.change(role('textbox','Search teacher swaps'),{target:{value:'No such county'}}));assert(!document.body.textContent.includes('No published swaps match yet') && !document.body.textContent.includes('Maria Ken'),'No misleading empty state and external results respect the search')
+await act(async()=>fireEvent.keyDown(role('tab','Jobs'),{key:'ArrowRight'}));assert.equal(role('tab','Swaps').getAttribute('aria-selected'),'true');assert.equal(document.activeElement.textContent,'Swaps');
+assert(button(/View all swaps/),'Native swaps stay behind the compact disclosure');
+await act(async()=>fireEvent.click(button(/View all swaps/)));
+assert(button('View swap: Mombasa to Nakuru'));
+await act(async()=>fireEvent.click(button('View swap: Mombasa to Nakuru')));assert(queryByRole(document.body,'dialog'));assert(!document.body.textContent.includes(swap.contact_phone));assert(role('link','Express interest').getAttribute('href').includes(encodeURIComponent(swap.id)))
+await act(async()=>fireEvent.click(button('Close listing')));await act(async()=>fireEvent.change(role('textbox','Search teacher swaps'),{target:{value:'No such county'}}));assert(document.body.textContent.includes('No swaps match your search.'));
 window.history.replaceState(null,'','/teacher?swap='+swap.id);await render(Opportunities);assert(queryByRole(document.body,'dialog'),'Shared swap links select the swap tab and open details')
 await act(async()=>root.unmount())
 const page=fs.readFileSync('app/teacher/page.tsx','utf8');assert(!page.includes('See how your work connects'));assert(!page.includes('Already using VibeSchool?'));assert(page.includes('TeacherExperiencePreview')&&page.includes('/teacher/pulse')&&page.includes('TeacherOpportunities'))
