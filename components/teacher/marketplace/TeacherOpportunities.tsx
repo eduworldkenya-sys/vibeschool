@@ -52,13 +52,14 @@ function PublicSwaps() {
   }
   const visible = rows.filter(row => [row.current_county, row.current_subcounty, row.preferred_county, row.preferred_subcounty ?? "", row.subject, row.school_level, row.employment_sector ?? ""].join(" ").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   return <div>
-    <ExternalSwapReferences />
-    <p className={styles.status}>Find a possible match. Private messaging opens after both teachers agree.</p>
+    <div className={styles.filters}><input aria-label="Search teacher swaps" placeholder="Search county, school, subject or teacher" value={query} onChange={e => setQuery(e.target.value)} /></div>
+    <ExternalSwapReferences query={query} />
+    {rows.length > 0 && <h3>VibeSchool teacher swaps</h3>}
+    {rows.length > 0 && <p className={styles.status}>Private messaging opens after both teachers agree.</p>}
     {unavailable && <p role="status" className={styles.empty}>This swap is no longer available. <button type="button" onClick={close}>Dismiss</button></p>}
     {loading ? <p role="status">Loading available swaps…</p> : error ? <div role="alert"><p>Swaps are temporarily unavailable.</p><button type="button" className={styles.retry} onClick={() => setRetry(n => n + 1)}>Try again</button></div> : <>
-      <div className={styles.filters}><input aria-label="Search teacher swaps" placeholder="Search counties, subjects or teaching level" value={query} onChange={e => setQuery(e.target.value)} /></div>
       <FeaturedSwapStrip swaps={visible} onOpen={open} />
-      {visible.length === 0 ? <p role="status" className={styles.empty}>No published swaps match yet. <a href="/login?redirect=%2Fteacher%2Fmarketplace%3Ftab%3Dswap">Sign in to post yours.</a></p> : <div className={styles.cards} aria-label="Current teacher swaps">{visible.map(row => <article className={styles.card} key={row.id}><button type="button" className={styles.cardButton} onClick={() => open(row)} aria-label={"View swap: " + row.current_county + " to " + row.preferred_county}><span className={styles.badge}>{row.employment_sector==="tsc"?"TSC swap":row.employment_sector==="private"?"Private-school move":"Teacher swap"}</span><h3>{row.current_county} → {row.preferred_county}</h3><p>{provided(row.current_subcounty)} · {provided(row.school_level)}</p><p>Subjects: {provided(row.subject)}</p><span className={styles.view}>View details →</span></button></article>)}</div>}
+      {visible.length > 0 && <div className={styles.cards} aria-label="Current VibeSchool teacher swaps">{visible.map(row => <article className={styles.card} key={row.id}><button type="button" className={styles.cardButton} onClick={() => open(row)} aria-label={"View swap: " + row.current_county + " to " + row.preferred_county}><span className={styles.badge}>{row.employment_sector==="tsc"?"TSC swap":row.employment_sector==="private"?"Private-school move":"Teacher swap"}</span><h3>{row.current_county} → {row.preferred_county}</h3><p>{provided(row.current_subcounty)} · {provided(row.school_level)}</p><p>Subjects: {provided(row.subject)}</p><span className={styles.view}>View details →</span></button></article>)}</div>}
     </>}
     {selected && <ListingDetailDialog key={selected.id} listing={swapListing(selected)} onClose={close} interest={{ href: "/login?redirect=" + encodeURIComponent("/teacher/marketplace?swap=" + selected.id + "&interest=1") }} />}
   </div>;
