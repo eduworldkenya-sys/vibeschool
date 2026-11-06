@@ -19,3 +19,8 @@ revoke all on public.learner_guardian_consent_events from anon, authenticated;
 grant select, insert, update, delete on public.learner_guardian_consent_requests to service_role;
 grant select, insert on public.learner_guardian_consent_events to service_role;
 revoke update, delete on public.learner_guardian_consent_events from service_role;
+
+-- One outstanding/approved request per learner, even with concurrent requests.
+create unique index if not exists learner_consent_one_active_request
+  on public.learner_guardian_consent_requests (learner_user_id)
+  where learner_user_id is not null and status in ('pending', 'approved');
