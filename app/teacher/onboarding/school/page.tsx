@@ -29,7 +29,7 @@ const LEVELS = [
 
 export default function SchoolDiscovery() {
   const router = useRouter()
-  const { countyNames: COUNTIES, error: countyError } = useKenyaCounties()
+  const { countyNames: COUNTIES } = useKenyaCounties()
   const [level, setLevel] = useState("")
   const [q, setQ] = useState("")
   const [county, setCounty] = useState("")
