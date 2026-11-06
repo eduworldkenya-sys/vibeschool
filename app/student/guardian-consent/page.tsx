@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 type RequestStatus = {
@@ -43,7 +42,6 @@ async function consentApi(path: string, body?: unknown) {
 }
 
 export default function LearnerGuardianConsentPage() {
-  const search = useSearchParams()
   const [learnerEmail, setLearnerEmail] = useState('')
   const [guardianName, setGuardianName] = useState('')
   const [guardianEmail, setGuardianEmail] = useState('')
@@ -65,7 +63,7 @@ export default function LearnerGuardianConsentPage() {
   useEffect(() => {
     let cancelled = false
     async function initialize() {
-      const verify = search.get('verify')
+      const verify = new URLSearchParams(window.location.search).get('verify')
       if (verify) window.history.replaceState(null, '', '/student/guardian-consent')
       try {
         if (verify) {
@@ -82,7 +80,7 @@ export default function LearnerGuardianConsentPage() {
     }
     void initialize()
     return () => { cancelled = true }
-  }, [refresh, search])
+  }, [refresh])
 
   async function start(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
