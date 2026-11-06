@@ -3,7 +3,7 @@
 import { useCallback,useEffect,useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-const rpc=supabase.rpc.bind(supabase) as any
+const rpc=(name:string,args:Record<string,string|number|null>)=>supabase.rpc(name as never,args as never)
 const C={bg:"#07111f",panel:"#0d1b2f",line:"rgba(255,255,255,.09)",text:"#f8fafc",muted:"rgba(255,255,255,.48)",green:"#34d399",amber:"#f59e0b",red:"#fb7185",blue:"#60a5fa"}
 type Flag={id:string;question_text:string;flag_type:string;reason:string|null;status:string;created_at:string};type Incident={id:string;incident_type:string;severity:string;status:string;title:string;summary:string;route:string|null;detected_at:string;owner_department:string|null;verification_status:string};type Request={id:string;requested_score:number;request_reason:string;status:string;created_at:string};type Queue={exam_flags:Flag[];incidents:Incident[];assessment_requests:Request[]};type SwapReport={id:string;listing_id:string;reason:string;details:string;status:string;created_at:string;review_note:string|null;reviewed_at:string|null;current_county:string|null;preferred_county:string|null}
 export default function ModerationStudio(){const router=useRouter();const[data,setData]=useState<Queue>({exam_flags:[],incidents:[],assessment_requests:[]});const[error,setError]=useState("");const[busy,setBusy]=useState("");const[swapReports,setSwapReports]=useState<SwapReport[]>([]);const[swapError,setSwapError]=useState("")
