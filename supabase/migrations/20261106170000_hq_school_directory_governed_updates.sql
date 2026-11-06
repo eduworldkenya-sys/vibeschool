@@ -78,3 +78,19 @@ begin
 end $$;
 revoke all on function public.hq_school_directory_apply_edits_v1(jsonb,text) from public;
 grant execute on function public.hq_school_directory_apply_edits_v1(jsonb,text) to authenticated;
+
+-- Read-only audit history for platform owner. Do not expose direct audit-table SELECT.
+create or replace function public.hq_school_directory_edit_history_v1(p_directory_id uuid,p_limit integer default 20)
+returns table(created_at timestamptz, actor_id uuid, evidence_note text, before_record jsonb, after_record jsonb)
+language plpgsql stable security definer set search_path=public,pg_temp as $$
+begin
+ if not public.is_platform_owner() then raise exception 'hq_owner_required' using errcode='42501'; end if;
+ return query
+ select h.created_at,h.actor_id,h.evidence_note,h.before_record,h.after_record
+ from public.hq_school_directory_edits h
+ where h.directory_id=p_directory_id
+ order by h.created_at desc
+ limit least(greatest(coalesce(p_limit,20),1),50);
+end $$;
+revoke all on function public.hq_school_directory_edit_history_v1(uuid,integer) from public;
+grant execute on function public.hq_school_directory_edit_history_v1(uuid,integer) to authenticated;
