@@ -111,15 +111,20 @@ function ExternalSwapDialog({ swap, onClose }: { swap: ExternalSwap; onClose: ()
 
 export default function ExternalSwapReferences({ query = "" }: { query?: string }) {
   const [selected, setSelected] = useState<ExternalSwap | null>(null);
-  const visible = findExternalSwaps(query);
+  const [showExpired, setShowExpired] = useState(false);
+  const matching = findExternalSwaps(query);
+  const expired = (swap: ExternalSwap) => { const published = Date.parse(swap.listed); return Number.isFinite(published) && Date.now() >= published + 90 * 86400000; };
+  const visible = matching.filter(swap => showExpired ? expired(swap) : !expired(swap));
+  const expiredCount = matching.filter(expired).length;
   return <section aria-label="SwapKenya public swap references">
     <div className={styles.featuredHeading}>
-      <div><h3>Recent swap requests</h3><p>{visible.length} of {examples.length} shared from SwapKenya · External, not VibeSchool-verified</p></div>
+      <div><h3>{showExpired ? "Expired source swaps" : "Recent swap requests"}</h3><p>{visible.length} shown · SwapKenya source records, not VibeSchool-verified</p></div>
     </div>
+    {expiredCount > 0 && <button type="button" className={styles.retry} onClick={() => setShowExpired(value => !value)}>{showExpired ? "Show active swaps" : `Expired history (${expiredCount})`}</button>}
     {visible.length > 0 && <div className={styles.cards} aria-label="External teacher swap requests">
       {visible.map(swap => <article className={styles.card} key={swap.reference}>
         <button type="button" className={styles.cardButton} onClick={() => setSelected(swap)} aria-label={`View swap: ${swap.name}, ${swap.current} to ${swap.desired}`}>
-          <span className={styles.badge}>SwapKenya · External</span>
+          <span className={styles.badge}>{showExpired ? "Expired · SwapKenya" : "SwapKenya · External"}</span>
           <h3>{swap.current} → {swap.desired}</h3>
           <p><strong>{swap.name}</strong> · {swap.level}</p>
           <p>{swap.school !== "Not provided" ? swap.school + " · " : ""}{swap.currentSubcounty}</p>
