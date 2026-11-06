@@ -14,7 +14,7 @@ type Overview={country:{code:string;name:string;administrative_regions:number};w
 type DirectorySchool={id:string;name:string;county:string|null;sub_county:string|null;source:string}
 type AttentionItem={school_id:string;school_name:string;county:string|null;reasons:string[];signal_count:number;last_activity:string|null;open_support:number}
 type Attention={county:string|null;window_days:number;items:AttentionItem[]}
-const tabs=[["Overview","/hq/schools"],["Explorer","/hq/schools/explorer"],["Intelligence","/hq/schools/intelligence"],["Data quality","/hq/schools/data-quality"]] as const
+const tabs=[["Overview","/hq/schools"],["Explorer","/hq/schools/explorer"],["Intelligence","/hq/schools/intelligence"],["Data quality","/hq/schools/data-quality"],["Corrections","/hq/schools/manage"]] as const
 function Metric({label,value,help,onClick}:{label:string;value:string|number;help:string;onClick:()=>void}){return <button className="sn-metric sn-click" onClick={onClick}><span>{label}</span><strong>{value}</strong><small>{help}</small></button>}
 function StatusPill({children}:{children:ReactNode}){return <span className="sn-pill">{children}</span>}
 
