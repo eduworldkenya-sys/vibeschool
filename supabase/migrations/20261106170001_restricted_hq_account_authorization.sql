@@ -54,6 +54,10 @@ begin
     ) as s(name, signature, original, replacement)
   loop
     v_oid := to_regprocedure(format('public.%s(%s)',v_name,v_signature));
+    -- hq_check_owner_access is a production-era optional RPC and is not
+    -- created by the canonical zero-to-current migration history. Do not
+    -- fabricate it in a clean build or alter any unrelated authorization.
+    if v_oid is null and v_name = 'hq_check_owner_access' then continue; end if;
     if v_oid is null then raise exception 'Missing function: %(%)',v_name,v_signature; end if;
     v_body := pg_get_functiondef(v_oid);
     -- Production may already have the hotfix; rerunning must remain harmless.
