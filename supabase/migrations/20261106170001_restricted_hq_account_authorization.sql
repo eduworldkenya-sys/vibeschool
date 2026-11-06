@@ -58,6 +58,15 @@ begin
     v_body := pg_get_functiondef(v_oid);
     -- Production may already have the hotfix; rerunning must remain harmless.
     if strpos(v_body,v_to)>0 then continue; end if;
+    -- A fresh rebuild still has the earlier, owner-only guard from
+    -- 20260812065500. Preserve its postgres cron exception and audit trail
+    -- while inserting the same active-profile gate. Production's newer
+    -- HQ-membership-aware guard above remains unchanged.
+    if v_name = 'hq_assert_owner' and strpos(v_body,v_from)=0 then
+      v_from := '  if not coalesce(public.is_platform_owner(), false) then';
+      v_to := '  if not public.hq_profile_is_active(v_uid) then raise exception ''HQ access denied'' using errcode=''42501''; end if;'
+        || chr(10) || v_from;
+    end if;
     if strpos(v_body,v_from)=0 then raise exception 'Signature drift: %',v_name; end if;
     if (length(v_body)-length(replace(v_body,v_from,'')))/length(v_from) <> 1 then
       raise exception 'Ambiguous replacement: %',v_name;
