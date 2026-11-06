@@ -13,6 +13,17 @@ alter table public.teacher_swap_reports drop constraint if exists teacher_swap_r
 alter table public.teacher_swap_reports add constraint teacher_swap_reports_note_limit
  check(review_note is null or length(review_note)<=500);
 
+-- Reporters may submit an open report only. They cannot self-mark it reviewed.
+drop policy if exists "swap report author submit" on public.teacher_swap_reports;
+create policy "swap report author submit" on public.teacher_swap_reports
+ for insert to authenticated with check (
+   reporter_id=(select auth.uid())
+   and reporter_id<>target_teacher_id
+   and status='open' and review_note is null and reviewed_at is null and reviewed_by is null
+   and exists (select 1 from public.teacher_swap_listings l
+               where l.id=listing_id and l.teacher_id=target_teacher_id and l.status='published')
+ );
+
 create or replace function public.hq_teacher_swap_reports(p_limit integer default 100)
 returns table(id uuid, listing_id uuid, reason text, details text, status text, created_at timestamptz, review_note text, reviewed_at timestamptz, current_county text, preferred_county text)
 language plpgsql security definer set search_path='public' as $$
