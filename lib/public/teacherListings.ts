@@ -26,6 +26,7 @@ export function jobLifecycle(job: Pick<PublicJob, "closing_date" | "status">, to
 export const SWAP_LIFETIME_DAYS = 90;
 export function swapLifecycle(swap: Pick<PublicSwap, "created_at" | "status">, now = new Date()): "active" | "expired" | "successful" | "paused" {
   if (swap.status === "successful") return "successful";
+  if (swap.status === "expired") return "expired";
   const created = Date.parse(swap.created_at);
   if (Number.isFinite(created) && now.getTime() >= created + SWAP_LIFETIME_DAYS * 86400000) return "expired";
   return swap.status === "paused" ? "paused" : "active";
