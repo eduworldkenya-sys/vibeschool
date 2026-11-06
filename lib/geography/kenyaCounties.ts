@@ -10,7 +10,7 @@ export async function fetchKenyaCounties(): Promise<KenyaCounty[]> {
   if (cached) return cached;
   if (!pending) {
     pending = (async () => {
-      const { data, error } = await getSupabaseClient().rpc("list_kenya_counties");
+      const { data, error } = await getSupabaseClient().rpc("list_kenya_counties" as never);
       if (error) throw error;
       const rows = (data ?? []) as KenyaCounty[];
       if (rows.length !== 47 || new Set(rows.map(row => row.code)).size !== 47) {
