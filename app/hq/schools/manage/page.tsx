@@ -5,11 +5,13 @@ import { HQPage, HQPanel } from '@/components/hq/HQShell'
 import { hqSupabase } from '@/lib/hq/supabase'
 
 type Entry={id:string;name:string;county:string|null;sub_county:string|null;school_level:string|null;latitude:number|null;longitude:number|null;slug:string|null}
+type History={created_at:string;actor_id:string;evidence_note:string;before_record:Record<string,unknown>;after_record:Record<string,unknown>}
 type Patch={id:string;county?:string;sub_county?:string;type?:string;latitude?:number;longitude?:number}
 export default function HQSchoolDirectoryManage(){
  const [query,setQuery]=useState('')
  const [rows,setRows]=useState<Entry[]>([])
  const [selected,setSelected]=useState<Entry|null>(null)
+ const [history,setHistory]=useState<History[]>([])
  const [county,setCounty]=useState('')
  const [sub,setSub]=useState('')
  const [level,setLevel]=useState('')
@@ -25,7 +27,9 @@ export default function HQSchoolDirectoryManage(){
     .then(({data,error})=>{if(live){setRows(error?[]:(data||[]) as Entry[]);if(error)setMessage('Search unavailable or HQ owner permission required.')}})
   },240);return()=>{live=false;clearTimeout(timeout)}
  },[query])
- function pick(s:Entry){setSelected(s);setCounty(s.county||'');setSub(s.sub_county||'');setLevel(s.school_level||'');setLat(s.latitude==null?'':String(s.latitude));setLng(s.longitude==null?'':String(s.longitude));setMessage('')}
+ function pick(s:Entry){setSelected(s);setHistory([]);
+  void hqSupabase.rpc('hq_school_directory_edit_history_v1',{p_directory_id:s.id,p_limit:20}).then(({data,error})=>{if(!error)setHistory((data||[]) as History[])})
+  setCounty(s.county||'');setSub(s.sub_county||'');setLevel(s.school_level||'');setLat(s.latitude==null?'':String(s.latitude));setLng(s.longitude==null?'':String(s.longitude));setMessage('')}
  async function apply(changes:Patch[]){
   setMessage('')
   if(note.trim().length<10){setMessage('Add an evidence note of at least 10 characters.');return}
@@ -80,6 +84,12 @@ export default function HQSchoolDirectoryManage(){
      </div>
      <button disabled={busy} style={{...input,cursor:'pointer',textAlign:'center'}} onClick={saveOne}>Save audited correction</button>
     </div>
+   </HQPanel>}
+   {selected&&<HQPanel title="Correction history" description="Owner-only before/after change records for the selected school.">
+    <div style={{padding:16,display:'grid',gap:10}}>{history.length?history.map((h,i)=><details key={h.created_at+'-'+i} style={{borderBottom:'1px solid #475569',paddingBottom:10}}>
+      <summary style={{cursor:'pointer'}}>{new Date(h.created_at).toLocaleString('en-KE')} — {h.evidence_note}</summary>
+      <pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',fontSize:11}}>{JSON.stringify({before:h.before_record,after:h.after_record},null,2)}</pre>
+    </details>):<p>No correction history recorded for this school yet.</p>}</div>
    </HQPanel>}
    <HQPanel title="Bulk corrections" description="Optional advanced tool: provide a JSON array of up to 100 records, each with id and approved fields. All changes share the evidence note below.">
     <div style={{display:'grid',gap:10,padding:16}}>
