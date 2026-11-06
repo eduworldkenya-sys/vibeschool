@@ -1,4 +1,5 @@
 "use client"
+import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 export const dynamic = "force-dynamic"
 
@@ -163,7 +164,7 @@ export default function AdminSchoolSettingsPage() {
 
       <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 11 }}>
         <strong>Location & contact</strong>
-        <label>County<select value={form.county} onChange={event => setForm(current => ({ ...current, county: event.target.value }))} style={fieldStyle}><option value="">Choose county</option>{(form.county && !COUNTIES.includes(form.county) ? [form.county, ...COUNTIES] : COUNTIES).map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+        <label>County<SearchableSelect label="County" value={form.county} options={COUNTIES} placeholder="Search county" onChange={value => setForm(current => ({ ...current, county:value }))} style={fieldStyle}/></label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 9 }}>
           <label>Sub-county<input value={form.subCounty} onChange={event => setForm(current => ({ ...current, subCounty: event.target.value }))} style={fieldStyle} /></label>
           <label>Ward<input value={form.ward} onChange={event => setForm(current => ({ ...current, ward: event.target.value }))} style={fieldStyle} /></label>
