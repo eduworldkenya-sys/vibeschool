@@ -87,6 +87,7 @@ jobs:
             node scripts/test-vacancy-applications.mjs
             node scripts/test-vibetutor-invitation-handoff.mjs
             npm run test:canonical-references
+            npm run test:reference-convergence
             npm run typecheck
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
