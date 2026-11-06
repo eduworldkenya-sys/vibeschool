@@ -1,4 +1,6 @@
 "use client";
+import SearchableSelect from "@/components/ui/SearchableSelect";
+import { useKenyaCounties, normalizeKenyaCounty } from "@/lib/geography/kenyaCounties";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeftRight, BriefcaseBusiness, GraduationCap, Plus, SlidersHorizontal } from "lucide-react";
@@ -6,7 +8,6 @@ import { getSupabaseClient } from "@/lib/supabase";
 import TeachingJobs from "../TeachingJobs";
 import styles from "./marketplace.module.css";
 
-const COUNTIES = ["Baringo","Bomet","Bungoma","Busia","Elgeyo-Marakwet","Embu","Garissa","Homa Bay","Isiolo","Kajiado","Kakamega","Kericho","Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu","Kitui","Kwale","Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit","Meru","Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi","Narok","Nyamira","Nyandarua","Nyeri","Samburu","Siaya","Taita-Taveta","Tana River","Tharaka-Nithi","Trans Nzoia","Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot"];
 type Level = "Primary" | "Junior School" | "Senior School";
 type Listing = {id:string;teacher_id:string;current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string|null;school_level:Level;subject:string;status:"published"|"paused";created_at:string};
 type Interest = {id:string;listing_id:string;sender_id:string;message:string;contact_phone:string;status:"pending"|"accepted"|"declined";created_at:string};
@@ -15,9 +16,9 @@ const empty:Draft={current_county:"",current_subcounty:"",preferred_county:"",pr
 const SELECT="id,teacher_id,current_county,current_subcounty,preferred_county,preferred_subcounty,school_level,subject,status,created_at";
 const INTEREST_SELECT="id,listing_id,sender_id,message,contact_phone,status,created_at";
 const validPhone=(s:string)=>/^\+?[0-9]{10,15}$/.test(s);
-const countryOptions=(value:string)=> <>{COUNTIES.map(c=><option value={c} key={c}>{c}</option>)}</>;
 
 export default function TeacherMarketplace(){
+ const { counties, countyNames: COUNTIES } = useKenyaCounties();
  const [tab,setTab]=useState<"swap"|"jobs"|"tutoring">("swap");
  const [userId,setUserId]=useState<string|null>(null);
  const [loading,setLoading]=useState(true);
@@ -63,13 +64,13 @@ export default function TeacherMarketplace(){
  }),[listings,userId,filterCounty,filterLevel,mine]);
  const incoming=interests.filter(i=>i.listing_id===mine?.id);
  function startEdit(){
-  if(mine) setDraft({current_county:mine.current_county,current_subcounty:mine.current_subcounty,preferred_county:mine.preferred_county,preferred_subcounty:mine.preferred_subcounty??"",school_level:mine.school_level,subject:mine.subject});
+  if(mine) setDraft({current_county:normalizeKenyaCounty(mine.current_county,counties),current_subcounty:mine.current_subcounty,preferred_county:normalizeKenyaCounty(mine.preferred_county,counties),preferred_subcounty:mine.preferred_subcounty??"",school_level:mine.school_level,subject:mine.subject});
   else setDraft(empty);
   setError("");setNotice("");setEditing(true);
  }
  async function save(){
   if(!userId){setError("Sign in to post a swap.");return;}
-  const d={...draft,current_subcounty:draft.current_subcounty.trim(),preferred_subcounty:draft.preferred_subcounty.trim(),subject:draft.subject.trim()};
+  const d={...draft,current_county:normalizeKenyaCounty(draft.current_county,counties),preferred_county:normalizeKenyaCounty(draft.preferred_county,counties),current_subcounty:draft.current_subcounty.trim(),preferred_subcounty:draft.preferred_subcounty.trim(),subject:draft.subject.trim()};
   if(!COUNTIES.includes(d.current_county)||!COUNTIES.includes(d.preferred_county)||d.current_county===d.preferred_county||d.current_subcounty.length<2){setError("Choose different current and preferred counties, and enter your current sub-county.");return;}
   setBusy(true);setError("");setNotice("");
   try{
@@ -137,9 +138,9 @@ export default function TeacherMarketplace(){
     </section>}
     {editing&&<div className={styles.form}><h3>{mine?"Edit your swap":"Post your swap"}</h3><p>Your account is used automatically. Do not enter your name or personal details in the listing.</p>
       <div className={styles.fields}>
-       <label>Current county<select value={draft.current_county} onChange={e=>setDraft({...draft,current_county:e.target.value})}><option value="">Choose county</option>{countryOptions(draft.current_county)}</select></label>
+       <label>Current county<SearchableSelect label="Current county" value={draft.current_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,current_county:v})}/></label>
        <label>Current sub-county<input maxLength={100} value={draft.current_subcounty} placeholder="e.g. Kasarani" onChange={e=>setDraft({...draft,current_subcounty:e.target.value})}/></label>
-       <label>Preferred county<select value={draft.preferred_county} onChange={e=>setDraft({...draft,preferred_county:e.target.value})}><option value="">Choose county</option>{countryOptions(draft.preferred_county)}</select></label>
+       <label>Preferred county<SearchableSelect label="Preferred county" value={draft.preferred_county} options={COUNTIES} placeholder="Search county" onChange={v=>setDraft({...draft,preferred_county:v})}/></label>
        <label>Preferred sub-county (optional)<input maxLength={100} value={draft.preferred_subcounty} onChange={e=>setDraft({...draft,preferred_subcounty:e.target.value})}/></label>
        <label>School level<select value={draft.school_level} onChange={e=>setDraft({...draft,school_level:e.target.value as Level})}>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label>
        <label>Subject (optional)<input maxLength={100} value={draft.subject} onChange={e=>setDraft({...draft,subject:e.target.value})} placeholder="e.g. Mathematics"/></label>
@@ -149,7 +150,7 @@ export default function TeacherMarketplace(){
     {userId&&interests.some(i=>i.sender_id===userId)&&<section className={styles.mine}><strong>My interest requests</strong><div className={styles.requests}>{interests.filter(i=>i.sender_id===userId).map(i=>{const l=listings.find(l=>l.id===i.listing_id);return <article key={i.id}><p>{l?`${l.current_county} → ${l.preferred_county}`:"Listing unavailable"} · {i.status}</p>{i.status==="pending"&&<button className={styles.secondary} disabled={busy} onClick={()=>void removeInterest(i.id)}>Withdraw</button>}</article>})}</div></section>}
     {!userId&&!loading&&<p className={styles.hint}>You can browse swaps without an account. <Link href="/login?redirect=%2Fteacher%2Fmarketplace">Sign in to post or express interest.</Link></p>}
     <div className={styles.findHeading}><h3>Find swaps</h3><button className={styles.filterButton} onClick={()=>setFilters(!filters)} aria-expanded={filters}><SlidersHorizontal size={17}/> Filters</button></div>
-    {filters&&<div className={styles.filters}><label>County<select value={filterCounty} onChange={e=>setFilterCounty(e.target.value)}><option value="">Any county</option>{countryOptions(filterCounty)}</select></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
+    {filters&&<div className={styles.filters}><label>County<SearchableSelect label="Filter county" value={filterCounty} options={COUNTIES} placeholder="Any county" onChange={setFilterCounty}/></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
     {loading?<p role="status">Loading available swaps…</p>:visible.length===0?<p className={styles.empty}>No swap listings match yet. Post yours so teachers can find you.</p>:
      <div className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level;return <article className={styles.card} key={l.id}>
       <div className={styles.cardTop}><strong>{l.current_county} → {l.preferred_county}</strong>{reverse&&<span className={styles.match}>Reverse match</span>}</div>

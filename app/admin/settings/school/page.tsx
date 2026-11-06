@@ -1,4 +1,6 @@
 "use client"
+import SearchableSelect from "@/components/ui/SearchableSelect";
+import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 export const dynamic = "force-dynamic"
 
 import { useEffect, useState } from "react"
@@ -7,7 +9,6 @@ import { supabase } from "@/lib/supabase"
 import { getAdminSchoolAuthority } from "@/lib/admin/authority"
 import { formatJoinCode } from "@/lib/schoolCode"
 
-const COUNTIES = ["Baringo","Bomet","Bungoma","Busia","Elgeyo Marakwet","Embu","Garissa","Homa Bay","Isiolo","Kajiado","Kakamega","Kericho","Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu","Kitui","Kwale","Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit","Meru","Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi","Narok","Nyamira","Nyandarua","Nyeri","Samburu","Siaya","Taita Taveta","Tana River","Tharaka Nithi","Trans Nzoia","Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot"]
 const SCHOOL_TYPES = ["private", "public", "mission", "special_needs"]
 const SCHOOL_CATEGORIES = ["primary", "secondary", "ecde", "combined"]
 
@@ -36,6 +37,7 @@ const fieldStyle = { width: "100%", boxSizing: "border-box" as const, border: "1
 
 export default function AdminSchoolSettingsPage() {
   const router = useRouter()
+  const { countyNames: COUNTIES } = useKenyaCounties()
   const [schoolId, setSchoolId] = useState("")
   const [school, setSchool] = useState<SchoolRow | null>(null)
   const [form, setForm] = useState({ name: "", motto: "", vision: "", county: "", subCounty: "", ward: "", phone: "", postalAddress: "", schoolType: "private", schoolCategory: "primary", establishedYear: "" })
@@ -162,7 +164,7 @@ export default function AdminSchoolSettingsPage() {
 
       <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 11 }}>
         <strong>Location & contact</strong>
-        <label>County<select value={form.county} onChange={event => setForm(current => ({ ...current, county: event.target.value }))} style={fieldStyle}><option value="">Choose county</option>{COUNTIES.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+        <label>County<SearchableSelect label="County" value={form.county} options={COUNTIES} placeholder="Search county" onChange={value => setForm(current => ({ ...current, county:value }))} style={fieldStyle}/></label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 9 }}>
           <label>Sub-county<input value={form.subCounty} onChange={event => setForm(current => ({ ...current, subCounty: event.target.value }))} style={fieldStyle} /></label>
           <label>Ward<input value={form.ward} onChange={event => setForm(current => ({ ...current, ward: event.target.value }))} style={fieldStyle} /></label>

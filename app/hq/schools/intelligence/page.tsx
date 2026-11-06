@@ -1,4 +1,6 @@
 "use client"
+import SearchableSelect from "@/components/ui/SearchableSelect";
+import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -16,14 +18,14 @@ function LineChart({series,keyName,label}:{series:Point[];keyName:"connected_sch
 
 export default function HQSchoolsIntelligence(){
  const [days,setDays]=useState(30);const [trend,setTrend]=useState<Trend|null>(null);const [county,setCounty]=useState("");const [detail,setDetail]=useState<CountyDetail|null>(null);const [error,setError]=useState("");const [loading,setLoading]=useState(true)
- const counties=["Baringo","Bomet","Bungoma","Busia","Elgeyo-Marakwet","Embu","Garissa","Homa Bay","Isiolo","Kajiado","Kakamega","Kericho","Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu","Kitui","Kwale","Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit","Meru","Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi","Narok","Nyamira","Nyandarua","Nyeri","Samburu","Siaya","Taita-Taveta","Tana River","Tharaka-Nithi","Trans Nzoia","Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot"]
+ const {countyNames:counties}=useKenyaCounties()
  const load=useCallback(async()=>{setLoading(true);setError("");const {data,error:e}=await hqSupabase.rpc("hq_school_network_trend",{p_days:days});if(e){setTrend(null);setError("Network trend intelligence is not commissioned in this environment yet.")}else setTrend(data as Trend);setLoading(false)},[days])
  useEffect(()=>{void load()},[load])
  useEffect(()=>{if(!county){setDetail(null);return}void(async()=>{const {data,error:e}=await hqSupabase.rpc("hq_school_network_county_detail",{p_county:county,p_days:days});if(!e)setDetail(data as CountyDetail)})()},[county,days])
  const totals=useMemo(()=>{const last=trend?.series.at(-1);return last?{connected:last.connected_schools,active:last.active_schools,users:last.active_users}:null},[trend])
  return <HQPage title="School Intelligence — Kenya" description="Evidence-backed network trends and county drill-down. Activity and revenue attribution are not treated as retention or institutional payment.">
   <div className="si-stack"><nav className="si-tabs"><Link href="/hq/schools">Overview</Link><Link className="active" href="/hq/schools/intelligence">Intelligence</Link><Link href="/hq/schools/data-quality">Data quality</Link></nav>
-   <div className="si-toolbar"><div><span>Period</span><div>{[30,90,365].map(d=><button key={d} className={days===d?"active":""} onClick={()=>setDays(d)}>{d===365?"12M":`${d}D`}</button>)}</div></div><label><span>County detail</span><select value={county} onChange={e=>setCounty(e.target.value)}><option value="">All Kenya</option>{counties.map(c=><option key={c}>{c}</option>)}</select></label></div>
+   <div className="si-toolbar"><div><span>Period</span><div>{[30,90,365].map(d=><button key={d} className={days===d?"active":""} onClick={()=>setDays(d)}>{d===365?"12M":`${d}D`}</button>)}</div></div><label><span>County detail</span><SearchableSelect label="County detail" value={county} options={counties} placeholder="All Kenya" onChange={setCounty}/></label></div>
    {error&&<div className="si-notice" role="status">{error}</div>}{loading?<div className="si-empty">Loading school intelligence…</div>:trend?<>
     <section className="si-summary"><div><span>Connected schools</span><strong>{totals?.connected??0}</strong></div><div><span>Active today</span><strong>{totals?.active??0}</strong></div><div><span>Active users today</span><strong>{totals?.users??0}</strong></div></section>
     <HQPanel title="Network trend" description="Daily evidence; connected is cumulative while active schools/users are observed per day."><div className="si-charts"><LineChart series={trend.series} keyName="connected_schools" label="Connected schools"/><LineChart series={trend.series} keyName="active_schools" label="Active schools"/><LineChart series={trend.series} keyName="active_users" label="Active users"/></div><details className="si-table"><summary>Accessible trend data</summary><div><table><thead><tr><th>Date</th><th>Connected</th><th>Active schools</th><th>Active users</th></tr></thead><tbody>{trend.series.map(p=><tr key={p.date}><td>{p.date}</td><td>{p.connected_schools}</td><td>{p.active_schools}</td><td>{p.active_users}</td></tr>)}</tbody></table></div></details></HQPanel>
