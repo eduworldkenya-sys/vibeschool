@@ -11,9 +11,9 @@ import { SchoolCover } from '@/app/schools/components/SchoolCover'
 import { SchoolFacts, SchoolLocation } from '@/app/schools/components/SchoolPublicFacts'
 
 export default function DirectorySchoolPage({school,section}:{school:PublicSchoolAddress;section?:string}){
- const facts=school?[
+ const facts: [string,string|null][] = school?[
   ['County',school.county],['Sub-county',school.sub_county],['Level',school.school_level],['Ownership',school.ownership_type],['KNEC code',school.knec_code]
- ].filter(([,v])=>Boolean(v)):[]
+ ]:[]
  return <div className={styles.page}><PublicHeader product="Schools"/>
  <main id="main-content" className={styles.directoryMain}>
   <nav aria-label="Breadcrumb" className={styles.schoolBreadcrumb}><Link href="/schools">Schools</Link><span aria-hidden="true">/</span><span aria-current="page">{school?.school_name||"School"}</span></nav>
