@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./listingDetails.module.css";
 
 // Source-attributed public examples supplied by the site owner from SwapKenya screenshots.
@@ -59,38 +59,75 @@ const examples: ExternalSwap[] = [
   },
 ];
 
-export default function ExternalSwapReferences() {
-  const [open, setOpen] = useState(false);
+export const externalSwapCount = examples.length;
+export function findExternalSwaps(query: string) {
+  const term = query.trim().toLocaleLowerCase();
+  return examples.filter(swap => !term || [
+    swap.name, swap.reference, swap.current, swap.currentSubcounty, swap.school,
+    swap.desired, swap.desiredAreas, swap.level, swap.subjects,
+  ].some(value => value.toLocaleLowerCase().includes(term)));
+}
+
+function ExternalSwapDialog({ swap, onClose }: { swap: ExternalSwap; onClose: () => void }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialog?.showModal();
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { dialog?.close(); document.body.style.overflow = oldOverflow; previouslyFocused?.focus(); };
+  }, []);
+  const fields = [
+    ["Current county", swap.current], ["Current sub-county", swap.currentSubcounty],
+    ["Current school", swap.school], ["Desired county", swap.desired],
+    ["Preferred areas", swap.desiredAreas], ["Teaching level", swap.level],
+    ["Subjects", swap.subjects], ["Source listing date", swap.listed],
+    ["SwapKenya reference", swap.reference],
+  ];
+  return <dialog ref={dialogRef} aria-modal="true" aria-label={swap.name + " swap details"}
+    className={styles.dialog} onCancel={event => { event.preventDefault(); onClose(); }}
+    onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+    <header className={styles.dialogHeader}>
+      <div><span className={styles.eyebrow}>SWAPKENYA · EXTERNAL SOURCE</span><h2>{swap.name}</h2><p>{swap.level} · {swap.subjects}</p></div>
+      <button type="button" autoFocus className={styles.close} aria-label="Close listing" onClick={onClose}>×</button>
+    </header>
+    <div className={styles.dialogBody}>
+      <div className={styles.swapRoute}>
+        <div><small>CURRENT STATION</small><strong>{swap.current}</strong><span>{swap.currentSubcounty}</span></div>
+        <span aria-hidden="true">→</span>
+        <div><small>DESIRED DESTINATION</small><strong>{swap.desired}</strong><span>{swap.desiredAreas}</span></div>
+      </div>
+      <h3>Career and station details</h3>
+      <dl className={styles.fields}>{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+      <p className={styles.note}>From a user-supplied SwapKenya listing. VibeSchool has not verified the teacher, current availability or transfer eligibility. Contact and applications stay with SwapKenya.</p>
+    </div>
+    <footer className={styles.dialogFooter}>
+      {swap.original && <a className={styles.primary} href={swap.original} target="_blank" rel="noopener noreferrer">Open original listing</a>}
+      <button type="button" className={styles.secondary} onClick={onClose}>Back to swaps</button>
+    </footer>
+  </dialog>;
+}
+
+export default function ExternalSwapReferences({ query = "" }: { query?: string }) {
+  const [selected, setSelected] = useState<ExternalSwap | null>(null);
+  const visible = findExternalSwaps(query);
   return <section aria-label="SwapKenya public swap references">
     <div className={styles.featuredHeading}>
-      <div><h3>Other public swap requests</h3><p>{examples.length} examples shared from SwapKenya · Source details, not VibeSchool listings</p></div>
+      <div><h3>Recent swap requests</h3><p>{visible.length} of {examples.length} shared from SwapKenya · External, not VibeSchool-verified</p></div>
     </div>
-    <button type="button" className={styles.retry} aria-expanded={open} aria-controls="external-swap-references" onClick={() => setOpen(value => !value)}>{open ? "Hide external swaps" : `View ${examples.length} external swaps`}</button>
-    {open && <div id="external-swap-references" className={styles.cards}>
-      {examples.map(swap => <article className={styles.card} key={swap.reference}>
-        <div className={styles.cardButton} style={{cursor: "default"}}>
-          <span className={styles.badge}>From SwapKenya · External</span>
+    {visible.length > 0 && <div className={styles.cards} aria-label="External teacher swap requests">
+      {visible.map(swap => <article className={styles.card} key={swap.reference}>
+        <button type="button" className={styles.cardButton} onClick={() => setSelected(swap)} aria-label={`View swap: ${swap.name}, ${swap.current} to ${swap.desired}`}>
+          <span className={styles.badge}>SwapKenya · External</span>
           <h3>{swap.current} → {swap.desired}</h3>
-          <p>{swap.name} · {swap.level}</p>
+          <p><strong>{swap.name}</strong> · {swap.level}</p>
+          <p>{swap.school !== "Not provided" ? swap.school + " · " : ""}{swap.currentSubcounty}</p>
           <p>{swap.subjects}</p>
-          <details style={{width: "100%"}}>
-            <summary className={styles.view} style={{cursor: "pointer"}}>View details</summary>
-            <dl className={styles.fields} style={{display: "block"}}>
-              <div><dt>Current county</dt><dd>{swap.current}</dd></div>
-              <div><dt>Current sub-county</dt><dd>{swap.currentSubcounty}</dd></div>
-              <div><dt>Current school</dt><dd>{swap.school}</dd></div>
-              <div><dt>Desired county</dt><dd>{swap.desired}</dd></div>
-              <div><dt>Preferred areas</dt><dd>{swap.desiredAreas}</dd></div>
-              <div><dt>Teaching level</dt><dd>{swap.level}</dd></div>
-              <div><dt>Subjects</dt><dd>{swap.subjects}</dd></div>
-              <div><dt>Source listing date</dt><dd>{swap.listed}</dd></div>
-              <div><dt>Source reference</dt><dd>{swap.reference}</dd></div>
-            </dl>
-            <p>Source information has not been independently verified by VibeSchool. Contact and requests remain on the original platform.</p>
-            <a href={swap.original ?? "https://swapkenya.com/"} target="_blank" rel="noopener noreferrer" className={styles.view}>View on SwapKenya</a>
-          </details>
-        </div>
+          <span className={styles.view}>View details →</span>
+        </button>
       </article>)}
     </div>}
+    {selected && <ExternalSwapDialog key={selected.reference} swap={selected} onClose={() => setSelected(null)} />}
   </section>;
 }
