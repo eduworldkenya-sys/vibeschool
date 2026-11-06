@@ -46,7 +46,7 @@ function payload(row: Record<string,string>, KENYAN_COUNTIES: string[]) {
 }
 
 export default function VibeTutorImportsHQ() {
-  const { countyNames: KENYAN_COUNTIES, error: countyError } = useKenyaCounties()
+  const { countyNames: KENYAN_COUNTIES } = useKenyaCounties()
   const [allowed,setAllowed]=useState<boolean|null>(null)
   const [rows,setRows]=useState<Lead[]>([])
   const [loading,setLoading]=useState(true)
