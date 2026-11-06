@@ -1,40 +1,10 @@
-import Link from 'next/link'
-import styles from './login.module.css'
+import { redirect } from 'next/navigation'
 import { safeInternalPath } from '@/lib/auth-routing'
 
-const ROLES = [
-  { href: '/login/teacher', title: 'Teacher', body: 'Teaching workspace, classes, lessons and school tools.' },
-  { href: '/login/parent', title: 'Parent', body: 'Your children, school updates, progress and communication.' },
-  { href: '/login/student', title: 'Learner', body: 'Learning, assignments, revision and your VibeSchool journey.' },
-] as const
-
+// The canonical sign-in form lives at /login/teacher. The generic login URL
+// should open that existing form rather than showing an extra role chooser.
+// Preserve a validated destination for links into protected workspaces.
 export default function LoginPage({ searchParams }: { searchParams: { redirect?: string; next?: string } }) {
-  const redirect = safeInternalPath(searchParams.redirect ?? searchParams.next)
-  return (
-    <main className={styles.shell}>
-      <section className={styles.panel} aria-labelledby="login-title">
-        <Link className={styles.brand} href="/" aria-label="VibeSchool home">
-          Vibe<span>School</span>
-        </Link>
-        <p className={styles.eyebrow}>SECURE SIGN-IN</p>
-        <h1 className={styles.title} id="login-title">Choose your account</h1>
-        <p className={styles.lead}>Select how you use VibeSchool. We will open the correct secure sign-in for your account.</p>
-
-        <div className={styles.roles} aria-label="Choose account type">
-          {ROLES.map((role) => (
-            <Link key={role.href} href={redirect ? `${role.href}?redirect=${encodeURIComponent(redirect)}` : role.href} className={styles.role}>
-              <strong>{role.title}</strong>
-              <span>{role.body}</span>
-              <b aria-hidden="true">→</b>
-            </Link>
-          ))}
-        </div>
-
-        <div className={styles.actions}>
-          <Link href="/auth/forgot-password">Forgot password?</Link>
-          <Link href="/">Back to VibeSchool</Link>
-        </div>
-      </section>
-    </main>
-  )
+  const destination = safeInternalPath(searchParams.redirect ?? searchParams.next)
+  redirect(destination ? `/login/teacher?redirect=${encodeURIComponent(destination)}` : '/login/teacher')
 }
