@@ -17,15 +17,16 @@ export function useKenyaLocation(initial: Partial<HierarchyState> = {}) {
   const [selection, setSelection] = useState<HierarchyState>({ ...empty, ...initial });
   const [subcounties, setSubcounties] = useState<ApprovedPlace[]>([]);
   const [wards, setWards] = useState<ApprovedPlace[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingSubcounties, setLoadingSubcounties] = useState(false);
+  const [loadingWards, setLoadingWards] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let live = true;
     setSubcounties([]);
     setWards([]);
-    if (!selection.countyCode) return;
-    setLoading(true);
+    if (!selection.countyCode) { setLoadingSubcounties(false); return; }
+    setLoadingSubcounties(true);
     void getSupabaseClient().rpc("list_kenya_subcounties" as never, { p_county_code: selection.countyCode } as never)
       .then(({ data, error: issue }) => {
         if (!live) return;
@@ -33,15 +34,16 @@ export function useKenyaLocation(initial: Partial<HierarchyState> = {}) {
         setSubcounties((data ?? []) as ApprovedPlace[]);
         setError("");
       })
-      .finally(() => { if (live) setLoading(false); });
+      .catch(() => { if (live) setError("Subcounty options are unavailable."); })
+      .finally(() => { if (live) setLoadingSubcounties(false); });
     return () => { live = false; };
   }, [selection.countyCode]);
 
   useEffect(() => {
     let live = true;
     setWards([]);
-    if (!selection.subcountyId) return;
-    setLoading(true);
+    if (!selection.subcountyId) { setLoadingWards(false); return; }
+    setLoadingWards(true);
     void getSupabaseClient().rpc("list_kenya_wards" as never, { p_subcounty_id: selection.subcountyId } as never)
       .then(({ data, error: issue }) => {
         if (!live) return;
@@ -49,7 +51,8 @@ export function useKenyaLocation(initial: Partial<HierarchyState> = {}) {
         setWards((data ?? []) as ApprovedPlace[]);
         setError("");
       })
-      .finally(() => { if (live) setLoading(false); });
+      .catch(() => { if (live) setError("Ward options are unavailable."); })
+      .finally(() => { if (live) setLoadingWards(false); });
     return () => { live = false; };
   }, [selection.subcountyId]);
 
@@ -60,5 +63,5 @@ export function useKenyaLocation(initial: Partial<HierarchyState> = {}) {
   function chooseSubcounty(subcountyId: string) { setSelection(current => ({ ...current, subcountyId, wardId: "" })); }
   function chooseWard(wardId: string) { setSelection(current => ({ ...current, wardId })); }
   return { counties, subcounties, wards, selectedCounty, selectedSubcounty, selectedWard,
-    selection, chooseCounty, chooseSubcounty, chooseWard, loading, error: error || countyError };
+    selection, chooseCounty, chooseSubcounty, chooseWard, loading: loadingSubcounties || loadingWards, error: error || countyError };
 }
