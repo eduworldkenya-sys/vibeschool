@@ -14,6 +14,7 @@
 .motionToggle{flex:none;min-height:40px;padding:8px 13px;border:1px solid #b1c7b8;background:#fff;color:#176b4e;border-radius:10px;font:inherit;font-size:13px;font-weight:650;cursor:pointer}
 .featuredViewport{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;mask-image:linear-gradient(to right,transparent,#000 2%,#000 98%,transparent)}
 .featuredTrack{display:flex;width:max-content;gap:12px;padding:4px 2px 10px;animation:featuredTravel 38s linear infinite}
+.featuredReverse{animation-name:featuredTravelReverse}
 .featuredPaused,.featuredViewport:hover .featuredTrack,.featuredViewport:focus-within .featuredTrack{animation-play-state:paused}
 .featuredCard{flex:0 0 245px;width:245px;min-height:165px;background:#f7faf7;border:1px solid #c5d7cb;border-radius:14px;transition:border-color .2s,transform .2s,box-shadow .2s}
 .featuredCard:hover{transform:translateY(-2px);border-color:#89b89d;box-shadow:0 8px 20px #14291b12}
@@ -23,6 +24,7 @@
 .featuredButton .view{padding-top:6px;font-size:13px}
 .featuredButton:focus-visible,.motionToggle:focus-visible{outline:3px solid #c28e23;outline-offset:2px}
 @keyframes featuredTravel{to{transform:translateX(calc(-50% - 6px))}}
+@keyframes featuredTravelReverse{from{transform:translateX(calc(-50% - 6px))}to{transform:translateX(0)}}
 @media(max-width:600px){.featuredCard{width:215px;flex-basis:215px}.featuredHeading h3{font-size:17px}.featuredHeading p:not(.badge){font-size:12px}.motionToggle{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.featuredTrack{animation:none}.featuredCard{transition:none}}
 @media(prefers-color-scheme:dark){.featuredCard{background:#1d3225;border-color:#3d5947}.featuredButton,.featuredHeading h3{color:#edf6ef}.featuredSchool,.featuredHeading p:not(.badge){color:#b3cbbb}.motionToggle{background:#1b2f23;color:#d4ebdc;border-color:#526f5b}}
