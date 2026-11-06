@@ -48,7 +48,7 @@ export default function ListingDetailDialog({ listing, onClose, interest }: Prop
     <div className={styles.dialogBody}>
       <dl className={styles.fields}>{listing.fields.map(field => <div key={field.label}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>
       <section className={styles.advert} aria-label="Full advert and requirements"><h3>Full advert &amp; requirements</h3><p>{listing.details}</p></section>
-      {listing.kind === "swap" && <p className={styles.note}>Contact is shared privately through interest requests. A match is not official TSC transfer approval.</p>}
+      {listing.kind === "swap" && <p className={styles.note}>Private messaging opens after both teachers connect. A match is not official TSC transfer approval.</p>}
       {notice && <p className={styles.notice} role="status">{notice}</p>}
       {copyLink && <label className={styles.copyLink}>Listing link<input readOnly value={copyLink} onFocus={e => e.currentTarget.select()} /></label>}
     </div>

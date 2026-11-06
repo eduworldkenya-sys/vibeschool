@@ -1,7 +1,7 @@
 "use client";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useKenyaCounties, normalizeKenyaCounty } from "@/lib/geography/kenyaCounties";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, SlidersHorizontal } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
@@ -10,16 +10,17 @@ import styles from "./marketplace.module.css";
 import detailStyles from "@/components/teacher/marketplace/listingDetails.module.css";
 import ListingDetailDialog from "@/components/teacher/marketplace/ListingDetailDialog";
 import ListingTabs from "@/components/teacher/marketplace/ListingTabs";
+import FeaturedSwapStrip from "@/components/teacher/marketplace/FeaturedSwapStrip";
 import { swapListing, validListingId } from "@/lib/public/teacherListings";
 
 type Level = "Primary" | "Junior School" | "Senior School";
 type Listing = {id:string;teacher_id:string;current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string|null;school_level:Level;subject:string;status:"published"|"paused";created_at:string};
-type Interest = {id:string;listing_id:string;sender_id:string;message:string;contact_phone:string;status:"pending"|"accepted"|"declined";created_at:string};
+type Interest = {id:string;listing_id:string;sender_id:string;message:string;status:"pending"|"accepted"|"declined";created_at:string};
+type SwapMessage = {id:string;interest_id:string;sender_id:string;body:string;created_at:string};
 type Draft = {current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string;school_level:Level;subject:string};
 const empty:Draft={current_county:"",current_subcounty:"",preferred_county:"",preferred_subcounty:"",school_level:"Primary",subject:""};
 const SELECT="id,teacher_id,current_county,current_subcounty,preferred_county,preferred_subcounty,school_level,subject,status,created_at";
-const INTEREST_SELECT="id,listing_id,sender_id,message,contact_phone,status,created_at";
-const validPhone=(s:string)=>/^\+?[0-9]{10,15}$/.test(s);
+const INTEREST_SELECT="id,listing_id,sender_id,message,status,created_at";
 
 export default function TeacherMarketplace(){
  const { counties, countyNames: COUNTIES } = useKenyaCounties();
@@ -37,10 +38,12 @@ export default function TeacherMarketplace(){
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState<Draft>(empty);
  const [message,setMessage]=useState("");
- const [phone,setPhone]=useState("");
+ const [conversation,setConversation]=useState<string|null>(null);
+ const [conversationRows,setConversationRows]=useState<SwapMessage[]>([]);
+ const [chatDraft,setChatDraft]=useState("");
+ const [chatLoading,setChatLoading]=useState(false);
  const [selected,setSelected]=useState<string|null>(null);
  const [detail,setDetail]=useState<Listing|null>(null);
- const interestInput=useRef<HTMLInputElement>(null);
  const mine=listings.find(l=>l.teacher_id===userId);
  const load=useCallback(async()=>{
   setError("");setLoading(true);
@@ -92,7 +95,6 @@ export default function TeacherMarketplace(){
   }
   sync();window.addEventListener("popstate",sync);return()=>window.removeEventListener("popstate",sync);
  },[listings,loading,userId,outgoing]);
- useEffect(()=>{if(selected)interestInput.current?.focus();},[selected]);
  function viewDetails(row:Listing){
   const next=new URL(window.location.href);next.searchParams.set("swap",row.id);next.searchParams.delete("interest");window.history.pushState(null,"",next);setError("");setDetail(row);
  }
@@ -129,12 +131,25 @@ export default function TeacherMarketplace(){
   if(e)setError(e.message);else{setNotice(mine.status==="published"?"Listing paused.":"Listing published.");await load();}
   setBusy(false);
  }
+ async function openConversation(id:string){
+  if(!userId)return;
+  setConversation(id);setChatLoading(true);setError("");
+  const {data,error:e}=await getSupabaseClient().from("teacher_swap_messages").select("id,interest_id,sender_id,body,created_at").eq("interest_id",id).order("created_at",{ascending:true}).limit(100);
+  if(e)setError(e.message);else setConversationRows((data??[]) as SwapMessage[]);
+  setChatLoading(false);
+ }
+ async function sendMessage(){
+  if(!conversation||!userId||!chatDraft.trim()||busy)return;
+  setBusy(true);setError("");
+  const {error:e}=await getSupabaseClient().from("teacher_swap_messages").insert({interest_id:conversation,sender_id:userId,body:chatDraft.trim().slice(0,1000)});
+  if(e)setError(e.message);else{setChatDraft("");await openConversation(conversation);}
+  setBusy(false);
+ }
  async function sendInterest(){
   if(!selected||!userId)return;
-  if(!validPhone(phone)){setError("Enter a valid contact number (10–15 digits; + optional).");return;}
   setBusy(true);setError("");
-  const {error:e}=await getSupabaseClient().from("teacher_swap_interests").insert({listing_id:selected,sender_id:userId,message:message.trim().slice(0,500),contact_phone:phone.trim()});
-  if(e)setError(e.message);else{setSelected(null);setMessage("");setPhone("");setNotice("Interest sent privately to the listing owner.");await load();}
+  const {error:e}=await getSupabaseClient().from("teacher_swap_interests").insert({listing_id:selected,sender_id:userId,message:message.trim().slice(0,500),contact_phone:null});
+  if(e)setError(e.message);else{setSelected(null);setMessage("");setNotice("Interest sent privately to the listing owner.");await load();}
   setBusy(false);
  }
  async function removeInterest(id:string){
@@ -153,7 +168,7 @@ export default function TeacherMarketplace(){
  async function respond(id:string,status:"accepted"|"declined"){
   setBusy(true);setError("");
   const {error:e}=await getSupabaseClient().from("teacher_swap_interests").update({status}).eq("id",id).eq("listing_id",mine?.id??"");
-  if(e)setError(e.message);else{setNotice(status==="accepted"?"Interest accepted. Contact the teacher using the number they supplied.":"Interest declined.");await load();}
+  if(e)setError(e.message);else{setNotice(status==="accepted"?"Interest accepted. You can now message privately.":"Interest declined.");await load();}
   setBusy(false);
  }
  return <div className={styles.root}>
@@ -166,7 +181,7 @@ export default function TeacherMarketplace(){
     {notice&&<p className={styles.success} role="status">{notice}</p>}
     {error&&<p className={styles.error} role="alert">{error}</p>}
     {mine&&!editing&&<section className={styles.mine}><div className={styles.heading}><div><strong>My swap · {mine.status==="published"?"Published":"Paused"}</strong><p>{mine.current_county} → {mine.preferred_county} · {mine.school_level}</p></div><div className={styles.actions}><button className={styles.secondary} disabled={busy} onClick={()=>void toggle()}>{mine.status==="published"?"Pause":"Republish"}</button><button className={styles.secondary} disabled={busy} onClick={()=>void deleteSwap()}>Delete</button></div></div>
-      {incoming.length>0&&<div className={styles.requests}><strong>Interest requests ({incoming.length})</strong>{incoming.map(i=><article key={i.id}><p>{i.message||"Interested in your swap."}</p><small>Contact provided: {i.contact_phone} · {i.status}</small>{i.status==="pending"&&<div className={styles.actions}><button disabled={busy} className={styles.primary} onClick={()=>void respond(i.id,"accepted")}>Accept</button><button disabled={busy} className={styles.secondary} onClick={()=>void respond(i.id,"declined")}>Decline</button></div>}</article>)}</div>}
+      {incoming.length>0&&<div className={styles.requests}><strong>Interest requests ({incoming.length})</strong>{incoming.map(i=><article key={i.id}><p>{i.message||"Interested in your swap."}</p><small>Status: {i.status}</small>{i.status==="accepted"&&<button className={styles.secondary} onClick={()=>void openConversation(i.id)}>Open conversation</button>}{i.status==="pending"&&<div className={styles.actions}><button disabled={busy} className={styles.primary} onClick={()=>void respond(i.id,"accepted")}>Accept</button><button disabled={busy} className={styles.secondary} onClick={()=>void respond(i.id,"declined")}>Decline</button></div>}</article>)}</div>}
     </section>}
     {editing&&<div className={styles.form}><h3>{mine?"Edit your swap":"Post your swap"}</h3><p>Your account is used automatically. Do not enter your name or personal details in the listing.</p>
       <div className={styles.fields}>
@@ -179,10 +194,11 @@ export default function TeacherMarketplace(){
       </div>
       <div className={styles.actions}><button className={styles.primary} disabled={busy} onClick={()=>void save()}>{busy?"Saving…":mine?"Save changes":"Publish swap"}</button><button className={styles.secondary} disabled={busy} onClick={()=>setEditing(false)}>Cancel</button></div>
      </div>}
-    {userId&&interests.some(i=>i.sender_id===userId)&&<section className={styles.mine}><strong>My interest requests</strong><div className={styles.requests}>{interests.filter(i=>i.sender_id===userId).map(i=>{const l=listings.find(l=>l.id===i.listing_id);return <article key={i.id}><p>{l?`${l.current_county} → ${l.preferred_county}`:"Listing unavailable"} · {i.status}</p>{i.status==="pending"&&<button className={styles.secondary} disabled={busy} onClick={()=>void removeInterest(i.id)}>Withdraw</button>}</article>})}</div></section>}
+    {userId&&interests.some(i=>i.sender_id===userId)&&<section className={styles.mine}><strong>My interest requests</strong><div className={styles.requests}>{interests.filter(i=>i.sender_id===userId).map(i=>{const l=listings.find(l=>l.id===i.listing_id);return <article key={i.id}><p>{l?`${l.current_county} → ${l.preferred_county}`:"Listing unavailable"} · {i.status}</p>{i.status==="accepted"&&<button className={styles.secondary} onClick={()=>void openConversation(i.id)}>Open conversation</button>}{i.status==="pending"&&<button className={styles.secondary} disabled={busy} onClick={()=>void removeInterest(i.id)}>Withdraw</button>}</article>})}</div></section>}
     {!userId&&!loading&&<p className={styles.hint}>You can browse swaps without an account. <Link href="/login?redirect=%2Fteacher%2Fmarketplace">Sign in to post or express interest.</Link></p>}
     <div className={styles.findHeading}><h3>Find swaps</h3><button className={styles.filterButton} onClick={()=>setFilters(!filters)} aria-expanded={filters}><SlidersHorizontal size={17}/> Filters</button></div>
     {filters&&<div className={styles.filters}><label>County<SearchableSelect label="Filter county" value={filterCounty} options={COUNTIES} placeholder="Any county" onChange={setFilterCounty}/></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
+    {!loading && visible.length > 0 && <FeaturedSwapStrip swaps={visible} mine={mine} onOpen={viewDetails} />}
     {loading?<p role="status">Loading available swaps…</p>:visible.length===0?<p className={styles.empty}>No swap listings match yet. Post yours so teachers can find you.</p>:
      <div className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level;return <article className={detailStyles.card} key={l.id}>
       <button type="button" className={detailStyles.cardButton} onClick={()=>viewDetails(l)} aria-label={"View swap: "+l.current_county+" to "+l.preferred_county}>
@@ -192,9 +208,15 @@ export default function TeacherMarketplace(){
       </button>
      </article>})}</div>}
     {detail&&<ListingDetailDialog key={detail.id} listing={swapListing(detail)} onClose={closeDetails} interest={detail.teacher_id===userId?undefined:{disabled:outgoing.has(detail.id),label:outgoing.has(detail.id)?"Interest already sent":"Express interest",onClick:()=>{const id=detail.id;closeDetails();setSelected(id);}}}/>}
+    {conversation&&<div className={styles.overlay} role="presentation"><div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="swap-chat-title">
+      <h3 id="swap-chat-title">Private swap conversation</h3><p>Messages unlock after acceptance. Transfer approval is separate.</p>
+      <div className={styles.conversationLog} aria-label="Swap messages">{chatLoading?<p>Loading messages…</p>:conversationRows.length===0?<p>No messages yet.</p>:conversationRows.map(m=><p key={m.id}><strong>{m.sender_id===userId?"You":"Other teacher"}</strong> {m.body}</p>)}</div>
+      <label>Message<textarea maxLength={1000} rows={3} value={chatDraft} onChange={e=>setChatDraft(e.target.value)} /></label>
+      <div className={styles.actions}><button className={styles.primary} disabled={busy||!chatDraft.trim()} onClick={()=>void sendMessage()}>Send message</button><button className={styles.secondary} onClick={()=>{setConversation(null);setConversationRows([]);}}>Close</button><button className={styles.secondary} onClick={()=>void openConversation(conversation)}>Refresh</button></div>
+      {error&&<p role="alert" className={styles.error}>{error}</p>}
+    </div></div>}
     {selected&&<div className={styles.overlay} role="presentation"><div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="interest-title">
-      <h3 id="interest-title">Express interest</h3><p>Your number will be visible only to the listing owner. They can contact you if interested.</p>
-      <label>Contact number<input ref={interestInput} type="tel" inputMode="tel" value={phone} maxLength={16} placeholder="07… or +254…" onChange={e=>setPhone(e.target.value)}/></label>
+      <h3 id="interest-title">Express interest</h3><p>Contact details stay private. Messaging unlocks after acceptance.</p>
       <label>Short message (optional)<textarea maxLength={500} rows={3} value={message} onChange={e=>setMessage(e.target.value)} placeholder="I am interested in your swap…"/></label>
       <div className={styles.actions}><button className={styles.primary} disabled={busy} onClick={()=>void sendInterest()}>Send interest</button><button className={styles.secondary} onClick={()=>setSelected(null)}>Cancel</button></div>
       {error&&<p role="alert" className={styles.error}>{error}</p>}

@@ -74,7 +74,7 @@ export function swapListing(swap: PublicSwap): TeacherListing {
 }
 
 export function listingText(listing: TeacherListing): string {
-  return ["VibeSchool · " + (listing.kind === "job" ? "School job" : "Teacher swap"), listing.title, ...listing.fields.map(f => `${f.label}: ${f.value}`), "", "Full advert & requirements", listing.details, "", ...listing.actions.map(a => `${a.label}: ${a.href}`), ...(listing.kind === "swap" ? ["Contact is shared privately through interest requests. A match is not official TSC transfer approval."] : [])].join("\n");
+  return ["VibeSchool · " + (listing.kind === "job" ? "School job" : "Teacher swap"), listing.title, ...listing.fields.map(f => `${f.label}: ${f.value}`), "", "Full advert & requirements", listing.details, "", ...listing.actions.map(a => `${a.label}: ${a.href}`), ...(listing.kind === "swap" ? ["Private messaging opens after both teachers connect. A match is not official TSC transfer approval."] : [])].join("\n");
 }
 export function listingUrl(kind: TeacherListing["kind"], id: string, origin: string): string {
   const url = new URL("/teacher", origin); url.searchParams.set(kind, id); return url.href;
