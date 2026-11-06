@@ -86,6 +86,7 @@ jobs:
             node scripts/test-strategic-remediation-contract.mjs
             node scripts/test-vacancy-applications.mjs
             npm run test:canonical-references
+            npm run test:reference-convergence
             npm run typecheck
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
