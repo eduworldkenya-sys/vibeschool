@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { getSupabaseClient } from "@/lib/supabase";
 
 type Lesson = { id: string; invitation_id: string; title: string; starts_at: string; ends_at: string; status: string };
@@ -68,7 +69,7 @@ export default function PrivateTuitionTools({ invitationId, isTutor, section = "
         <strong>{l.title}</strong><div>{new Date(l.starts_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })} · {Math.round((new Date(l.ends_at).getTime() - new Date(l.starts_at).getTime()) / 60000)} min</div>
         <small>{l.status}</small>
         {isTutor && l.status === "scheduled" && <button type="button" onClick={() => void cancel(l.id)} disabled={busy} style={{ marginLeft: 10 }}>Cancel</button>}
-        <div style={{ marginTop: 8 }}><button type="button" disabled title="Private video classroom is not available yet" style={{ ...btn, background: "#e5e7eb", color: "#555", cursor: "not-allowed" }}>Join lesson — coming soon</button></div>
+        {l.status === "scheduled" && <div style={{ marginTop: 8 }}><Link href={"/tuition/lessons/" + l.id} style={{ ...btn, display: "inline-block", textDecoration: "none" }}>Join lesson</Link><small style={{ display: "block", marginTop: 6 }}>Opens 15 minutes before the lesson.</small></div>}
       </div>)}
     </section>}
     {(section === "all" || section === "messages") && <section style={panel} aria-label="Private tuition messages">
