@@ -1,4 +1,5 @@
 "use client"
+import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 
 import Link from "next/link"
@@ -24,7 +25,7 @@ export default function HQSchoolsIntelligence(){
  const totals=useMemo(()=>{const last=trend?.series.at(-1);return last?{connected:last.connected_schools,active:last.active_schools,users:last.active_users}:null},[trend])
  return <HQPage title="School Intelligence — Kenya" description="Evidence-backed network trends and county drill-down. Activity and revenue attribution are not treated as retention or institutional payment.">
   <div className="si-stack"><nav className="si-tabs"><Link href="/hq/schools">Overview</Link><Link className="active" href="/hq/schools/intelligence">Intelligence</Link><Link href="/hq/schools/data-quality">Data quality</Link></nav>
-   <div className="si-toolbar"><div><span>Period</span><div>{[30,90,365].map(d=><button key={d} className={days===d?"active":""} onClick={()=>setDays(d)}>{d===365?"12M":`${d}D`}</button>)}</div></div><label><span>County detail</span><select value={county} onChange={e=>setCounty(e.target.value)}><option value="">All Kenya</option>{counties.map(c=><option key={c}>{c}</option>)}</select></label></div>
+   <div className="si-toolbar"><div><span>Period</span><div>{[30,90,365].map(d=><button key={d} className={days===d?"active":""} onClick={()=>setDays(d)}>{d===365?"12M":`${d}D`}</button>)}</div></div><label><span>County detail</span><SearchableSelect label="County detail" value={county} options={counties} placeholder="All Kenya" onChange={setCounty}/></label></div>
    {error&&<div className="si-notice" role="status">{error}</div>}{loading?<div className="si-empty">Loading school intelligence…</div>:trend?<>
     <section className="si-summary"><div><span>Connected schools</span><strong>{totals?.connected??0}</strong></div><div><span>Active today</span><strong>{totals?.active??0}</strong></div><div><span>Active users today</span><strong>{totals?.users??0}</strong></div></section>
     <HQPanel title="Network trend" description="Daily evidence; connected is cumulative while active schools/users are observed per day."><div className="si-charts"><LineChart series={trend.series} keyName="connected_schools" label="Connected schools"/><LineChart series={trend.series} keyName="active_schools" label="Active schools"/><LineChart series={trend.series} keyName="active_users" label="Active users"/></div><details className="si-table"><summary>Accessible trend data</summary><div><table><thead><tr><th>Date</th><th>Connected</th><th>Active schools</th><th>Active users</th></tr></thead><tbody>{trend.series.map(p=><tr key={p.date}><td>{p.date}</td><td>{p.connected_schools}</td><td>{p.active_schools}</td><td>{p.active_users}</td></tr>)}</tbody></table></div></details></HQPanel>
