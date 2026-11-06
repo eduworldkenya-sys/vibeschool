@@ -1,4 +1,5 @@
 import styles from '@/app/schools/schools.module.css'
+import { SchoolMap } from '@/app/schools/components/SchoolMap'
 
 export type SchoolFact = readonly [label: string, value: string | null | undefined]
 
@@ -15,10 +16,10 @@ export function SchoolFacts({facts}:{facts:readonly SchoolFact[]}) {
  </section>
 }
 
-export function SchoolLocation({county,subCounty}:{county?:string|null;subCounty?:string|null}) {
+export function SchoolLocation({county,subCounty,sourceId,kind,name}:{county?:string|null;subCounty?:string|null;sourceId:string;kind:'canonical'|'directory';name:string}) {
  const location=[subCounty,county,'Kenya'].filter(Boolean).join(', ')
  return <section className={styles.canonicalSection}><h2>Location</h2>
   <p>{location}</p>
-  <p className={styles.canonicalNote}>An exact school map pin is shown only when its location has been verified.</p>
+  <SchoolMap kind={kind} sourceId={sourceId} name={name}/>
  </section>
 }
