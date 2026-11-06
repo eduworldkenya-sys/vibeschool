@@ -4,6 +4,24 @@ import { actor, adminClient, consentEnabled, json, recordEvent } from '@/lib/lea
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+export async function GET(req: NextRequest) {
+  if (!consentEnabled()) return json({ error: 'Consent management is unavailable.' }, 503)
+  try {
+    const admin = adminClient()
+    const guardian = await actor(req, admin, 'parent')
+    if (!guardian || !guardian.email_confirmed_at) return json({ error: 'Verified guardian required.' }, 401)
+    const { data, error } = await admin.from('learner_guardian_consent_requests')
+      .select('id,status,consent_purpose,approved_at,withdrawn_at')
+      .eq('guardian_user_id', guardian.id).eq('guardian_email', (guardian.email ?? '').toLowerCase())
+      .in('status', ['approved', 'withdrawn'])
+      .order('approved_at', { ascending: false }).limit(30)
+    if (error) throw error
+    return json({ requests: data ?? [] })
+  } catch {
+    return json({ error: 'Cannot load consent history.' }, 500)
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!consentEnabled()) return json({ error: 'Consent management is unavailable.' }, 503)
   try {
