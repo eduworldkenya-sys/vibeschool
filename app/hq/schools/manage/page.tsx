@@ -38,7 +38,26 @@ export default function HQSchoolDirectoryManage(){
   setBusy(true)
   const {data,error}=await hqSupabase.rpc('hq_school_directory_apply_edits_v1',{p_changes:changes,p_evidence_note:note.trim()})
   setBusy(false);setMessage(error?'Correction not applied: '+error.message:String(data)+' record(s) updated and logged.')
-  if(!error){setSelected(null);setQuery('');setBatch('')}
+  if(!error){
+   setBatch('')
+   if(selected&&changes.some(c=>c.id===selected.id)){
+    const updated=changes.find(c=>c.id===selected.id)!
+    setSelected(current=>current?{
+     ...current,
+     county:updated.county??current.county,
+     sub_county:updated.sub_county??current.sub_county,
+     school_level:updated.type??current.school_level,
+     latitude:updated.latitude??current.latitude,
+     longitude:updated.longitude??current.longitude
+    }:current)
+    const historyResult=await hqSupabase.rpc('hq_school_directory_edit_history_v1',{p_directory_id:selected.id,p_limit:20})
+    if(!historyResult.error)setHistory((historyResult.data||[]) as History[])
+   }
+   if(query.trim().length>=2){
+    const refreshed=await hqSupabase.rpc('hq_school_directory_manage_search_v1',{p_query:query.trim(),p_limit:30})
+    if(!refreshed.error)setRows((refreshed.data||[]) as Entry[])
+   }
+  }
  }
  function saveOne(){
   if(!selected)return
