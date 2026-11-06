@@ -48,7 +48,8 @@ export default function TeacherMarketplace(){
  const [reportDetails,setReportDetails]=useState("");
  const [selected,setSelected]=useState<string|null>(null);
  const [detail,setDetail]=useState<Listing|null>(null);
- const mine=listings.find(l=>l.teacher_id===userId);
+ const mine=listings.find(l=>l.teacher_id===userId && (swapLifecycle(l)==="active" || swapLifecycle(l)==="paused"));
+ const myHistory=listings.filter(l=>l.teacher_id===userId && (swapLifecycle(l)==="expired" || swapLifecycle(l)==="successful"));
  const load=useCallback(async()=>{
   setError("");setLoading(true);
   try {
@@ -209,6 +210,7 @@ export default function TeacherMarketplace(){
       {i.status==="accepted"&&<button className={styles.secondary} disabled={busy} onClick={()=>void respond(i.id,"declined")}>End conversation</button>}
       {i.status!=="blocked"?<button className={styles.secondary} disabled={busy} onClick={()=>{if(window.confirm("Block this teacher from contacting you about this swap?"))void respond(i.id,"blocked");}}>Block teacher</button>:<button className={styles.secondary} disabled={busy} onClick={()=>void respond(i.id,"declined")}>Unblock</button>}</article>)}</div>}
     </section>}
+    {myHistory.length>0&&<section className={styles.mine} aria-label="My past swaps"><strong>My swap history ({myHistory.length})</strong>{myHistory.map(l=><p key={l.id}>{l.current_county} → {l.preferred_county} · {swapLifecycle(l)==="successful"?"Successful (teacher-reported)":"Expired after 90 days"}</p>)}</section>}
     {editing&&<div className={styles.form}><h3>{mine?"Edit your swap":"Post your swap"}</h3><p>Your account is used automatically. Do not enter your name or personal details in the listing.</p>
       <div className={styles.fields}>
        <label>Employment system<select value={draft.employment_sector} onChange={e=>setDraft({...draft,employment_sector:e.target.value})}><option value="">Choose system</option><option value="tsc">TSC teacher</option><option value="private">Private-school teacher</option></select></label>
