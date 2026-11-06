@@ -12,10 +12,10 @@ import ListingDetailDialog from "@/components/teacher/marketplace/ListingDetailD
 import ListingTabs from "@/components/teacher/marketplace/ListingTabs";
 import FeaturedSwapStrip from "@/components/teacher/marketplace/FeaturedSwapStrip";
 import SwapSubcountyField from "@/components/teacher/marketplace/SwapSubcountyField";
-import { swapListing, swapSectorLabel, validListingId } from "@/lib/public/teacherListings";
+import { swapListing, swapLifecycle, swapSectorLabel, validListingId } from "@/lib/public/teacherListings";
 
 type Level = "Primary" | "Junior School" | "Senior School";
-type Listing = {id:string;teacher_id:string;current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string|null;school_level:Level;subject:string;employment_sector:string;status:"published"|"paused";created_at:string};
+type Listing = {id:string;teacher_id:string;current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string|null;school_level:Level;subject:string;employment_sector:string;status:"published"|"paused"|"successful"|"expired";created_at:string};
 type Interest = {id:string;listing_id:string;sender_id:string;message:string;status:"pending"|"accepted"|"declined"|"blocked";created_at:string};
 type SwapMessage = {id:string;interest_id:string;sender_id:string;body:string;created_at:string};
 type Draft = {current_county:string;current_subcounty:string;preferred_county:string;preferred_subcounty:string;school_level:Level;subject:string;employment_sector:string};
@@ -78,7 +78,7 @@ export default function TeacherMarketplace(){
  },[]);
  useEffect(()=>{void load();},[load]);
  const outgoing=useMemo(()=>new Set(interests.filter(i=>i.sender_id===userId).map(i=>i.listing_id)),[interests,userId]);
- const visible=useMemo(()=>listings.filter(l=>l.status==="published"&&l.teacher_id!==userId&&(!filterCounty||l.preferred_county===filterCounty||l.current_county===filterCounty)&&(!filterLevel||l.school_level===filterLevel)).sort((a,b)=>{
+ const visible=useMemo(()=>listings.filter(l=>swapLifecycle(l)==="active"&&l.teacher_id!==userId&&(!filterCounty||l.preferred_county===filterCounty||l.current_county===filterCounty)&&(!filterLevel||l.school_level===filterLevel)).sort((a,b)=>{
    const score=(l:Listing)=>mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level&&l.employment_sector===mine.employment_sector&&l.employment_sector!=="unspecified"?1:0;
    return score(b)-score(a);
  }),[listings,userId,filterCounty,filterLevel,mine]);
@@ -90,7 +90,7 @@ export default function TeacherMarketplace(){
   const id=params.get("swap");
   if(loading)return;
   if(!validListingId(id)){setDetail(null);return;}
-  const row=listings.find(l=>l.id===id&&l.status==="published");
+  const row=listings.find(l=>l.id===id&&swapLifecycle(l)==="active");
   if(!row){setNotice("This swap is no longer available.");return;}
   if(params.get("interest")==="1"&&userId&&row.teacher_id!==userId&&!outgoing.has(id)){
    setSelected(id);params.delete("swap");params.delete("interest");
@@ -122,6 +122,7 @@ export default function TeacherMarketplace(){
    const {data:auth}=await client.auth.getUser();
    if(auth.user?.id!==userId) throw new Error("Your session expired. Sign in again.");
    const payload={...d,preferred_subcounty:d.preferred_subcounty||null};
+   if(mine && (swapLifecycle(mine)==="expired" || swapLifecycle(mine)==="successful")) throw new Error("This swap is closed. A new listing requires a new posting.");
    const result=mine?await client.from("teacher_swap_listings").update({...payload,updated_at:new Date().toISOString()}).eq("id",mine.id).eq("teacher_id",userId):
      await client.from("teacher_swap_listings").insert({...payload,teacher_id:userId});
    if(result.error)throw result.error;
@@ -130,10 +131,18 @@ export default function TeacherMarketplace(){
   finally{setBusy(false);}
  }
  async function toggle(){
-  if(!mine)return;
+  if(!mine||swapLifecycle(mine)==="expired"||swapLifecycle(mine)==="successful")return;
   setBusy(true);setError("");
   const {error:e}=await getSupabaseClient().from("teacher_swap_listings").update({status:mine.status==="published"?"paused":"published",updated_at:new Date().toISOString()}).eq("id",mine.id).eq("teacher_id",userId!);
   if(e)setError(e.message);else{setNotice(mine.status==="published"?"Listing paused.":"Listing published.");await load();}
+  setBusy(false);
+ }
+ async function markSuccessful(){
+  if(!mine||!userId||swapLifecycle(mine)==="successful")return;
+  if(!window.confirm("Confirm this station swap was successful? The listing will leave active discovery and remain in your history. This does not certify TSC or employer approval."))return;
+  setBusy(true);setError("");
+  const {error:e}=await getSupabaseClient().from("teacher_swap_listings").update({status:"successful",updated_at:new Date().toISOString()}).eq("id",mine.id).eq("teacher_id",userId);
+  if(e)setError(e.message);else{setNotice("Swap marked successful (teacher-reported).");await load();}
   setBusy(false);
  }
  async function openConversation(id:string){
@@ -191,11 +200,11 @@ export default function TeacherMarketplace(){
   <ListingTabs value={tab} idPrefix="managed-opportunities" onChange={next=>{closeDetails();setTab(next);const url=new URL(window.location.href);url.searchParams.set("tab",next);window.history.replaceState(null,"",url);}} />
   {tab==="jobs"&&<section className={styles.panel} role="tabpanel" id="managed-opportunities-panel-jobs" aria-labelledby="managed-opportunities-tab-jobs"><h2>Teaching vacancies</h2><TeachingJobs/></section>}
   {tab==="swap"&&<section className={styles.panel} role="tabpanel" id="managed-opportunities-panel-swap" aria-labelledby="managed-opportunities-tab-swap">
-    <div className={styles.heading}><div><h2>Teacher Swap</h2><p>Find potential colleagues looking to exchange stations.</p></div><button className={styles.primary} onClick={startEdit}><Plus size={18}/>{mine?"Edit my swap":"Post a swap"}</button></div>
+    <div className={styles.heading}><div><h2>Teacher Swap</h2><p>Find potential colleagues looking to exchange stations.</p></div><button className={styles.primary} onClick={startEdit} disabled={!!mine && (swapLifecycle(mine)==="expired" || swapLifecycle(mine)==="successful")}><Plus size={18}/>{mine?"Edit my swap":"Post a swap"}</button></div>
     <p className={styles.disclaimer}>VibeSchool only helps teachers connect. TSC transfers require official approval through the <a href="https://portal.tsc.go.ke/" target="_blank" rel="noopener noreferrer">TSC portal</a>; private-school moves require agreement with the relevant employers.</p>
     {notice&&<p className={styles.success} role="status">{notice}</p>}
     {error&&<p className={styles.error} role="alert">{error}</p>}
-    {mine&&!editing&&<section className={styles.mine}><div className={styles.heading}><div><strong>My swap · {mine.status==="published"?"Published":"Paused"}</strong><p>{mine.current_county} → {mine.preferred_county} · {mine.school_level} · {swapSectorLabel(mine.employment_sector)}</p></div><div className={styles.actions}><button className={styles.secondary} disabled={busy} onClick={()=>void toggle()}>{mine.status==="published"?"Pause":"Republish"}</button><button className={styles.secondary} disabled={busy} onClick={()=>void deleteSwap()}>Delete</button></div></div>
+    {mine&&!editing&&<section className={styles.mine}><div className={styles.heading}><div><strong>My swap · {swapLifecycle(mine)==="successful"?"Successful (teacher-reported)":swapLifecycle(mine)==="expired"?"Expired (90 days)":mine.status==="published"?"Published":"Paused"}</strong><p>{mine.current_county} → {mine.preferred_county} · {mine.school_level} · {swapSectorLabel(mine.employment_sector)}</p></div><div className={styles.actions}>{(swapLifecycle(mine)==="active"||swapLifecycle(mine)==="paused")&&<><button className={styles.secondary} disabled={busy} onClick={()=>void toggle()}>{mine.status==="published"?"Pause":"Republish"}</button><button className={styles.primary} disabled={busy} onClick={()=>void markSuccessful()}>Confirm successful</button></>}<button className={styles.secondary} disabled={busy} onClick={()=>void deleteSwap()}>Delete</button></div></div>
       {incoming.length>0&&<div className={styles.requests}><strong>Interest requests ({incoming.length})</strong>{incoming.map(i=><article key={i.id}><p>{i.message||"Interested in your swap."}</p><small>Status: {i.status}</small>{i.status==="accepted"&&<button className={styles.secondary} onClick={()=>void openConversation(i.id)}>Open conversation</button>}{i.status==="pending"&&<div className={styles.actions}><button disabled={busy} className={styles.primary} onClick={()=>void respond(i.id,"accepted")}>Accept</button><button disabled={busy} className={styles.secondary} onClick={()=>void respond(i.id,"declined")}>Decline</button></div>}
       {i.status==="accepted"&&<button className={styles.secondary} disabled={busy} onClick={()=>void respond(i.id,"declined")}>End conversation</button>}
       {i.status!=="blocked"?<button className={styles.secondary} disabled={busy} onClick={()=>{if(window.confirm("Block this teacher from contacting you about this swap?"))void respond(i.id,"blocked");}}>Block teacher</button>:<button className={styles.secondary} disabled={busy} onClick={()=>void respond(i.id,"declined")}>Unblock</button>}</article>)}</div>}
