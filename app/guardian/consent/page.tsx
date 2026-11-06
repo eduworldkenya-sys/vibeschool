@@ -32,7 +32,7 @@ export default function GuardianConsent() {
   useEffect(() => {
     let active = true
     async function init() {
-      const code = new URLSearchParams(window.location.search).get('token')
+      const code = new URLSearchParams(window.location.hash.slice(1)).get('token') || new URLSearchParams(window.location.search).get('token')
       if (code) sessionStorage.setItem('vibeschool_guardian_link', code)
       const saved = code || sessionStorage.getItem('vibeschool_guardian_link') || ''
       window.history.replaceState(null, '', '/guardian/consent')
@@ -53,14 +53,16 @@ export default function GuardianConsent() {
     return () => { active = false }
   }, [])
 
-  async function act(action: 'approve' | 'withdraw', id?: string) {
+  async function act(action: 'approve' | 'withdraw' | 'decline', id?: string) {
     setBusy(true); setMessage('')
     try {
       const data = action === 'approve'
         ? await send('approve', 'POST', { token, declare_guardianship: guardian, allow_personal_learning: approved })
-        : await send('withdraw', 'POST', { request_id: id })
+        : action === 'decline'
+          ? await send('approve', 'POST', { token, decline: true })
+          : await send('withdraw', 'POST', { request_id: id })
       setMessage(data.message); setReview(false)
-      if (action === 'approve') sessionStorage.removeItem('vibeschool_guardian_link')
+      if (action !== 'withdraw') sessionStorage.removeItem('vibeschool_guardian_link')
       await reload()
     } catch (err) { setMessage(err instanceof Error ? err.message : 'Please try again.') }
     finally { setBusy(false) }
@@ -76,7 +78,7 @@ export default function GuardianConsent() {
       {message && <p role="status">{message}</p>}
       {!signedIn && <p>
         <a style={{ color: '#d7bc6a' }} href={'/login/parent?redirect=' +
-          encodeURIComponent('/guardian/consent?token=' + token)}>Sign in with your invited email</a>.
+          encodeURIComponent('/guardian/consent')}>Sign in with your invited email</a>.
         New parent? <a style={{ color: '#d7bc6a' }} href="/signup/parent">Create an account</a>.
       </p>}
       {signedIn && review && <>
@@ -91,6 +93,8 @@ export default function GuardianConsent() {
         <button style={button} disabled={busy || !guardian || !approved} onClick={() => void act('approve')}>
           Approve personal learning
         </button>
+        <button style={{ ...button, background: '#38384a', color: '#fff' }} disabled={busy}
+          onClick={() => void act('decline')}>Not my learner — decline</button>
       </>}
       {signedIn && <section style={{ marginTop: 22 }}>
         <h2>Your consent records</h2>
