@@ -91,17 +91,31 @@ export default function HomeworkDetailPage() {
       const hw = raw as Homework;
       setHomework(hw);
 
-      const [teacherRes, questionRes, submissionRes] = await Promise.all([
+      const [teacherRes, questionRes, submissionRes, feedbackRes] = await Promise.all([
         supabase.from("profiles").select("full_name").eq("id", hw.teacher_id).maybeSingle(),
         // Never fetch model_answer into the learner browser.
         supabase.from("homework_questions").select("id,homework_id,question,order_num").eq("homework_id", hw.id).order("order_num"),
-        supabase.from("homework_submissions").select("id,status,photo_url,mark,feedback,feedback_released_at,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", identity!.studentId).maybeSingle(),
+        supabase.from("homework_submissions").select("id,status,photo_url,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", identity!.studentId).maybeSingle(),
+        supabase.rpc("get_student_homework_feedback", { p_homework_id: hw.id }),
       ]);
 
       setTeacher(teacherRes.data?.full_name ?? "Teacher");
       setQuestions((questionRes.data as HomeworkQuestion[]) ?? []);
 
-      const sub = submissionRes.data as SubmissionRow | null;
+      // Marks and written feedback are returned only by the learner-scoped
+      // release-aware RPC. Never request unreleased results from the base table.
+      const protectedResult = feedbackRes.error ? null : feedbackRes.data as
+        | { mark?: number | null; feedback?: string | null; feedback_released_at?: string | null }
+        | null;
+      const rawSub = submissionRes.data;
+      const sub: SubmissionRow | null = rawSub ? {
+        ...rawSub,
+        mark: protectedResult?.feedback_released_at ? protectedResult.mark ?? null : null,
+        feedback: protectedResult?.feedback_released_at ? protectedResult.feedback ?? null : null,
+        feedback_released_at: protectedResult?.feedback_released_at ?? null,
+        photo_url: rawSub.photo_url ?? null,
+        returned_reason: rawSub.returned_reason ?? null,
+      } as SubmissionRow : null;
       setSubmission(sub);
       if (sub?.photo_url) setPhotoPreview(sub.photo_url);
 
