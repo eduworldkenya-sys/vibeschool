@@ -17,7 +17,7 @@ function LineChart({series,keyName,label}:{series:Point[];keyName:"connected_sch
 
 export default function HQSchoolsIntelligence(){
  const [days,setDays]=useState(30);const [trend,setTrend]=useState<Trend|null>(null);const [county,setCounty]=useState("");const [detail,setDetail]=useState<CountyDetail|null>(null);const [error,setError]=useState("");const [loading,setLoading]=useState(true)
- const {countyNames:counties,error:countyError}=useKenyaCounties()
+ const {countyNames:counties}=useKenyaCounties()
  const load=useCallback(async()=>{setLoading(true);setError("");const {data,error:e}=await hqSupabase.rpc("hq_school_network_trend",{p_days:days});if(e){setTrend(null);setError("Network trend intelligence is not commissioned in this environment yet.")}else setTrend(data as Trend);setLoading(false)},[days])
  useEffect(()=>{void load()},[load])
  useEffect(()=>{if(!county){setDetail(null);return}void(async()=>{const {data,error:e}=await hqSupabase.rpc("hq_school_network_county_detail",{p_county:county,p_days:days});if(!e)setDetail(data as CountyDetail)})()},[county,days])
