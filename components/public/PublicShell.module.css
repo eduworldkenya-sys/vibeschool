@@ -9,3 +9,9 @@
 .footerGroup summary:focus-visible{outline:2px solid #7c3aed;outline-offset:4px;border-radius:4px}
 @media(min-width:641px){.footerGroup summary{cursor:default}}
 @media(max-width:640px){.footerGroup{padding:8px 0;border-bottom:1px solid #e5e7eb}.footerGroup summary{min-height:44px;display:flex;align-items:center;justify-content:space-between}.footerGroup summary::after{content:'+';font-size:20px;color:#6b7280}.footerGroup[open] summary::after{content:'−'}.footerGroup .linkList{padding:3px 0 12px}.footerTop{row-gap:10px}}
+
+/* Optional compact canonical shell for the approved Pathways explorer. */
+.compactHeader .headerInner{max-width:1180px;justify-content:flex-start;gap:76px}.compactHeader .nav{margin:0;gap:40px}.compactHeader .nav a[aria-current=page]{border-bottom:3px solid #e6ab13;color:#0c345c}
+.compactFooter{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 24px;max-width:1180px;margin:auto;border-top:1px solid #e5e7eb;padding:16px 24px;background:#0c345c;color:#fff;font-size:12px;color-scheme:light}.compactFooter a{color:inherit;min-height:44px;display:inline-flex;align-items:center;text-underline-offset:3px}.compactFooter a:focus-visible{outline:3px solid #007e79;outline-offset:4px}
+@media(min-width:761px){.compactHeader .nav{display:flex}.compactHeader .mobileMenu{display:none}}
+@media(max-width:760px){.compactHeader .headerInner{justify-content:space-between;gap:12px}.compactHeader .nav{display:none}.compactHeader .mobileMenu{display:block}.compactFooter{padding:10px 20px;gap:0 18px;font-size:11px}}
