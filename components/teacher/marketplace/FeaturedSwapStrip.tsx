@@ -38,6 +38,6 @@ export default function FeaturedSwapStrip<T extends PublicSwap>({ swaps, onOpen,
       <div><p className={styles.badge}>DISCOVER</p><h3 id="featured-swaps-title">Featured swaps</h3><p>Possible matches and recently posted requests</p></div>
       <button type="button" className={styles.motionToggle} aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? "Resume movement" : "Pause movement"}</button>
     </div>
-    <div className={styles.featuredViewport}><div className={styles.featuredTrack + (paused || featured.length === 1 ? " " + styles.featuredPaused : "")}>{renderCards(false)}{featured.length > 1 && renderCards(true)}</div></div>
+    <div className={styles.featuredViewport}><div className={styles.featuredTrack + " " + styles.featuredReverse + (paused || featured.length === 1 ? " " + styles.featuredPaused : "")}>{renderCards(false)}{featured.length > 1 && renderCards(true)}</div></div>
   </section>;
 }
