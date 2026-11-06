@@ -83,9 +83,11 @@ async function verify() {
     // rather than locally filtering a truncated list of school results.
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(ORIGIN+'/schools',{waitUntil:'domcontentloaded'});
-    const county=page.getByRole('combobox',{name:'County'});
-    const subCounty=page.getByRole('combobox',{name:'Sub-county'});
-    const level=page.getByRole('combobox',{name:'Level'});
+    const selects=page.locator('main select');
+    assert.equal(await selects.count(),3,'expected county, sub-county and level filters');
+    const county=selects.nth(0);
+    const subCounty=selects.nth(1);
+    const level=selects.nth(2);
     await county.selectOption('Nakuru',{timeout:30000});
     await subCounty.selectOption('Gilgil',{timeout:30000});
     await level.selectOption('Primary',{timeout:30000});
