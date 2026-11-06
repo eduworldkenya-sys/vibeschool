@@ -5,6 +5,7 @@ import SearchableSelect from "@/components/ui/SearchableSelect";
 import { HQPage, HQPanel } from "@/components/hq/HQShell"
 import { supabase } from "@/lib/supabase"
 
+type Commissioning={counties_total:number;counties_verified:number;subcounties_total:number;subcounties_verified:number;wards_total:number;wards_verified:number;nakuru_legacy_subcounty_candidates:number;nakuru_legacy_ward_candidates:number;nakuru_unverified_subcounties:Array<{name:string;source:string;state:string}>;generated_at:string}
 type GeoItem={id:string;name:string;country_id?:string;county_id?:string;subcounty_id?:string;verification_state?:string}
 type Hierarchy={countries:GeoItem[];counties:GeoItem[];subcounties:GeoItem[];wards:GeoItem[]}
 type Summary={scope:Record<string,unknown>;schools:{total:number;verified_geography:number;unresolved_geography:number;conflicting_geography:number;mapped_coordinates:number};users:{school_memberships:number;unique_staff?:number;teachers:number;school_admins:number;learners:number;parents:number};activity:{events:number;active_schools:number;evidence:string};support:{open_cases:number;incidents:number};measurement?:{certified_from:string|null;historical_retention_claimable:boolean};freshness:{generated_at:string;activity_window_days:number}}
@@ -23,6 +24,8 @@ function Field({label,value,onChange,items,disabled=false}:{label:string;value:s
 function Evidence({children}:{children:ReactNode}){return <div className="geo-evidence">{children}</div>}
 
 export default function HQGeographyPage(){
+  const [commissioning,setCommissioning]=useState<Commissioning|null>(null)
+  const [commissioningError,setCommissioningError]=useState(false)
   const [hierarchy,setHierarchy]=useState<Hierarchy>({countries:[],counties:[],subcounties:[],wards:[]})
   const [summary,setSummary]=useState<Summary>(emptySummary)
   const [quality,setQuality]=useState<Quality|null>(null)
@@ -64,6 +67,7 @@ export default function HQGeographyPage(){
     setLoading(false)
   },[country,county,subcounty,ward,days,level,search])
 
+  useEffect(()=>{let active=true;void supabase.rpc("hq_geography_commissioning_status").then(({data,error})=>{if(!active)return;if(error||!data){setCommissioningError(true);return;}setCommissioning(data as Commissioning);setCommissioningError(false)});return()=>{active=false}},[])
   useEffect(()=>{void load()},[load])
   const openSchool=async(id:string)=>{setSelectedSchool(id);setSchool360(null);const {data,error:e}=await supabase.rpc("hq_school_360",{p_school_id:id,p_days:Number(days)});if(e){setError("School 360 is unavailable for this school.");return}setSchool360(data as School360)}
   const resetCountry=(v:string)=>{setCountry(v);setCounty("");setSubcounty("");setWard("");setSelectedSchool("");setSchool360(null)}
@@ -81,6 +85,15 @@ export default function HQGeographyPage(){
         <Field label="Country" value={country} onChange={resetCountry} items={hierarchy.countries}/><Field label="County" value={county} onChange={resetCounty} items={counties} disabled={!country&&hierarchy.countries.length>0}/><Field label="Sub-County" value={subcounty} onChange={resetSubcounty} items={subcounties} disabled={!county}/><Field label="Ward" value={ward} onChange={setWard} items={wards} disabled={!subcounty}/>
         <label className="geo-field"><span>Period</span><select value={days} onChange={e=>setDays(e.target.value)}><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option></select></label>
       </div></HQPanel>
+      <HQPanel title="Geography commissioning" description="Approved canonical data is separate from legacy reference candidates. Evidence is not automatic verification.">
+        {commissioningError?<div role="status" className="geo-empty">Commissioning evidence unavailable. No records have been changed.</div>:!commissioning?<div role="status" className="geo-loading">Loading commissioning evidence…</div>:<div className="geo-quality">
+          <Metric label="Verified counties" value={`${commissioning.counties_verified}/${commissioning.counties_total}`}/>
+          <Metric label="Verified subcounties" value={`${commissioning.subcounties_verified}/${commissioning.subcounties_total}`}/>
+          <Metric label="Verified wards" value={`${commissioning.wards_verified}/${commissioning.wards_total}`}/>
+          <Metric label="Nakuru legacy candidates" value={`${commissioning.nakuru_legacy_subcounty_candidates} subcounties · ${commissioning.nakuru_legacy_ward_candidates} ward rows`} note="Review only; not canonical"/>
+          <Evidence>Legacy location lists and national-government administrative subcounties may use different boundaries. Verify source, county and unit type before approving any records. No bulk promotion is enabled.</Evidence>
+        </div>}
+      </HQPanel>
       {error&&<div role="alert" className="geo-alert">{error}</div>}
       {loading?<div className="geo-loading">Loading owner-authorized evidence…</div>:<>
         <HQPanel title="NOW — Founder attention" description="Deterministic signals expose evidence and recommended investigation; they never authorize consequential action."><div className="geo-now"><Metric label="Geography gaps" value={geographyGapCount}/><Metric label="Teacher activation" value={teacherActivationCount}/><Metric label="Open support pressure" value={summary.support.open_cases}/><Metric label="Open incidents" value={summary.support.incidents}/></div></HQPanel>
