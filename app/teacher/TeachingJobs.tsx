@@ -19,6 +19,7 @@ export default function TeachingJobs() {
   const [retry, setRetry] = useState(0);
   const [query, setQuery] = useState("");
   const [county, setCounty] = useState("");
+  const [motionPaused, setMotionPaused] = useState(false);
   const { counties: officialCounties, countyNames } = useKenyaCounties();
   const [selected, setSelected] = useState<PublicJob | null>(null);
   useEffect(() => {
@@ -69,6 +70,30 @@ export default function TeachingJobs() {
     const term = query.trim().toLocaleLowerCase();
     return (!county || normalizeKenyaCounty(j.county, officialCounties) === county) && (!term || [j.title, j.school_name, j.county, j.location ?? "", j.description ?? ""].some(v => v.toLocaleLowerCase().includes(term)));
   }), [jobs, county, query, officialCounties]);
+  // Use only published vacancies already loaded for the grid. Prioritise a verified
+  // approaching deadline, then the newest postings; never invent featured records.
+  const featured = useMemo(() => {
+    const now = new Date();
+    const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    return [...visible].sort((a, b) => {
+      const priority = (job: PublicJob) => {
+        if (!job.closing_date) return Number.MAX_SAFE_INTEGER;
+        const date = Date.parse(job.closing_date.slice(0, 10) + "T00:00:00Z");
+        const days = (date - today) / 86400000;
+        return Number.isFinite(days) && days >= 0 && days <= 21 ? days : Number.MAX_SAFE_INTEGER;
+      };
+      return priority(a) - priority(b) || Date.parse(b.created_at ?? "") - Date.parse(a.created_at ?? "") || a.id.localeCompare(b.id);
+    }).slice(0, 6);
+  }, [visible]);
+  const featuredCards = (repeated: boolean) => featured.map(job => <article key={(repeated ? "duplicate-" : "featured-") + job.id} className={styles.featuredCard} aria-hidden={repeated ? true : undefined}>
+    <button type="button" tabIndex={repeated ? -1 : 0} className={styles.featuredButton} onClick={() => open(job)} aria-label={"View featured job: " + job.title + " at " + job.school_name}>
+      <span className={styles.badge}>{job.closing_date && Number.isFinite(Date.parse(job.closing_date)) && Date.parse(job.closing_date) - Date.now() <= 21 * 86400000 && Date.parse(job.closing_date) >= Date.now() - 86400000 ? "Closing soon" : "Teaching opportunity"}</span>
+      <strong>{job.title}</strong>
+      <span className={styles.featuredSchool}>{provided(job.school_name)}</span>
+      {provided(job.county) !== "Not provided" && <span className={styles.featuredSchool}>{job.county}</span>}
+      <span className={styles.view}>View details →</span>
+    </button>
+  </article>);
   return <div>
     {unavailable && <p role="status" className={styles.empty}>This job is no longer available. <button type="button" onClick={close}>Dismiss</button></p>}
     {loading ? <p role="status">Loading current vacancies…</p> : error ? <div role="alert"><p>Vacancies are temporarily unavailable.</p><button type="button" className={styles.retry} onClick={() => setRetry(n => n + 1)}>Try again</button></div> : jobs.length === 0 ? <p role="status">No approved teaching vacancies are listed right now.</p> : <>
@@ -76,6 +101,12 @@ export default function TeachingJobs() {
         <input aria-label="Search teaching vacancies" placeholder="Search jobs or schools" value={query} onChange={e => setQuery(e.target.value)} />
         <SearchableSelect label="Filter vacancies by county" value={county} onChange={setCounty} options={counties} placeholder="All counties" />
       </div>
+      {featured.length > 0 && <section className={styles.featured} aria-labelledby="featured-jobs-title">
+        <div className={styles.featuredHeading}><div><p className={styles.badge}>DISCOVER</p><h3 id="featured-jobs-title">Featured opportunities</h3><p>Closing soon and recently posted vacancies</p></div><button type="button" className={styles.motionToggle} aria-pressed={motionPaused} onClick={() => setMotionPaused(value => !value)}>{motionPaused ? "Resume movement" : "Pause movement"}</button></div>
+        <div className={styles.featuredViewport}>
+          <div className={styles.featuredTrack + (motionPaused ? " " + styles.featuredPaused : "")}>{featuredCards(false)}{featured.length > 1 && featuredCards(true)}</div>
+        </div>
+      </section>}
       {visible.length === 0 ? <p role="status" className={styles.empty}>No vacancies match these filters.</p> : <div aria-label="Current teaching vacancies" className={styles.cards}>
         {visible.map(job => <article key={job.id} className={styles.card}><button type="button" className={styles.cardButton} onClick={() => open(job)} aria-label={"View job: " + job.title + " at " + job.school_name}>
           <span className={styles.badge}>School job</span><h3>{job.title}</h3><p>{provided(job.school_name)}</p><p>{provided(job.county)} · {provided(job.location)}</p><small>Closes: {listingDate(job.closing_date)}</small><span className={styles.view}>View details →</span>
