@@ -1,6 +1,6 @@
 -- Bounded public school search filters over the canonical URL registry.
 -- No new school identities; use the same public profile projection as v1.
-create function public.schools_search_urls_public_v2(
+create or replace function public.schools_search_urls_public_v2(
  p_query text default null,
  p_county text default null,
  p_sub_county text default null,
@@ -28,7 +28,7 @@ $$;
 revoke all on function public.schools_search_urls_public_v2(text,text,text,text,integer) from public;
 grant execute on function public.schools_search_urls_public_v2(text,text,text,text,integer) to anon,authenticated;
 
-create function public.schools_public_filter_options_v1(p_county text default null)
+create or replace function public.schools_public_filter_options_v1(p_county text default null)
 returns table(option_kind text,option_value text)
 language sql stable security definer set search_path=public,pg_temp as $$
  select 'county'::text, btrim(r.county)::text
