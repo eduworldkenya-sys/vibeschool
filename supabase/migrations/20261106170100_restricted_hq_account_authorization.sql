@@ -58,6 +58,19 @@ begin
     v_body := pg_get_functiondef(v_oid);
     -- Production may already have the hotfix; rerunning must remain harmless.
     if strpos(v_body,v_to)>0 then continue; end if;
+    -- The pristine schema also contains an older one-line hq_assert_owner.
+    -- Inject the same fail-closed profile check at its first PL/pgSQL BEGIN;
+    -- preserve its existing owner/cron exceptions and every other statement.
+    if v_name='hq_assert_owner' and strpos(v_body,'public.hq_profile_is_active')=0 then
+      if v_body !~* '\\mbegin\\M' then raise exception 'Signature drift: %',v_name; end if;
+      v_body := regexp_replace(v_body,'\\mbegin\\M',
+        'BEGIN' || chr(10) ||
+        '  IF auth.uid() IS NOT NULL AND NOT public.hq_profile_is_active(auth.uid()) THEN RAISE EXCEPTION ''HQ access denied'' USING errcode=''42501''; END IF;',
+        'i');
+      execute v_body;
+      continue;
+    end if;
+
     if strpos(v_body,v_from)=0 then raise exception 'Signature drift: %',v_name; end if;
     if (length(v_body)-length(replace(v_body,v_from,'')))/length(v_from) <> 1 then
       raise exception 'Ambiguous replacement: %',v_name;
