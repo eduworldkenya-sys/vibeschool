@@ -10,6 +10,7 @@ import styles from "./marketplace.module.css";
 import detailStyles from "@/components/teacher/marketplace/listingDetails.module.css";
 import ListingDetailDialog from "@/components/teacher/marketplace/ListingDetailDialog";
 import ListingTabs from "@/components/teacher/marketplace/ListingTabs";
+import FeaturedSwapStrip from "@/components/teacher/marketplace/FeaturedSwapStrip";
 import { swapListing, validListingId } from "@/lib/public/teacherListings";
 
 type Level = "Primary" | "Junior School" | "Senior School";
@@ -183,6 +184,7 @@ export default function TeacherMarketplace(){
     {!userId&&!loading&&<p className={styles.hint}>You can browse swaps without an account. <Link href="/login?redirect=%2Fteacher%2Fmarketplace">Sign in to post or express interest.</Link></p>}
     <div className={styles.findHeading}><h3>Find swaps</h3><button className={styles.filterButton} onClick={()=>setFilters(!filters)} aria-expanded={filters}><SlidersHorizontal size={17}/> Filters</button></div>
     {filters&&<div className={styles.filters}><label>County<SearchableSelect label="Filter county" value={filterCounty} options={COUNTIES} placeholder="Any county" onChange={setFilterCounty}/></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
+    {!loading && visible.length > 0 && <FeaturedSwapStrip swaps={visible} mine={mine} onOpen={viewDetails} />}
     {loading?<p role="status">Loading available swaps…</p>:visible.length===0?<p className={styles.empty}>No swap listings match yet. Post yours so teachers can find you.</p>:
      <div className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level;return <article className={detailStyles.card} key={l.id}>
       <button type="button" className={detailStyles.cardButton} onClick={()=>viewDetails(l)} aria-label={"View swap: "+l.current_county+" to "+l.preferred_county}>
