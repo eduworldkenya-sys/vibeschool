@@ -3,48 +3,156 @@ import type { Metadata } from "next"
 import { PublicHeader } from "@/components/public/PublicHeader"
 import { PublicFooter } from "@/components/public/PublicFooter"
 
-export const metadata: Metadata = { title: "About VibeSchool", description: "VibeSchool's mission, vision and connected education model for learners, teachers, families and schools in Kenya." }
+const description = "VibeSchool is a Kenyan education technology platform developed by Gilowinc Investment, connecting teaching, learning, assessment, tutoring and school services."
 
-const audiences = [
-  ["Learners", "Learn in a clearer structure, practise with purpose and understand what to work on next."],
-  ["Teachers", "Plan, teach, assess and act on evidence without rebuilding context across disconnected tools."],
-  ["Families", "Understand relevant progress, where support may help and how home can reinforce learning."],
-  ["Schools", "Coordinate curriculum, people, learning activity and evidence around a shared educational picture."],
-  ["Institutions", "Inspect a platform designed around traceable educational objects, role boundaries and responsible adoption."],
-  ["Public sector", "Engage with a Kenyan education platform that treats provenance, child protection and evidence as product requirements."],
-]
-
-const northStar = [
-  ["KNOW", "Establish trusted curriculum, learner, class, school and relationship context."],
-  ["PLAN", "Translate curriculum intent into schemes, lessons and appropriate learning activity."],
-  ["TEACH", "Connect the real teaching occurrence to what was planned."],
-  ["LEARN", "Give learners meaningful resources, tasks, practice and participation."],
-  ["PROVE", "Capture evidence through work, observation, submission and assessment."],
-  ["ADAPT", "Use evidence to identify strengths, gaps, uncertainty and intervention needs."],
-  ["REPORT", "Communicate the right educational context to the right person."],
-  ["PROGRESS", "Carry useful learner state into the next lesson, term, pathway and decision."],
-]
-
-export default function AboutPage() {
-  return <div className="about-page"><PublicHeader /><main id="main-content">
-    <section className="hero"><div className="wrap"><p className="eyebrow">VIBESCHOOL · MISSION & VISION</p><h1>Build the Education Operating System that turns curriculum into <em>better decisions for every learner.</em></h1><p className="lead">Our mission is to connect coordinated teaching, learner evidence and educational understanding so that the next action is clearer for the people responsible for learning.</p><p className="vision">Every learner known. Every lesson connected. Every outcome visible.</p><div className="actions"><Link href="/product" className="primary">See how the system connects</Link><Link href="/contact" className="secondary">Talk to VibeSchool</Link></div></div></section>
-
-    <section className="section wrap"><p className="eyebrow dark">WHY THIS EXISTS</p><div className="two"><h2>People are already trying. The system should help them connect the dots.</h2><div><p>Teachers are busy. Families care. Learners are trying to progress. School leaders coordinate people, curriculum and results.</p><p>Fragmentation makes that work harder: curriculum in one place, lesson planning in another, classroom activity somewhere else, evidence in books or spreadsheets, and important decisions made with only part of the picture.</p><p><strong>VibeSchool is built around preserving the learning story from intention to next action.</strong></p></div></div></section>
-
-    <section className="section darkSection"><div className="wrap"><p className="eyebrow">THE NORTH-STAR LOOP</p><h2>Know → Plan → Teach → Learn → Prove → Adapt → Report → Progress.</h2><p className="darkIntro">The loop is not marketing decoration. It is the product test for whether a new capability strengthens the educational journey or merely adds another isolated feature.</p><div className="northStar">{northStar.map(([t,d],i)=><article key={t}><span>{String(i+1).padStart(2,'0')}</span><h3>{t}</h3><p>{d}</p></article>)}</div></div></section>
-
-    <section className="section wrap"><p className="eyebrow dark">THE CANONICAL LEARNING CHAIN</p><div className="two"><h2>The lesson, the evidence and the next action should belong to the same story.</h2><div><p className="chain">Curriculum → Learning outcomes → Scheme → Lesson plan → Teaching occurrence → Evidence → Assessment → Learner outcome / mastery → Intervention / reflection → Next learning action.</p><p>This is the product backbone. VibeSchool should extend this chain rather than build parallel systems that force teachers, learners or schools to reconstruct context later.</p></div></div></section>
-
-    <section className="section principle"><div className="wrap"><p className="eyebrow dark">TEACHER-FIRST, NOT TEACHER-ONLY</p><div className="two"><h2>Teaching is where curriculum becomes real learner activity and evidence.</h2><div><p>Teachers are the practical operational entry point because they turn curriculum intent into classroom reality. The learner educational state remains the continuing product asset around which role-appropriate learner, family and school experiences can be built.</p><p><strong>Teacher teaches → learner acts → evidence forms → understanding improves → family understands → school sees → next action becomes clearer.</strong></p></div></div></div></section>
-
-    <section className="section wrap"><p className="eyebrow dark">WHO VIBESCHOOL SERVES</p><h2>Different responsibilities. One educational journey.</h2><p className="intro">No single all-access portal should flatten learners, teachers, families and school leaders into the same user. Each role should receive the context appropriate to its responsibility.</p><div className="audiences">{audiences.map(([t,d])=><article key={t}><h3>{t}</h3><p>{d}</p></article>)}</div></section>
-
-    <section className="section trust"><div className="wrap"><p className="eyebrow dark">HOW WE EARN TRUST</p><div className="two"><h2>Trust is a product requirement, not a slogan.</h2><div><p><strong>Evidence before assumptions.</strong> Important educational claims should be traceable to evidence or clearly presented as guidance or uncertainty.</p><p><strong>Human responsibility stays central.</strong> AI may explain, draft, organise or recommend; it is not the authority that manufactures curriculum truth, learner evidence or consequential educational decisions.</p><p><strong>Privacy follows purpose.</strong> Access to learner information should reflect authorised role, relationship and legitimate need.</p><p><strong>Kenyan realities matter.</strong> Ordinary Android phones, bandwidth, curriculum context and the way schools and families actually work shape the product.</p></div></div></div></section>
-
-    <section className="section wrap"><p className="eyebrow dark">WHAT WE WILL NOT BECOME</p><div className="two"><h2>VibeSchool is not trying to win a module-count contest.</h2><div><p>We will not define the product as a cheap generic ERP, an AI wrapper, a marks-only reporting system or a collection of disconnected school pages.</p><p>Public claims should remain demonstrable. Where a capability is still undergoing operational or pilot validation, the website should say so rather than imply maturity that has not been proven.</p><Link href="/trust" className="textLink">Read the Trust Centre →</Link></div></div></section>
-
-    <section className="cta"><div className="wrap"><p className="eyebrow">SEE THE PRODUCT MODEL</p><h2>Do not take the mission on faith. Inspect how VibeSchool connects learning.</h2><p>Explore the product model, public learning and Pathways experience, or discuss what a connected learning system would need to prove in your school.</p><div className="actions center"><Link href="/product" className="primary">Explore the product</Link><Link href="/contact" className="secondary">Contact VibeSchool</Link></div></div></section>
-  </main><PublicFooter /><style>{styles}</style></div>
+export const metadata: Metadata = {
+  title: "About VibeSchool | Kenyan Education Technology Platform",
+  description,
+  alternates: { canonical: "/about" },
+  openGraph: {
+    title: "About VibeSchool | Kenyan Education Technology Platform",
+    description,
+    url: "/about",
+    siteName: "VibeSchool",
+    locale: "en_KE",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title: "About VibeSchool", description },
 }
 
-const styles=`.about-page{font-family:var(--font-jakarta),Arial,sans-serif;color:#101827;background:#f8f8f5;line-height:1.7}.about-page *{box-sizing:border-box}.wrap{max-width:1160px;margin:auto}.hero{background:#07111f;color:#fff;padding:92px 24px 105px}.eyebrow{font-family:var(--font-mono),monospace;letter-spacing:.16em;font-size:11px;font-weight:800;color:#c9aa50}.eyebrow.dark{color:#80651f}.hero h1,.section h2,.cta h2{font-family:var(--font-display),Arial,sans-serif;letter-spacing:-.04em;line-height:1.05}.hero h1{font-size:clamp(42px,6.5vw,76px);max-width:1020px;margin:18px 0 28px;font-weight:650}.hero h1 em{font-family:var(--font-serif),Georgia,serif;color:#d4b65b;font-weight:400}.lead{font-size:19px;color:#c6cfdb;max-width:820px}.vision{font-weight:850;font-size:clamp(19px,2.5vw,28px);color:#fff;margin-top:25px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}.primary,.secondary{display:inline-flex;padding:13px 20px;border-radius:9px;text-decoration:none;font-weight:800}.primary{background:#d0b154;color:#07111f}.secondary{border:1px solid #738094;color:#fff}.section{padding:96px 24px}.section h2,.cta h2{font-size:clamp(33px,4.7vw,55px);margin:10px 0 25px}.two{display:grid;grid-template-columns:1fr 1fr;gap:72px}.two p,.intro{color:#596474;font-size:17px}.chain{font-weight:800;color:#17243a!important}.darkSection{background:#07111f;color:#fff}.darkIntro{max-width:760px;color:#aeb9c7}.northStar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:44px;background:#263445;border:1px solid #263445}.northStar article{background:#0b1726;padding:26px 22px;min-height:220px}.northStar span{font-family:var(--font-mono);font-size:11px;color:#d0b154}.northStar h3{font-size:20px;margin:12px 0 8px}.northStar p{font-size:14px;color:#9ba7b5;margin:0}.principle{background:#ece8dc}.audiences{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:38px}.audiences article{background:#fff;border:1px solid #e2e5e8;border-radius:13px;padding:27px}.audiences h3{margin:0 0 8px}.audiences p{margin:0;color:#626c78}.trust{background:#eeeae0}.textLink{font-weight:800;color:#725914;text-decoration:none}.cta{text-align:center;background:#13243a;color:#fff;padding:88px 24px}.cta p{color:#c5ced8;max-width:720px;margin:0 auto}.center{justify-content:center}@media(max-width:900px){.northStar{grid-template-columns:repeat(2,1fr)}}@media(max-width:800px){.hero{padding:68px 20px 76px}.section{padding:68px 20px}.two{grid-template-columns:1fr;gap:18px}.northStar{grid-template-columns:1fr}.northStar article{min-height:0}.audiences{grid-template-columns:1fr}.cta{padding:68px 20px}}`
+const audiences = [
+  ["Learners", "Find resources, practise and understand what to learn next."],
+  ["Teachers", "Plan lessons, teach, assess and support learner progress."],
+  ["Parents & families", "Stay informed and support learning at home."],
+  ["Schools", "Connect school activities, teaching and learner progress."],
+] as const
+
+const values = [
+  ["Accessible", "Designed for Kenyan classrooms, families and everyday devices."],
+  ["Connected", "Bringing learning activities and people together."],
+  ["Trustworthy", "Respecting privacy, evidence and human responsibility."],
+  ["Learner-focused", "Making each next learning step clearer."],
+] as const
+
+const organisation = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://vibeschool.co.ke/#organization",
+  name: "VibeSchool",
+  url: "https://vibeschool.co.ke",
+  description,
+  parentOrganization: { "@type": "Organization", name: "Gilowinc Investment" },
+  areaServed: { "@type": "Country", name: "Kenya" },
+  sameAs: ["https://www.tiktok.com/@vibeschoolkenya"],
+}
+
+export default function AboutPage() {
+  return <div className="about-page">
+    <PublicHeader />
+    <main id="main-content">
+      <section className="about-hero">
+        <div className="about-wrap">
+          <p className="about-eyebrow">ABOUT VIBESCHOOL</p>
+          <h1>Who We Are</h1>
+          <p className="about-lead">VibeSchool is a Kenyan education technology platform developed by Gilowinc Investment. It provides digital solutions for schools, teachers, learners and parents, connecting curriculum, teaching, learning, assessment, tutoring and school services in one platform.</p>
+          <div className="about-actions">
+            <Link href="/product" className="about-primary">Explore VibeSchool</Link>
+            <Link href="/contact" className="about-secondary">Contact us</Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="about-section about-wrap" aria-labelledby="about-mission">
+        <div className="about-duo">
+          <article>
+            <p className="about-eyebrow about-dark">OUR MISSION</p>
+            <h2 id="about-mission">Make learning more connected.</h2>
+            <p>Build the Education Operating System that turns curriculum into coordinated teaching, teaching into evidence, evidence into understanding, and understanding into better decisions for every learner.</p>
+          </article>
+          <article>
+            <p className="about-eyebrow about-dark">OUR VISION</p>
+            <h2>Every learner known. Every lesson connected. Every outcome visible.</h2>
+            <p>Help teachers, learners, families and schools make better-informed educational decisions.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="about-section about-soft">
+        <div className="about-wrap about-story">
+          <div>
+            <p className="about-eyebrow about-dark">WHY WE EXIST</p>
+            <h2>Education works better when people are connected.</h2>
+          </div>
+          <p>Teachers plan and teach, learners practise, and families and schools support progress. VibeSchool brings those parts of education closer together, reducing the need to switch between disconnected tools.</p>
+        </div>
+      </section>
+
+      <section className="about-section about-wrap">
+        <p className="about-eyebrow about-dark">WHO WE SERVE</p>
+        <h2>Built for the people behind learning.</h2>
+        <div className="about-grid">
+          {audiences.map(([title, body]) => <article key={title}><h3>{title}</h3><p>{body}</p></article>)}
+        </div>
+      </section>
+
+      <section className="about-section about-soft">
+        <div className="about-wrap">
+          <p className="about-eyebrow about-dark">OUR VALUES</p>
+          <h2>What guides our work.</h2>
+          <div className="about-grid">
+            {values.map(([title, body]) => <article key={title}><h3>{title}</h3><p>{body}</p></article>)}
+          </div>
+          <p className="about-trust">Learner safety, responsible technology and accurate educational information matter. <Link href="/trust">Read our Trust Centre</Link>.</p>
+        </div>
+      </section>
+
+      <section className="about-cta">
+        <div className="about-wrap">
+          <h2>See what VibeSchool offers.</h2>
+          <p>Explore our education platform or get in touch.</p>
+          <div className="about-actions about-center">
+            <Link href="/product" className="about-primary">Explore the product</Link>
+            <Link href="/contact" className="about-secondary">Contact VibeSchool</Link>
+          </div>
+        </div>
+      </section>
+    </main>
+    <PublicFooter />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organisation).replace(/</g, "\\u003c") }} />
+    <style>{styles}</style>
+  </div>
+}
+
+const styles = `
+.about-page{font-family:var(--font-jakarta),Arial,sans-serif;color:#101827;background:#f8f8f5;line-height:1.65}
+.about-page *{box-sizing:border-box}
+.about-page .about-wrap{max-width:1120px;margin:0 auto}
+.about-page .about-hero{background:#07111f;color:#fff;padding:80px 24px 88px}
+.about-page .about-eyebrow{font:800 11px var(--font-mono),monospace;letter-spacing:.15em;color:#d0b154}
+.about-page .about-dark{color:#80651f}
+.about-page h1,.about-page h2{font-family:var(--font-display),Arial,sans-serif;letter-spacing:-.035em;line-height:1.13}
+.about-page h1{font-size:clamp(45px,7vw,76px);margin:16px 0 22px}
+.about-page h2{font-size:clamp(28px,4vw,43px);margin:12px 0 20px}
+.about-page .about-lead{max-width:850px;font-size:clamp(18px,2vw,22px);color:#e2e7ef}
+.about-page .about-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.about-page .about-primary,.about-page .about-secondary{display:inline-flex;justify-content:center;align-items:center;padding:12px 20px;border-radius:9px;text-decoration:none;font-weight:800;min-height:46px}
+.about-page .about-primary{background:#d0b154;color:#07111f}
+.about-page .about-secondary{border:1px solid #8693a5;color:#fff}
+.about-page .about-section{padding:70px 24px}
+.about-page .about-duo{display:grid;grid-template-columns:1fr 1fr;gap:52px}
+.about-page .about-duo article{min-width:0}
+.about-page .about-section p:not(.about-eyebrow){color:#536072;font-size:17px}
+.about-page .about-soft{background:#f0eee7}
+.about-page .about-story{display:grid;grid-template-columns:1fr 1fr;gap:55px;align-items:center}
+.about-page .about-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:30px}
+.about-page .about-grid article{border:1px solid #e0e4e8;border-radius:12px;background:#fff;padding:22px}
+.about-page .about-grid h3{font-size:19px;margin:0 0 8px}
+.about-page .about-grid p{font-size:15px!important;margin:0}
+.about-page .about-trust{margin:24px 0 0}
+.about-page .about-trust a{color:#71591b;font-weight:750}
+.about-page .about-cta{background:#13243a;color:#fff;text-align:center;padding:75px 24px}
+.about-page .about-cta p{color:#d0d7e1}
+.about-page .about-center{justify-content:center}
+@media(max-width:900px){.about-page .about-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.about-page .about-hero{padding:58px 20px 64px}.about-page .about-section{padding:54px 20px}.about-page .about-duo,.about-page .about-story{grid-template-columns:1fr;gap:22px}.about-page .about-grid{grid-template-columns:1fr}.about-page .about-cta{padding:58px 20px}.about-page .about-actions>a{flex:1 1 180px}}
+`
