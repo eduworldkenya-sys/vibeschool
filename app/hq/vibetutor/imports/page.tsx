@@ -1,4 +1,5 @@
 "use client"
+import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 
 import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from "react"
@@ -124,7 +125,7 @@ export default function VibeTutorImportsHQ() {
       <HQPanel title="Add a tutor lead" description="Required: full name, county and source. Other details are optional so you can capture a lead quickly.">
         <form onSubmit={save} style={{padding:14,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(185px,1fr))",gap:11}}>
           {([["full_name","Full name *"],["phone","Phone number"],["email","Email"],["town","Town / area"],["levels","Levels (comma separated)"],["subjects","Subjects (comma separated)"],["qualifications","Qualifications"],["experience_years","Years experience"],["rate_kes","Rate (KES/hour)"],["source_name","Source name *"],["source_url","Source URL"],["source_notes","Source notes"]] as const).map(([key,title])=><label key={key} style={{...labelStyle,gridColumn:key==="source_notes"?"1 / -1":undefined}}>{title}{key==="source_notes"?<textarea style={{...inputStyle,minHeight:70}} value={draft[key]} onChange={e=>update(key,e.target.value)}/>:<input style={inputStyle} required={key==="full_name"||key==="source_name"} type={key==="email"?"email":key==="source_url"?"url":key==="experience_years"||key==="rate_kes"?"number":"text"} min={key==="experience_years"||key==="rate_kes"?"0":undefined} value={draft[key]} onChange={e=>update(key,e.target.value)}/>}</label>)}
-          <label style={labelStyle}>County *<select required style={inputStyle} value={draft.county} onChange={e=>update("county",e.target.value)}><option value="">Select county</option>{KENYAN_COUNTIES.map(county=><option key={county} value={county}>{county}</option>)}</select></label>
+          <label style={labelStyle}>County *<SearchableSelect required label="County" value={draft.county} onChange={value=>update("county",value)} options={KENYAN_COUNTIES} placeholder="Search county" style={inputStyle}/></label>
           <label style={labelStyle}>Availability<select style={inputStyle} value={draft.availability} onChange={e=>update("availability",e.target.value)}><option value="">Select availability (optional)</option>{AVAILABILITY_OPTIONS.map(option=><option key={option} value={option}>{option}</option>)}</select></label>
           <label style={labelStyle}>Teaching mode<select style={inputStyle} value={draft.teaching_mode} onChange={e=>update("teaching_mode",e.target.value)}><option value="either">Either</option><option value="online">Online</option><option value="physical">In person</option></select></label>
           <div style={{gridColumn:"1 / -1"}}><button type="submit" disabled={busy} style={{...hqButtonStyle,background:"#1d4ed8",borderColor:"#2563eb"}}>{busy?"Saving…":"Save private lead"}</button></div>
