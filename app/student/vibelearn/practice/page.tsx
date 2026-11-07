@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
+import { useStudent } from '@/lib/student-context'
 import { getGroundedChapterPractice, recordGroundedPracticeAnswer, recordVibeLearnPracticeAnswer, type GroundedPracticeQuestion, type GroundedPracticeSource } from '@/lib/student/vibelearn'
 
 type BankQuestion = {
@@ -50,6 +51,7 @@ function asResult(value: unknown): Record<string, unknown> {
 
 export default function VibeLearnPracticePage() {
   const router = useRouter()
+  const { identity, loading: identityLoading } = useStudent()
   const params = useSearchParams()
   const requestedSubject = params.get('subject')?.replaceAll('-', ' ') ?? ''
   const requestedTopic = params.get('topic')?.replaceAll('-', ' ') ?? ''
@@ -80,6 +82,10 @@ export default function VibeLearnPracticePage() {
       setLoading(true)
       setError('')
       try {
+        if (!hasReaderSource && !identityLoading && identity && !/^form\s*[1-4]$/i.test(identity.className.trim())) {
+          if (!cancelled) { setSourceContext(null); setQuestions([]) }
+          return
+        }
         if (hasReaderSource) {
           const grounded = await getGroundedChapterPractice(requestedPublicationId, requestedChapterId, 10)
           if (!cancelled) {
@@ -107,7 +113,7 @@ export default function VibeLearnPracticePage() {
     }
     void load()
     return () => { cancelled = true }
-  }, [hasReaderSource, requestedPublicationId, requestedChapterId, requestedSubject, requestedTopic])
+  }, [hasReaderSource, requestedPublicationId, requestedChapterId, requestedSubject, requestedTopic, identityLoading, identity?.className])
 
   const question = questions[index] ?? null
   const finished = questions.length > 0 && index >= questions.length
@@ -153,7 +159,7 @@ export default function VibeLearnPracticePage() {
 
     {sourceContext && <section style={{ ...card, borderColor: '#c7d2fe', background: '#f5f3ff' }}><div style={eyebrowDark}>Exact learning source</div><strong style={{ display: 'block', margin: '6px 0 3px' }}>{sourceContext.publicationTitle} · {sourceContext.chapterTitle}</strong><p style={muted}>{[sourceContext.grade, sourceContext.subject].filter(Boolean).join(' · ') || 'VibeTextbook'} · {sourceContext.assessableBlockCount} assessable blocks · {sourceContext.verifiedOutcomeCount} verified outcomes</p><p style={{ ...muted, marginTop: 8 }}>Questions come from authored assessable blocks in this exact unit. Answers are scored by the server, and mistakes retain a link back to their source section.</p></section>}
     {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
-    {loading ? <section style={card}>Loading questions…</section> : questions.length === 0 ? <section style={card}><strong>No grounded questions available</strong><p style={muted}>{sourceContext ? 'This unit is readable, but it has no authored, markable question blocks yet. Review the unit or choose another practice set.' : 'Choose another subject or topic from VibeLearn.'}</p></section> : finished ? <section style={card}><div style={eyebrowDark}>Session complete</div><h2 style={{ fontSize: 28, margin: '8px 0' }}>{scoreLabel}</h2><p style={muted}>Your answers and grounded mistakes are now part of your learning journey and revision evidence.</p><div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}><button style={primaryButton} onClick={restart}>Try again</button>{sourceContext && <button style={secondaryButton} onClick={() => router.push(backUrl)}>Review this unit</button>}<button style={secondaryButton} onClick={() => router.push('/student/vibelearn/mistakes')}>Open mistakes</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open revision plan</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/exams')}>Open exams</button></div></section> : question && <>
+    {loading ? <section style={card}>Loading questions…</section> : questions.length === 0 ? <section style={card}><strong>No grounded questions available</strong><p style={muted}>{sourceContext ? 'This unit is readable, but it has no authored, markable question blocks yet. Review the unit or choose another practice set.' : identity && !/^form\s*[1-4]$/i.test(identity.className.trim()) ? `Verified ${identity.className} practice questions are not available yet. You can continue with your assigned class exercises.` : 'No verified questions are available for this selection yet.'}</p>{!sourceContext && <button style={primaryButton} onClick={() => router.push('/student/exercises')}>Open class exercises</button>}</section> : finished ? <section style={card}><div style={eyebrowDark}>Session complete</div><h2 style={{ fontSize: 28, margin: '8px 0' }}>{scoreLabel}</h2><p style={muted}>Your answers and grounded mistakes are now part of your learning journey and revision evidence.</p><div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}><button style={primaryButton} onClick={restart}>Try again</button>{sourceContext && <button style={secondaryButton} onClick={() => router.push(backUrl)}>Review this unit</button>}<button style={secondaryButton} onClick={() => router.push('/student/vibelearn/mistakes')}>Open mistakes</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open revision plan</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/exams')}>Open exams</button></div></section> : question && <>
       <section style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}><div style={eyebrowDark}>Question {index + 1} of {questions.length}</div><div style={pill}>{question.kind === 'grounded' ? 'From this unit' : (question.topic ?? question.subject)}</div></div>
         <div style={progressTrack}><div style={{ ...progressFill, width: `${progress}%` }} /></div>
