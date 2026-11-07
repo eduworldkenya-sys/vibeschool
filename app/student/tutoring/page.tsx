@@ -19,7 +19,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 export default function StudentTuition() {
   const [rows, setRows] = useState<Invite[]>([]);
-  const [tab, setTab] = useState<"overview" | "tutors" | "lessons">("overview");
+  const [tab, setTab] = useState<"overview" | "tutors" | "lessons" | "classroom" | "messages" | "resources" | "assignments" | "progress" | "notes">("overview");
   const [token, setToken] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -102,7 +102,7 @@ export default function StudentTuition() {
   return <main style={{ maxWidth: 650, margin: "16px auto", display: "grid", gap: 14, padding: "10px 10px 80px", color: "var(--vs-text, #17251c)" }}>
     <Link href="/student/vibelearn">← Learn</Link>
     <header><h1 style={{ fontSize: 26, margin: "4px 0" }}>My Tuition</h1>
-      <p style={{ fontSize: 13, opacity: .75 }}>Private tutors, lessons and invitations.</p></header>
+      <p style={{ fontSize: 13, opacity: .75 }}>Your personal learning space.</p></header>
     {error && <p role="alert" style={{ color: "#b91c1c" }}>{error}</p>}
     {notice && <p role="status">{notice}</p>}
 
@@ -119,8 +119,19 @@ export default function StudentTuition() {
         <button type="button" style={{ ...action, background: "#fff", color: "#17251c", border: "1px solid #b5bdb6" }} onClick={dismissLink}>Back to My Tuition</button></>}
     </section>}
 
-    <nav aria-label="My Tuition sections" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, padding: 5, borderRadius: 12, background: "#f0eef9" }}>
-      {(["overview", "tutors", "lessons"] as const).map(item => <button key={item} type="button" aria-pressed={tab === item} onClick={() => setTab(item)} style={{ minHeight: 44, border: 0, borderRadius: 9, background: tab === item ? "#fff" : "transparent", color: tab === item ? "#312e81" : "#55546b", fontWeight: 700, textTransform: "capitalize", cursor: "pointer" }}>{item}</button>)}
+    <nav aria-label="My Tuition sections" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+      {([
+        ["tutors", "My Tutors", "Connected tutors", "♙"],
+        ["lessons", "Timetable", "Private lessons", "▦"],
+        ["classroom", "Classroom", "Video lessons", "▣"],
+        ["messages", "Messages", "Talk to tutor", "▢"],
+        ["resources", "Resources", "Shared materials", "▤"],
+        ["assignments", "Assignments", "Tuition tasks", "☑"],
+        ["progress", "My Progress", "Learning results", "▥"],
+        ["notes", "Lesson Notes", "Past lessons", "▧"]
+      ] as const).map(([key, title, description, symbol]) => <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)} style={{ minHeight: 138, padding: 18, border: "1px solid var(--vs-border, #dcdce8)", borderRadius: 18, background: tab === key ? "var(--vs-surface, #f5f5f5)" : "transparent", color: "inherit", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "space-between", cursor: "pointer" }}>
+        <span aria-hidden="true" style={{ fontSize: 26 }}>{symbol}</span><strong style={{ fontSize: 17 }}>{title}</strong><span style={{ fontSize: 12, opacity: .7 }}>{description}</span>
+      </button>)}
     </nav>
     {loading ? <section role="status" style={panel}>Loading private tuition…</section> : <>
       {tab === "overview" && <section style={panel} aria-label="Private tuition overview">
@@ -148,9 +159,14 @@ export default function StudentTuition() {
         {connected.map(row => <div key={row.id} style={{ fontSize: 14, padding: "10px 0", borderTop: "1px solid #eee" }}><strong>{row.tutor}</strong> · {row.status === "accepted" ? "Connected" : "Awaiting guardian approval"}{row.status === "accepted" && <PrivateTuitionTools invitationId={row.id} isTutor={false} />}</div>)}
       </section>}
       </>}
-      {tab === "lessons" && <section style={panel} aria-label="Private tuition lessons">
+      {(tab === "lessons" || tab === "classroom") && <section style={panel} aria-label="Private tuition lessons">
         <h2 style={{ fontSize: 17, margin: "0 0 10px" }}>My lessons</h2>
         {approved.length === 0 ? <p style={{ fontSize: 13, opacity: .75 }}>Approved tutor connections are needed before lessons can be scheduled.</p> : approved.map(row => <div key={row.id} style={{ padding: "12px 0", borderTop: "1px solid #eee" }}><strong>{row.tutor}</strong><PrivateTuitionTools invitationId={row.id} isTutor={false} /></div>)}
+      </section>}
+      {(["messages", "resources", "assignments", "progress", "notes"] as const).includes(tab as "messages" | "resources" | "assignments" | "progress" | "notes") && <section style={panel}>
+        <h2 style={{ marginTop: 0 }}>{({ messages: "Messages", resources: "Resources", assignments: "Assignments", progress: "My Progress", notes: "Lesson Notes" } as Record<string, string>)[tab]}</h2>
+        <p style={{ fontSize: 13, opacity: .75 }}>Tuition-specific tools are accessed through your approved tutor connection. Only shared and authorised information is available.</p>
+        {approved.length === 0 ? <p>No approved tutor connection yet.</p> : approved.map(row => <div key={row.id} style={{ padding: "12px 0", borderTop: "1px solid var(--vs-border, #ddd)" }}><strong>{row.tutor}</strong><PrivateTuitionTools invitationId={row.id} isTutor={false} /></div>)}
       </section>}
       <p style={{ fontSize: 12, opacity: .75 }}>Private tuition only. School records stay separate. Under-18 connections require guardian approval.</p>
     </>}
