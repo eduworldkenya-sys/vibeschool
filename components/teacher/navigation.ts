@@ -12,6 +12,7 @@ export const teacherTools = {
   today: [{ label: 'Today', href: '/teacher/pulse', icon: Home }, { label: 'Twin', href: '/teacher/twin', icon: Sparkles }, { label: 'Notifications', href: '/teacher/notifications', icon: Bell }],
   teach: [
     { label: 'Teach today', href: '/teacher/teach-today', icon: BookOpen },
+    { label: 'My tutoring', href: '/teacher/tutoring', icon: GraduationCap },
     { label: 'Timetable', href: '/teacher/timetable', icon: CalendarDays },
     { label: 'Subjects', href: '/teacher/subjecthub', icon: GraduationCap },
     { label: 'Curriculum map', href: '/teacher/curriculum', icon: Library },
@@ -46,7 +47,6 @@ export const teacherTools = {
   me: [
     { label: 'Profile', href: '/teacher/profile', icon: UserRound },
     { label: 'My school', href: '/teacher/schoolhub', icon: School },
-    { label: 'My tutoring', href: '/teacher/tutoring', icon: GraduationCap },
     { label: 'Marketplace · Jobs, Swap', href: '/teacher/marketplace', icon: ArrowLeftRight },
     { label: 'TPAD', href: '/teacher/tpad', icon: ClipboardCheck },
     { label: 'Credits', href: '/teacher/credits', icon: Wallet },
