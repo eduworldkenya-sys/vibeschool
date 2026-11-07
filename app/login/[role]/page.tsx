@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
+import { learnerLoginEmail } from '@/lib/learner/school-login'
 
 const ROLE_CONFIG = {
   teacher: { label: 'Teacher', destination: '/teacher/pulse', email: true },
@@ -26,6 +27,7 @@ export default function RoleLoginPage() {
   const role = (params.role || '').toLowerCase() as RoleKey
   const config = ROLE_CONFIG[role]
   const [identifier, setIdentifier] = useState('')
+  const [schoolCode, setSchoolCode] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -39,9 +41,10 @@ export default function RoleLoginPage() {
     if (!identifier.trim() || !password) { setMessage(config.email ? 'Enter your email and password.' : 'Enter your admission number and PIN.'); return }
     setBusy(true)
     try {
-      const email = config.email ? identifier.trim().toLowerCase() : `${identifier.trim().toLowerCase().replace(/\s/g, '')}@vs.internal`
+      const email = config.email ? identifier.trim().toLowerCase() : learnerLoginEmail(identifier, schoolCode)
+      if (!email) { setMessage('Enter your learner sign-in ID or admission number.'); return }
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error || !data.user) { setMessage(config.email ? 'Incorrect email or password.' : 'Wrong admission number or PIN. Ask your teacher if you need help.'); return }
+      if (error || !data.user) { setMessage(config.email ? 'Incorrect email or password.' : 'Check your school code, admission number and PIN, or use your full sign-in ID.'); return }
 
       const { data: accessState, error: accessError } = await supabase.rpc('get_my_auth_access_state')
       if (accessError || !accessState || typeof accessState !== 'object' || Array.isArray(accessState)) {
@@ -81,7 +84,8 @@ export default function RoleLoginPage() {
       const requested = safeInternalPath(searchParams.get('redirect'))
       const target = state === 'ready' && requested && roleCanVisit(actualRole, requested) ? requested : destination
       router.replace(target)
-    } finally { setBusy(false) }
+    } catch { setMessage('Could not sign in. Check your connection and try again.') }
+    finally { setBusy(false) }
   }
 
   async function google() {
@@ -124,7 +128,8 @@ export default function RoleLoginPage() {
       </nav>
       {message && <div className="message" role="alert" aria-live="polite">{message}</div>}
       {config.email && <><button className="secondary google-first" disabled={busy} onClick={()=>void google()}><svg className="google-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="#4285F4" d="M21.35 12.23c0-.71-.06-1.23-.2-1.77H12v3.5h5.37a4.6 4.6 0 0 1-2 3.02v2.5h3.22c1.88-1.74 2.76-4.3 2.76-7.25Z"/><path fill="#34A853" d="M12 21.72c2.7 0 4.97-.89 6.63-2.44l-3.22-2.5c-.89.6-2.03.96-3.41.96-2.62 0-4.84-1.77-5.64-4.14H3.05v2.58A10 10 0 0 0 12 21.72Z"/><path fill="#FBBC05" d="M6.36 13.6a6 6 0 0 1 0-3.2V7.82H3.05a10 10 0 0 0 0 8.36l3.31-2.58Z"/><path fill="#EA4335" d="M12 6.28c1.43 0 2.71.49 3.72 1.45l2.79-2.79A9.5 9.5 0 0 0 12 2.28a10 10 0 0 0-8.95 5.54l3.31 2.58c.8-2.37 3.02-4.12 5.64-4.12Z"/></svg> Continue with Google</button><div className="or"><span/>or continue with email<span/></div></>}
-      <div className="field"><label htmlFor="identifier">{config.email ? 'Email address' : 'Admission number'}</label><input id="identifier" type={config.email ? 'email' : 'text'} autoComplete="username" placeholder={config.email ? 'you@example.com' : 'e.g. ADM001'} value={identifier} onChange={e=>setIdentifier(e.target.value)} disabled={busy} /></div>
+      {!config.email && <div className="field"><label htmlFor="school-code">School code (leave blank for a full sign-in ID)</label><input id="school-code" type="text" autoCapitalize="none" placeholder="School code from your teacher" value={schoolCode} onChange={e=>setSchoolCode(e.target.value)} disabled={busy} /></div>}
+      <div className="field"><label htmlFor="identifier">{config.email ? 'Email address' : 'Admission number or full sign-in ID'}</label><input id="identifier" type={config.email ? 'email' : 'text'} autoComplete="username" autoCapitalize="none" placeholder={config.email ? 'you@example.com' : 'e.g. ADM001 or school_adm001'} value={identifier} onChange={e=>setIdentifier(e.target.value)} disabled={busy} /></div>
       <div className="field"><div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/auth/forgot-password">Forgot password?</a>}</div><div className="password-field"><input id="password" type={showPassword ? 'text' : 'password'} inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" placeholder={config.email ? 'Enter your password' : 'Enter your PIN'} value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} /><button type="button" className="password-toggle" aria-label={showPassword ? (config.email ? 'Hide password' : 'Hide PIN') : (config.email ? 'Show password' : 'Show PIN')} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)} disabled={busy}>{showPassword ? 'Hide' : 'Show'}</button></div></div>
       <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : config.email ? 'Continue with email' : 'Sign in'}</button>
       {signupLink && <p className="switch">New to VibeSchool? <a href={signupLink}>Create your {role === 'student' ? 'learner' : role} account</a></p>}

@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { schoolLearnerEmail } from '@/lib/learner/school-login'
 
 function getAdminSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceRoleKey) throw new Error('Supabase server credentials are not configured')
   return createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
-}
-
-function safeSlug(value: string) {
-  const slug = value.toLowerCase().replace(/[^a-z0-9]/g, '')
-  return slug || 'vs'
 }
 
 function provisioningError(status: string) {
@@ -76,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     if (!school) return NextResponse.json({ error: 'School not found.' }, { status: 404 })
 
-    const internalEmail = `${safeSlug(school.subdomain || school.id)}_${admission}@vs.internal`
+    const internalEmail = schoolLearnerEmail(school.subdomain || school.id, admission)
     const { data: created, error: createError } = await adminSupabase.auth.admin.createUser({
       email: internalEmail,
       password,
