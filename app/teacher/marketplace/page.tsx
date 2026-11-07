@@ -36,6 +36,7 @@ export default function TeacherMarketplace(){
  const [filterCounty,setFilterCounty]=useState("");
  const [filterLevel,setFilterLevel]=useState("");
  const [filters,setFilters]=useState(false);
+ const [showAllSwaps,setShowAllSwaps]=useState(false);
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState<Draft>(empty);
  const [message,setMessage]=useState("");
@@ -228,8 +229,9 @@ export default function TeacherMarketplace(){
     <div className={styles.findHeading}><h3>Find swaps</h3><button className={styles.filterButton} onClick={()=>setFilters(!filters)} aria-expanded={filters}><SlidersHorizontal size={17}/> Filters</button></div>
     {filters&&<div className={styles.filters}><label>County<SearchableSelect label="Filter county" value={filterCounty} options={COUNTIES} placeholder="Any county" onChange={setFilterCounty}/></label><label>School level<select value={filterLevel} onChange={e=>setFilterLevel(e.target.value)}><option value="">All levels</option>{["Primary","Junior School","Senior School"].map(l=><option key={l}>{l}</option>)}</select></label><button className={styles.secondary} onClick={()=>{setFilterCounty("");setFilterLevel("");}}>Clear</button></div>}
     {!loading && visible.length > 0 && <FeaturedSwapStrip swaps={visible} mine={mine} onOpen={viewDetails} />}
+    {!loading && visible.length > 0 && <button type="button" className={styles.secondary} aria-expanded={showAllSwaps} aria-controls="managed-swap-list" onClick={()=>setShowAllSwaps(value=>!value)}>{showAllSwaps? "Hide all swaps" : `View all swaps (${visible.length})`}</button>}
     {loading?<p role="status">Loading available swaps…</p>:visible.length===0?<p className={styles.empty}>No swap listings match yet. Post yours so teachers can find you.</p>:
-     <div className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level&&l.employment_sector===mine.employment_sector&&l.employment_sector!=="unspecified";return <article className={detailStyles.card} key={l.id}>
+     showAllSwaps && <div id="managed-swap-list" className={styles.cards}>{visible.map(l=>{const reverse=!!mine&&l.current_county===mine.preferred_county&&l.preferred_county===mine.current_county&&l.school_level===mine.school_level&&l.employment_sector===mine.employment_sector&&l.employment_sector!=="unspecified";return <article className={detailStyles.card} key={l.id}>
       <button type="button" className={detailStyles.cardButton} onClick={()=>viewDetails(l)} aria-label={"View swap: "+l.current_county+" to "+l.preferred_county}>
        <span className={detailStyles.badge}>{reverse?"Reverse match":"Teacher swap"}</span><h3>{l.current_county} → {l.preferred_county}</h3>
        <p>{l.current_subcounty} · {l.school_level}</p><p>Subjects: {l.subject||"Not provided"}</p><p>{swapSectorLabel(l.employment_sector)}</p>
