@@ -98,6 +98,9 @@ export default function StudentVibeLearnPage() {
   return <main style={shell}>
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <VibeLearnSubnav />
+      <a href="/student/vibelearn/exams" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 56, padding: '14px 18px', marginBottom: 14, borderRadius: 14, background: '#243f83', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 17 }}>
+        <span>Exams</span><span aria-hidden="true">Open →</span>
+      </a>
       <section style={hero}>
         <div style={eyebrow}>VibeLearn Workstation</div>
         <h1 style={{ margin: '8px 0 6px', fontSize: 28 }}>Learn. Practise. Revise. Master.</h1>
