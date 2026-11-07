@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useStudent } from "@/lib/student-context";
 import { supabase } from "@/lib/supabase";
 import { getVibeLearnWorkstation, type VibeLearnWorkstation } from "@/lib/student/vibelearn";
@@ -79,7 +79,7 @@ function GeneralLearnerVibeLearn() {
       <nav aria-label="Learning destinations" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
         {([
           { title: "Subjects", detail: "Lessons & notes", symbol: "📖", href: "#class-resources" },
-          { title: "Exams", detail: "Exam practice", symbol: "🎓", href: "/student/vibelearn/practice" },
+          { title: "Exams", detail: "Exam practice", symbol: "🎓", href: "/student/vibelearn/exams" },
           { title: "My Tuition", detail: "Tutors & lessons", symbol: "🎥", href: "/student/tutoring" },
           { title: "Practice", detail: "Questions & quizzes", symbol: "✏️", href: "/student/exercises" },
           { title: "AI Tutor", detail: "Learning guidance", symbol: "✨", href: "/student/twin/companion" },
@@ -167,7 +167,9 @@ function GeneralLearnerVibeLearn() {
 
 export default function VibeLearnGradeModeLayout({ children }: { children: React.ReactNode }) {
   const { identity, loading } = useStudent();
-  if (loading || !identity) return children;
+  const pathname = usePathname();
+  // Grade-specific landing replaces only the Learn index, never nested destinations.
+  if (loading || !identity || pathname !== "/student/vibelearn") return children;
 
   const classKey = normaliseClass(identity.className);
   const isForm4 = classKey === "form4";
