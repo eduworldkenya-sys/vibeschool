@@ -19,6 +19,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 export default function StudentTuition() {
   const [rows, setRows] = useState<Invite[]>([]);
+  const [tab, setTab] = useState<"overview" | "tutors" | "lessons">("overview");
   const [token, setToken] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -96,10 +97,12 @@ export default function StudentTuition() {
   const pending = rows.filter(row => row.status === "invited");
   const connected = rows.filter(row => row.status === "accepted" || row.status === "pending_guardian");
 
+  const approved = connected.filter(row => row.status === "accepted");
+
   return <main style={{ maxWidth: 650, margin: "16px auto", display: "grid", gap: 14, padding: "10px 10px 80px", color: "var(--vs-text, #17251c)" }}>
-    <Link href="/student/profile">← My profile</Link>
+    <Link href="/student/vibelearn">← Learn</Link>
     <header><h1 style={{ fontSize: 26, margin: "4px 0" }}>My Tuition</h1>
-      <p style={{ fontSize: 13, opacity: .75 }}>Review private tutoring invitations and manage your connections.</p></header>
+      <p style={{ fontSize: 13, opacity: .75 }}>Private tutors, lessons and invitations.</p></header>
     {error && <p role="alert" style={{ color: "#b91c1c" }}>{error}</p>}
     {notice && <p role="status">{notice}</p>}
 
@@ -116,7 +119,19 @@ export default function StudentTuition() {
         <button type="button" style={{ ...action, background: "#fff", color: "#17251c", border: "1px solid #b5bdb6" }} onClick={dismissLink}>Back to My Tuition</button></>}
     </section>}
 
-    {loading ? <section role="status" style={panel}>Loading tuition invitations…</section> : <>
+    <nav aria-label="My Tuition sections" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, padding: 5, borderRadius: 12, background: "#f0eef9" }}>
+      {(["overview", "tutors", "lessons"] as const).map(item => <button key={item} type="button" aria-pressed={tab === item} onClick={() => setTab(item)} style={{ minHeight: 44, border: 0, borderRadius: 9, background: tab === item ? "#fff" : "transparent", color: tab === item ? "#312e81" : "#55546b", fontWeight: 700, textTransform: "capitalize", cursor: "pointer" }}>{item}</button>)}
+    </nav>
+    {loading ? <section role="status" style={panel}>Loading private tuition…</section> : <>
+      {tab === "overview" && <section style={panel} aria-label="Private tuition overview">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+          <div><span style={{ fontSize: 12, opacity: .75 }}>Connected tutors</span><div style={{ fontSize: 28, fontWeight: 800 }}>{approved.length}</div></div>
+          <div><span style={{ fontSize: 12, opacity: .75 }}>Invitations</span><div style={{ fontSize: 28, fontWeight: 800 }}>{pending.length}</div></div>
+        </div>
+        <p style={{ fontSize: 13, opacity: .75 }}>Your private lessons and classroom links are available through your connected tutors.</p>
+        <button type="button" style={action} onClick={() => setTab("tutors")}>View my tutors</button>
+      </section>}
+      {(tab === "overview" || tab === "tutors") && <>
       <section style={panel} aria-label="Tuition invitations">
         <h2 style={{ margin: "0 0 12px", fontSize: 17 }}>Invitations</h2>
         {pending.length === 0 && <p style={{ fontSize: 13, opacity: .75 }}>No new invitations yet.</p>}
@@ -132,7 +147,12 @@ export default function StudentTuition() {
         <h2 style={{ fontSize: 17, margin: "0 0 10px" }}>My tutors</h2>
         {connected.map(row => <div key={row.id} style={{ fontSize: 14, padding: "10px 0", borderTop: "1px solid #eee" }}><strong>{row.tutor}</strong> · {row.status === "accepted" ? "Connected" : "Awaiting guardian approval"}{row.status === "accepted" && <PrivateTuitionTools invitationId={row.id} isTutor={false} />}</div>)}
       </section>}
-      <p style={{ fontSize: 12, opacity: .75 }}>Under-18 tuition connections require approval from a linked parent or guardian. School records are not shared with private tutors.</p>
+      </>}
+      {tab === "lessons" && <section style={panel} aria-label="Private tuition lessons">
+        <h2 style={{ fontSize: 17, margin: "0 0 10px" }}>My lessons</h2>
+        {approved.length === 0 ? <p style={{ fontSize: 13, opacity: .75 }}>Approved tutor connections are needed before lessons can be scheduled.</p> : approved.map(row => <div key={row.id} style={{ padding: "12px 0", borderTop: "1px solid #eee" }}><strong>{row.tutor}</strong><PrivateTuitionTools invitationId={row.id} isTutor={false} /></div>)}
+      </section>}
+      <p style={{ fontSize: 12, opacity: .75 }}>Private tuition only. School records stay separate. Under-18 connections require guardian approval.</p>
     </>}
   </main>;
 }
