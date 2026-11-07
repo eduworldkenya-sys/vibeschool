@@ -23,6 +23,7 @@ function actionLabel(item: LearnerAssessmentAssignment): string {
 export default function VibeLearnExamsPage() {
   const router = useRouter()
   const { identity, loading: identityLoading } = useStudent()
+  const isGrade4 = !identityLoading && /^(grade|class)\s*4$/i.test(identity?.className?.trim() ?? '')
   const isForm4 = !identityLoading && /^form\s*4$/i.test(identity?.className?.trim() ?? '')
   const [assignments, setAssignments] = useState<LearnerAssessmentAssignment[]>([])
   const [hub, setHub] = useState<LearnerAssessmentHub | null>(null)
@@ -95,6 +96,19 @@ export default function VibeLearnExamsPage() {
           <span style={{ fontSize: 12, color: '#cbd5e1', marginTop: 'auto' }}>{item.description}</span>
         </button>)}
       </nav>
+
+      {isGrade4 && <section style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 Mathematics exams">
+        <div style={eyebrowDark}>Grade 4 · Mathematics</div>
+        <h2 style={title}>Mathematics exam</h2>
+        <p style={muted}>Answer one question at a time. Your answers are saved as you go, and your results appear when released.</p>
+        {assignments.filter(item => /math(?:ematic)?s/i.test(item.title)).length === 0
+          ? <p style={{ ...muted, marginTop: 12 }}>No approved Mathematics exam has been assigned yet. Your teacher can publish one through the existing assessment system.</p>
+          : assignments.filter(item => /math(?:ematic)?s/i.test(item.title)).map(item => <div key={item.assignmentId} style={{ ...itemCard, marginTop: 12 }}>
+              <strong>{item.title}</strong>
+              <p style={{ ...muted, marginTop: 6 }}>{item.timeLimitMinutes ? `${item.timeLimitMinutes} minutes · ` : ''}{item.availability.replaceAll('_', ' ')}</p>
+              <button type="button" style={{ ...primaryButton, marginTop: 12 }} disabled={!item.canStart} onClick={() => router.push(`/student/assessment/${item.assignmentId}`)}>{item.attemptStatus === 'in_progress' ? 'Resume exam' : 'Start exam'}</button>
+            </div>)}
+      </section>}
 
       {isForm4 ? <section id="choose-exam" style={{ ...card, scrollMarginTop: 20, padding: 20 }}>
         <h2 style={{ ...title, marginBottom: 18 }}>Choose your exam</h2>
