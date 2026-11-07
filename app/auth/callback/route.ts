@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { consentEnabled } from '@/lib/learner/guardian-consent'
+import { independentSignupEnabled, INDEPENDENT_SIGNUP_PATH, verifiedGoogleEmail } from '@/lib/learner/independent-signup'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 
 const SELF_SERVICE_ROLES = new Set(['teacher', 'parent'])
@@ -141,6 +143,12 @@ export async function GET(req: NextRequest) {
     if (access.reasonCode !== 'ROLE_UNCLAIMED') {
       logStage('authority_resolution_failed', flowId, access.reasonCode ?? undefined)
       return authError(req, 'authority_resolution_failed', pendingCookies)
+    }
+    if (requestedRole === 'student' && independentSignupEnabled() && consentEnabled() &&
+        access.status === 'active' && !access.anonymized && verifiedGoogleEmail(user)) {
+      // A verified provider session is only enough to enter pending consent.
+      // Student role and school authority are granted by separate reviewed flows.
+      return redirectWithCookies(req, INDEPENDENT_SIGNUP_PATH, pendingCookies)
     }
     if (!requestedRole || !SELF_SERVICE_ROLES.has(requestedRole)) {
       return authError(req, 'role_required', pendingCookies)

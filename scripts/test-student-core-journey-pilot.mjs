@@ -85,7 +85,10 @@ requireText(vibeLearnLayout, 'return isForm4 ? children : <GeneralLearnerVibeLea
 requireText(vibeLearnLayout, 'brief.subjects.map(subject => subject.id)', 'canonical workstation subject identity')
 requireText(vibeLearnLayout, '.in("subject_id", subjectIds)', 'canonical class-subject resource scope')
 requireText(vibeLearnLayout, '.eq("status", "live")', 'live-resource-only discovery')
-requireText(vibeLearnLayout, 'Learn what belongs to your class.', 'non-Form learner-mode UX')
+// The learner workspace was redesigned to show its current class and learning
+// destinations. Keep the class-context check independent of marketing copy.
+requireText(vibeLearnLayout, 'identity?.className || workspace?.className', 'non-Form learner class context')
+requireText(vibeLearnLayout, 'aria-label="Learning destinations"', 'non-Form learning destinations')
 
 requireText(assessmentMigration, "p_source_exercise_ref ? 'source_block_id'", 'assessment source-block grounding input')
 requireText(assessmentMigration, 'source_resource_id,source_exercise_ref,source_block_id,question_type,prompt', 'assessment source-block persistence')

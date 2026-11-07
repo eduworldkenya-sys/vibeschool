@@ -7,6 +7,11 @@ on:
       - 'app/api/create-student-account/**'
       - 'app/signup/student/**'
       - 'app/login/**'
+      - 'app/auth/callback/**'
+      - 'app/api/learner/consent/**'
+      - 'lib/learner/independent-signup.ts'
+      - 'lib/learner/guardian-consent.ts'
+      - 'scripts/test-independent-learner-signup.mjs'
       - 'lib/learner/school-login.ts'
       - 'scripts/test-school-learner-login.mjs'
       - 'supabase/migrations/**student**'
@@ -29,3 +34,4 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: node scripts/test-student-provisioning-contract.mjs
       - run: node scripts/test-school-learner-login.mjs
+      - run: node scripts/test-independent-learner-signup.mjs

@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { independentSignupEnabled, verifiedGoogleEmail } from './independent-signup'
 import { createClient } from '@supabase/supabase-js'
 
 export const CONSENT_VERSION = 'learner-consent-2026-11-v1'
@@ -40,6 +41,33 @@ export async function actor(req: NextRequest, admin: Admin, required: 'student' 
   if (profileError || profile?.role !== required ||
       profile.is_anonymized || profile.account_status === 'restricted') return null
   return user
+}
+
+export async function learnerConsentActor(req: NextRequest, admin: Admin) {
+  const independent = req.nextUrl.searchParams.get('mode') === 'independent'
+  if (!independent) {
+    const user = await actor(req, admin, 'student')
+    return user ? { user, independent: false as const } : null
+  }
+
+  if (!independentSignupEnabled()) return null
+  const authorization = req.headers.get('authorization') ?? ''
+  if (!authorization.startsWith('Bearer ')) return null
+  const { data: { user }, error } = await admin.auth.getUser(authorization.slice(7).trim())
+  if (error || !user) return null
+  const email = verifiedGoogleEmail(user)
+  if (!email) return null
+
+  const [profile, learner, membership] = await Promise.all([
+    admin.from('profiles').select('role,account_status,is_anonymized,school_id').eq('id', user.id).maybeSingle(),
+    admin.from('students').select('id').eq('profile_id', user.id).is('deleted_at', null).limit(1).maybeSingle(),
+    admin.from('school_members').select('profile_id').eq('profile_id', user.id).limit(1).maybeSingle(),
+  ])
+  if (profile.error || learner.error || membership.error || learner.data || membership.data ||
+      profile.data?.role !== null || profile.data.account_status !== 'active' ||
+      profile.data.is_anonymized !== false || profile.data.school_id !== null) return null
+
+  return { user, independent: true as const, email }
 }
 
 export function validEmail(value: unknown): string | null {
@@ -88,3 +116,33 @@ export async function sendConsentEmail(email: string, subject: string, body: str
 }
 
 export const SITE = 'https://vibeschool.co.ke'
+
+export async function inviteGuardian(admin: Admin, requestId: string, learnerUserId: string, updatedAt: string) {
+  const token = createToken()
+  const now = new Date()
+  // Compare against the row observed by the caller, so concurrent resends cannot
+  // both replace a live approval link and dispatch different tokens.
+  const { data, error } = await admin.from('learner_guardian_consent_requests')
+    .update({
+      token_hash: tokenHash(token),
+      token_expires_at: new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(),
+      updated_at: now.toISOString(),
+    })
+    .eq('id', requestId).eq('learner_user_id', learnerUserId)
+    .eq('status', 'pending').eq('updated_at', updatedAt)
+    .not('learner_email_verified_at', 'is', null)
+    .select('guardian_email').maybeSingle()
+  if (error || !data) throw new Error('Consent request unavailable')
+
+  await sendConsentEmail(data.guardian_email, 'Review a VibeSchool learner consent request',
+    'A learner has provided your email address as their parent or guardian.\n\n'
+    + 'This does not give the learner access to your account or any school records.\n\n'
+    + 'If you are their parent or legal guardian, sign in with this email address, review the details and decide:\n\n'
+    + SITE + '/guardian/consent#token=' + encodeURIComponent(token)
+    + '\n\nThis link expires in 48 hours. Ignore this email if you do not recognize the request.')
+
+  const { error: stampError } = await admin.from('learner_guardian_consent_requests')
+    .update({ guardian_invite_sent_at: new Date().toISOString() })
+    .eq('id', requestId).eq('status', 'pending').eq('token_hash', tokenHash(token))
+  if (stampError) throw stampError
+}
