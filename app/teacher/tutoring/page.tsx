@@ -63,9 +63,9 @@ export default function TeacherTutoringPage() {
   const firstName = listing?.display_name?.trim().split(/\s+/)[0] || "Tutor";
   const tools = [
     { label: "My Students", detail: students === null ? "Your connected learners" : `${students.length} connected ${students.length === 1 ? "learner" : "learners"}`, href: "/teacher/tutoring/students", icon: Users },
-    { label: "Lessons", detail: "Schedule & timetable", href: "/teacher/tutoring/students", icon: CalendarDays },
-    { label: "Live Classroom", detail: "Join through your lessons", href: "/teacher/tutoring/students", icon: Video },
-    { label: "Messages", detail: "Private conversations", href: "/teacher/tutoring/students", icon: MessageCircle },
+    { label: "Lessons", detail: "Schedule & timetable", href: "/teacher/tutoring/students?tool=lessons", icon: CalendarDays },
+    { label: "Live Classroom", detail: "Join through your lessons", href: "/teacher/tutoring/students?tool=lessons", icon: Video },
+    { label: "Messages", detail: "Private conversations", href: "/teacher/tutoring/students?tool=messages", icon: MessageCircle },
   ];
   const futureTools = [
     { label: "Resources", detail: "Teaching materials", icon: BookOpen },
