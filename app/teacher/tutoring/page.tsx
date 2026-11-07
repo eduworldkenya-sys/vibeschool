@@ -60,7 +60,7 @@ export default function TeacherTutoringPage() {
 
   const muted = "var(--teacher-muted, #627168)";
   const green = "var(--teacher-green, #087451)";
-  const firstName = listing?.display_name?.trim().split(/\\s+/)[0] || "Tutor";
+  const firstName = listing?.display_name?.trim().split(/\s+/)[0] || "Tutor";
   const tools = [
     { label: "My Students", detail: students === null ? "Your connected learners" : `${students.length} connected ${students.length === 1 ? "learner" : "learners"}`, href: "/teacher/tutoring/students", icon: Users },
     { label: "Lessons", detail: "Schedule & timetable", href: "/teacher/tutoring/students", icon: CalendarDays },
