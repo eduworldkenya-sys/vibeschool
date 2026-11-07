@@ -19,7 +19,6 @@ export default function TeacherGateway() {
       <section className={styles.hero} aria-labelledby="teacher-hero-title">
         <div className={`${styles.wrap} ${styles.heroLayout}`}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>BUILT FOR KENYAN TEACHERS</p>
             <h1 id="teacher-hero-title">Your teaching work, made easier.</h1>
             <p className={styles.intro}>Plan lessons, prepare schemes, assess learners and find teaching resources in one place.</p>
             <div className={styles.heroActions}>

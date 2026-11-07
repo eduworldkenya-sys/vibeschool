@@ -5,9 +5,9 @@ import { Download, Share2, X } from "lucide-react";
 import { TeacherListing, listingText, listingUrl } from "@/lib/public/teacherListings";
 import styles from "./listingDetails.module.css";
 
-type Props = { listing: TeacherListing; onClose: () => void; interest?: { href?: string; onClick?: () => void; disabled?: boolean; label?: string }; report?: { onClick: () => void } };
+type Props = { listing: TeacherListing; onClose: () => void; interest?: { href?: string; onClick?: () => void; disabled?: boolean; label?: string }; report?: { onClick: () => void }; communityLead?: boolean; linkOverride?: string };
 
-export default function ListingDetailDialog({ listing, onClose, interest, report }: Props) {
+export default function ListingDetailDialog({ listing, onClose, interest, report, communityLead = false, linkOverride }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [notice, setNotice] = useState("");
@@ -21,7 +21,7 @@ export default function ListingDetailDialog({ listing, onClose, interest, report
     document.body.style.overflow = "hidden";
     return () => { dialog?.close(); document.body.style.overflow = previousOverflow; returnFocus?.focus(); };
   }, []);
-  const url = () => listingUrl(listing.kind, listing.id, window.location.origin);
+  const url = () => linkOverride ?? listingUrl(listing.kind, listing.id, window.location.origin);
   async function share() {
     setNotice("");
     try {
@@ -48,7 +48,7 @@ export default function ListingDetailDialog({ listing, onClose, interest, report
     <div className={styles.dialogBody}>
       <dl className={styles.fields}>{listing.fields.map(field => <div key={field.label}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>
       <section className={styles.advert} aria-label="Full advert and requirements"><h3>Full advert &amp; requirements</h3><p>{listing.details}</p></section>
-      {listing.kind === "swap" && <p className={styles.note}>Messaging opens after mutual acceptance. TSC transfers and private-school moves require separate official or employer approval.</p>}
+      {listing.kind === "swap" && <p className={styles.note}>{communityLead ? "Availability has not been confirmed. This is an information-only community opportunity, not a member-posted listing. TSC transfers require official approval." : "Messaging opens after mutual acceptance. TSC transfers and private-school moves require separate official or employer approval."}</p>}
       {notice && <p className={styles.notice} role="status">{notice}</p>}
       {copyLink && <label className={styles.copyLink}>Listing link<input readOnly value={copyLink} onFocus={e => e.currentTarget.select()} /></label>}
     </div>

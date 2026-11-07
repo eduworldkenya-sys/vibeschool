@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { useKenyaCounties, normalizeKenyaCounty } from "@/lib/geography/kenyaCounties";
 import { createClient } from "@supabase/supabase-js";
-import { JOB_SELECT, PublicJob, jobListing, listingDate, provided, validListingId } from "@/lib/public/teacherListings";
+import { JOB_SELECT, PublicJob, jobListing, jobLifecycle, listingDate, provided, validListingId } from "@/lib/public/teacherListings";
 import ListingDetailDialog from "@/components/teacher/marketplace/ListingDetailDialog";
 import styles from "@/components/teacher/marketplace/listingDetails.module.css";
 
@@ -21,6 +21,7 @@ export default function TeachingJobs() {
   const [county, setCounty] = useState("");
   const [motionPaused, setMotionPaused] = useState(false);
   const [showAllJobs, setShowAllJobs] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const { counties: officialCounties, countyNames } = useKenyaCounties();
   const [selected, setSelected] = useState<PublicJob | null>(null);
   useEffect(() => {
@@ -30,16 +31,15 @@ export default function TeachingJobs() {
       try {
         if (!url || !key) throw new Error("Missing configuration");
         const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-        const today = new Date().toISOString().slice(0, 10);
         const { data, error: fetchError } = await client.from("teacher_vacancies").select(JOB_SELECT)
-          .eq("status", "published").or("closing_date.is.null,closing_date.gte." + today)
+          .or("status.eq.published,status.eq.closed")
           .order("created_at", { ascending: false }).limit(50);
         if (fetchError) throw fetchError;
         const rows = (data ?? []) as PublicJob[];
         const sharedId = new URLSearchParams(window.location.search).get("job");
         if (validListingId(sharedId) && !rows.some(row => row.id === sharedId)) {
           const { data: shared, error: sharedError } = await client.from("teacher_vacancies").select(JOB_SELECT)
-            .eq("id", sharedId).eq("status", "published").or("closing_date.is.null,closing_date.gte." + today).maybeSingle();
+            .eq("id", sharedId).or("status.eq.published,status.eq.closed").maybeSingle();
           if (sharedError) throw sharedError;
           if (shared) rows.push(shared as PublicJob);
         }
@@ -66,17 +66,20 @@ export default function TeachingJobs() {
     const next = new URL(window.location.href); next.searchParams.delete("job");
     window.history.replaceState(null, "", next); setSelected(null); setUnavailable(false);
   }
-  const counties = useMemo(() => countyNames.filter(name => jobs.some(job => normalizeKenyaCounty(job.county, officialCounties) === name)), [countyNames, jobs, officialCounties]);
-  const visible = useMemo(() => jobs.filter(j => {
+  const openJobs = jobs.filter(job => jobLifecycle(job) === "open");
+  const archivedJobs = jobs.filter(job => jobLifecycle(job) !== "open");
+  const searchable = showHistory ? archivedJobs : openJobs;
+  const counties = useMemo(() => countyNames.filter(name => searchable.some(job => normalizeKenyaCounty(job.county, officialCounties) === name)), [countyNames, searchable, officialCounties]);
+  const visible = useMemo(() => searchable.filter(j => {
     const term = query.trim().toLocaleLowerCase();
     return (!county || normalizeKenyaCounty(j.county, officialCounties) === county) && (!term || [j.title, j.school_name, j.county, j.location ?? "", j.description ?? ""].some(v => v.toLocaleLowerCase().includes(term)));
-  }), [jobs, county, query, officialCounties]);
+  }), [searchable, county, query, officialCounties]);
   // Use only published vacancies already loaded for the grid. Prioritise a verified
   // approaching deadline, then the newest postings; never invent featured records.
   const featured = useMemo(() => {
     const now = new Date();
     const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    return [...visible].sort((a, b) => {
+    return [...visible.filter(job => jobLifecycle(job) === "open")].sort((a, b) => {
       const priority = (job: PublicJob) => {
         if (!job.closing_date) return Number.MAX_SAFE_INTEGER;
         const date = Date.parse(job.closing_date.slice(0, 10) + "T00:00:00Z");
@@ -104,17 +107,18 @@ export default function TeachingJobs() {
           <div className={styles.featuredTrack + (motionPaused ? " " + styles.featuredPaused : "")}>{featuredCards(false)}{featured.length > 1 && featuredCards(true)}</div>
         </div>
       </section>}
-      <div style={{ marginTop: "1rem" }}>
-        <button type="button" className={styles.retry} aria-expanded={showAllJobs} aria-controls="all-teaching-jobs" onClick={() => setShowAllJobs(value => !value)}>{showAllJobs ? "Hide all jobs" : `View all jobs (${jobs.length})`}</button>
+      <div style={{ marginTop: "1rem", display: "flex", flexWrap: "wrap", gap: 10 }}>
+        <button type="button" className={styles.retry} aria-expanded={showAllJobs} aria-controls="all-teaching-jobs" onClick={() => setShowAllJobs(value => !value)}>{showAllJobs ? "Hide all jobs" : `View open jobs (${openJobs.length})`}</button>
+        <button type="button" className={styles.retry} aria-expanded={showHistory} onClick={() => { setShowHistory(value => !value); setQuery(""); setCounty(""); setShowAllJobs(true); }}>{showHistory ? "Show open jobs" : `Job history (${archivedJobs.length})`}</button>
       </div>
       {showAllJobs && <section id="all-teaching-jobs" aria-label="All teaching jobs">
         <div className={styles.filters}>
           <input aria-label="Search teaching vacancies" placeholder="Search jobs or schools" value={query} onChange={e => setQuery(e.target.value)} />
           <SearchableSelect label="Filter vacancies by county" value={county} onChange={setCounty} options={counties} placeholder="All counties" />
         </div>
-      {visible.length === 0 ? <p role="status" className={styles.empty}>No vacancies match these filters.</p> : <div aria-label="Current teaching vacancies" className={styles.cards}>
+      {visible.length === 0 ? <p role="status" className={styles.empty}>No {showHistory ? "historical jobs" : "open vacancies"} match these filters.</p> : <div aria-label="Current teaching vacancies" className={styles.cards}>
         {visible.map(job => <article key={job.id} className={styles.card}><button type="button" className={styles.cardButton} onClick={() => open(job)} aria-label={"View job: " + job.title + " at " + job.school_name}>
-          <span className={styles.badge}>School job</span><h3>{job.title}</h3><p>{provided(job.school_name)}</p><p>{provided(job.county)} · {provided(job.location)}</p><small>Closes: {listingDate(job.closing_date)}</small><span className={styles.view}>View details →</span>
+          <span className={styles.badge}>{jobLifecycle(job) === "open" ? "School job" : jobLifecycle(job) === "closed" ? "Closed" : "Expired"}</span><h3>{job.title}</h3><p>{provided(job.school_name)}</p><p>{provided(job.county)} · {provided(job.location)}</p><small>Closes: {listingDate(job.closing_date)}</small><span className={styles.view}>View details →</span>
         </button></article>)}
       </div>}
       </section>}
