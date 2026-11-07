@@ -7,6 +7,7 @@ import { PublicSwap, SWAP_SELECT, swapListing, swapLifecycle, validListingId, pr
 import ListingDetailDialog from "./ListingDetailDialog";
 import ListingTabs from "./ListingTabs";
 import FeaturedSwapStrip from "./FeaturedSwapStrip";
+import CommunitySwapLeads from "./CommunitySwapLeads";
 import styles from "./listingDetails.module.css";
 
 function PublicSwaps() {
@@ -56,6 +57,7 @@ function PublicSwaps() {
     {unavailable && <p role="status" className={styles.empty}>This swap is no longer available. <button type="button" onClick={close}>Dismiss</button></p>}
     {loading ? <p role="status">Loading available swaps…</p> : error ? <div role="alert"><p>Swaps are temporarily unavailable.</p><button type="button" className={styles.retry} onClick={() => setRetry(n => n + 1)}>Try again</button></div> : <>
       <FeaturedSwapStrip swaps={visible} onOpen={open} />
+      <CommunitySwapLeads />
       {visible.length > 0 && <div style={{ marginTop: "1rem" }}><button type="button" className={styles.retry} aria-expanded={showAllSwaps} aria-controls="all-teacher-swaps" onClick={() => setShowAllSwaps(value => !value)}>{showAllSwaps ? "Hide all swaps" : `View all swaps (${visible.length})`}</button></div>}
       {showAllSwaps && <section id="all-teacher-swaps" aria-label="All teacher swaps"><div className={styles.filters}><input aria-label="Search teacher swaps" placeholder="Search county, school, subject or teacher" value={query} onChange={e => setQuery(e.target.value)} /></div>
       {visible.length === 0 ? <p role="status" className={styles.empty}>No swaps match your search.</p> : <div className={styles.cards} aria-label="Current VibeSchool teacher swaps">{visible.map(row => <article className={styles.card} key={row.id}><button type="button" className={styles.cardButton} onClick={() => open(row)} aria-label={"View swap: " + row.current_county + " to " + row.preferred_county}><span className={styles.badge}>{row.employment_sector==="tsc"?"TSC swap":row.employment_sector==="private"?"Private-school move":"Teacher swap"}</span><h3>{row.current_county} → {row.preferred_county}</h3><p>{provided(row.current_subcounty)} · {provided(row.school_level)}</p><p>Subjects: {provided(row.subject)}</p><span className={styles.view}>View details →</span></button></article>)}</div>}</section>}
