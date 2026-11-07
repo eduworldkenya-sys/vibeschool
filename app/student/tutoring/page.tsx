@@ -156,7 +156,7 @@ export default function StudentTuition() {
       </section>
       {connected.length > 0 && <section style={panel}>
         <h2 style={{ fontSize: 17, margin: "0 0 10px" }}>My tutors</h2>
-        {connected.map(row => <div key={row.id} style={{ fontSize: 14, padding: "10px 0", borderTop: "1px solid #eee" }}><strong>{row.tutor}</strong> · {row.status === "accepted" ? "Connected" : "Awaiting guardian approval"}{row.status === "accepted" && <PrivateTuitionTools invitationId={row.id} isTutor={false} />}</div>)}
+        {connected.map(row => <div key={row.id} style={{ fontSize: 14, padding: "14px 0", borderTop: "1px solid #eee", display: "grid", gap: 10 }}><div><strong>{row.tutor}</strong> · {row.status === "accepted" ? "Connected" : "Awaiting guardian approval"}</div>{row.status === "accepted" && <Link href={"/student/tutoring/" + encodeURIComponent(row.id)} style={{ ...action, textAlign: "center", textDecoration: "none", display: "inline-block" }}>Open tutor</Link>}</div>)}
       </section>}
       </>}
       {(tab === "lessons" || tab === "classroom") && <section style={panel} aria-label="Private tuition lessons">
