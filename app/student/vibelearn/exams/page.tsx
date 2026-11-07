@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
+import { getKcseCandidateOS, createKcseMock, type KcseCandidateOS } from '@/lib/student/kcse'
 import { getExamReadinessBrief, type ExamReadinessBrief } from '@/lib/student/vibelearn'
 import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@/lib/assessment/discovery'
 import { getLearnerAssessmentHub, type LearnerAssessmentHub } from '@/lib/assessment/integration'
@@ -23,6 +24,11 @@ export default function VibeLearnExamsPage() {
   const [assignments, setAssignments] = useState<LearnerAssessmentAssignment[]>([])
   const [hub, setHub] = useState<LearnerAssessmentHub | null>(null)
   const [readiness, setReadiness] = useState<ExamReadinessBrief | null>(null)
+  const [kcse, setKcse] = useState<KcseCandidateOS | null>(null)
+  const [selectedSubject, setSelectedSubject] = useState('')
+  const [selectedPaper, setSelectedPaper] = useState('')
+  const [starting, setStarting] = useState(false)
+  const [catalogueError, setCatalogueError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -39,6 +45,30 @@ export default function VibeLearnExamsPage() {
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    getKcseCandidateOS().then(value => { if (!cancelled) setKcse(value) }).catch(() => { if (!cancelled) setCatalogueError('KCSE paper catalogue is unavailable. You can still use subject practice.') })
+    return () => { cancelled = true }
+  }, [])
+
+  const papers = kcse?.paper_blueprints ?? []
+  const subjects = Array.from(new Set(papers.map(paper => paper.subject))).sort()
+  const subjectPapers = papers.filter(paper => paper.subject === selectedSubject)
+  const chosenPaper = subjectPapers.find(paper => paper.id === selectedPaper)
+
+  async function startSelectedPaper() {
+    if (!chosenPaper || starting) return
+    setStarting(true)
+    setCatalogueError('')
+    try {
+      const clientId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
+      const result = await createKcseMock(chosenPaper.subject, chosenPaper.paper_code, clientId)
+      if (result.ok && result.session_id) router.push(`/student/vibelearn/kcse/mock/${result.session_id}?client=${encodeURIComponent(clientId)}`)
+      else setCatalogueError(result.reason?.replaceAll('_', ' ') ?? 'This paper cannot be started yet.')
+    } catch (reason) { setCatalogueError(reason instanceof Error ? reason.message : 'Could not start paper.') }
+    finally { setStarting(false) }
+  }
 
   return <main style={shell}>
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
@@ -61,6 +91,33 @@ export default function VibeLearnExamsPage() {
             <button style={independentAction} onClick={() => router.push('/student/vibelearn/kcse')}><strong>Timed KCSE mocks</strong><span style={muted}>Verified papers when available</span></button>
             <button style={independentAction} onClick={() => router.push('/student/vibelearn/mistakes')}><strong>Review mistakes</strong><span style={muted}>Corrections and spaced revision</span></button>
           </div>
+        </section>
+
+        <section style={card}>
+          <div style={eyebrowDark}>Independent exams</div>
+          <h2 style={title}>Choose an exam paper</h2>
+          <p style={{ ...muted, marginBottom: 12 }}>Only verified KCSE papers are offered here. Other grades will appear when their question sets and paper structures are verified.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700 }}>Level
+              <select value="kcse" disabled style={examSelect}><option value="kcse">KCSE · Form 4</option></select>
+            </label>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700 }}>Subject
+              <select value={selectedSubject} onChange={event => { setSelectedSubject(event.target.value); setSelectedPaper('') }} style={examSelect}>
+                <option value="">Choose subject</option>
+                {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+              </select>
+            </label>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700 }}>Available paper
+              <select value={selectedPaper} disabled={!selectedSubject} onChange={event => setSelectedPaper(event.target.value)} style={examSelect}>
+                <option value="">Choose paper</option>
+                {subjectPapers.map(paper => <option key={paper.id} value={paper.id}>{paper.paper_code} · {paper.title}</option>)}
+              </select>
+            </label>
+          </div>
+          {chosenPaper && <p style={{ ...muted, marginTop: 12 }}>{chosenPaper.duration_minutes} minutes · {chosenPaper.total_marks} marks · timed mock</p>}
+          {catalogueError && <p role="alert" style={{ color: '#b91c1c', fontSize: 13 }}>{catalogueError}</p>}
+          {kcse && papers.length === 0 && <p style={{ ...muted, marginTop: 12 }}>No verified KCSE papers are currently available. Try practice while the paper catalogue is prepared.</p>}
+          <button style={{ ...primaryButton, marginTop: 12 }} disabled={!chosenPaper || starting} onClick={() => void startSelectedPaper()}>{starting ? 'Starting…' : 'Start exam'}</button>
         </section>
 
         {readiness && <section style={{ ...card, borderColor: '#f59e0b', background: '#fffaf0' }}>
@@ -135,3 +192,5 @@ const primaryButton: React.CSSProperties = { border: 'none', background: '#4f46e
 const secondaryButton: React.CSSProperties = { border: '1px solid #c7d2fe', background: '#eef2ff', color: '#4338ca', borderRadius: 10, padding: '8px 11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }
 
 const independentAction: React.CSSProperties = { border: '1px solid #c7d2fe', borderRadius: 12, background: '#fff', padding: 14, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 8, fontFamily: 'inherit', color: '#0f172a' }
+
+const examSelect: React.CSSProperties = { border: '1px solid #cbd5e1', borderRadius: 10, padding: 11, background: '#fff', color: '#0f172a', width: '100%', fontFamily: 'inherit' }
