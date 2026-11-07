@@ -1,6 +1,6 @@
 # Learner identity, guardian authorization and consent rollout
 
-Status: **Foundation staged; no new registration journey enabled.** Existing school-issued learner identity and PIN remain unchanged until a reviewed cutover. Do not present an email click as proof of guardianship.
+Status: **Pending Google signup prepared behind a server-side switch.** Existing school-issued learner identity and PIN remain unchanged until a reviewed cutover. Do not present an email click as proof of guardianship.
 
 ## Existing facts / protected constraints
 - School learner creation: `app/signup/student/page.tsx` → `app/api/create-student-account/route.ts`.
@@ -23,6 +23,12 @@ Status: **Foundation staged; no new registration journey enabled.** Existing sch
 | Guardian controls | Review purposes and linked learners, withdraw consent, request correction/deletion according to retention schedule, and report impersonation. |
 | Validation | Negative tests: learner approves themselves, token replay, token expiry, forged guardian ID, missing consent, session role swap, duplicate claim, cross-student RLS, multiple accounts, existing student PIN journey. |
 
+## Pending Google signup
+
+The staged entry is `/signup/student/independent`. It requires both `LEARNER_INDEPENDENT_GOOGLE_ENABLED=true` and the configured guardian consent service. The existing Google callback admits only an active account with an unclaimed role and a verified matching Google identity. The pending consent request is keyed by the authenticated account ID, with no student or school binding. Existing school learners continue to use the school claim flow and its separate email challenge.
+
+A verified guardian can approve the request through the existing consent page. Approval at this stage records evidence only. No active learner role or school membership is created. Before activation, implement one atomic transition to `public.students` per authenticated profile, enforce access revocation after withdrawal, and test preserving the same learner ID and progress when claiming a school roster record. Do not expose the staged entry in production navigation before the release gates pass.
+
 ## Release gate (do not bypass)
 1. Implement server-owned request/approve/withdraw endpoints with audited, purpose-limited guardian evidence and protected delivery; secure email provider must be configured and tested.
 2. Complete backend authorization checks for every relevant private learner resource, and guardian identity + withdrawal semantics.
@@ -30,4 +36,4 @@ Status: **Foundation staged; no new registration journey enabled.** Existing sch
 4. Run database security advisors and CI; review minors' privacy and retention under applicable Kenyan requirements.
 5. Only then expose the independent learner registration UI and enable the consent gate for newly registered minors. Migrate existing school learners separately with a non-destructive transition plan.
 
-This foundation schema does **not** authorize accounts and does **not** change the current production login behavior.
+The consent schema and pending Google flow do not grant learner or school access.
