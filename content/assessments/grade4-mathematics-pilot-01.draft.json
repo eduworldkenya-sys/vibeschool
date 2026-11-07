@@ -1,0 +1,268 @@
+{
+  "title": "Grade 4 Mathematics — Pilot 01",
+  "status": "draft_pending_authorised_teacher_review",
+  "curriculum": "Kenya Grade 4 Mathematics — provisional topic mapping; curriculum specialist to confirm",
+  "instructions": "Select one answer per question. Ten questions, one mark each.",
+  "items": [
+    {
+      "number": 1,
+      "competency": "addition",
+      "prompt": "What is 3,486 + 2,157?",
+      "options": [
+        {
+          "value": "A",
+          "label": "5,543"
+        },
+        {
+          "value": "B",
+          "label": "5,643"
+        },
+        {
+          "value": "C",
+          "label": "5,633"
+        },
+        {
+          "value": "D",
+          "label": "5,743"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "3,486 + 2,157 = 5,643.",
+      "marks": 1
+    },
+    {
+      "number": 2,
+      "competency": "subtraction",
+      "prompt": "What is 8,000 − 3,475?",
+      "options": [
+        {
+          "value": "A",
+          "label": "4,525"
+        },
+        {
+          "value": "B",
+          "label": "4,625"
+        },
+        {
+          "value": "C",
+          "label": "5,525"
+        },
+        {
+          "value": "D",
+          "label": "4,425"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "8,000 − 3,475 = 4,525.",
+      "marks": 1
+    },
+    {
+      "number": 3,
+      "competency": "multiplication",
+      "prompt": "What is 24 × 6?",
+      "options": [
+        {
+          "value": "A",
+          "label": "124"
+        },
+        {
+          "value": "B",
+          "label": "134"
+        },
+        {
+          "value": "C",
+          "label": "144"
+        },
+        {
+          "value": "D",
+          "label": "154"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "24 × 6 = 144.",
+      "marks": 1
+    },
+    {
+      "number": 4,
+      "competency": "division",
+      "prompt": "A teacher shares 84 pencils equally among 7 groups. How many pencils does each group receive?",
+      "options": [
+        {
+          "value": "A",
+          "label": "11"
+        },
+        {
+          "value": "B",
+          "label": "12"
+        },
+        {
+          "value": "C",
+          "label": "13"
+        },
+        {
+          "value": "D",
+          "label": "14"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "84 ÷ 7 = 12 pencils per group.",
+      "marks": 1
+    },
+    {
+      "number": 5,
+      "competency": "fractions",
+      "prompt": "What is 1/4 of 28 mangoes?",
+      "options": [
+        {
+          "value": "A",
+          "label": "6"
+        },
+        {
+          "value": "B",
+          "label": "7"
+        },
+        {
+          "value": "C",
+          "label": "8"
+        },
+        {
+          "value": "D",
+          "label": "9"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "28 ÷ 4 = 7 mangoes.",
+      "marks": 1
+    },
+    {
+      "number": 6,
+      "competency": "fractions",
+      "prompt": "Which fraction is equivalent to 2/4?",
+      "options": [
+        {
+          "value": "A",
+          "label": "1/2"
+        },
+        {
+          "value": "B",
+          "label": "1/4"
+        },
+        {
+          "value": "C",
+          "label": "2/3"
+        },
+        {
+          "value": "D",
+          "label": "3/4"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "2/4 simplifies to 1/2.",
+      "marks": 1
+    },
+    {
+      "number": 7,
+      "competency": "measurement",
+      "prompt": "A rope is 3 metres long. How many centimetres is that?",
+      "options": [
+        {
+          "value": "A",
+          "label": "30 cm"
+        },
+        {
+          "value": "B",
+          "label": "300 cm"
+        },
+        {
+          "value": "C",
+          "label": "3,000 cm"
+        },
+        {
+          "value": "D",
+          "label": "33 cm"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "1 metre = 100 centimetres; 3 metres = 300 centimetres.",
+      "marks": 1
+    },
+    {
+      "number": 8,
+      "competency": "geometry",
+      "prompt": "A rectangle is 8 cm long and 5 cm wide. What is its perimeter?",
+      "options": [
+        {
+          "value": "A",
+          "label": "13 cm"
+        },
+        {
+          "value": "B",
+          "label": "26 cm"
+        },
+        {
+          "value": "C",
+          "label": "40 cm"
+        },
+        {
+          "value": "D",
+          "label": "30 cm"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Perimeter = 8 + 5 + 8 + 5 = 26 cm.",
+      "marks": 1
+    },
+    {
+      "number": 9,
+      "competency": "geometry",
+      "prompt": "How many right angles does a rectangle have?",
+      "options": [
+        {
+          "value": "A",
+          "label": "2"
+        },
+        {
+          "value": "B",
+          "label": "3"
+        },
+        {
+          "value": "C",
+          "label": "4"
+        },
+        {
+          "value": "D",
+          "label": "5"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "A rectangle has four right angles.",
+      "marks": 1
+    },
+    {
+      "number": 10,
+      "competency": "word_problems",
+      "prompt": "A book costs KSh 75. Amina buys 3 books and pays KSh 300. How much change does she receive?",
+      "options": [
+        {
+          "value": "A",
+          "label": "KSh 65"
+        },
+        {
+          "value": "B",
+          "label": "KSh 70"
+        },
+        {
+          "value": "C",
+          "label": "KSh 75"
+        },
+        {
+          "value": "D",
+          "label": "KSh 85"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "3 × 75 = 225; 300 − 225 = KSh 75.",
+      "marks": 1
+    }
+  ]
+}
