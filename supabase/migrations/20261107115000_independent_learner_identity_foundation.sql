@@ -1,6 +1,10 @@
 -- Independent learner identity is NOT a school enrolment.
 -- It is intentionally inaccessible to browsers until the canonical student
 -- authorization, verified guardian consent and school-linking gates are certified.
+-- access: service-only public.independent_learner_identities
+-- authorization-test: public.independent_learner_identities
+-- Verify anon/authenticated have no SELECT/INSERT/UPDATE/DELETE and RLS=true;
+-- verify service_role can SELECT/INSERT/UPDATE only, and no public policies exist.
 create table if not exists public.independent_learner_identities (
   user_id uuid primary key references auth.users(id) on delete cascade,
   account_state text not null default 'restricted'
