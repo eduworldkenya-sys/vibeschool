@@ -50,6 +50,12 @@ export default function TuitionStudents() {
     await load();
   }
   async function revoke(id: string) {
+    const invitation = rows.find(row => row.id === id);
+    if (!invitation) return;
+    const message = invitation.status === "accepted"
+      ? `Remove ${invitation.student || "this learner"} from your private tuition students? Their learning history will be preserved, but access to private lessons and messages will end.`
+      : "Cancel this tuition invitation?";
+    if (!window.confirm(message)) return;
     setBusy(true); setError("");
     const { error: rpcError } = await getSupabaseClient().rpc("vibetutor_revoke_student_invite", { p_id: id });
     setBusy(false);
