@@ -51,6 +51,18 @@ export default function VibeLearnExamsPage() {
 
       {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
       {loading ? <section style={card}>Loading exams…</section> : <>
+        <section style={card}>
+          <div style={eyebrowDark}>Study on your own</div>
+          <h2 style={title}>Choose how to practise</h2>
+          <p style={{ ...muted, marginBottom: 12 }}>Start whenever you are ready. School-assigned exams remain separate below.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 10 }}>
+            <button style={independentAction} onClick={() => router.push('/student/vibelearn/practice')}><strong>Practice by subject</strong><span style={muted}>Choose questions and learn from corrections</span></button>
+            <button style={independentAction} onClick={() => router.push('/student/vibelearn/kcse/practice')}><strong>KCSE practice</strong><span style={muted}>Adaptive Form 4 questions and retests</span></button>
+            <button style={independentAction} onClick={() => router.push('/student/vibelearn/kcse')}><strong>Timed KCSE mocks</strong><span style={muted}>Verified papers when available</span></button>
+            <button style={independentAction} onClick={() => router.push('/student/vibelearn/mistakes')}><strong>Review mistakes</strong><span style={muted}>Corrections and spaced revision</span></button>
+          </div>
+        </section>
+
         {readiness && <section style={{ ...card, borderColor: '#f59e0b', background: '#fffaf0' }}>
           <div style={eyebrowDark}>Exam readiness</div>
           <h2 style={title}>{readiness.examName} focus</h2>
@@ -121,3 +133,5 @@ const row: React.CSSProperties = { border: '1px solid #e2e8f0', borderRadius: 12
 const pill: React.CSSProperties = { fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 999, background: '#f1f5f9', color: '#475569' }
 const primaryButton: React.CSSProperties = { border: 'none', background: '#4f46e5', color: '#fff', borderRadius: 11, padding: '10px 14px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
 const secondaryButton: React.CSSProperties = { border: '1px solid #c7d2fe', background: '#eef2ff', color: '#4338ca', borderRadius: 10, padding: '8px 11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }
+
+const independentAction: React.CSSProperties = { border: '1px solid #c7d2fe', borderRadius: 12, background: '#fff', padding: 14, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 8, fontFamily: 'inherit', color: '#0f172a' }
