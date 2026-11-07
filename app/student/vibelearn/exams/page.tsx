@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
+import { useStudent } from '@/lib/student-context'
 import { getKcseCandidateOS, createKcseMock, type KcseCandidateOS } from '@/lib/student/kcse'
 import { getExamReadinessBrief, type ExamReadinessBrief } from '@/lib/student/vibelearn'
 import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@/lib/assessment/discovery'
@@ -21,6 +22,8 @@ function actionLabel(item: LearnerAssessmentAssignment): string {
 
 export default function VibeLearnExamsPage() {
   const router = useRouter()
+  const { identity, loading: identityLoading } = useStudent()
+  const isForm4 = !identityLoading && /^form\s*4$/i.test(identity?.className?.trim() ?? '')
   const [assignments, setAssignments] = useState<LearnerAssessmentAssignment[]>([])
   const [hub, setHub] = useState<LearnerAssessmentHub | null>(null)
   const [readiness, setReadiness] = useState<ExamReadinessBrief | null>(null)
@@ -48,9 +51,10 @@ export default function VibeLearnExamsPage() {
 
   useEffect(() => {
     let cancelled = false
-    getKcseCandidateOS().then(value => { if (!cancelled) setKcse(value) }).catch(() => { if (!cancelled) setCatalogueError('KCSE paper catalogue is unavailable. You can still use subject practice.') })
+    if (!isForm4) return
+    getKcseCandidateOS().then(value => { if (!cancelled) setKcse(value) }).catch(() => { if (!cancelled) setCatalogueError('KCSE paper catalogue is unavailable.') })
     return () => { cancelled = true }
-  }, [])
+  }, [isForm4])
 
   const papers = kcse?.paper_blueprints ?? []
   const subjects = Array.from(new Set(papers.map(paper => paper.subject))).sort()
@@ -82,8 +86,8 @@ export default function VibeLearnExamsPage() {
       <nav aria-label="Exam tools" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, marginBottom: 16 }}>
         {([
           { icon: '▤', title: 'Practice Exams', description: 'Choose a subject', href: '/student/vibelearn/practice' },
-          { icon: '◷', title: 'Mock Exams', description: 'Timed papers', href: '/student/vibelearn/kcse' },
-          { icon: '▣', title: 'Past Papers', description: 'Verified papers', href: '#choose-exam' },
+          { icon: '◷', title: 'Mock Exams', description: 'Timed papers', href: isForm4 ? '/student/vibelearn/kcse' : '#school-exams' },
+          { icon: '▣', title: 'Past Papers', description: isForm4 ? 'Verified papers' : 'Available school papers', href: isForm4 ? '#choose-exam' : '#school-exams' },
           { icon: '▥', title: 'My Results', description: 'Scores & progress', href: '#exam-results' },
         ] as const).map(item => <button key={item.title} type="button" onClick={() => item.href.startsWith('#') ? document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: 'smooth' }) : router.push(item.href)} style={{ border: 0, background: '#101827', color: '#fff', borderRadius: 18, padding: 20, minHeight: 154, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
           <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>{item.icon}</span>
@@ -92,7 +96,7 @@ export default function VibeLearnExamsPage() {
         </button>)}
       </nav>
 
-      <section id="choose-exam" style={{ ...card, scrollMarginTop: 20, padding: 20 }}>
+      {isForm4 ? <section id="choose-exam" style={{ ...card, scrollMarginTop: 20, padding: 20 }}>
         <h2 style={{ ...title, marginBottom: 18 }}>Choose your exam</h2>
         <div style={{ display: 'grid', gap: 0 }}>
           <div style={examPickerRow}><span>Level</span><strong>KCSE · Form 4</strong></div>
@@ -109,7 +113,7 @@ export default function VibeLearnExamsPage() {
         {catalogueError && <p role="alert" style={{ color: '#b91c1c', fontSize: 13 }}>{catalogueError}</p>}
         {kcse && papers.length === 0 && <p style={{ ...muted, marginTop: 12 }}>No verified papers available yet. You can still practise by subject.</p>}
         <button style={{ ...primaryButton, width: '100%', minHeight: 52, marginTop: 18, background: '#294889', opacity: chosenPaper && !starting ? 1 : 0.55 }} disabled={!chosenPaper || starting} onClick={() => void startSelectedPaper()}>{starting ? 'Starting…' : 'Start Exam'}</button>
-      </section>
+      </section> : <section style={{ ...card, padding: 20 }}><h2 style={title}>{identity?.className || "Your class"} exams</h2><p style={muted}>Choose an available teacher-assigned exam below. KCSE papers are for Form 4 learners only.</p><button type="button" style={{ ...primaryButton, marginTop: 12 }} onClick={() => document.getElementById("school-exams")?.scrollIntoView({ behavior: "smooth" })}>View available exams</button></section>}
 
       <button type="button" onClick={() => document.getElementById('school-exams')?.scrollIntoView({ behavior: 'smooth' })} style={{ ...card, display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', color: '#0f172a' }}>
         <span><strong style={{ fontSize: 18 }}>School Exams</strong><span style={{ ...muted, display: 'block', marginTop: 8 }}>Teacher-assigned tests and examinations</span></span>
