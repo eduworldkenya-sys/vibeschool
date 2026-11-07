@@ -72,11 +72,29 @@ function GeneralLearnerVibeLearn() {
 
   return (
     <main style={{ maxWidth: 760, margin: "0 auto", padding: "18px 14px 110px", display: "grid", gap: 14 }}>
-      <section style={{ borderRadius: 20, padding: 20, background: "linear-gradient(135deg,#312e81,#4f46e5)", color: "#fff" }}>
-        <div style={{ fontSize: 11, fontWeight: 850, letterSpacing: 1.1, opacity: .75 }}>VIBELEARN · {identity?.className || workspace?.className || "MY CLASS"}</div>
-        <h1 style={{ margin: "7px 0 5px", fontSize: 25, lineHeight: 1.15 }}>Learn what belongs to your class.</h1>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, opacity: .84 }}>Continue where you stopped, open class resources, complete assigned work and build real progress.</p>
+      <section style={{ padding: "8px 2px 2px" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--vs-muted)" }}>{identity?.className || workspace?.className || "My learning"}</div>
+        <h1 style={{ margin: "5px 0 0", fontSize: 24, lineHeight: 1.2 }}>What would you like to learn?</h1>
       </section>
+      <nav aria-label="Learning destinations" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
+        {([
+          { title: "Subjects", detail: "Lessons & notes", symbol: "📖", href: "#class-resources" },
+          { title: "Exams", detail: "Exam practice", symbol: "🎓", href: "/student/vibelearn/practice" },
+          { title: "My Tuition", detail: "Tutors & lessons", symbol: "🎥", href: "/student/tutoring" },
+          { title: "Practice", detail: "Questions & quizzes", symbol: "✏️", href: "/student/exercises" },
+          { title: "AI Tutor", detail: "Learning guidance", symbol: "✨", href: "/student/twin/companion" },
+          { title: "Library", detail: "Class resources", symbol: "📚", href: "#class-resources" },
+        ] as const).map(destination => (
+          <button key={destination.title} type="button" onClick={() => {
+            if (destination.href.startsWith("#")) document.getElementById(destination.href.slice(1))?.scrollIntoView({ behavior: "smooth" });
+            else router.push(destination.href);
+          }} style={{ minWidth: 0, minHeight: 112, textAlign: "left", padding: 15, border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", color: "var(--vs-text)", fontFamily: "inherit", cursor: "pointer" }}>
+            <span aria-hidden="true" style={{ display: "block", fontSize: 22, marginBottom: 8 }}>{destination.symbol}</span>
+            <strong style={{ display: "block", fontSize: 15 }}>{destination.title}</strong>
+            <span style={{ display: "block", fontSize: 12, color: "var(--vs-muted)", marginTop: 3 }}>{destination.detail}</span>
+          </button>
+        ))}
+      </nav>
 
       {error && <div role="status" style={{ padding: 12, borderRadius: 12, background: "#fee2e2", color: "#991b1b", fontSize: 12 }}>{error}</div>}
 
@@ -97,7 +115,7 @@ function GeneralLearnerVibeLearn() {
           <p style={{ color: "var(--vs-muted)", fontSize: 12, lineHeight: 1.55, margin: "10px 0 0" }}>Nothing is in progress yet. Choose a class resource below to begin.</p>
         ) : (
           <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-            {workspace!.continueLearning.slice(0, 4).map(item => (
+            {workspace!.continueLearning.filter(item => item.progressPercent < 100).slice(0, 2).map(item => (
               <button key={`${item.publicationId}-${item.chapterId ?? "book"}`} onClick={() => router.push(item.actionUrl)} style={{ minHeight: 56, textAlign: "left", border: "1px solid var(--vs-border)", borderRadius: 12, background: "var(--vs-surface)", color: "var(--vs-text)", padding: 12, fontFamily: "inherit" }}>
                 <strong style={{ display: "block", fontSize: 13 }}>{item.title}</strong>
                 <span style={{ display: "block", color: "var(--vs-muted)", fontSize: 11, marginTop: 3 }}>{item.chapterTitle ?? "Continue reading"} · {item.progressPercent}%</span>
@@ -107,7 +125,7 @@ function GeneralLearnerVibeLearn() {
         )}
       </section>
 
-      <section style={{ border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", padding: 16 }}>
+      <section id="class-resources" style={{ scrollMarginTop: 110, border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", padding: 16 }}>
         <div style={{ fontSize: 10, fontWeight: 850, color: "var(--vs-accent)", letterSpacing: 1 }}>MY CLASS RESOURCES</div>
         <h2 style={{ fontSize: 17, margin: "5px 0 0" }}>Learn by subject</h2>
         {resources.length === 0 ? (
