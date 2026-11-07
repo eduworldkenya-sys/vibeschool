@@ -25,8 +25,10 @@ export default function FeaturedSwapStrip<T extends PublicSwap>({ swaps, onOpen,
     return matching || (Number.isFinite(recent) ? recent : 0) || a.id.localeCompare(b.id);
   }).slice(0, 6);
   if (featured.length === 0) return null;
-  const renderCards = (copy: boolean) => featured.map(swap => <article key={(copy ? "copy-" : "item-") + swap.id} className={styles.featuredCard} aria-hidden={copy || undefined}>
-    <button type="button" tabIndex={copy ? -1 : 0} className={styles.featuredButton} onClick={() => onOpen(swap)} aria-label={`View featured swap: ${swap.current_county} to ${swap.preferred_county}`}>
+  // Repeat sparse results so a one-listing marketplace can still scroll continuously.
+  const loop = Array.from({ length: Math.ceil(6 / featured.length) }, () => featured).flat();
+  const renderCards = (copy: boolean) => loop.map((swap, index) => <article key={(copy ? "copy-" : "item-") + swap.id + "-" + index} className={styles.featuredCard} aria-hidden={copy || index >= featured.length || undefined}>
+    <button type="button" tabIndex={copy || index >= featured.length ? -1 : 0} className={styles.featuredButton} onClick={() => onOpen(swap)} aria-label={`View featured swap: ${swap.current_county} to ${swap.preferred_county}`}>
       <span className={styles.badge}>{swapMatchScore(swap, mine) >= 4 ? "Possible reciprocal match" : swap.employment_sector === "tsc" ? "TSC swap" : swap.employment_sector === "private" ? "Private-school move" : "Teacher swap"}</span>
       <strong>{swap.current_county} → {swap.preferred_county}</strong>
       <span className={styles.featuredSchool}>{swap.school_level}{clean(swap.subject) ? " · " + swap.subject : ""}</span>
@@ -38,6 +40,6 @@ export default function FeaturedSwapStrip<T extends PublicSwap>({ swaps, onOpen,
       <div><p className={styles.badge}>DISCOVER</p><h3 id="featured-swaps-title">Featured swaps</h3><p>Possible matches and recently posted requests</p></div>
       <button type="button" className={styles.motionToggle} aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? "Resume movement" : "Pause movement"}</button>
     </div>
-    <div className={styles.featuredViewport}><div className={styles.featuredTrack + (paused || featured.length === 1 ? " " + styles.featuredPaused : "")}>{renderCards(false)}{featured.length > 1 && renderCards(true)}</div></div>
+    <div className={styles.featuredViewport}><div className={styles.featuredTrack + (paused ? " " + styles.featuredPaused : "")}>{renderCards(false)}{renderCards(true)}</div></div>
   </section>;
 }
