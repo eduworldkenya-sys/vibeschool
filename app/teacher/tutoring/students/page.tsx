@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { BookOpen, CalendarDays, ChevronDown, MessageCircle, UserPlus, Users } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 import PrivateTuitionTools from "@/components/vibetutor/PrivateTuitionTools";
@@ -12,6 +13,8 @@ const action: React.CSSProperties = { minHeight: 44, padding: "10px 14px", borde
 const muted = { color: "var(--teacher-muted, #536159)", fontSize: 13 };
 
 export default function TuitionStudents() {
+  const searchParams = useSearchParams();
+  const requestedTool = searchParams.get("tool");
   const [rows, setRows] = useState<Invite[]>([]);
   const [notice, setNotice] = useState("");
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -28,10 +31,14 @@ export default function TuitionStudents() {
     if (!auth.user) { window.location.assign("/login?redirect=%2Fteacher%2Ftutoring%2Fstudents"); return; }
     const { data, error: rpcError } = await db.rpc("vibetutor_my_student_invites");
     if (rpcError) { setError("Could not load tuition students. Please try again."); setState("error"); return; }
-    setRows((data ?? []) as Invite[]);
+    const invites = (data ?? []) as Invite[];
+    setRows(invites);
+    if ((requestedTool === "lessons" || requestedTool === "messages") && invites.some(row => row.status === "accepted")) {
+      setExpanded(current => current ?? { id: invites.find(row => row.status === "accepted")!.id, tool: requestedTool });
+    }
     setError("");
     setState("ready");
-  }, []);
+  }, [requestedTool]);
   useEffect(() => { void load(); }, [load]);
 
   async function create() {
