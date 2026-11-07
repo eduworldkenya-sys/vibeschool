@@ -85,7 +85,7 @@ requireText(vibeLearnLayout, 'return isForm4 ? children : <GeneralLearnerVibeLea
 requireText(vibeLearnLayout, 'brief.subjects.map(subject => subject.id)', 'canonical workstation subject identity')
 requireText(vibeLearnLayout, '.in("subject_id", subjectIds)', 'canonical class-subject resource scope')
 requireText(vibeLearnLayout, '.eq("status", "live")', 'live-resource-only discovery')
-requireText(vibeLearnLayout, 'Learn what belongs to your class.', 'non-Form learner-mode UX')
+requireText(vibeLearnLayout, 'Learn by subject', 'non-Form learner-mode UX')
 
 requireText(assessmentMigration, "p_source_exercise_ref ? 'source_block_id'", 'assessment source-block grounding input')
 requireText(assessmentMigration, 'source_resource_id,source_exercise_ref,source_block_id,question_type,prompt', 'assessment source-block persistence')
