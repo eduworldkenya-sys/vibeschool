@@ -73,53 +73,52 @@ export default function VibeLearnExamsPage() {
   return <main style={shell}>
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <VibeLearnSubnav />
-      <section style={hero}>
-        <div style={eyebrow}>Exams</div>
-        <h1 style={{ margin: '7px 0 5px' }}>Tests, mocks and assessment history</h1>
-        <p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.6 }}>Use practice for learning and this space for assigned tests, released results and exam-readiness evidence.</p>
+      <section style={{ ...hero, background: '#172b51', padding: 24 }}>
+        <button type="button" onClick={() => router.push('/student/vibelearn')} style={{ background: 'transparent', border: 0, color: '#fff', padding: '0 0 18px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>← Learn</button>
+        <h1 style={{ margin: '0 0 8px', fontSize: 30 }}>Exams</h1>
+        <p style={{ margin: 0, color: '#dbeafe', lineHeight: 1.6 }}>Practise, take exams and track your progress.</p>
       </section>
 
-      {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
-      {loading ? <section style={card}>Loading exams…</section> : <>
-        <section style={card}>
-          <div style={eyebrowDark}>Study on your own</div>
-          <h2 style={title}>Choose how to practise</h2>
-          <p style={{ ...muted, marginBottom: 12 }}>Start whenever you are ready. School-assigned exams remain separate below.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 10 }}>
-            <button style={independentAction} onClick={() => router.push('/student/vibelearn/practice')}><strong>Practice by subject</strong><span style={muted}>Choose questions and learn from corrections</span></button>
-            <button style={independentAction} onClick={() => router.push('/student/vibelearn/kcse/practice')}><strong>KCSE practice</strong><span style={muted}>Adaptive Form 4 questions and retests</span></button>
-            <button style={independentAction} onClick={() => router.push('/student/vibelearn/kcse')}><strong>Timed KCSE mocks</strong><span style={muted}>Verified papers when available</span></button>
-            <button style={independentAction} onClick={() => router.push('/student/vibelearn/mistakes')}><strong>Review mistakes</strong><span style={muted}>Corrections and spaced revision</span></button>
-          </div>
-        </section>
+      <nav aria-label="Exam tools" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, marginBottom: 16 }}>
+        {([
+          { icon: '▤', title: 'Practice Exams', description: 'Choose a subject', href: '/student/vibelearn/practice' },
+          { icon: '◷', title: 'Mock Exams', description: 'Timed papers', href: '/student/vibelearn/kcse' },
+          { icon: '▣', title: 'Past Papers', description: 'Verified papers', href: '#choose-exam' },
+          { icon: '▥', title: 'My Results', description: 'Scores & progress', href: '#exam-results' },
+        ] as const).map(item => <button key={item.title} type="button" onClick={() => item.href.startsWith('#') ? document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: 'smooth' }) : router.push(item.href)} style={{ border: 0, background: '#101827', color: '#fff', borderRadius: 18, padding: 20, minHeight: 154, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>{item.icon}</span>
+          <strong style={{ fontSize: 17 }}>{item.title}</strong>
+          <span style={{ fontSize: 12, color: '#cbd5e1', marginTop: 'auto' }}>{item.description}</span>
+        </button>)}
+      </nav>
 
-        <section style={card}>
-          <div style={eyebrowDark}>Independent exams</div>
-          <h2 style={title}>Choose an exam paper</h2>
-          <p style={{ ...muted, marginBottom: 12 }}>Only verified KCSE papers are offered here. Other grades will appear when their question sets and paper structures are verified.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700 }}>Level
-              <select value="kcse" disabled style={examSelect}><option value="kcse">KCSE · Form 4</option></select>
-            </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700 }}>Subject
-              <select value={selectedSubject} onChange={event => { setSelectedSubject(event.target.value); setSelectedPaper('') }} style={examSelect}>
-                <option value="">Choose subject</option>
-                {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
-              </select>
-            </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700 }}>Available paper
-              <select value={selectedPaper} disabled={!selectedSubject} onChange={event => setSelectedPaper(event.target.value)} style={examSelect}>
-                <option value="">Choose paper</option>
-                {subjectPapers.map(paper => <option key={paper.id} value={paper.id}>{paper.paper_code} · {paper.title}</option>)}
-              </select>
-            </label>
-          </div>
-          {chosenPaper && <p style={{ ...muted, marginTop: 12 }}>{chosenPaper.duration_minutes} minutes · {chosenPaper.total_marks} marks · timed mock</p>}
-          {catalogueError && <p role="alert" style={{ color: '#b91c1c', fontSize: 13 }}>{catalogueError}</p>}
-          {kcse && papers.length === 0 && <p style={{ ...muted, marginTop: 12 }}>No verified KCSE papers are currently available. Try practice while the paper catalogue is prepared.</p>}
-          <button style={{ ...primaryButton, marginTop: 12 }} disabled={!chosenPaper || starting} onClick={() => void startSelectedPaper()}>{starting ? 'Starting…' : 'Start exam'}</button>
-        </section>
+      <section id="choose-exam" style={{ ...card, scrollMarginTop: 20, padding: 20 }}>
+        <h2 style={{ ...title, marginBottom: 18 }}>Choose your exam</h2>
+        <div style={{ display: 'grid', gap: 0 }}>
+          <div style={examPickerRow}><span>Level</span><strong>KCSE · Form 4</strong></div>
+          <label style={examPickerRow}><span>Subject</span><select aria-label="Subject" value={selectedSubject} onChange={event => { setSelectedSubject(event.target.value); setSelectedPaper('') }} style={examPickerSelect}>
+            <option value="">Select subject</option>
+            {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+          </select></label>
+          <label style={examPickerRow}><span>Paper</span><select aria-label="Paper" value={selectedPaper} disabled={!selectedSubject} onChange={event => setSelectedPaper(event.target.value)} style={examPickerSelect}>
+            <option value="">Select paper</option>
+            {subjectPapers.map(paper => <option key={paper.id} value={paper.id}>{paper.paper_code} · {paper.title}</option>)}
+          </select></label>
+        </div>
+        {chosenPaper && <p style={{ ...muted, marginTop: 12 }}>{chosenPaper.duration_minutes} minutes · {chosenPaper.total_marks} marks</p>}
+        {catalogueError && <p role="alert" style={{ color: '#b91c1c', fontSize: 13 }}>{catalogueError}</p>}
+        {kcse && papers.length === 0 && <p style={{ ...muted, marginTop: 12 }}>No verified papers available yet. You can still practise by subject.</p>}
+        <button style={{ ...primaryButton, width: '100%', minHeight: 52, marginTop: 18, background: '#294889', opacity: chosenPaper && !starting ? 1 : 0.55 }} disabled={!chosenPaper || starting} onClick={() => void startSelectedPaper()}>{starting ? 'Starting…' : 'Start Exam'}</button>
+      </section>
 
+      <button type="button" onClick={() => document.getElementById('school-exams')?.scrollIntoView({ behavior: 'smooth' })} style={{ ...card, display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', color: '#0f172a' }}>
+        <span><strong style={{ fontSize: 18 }}>School Exams</strong><span style={{ ...muted, display: 'block', marginTop: 8 }}>Teacher-assigned tests and examinations</span></span>
+        <span aria-hidden="true" style={{ fontSize: 24 }}>›</span>
+      </button>
+
+      {error && <section role="alert" style={{ ...card, color: '#b91c1c' }}>{error}</section>}
+      {loading && <section style={card}>Loading your school exams and results…</section>}
+      {!loading && <>
         {readiness && <section style={{ ...card, borderColor: '#f59e0b', background: '#fffaf0' }}>
           <div style={eyebrowDark}>Exam readiness</div>
           <h2 style={title}>{readiness.examName} focus</h2>
@@ -135,7 +134,7 @@ export default function VibeLearnExamsPage() {
           </div>
         </section>}
 
-        <section style={card}>
+        <section id="school-exams" style={{ ...card, scrollMarginTop: 20 }}>
           <div style={eyebrowDark}>Assigned exams and quizzes</div>
           <h2 style={title}>Your assessment queue</h2>
           {assignments.length === 0 ? <p style={muted}>Teacher-assigned quizzes, tests and exams will appear here.</p> : <div style={{ display: 'grid', gap: 10 }}>
@@ -157,7 +156,7 @@ export default function VibeLearnExamsPage() {
           </div>}
         </section>
 
-        <section style={card}>
+        <section id="exam-results" style={{ ...card, scrollMarginTop: 20 }}>
           <div style={eyebrowDark}>Released results</div>
           <h2 style={title}>Your exam history</h2>
           {!hub || hub.results.length === 0 ? <p style={muted}>Released marks and feedback will appear here.</p> : <div style={{ display: 'grid', gap: 9 }}>
@@ -194,3 +193,6 @@ const secondaryButton: React.CSSProperties = { border: '1px solid #c7d2fe', back
 const independentAction: React.CSSProperties = { border: '1px solid #c7d2fe', borderRadius: 12, background: '#fff', padding: 14, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 8, fontFamily: 'inherit', color: '#0f172a' }
 
 const examSelect: React.CSSProperties = { border: '1px solid #cbd5e1', borderRadius: 10, padding: 11, background: '#fff', color: '#0f172a', width: '100%', fontFamily: 'inherit' }
+
+const examPickerRow: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 76, borderBottom: '1px solid #e2e8f0', fontSize: 14 }
+const examPickerSelect: React.CSSProperties = { minWidth: 0, maxWidth: '66%', padding: '12px 4px', border: 0, background: 'transparent', color: '#0f172a', fontWeight: 700, fontSize: 14, textAlign: 'right', fontFamily: 'inherit' }
