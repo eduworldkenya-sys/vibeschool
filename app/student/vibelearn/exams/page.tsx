@@ -97,12 +97,14 @@ export default function VibeLearnExamsPage() {
         </button>)}
       </nav>
 
-      {isGrade4 && <section style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 English test">
-        <div style={eyebrowDark}>Grade 4 · English</div>
-        <h2 style={title}>English practice exam</h2>
-        <p style={muted}>10 questions · Mobile test · Immediate results. Practice only; not saved to your school record.</p>
-        <button type="button" style={{ ...primaryButton, marginTop: 12 }} onClick={() => router.push('/student/vibelearn/exams/english-test')}>Start English test</button>
-      </section>}
+      {isGrade4 && assignments.filter(item => /^Grade 4 English — Pilot 01$/i.test(item.title)).map(item =>
+        <section key={item.assignmentId} style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 English exam">
+          <div style={eyebrowDark}>Grade 4 · English</div>
+          <h2 style={title}>English practice exam</h2>
+          <p style={muted}>10 questions · 20 minutes · Your answers are saved securely as you go.</p>
+          <button type="button" style={{ ...primaryButton, marginTop: 12, opacity: item.canStart || item.percentage !== null ? 1 : 0.55 }} disabled={!item.canStart && item.percentage === null} onClick={() => router.push(`/student/assessment/${item.assignmentId}`)}>{actionLabel(item)}</button>
+        </section>
+      )}
 
       {isGrade4 && <section style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 Mathematics exams">
         <div style={eyebrowDark}>Grade 4 · Mathematics</div>

@@ -582,7 +582,12 @@ export default function LearnerAssessmentPage() {
         {item.questionType === 'true_false'
           ? <div style={{ display: 'flex', gap: 10 }}>{['true', 'false'].map(option => <button key={option} type="button" disabled={locked} onClick={() => updateValue(item, null, option)} style={{ ...secondaryButton, flex: 1, background: answer?.text === option ? '#eef2ff' : '#fff', borderColor: answer?.text === option ? '#4338ca' : '#d1d5db' }}>{option === 'true' ? 'True' : 'False'}</button>)}</div>
           : item.questionType === 'multiple_choice' && Array.isArray(item.options)
-            ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{item.options.map((option, optionIndex) => <button key={optionIndex} type="button" disabled={locked} onClick={() => updateValue(item, option)} style={{ ...secondaryButton, textAlign: 'left', background: JSON.stringify(answer?.value) === JSON.stringify(option) ? '#eef2ff' : '#fff', borderColor: JSON.stringify(answer?.value) === JSON.stringify(option) ? '#4338ca' : '#d1d5db' }}>{String(option)}</button>)}</div>
+            ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{item.options.map((option, optionIndex) => {
+                const choice = typeof option === 'object' && option !== null && !Array.isArray(option) ? option as {label?: unknown; value?: unknown} : null
+                const value = typeof choice?.value === 'string' ? choice.value : String(option)
+                const label = typeof choice?.label === 'string' ? choice.label : String(option)
+                return <button key={optionIndex} type="button" disabled={locked} onClick={() => updateValue(item, value)} style={{ ...secondaryButton, textAlign: 'left', minHeight: 52, background: answer?.value === value ? '#eef2ff' : '#fff', borderColor: answer?.value === value ? '#4338ca' : '#d1d5db' }}>{choice ? `${value}. ${label}` : label}</button>
+              })}</div>
             : <textarea disabled={locked} value={answer?.text ?? ''} onChange={event => updateText(item, event.target.value)} onBlur={() => void persistAnswer(item)} rows={item.questionType === 'structured' ? 5 : 3} placeholder="Type your answer" style={input} />}
         <div style={{ marginTop: 8, fontSize: 11, color: answer?.dirty ? '#b45309' : '#6b7280' }}>
           {answer?.saving ? 'Saving…' : answer?.dirty ? 'Saved on this device — syncing…' : answer?.saved ? `Saved ✓ · revision ${answer.revision}` : 'Not answered'}
