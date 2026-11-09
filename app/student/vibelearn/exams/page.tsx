@@ -95,8 +95,8 @@ export default function VibeLearnExamsPage() {
       <nav aria-label="Exam tools" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,210px),1fr))', gap: 12, marginBottom: 16 }}>
         {([
           { icon: '▤', title: 'Practice Exams', description: 'Choose a subject', href: '/student/vibelearn/practice' },
-          { icon: '◷', title: 'Mock Exams', description: 'Timed papers', href: isForm4 ? '/student/vibelearn/kcse' : '#school-exams' },
-          { icon: '▣', title: 'Past Papers', description: isForm4 ? 'Verified papers' : 'Available school papers', href: isForm4 ? '#choose-exam' : '#school-exams' },
+          { icon: '◷', title: 'Timed Exams', description: 'Assigned timed assessments', href: isForm4 ? '/student/vibelearn/kcse' : '#school-exams' },
+          ...(isForm4 ? [{ icon: '▣', title: 'KCSE Papers', description: 'Verified paper catalogue', href: '#choose-exam' }] : []),
           { icon: '▥', title: 'My Results', description: 'Scores & progress', href: '#exam-results' },
         ] as const).map(item => <button key={item.title} type="button" onClick={() => item.href.startsWith('#') ? document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: 'smooth' }) : router.push(item.href)} style={{ border: 0, background: '#101827', color: '#fff', borderRadius: 18, padding: 20, minHeight: 132, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
           <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>{item.icon}</span>
@@ -112,7 +112,7 @@ export default function VibeLearnExamsPage() {
         <button type="button" style={{ ...primaryButton, marginTop: 12 }} onClick={() => router.push('/student/vibelearn/exams/grade-9/mathematics')}>Open Mathematics</button>
       </section>}
 
-      {false && isGrade4 && assignments.filter(item => /^Grade 4 English — Pilot 01$/i.test(item.title)).map(item =>
+      {isGrade4 && assignments.filter(item => /^Grade 4 English — Pilot 01$/i.test(item.title)).map(item =>
         <section key={item.assignmentId} style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 English exam">
           <div style={eyebrowDark}>Grade 4 · English</div>
           <h2 style={title}>English practice exam</h2>
@@ -121,7 +121,7 @@ export default function VibeLearnExamsPage() {
         </section>
       )}
 
-      {false && isGrade4 && <section style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 Mathematics exams">
+      {isGrade4 && <section style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 Mathematics exams">
         <div style={eyebrowDark}>Grade 4 · Mathematics</div>
         <h2 style={title}>Mathematics exam</h2>
         <p style={muted}>Answer one question at a time. Your answers are saved as you go, and your results appear when released.</p>
