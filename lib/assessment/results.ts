@@ -23,6 +23,7 @@ export interface LearnerResultItem {
   orderNum: number
   questionType: string
   prompt: string
+  options: { value: string; label: string }[]
   responseText: string | null
   responseValue: Json
   finalScore: number
@@ -119,6 +120,7 @@ export async function getMyResult(attemptId: string): Promise<LearnerResultDetai
         orderNum: num(item.order_num),
         questionType: str(item.question_type) ?? 'response',
         prompt: str(item.prompt) ?? '',
+        options: Array.isArray(item.options) ? item.options.map(option => { const o = rec(option); return { value: str(o.value) ?? '', label: str(o.label) ?? '' } }) : [],
         responseText: str(item.response_text),
         responseValue: (item.response_value ?? null) as Json,
         finalScore: num(item.final_score),
