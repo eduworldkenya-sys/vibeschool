@@ -1,0 +1,316 @@
+{
+  "id": "grade9-mathematics-pilot-02",
+  "title": "Grade 9 Mathematics — Pilot 02",
+  "grade": "Grade 9",
+  "subject": "Mathematics",
+  "curriculum": "Kenya CBC Grade 9 — provisional topic mapping; KICD outcome verification pending",
+  "status": "owner_requested_pilot_publication",
+  "origin": "VibeSchool Original — Internally Authored",
+  "assessment_type": "practice",
+  "duration_minutes": 20,
+  "total_marks": 10,
+  "visibility": "public_practice",
+  "instructions": "Choose one answer for each question. You may skip questions. Each question carries one mark.",
+  "items": [
+    {
+      "number": 1,
+      "bank_key": "G9M2-001",
+      "topic": "Fractions",
+      "difficulty": "easy",
+      "prompt": "Calculate 3/4 − 2/5.",
+      "options": [
+        {
+          "value": "A",
+          "label": "7/20"
+        },
+        {
+          "value": "B",
+          "label": "1/20"
+        },
+        {
+          "value": "C",
+          "label": "11/20"
+        },
+        {
+          "value": "D",
+          "label": "1/2"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Use a common denominator of 20: 15/20 − 8/20 = 7/20.",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 2,
+      "bank_key": "G9M2-002",
+      "topic": "Percentages",
+      "difficulty": "easy",
+      "prompt": "A school bag costs KSh 1,500. During a sale, its price is reduced by 20%. What is the new price?",
+      "options": [
+        {
+          "value": "A",
+          "label": "KSh 300"
+        },
+        {
+          "value": "B",
+          "label": "KSh 1,180"
+        },
+        {
+          "value": "C",
+          "label": "KSh 1,200"
+        },
+        {
+          "value": "D",
+          "label": "KSh 1,300"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "20% of 1,500 = 300. New price = 1,500 − 300 = KSh 1,200.",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 3,
+      "bank_key": "G9M2-003",
+      "topic": "Squares and Square Roots",
+      "difficulty": "medium",
+      "prompt": "Evaluate 15² − 11².",
+      "options": [
+        {
+          "value": "A",
+          "label": "4"
+        },
+        {
+          "value": "B",
+          "label": "104"
+        },
+        {
+          "value": "C",
+          "label": "136"
+        },
+        {
+          "value": "D",
+          "label": "256"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "15² − 11² = 225 − 121 = 104.",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 4,
+      "bank_key": "G9M2-004",
+      "topic": "Indices",
+      "difficulty": "easy",
+      "prompt": "Evaluate 5⁰ + 2³.",
+      "options": [
+        {
+          "value": "A",
+          "label": "8"
+        },
+        {
+          "value": "B",
+          "label": "10"
+        },
+        {
+          "value": "C",
+          "label": "13"
+        },
+        {
+          "value": "D",
+          "label": "9"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Every non-zero number to the power 0 equals 1. Therefore 1 + 8 = 9.",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 5,
+      "bank_key": "G9M2-005",
+      "topic": "Linear Equations",
+      "difficulty": "medium",
+      "prompt": "Solve 5(2x − 3) = 35.",
+      "options": [
+        {
+          "value": "A",
+          "label": "4"
+        },
+        {
+          "value": "B",
+          "label": "5"
+        },
+        {
+          "value": "C",
+          "label": "7"
+        },
+        {
+          "value": "D",
+          "label": "10"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Divide both sides by 5: 2x − 3 = 7. Then 2x = 10, so x = 5.",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 6,
+      "bank_key": "G9M2-006",
+      "topic": "Simultaneous Equations",
+      "difficulty": "challenging",
+      "prompt": "Find x and y if 2x + y = 11 and x − y = 1.",
+      "options": [
+        {
+          "value": "A",
+          "label": "x = 3, y = 5"
+        },
+        {
+          "value": "B",
+          "label": "x = 5, y = 1"
+        },
+        {
+          "value": "C",
+          "label": "x = 4, y = 3"
+        },
+        {
+          "value": "D",
+          "label": "x = 6, y = −1"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Add the equations: 3x = 12, so x = 4. Then y = 11 − 8 = 3.",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 7,
+      "bank_key": "G9M2-007",
+      "topic": "Gradient",
+      "difficulty": "medium",
+      "prompt": "Find the gradient of the line joining (1, 5) and (4, 11).",
+      "options": [
+        {
+          "value": "A",
+          "label": "2"
+        },
+        {
+          "value": "B",
+          "label": "3"
+        },
+        {
+          "value": "C",
+          "label": "1/2"
+        },
+        {
+          "value": "D",
+          "label": "6"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Gradient = (11 − 5) ÷ (4 − 1) = 6/3 = 2.",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 8,
+      "bank_key": "G9M2-008",
+      "topic": "Polygons",
+      "difficulty": "medium",
+      "prompt": "Each interior angle of a regular hexagon measures how many degrees?",
+      "options": [
+        {
+          "value": "A",
+          "label": "60°"
+        },
+        {
+          "value": "B",
+          "label": "90°"
+        },
+        {
+          "value": "C",
+          "label": "108°"
+        },
+        {
+          "value": "D",
+          "label": "120°"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Each interior angle is ((6 − 2) × 180°) ÷ 6 = 120°.",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 9,
+      "bank_key": "G9M2-009",
+      "topic": "Area",
+      "difficulty": "medium",
+      "prompt": "A triangle has a base of 16 cm and a perpendicular height of 9 cm. Find its area.",
+      "options": [
+        {
+          "value": "A",
+          "label": "144 cm²"
+        },
+        {
+          "value": "B",
+          "label": "72 cm²"
+        },
+        {
+          "value": "C",
+          "label": "25 cm²"
+        },
+        {
+          "value": "D",
+          "label": "81 cm²"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Area = 1/2 × base × height = 1/2 × 16 × 9 = 72 cm².",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 10,
+      "bank_key": "G9M2-010",
+      "topic": "Probability",
+      "difficulty": "challenging",
+      "prompt": "Two fair six-sided dice are rolled. What is the probability that the sum of the numbers is 7?",
+      "options": [
+        {
+          "value": "A",
+          "label": "1/12"
+        },
+        {
+          "value": "B",
+          "label": "1/3"
+        },
+        {
+          "value": "C",
+          "label": "1/6"
+        },
+        {
+          "value": "D",
+          "label": "1/4"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Six of the 36 equally likely ordered outcomes add to 7, so the probability is 6/36 = 1/6.",
+      "marks": 1,
+      "review_status": "original_pilot_pending_independent_educational_review",
+      "verified_kicd_outcome_id": null
+    }
+  ]
+}
