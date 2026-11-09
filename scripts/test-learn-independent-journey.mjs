@@ -30,6 +30,7 @@ assert.match(reading, /return \(\)/, "Reading must cancel stale loads");
 assert.match(layout, /<LearnActivityHub \/>/, "General grades must receive activity hub");
 assert.match(form4, /<LearnActivityHub \/>/, "Form 4 must receive activity hub");
 assert.match(layout, /pathname !== "\/student\/vibelearn"/, "Nested routes must not be replaced");
+assert.match(layout, /identity\.independent \|\| pathname !== "\/student\/vibelearn"/, "Independent learner must bypass school-only grade workstation");
 assert.match(projects, /from\("projects"\)/);
 assert.match(exams, /listMyAssessmentAssignments/, "Do not replace exam engine");
 assert.match(practice, /recordGroundedPracticeAnswer/, "Keep canonical grounded practice");
