@@ -12,7 +12,6 @@ import { getLearnerAssessmentHub, type AssessmentResultSummary } from '@/lib/ass
 
 const isMath = (title: string) => /math(?:ematic)?s/i.test(title)
 const isMock = (title: string) => /(?:kjsea|mock)/i.test(title)
-const isGradeNine = (className: string) => /^(?:grade|class)\s*9$/i.test(className.trim())
 
 function statusLabel(item: LearnerAssessmentAssignment): string {
   if (item.attemptStatus === 'in_progress') return 'Resume'
@@ -42,7 +41,8 @@ export default function GradeNineMathematicsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const allowed = !identityLoading && isGradeNine(identity?.className ?? '')
+  // Public practice eligibility is enforced by the assessment RPC, not a school enrolment gate.
+  const allowed = !identityLoading && Boolean(identity)
   useEffect(() => {
     if (identityLoading) return
     if (!allowed) { setLoading(false); return }
@@ -52,8 +52,8 @@ export default function GradeNineMathematicsPage() {
       .then(([items, hub]) => {
         if (cancelled) return
         // The canonical RPC already scopes assignments to the signed-in learner.
-        setAssignments(items.filter(item => isMath(item.title)))
-        setResults(hub.results.filter(item => isMath(item.assessmentTitle)))
+        setAssignments(items.filter(item => isMath(item.title) && /grade\s*9/i.test(item.title)))
+        setResults(hub.results.filter(item => isMath(item.assessmentTitle) && /grade\s*9/i.test(item.assessmentTitle)))
       })
       .catch(reason => {
         if (!cancelled) setError(reason instanceof Error ? reason.message : 'Mathematics could not be loaded.')
@@ -106,14 +106,14 @@ export default function GradeNineMathematicsPage() {
       {identityLoading || loading ? <section style={card} role="status">Loading your Mathematics assessments…</section>
         : !allowed ? <section style={card} role="alert">
           <h2 style={{ marginTop: 0 }}>Grade 9 learners only</h2>
-          <p style={secondary}>Sign in to an enrolled Grade 9 learner account to access this workspace.</p>
+          <p style={secondary}>Sign in as a Grade 9 learner to access available practice. Linking a school is optional.</p>
           <Link href="/student/vibelearn/exams">Back to Exams</Link>
         </section>
         : <>
           {error && <section style={{ ...card, borderColor: '#dc2626', marginBottom: 16 }} role="alert">{error}</section>}
           <section style={{ marginBottom: 22 }} aria-labelledby="grade9-topic-heading">
             <h2 id="grade9-topic-heading" style={{ fontSize: 22 }}>Topic practice</h2>
-            <p style={secondary}>Approved practice assigned to your account appears below. Topics without approved questions are not shown as ready.</p>
+            <p style={secondary}>Available Grade 9 practice appears here whether or not you are linked to a school. School-assigned exams remain restricted.</p>
             <div style={{ display: 'grid', gap: 12 }}>
               {practice.length ? practice.map(assessmentCard) : <div style={card}>
                 <strong>Topic practice is being prepared</strong>
