@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
-import { generateRevisionPlan, getRevisionWorkspace, resolveMistake, type RevisionWorkspace } from '@/lib/student/vibelearn'
+import { generateRevisionPlan, getRevisionWorkspace, type RevisionWorkspace } from '@/lib/student/vibelearn'
 
 function todayIso(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
@@ -34,29 +34,23 @@ export default function RevisionWorkspacePage() {
     finally { setWorking(false) }
   }
 
-  async function markResolved(id: string) {
-    setWorking(true)
-    try { await resolveMistake(id); await load() }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not update the mistake.') }
-    finally { setWorking(false) }
-  }
 
   return <main style={shell}>
     <div style={{ maxWidth: 920, margin: '0 auto' }}>
       <VibeLearnSubnav />
       <button style={backButton} onClick={() => router.push('/student/vibelearn')}>← VibeLearn</button>
       <section style={hero}>
-        <div style={eyebrow}>Personal revision OS</div>
-        <h1 style={{ margin: '7px 0 5px' }}>Your plan, mistakes and progress</h1>
-        <p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.6 }}>Built from your own practice, assessment and reading evidence—not from public rankings.</p>
+        <div style={eyebrow}>My revision</div>
+        <h1 style={{ margin: '7px 0 5px' }}>What should I revise?</h1>
+        <p style={{ margin: 0, color: '#64748b', lineHeight: 1.6 }}>Use your own learning progress to plan your next steps.</p>
       </section>
 
       {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
       {loading ? <section style={card}>Preparing your revision workspace…</section> : workspace && <>
         <section style={{ ...card, borderColor: workspace.revisionMode.mode === 'final_sprint' ? '#fca5a5' : '#c7d2fe' }}>
-          <div style={eyebrowDark}>{workspace.revisionMode.mode.replaceAll('_', ' ')}</div>
-          <h2 style={title}>{workspace.revisionMode.daysRemaining} days remaining</h2>
-          <p style={muted}>{workspace.revisionMode.message}</p>
+          <div style={eyebrowDark}>Your study plan</div>
+          <h2 style={title}>{workspace.revisionMode.daysRemaining > 0 ? `${workspace.revisionMode.daysRemaining} days until your exam` : 'Plan your next 7 days'}</h2>
+          {workspace.revisionMode.daysRemaining > 0 && <p style={muted}>{workspace.revisionMode.message}</p>}
           <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:14 }}>
             <button style={primaryButton} disabled={working} onClick={() => void buildPlan()}>{working ? 'Building…' : workspace.weekPlan.length ? 'Refresh 7-day plan' : 'Build my 7-day plan'}</button>
             <button style={secondaryButton} onClick={() => router.push('/student/vibelearn/mistakes')}>Open mistake notebook</button>
@@ -70,7 +64,7 @@ export default function RevisionWorkspacePage() {
 
         <section style={card}><div style={eyebrowDark}>Weak-topic recovery</div><h2 style={title}>Patterns worth fixing</h2>{workspace.weakTopics.length === 0 ? <p style={muted}>Complete practice sessions and your evidence-backed weak topics will appear here.</p> : <div style={grid}>{workspace.weakTopics.map(item => <button key={`${item.subject}-${item.topic}`} style={actionCard} onClick={() => router.push(`/student/vibelearn/topic?subject=${encodeURIComponent(item.subject)}&topic=${encodeURIComponent(item.topic)}`)}><strong>{item.subject}</strong><span>{item.topic}</span><span style={muted}>{item.misses} misses · {item.accuracy}% accuracy</span><span style={linkText}>Recover topic →</span></button>)}</div>}</section>
 
-        <section style={card}><div style={eyebrowDark}>Mistake notebook</div><h2 style={title}>Revise your own mistakes</h2>{workspace.mistakes.length === 0 ? <p style={muted}>Wrong practice answers will be captured here automatically.</p> : <div style={{ display: 'grid', gap: 10 }}>{workspace.mistakes.slice(0, 8).map(item => <article key={item.id} style={mistakeCard}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><strong>{item.subject} · {item.topic}</strong><span style={priorityPill}>{item.repeatCount}× missed</span></div><p style={{ margin: '8px 0', lineHeight: 1.5 }}>{item.prompt}</p>{item.explanation && <p style={muted}>{item.explanation}</p>}<div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>{item.reviewUrl && <button style={secondaryButton} onClick={() => router.push(item.reviewUrl as string)}>Review source</button>}<button style={secondaryButton} onClick={() => router.push(`/student/vibelearn/practice?subject=${encodeURIComponent(item.subject)}&topic=${encodeURIComponent(item.topic)}`)}>Practise topic</button>{item.status !== 'resolved' && <button style={secondaryButton} disabled={working} onClick={() => void markResolved(item.id)}>Mark understood</button>}</div></article>)}</div>}<button style={{ ...secondaryButton, marginTop:12 }} onClick={() => router.push('/student/vibelearn/mistakes')}>View full mistake notebook</button></section>
+        <section style={card}><div style={eyebrowDark}>Mistake notebook</div><h2 style={title}>Revise your own mistakes</h2>{workspace.mistakes.length === 0 ? <p style={muted}>Wrong practice answers will be captured here automatically.</p> : <div style={{ display: 'grid', gap: 10 }}>{workspace.mistakes.slice(0, 8).map(item => <article key={item.id} style={mistakeCard}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><strong>{item.subject} · {item.topic}</strong><span style={priorityPill}>{item.repeatCount}× missed</span></div><p style={{ margin: '8px 0', lineHeight: 1.5 }}>{item.prompt}</p>{item.explanation && <details><summary style={{fontSize:13,fontWeight:700,cursor:'pointer',color:'#4338ca'}}>Read explanation</summary><p style={{...muted,fontSize:13,marginTop:7}}>{item.explanation}</p></details>}<div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>{item.reviewUrl && <button style={secondaryButton} onClick={() => router.push(item.reviewUrl as string)}>Review source</button>}<button style={secondaryButton} onClick={() => router.push(`/student/vibelearn/practice?subject=${encodeURIComponent(item.subject)}&topic=${encodeURIComponent(item.topic)}`)}>Practise topic</button></div></article>)}</div>}<button style={{ ...secondaryButton, marginTop:12 }} onClick={() => router.push('/student/vibelearn/mistakes')}>View full mistake notebook</button></section>
 
         <section style={card}><div style={eyebrowDark}>Learning journey</div><h2 style={title}>Your evidence, not comparison</h2><div style={metrics}><Metric value={workspace.journey.practiceAttempts} label="Questions attempted" /><Metric value={workspace.journey.correctAnswers} label="Correct answers" /><Metric value={workspace.journey.resolvedMistakes} label="Mistakes resolved" /><Metric value={workspace.journey.booksStarted} label="Books started" /><Metric value={workspace.journey.chaptersCompleted} label="Chapters completed" /><Metric value={workspace.journey.learningEvents30d} label="Learning actions · 30d" /></div></section>
       </>}
@@ -81,7 +75,7 @@ export default function RevisionWorkspacePage() {
 function Metric({ value, label }: { value: number; label: string }) { return <div style={metric}><strong style={{ fontSize: 24 }}>{value}</strong><span style={muted}>{label}</span></div> }
 
 const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 90px', color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }
-const hero: React.CSSProperties = { background: 'linear-gradient(135deg,#0f172a,#312e81)', color: '#fff', borderRadius: 20, padding: 20, marginBottom: 12 }
+const hero: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', color: '#0f172a', borderRadius: 20, padding: 20, marginBottom: 12 }
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 16, marginBottom: 12 }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1, color: '#a5b4fc' }
 const eyebrowDark: React.CSSProperties = { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1, color: '#4f46e5' }
