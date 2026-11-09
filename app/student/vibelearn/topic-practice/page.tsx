@@ -10,7 +10,7 @@ import { recordVibeLearnPracticeAnswer } from '@/lib/student/vibelearn'
 
 type Question = { id:string; subject:string; topic:string; question:string; options:string[] }
 type Topic = {subject:string;topic:string;count:number}
-type Answer = { questionId:string; choice:number|null; correct:boolean|null; explanation:string|null }
+type Answer = { questionId:string; choice:number|null; correct:boolean|null; correctIndex:number|null; explanation:string|null }
 type Session = { grade:string; subject:string; topic:string; questionIds:string[]; index:number; answers:Answer[]; id:string; finished:boolean }
 const TARGET = 5
 const STORAGE = 'vibeschool:topic-practice:v1:'
@@ -42,7 +42,7 @@ export default function TopicPracticePage() {
   const [session, setSession] = useState<Session|null>(null)
   const [choice, setChoice] = useState<number|null>(null)
   const [reviewQuestionId, setReviewQuestionId] = useState<string|null>(null)
-  const [reviewResult, setReviewResult] = useState<{correct:boolean;explanation:string|null}|null>(null)
+  const [reviewResult, setReviewResult] = useState<{correct:boolean;correctIndex:number|null;explanation:string|null}|null>(null)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -116,13 +116,21 @@ export default function TopicPracticePage() {
       const result = await recordVibeLearnPracticeAnswer({examQuestionId:currentQuestion.id,selectedIndex:index,sessionId:session.id,responseMs:null})
       const row = result && typeof result === 'object' ? result as Record<string,unknown> : {}
       if (typeof row.correct !== 'boolean') throw new Error('Marking did not return a result.')
-      remember({...session,answers:[...session.answers,{questionId:currentQuestion.id,choice:index,correct:row.correct,explanation:typeof row.explanation === 'string' ? row.explanation : null}]})
+      let correctIndex:number|null = null
+      try {
+        const feedback = await supabase.rpc('student_get_topic_practice_feedback' as never,{p_exam_question_id:currentQuestion.id,p_session_id:session.id})
+        if (!feedback.error && feedback.data && typeof feedback.data === 'object' && !Array.isArray(feedback.data)) {
+          const value = feedback.data as Record<string,unknown>
+          if (typeof value.correct_index === 'number') correctIndex = value.correct_index
+        }
+      } catch { /* The attempt remains scored even if review data is temporarily unavailable. */ }
+      remember({...session,answers:[...session.answers,{questionId:currentQuestion.id,choice:index,correct:row.correct,correctIndex,explanation:typeof row.explanation === 'string' ? row.explanation : null}]})
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not mark this answer.') }
     finally { setBusy(false) }
   }
   function skip() {
     if (!session || !currentQuestion || busy || currentAnswer) return
-    remember({...session,answers:[...session.answers,{questionId:currentQuestion.id,choice:null,correct:null,explanation:null}]})
+    remember({...session,answers:[...session.answers,{questionId:currentQuestion.id,choice:null,correct:null,correctIndex:null,explanation:null}]})
   }
   function next() {
     if (!session || !currentAnswer) return
@@ -132,10 +140,18 @@ export default function TopicPracticePage() {
     if (choice === null || busy || !session) return
     setBusy(true); setError('')
     try {
-      const result = await recordVibeLearnPracticeAnswer({examQuestionId:question.id,selectedIndex:choice,sessionId:crypto.randomUUID(),responseMs:null})
+      const reviewSessionId = crypto.randomUUID()
+      const result = await recordVibeLearnPracticeAnswer({examQuestionId:question.id,selectedIndex:choice,sessionId:reviewSessionId,responseMs:null})
       const row = result && typeof result === 'object' ? result as Record<string,unknown> : {}
       if (typeof row.correct !== 'boolean') throw new Error('Marking did not return a result.')
-      setReviewResult({correct:row.correct,explanation:typeof row.explanation === 'string' ? row.explanation : null})
+      let correctIndex:number|null = null
+      // This feedback is authorized by the just-created scored attempt.
+      const feedback = await supabase.rpc('student_get_topic_practice_feedback' as never,{p_exam_question_id:question.id,p_session_id:reviewSessionId})
+      if (!feedback.error && feedback.data && typeof feedback.data === 'object' && !Array.isArray(feedback.data)) {
+        const item = feedback.data as Record<string,unknown>
+        if (typeof item.correct_index === 'number') correctIndex = item.correct_index
+      }
+      setReviewResult({correct:row.correct,correctIndex,explanation:typeof row.explanation === 'string' ? row.explanation : null})
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not retry this question.') }
     finally { setBusy(false) }
   }
@@ -161,7 +177,7 @@ export default function TopicPracticePage() {
         const q = questions.find(item => item.id === a.questionId)
         if (!q) return null
         const active = reviewQuestionId === q.id
-        return <div key={q.id} style={{border:'1px solid var(--vs-border)',padding:13,borderRadius:12}}><strong>{q.question}</strong><p style={muted}>{a.correct === null ? 'Skipped' : 'Incorrect'}</p><button style={plain} onClick={() => {setReviewQuestionId(active ? 'all' : q.id);setReviewResult(null);setChoice(null)}}>{active ? 'Close' : 'Retry question'}</button>{active && <div style={{display:'grid',gap:8}}>{q.options.map((option,i) => <button key={i} disabled={busy || Boolean(reviewResult)} style={{...optionButton,background:choice===i?'#e0e7ff':'var(--vs-card)'}} onClick={() => setChoice(i)}>{String.fromCharCode(65+i)}. {option}</button>)}{reviewResult ? <div role='status'><strong>{reviewResult.correct ? 'Correct' : 'Not correct'}</strong><p>{reviewResult.explanation}</p></div> : <button disabled={choice===null || busy} style={button} onClick={() => void retryQuestion(q)}>Check answer</button>}</div>}</div>
+        return <div key={q.id} style={{border:'1px solid var(--vs-border)',padding:13,borderRadius:12}}><strong>{q.question}</strong><p style={muted}>{a.correct === null ? 'Skipped' : 'Incorrect'}</p><button style={plain} onClick={() => {setReviewQuestionId(active ? 'all' : q.id);setReviewResult(null);setChoice(null)}}>{active ? 'Close' : 'Retry question'}</button>{active && <div style={{display:'grid',gap:8}}>{q.options.map((option,i) => <button key={i} disabled={busy || Boolean(reviewResult)} style={{...optionButton,background:choice===i?'#e0e7ff':'var(--vs-card)'}} onClick={() => setChoice(i)}>{String.fromCharCode(65+i)}. {option}</button>)}{reviewResult ? <div role='status'><strong>{reviewResult.correct ? 'Correct' : 'Not correct'}</strong>{reviewResult.correctIndex !== null && <p>Correct answer: {String.fromCharCode(65+reviewResult.correctIndex)}. {q.options[reviewResult.correctIndex]}</p>}<p>{reviewResult.explanation}</p></div> : <button disabled={choice===null || busy} style={button} onClick={() => void retryQuestion(q)}>Check answer</button>}</div>}</div>
       })}</div>}
     </section>}
     {grade && !loading && session && !session.finished && <section style={card}>
@@ -172,7 +188,7 @@ export default function TopicPracticePage() {
         <div style={{display:'grid',gap:10}}>
           {currentQuestion.options.map((option,i)=><button key={i} disabled={busy || Boolean(currentAnswer)} onClick={() => void answer(i)} style={{...optionButton,background:currentAnswer?.choice === i ? '#e0e7ff':'#fff'}}>{String.fromCharCode(65+i)}. {option}</button>)}
         </div>
-        {currentAnswer ? <div role="status" style={{marginTop:16,padding:13,borderRadius:12,background:'#f1f5f9'}}><strong>{currentAnswer.correct === null ? 'Skipped' : currentAnswer.correct ? 'Correct' : 'Not correct'}</strong>{currentAnswer.explanation && <p>{currentAnswer.explanation}</p>}<button style={{...button,marginTop:12}} onClick={next}>{session.index === TARGET-1 ? 'See results' : 'Next'}</button></div> : <button disabled={busy} style={{...secondary,marginTop:14}} onClick={skip}>Skip question</button>}
+        {currentAnswer ? <div role="status" style={{marginTop:16,padding:13,borderRadius:12,background:'#f1f5f9'}}><strong>{currentAnswer.correct === null ? 'Skipped' : currentAnswer.correct ? 'Correct' : 'Not correct'}</strong>{currentAnswer.correctIndex !== null && <p>Correct answer: {String.fromCharCode(65+currentAnswer.correctIndex)}. {currentQuestion.options[currentAnswer.correctIndex]}</p>}{currentAnswer.explanation && <p>{currentAnswer.explanation}</p>}<button style={{...button,marginTop:12}} onClick={next}>{session.index === TARGET-1 ? 'See results' : 'Next'}</button></div> : <button disabled={busy} style={{...secondary,marginTop:14}} onClick={skip}>Skip question</button>}
       </> : <p>This question is no longer available. Choose a new topic.</p>}
     </section>}
     {grade && !loading && !session && <section style={card}>
