@@ -1,7 +1,8 @@
 'use server'
 
 import { emailPilotEnabled, pilotEmail } from './config'
-import { canUsePilot, finishPilotSignup, hasRestrictedIdentity, pilotClient } from './server'
+import { validLearnerGrade } from '@/lib/learner/independent-grade'
+import { canUsePilot, finishPilotSignup, hasRestrictedIdentity, pilotClient, pilotAdminClient } from './server'
 
 const unavailable = 'Email signup is unavailable for this address.'
 const retry = 'Could not connect. Try again.'
@@ -61,4 +62,23 @@ export async function signOutLearnerEmail() {
   if (error) return { error: 'Could not sign out. Try again.' }
   commit()
   return { signedOut: true }
+}
+
+export async function saveIndependentEmailGrade(form: FormData) {
+  const grade = form.get('grade')
+  if (!validLearnerGrade(grade)) return { error: 'Choose your grade.' }
+  try {
+    const { client, commit } = pilotClient()
+    const { data: { user }, error } = await client.auth.getUser()
+    if (error || !user || !await canUsePilot(client, user) || !await hasRestrictedIdentity(user.id)) {
+      return { error: 'Sign in with your verified email first.' }
+    }
+    const { error: writeError } = await pilotAdminClient().from('independent_learner_identities')
+      .update({ grade_label: grade, updated_at: new Date().toISOString() }).eq('user_id', user.id)
+    if (writeError) return { error: 'Could not save your grade.' }
+    commit()
+    return { saved: true }
+  } catch {
+    return { error: 'Could not save your grade. Try again.' }
+  }
 }
