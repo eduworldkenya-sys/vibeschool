@@ -80,8 +80,8 @@ export default function StudentHomePage() {
     </section>
     <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
       <h2 style={{ color: '#17213b', fontSize: 18, margin: '0 0 8px' }}>Learn</h2>
-      <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>Open the reading library and choose material for your grade.</p>
-      <button type="button" onClick={() => router.push('/global/read')} style={{ ...primaryButton, width: 'auto', padding: '12px 18px' }}>Open reading library</button>
+      <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>Find published materials for your grade in VibeSchool Learn.</p>
+      <button type="button" onClick={() => router.push('/student/vibelearn')} style={{ ...primaryButton, width: 'auto', padding: '12px 18px' }}>Open Learn</button>
     </section>
     <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
       <h2 style={{ color: '#17213b', fontSize: 18, margin: '0 0 8px' }}>Your learning account</h2>

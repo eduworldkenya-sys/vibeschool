@@ -140,7 +140,17 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
+    <div style={identity?.independent ? {
+      minHeight: '100dvh', background: '#f6f7fb', color: '#17213b',
+      ['--vs-bg' as string]: '#f6f7fb',
+      ['--vs-card' as string]: '#ffffff',
+      ['--vs-border' as string]: '#e1e5ef',
+      ['--vs-text' as string]: '#17213b',
+      ['--vs-muted' as string]: '#64748b',
+      ['--vs-nav-bg' as string]: '#ffffff',
+      ['--vs-nav-border' as string]: '#e1e5ef',
+      ['--vs-accent' as string]: '#5145e8',
+    } as React.CSSProperties : undefined}>
       <TopBar
         name={identity?.name ?? ""}
         className={identity?.className ?? ""}
@@ -157,7 +167,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <BottomNav />
-    </>
+    </div>
   );
 }
 
