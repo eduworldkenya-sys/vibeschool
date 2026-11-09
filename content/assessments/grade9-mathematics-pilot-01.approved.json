@@ -1,0 +1,316 @@
+{
+  "id": "grade9-mathematics-pilot-01",
+  "title": "Grade 9 Mathematics — Pilot 01",
+  "grade": "Grade 9",
+  "subject": "Mathematics",
+  "curriculum": "Kenya CBC Grade 9, provisional topic mapping; exact KICD learning-outcome verification pending",
+  "status": "approved_by_product_owner_pending_canonical_publication",
+  "origin": "VibeSchool Original — Internally Authored",
+  "assessment_type": "practice",
+  "duration_minutes": 20,
+  "total_marks": 10,
+  "visibility": "pilot_only",
+  "instructions": "Choose one answer for each item. Questions may be skipped. Each item carries one mark.",
+  "items": [
+    {
+      "number": 1,
+      "bank_key": "G9M-001",
+      "topic": "Integers",
+      "difficulty": "easy",
+      "prompt": "Evaluate −8 + 3 × (−4).",
+      "options": [
+        {
+          "value": "A",
+          "label": "−20"
+        },
+        {
+          "value": "B",
+          "label": "−60"
+        },
+        {
+          "value": "C",
+          "label": "20"
+        },
+        {
+          "value": "D",
+          "label": "4"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Multiply first: 3 × (−4) = −12. Then −8 − 12 = −20.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 2,
+      "bank_key": "G9M-002",
+      "topic": "Cubes and Cube Roots",
+      "difficulty": "easy",
+      "prompt": "Find the cube root of 729.",
+      "options": [
+        {
+          "value": "A",
+          "label": "7"
+        },
+        {
+          "value": "B",
+          "label": "8"
+        },
+        {
+          "value": "C",
+          "label": "9"
+        },
+        {
+          "value": "D",
+          "label": "11"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "9 × 9 × 9 = 729, so the cube root is 9.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 3,
+      "bank_key": "G9M-003",
+      "topic": "Indices",
+      "difficulty": "medium",
+      "prompt": "Simplify 2³ × 2⁴.",
+      "options": [
+        {
+          "value": "A",
+          "label": "16"
+        },
+        {
+          "value": "B",
+          "label": "32"
+        },
+        {
+          "value": "C",
+          "label": "64"
+        },
+        {
+          "value": "D",
+          "label": "128"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "2³ × 2⁴ = 2⁷ = 128.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 4,
+      "bank_key": "G9M-004",
+      "topic": "Rates of Work",
+      "difficulty": "medium",
+      "prompt": "Six workers complete a job in 12 days. Assuming each works at the same constant rate, how many days will nine workers take?",
+      "options": [
+        {
+          "value": "A",
+          "label": "6 days"
+        },
+        {
+          "value": "B",
+          "label": "8 days"
+        },
+        {
+          "value": "C",
+          "label": "9 days"
+        },
+        {
+          "value": "D",
+          "label": "18 days"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "6 × 12 = 72 worker-days. 72 ÷ 9 = 8 days.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 5,
+      "bank_key": "G9M-005",
+      "topic": "Matrices",
+      "difficulty": "medium",
+      "prompt": "Matrix A = [[2, 1], [3, 4]] and B = [[1, 5], [6, 2]]. Find the element in row 2, column 1 of A + B.",
+      "options": [
+        {
+          "value": "A",
+          "label": "4"
+        },
+        {
+          "value": "B",
+          "label": "6"
+        },
+        {
+          "value": "C",
+          "label": "8"
+        },
+        {
+          "value": "D",
+          "label": "9"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "The row 2, column 1 element is 3 + 6 = 9.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 6,
+      "bank_key": "G9M-006",
+      "topic": "Equation of a Straight Line",
+      "difficulty": "medium",
+      "prompt": "A straight line passes through (0, 3) and (2, 7). What is its equation?",
+      "options": [
+        {
+          "value": "A",
+          "label": "y = 2x + 3"
+        },
+        {
+          "value": "B",
+          "label": "y = 3x + 2"
+        },
+        {
+          "value": "C",
+          "label": "y = 2x − 3"
+        },
+        {
+          "value": "D",
+          "label": "y = 4x + 3"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "The gradient is (7 − 3)/(2 − 0) = 2 and intercept is 3. Hence y = 2x + 3.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 7,
+      "bank_key": "G9M-007",
+      "topic": "Linear Inequalities",
+      "difficulty": "medium",
+      "prompt": "Solve 3x − 5 < 10.",
+      "options": [
+        {
+          "value": "A",
+          "label": "x > 5"
+        },
+        {
+          "value": "B",
+          "label": "x < 5"
+        },
+        {
+          "value": "C",
+          "label": "x < 15"
+        },
+        {
+          "value": "D",
+          "label": "x > 15"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "3x − 5 < 10 implies 3x < 15, thus x < 5.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 8,
+      "bank_key": "G9M-008",
+      "topic": "Volume of Solids",
+      "difficulty": "challenging",
+      "prompt": "A cylindrical container has an internal radius of 7 cm and an internal height of 10 cm. Find its capacity in cubic centimetres. Use π = 22/7.",
+      "options": [
+        {
+          "value": "A",
+          "label": "440 cm³"
+        },
+        {
+          "value": "B",
+          "label": "770 cm³"
+        },
+        {
+          "value": "C",
+          "label": "1,540 cm³"
+        },
+        {
+          "value": "D",
+          "label": "3,080 cm³"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "πr²h = 22/7 × 49 × 10 = 1,540 cm³.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 9,
+      "bank_key": "G9M-009",
+      "topic": "Scale Drawing",
+      "difficulty": "challenging",
+      "prompt": "Two towns are 3 cm apart on a map drawn to a scale of 1:50,000. What is the actual distance?",
+      "options": [
+        {
+          "value": "A",
+          "label": "0.15 km"
+        },
+        {
+          "value": "B",
+          "label": "1.5 km"
+        },
+        {
+          "value": "C",
+          "label": "15 km"
+        },
+        {
+          "value": "D",
+          "label": "150 km"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "3 × 50,000 cm = 150,000 cm = 1.5 km.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 10,
+      "bank_key": "G9M-010",
+      "topic": "Probability",
+      "difficulty": "easy",
+      "prompt": "A bag contains 3 red, 2 blue and 5 green balls. A ball is selected at random. What is the probability it is blue?",
+      "options": [
+        {
+          "value": "A",
+          "label": "1/10"
+        },
+        {
+          "value": "B",
+          "label": "1/5"
+        },
+        {
+          "value": "C",
+          "label": "2/5"
+        },
+        {
+          "value": "D",
+          "label": "1/2"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "2 of 10 balls are blue: 2/10 = 1/5.",
+      "marks": 1,
+      "review_status": "owner_approved_pilot",
+      "verified_kicd_outcome_id": null
+    }
+  ]
+}
