@@ -11,6 +11,12 @@ import './exams.css'
 type View = 'for-you' | 'history' | 'progress'
 type ExamState = 'in-progress' | 'new' | 'completed' | 'awaiting' | 'retake' | 'unavailable'
 
+function mayRetake(item: LearnerAssessmentAssignment): boolean {
+  // Discovery may have processed a timed-out attempt but not yet reflected
+  // the quota. Do not advertise an extra attempt on the exhausted paper.
+  return item.canStart && (item.attemptNumber ?? 0) < item.maxAttempts
+}
+
 function examState(item: LearnerAssessmentAssignment): ExamState {
   const active = item.attemptStatus === 'in_progress'
     && (!item.attemptExpiresAt || Date.parse(item.attemptExpiresAt) > Date.now())
@@ -20,7 +26,7 @@ function examState(item: LearnerAssessmentAssignment): ExamState {
       && item.showScorePolicy === 'immediate' && item.resultStatus === 'marked')) return 'completed'
     if (item.submittedAt || item.resultStatus === 'pending' && item.attemptStatus !== 'in_progress'
       || item.resultStatus === 'partially_marked' || item.resultStatus === 'marked') return 'awaiting'
-    if (item.canStart) return 'retake'
+    if (mayRetake(item)) return 'retake'
     return 'unavailable'
   }
   return item.canStart ? 'new' : 'unavailable'
@@ -126,7 +132,7 @@ export default function VibeLearnExamsPage() {
       else if (state === 'awaiting') awaiting.push(item)
       else if (state === 'completed') {
         completed.push(item)
-        if (item.canStart) retakes.push(item)
+        if (mayRetake(item)) retakes.push(item)
       }
     }
     return { ongoing, fresh, retakes, awaiting, completed }
@@ -139,7 +145,7 @@ export default function VibeLearnExamsPage() {
   const trend = chronological.slice(-6)
   const distinctPapers = new Set(results.map(r => r.assessmentTitle)).size
   const reviewFirst = [...chronological].reverse().find(result => result.percentage !== null && result.percentage < 60)
-  const revisionCandidate = [...groups.retakes].filter(item => item.canStart).sort((a, b) => {
+  const revisionCandidate = [...groups.retakes].filter(mayRetake).sort((a, b) => {
     const score = (title: string) => chronological.filter(r => r.assessmentTitle === title).at(-1)?.percentage ?? 101
     return score(a.title) - score(b.title)
   })[0]
@@ -170,7 +176,7 @@ export default function VibeLearnExamsPage() {
       <div className="vs-exam-card-actions">
         <button type="button" className={kind === 'completed' ? 'vs-exam-button vs-exam-button--outline' : 'vs-exam-button'}
           onClick={event => {
-            if (kind === 'retake') openRetake(item, event.currentTarget)
+            if (kind === 'retake' && mayRetake(item)) openRetake(item, event.currentTarget)
             else if (kind === 'completed' && resultAvailable && item.attemptId) viewResult(item.attemptId)
             else if (kind === 'new' || kind === 'in-progress') start(item)
             else changeView('history')
@@ -279,7 +285,7 @@ export default function VibeLearnExamsPage() {
       </section>}
     </div>
 
-    {retake && <div className="vs-exam-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) closeRetake() }}>
+    {retake && mayRetake(retake) && <div className="vs-exam-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) closeRetake() }}>
       <section role="alertdialog" aria-modal="true" aria-labelledby="vs-retake-title" aria-describedby="vs-retake-copy" className="vs-exam-modal">
         <h2 id="vs-retake-title">Retake this exam?</h2>
         <p id="vs-retake-copy">A new attempt will start. Your previous results will stay in History. You have used {retake.attemptNumber ?? 0} of {retake.maxAttempts} attempts.</p>
