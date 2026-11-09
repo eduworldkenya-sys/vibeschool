@@ -34,7 +34,7 @@ begin
   ) q;
   return v_source || jsonb_build_object('practice_mode','grounded_authored','question_count',jsonb_array_length(v_questions),'questions',v_questions);
 end;
-$function$
+$function$;
 
 revoke execute on function public.student_get_grounded_chapter_practice(uuid,uuid,integer) from public, anon;
 grant execute on function public.student_get_grounded_chapter_practice(uuid,uuid,integer) to authenticated;
