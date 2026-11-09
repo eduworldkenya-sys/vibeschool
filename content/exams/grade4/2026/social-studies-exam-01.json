@@ -1,0 +1,377 @@
+{
+  "id": "g4-social-studies-vibeschool-exam-01",
+  "title": "Grade 4 Social Studies — VibeSchool Exam 01",
+  "grade": "Grade 4",
+  "subject": "Social Studies",
+  "curriculum": "Kenya CBC Grade 4 — KICD 2024 revised learning-area design reference; outcome-level verification pending",
+  "status": "original_content_editorial_review",
+  "origin": "VibeSchool Original — Internally Authored",
+  "assessment_type": "practice",
+  "duration_minutes": 30,
+  "max_attempts": 3,
+  "total_marks": 12,
+  "visibility": "public_practice",
+  "instructions": "Read each question carefully and choose one answer. You may skip a question and return to it before submission.",
+  "items": [
+    {
+      "number": 1,
+      "bank_key": "G4-SOC-EX01-001",
+      "topic": "Maps",
+      "difficulty": "easy",
+      "prompt": "What does a map key help us understand?",
+      "options": [
+        {
+          "value": "A",
+          "label": "How to play football"
+        },
+        {
+          "value": "B",
+          "label": "The meaning of symbols on a map"
+        },
+        {
+          "value": "C",
+          "label": "How fast a car can move"
+        },
+        {
+          "value": "D",
+          "label": "The weather for every year"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "A map key explains the symbols used on a map.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 2,
+      "bank_key": "G4-SOC-EX01-002",
+      "topic": "Direction",
+      "difficulty": "easy",
+      "prompt": "Which direction is opposite to north?",
+      "options": [
+        {
+          "value": "A",
+          "label": "East"
+        },
+        {
+          "value": "B",
+          "label": "West"
+        },
+        {
+          "value": "C",
+          "label": "South"
+        },
+        {
+          "value": "D",
+          "label": "North-east"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "South is directly opposite north on a compass.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 3,
+      "bank_key": "G4-SOC-EX01-003",
+      "topic": "National Identity",
+      "difficulty": "easy",
+      "prompt": "What is one important way of showing respect for the Kenyan national anthem?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Running around while it plays"
+        },
+        {
+          "value": "B",
+          "label": "Making noise during the song"
+        },
+        {
+          "value": "C",
+          "label": "Turning away and shouting"
+        },
+        {
+          "value": "D",
+          "label": "Standing respectfully when appropriate"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Standing respectfully when appropriate is a way of showing respect for the national anthem.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 4,
+      "bank_key": "G4-SOC-EX01-004",
+      "topic": "Counties",
+      "difficulty": "easy",
+      "prompt": "Which of these is a county in Kenya?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Nakuru"
+        },
+        {
+          "value": "B",
+          "label": "Kampala"
+        },
+        {
+          "value": "C",
+          "label": "Arusha"
+        },
+        {
+          "value": "D",
+          "label": "Kigali"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Nakuru is one of the counties of Kenya; the other options are cities outside Kenya.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 5,
+      "bank_key": "G4-SOC-EX01-005",
+      "topic": "Environment",
+      "difficulty": "medium",
+      "prompt": "Which is an example of a natural feature of the environment?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Road"
+        },
+        {
+          "value": "B",
+          "label": "River"
+        },
+        {
+          "value": "C",
+          "label": "Bridge"
+        },
+        {
+          "value": "D",
+          "label": "Market stall"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "A river is a natural physical feature of the environment.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 6,
+      "bank_key": "G4-SOC-EX01-006",
+      "topic": "Transport Safety",
+      "difficulty": "medium",
+      "prompt": "Where should a pedestrian cross a busy road when a safe pedestrian crossing is available?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Between moving cars"
+        },
+        {
+          "value": "B",
+          "label": "Behind a parked bus"
+        },
+        {
+          "value": "C",
+          "label": "At the pedestrian crossing"
+        },
+        {
+          "value": "D",
+          "label": "At a blind corner"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Pedestrian crossings are designated places to cross roads more safely.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 7,
+      "bank_key": "G4-SOC-EX01-007",
+      "topic": "Culture",
+      "difficulty": "medium",
+      "prompt": "Which behaviour promotes peaceful living among people from different communities?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Mocking their languages"
+        },
+        {
+          "value": "B",
+          "label": "Refusing to listen to others"
+        },
+        {
+          "value": "C",
+          "label": "Destroying cultural items"
+        },
+        {
+          "value": "D",
+          "label": "Respecting other people's traditions"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Respecting other cultures helps build peaceful relationships.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 8,
+      "bank_key": "G4-SOC-EX01-008",
+      "topic": "Public Property",
+      "difficulty": "medium",
+      "prompt": "Which action shows care for a public library?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Returning borrowed books in good condition"
+        },
+        {
+          "value": "B",
+          "label": "Tearing pages from books"
+        },
+        {
+          "value": "C",
+          "label": "Writing on library walls"
+        },
+        {
+          "value": "D",
+          "label": "Throwing rubbish on the floor"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Returning books carefully helps preserve resources shared by the public.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 9,
+      "bank_key": "G4-SOC-EX01-009",
+      "topic": "Weather",
+      "difficulty": "medium",
+      "prompt": "Which instrument is used to measure rainfall?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Thermometer"
+        },
+        {
+          "value": "B",
+          "label": "Rain gauge"
+        },
+        {
+          "value": "C",
+          "label": "Compass"
+        },
+        {
+          "value": "D",
+          "label": "Ruler"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "A rain gauge collects and measures rainfall.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 10,
+      "bank_key": "G4-SOC-EX01-010",
+      "topic": "Resources",
+      "difficulty": "challenging",
+      "prompt": "Which of the following is a renewable natural resource when managed carefully?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Crude oil"
+        },
+        {
+          "value": "B",
+          "label": "Coal"
+        },
+        {
+          "value": "C",
+          "label": "Trees"
+        },
+        {
+          "value": "D",
+          "label": "Gold"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Trees can regrow and be replenished through sustainable management.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 11,
+      "bank_key": "G4-SOC-EX01-011",
+      "topic": "Community",
+      "difficulty": "challenging",
+      "prompt": "Which action is a good example of cooperation in the community?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Ignoring a neighbour in need"
+        },
+        {
+          "value": "B",
+          "label": "Blocking the only footpath"
+        },
+        {
+          "value": "C",
+          "label": "Damaging shared water points"
+        },
+        {
+          "value": "D",
+          "label": "Joining others to clean a shared area"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Community clean-ups help people work together to improve shared surroundings.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 12,
+      "bank_key": "G4-SOC-EX01-012",
+      "topic": "Economic Activities",
+      "difficulty": "challenging",
+      "prompt": "Which activity involves buying and selling goods?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Trade"
+        },
+        {
+          "value": "B",
+          "label": "Sleeping"
+        },
+        {
+          "value": "C",
+          "label": "Hiding"
+        },
+        {
+          "value": "D",
+          "label": "Shouting"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Trade is the buying and selling of goods and services.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    }
+  ]
+}
