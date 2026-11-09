@@ -21,10 +21,3 @@ begin
 end $$;
 drop trigger if exists trg_exq_auto_release_immediate_practice on public.assessment_attempts;
 create trigger trg_exq_auto_release_immediate_practice after insert or update of status,result_status on public.assessment_attempts for each row execute function public.exq_auto_release_immediate_practice();
--- Reconcile only completed and fully marked immediate practice attempts.
-update public.assessment_attempts a set status='auto_marked',result_status='marked',updated_at=now()
-from public.assessment_assignments aa join public.assessment_definitions ad on ad.id=aa.assessment_id
-where a.assignment_id=aa.id and ad.assessment_type='practice' and aa.show_score_policy='immediate'
-and a.status='auto_marked' and a.result_status='marked' and a.score is not null and a.max_score>0
-and not exists(select 1 from public.assessment_moderation_requests mr where mr.attempt_id=a.id and mr.status='pending')
-and not exists(select 1 from public.assessment_responses r where r.attempt_id=a.id and r.status<>'void' and r.final_score is null);
