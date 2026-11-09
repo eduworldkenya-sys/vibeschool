@@ -1,0 +1,377 @@
+{
+  "id": "g4-english-vibeschool-exam-01",
+  "title": "Grade 4 English — VibeSchool Exam 01",
+  "grade": "Grade 4",
+  "subject": "English",
+  "curriculum": "Kenya CBC Grade 4 — KICD 2024 revised design reference; question-to-outcome mapping pending independent verification",
+  "status": "original_content_editorial_review",
+  "origin": "VibeSchool Original — Internally Authored",
+  "assessment_type": "practice",
+  "duration_minutes": 30,
+  "max_attempts": 3,
+  "total_marks": 12,
+  "visibility": "public_practice",
+  "instructions": "Read each question carefully and select one answer. You may skip and return before submitting.",
+  "items": [
+    {
+      "number": 1,
+      "bank_key": "G4-ENG-EX01-001",
+      "topic": "Reading Comprehension",
+      "difficulty": "easy",
+      "prompt": "Read: 'Every Saturday, Amina helps her grandmother water the vegetable garden. They grow spinach and tomatoes. Afterwards, they wash their hands before eating.' What do Amina and her grandmother grow?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Spinach and tomatoes"
+        },
+        {
+          "value": "B",
+          "label": "Maize and beans"
+        },
+        {
+          "value": "C",
+          "label": "Carrots and potatoes"
+        },
+        {
+          "value": "D",
+          "label": "Bananas and mangoes"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "The passage says that the garden has spinach and tomatoes.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 2,
+      "bank_key": "G4-ENG-EX01-002",
+      "topic": "Reading Comprehension",
+      "difficulty": "easy",
+      "prompt": "Read: 'Every Saturday, Amina helps her grandmother water the vegetable garden. They grow spinach and tomatoes. Afterwards, they wash their hands before eating.' When does Amina help her grandmother?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Every Monday"
+        },
+        {
+          "value": "B",
+          "label": "Every Saturday"
+        },
+        {
+          "value": "C",
+          "label": "Every Thursday"
+        },
+        {
+          "value": "D",
+          "label": "Every Sunday"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "The first sentence says that Amina helps every Saturday.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 3,
+      "bank_key": "G4-ENG-EX01-003",
+      "topic": "Reading Comprehension",
+      "difficulty": "easy",
+      "prompt": "Read: 'Every Saturday, Amina helps her grandmother water the vegetable garden. They grow spinach and tomatoes. Afterwards, they wash their hands before eating.' What do they do before eating?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Water the road"
+        },
+        {
+          "value": "B",
+          "label": "Play a game"
+        },
+        {
+          "value": "C",
+          "label": "Wash their hands"
+        },
+        {
+          "value": "D",
+          "label": "Buy vegetables"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "The passage states that they wash their hands before eating.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 4,
+      "bank_key": "G4-ENG-EX01-004",
+      "topic": "Vocabulary",
+      "difficulty": "easy",
+      "prompt": "Which word means the opposite of 'noisy'?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Loud"
+        },
+        {
+          "value": "B",
+          "label": "Busy"
+        },
+        {
+          "value": "C",
+          "label": "Angry"
+        },
+        {
+          "value": "D",
+          "label": "Quiet"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Quiet is the opposite of noisy.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 5,
+      "bank_key": "G4-ENG-EX01-005",
+      "topic": "Nouns",
+      "difficulty": "medium",
+      "prompt": "Which word is a proper noun?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Nakuru"
+        },
+        {
+          "value": "B",
+          "label": "teacher"
+        },
+        {
+          "value": "C",
+          "label": "garden"
+        },
+        {
+          "value": "D",
+          "label": "river"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Nakuru is the name of a particular place and begins with a capital letter.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 6,
+      "bank_key": "G4-ENG-EX01-006",
+      "topic": "Verbs",
+      "difficulty": "medium",
+      "prompt": "Choose the correct word: 'She ____ to school every morning.'",
+      "options": [
+        {
+          "value": "A",
+          "label": "walk"
+        },
+        {
+          "value": "B",
+          "label": "walks"
+        },
+        {
+          "value": "C",
+          "label": "walking"
+        },
+        {
+          "value": "D",
+          "label": "walked"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "The singular subject 'she' takes 'walks' in the simple present tense.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 7,
+      "bank_key": "G4-ENG-EX01-007",
+      "topic": "Pronouns",
+      "difficulty": "medium",
+      "prompt": "Complete the sentence: 'Tom and I are friends. ____ play football after class.'",
+      "options": [
+        {
+          "value": "A",
+          "label": "He"
+        },
+        {
+          "value": "B",
+          "label": "They"
+        },
+        {
+          "value": "C",
+          "label": "We"
+        },
+        {
+          "value": "D",
+          "label": "Us"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "'We' is the subject pronoun that includes Tom and the speaker.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 8,
+      "bank_key": "G4-ENG-EX01-008",
+      "topic": "Adjectives",
+      "difficulty": "medium",
+      "prompt": "Which word describes the noun in 'The tall tree gives shade'?",
+      "options": [
+        {
+          "value": "A",
+          "label": "tree"
+        },
+        {
+          "value": "B",
+          "label": "gives"
+        },
+        {
+          "value": "C",
+          "label": "shade"
+        },
+        {
+          "value": "D",
+          "label": "tall"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "'Tall' tells us more about the tree, so it is an adjective.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 9,
+      "bank_key": "G4-ENG-EX01-009",
+      "topic": "Punctuation",
+      "difficulty": "medium",
+      "prompt": "Which sentence is punctuated correctly?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Where is my bag?"
+        },
+        {
+          "value": "B",
+          "label": "Where is my bag."
+        },
+        {
+          "value": "C",
+          "label": "Where is my bag,"
+        },
+        {
+          "value": "D",
+          "label": "Where is my bag!"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "A direct question begins with a capital letter and ends with a question mark.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 10,
+      "bank_key": "G4-ENG-EX01-010",
+      "topic": "Prepositions",
+      "difficulty": "challenging",
+      "prompt": "Complete: 'The cat is hiding ____ the table.'",
+      "options": [
+        {
+          "value": "A",
+          "label": "quickly"
+        },
+        {
+          "value": "B",
+          "label": "under"
+        },
+        {
+          "value": "C",
+          "label": "happy"
+        },
+        {
+          "value": "D",
+          "label": "writes"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "'Under' is a preposition indicating position below the table.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 11,
+      "bank_key": "G4-ENG-EX01-011",
+      "topic": "Plural Nouns",
+      "difficulty": "challenging",
+      "prompt": "What is the plural of 'child'?",
+      "options": [
+        {
+          "value": "A",
+          "label": "childs"
+        },
+        {
+          "value": "B",
+          "label": "childes"
+        },
+        {
+          "value": "C",
+          "label": "children"
+        },
+        {
+          "value": "D",
+          "label": "childrens"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "'Children' is the irregular plural form of 'child'.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 12,
+      "bank_key": "G4-ENG-EX01-012",
+      "topic": "Sentence Construction",
+      "difficulty": "challenging",
+      "prompt": "Which is a complete sentence?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Because it rained"
+        },
+        {
+          "value": "B",
+          "label": "In the large classroom"
+        },
+        {
+          "value": "C",
+          "label": "The very colourful"
+        },
+        {
+          "value": "D",
+          "label": "The pupils planted trees."
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "'The pupils planted trees' has a subject, verb and complete meaning.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    }
+  ]
+}
