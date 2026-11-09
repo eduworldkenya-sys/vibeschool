@@ -24,6 +24,7 @@ export default function TwinStateCard({ state, onTask, launchingTaskId }: Props)
   const weakest = state.mastery.outcomes[0] ?? null
   const mastery = state.prediction.averageEffectiveMastery
   const risk = state.prediction.averageForgettingRisk
+  const hasEvidence = state.evidence.learningEventCount > 0 || state.evidence.competencyEvidenceCount > 0 || state.evidence.taskReceiptCount > 0
 
   function openDecision(decision: TwinDecision) {
     if (decision.decisionType === 'task' && decision.taskId) return onTask(decision.taskId)
@@ -33,20 +34,20 @@ export default function TwinStateCard({ state, onTask, launchingTaskId }: Props)
   return <section style={card}>
     <div style={header}>
       <div><div style={label}>VIBETWIN · LIVE LEARNER STATE</div><h2 style={title}>What matters now</h2></div>
-      <div style={confidence}><strong>{pct(state.confidence)}</strong><span>STATE CONFIDENCE</span></div>
+      <div style={confidence}><strong>{hasEvidence ? pct(state.confidence) : '—'}</strong><span>{hasEvidence ? 'STATE CONFIDENCE' : 'AWAITING EVIDENCE'}</span></div>
     </div>
 
     <div style={nowBox}>
       <div style={label}>NOW</div>
-      <strong style={{ fontSize: 14 }}>{now?.title ?? 'No urgent learning action'}</strong>
-      <div style={muted}>{now?.reason ?? (weakest ? `Keep ${weakest.outcomeText} active.` : 'Twin will recommend an action after enough learning evidence is available.')}</div>
+      <strong style={{ fontSize: 14 }}>{now?.title ?? (hasEvidence ? 'No urgent learning action' : 'Start a learning activity')}</strong>
+      <div style={muted}>{now?.reason ?? (weakest ? `Keep ${weakest.outcomeText} active.` : 'Twin will recommend a personalised next step after you complete learning activities.')}</div>
       {(now?.reasonChain.length ?? 0) > 0 && <div style={chips}>{now?.reasonChain.map(item => <span key={item} style={chip}>{item}</span>)}</div>}
       {now && <button disabled={Boolean(launchingTaskId)} onClick={() => openDecision(now)} style={button}>{launchingTaskId === now.taskId ? 'Opening…' : actionLabel(now)}</button>}
     </div>
 
     <div style={metrics}>
-      <Metric label="Effective mastery" value={mastery == null ? 'Building' : `${Math.round(mastery)}%`} />
-      <Metric label="Forgetting risk" value={pct(risk)} />
+      <Metric label="Effective mastery" value={!hasEvidence || mastery == null ? 'Not measured' : `${Math.round(mastery)}%`} />
+      <Metric label="Forgetting risk" value={hasEvidence ? pct(risk) : 'Not measured'} />
       <Metric label="Verified evidence" value={state.evidence.competencyEvidenceCount} />
       <Metric label="Exam" value={state.exam.daysRemaining == null ? 'Not set' : `${state.exam.daysRemaining}d`} />
     </div>
@@ -65,7 +66,7 @@ export default function TwinStateCard({ state, onTask, launchingTaskId }: Props)
       {state.evidence.meanAbsoluteError != null && <span>calibration error {state.evidence.meanAbsoluteError}</span>}
     </div>
 
-    <div style={foot}>Prediction confidence {pct(state.prediction.confidence)} · {state.prediction.disclaimer ?? 'Based on verified Vibeschool evidence.'}</div>
+    <div style={foot}>{hasEvidence ? `Prediction confidence ${pct(state.prediction.confidence)} · ${state.prediction.disclaimer ?? 'Based on verified VibeSchool evidence.'}` : 'No learning prediction is available yet. Complete an activity to begin collecting evidence.'}</div>
   </section>
 }
 
