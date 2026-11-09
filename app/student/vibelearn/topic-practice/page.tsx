@@ -39,6 +39,8 @@ export default function TopicPracticePage() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [session, setSession] = useState<Session|null>(null)
   const [choice, setChoice] = useState<number|null>(null)
+  const [reviewQuestionId, setReviewQuestionId] = useState<string|null>(null)
+  const [reviewResult, setReviewResult] = useState<{correct:boolean;explanation:string|null}|null>(null)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -67,7 +69,7 @@ export default function TopicPracticePage() {
     return () => { cancelled = true }
   }, [initialised,grade])
   function remember(next:Session|null) {
-    setSession(next); setChoice(null)
+    setSession(next); setChoice(null); setReviewQuestionId(null); setReviewResult(null)
     if (!storageKey) return
     try { if (next) window.localStorage.setItem(storageKey,JSON.stringify(next)); else window.localStorage.removeItem(storageKey) } catch { /* browser persistence unavailable */ }
   }
@@ -105,6 +107,17 @@ export default function TopicPracticePage() {
     if (!session || !currentAnswer) return
     remember({...session,index:Math.min(TARGET,session.index+1),finished:session.index+1 >= TARGET})
   }
+  async function retryQuestion(question:Question) {
+    if (choice === null || busy || !session) return
+    setBusy(true); setError('')
+    try {
+      const result = await recordVibeLearnPracticeAnswer({examQuestionId:question.id,selectedIndex:choice,sessionId:crypto.randomUUID(),responseMs:null})
+      const row = result && typeof result === 'object' ? result as Record<string,unknown> : {}
+      if (typeof row.correct !== 'boolean') throw new Error('Marking did not return a result.')
+      setReviewResult({correct:row.correct,explanation:typeof row.explanation === 'string' ? row.explanation : null})
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not retry this question.') }
+    finally { setBusy(false) }
+  }
   function selectGrade(value:string) {
     setGrade(value); remember(null)
     if (identity?.studentId) try { window.localStorage.setItem(STORAGE + identity.studentId + ':grade',value) } catch {}
@@ -121,8 +134,14 @@ export default function TopicPracticePage() {
     {grade && !loading && session?.finished && <section style={card}>
       <h2 style={heading}>Practice complete</h2>
       <p style={{fontSize:18,fontWeight:800}}>{results.correct} correct · {results.incorrect} incorrect · {results.skipped} skipped</p>
-      <button style={button} onClick={() => router.push('/student/vibelearn/mistakes')}>Review mistakes</button>
+      <button style={button} onClick={() => { setReviewQuestionId('all'); setReviewResult(null) }}>Review mistakes</button>
       <button style={secondary} onClick={() => remember(null)}>Choose another topic</button>
+      {reviewQuestionId && <div style={{marginTop:20,display:'grid',gap:12}}>{session.answers.filter(a => a.correct !== true).length === 0 ? <p style={muted}>No missed or skipped questions.</p> : session.answers.filter(a => a.correct !== true).map(a => {
+        const q = questions.find(item => item.id === a.questionId)
+        if (!q) return null
+        const active = reviewQuestionId === q.id
+        return <div key={q.id} style={{border:'1px solid var(--vs-border)',padding:13,borderRadius:12}}><strong>{q.question}</strong><p style={muted}>{a.correct === null ? 'Skipped' : 'Incorrect'}</p><button style={plain} onClick={() => {setReviewQuestionId(active ? 'all' : q.id);setReviewResult(null);setChoice(null)}}>{active ? 'Close' : 'Retry question'}</button>{active && <div style={{display:'grid',gap:8}}>{q.options.map((option,i) => <button key={i} disabled={busy || Boolean(reviewResult)} style={{...optionButton,background:choice===i?'#e0e7ff':'var(--vs-card)'}} onClick={() => setChoice(i)}>{String.fromCharCode(65+i)}. {option}</button>)}{reviewResult ? <div role='status'><strong>{reviewResult.correct ? 'Correct' : 'Not correct'}</strong><p>{reviewResult.explanation}</p></div> : <button disabled={choice===null || busy} style={button} onClick={() => void retryQuestion(q)}>Check answer</button>}</div>}</div>
+      })}</div>}
     </section>}
     {grade && !loading && session && !session.finished && <section style={card}>
       <p style={muted}>{session.subject} · {session.topic}</p>
