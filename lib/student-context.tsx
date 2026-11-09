@@ -65,12 +65,13 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
             : 'Could not verify your learner access. Please retry.'
           throw new Error(message)
         }
-        const home = await homeResponse.json() as { kind?: string; name?: string; grade?: string }
+        const home = await homeResponse.json() as { kind?: string; name?: string; grade?: string; studentId?: string }
         if (home.kind === 'independent') {
+          if (!home.studentId) throw new Error('Your learner identity needs to be completed. Please retry.')
           const name = home.name?.trim() || 'Learner'
           if (!cancelled) setIdentity({
-            independent: true, profileId: session.user.id, studentId: '', classId: null, schoolId: null,
-            name, firstName: name.split(/\\s+/)[0] || 'Learner', admissionNo: '',
+            independent: true, profileId: session.user.id, studentId: home.studentId, classId: null, schoolId: null,
+            name, firstName: name.split(/\s+/)[0] || 'Learner', admissionNo: '',
             className: home.grade ?? '', schoolName: '',
           })
           return
