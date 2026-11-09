@@ -83,6 +83,7 @@ export default function LearnerAssessmentPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [exiting, setExiting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<SubmitAttemptResult | null>(null)
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
@@ -267,7 +268,8 @@ export default function LearnerAssessmentPage() {
   ) => {
     if (!workspace || secondsLeft === 0 || activeElsewhere) return
     const current = snapshot ?? answersRef.current[item.id]
-    if (!current || current.saving) return
+    if (!current) return false
+    if (current.saving) return false
 
     setAnswers(state => ({
       ...state,
@@ -297,7 +299,7 @@ export default function LearnerAssessmentPage() {
           ...state,
           [item.id]: { ...state[item.id], saving: false, dirty: true },
         }))
-        return
+        return false
       }
 
       setAnswers(state => ({
@@ -310,6 +312,7 @@ export default function LearnerAssessmentPage() {
           dirty: false,
         },
       }))
+      return true
     } catch (saveError) {
       console.error('[LearnerAssessment] save response', saveError)
       const message = saveError instanceof Error ? saveError.message : ''
@@ -326,6 +329,7 @@ export default function LearnerAssessmentPage() {
         },
       }))
       setError(message || 'Answer could not be saved.')
+      return false
     }
   }, [workspace, secondsLeft, activeElsewhere])
 
@@ -444,6 +448,31 @@ export default function LearnerAssessmentPage() {
     if (item) await persistAnswer(item, next)
   }
 
+  // A pause is a safe exit from untimed practice. Timed assessments never
+  // stop their server-authoritative deadline when the learner leaves.
+  const saveAndExit = useCallback(async () => {
+    if (!workspace || exiting || submitting || activeElsewhere || conflict) return
+    setExiting(true)
+    setError('')
+    try {
+      Object.values(saveTimers.current).forEach(window.clearTimeout)
+      for (const item of workspace.items) {
+        const answer = answersRef.current[item.id]
+        if (answer?.saving) throw new Error('An answer is still saving. Please try again in a moment.')
+        if (answer?.dirty) {
+          const saved = await persistAnswer(item, answer)
+          if (!saved) throw new Error('Some answers were not saved. Please try again before leaving.')
+        }
+      }
+      await releaseAttemptClient(workspace.attemptId, clientIdRef.current)
+      router.push('/student/vibelearn/exams')
+    } catch (exitError) {
+      setError(exitError instanceof Error ? exitError.message : 'Could not save all answers. Please try again.')
+    } finally {
+      setExiting(false)
+    }
+  }, [workspace, exiting, submitting, activeElsewhere, conflict, persistAnswer, router])
+
   const submit = useCallback(async (expired = false) => {
     if (!workspace || submitting || result || activeElsewhere) return
     setSubmitting(true)
@@ -545,6 +574,11 @@ export default function LearnerAssessmentPage() {
         {workspace.instructions && <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.5 }}>{workspace.instructions}</p>}
         <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700 }}>{answeredCount}/{workspace.items.length} answered · Attempt {workspace.attemptNumber}</div>
         {recoveredDraft && <div style={notice}>Recovered newer work saved on this device.</div>}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+          <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => void saveAndExit()} style={secondaryButton}>{exiting ? 'Saving…' : workspace.expiresAt ? 'Save & Exit' : 'Pause & Exit'}</button>
+          <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => setShowConfirm(true)} style={primaryButton}>Submit & Finish</button>
+        </div>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 0 }}>{workspace.expiresAt ? 'Save & Exit keeps saved answers, but the exam timer continues. You cannot pause a timed exam.' : 'Pause & Exit saves your answers. Resume later to continue this untimed practice.'}</p>
       </section>
 
       {activeElsewhere && <section style={{ ...card, borderColor: '#f59e0b', background: '#fffbeb' }}>
@@ -614,10 +648,10 @@ export default function LearnerAssessmentPage() {
     </section></div>}
 
     {showConfirm && <div style={overlay}><section style={modal}>
-      <h2 style={{ marginTop: 0 }}>Submit assessment?</h2>
+      <h2 style={{ marginTop: 0 }}>Submit & Finish?</h2>
       <p style={{ lineHeight: 1.6 }}>After submission, this attempt will be locked and answers cannot be changed.</p>
       {unansweredIndexes.length > 0 && <p style={{ color: '#b45309', fontWeight: 700 }}>{unansweredIndexes.length} question{unansweredIndexes.length === 1 ? '' : 's'} still unanswered.</p>}
-      <div style={{ display: 'flex', gap: 10 }}><button disabled={submitting} onClick={() => setShowConfirm(false)} style={{ ...secondaryButton, flex: 1 }}>Cancel</button><button disabled={submitting} onClick={() => void submit(false)} style={{ ...primaryButton, flex: 1, opacity: submitting ? 0.6 : 1 }}>{submitting ? 'Submitting…' : 'Submit now'}</button></div>
+      <div style={{ display: 'flex', gap: 10 }}><button disabled={submitting} onClick={() => setShowConfirm(false)} style={{ ...secondaryButton, flex: 1 }}>Cancel</button><button disabled={submitting} onClick={() => void submit(false)} style={{ ...primaryButton, flex: 1, opacity: submitting ? 0.6 : 1 }}>{submitting ? 'Submitting…' : 'Submit & Finish'}</button></div>
     </section></div>}
 
     {conflict && <div style={overlay}><section style={modal}>
