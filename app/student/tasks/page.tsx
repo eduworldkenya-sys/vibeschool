@@ -18,7 +18,6 @@ type Draft = { title: string; notes: string; kind: 'task' | 'study'; starts: str
 const blank: Draft = { title: '', notes: '', kind: 'task', starts: '', due: '', repeat: 'none', duration: '30' }
 const dayKey = (date: Date) => [date.getFullYear(), String(date.getMonth()+1).padStart(2,'0'), String(date.getDate()).padStart(2,'0')].join('-')
 const localInput = (value: string | null) => { if (!value) return ''; const d=new Date(value); return [dayKey(d),String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')].join('T') }
-const formatTime = (value: string) => new Date(value).toLocaleTimeString('en-KE',{hour:'numeric',minute:'2-digit'})
 const occurOn = (item: PlannerItem, date: Date) => {
   const base = item.starts_at ?? item.due_at
   if (!base) return false
