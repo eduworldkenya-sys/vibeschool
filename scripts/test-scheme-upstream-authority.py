@@ -26,8 +26,15 @@ progression = lesson_source.index(
 occurrence_fallback = lesson_source.index(
     'const occurrenceScheme = await loadSchemeSourceForOccurrenceFallback'
 )
-assert progression < occurrence_fallback, (
-    'Scheme progression must precede timetable-ordinal compatibility fallback'
+undated_guard = lesson_source.index('if (!occurrenceDate) {')
+assert occurrence_fallback < undated_guard < progression, (
+    'Dated lessons must resolve their instructional period, while progression applies only to undated lessons'
+)
+assert "date === occurrenceDate" in lesson_source, (
+    'the matching slot must occur on the requested date'
+)
+assert "slot.effective_until >= date" in lesson_source, (
+    'period ordinals must account for one-date slots on their own teaching dates'
 )
 
 assert 'label: "Scheme of Work"' in teaching_desk
