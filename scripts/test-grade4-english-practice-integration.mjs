@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 const code=readFileSync('app/student/vibelearn/practice/page.tsx','utf8')
 assert.match(code,/listMyAssessmentAssignments/)
-assert.match(code,/Grade 4 English/)
+assert.match(code,/Grade 4 · Practice assessments/)
+assert.match(code,/items.filter\(item => item.assessmentType === 'practice'\)/)
 assert.match(code,/\/student\/assessment\/\$\{item\.assignmentId\}/)
 assert.match(code,/\/student\/results\/\$\{encodeURIComponent\(item\.attemptId as string\)\}/)
 assert.match(code,/item\.canStart/)
