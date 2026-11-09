@@ -151,3 +151,38 @@
 .studio-school-life{margin:24px 0}.studio-school-life h2{font:700 18px Manrope,sans-serif;margin-bottom:14px}.studio-school-life>div{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}.studio-school-life button{grid-column:span 2;display:flex;flex-direction:column;align-items:flex-start;gap:12px;text-align:left;min-height:125px;padding:20px;border:1px solid var(--teacher-border);border-radius:18px;background:#fff;color:var(--teacher-ink);font:inherit;cursor:pointer}.studio-school-life button:nth-child(-n+2){grid-column:span 3;background:#e4eaf1;border-color:transparent}.studio-school-life button:nth-child(2){background:#eeeafa}.studio-school-life strong{font:700 15px Manrope,sans-serif}.studio-school-life span{font-size:11px;color:var(--teacher-muted)}@media(max-width:650px){.studio-school-life button{grid-column:span 3;padding:16px}.studio-school-life button:last-child:nth-child(odd){grid-column:1/-1;min-height:95px}}
 
 .studio-teach-resource-links{display:grid;gap:8px;margin-top:16px}.studio-teach-resource-links button{min-height:44px;padding:12px 16px;text-align:left;border:1px solid var(--teacher-border,#e7e3ee);background:#fff;border-radius:12px;color:var(--teacher-accent,#6352bd);font:600 13px 'DM Sans',sans-serif;cursor:pointer}.studio-teach-resource-links button:disabled{opacity:.5;cursor:default}
+
+
+/* Teacher curriculum and scheme: desktop-first operational layout. */
+.teacher-content > .teacher-scheme-workspace{width:min(100% - 40px,1200px)!important;max-width:1200px!important;margin-inline:auto!important;padding:18px 0 80px}
+.teacher-scheme-workspace{font-size:14px;line-height:1.5}
+.teacher-scheme-workspace .studio-context-selectors{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+.teacher-scheme-workspace .studio-context-selectors>div{min-width:0}
+.teacher-scheme-workspace .studio-context-selectors button{min-height:38px}
+.teacher-scheme-workspace .studio-scheme-weeks button{min-width:49px;min-height:45px;font-size:13px}
+.teacher-scheme-workspace .studio-canonical-map{margin-top:14px}
+.teacher-scheme-workspace .studio-annual-themes{border-top:1px solid #e2ece6;padding-top:14px;margin-top:14px}
+.studio-weekly-overview{background:#fff;border:1px solid #dce6e0;border-radius:14px;padding:20px;margin:0 0 14px}
+.studio-weekly-heading{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:12px}
+.studio-weekly-heading h2{font-size:19px;line-height:1.3;margin:0 0 4px;color:#173d30}
+.studio-weekly-heading p{font-size:13px;color:#53695f;margin:0}
+.studio-weekly-progress{white-space:nowrap;font-size:13px;font-weight:750;color:#17634a;background:#e5f5ed;border-radius:99px;padding:6px 12px}
+.studio-weekly-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.studio-weekly-slot{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid #e0e9e3;border-radius:10px;min-width:0}
+.studio-weekly-slot[data-state=empty]{background:#f8faf9}
+.studio-weekly-slot-number{font-size:12px;white-space:nowrap;font-weight:800;color:#245b44}
+.studio-weekly-slot-copy{display:grid;gap:4px;min-width:0}
+.studio-weekly-slot-copy strong{font-size:14px;color:#1b3c2e;overflow-wrap:anywhere}
+.studio-weekly-slot-copy span,.studio-weekly-slot-missing{font-size:12px;color:#64766b}
+.studio-weekly-slots--compact{grid-template-columns:repeat(5,minmax(0,1fr))}
+.studio-weekly-slots--compact .studio-weekly-slot{display:grid;gap:5px;padding:11px}
+.studio-weekly-slots--compact .studio-weekly-slot-copy span{font-size:12px}
+.studio-weekly-topics{padding:13px 15px;background:#f4f8f5;border:1px solid #e0eae3;border-radius:10px;margin-top:14px}
+.studio-weekly-topics>strong{font-size:13px;color:#1d4934}
+.studio-weekly-topics p{font-size:14px;color:#213f31;margin:7px 0}
+.studio-weekly-topics p span{font-size:12px;color:#607568}
+.studio-weekly-topics small{font-size:12px;color:#6d716e}
+.studio-weekly-overallocated{font-size:13px;color:#9a3412;margin:12px 0 0}
+.studio-weekly-empty{font-size:13px;color:#64766b}
+@media(max-width:900px){.teacher-scheme-workspace .studio-context-selectors{grid-template-columns:1fr;gap:0}.studio-weekly-slots--compact{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.teacher-content > .teacher-scheme-workspace{width:calc(100% - 24px)!important;padding-top:12px}.studio-weekly-overview{padding:14px}.studio-weekly-slots,.studio-weekly-slots--compact{grid-template-columns:1fr}.studio-weekly-slots--compact .studio-weekly-slot{display:flex}.studio-weekly-heading h2{font-size:17px}}
