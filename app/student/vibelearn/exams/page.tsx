@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@/lib/assessment/discovery'
 import { getLearnerAssessmentHub, type LearnerAssessmentHub } from '@/lib/assessment/integration'
 
@@ -45,7 +44,6 @@ export default function VibeLearnExamsPage() {
 
   return <main style={shell}>
     <div className="vs-learn-page" style={workspace}>
-      <VibeLearnSubnav />
       <button type="button" onClick={() => router.push('/student/vibelearn')} style={back}>← Learn</button>
       <header style={header}>
         <h1 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.03em' }}>Exams</h1>
