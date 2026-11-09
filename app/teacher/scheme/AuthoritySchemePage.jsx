@@ -286,28 +286,26 @@ function Inner({ curriculumView = false }) {
   if(loading)return <Empty title="Loading Scheme" desc="Resolving teacher, class, subject and instructional-calendar authority."/>
   if(!uid||!schoolId)return <Empty title="Scheme unavailable" desc={error||'Teacher identity could not be resolved.'}/>
 
-  return <div style={{width:'100%'}}>
+  return <div className="teacher-scheme-workspace" style={{width:'100%'}}>
     {selectedClass && selectedSubject && <TeachingWorkspaceNav classId={selectedClass} subjectId={selectedSubject} termId={selectedTermId} current={curriculumView ? "Curriculum" : "Scheme"}/>}
     <div style={{background:'#173f32',color:'#fff',borderRadius:18,padding:18,marginBottom:12}}>
       <div style={{fontSize:11,letterSpacing:1.5,opacity:.65,fontWeight:800}}>{curriculumView ? "CURRICULUM" : "SCHEME OF WORK"}</div>
       <div style={{fontSize:20,fontWeight:800,marginTop:3}}>{curriculumView ? "Curriculum map" : "Scheme of work"}</div>
-      <div style={{fontSize:12,opacity:.75,marginTop:4}}>{termObj?`${termLabel(termObj)} · ${currentWeek?`Instructional Week ${currentWeek}`:'Not current term'}`:'Select term'}</div>
+      <div style={{fontSize:13,opacity:.9,marginTop:4}}>{termObj?`${termLabel(termObj)} · Selected Week ${selectedWeek}${currentWeek ? ` · Current Week ${currentWeek}` : ''}`:'Select term'}</div>
       {weeklyTarget!==null&&<div style={{fontSize:11,fontWeight:700,marginTop:10}}>Week {selectedWeek}: {selectedWeekItems.length} of {weeklyTarget} scheduled</div>}
     </div>
     {error&&<div role="alert" style={{background:C.redLight,color:C.red,padding:10,borderRadius:9,fontSize:12,fontWeight:700,marginBottom:10}}>{error}</div>}
     <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:14,padding:14,marginBottom:12}}>
-      <div style={{fontSize:11,color:C.text3,fontWeight:800,marginBottom:6}}>CLASS</div><div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>{classes.map(x=><Chip key={x.id} label={x.label} active={x.id===selectedClass} onClick={()=>setSelectedClass(x.id)}/>)}</div>
+      <div className="studio-context-selectors"><div style={{fontSize:11,color:C.text3,fontWeight:800,marginBottom:6}}>CLASS</div><div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>{classes.map(x=><Chip key={x.id} label={x.label} active={x.id===selectedClass} onClick={()=>setSelectedClass(x.id)}/>)}</div>
       <div style={{fontSize:11,color:C.text3,fontWeight:800,marginBottom:6}}>SUBJECT</div><div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>{filteredSubjects.map(x=><Chip key={x.id} label={x.label} active={x.id===selectedSubject} onClick={()=>setSelectedSubject(x.id)}/>)}</div>
       <div style={{fontSize:11,color:C.text3,fontWeight:800,marginBottom:6}}>TERM</div><div style={{display:'flex',gap:6,overflowX:'auto',marginBottom:12}}>{terms.map(x=><Chip key={x.id} label={termLabel(x)} active={x.id===selectedTermId} onClick={()=>setSelectedTermId(x.id)}/>)}</div>
-      <div style={{fontSize:11,color:C.text3,fontWeight:800,marginBottom:6}}>INSTRUCTIONAL WEEK</div><div className="studio-scheme-weeks">{weeks.map(x=><button key={x.week_number} type="button" onClick={()=>setSelectedWeek(x.week_number)} style={{padding:8,borderRadius:8,border:`1px solid ${x.week_number===selectedWeek?C.indigo:C.border}`,background:x.week_number===selectedWeek?C.indigoLight:C.surface2,color:x.week_number===currentWeek?C.teal:C.text2,fontWeight:800}}>W{x.week_number}</button>)}</div>
+      </div><div style={{fontSize:12,color:C.text3,fontWeight:800,marginBottom:8}}>INSTRUCTIONAL WEEK</div><div className="studio-scheme-weeks">{weeks.map(x=><button key={x.week_number} type="button" onClick={()=>setSelectedWeek(x.week_number)} style={{padding:8,borderRadius:8,border:`1px solid ${x.week_number===selectedWeek?C.indigo:C.border}`,background:x.week_number===selectedWeek?C.indigoLight:C.surface2,color:x.week_number===currentWeek?C.teal:C.text2,fontWeight:800}}>W{x.week_number}</button>)}</div>
       {!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
     </div>
 
-    {selectedSubject && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} label={subjectObj?.label || 'Selected subject'}/>}
+    {selectedSubject && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
     {curriculumView && isGrade4English && <Grade4EnglishMap
       selectedTerm={termObj?.term ?? null}
-      selectedWeek={selectedWeek}
-      weeklyRows={allCurriculumRows}
       showExisting={showEnglishLegacy}
       onToggleExisting={()=>setShowEnglishLegacy(value=>!value)}
       weeklyCount={allCurriculumRows.length}
