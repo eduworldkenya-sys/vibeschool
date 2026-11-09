@@ -164,6 +164,23 @@ begin
   end if;
   if not p_approved then raise exception 'explicit_owner_approval_required' using errcode='42501'; end if;
 
+  -- Grade 4 production papers must originate from the privately reviewed bank.
+  -- Direct JSON uploads cannot bypass independent review or reintroduce keys
+  -- exposed in public Git history. Applies only to publication, not preview.
+  if lower(v_grade)='grade 4' then
+    if not exists (
+      select 1 from private.original_exam_drafts d
+      where d.paper_id=v_id
+        and d.paper=p_paper
+        and d.content_state='reviewed'
+        and coalesce(d.review_evidence->>'independent_review','')='passed'
+        and coalesce(d.review_evidence->>'public_repository_exposure','false')='false'
+    ) then
+      raise exception 'grade4_private_independent_review_required'
+        using errcode='42501';
+    end if;
+  end if;
+
   insert into public.vibe_publications(
     author_id,format,title,description,status,cbc_subject,cbc_grade,cbc_aligned,chapter_count
   ) values(v_caller,'ebook',v_title||' — original question sources',
