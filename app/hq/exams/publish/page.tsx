@@ -65,7 +65,7 @@ export default function OriginalExamPublisher() {
   useEffect(() => {
     if (owner !== true) return
     let active = true
-    void api.rpc("hq_list_original_exam_drafts").then(({ data, error: failure }: { data: unknown; error: { message?: string } | null }) => {
+    void Promise.resolve(api.rpc("hq_list_original_exam_drafts")).then(({ data, error: failure }: { data: unknown; error: { message?: string } | null }) => {
       if (!active) return
       if (failure) { setPrivateDraftError(failure.message || "Private drafts unavailable"); return }
       setPrivateDrafts(Array.isArray(data) ? data as PrivateDraft[] : [])
