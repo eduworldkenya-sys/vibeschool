@@ -84,7 +84,7 @@ begin
       outcome_text,outcome_code,source_type,source_ref,status,created_by
     ) values (
       'Original pilot competency check (NOT KICD verified): '||(v_q->>'topic'),
-      v_q->>'bank_key','creator_claimed','VibeSchool Original — Grade 9 Mathematics Pilot 01',
+      v_q->>'bank_key','creator_claimed','chapter:'||v_chapter::text,
       'draft',v_owner
     ) returning id into v_outcome;
 
