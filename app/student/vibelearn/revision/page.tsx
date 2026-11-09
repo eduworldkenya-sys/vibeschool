@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
-import { generateRevisionPlan, getRevisionWorkspace, resolveMistake, type RevisionWorkspace } from '@/lib/student/vibelearn'
+import { generateRevisionPlan, getRevisionWorkspace, type RevisionWorkspace } from '@/lib/student/vibelearn'
 
 function todayIso(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
@@ -34,12 +34,6 @@ export default function RevisionWorkspacePage() {
     finally { setWorking(false) }
   }
 
-  async function markResolved(id: string) {
-    setWorking(true)
-    try { await resolveMistake(id); await load() }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not update the mistake.') }
-    finally { setWorking(false) }
-  }
 
   return <main style={shell}>
     <div style={{ maxWidth: 920, margin: '0 auto' }}>
@@ -70,7 +64,7 @@ export default function RevisionWorkspacePage() {
 
         <section style={card}><div style={eyebrowDark}>Weak-topic recovery</div><h2 style={title}>Patterns worth fixing</h2>{workspace.weakTopics.length === 0 ? <p style={muted}>Complete practice sessions and your evidence-backed weak topics will appear here.</p> : <div style={grid}>{workspace.weakTopics.map(item => <button key={`${item.subject}-${item.topic}`} style={actionCard} onClick={() => router.push(`/student/vibelearn/topic?subject=${encodeURIComponent(item.subject)}&topic=${encodeURIComponent(item.topic)}`)}><strong>{item.subject}</strong><span>{item.topic}</span><span style={muted}>{item.misses} misses · {item.accuracy}% accuracy</span><span style={linkText}>Recover topic →</span></button>)}</div>}</section>
 
-        <section style={card}><div style={eyebrowDark}>Mistake notebook</div><h2 style={title}>Revise your own mistakes</h2>{workspace.mistakes.length === 0 ? <p style={muted}>Wrong practice answers will be captured here automatically.</p> : <div style={{ display: 'grid', gap: 10 }}>{workspace.mistakes.slice(0, 8).map(item => <article key={item.id} style={mistakeCard}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><strong>{item.subject} · {item.topic}</strong><span style={priorityPill}>{item.repeatCount}× missed</span></div><p style={{ margin: '8px 0', lineHeight: 1.5 }}>{item.prompt}</p>{item.explanation && <p style={muted}>{item.explanation}</p>}<div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>{item.reviewUrl && <button style={secondaryButton} onClick={() => router.push(item.reviewUrl as string)}>Review source</button>}<button style={secondaryButton} onClick={() => router.push(`/student/vibelearn/practice?subject=${encodeURIComponent(item.subject)}&topic=${encodeURIComponent(item.topic)}`)}>Practise topic</button>{item.status !== 'resolved' && <button style={secondaryButton} disabled={working} onClick={() => void markResolved(item.id)}>Mark understood</button>}</div></article>)}</div>}<button style={{ ...secondaryButton, marginTop:12 }} onClick={() => router.push('/student/vibelearn/mistakes')}>View full mistake notebook</button></section>
+        <section style={card}><div style={eyebrowDark}>Mistake notebook</div><h2 style={title}>Revise your own mistakes</h2>{workspace.mistakes.length === 0 ? <p style={muted}>Wrong practice answers will be captured here automatically.</p> : <div style={{ display: 'grid', gap: 10 }}>{workspace.mistakes.slice(0, 8).map(item => <article key={item.id} style={mistakeCard}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><strong>{item.subject} · {item.topic}</strong><span style={priorityPill}>{item.repeatCount}× missed</span></div><p style={{ margin: '8px 0', lineHeight: 1.5 }}>{item.prompt}</p>{item.explanation && <details><summary style={{fontSize:13,fontWeight:700,cursor:'pointer',color:'#4338ca'}}>Read explanation</summary><p style={{...muted,fontSize:13,marginTop:7}}>{item.explanation}</p></details>}<div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>{item.reviewUrl && <button style={secondaryButton} onClick={() => router.push(item.reviewUrl as string)}>Review source</button>}<button style={secondaryButton} onClick={() => router.push(`/student/vibelearn/practice?subject=${encodeURIComponent(item.subject)}&topic=${encodeURIComponent(item.topic)}`)}>Practise topic</button></div></article>)}</div>}<button style={{ ...secondaryButton, marginTop:12 }} onClick={() => router.push('/student/vibelearn/mistakes')}>View full mistake notebook</button></section>
 
         <section style={card}><div style={eyebrowDark}>Learning journey</div><h2 style={title}>Your evidence, not comparison</h2><div style={metrics}><Metric value={workspace.journey.practiceAttempts} label="Questions attempted" /><Metric value={workspace.journey.correctAnswers} label="Correct answers" /><Metric value={workspace.journey.resolvedMistakes} label="Mistakes resolved" /><Metric value={workspace.journey.booksStarted} label="Books started" /><Metric value={workspace.journey.chaptersCompleted} label="Chapters completed" /><Metric value={workspace.journey.learningEvents30d} label="Learning actions · 30d" /></div></section>
       </>}
