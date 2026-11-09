@@ -543,7 +543,7 @@ export default function LearnerAssessmentPage() {
     return <main style={shell}><section style={card}>
       <h1 style={{ marginTop: 0 }}>Assessment unavailable</h1>
       <p style={{ color: '#b91c1c' }}>{error}</p>
-      <button onClick={() => router.back()} style={secondaryButton}>Go back</button>
+      <button type="button" onClick={() => router.push('/student/vibelearn/exams')} style={secondaryButton}>Back to Exams</button>
     </section></main>
   }
   if (!workspace) return null
