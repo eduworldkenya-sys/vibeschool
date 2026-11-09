@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
+import LearnActivityHub from '@/components/student/LearnActivityHub'
 import {
   getAdaptiveLearningPath,
   getAdaptiveResourceRecommendations,
@@ -101,6 +102,7 @@ export default function StudentVibeLearnPage() {
       <a href="/student/vibelearn/exams" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 56, padding: '14px 18px', marginBottom: 14, borderRadius: 14, background: '#243f83', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 17 }}>
         <span>Exams</span><span aria-hidden="true">Open →</span>
       </a>
+      <LearnActivityHub />
       <section style={hero}>
         <div style={eyebrow}>VibeLearn Workstation</div>
         <h1 style={{ margin: '8px 0 6px', fontSize: 28 }}>Learn. Practise. Revise. Master.</h1>
@@ -259,7 +261,7 @@ export default function StudentVibeLearnPage() {
             <div style={{ marginTop:14, borderTop:'1px solid #ddd6fe', paddingTop:12 }}><p style={{ ...muted, lineHeight:1.6 }}>Twin learns from verified learner activity, mistakes, response patterns, later mastery gain and intervention effectiveness. Teacher authority remains first, and low-evidence predictions abstain instead of guessing.</p><div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:10 }}>{brief.tutorPolicy.allowedActions.map(action => <span key={action} style={pill}>{action.replaceAll('_',' ')}</span>)}</div><div style={{ marginTop:10, fontSize:12, color:'#6d28d9', fontWeight:700 }}>AI support target: {brief.tutorPolicy.aiShareTargetPercent}% · Twin computation remains evidence-led.</div></div>
           </section>
 
-          <section style={card}>
+          <section id="class-resources" style={card}>
             <div style={sectionHeader}><div><div style={eyebrowDark}>Continue learning</div><h2 style={title}>Your study desk</h2></div><button style={secondaryButton} onClick={() => setLibraryOpen(true)}>Open library</button></div>
             {brief.continueLearning.length === 0 ? <div style={emptyBox}><strong>No book in progress yet</strong><p style={muted}>Open the library, choose a textbook or resource, and your progress will return here.</p><button style={primaryButton} onClick={() => setLibraryOpen(true)}>Browse learning resources</button></div> : <div style={grid}>
               {brief.continueLearning.slice(0,4).map(item => <button key={`${item.publicationId}-${item.chapterId ?? 'book'}`} style={actionCard} onClick={() => router.push(item.actionUrl)}><span style={cardIcon}>📘</span><strong>{item.title}</strong><span style={muted}>{item.chapterTitle ?? 'Continue reading'}</span><span style={progressTrack}><span style={{ ...progressFill, width: `${Math.max(0,Math.min(100,item.progressPercent))}%` }} /></span><span style={linkText}>{item.progressPercent}% complete · Continue →</span></button>)}
