@@ -26,6 +26,11 @@ function examState(item: LearnerAssessmentAssignment): ExamState {
   return item.canStart ? 'new' : 'unavailable'
 }
 
+function subjectFromTitle(title: string): string {
+  const match = title.match(/(?:grade|form)\\s*\\d+\\s+(.+?)\\s*[—–-]\\s*/i)
+  return match?.[1]?.trim() || 'Assessment'
+}
+
 const statusText: Record<ExamState, string> = {
   'in-progress': 'In progress',
   new: 'New',
@@ -86,6 +91,19 @@ export default function VibeLearnExamsPage() {
   const results = hub?.results ?? []
   const scored = results.filter(r => r.percentage !== null)
   const average = scored.length ? scored.reduce((sum, r) => sum + (r.percentage ?? 0), 0) / scored.length : null
+  const chronological = [...scored].sort((a, b) => Date.parse(a.releasedAt) - Date.parse(b.releasedAt))
+  const trend = chronological.slice(-6)
+  const latest = chronological[chronological.length - 1]
+  const prior = chronological[chronological.length - 2]
+  const change = latest?.percentage != null && prior?.percentage != null ? latest.percentage - prior.percentage : null
+  const reviewFirst = [...chronological].reverse().find(result => result.percentage !== null && result.percentage < 60)
+  const revisionCandidate = [...groups.retakes].filter(item => item.canStart).sort((a, b) => {
+    const score = (title: string) => chronological.filter(r => r.assessmentTitle === title).at(-1)?.percentage ?? 101
+    return score(a.title) - score(b.title)
+  })[0]
+  const previousAttempt = (title: string, releasedAt: string) => chronological
+    .filter(entry => entry.assessmentTitle === title && Date.parse(entry.releasedAt) < Date.parse(releasedAt)).at(-1)
+
 
   function start(item: LearnerAssessmentAssignment) {
     router.push(`/student/assessment/${encodeURIComponent(item.assignmentId)}`)
@@ -152,7 +170,16 @@ export default function VibeLearnExamsPage() {
         <section aria-labelledby="vs-exams-new">
           <div className="vs-exams-section-header"><h2 id="vs-exams-new">New exams</h2><span>{groups.fresh.length} available</span></div>
           {groups.fresh.length ? <div className="vs-exams-card-list">{groups.fresh.map(item => examCard(item, 'new'))}</div>
-            : <div className="vs-exams-message">No new exam is available right now. Your previous attempts remain in History.</div>}
+            : <div className="vs-exams-next" role="status">
+                <strong>You're up to date with new exams</strong>
+                <p>Use your previous results to choose what to improve next.</p>
+                <div className="vs-exams-next-actions">
+                  {reviewFirst && <button type="button" className="vs-exam-button" onClick={() => router.push(`/student/results/${encodeURIComponent(reviewFirst.attemptId)}`)}>Review previous mistakes</button>}
+                  {revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => setRetake(revisionCandidate)}>Practise again</button>}
+                  {!reviewFirst && !revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => results.length ? setView('history') : router.push('/student/vibelearn')}>{results.length ? 'View exam history' : 'Explore Learn'}</button>}
+                </div>
+                {reviewFirst && <p className="vs-exams-section-note">Review suggested from your released score in {reviewFirst.assessmentTitle} ({reviewFirst.percentage?.toFixed(1)}%). This does not identify a specific weak curriculum objective.</p>}
+              </div>}
         </section>
         {groups.awaiting.length > 0 && <section aria-labelledby="vs-exams-awaiting">
           <h2 id="vs-exams-awaiting">Waiting for results</h2>
@@ -171,7 +198,11 @@ export default function VibeLearnExamsPage() {
         {!resultsError && results.length === 0 && <div className="vs-exams-message">No released results yet. Completed exams awaiting review will appear after release.</div>}
         <div className="vs-exams-card-list">{results.map(result => <article className="vs-exam-card" key={result.attemptId}>
           <div className="vs-exam-card-main"><span className="vs-exam-status vs-exam-status--completed">Completed</span>
-            <h3>{result.assessmentTitle}</h3><p>Released {new Date(result.releasedAt).toLocaleDateString('en-KE')}</p></div>
+            <h3>{result.assessmentTitle}</h3>
+              <p>{subjectFromTitle(result.assessmentTitle)} · Released {new Date(result.releasedAt).toLocaleDateString('en-KE')}</p>
+              {(() => { const earlier = previousAttempt(result.assessmentTitle, result.releasedAt); return earlier?.percentage != null && result.percentage != null
+                ? <p className="vs-exam-comparison">Versus previous attempt: {result.percentage - earlier.percentage >= 0 ? '+' : ''}{(result.percentage - earlier.percentage).toFixed(1)} points</p>
+                : null })()}</div>
           <div className="vs-exam-card-actions"><strong className="vs-exam-result-value">{result.percentage === null ? '—' : `${result.percentage.toFixed(1)}%`}</strong>
             <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => router.push(`/student/results/${encodeURIComponent(result.attemptId)}`)}>View result</button></div>
         </article>)}</div>
@@ -184,8 +215,24 @@ export default function VibeLearnExamsPage() {
           <div><span>Released assessments</span><strong>{results.length}</strong></div>
           <div><span>Average result</span><strong>{average === null ? '—' : `${average.toFixed(1)}%`}</strong></div>
         </div>
+        {trend.length >= 2 && <section className="vs-exams-trend" aria-label="Recent released assessment scores">
+          <div className="vs-exams-section-header"><h3>Recent results</h3><span>Last {trend.length} assessments</span></div>
+          <div className="vs-exams-trend-bars" role="list">
+            {trend.map((result, index) => <div key={result.attemptId} role="listitem" className="vs-exams-trend-item" title={result.assessmentTitle}>
+              <span>{result.percentage?.toFixed(0)}%</span>
+              <div className="vs-exams-trend-track"><div className="vs-exams-trend-fill" style={{height: `${Math.max(2, Math.min(100, result.percentage ?? 0))}%`}} /></div>
+              <small>#{index + 1}</small>
+            </div>)}
+          </div>
+          <p className="vs-exams-section-note">{change === null ? 'Shown in release order.' : `Last two results: ${change > 0 ? '+' : ''}${change.toFixed(1)} percentage points.`} Different assessments can vary in difficulty and topic.</p>
+        </section>}
         {results.length === 0 ? <div className="vs-exams-message">Complete an assessment to start building your result history.</div>
-          : <div className="vs-exams-message">Review previous results to see mistakes and explanations. Objective-level recommendations will appear when enough verified curriculum evidence is available.</div>}
+          : <div className="vs-exams-next">
+              <strong>What to do next</strong>
+              <p>{reviewFirst ? `Review ${reviewFirst.assessmentTitle} and check the answers you missed.` : 'Review previous answers and explanations to decide what to revise.'}</p>
+              <button type="button" className="vs-exam-button" onClick={() => reviewFirst ? router.push(`/student/results/${encodeURIComponent(reviewFirst.attemptId)}`) : setView('history')}>{reviewFirst ? 'Review this result' : 'View exam history'}</button>
+              <p className="vs-exams-section-note">Objective-level recommendations will follow verified question-to-curriculum mappings.</p>
+            </div>}
         <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => setView('history')}>View exam history</button>
       </section>}
     </div>
