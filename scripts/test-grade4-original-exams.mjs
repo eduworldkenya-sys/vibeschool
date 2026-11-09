@@ -53,4 +53,5 @@ test('Owner publisher uses non-pilot provenance for new original papers', () => 
   assert.match(migration, /explicit_owner_approval_required/)
   assert.match(migration, /exq_validate_assessment/)
   assert.match(migration, /exq_publish_public_practice/)
+  assert.match(migration, /replace\(lower\(btrim\(g\.subject_name\)\),'&','and'\)/, 'Science and Technology subject alias remains supported')
 })
