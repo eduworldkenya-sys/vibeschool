@@ -12,6 +12,7 @@ import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@
 import { getLearnerAssessmentHub, type LearnerAssessmentHub } from '@/lib/assessment/integration'
 
 function actionLabel(item: LearnerAssessmentAssignment): string {
+  if (item.attemptStatus === 'in_progress' && item.attemptExpiresAt && Date.parse(item.attemptExpiresAt) <= Date.now()) return 'Time expired' 
   if (item.attemptStatus === 'in_progress') return `Continue attempt ${item.attemptNumber ?? ''}`.trim()
   if (item.resultStatus === 'released' && item.attemptId) return 'Review result'
   if (item.availability === 'upcoming') return 'Not open yet'
@@ -173,20 +174,22 @@ export default function VibeLearnExamsPage() {
           {assignments.length === 0 ? <p style={muted}>Teacher-assigned quizzes, tests and exams will appear here.</p> : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,310px),1fr))', gap: 10 }}>
             {assignments.map(item => {
               const released = releasedByAssignment.get(item.assignmentId)
-              const active = item.attemptStatus === 'in_progress'
-              const enabled = item.canStart || active
+              const expired = item.attemptStatus === 'in_progress' && !!item.attemptExpiresAt && Date.parse(item.attemptExpiresAt) <= Date.now()
+              const active = item.attemptStatus === 'in_progress' && !expired
+              const enabled = item.canStart && !expired
               return <article key={item.assignmentId} style={itemCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <div><div style={eyebrowDark}>{item.assessmentType.replaceAll('_', ' ')}</div><strong>{item.title}</strong></div>
                   {released && <strong style={{ color: '#047857' }}>Released {released.percentage?.toFixed(1) ?? '—'}%</strong>}
                 </div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
-                  <span style={pill}>{active ? `Attempt ${item.attemptNumber ?? 'current'} in progress` : item.availability.replaceAll('_', ' ')}</span>
+                  <span style={pill}>{expired ? `Attempt ${item.attemptNumber ?? ''} timed out` : active ? `Attempt ${item.attemptNumber ?? 'current'} in progress` : item.availability.replaceAll('_', ' ')}</span>
                   {item.timeLimitMinutes && <span style={pill}>{item.timeLimitMinutes} min</span>}
                   {item.attemptNumber && <span style={pill}>Attempt {item.attemptNumber}/{item.maxAttempts}</span>}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                  <button style={{ ...primaryButton, opacity: enabled ? 1 : 0.55 }} disabled={!enabled} onClick={() => enabled && router.push(`/student/assessment/${item.assignmentId}`)}>{active ? actionLabel(item) : item.canStart ? 'Start exam' : 'Unavailable'}</button>
+                  <button style={{ ...primaryButton, opacity: enabled ? 1 : 0.55 }} disabled={!enabled} onClick={() => enabled && router.push(`/student/assessment/${item.assignmentId}`)}>{expired ? 'Attempt expired' : active ? actionLabel(item) : item.canStart ? 'Start exam' : 'Unavailable'}</button>
+                  {expired && <span style={{ ...muted, alignSelf: 'center' }}>This timed attempt has ended. Your released results remain available.</span>}
                   {released && <button type="button" style={secondaryButton} onClick={() => router.push(`/student/results/${encodeURIComponent(released.attemptId)}`)}>Review released attempt</button>}
                 </div>
               </article>
