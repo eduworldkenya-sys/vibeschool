@@ -14,7 +14,6 @@ import {
 import { supabase } from '@/lib/supabase'
 import {
   nairobiDateAdd,
-  nairobiDateStr,
 } from '@/lib/time'
 import {
   loadTeacherTimetableForRange,
@@ -154,11 +153,13 @@ function SchemeLessonLauncherInner() {
     useState(true)
   const [retryKey, setRetryKey] =
     useState(0)
+  const [choices, setChoices] = useState<OccurrenceCandidate[]>([])
 
   const resolveAndOpen = useCallback(
     async (cancelled: () => boolean) => {
       setResolving(true)
       setError(null)
+      setChoices([])
 
       if (!classId || !subjectId || !schemeId) {
         setError(
@@ -205,7 +206,7 @@ function SchemeLessonLauncherInner() {
           supabase
             .from('scheme_of_work')
             .select(
-              'id, teacher_id, school_id, class_id, subject_id',
+              'id, teacher_id, school_id, class_id, subject_id, academic_term_id, week, lesson_number, period',
             )
             .eq('id', schemeId)
             .maybeSingle(),
@@ -248,11 +249,39 @@ function SchemeLessonLauncherInner() {
           return
         }
 
-        const rangeStart = nairobiDateStr()
-        const rangeEnd = nairobiDateAdd(
-          rangeStart,
-          55,
-        )
+        // Never query the calendar with an incomplete legacy Scheme identity.
+        // Preserve the row and ask the teacher to correct the source instead.
+        if (!scheme.academic_term_id || !Number.isInteger(scheme.week) || scheme.week < 1) {
+          setError('This Scheme lesson has no valid saved term and week. Open the Scheme to correct its placement.')
+          setResolving(false)
+          return
+        }
+
+        // A scheme lesson belongs to its own instructional week. Looking for
+        // the next empty occurrence across eight weeks can attach Week 2
+        // material to Week 11, so resolve only the stored week and term.
+        const { data: weekRows, error: weekError } = await supabase
+          .from('term_weeks')
+          .select('school_id,term_id,week_number,start_date,end_date,week_type')
+          .eq('term_id', scheme.academic_term_id)
+          .eq('week_number', scheme.week)
+          .or(`school_id.eq.${schoolId},school_id.is.null`)
+
+        if (weekError) throw weekError
+        if (cancelled()) return
+
+        const matchingWeek = (weekRows ?? [])
+          .filter(row => row.school_id === schoolId || row.school_id === null)
+          .sort((a, b) => Number(b.school_id === schoolId) - Number(a.school_id === schoolId))[0]
+
+        if (!matchingWeek || !matchingWeek.start_date || !matchingWeek.end_date) {
+          setError('This Scheme week is not available in the school instructional calendar. Open the Scheme to check its term and week.')
+          setResolving(false)
+          return
+        }
+
+        const rangeStart = matchingWeek.start_date
+        const rangeEnd = matchingWeek.end_date
 
         const timetable =
           await loadTeacherTimetableForRange({
@@ -278,7 +307,7 @@ function SchemeLessonLauncherInner() {
 
         if (candidates.length === 0) {
           setError(
-            'No upcoming timetable occurrence exists for this Scheme lesson in the next eight weeks.',
+            'No timetable occurrence matches this Scheme lesson’s saved term and week. Open the timetable to check its schedule.',
           )
           setResolving(false)
           return
@@ -341,25 +370,32 @@ function SchemeLessonLauncherInner() {
             return existing?.scheme_id === schemeId
           })
 
-        const emptyOccurrence =
-          candidates.find(candidate => {
-            const existing = planByOccurrence.get(
-              occurrenceKey(
-                candidate.slot.id,
-                candidate.occurrenceDate,
-              ),
-            )
+        const available = candidates.filter(candidate =>
+          !planByOccurrence.has(occurrenceKey(candidate.slot.id, candidate.occurrenceDate)),
+        )
+        const numberedLesson = scheme.lesson_number ?? scheme.period
+        const numberedCandidate =
+          typeof numberedLesson === 'number' && numberedLesson > 0
+            ? candidates[numberedLesson - 1] ?? null
+            : null
 
-            return existing === undefined
-          })
-
-        const selected =
-          alreadyLinked ?? emptyOccurrence
-
+        // A numbered lesson must use its own calendar position, never
+        // silently fall forward to another period. For legacy unnumbered
+        // schemes, let the teacher choose rather than guessing.
+        if (!alreadyLinked && numberedCandidate &&
+            planByOccurrence.has(occurrenceKey(numberedCandidate.slot.id, numberedCandidate.occurrenceDate))) {
+          setError('This lesson position already belongs to another Scheme. Review the saved timetable plan.')
+          setResolving(false)
+          return
+        }
+        if (!alreadyLinked && !numberedCandidate && available.length > 1) {
+          setChoices(available)
+          setResolving(false)
+          return
+        }
+        const selected = alreadyLinked ?? numberedCandidate ?? available[0]
         if (!selected) {
-          setError(
-            'All upcoming timetable occurrences already have lesson plans linked to other Scheme items. Open the timetable and choose another week.',
-          )
+          setError('No unused timetable occurrence is available in this Scheme week. Review the existing lesson plans.')
           setResolving(false)
           return
         }
@@ -433,6 +469,25 @@ function SchemeLessonLauncherInner() {
     }
   }, [resolveAndOpen])
 
+  function openChosenOccurrence(candidate: OccurrenceCandidate) {
+    const target = new URLSearchParams({
+      classId,
+      subjectId,
+      timetableSlotId: candidate.slot.id,
+      date: candidate.occurrenceDate,
+      schemeId,
+    })
+    if (curriculumId) target.set('curriculumId', curriculumId)
+    if (grade) target.set('grade', grade)
+    if (subject) target.set('subject', subject)
+    if (strand) target.set('strand', strand)
+    if (subStrand) target.set('subStrand', subStrand)
+    if (topic) target.set('topic', topic)
+    if (week) target.set('week', week)
+    if (term) target.set('term', term)
+    router.replace(`/teacher/lessonplan?${target.toString()}`)
+  }
+
   return (
     <section style={{
       minHeight: '100vh',
@@ -486,12 +541,27 @@ function SchemeLessonLauncherInner() {
               fontSize: 13,
               lineHeight: 1.6,
             }}>
-              Finding the next available timetable
+              Finding the matching school-week timetable
               occurrence for {topic || 'this Scheme lesson'}.
             </p>
           </>
         )}
 
+        {!resolving && !error && choices.length > 0 && (
+          <div>
+            <h1 style={{fontSize:19,color:C.text}}>Choose this lesson’s timetable period</h1>
+            <p style={{fontSize:13,color:C.muted}}>Your saved Scheme has no lesson number. Select the correct period in its own school week. No lesson content will be changed.</p>
+            <div style={{display:'grid',gap:8}}>
+              {choices.map(candidate => (
+                <button type="button" key={occurrenceKey(candidate.slot.id,candidate.occurrenceDate)}
+                  onClick={() => openChosenOccurrence(candidate)}
+                  style={{padding:12,border:`1px solid ${C.border}`,borderRadius:10,background:C.surface,color:C.text,cursor:'pointer',fontWeight:700}}>
+                  {candidate.occurrenceDate} · {candidate.slot.start_time}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {error && (
           <>
             <div style={{
