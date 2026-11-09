@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       .eq('user_id', user.id).maybeSingle(),
     admin.from('profiles').select('role,full_name,account_status,is_anonymized')
       .eq('id', user.id).maybeSingle(),
-    admin.from('students').select('id').eq('profile_id', user.id).is('deleted_at', null).limit(1),
+    admin.from('students').select('id,class_id').eq('profile_id', user.id).is('deleted_at', null).limit(2),
   ])
   if (identityError || profileError || schoolError || !profile) {
     return NextResponse.json({ error: 'Could not verify learner identity' }, { status: 503, headers })
@@ -38,12 +38,14 @@ export async function GET(req: NextRequest) {
   if (identity.account_state !== 'restricted' || !identity.learner_email_verified_at ||
       !identity.grade_label || !user.email_confirmed_at ||
       profile.role !== null || profile.account_status !== 'active' ||
-      profile.is_anonymized || (school?.length ?? 0) > 0) {
+      profile.is_anonymized || (school?.length ?? 0) !== 1 ||
+      !!school?.[0]?.class_id) {
     return NextResponse.json({ error: 'Learner identity needs verification' }, { status: 403, headers })
   }
   return NextResponse.json({
     kind: 'independent',
     name: profile.full_name?.trim() || 'Learner',
     grade: identity.grade_label,
+    studentId: school![0].id,
   }, { headers })
 }
