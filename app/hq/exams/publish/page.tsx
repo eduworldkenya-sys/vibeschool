@@ -15,7 +15,7 @@ type PublishResult = {
   assessment_id?: string; assignment_id?: string; issues?: string[]
 }
 
-const api = hqSupabase as any
+const api = hqSupabase
 const blank = {
   id: "grade4-original-exam-01",
   title: "Grade 4 Mathematics — VibeSchool Exam 01",
