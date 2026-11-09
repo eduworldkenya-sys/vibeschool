@@ -58,7 +58,8 @@ export default function StudentVibeLearnPage() {
   }
 
   useEffect(() => {
-    if (identity?.independent) { setLoading(false); return }
+    if (!identity) return
+    if (identity.independent) { setLoading(false); return }
     let cancelled = false
     Promise.all([
       getVibeLearnWorkstation(),
@@ -81,7 +82,7 @@ export default function StudentVibeLearnPage() {
       .catch(reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not open VibeLearn.') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [identity?.independent])
+  }, [identity])
 
   async function saveReadinessPlan() {
     setSavingPlan(true)
