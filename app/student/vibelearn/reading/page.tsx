@@ -46,7 +46,7 @@ export default function IndependentReadingPage() {
 
   const grades = useMemo(() => Array.from(new Set(books.map(book => book.cbc_grade?.trim()).filter((value): value is string => Boolean(value)))).sort((a,b) => a.localeCompare(b, "en", { numeric: true })), [books]);
   const myGrade = grades.find(value => normalized(value) === learnerGrade);
-  const selectedGrade = grade || myGrade || "";
+  const selectedGrade = grade === "all" ? "" : grade || myGrade || "";
   const visible = useMemo(() => books.filter(book => {
     const matchesGrade = !selectedGrade || normalized(book.cbc_grade) === normalized(selectedGrade);
     const text = [book.title, book.cbc_subject, book.description].join(" ").toLowerCase();
