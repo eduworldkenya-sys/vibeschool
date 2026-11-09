@@ -233,12 +233,12 @@ export default function StudentsPage() {
         <div>
           <UserRoundCheck size={18} />
           <strong>{total - unclaimed}</strong>
-          <span>Connected</span>
+          <span>Learner accounts linked</span>
         </div>
         <div>
           <span className={unclaimed ? styles.attentionDot : styles.goodDot} />
           <strong>{unclaimed}</strong>
-          <span>To link</span>
+          <span>Learner accounts not linked</span>
         </div>
       </section>
       <div className={styles.searchBar}>
@@ -362,7 +362,7 @@ export default function StudentsPage() {
                       </small>
                     </span>
                     {!student.profile_id && (
-                      <span className={styles.linkBadge}>Link</span>
+                      <span className={styles.linkBadge}>Learner account not linked</span>
                     )}
                     <ChevronRight size={18} aria-hidden="true" />
                   </button>
