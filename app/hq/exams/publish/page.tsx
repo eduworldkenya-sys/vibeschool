@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { hqSupabase } from "@/lib/hq/supabase"
 
+type PrivateDraft = {
+  id: string; grade: string; subject: string; title: string;
+  question_count: number; status: string; published: boolean;
+}
 type PublishResult = {
   ok?: boolean; valid?: boolean; published?: boolean; already_exists?: boolean
   ready_to_publish?: boolean; title?: string; grade?: string; subject?: string
@@ -11,11 +15,11 @@ type PublishResult = {
   assessment_id?: string; assignment_id?: string; issues?: string[]
 }
 
-const api = hqSupabase as any
+const api = hqSupabase
 const blank = {
-  id: "grade9-mathematics-pilot-03",
-  title: "Grade 9 Mathematics — Pilot 03",
-  grade: "Grade 9",
+  id: "grade4-original-exam-01",
+  title: "Grade 4 Mathematics — VibeSchool Exam 01",
+  grade: "Grade 4",
   subject: "Mathematics",
   assessment_type: "practice",
   visibility: "public_practice",
@@ -24,7 +28,7 @@ const blank = {
   total_marks: 1,
   instructions: "Choose one answer. You may skip questions. Results are shown after submission.",
   items: [{
-    number: 1, bank_key: "G9M3-001", topic: "Integers", difficulty: "easy",
+    number: 1, bank_key: "G4-DRAFT-001", topic: "Integers", difficulty: "easy",
     prompt: "Replace this sample with an original question.",
     options: [
       { value: "A", label: "Option one" }, { value: "B", label: "Option two" },
@@ -46,6 +50,9 @@ export default function OriginalExamPublisher() {
   const [error, setError] = useState("")
   const [owner, setOwner] = useState<boolean | null>(null)
   const [result, setResult] = useState<PublishResult | null>(null)
+  const [privateDrafts, setPrivateDrafts] = useState<PrivateDraft[]>([])
+  const [privateDraftError, setPrivateDraftError] = useState("")
+  const [approvedPrivateId, setApprovedPrivateId] = useState("")
 
   useEffect(() => {
     let mounted = true
@@ -54,6 +61,34 @@ export default function OriginalExamPublisher() {
     })
     return () => { mounted = false }
   }, [])
+
+  useEffect(() => {
+    if (owner !== true) return
+    let active = true
+    void Promise.resolve(api.rpc("hq_list_original_exam_drafts")).then(({ data, error: failure }: { data: unknown; error: { message?: string } | null }) => {
+      if (!active) return
+      if (failure) { setPrivateDraftError(failure.message || "Private drafts unavailable"); return }
+      setPrivateDrafts(Array.isArray(data) ? data as PrivateDraft[] : [])
+    }).catch(() => { if (active) setPrivateDraftError("Private drafts unavailable") })
+    return () => { active = false }
+  }, [owner])
+
+  async function publishPrivateDraft(paper: PrivateDraft) {
+    if (owner !== true || busy || paper.status !== "reviewed" || approvedPrivateId !== paper.id) return
+    setBusy(true); setError("")
+    try {
+      const { data, error: failure } = await api.rpc("hq_publish_staged_original_exam", {
+        p_paper_id: paper.id, p_approved: true
+      })
+      if (failure) throw new Error(failure.message || "Private publication failed")
+      const next = data as PublishResult
+      if (!next?.published || !next.assignment_id) throw new Error("Publication not confirmed")
+      setResult(next)
+      setApprovedPrivateId("")
+      setPrivateDrafts(items => items.map(item => item.id === paper.id ? { ...item, published: true } : item))
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Private publication failed") }
+    finally { setBusy(false) }
+  }
 
   const parsed = useMemo(() => {
     if (!raw.trim()) return { paper: null, error: "" }
@@ -102,13 +137,30 @@ export default function OriginalExamPublisher() {
     <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gap: 18 }}>
       <header>
         <p style={{ color: "#516789", fontSize: 12, letterSpacing: 1.5, fontWeight: 800 }}>HQ · EXAM BANK</p>
-        <h1 style={{ fontSize: "clamp(24px, 4vw, 36px)", marginBottom: 8 }}>Publish original practice</h1>
+        <h1 style={{ fontSize: "clamp(24px, 4vw, 36px)", marginBottom: 8 }}>Publish VibeSchool original exams</h1>
         <Link href="/hq/exams/batch" style={{ display: "inline-block", marginBottom: 10, color: "#1251a4", fontWeight: 800 }}>Batch publish Topic Practice →</Link>
-        <p style={{ color: "#53657c", lineHeight: 1.6, margin: 0 }}>Upload a question-paper JSON file, validate it, review the result, then publish. No school enrolment or SQL required.</p>
+        <p style={{ color: "#53657c", lineHeight: 1.6, margin: 0 }}>Private exam drafts are secured on the server. Publication requires independent educational review and owner approval.</p>
       </header>
       {owner === null && <section style={surface} role="status">Checking publisher permissions…</section>}
       {owner === false && <section style={surface} role="alert">Only a VibeSchool platform owner can publish public learner exams.</section>}
       {owner === true && <>
+        <section style={surface}>
+          <h2 style={{ marginTop: 0, fontSize: 20 }}>Private original exam bank</h2>
+          <p style={{ color: "#53657c", fontSize: 13 }}>Only independently reviewed original exams can be published. No question text or answer keys are sent to this list.</p>
+          {privateDraftError && <p role="alert" style={{ color: "#92400e" }}>{privateDraftError}</p>}
+          {privateDrafts.filter(paper => paper.status !== "retired").map(paper => <div key={paper.id} style={{ padding: "12px 0", borderTop: "1px solid #e3e8f0" }}>
+            <strong>{paper.title}</strong>
+            <p style={{ margin: "6px 0", color: "#53657c", fontSize: 13 }}>{paper.subject} · {paper.grade} · {paper.question_count} questions · {paper.published ? "Published" : paper.status === "reviewed" ? "Reviewed" : "Awaiting educational review"}</p>
+            {!paper.published && paper.status === "reviewed" && <>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, fontSize: 13 }}>
+                <input type="checkbox" checked={approvedPrivateId === paper.id} onChange={e=>setApprovedPrivateId(e.target.checked ? paper.id : "")}/>
+                I approve this independently reviewed original assessment for learners.
+              </label>
+              <button type="button" style={{ ...button, opacity: busy || approvedPrivateId !== paper.id ? 0.5 : 1 }} disabled={busy || approvedPrivateId !== paper.id} onClick={()=>void publishPrivateDraft(paper)}>Publish reviewed exam</button>
+            </>}
+          </div>)}
+        </section>
+
         <section style={surface}>
           <label style={labelStyle} htmlFor="exam-upload">1. Load your original paper</label>
           <input id="exam-upload" type="file" accept=".json,application/json" onChange={e=>void handleFile(e.target.files?.[0])}
@@ -129,10 +181,10 @@ export default function OriginalExamPublisher() {
             : <ul style={{ color: "#b91c1c", paddingLeft: 20 }}>{(preview.issues || ["Validation failed"]).map((issue,i)=><li key={i}>{issue.replaceAll("_"," ")}</li>)}</ul>}
           {preview.already_exists && preview.assessment_id && <p>This title already exists (assessment {preview.assessment_id}). No duplicate was created.</p>}
           {preview.valid && <div style={{ display: "grid", gap: 14 }}>
-            <p style={{ fontSize: 13, color: "#52647d" }}>This is a VibeSchool Original pilot, not independently KICD-verified. Publishing makes the paper available to signed-in learners of the selected grade. Existing learner results are untouched.</p>
+            <p style={{ fontSize: 13, color: "#52647d" }}>This is original VibeSchool content, not an official KICD examination. Outcome verification remains provisional until independently documented.</p>
             <label style={{ display: "flex", alignItems: "start", gap: 10 }}>
               <input type="checkbox" checked={approved} onChange={e=>setApproved(e.target.checked)} style={{ width: 20, height: 20 }} />
-              <span>I have checked the answer keys, explanations and content rights, and approve publication as a provisional pilot.</span>
+              <span>I have checked the answer keys, explanations and content rights, and approve publication as an original VibeSchool assessment with provisional curriculum mapping.</span>
             </label>
             <button disabled={!canPublish} style={{ ...button, background: "#11684f", opacity: canPublish ? 1 : 0.5 }}
               onClick={()=>void call(true)}>{busy ? "Publishing…" : "3. Publish to learners"}</button>
