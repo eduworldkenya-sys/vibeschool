@@ -6,7 +6,7 @@ import { pilotEmail } from './config'
 
 const path = '/signup/student/email'
 
-function pilotAdminClient() {
+export function pilotAdminClient() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { autoRefreshToken: false, persistSession: false },
   })

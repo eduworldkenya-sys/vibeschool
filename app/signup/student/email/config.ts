@@ -5,11 +5,14 @@ function testEmails() {
 }
 
 export function emailPilotEnabled() {
-  return testEmails().length > 0 && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
+  return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY) &&
+    (process.env.INDEPENDENT_LEARNER_PUBLIC_EMAIL_ENABLED === 'true' || testEmails().length > 0)
 }
 
 export function pilotEmail(value: FormDataEntryValue | string | null | undefined) {
   if (typeof value !== 'string' || value.length > 254 || !emailPilotEnabled()) return null
   const email = normalize(value)
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && testEmails().includes(email) ? email : null
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null
+  return process.env.INDEPENDENT_LEARNER_PUBLIC_EMAIL_ENABLED === 'true' ||
+    testEmails().includes(email) ? email : null
 }

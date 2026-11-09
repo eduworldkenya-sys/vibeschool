@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
@@ -141,6 +142,30 @@ export async function GET(req: NextRequest) {
     if (access.reasonCode !== 'ROLE_UNCLAIMED') {
       logStage('authority_resolution_failed', flowId, access.reasonCode ?? undefined)
       return authError(req, 'authority_resolution_failed', pendingCookies)
+    }
+    if (requestedRole === 'student' && process.env.INDEPENDENT_LEARNER_PUBLIC_GOOGLE_ENABLED === 'true') {
+      // Google proves email ownership, not learner role or school authority.
+      // Provision only an isolated restricted identity; never manufacture a
+      // school students row or a Student Twin scope.
+      const email = user.email?.trim().toLowerCase()
+      const verifiedGoogle = Boolean(email && !email.endsWith('@vs.internal') && user.email_confirmed_at &&
+        user.identities?.some(identity => identity.provider === 'google' &&
+          identity.identity_data?.email_verified === true &&
+          String(identity.identity_data?.email ?? '').trim().toLowerCase() === email))
+      if (!verifiedGoogle || access.status !== 'active' || access.anonymized || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return authError(req, 'verified_email_required', pendingCookies)
+      }
+      const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+      const { data: schoolLearner, error: schoolError } = await admin
+        .from('students').select('id').eq('profile_id', user.id).limit(1).maybeSingle()
+      if (schoolError || schoolLearner) return authError(req, 'identity_conflict', pendingCookies)
+      const { error: provisionError } = await admin.from('independent_learner_identities').upsert({
+        user_id: user.id, learner_email_verified_at: user.email_confirmed_at,
+      }, { onConflict: 'user_id', ignoreDuplicates: true })
+      if (provisionError) return authError(req, 'independent_signup_failed', pendingCookies)
+      return redirectWithCookies(req, '/signup/student/independent', pendingCookies)
     }
     if (!requestedRole || !SELF_SERVICE_ROLES.has(requestedRole)) {
       return authError(req, 'role_required', pendingCookies)

@@ -144,6 +144,15 @@
         "body.confirmedVerified!==true",
         "Recipient does not match this request"
       ]
+    },
+    "app/api/learner/independent/grade/route.ts": {
+      "authority": "verified_bearer_owner_restricted_independent_identity_only",
+      "requiredEvidence": [
+        "auth.getUser(authorization.slice(7).trim())",
+        "eq('user_id', user.id)",
+        "identity.account_state !== 'restricted'",
+        "status: 403"
+      ]
     }
   }
 }
