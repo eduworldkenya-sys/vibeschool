@@ -5,7 +5,7 @@ import { BookOpen, FlaskConical, PencilLine, ClipboardCheck, PlayCircle, Puzzle,
 import { useStudent } from "@/lib/student-context";
 
 const activities = [
-  { title: "Read", detail: "Class books, notes and resources", Icon: BookOpen, href: "#class-resources", ready: true },
+  { title: "Read", detail: "Published textbooks by grade", Icon: BookOpen, href: "/student/vibelearn/reading", ready: true },
   { title: "Practice", detail: "Questions by topic", Icon: PencilLine, href: "/student/vibelearn/practice", ready: true },
   { title: "Exams", detail: "Tests and assessments", Icon: ClipboardCheck, href: "/student/vibelearn/exams", ready: true },
   { title: "Lessons", detail: "Video and audio lessons", Icon: PlayCircle, ready: false },
