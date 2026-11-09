@@ -6,10 +6,11 @@ import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
 import { readCache, writeCache } from "@/lib/student-cache";
 import Skel from "@/components/student/Skel";
+import { getLearnerAssessmentHub } from "@/lib/assessment/integration";
 
 interface ExamResult {
   id: string; subject: string; marks: number; total_marks: number;
-  grade: string; term: number; academic_year: number; exam_name: string;
+  grade: string; term: number; academic_year: number; exam_name: string; source?: "school" | "assessment";
 }
 interface CBCAssessment {
   id: string; subjectName: string; sub_strand: string;
@@ -82,13 +83,14 @@ export default function MarksPage() {
 
     const cached = readCache<{ exams: ExamResult[]; cbc: CBCAssessment[]; grades: TraditionalGrade[] }>("marks", identity.studentId);
     if (cached) { setExams(cached.exams); setCbc(cached.cbc); setGrades(cached.grades); setLoading(false); }
+    let cancelled = false;
 
     async function load() {
-      const [examRes, cbcRes, gradeRes] = await Promise.all([
+      const [examRes, cbcRes, gradeRes, canonicalHub] = await Promise.all([
         supabase
           .from("exam_results")
           .select(
-            "id, marks, is_absent, exam_id, subject_id, exams(name, term, academic_year)"
+            "id, marks, max_marks, is_absent, exam_id, subject_id, exams(name, term, academic_year)"
           )
           .eq("student_id", identity!.studentId),
 
@@ -105,14 +107,17 @@ export default function MarksPage() {
             "id, marks, out_of, term, academic_year, subject_id"
           )
           .eq("student_id", identity!.studentId),
+        getLearnerAssessmentHub(),
       ]);
 
+      if (examRes.error || cbcRes.error || gradeRes.error) throw new Error("Could not load school results.");
       // Collect all subject ids
       const subIds = Array.from(
         new Set([
           ...(examRes.data ?? []).map(row => row.subject_id),
           ...(cbcRes.data ?? []).map(row => row.subject_id),
           ...(gradeRes.data ?? []).map(row => row.subject_id),
+          ...canonicalHub.results.map(row => row.subjectId).filter((id): id is string => Boolean(id)),
         ])
       );
 
@@ -130,11 +135,12 @@ export default function MarksPage() {
             : row.exams
 
           const marks = Number(row.marks)
-          const totalMarks = 100
+          const totalMarks = Number(row.max_marks) > 0 ? Number(row.max_marks) : 100
           const percentage = pct(marks, totalMarks)
 
           return {
-            id: row.id,
+            id: `school:${row.id}`,
+            source: "school",
             marks,
             total_marks: totalMarks,
             grade: letterGrade(percentage),
@@ -144,6 +150,19 @@ export default function MarksPage() {
             exam_name: exam?.name ?? "",
           }
         });
+
+      const canonicalResults: ExamResult[] = canonicalHub.results.filter(row => row.score !== null && row.maxScore !== null && row.maxScore > 0).map(row => ({
+        id: `assessment:${row.attemptId}`,
+        source: "assessment",
+        subject: row.subjectId ? (subMap[row.subjectId] ?? row.assessmentTitle) : row.assessmentTitle,
+        exam_name: row.assessmentTitle,
+        marks: row.score!,
+        total_marks: row.maxScore!,
+        grade: letterGrade(row.percentage ?? pct(row.score!, row.maxScore!)),
+        term: 0,
+        academic_year: row.releasedAt ? new Date(row.releasedAt).getFullYear() : 0,
+      }));
+      const allExams = [...canonicalResults, ...examData];
 
       const cbcData: CBCAssessment[] = (cbcRes.data ?? []).map(row => ({
         id: row.id,
@@ -171,12 +190,14 @@ export default function MarksPage() {
         }
       });
 
-      const fresh = { exams: examData, cbc: cbcData, grades: gradeData };
+      const fresh = { exams: allExams, cbc: cbcData, grades: gradeData };
       writeCache("marks", identity!.studentId, fresh);
-      setExams(examData); setCbc(cbcData); setGrades(gradeData);
+      if (cancelled) return;
+      setExams(allExams); setCbc(cbcData); setGrades(gradeData);
       setLoading(false);
     }
-    load();
+    void load().catch(error => { if (!cancelled) { console.error("Could not load learner marks", error); setLoading(false); } });
+    return () => { cancelled = true; };
   }, [identity, idLoading]);
 
   const isLoading = idLoading || (loading && exams.length === 0 && cbc.length === 0 && grades.length === 0);
@@ -231,8 +252,9 @@ export default function MarksPage() {
                   {r.grade || "—"}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--vs-text)" }}>{r.subject}</div>
-                  <div style={{ fontSize: 11, color: "var(--vs-muted)", marginTop: 2 }}>Term {r.term} · {r.academic_year}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--vs-text)" }}>{r.exam_name || r.subject}</div>
+                  {r.source === "assessment" && <div style={{ fontSize: 11, color: "var(--vs-muted)" }}>{r.subject} · Assessment</div>}
+                  <div style={{ fontSize: 11, color: "var(--vs-muted)", marginTop: 2 }}>{r.source === "assessment" ? `Released assessment · ${r.academic_year}` : `Term ${r.term} · ${r.academic_year}`}</div>
                   <div style={{ marginTop: 6, height: 4, borderRadius: 4, background: "var(--vs-border)", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${pct(r.marks, r.total_marks)}%`, background: gradColor(r.grade), borderRadius: 4, transition: "width 0.4s ease" }} />
                   </div>
