@@ -1,27 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import { BookOpen, FlaskConical, PencilLine, ClipboardCheck, PlayCircle, Puzzle, FolderOpen, CalendarDays } from "lucide-react";
+import { useStudent } from "@/lib/student-context";
 
 const activities = [
-  { title: "Reading Library", detail: "Read books, notes and stories", icon: "📚", href: "#class-resources", ready: true },
-  { title: "Projects", detail: "Investigate and create", icon: "🧪", ready: false },
-  { title: "Topic Practice", detail: "Questions by topic", icon: "✏️", href: "/student/vibelearn/practice", ready: true },
-  { title: "Exams", detail: "Practise and take assessments", icon: "📝", href: "/student/vibelearn/exams", ready: true },
-  { title: "Video & Audio Lessons", detail: "Learn through watching and listening", icon: "▶️", ready: false },
-  { title: "Games & Challenges", detail: "Learn by playing", icon: "🧩", ready: false },
-  { title: "My Work", detail: "Homework and saved activities", icon: "📁", href: "/student/tasks", ready: true },
-  { title: "Study Plan", detail: "Plan your next steps", icon: "📅", href: "/student/vibelearn/revision", ready: true },
+  { title: "Read", detail: "Class books, notes and resources", Icon: BookOpen, href: "#class-resources", ready: true },
+  { title: "Practice", detail: "Questions by topic", Icon: PencilLine, href: "/student/vibelearn/practice", ready: true },
+  { title: "Exams", detail: "Tests and assessments", Icon: ClipboardCheck, href: "/student/vibelearn/exams", ready: true },
+  { title: "Lessons", detail: "Video and audio lessons", Icon: PlayCircle, ready: false },
+  { title: "Activities", detail: "Games and challenges", Icon: Puzzle, ready: false },
+  { title: "My Work", detail: "Tasks and homework", Icon: FolderOpen, href: "/student/tasks", ready: true },
+  { title: "Study Plan", detail: "Revision and mistakes", Icon: CalendarDays, href: "/student/vibelearn/revision", ready: true },
 ] as const;
 
 export default function LearnActivityHub() {
+  const { identity } = useStudent();
+  const hasSchoolClass = Boolean(identity?.classId);
+  const project = {
+    title: "Projects", detail: hasSchoolClass ? "School-assigned projects" : "Independent projects",
+    Icon: FlaskConical, href: "/student/projects", ready: hasSchoolClass,
+  };
+  const items = [activities[0], activities[1], activities[2], project, ...activities.slice(3)];
   return (
     <section aria-labelledby="learn-activity-heading" style={{ marginBottom: 16 }}>
       <h2 id="learn-activity-heading" style={{ fontSize: 19, margin: "0 0 5px" }}>Explore learning activities</h2>
       <p style={{ fontSize: 12, color: "var(--vs-muted, #64748b)", margin: "0 0 13px" }}>
-        Choose how you want to learn. Activities are available across primary and secondary levels when suitable content is published.
+        Choose how you want to learn. Your activities and resources depend on your class and available content.
       </p>
-      <nav aria-label="Independent learning activities" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
-        {activities.map(item => {
+      <nav aria-label="Learning activities" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
+        {items.map(item => {
           const style: React.CSSProperties = {
             display: "block", minWidth: 0, minHeight: 112, boxSizing: "border-box",
             border: "1px solid var(--vs-border, #e2e8f0)", borderRadius: 15,
@@ -29,7 +37,7 @@ export default function LearnActivityHub() {
             textDecoration: "none", fontFamily: "inherit", textAlign: "left",
           };
           const body = <>
-            <span aria-hidden="true" style={{ display: "block", fontSize: 23, marginBottom: 7 }}>{item.icon}</span>
+            <item.Icon aria-hidden="true" size={23} strokeWidth={1.8} style={{ display: "block", marginBottom: 8 }} />
             <strong style={{ display: "block", fontSize: 14 }}>{item.title}</strong>
             <span style={{ display: "block", fontSize: 11, marginTop: 4, color: "var(--vs-muted, #64748b)", lineHeight: 1.4 }}>{item.detail}</span>
             {!item.ready && <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, color: "#92400e", marginTop: 8 }}>Coming soon</span>}

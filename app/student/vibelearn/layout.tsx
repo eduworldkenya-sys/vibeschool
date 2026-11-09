@@ -134,10 +134,7 @@ function GeneralLearnerVibeLearn() {
         )}
       </section>
 
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
-        <button onClick={() => router.push("/student/exercises")} style={{ minHeight: 74, border: "1px solid var(--vs-border)", borderRadius: 14, background: "var(--vs-card)", color: "var(--vs-text)", fontWeight: 800 }}>Exercises</button>
-        <button onClick={() => router.push("/student/tasks")} style={{ minHeight: 74, border: "1px solid var(--vs-border)", borderRadius: 14, background: "var(--vs-card)", color: "var(--vs-text)", fontWeight: 800 }}>Tasks & homework</button>
-      </section>
+      <button onClick={() => router.push("/student/exercises")} style={{ minHeight: 48, border: "1px solid var(--vs-border)", borderRadius: 12, background: "var(--vs-card)", color: "var(--vs-text)", fontWeight: 700 }}>Class exercises</button>
 
       {(workspace?.assignedAssessments.length ?? 0) > 0 && (
         <section style={{ border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", padding: 16 }}>
