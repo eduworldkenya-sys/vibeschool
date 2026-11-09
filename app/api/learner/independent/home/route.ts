@@ -32,6 +32,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Could not verify learner identity' }, { status: 503, headers })
   }
   if (!identity) return NextResponse.json({ kind: 'other' }, { headers })
+  // A verified later school link takes the standard student/Twin path.
+  if (profile.role === 'student') return NextResponse.json({ kind: 'other' }, { headers })
 
   // These checks mirror the canonical restricted independent identity boundary.
   // No school record is created, and no school-scoped Twin authority is granted.
