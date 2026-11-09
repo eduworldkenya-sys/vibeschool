@@ -18,8 +18,8 @@ export default function LearnActivityHub() {
   const { identity } = useStudent();
   const hasSchoolClass = Boolean(identity?.classId);
   const project = {
-    title: "Projects", detail: hasSchoolClass ? "School-assigned projects" : "Independent projects",
-    Icon: FlaskConical, href: "/student/projects", ready: hasSchoolClass,
+    title: "Projects", detail: hasSchoolClass ? "School and personal projects" : "Independent learning projects",
+    Icon: FlaskConical, href: hasSchoolClass ? "/student/projects" : "/student/projects/independent", ready: true,
   };
   const items = [activities[0], activities[1], activities[2], project, ...activities.slice(3)];
   return (
