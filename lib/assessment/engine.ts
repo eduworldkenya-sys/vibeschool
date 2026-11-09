@@ -13,7 +13,7 @@ import type {
 
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 type AssessmentRpc = <T>(functionName: string, args: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as AssessmentRpc
+const rpc = supabase.rpc.bind(supabase) as AssessmentRpc
 
 function assertString(value: unknown, label: string): string {
   if (typeof value !== 'string' || value.length === 0) throw new Error(`${label} was not returned by the Assessment Engine.`)
