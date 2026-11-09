@@ -16,8 +16,8 @@ for (const title of ["Read", "Practice", "Exams", "Projects", "Lessons", "Activi
 }
 assert.match(hub, /from "lucide-react"/, "Learn icons must be SVG");
 assert.doesNotMatch(hub, /[\u{1F300}-\u{1FAFF}]/u, "Learn tiles must not use emoji");
-assert.match(hub, /href: "\/student\/vibelearn\/reading"/);
-assert.match(hub, /href: "\/student\/projects"/);
+assert.match(hub, /href: hasSchoolClass \\? "\\/student\\/projects" : "\\/student\\/projects\\/independent"/);
+assert.match(hub, /href: hasSchoolClass \\? "\\/student\\/projects" : "\\/student\\/projects\\/independent"/);
 assert.match(hub, /hasSchoolClass/, "School and independent project navigation must be differentiated");
 assert.match(hub, /Coming soon/);
 assert.match(reading, /eq\("status", "published"\)/, "Reading must not include unpublished content");
