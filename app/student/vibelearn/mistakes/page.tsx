@@ -5,11 +5,14 @@ export const dynamic = 'force-dynamic'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
+import { useStudent } from '@/lib/student-context'
 import { getRevisionWorkspace, type RevisionWorkspace } from '@/lib/student/vibelearn'
 import { verifyMistakeMastery } from '@/lib/student/kcse'
 
 export default function VibeLearnMistakesPage() {
   const router = useRouter()
+  const { identity } = useStudent()
+  const isForm4 = /^form\s*4$/i.test(identity?.className?.trim() ?? '')
   const [workspace, setWorkspace] = useState<RevisionWorkspace | null>(null)
   const [working, setWorking] = useState<string | null>(null)
   const [message, setMessage] = useState('')
@@ -32,7 +35,7 @@ export default function VibeLearnMistakesPage() {
   return <main style={shell}><div style={{maxWidth:900,margin:'0 auto'}}><VibeLearnSubnav/>
     <section style={hero}><div style={eyebrow}>Mistake notebook</div><h1 style={{margin:'7px 0 5px'}}>Mistakes become recovery evidence</h1><p style={{margin:0,color:'#cbd5e1',lineHeight:1.6}}>A mistake is resolved only after later practice proves mastery. Clicking a button cannot manufacture understanding.</p></section>
     {error && <section style={{...card,color:'#b91c1c'}}>{error}</section>}{message && <section style={{...card,borderColor:'#a7f3d0',background:'#ecfdf5'}}>{message}</section>}
-    {loading ? <section style={card}>Loading your mistakes…</section> : <section style={card}>{mistakes.length===0 ? <div><strong>No mistakes recorded yet.</strong><p style={muted}>Wrong practice answers will appear here automatically.</p></div> : <div style={{display:'grid',gap:10}}>{mistakes.map(item => <article key={item.id} style={{...mistakeCard,opacity:item.status==='resolved'?0.72:1}}><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><strong>{item.subject} · {item.topic}</strong><div style={muted}>{item.status}</div></div><span style={pill}>{item.repeatCount}× missed</span></div><p style={{lineHeight:1.5}}>{item.prompt}</p>{item.explanation&&<p style={muted}>{item.explanation}</p>}<div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:10}}>{item.reviewUrl&&<button style={secondaryButton} onClick={()=>router.push(item.reviewUrl!)}>Review source</button>}<button style={secondaryButton} onClick={()=>router.push(`/student/vibelearn/kcse/practice?subject=${encodeURIComponent(item.subject)}&topic=${encodeURIComponent(item.topic)}`)}>Practise topic</button>{item.status!=='resolved'&&<button style={primaryButton} disabled={working===item.id} onClick={()=>void verify(item.id)}>{working===item.id?'Checking evidence…':'Verify mastery'}</button>}</div></article>)}</div>}</section>}
+    {loading ? <section style={card}>Loading your mistakes…</section> : <section style={card}>{mistakes.length===0 ? <div><strong>No mistakes recorded yet.</strong><p style={muted}>Wrong practice answers will appear here automatically.</p></div> : <div style={{display:'grid',gap:10}}>{mistakes.map(item => <article key={item.id} style={{...mistakeCard,opacity:item.status==='resolved'?0.72:1}}><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><strong>{item.subject} · {item.topic}</strong><div style={muted}>{item.status}</div></div><span style={pill}>{item.repeatCount}× missed</span></div><p style={{lineHeight:1.5}}>{item.prompt}</p>{item.explanation&&<p style={muted}>{item.explanation}</p>}<div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:10}}>{item.reviewUrl&&<button style={secondaryButton} onClick={()=>router.push(item.reviewUrl!)}>Review source</button>}<button style={secondaryButton} onClick={()=>router.push(`${isForm4 ? '/student/vibelearn/kcse/practice' : '/student/vibelearn/practice'}?subject=${encodeURIComponent(item.subject)}&topic=${encodeURIComponent(item.topic)}`)}>Practise topic</button>{item.status!=='resolved'&&<button style={primaryButton} disabled={working===item.id} onClick={()=>void verify(item.id)}>{working===item.id?'Checking evidence…':'Verify mastery'}</button>}</div></article>)}</div>}</section>}
   </div></main>
 }
 const shell:React.CSSProperties={minHeight:'100vh',background:'#f8fafc',padding:'18px 14px 90px',color:'#0f172a',fontFamily:"'Plus Jakarta Sans', sans-serif"}
