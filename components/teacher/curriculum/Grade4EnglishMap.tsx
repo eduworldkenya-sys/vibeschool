@@ -14,15 +14,18 @@ type Props = {
   showExisting: boolean
   onToggleExisting: () => void
   onOpenScheme: () => void
+  weeklyCount: number
+  schemeCount: number
+  verifiedOutcomeCount: number
 }
 
 /**
  * A read-only source reference until KICD SLOs are reconciled with canonical
  * curriculum IDs. Never generate a scheme from unmapped reference headings.
  */
-export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleExisting, onOpenScheme }: Props) {
+export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleExisting, onOpenScheme, weeklyCount, schemeCount, verifiedOutcomeCount }: Props) {
   const [selectedTheme, setSelectedTheme] = useState<number | null>(null)
-  const [showYear, setShowYear] = useState(false)
+  const [showYear, setShowYear] = useState(true)
   const visibleThemes = useMemo(() =>
     showYear || !selectedTerm
       ? GRADE4_ENGLISH_THEMES
@@ -31,7 +34,7 @@ export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleE
   useEffect(() => {
     // Reset the expanded theme when a teacher changes the school term.
     setSelectedTheme(null)
-    setShowYear(false)
+    setShowYear(true)
   }, [selectedTerm])
 
   return <section aria-label="Grade 4 English curriculum reference" style={{background:'#fff',border:'1px solid #dce6e0',borderRadius:16,padding:16,marginBottom:16}}>
@@ -39,9 +42,10 @@ export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleE
       <div style={{fontSize:11,fontWeight:800,color:'#326853',letterSpacing:'.04em'}}>GRADE 4 · ENGLISH</div>
       <h2 style={{fontSize:21,lineHeight:1.25,margin:'5px 0 8px',color:'#173d30'}}>Curriculum themes</h2>
       <p style={{fontSize:13,lineHeight:1.6,color:'#50655b',margin:'0 0 14px'}}>
-        Browse KICD themes and sub-strands before materials are published. Term grouping is a suggested teaching plan, not an official KICD term allocation.
+        The annual KICD theme index is independent of your school's term plan. Use verified curriculum outcomes to prepare scheme lessons; reference headings alone are not approved outcomes.
       </p>
     </header>
+    <div role="status" style={{background:'#f4f7f5',borderRadius:9,padding:12,marginBottom:14,fontSize:12,lineHeight:1.6,color:'#345448'}}>Existing weekly records: <strong>{weeklyCount}</strong> · Existing scheme lessons: <strong>{schemeCount}</strong> · Verified outcomes in loaded curriculum: <strong>{verifiedOutcomeCount}</strong>. These are separate records; none is automatically mapped to a theme.</div>
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:14}}>
       <span style={{fontSize:12,fontWeight:700,color:'#345448'}}>
         {showYear || !selectedTerm ? 'Full year · 13 themes' : `Suggested Term ${selectedTerm} · ${visibleThemes.length} themes`}
@@ -74,7 +78,7 @@ export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleE
               {subStrands.map((name,i)=><li key={i} style={{padding:'4px 0'}}>{name}</li>)}
             </ol>
             <div style={{background:'#f4f7f5',borderRadius:8,padding:10,fontSize:12,lineHeight:1.55,color:'#576b61'}}>
-              Specific learning outcomes: not yet reconciled with canonical records.
+              Theme-specific learning outcomes: not yet reconciled with canonical records.
               <br/>Published lesson materials: none linked to this reference theme.
             </div>
             <div style={{fontSize:11,color:'#698075',marginTop:9}}>Source reference: page {theme.sourcePage} · Mapping awaiting verification</div>
