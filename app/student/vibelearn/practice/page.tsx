@@ -55,11 +55,12 @@ export default function VibeLearnPracticePage() {
   const requestedPublicationId = params.get('publication') ?? ''
   const requestedChapterId = params.get('chapter') ?? ''
   const hasReaderSource = Boolean(requestedPublicationId && requestedChapterId)
-  const isGrade4 = /^(grade|class)\s*4$/i.test(identity?.className?.trim() ?? '')
 
   const [sourceContext, setSourceContext] = useState<GroundedPracticeSource | null>(null)
-  const [grade4Assignments, setGrade4Assignments] = useState<LearnerAssessmentAssignment[]>([])
+  const [practiceAssignments, setPracticeAssignments] = useState<LearnerAssessmentAssignment[]>([])
   const [assignmentError, setAssignmentError] = useState('')
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true)
+  const [practiceSubject, setPracticeSubject] = useState('')
   const [questions, setQuestions] = useState<PracticeQuestion[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
@@ -119,20 +120,36 @@ export default function VibeLearnPracticePage() {
     return () => { cancelled = true }
   }, [hasReaderSource, requestedPublicationId, requestedChapterId, requestedSubject, requestedTopic, identityLoading, identity?.className])
 
+  // Canonical assessment discovery scopes published practice to this signed-in
+  // learner, including independent learners without a school enrollment.
   useEffect(() => {
-    if (identityLoading || !isGrade4) return
+    if (identityLoading || !identity) return
     let cancelled = false
+    setAssignmentsLoading(true)
+    setAssignmentError('')
     listMyAssessmentAssignments()
-      .then(items => { if (!cancelled) setGrade4Assignments(items.filter(item => item.assessmentType === 'practice')) })
-      .catch(() => { if (!cancelled) setAssignmentError('Your assigned practice could not be loaded.') })
+      .then(items => { if (!cancelled) setPracticeAssignments(items.filter(item => item.assessmentType === 'practice')) })
+      .catch(() => { if (!cancelled) setAssignmentError('Available practice sets could not be loaded. Please refresh.') })
+      .finally(() => { if (!cancelled) setAssignmentsLoading(false) })
     return () => { cancelled = true }
-  }, [identityLoading, isGrade4])
+  }, [identityLoading, identity?.studentId])
 
   const question = questions[index] ?? null
   const finished = questions.length > 0 && index >= questions.length
   const progress = questions.length === 0 ? 0 : Math.round((Math.min(index, questions.length) / questions.length) * 100)
   const scoreLabel = useMemo(() => questions.length ? `${correct}/${questions.length}` : '0/0', [correct, questions.length])
-  const practiceTitle = sourceContext?.chapterTitle || requestedTopic || requestedSubject || 'Mixed subject'
+  const practiceTitle = sourceContext?.chapterTitle || requestedTopic || requestedSubject || 'Topic'
+  const practiceSubjects = useMemo(() => Array.from(new Set(practiceAssignments.map(item => {
+    const match = item.title.match(/(?:grade|form)\s*\d+\s+(.+?)\s*[—–-]\s*/i)
+    return match?.[1]?.trim() || 'Other'
+  }))).sort((a, b) => a.localeCompare(b)), [practiceAssignments])
+  const selectedPracticeSubject = practiceSubject || requestedSubject
+  const filteredPracticeAssignments = practiceAssignments.filter(item => {
+    const title = item.title.toLowerCase()
+    return (!selectedPracticeSubject || title.includes(selectedPracticeSubject.toLowerCase())) &&
+      (!requestedTopic || title.includes(requestedTopic.toLowerCase()))
+  })
+  const showLegacyBank = !hasReaderSource && /^form\s*[1-4]$/i.test(identity?.className?.trim() ?? '')
   const backUrl = sourceContext ? `/read/textbook/${sourceContext.publicationId}?chapter=${sourceContext.chapterId}` : '/student/vibelearn'
 
   async function checkAnswer() {
@@ -173,23 +190,46 @@ export default function VibeLearnPracticePage() {
 
     {sourceContext && <section style={{ ...card, borderColor: '#c7d2fe', background: '#f5f3ff' }}><div style={eyebrowDark}>Exact learning source</div><strong style={{ display: 'block', margin: '6px 0 3px' }}>{sourceContext.publicationTitle} · {sourceContext.chapterTitle}</strong><p style={muted}>{[sourceContext.grade, sourceContext.subject].filter(Boolean).join(' · ') || 'VibeTextbook'} · {sourceContext.assessableBlockCount} assessable blocks · {sourceContext.verifiedOutcomeCount} verified outcomes</p><p style={{ ...muted, marginTop: 8 }}>Questions come from authored assessable blocks in this exact unit. Answers are scored by the server, and mistakes retain a link back to their source section.</p></section>}
     {assignmentError && <section role="alert" style={{ ...card, color: '#b91c1c' }}>{assignmentError}</section>}
-    {isGrade4 && !hasReaderSource && <section style={card} aria-label="Grade 4 practice assessments">
-      <div style={eyebrowDark}>Grade 4 · Practice assessments</div>
-      <h2 style={{ fontSize: 19, margin: '6px 0 8px' }}>Assigned subject practice</h2>
-      <p style={muted}>Use your approved practice assessments. Answers, marks and released results stay in your existing assessment record.</p>
-      {grade4Assignments.length === 0 ? <p style={{ ...muted, marginTop: 12 }}>No subject practice assessment is currently assigned to your account.</p> : <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
-        {grade4Assignments.map(item => <div key={item.assignmentId} style={{ border: '1px solid #e2e8f0', padding: 12, borderRadius: 12 }}>
-          <strong>{item.title}</strong>
-          <p style={{ ...muted, marginTop: 6 }}>{item.timeLimitMinutes ? `${item.timeLimitMinutes} minutes · ` : ''}{item.availability.replaceAll('_', ' ')}</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-            <button type="button" style={{ ...primaryButton, opacity: item.canStart ? 1 : .55 }} disabled={!item.canStart} onClick={() => router.push(`/student/assessment/${item.assignmentId}`)}>{item.attemptStatus === 'in_progress' ? 'Resume practice' : 'Start practice'}</button>
-            {item.resultStatus === 'released' && item.attemptId && <button type="button" style={secondaryButton} onClick={() => router.push(`/student/results/${encodeURIComponent(item.attemptId as string)}`)}>Review result</button>}
-          </div>
-        </div>)}
+    {!hasReaderSource && <section style={card} aria-label="Available practice assessments">
+      <div style={eyebrowDark}>{identity?.className || 'Your grade'} · Approved practice</div>
+      <h2 style={{ fontSize: 19, margin: '7px 0 8px' }}>Choose a subject and practise</h2>
+      <p style={{ ...muted, lineHeight: 1.6 }}>Only practice available to your learner account appears here. School linkage is optional for public practice. Marks and attempts stay in your existing assessment history.</p>
+      {practiceSubjects.length > 1 && <div aria-label="Practice subjects" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
+        <button type="button" aria-pressed={!selectedPracticeSubject} onClick={() => setPracticeSubject('')} style={secondaryButton}>All subjects</button>
+        {practiceSubjects.map(subject => <button type="button" key={subject} aria-pressed={selectedPracticeSubject.toLowerCase() === subject.toLowerCase()} onClick={() => setPracticeSubject(subject)} style={{ ...secondaryButton, background: selectedPracticeSubject.toLowerCase() === subject.toLowerCase() ? '#c7d2fe' : '#eef2ff' }}>{subject}</button>)}
+      </div>}
+      {assignmentError ? <p role="alert" style={{ color: '#b91c1c', marginTop: 12 }}>{assignmentError}</p>
+        : identityLoading || assignmentsLoading ? <p role="status" style={{ ...muted, marginTop: 12 }}>Checking your available practice…</p>
+        : filteredPracticeAssignments.length === 0 ? <div style={{ marginTop: 14 }}>
+          <strong>{requestedTopic ? 'No approved practice for this topic yet' : 'No practice sets available for this selection yet'}</strong>
+          <p style={{ ...muted, marginTop: 6 }}>Only approved questions are offered. Explore available exams or read published units while more topic sets are prepared.</p>
+          <button style={{ ...secondaryButton, marginTop: 10 }} onClick={() => router.push('/student/vibelearn/exams')}>Explore available assessments</button>
+        </div> : <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
+        {filteredPracticeAssignments.map(item => {
+          const active = item.attemptStatus === 'in_progress' && (!item.attemptExpiresAt || Date.parse(item.attemptExpiresAt) > Date.now())
+          const resultReady = Boolean(item.attemptId && (item.resultStatus === 'released' || (item.resultStatus === 'marked' && item.showScorePolicy === 'immediate')))
+          const canLaunch = item.canStart || active
+          return <article key={item.assignmentId} style={{ border: '1px solid #e2e8f0', padding: 14, borderRadius: 13 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'start' }}>
+              <strong style={{ fontSize: 15 }}>{item.title}</strong>
+              <span style={pill}>{active ? 'In progress' : resultReady ? 'Completed' : item.canStart ? 'New practice' : item.availability.replaceAll('_', ' ')}</span>
+            </div>
+            <p style={{ ...muted, marginTop: 8 }}>Approved practice set · {item.timeLimitMinutes ? `${item.timeLimitMinutes} min · ` : ''}Up to {item.maxAttempts} attempt{item.maxAttempts === 1 ? '' : 's'}{item.attemptNumber ? ` · Attempt ${item.attemptNumber} used` : ''}</p>
+            <p style={{ ...muted, marginTop: 5 }}>Use the published assessment to answer, submit and review permitted results. A topic-specific drill will appear when verified topic questions are published.</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginTop: 12 }}>
+              <button type="button" style={{ ...primaryButton, opacity: canLaunch ? 1 : 0.5 }} disabled={!canLaunch}
+                onClick={() => router.push(`/student/assessment/${encodeURIComponent(item.assignmentId)}`)}>
+                {active ? 'Resume practice' : item.attemptId ? 'Try another attempt' : 'Start practice'}
+              </button>
+              {resultReady && item.attemptId && <button type="button" style={secondaryButton}
+                onClick={() => router.push(`/student/results/${encodeURIComponent(item.attemptId as string)}`)}>Review result</button>}
+            </div>
+          </article>
+        })}
       </div>}
     </section>}
     {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
-    {isGrade4 && !hasReaderSource ? null : loading ? <section style={card}>Loading questions…</section> : questions.length === 0 ? <section style={card}><strong>No grounded questions available</strong><p style={muted}>{sourceContext ? 'This unit is readable, but it has no authored, markable question blocks yet. Review the unit or choose another practice set.' : identity && !/^form\s*[1-4]$/i.test(identity.className.trim()) ? `Verified ${identity.className} practice questions are not available yet. You can continue with your assigned class exercises.` : 'No verified questions are available for this selection yet.'}</p>{!sourceContext && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}><button style={primaryButton} onClick={() => router.push('/student/vibelearn/reading')}>Browse published learning units</button><button style={secondaryButton} onClick={() => router.push('/student/exercises')}>Open class exercises</button></div>}</section> : finished ? <section style={card}><div style={eyebrowDark}>Session complete</div><h2 style={{ fontSize: 28, margin: '8px 0' }}>{scoreLabel}</h2><p style={muted}>Your answers and grounded mistakes are now part of your learning journey and revision evidence.</p><div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}><button style={primaryButton} onClick={restart}>Try again</button>{sourceContext && <button style={secondaryButton} onClick={() => router.push(backUrl)}>Review this unit</button>}<button style={secondaryButton} onClick={() => router.push('/student/vibelearn/mistakes')}>Open mistakes</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open revision plan</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/exams')}>Open exams</button></div></section> : question && <>
+    {!hasReaderSource && !showLegacyBank ? null : loading ? <section style={card}>Loading questions…</section> : questions.length === 0 ? <section style={card}><strong>No grounded questions available</strong><p style={muted}>{sourceContext ? 'This unit is readable, but it has no authored, markable question blocks yet. Review the unit or choose another practice set.' : identity && !/^form\s*[1-4]$/i.test(identity.className.trim()) ? `Verified ${identity.className} practice questions are not available yet. You can continue with your assigned class exercises.` : 'No verified question-bank drills are available for this selection yet.'}</p>{!sourceContext && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}><button style={primaryButton} onClick={() => router.push('/student/vibelearn/reading')}>Browse published learning units</button>{identity?.classId && <button style={secondaryButton} onClick={() => router.push('/student/exercises')}>Open class exercises</button>}</div>}</section> : finished ? <section style={card}><div style={eyebrowDark}>Session complete</div><h2 style={{ fontSize: 28, margin: '8px 0' }}>{scoreLabel}</h2><p style={muted}>Your answers and grounded mistakes are now part of your learning journey and revision evidence.</p><div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}><button style={primaryButton} onClick={restart}>Try again</button>{sourceContext && <button style={secondaryButton} onClick={() => router.push(backUrl)}>Review this unit</button>}<button style={secondaryButton} onClick={() => router.push('/student/vibelearn/mistakes')}>Open mistakes</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open revision plan</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/exams')}>Open exams</button></div></section> : question && <>
       <section style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}><div style={eyebrowDark}>Question {index + 1} of {questions.length}</div><div style={pill}>{question.kind === 'grounded' ? 'From this unit' : (question.topic ?? question.subject)}</div></div>
         <div style={progressTrack}><div style={{ ...progressFill, width: `${progress}%` }} /></div>
