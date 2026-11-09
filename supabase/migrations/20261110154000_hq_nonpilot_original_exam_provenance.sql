@@ -173,6 +173,7 @@ begin
       where d.paper_id=v_id
         and d.paper=p_paper
         and d.content_state='reviewed'
+        and coalesce(d.review_evidence->>'reviewed_content_md5','')=md5(p_paper::text)
         and coalesce(d.review_evidence->>'independent_review','')='passed'
         and coalesce(d.review_evidence->>'public_repository_exposure','false')='false'
     ) then
