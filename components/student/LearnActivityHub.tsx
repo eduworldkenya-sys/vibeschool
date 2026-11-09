@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, FlaskConical, PencilLine, ClipboardCheck, PlayCircle, Puzzle, FolderOpen, CalendarDays, Users, LayoutGrid, ChevronDown, ArrowUpRight, Bot } from "lucide-react";
+import { BookOpen, FlaskConical, PencilLine, ClipboardCheck, PlayCircle, Puzzle, FolderOpen, CalendarDays, Users, LayoutGrid, ChevronDown, ArrowUpRight } from "lucide-react";
 import { useStudent } from "@/lib/student-context";
 
 type Activity = { title:string; detail:string; Icon: typeof BookOpen; href:string };
@@ -21,7 +21,6 @@ export default function LearnActivityHub() {
   const secondary: Activity[] = [
     { title: "Practice", detail:"Questions by topic", Icon:PencilLine, href: "/student/vibelearn/practice" },
     { title: "Projects", detail:hasSchoolClass ? "School and personal projects" : "Independent learning projects", Icon:FlaskConical, href: hasSchoolClass ? "/student/projects" : "/student/projects/independent" },
-    { title: "AI Tutor", detail:"Your learning companion", Icon:Bot, href: "/student/twin/companion" },
   ];
   const activity = (item:Activity) => <Link key={item.title} className="vs-activity-card" href={item.href}>
     <span className="vs-activity-card-icon"><item.Icon size={22} strokeWidth={1.8} aria-hidden="true" /></span>
