@@ -2,13 +2,14 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
 import { supabase } from '@/lib/supabase'
 import { recordVibeLearnPracticeAnswer } from '@/lib/student/vibelearn'
 
 type Question = { id:string; subject:string; topic:string; question:string; options:string[] }
+type Topic = {subject:string;topic:string;count:number}
 type Answer = { questionId:string; choice:number|null; correct:boolean|null; explanation:string|null }
 type Session = { grade:string; subject:string; topic:string; questionIds:string[]; index:number; answers:Answer[]; id:string; finished:boolean }
 const TARGET = 5
@@ -37,6 +38,7 @@ export default function TopicPracticePage() {
   const { identity, loading: identityLoading } = useStudent()
   const [grade, setGrade] = useState('')
   const [questions, setQuestions] = useState<Question[]>([])
+  const [topics, setTopics] = useState<Topic[]>([])
   const [session, setSession] = useState<Session|null>(null)
   const [choice, setChoice] = useState<number|null>(null)
   const [reviewQuestionId, setReviewQuestionId] = useState<string|null>(null)
@@ -54,39 +56,58 @@ export default function TopicPracticePage() {
     setInitialised(true)
   }, [identityLoading, identity, initialised])
   useEffect(() => {
-    if (!initialised || !grade) { setLoading(false); return }
+    if (!initialised || !grade || !storageKey) { setLoading(false); return }
     let cancelled = false
     setLoading(true); setError('')
-    // Existing bank RPC enforces learner identity, verified provenance and hides answer keys.
-    void supabase.rpc('student_list_vibelearn_practice_questions' as never, {
-      p_subject:null, p_topic:null, p_form:grade, p_limit:20,
-    }).then(({data,error:failure}) => {
-      if (cancelled) return
-      if (failure) throw failure
-      setQuestions(readQuestions(data))
-    }).catch(reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Practice questions could not be loaded.') })
-      .finally(() => { if (!cancelled) setLoading(false) })
+    async function load() {
+      const [catalog, previous] = await Promise.all([
+        supabase.rpc('student_list_topic_practice_topics' as never, {p_form:grade}),
+        Promise.resolve(readSession(storageKey)),
+      ])
+      if (catalog.error) throw catalog.error
+      const readyTopics = (Array.isArray(catalog.data) ? catalog.data : []).flatMap(item => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return []
+        const row = item as Record<string,unknown>
+        return typeof row.subject === 'string' && typeof row.topic === 'string' && typeof row.count === 'number' && row.count >= TARGET
+          ? [{subject:row.subject,topic:row.topic,count:row.count}] : []
+      })
+      if (!cancelled) setTopics(readyTopics)
+      // Rehydrate the precise five question IDs selected for the unfinished session.
+      if (previous && previous.grade === grade) {
+        const {data:bank,error:bankError} = await supabase.rpc('student_list_vibelearn_practice_questions' as never,{
+          p_subject:previous.subject,p_topic:previous.topic,p_form:grade,p_limit:20,
+        })
+        if (bankError) throw bankError
+        if (!cancelled) setQuestions(readQuestions(bank))
+      } else if (!cancelled) setQuestions([])
+    }
+    void load().catch(reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Topic practice could not be loaded.') })
+      .finally(() => {if (!cancelled) setLoading(false)})
     return () => { cancelled = true }
-  }, [initialised,grade])
+  }, [initialised,grade,storageKey])
   function remember(next:Session|null) {
     setSession(next); setChoice(null); setReviewQuestionId(null); setReviewResult(null)
     if (!storageKey) return
     try { if (next) window.localStorage.setItem(storageKey,JSON.stringify(next)); else window.localStorage.removeItem(storageKey) } catch { /* browser persistence unavailable */ }
   }
-  const topics = useMemo(() => {
-    const map = new Map<string,Question[]>()
-    for (const question of questions) {
-      const key = question.subject + '::' + question.topic
-      map.set(key,[...(map.get(key) ?? []),question])
-    }
-    return [...map.entries()].filter(([,items]) => items.length >= TARGET).map(([key,items]) => ({key,items,subject:items[0].subject,topic:items[0].topic}))
-  }, [questions])
   const currentQuestion = session && !session.finished ? questions.find(q => q.id === session.questionIds[session.index]) : null
   const currentAnswer = currentQuestion ? session?.answers.find(a => a.questionId === currentQuestion.id) : null
   const completed = session?.answers.length ?? 0
   const results = {correct:session?.answers.filter(a => a.correct === true).length ?? 0, incorrect:session?.answers.filter(a => a.correct === false).length ?? 0, skipped:session?.answers.filter(a => a.correct === null).length ?? 0}
-  function start(items:Question[]) {
-    remember({grade,subject:items[0].subject,topic:items[0].topic,questionIds:items.slice(0,TARGET).map(q => q.id),index:0,answers:[],id:crypto.randomUUID(),finished:false})
+  async function start(topic:Topic) {
+    if (busy) return
+    setBusy(true); setError('')
+    try {
+      const {data:bank,error:bankError} = await supabase.rpc('student_list_vibelearn_practice_questions' as never,{
+        p_subject:topic.subject,p_topic:topic.topic,p_form:grade,p_limit:TARGET,
+      })
+      if (bankError) throw bankError
+      const selected = readQuestions(bank)
+      if (selected.length !== TARGET) throw new Error('This topic is no longer ready for five-question practice.')
+      setQuestions(selected)
+      remember({grade,subject:topic.subject,topic:topic.topic,questionIds:selected.map(q => q.id),index:0,answers:[],id:crypto.randomUUID(),finished:false})
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not start this topic.') }
+    finally { setBusy(false) }
   }
   async function answer(index:number) {
     if (!currentQuestion || !session || busy || currentAnswer) return
@@ -156,7 +177,7 @@ export default function TopicPracticePage() {
     </section>}
     {grade && !loading && !session && <section style={card}>
       <h2 style={heading}>Choose a topic</h2>
-      {topics.length === 0 ? <p style={muted}>No five-question topics are ready for {grade} yet. Only approved practice material will appear here.</p> : <div style={{display:'grid',gap:10}}>{topics.map(item => <button key={item.key} style={optionButton} onClick={() => start(item.items)}><strong>{item.topic}</strong><span style={{display:'block',fontSize:12,color:'#64748b'}}>{item.subject} · 5 questions · Start</span></button>)}</div>}
+      {topics.length === 0 ? <p style={muted}>No five-question topics are ready for {grade} yet. Only approved practice material will appear here.</p> : <div style={{display:'grid',gap:10}}>{topics.map(item => <button key={item.subject+'::'+item.topic} disabled={busy} style={optionButton} onClick={() => void start(item)}><strong>{item.topic}</strong><span style={{display:'block',fontSize:12,color:'#64748b'}}>{item.subject} · {TARGET} questions · Start</span></button>)}</div>}
     </section>}
   </main>
 }
