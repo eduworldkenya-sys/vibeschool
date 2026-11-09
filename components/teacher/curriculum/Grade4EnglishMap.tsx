@@ -11,6 +11,9 @@ import {
 
 type Props = {
   selectedTerm: number | null
+  selectedWeek: number
+  weeklyRows: readonly {id: string; week: number | null; strand: string | null; sub_strand: string | null; topic: string | null}[]
+  schemeLessons: readonly {id: string; week: number; topic: string | null; curriculum_id: string | null; status: string}[]
   showExisting: boolean
   onToggleExisting: () => void
   onOpenScheme: () => void
@@ -23,9 +26,11 @@ type Props = {
  * A read-only source reference until KICD SLOs are reconciled with canonical
  * curriculum IDs. Never generate a scheme from unmapped reference headings.
  */
-export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleExisting, onOpenScheme, weeklyCount, schemeCount, verifiedOutcomeCount }: Props) {
+export default function Grade4EnglishMap({ selectedTerm, selectedWeek, weeklyRows, schemeLessons, showExisting, onToggleExisting, onOpenScheme, weeklyCount, schemeCount, verifiedOutcomeCount }: Props) {
   const [selectedTheme, setSelectedTheme] = useState<number | null>(null)
-  const [showYear, setShowYear] = useState(true)
+  const [showYear, setShowYear] = useState(false)
+  const weekRows = useMemo(() => weeklyRows.filter(row => row.week === selectedWeek), [weeklyRows, selectedWeek])
+  const weekLessons = useMemo(() => schemeLessons.filter(lesson => lesson.week === selectedWeek), [schemeLessons, selectedWeek])
   const visibleThemes = useMemo(() =>
     showYear || !selectedTerm
       ? GRADE4_ENGLISH_THEMES
@@ -34,7 +39,7 @@ export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleE
   useEffect(() => {
     // Reset the expanded theme when a teacher changes the school term.
     setSelectedTheme(null)
-    setShowYear(true)
+    setShowYear(false)
   }, [selectedTerm])
 
   return <section aria-label="Grade 4 English curriculum reference" style={{background:'#fff',border:'1px solid #dce6e0',borderRadius:16,padding:16,marginBottom:16}}>
@@ -46,13 +51,22 @@ export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleE
       </p>
     </header>
     <div role="status" style={{background:'#f4f7f5',borderRadius:9,padding:12,marginBottom:14,fontSize:12,lineHeight:1.6,color:'#345448'}}>Selected-term weekly records: <strong>{weeklyCount}</strong> · My selected-term scheme lessons: <strong>{schemeCount}</strong> · Verified outcomes in selected-term records: <strong>{verifiedOutcomeCount}</strong>. These counts are not annual KICD theme mappings.</div>
+    <div aria-label={`Week ${selectedWeek} English teaching content`} style={{border:'1px solid #bdd3c5',borderRadius:12,padding:14,marginBottom:16,background:'#fafffc'}}>
+      <h3 style={{fontSize:17,margin:'0 0 6px',color:'#173d30'}}>Week {selectedWeek} · Your teaching plan</h3>
+      <p style={{fontSize:12,color:'#52665b',margin:'0 0 10px'}}>These are the actual selected-term weekly records and your saved scheme, not an official KICD theme-to-week allocation.</p>
+      {weekRows.length===0 && weekLessons.length===0 ? <p style={{fontSize:13,color:'#53695f'}}>No English curriculum or scheme lessons are assigned to Week {selectedWeek}. The week is not automatically filled from the annual themes.</p> : <div style={{display:'grid',gap:9}}>
+        {weekRows.map(row => <div key={row.id} style={{padding:11,border:'1px solid #dce6e0',borderRadius:9,background:'#fff'}}><strong style={{fontSize:14,color:'#183c30'}}>{row.topic || row.sub_strand || 'Untitled curriculum item'}</strong><div style={{fontSize:12,color:'#50665b',marginTop:4}}>{[row.strand,row.sub_strand].filter(Boolean).join(' · ')} · Curriculum record (KICD alignment not yet verified)</div></div>)}
+        {weekLessons.map(lesson => <div key={lesson.id} style={{padding:11,border:'1px solid #dce6e0',borderRadius:9,background:'#fff'}}><strong style={{fontSize:14,color:'#183c30'}}>{lesson.topic || 'Untitled scheme lesson'}</strong><div style={{fontSize:12,color:'#50665b',marginTop:4}}>My scheme · {lesson.status} · {lesson.curriculum_id ? 'Curriculum record linked' : 'Teacher-created; curriculum not linked'}</div></div>)}
+      </div>}
+      <button type="button" onClick={onOpenScheme} style={{marginTop:12,padding:'10px 13px',borderRadius:8,border:'1px solid #bdd3c5',background:'#fff',color:'#245b44',fontWeight:700}}>Open Week {selectedWeek} in my scheme</button>
+    </div>
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:14}}>
       <span style={{fontSize:12,fontWeight:700,color:'#345448'}}>
-        {showYear || !selectedTerm ? 'Full year · 13 themes' : `Suggested Term ${selectedTerm} · ${visibleThemes.length} themes`}
+        {showYear ? 'Full year · 13 themes (KICD reference)' : `Suggested Term ${selectedTerm ?? '—'} · ${visibleThemes.length} themes (not a week schedule)`}
       </span>
       <button type="button" onClick={() => {setShowYear(value=>!value);setSelectedTheme(null)}} aria-pressed={showYear}
         style={{border:'1px solid #bdd3c5',borderRadius:9,padding:'9px 12px',background:showYear?'#e4f3eb':'#fff',fontSize:12,fontWeight:700,cursor:'pointer',color:'#245b44'}}>
-        {showYear?'Show selected term':'Browse full year'}
+        {showYear?'Show suggested term grouping':'Browse full-year KICD themes'}
       </button>
     </div>
     <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:15}}>
