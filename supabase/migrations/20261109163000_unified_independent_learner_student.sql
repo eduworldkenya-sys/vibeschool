@@ -25,8 +25,12 @@ BEGIN
     OR NOT EXISTS (SELECT 1 FROM auth.users u
                     WHERE u.id = p_user_id AND u.email_confirmed_at IS NOT NULL)
   THEN RAISE EXCEPTION 'independent_learner_not_verified'; END IF;
-  SELECT count(*), min(id) INTO v_count,v_student_id FROM public.students
+  SELECT count(*) INTO v_count FROM public.students
     WHERE profile_id=p_user_id AND deleted_at IS NULL;
+  IF v_count = 1 THEN
+    SELECT id INTO v_student_id FROM public.students
+      WHERE profile_id=p_user_id AND deleted_at IS NULL LIMIT 1;
+  END IF;
   IF v_count > 1 THEN RAISE EXCEPTION 'ambiguous_learner_identity'; END IF;
   IF v_count = 1 THEN
     IF EXISTS(SELECT 1 FROM public.student_classes
