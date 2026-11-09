@@ -12,7 +12,7 @@ const TABS: { href: string; label: string; icon: IconName; match: (p: string) =>
   { href: '/vibetutor', label: 'Discover', icon: 'search', match: p => p === '/vibetutor' || p.startsWith('/vibetutor/browse') || p.startsWith('/vibetutor/find-') },
   { href: '/vibetutor/post-request', label: 'Learn', icon: 'book', match: p => p.startsWith('/vibetutor/post-request') },
   { href: '/vibetutor/become-tutor', label: 'Teach', icon: 'users', match: p => p.startsWith('/vibetutor/become-tutor') },
-  { href: '/login', label: 'Account', icon: 'user', match: p => p === '/login' || p.startsWith('/signup') || p.startsWith('/account') },
+  { href: '/vibetutor/account', label: 'Account', icon: 'user', match: p => p.startsWith('/vibetutor/account') },
 ]
 
 export default function Nav() {
