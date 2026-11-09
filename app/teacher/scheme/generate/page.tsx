@@ -205,7 +205,7 @@ function SchemeLessonLauncherInner() {
           supabase
             .from('scheme_of_work')
             .select(
-              'id, teacher_id, school_id, class_id, subject_id',
+              'id, teacher_id, school_id, class_id, subject_id, academic_term_id, week',
             )
             .eq('id', schemeId)
             .maybeSingle(),
@@ -248,11 +248,31 @@ function SchemeLessonLauncherInner() {
           return
         }
 
-        const rangeStart = nairobiDateStr()
-        const rangeEnd = nairobiDateAdd(
-          rangeStart,
-          55,
-        )
+        // A scheme lesson belongs to its own instructional week. Looking for
+        // the next empty occurrence across eight weeks can attach Week 2
+        // material to Week 11, so resolve only the stored week and term.
+        const { data: weekRows, error: weekError } = await supabase
+          .from('term_weeks')
+          .select('school_id,term_id,week_number,start_date,end_date,week_type')
+          .eq('term_id', scheme.academic_term_id)
+          .eq('week_number', scheme.week)
+          .or(`school_id.eq.${schoolId},school_id.is.null`)
+
+        if (weekError) throw weekError
+        if (cancelled()) return
+
+        const matchingWeek = (weekRows ?? [])
+          .filter(row => row.school_id === schoolId || row.school_id === null)
+          .sort((a, b) => Number(b.school_id === schoolId) - Number(a.school_id === schoolId))[0]
+
+        if (!matchingWeek || !matchingWeek.start_date || !matchingWeek.end_date) {
+          setError('This Scheme week is not available in the school instructional calendar. Open the Scheme to check its term and week.')
+          setResolving(false)
+          return
+        }
+
+        const rangeStart = matchingWeek.start_date
+        const rangeEnd = matchingWeek.end_date
 
         const timetable =
           await loadTeacherTimetableForRange({
@@ -278,7 +298,7 @@ function SchemeLessonLauncherInner() {
 
         if (candidates.length === 0) {
           setError(
-            'No upcoming timetable occurrence exists for this Scheme lesson in the next eight weeks.',
+            'No timetable occurrence matches this Scheme lesson’s saved term and week. Open the timetable to check its schedule.',
           )
           setResolving(false)
           return
@@ -358,7 +378,7 @@ function SchemeLessonLauncherInner() {
 
         if (!selected) {
           setError(
-            'All upcoming timetable occurrences already have lesson plans linked to other Scheme items. Open the timetable and choose another week.',
+            'All timetable occurrences in this Scheme week belong to other lesson plans. Open the timetable or review the existing plans.',
           )
           setResolving(false)
           return
@@ -486,7 +506,7 @@ function SchemeLessonLauncherInner() {
               fontSize: 13,
               lineHeight: 1.6,
             }}>
-              Finding the next available timetable
+              Finding the matching school-week timetable
               occurrence for {topic || 'this Scheme lesson'}.
             </p>
           </>
