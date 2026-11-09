@@ -72,7 +72,7 @@ export default function IndependentReadingPage() {
         </label>
         <label style={{ display: "grid", gap: 6, fontSize: 12, fontWeight: 700 }}>
           Grade or form
-          <select value={selectedGrade} onChange={event => setGrade(event.target.value)} style={{ minHeight: 44, padding: 10, borderRadius: 12, border: "1px solid var(--vs-border, #cbd5e1)", background: "var(--vs-card, #fff)", color: "inherit" }}>
+          <select value={selectedGrade} onChange={event => setGrade(event.target.value || "all")} style={{ minHeight: 44, padding: 10, borderRadius: 12, border: "1px solid var(--vs-border, #cbd5e1)", background: "var(--vs-card, #fff)", color: "inherit" }}>
             <option value="">All available levels</option>
             {grades.map(value => <option key={value} value={value}>{value}</option>)}
           </select>
