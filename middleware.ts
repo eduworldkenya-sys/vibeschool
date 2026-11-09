@@ -158,8 +158,10 @@ export async function middleware(request: NextRequest) {
 
     // Independent learners share /student home, never an implicit school scope.
     // School-only routes remain unavailable until a verified enrollment exists.
+    const independentReadingRoute = pathname === '/student/vibelearn' ||
+      pathname === '/student/vibelearn/reading'
     if (role === 'student' && (onboarding as { independent?: unknown }).independent === true
-        && pathname.startsWith('/student/')) {
+        && pathname.startsWith('/student/') && !independentReadingRoute) {
       const home = request.nextUrl.clone()
       home.pathname = '/student'
       home.search = ''
