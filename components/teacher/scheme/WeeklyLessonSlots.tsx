@@ -3,7 +3,7 @@ type Lesson = { id:string; topic:string|null; status:string; curriculum_id:strin
 type Props = { week:number; allocation:number|null; lessons:readonly Lesson[]; label:string }
 /** Reuses the existing subject allocation. Blank slots are not fabricated curriculum lessons. */
 export default function WeeklyLessonSlots({week,allocation,lessons,label}:Props) {
-  const target=Number.isInteger(allocation)&&allocation!==null&&allocation>0?allocation:null
+  const target=allocation!==null&&Number.isInteger(allocation)&&allocation>0?allocation:null
   const count=target===null?lessons.length:Math.max(target,lessons.length)
   return <section aria-label={`Week ${week} lesson allocation`} style={{background:'#fff',border:'1px solid #dce6e0',borderRadius:13,padding:14,margin:'0 0 12px'}}>
     <h2 style={{fontSize:16,margin:'0 0 5px',color:'#173d30'}}>Week {week} · {label}</h2>
