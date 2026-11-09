@@ -1,0 +1,150 @@
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { hqSupabase } from "@/lib/hq/supabase"
+
+type PublishResult = {
+  ok?: boolean; valid?: boolean; published?: boolean; already_exists?: boolean
+  ready_to_publish?: boolean; title?: string; grade?: string; subject?: string
+  question_count?: number; total_marks?: number; curriculum_verification?: string
+  assessment_id?: string; assignment_id?: string; issues?: string[]
+}
+
+const api = hqSupabase as any
+const blank = {
+  id: "grade9-mathematics-pilot-03",
+  title: "Grade 9 Mathematics — Pilot 03",
+  grade: "Grade 9",
+  subject: "Mathematics",
+  assessment_type: "practice",
+  visibility: "public_practice",
+  duration_minutes: 20,
+  max_attempts: 3,
+  total_marks: 1,
+  instructions: "Choose one answer. You may skip questions. Results are shown after submission.",
+  items: [{
+    number: 1, bank_key: "G9M3-001", topic: "Integers", difficulty: "easy",
+    prompt: "Replace this sample with an original question.",
+    options: [
+      { value: "A", label: "Option one" }, { value: "B", label: "Option two" },
+      { value: "C", label: "Option three" }, { value: "D", label: "Option four" }
+    ],
+    correctAnswer: "A", explanation: "Explain the mathematical steps and the correct answer.", marks: 1
+  }]
+}
+const surface: React.CSSProperties = { background: "#fff", border: "1px solid #d8e0eb", borderRadius: 14, padding: 18 }
+const button: React.CSSProperties = { minHeight: 46, borderRadius: 10, padding: "10px 18px", border: 0, background: "#153a6d", color: "white", cursor: "pointer", fontWeight: 700 }
+const labelStyle: React.CSSProperties = { display: "block", fontWeight: 700, fontSize: 14, marginBottom: 8 }
+
+export default function OriginalExamPublisher() {
+  const [raw, setRaw] = useState("")
+  const [preview, setPreview] = useState<PublishResult | null>(null)
+  const [validatedText, setValidatedText] = useState("")
+  const [approved, setApproved] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+  const [owner, setOwner] = useState<boolean | null>(null)
+  const [result, setResult] = useState<PublishResult | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    void api.rpc("is_platform_owner").then(({ data, error: problem }: { data: unknown; error: unknown }) => {
+      if (mounted) setOwner(!problem && data === true)
+    })
+    return () => { mounted = false }
+  }, [])
+
+  const parsed = useMemo(() => {
+    if (!raw.trim()) return { paper: null, error: "" }
+    try {
+      const value: unknown = JSON.parse(raw)
+      if (!value || typeof value !== "object" || Array.isArray(value)) return { paper: null, error: "The document must contain one JSON object." }
+      return { paper: value, error: "" }
+    } catch { return { paper: null, error: "Invalid JSON. Check commas, quotes and brackets." } }
+  }, [raw])
+
+  const canPublish = Boolean(preview?.valid && preview.ready_to_publish && validatedText === raw && approved && !busy && owner)
+  function changeRaw(value: string) {
+    setRaw(value); setPreview(null); setValidatedText(""); setApproved(false); setResult(null); setError("")
+  }
+
+  async function call(publish: boolean) {
+    if (owner !== true || busy || !parsed.paper) return
+    if (publish && !canPublish) return
+    setBusy(true); setError("")
+    try {
+      const { data, error: failure } = await api.rpc("hq_publish_original_practice", {
+        p_paper: parsed.paper, p_publish: publish, p_approved: publish && approved
+      })
+      if (failure) throw new Error(failure.message || "The publisher could not complete.")
+      const next = data as PublishResult
+      if (publish) {
+        if (!next?.published || !next.assignment_id) throw new Error("Publication was not confirmed.")
+        setResult(next)
+      } else {
+        setPreview(next)
+        setValidatedText(raw)
+        setApproved(false)
+      }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Publication failed.") }
+    finally { setBusy(false) }
+  }
+
+  async function handleFile(file?: File) {
+    if (!file) return
+    if (file.size > 200000) { setError("Choose a JSON file under 200 KB."); return }
+    try { changeRaw(await file.text()) }
+    catch { setError("Unable to read that file.") }
+  }
+
+  return <main style={{ minHeight: "100vh", background: "#f4f7fb", color: "#18283e", padding: "28px 16px 100px" }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gap: 18 }}>
+      <header>
+        <p style={{ color: "#516789", fontSize: 12, letterSpacing: 1.5, fontWeight: 800 }}>HQ · EXAM BANK</p>
+        <h1 style={{ fontSize: "clamp(24px, 4vw, 36px)", marginBottom: 8 }}>Publish original practice</h1>
+        <p style={{ color: "#53657c", lineHeight: 1.6, margin: 0 }}>Upload a question-paper JSON file, validate it, review the result, then publish. No school enrolment or SQL required.</p>
+      </header>
+      {owner === null && <section style={surface} role="status">Checking publisher permissions…</section>}
+      {owner === false && <section style={surface} role="alert">Only a VibeSchool platform owner can publish public learner exams.</section>}
+      {owner === true && <>
+        <section style={surface}>
+          <label style={labelStyle} htmlFor="exam-upload">1. Load your original paper</label>
+          <input id="exam-upload" type="file" accept=".json,application/json" onChange={e=>void handleFile(e.target.files?.[0])}
+            style={{ display: "block", maxWidth: "100%", padding: "8px 0 16px" }}/>
+          <label style={labelStyle} htmlFor="exam-json">Or paste your paper JSON</label>
+          <textarea id="exam-json" spellCheck={false} value={raw} onChange={e=>changeRaw(e.target.value)}
+            placeholder={JSON.stringify(blank,null,2)}
+            rows={14} style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid #b8c6d8",
+              borderRadius: 10, padding: 12, fontFamily: "ui-monospace, Consolas, monospace", fontSize: 12, lineHeight: 1.6, color: "#12263f" }}/>
+          {parsed.error && <p role="alert" style={{ color: "#b91c1c" }}>{parsed.error}</p>}
+          <p style={{ marginTop: 10, fontSize: 13, color: "#57697e" }}>Each question needs a unique bank key, four options A–D, one correct answer, marks and an explanation. Existing published questions are rejected if duplicated exactly.</p>
+          <button style={{ ...button, opacity: !parsed.paper || busy ? 0.5 : 1 }}
+            disabled={!parsed.paper || busy} onClick={()=>void call(false)}>{busy ? "Checking…" : "2. Validate paper"}</button>
+        </section>
+        {preview && <section style={surface} aria-live="polite">
+          <h2 style={{ marginTop: 0, fontSize: 20 }}>{preview.valid ? "Ready to publish" : "Fix before publishing"}</h2>
+          {preview.valid ? <p><strong>{preview.title}</strong> · {preview.grade} · {preview.question_count} questions · {preview.total_marks} marks</p>
+            : <ul style={{ color: "#b91c1c", paddingLeft: 20 }}>{(preview.issues || ["Validation failed"]).map((issue,i)=><li key={i}>{issue.replaceAll("_"," ")}</li>)}</ul>}
+          {preview.already_exists && preview.assessment_id && <p>This title already exists (assessment {preview.assessment_id}). No duplicate was created.</p>}
+          {preview.valid && <div style={{ display: "grid", gap: 14 }}>
+            <p style={{ fontSize: 13, color: "#52647d" }}>This is a VibeSchool Original pilot, not independently KICD-verified. Publishing makes the paper available to signed-in learners of the selected grade. Existing learner results are untouched.</p>
+            <label style={{ display: "flex", alignItems: "start", gap: 10 }}>
+              <input type="checkbox" checked={approved} onChange={e=>setApproved(e.target.checked)} style={{ width: 20, height: 20 }} />
+              <span>I have checked the answer keys, explanations and content rights, and approve publication as a provisional pilot.</span>
+            </label>
+            <button disabled={!canPublish} style={{ ...button, background: "#11684f", opacity: canPublish ? 1 : 0.5 }}
+              onClick={()=>void call(true)}>{busy ? "Publishing…" : "3. Publish to learners"}</button>
+          </div>}
+        </section>}
+        {error && <section role="alert" style={{ ...surface, borderColor: "#dc2626", color: "#991b1b" }}>{error}</section>}
+        {result?.published && <section style={{ ...surface, borderColor: "#1d956d" }} role="status">
+          <h2 style={{ marginTop: 0 }}>Published</h2>
+          <p><strong>{result.title}</strong> is available to eligible {result.grade} learners.</p>
+          <p style={{ fontSize: 12, overflowWrap: "anywhere" }}>Assignment: {result.assignment_id}</p>
+          <Link href={`/student/assessment/${result.assignment_id}`} style={{ color: "#1251a4", fontWeight: 700 }}>Open exam page</Link>
+        </section>}
+      </>}
+    </div>
+  </main>
+}
