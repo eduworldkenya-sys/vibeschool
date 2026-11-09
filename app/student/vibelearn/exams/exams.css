@@ -68,3 +68,34 @@
 .vs-exams-progress-grid>div{padding:14px}
 }
 @media(prefers-reduced-motion:reduce){.vs-exams .vs-exam-card,.vs-exams .vs-exams-tab{transition:none}}
+
+/* Action-first, evidence-based Exams UI */
+.vs-exams-next{border:1px solid #d9def0;border-radius:16px;background:#fff;padding:20px;display:grid;gap:10px;line-height:1.55}
+.vs-exams-next>strong{font-size:16px;line-height:1.35}
+.vs-exams-next>p{margin:0;color:#59667f;font-size:14px}
+.vs-exams-next-actions{display:flex;flex-wrap:wrap;gap:10px}
+.vs-exams-next .vs-exams-section-note{font-size:12px;line-height:1.6;margin:4px 0 0}
+.vs-exams-trend{background:#fff;border:1px solid #dfe4ef;border-radius:16px;padding:20px;min-width:0}
+.vs-exams-trend .vs-exams-section-header h3{margin:0;font-size:17px}
+.vs-exams-trend .vs-exams-section-note{margin:12px 0 0}
+.vs-exams-trend-bars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;align-items:end;margin:24px 0 8px;min-width:0}
+.vs-exams-trend-item{display:grid;grid-template-rows:auto 110px auto;justify-items:center;gap:7px;min-width:0}
+.vs-exams-trend-item span{font-weight:800;font-size:13px;font-variant-numeric:tabular-nums}
+.vs-exams-trend-item small{font-size:11px;color:#5b6882}
+.vs-exams-trend-track{width:min(100%,52px);height:110px;display:flex;align-items:flex-end;border-radius:8px;background:#eef0f9;overflow:hidden}
+.vs-exams-trend-fill{width:100%;background:#5145e8;border-radius:7px 7px 0 0}
+.vs-exam-card p.vs-exam-comparison{font-weight:750;color:#3e567e;font-size:13px}
+.vs-exams .vs-exams-section-note{line-height:1.6}
+.vs-exams .vs-exam-card p{font-size:13px}
+.vs-exams .vs-exam-card h3{font-size:16px}
+.vs-exams .vs-exam-button{font-size:14px}
+@media(max-width:580px){
+ .vs-exams-next{padding:16px}
+ .vs-exams-next-actions{display:grid}
+ .vs-exams-next-actions .vs-exam-button{width:100%}
+ .vs-exams-trend{padding:14px}
+ .vs-exams-trend-bars{gap:6px}
+ .vs-exams-trend-item{grid-template-rows:auto 85px auto}
+ .vs-exams-trend-track{height:85px}
+ .vs-exams-trend-item span{font-size:11px}
+}
