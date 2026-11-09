@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useStudent } from "@/lib/student-context";
+import LearnActivityHub from "@/components/student/LearnActivityHub";
 import { supabase } from "@/lib/supabase";
 import { getVibeLearnWorkstation, type VibeLearnWorkstation } from "@/lib/student/vibelearn";
 
@@ -76,24 +77,9 @@ function GeneralLearnerVibeLearn() {
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--vs-muted)" }}>{identity?.className || workspace?.className || "My learning"}</div>
         <h1 style={{ margin: "5px 0 0", fontSize: 24, lineHeight: 1.2 }}>What would you like to learn?</h1>
       </section>
-      <nav aria-label="Learning destinations" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
-        {([
-          { title: "Subjects", detail: "Lessons & notes", symbol: "📖", href: "#class-resources" },
-          { title: "Exams", detail: "Exam practice", symbol: "🎓", href: "/student/vibelearn/exams" },
-          { title: "My Tuition", detail: "Tutors & lessons", symbol: "🎥", href: "/student/tutoring" },
-          { title: "Practice", detail: "Questions & quizzes", symbol: "✏️", href: "/student/exercises" },
-          { title: "AI Tutor", detail: "Learning guidance", symbol: "✨", href: "/student/twin/companion" },
-          { title: "Library", detail: "Class resources", symbol: "📚", href: "#class-resources" },
-        ] as const).map(destination => (
-          <button key={destination.title} type="button" onClick={() => {
-            if (destination.href.startsWith("#")) document.getElementById(destination.href.slice(1))?.scrollIntoView({ behavior: "smooth" });
-            else router.push(destination.href);
-          }} style={{ minWidth: 0, minHeight: 112, textAlign: "left", padding: 15, border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", color: "var(--vs-text)", fontFamily: "inherit", cursor: "pointer" }}>
-            <span aria-hidden="true" style={{ display: "block", fontSize: 22, marginBottom: 8 }}>{destination.symbol}</span>
-            <strong style={{ display: "block", fontSize: 15 }}>{destination.title}</strong>
-            <span style={{ display: "block", fontSize: 12, color: "var(--vs-muted)", marginTop: 3 }}>{destination.detail}</span>
-          </button>
-        ))}
+      <LearnActivityHub />
+      <nav aria-label="Other learning tools" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
+        {([{ title: "My Tuition", href: "/student/tutoring" }, { title: "AI Tutor", href: "/student/twin/companion" }] as const).map(item => <button key={item.title} onClick={() => router.push(item.href)} style={{ minHeight: 48, borderRadius: 12, border: "1px solid var(--vs-border)", background: "var(--vs-card)", color: "var(--vs-text)", fontWeight: 700 }}>{item.title}</button>)}
       </nav>
 
       {error && <div role="status" style={{ padding: 12, borderRadius: 12, background: "#fee2e2", color: "#991b1b", fontSize: 12 }}>{error}</div>}
