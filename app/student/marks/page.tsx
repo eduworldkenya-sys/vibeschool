@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
 import { readCache, writeCache } from "@/lib/student-cache";
@@ -262,6 +263,7 @@ export default function MarksPage() {
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: gradColor(r.grade) }}>{pct(r.marks, r.total_marks)}%</div>
                   <div style={{ fontSize: 10, color: "var(--vs-muted)" }}>{r.marks}/{r.total_marks}</div>
+                  {r.source === "assessment" && <Link href={`/student/results/${encodeURIComponent(r.id.slice("assessment:".length))}`} aria-label={`Review ${r.exam_name || r.subject} questions and answers`} style={{ display: "inline-block", marginTop: 8, padding: "7px 10px", borderRadius: 8, background: "var(--vs-accent)", color: "#fff", textDecoration: "none", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>Review answers →</Link>}
                 </div>
               </div>
             ))}
