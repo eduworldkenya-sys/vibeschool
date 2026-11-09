@@ -134,7 +134,8 @@ export default function OriginalExamPublisher() {
     } catch { return { paper: null, error: "Invalid JSON. Check commas, quotes and brackets." } }
   }, [raw])
 
-  const canPublish = Boolean(preview?.valid && preview.ready_to_publish && validatedText === raw && approved && !busy && owner)
+  const grade4RequiresPrivateReview = Boolean(parsed.paper && 'grade' in parsed.paper && parsed.paper.grade === 'Grade 4')
+  const canPublish = Boolean(preview?.valid && preview.ready_to_publish && validatedText === raw && approved && !busy && owner && !grade4RequiresPrivateReview)
   function changeRaw(value: string) {
     setRaw(value); setPreview(null); setValidatedText(""); setApproved(false); setResult(null); setError("")
   }
@@ -227,6 +228,7 @@ export default function OriginalExamPublisher() {
               borderRadius: 10, padding: 12, fontFamily: "ui-monospace, Consolas, monospace", fontSize: 12, lineHeight: 1.6, color: "#12263f" }}/>
           {parsed.error && <p role="alert" style={{ color: "#b91c1c" }}>{parsed.error}</p>}
           <p style={{ marginTop: 10, fontSize: 13, color: "#57697e" }}>Each question needs a unique bank key, four options A–D, one correct answer, marks and an explanation. Existing published questions are rejected if duplicated exactly.</p>
+          {grade4RequiresPrivateReview && <p role="status" style={{ color: "#92400e", fontSize: 13 }}>Grade 4 public exams must be published through the reviewed private exam bank above. Direct uploads are for validation only.</p>}
           <button style={{ ...button, opacity: !parsed.paper || busy ? 0.5 : 1 }}
             disabled={!parsed.paper || busy} onClick={()=>void call(false)}>{busy ? "Checking…" : "2. Validate paper"}</button>
         </section>
