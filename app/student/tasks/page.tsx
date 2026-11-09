@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, ListTodo, Plus, Trash2, Pencil, X } from 'lucide-react'
+import { Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, ListTodo, Plus, Trash2, Pencil, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useStudent } from '@/lib/student-context'
 import { listMyTasks, resolveTaskLaunch, syncTaskExecutionReceipt, type StudentTask } from '@/lib/student/tasks'
@@ -11,11 +11,11 @@ type PlannerItem = {
   id: string; owner_user_id: string; title: string; notes: string;
   kind: 'task' | 'study'; starts_at: string | null; due_at: string | null;
   duration_minutes: number | null; repeat_rule: 'none' | 'daily' | 'weekly';
-  completed_at: string | null; created_at: string; updated_at: string
+  completed_at: string | null; reminder_minutes: number | null; reminder_seen_occurrence_at: string | null; created_at: string; updated_at: string
 }
 type PlannerTab = 'today' | 'calendar' | 'schedule'
-type Draft = { title: string; notes: string; kind: 'task' | 'study'; starts: string; due: string; repeat: PlannerItem['repeat_rule']; duration: string }
-const blank: Draft = { title: '', notes: '', kind: 'task', starts: '', due: '', repeat: 'none', duration: '30' }
+type Draft = { title: string; notes: string; kind: 'task' | 'study'; starts: string; due: string; repeat: PlannerItem['repeat_rule']; duration: string; reminder: string }
+const blank: Draft = { title: '', notes: '', kind: 'task', starts: '', due: '', repeat: 'none', duration: '30', reminder: '' }
 const dayKey = (date: Date) => [date.getFullYear(), String(date.getMonth()+1).padStart(2,'0'), String(date.getDate()).padStart(2,'0')].join('-')
 const localInput = (value: string | null) => { if (!value) return ''; const d=new Date(value); return [dayKey(d),String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')].join('T') }
 const occurOn = (item: PlannerItem, date: Date) => {
@@ -47,6 +47,7 @@ export default function TasksPage() {
   const [saving,setSaving]=useState(false)
   const [error,setError]=useState('')
   const [opening,setOpening]=useState<string|null>(null)
+  const [notificationPermission,setNotificationPermission]=useState('unsupported')
   const owner=identity?.profileId
 
   const refresh=useCallback(async()=>{
@@ -61,10 +62,11 @@ export default function TasksPage() {
     setLoading(false)
   },[owner])
   useEffect(()=>{void refresh()},[refresh])
+  useEffect(()=>{setNotificationPermission(typeof Notification==='undefined'?'unsupported':Notification.permission)},[])
 
   function edit(item?:PlannerItem) {
     setEditing(item?.id??null)
-    setDraft(item?{title:item.title,notes:item.notes,kind:item.kind,starts:localInput(item.starts_at),due:localInput(item.due_at),repeat:item.repeat_rule,duration:String(item.duration_minutes??30)}:blank)
+    setDraft(item?{title:item.title,notes:item.notes,kind:item.kind,starts:localInput(item.starts_at),due:localInput(item.due_at),repeat:item.repeat_rule,duration:String(item.duration_minutes??30),reminder:item.reminder_minutes===null?'':String(item.reminder_minutes)}:blank)
     setShowForm(true)
   }
   async function save(event:React.FormEvent) {
@@ -73,11 +75,12 @@ export default function TasksPage() {
     if(!draft.title.trim()) {setError('Enter a task name.');return}
     if(draft.kind==='study'&&!draft.starts) {setError('Choose when your study session starts.');return}
     if(draft.repeat!=='none'&&!draft.starts) {setError('Choose a start date for repeating activities.');return}
+    if(draft.reminder!==''&&!draft.starts&&!draft.due) {setError('Choose a start or deadline to enable reminders.');return}
     const start=draft.starts?new Date(draft.starts).toISOString():null
     const due=draft.due?new Date(draft.due).toISOString():null
     if(start&&due&&due<start){setError('The deadline cannot be before the start.');return}
     setSaving(true);setError('')
-    const payload={title:draft.title.trim(),notes:draft.notes.trim(),kind:draft.kind,starts_at:start,due_at:due,repeat_rule:draft.repeat,duration_minutes:draft.kind==='study'?Number(draft.duration):null}
+    const payload={title:draft.title.trim(),notes:draft.notes.trim(),kind:draft.kind,starts_at:start,due_at:due,repeat_rule:draft.repeat,duration_minutes:draft.kind==='study'?Number(draft.duration):null,reminder_minutes:draft.reminder===''?null:Number(draft.reminder),reminder_seen_occurrence_at:null}
     const result=editing
       ? await supabase.from('student_personal_planner').update(payload).eq('id',editing).eq('owner_user_id',owner).select('id').single()
       : await supabase.from('student_personal_planner').insert({...payload,owner_user_id:owner}).select('id').single()
@@ -119,6 +122,7 @@ export default function TasksPage() {
     <section className="planner-stats" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:9}}>
       {[['To do',pending],['Done',completed],['Scheduled',schedules.length]].map(([label,value])=><div key={label} style={{border:'1px solid #e2e8f0',borderRadius:12,background:'#fff',padding:12}}><strong style={{fontSize:22,display:'block'}}>{value}</strong><span style={{fontSize:12,color:'#64748b'}}>{label}</span></div>)}
     </section>
+    <section style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap',background:'#fff',padding:12,border:'1px solid #e2e8f0',borderRadius:12}}><div style={{display:'flex',alignItems:'center',gap:8}}><Bell size={18} color="#5145e8"/><span style={{fontSize:13}}>Study reminders</span></div>{notificationPermission==='default'?<button type="button" style={secondary} onClick={async()=>{const result=await Notification.requestPermission();setNotificationPermission(result)}}>Enable browser alerts</button>:<span style={{fontSize:12,color:'#64748b'}}>{notificationPermission==='granted'?'Browser alerts enabled':notificationPermission==='denied'?'Browser alerts blocked in browser settings':'In-app reminders available'}</span>}</section>
     <nav aria-label="Planner views" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7}}>
       {([{id:'today',label:'Today',Icon:ListTodo},{id:'calendar',label:'Calendar',Icon:CalendarDays},{id:'schedule',label:'Schedule',Icon:Clock3}] as const).map(({id,label,Icon})=><button key={id} type="button" onClick={()=>setTab(id)} aria-current={tab===id?'page':undefined} style={{...secondary,background:tab===id?'#eef2ff':'#fff',borderColor:tab===id?'#5145e8':'#e2e8f0',color:tab===id?'#4338ca':'#334155',padding:'10px 5px',display:'flex',gap:5,alignItems:'center',justifyContent:'center'}}><Icon size={16}/>{label}</button>)}
     </nav>
@@ -135,6 +139,8 @@ export default function TasksPage() {
         <label style={fields}>Repeat<select style={input} value={draft.repeat} onChange={e=>setDraft(p=>({...p,repeat:e.target.value as Draft['repeat']}))}><option value="none">Never</option><option value="daily">Every day</option><option value="weekly">Every week</option></select></label>
         {draft.kind==='study'&&<label style={fields}>Minutes<input style={input} type="number" min={5} max={600} required value={draft.duration} onChange={e=>setDraft(p=>({...p,duration:e.target.value}))}/></label>}
       </div>
+      <label style={fields}><span style={{display:'flex',alignItems:'center',gap:7}}><Bell size={16}/> Reminder</span><select style={input} value={draft.reminder} onChange={e=>setDraft(p=>({...p,reminder:e.target.value}))}><option value="">Off</option><option value="0">At the scheduled time</option><option value="5">5 minutes before</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option><option value="1440">1 day before</option></select></label>
+      <p style={{fontSize:12,color:'#64748b',margin:0}}>In-app reminders appear while VibeSchool is open. Browser alerts require permission and an active browser session.</p>
       <label style={fields}>Notes (optional)<textarea style={input} rows={3} maxLength={2000} value={draft.notes} onChange={e=>setDraft(p=>({...p,notes:e.target.value}))}/></label>
       <button type="submit" disabled={saving} style={{...button,opacity:saving?.6:1}}>{saving?'Saving…':'Save activity'}</button>
     </form>}
@@ -165,7 +171,7 @@ function Activity({item,onEdit,onDelete,onComplete}:{item:PlannerItem;onEdit:()=
   const repeating=item.repeat_rule!=='none'
   return <article style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:13,padding:14,display:'flex',alignItems:'flex-start',gap:10,minWidth:0}}>
     {item.kind==='task'&&!repeating?<button type="button" onClick={onComplete} aria-label={item.completed_at?'Mark incomplete':'Mark complete'} style={{...secondary,minWidth:44,padding:10,background:item.completed_at?'#dcfce7':'#f8fafc'}}><Check size={18} color={item.completed_at?'#15803d':'#94a3b8'}/></button>:<Clock3 size={20} color="#5145e8" style={{marginTop:11,flexShrink:0}}/>}
-    <div style={{flex:1,minWidth:0,overflowWrap:'anywhere'}}><strong style={{textDecoration:item.completed_at?'line-through':'none'}}>{item.title}</strong><p style={{fontSize:12,color:'#64748b',margin:'5px 0'}}>{item.starts_at?new Date(item.starts_at).toLocaleString('en-KE',{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):item.due_at?'Due '+new Date(item.due_at).toLocaleDateString('en-KE'):'Any time'}{item.duration_minutes?' · '+item.duration_minutes+' min':''}{repeating?' · '+item.repeat_rule:''}</p>{item.notes&&<p style={{fontSize:12,color:'#475569',margin:0}}>{item.notes}</p>}</div>
+    <div style={{flex:1,minWidth:0,overflowWrap:'anywhere'}}><strong style={{textDecoration:item.completed_at?'line-through':'none'}}>{item.title}</strong><p style={{fontSize:12,color:'#64748b',margin:'5px 0'}}>{item.starts_at?new Date(item.starts_at).toLocaleString('en-KE',{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):item.due_at?'Due '+new Date(item.due_at).toLocaleDateString('en-KE'):'Any time'}{item.duration_minutes?' · '+item.duration_minutes+' min':''}{repeating?' · '+item.repeat_rule:''}</p>{item.reminder_minutes!==null && item.reminder_minutes!==undefined && <p style={{fontSize:11,color:'#5145e8',margin:'4px 0'}}><Bell size={12} style={{verticalAlign:'middle'}}/> {item.reminder_minutes===0?'At scheduled time':item.reminder_minutes===1440?'1 day before':item.reminder_minutes+' min before'}</p>}{item.notes&&<p style={{fontSize:12,color:'#475569',margin:0}}>{item.notes}</p>}</div>
     <div style={{display:'flex',gap:4}}><button type="button" onClick={onEdit} style={{...secondary,padding:9}} aria-label={'Edit '+item.title}><Pencil size={16}/></button><button type="button" onClick={onDelete} style={{...secondary,padding:9}} aria-label={'Delete '+item.title}><Trash2 size={16}/></button></div>
   </article>
 }

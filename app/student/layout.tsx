@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import BottomNav from "@/components/student/BottomNav";
+import StudentPlannerReminders from "@/components/student/StudentPlannerReminders";
 import OfflineBar from "@/components/student/OfflineBar";
 import TwinWorkspaceProvider from "@/components/student/VibeTwin/TwinWorkspaceProvider";
 import { ToastContext, ThemeContext } from "@/components/student/StudentUiContext";
@@ -169,6 +170,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       }}>
         {children}
       </main>
+      <StudentPlannerReminders />
       <BottomNav />
     </div>
   );
