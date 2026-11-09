@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
-import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import LearnActivityHub from '@/components/student/LearnActivityHub'
 import {
   getAdaptiveLearningPath,
@@ -98,10 +97,6 @@ export default function StudentVibeLearnPage() {
 
   return <main style={shell}>
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      <VibeLearnSubnav />
-      <a href="/student/vibelearn/exams" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 56, padding: '14px 18px', marginBottom: 14, borderRadius: 14, background: '#243f83', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 17 }}>
-        <span>Exams</span><span aria-hidden="true">Open →</span>
-      </a>
       <LearnActivityHub />
       <section style={hero}>
         <div style={eyebrow}>VibeLearn Workstation</div>
