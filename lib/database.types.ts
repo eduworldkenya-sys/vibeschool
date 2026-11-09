@@ -12169,6 +12169,9 @@ export type Database = {
       }
       projects: {
         Row: {
+          independent_owner_profile_id: string | null
+          independent_notes: string | null
+          independent_completed_at: string | null
           class_id: string | null
           created_at: string | null
           curriculum_id: string | null
@@ -12184,6 +12187,9 @@ export type Database = {
           title: string
         }
         Insert: {
+          independent_owner_profile_id?: string | null
+          independent_notes?: string | null
+          independent_completed_at?: string | null
           class_id?: string | null
           created_at?: string | null
           curriculum_id?: string | null
@@ -12199,6 +12205,9 @@ export type Database = {
           title: string
         }
         Update: {
+          independent_owner_profile_id?: string | null
+          independent_notes?: string | null
+          independent_completed_at?: string | null
           class_id?: string | null
           created_at?: string | null
           curriculum_id?: string | null
