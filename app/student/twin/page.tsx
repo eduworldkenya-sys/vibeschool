@@ -109,6 +109,7 @@ export default function VibeTwinLearningOS() {
   const latestCalibration = state?.evidence.recentCalibrations?.[0] ?? null
   const latestExposure = state?.learning.recentExposures?.[0] ?? null
   const now = state?.decision.now
+  const hasEvidence = Boolean((state?.evidence.learningEventCount ?? 0) > 0 || (state?.evidence.competencyEvidenceCount ?? 0) > 0 || (state?.evidence.taskReceiptCount ?? 0) > 0)
   const confidence = Math.round((state?.confidence ?? 0) * 100)
   const mastery = Math.round(state?.prediction.averageEffectiveMastery ?? 0)
   const risk = Math.round((state?.prediction.averageForgettingRisk ?? 0) * 100)
@@ -167,7 +168,7 @@ export default function VibeTwinLearningOS() {
   if (loading && !state) return <main style={shell}><div style={loadingCard}>Preparing your learning journey…</div></main>
 
   return <main style={shell}>
-    <header style={topbar}><div><div style={brand}>✦ VibeTwin</div><div style={subtitle}>{identity?.firstName ? `${identity.firstName}'s learning journey` : 'Your learning journey'}</div></div><div style={confidencePill}>{confidence}% confidence</div></header>
+    <header style={topbar}><div><div style={brand}>✦ VibeTwin</div><div style={subtitle}>{identity?.firstName ? `${identity.firstName}'s learning journey` : 'Your learning journey'}</div></div><div style={confidencePill}>{hasEvidence ? `${confidence}% confidence` : 'Building evidence'}</div></header>
 
     <nav aria-label="VibeTwin workspace" style={layerNav}>{(['now','learn','grow'] as Layer[]).map(item => <button key={item} onClick={() => setLayer(item)} aria-pressed={layer === item} style={{ ...layerButton, ...(layer === item ? layerButtonActive : {}) }}>{item === 'now' ? 'Now' : item === 'learn' ? 'Learn' : 'Grow'}</button>)}</nav>
     {error && <div role="status" style={degraded}>Twin is in limited mode. The rest of your learning workspace still works. <button style={textButton} onClick={() => void refresh()}>Try again</button></div>}
@@ -194,13 +195,13 @@ export default function VibeTwinLearningOS() {
     </div>}
 
     {layer === 'grow' && <div style={stack}>
-      <section style={metrics}><Metric label="Effective mastery" value={`${mastery}%`} /><Metric label="Forgetting risk" value={`${risk}%`} /><Metric label="Evidence" value={state?.evidence.competencyEvidenceCount ?? 0} /><Metric label="Streak" value={`${state?.streak.current ?? 0}d`} /></section>
+      <section style={metrics}><Metric label="Effective mastery" value={hasEvidence ? `${mastery}%` : '—'} /><Metric label="Forgetting risk" value={hasEvidence ? `${risk}%` : '—'} /><Metric label="Evidence" value={state?.evidence.competencyEvidenceCount ?? 0} /><Metric label="Streak" value={`${state?.streak.current ?? 0}d`} /></section>
 
       <section style={growthHero}>
         <div style={eyebrow}>WHY TWIN CHANGED</div>
         <h2 style={growthTitle}>{adaptationCopy(state?.adaptation.decision)}</h2>
         <div style={proofMeta}>
-          <span>{confidence}% overall confidence</span>
+          <span>{hasEvidence ? `${confidence}% overall confidence` : 'Not enough learning evidence'}</span>
           <span>{state?.evidence.learningEventCount ?? 0} learning events</span>
           <span>{state?.evidence.taskReceiptCount ?? 0} verified task receipts</span>
         </div>
@@ -233,7 +234,7 @@ export default function VibeTwinLearningOS() {
       <section style={card}>
         <div style={eyebrowDark}>RECENT LEARNING PROOF</div>
         {latestExposure ? <div style={evidenceRow}><div><strong>{learnerStrategy(latestExposure.interventionType)}</strong><div style={muted}>{latestExposure.resolvedAt ? 'Outcome checked against later evidence' : 'Waiting for later evidence before judging this approach'}</div></div><strong>{latestExposure.masteryDelta == null ? 'Pending' : `${latestExposure.masteryDelta >= 0 ? '+' : ''}${Math.round(latestExposure.masteryDelta)} mastery`}</strong></div> : <p style={body}>Complete learning activities and Twin will show how later evidence confirmed—or contradicted—its teaching choices.</p>}
-        <div style={evidenceSummary}><span>{state?.evidence.competencyEvidenceCount ?? 0} competency evidence records</span><span>{state?.learning.unresolvedExposures ?? 0} learning approaches awaiting later proof</span><span>{state?.evidence.stateConfidence == null ? 0 : Math.round(state.evidence.stateConfidence * 100)}% state confidence</span></div>
+        <div style={evidenceSummary}><span>{state?.evidence.competencyEvidenceCount ?? 0} competency evidence records</span><span>{state?.learning.unresolvedExposures ?? 0} learning approaches awaiting later proof</span><span>{hasEvidence ? `${Math.round((state?.evidence.stateConfidence ?? 0) * 100)}% state confidence` : 'Insufficient evidence for confidence'}</span></div>
       </section>
 
       <section style={card}><div style={eyebrowDark}>REVISION TIMELINE</div>{(summary?.revisionPlan ?? []).slice(0,5).map(item => <button key={item.id} style={timelineItem} onClick={() => router.push(item.actionUrl)}><div><strong>{cleanLearningText(item.topic)}</strong><div style={muted}>{item.subject} · {item.targetMinutes} min</div></div><span>→</span></button>)}{(summary?.revisionPlan.length ?? 0) === 0 && <p style={body}>Your spaced-revision timeline will appear as Twin gathers enough evidence.</p>}</section>
