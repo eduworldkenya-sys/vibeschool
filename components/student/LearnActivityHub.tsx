@@ -12,11 +12,11 @@ export default function LearnActivityHub() {
   const [expanded, setExpanded] = useState(false);
   const hasSchoolClass = Boolean(identity?.classId);
   const primary: Activity[] = [
-    { title: "Read", detail:"Books and resources", Icon:BookOpen, href: "/student/vibelearn/reading" },
-    { title: "Exams", detail:"Tests and results", Icon:ClipboardCheck, href: "/student/vibelearn/exams" },
-    { title: "My Work", detail:"Tasks and homework", Icon:FolderOpen, href: "/student/tasks" },
-    { title: "Revision", detail:"Study and improve", Icon:CalendarDays, href: "/student/vibelearn/revision" },
-    { title: "My Tuition", detail:"Learn with tutors", Icon:Users, href: "/student/tutoring" },
+    { title: "Exams", detail:"Start an exam and see results", Icon:ClipboardCheck, href: "/student/vibelearn/exams" },
+    { title: "Read", detail:"Open books and resources", Icon:BookOpen, href: "/student/vibelearn/reading" },
+    { title: "My Work", detail:"Open your tasks", Icon:FolderOpen, href: "/student/tasks" },
+    { title: "Revision", detail:"Review what you learned", Icon:CalendarDays, href: "/student/vibelearn/revision" },
+    { title: "My Tuition", detail:"Go to tuition", Icon:Users, href: "/student/tutoring" },
   ];
   const secondary: Activity[] = [
     { title: "Practice", detail:"Questions by topic", Icon:PencilLine, href: "/student/vibelearn/practice" },
@@ -29,13 +29,13 @@ export default function LearnActivityHub() {
     <ArrowUpRight size={16} aria-hidden="true" style={{color:"#94a3b8",flexShrink:0}} />
   </Link>;
   return <section className="vs-activity-hub" aria-labelledby="learn-activity-heading">
-    <h2 id="learn-activity-heading">Explore learning activities</h2>
-    <p>Choose what you want to learn.</p>
+    <h2 id="learn-activity-heading">Choose an activity</h2>
+    <p>Pick one to get started.</p>
     <nav aria-label="Learning activities" className="vs-activity-grid">
       {primary.map(activity)}
       <button type="button" className="vs-activity-card" aria-expanded={expanded} aria-controls="vs-activity-extra" onClick={()=>setExpanded(v=>!v)}>
         <span className="vs-activity-card-icon"><LayoutGrid size={22} aria-hidden="true"/></span>
-        <span style={{flex:1,minWidth:0}}><strong className="vs-activity-card-title">Explore more</strong><span className="vs-activity-card-detail">Practice, projects and more</span></span>
+        <span style={{flex:1,minWidth:0}}><strong className="vs-activity-card-title">Explore more</strong><span className="vs-activity-card-detail">Additional learning tools</span></span>
         <ChevronDown size={16} aria-hidden="true" style={{transform:expanded?"rotate(180deg)":"none",transition:"transform .2s ease"}}/>
       </button>
     </nav>
