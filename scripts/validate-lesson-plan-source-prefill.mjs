@@ -57,6 +57,12 @@ const assertions = [
     'Transient progression errors must preserve dated timetable and curriculum fallback.',
   ],
   [
+    source.indexOf('if (!occurrenceDate) {') > source.indexOf('loadSchemeSourceForOccurrenceFallback({') &&
+      source.indexOf('if (!occurrenceDate) {') < source.indexOf('const curriculumWeek = occurrenceWeek ?? currentWeekOf(term)') &&
+      source.includes('if (progressionScheme)'),
+    'Dated timetable occurrences must not prefill from global Scheme progression; undated flows may retain progression.',
+  ],
+  [
     source.includes("curriculum enrichment unavailable") &&
       source.includes("if (!data) return source") &&
       source.includes("return source"),
