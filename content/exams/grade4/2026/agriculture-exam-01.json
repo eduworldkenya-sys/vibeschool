@@ -1,0 +1,377 @@
+{
+  "id": "g4-agriculture-vibeschool-exam-01",
+  "title": "Grade 4 Agriculture — VibeSchool Exam 01",
+  "grade": "Grade 4",
+  "subject": "Agriculture",
+  "curriculum": "Kenya CBC Grade 4 — KICD 2024 revised learning-area design reference; outcome-level verification pending",
+  "status": "original_content_editorial_review",
+  "origin": "VibeSchool Original — Internally Authored",
+  "assessment_type": "practice",
+  "duration_minutes": 30,
+  "max_attempts": 3,
+  "total_marks": 12,
+  "visibility": "public_practice",
+  "instructions": "Read each question carefully and choose one answer. You may skip a question and return to it before submission.",
+  "items": [
+    {
+      "number": 1,
+      "bank_key": "G4-AGR-EX01-001",
+      "topic": "Crop Care",
+      "difficulty": "easy",
+      "prompt": "Why do farmers water young seedlings during dry weather?",
+      "options": [
+        {
+          "value": "A",
+          "label": "To keep them from getting water"
+        },
+        {
+          "value": "B",
+          "label": "To supply water needed for growth"
+        },
+        {
+          "value": "C",
+          "label": "To make leaves into stones"
+        },
+        {
+          "value": "D",
+          "label": "To remove all the roots"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Seedlings need water to grow and stay healthy, especially in dry weather.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 2,
+      "bank_key": "G4-AGR-EX01-002",
+      "topic": "Soil",
+      "difficulty": "easy",
+      "prompt": "Which material is made from decomposed plant and animal remains and can enrich soil?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Plastic waste"
+        },
+        {
+          "value": "B",
+          "label": "Broken glass"
+        },
+        {
+          "value": "C",
+          "label": "Compost"
+        },
+        {
+          "value": "D",
+          "label": "Metal wire"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Compost adds organic matter and nutrients to soil.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 3,
+      "bank_key": "G4-AGR-EX01-003",
+      "topic": "Farm Tools",
+      "difficulty": "easy",
+      "prompt": "Which tool is commonly used to loosen soil in a kitchen garden?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Plate"
+        },
+        {
+          "value": "B",
+          "label": "Ruler"
+        },
+        {
+          "value": "C",
+          "label": "Paintbrush"
+        },
+        {
+          "value": "D",
+          "label": "Hoe"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "A hoe can loosen soil and help prepare small garden beds.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 4,
+      "bank_key": "G4-AGR-EX01-004",
+      "topic": "Weeding",
+      "difficulty": "easy",
+      "prompt": "Why should weeds be removed from a vegetable bed?",
+      "options": [
+        {
+          "value": "A",
+          "label": "They compete with crops for nutrients and water"
+        },
+        {
+          "value": "B",
+          "label": "They turn into watering cans"
+        },
+        {
+          "value": "C",
+          "label": "They always improve crop growth"
+        },
+        {
+          "value": "D",
+          "label": "They stop all sunlight from reaching Earth"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Weeds compete with crops for water, nutrients, light and space.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 5,
+      "bank_key": "G4-AGR-EX01-005",
+      "topic": "Mulching",
+      "difficulty": "medium",
+      "prompt": "Why might a farmer cover soil with dry grass around crops?",
+      "options": [
+        {
+          "value": "A",
+          "label": "To make the soil disappear"
+        },
+        {
+          "value": "B",
+          "label": "To reduce water loss from the soil"
+        },
+        {
+          "value": "C",
+          "label": "To stop all plant growth"
+        },
+        {
+          "value": "D",
+          "label": "To turn the soil into sand"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Mulching helps keep moisture in the soil by reducing evaporation.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 6,
+      "bank_key": "G4-AGR-EX01-006",
+      "topic": "Nutrition",
+      "difficulty": "medium",
+      "prompt": "Which of these foods is a vegetable?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Sugar"
+        },
+        {
+          "value": "B",
+          "label": "Cooking oil"
+        },
+        {
+          "value": "C",
+          "label": "Spinach"
+        },
+        {
+          "value": "D",
+          "label": "Salt"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Spinach is a leafy vegetable that contributes protective nutrients to meals.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 7,
+      "bank_key": "G4-AGR-EX01-007",
+      "topic": "Food Hygiene",
+      "difficulty": "medium",
+      "prompt": "What should a learner do before preparing vegetables for a meal?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Put them on the ground"
+        },
+        {
+          "value": "B",
+          "label": "Touch them with dirty hands"
+        },
+        {
+          "value": "C",
+          "label": "Store them near rubbish"
+        },
+        {
+          "value": "D",
+          "label": "Wash hands and rinse the vegetables with safe water"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Clean hands and properly washed vegetables reduce contamination during food preparation.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 8,
+      "bank_key": "G4-AGR-EX01-008",
+      "topic": "Food Storage",
+      "difficulty": "medium",
+      "prompt": "Which practice helps protect cooked food from flies?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Covering it in a clean container"
+        },
+        {
+          "value": "B",
+          "label": "Leaving it uncovered outside"
+        },
+        {
+          "value": "C",
+          "label": "Placing it beside waste"
+        },
+        {
+          "value": "D",
+          "label": "Storing it under a dirty table"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Covering food in a clean container helps protect it from flies and dirt.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 9,
+      "bank_key": "G4-AGR-EX01-009",
+      "topic": "Animal Care",
+      "difficulty": "medium",
+      "prompt": "Which resource should domestic animals have regularly?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Old batteries"
+        },
+        {
+          "value": "B",
+          "label": "Clean drinking water"
+        },
+        {
+          "value": "C",
+          "label": "Sharp metal pieces"
+        },
+        {
+          "value": "D",
+          "label": "Plastic bags"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Animals need regular access to clean water for health and wellbeing.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 10,
+      "bank_key": "G4-AGR-EX01-010",
+      "topic": "Seed Germination",
+      "difficulty": "challenging",
+      "prompt": "What usually develops first when a bean seed begins to germinate?",
+      "options": [
+        {
+          "value": "A",
+          "label": "A ripe fruit"
+        },
+        {
+          "value": "B",
+          "label": "A flower"
+        },
+        {
+          "value": "C",
+          "label": "A small root"
+        },
+        {
+          "value": "D",
+          "label": "A mature branch"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "The young root commonly emerges first to anchor the seedling and absorb water.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 11,
+      "bank_key": "G4-AGR-EX01-011",
+      "topic": "Environment",
+      "difficulty": "challenging",
+      "prompt": "What is a good way to care for the environment after harvesting vegetables?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Throw plastic waste into rivers"
+        },
+        {
+          "value": "B",
+          "label": "Burn all garden waste"
+        },
+        {
+          "value": "C",
+          "label": "Leave harmful litter everywhere"
+        },
+        {
+          "value": "D",
+          "label": "Compost suitable plant remains"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Composting suitable plant remains reduces waste and can enrich the soil.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 12,
+      "bank_key": "G4-AGR-EX01-012",
+      "topic": "Garden Planning",
+      "difficulty": "challenging",
+      "prompt": "Which place is best for growing vegetables that need plenty of sunlight?",
+      "options": [
+        {
+          "value": "A",
+          "label": "A sunny area with suitable soil and water"
+        },
+        {
+          "value": "B",
+          "label": "A dark locked cupboard"
+        },
+        {
+          "value": "C",
+          "label": "The middle of a busy road"
+        },
+        {
+          "value": "D",
+          "label": "A waterless concrete floor"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Vegetables generally grow better where they receive enough sunlight, suitable soil and water.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    }
+  ]
+}
