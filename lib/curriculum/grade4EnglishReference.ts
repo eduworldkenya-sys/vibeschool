@@ -86,14 +86,87 @@ export function suggestedTermForTheme(themeNumber: number): 1 | 2 | 3 {
 }
 
 /**
- * The first five themes have their four sub-strand headings identified from
- * the KICD source. These headings are descriptive reference metadata only;
- * no specific learning outcome is represented as verified or published.
+ * Sub-strand heading summaries from the KICD 2024 theme tables.
+ * Four headings for each theme; content and SLOs remain unpublished/unverified
+ * until reconciled with canonical curriculum records and reviewed.
  */
-export const GRADE4_ENGLISH_INITIAL_SUBSTRANDS: Readonly<Record<number, readonly string[]>> = {
-  1: ['Pronunciation and Vocabulary — Listening Comprehension', 'Extensive Reading — Reference Materials', 'Grammar in Use — Articles', 'Functional Writing — Forms'],
-  2: ['Pronunciation and Vocabulary — Target Sounds', 'Intensive Reading — Poems and Stories', 'Grammar in Use — Regular and Irregular Nouns', 'Creative Writing — Open-ended Composition'],
-  3: ['Pronunciation and Vocabulary — Polite Words and Sounds', 'Intensive Reading — Comprehension', 'Grammar in Use — Enough to / A lot of', 'Mechanics of Writing — Handwriting and Spelling'],
-  4: ['Pronunciation and Vocabulary — Word Stress', 'Intensive Reading — Visual Information', 'Grammar in Use — Personal and Possessive Pronouns', 'Functional Writing — Friendly Letters and SMS'],
-  5: ['Pronunciation and Vocabulary — Listening Comprehension', 'Extensive Reading — Independent Reading', 'Grammar in Use — Adjectives', 'Creative Writing — Narrative Composition'],
+export const GRADE4_ENGLISH_SUBSTRANDS: Readonly<Record<number, readonly string[]>> = {
+  "1": [
+    "Pronunciation and Vocabulary — Listening Comprehension",
+    "Extensive Reading — Reference Materials",
+    "Grammar in Use — Definite and Indefinite Articles",
+    "Functional Writing — Completing Forms"
+  ],
+  "2": [
+    "Pronunciation and Vocabulary — Target Sounds",
+    "Intensive Reading — Poems and Stories",
+    "Grammar in Use — Regular and Irregular Nouns",
+    "Creative Writing — Open-ended Composition"
+  ],
+  "3": [
+    "Pronunciation and Vocabulary — Polite Words and Sounds",
+    "Intensive Reading — Comprehension",
+    "Grammar in Use — Enough to / A lot of",
+    "Mechanics of Writing — Handwriting and Spelling"
+  ],
+  "4": [
+    "Pronunciation and Vocabulary — Word Stress",
+    "Intensive Reading — Visual Information",
+    "Grammar in Use — Personal and Possessive Pronouns",
+    "Functional Writing — Friendly Letters and SMS"
+  ],
+  "5": [
+    "Pronunciation and Vocabulary — Listening Comprehension",
+    "Extensive Reading — Independent Reading",
+    "Grammar in Use — Adjectives",
+    "Creative Writing — Narrative Composition"
+  ],
+  "6": [
+    "Pronunciation and Vocabulary — Stress and Intonation",
+    "Intensive Reading — Dialogues",
+    "Grammar in Use — Quantifiers",
+    "Creative Writing — Pictorial Compositions"
+  ],
+  "7": [
+    "Pronunciation and Vocabulary — Interactive Listening",
+    "Extensive Reading — Independent Reading",
+    "Grammar in Use — Progressive Verb Aspect",
+    "Mechanics of Writing — Full Stops and Capital Letters"
+  ],
+  "8": [
+    "Pronunciation and Vocabulary — Articulating Sounds",
+    "Reading — Fluency",
+    "Grammar in Use — Contracted Verbs and Positive/Negative Statements",
+    "Creative Writing — Narrative Composition"
+  ],
+  "9": [
+    "Pronunciation and Vocabulary — Speaking Fluency",
+    "Intensive Reading — Narratives",
+    "Grammar in Use — Adverbs",
+    "Mechanics of Writing — Commas and Question Marks"
+  ],
+  "10": [
+    "Pronunciation and Vocabulary — Speaking and Polite Interruptions",
+    "Intensive Reading — Factual Texts",
+    "Grammar in Use — Coordinating Conjunctions",
+    "Creative Writing — Descriptive Compositions"
+  ],
+  "11": [
+    "Pronunciation and Vocabulary — Speaking Skills",
+    "Intensive Reading — Digital Texts",
+    "Grammar in Use — Interrogatives",
+    "Mechanics of Writing — Commonly Misspelt Words"
+  ],
+  "12": [
+    "Pronunciation and Vocabulary — Speaking",
+    "Intensive Reading — Poems, Songs and Passages",
+    "Grammar in Use — Present and Past Perfect Aspects",
+    "Guided Composition — Diary"
+  ],
+  "13": [
+    "Pronunciation and Vocabulary — Language Patterns",
+    "Extensive Reading — Newspapers and Magazines",
+    "Grammar in Use — Prepositions",
+    "Mechanics of Writing — Double Consonants"
+  ]
 }
