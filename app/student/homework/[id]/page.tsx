@@ -20,6 +20,7 @@ interface SubmissionRow {
   photo_url: string | null;
   mark: number | null;
   feedback: string | null;
+  feedback_released_at: string | null;
   submitted_at: string | null;
   received_at: string | null;
   revision_number: number;
@@ -34,8 +35,8 @@ function daysUntil(d: string): number {
   return Math.round((due.getTime() - today.getTime()) / 86400000);
 }
 
-function dueBadge(d: string, status?: SubmissionStatus) {
-  if (status === "marked") return { label: "Marked", bg: "#d1fae5", color: "#065f46" };
+function dueBadge(d: string, status?: SubmissionStatus, feedbackReleased = false) {
+  if (status === "marked") return feedbackReleased ? { label: "Marked", bg: "#d1fae5", color: "#065f46" } : { label: "Awaiting feedback", bg: "#dbeafe", color: "#1e40af" };
   if (status === "under_review") return { label: "Under review", bg: "#dbeafe", color: "#1e40af" };
   if (status === "received" || status === "submitted") return { label: "Received", bg: "#d1fae5", color: "#065f46" };
   if (status === "returned") return { label: "Correction needed", bg: "#fef3c7", color: "#92400e" };
@@ -90,17 +91,31 @@ export default function HomeworkDetailPage() {
       const hw = raw as Homework;
       setHomework(hw);
 
-      const [teacherRes, questionRes, submissionRes] = await Promise.all([
+      const [teacherRes, questionRes, submissionRes, feedbackRes] = await Promise.all([
         supabase.from("profiles").select("full_name").eq("id", hw.teacher_id).maybeSingle(),
         // Never fetch model_answer into the learner browser.
         supabase.from("homework_questions").select("id,homework_id,question,order_num").eq("homework_id", hw.id).order("order_num"),
-        supabase.from("homework_submissions").select("id,status,photo_url,mark,feedback,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", identity!.studentId).maybeSingle(),
+        supabase.from("homework_submissions").select("id,status,photo_url,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", identity!.studentId).maybeSingle(),
+        supabase.rpc("get_student_homework_feedback", { p_homework_id: hw.id }),
       ]);
 
       setTeacher(teacherRes.data?.full_name ?? "Teacher");
       setQuestions((questionRes.data as HomeworkQuestion[]) ?? []);
 
-      const sub = submissionRes.data as SubmissionRow | null;
+      // Marks and written feedback are returned only by the learner-scoped
+      // release-aware RPC. Never request unreleased results from the base table.
+      const protectedResult = feedbackRes.error ? null : feedbackRes.data as
+        | { mark?: number | null; feedback?: string | null; feedback_released_at?: string | null }
+        | null;
+      const rawSub = submissionRes.data;
+      const sub: SubmissionRow | null = rawSub ? {
+        ...rawSub,
+        mark: protectedResult?.feedback_released_at ? protectedResult.mark ?? null : null,
+        feedback: protectedResult?.feedback_released_at ? protectedResult.feedback ?? null : null,
+        feedback_released_at: protectedResult?.feedback_released_at ?? null,
+        photo_url: rawSub.photo_url ?? null,
+        returned_reason: rawSub.returned_reason ?? null,
+      } as SubmissionRow : null;
       setSubmission(sub);
       if (sub?.photo_url) setPhotoPreview(sub.photo_url);
 
@@ -120,7 +135,8 @@ export default function HomeworkDetailPage() {
   const locked = submission?.status === "marked" || submission?.status === "under_review";
   const editable = !locked;
   const finalSubmitted = submission != null && ["submitted", "received", "under_review", "marked"].includes(submission.status);
-  const badge = homework ? dueBadge(homework.due_date, submission?.status) : null;
+  const feedbackReleased = Boolean(submission?.feedback_released_at);
+  const badge = homework ? dueBadge(homework.due_date, submission?.status, feedbackReleased) : null;
 
   function answerPayload() {
     return questions.map(question => ({
@@ -168,6 +184,7 @@ export default function HomeworkDetailPage() {
         photo_url: photoUrl ?? previous?.photo_url ?? null,
         mark: previous?.mark ?? null,
         feedback: previous?.feedback ?? null,
+        feedback_released_at: previous?.feedback_released_at ?? null,
         submitted_at: previous?.submitted_at ?? null,
         received_at: previous?.received_at ?? null,
         revision_number: result.revisionNumber,
@@ -197,6 +214,7 @@ export default function HomeworkDetailPage() {
         photo_url: photoUrl ?? previous?.photo_url ?? null,
         mark: previous?.mark ?? null,
         feedback: previous?.feedback ?? null,
+        feedback_released_at: previous?.feedback_released_at ?? null,
         submitted_at: result.submittedAt ?? null,
         received_at: result.receivedAt ?? null,
         revision_number: result.revisionNumber,
@@ -238,12 +256,12 @@ export default function HomeworkDetailPage() {
 
       {submission && finalSubmitted && (
         <section style={{ background: submission.status === "marked" ? "var(--vs-accent-soft)" : "#d1fae5", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-          <strong>{submission.status === "marked" ? "Marked" : submission.status === "under_review" ? "Teacher is reviewing" : "Received by Vibeschool"}</strong>
+          <strong>{submission.status === "marked" ? (feedbackReleased ? "Marked" : "Teacher has marked your work; feedback is not yet released") : submission.status === "under_review" ? "Teacher is reviewing" : "Received by Vibeschool"}</strong>
           <div style={{ fontSize: 12, marginTop: 6 }}>Submitted: {formatReceipt(submission.submitted_at)}</div>
           <div style={{ fontSize: 12, marginTop: 2 }}>Server receipt: {formatReceipt(submission.received_at)}</div>
           <div style={{ fontSize: 12, marginTop: 2 }}>Revision: {submission.revision_number}</div>
-          {submission.mark != null && <div style={{ fontSize: 20, fontWeight: 900, marginTop: 10 }}>{submission.mark} marks</div>}
-          {submission.feedback && <p style={{ marginBottom: 0 }}>{submission.feedback}</p>}
+          {feedbackReleased && submission.mark != null && <div style={{ fontSize: 20, fontWeight: 900, marginTop: 10 }}>{submission.mark} marks</div>}
+          {feedbackReleased && submission.feedback && <p style={{ marginBottom: 0 }}>{submission.feedback}</p>}
         </section>
       )}
 
