@@ -15,11 +15,14 @@ const isMock = (title: string) => /(?:kjsea|mock)/i.test(title)
 const isGradeNine = (className: string) => /^(?:grade|class)\s*9$/i.test(className.trim())
 
 function statusLabel(item: LearnerAssessmentAssignment): string {
-  if (item.attemptStatus === 'in_progress') return 'Resume'
-  if (item.percentage !== null) return 'View result'
   if (item.availability === 'upcoming') return 'Not open yet'
   if (item.availability === 'closed') return 'Closed'
   if (item.availability === 'attempts_exhausted') return 'Attempts used'
+  if (item.attemptStatus === 'in_progress') {
+    const expired = item.attemptExpiresAt && Date.parse(item.attemptExpiresAt) <= Date.now()
+    if (!expired) return 'Resume'
+    return (item.attemptNumber ?? item.maxAttempts) < item.maxAttempts ? 'Start next attempt' : 'Time expired'
+  }
   return 'Start'
 }
 
@@ -65,16 +68,10 @@ export default function GradeNineMathematicsPage() {
   const practice = useMemo(() => assignments.filter(item => !isMock(item.title)), [assignments])
   const mocks = useMemo(() => assignments.filter(item => isMock(item.title)), [assignments])
 
-  function open(item: LearnerAssessmentAssignment) {
-    if (item.percentage !== null) {
-      router.push('/student/vibelearn/exams#exam-results')
-      return
-    }
-    if (item.canStart) router.push(`/student/assessment/${item.assignmentId}`)
-  }
-
   function assessmentCard(item: LearnerAssessmentAssignment) {
-    const enabled = item.canStart || item.percentage !== null
+    const label = statusLabel(item)
+    const enabled = item.canStart && label !== 'Time expired'
+    const releasedAttemptId = item.resultStatus === 'released' ? item.attemptId : null
     return <article key={item.assignmentId} style={card}>
       <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'start' }}>
         <div>
@@ -87,10 +84,16 @@ export default function GradeNineMathematicsPage() {
         {item.percentage !== null && <strong style={{ color: '#047857' }}>{item.percentage.toFixed(1)}%</strong>}
       </div>
       <div style={{ ...secondary, marginTop: 10 }}>{item.availability.replaceAll('_', ' ')}</div>
-      <button type="button" disabled={!enabled} onClick={() => open(item)}
-        style={{ ...action, marginTop: 14, opacity: enabled ? 1 : 0.55, cursor: enabled ? 'pointer' : 'not-allowed' }}>
-        {statusLabel(item)}
-      </button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+        {(enabled || !releasedAttemptId) && <button type="button" disabled={!enabled}
+          onClick={() => router.push(`/student/assessment/${encodeURIComponent(item.assignmentId)}`)}
+          style={{ ...action, opacity: enabled ? 1 : 0.55, cursor: enabled ? 'pointer' : 'not-allowed' }}>
+          {enabled && releasedAttemptId ? 'Start another attempt' : label}
+        </button>}
+        {releasedAttemptId && <Link href={`/student/results/${encodeURIComponent(releasedAttemptId)}`} style={action}>
+          Review answers
+        </Link>}
+      </div>
     </article>
   }
 
@@ -142,6 +145,9 @@ export default function GradeNineMathematicsPage() {
                   {result.score === null || result.maxScore === null ? 'Marking pending' : `${result.score} / ${result.maxScore}`}
                 </p>
                 {result.feedback && <p style={secondary}>{result.feedback}</p>}
+                {result.attemptId && <Link href={`/student/results/${encodeURIComponent(result.attemptId)}`} style={{ ...action, marginTop: 14 }}>
+                  Review answers
+                </Link>}
               </article>) : <div style={card}><p style={secondary}>Your released Mathematics results will appear here after an assessment is completed and released.</p></div>}
             </div>
           </section>
