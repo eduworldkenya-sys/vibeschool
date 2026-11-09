@@ -118,16 +118,13 @@ function mapAttemptWorkspace(value: unknown): AttemptWorkspace {
 export async function startOrResumeAttempt(assignmentId: string): Promise<AttemptWorkspace> {
   const { data, error } = await rpc<Json>('exq_start_or_resume_attempt', { p_assignment_id: assignmentId })
   if (error) throw rpcError('attempt start', error)
-  let resolvedData = data
-  // An expired attempt is closed transactionally by the server. Only an explicit
-  // learner Start action reaches this function; retry once to create the next attempt.
+  // The server finalises an expired attempt through canonical marking.
+  // Never consume another permitted attempt without a fresh, explicit learner action.
   const payload = assertRecord(data, 'Attempt start')
   if (payload.ok === false && payload.reason === 'attempt_time_expired') {
-    const retry = await rpc<Json>('exq_start_or_resume_attempt', { p_assignment_id: assignmentId })
-    if (retry.error) throw rpcError('attempt start', retry.error)
-    resolvedData = retry.data
+    throw new Error('Your exam time ended. Your attempt has been submitted. Return to Exams to view your result or choose another attempt if available.')
   }
-  return mapAttemptWorkspace(resolvedData)
+  return mapAttemptWorkspace(data)
 }
 
 export async function saveResponse(input: SaveResponseInput): Promise<SaveResponseResult> {
