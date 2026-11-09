@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { getMyResult, type LearnerResultDetail } from '@/lib/assessment/results'
 
 function isSkipped(responseValue: unknown, responseText: string | null): boolean {
@@ -20,6 +20,10 @@ function answerWithOption(value: unknown, options: { value: string; label: strin
 export default function StudentResultDetailPage() {
   const params = useParams<{ attemptId: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const from = searchParams.get('from')
+  const returnPath = `/student/vibelearn/exams?view=${from === 'progress' || from === 'history' ? from : 'for-you'}`
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'mistakes' | 'skipped'>('all')
   const [result, setResult] = useState<LearnerResultDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -40,13 +44,20 @@ export default function StudentResultDetailPage() {
     return () => { cancelled = true }
   }, [params.attemptId])
 
+  const skipped = result?.items.filter(item => isSkipped(item.responseValue, item.responseText)) ?? []
+  const incorrect = result?.items.filter(item => !isSkipped(item.responseValue, item.responseText) && item.finalScore < item.maxScore) ?? []
+  const correct = result?.items.filter(item => !isSkipped(item.responseValue, item.responseText) && item.finalScore === item.maxScore) ?? []
+  const reviewItems = result?.items.filter(item => reviewFilter === 'all' || (reviewFilter === 'skipped'
+    ? isSkipped(item.responseValue, item.responseText)
+    : isSkipped(item.responseValue, item.responseText) || item.finalScore < item.maxScore)) ?? []
+
   if (loading) return <main style={shell}>Loading result…</main>
   if (!result) return <main style={shell}><section style={{ ...card, color: '#b91c1c' }}>{error || 'Result unavailable.'}</section></main>
 
   return (
     <main style={shell}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <button type="button" onClick={() => router.back()} style={{ ...secondaryButton, marginBottom: 12 }}>← Back to results</button>
+        <button type="button" onClick={() => router.push(returnPath)} style={{ ...secondaryButton, marginBottom: 12 }}>← Back to results</button>
 
         <section style={card}>
           <div style={eyebrow}>{result.assessmentType.replaceAll('_', ' ')}</div>
@@ -56,7 +67,7 @@ export default function StudentResultDetailPage() {
             <span style={{ color: '#6b7280' }}>{result.score}/{result.maxScore}</span>
           </div>
           <div style={muted}>Attempt {result.attemptNumber} of {result.maxAttempts}</div>
-          <div style={{ ...muted, color: '#92400e', fontWeight: 700 }}>{result.items.filter(item => isSkipped(item.responseValue, item.responseText)).length} skipped / unanswered · 0 marks for each skipped question</div>
+          <div style={{ ...muted, color: '#92400e', fontWeight: 700 }}>{skipped.length} skipped / unanswered · 0 marks for each skipped question</div>
           {result.releasedAt && <div style={muted}>Released {new Date(result.releasedAt).toLocaleString('en-KE')}</div>}
           {result.feedback && (
             <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: '#ecfdf5', color: '#065f46', lineHeight: 1.5 }}>
@@ -75,7 +86,20 @@ export default function StudentResultDetailPage() {
           </section>
         )}
 
-        {result.items.map(item => (
+        <section style={card} aria-label="Question review filters">
+          <p style={{ marginTop: 0, fontWeight: 700 }}>Review: {correct.length} correct · {incorrect.length} incorrect · {skipped.length} skipped</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {(['all', 'mistakes', 'skipped'] as const).map(filter => (
+              <button key={filter} type="button" aria-pressed={reviewFilter === filter}
+                onClick={() => setReviewFilter(filter)}
+                style={{ ...secondaryButton, background: reviewFilter === filter ? '#eef2ff' : '#fff' }}>
+                {filter === 'all' ? 'All questions' : filter === 'mistakes' ? 'Mistakes and skips' : 'Skipped only'}
+              </button>
+            ))}
+          </div>
+        </section>
+        {reviewItems.length === 0 && <section style={card}>No questions match this filter.</section>}
+        {reviewItems.map(item => (
           <section key={item.assessmentItemId} style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <strong>Question {item.orderNum} {isSkipped(item.responseValue, item.responseText) ? '· Skipped' : ''}</strong>
@@ -110,7 +134,7 @@ export default function StudentResultDetailPage() {
             <button type="button" onClick={() => router.push(`/student/assessment/${encodeURIComponent(result.assignmentId)}`)} style={primaryButton}>Try this exam again</button>
           </section>
         )}
-        <button type="button" onClick={() => router.push('/student/vibelearn/exams')} style={{ ...secondaryButton, marginTop: 8, width: '100%' }}>Back to Exams</button>
+        <button type="button" onClick={() => router.push(returnPath)} style={{ ...secondaryButton, marginTop: 8, width: '100%' }}>Back to Exams</button>
       </div>
     </main>
   )
