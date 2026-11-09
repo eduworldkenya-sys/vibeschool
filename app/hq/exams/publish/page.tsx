@@ -186,6 +186,7 @@ export default function OriginalExamPublisher() {
           {privateDrafts.filter(paper => paper.status !== "retired").map(paper => <div key={paper.id} style={{ padding: "12px 0", borderTop: "1px solid #e3e8f0" }}>
             <strong>{paper.title}</strong>
             <p style={{ margin: "6px 0", color: "#53657c", fontSize: 13 }}>{paper.subject} · {paper.grade} · {paper.question_count} questions · {paper.published ? "Published" : paper.status === "reviewed" ? "Reviewed" : "Awaiting educational review"}</p>
+            {!paper.published && paper.status === "needs_editorial_review" && <button type="button" style={{ ...button, opacity: busy ? 0.5 : 1 }} disabled={busy} onClick={()=>void openPrivateReview(paper)}>Review questions</button>}
             {!paper.published && paper.status === "reviewed" && <>
               <label style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, fontSize: 13 }}>
                 <input type="checkbox" checked={approvedPrivateId === paper.id} onChange={e=>setApprovedPrivateId(e.target.checked ? paper.id : "")}/>
@@ -194,6 +195,25 @@ export default function OriginalExamPublisher() {
               <button type="button" style={{ ...button, opacity: busy || approvedPrivateId !== paper.id ? 0.5 : 1 }} disabled={busy || approvedPrivateId !== paper.id} onClick={()=>void publishPrivateDraft(paper)}>Publish reviewed exam</button>
             </>}
           </div>)}
+          {reviewDraft && <section style={{ ...surface, marginTop: 16, borderColor: "#aabbd1" }} aria-label="Owner exam review">
+            <h3 style={{ marginTop: 0 }}>Review: {reviewDraft.title}</h3>
+            <p style={{ fontSize: 13, color: "#53657c" }}>Check every question and marking key against <a href="https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-four-designs/" target="_blank" rel="noopener noreferrer">the official Grade 4 KICD designs</a>. Outcome-level verification remains provisional.</p>
+            <ol style={{ display: "grid", gap: 12, paddingLeft: 24 }}>
+              {reviewDraft.items.map(item => <li key={item.number}>
+                <strong>{item.topic}: {item.prompt}</strong>
+                <ul>{item.options.map(option => <li key={option.value}>{option.value}. {option.label}</li>)}</ul>
+                <p><strong>Correct answer: {item.correctAnswer}</strong> — {item.explanation}</p>
+              </li>)}
+            </ol>
+            <label style={{ display: "flex", gap: 8, alignItems: "start", fontSize: 13 }}>
+              <input type="checkbox" checked={reviewConfirmed} onChange={e=>setReviewConfirmed(e.target.checked)} />
+              I checked every question, answer, explanation, originality and curriculum suitability. Outcome-level mapping remains provisional.
+            </label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+              <button type="button" style={{ ...button, opacity: !reviewConfirmed || busy ? 0.5 : 1 }} disabled={!reviewConfirmed || busy} onClick={()=>void approvePrivateReview()}>Record editorial review</button>
+              <button type="button" style={{ ...button, background: "#64748b" }} disabled={busy} onClick={()=>{setReviewDraft(null);setReviewConfirmed(false)}}>Close review</button>
+            </div>
+          </section>}
         </section>
 
         <section style={surface}>
