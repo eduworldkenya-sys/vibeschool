@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BookOpen, FlaskConical, PencilLine, ClipboardCheck, PlayCircle, Puzzle, FolderOpen, CalendarDays, Users, LayoutGrid, ChevronDown, ArrowUpRight } from "lucide-react";
 import { useStudent } from "@/lib/student-context";
+import { supabase } from "@/lib/supabase";
 
 type Activity = { title:string; detail:string; Icon: typeof BookOpen; href:string };
 
@@ -12,10 +13,26 @@ export default function LearnActivityHub() {
   const [expanded, setExpanded] = useState(false);
   const [hasPendingTopicPractice, setHasPendingTopicPractice] = useState(false);
   useEffect(() => {
-    if (!identity?.studentId) { setHasPendingTopicPractice(false); return; }
-    try { const raw = window.localStorage.getItem("vibeschool:topic-practice:v1:" + identity.studentId); const saved = raw ? JSON.parse(raw) : null; setHasPendingTopicPractice(Boolean(saved && saved.finished === false && Array.isArray(saved.questionIds) && saved.questionIds.length === 5)); }
-    catch { setHasPendingTopicPractice(false); }
-  }, [identity?.studentId]);
+    let active=true
+    if (!identity?.studentId) { setHasPendingTopicPractice(false); return }
+    const grade=identity.className.trim()
+    if (/^Grade\s*9$/i.test(grade)) {
+      void supabase.rpc("student_list_canonical_topic_practice" as never,{p_grade:"Grade 9"})
+        .then(({data,error})=>{
+          if(!active)return
+          if(error || !Array.isArray(data)){setHasPendingTopicPractice(false);return}
+          setHasPendingTopicPractice(data.some(item=>item && typeof item==="object" && !Array.isArray(item) && (item as {in_progress?:unknown}).in_progress===true))
+        })
+        .catch(()=>{if(active)setHasPendingTopicPractice(false)})
+    } else {
+      try {
+        const raw=window.localStorage.getItem("vibeschool:topic-practice:v1:"+identity.studentId)
+        const saved=raw?JSON.parse(raw):null
+        setHasPendingTopicPractice(Boolean(saved && saved.finished===false && Array.isArray(saved.questionIds) && saved.questionIds.length===5))
+      } catch {setHasPendingTopicPractice(false)}
+    }
+    return()=>{active=false}
+  }, [identity?.studentId,identity?.className]);
   const hasSchoolClass = Boolean(identity?.classId);
   const primary: Activity[] = [
     { title: "Exams", detail:"Start an exam and see results", Icon:ClipboardCheck, href: "/student/vibelearn/exams" },
