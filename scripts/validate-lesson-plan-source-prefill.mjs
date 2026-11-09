@@ -50,6 +50,23 @@ const assertions = [
     !source.includes('as unknown'),
     'Lesson source parsing must not use an unknown-cast escape hatch.',
   ],
+  [
+    source.includes("progression unavailable; trying dated sources") &&
+      source.includes("if (progressionScheme)") &&
+      source.includes("resolveInstructionalWeekForDate("),
+    'Transient progression errors must preserve dated timetable and curriculum fallback.',
+  ],
+  [
+    source.includes("curriculum enrichment unavailable") &&
+      source.includes("if (!data) return source") &&
+      source.includes("return source"),
+    'Missing authority enrichment must preserve the teacher-authored source without inventing outcomes.',
+  ],
+  [
+    source.includes("assignment_not_found|academic_term_not_found") &&
+      source.includes("throw progressionError"),
+    'Progression recovery must not bypass authorization failures.',
+  ],
 ]
 
 const failures = assertions
