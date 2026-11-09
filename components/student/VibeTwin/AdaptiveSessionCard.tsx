@@ -47,7 +47,8 @@ function parsePlan(value: unknown): SessionPlan {
 }
 
 export default function AdaptiveSessionCard() {
-  const { refresh } = useTwinBrain()
+  const { refresh, state } = useTwinBrain()
+  const hasEvidence = Boolean((state?.evidence.learningEventCount ?? 0) > 0 || (state?.evidence.competencyEvidenceCount ?? 0) > 0 || (state?.evidence.taskReceiptCount ?? 0) > 0)
   const [plan, setPlan] = useState<SessionPlan | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -103,10 +104,10 @@ export default function AdaptiveSessionCard() {
   return <section style={card}>
     <div style={head}>
       <div><div style={eyebrow}>LEARN AT YOUR PACE</div><h2 style={title}>{plan.plannedMinutes}-minute session</h2></div>
-      <span style={badge}>{plan.status === 'active' ? 'In progress' : plan.status === 'completed' ? 'Completed' : plan.resumed ? 'Resumed' : 'Twin planned'}</span>
+      <span style={badge}>{plan.status === 'active' ? 'In progress' : plan.status === 'completed' ? 'Completed' : plan.resumed ? 'Resumed'  : hasEvidence ? 'Twin planned' : 'Starter session'}</span>
     </div>
-    <p style={body}>{plan.reason}</p>
-    <div style={recommendation}>Twin recommends <strong>{plan.recommendedPace}</strong>. You chose <strong>{plan.chosenPace}</strong>.</div>
+    <p style={body}>{hasEvidence ? plan.reason : 'This is a starter study session, not yet a personalised recommendation. Twin will adjust as learning evidence becomes available.'}</p>
+    <div style={recommendation}>{hasEvidence ? 'Twin recommends' : 'Starting pace'} <strong>{plan.recommendedPace}</strong>. You chose <strong>{plan.chosenPace}</strong>.</div>
     <div style={paceRow}>{(['gentle','steady','fast'] as Pace[]).map(pace => <button key={pace} disabled={busy || locked} onClick={() => void choosePace(pace)} style={{ ...paceButton, ...(plan.chosenPace === pace ? activePace : {}), ...(busy || locked ? disabled : {}) }}><strong>{pace[0].toUpperCase()+pace.slice(1)}</strong><span>{COPY[pace]}</span></button>)}</div>
     <div style={flow}><Step n="1" label="Understand" /><Step n="2" label="Try" /><Step n="3" label="Reflect" /><Step n="4" label="Revisit" /></div>
     <div style={actions}>
