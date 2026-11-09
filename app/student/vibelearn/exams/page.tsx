@@ -2,8 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@/lib/assessment/discovery'
 import { getLearnerAssessmentHub, type LearnerAssessmentHub } from '@/lib/assessment/integration'
 import './exams.css'
@@ -27,7 +27,7 @@ function examState(item: LearnerAssessmentAssignment): ExamState {
 }
 
 function subjectFromTitle(title: string): string {
-  const match = title.match(/(?:grade|form)\\s*\\d+\\s+(.+?)\\s*[—–-]\\s*/i)
+  const match = title.match(/(?:grade|form)\s*\d+\s+(.+?)\s*[—–-]\s*/i)
   return match?.[1]?.trim() || 'Assessment'
 }
 
@@ -42,10 +42,14 @@ const statusText: Record<ExamState, string> = {
 
 export default function VibeLearnExamsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const selectedView = searchParams.get('view')
+  const initialView: View = selectedView === 'history' || selectedView === 'progress' ? selectedView : 'for-you'
+  const retakeTrigger = useRef<HTMLButtonElement | null>(null)
   const [assignments, setAssignments] = useState<LearnerAssessmentAssignment[]>([])
   const [hub, setHub] = useState<LearnerAssessmentHub | null>(null)
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<View>('for-you')
+  const [view, setView] = useState<View>(initialView)
   const [assessmentError, setAssessmentError] = useState('')
   const [resultsError, setResultsError] = useState('')
   const [retake, setRetake] = useState<LearnerAssessmentAssignment | null>(null)
@@ -68,6 +72,45 @@ export default function VibeLearnExamsPage() {
   }, [])
 
   useEffect(() => reload(), [reload])
+  useEffect(() => {
+    if (selectedView === 'history' || selectedView === 'progress' || selectedView === 'for-you') {
+      setView(selectedView)
+    }
+  }, [selectedView])
+  useEffect(() => {
+    if (!retake) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeRetake()
+      if (event.key !== 'Tab') return
+      const modal = document.getElementById('vs-retake-title')?.closest('[role="alertdialog"]')
+      const controls = modal?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+      if (!controls?.length) return
+      if (event.shiftKey && document.activeElement === controls[0]) {
+        event.preventDefault()
+        controls[controls.length - 1].focus()
+      } else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) {
+        event.preventDefault()
+        controls[0].focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [retake])
+  function closeRetake() {
+    setRetake(null)
+    requestAnimationFrame(() => retakeTrigger.current?.focus())
+  }
+  function openRetake(item: LearnerAssessmentAssignment, trigger: HTMLButtonElement) {
+    retakeTrigger.current = trigger
+    setRetake(item)
+  }
+  function changeView(next: View) {
+    setView(next)
+    router.replace(`/student/vibelearn/exams?view=${next}`, { scroll: false })
+  }
+  function viewResult(attemptId: string) {
+    router.push(`/student/results/${encodeURIComponent(attemptId)}?from=${view}`)
+  }
 
   const groups = useMemo(() => {
     const ongoing: LearnerAssessmentAssignment[] = []
@@ -90,12 +133,11 @@ export default function VibeLearnExamsPage() {
   }, [assignments])
   const results = hub?.results ?? []
   const scored = results.filter(r => r.percentage !== null)
+  // Raw attempts may include repeat practice and timeouts: never present this as mastery.
   const average = scored.length ? scored.reduce((sum, r) => sum + (r.percentage ?? 0), 0) / scored.length : null
   const chronological = [...scored].sort((a, b) => Date.parse(a.releasedAt) - Date.parse(b.releasedAt))
   const trend = chronological.slice(-6)
-  const latest = chronological[chronological.length - 1]
-  const prior = chronological[chronological.length - 2]
-  const change = latest?.percentage != null && prior?.percentage != null ? latest.percentage - prior.percentage : null
+  const distinctPapers = new Set(results.map(r => r.assessmentTitle)).size
   const reviewFirst = [...chronological].reverse().find(result => result.percentage !== null && result.percentage < 60)
   const revisionCandidate = [...groups.retakes].filter(item => item.canStart).sort((a, b) => {
     const score = (title: string) => chronological.filter(r => r.assessmentTitle === title).at(-1)?.percentage ?? 101
@@ -127,11 +169,11 @@ export default function VibeLearnExamsPage() {
       </div>
       <div className="vs-exam-card-actions">
         <button type="button" className={kind === 'completed' ? 'vs-exam-button vs-exam-button--outline' : 'vs-exam-button'}
-          onClick={() => {
-            if (kind === 'retake') setRetake(item)
-            else if (kind === 'completed' && resultAvailable && item.attemptId) router.push(`/student/results/${encodeURIComponent(item.attemptId)}`)
+          onClick={event => {
+            if (kind === 'retake') openRetake(item, event.currentTarget)
+            else if (kind === 'completed' && resultAvailable && item.attemptId) viewResult(item.attemptId)
             else if (kind === 'new' || kind === 'in-progress') start(item)
-            else setView('history')
+            else changeView('history')
           }}>{action}</button>
       </div>
     </article>
@@ -155,7 +197,7 @@ export default function VibeLearnExamsPage() {
       <nav className="vs-exams-tabs" aria-label="Exam views">
         {([['for-you', 'For you'], ['history', 'History'], ['progress', 'Progress']] as const).map(([id, label]) =>
           <button key={id} type="button" aria-current={view === id ? 'page' : undefined}
-            className={view === id ? 'vs-exams-tab is-active' : 'vs-exams-tab'} onClick={() => setView(id)}>{label}</button>)}
+            className={view === id ? 'vs-exams-tab is-active' : 'vs-exams-tab'} onClick={() => changeView(id)}>{label}</button>)}
       </nav>
 
       {loading && <div className="vs-exams-message" role="status">Loading your exams…</div>}
@@ -174,9 +216,9 @@ export default function VibeLearnExamsPage() {
                 <strong>You're up to date with new exams</strong>
                 <p>Use your previous results to choose what to improve next.</p>
                 <div className="vs-exams-next-actions">
-                  {reviewFirst && <button type="button" className="vs-exam-button" onClick={() => router.push(`/student/results/${encodeURIComponent(reviewFirst.attemptId)}`)}>Review previous mistakes</button>}
-                  {revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => setRetake(revisionCandidate)}>Practise again</button>}
-                  {!reviewFirst && !revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => results.length ? setView('history') : router.push('/student/vibelearn')}>{results.length ? 'View exam history' : 'Explore Learn'}</button>}
+                  {reviewFirst && <button type="button" className="vs-exam-button" onClick={() => viewResult(reviewFirst.attemptId)}>Review previous mistakes</button>}
+                  {revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={event => openRetake(revisionCandidate, event.currentTarget)}>Practise again</button>}
+                  {!reviewFirst && !revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => results.length ? changeView('history') : router.push('/student/vibelearn')}>{results.length ? 'View exam history' : 'Explore Learn'}</button>}
                 </div>
                 {reviewFirst && <p className="vs-exams-section-note">Review suggested from your released score in {reviewFirst.assessmentTitle} ({reviewFirst.percentage?.toFixed(1)}%). This does not identify a specific weak curriculum objective.</p>}
               </div>}
@@ -197,26 +239,26 @@ export default function VibeLearnExamsPage() {
         <p className="vs-exams-section-note">Released results are saved with their original attempts.</p>
         {!resultsError && results.length === 0 && <div className="vs-exams-message">No released results yet. Completed exams awaiting review will appear after release.</div>}
         <div className="vs-exams-card-list">{results.map(result => <article className="vs-exam-card" key={result.attemptId}>
-          <div className="vs-exam-card-main"><span className="vs-exam-status vs-exam-status--completed">Completed</span>
+          <div className="vs-exam-card-main"><span className="vs-exam-status vs-exam-status--completed">Released result</span>
             <h3>{result.assessmentTitle}</h3>
-              <p>{subjectFromTitle(result.assessmentTitle)} · Released {new Date(result.releasedAt).toLocaleDateString('en-KE')}</p>
+              <p>{subjectFromTitle(result.assessmentTitle)} · {result.assessmentType.replaceAll('_', ' ')} · Released {new Date(result.releasedAt).toLocaleDateString('en-KE')}</p>
               {(() => { const earlier = previousAttempt(result.assessmentTitle, result.releasedAt); return earlier?.percentage != null && result.percentage != null
                 ? <p className="vs-exam-comparison">Versus previous attempt: {result.percentage - earlier.percentage >= 0 ? '+' : ''}{(result.percentage - earlier.percentage).toFixed(1)} points</p>
                 : null })()}</div>
           <div className="vs-exam-card-actions"><strong className="vs-exam-result-value">{result.percentage === null ? '—' : `${result.percentage.toFixed(1)}%`}</strong>
-            <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => router.push(`/student/results/${encodeURIComponent(result.attemptId)}`)}>View result</button></div>
+            <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => viewResult(result.attemptId)}>View result</button></div>
         </article>)}</div>
       </section>}
 
       {!loading && view === 'progress' && <section className="vs-exams-sections" aria-labelledby="vs-exams-progress">
         <h2 id="vs-exams-progress">Your progress</h2>
-        <p className="vs-exams-section-note">Based on your released results, not an official exam prediction.</p>
+        <p className="vs-exams-section-note">Released attempts include repeat practice and timed-out attempts. The raw average is not a mastery score or an official exam prediction.</p>
         <div className="vs-exams-progress-grid">
-          <div><span>Released assessments</span><strong>{results.length}</strong></div>
-          <div><span>Average result</span><strong>{average === null ? '—' : `${average.toFixed(1)}%`}</strong></div>
+          <div><span>Released attempts</span><strong>{results.length} across {distinctPapers} paper{distinctPapers === 1 ? '' : 's'}</strong></div>
+          <div><span>Raw average across attempts</span><strong>{average === null ? '—' : `${average.toFixed(1)}%`}</strong></div>
         </div>
         {trend.length >= 2 && <section className="vs-exams-trend" aria-label="Recent released assessment scores">
-          <div className="vs-exams-section-header"><h3>Recent results</h3><span>Last {trend.length} assessments</span></div>
+          <div className="vs-exams-section-header"><h3>Recent results</h3><span>Last {trend.length} attempts</span></div>
           <div className="vs-exams-trend-bars" role="list">
             {trend.map((result, index) => <div key={result.attemptId} role="listitem" className="vs-exams-trend-item" title={result.assessmentTitle}>
               <span>{result.percentage?.toFixed(0)}%</span>
@@ -224,25 +266,25 @@ export default function VibeLearnExamsPage() {
               <small>#{index + 1}</small>
             </div>)}
           </div>
-          <p className="vs-exams-section-note">{change === null ? 'Shown in release order.' : `Last two results: ${change > 0 ? '+' : ''}${change.toFixed(1)} percentage points.`} Different assessments can vary in difficulty and topic.</p>
+          <p className="vs-exams-section-note">Scores shown in release order, not as a single improvement trend. Different papers and repeat attempts cannot be compared directly.</p>
         </section>}
         {results.length === 0 ? <div className="vs-exams-message">Complete an assessment to start building your result history.</div>
           : <div className="vs-exams-next">
               <strong>What to do next</strong>
               <p>{reviewFirst ? `Review ${reviewFirst.assessmentTitle} and check the answers you missed.` : 'Review previous answers and explanations to decide what to revise.'}</p>
-              <button type="button" className="vs-exam-button" onClick={() => reviewFirst ? router.push(`/student/results/${encodeURIComponent(reviewFirst.attemptId)}`) : setView('history')}>{reviewFirst ? 'Review this result' : 'View exam history'}</button>
+              <button type="button" className="vs-exam-button" onClick={() => reviewFirst ? viewResult(reviewFirst.attemptId) : changeView('history')}>{reviewFirst ? 'Review this result' : 'View exam history'}</button>
               <p className="vs-exams-section-note">Objective-level recommendations will follow verified question-to-curriculum mappings.</p>
             </div>}
-        <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => setView('history')}>View exam history</button>
+        <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => changeView('history')}>View exam history</button>
       </section>}
     </div>
 
-    {retake && <div className="vs-exam-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setRetake(null) }}>
+    {retake && <div className="vs-exam-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) closeRetake() }}>
       <section role="alertdialog" aria-modal="true" aria-labelledby="vs-retake-title" aria-describedby="vs-retake-copy" className="vs-exam-modal">
         <h2 id="vs-retake-title">Retake this exam?</h2>
         <p id="vs-retake-copy">A new attempt will start. Your previous results will stay in History. You have used {retake.attemptNumber ?? 0} of {retake.maxAttempts} attempts.</p>
-        <div className="vs-exam-modal-actions"><button type="button" className="vs-exam-button vs-exam-button--outline" autoFocus onClick={() => setRetake(null)}>Cancel</button>
-          <button type="button" className="vs-exam-button" onClick={() => { const item = retake; setRetake(null); start(item) }}>Start retake</button></div>
+        <div className="vs-exam-modal-actions"><button type="button" className="vs-exam-button vs-exam-button--outline" autoFocus onClick={closeRetake}>Cancel</button>
+          <button type="button" className="vs-exam-button" onClick={() => { const item = retake; closeRetake(); start(item) }}>Start retake</button></div>
       </section>
     </div>}
   </main>
