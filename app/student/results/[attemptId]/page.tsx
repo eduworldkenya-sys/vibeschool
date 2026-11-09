@@ -107,9 +107,10 @@ export default function StudentResultDetailPage() {
           <section style={{ ...card, borderColor: '#c7d2fe', background: '#eef2ff' }}>
             <strong>Another attempt is available</strong>
             <p style={{ color: '#4b5563' }}>You have used {result.attemptsUsed} of {result.maxAttempts} attempts.</p>
-            <button type="button" onClick={() => router.push('/student/assessment')} style={primaryButton}>Open My Assessments</button>
+            <button type="button" onClick={() => router.push(`/student/assessment/${encodeURIComponent(result.assignmentId)}`)} style={primaryButton}>Try this exam again</button>
           </section>
         )}
+        <button type="button" onClick={() => router.push('/student/vibelearn/exams')} style={{ ...secondaryButton, marginTop: 8, width: '100%' }}>Back to Exams</button>
       </div>
     </main>
   )
