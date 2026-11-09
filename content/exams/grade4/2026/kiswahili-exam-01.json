@@ -1,0 +1,377 @@
+{
+  "id": "g4-kiswahili-vibeschool-exam-01",
+  "title": "Gredi ya 4 Kiswahili — Mtihani wa VibeSchool 01",
+  "grade": "Grade 4",
+  "subject": "Kiswahili",
+  "curriculum": "Kenya CBC Grade 4 — KICD 2024 revised design reference; question-to-outcome mapping pending independent verification",
+  "status": "original_content_editorial_review",
+  "origin": "VibeSchool Original — Internally Authored",
+  "assessment_type": "practice",
+  "duration_minutes": 30,
+  "max_attempts": 3,
+  "total_marks": 12,
+  "visibility": "public_practice",
+  "instructions": "Soma kila swali kisha uchague jibu moja sahihi. Unaweza kuruka swali na kulirudia kabla ya kuwasilisha.",
+  "items": [
+    {
+      "number": 1,
+      "bank_key": "G4-KIS-EX01-001",
+      "topic": "Ufahamu",
+      "difficulty": "easy",
+      "prompt": "Soma: 'Juma na dada yake Asha walipanda miche ya miti shuleni siku ya Ijumaa. Walimwagilia miche hiyo maji asubuhi.' Juma na Asha walipanda nini?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Mbegu za mahindi"
+        },
+        {
+          "value": "B",
+          "label": "Miche ya miti"
+        },
+        {
+          "value": "C",
+          "label": "Maua ya karatasi"
+        },
+        {
+          "value": "D",
+          "label": "Nyasi kavu"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Kifungu kinasema Juma na Asha walipanda miche ya miti.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 2,
+      "bank_key": "G4-KIS-EX01-002",
+      "topic": "Ufahamu",
+      "difficulty": "easy",
+      "prompt": "Soma: 'Juma na dada yake Asha walipanda miche ya miti shuleni siku ya Ijumaa. Walimwagilia miche hiyo maji asubuhi.' Walipanda miche lini?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Jumatatu"
+        },
+        {
+          "value": "B",
+          "label": "Jumanne"
+        },
+        {
+          "value": "C",
+          "label": "Ijumaa"
+        },
+        {
+          "value": "D",
+          "label": "Jumapili"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Kifungu kinaonyesha kuwa shughuli hiyo ilifanyika siku ya Ijumaa.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 3,
+      "bank_key": "G4-KIS-EX01-003",
+      "topic": "Ufahamu",
+      "difficulty": "easy",
+      "prompt": "Soma: 'Juma na dada yake Asha walipanda miche ya miti shuleni siku ya Ijumaa. Walimwagilia miche hiyo maji asubuhi.' Walimwagilia miche wakati gani?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Usiku"
+        },
+        {
+          "value": "B",
+          "label": "Mchana"
+        },
+        {
+          "value": "C",
+          "label": "Jioni"
+        },
+        {
+          "value": "D",
+          "label": "Asubuhi"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Kifungu kinataja kwamba walimwagilia miche asubuhi.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 4,
+      "bank_key": "G4-KIS-EX01-004",
+      "topic": "Msamiati",
+      "difficulty": "easy",
+      "prompt": "Ni neno gani lenye maana kinyume cha 'kubwa'?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Ndogo"
+        },
+        {
+          "value": "B",
+          "label": "Ndefu"
+        },
+        {
+          "value": "C",
+          "label": "Nyingi"
+        },
+        {
+          "value": "D",
+          "label": "Nzuri"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Kinyume cha neno 'kubwa' ni 'ndogo'.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 5,
+      "bank_key": "G4-KIS-EX01-005",
+      "topic": "Umoja na Wingi",
+      "difficulty": "medium",
+      "prompt": "Wingi wa 'kitabu' ni upi?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Vitabuni"
+        },
+        {
+          "value": "B",
+          "label": "Vitabu"
+        },
+        {
+          "value": "C",
+          "label": "Matabu"
+        },
+        {
+          "value": "D",
+          "label": "Kitabu"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Katika ngeli ya KI-VI, wingi wa kitabu ni vitabu.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 6,
+      "bank_key": "G4-KIS-EX01-006",
+      "topic": "Nyakati",
+      "difficulty": "medium",
+      "prompt": "Chagua sentensi iliyo katika wakati uliopita.",
+      "options": [
+        {
+          "value": "A",
+          "label": "Mama anapika chakula."
+        },
+        {
+          "value": "B",
+          "label": "Mama atapika chakula."
+        },
+        {
+          "value": "C",
+          "label": "Mama alipika chakula."
+        },
+        {
+          "value": "D",
+          "label": "Mama hupika chakula."
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Kiambishi '-li-' katika 'alipika' huonyesha wakati uliopita.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 7,
+      "bank_key": "G4-KIS-EX01-007",
+      "topic": "Sarufi",
+      "difficulty": "medium",
+      "prompt": "Jaza pengo: 'Watoto ____ uwanjani sasa.'",
+      "options": [
+        {
+          "value": "A",
+          "label": "anacheza"
+        },
+        {
+          "value": "B",
+          "label": "alicheza"
+        },
+        {
+          "value": "C",
+          "label": "nitacheza"
+        },
+        {
+          "value": "D",
+          "label": "wanacheza"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "'Watoto' ni wingi, hivyo 'wanacheza' ndiyo upatanisho sahihi katika wakati uliopo.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 8,
+      "bank_key": "G4-KIS-EX01-008",
+      "topic": "Alama za Uandishi",
+      "difficulty": "medium",
+      "prompt": "Ni sentensi gani iliyoandikwa kwa alama sahihi?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Unaenda wapi?"
+        },
+        {
+          "value": "B",
+          "label": "unaenda wapi,"
+        },
+        {
+          "value": "C",
+          "label": "Unaenda wapi."
+        },
+        {
+          "value": "D",
+          "label": "Unaenda wapi!"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Swali huanza kwa herufi kubwa na kuishia kwa alama ya kuuliza.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 9,
+      "bank_key": "G4-KIS-EX01-009",
+      "topic": "Heshima na Adabu",
+      "difficulty": "medium",
+      "prompt": "Mwanafunzi akipewa msaada, anafaa kusema nini?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Niondokee"
+        },
+        {
+          "value": "B",
+          "label": "Asante"
+        },
+        {
+          "value": "C",
+          "label": "Haraka"
+        },
+        {
+          "value": "D",
+          "label": "Sielewi"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Neno 'Asante' hutumiwa kuonyesha shukrani.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 10,
+      "bank_key": "G4-KIS-EX01-010",
+      "topic": "Vitenzi",
+      "difficulty": "challenging",
+      "prompt": "Katika sentensi 'Wakulima wanalima shamba', kitenzi ni kipi?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Wakulima"
+        },
+        {
+          "value": "B",
+          "label": "shamba"
+        },
+        {
+          "value": "C",
+          "label": "wanalima"
+        },
+        {
+          "value": "D",
+          "label": "katika"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "'Wanalima' linaeleza tendo linalofanywa na wakulima.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 11,
+      "bank_key": "G4-KIS-EX01-011",
+      "topic": "Visawe",
+      "difficulty": "challenging",
+      "prompt": "Kisawe cha 'furaha' ni kipi?",
+      "options": [
+        {
+          "value": "A",
+          "label": "huzuni"
+        },
+        {
+          "value": "B",
+          "label": "hasira"
+        },
+        {
+          "value": "C",
+          "label": "uchovu"
+        },
+        {
+          "value": "D",
+          "label": "shangwe"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Neno 'shangwe' linahusiana na furaha.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 12,
+      "bank_key": "G4-KIS-EX01-012",
+      "topic": "Uundaji wa Sentensi",
+      "difficulty": "challenging",
+      "prompt": "Ni sentensi ipi iliyo kamili na sahihi?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Asha anasoma kitabu."
+        },
+        {
+          "value": "B",
+          "label": "Kwa sababu ya mvua"
+        },
+        {
+          "value": "C",
+          "label": "Katika chumba chetu"
+        },
+        {
+          "value": "D",
+          "label": "Na rafiki yake"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "'Asha anasoma kitabu' ni sentensi kamili yenye kiima na kiarifu.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    }
+  ]
+}
