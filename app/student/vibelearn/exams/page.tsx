@@ -12,8 +12,8 @@ import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@
 import { getLearnerAssessmentHub, type LearnerAssessmentHub } from '@/lib/assessment/integration'
 
 function actionLabel(item: LearnerAssessmentAssignment): string {
-  if (item.attemptStatus === 'in_progress') return 'Resume'
-  if (item.percentage !== null) return 'View result'
+  if (item.attemptStatus === 'in_progress') return `Continue attempt ${item.attemptNumber ?? ''}`.trim()
+  if (item.resultStatus === 'released' && item.attemptId) return 'Review result'
   if (item.availability === 'upcoming') return 'Not open yet'
   if (item.availability === 'closed') return 'Closed'
   if (item.availability === 'attempts_exhausted') return 'Attempts used'
@@ -57,6 +57,12 @@ export default function VibeLearnExamsPage() {
     return () => { cancelled = true }
   }, [isForm4])
 
+  const releasedByAssignment = new Map<string, NonNullable<LearnerAssessmentHub>['results'][number]>()
+  for (const result of hub?.results ?? []) {
+    const assignment = assignments.find(item => item.title === result.assessmentTitle || item.attemptId === result.attemptId)
+    if (assignment && !releasedByAssignment.has(assignment.assignmentId)) releasedByAssignment.set(assignment.assignmentId, result)
+  }
+
   const papers = kcse?.paper_blueprints ?? []
   const subjects = Array.from(new Set(papers.map(paper => paper.subject))).sort()
   const subjectPapers = papers.filter(paper => paper.subject === selectedSubject)
@@ -76,7 +82,7 @@ export default function VibeLearnExamsPage() {
   }
 
   return <main style={shell}>
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1120, width: '100%', margin: '0 auto' }}>
       <VibeLearnSubnav />
       <section style={{ ...hero, background: '#172b51', padding: 24 }}>
         <button type="button" onClick={() => router.push('/student/vibelearn')} style={{ background: 'transparent', border: 0, color: '#fff', padding: '0 0 18px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>← Learn</button>
@@ -84,20 +90,20 @@ export default function VibeLearnExamsPage() {
         <p style={{ margin: 0, color: '#dbeafe', lineHeight: 1.6 }}>Practise, take exams and track your progress.</p>
       </section>
 
-      <nav aria-label="Exam tools" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, marginBottom: 16 }}>
+      <nav aria-label="Exam tools" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,210px),1fr))', gap: 12, marginBottom: 16 }}>
         {([
           { icon: '▤', title: 'Practice Exams', description: 'Choose a subject', href: '/student/vibelearn/practice' },
           { icon: '◷', title: 'Mock Exams', description: 'Timed papers', href: isForm4 ? '/student/vibelearn/kcse' : '#school-exams' },
           { icon: '▣', title: 'Past Papers', description: isForm4 ? 'Verified papers' : 'Available school papers', href: isForm4 ? '#choose-exam' : '#school-exams' },
           { icon: '▥', title: 'My Results', description: 'Scores & progress', href: '#exam-results' },
-        ] as const).map(item => <button key={item.title} type="button" onClick={() => item.href.startsWith('#') ? document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: 'smooth' }) : router.push(item.href)} style={{ border: 0, background: '#101827', color: '#fff', borderRadius: 18, padding: 20, minHeight: 154, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+        ] as const).map(item => <button key={item.title} type="button" onClick={() => item.href.startsWith('#') ? document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: 'smooth' }) : router.push(item.href)} style={{ border: 0, background: '#101827', color: '#fff', borderRadius: 18, padding: 20, minHeight: 132, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
           <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>{item.icon}</span>
           <strong style={{ fontSize: 17 }}>{item.title}</strong>
           <span style={{ fontSize: 12, color: '#cbd5e1', marginTop: 'auto' }}>{item.description}</span>
         </button>)}
       </nav>
 
-      {isGrade4 && assignments.filter(item => /^Grade 4 English — Pilot 01$/i.test(item.title)).map(item =>
+      {false && isGrade4 && assignments.filter(item => /^Grade 4 English — Pilot 01$/i.test(item.title)).map(item =>
         <section key={item.assignmentId} style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 English exam">
           <div style={eyebrowDark}>Grade 4 · English</div>
           <h2 style={title}>English practice exam</h2>
@@ -106,7 +112,7 @@ export default function VibeLearnExamsPage() {
         </section>
       )}
 
-      {isGrade4 && <section style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 Mathematics exams">
+      {false && isGrade4 && <section style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 Mathematics exams">
         <div style={eyebrowDark}>Grade 4 · Mathematics</div>
         <h2 style={title}>Mathematics exam</h2>
         <p style={muted}>Answer one question at a time. Your answers are saved as you go, and your results appear when released.</p>
@@ -146,7 +152,7 @@ export default function VibeLearnExamsPage() {
       {error && <section role="alert" style={{ ...card, color: '#b91c1c' }}>{error}</section>}
       {loading && <section style={card}>Loading your school exams and results…</section>}
       {!loading && <>
-        {readiness && <section style={{ ...card, borderColor: '#f59e0b', background: '#fffaf0' }}>
+        {isForm4 && readiness && <section style={{ ...card, borderColor: '#f59e0b', background: '#fffaf0' }}>
           <div style={eyebrowDark}>Exam readiness</div>
           <h2 style={title}>{readiness.examName} focus</h2>
           <div style={metrics}>
@@ -164,20 +170,25 @@ export default function VibeLearnExamsPage() {
         <section id="school-exams" style={{ ...card, scrollMarginTop: 20 }}>
           <div style={eyebrowDark}>Assigned exams and quizzes</div>
           <h2 style={title}>Your assessment queue</h2>
-          {assignments.length === 0 ? <p style={muted}>Teacher-assigned quizzes, tests and exams will appear here.</p> : <div style={{ display: 'grid', gap: 10 }}>
+          {assignments.length === 0 ? <p style={muted}>Teacher-assigned quizzes, tests and exams will appear here.</p> : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,310px),1fr))', gap: 10 }}>
             {assignments.map(item => {
-              const enabled = item.canStart || item.percentage !== null
+              const released = releasedByAssignment.get(item.assignmentId)
+              const active = item.attemptStatus === 'in_progress'
+              const enabled = item.canStart || active
               return <article key={item.assignmentId} style={itemCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <div><div style={eyebrowDark}>{item.assessmentType.replaceAll('_', ' ')}</div><strong>{item.title}</strong></div>
-                  {item.percentage !== null && <strong style={{ color: '#047857' }}>{item.percentage.toFixed(1)}%</strong>}
+                  {released && <strong style={{ color: '#047857' }}>Released {released.percentage?.toFixed(1) ?? '—'}%</strong>}
                 </div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 9 }}>
-                  <span style={pill}>{item.availability.replaceAll('_', ' ')}</span>
+                  <span style={pill}>{active ? `Attempt ${item.attemptNumber ?? 'current'} in progress` : item.availability.replaceAll('_', ' ')}</span>
                   {item.timeLimitMinutes && <span style={pill}>{item.timeLimitMinutes} min</span>}
                   {item.attemptNumber && <span style={pill}>Attempt {item.attemptNumber}/{item.maxAttempts}</span>}
                 </div>
-                <button style={{ ...primaryButton, marginTop: 12, opacity: enabled ? 1 : 0.55 }} disabled={!enabled} onClick={() => enabled && router.push(`/student/assessment/${item.assignmentId}`)}>{actionLabel(item)}</button>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  <button style={{ ...primaryButton, opacity: enabled ? 1 : 0.55 }} disabled={!enabled} onClick={() => enabled && router.push(`/student/assessment/${item.assignmentId}`)}>{active ? actionLabel(item) : item.canStart ? 'Start exam' : 'Unavailable'}</button>
+                  {released && <button type="button" style={secondaryButton} onClick={() => router.push(`/student/results/${encodeURIComponent(released.attemptId)}`)}>Review released attempt</button>}
+                </div>
               </article>
             })}
           </div>}
@@ -189,7 +200,7 @@ export default function VibeLearnExamsPage() {
           {!hub || hub.results.length === 0 ? <p style={muted}>Released marks and feedback will appear here.</p> : <div style={{ display: 'grid', gap: 9 }}>
             {hub.results.map(result => <div key={result.attemptId} style={row}>
               <div><strong>{result.assessmentTitle}</strong><div style={muted}>{result.assessmentType.replaceAll('_', ' ')} · {new Date(result.releasedAt).toLocaleDateString('en-KE')}</div>{result.feedback && <div style={{ marginTop: 5, fontSize: 12 }}>{result.feedback}</div>}</div>
-              <strong>{result.percentage == null ? '—' : `${result.percentage.toFixed(1)}%`}</strong>
+              <div style={{ display: 'grid', gap: 8, justifyItems: 'end' }}><strong>{result.percentage == null ? '—' : `${result.percentage.toFixed(1)}%`}</strong><button type="button" style={secondaryButton} onClick={() => router.push(`/student/results/${encodeURIComponent(result.attemptId)}`)}>Review answers</button></div>
             </div>)}
           </div>}
         </section>
@@ -202,7 +213,7 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   return <div style={metric}><span style={muted}>{label}</span><strong style={{ fontSize: 22 }}>{value}</strong></div>
 }
 
-const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 90px', color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }
+const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px clamp(12px, 3vw, 36px) 90px', color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }
 const hero: React.CSSProperties = { background: 'linear-gradient(135deg,#0f172a,#312e81)', color: '#fff', borderRadius: 20, padding: 20, marginBottom: 12 }
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 16, marginBottom: 12 }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1, color: '#a5b4fc' }
