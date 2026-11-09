@@ -101,7 +101,8 @@ begin
            'reviewed_at',v_reviewed_at,
            'official_curriculum_reference',p_curriculum_reference,
            'outcome_mapping','provisional_not_independently_certified',
-           'reviewed_question_count',v_idx),
+           'reviewed_question_count',v_idx,
+           'reviewed_content_md5',md5(v_draft.paper::text)),
          updated_at=v_reviewed_at
    where d.paper_id=p_paper_id;
   return jsonb_build_object('ok',true,'id',p_paper_id,
