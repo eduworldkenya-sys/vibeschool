@@ -2,7 +2,7 @@
  * KICD Grade 4 English revised 2024: published annual theme index.
  * This is a curriculum REFERENCE, not a substitute for canonical curriculum
  * rows, verified specific learning outcomes, or school term allocations.
- * Source: KICD English Grade 4 (2024), pp. 1–104.
+ * Source: KICD Grade 4 English revised 2024, curriculum pp. 1–91.
  */
 export const GRADE4_ENGLISH_SOURCE =
   'https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.ENGLISH.LANGUAGE.pdf'
