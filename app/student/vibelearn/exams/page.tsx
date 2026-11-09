@@ -176,7 +176,7 @@ export default function VibeLearnExamsPage() {
               const released = releasedByAssignment.get(item.assignmentId)
               const expired = item.attemptStatus === 'in_progress' && !!item.attemptExpiresAt && Date.parse(item.attemptExpiresAt) <= Date.now()
               const active = item.attemptStatus === 'in_progress' && !expired
-              const enabled = item.canStart && !expired
+              const enabled = item.canStart || (expired && (item.attemptNumber ?? item.maxAttempts) < item.maxAttempts)
               return <article key={item.assignmentId} style={itemCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <div><div style={eyebrowDark}>{item.assessmentType.replaceAll('_', ' ')}</div><strong>{item.title}</strong></div>
@@ -188,8 +188,8 @@ export default function VibeLearnExamsPage() {
                   {item.attemptNumber && <span style={pill}>Attempt {item.attemptNumber}/{item.maxAttempts}</span>}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                  <button style={{ ...primaryButton, opacity: enabled ? 1 : 0.55 }} disabled={!enabled} onClick={() => enabled && router.push(`/student/assessment/${item.assignmentId}`)}>{expired ? 'Attempt expired' : active ? actionLabel(item) : item.canStart ? 'Start exam' : 'Unavailable'}</button>
-                  {expired && <span style={{ ...muted, alignSelf: 'center' }}>This timed attempt has ended. Your released results remain available.</span>}
+                  <button style={{ ...primaryButton, opacity: enabled ? 1 : 0.55 }} disabled={!enabled} onClick={() => enabled && router.push(`/student/assessment/${item.assignmentId}`)} >{expired ? 'Start next attempt' : active ? actionLabel(item) : item.canStart ? 'Start exam' : 'Unavailable'}</button>
+                  {expired && <span style={{ ...muted, alignSelf: 'center' }}>This timed attempt has ended. Starting again uses your next permitted attempt; released results remain available.</span>}
                   {released && <button type="button" style={secondaryButton} onClick={() => router.push(`/student/results/${encodeURIComponent(released.attemptId)}`)}>Review released attempt</button>}
                 </div>
               </article>
