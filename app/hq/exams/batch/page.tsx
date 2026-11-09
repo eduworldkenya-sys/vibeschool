@@ -95,7 +95,7 @@ export default function OriginalTopicBatchPublisher() {
             style={{width:"100%",boxSizing:"border-box",border:"1px solid #b8c8dd",borderRadius:10,padding:12,font:"12px/1.5 Consolas, monospace"}}/>
           {parsed.error&&<p role="alert" style={{color:"#b91c1c"}}>{parsed.error}</p>}
           {parsed.papers&&<p>{parsed.papers.length} five-question sets · {parsed.papers.length*5} proposed questions</p>}
-          <button disabled={!parsed.papers||busy} style={{...button,opacity:!parsed.papers||busy?.5:1}} onClick={()=>void run(false)}>{busy?"Validating…":"Validate all sets"}</button>
+          <button disabled={!parsed.papers||busy} style={{...button,opacity:!parsed.papers||busy ? 0.5 : 1}} onClick={()=>void run(false)}>{busy?"Validating…":"Validate all sets"}</button>
         </section>
         {preview&&<section style={surface}>
           <h2 style={{fontSize:19}}>Validation {passed?"passed":"requires corrections"}</h2>
