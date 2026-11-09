@@ -113,6 +113,8 @@ function Toast({ msg }: { msg: string }) {
 
 function StudentShell({ children }: { children: React.ReactNode }) {
   const { identity, loading, error, retry } = useStudent();
+  const pathname = usePathname();
+  const isExamWorkspace = pathname.startsWith("/student/vibelearn/exams");
 
   if (loading) {
     return (
@@ -146,7 +148,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       />
       <OfflineBar />
       <main style={{
-        maxWidth:      768,
+        maxWidth:      isExamWorkspace ? 1120 : 768,
         margin:        "0 auto",
         padding:       "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
         paddingBottom: 160,
