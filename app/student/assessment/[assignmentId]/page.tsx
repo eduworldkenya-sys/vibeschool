@@ -81,6 +81,7 @@ export default function LearnerAssessmentPage() {
   const answersRef = useRef<AnswerState>({})
   const clientIdRef = useRef('')
   const saveTimers = useRef<Record<string, number>>({})
+  const inFlightSaves = useRef<Record<string, Promise<boolean>>>({})
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -282,74 +283,91 @@ export default function LearnerAssessmentPage() {
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirtyCount, result])
 
+  // One ordered save stream per item. A response may acknowledge only the
+  // exact snapshot sent, never edits made while the request was in flight.
   const persistAnswer = useCallback(async (
     item: LearnerAssessmentItem,
-    snapshot?: Answer,
-  ) => {
-    if (!workspace || secondsLeft === 0 || activeElsewhere) return
-    const current = snapshot ?? answersRef.current[item.id]
-    if (!current) return false
-    if (current.saving) return false
+    _snapshot?: Answer,
+  ): Promise<boolean> => {
+    if (!workspace || secondsLeft === 0 || activeElsewhere) return false
+    const existing = inFlightSaves.current[item.id]
+    if (existing) return existing
 
-    setAnswers(state => ({
-      ...state,
-      [item.id]: { ...state[item.id], saving: true },
-    }))
+    const task = (async (): Promise<boolean> => {
+      while (true) {
+        const current = answersRef.current[item.id]
+        if (!current) return false
+        if (!current.dirty) return true
 
+        const marked = { ...answersRef.current, [item.id]: { ...current, saving: true } }
+        answersRef.current = marked
+        setAnswers(marked)
+
+        try {
+          const saved = await saveResponseWithRevision({
+            attemptId: workspace.attemptId,
+            assessmentItemId: item.id,
+            clientId: clientIdRef.current,
+            expectedRevision: current.revision,
+            responseValue: current.value === undefined ? null : current.value,
+            responseText: current.text || null,
+            clientUpdatedAt: current.clientUpdatedAt,
+          })
+
+          if (saved.conflict) {
+            const latest = answersRef.current[item.id]
+            setConflict({
+              itemId: item.id,
+              serverRevision: saved.revision,
+              serverText: saved.responseText ?? '',
+              serverValue: saved.responseValue,
+              localAnswer: latest ?? current,
+            })
+            const next = { ...answersRef.current, [item.id]: {
+              ...latest, saving: false, saved: false, dirty: true,
+            } }
+            answersRef.current = next
+            setAnswers(next)
+            return false
+          }
+
+          const latest = answersRef.current[item.id]
+          const sameSnapshot = latest?.clientUpdatedAt === current.clientUpdatedAt
+            && latest.text === current.text
+            && JSON.stringify(latest.value) === JSON.stringify(current.value)
+          const next = { ...answersRef.current, [item.id]: {
+            ...latest,
+            revision: saved.revision,
+            saving: !sameSnapshot,
+            saved: sameSnapshot,
+            dirty: !sameSnapshot,
+          } }
+          answersRef.current = next
+          setAnswers(next)
+          if (sameSnapshot) return true
+          // A newer edit arrived during the save. Persist it using the freshly
+          // acknowledged revision before treating this item as clean.
+        } catch (saveError) {
+          console.error('[LearnerAssessment] save response', saveError)
+          const message = saveError instanceof Error ? saveError.message : ''
+          if (message.includes('attempt_client_lease_required')) setActiveElsewhere(true)
+          const latest = answersRef.current[item.id]
+          const next = { ...answersRef.current, [item.id]: {
+            ...latest, saving: false, saved: false, dirty: true,
+          } }
+          answersRef.current = next
+          setAnswers(next)
+          setError(message || 'Answer could not be saved.')
+          return false
+        }
+      }
+    })()
+
+    inFlightSaves.current[item.id] = task
     try {
-      const saved = await saveResponseWithRevision({
-        attemptId: workspace.attemptId,
-        assessmentItemId: item.id,
-        clientId: clientIdRef.current,
-        expectedRevision: current.revision,
-        responseValue: current.value === undefined ? null : current.value,
-        responseText: current.text || null,
-        clientUpdatedAt: current.clientUpdatedAt,
-      })
-
-      if (saved.conflict) {
-        setConflict({
-          itemId: item.id,
-          serverRevision: saved.revision,
-          serverText: saved.responseText ?? '',
-          serverValue: saved.responseValue,
-          localAnswer: current,
-        })
-        setAnswers(state => ({
-          ...state,
-          [item.id]: { ...state[item.id], saving: false, dirty: true },
-        }))
-        return false
-      }
-
-      setAnswers(state => ({
-        ...state,
-        [item.id]: {
-          ...state[item.id],
-          revision: saved.revision,
-          saving: false,
-          saved: true,
-          dirty: false,
-        },
-      }))
-      return true
-    } catch (saveError) {
-      console.error('[LearnerAssessment] save response', saveError)
-      const message = saveError instanceof Error ? saveError.message : ''
-      if (message.includes('attempt_client_lease_required')) {
-        setActiveElsewhere(true)
-      }
-      setAnswers(state => ({
-        ...state,
-        [item.id]: {
-          ...state[item.id],
-          saving: false,
-          saved: false,
-          dirty: true,
-        },
-      }))
-      setError(message || 'Answer could not be saved.')
-      return false
+      return await task
+    } finally {
+      delete inFlightSaves.current[item.id]
     }
   }, [workspace, secondsLeft, activeElsewhere])
 
@@ -478,8 +496,8 @@ export default function LearnerAssessmentPage() {
       Object.values(saveTimers.current).forEach(window.clearTimeout)
       for (const item of workspace.items) {
         const answer = answersRef.current[item.id]
-        if (answer?.saving) throw new Error('An answer is still saving. Please try again in a moment.')
-        if (answer?.dirty) {
+        
+        if (answer?.dirty || answer?.saving) {
           const saved = await persistAnswer(item, answer)
           if (!saved) throw new Error('Some answers were not saved. Please try again before leaving.')
         }
@@ -503,7 +521,7 @@ export default function LearnerAssessmentPage() {
         Object.values(saveTimers.current).forEach(window.clearTimeout)
         for (const item of workspace.items) {
           const answer = answersRef.current[item.id]
-          if (answer?.saving) throw new Error('An answer is still saving. Please retry submission in a moment.')
+          
           if (answer?.dirty) {
             const saved = await persistAnswer(item, answer)
             if (!saved) throw new Error('An answer was not saved. Submission cancelled; please retry.')
@@ -514,11 +532,21 @@ export default function LearnerAssessmentPage() {
       const skipped = workspace.items.map((question, index) => hasAnswer(answersRef.current[question.id]) ? -1 : index + 1).filter(index => index > 0)
       const submitted = await submitAttempt(workspace.attemptId)
       setSkippedAtSubmission(skipped)
-      await releaseAttemptClient(workspace.attemptId, clientIdRef.current)
-      localStorage.removeItem(draftKey(workspace.attemptId))
       setShowConfirm(false)
       setShowReview(false)
       setResult(submitted)
+      // The submission is already committed. Lease release/local draft cleanup
+      // are best effort and must never turn the receipt into an error.
+      try {
+        await releaseAttemptClient(workspace.attemptId, clientIdRef.current)
+      } catch (cleanupError) {
+        console.warn('[LearnerAssessment] post-submit lease cleanup', cleanupError)
+      }
+      try {
+        localStorage.removeItem(draftKey(workspace.attemptId))
+      } catch (cleanupError) {
+        console.warn('[LearnerAssessment] post-submit local cleanup', cleanupError)
+      }
     } catch (submitError) {
       console.error('[LearnerAssessment] submit attempt', submitError)
       setError(
