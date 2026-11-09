@@ -249,6 +249,14 @@ function SchemeLessonLauncherInner() {
           return
         }
 
+        // Never query the calendar with an incomplete legacy Scheme identity.
+        // Preserve the row and ask the teacher to correct the source instead.
+        if (!scheme.academic_term_id || !Number.isInteger(scheme.week) || scheme.week < 1) {
+          setError('This Scheme lesson has no valid saved term and week. Open the Scheme to correct its placement.')
+          setResolving(false)
+          return
+        }
+
         // A scheme lesson belongs to its own instructional week. Looking for
         // the next empty occurrence across eight weeks can attach Week 2
         // material to Week 11, so resolve only the stored week and term.
