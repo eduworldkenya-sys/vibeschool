@@ -1,0 +1,377 @@
+{
+  "id": "g4-science-technology-vibeschool-exam-01",
+  "title": "Grade 4 Science & Technology — VibeSchool Exam 01",
+  "grade": "Grade 4",
+  "subject": "Science and Technology",
+  "curriculum": "Kenya CBC Grade 4 — KICD 2024 revised learning-area design reference; outcome-level verification pending",
+  "status": "original_content_editorial_review",
+  "origin": "VibeSchool Original — Internally Authored",
+  "assessment_type": "practice",
+  "duration_minutes": 30,
+  "max_attempts": 3,
+  "total_marks": 12,
+  "visibility": "public_practice",
+  "instructions": "Read each question carefully and choose one answer. You may skip a question and return to it before submission.",
+  "items": [
+    {
+      "number": 1,
+      "bank_key": "G4-SCI-EX01-001",
+      "topic": "Living Things",
+      "difficulty": "easy",
+      "prompt": "Which of the following is a living thing?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Rock"
+        },
+        {
+          "value": "B",
+          "label": "Goat"
+        },
+        {
+          "value": "C",
+          "label": "Spoon"
+        },
+        {
+          "value": "D",
+          "label": "Bottle"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "A goat grows, feeds and reproduces, which are characteristics of living things.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 2,
+      "bank_key": "G4-SCI-EX01-002",
+      "topic": "Plants",
+      "difficulty": "easy",
+      "prompt": "Which part of a bean plant absorbs water from the soil?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Leaf"
+        },
+        {
+          "value": "B",
+          "label": "Flower"
+        },
+        {
+          "value": "C",
+          "label": "Root"
+        },
+        {
+          "value": "D",
+          "label": "Fruit"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Roots absorb water and mineral nutrients from the soil.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 3,
+      "bank_key": "G4-SCI-EX01-003",
+      "topic": "Plants",
+      "difficulty": "easy",
+      "prompt": "Which condition is important for a green plant to make its own food?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Complete darkness"
+        },
+        {
+          "value": "B",
+          "label": "A locked cupboard"
+        },
+        {
+          "value": "C",
+          "label": "No air"
+        },
+        {
+          "value": "D",
+          "label": "Sunlight"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Green plants use sunlight to make food through photosynthesis.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 4,
+      "bank_key": "G4-SCI-EX01-004",
+      "topic": "Human Body",
+      "difficulty": "easy",
+      "prompt": "Which sense organ do we use to hear sounds?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Ear"
+        },
+        {
+          "value": "B",
+          "label": "Eye"
+        },
+        {
+          "value": "C",
+          "label": "Nose"
+        },
+        {
+          "value": "D",
+          "label": "Tongue"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "The ear detects sounds and helps us hear.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 5,
+      "bank_key": "G4-SCI-EX01-005",
+      "topic": "Hygiene",
+      "difficulty": "medium",
+      "prompt": "Which action helps to prevent the spread of germs before eating?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Touching dirty shoes"
+        },
+        {
+          "value": "B",
+          "label": "Washing hands with soap and clean water"
+        },
+        {
+          "value": "C",
+          "label": "Sharing an unwashed cup"
+        },
+        {
+          "value": "D",
+          "label": "Wiping hands on the floor"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Washing hands with soap and clean water reduces the spread of germs.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 6,
+      "bank_key": "G4-SCI-EX01-006",
+      "topic": "Water Safety",
+      "difficulty": "medium",
+      "prompt": "Which method can make clear water safer to drink by killing many disease-causing germs?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Adding soil"
+        },
+        {
+          "value": "B",
+          "label": "Leaving it uncovered"
+        },
+        {
+          "value": "C",
+          "label": "Boiling it properly"
+        },
+        {
+          "value": "D",
+          "label": "Mixing it with juice"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Proper boiling kills many disease-causing microorganisms in drinking water.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 7,
+      "bank_key": "G4-SCI-EX01-007",
+      "topic": "Materials",
+      "difficulty": "medium",
+      "prompt": "Which material is attracted by a magnet?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Plastic spoon"
+        },
+        {
+          "value": "B",
+          "label": "Wooden stick"
+        },
+        {
+          "value": "C",
+          "label": "Paper sheet"
+        },
+        {
+          "value": "D",
+          "label": "Iron nail"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Iron is magnetic and is attracted to a magnet.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 8,
+      "bank_key": "G4-SCI-EX01-008",
+      "topic": "States of Matter",
+      "difficulty": "medium",
+      "prompt": "In which state of matter is an ice cube?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Solid"
+        },
+        {
+          "value": "B",
+          "label": "Gas"
+        },
+        {
+          "value": "C",
+          "label": "Vapour"
+        },
+        {
+          "value": "D",
+          "label": "Liquid"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Ice is water in its solid state.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 9,
+      "bank_key": "G4-SCI-EX01-009",
+      "topic": "Heat",
+      "difficulty": "medium",
+      "prompt": "What normally happens to ice when it is warmed?",
+      "options": [
+        {
+          "value": "A",
+          "label": "It becomes a stone"
+        },
+        {
+          "value": "B",
+          "label": "It melts into liquid water"
+        },
+        {
+          "value": "C",
+          "label": "It becomes soil"
+        },
+        {
+          "value": "D",
+          "label": "It stays solid forever"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Heat changes solid ice into liquid water through melting.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 10,
+      "bank_key": "G4-SCI-EX01-010",
+      "topic": "Light",
+      "difficulty": "challenging",
+      "prompt": "Which material allows most light to pass through so we can see clearly?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Cardboard"
+        },
+        {
+          "value": "B",
+          "label": "Wood"
+        },
+        {
+          "value": "C",
+          "label": "Clear glass"
+        },
+        {
+          "value": "D",
+          "label": "Thick cloth"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Clear glass is transparent and allows most light to pass through.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 11,
+      "bank_key": "G4-SCI-EX01-011",
+      "topic": "Electricity",
+      "difficulty": "challenging",
+      "prompt": "Which action is safest around an electrical socket?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Pushing a metal pin inside"
+        },
+        {
+          "value": "B",
+          "label": "Touching it with wet hands"
+        },
+        {
+          "value": "C",
+          "label": "Opening it without help"
+        },
+        {
+          "value": "D",
+          "label": "Keeping fingers and objects away"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Do not insert objects into electrical sockets or touch them with wet hands.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 12,
+      "bank_key": "G4-SCI-EX01-012",
+      "topic": "Technology",
+      "difficulty": "challenging",
+      "prompt": "Which computer device is commonly used to type letters and numbers?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Keyboard"
+        },
+        {
+          "value": "B",
+          "label": "Speaker"
+        },
+        {
+          "value": "C",
+          "label": "Monitor"
+        },
+        {
+          "value": "D",
+          "label": "Printer"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "A keyboard lets users enter letters and numbers into a computer.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    }
+  ]
+}
