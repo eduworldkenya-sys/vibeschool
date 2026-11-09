@@ -43,3 +43,14 @@ for (const slug of subjects) {
 test('Grade 4 first three original exams have no repeated question prompts', () => {
   assert.equal(new Set(questions).size, 36)
 })
+
+test('Owner publisher uses non-pilot provenance for new original papers', () => {
+  const migration = readFileSync('supabase/migrations/20261110154000_hq_nonpilot_original_exam_provenance.sql', 'utf8')
+  assert.match(migration, /owner_authored_original/)
+  assert.match(migration, /'paper_id',v_id/)
+  assert.doesNotMatch(migration, /owner_authored_pilot/)
+  assert.match(migration, /is_platform_owner\(\)/)
+  assert.match(migration, /explicit_owner_approval_required/)
+  assert.match(migration, /exq_validate_assessment/)
+  assert.match(migration, /exq_publish_public_practice/)
+})
