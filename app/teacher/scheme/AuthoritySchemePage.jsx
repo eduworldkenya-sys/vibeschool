@@ -55,7 +55,7 @@ function Chip({ label, active, onClick }) {
 function Inner({ curriculumView = false }) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const initial = useRef({classId:searchParams.get('classId'),subjectId:searchParams.get('subjectId'),termId:searchParams.get('termId'),week:searchParams.get('week')})
+  const initial = useRef({classId:searchParams.get('classId'),subjectId:searchParams.get('subjectId'),termId:searchParams.get('termId'),week:searchParams.get('week'),curriculumId:searchParams.get('curriculumId')})
 
   const [uid,setUid] = useState(null)
   const [schoolId,setSchoolId] = useState(null)
@@ -114,6 +114,35 @@ function Inner({ curriculumView = false }) {
 
   const ordered = useMemo(()=>schemeItems.slice().sort((a,b)=>(a.sequence_number||999999)-(b.sequence_number||999999)||(a.lesson_number||999999)-(b.lesson_number||999999)||a.id.localeCompare(b.id)),[schemeItems])
   const selectedWeekItems = useMemo(()=>ordered.filter(x=>x.week===selectedWeek),[ordered,selectedWeek])
+  const canonicalRowIds = useMemo(()=>new Set(allCurriculumRows.map(x=>x.id)),[allCurriculumRows])
+
+  function prepareSchemeLesson(item) {
+    // The launcher requires the actual assigned class and subject identities.
+    // Its server-authoritative checks still verify teacher/school ownership.
+    if(!selectedClass||!selectedSubject||!item?.id){
+      setError('Choose your assigned class and subject before preparing this lesson.')
+      return
+    }
+    const params=new URLSearchParams({
+      schemeId:item.id,
+      classId:selectedClass,
+      subjectId:selectedSubject,
+    })
+    if(item.curriculum_id&&canonicalRowIds.has(item.curriculum_id))params.set('curriculumId',item.curriculum_id)
+    router.push(`/teacher/scheme/generate?${params.toString()}`)
+  }
+
+  function openLinkedCurriculum(item) {
+    if(!item?.curriculum_id||!canonicalRowIds.has(item.curriculum_id))return
+    const params=new URLSearchParams({
+      classId:selectedClass,
+      subjectId:selectedSubject,
+      termId:selectedTermId,
+      week:String(item.week||selectedWeek),
+      curriculumId:item.curriculum_id,
+    })
+    router.push(`/teacher/curriculum?${params.toString()}`)
+  }
 
   const boot = useCallback(async()=>{
     setLoading(true); setError(null)
@@ -168,7 +197,7 @@ function Inner({ curriculumView = false }) {
 
   useEffect(()=>{void boot()},[boot])
   useEffect(()=>{if(selectedClass&&!filteredSubjects.some(x=>x.id===selectedSubject))setSelectedSubject(filteredSubjects[0]?filteredSubjects[0].id:null)},[filteredSubjects,selectedClass,selectedSubject])
-  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView])
+  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));if(curriculumView&&initial.current.curriculumId&&allCurriculumRows.some(x=>x.id===initial.current.curriculumId))p.set('curriculumId',initial.current.curriculumId);router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView,allCurriculumRows])
 
   useEffect(()=>{let live=true;(async()=>{
     if(!schoolId||!selectedTermId){setTermWeeks([]);return}
@@ -238,6 +267,15 @@ function Inner({ curriculumView = false }) {
 
   useEffect(()=>{if(!loading)void loadScheme()},[loading,loadScheme])
 
+  useEffect(()=>{
+    if(!curriculumView||!initial.current.curriculumId||!allCurriculumRows.length)return
+    const row=allCurriculumRows.find(x=>x.id===initial.current.curriculumId)
+    if(row){
+      setSelectedStrand(row.strand||'Unspecified strand')
+      setShowEnglishLegacy(true)
+    }
+  },[curriculumView,allCurriculumRows])
+
   async function commitScheme(){if(!selectedClass||!selectedSubject||!selectedTermId||!curriculumRows.length)return;setCommitting(true);setError(null);const r=await supabase.rpc('commit_curriculum_scheme',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_curriculum_ids:curriculumRows.map(x=>x.id)});if(r.error)setError(commitError(r.error.message));else await loadScheme();setCommitting(false)}
   async function addCustom(){if(!selectedClass||!selectedSubject||!selectedTermId||!newTopic.trim())return;setAdding(true);setError(null);const r=await supabase.rpc('commit_custom_scheme_item',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_week:selectedWeek,p_topic:newTopic.trim(),p_strand:newStrand.trim()||null,p_resource_id:null,p_resource_role:null});if(r.error)setError(commitError(r.error.message));else{setNewTopic('');setNewStrand('');await loadScheme()}setAdding(false)}
   async function setStatus(id,status){const r=await supabase.from('scheme_of_work').update({status}).eq('id',id).eq('school_id',schoolId).eq('teacher_id',uid);if(r.error)setError(r.error.message);else setSchemeItems(xs=>xs.map(x=>x.id===id?Object.assign({},x,{status}):x))}
@@ -279,7 +317,7 @@ function Inner({ curriculumView = false }) {
                 </div>
                 {(curriculumMaterials[row.id]||[]).map(resource=><div key={resource.id} style={{marginTop:4,fontSize:12,color:C.teal}}>Resource: {resource.title}</div>)}
                 {(curriculumOutcomes[row.id]||[]).length>0 ? <details className="studio-curriculum-outcomes"><summary>Specific learning outcomes ({curriculumOutcomes[row.id].length})</summary><ul>{curriculumOutcomes[row.id].map(outcome=><li key={outcome.id}>{outcome.outcome_text} {outcome.status !== 'verified' ? '(not verified)' : ''}</li>)}</ul></details> : <small style={{display:'block',marginTop:5,color:C.text3}}>Specific learning outcomes not yet mapped</small>}
-                {linked?.objectives && <details className="studio-curriculum-outcomes"><summary>Linked lesson outcomes</summary><p style={{whiteSpace:'pre-wrap'}}>{typeof linked.objectives === 'string' ? linked.objectives : JSON.stringify(linked.objectives)}</p></details>}</div><span>{linked ? (STATUS[linked.status]?.label || linked.status) : 'Not in scheme'}</span>{linked && <button onClick={() => router.push(`/teacher/scheme/generate?schemeId=${encodeURIComponent(linked.id)}`)}>Plan →</button>}</div>})}<button className="studio-map-action" onClick={() => router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}`)}>Open linked scheme →</button></article>
+                {linked?.objectives && <details className="studio-curriculum-outcomes"><summary>Linked lesson outcomes</summary><p style={{whiteSpace:'pre-wrap'}}>{typeof linked.objectives === 'string' ? linked.objectives : JSON.stringify(linked.objectives)}</p></details>}</div><span>{linked ? (STATUS[linked.status]?.label || linked.status) : 'Not in scheme'}</span>{linked && <button type="button" onClick={() => prepareSchemeLesson(linked)}>Prepare lesson →</button>}</div>})}<button className="studio-map-action" onClick={() => router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}`)}>Open linked scheme →</button></article>
       <p className="studio-map-source">Planning status comes from your scheme. It does not establish learner mastery or certify the source version.</p></>}
     </section> : <>
     {classObj&&subjectObj&&termObj&&<>
@@ -290,7 +328,7 @@ function Inner({ curriculumView = false }) {
 
     <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:14,padding:14}}>
       {curriculumRows.length>0&&<div style={{background:C.indigoLight,padding:12,borderRadius:10,marginBottom:12}}><div style={{fontWeight:800,color:C.indigo,fontSize:13}}>{curriculumRows.length} curriculum item{curriculumRows.length===1?'':'s'} available</div><div style={{fontSize:11,color:C.text2,margin:'4px 0 8px'}}>The server will commit only confirmed, complete canonical lesson content.</div><button type="button" disabled={committing} onClick={()=>void commitScheme()} style={{padding:'8px 12px',border:0,borderRadius:8,background:C.indigo,color:'#fff',fontWeight:700}}>{committing?'Committing…':'Commit approved curriculum'}</button></div>}
-      {!selectedTermId?<Empty title="Scheme setup incomplete" desc={`${subjectObj?.label||'This subject'} is connected to ${classObj?.label||'this class'}, but the school calendar could not be prepared automatically. Retry before creating a term-scoped Scheme.`}/>:fetching?<div style={{fontSize:12,color:C.text3}}>Loading authoritative Scheme…</div>:selectedWeekItems.length===0?<Empty title="No lessons scheduled" desc="Commit approved canonical curriculum content or add a legitimate teacher-created lesson."/>:<div className="studio-scheme-sequence">{selectedWeekItems.map((item,index)=>{const st=STATUS[item.status]||STATUS.planned;return <div key={item.id} className="studio-lesson-card studio-sequence-card"><span className="studio-sequence-number" aria-label={`Lesson ${index+1}`}>{String(index+1).padStart(2,'0')}</span><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><div style={{fontWeight:800,color:C.text}}>{item.topic}</div><div style={{fontSize:11,color:C.text2}}>{[item.strand,item.sub_strand].filter(Boolean).join(' · ')}</div>{(linkedResources[item.id]||[]).map(r=><div key={r.id} style={{fontSize:11,color:C.indigo,marginTop:5}}>{r.chapterTitle} · {r.resourceRole}</div>)}</div><span style={{fontSize:11,fontWeight:800,padding:'4px 7px',borderRadius:99,background:st.bg,color:st.color}}>{st.label}</span></div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:8}}>{['planned','teaching','done','cancelled'].map(s=><button key={s} type="button" onClick={()=>void setStatus(item.id,s)} style={{fontSize:11,padding:'4px 7px',border:`1px solid ${C.border}`,borderRadius:99,background:item.status===s?(STATUS[s]||STATUS.planned).bg:'#fff'}}>{(STATUS[s]||STATUS.planned).label}</button>)}<button type="button" onClick={()=>router.push(`/teacher/scheme/generate?schemeId=${encodeURIComponent(item.id)}`)} style={{fontSize:11,padding:'4px 7px',border:`1px solid ${C.border}`,borderRadius:99,background:'#fff',color:C.indigo,fontWeight:700}}>Prepare lesson →</button></div><details className="studio-scheme-reflection"><summary>Teaching reflection</summary><textarea aria-label={`Reflection for ${item.topic}`} defaultValue={item.reflection||''} onBlur={e=>void saveReflection(item.id,e.target.value)} placeholder="Reflection after teaching" rows={2} style={{width:'100%',marginTop:8,padding:7,border:`1px solid ${C.border2}`,borderRadius:7,fontFamily:'inherit'}}/></details></div>})}</div>}
+      {!selectedTermId?<Empty title="Scheme setup incomplete" desc={`${subjectObj?.label||'This subject'} is connected to ${classObj?.label||'this class'}, but the school calendar could not be prepared automatically. Retry before creating a term-scoped Scheme.`}/>:fetching?<div style={{fontSize:12,color:C.text3}}>Loading authoritative Scheme…</div>:selectedWeekItems.length===0?<Empty title="No lessons scheduled" desc="Commit approved canonical curriculum content or add a legitimate teacher-created lesson."/>:<div className="studio-scheme-sequence">{selectedWeekItems.map((item,index)=>{const st=STATUS[item.status]||STATUS.planned;return <div key={item.id} className="studio-lesson-card studio-sequence-card"><span className="studio-sequence-number" aria-label={`Lesson ${index+1}`}>{String(index+1).padStart(2,'0')}</span><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><div style={{fontWeight:800,color:C.text}}>{item.topic}</div><div style={{fontSize:11,color:C.text2}}>{[item.strand,item.sub_strand].filter(Boolean).join(' · ')}</div><div style={{fontSize:11,color:C.text3,marginTop:4}}>{item.curriculum_id&&canonicalRowIds.has(item.curriculum_id)?'Linked to canonical curriculum':'No verified curriculum link for this scheme lesson'}</div>{(linkedResources[item.id]||[]).map(r=><div key={r.id} style={{fontSize:11,color:C.indigo,marginTop:5}}>{r.chapterTitle} · {r.resourceRole}</div>)}</div><span style={{fontSize:11,fontWeight:800,padding:'4px 7px',borderRadius:99,background:st.bg,color:st.color}}>{st.label}</span></div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:8}}>{['planned','teaching','done','cancelled'].map(s=><button key={s} type="button" onClick={()=>void setStatus(item.id,s)} style={{fontSize:11,padding:'4px 7px',border:`1px solid ${C.border}`,borderRadius:99,background:item.status===s?(STATUS[s]||STATUS.planned).bg:'#fff'}}>{(STATUS[s]||STATUS.planned).label}</button>)}{item.curriculum_id&&canonicalRowIds.has(item.curriculum_id)&&<button type="button" onClick={()=>openLinkedCurriculum(item)} style={{fontSize:11,padding:'4px 7px',border:`1px solid ${C.border}`,borderRadius:99,background:'#fff',color:C.teal,fontWeight:700}}>View curriculum →</button>}<button type="button" onClick={()=>prepareSchemeLesson(item)} style={{fontSize:11,padding:'4px 7px',border:`1px solid ${C.border}`,borderRadius:99,background:'#fff',color:C.indigo,fontWeight:700}}>Prepare lesson →</button></div><details className="studio-scheme-reflection"><summary>Teaching reflection</summary><textarea aria-label={`Reflection for ${item.topic}`} defaultValue={item.reflection||''} onBlur={e=>void saveReflection(item.id,e.target.value)} placeholder="Reflection after teaching" rows={2} style={{width:'100%',marginTop:8,padding:7,border:`1px solid ${C.border2}`,borderRadius:7,fontFamily:'inherit'}}/></details></div>})}</div>}
       <div style={{borderTop:`1px solid ${C.border}`,paddingTop:12,marginTop:14}}><div style={{fontSize:11,fontWeight:800,color:C.text,marginBottom:7}}>Add teacher-created lesson</div><input value={newTopic} onChange={e=>setNewTopic(e.target.value)} placeholder="Lesson focus" style={{width:'100%',padding:8,border:`1px solid ${C.border2}`,borderRadius:7,marginBottom:6}}/><input value={newStrand} onChange={e=>setNewStrand(e.target.value)} placeholder="Strand (optional)" style={{width:'100%',padding:8,border:`1px solid ${C.border2}`,borderRadius:7,marginBottom:6}}/><button type="button" disabled={adding||!newTopic.trim()} onClick={()=>void addCustom()} style={{padding:'8px 12px',border:0,borderRadius:8,background:C.dark,color:'#fff',fontWeight:700}}>{adding?'Adding…':`Add to Week ${selectedWeek}`}</button></div>
     </div>
     </>}
