@@ -35,30 +35,60 @@ revoke execute on function public.require_upper_primary_timetable_period(uuid,in
 grant execute on function public.require_upper_primary_timetable_period(uuid,integer,time,time,numeric)
   to authenticated;
 
--- Placement changes are validated. Undo can still restore an existing snapshot.
-create or replace function public.validate_upper_primary_timetable_slot()
+create or replace function public.validate_timetable_slot_period()
 returns trigger
 language plpgsql
-set search_path = ''
-as $function$
+set search_path=public
+as $$
+declare
+  v_period public.school_periods;
 begin
-  if (new.class_id, new.day_of_week, new.start_time, new.end_time, new.allocation_units)
-     is distinct from
-     (old.class_id, old.day_of_week, old.start_time, old.end_time, old.allocation_units) then
-    perform public.require_upper_primary_timetable_period(
-      new.class_id, new.day_of_week, new.start_time, new.end_time, new.allocation_units
-    );
+  -- Existing snapshots can be restored with their recorded placement.
+  -- New placements are checked by the creation RPCs below.
+  if tg_op = 'UPDATE' then
+    if (new.class_id, new.day_of_week, new.start_time, new.end_time, new.allocation_units)
+       is distinct from
+       (old.class_id, old.day_of_week, old.start_time, old.end_time, old.allocation_units) then
+      perform public.require_upper_primary_timetable_period(
+        new.class_id, new.day_of_week, new.start_time, new.end_time, new.allocation_units
+      );
+    end if;
+  end if;
+
+  -- A lesson may never overlap a protected non-teaching block, even when
+  -- the legacy/custom slot has no period_id.
+  if exists (
+    select 1 from public.school_periods sp
+    where sp.school_id=new.school_id
+      and sp.protected
+      and sp.kind <> 'lesson'
+      and sp.schedule_day in (0,new.day_of_week)
+      and sp.start_time < new.end_time
+      and sp.end_time > new.start_time
+  ) then
+    raise exception 'PROTECTED_SCHOOL_BLOCK';
+  end if;
+
+  if new.period_id is null then
+    return new;
+  end if;
+
+  select * into v_period from public.school_periods where id=new.period_id;
+  if v_period.id is null or v_period.school_id is distinct from new.school_id then
+    raise exception 'PERIOD_SCHOOL_MISMATCH';
+  end if;
+  if v_period.kind <> 'lesson' then
+    raise exception 'NON_TEACHING_PERIOD';
+  end if;
+  if v_period.schedule_day not in (0,new.day_of_week) then
+    raise exception 'PERIOD_DAY_MISMATCH';
+  end if;
+  if new.start_time is distinct from v_period.start_time or new.end_time is distinct from v_period.end_time then
+    raise exception 'PERIOD_TIME_MISMATCH';
   end if;
   return new;
 end
-$function$;
-
-revoke execute on function public.validate_upper_primary_timetable_slot() from public, anon, authenticated;
-
-create trigger timetable_slot_upper_primary_period_guard
-before update of class_id, day_of_week, start_time, end_time, allocation_units
-on public.timetable_slots
-for each row execute function public.validate_upper_primary_timetable_slot();
+$$;
 
 create or replace function public.create_timetable_slot_v2(
   p_class_id uuid,p_subject_id uuid,p_day_of_week integer,p_start_time time,p_end_time time,
