@@ -2,6 +2,7 @@
 
 import TeachingWorkspaceNav from '@/components/teacher/TeachingWorkspaceNav'
 import Grade4EnglishMap from '@/components/teacher/curriculum/Grade4EnglishMap'
+import WeeklyLessonSlots from '@/components/teacher/scheme/WeeklyLessonSlots'
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -302,14 +303,17 @@ function Inner({ curriculumView = false }) {
       {!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
     </div>
 
+    {selectedSubject && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} label={subjectObj?.label || 'Selected subject'}/>}
     {curriculumView && isGrade4English && <Grade4EnglishMap
       selectedTerm={termObj?.term ?? null}
+      selectedWeek={selectedWeek}
+      weeklyRows={allCurriculumRows}
       showExisting={showEnglishLegacy}
       onToggleExisting={()=>setShowEnglishLegacy(value=>!value)}
       weeklyCount={allCurriculumRows.length}
       schemeCount={schemeItems.length}
       verifiedOutcomeCount={Object.values(curriculumOutcomes).flat().filter(outcome=>outcome.status==='verified').length}
-      onOpenScheme={()=>router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}`)}
+      onOpenScheme={()=>router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}&week=${selectedWeek}`)}
     />}
     {curriculumView ? <section className="studio-canonical-map" style={{display:isGrade4English&&!showEnglishLegacy?'none':undefined}}>
       <p className="studio-map-source">Stored curriculum · {classObj?.label} · {subjectObj?.label} · {termObj ? termLabel(termObj) : 'Select term'}</p>
