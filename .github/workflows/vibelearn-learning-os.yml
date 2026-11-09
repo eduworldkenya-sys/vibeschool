@@ -7,6 +7,10 @@ on:
       - 'app/teacher/more/page.tsx'
       - 'app/teacher/teach-today/page.tsx'
       - 'app/student/vibelearn/**'
+      - 'app/student/projects/**'
+      - 'components/student/LearnActivityHub.tsx'
+      - 'scripts/test-independent-projects.mjs'
+      - 'supabase/migrations/20261109121000_independent_learner_projects.sql'
       - 'lib/content-engine/vibelearnClassAdoption.ts'
       - 'lib/vibelearn/**'
       - 'components/teacher/VibeLearnLessonSequence.tsx'
@@ -26,6 +30,10 @@ on:
       - 'app/teacher/more/page.tsx'
       - 'app/teacher/teach-today/page.tsx'
       - 'app/student/vibelearn/**'
+      - 'app/student/projects/**'
+      - 'components/student/LearnActivityHub.tsx'
+      - 'scripts/test-independent-projects.mjs'
+      - 'supabase/migrations/20261109121000_independent_learner_projects.sql'
       - 'lib/content-engine/vibelearnClassAdoption.ts'
       - 'lib/vibelearn/**'
       - 'components/teacher/VibeLearnLessonSequence.tsx'
@@ -61,5 +69,7 @@ jobs:
       - run: npm ci
       - name: Verify VibeLearn product contracts
         run: npm run test:vibelearn
+      - name: Verify independent projects access and navigation contracts
+        run: node scripts/test-independent-projects.mjs
       - name: Type-check affected application contracts
         run: npm run typecheck
