@@ -14,7 +14,6 @@ import {
 import { supabase } from '@/lib/supabase'
 import {
   nairobiDateAdd,
-  nairobiDateStr,
 } from '@/lib/time'
 import {
   loadTeacherTimetableForRange,
