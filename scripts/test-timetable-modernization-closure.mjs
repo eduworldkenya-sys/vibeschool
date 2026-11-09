@@ -40,11 +40,11 @@ requireText('substitution admin guard', migration, 'public.is_school_admin(v.sch
 requireText('snapshot per-row school restore', migration, "nullif(v_row->>'school_id','')::uuid")
 forbidText('no lesson plan nullable weakening', migration, 'alter column timetable_slot_id drop not null')
 
-requireText('independent preparation headline', prepare, 'Prepare a lesson before it is scheduled')
+requireText('independent preparation headline', prepare, '<h1>Prepare ahead</h1>')
 requireText('independent preparation persistence', prepare, 'saveLessonPlanDraft')
 requireText('independent preparation attachment', prepare, 'attachLessonPlanDraftToOccurrence')
-requireText('independent preparation no evidence copy', prepare, 'without copying attendance, evidence or delivery history')
-requireText('lesson page entry point', lessonPage, 'Prepare without timetable')
+requireText('independent preparation no evidence copy', prepare, 'Saving a draft does not mark a lesson taught, create attendance or record progress.')
+requireText('lesson page entry point', lessonPage, '/teacher/lessonplan/prepare')
 
 requireText('draft repository table', drafts, ".from('lesson_plan_drafts')")
 requireText('draft attachment RPC', drafts, "'attach_lesson_plan_draft_to_occurrence'")

@@ -76,6 +76,8 @@ export interface UpdateSlotParams {
  *  page-level `Slot` view model — not imported from the page itself,
  *  per the no-types-in-pages rule. */
 export interface EditableSlot {
+  gradeLabel?: string
+  schoolId?: string
   id:             string
   className:      string
   subjectName:    string

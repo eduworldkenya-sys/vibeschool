@@ -123,21 +123,12 @@ function lastSchoolDays(count: number, todayNairobi: string): string[] {
   return days;
 }
 
-function safeTermProgress(term: AcademicTermRow | null): { termProgressPct: number; weekNumber: number | null } {
-  if (!term?.start_date || !term.end_date) return { termProgressPct: 0, weekNumber: null };
-
-  const start = new Date(term.start_date).getTime();
-  const end = new Date(term.end_date).getTime();
-  const now = Date.now();
-
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
-    return { termProgressPct: 0, weekNumber: null };
-  }
-
-  return {
-    termProgressPct: Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100)),
-    weekNumber: Math.max(1, Math.ceil((now - start) / (7 * 86400000)) + 1),
-  };
+function safeTermProgress(term: AcademicTermRow | null, today: string): number {
+  if (!term?.start_date || !term.end_date) return 0;
+  const start = Date.parse(term.start_date);
+  const end = Date.parse(term.end_date);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
+  return Math.min(100, Math.max(0, ((Date.parse(today) - start) / (end - start)) * 100));
 }
 
 function slotKey(classId: string, subjectId: string): string {
@@ -189,7 +180,7 @@ export async function fetchPulseData(
   // term/week dependent reads. Existing terms are read-only fast-paths.
   const activeTerm = await getActiveTerm(schoolId);
 
-  const [slotsRes, teacherClassesRes, activeWeeksRes] = await Promise.all([
+  const [slotsRes, teacherClassesRes, activeWeeksRes, calendarRes] = await Promise.all([
     loadActiveTeacherTimetable({
       schoolId,
       teacherId: userId,
@@ -209,6 +200,7 @@ export async function fetchPulseData(
       .eq("school_id", schoolId)
       .eq("teacher_id", userId),
     supabase.rpc("get_teacher_active_weeks", { p_school_id: schoolId, p_teacher_id: userId }),
+    supabase.rpc("resolve_instructional_week_for_date", { p_school_id: schoolId, p_date: today }),
   ]);
 
   if (slotsRes.error) {
@@ -311,8 +303,11 @@ export async function fetchPulseData(
 
   const todaySlotIds = todayBaseSlots.map((slot) => slot.id);
   const todayClassIds = Array.from(new Set(todayBaseSlots.map((slot) => slot.class_id)));
-  const activeTermNum = termRow?.term ?? null;
-  const { termProgressPct, weekNumber } = safeTermProgress(termRow);
+  const calendarRows = calendarRes.error ? [] : (calendarRes.data ?? []);
+  const calendar = calendarRows.length === 1 ? calendarRows[0] : null;
+  const activeTermNum = calendar?.term_number ?? termRow?.term ?? null;
+  const weekNumber = calendar?.week_number ?? null;
+  const termProgressPct = safeTermProgress(termRow, today);
 
   const availableWeeks: PulseSnapshot["availableWeeks"] = (
     (activeWeeksRes.data ?? []) as ActiveWeekRpcRow[]
@@ -327,54 +322,34 @@ export async function fetchPulseData(
     label: row.label,
   }));
 
-  // Always surface the live current week, even with zero activity logged yet.
-  if (termRow?.id && weekNumber != null) {
-    const alreadyListed = availableWeeks.some(
-      (w) => w.termId === termRow.id && w.weekNumber === weekNumber
+  if (calendar) {
+    const current = {
+      termId: calendar.term_id,
+      termNumber: calendar.term_number,
+      academicYear: calendar.academic_year,
+      weekNumber: calendar.week_number,
+      startDate: calendar.week_start,
+      endDate: calendar.week_end,
+      weekType: calendar.week_type,
+      label: calendar.week_label,
+    };
+    const index = availableWeeks.findIndex((week) =>
+      week.termId === current.termId && week.weekNumber === current.weekNumber
     );
-    if (!alreadyListed) {
-      const liveWeekEnd = nairobiDateAdd(weekStart, 6);
-      availableWeeks.push({
-        termId: termRow.id,
-        termNumber: activeTermNum ?? 0,
-        academicYear: new Date(termRow.start_date ?? today).getFullYear(),
-        weekNumber,
-        startDate: weekStart,
-        endDate: liveWeekEnd,
-        weekType: "normal",
-        label: null,
-      });
-    }
+    if (index === -1) availableWeeks.push(current);
+    else availableWeeks[index] = current;
   }
 
-  const selectedWeek: WeekOverride =
-    weekOverride ??
-    (termRow?.id && weekNumber != null
-      ? {
-          termId: termRow.id,
-          weekNumber,
-          startDate: weekStart,
-          endDate: nairobiDateAdd(weekStart, 6),
-        }
-      : { termId: "", weekNumber: 0, startDate: weekStart, endDate: weekStart });
+  const selectedWeek: WeekOverride = weekOverride ?? (calendar ? {
+    termId: calendar.term_id,
+    weekNumber: calendar.week_number,
+    startDate: calendar.week_start,
+    endDate: calendar.week_end,
+  } : { termId: "", weekNumber: 0, startDate: weekStart, endDate: weekStart });
 
   const selectedWeekKey = `${selectedWeek.termId}::${selectedWeek.weekNumber}`;
-
-  let weekType: string | null = null;
-  let weekLabel: string | null = null;
-  if (termRow?.id && weekNumber != null) {
-    const { data: weekRows } = await supabase
-      .from("term_weeks")
-      .select("school_id,week_type,label")
-      .eq("term_id", termRow.id)
-      .eq("week_number", weekNumber)
-      .or(`school_id.eq.${schoolId},school_id.is.null`);
-    const override = (weekRows ?? []).find((r) => r.school_id === schoolId);
-    const national = (weekRows ?? []).find((r) => r.school_id === null);
-    const chosen = override ?? national ?? null;
-    weekType = chosen?.week_type ?? null;
-    weekLabel = chosen?.label ?? null;
-  }
+  const weekType = calendar?.week_type ?? null;
+  const weekLabel = calendar?.week_label ?? null;
 
   const [attendanceTodayRes, lessonPlansRes, homeworkRes, ungradedHomeworkRes, absenceRes, recentAbsenceRes, streakRes, tpadRes, vcParticipantsRes, recentAttendanceRes, recentPlansRes] =
     await Promise.all([
