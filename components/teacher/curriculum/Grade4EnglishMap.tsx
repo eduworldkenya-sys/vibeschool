@@ -47,6 +47,14 @@ export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleE
       </p>
     </header>
     <div role="status" style={{background:'#f4f7f5',borderRadius:9,padding:12,marginBottom:14,fontSize:12,lineHeight:1.6,color:'#345448'}}><strong>{weeklyCount}</strong> term curriculum records · <strong>{schemeCount}</strong> saved scheme lessons · <strong>{verifiedOutcomeCount}</strong> verified outcomes. Term records are not mapped to annual KICD themes.</div>
+    <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginTop:16}}>
+      <button type="button" onClick={onToggleExisting} aria-expanded={showExisting} style={{padding:'11px 13px',border:'1px solid #b7d0c0',borderRadius:9,background:'#f2f7f4',color:'#22523e',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+        {showExisting?'Hide existing weekly curriculum':'View existing weekly curriculum'}
+      </button>
+      <button type="button" onClick={onOpenScheme} style={{padding:'11px 13px',border:'1px solid #cddad1',borderRadius:9,background:'#fff',color:'#22523e',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+        Open my scheme of work
+      </button>
+    </div>
     {browseThemes && <div className="studio-annual-themes">
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:14}}>
       <span style={{fontSize:12,fontWeight:700,color:'#345448'}}>
@@ -88,14 +96,7 @@ export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleE
         </article>
       })}
     </div>
-    <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginTop:16}}>
-      <button type="button" onClick={onToggleExisting} aria-expanded={showExisting} style={{padding:'11px 13px',border:'1px solid #b7d0c0',borderRadius:9,background:'#f2f7f4',color:'#22523e',fontSize:13,fontWeight:700,cursor:'pointer'}}>
-        {showExisting?'Hide existing weekly curriculum':'View existing weekly curriculum'}
-      </button>
-      <button type="button" onClick={onOpenScheme} style={{padding:'11px 13px',border:'1px solid #cddad1',borderRadius:9,background:'#fff',color:'#22523e',fontSize:13,fontWeight:700,cursor:'pointer'}}>
-        Open my scheme of work
-      </button>
-    </div>
+
     </div>}
     <p style={{margin:'13px 0 0',fontSize:12,lineHeight:1.5,color:'#657a6e'}}>
       The KICD theme reference and existing weekly curriculum are not yet reconciled. Only canonical curriculum records may be used for scheme planning.
