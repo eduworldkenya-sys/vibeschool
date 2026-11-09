@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useStudent } from "@/lib/student-context";
 import { supabase } from "@/lib/supabase";
 import Skel from "@/components/student/Skel";
@@ -66,6 +68,8 @@ export default function StudentProjectsPage() {
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px 100px", fontFamily: "'Plus Jakarta Sans', sans-serif", color: "var(--vs-text)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 900, marginBottom: 4, color: "var(--vs-text)" }}>Projects</h1>
       <p style={{ fontSize: 13, color: "var(--vs-muted)", marginBottom: 20 }}>School-assigned projects and your submission progress.</p>
+
+      <Link href="/student/projects/independent" style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44, padding: "9px 13px", marginBottom: 16, borderRadius: 11, background: "var(--vs-card)", color: "var(--vs-text)", border: "1px solid var(--vs-border)", textDecoration: "none", fontWeight: 700, fontSize: 13 }}><Plus size={17} aria-hidden="true" /> My independent projects</Link>
 
       {list.length === 0 ? (
         <div style={{ textAlign: "center", padding: "40px 0", color: "var(--vs-muted)" }}>
