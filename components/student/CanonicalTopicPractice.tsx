@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { saveResponse, startOrResumeAttempt, submitAttempt } from '@/lib/assessment/engine'
@@ -62,6 +62,22 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
   const router=useRouter()
   const [topics,setTopics]=useState<Topic[]>([])
   const [workspace,setWorkspace]=useState<AttemptWorkspace|null>(null)
+  const topicCards=useMemo(()=>{
+    const groups=new Map<string,Topic[]>()
+    for(const topic of topics){
+      const display=topic.topic==='Indices'?'Indices and Logarithms':topic.topic
+      const key=topic.subject+'::'+display
+      groups.set(key,[...(groups.get(key)??[]),topic])
+    }
+    return [...groups.entries()].map(([key,sets])=>{
+      const preferred=sets.find(item=>item.in_progress)
+        ??sets.find(item=>item.completed_attempts===0&&item.max_attempts>0)
+        ??sets.find(item=>item.completed_attempts<item.max_attempts)
+        ??sets[0]
+      const remaining=sets.filter(item=>item.in_progress||item.completed_attempts<item.max_attempts).length
+      return {key,title:key.split('::')[1],preferred,count:sets.length,remaining}
+    }).sort((a,b)=>a.title.localeCompare(b.title))
+  },[topics])
   const [feedback,setFeedback]=useState<Feedback[]>([])
   const [index,setIndex]=useState(0)
   const [finished,setFinished]=useState<SubmitAttemptResult|null>(null)
@@ -141,9 +157,9 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
     {!loading && !workspace && <section style={card}>
       <h2 style={{fontSize:18,margin:'0 0 12px'}}>Choose a topic</h2>
       {topics.length===0?<p style={muted}>No five-question topics are ready yet. Only approved, published practice will appear here.</p>:<div style={{display:'grid',gap:10}}>
-        {topics.map(topic=><button key={topic.assignment_id} disabled={busy||(!topic.in_progress&&topic.completed_attempts>=topic.max_attempts)} onClick={()=>void open(topic)} style={{...optionStyle,display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
-          <span><strong style={{display:'block'}}>{topic.topic}</strong><span style={muted}>{topic.subject} · 5 questions</span></span>
-          <strong style={{color:'#4f46e5'}}>{topic.in_progress?'Continue':topic.completed_attempts>0?(topic.completed_attempts<topic.max_attempts?'Practise again':'Completed'):'Start'}</strong>
+        {topicCards.map(card=><button key={card.key} disabled={busy||card.remaining===0} onClick={()=>void open(card.preferred)} style={{...optionStyle,display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
+          <span><strong style={{display:'block'}}>{card.title}</strong><span style={muted}>{card.count} sets available · 5 questions per session</span></span>
+          <strong style={{color:'#4f46e5'}}>{card.preferred.in_progress?'Continue':card.remaining===0?'Completed':card.preferred.completed_attempts>0?'Practise again':'Start'}</strong>
         </button>)}
       </div>}
     </section>}
