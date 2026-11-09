@@ -10,5 +10,6 @@ export {
   createDraftAssessment,
   saveResponse,
   startOrResumeAttempt,
+  ExpiredAssessmentAttemptError,
   submitAttempt,
 } from './engine'
