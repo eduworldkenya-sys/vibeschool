@@ -291,6 +291,13 @@ export default function CurriculumAuthorityPage() {
     </header>
 
     <main style={{ maxWidth: 1180, margin: "0 auto", padding: 18 }}>
+      <section style={{ border: `1px solid ${C.blue}66`, background: C.panel, borderRadius: 14, padding: 14, marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <strong>Grade 9 Mathematics curriculum readiness</strong>
+          <p style={{ fontSize: 12, color: C.muted, margin: "5px 0 0" }}>Inspect source ingestion, learning outcomes, exam bank and publication coverage.</p>
+        </div>
+        <button onClick={() => router.push("/hq/curriculum-authority/grade9-mathematics")} style={button(C.blue)}>View readiness report</button>
+      </section>
       <section style={{ border: `1px solid ${C.amber}35`, background: `${C.amber}0d`, borderRadius: 14, padding: 13, marginBottom: 14, fontSize: 11.5, lineHeight: 1.6 }}>
         Completed authority actions are restored from Supabase on every load. Refreshing this page does not reset completed work or require you to repeat successful steps.
       </section>
