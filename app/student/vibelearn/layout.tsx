@@ -1,5 +1,7 @@
 "use client";
 
+import "./learn-ui.css";
+
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useStudent } from "@/lib/student-context";
@@ -72,16 +74,11 @@ function GeneralLearnerVibeLearn() {
   }
 
   return (
-    <main style={{ maxWidth: 760, margin: "0 auto", padding: "18px 14px 110px", display: "grid", gap: 14 }}>
+    <main className="vs-learn-home" style={{ maxWidth: 760, margin: "0 auto", padding: "18px 14px 110px", display: "grid", gap: 14 }}>
       <section style={{ padding: "8px 2px 2px" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--vs-muted)" }}>{identity?.className || workspace?.className || "My learning"}</div>
         <h1 style={{ margin: "5px 0 0", fontSize: 24, lineHeight: 1.2 }}>What would you like to learn?</h1>
       </section>
-      <LearnActivityHub />
-      <nav aria-label="Other learning tools" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
-        {([{ title: "My Tuition", href: "/student/tutoring" }, { title: "AI Tutor", href: "/student/twin/companion" }] as const).map(item => <button key={item.title} onClick={() => router.push(item.href)} style={{ minHeight: 48, borderRadius: 12, border: "1px solid var(--vs-border)", background: "var(--vs-card)", color: "var(--vs-text)", fontWeight: 700 }}>{item.title}</button>)}
-      </nav>
-
       {error && <div role="status" style={{ padding: 12, borderRadius: 12, background: "#fee2e2", color: "#991b1b", fontSize: 12 }}>{error}</div>}
 
       {workspace?.twin.now && (
@@ -104,13 +101,14 @@ function GeneralLearnerVibeLearn() {
             {workspace!.continueLearning.filter(item => item.progressPercent < 100).slice(0, 2).map(item => (
               <button key={`${item.publicationId}-${item.chapterId ?? "book"}`} onClick={() => router.push(item.actionUrl)} style={{ minHeight: 56, textAlign: "left", border: "1px solid var(--vs-border)", borderRadius: 12, background: "var(--vs-surface)", color: "var(--vs-text)", padding: 12, fontFamily: "inherit" }}>
                 <strong style={{ display: "block", fontSize: 13 }}>{item.title}</strong>
-                <span style={{ display: "block", color: "var(--vs-muted)", fontSize: 11, marginTop: 3 }}>{item.chapterTitle ?? "Continue reading"} · {item.progressPercent}%</span>
+                <span style={{ display: "block", color: "var(--vs-muted)", fontSize: 12, marginTop: 5 }}>{item.chapterTitle ?? "Continue reading"} · {item.progressPercent}%</span><span aria-hidden="true" style={{display:"block",height:6,background:"#e8eaf4",borderRadius:99,overflow:"hidden",marginTop:9}}><span style={{display:"block",height:"100%",width:`${Math.max(0,Math.min(100,item.progressPercent))}%`,background:"#5145e8",borderRadius:99}}/></span>
               </button>
             ))}
           </div>
         )}
       </section>
 
+      <LearnActivityHub />
       <section id="class-resources" style={{ scrollMarginTop: 110, border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", padding: 16 }}>
         <div style={{ fontSize: 10, fontWeight: 850, color: "var(--vs-accent)", letterSpacing: 1 }}>MY CLASS RESOURCES</div>
         <h2 style={{ fontSize: 17, margin: "5px 0 0" }}>Learn by subject</h2>

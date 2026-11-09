@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@/lib/assessment/discovery'
 import { getLearnerAssessmentHub, type LearnerAssessmentHub } from '@/lib/assessment/integration'
 
@@ -43,7 +44,8 @@ export default function VibeLearnExamsPage() {
   const results = hub?.results ?? []
 
   return <main style={shell}>
-    <div style={workspace}>
+    <div className="vs-learn-page" style={workspace}>
+      <VibeLearnSubnav />
       <button type="button" onClick={() => router.push('/student/vibelearn')} style={back}>← Learn</button>
       <header style={header}>
         <h1 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.03em' }}>Exams</h1>
@@ -102,7 +104,7 @@ const list: React.CSSProperties = { display: 'grid', gap: 10 }
 const row: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: '#fff', border: '1px solid #dfe3ed', borderRadius: 12, padding: '13px 15px', minWidth: 0 }
 const rowInfo: React.CSSProperties = { display: 'grid', gap: 5, minWidth: 0, flex: '1 1 180px' }
 const rowTitle: React.CSSProperties = { fontSize: 14, lineHeight: 1.4, overflowWrap: 'anywhere' }
-const muted: React.CSSProperties = { color: '#667186', fontSize: 12 }
+const muted: React.CSSProperties = { color: '#667186', fontSize: 13 }
 const empty: React.CSSProperties = { ...panel, margin: 0, color: '#667186' }
 const errorStyle: React.CSSProperties = { ...panel, color: '#b91c1c', fontSize: 13, margin: 0 }
 const resultActions: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }
