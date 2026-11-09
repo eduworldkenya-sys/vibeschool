@@ -82,6 +82,8 @@ export default function LearnerAssessmentPage() {
   const clientIdRef = useRef('')
   const saveTimers = useRef<Record<string, number>>({})
   const inFlightSaves = useRef<Record<string, Promise<boolean>>>({})
+  const submissionInFlightRef = useRef(false)
+  const automaticExpiryAttemptedRef = useRef(false)
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -289,9 +291,11 @@ export default function LearnerAssessmentPage() {
     item: LearnerAssessmentItem,
     _snapshot?: Answer,
   ): Promise<boolean> => {
-    if (!workspace || secondsLeft === 0 || activeElsewhere) return false
     const existing = inFlightSaves.current[item.id]
+    // At expiry, wait for a save already sent before the deadline; do not
+    // initiate another write after the authoritative deadline has passed.
     if (existing) return existing
+    if (!workspace || secondsLeft === 0 || activeElsewhere) return false
 
     const task = (async (): Promise<boolean> => {
       while (true) {
@@ -512,24 +516,31 @@ export default function LearnerAssessmentPage() {
   }, [workspace, exiting, submitting, activeElsewhere, conflict, persistAnswer, router])
 
   const submit = useCallback(async (expired = false) => {
-    if (!workspace || submitting || result || activeElsewhere) return
+    if (!workspace || submissionInFlightRef.current || result || activeElsewhere) return
+    submissionInFlightRef.current = true
     setSubmitting(true)
     setError('')
 
     try {
-      if (!expired) {
-        Object.values(saveTimers.current).forEach(window.clearTimeout)
+      Object.values(saveTimers.current).forEach(window.clearTimeout)
+      if (expired) {
+        // Existing requests may have been accepted just before the deadline.
+        // Drain those requests before finalising on the server. Never start a
+        // new save after expiry or let local-only answers change the score.
+        await Promise.allSettled(Object.values(inFlightSaves.current))
+      } else {
         for (const item of workspace.items) {
           const answer = answersRef.current[item.id]
-          
-          if (answer?.dirty) {
+          if (answer?.dirty || answer?.saving) {
             const saved = await persistAnswer(item, answer)
             if (!saved) throw new Error('An answer was not saved. Submission cancelled; please retry.')
           }
         }
       }
 
-      const skipped = workspace.items.map((question, index) => hasAnswer(answersRef.current[question.id]) ? -1 : index + 1).filter(index => index > 0)
+      const skipped = !expired
+        ? workspace.items.map((question, index) => hasAnswer(answersRef.current[question.id]) ? -1 : index + 1).filter(index => index > 0)
+        : []
       const submitted = await submitAttempt(workspace.attemptId)
       setSkippedAtSubmission(skipped)
       setShowConfirm(false)
@@ -555,22 +566,25 @@ export default function LearnerAssessmentPage() {
           : 'Assessment could not be submitted.',
       )
     } finally {
+      submissionInFlightRef.current = false
       setSubmitting(false)
     }
-  }, [workspace, submitting, result, activeElsewhere, persistAnswer])
+  }, [workspace, result, activeElsewhere, persistAnswer])
 
   useEffect(() => {
-    if (!workspace?.expiresAt || result || submitting) return
-    const timer = window.setInterval(() => {
+    if (!workspace?.expiresAt || result) return
+    const tick = () => {
       const next = remainingSeconds(workspace.expiresAt)
       setSecondsLeft(next)
-      if (next === 0) {
-        window.clearInterval(timer)
+      if (next === 0 && !automaticExpiryAttemptedRef.current) {
+        automaticExpiryAttemptedRef.current = true
         void submit(true)
       }
-    }, 1000)
+    }
+    tick()
+    const timer = window.setInterval(tick, 1000)
     return () => window.clearInterval(timer)
-  }, [workspace?.expiresAt, result, submitting, submit])
+  }, [workspace?.expiresAt, result, submit])
 
   const answeredCount = useMemo(
     () => Object.values(answers).filter(hasAnswer).length,
@@ -607,7 +621,9 @@ export default function LearnerAssessmentPage() {
           ? `${result.manualItems} written response${result.manualItems === 1 ? '' : 's'} will be reviewed by your teacher.`
           : 'All questions were processed.'}
       </p>
-      <p style={{ color: '#374151', fontWeight: 700 }}>{skippedAtSubmission.length === 0 ? 'All questions answered.' : `${skippedAtSubmission.length} skipped question${skippedAtSubmission.length === 1 ? '' : 's'}: ${skippedAtSubmission.join(', ')}. Skipped questions receive 0 marks.`}</p>
+      <p style={{ color: '#374151', fontWeight: 700 }}>{result.submittedDueToExpiry
+        ? 'The server has finalised answers saved before the deadline. Any unanswered questions are marked as skipped.'
+        : skippedAtSubmission.length === 0 ? 'All questions answered.' : `${skippedAtSubmission.length} skipped question${skippedAtSubmission.length === 1 ? '' : 's'}: ${skippedAtSubmission.join(', ')}. Skipped questions receive 0 marks.`}</p>
       {result.scoreReleased && <button onClick={() => router.push(`/student/results/${workspace.attemptId}`)} style={{ ...primaryButton, marginBottom: 10 }}>Review answers and skipped questions</button>}
       <button onClick={() => router.push('/student/assessment')} style={secondaryButton}>Done</button>
     </section></main>
@@ -629,6 +645,10 @@ export default function LearnerAssessmentPage() {
         <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700 }}>{answeredCount}/{workspace.items.length} answered · Attempt {workspace.attemptNumber}</div>
         <p style={{ margin: '8px 0 0', color: '#92400e', fontSize: 12, fontWeight: 700 }}>{unansweredIndexes.length} unanswered · Skipped questions receive 0 marks if submitted.</p>
         {recoveredDraft && <div style={notice}>Recovered newer work saved on this device.</div>}
+        {secondsLeft === 0 && <div role="status" aria-live="polite" style={notice}>
+          Time ended. Editing is locked while the server finalises saved answers.
+          {error && !submitting && !activeElsewhere && <button type="button" onClick={() => void submit(true)} style={{ ...secondaryButton, marginLeft: 8 }}>Retry finalising attempt</button>}
+        </div>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
           <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => void saveAndExit()} style={secondaryButton}>{exiting ? 'Saving…' : workspace.expiresAt || workspace.closesAt ? 'Save & Exit' : 'Pause & Exit'}</button>
           <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => setShowConfirm(true)} style={primaryButton}>Submit & Finish</button>
@@ -690,7 +710,7 @@ export default function LearnerAssessmentPage() {
           : <button type="button" disabled={activeElsewhere} onClick={() => setShowReview(true)} style={{ ...primaryButton, flex: 1, opacity: activeElsewhere ? 0.5 : 1 }}>Review answers</button>}
       </div>
 
-      {error && <div style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</div>}
+      {error && <div role="alert" style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</div>}
     </div>
 
     {showReview && <div style={overlay}><section style={modal}>
