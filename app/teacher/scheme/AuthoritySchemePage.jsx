@@ -304,12 +304,15 @@ function Inner({ curriculumView = false }) {
 
     {curriculumView && isGrade4English && <Grade4EnglishMap
       selectedTerm={termObj?.term ?? null}
+      selectedWeek={selectedWeek}
+      weeklyRows={allCurriculumRows}
+      schemeLessons={schemeItems}
       showExisting={showEnglishLegacy}
       onToggleExisting={()=>setShowEnglishLegacy(value=>!value)}
       weeklyCount={allCurriculumRows.length}
       schemeCount={schemeItems.length}
       verifiedOutcomeCount={Object.values(curriculumOutcomes).flat().filter(outcome=>outcome.status==='verified').length}
-      onOpenScheme={()=>router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}`)}
+      onOpenScheme={()=>router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}&week=${selectedWeek}`)}
     />}
     {curriculumView ? <section className="studio-canonical-map" style={{display:isGrade4English&&!showEnglishLegacy?'none':undefined}}>
       <p className="studio-map-source">Stored curriculum · {classObj?.label} · {subjectObj?.label} · {termObj ? termLabel(termObj) : 'Select term'}</p>
