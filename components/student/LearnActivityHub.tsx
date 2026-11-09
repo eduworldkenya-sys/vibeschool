@@ -12,16 +12,16 @@ export default function LearnActivityHub() {
   const [expanded, setExpanded] = useState(false);
   const hasSchoolClass = Boolean(identity?.classId);
   const primary: Activity[] = [
-    { title:"Read", detail:"Books and resources", Icon:BookOpen, href:"/student/vibelearn/reading" },
-    { title:"Exams", detail:"Tests and results", Icon:ClipboardCheck, href:"/student/vibelearn/exams" },
-    { title:"My Work", detail:"Tasks and homework", Icon:FolderOpen, href:"/student/tasks" },
-    { title:"Revision", detail:"Study and improve", Icon:CalendarDays, href:"/student/vibelearn/revision" },
-    { title:"My Tuition", detail:"Learn with tutors", Icon:Users, href:"/student/tutoring" },
+    { title: "Read", detail:"Books and resources", Icon:BookOpen, href: "/student/vibelearn/reading" },
+    { title: "Exams", detail:"Tests and results", Icon:ClipboardCheck, href: "/student/vibelearn/exams" },
+    { title: "My Work", detail:"Tasks and homework", Icon:FolderOpen, href: "/student/tasks" },
+    { title: "Revision", detail:"Study and improve", Icon:CalendarDays, href: "/student/vibelearn/revision" },
+    { title: "My Tuition", detail:"Learn with tutors", Icon:Users, href: "/student/tutoring" },
   ];
   const secondary: Activity[] = [
-    { title:"Practice", detail:"Questions by topic", Icon:PencilLine, href:"/student/vibelearn/practice" },
-    { title:"Projects", detail:hasSchoolClass ? "School and personal projects" : "Independent learning projects", Icon:FlaskConical, href:hasSchoolClass?"/student/projects":"/student/projects/independent" },
-    { title:"AI Tutor", detail:"Your learning companion", Icon:Bot, href:"/student/twin/companion" },
+    { title: "Practice", detail:"Questions by topic", Icon:PencilLine, href: "/student/vibelearn/practice" },
+    { title: "Projects", detail:hasSchoolClass ? "School and personal projects" : "Independent learning projects", Icon:FlaskConical, href: hasSchoolClass ? "/student/projects" : "/student/projects/independent" },
+    { title: "AI Tutor", detail:"Your learning companion", Icon:Bot, href: "/student/twin/companion" },
   ];
   const activity = (item:Activity) => <Link key={item.title} className="vs-activity-card" href={item.href}>
     <span className="vs-activity-card-icon"><item.Icon size={22} strokeWidth={1.8} aria-hidden="true" /></span>
