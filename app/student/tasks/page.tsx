@@ -1,140 +1,172 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Skel from '@/components/student/Skel'
-import {
-  getPersonalizedLearningPath,
-  listMyTasks,
-  resolveTaskLaunch,
-  syncTaskExecutionReceipt,
-  type StudentPersonalizedPath,
-  type StudentTask,
-  type StudentTaskFeed,
-} from '@/lib/student/tasks'
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, ListTodo, Plus, Trash2, Pencil, X } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { useStudent } from '@/lib/student-context'
+import { listMyTasks, resolveTaskLaunch, syncTaskExecutionReceipt, type StudentTask } from '@/lib/student/tasks'
 
-type Filter = 'focus' | 'all' | 'submitted' | 'results'
-
-const TYPE_LABEL: Record<string, string> = { homework: 'Homework', exercise: 'Exercise', quiz: 'Quiz', cat: 'CAT', exam: 'Exam', project: 'Project', remedial: 'Practice' }
-const RECOMMENDATION_LABEL: Record<string, string> = { revise: 'Revise', practice: 'Practice', learn_next: 'Learn next', intervention: 'Focused support', teacher_priority: 'Teacher priority' }
-
-function dueLabel(task: StudentTask): string {
-  if (task.status === 'released') return 'Result ready'
-  if (task.status === 'awaiting_marking') return 'Submitted'
-  if (task.status === 'in_progress') return 'Continue'
-  if (task.status === 'returned') return 'Needs revision'
-  if (task.status === 'overdue') return 'Overdue'
-  if (task.status === 'upcoming' && task.opensAt) return `Opens ${new Date(task.opensAt).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}`
-  if (!task.dueAt) return 'No deadline'
-  const due = new Date(task.dueAt); const today = new Date(); today.setHours(0, 0, 0, 0); const dueDay = new Date(due); dueDay.setHours(0, 0, 0, 0)
-  const days = Math.round((dueDay.getTime() - today.getTime()) / 86400000)
-  if (days === 0) return 'Due today'
-  if (days === 1) return 'Due tomorrow'
-  if (days > 1) return `Due in ${days} days`
-  return 'Overdue'
+type PlannerItem = {
+  id: string; owner_user_id: string; title: string; notes: string;
+  kind: 'task' | 'study'; starts_at: string | null; due_at: string | null;
+  duration_minutes: number | null; repeat_rule: 'none' | 'daily' | 'weekly';
+  completed_at: string | null; created_at: string; updated_at: string
 }
-function taskTone(task: StudentTask) {
-  if (task.status === 'overdue' || task.status === 'returned') return { accent: '#ef4444', soft: '#fef2f2', text: '#991b1b' }
-  if (task.status === 'in_progress') return { accent: '#f59e0b', soft: '#fffbeb', text: '#92400e' }
-  if (task.status === 'released') return { accent: '#10b981', soft: '#ecfdf5', text: '#065f46' }
-  if (task.status === 'awaiting_marking') return { accent: '#14b8a6', soft: '#f0fdfa', text: '#115e59' }
-  return { accent: 'var(--vs-accent)', soft: 'var(--vs-accent-soft)', text: 'var(--vs-accent)' }
+type PlannerTab = 'today' | 'calendar' | 'schedule'
+type Draft = { title: string; notes: string; kind: 'task' | 'study'; starts: string; due: string; repeat: PlannerItem['repeat_rule']; duration: string }
+const blank: Draft = { title: '', notes: '', kind: 'task', starts: '', due: '', repeat: 'none', duration: '30' }
+const dayKey = (date: Date) => [date.getFullYear(), String(date.getMonth()+1).padStart(2,'0'), String(date.getDate()).padStart(2,'0')].join('-')
+const localInput = (value: string | null) => { if (!value) return ''; const d=new Date(value); return [dayKey(d),String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')].join('T') }
+const formatTime = (value: string) => new Date(value).toLocaleTimeString('en-KE',{hour:'numeric',minute:'2-digit'})
+const occurOn = (item: PlannerItem, date: Date) => {
+  const base = item.starts_at ?? item.due_at
+  if (!base) return false
+  const start = new Date(base); const selected = new Date(date.getFullYear(),date.getMonth(),date.getDate())
+  const original = new Date(start.getFullYear(),start.getMonth(),start.getDate())
+  const delta = Math.round((selected.getTime()-original.getTime())/86400000)
+  if (delta<0) return false
+  return delta===0 || (item.repeat_rule==='daily' && delta>=0) || (item.repeat_rule==='weekly' && delta%7===0)
 }
+const fields: React.CSSProperties = { display:'grid', gap:6, fontSize:13, fontWeight:650 }
+const input: React.CSSProperties = { minWidth:0, width:'100%', minHeight:44, border:'1px solid #cbd5e1',borderRadius:10,padding:'10px 12px',background:'#fff',color:'#17213b',font:'inherit' }
+const button: React.CSSProperties = { minHeight:44, border:'none',borderRadius:10,padding:'10px 14px',background:'#5145e8',color:'#fff',fontWeight:700,cursor:'pointer' }
+const secondary: React.CSSProperties = { ...button, background:'#f1f5f9',color:'#243047',border:'1px solid #e2e8f0' }
 
 export default function TasksPage() {
-  const router = useRouter()
-  const [feed, setFeed] = useState<StudentTaskFeed | null>(null)
-  const [path, setPath] = useState<StudentPersonalizedPath | null>(null)
-  const [filter, setFilter] = useState<Filter>('focus')
-  const [loading, setLoading] = useState(true)
-  const [launchingTaskId, setLaunchingTaskId] = useState<string | null>(null)
-  const [error, setError] = useState('')
+  const router=useRouter()
+  const {identity,loading:identityLoading}=useStudent()
+  const [items,setItems]=useState<PlannerItem[]>([])
+  const [assigned,setAssigned]=useState<StudentTask[]>([])
+  const [tab,setTab]=useState<PlannerTab>('today')
+  const [selected,setSelected]=useState(()=>new Date())
+  const [month,setMonth]=useState(()=>new Date(new Date().getFullYear(),new Date().getMonth(),1))
+  const [editing,setEditing]=useState<string|null>(null)
+  const [draft,setDraft]=useState<Draft>(blank)
+  const [showForm,setShowForm]=useState(false)
+  const [loading,setLoading]=useState(true)
+  const [saving,setSaving]=useState(false)
+  const [error,setError]=useState('')
+  const [opening,setOpening]=useState<string|null>(null)
+  const owner=identity?.profileId
 
-  async function load() {
-    setLoading(true); setError('')
-    try { const [taskFeed, personalized] = await Promise.all([listMyTasks(), getPersonalizedLearningPath()]); setFeed(taskFeed); setPath(personalized) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Tasks could not be loaded.') }
-    finally { setLoading(false) }
+  const refresh=useCallback(async()=>{
+    if(!owner) return
+    setLoading(true);setError('')
+    const {data,error:loadError}=await supabase.from('student_personal_planner').select('*').eq('owner_user_id',owner).order('created_at',{ascending:false}).limit(500)
+    if(loadError) setError(loadError.message)
+    else setItems((data??[]) as PlannerItem[])
+    // Assigned work is supplemental. A broken school RPC must not disable independent planning.
+    try { const feed=await listMyTasks(); setAssigned(feed.tasks.filter(task=>['ready','in_progress','overdue','returned','upcoming'].includes(task.status))) }
+    catch { setAssigned([]) }
+    setLoading(false)
+  },[owner])
+  useEffect(()=>{void refresh()},[refresh])
+
+  function edit(item?:PlannerItem) {
+    setEditing(item?.id??null)
+    setDraft(item?{title:item.title,notes:item.notes,kind:item.kind,starts:localInput(item.starts_at),due:localInput(item.due_at),repeat:item.repeat_rule,duration:String(item.duration_minutes??30)}:blank)
+    setShowForm(true)
   }
-  useEffect(() => { void load() }, [])
-
-  async function openTask(task: StudentTask) {
-    if (launchingTaskId) return
-    setLaunchingTaskId(task.taskId)
-    setError('')
-    try {
-      const launch = await resolveTaskLaunch(task.taskId)
-      await syncTaskExecutionReceipt(task.taskId)
-      router.push(launch.actionUrl)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Task could not be opened.')
-      await load()
-    } finally {
-      setLaunchingTaskId(null)
-    }
+  async function save(event:React.FormEvent) {
+    event.preventDefault()
+    if(!owner || saving) return
+    if(!draft.title.trim()) {setError('Enter a task name.');return}
+    if(draft.kind==='study'&&!draft.starts) {setError('Choose when your study session starts.');return}
+    if(draft.repeat!=='none'&&!draft.starts) {setError('Choose a start date for repeating activities.');return}
+    const start=draft.starts?new Date(draft.starts).toISOString():null
+    const due=draft.due?new Date(draft.due).toISOString():null
+    if(start&&due&&due<start){setError('The deadline cannot be before the start.');return}
+    setSaving(true);setError('')
+    const payload={title:draft.title.trim(),notes:draft.notes.trim(),kind:draft.kind,starts_at:start,due_at:due,repeat_rule:draft.repeat,duration_minutes:draft.kind==='study'?Number(draft.duration):null}
+    const result=editing
+      ? await supabase.from('student_personal_planner').update(payload).eq('id',editing).eq('owner_user_id',owner).select('id').single()
+      : await supabase.from('student_personal_planner').insert({...payload,owner_user_id:owner}).select('id').single()
+    if(result.error) setError(result.error.message)
+    else {setShowForm(false);setEditing(null);setDraft(blank);await refresh()}
+    setSaving(false)
   }
-
-  const motivation = path?.motivation
-  const tasks = feed?.tasks ?? []
-  const focusTasks = useMemo(() => tasks.filter(task => ['overdue', 'returned', 'in_progress', 'ready'].includes(task.status)), [tasks])
-  const filtered = useMemo(() => {
-    if (filter === 'focus') return focusTasks
-    if (filter === 'submitted') return tasks.filter(task => task.status === 'awaiting_marking')
-    if (filter === 'results') return tasks.filter(task => task.status === 'released')
-    return tasks
-  }, [filter, focusTasks, tasks])
-  const nextTask = path?.nextMission ?? motivation?.nextMission ?? focusTasks[0] ?? null
-  const goal = motivation?.dailyGoal
-  const goalRate = goal ? Math.min(100, Math.round((goal.completed / Math.max(1, goal.target)) * 100)) : 0
-
-  if (loading) return <div style={{ display: 'grid', gap: 12 }}><Skel h={180} radius={20} /><Skel h={90} radius={14} /><Skel h={90} radius={14} /></div>
-
-  return <div style={{ animation: 'slideIn 0.22s ease' }}>
-    <section style={hero}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}><div><div style={eyebrow}>TODAY'S BEST NEXT STEP</div><h1 style={{ margin: '5px 0 6px', fontSize: 23, fontFamily: "'Bricolage Grotesque',sans-serif" }}>{nextTask ? nextTask.title : 'You are caught up'}</h1><p style={heroText}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · ${nextTask.subject} · ${dueLabel(nextTask)}` : 'Review your recommendations or recent learning journey.'}</p></div><div style={{ textAlign: 'right', flex: '0 0 auto' }}><div style={{ fontSize: 18, fontWeight: 900 }}>{motivation?.totalXp ?? 0}</div><div style={eyebrow}>VERIFIED XP</div></div></div>
-      {nextTask && <button type="button" disabled={launchingTaskId === nextTask.taskId} onClick={() => void openTask(nextTask)} style={{ ...missionButton, opacity: launchingTaskId === nextTask.taskId ? .7 : 1 }}>{launchingTaskId === nextTask.taskId ? 'Opening…' : nextTask.actionLabel}</button>}
-      <div style={{ marginTop: 14 }}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,.72)', marginBottom: 5 }}><span>Daily learning goal</span><strong>{goal?.completed ?? 0}/{goal?.target ?? 1}</strong></div><div style={heroTrack}><div style={{ width: `${goalRate}%`, height: '100%', background: '#fff', borderRadius: 999 }} /></div></div>
+  async function complete(item:PlannerItem) {
+    if(!owner) return
+    const completed_at=item.completed_at?null:new Date().toISOString()
+    const {data,error:saveError}=await supabase.from('student_personal_planner').update({completed_at}).eq('id',item.id).eq('owner_user_id',owner).select('id').single()
+    if(saveError||!data){setError(saveError?.message??'Could not update this task.');return}
+    setItems(previous=>previous.map(row=>row.id===item.id?{...row,completed_at}:row))
+  }
+  async function remove(item:PlannerItem) {
+    if(!owner||!window.confirm('Delete this personal activity?')) return
+    const {error:deleteError}=await supabase.from('student_personal_planner').delete().eq('id',item.id).eq('owner_user_id',owner)
+    if(deleteError) setError(deleteError.message)
+    else setItems(previous=>previous.filter(row=>row.id!==item.id))
+  }
+  async function openAssigned(task:StudentTask) {
+    setOpening(task.taskId);setError('')
+    try {const launch=await resolveTaskLaunch(task.taskId);await syncTaskExecutionReceipt(task.taskId);router.push(launch.actionUrl)}
+    catch(e){setError(e instanceof Error?e.message:'Could not open this assignment.')}
+    finally{setOpening(null)}
+  }
+  const selectedItems=useMemo(()=>items.filter(item=>!item.completed_at && occurOn(item,selected)),[items,selected])
+  const undated=items.filter(item=>item.kind==='task'&&!item.starts_at&&!item.due_at&&!item.completed_at)
+  const pending=items.filter(item=>!item.completed_at).length
+  const completed=items.filter(item=>!!item.completed_at).length
+  const calendarCells=useMemo(()=>{const first=new Date(month.getFullYear(),month.getMonth(),1); const offset=(first.getDay()+6)%7;return Array.from({length:Math.ceil((offset+new Date(first.getFullYear(),first.getMonth()+1,0).getDate())/7)*7},(_,index)=>new Date(first.getFullYear(),first.getMonth(),index-offset+1))},[month])
+  const schedules=items.filter(item=>item.kind==='study'&&item.starts_at).sort((a,b)=>(a.starts_at??'').localeCompare(b.starts_at??''))
+  if(identityLoading||!identity) return <p style={{padding:20}}>Loading your learner workspace…</p>
+  return <div className="planner" style={{display:'grid',gap:16,color:'#17213b'}}>
+    <header className="planner-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+      <div><h1 style={{fontSize:26,margin:0}}>My Tasks</h1><p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>Your personal study planner</p></div>
+      <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> Add task</button>
+    </header>
+    <section className="planner-stats" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:9}}>
+      {[['To do',pending],['Done',completed],['Scheduled',schedules.length]].map(([label,value])=><div key={label} style={{border:'1px solid #e2e8f0',borderRadius:12,background:'#fff',padding:12}}><strong style={{fontSize:22,display:'block'}}>{value}</strong><span style={{fontSize:12,color:'#64748b'}}>{label}</span></div>)}
     </section>
-
-    {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}<button type="button" onClick={() => void load()} style={{ ...smallButton, marginLeft: 10 }}>Retry</button></section>}
-
-    <section style={statsGrid}><Stat label="To do" value={feed?.counts.toDo ?? 0} emphasis={(feed?.counts.toDo ?? 0) > 0} /><Stat label="In progress" value={feed?.counts.inProgress ?? 0} /><Stat label="Day streak" value={motivation?.streak.current ?? 0} /><Stat label="Path steps" value={path?.recommendations.length ?? 0} /></section>
-
-    {(path?.recommendations.length ?? 0) > 0 && <section style={{ ...card, marginBottom: 14 }}><div style={sectionTitle}>Your learning path</div><div style={{ display: 'grid', gap: 9 }}>{path?.recommendations.slice(0, 5).map(item => <div key={item.id} style={recommendationRow}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><strong style={{ fontSize: 12 }}>{item.title}</strong><span style={recommendationBadge}>{RECOMMENDATION_LABEL[item.type] ?? item.type}</span></div><p style={{ margin: '5px 0 0', fontSize: 10, lineHeight: 1.45, color: 'var(--vs-muted)' }}>{item.reason}</p><div style={{ marginTop: 6, fontSize: 9, color: 'var(--vs-muted)' }}>{Math.round(item.confidence * 100)}% evidence confidence{item.nextReviewAt ? ` · Review ${new Date(item.nextReviewAt).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}` : ''}</div></div>)}</div></section>}
-
-    {(motivation?.achievements.length ?? 0) > 0 && <section style={{ ...card, marginBottom: 14 }}><div style={sectionTitle}>Recent achievements</div><div style={{ display: 'grid', gap: 8 }}>{motivation?.achievements.slice(0, 3).map(item => <div key={item.slug} style={achievementRow}><span style={{ fontSize: 22 }}>{item.icon}</span><div><strong style={{ fontSize: 12 }}>{item.title}</strong><div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 2 }}>{item.description}</div></div></div>)}</div></section>}
-
-    {(motivation?.subjectProgress.length ?? 0) > 0 && <section style={{ ...card, marginBottom: 14 }}><div style={sectionTitle}>Subject progress</div><div style={{ display: 'grid', gap: 10 }}>{motivation?.subjectProgress.slice(0, 4).map(item => { const progress = item.totalTasks > 0 ? Math.round((item.completedTasks / item.totalTasks) * 100) : 0; return <div key={item.subjectId}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11 }}><strong>{item.subjectName}</strong><span style={{ color: 'var(--vs-muted)' }}>{item.completedTasks}/{item.totalTasks} tasks</span></div><div style={track}><div style={{ width: `${Math.min(100, progress)}%`, height: '100%', background: 'var(--vs-accent)' }} /></div></div> })}</div></section>}
-
-    {(path?.timeline.length ?? 0) > 0 && <section style={{ ...card, marginBottom: 14 }}><div style={sectionTitle}>Learning journey</div><div style={{ display: 'grid', gap: 10 }}>{path?.timeline.slice(0, 6).map(item => <div key={item.id} style={timelineRow}><div style={timelineDot} /><div><strong style={{ fontSize: 11 }}>{item.title}</strong>{item.summary && <div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 2 }}>{item.summary}</div>}<div style={{ fontSize: 9, color: 'var(--vs-muted)', marginTop: 3 }}>{item.occurredAt ? new Date(item.occurredAt).toLocaleString('en-KE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div></div></div>)}</div></section>}
-
-    <div style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 2 }}>{([['focus', 'Focus'], ['all', 'All tasks'], ['submitted', 'Submitted'], ['results', 'Results']] as const).map(([id, label]) => <button key={id} type="button" onClick={() => setFilter(id)} style={{ ...filterButton, ...(filter === id ? activeFilter : {}) }}>{label}</button>)}</div>
-
-    {filtered.length === 0 ? <section style={{ ...card, textAlign: 'center', padding: '42px 20px' }}><div style={{ fontSize: 30, marginBottom: 8 }}>✓</div><strong>No tasks in this section</strong><p style={{ margin: '6px 0 0', color: 'var(--vs-muted)', fontSize: 12 }}>Your next assigned task will appear here.</p></section> : <div style={{ display: 'grid', gap: 10 }}>{filtered.map(task => { const tone = taskTone(task); const disabled = ['awaiting_marking', 'closed', 'upcoming'].includes(task.status) || launchingTaskId !== null; return <article key={task.taskId} style={{ ...card, borderLeft: `4px solid ${tone.accent}` }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 10, fontWeight: 800, color: tone.text, textTransform: 'uppercase', letterSpacing: .8 }}>{TYPE_LABEL[task.taskType] ?? task.taskType}</div><h2 style={{ fontSize: 14, margin: '4px 0', lineHeight: 1.35 }}>{task.title}</h2><div style={{ fontSize: 11, color: 'var(--vs-muted)' }}>{task.subject} · {dueLabel(task)}</div></div><span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: tone.soft, color: tone.text, fontSize: 9, fontWeight: 800, textTransform: 'capitalize' }}>{task.status.replaceAll('_', ' ')}</span></div>{task.progress > 0 && task.progress < 100 && <div style={{ marginTop: 10 }}><div style={track}><div style={{ width: `${task.progress}%`, height: '100%', background: tone.accent }} /></div></div>}{task.status === 'released' && task.score !== null && <div style={{ marginTop: 10, fontSize: 12, fontWeight: 800, color: '#065f46' }}>{task.score}{task.maxScore !== null ? ` / ${task.maxScore}` : ''}</div>}{task.feedback && <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--vs-muted)', lineHeight: 1.5 }}>{task.feedback}</p>}<button type="button" disabled={disabled} onClick={() => void openTask(task)} style={{ ...taskButton, background: tone.accent, opacity: disabled ? .55 : 1 }}>{launchingTaskId === task.taskId ? 'Opening…' : task.actionLabel}</button></article> })}</div>}
-
-    <p style={{ textAlign: 'center', fontSize: 10, color: 'var(--vs-muted)', marginTop: 16 }}>Recommendations are generated from real learning evidence, teacher priorities and completed schoolwork.</p>
+    <nav aria-label="Planner views" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7}}>
+      {([{id:'today',label:'Today',Icon:ListTodo},{id:'calendar',label:'Calendar',Icon:CalendarDays},{id:'schedule',label:'Schedule',Icon:Clock3}] as const).map(({id,label,Icon})=><button key={id} type="button" onClick={()=>setTab(id)} aria-current={tab===id?'page':undefined} style={{...secondary,background:tab===id?'#eef2ff':'#fff',borderColor:tab===id?'#5145e8':'#e2e8f0',color:tab===id?'#4338ca':'#334155',padding:'10px 5px',display:'flex',gap:5,alignItems:'center',justifyContent:'center'}}><Icon size={16}/>{label}</button>)}
+    </nav>
+    {error&&<div role="alert" style={{background:'#fff1f2',border:'1px solid #fecdd3',borderRadius:12,padding:12,color:'#9f1239'}}>{error}<button type="button" style={{...secondary,marginLeft:8}} onClick={()=>setError('')}>Dismiss</button></div>}
+    {showForm&&<form onSubmit={e=>void save(e)} style={{background:'#fff',border:'1px solid #cbd5e1',borderRadius:16,padding:16,display:'grid',gap:12}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><h2 style={{fontSize:18,margin:0}}>{editing?'Edit activity':'Add activity'}</h2><button type="button" aria-label="Close editor" style={secondary} onClick={()=>setShowForm(false)}><X size={18}/></button></div>
+      <label style={fields}>Activity name<input required maxLength={160} autoFocus style={input} value={draft.title} onChange={e=>setDraft(p=>({...p,title:e.target.value}))} placeholder="e.g. Revise fractions"/></label>
+      <label style={fields}>Activity type<select style={input} value={draft.kind} onChange={e=>setDraft(p=>({...p,kind:e.target.value as Draft['kind']}))}><option value="task">To-do task</option><option value="study">Scheduled study session</option></select></label>
+      <div className="planner-form-grid" style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10}}>
+        <label style={fields}>Start date and time<input style={input} type="datetime-local" value={draft.starts} onChange={e=>setDraft(p=>({...p,starts:e.target.value}))}/></label>
+        <label style={fields}>Deadline (optional)<input style={input} type="datetime-local" value={draft.due} onChange={e=>setDraft(p=>({...p,due:e.target.value}))}/></label>
+      </div>
+      <div className="planner-form-grid" style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10}}>
+        <label style={fields}>Repeat<select style={input} value={draft.repeat} onChange={e=>setDraft(p=>({...p,repeat:e.target.value as Draft['repeat']}))}><option value="none">Never</option><option value="daily">Every day</option><option value="weekly">Every week</option></select></label>
+        {draft.kind==='study'&&<label style={fields}>Minutes<input style={input} type="number" min={5} max={600} required value={draft.duration} onChange={e=>setDraft(p=>({...p,duration:e.target.value}))}/></label>}
+      </div>
+      <label style={fields}>Notes (optional)<textarea style={input} rows={3} maxLength={2000} value={draft.notes} onChange={e=>setDraft(p=>({...p,notes:e.target.value}))}/></label>
+      <button type="submit" disabled={saving} style={{...button,opacity:saving?.6:1}}>{saving?'Saving…':'Save activity'}</button>
+    </form>}
+    {loading?<p role="status">Loading activities…</p>:tab==='today'?<section style={{display:'grid',gap:10}}>
+      <h2 style={{fontSize:17,margin:0}}>{selected.toLocaleDateString('en-KE',{weekday:'long',month:'long',day:'numeric'})}</h2>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" style={secondary} onClick={()=>setSelected(new Date(selected.getFullYear(),selected.getMonth(),selected.getDate()-1))}><ChevronLeft size={16}/></button><button type="button" style={secondary} onClick={()=>setSelected(new Date())}>Today</button><button type="button" style={secondary} onClick={()=>setSelected(new Date(selected.getFullYear(),selected.getMonth(),selected.getDate()+1))}><ChevronRight size={16}/></button></div>
+      {[...selectedItems,...undated.filter(item=>!selectedItems.some(row=>row.id===item.id))].length===0?<p style={{background:'#fff',padding:24,borderRadius:14,color:'#64748b'}}>Nothing planned. Add your first activity.</p>:[...selectedItems,...undated.filter(item=>!selectedItems.some(row=>row.id===item.id))].map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)}/>)}
+      {completed>0&&<details><summary style={{cursor:'pointer',padding:8}}>Completed ({completed})</summary><div style={{display:'grid',gap:9,marginTop:8}}>{items.filter(item=>item.completed_at).map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)}/>)}</div></details>}
+    </section>:tab==='calendar'?<section style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:15,padding:12,display:'grid',gap:12}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}><button type="button" aria-label="Previous month" style={secondary} onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}><ChevronLeft size={18}/></button><h2 style={{fontSize:17,margin:0}}>{month.toLocaleDateString('en-KE',{month:'long',year:'numeric'})}</h2><button type="button" aria-label="Next month" style={secondary} onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}><ChevronRight size={18}/></button></div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:4}}>{['M','T','W','T','F','S','S'].map((day,i)=><span key={i} style={{textAlign:'center',fontSize:12,color:'#64748b'}}>{day}</span>)}{calendarCells.map(date=>{const count=items.filter(item=>!item.completed_at&&occurOn(item,date)).length;const active=dayKey(date)===dayKey(selected);return <button type="button" key={dayKey(date)} aria-label={date.toDateString()+', '+count+' activities'} onClick={()=>{setSelected(date);setTab('today')}} style={{minWidth:0,minHeight:48,border:'1px solid '+(active?'#5145e8':'#e2e8f0'),borderRadius:8,background:active?'#eef2ff':'#fff',color:date.getMonth()===month.getMonth()?'#17213b':'#94a3b8',cursor:'pointer',fontWeight:active?800:500}}>{date.getDate()}{count>0&&<span style={{display:'block',fontSize:10,color:'#5145e8'}}>{count} •</span>}</button>})}</div>
+      <p style={{fontSize:12,color:'#64748b',margin:0}}>Select a date to see its planned activities.</p>
+    </section>:<section style={{display:'grid',gap:10}}>
+      <h2 style={{fontSize:17,margin:0}}>My study schedule</h2>
+      {schedules.length===0?<p style={{background:'#fff',padding:24,borderRadius:14,color:'#64748b'}}>No sessions scheduled. Add a study session to create your timetable.</p>:schedules.map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)}/>)}
+    </section>}
+    {assigned.length>0&&<section style={{display:'grid',gap:9,marginTop:8}}><h2 style={{fontSize:17,margin:0}}>Learning tasks</h2><p style={{fontSize:12,color:'#64748b',margin:0}}>Real assigned or unfinished learning work. Completion is recorded in the assessment system.</p>{assigned.map(task=><div key={task.taskId} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:14,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}><div style={{minWidth:0}}><strong>{task.title}</strong><p style={{fontSize:12,color:'#64748b',margin:'4px 0'}}>{task.subject} · {task.status.replaceAll('_',' ')}</p></div><button type="button" disabled={opening!==null} style={button} onClick={()=>void openAssigned(task)}>{opening===task.taskId?'Opening…':task.actionLabel}</button></div>)}</section>}
+    <style>{`
+      .planner { min-width:0; width:100%; }
+      .planner :is(input,select,textarea,button) { max-width:100%; }
+      @media(max-width:480px){.planner-form-grid{grid-template-columns:minmax(0,1fr)!important}.planner-header h1{font-size:23px!important}}
+      @media(prefers-reduced-motion:reduce){.planner *{scroll-behavior:auto!important;transition:none!important}}
+    `}</style>
   </div>
 }
 
-function Stat({ label, value, emphasis = false }: { label: string; value: number; emphasis?: boolean }) { return <div style={{ ...stat, background: emphasis ? '#fff7ed' : 'var(--vs-card)' }}><strong style={{ fontSize: 18, color: emphasis ? '#c2410c' : 'var(--vs-text)' }}>{value}</strong><span style={{ fontSize: 9, color: 'var(--vs-muted)', fontWeight: 700 }}>{label}</span></div> }
-const hero: React.CSSProperties = { background: 'linear-gradient(135deg,#4338ca,#7c3aed)', color: '#fff', borderRadius: 20, padding: 18, marginBottom: 14, boxShadow: '0 10px 24px rgba(67,56,202,.2)' }
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.68)', letterSpacing: 1 }
-const heroText: React.CSSProperties = { margin: 0, fontSize: 12, color: 'rgba(255,255,255,.78)' }
-const heroTrack: React.CSSProperties = { height: 7, borderRadius: 999, background: 'rgba(255,255,255,.18)', overflow: 'hidden' }
-const card: React.CSSProperties = { background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 14, padding: 14 }
-const missionButton: React.CSSProperties = { marginTop: 14, width: '100%', border: 'none', borderRadius: 11, padding: '11px 14px', background: '#fff', color: '#4338ca', fontFamily: 'inherit', fontWeight: 900, cursor: 'pointer' }
-const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7, marginBottom: 14 }
-const stat: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 12, padding: '10px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }
-const sectionTitle: React.CSSProperties = { fontSize: 10, fontWeight: 900, letterSpacing: .8, textTransform: 'uppercase', color: 'var(--vs-muted)', marginBottom: 10 }
-const recommendationRow: React.CSSProperties = { borderRadius: 12, padding: 11, background: 'var(--vs-surface)', border: '1px solid var(--vs-border)' }
-const recommendationBadge: React.CSSProperties = { fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: .6, color: 'var(--vs-accent)', background: 'var(--vs-accent-soft)', padding: '3px 6px', borderRadius: 999, whiteSpace: 'nowrap' }
-const achievementRow: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center', padding: 9, borderRadius: 11, background: 'var(--vs-surface)' }
-const timelineRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '10px 1fr', gap: 8, alignItems: 'start' }
-const timelineDot: React.CSSProperties = { width: 7, height: 7, marginTop: 4, borderRadius: 999, background: 'var(--vs-accent)' }
-const track: React.CSSProperties = { height: 6, marginTop: 5, borderRadius: 999, background: 'var(--vs-border)', overflow: 'hidden' }
-const filterButton: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 999, background: 'var(--vs-card)', color: 'var(--vs-muted)', padding: '7px 12px', fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer' }
-const activeFilter: React.CSSProperties = { background: 'var(--vs-accent)', color: '#fff', borderColor: 'var(--vs-accent)' }
-const taskButton: React.CSSProperties = { width: '100%', marginTop: 12, border: 'none', borderRadius: 9, padding: '9px 12px', color: '#fff', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer' }
-const smallButton: React.CSSProperties = { border: 'none', borderRadius: 7, padding: '5px 8px', background: '#fee2e2', color: '#991b1b', fontWeight: 800, cursor: 'pointer' }
+function Activity({item,onEdit,onDelete,onComplete}:{item:PlannerItem;onEdit:()=>void;onDelete:()=>void;onComplete:()=>void}){
+  const repeating=item.repeat_rule!=='none'
+  return <article style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:13,padding:14,display:'flex',alignItems:'flex-start',gap:10,minWidth:0}}>
+    {item.kind==='task'&&!repeating?<button type="button" onClick={onComplete} aria-label={item.completed_at?'Mark incomplete':'Mark complete'} style={{...secondary,minWidth:44,padding:10,background:item.completed_at?'#dcfce7':'#f8fafc'}}><Check size={18} color={item.completed_at?'#15803d':'#94a3b8'}/></button>:<Clock3 size={20} color="#5145e8" style={{marginTop:11,flexShrink:0}}/>}
+    <div style={{flex:1,minWidth:0,overflowWrap:'anywhere'}}><strong style={{textDecoration:item.completed_at?'line-through':'none'}}>{item.title}</strong><p style={{fontSize:12,color:'#64748b',margin:'5px 0'}}>{item.starts_at?new Date(item.starts_at).toLocaleString('en-KE',{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):item.due_at?'Due '+new Date(item.due_at).toLocaleDateString('en-KE'):'Any time'}{item.duration_minutes?' · '+item.duration_minutes+' min':''}{repeating?' · '+item.repeat_rule:''}</p>{item.notes&&<p style={{fontSize:12,color:'#475569',margin:0}}>{item.notes}</p>}</div>
+    <div style={{display:'flex',gap:4}}><button type="button" onClick={onEdit} style={{...secondary,padding:9}} aria-label={'Edit '+item.title}><Pencil size={16}/></button><button type="button" onClick={onDelete} style={{...secondary,padding:9}} aria-label={'Delete '+item.title}><Trash2 size={16}/></button></div>
+  </article>
+}
