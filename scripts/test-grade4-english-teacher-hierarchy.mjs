@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 const component = readFileSync(new URL('../components/teacher/curriculum/Grade4EnglishMap.tsx', import.meta.url),'utf8')
 const page = readFileSync(new URL('../app/teacher/scheme/AuthoritySchemePage.jsx', import.meta.url),'utf8')
 const slots = readFileSync(new URL('../components/teacher/scheme/WeeklyLessonSlots.tsx', import.meta.url),'utf8')
+const launcher = readFileSync(new URL('../app/teacher/scheme/generate/page.tsx', import.meta.url),'utf8')
 const reference = readFileSync(new URL('../lib/curriculum/grade4EnglishReference.ts', import.meta.url),'utf8')
 
 for(const token of [
@@ -40,4 +41,13 @@ assert.ok(page.includes('compact={!curriculumView}'), 'Scheme should use compact
 assert.ok(slots.includes('const topics=curriculumTopics.filter(row=>row.week===week)'), 'Selected week must scope curriculum topics')
 assert.ok(slots.includes('Not planned yet'), 'Unplanned slots must remain visibly empty')
 assert.ok(slots.includes('lessons.length>target'), 'Weekly over-allocation must be flagged')
-console.log('Grade 4 English teacher hierarchy checks passed')
+for (const token of [
+  "'id, teacher_id, school_id, class_id, subject_id, academic_term_id, week'",
+  ".eq('term_id', scheme.academic_term_id)",
+  ".eq('week_number', scheme.week)",
+  "const rangeStart = matchingWeek.start_date",
+  "const rangeEnd = matchingWeek.end_date",
+  "existing?.scheme_id === schemeId",
+]) assert.ok(launcher.includes(token), 'Scheme launcher lost exact week / identity requirement: '+token)
+assert.ok(!launcher.includes('nairobiDateAdd(\n          rangeStart,\n          55'), 'Never find a lesson plan in a different instructional week')
+console.log('Grade 4 English teacher hierarchy and Scheme week identity checks passed')
