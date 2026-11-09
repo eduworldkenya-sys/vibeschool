@@ -25,11 +25,14 @@ export async function POST(req: NextRequest) {
   if (lookupError || !identity || identity.account_state !== 'restricted' || !identity.learner_email_verified_at) {
     return NextResponse.json({ error: 'Independent learner identity not available' }, { status: 403 })
   }
-  const { data: school, error: schoolError } = await admin.from('students').select('id')
-    .eq('profile_id', user.id).limit(1).maybeSingle()
-  if (schoolError || school) return NextResponse.json({ error: 'Existing school identity' }, { status: 409 })
   const { error } = await admin.from('independent_learner_identities')
     .update({ grade_label: grade, updated_at: new Date().toISOString() }).eq('user_id', user.id)
   if (error) return NextResponse.json({ error: 'Could not save grade' }, { status: 503 })
+  // Provision the same personal student identity used by every learning engine.
+  // This service-only RPC verifies the account and rejects school conflicts.
+  const { data: studentId, error: provisioningError } = await admin.rpc('ensure_independent_learner_student', { p_user_id: user.id })
+  if (provisioningError || !studentId) {
+    return NextResponse.json({ error: 'Could not prepare learner account. Please retry.' }, { status: 409 })
+  }
   return NextResponse.json({ saved: true })
 }
