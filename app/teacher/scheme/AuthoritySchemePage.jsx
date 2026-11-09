@@ -308,7 +308,6 @@ function Inner({ curriculumView = false }) {
       selectedTerm={termObj?.term ?? null}
       selectedWeek={selectedWeek}
       weeklyRows={allCurriculumRows}
-      schemeLessons={schemeItems}
       showExisting={showEnglishLegacy}
       onToggleExisting={()=>setShowEnglishLegacy(value=>!value)}
       weeklyCount={allCurriculumRows.length}
