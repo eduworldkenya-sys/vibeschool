@@ -13,13 +13,13 @@ export default function LearnActivityHub() {
   const hasSchoolClass = Boolean(identity?.classId);
   const primary: Activity[] = [
     { title: "Exams", detail:"Start an exam and see results", Icon:ClipboardCheck, href: "/student/vibelearn/exams" },
+    { title: "Practice", detail:"Choose approved practice by subject", Icon:PencilLine, href: "/student/vibelearn/practice" },
     { title: "Read", detail:"Open books and resources", Icon:BookOpen, href: "/student/vibelearn/reading" },
     { title: "My Work", detail:"Open your tasks", Icon:FolderOpen, href: "/student/tasks" },
     { title: "Revision", detail:"Review what you learned", Icon:CalendarDays, href: "/student/vibelearn/revision" },
     { title: "My Tuition", detail:"Go to tuition", Icon:Users, href: "/student/tutoring" },
   ];
   const secondary: Activity[] = [
-    { title: "Practice", detail:"Questions by topic", Icon:PencilLine, href: "/student/vibelearn/practice" },
     { title: "Projects", detail:hasSchoolClass ? "School and personal projects" : "Independent learning projects", Icon:FlaskConical, href: hasSchoolClass ? "/student/projects" : "/student/projects/independent" },
   ];
   const activity = (item:Activity) => <Link key={item.title} className="vs-activity-card" href={item.href}>
