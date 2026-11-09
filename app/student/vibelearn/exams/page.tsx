@@ -25,6 +25,7 @@ export default function VibeLearnExamsPage() {
   const router = useRouter()
   const { identity, loading: identityLoading } = useStudent()
   const isGrade4 = !identityLoading && /^(grade|class)\s*4$/i.test(identity?.className?.trim() ?? '')
+  const isGrade9 = !identityLoading && /^(grade|class)\s*9$/i.test(identity?.className?.trim() ?? '')
   const isForm4 = !identityLoading && /^form\s*4$/i.test(identity?.className?.trim() ?? '')
   const [assignments, setAssignments] = useState<LearnerAssessmentAssignment[]>([])
   const [hub, setHub] = useState<LearnerAssessmentHub | null>(null)
@@ -103,6 +104,13 @@ export default function VibeLearnExamsPage() {
           <span style={{ fontSize: 12, color: '#cbd5e1', marginTop: 'auto' }}>{item.description}</span>
         </button>)}
       </nav>
+
+      {isGrade9 && <section style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 9 Mathematics">
+        <div style={eyebrowDark}>Grade 9 · Mathematics</div>
+        <h2 style={title}>Mathematics practice and mocks</h2>
+        <p style={muted}>Explore approved Mathematics assessments and see your released results.</p>
+        <button type="button" style={{ ...primaryButton, marginTop: 12 }} onClick={() => router.push('/student/vibelearn/exams/grade-9/mathematics')}>Open Mathematics</button>
+      </section>}
 
       {false && isGrade4 && assignments.filter(item => /^Grade 4 English — Pilot 01$/i.test(item.title)).map(item =>
         <section key={item.assignmentId} style={{ ...card, padding: 20, borderColor: '#a7d7c4' }} aria-label="Grade 4 English exam">
