@@ -1,5 +1,6 @@
-import "./learn-ui.css";
 "use client";
+
+import "./learn-ui.css";
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
