@@ -13,12 +13,18 @@ for(const token of [
   'aria-controls={',
   'Theme-specific learning outcomes: not yet reconciled',
   'Selected-term weekly records:',
-  'setShowYear(true)',
+  'setShowYear(false)',
+  'Week {selectedWeek} · Your teaching plan',
+  'weekRows.map(row',
+  'weekLessons.map(lesson',
   'View existing weekly curriculum',
   'Open my scheme of work',
   'Only canonical curriculum records may be used',
 ]) assert.ok(component.includes(token), 'Missing curriculum browser requirement: '+token)
 assert.ok(page.includes('verifiedOutcomeCount={Object.values(curriculumOutcomes)'), 'Verified outcomes must be counted from loaded curriculum')
+assert.ok(page.includes('selectedWeek={selectedWeek}'), 'Selected instructional week must reach the curriculum')
+assert.ok(page.includes('weeklyRows={allCurriculumRows}'), 'Use stored weekly curriculum records')
+assert.ok(page.includes('schemeLessons={schemeItems}'), 'Use teacher-owned scheme lessons')
 assert.ok(page.includes('schemeCount={schemeItems.length}'), 'Scheme count must reflect the teacher records')
 assert.ok(page.includes('<Grade4EnglishMap'), 'Teacher page must mount the new browser')
 assert.ok(page.includes('showEnglishLegacy'), 'Existing records must remain accessible')
