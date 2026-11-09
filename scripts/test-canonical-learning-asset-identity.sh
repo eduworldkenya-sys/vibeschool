@@ -6,7 +6,6 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 rm -rf "$TMP_DIR"
 
 npx tsc lib/content/canonicalLearningAssetIdentity.ts \
-  --ignoreConfig \
   --target ES2020 --module Node16 --moduleResolution Node16 --skipLibCheck --outDir "$TMP_DIR"
 
 node <<'NODE'

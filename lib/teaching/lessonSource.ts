@@ -157,7 +157,13 @@ export async function enrichLessonSourceFromCurriculum(
     .eq('id', source.strandId)
     .maybeSingle()
 
-  if (error) throw error
+  // Authority enrichment is optional. A temporary source read failure must not
+  // discard an otherwise authorized teacher-authored Scheme lesson. Missing
+  // fields stay missing and are never represented as verified KICD outcomes.
+  if (error) {
+    console.error('[lessonSource] curriculum enrichment unavailable', error)
+    return source
+  }
   if (!data) return source
 
   const authority = data as CurriculumAuthorityDetailRow
@@ -392,13 +398,29 @@ export async function resolveLessonSource({
     return enrichedSchemeSuggestion(requestedScheme, term.term)
   }
 
-  const progressionScheme = await loadCurrentSchemeProgression({
-    userId,
-    schoolId,
-    classId,
-    subjectId,
-    academicTerm: term,
-  })
+  // Progression is a convenience lookup, not the sole authority for a dated
+  // lesson. If it is unavailable, try the timetable/week and curriculum sources.
+  // Authorization failures remain fatal: never turn them into a fallback.
+  let progressionScheme: SchemeSourceRow | null = null
+  try {
+    progressionScheme = await loadCurrentSchemeProgression({
+      userId,
+      schoolId,
+      classId,
+      subjectId,
+      academicTerm: term,
+    })
+  } catch (progressionError) {
+    const detail = String(
+      progressionError instanceof Error
+        ? progressionError.message
+        : (progressionError as { message?: string } | null)?.message ?? progressionError,
+    )
+    if (/auth|permission|access|assignment_not_found|academic_term_not_found|jwt|403|401/i.test(detail)) {
+      throw progressionError
+    }
+    console.error('[lessonSource] progression unavailable; trying dated sources', progressionError)
+  }
   if (progressionScheme) {
     return enrichedSchemeSuggestion(progressionScheme, term.term)
   }
