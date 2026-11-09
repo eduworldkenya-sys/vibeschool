@@ -39,6 +39,7 @@ export default function TopicPracticePage() {
   const [grade, setGrade] = useState('')
   const [questions, setQuestions] = useState<Question[]>([])
   const [topics, setTopics] = useState<Topic[]>([])
+  const [completedTopics, setCompletedTopics] = useState<string[]>([])
   const [session, setSession] = useState<Session|null>(null)
   const [choice, setChoice] = useState<number|null>(null)
   const [reviewQuestionId, setReviewQuestionId] = useState<string|null>(null)
@@ -53,6 +54,7 @@ export default function TopicPracticePage() {
     const profileGrade = /^grade\s*\d+$/i.test(identity.className.trim()) ? identity.className.trim() : /^form\s*[1-4]$/i.test(identity.className.trim()) ? identity.className.trim() : ''
     setGrade(profileGrade || window.localStorage.getItem(STORAGE + identity.studentId + ':grade') || '')
     setSession(readSession(STORAGE + identity.studentId))
+    try { const saved = JSON.parse(window.localStorage.getItem(STORAGE + identity.studentId + ':completed') || '[]'); if (Array.isArray(saved)) setCompletedTopics(saved.filter((x):x is string => typeof x === 'string')) } catch { setCompletedTopics([]) }
     setInitialised(true)
   }, [identityLoading, identity, initialised])
   useEffect(() => {
@@ -134,7 +136,14 @@ export default function TopicPracticePage() {
   }
   function next() {
     if (!session || !currentAnswer) return
-    remember({...session,index:Math.min(TARGET,session.index+1),finished:session.index+1 >= TARGET})
+    const finished = session.index+1 >= TARGET
+    remember({...session,index:Math.min(TARGET,session.index+1),finished})
+    if (finished && identity?.studentId) {
+      const key = session.grade + '::' + session.subject + '::' + session.topic
+      const nextCompleted = Array.from(new Set([...completedTopics,key]))
+      setCompletedTopics(nextCompleted)
+      try { window.localStorage.setItem(STORAGE + identity.studentId + ':completed',JSON.stringify(nextCompleted)) } catch {}
+    }
   }
   async function retryQuestion(question:Question) {
     if (choice === null || busy || !session) return
@@ -193,7 +202,7 @@ export default function TopicPracticePage() {
     </section>}
     {grade && !loading && !session && <section style={card}>
       <h2 style={heading}>Choose a topic</h2>
-      {topics.length === 0 ? <p style={muted}>No five-question topics are ready for {grade} yet. Only approved practice material will appear here.</p> : <div style={{display:'grid',gap:10}}>{topics.map(item => <button key={item.subject+'::'+item.topic} disabled={busy} style={optionButton} onClick={() => void start(item)}><strong>{item.topic}</strong><span style={{display:'block',fontSize:12,color:'#64748b'}}>{item.subject} · {TARGET} questions · Start</span></button>)}</div>}
+      {topics.length === 0 ? <p style={muted}>No five-question topics are ready for {grade} yet. Only approved practice material will appear here.</p> : <div style={{display:'grid',gap:10}}>{topics.map(item => <button key={item.subject+'::'+item.topic} disabled={busy} style={optionButton} onClick={() => void start(item)}><strong>{item.topic}</strong><span style={{display:'block',fontSize:12,color:'#64748b'}}>{item.subject} · {TARGET} questions · {completedTopics.includes(grade+'::'+item.subject+'::'+item.topic) ? 'Practise again' : 'Start'}</span></button>)}</div>}
     </section>}
   </main>
 }
