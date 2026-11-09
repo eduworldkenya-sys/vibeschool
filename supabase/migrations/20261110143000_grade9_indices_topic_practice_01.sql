@@ -30,8 +30,12 @@ begin
    and generation_source='owner_authored_pilot'
    and status='approved' and published_at is not null
  order by created_at desc limit 1;
- if v_owner is null or v_subject is null
- then raise exception 'grade9_pilot_01_source_missing'; end if;
+ -- Fresh database reconstruction cannot contain the account-backed pilot
+ -- author or its published source questions yet. Do not fabricate either.
+ if v_owner is null or v_subject is null then
+   raise notice 'Skipping dependent Grade 9 indices seed until original owner-authored pilot exists';
+   return;
+ end if;
 
  select count(*) into v_origins
  from public.assessment_items ai
