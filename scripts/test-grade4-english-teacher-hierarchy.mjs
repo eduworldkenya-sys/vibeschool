@@ -26,4 +26,6 @@ assert.ok(page.includes("display:isGrade4English&&!showEnglishLegacy?'none':unde
 assert.ok(page.includes('commit_curriculum_scheme'), 'Existing Scheme flow must be preserved')
 assert.ok(reference.includes('GRADE4_ENGLISH_THEMES'), 'Source theme index must remain available')
 assert.equal((reference.match(/"number": \d+/g)||[]).length,13, 'Expected 13 English themes')
+assert.ok(reference.includes('https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.ENGLISH.LANGUAGE.pdf'), 'Must use first-party KICD 2024 source')
+assert.deepEqual([...reference.matchAll(/"sourcePage": (\d+)/g)].map(match=>Number(match[1])),[1,8,15,22,30,37,44,50,56,62,69,75,81], 'Theme locators must match KICD 2024 contents')
 console.log('Grade 4 English teacher hierarchy checks passed')
