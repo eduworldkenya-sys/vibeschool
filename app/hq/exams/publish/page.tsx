@@ -8,6 +8,8 @@ type PrivateDraft = {
   id: string; grade: string; subject: string; title: string;
   question_count: number; status: string; published: boolean;
 }
+type ReviewItem = { number: number; topic: string; prompt: string; correctAnswer: string; explanation: string; options: { value: string; label: string }[] }
+type ReviewPaper = { id: string; title: string; subject: string; items: ReviewItem[] }
 type PublishResult = {
   ok?: boolean; valid?: boolean; published?: boolean; already_exists?: boolean
   ready_to_publish?: boolean; title?: string; grade?: string; subject?: string
@@ -53,6 +55,8 @@ export default function OriginalExamPublisher() {
   const [privateDrafts, setPrivateDrafts] = useState<PrivateDraft[]>([])
   const [privateDraftError, setPrivateDraftError] = useState("")
   const [approvedPrivateId, setApprovedPrivateId] = useState("")
+  const [reviewDraft, setReviewDraft] = useState<ReviewPaper | null>(null)
+  const [reviewConfirmed, setReviewConfirmed] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -72,6 +76,37 @@ export default function OriginalExamPublisher() {
     }).catch(() => { if (active) setPrivateDraftError("Private drafts unavailable") })
     return () => { active = false }
   }, [owner])
+
+  async function openPrivateReview(paper: PrivateDraft) {
+    if (owner !== true || busy || paper.status !== "needs_editorial_review") return
+    setBusy(true); setError("")
+    try {
+      const { data, error: failure } = await api.rpc("hq_get_original_exam_draft_for_review", { p_paper_id: paper.id })
+      if (failure) throw new Error(failure.message || "Private review could not load")
+      const next = data as { paper?: ReviewPaper } | null
+      if (next?.paper?.id !== paper.id || !Array.isArray(next.paper.items)) throw new Error("Review data is incomplete")
+      setReviewDraft(next.paper); setReviewConfirmed(false)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Private review unavailable") }
+    finally { setBusy(false) }
+  }
+
+  async function approvePrivateReview() {
+    if (owner !== true || !reviewDraft || !reviewConfirmed || busy) return
+    setBusy(true); setError("")
+    try {
+      const { data, error: failure } = await api.rpc("hq_review_original_exam_draft", {
+        p_paper_id: reviewDraft.id,
+        p_confirmed: true,
+        p_curriculum_reference: "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-four-designs/"
+      })
+      if (failure) throw new Error(failure.message || "Educational review was not recorded")
+      const next = data as { reviewed?: boolean } | null
+      if (next?.reviewed !== true) throw new Error("Educational review was not confirmed")
+      setPrivateDrafts(items => items.map(item => item.id === reviewDraft.id ? { ...item, status: "reviewed" } : item))
+      setReviewDraft(null); setReviewConfirmed(false)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Educational review failed") }
+    finally { setBusy(false) }
+  }
 
   async function publishPrivateDraft(paper: PrivateDraft) {
     if (owner !== true || busy || paper.status !== "reviewed" || approvedPrivateId !== paper.id) return
