@@ -1,0 +1,377 @@
+{
+  "id": "g4-mathematics-vibeschool-exam-01",
+  "title": "Grade 4 Mathematics — VibeSchool Exam 01",
+  "grade": "Grade 4",
+  "subject": "Mathematics",
+  "curriculum": "Kenya CBC Grade 4 — KICD 2024 revised design reference; question-to-outcome mapping pending independent verification",
+  "status": "original_content_editorial_review",
+  "origin": "VibeSchool Original — Internally Authored",
+  "assessment_type": "practice",
+  "duration_minutes": 30,
+  "max_attempts": 3,
+  "total_marks": 12,
+  "visibility": "public_practice",
+  "instructions": "Read each question carefully and select one answer. You may skip and return before submitting.",
+  "items": [
+    {
+      "number": 1,
+      "bank_key": "G4-MAT-EX01-001",
+      "topic": "Whole Numbers",
+      "difficulty": "easy",
+      "prompt": "Which is the value of digit 7 in 47,325?",
+      "options": [
+        {
+          "value": "A",
+          "label": "7"
+        },
+        {
+          "value": "B",
+          "label": "70"
+        },
+        {
+          "value": "C",
+          "label": "700"
+        },
+        {
+          "value": "D",
+          "label": "7,000"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "The digit 7 is in the thousands place, so it represents 7,000.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 2,
+      "bank_key": "G4-MAT-EX01-002",
+      "topic": "Whole Numbers",
+      "difficulty": "easy",
+      "prompt": "What is 6,408 rounded to the nearest hundred?",
+      "options": [
+        {
+          "value": "A",
+          "label": "6,400"
+        },
+        {
+          "value": "B",
+          "label": "6,500"
+        },
+        {
+          "value": "C",
+          "label": "6,000"
+        },
+        {
+          "value": "D",
+          "label": "6,410"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "The tens digit is 0, so 6,408 rounds down to 6,400.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 3,
+      "bank_key": "G4-MAT-EX01-003",
+      "topic": "Addition",
+      "difficulty": "easy",
+      "prompt": "A school collected 1,275 books in January and 860 in February. How many books were collected altogether?",
+      "options": [
+        {
+          "value": "A",
+          "label": "2,035"
+        },
+        {
+          "value": "B",
+          "label": "2,135"
+        },
+        {
+          "value": "C",
+          "label": "2,145"
+        },
+        {
+          "value": "D",
+          "label": "1,335"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Add 1,275 and 860 to obtain 2,135 books.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 4,
+      "bank_key": "G4-MAT-EX01-004",
+      "topic": "Subtraction",
+      "difficulty": "easy",
+      "prompt": "A farmer harvested 3,000 oranges and sold 1,485. How many oranges remained?",
+      "options": [
+        {
+          "value": "A",
+          "label": "1,415"
+        },
+        {
+          "value": "B",
+          "label": "1,505"
+        },
+        {
+          "value": "C",
+          "label": "1,515"
+        },
+        {
+          "value": "D",
+          "label": "1,615"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Subtract 1,485 from 3,000 to obtain 1,515.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 5,
+      "bank_key": "G4-MAT-EX01-005",
+      "topic": "Multiplication",
+      "difficulty": "medium",
+      "prompt": "Seven classes each receive 24 exercise books. How many books do they receive in total?",
+      "options": [
+        {
+          "value": "A",
+          "label": "148"
+        },
+        {
+          "value": "B",
+          "label": "158"
+        },
+        {
+          "value": "C",
+          "label": "164"
+        },
+        {
+          "value": "D",
+          "label": "168"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Multiply 24 by 7: 7 × 20 plus 7 × 4 equals 168 books.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 6,
+      "bank_key": "G4-MAT-EX01-006",
+      "topic": "Division",
+      "difficulty": "medium",
+      "prompt": "A teacher shares 96 pencils equally among 8 learners. How many pencils does each learner get?",
+      "options": [
+        {
+          "value": "A",
+          "label": "12"
+        },
+        {
+          "value": "B",
+          "label": "14"
+        },
+        {
+          "value": "C",
+          "label": "16"
+        },
+        {
+          "value": "D",
+          "label": "18"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "Divide 96 by 8 to obtain 12 pencils per learner.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 7,
+      "bank_key": "G4-MAT-EX01-007",
+      "topic": "Fractions",
+      "difficulty": "medium",
+      "prompt": "Which fraction is equivalent to one half?",
+      "options": [
+        {
+          "value": "A",
+          "label": "2/3"
+        },
+        {
+          "value": "B",
+          "label": "3/6"
+        },
+        {
+          "value": "C",
+          "label": "3/4"
+        },
+        {
+          "value": "D",
+          "label": "1/3"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Three out of six equal parts is equivalent to one half.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 8,
+      "bank_key": "G4-MAT-EX01-008",
+      "topic": "Decimals",
+      "difficulty": "medium",
+      "prompt": "What is 2.4 + 1.3?",
+      "options": [
+        {
+          "value": "A",
+          "label": "3.5"
+        },
+        {
+          "value": "B",
+          "label": "3.6"
+        },
+        {
+          "value": "C",
+          "label": "3.7"
+        },
+        {
+          "value": "D",
+          "label": "4.7"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "Add the whole numbers and tenths: 2.4 + 1.3 = 3.7.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 9,
+      "bank_key": "G4-MAT-EX01-009",
+      "topic": "Length",
+      "difficulty": "medium",
+      "prompt": "A rope is 3 metres 25 centimetres long. How many centimetres long is it?",
+      "options": [
+        {
+          "value": "A",
+          "label": "35"
+        },
+        {
+          "value": "B",
+          "label": "125"
+        },
+        {
+          "value": "C",
+          "label": "305"
+        },
+        {
+          "value": "D",
+          "label": "325"
+        }
+      ],
+      "correctAnswer": "D",
+      "explanation": "Three metres is 300 centimetres; adding 25 gives 325 centimetres.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 10,
+      "bank_key": "G4-MAT-EX01-010",
+      "topic": "Time",
+      "difficulty": "challenging",
+      "prompt": "A lesson begins at 9:15 a.m. and ends at 10:00 a.m. How long does it last?",
+      "options": [
+        {
+          "value": "A",
+          "label": "45 minutes"
+        },
+        {
+          "value": "B",
+          "label": "35 minutes"
+        },
+        {
+          "value": "C",
+          "label": "50 minutes"
+        },
+        {
+          "value": "D",
+          "label": "75 minutes"
+        }
+      ],
+      "correctAnswer": "A",
+      "explanation": "From 9:15 a.m. to 10:00 a.m. is 45 minutes.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 11,
+      "bank_key": "G4-MAT-EX01-011",
+      "topic": "Money",
+      "difficulty": "challenging",
+      "prompt": "A pen costs KSh 35 and a ruler costs KSh 25. What change should a learner receive from KSh 100?",
+      "options": [
+        {
+          "value": "A",
+          "label": "KSh 30"
+        },
+        {
+          "value": "B",
+          "label": "KSh 40"
+        },
+        {
+          "value": "C",
+          "label": "KSh 50"
+        },
+        {
+          "value": "D",
+          "label": "KSh 60"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Total cost is KSh 60, so KSh 100 minus KSh 60 gives KSh 40.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    },
+    {
+      "number": 12,
+      "bank_key": "G4-MAT-EX01-012",
+      "topic": "Geometry",
+      "difficulty": "challenging",
+      "prompt": "Which of these shapes has exactly three sides?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Rectangle"
+        },
+        {
+          "value": "B",
+          "label": "Square"
+        },
+        {
+          "value": "C",
+          "label": "Triangle"
+        },
+        {
+          "value": "D",
+          "label": "Circle"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "A triangle has three straight sides and three vertices.",
+      "marks": 1,
+      "review_status": "editorial_review_required",
+      "verified_kicd_outcome_id": null
+    }
+  ]
+}
