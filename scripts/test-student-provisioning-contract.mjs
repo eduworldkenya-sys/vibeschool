@@ -2,7 +2,7 @@ import fs from 'node:fs'
 
 const api = fs.readFileSync('app/api/create-student-account/route.ts', 'utf8')
 const migration = fs.readFileSync('supabase/migrations/20260816182000_student_provisioning_atomic_finalize.sql', 'utf8')
-const signup = fs.readFileSync('app/signup/student/page.tsx', 'utf8')
+const signup = fs.readFileSync('app/signup/student/SchoolSignupForm.tsx', 'utf8')
 
 const failures = []
 const requireMatch = (source, pattern, message) => { if (!pattern.test(source)) failures.push(message) }

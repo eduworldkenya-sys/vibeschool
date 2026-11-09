@@ -1,0 +1,14 @@
+.shell{min-height:100dvh;display:grid;place-items:center;padding:24px 16px;background:#05050f;color:#fff;font-family:var(--font-jakarta),Arial,sans-serif}
+.card{width:100%;max-width:440px}
+.card h1{margin:16px 0 8px;font-size:clamp(26px,7vw,34px)}
+.card p{line-height:1.5;color:#c2c2cb}
+.card label{display:block;margin:16px 0 6px;font-weight:700}
+.card input:not([type=hidden]){width:100%;box-sizing:border-box;min-height:48px;border:1px solid #434356;border-radius:10px;padding:10px 12px;background:#101020;color:#fff;font-size:16px}
+.primary,.secondary,.back{min-height:44px;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-weight:700}
+.primary{width:100%;min-height:48px;margin-top:16px;border:0;border-radius:10px;background:#c8a84b;color:#05050f;text-decoration:none}
+.secondary,.back{border:0;padding:0 4px;background:transparent;color:#e9cc76;text-decoration:underline;text-underline-offset:3px}
+.actions{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin-top:8px}
+.primary:disabled,.secondary:disabled{opacity:.6}
+.primary:focus-visible,.secondary:focus-visible,.back:focus-visible,.card input:focus-visible{outline:2px solid #e9cc76;outline-offset:3px}
+.card .error{color:#ffc7c7}
+.address{overflow-wrap:anywhere}

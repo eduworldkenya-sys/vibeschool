@@ -17,3 +17,9 @@ Issue #1161. This change introduces **only the separate identity storage boundar
 5. Adversarial RLS, missing/withdrawn/replayed consent, two-school admission collision, duplicate role, transfer, and mobile OAuth tests; exact-head CI and real production browser certification.
 
 Do **not** set `LEARNER_GUARDIAN_CONSENT_ENABLED=true` or expose a Google student CTA before these gates pass.
+
+## Email signup phone pilot
+
+The email route is available only when `INDEPENDENT_LEARNER_PILOT_EMAILS` contains designated adult test addresses and the existing server Supabase credentials are present. Use dedicated test mailboxes without a school learner or another VibeSchool role. An empty list disables new requests and access to the pilot. The pilot uses a separate session, creates a restricted independent identity and links to the published reading library.
+
+Use the existing Supabase email template and SMTP. The OTP template can send the six-digit `{{ .Token }}` or the default verification link. Allowlist the exact redirect `https://vibeschool.co.ke/signup/student/email/confirm` in Supabase Auth for link delivery. Confirm receipt and successful verification with a designated adult mailbox. Verify the same address can sign in again, that a school account keeps its session when using the pilot, and that pilot users cannot open school-only Student routes.
