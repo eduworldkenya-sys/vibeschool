@@ -1,7 +1,7 @@
 "use client"
 
 import TeachingWorkspaceNav from '@/components/teacher/TeachingWorkspaceNav'
-import { GRADE4_ENGLISH_THEMES, GRADE4_ENGLISH_STRANDS, GRADE4_ENGLISH_SOURCE, GRADE4_ENGLISH_SUBSTRANDS, suggestedTermForTheme } from '@/lib/curriculum/grade4EnglishReference'
+import { GRADE4_ENGLISH_THEMES, GRADE4_ENGLISH_STRANDS, GRADE4_ENGLISH_SOURCE, GRADE4_ENGLISH_SUBSTRANDS, GRADE4_ENGLISH_ANNUAL_LESSONS, GRADE4_ENGLISH_THEME1_OUTCOME_REFERENCE, suggestedTermForTheme } from '@/lib/curriculum/grade4EnglishReference'
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -264,6 +264,10 @@ function Inner({ curriculumView = false }) {
       <h2 style={{fontSize:17,fontWeight:800,margin:'0 0 6px'}}>KICD Grade 4 English — full-year reference</h2>
       <p style={{fontSize:12,color:C.text2,lineHeight:1.6}}>13 official themes and four language strands. Theme-to-term grouping is a suggested plan, not a KICD-prescribed schedule. The existing weekly curriculum remains unchanged until individual learning outcomes are reconciled and verified.</p>
       <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:12}}>{GRADE4_ENGLISH_STRANDS.map(strand=><span key={strand} style={{fontSize:11,padding:'5px 8px',background:C.surface2,borderRadius:7}}>{strand}</span>)}</div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'7px 0 14px'}}>
+        {Object.entries(GRADE4_ENGLISH_ANNUAL_LESSONS).map(([strand,total])=><span key={strand} style={{fontSize:11,color:C.text2,padding:'6px 8px',border:`1px solid ${C.border}`,borderRadius:7}}>{strand}: {total} lessons/year</span>)}
+        <span style={{fontSize:11,fontWeight:800,padding:'6px 8px',background:C.tealLight,color:C.teal,borderRadius:7}}>150 suggested lessons/year</span>
+      </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:9}}>
         {GRADE4_ENGLISH_THEMES.map(theme=>{
           const sameThemeRows=allCurriculumRows.filter(row=>String(row.topic||'').trim().toLowerCase()===theme.name.toLowerCase())
@@ -271,6 +275,16 @@ function Inner({ curriculumView = false }) {
             <div style={{fontSize:10,color:C.text3,fontWeight:800}}>THEME {theme.number} · SUGGESTED TERM {suggestedTermForTheme(theme.number)}</div>
             <div style={{fontSize:13,fontWeight:800,marginTop:4}}>{theme.name}</div>
             {GRADE4_ENGLISH_SUBSTRANDS[theme.number] && <ul style={{paddingLeft:17,margin:'8px 0 0',fontSize:11,color:C.text2,lineHeight:1.6}}>{GRADE4_ENGLISH_SUBSTRANDS[theme.number].map((item,i)=><li key={i}>{item}</li>)}</ul>}
+            {theme.number===1 && <details style={{borderTop:`1px solid ${C.border}`,marginTop:10,paddingTop:9}}>
+              <summary style={{cursor:'pointer',fontSize:12,fontWeight:800,color:C.teal}}>View source-traced learning outcomes</summary>
+              {GRADE4_ENGLISH_THEME1_OUTCOME_REFERENCE.map(item=><div key={item.code} style={{padding:'10px 0',borderBottom:`1px solid ${C.border}`}}>
+                <div style={{fontSize:11,fontWeight:800}}>{item.code} · {item.title}</div>
+                <div style={{fontSize:11,color:C.text3,marginTop:3}}>{item.lessons} suggested lessons · KICD p. {item.sourcePage}</div>
+                <ul style={{fontSize:11,color:C.text2,paddingLeft:18,lineHeight:1.6}}>{item.outcomes.map((outcome,i)=><li key={i}>{outcome}</li>)}</ul>
+                <div style={{fontSize:11,color:C.text2}}>Key inquiry: {item.inquiry.join(' / ')}</div>
+              </div>)}
+              <div style={{fontSize:11,color:C.text3,marginTop:8}}>Paraphrased source reference, not yet imported or certified as canonical outcomes. No published material implied.</div>
+            </details>}
             <div style={{fontSize:11,color:sameThemeRows.length?C.teal:C.text2,marginTop:6}}>{sameThemeRows.length?`${sameThemeRows.length} matching curriculum row(s)`:'Official theme not yet mapped to canonical rows'}</div>
             <div style={{fontSize:11,color:C.text3,marginTop:3}}>Source page {theme.sourcePage} · Outcomes require verification</div>
           </div>
