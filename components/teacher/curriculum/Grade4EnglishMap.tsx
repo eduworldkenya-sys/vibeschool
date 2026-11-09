@@ -11,8 +11,6 @@ import {
 
 type Props = {
   selectedTerm: number | null
-  selectedWeek: number
-  weeklyRows: readonly {id: string; week: number | null; strand: string | null; sub_strand: string | null; topic: string | null}[]
   showExisting: boolean
   onToggleExisting: () => void
   onOpenScheme: () => void
@@ -25,10 +23,10 @@ type Props = {
  * A read-only source reference until KICD SLOs are reconciled with canonical
  * curriculum IDs. Never generate a scheme from unmapped reference headings.
  */
-export default function Grade4EnglishMap({ selectedTerm, selectedWeek, weeklyRows, showExisting, onToggleExisting, onOpenScheme, weeklyCount, schemeCount, verifiedOutcomeCount }: Props) {
+export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleExisting, onOpenScheme, weeklyCount, schemeCount, verifiedOutcomeCount }: Props) {
   const [selectedTheme, setSelectedTheme] = useState<number | null>(null)
   const [showYear, setShowYear] = useState(true)
-  const weekRows = useMemo(() => weeklyRows.filter(row => row.week === selectedWeek), [weeklyRows, selectedWeek])
+  const [browseThemes, setBrowseThemes] = useState(false)
   const visibleThemes = useMemo(() =>
     showYear || !selectedTerm
       ? GRADE4_ENGLISH_THEMES
@@ -43,21 +41,13 @@ export default function Grade4EnglishMap({ selectedTerm, selectedWeek, weeklyRow
   return <section aria-label="Grade 4 English curriculum reference" style={{background:'#fff',border:'1px solid #dce6e0',borderRadius:16,padding:16,marginBottom:16}}>
     <header>
       <div style={{fontSize:11,fontWeight:800,color:'#326853',letterSpacing:'.04em'}}>GRADE 4 · ENGLISH</div>
-      <h2 style={{fontSize:21,lineHeight:1.25,margin:'5px 0 8px',color:'#173d30'}}>Curriculum themes</h2>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><h2 style={{fontSize:21,lineHeight:1.25,margin:'5px 0 8px',color:'#173d30'}}>Annual KICD curriculum</h2><button type="button" aria-expanded={browseThemes} onClick={()=>setBrowseThemes(value=>!value)} style={{minHeight:44,padding:'9px 14px',background:'#fff',border:'1px solid #b7d0c0',borderRadius:9,color:'#22523e',fontSize:13,fontWeight:700}}>{browseThemes?'Hide annual themes':'Browse 13 themes'}</button></div>
       <p style={{fontSize:13,lineHeight:1.6,color:'#50655b',margin:'0 0 14px'}}>
-        The annual KICD theme index is independent of your school's term plan. Use verified curriculum outcomes to prepare scheme lessons; reference headings alone are not approved outcomes.
+        13 annual themes · 4 strands. Theme headings are references, not verified lesson outcomes. Your selected week's plan is shown above.
       </p>
     </header>
-    <div role="status" style={{background:'#f4f7f5',borderRadius:9,padding:12,marginBottom:14,fontSize:12,lineHeight:1.6,color:'#345448'}}>Selected-term weekly records: <strong>{weeklyCount}</strong> · My selected-term scheme lessons: <strong>{schemeCount}</strong> · Verified outcomes in selected-term records: <strong>{verifiedOutcomeCount}</strong>. These counts are not annual KICD theme mappings.</div>
-    <div aria-label={`Week ${selectedWeek} English teaching content`} style={{border:'1px solid #bdd3c5',borderRadius:12,padding:14,marginBottom:16,background:'#fafffc'}}>
-      <h3 style={{fontSize:17,margin:'0 0 6px',color:'#173d30'}}>Week {selectedWeek} · Curriculum reference</h3>
-      <p style={{fontSize:12,color:'#52665b',margin:'0 0 10px'}}>These are stored weekly curriculum topics, separate from the lesson slots above. KICD outcomes and week mapping remain unverified.</p>
-      {weekRows.length===0 ? <p style={{fontSize:13,color:'#53695f'}}>No curriculum topic is assigned to Week {selectedWeek}. The week is not automatically filled from annual themes.</p> : <div style={{display:'grid',gap:9}}>
-        {weekRows.map(row => <div key={row.id} style={{padding:11,border:'1px solid #dce6e0',borderRadius:9,background:'#fff'}}><strong style={{fontSize:14,color:'#183c30'}}>{row.topic || row.sub_strand || 'Untitled curriculum item'}</strong><div style={{fontSize:12,color:'#50665b',marginTop:4}}>{[row.strand,row.sub_strand].filter(Boolean).join(' · ')} · Curriculum record (KICD alignment not yet verified)</div></div>)}
-
-      </div>}
-      <button type="button" onClick={onOpenScheme} style={{marginTop:12,padding:'10px 13px',borderRadius:8,border:'1px solid #bdd3c5',background:'#fff',color:'#245b44',fontWeight:700}}>Open Week {selectedWeek} in my scheme</button>
-    </div>
+    <div role="status" style={{background:'#f4f7f5',borderRadius:9,padding:12,marginBottom:14,fontSize:12,lineHeight:1.6,color:'#345448'}}><strong>{weeklyCount}</strong> term curriculum records · <strong>{schemeCount}</strong> saved scheme lessons · <strong>{verifiedOutcomeCount}</strong> verified outcomes. Term records are not mapped to annual KICD themes.</div>
+    {browseThemes && <div className="studio-annual-themes">
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:14}}>
       <span style={{fontSize:12,fontWeight:700,color:'#345448'}}>
         {showYear ? 'Full year · 13 themes (KICD reference)' : `Suggested Term ${selectedTerm ?? '—'} · ${visibleThemes.length} themes (not a week schedule)`}
@@ -106,6 +96,7 @@ export default function Grade4EnglishMap({ selectedTerm, selectedWeek, weeklyRow
         Open my scheme of work
       </button>
     </div>
+    </div>}
     <p style={{margin:'13px 0 0',fontSize:12,lineHeight:1.5,color:'#657a6e'}}>
       The KICD theme reference and existing weekly curriculum are not yet reconciled. Only canonical curriculum records may be used for scheme planning.
       {' '}<a href={GRADE4_ENGLISH_SOURCE} target="_blank" rel="noopener noreferrer" style={{color:'#216549',textDecoration:'underline'}}>Curriculum source</a>
