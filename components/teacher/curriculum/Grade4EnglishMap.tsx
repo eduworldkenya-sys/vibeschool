@@ -45,7 +45,7 @@ export default function Grade4EnglishMap({ selectedTerm, showExisting, onToggleE
         The annual KICD theme index is independent of your school's term plan. Use verified curriculum outcomes to prepare scheme lessons; reference headings alone are not approved outcomes.
       </p>
     </header>
-    <div role="status" style={{background:'#f4f7f5',borderRadius:9,padding:12,marginBottom:14,fontSize:12,lineHeight:1.6,color:'#345448'}}>Existing weekly records: <strong>{weeklyCount}</strong> · Existing scheme lessons: <strong>{schemeCount}</strong> · Verified outcomes in loaded curriculum: <strong>{verifiedOutcomeCount}</strong>. These are separate records; none is automatically mapped to a theme.</div>
+    <div role="status" style={{background:'#f4f7f5',borderRadius:9,padding:12,marginBottom:14,fontSize:12,lineHeight:1.6,color:'#345448'}}>Selected-term weekly records: <strong>{weeklyCount}</strong> · My selected-term scheme lessons: <strong>{schemeCount}</strong> · Verified outcomes in selected-term records: <strong>{verifiedOutcomeCount}</strong>. These counts are not annual KICD theme mappings.</div>
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:14}}>
       <span style={{fontSize:12,fontWeight:700,color:'#345448'}}>
         {showYear || !selectedTerm ? 'Full year · 13 themes' : `Suggested Term ${selectedTerm} · ${visibleThemes.length} themes`}
