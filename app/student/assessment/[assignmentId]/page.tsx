@@ -522,8 +522,9 @@ export default function LearnerAssessmentPage() {
     setError('')
 
     try {
+      const deadlineReached = expired || (workspace.expiresAt !== null && remainingSeconds(workspace.expiresAt) === 0)
       Object.values(saveTimers.current).forEach(window.clearTimeout)
-      if (expired) {
+      if (deadlineReached) {
         // Existing requests may have been accepted just before the deadline.
         // Drain those requests before finalising on the server. Never start a
         // new save after expiry or let local-only answers change the score.
@@ -538,7 +539,7 @@ export default function LearnerAssessmentPage() {
         }
       }
 
-      const skipped = !expired
+      const skipped = !deadlineReached
         ? workspace.items.map((question, index) => hasAnswer(answersRef.current[question.id]) ? -1 : index + 1).filter(index => index > 0)
         : []
       const submitted = await submitAttempt(workspace.attemptId)
@@ -650,8 +651,8 @@ export default function LearnerAssessmentPage() {
           {error && !submitting && !activeElsewhere && <button type="button" onClick={() => void submit(true)} style={{ ...secondaryButton, marginLeft: 8 }}>Retry finalising attempt</button>}
         </div>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-          <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => void saveAndExit()} style={secondaryButton}>{exiting ? 'Saving…' : workspace.expiresAt || workspace.closesAt ? 'Save & Exit' : 'Pause & Exit'}</button>
-          <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => setShowConfirm(true)} style={primaryButton}>Submit & Finish</button>
+          <button type="button" disabled={secondsLeft === 0 || exiting || submitting || activeElsewhere || !!conflict} onClick={() => void saveAndExit()} style={secondaryButton}>{exiting ? 'Saving…' : workspace.expiresAt || workspace.closesAt ? 'Save & Exit' : 'Pause & Exit'}</button>
+          <button type="button" disabled={secondsLeft === 0 || exiting || submitting || activeElsewhere || !!conflict} onClick={() => setShowConfirm(true)} style={primaryButton}>Submit & Finish</button>
         </div>
         <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 0 }}>{workspace.expiresAt || workspace.closesAt ? 'Save & Exit keeps saved answers, but the exam timer continues. You cannot pause a timed exam.' : 'Pause & Exit saves your answers. Resume later to continue this untimed practice.'}</p>
       </section>
