@@ -1,26 +1,30 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-const page = readFileSync('app/student/vibelearn/page.tsx', 'utf8')
-const middleware = readFileSync('middleware.ts', 'utf8')
-const gradeLayout = readFileSync('app/student/vibelearn/layout.tsx', 'utf8')
-const reading = readFileSync('app/student/vibelearn/reading/page.tsx', 'utf8')
+const read = path => readFileSync(path, 'utf8')
+const page = read('app/student/vibelearn/page.tsx')
+const layout = read('app/student/vibelearn/layout.tsx')
+const middleware = read('middleware.ts')
+const studentHome = read('app/student/page.tsx')
+const bottomNav = read('components/student/BottomNav.tsx')
+const studentContext = read('lib/student-context.tsx')
+const gradeRoute = read('app/api/learner/independent/grade/route.ts')
+const lookupRoute = read('app/api/learner/independent/home/route.ts')
+const migration = read('supabase/migrations/20261109163000_unified_independent_learner_student.sql')
+const reading = read('app/student/vibelearn/reading/page.tsx')
 
-assert.match(page, /if \(identity\.independent\) return <IndependentLearnHome \/>/,
-  'independent learner must use separate Learn component')
-assert.match(page, /return <SchoolVibeLearnWorkstation \/>/,
-  'school learner must retain original workstation')
-const schoolStart = page.indexOf('function SchoolVibeLearnWorkstation()')
-const schoolRpc = page.indexOf('getVibeLearnWorkstation()', schoolStart)
-assert.ok(schoolStart > 0 && schoolRpc > schoolStart,
-  'school-only workstation calls must live in school component')
-const independentReturn = page.indexOf('if (identity.independent) return <IndependentLearnHome />')
-assert.ok(independentReturn < schoolStart, 'independent identity must be routed before school workstation mounts')
-assert.match(gradeLayout, /identity\.independent \|\| pathname !== "\/student\/vibelearn"/, 'grade-specific layout must never mount school workstation for independent learners')
-assert.match(middleware, /pathname === '\/student\/vibelearn\/reading'/,
-  'published reader must be reachable for independent learners')
-assert.match(reading, /\.eq\("status", "published"\)/,
-  'reader must filter unpublished materials')
-console.log('PASS independent learner bypasses school-only VibeLearn profile RPC')
-console.log('PASS school learner retains original workstation')
-console.log('PASS independent reading is publication-gated')
+assert.doesNotMatch(page, /if \(identity\.independent\) return <IndependentLearnHome/, 'no separate independent learning product')
+assert.match(page, /return <SchoolVibeLearnWorkstation \/>/, 'reuse the existing learner workstation')
+assert.doesNotMatch(layout, /identity\.independent \|\| pathname/, 'no grade-based independent exclusion')
+assert.doesNotMatch(middleware, /independentReadingRoute/, 'no reading-only independent route restriction')
+assert.doesNotMatch(studentHome, /if \(!identityLoading && identity\?\.independent\)/, 'same Home for both learner types')
+assert.match(bottomNav, /const tabs = TABS/, 'same navigation for both learner types')
+assert.match(studentContext, /studentId: home\.studentId/, 'independent login uses canonical student ID')
+assert.match(gradeRoute, /ensure_independent_learner_student/, 'registration provisions canonical student')
+assert.match(lookupRoute, /studentId: school!\[0\]\.id/, 'authenticated lookup returns canonical student ID')
+assert.match(migration, /REVOKE ALL ON FUNCTION public\.ensure_independent_learner_student/, 'provisioning is not public')
+assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.ensure_independent_learner_student\(uuid\) TO service_role/, 'service-only provisioning')
+assert.match(migration, /VALUES \(p_user_id,coalesce/, 'personal student record uses same identity')
+assert.match(migration, /null,p_user_id\)/, 'new independent student is not assigned a school class')
+assert.match(reading, /\.eq\("status", "published"\)/, 'reading remains publication gated')
+console.log('PASS one canonical learner, one Home and Learn journey; school membership remains optional')
