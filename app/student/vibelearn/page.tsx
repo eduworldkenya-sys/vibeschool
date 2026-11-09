@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
-import IndependentLearnHome from '@/components/student/IndependentLearnHome'
 import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
 import LearnActivityHub from '@/components/student/LearnActivityHub'
 import {
@@ -29,7 +28,6 @@ export default function StudentVibeLearnPage() {
       {error || 'Opening your learning space…'}
     </main>
   }
-  if (identity.independent) return <IndependentLearnHome />
   return <SchoolVibeLearnWorkstation />
 }
 
