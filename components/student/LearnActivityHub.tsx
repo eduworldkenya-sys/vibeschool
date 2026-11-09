@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BookOpen, FlaskConical, PencilLine, ClipboardCheck, PlayCircle, Puzzle, FolderOpen, CalendarDays, Users, LayoutGrid, ChevronDown, ArrowUpRight } from "lucide-react";
 import { useStudent } from "@/lib/student-context";
@@ -10,6 +10,12 @@ type Activity = { title:string; detail:string; Icon: typeof BookOpen; href:strin
 export default function LearnActivityHub() {
   const { identity } = useStudent();
   const [expanded, setExpanded] = useState(false);
+  const [hasPendingTopicPractice, setHasPendingTopicPractice] = useState(false);
+  useEffect(() => {
+    if (!identity?.studentId) { setHasPendingTopicPractice(false); return; }
+    try { const raw = window.localStorage.getItem("vibeschool:topic-practice:v1:" + identity.studentId); const saved = raw ? JSON.parse(raw) : null; setHasPendingTopicPractice(Boolean(saved && saved.finished === false && Array.isArray(saved.questionIds) && saved.questionIds.length === 5)); }
+    catch { setHasPendingTopicPractice(false); }
+  }, [identity?.studentId]);
   const hasSchoolClass = Boolean(identity?.classId);
   const primary: Activity[] = [
     { title: "Exams", detail:"Start an exam and see results", Icon:ClipboardCheck, href: "/student/vibelearn/exams" },
@@ -29,6 +35,7 @@ export default function LearnActivityHub() {
   </Link>;
   return <section className="vs-activity-hub" aria-labelledby="learn-activity-heading">
     <h2 id="learn-activity-heading">Choose an activity</h2>
+    {hasPendingTopicPractice && <Link href="/student/vibelearn/topic-practice" className="vs-activity-card" style={{marginBottom:12,borderColor:"#6366f1"}}><span className="vs-activity-card-icon"><PlayCircle size={22} aria-hidden="true"/></span><span style={{flex:1}}><strong>Continue practice</strong><span className="vs-activity-card-detail">Resume your last unanswered question</span></span><ArrowUpRight size={16} aria-hidden="true"/></Link>}
     <p>Pick one to get started.</p>
     <nav aria-label="Learning activities" className="vs-activity-grid">
       {primary.map(activity)}
