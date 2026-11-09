@@ -11,11 +11,15 @@ for(const token of [
   'setSelectedTheme(null)',
   'aria-expanded={expanded}',
   'aria-controls={',
-  'Specific learning outcomes: not yet reconciled',
+  'Theme-specific learning outcomes: not yet reconciled',
+  'Existing weekly records:',
+  'setShowYear(true)',
   'View existing weekly curriculum',
   'Open my scheme of work',
   'Only canonical curriculum records may be used',
 ]) assert.ok(component.includes(token), 'Missing curriculum browser requirement: '+token)
+assert.ok(page.includes('verifiedOutcomeCount={Object.values(curriculumOutcomes)'), 'Verified outcomes must be counted from loaded curriculum')
+assert.ok(page.includes('schemeCount={schemeItems.length}'), 'Scheme count must reflect the teacher records')
 assert.ok(page.includes('<Grade4EnglishMap'), 'Teacher page must mount the new browser')
 assert.ok(page.includes('showEnglishLegacy'), 'Existing records must remain accessible')
 assert.ok(page.includes("display:isGrade4English&&!showEnglishLegacy?'none':undefined"), 'Legacy grid must hide by default')
