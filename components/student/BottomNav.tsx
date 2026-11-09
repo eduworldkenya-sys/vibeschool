@@ -15,8 +15,8 @@ type TabId = typeof TABS[number]["id"]
 function activeTab(path: string): TabId {
   if (path === "/student" || path === "/student/") return "home"
   if (path.startsWith("/student/twin")) return "twin"
-  if (path.startsWith("/student/vibelearn") || path.startsWith("/student/lesson") || path.startsWith("/student/resources")) return "learn"
-  if (path.startsWith("/student/tasks") || path.startsWith("/student/learn") || path.startsWith("/student/homework") || path.startsWith("/student/exercises") || path.startsWith("/student/projects") || path.startsWith("/student/assessment")) return "tasks"
+  if (path.startsWith("/student/vibelearn") || path.startsWith("/student/lesson") || path.startsWith("/student/resources") || path.startsWith("/student/projects") || path.startsWith("/student/exercises")) return "learn"
+  if (path.startsWith("/student/tasks") || path.startsWith("/student/learn") || path.startsWith("/student/homework") || path.startsWith("/student/assessment")) return "tasks"
   if (path.startsWith("/student/marks") || path.startsWith("/student/results")) return "results"
   return "home"
 }
