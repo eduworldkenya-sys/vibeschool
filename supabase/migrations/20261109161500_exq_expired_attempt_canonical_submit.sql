@@ -97,5 +97,4 @@ begin
     'show_score_policy',aa.show_score_policy,'items',item_payload,'responses',response_payload
   );
 end;
-$function$
-
+$function$;
