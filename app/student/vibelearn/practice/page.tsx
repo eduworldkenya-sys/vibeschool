@@ -96,13 +96,8 @@ export default function VibeLearnPracticePage() {
           return
         }
         if (!cancelled) setSourceContext(null)
-        const secureClient = supabase as unknown as {
-          rpc(fn: 'student_list_vibelearn_practice_questions', args: {
-            p_subject: string | null; p_topic: string | null; p_form: string | null; p_limit: number
-          }): Promise<{ data: unknown; error: { message: string } | null }>
-        }
         const form = identity?.className?.trim() ?? ''
-        const { data, error: loadError } = await secureClient.rpc('student_list_vibelearn_practice_questions', {
+        const { data, error: loadError } = await supabase.rpc('student_list_vibelearn_practice_questions' as never, {
           p_subject: requestedSubject || null,
           p_topic: requestedTopic || null,
           p_form: /^form\s*[1-4]$/i.test(form) ? form : null,
