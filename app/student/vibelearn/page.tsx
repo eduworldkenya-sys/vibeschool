@@ -4,6 +4,8 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useStudent } from '@/lib/student-context'
+import IndependentLearnHome from '@/components/student/IndependentLearnHome'
 import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
 import LearnActivityHub from '@/components/student/LearnActivityHub'
 import {
@@ -22,6 +24,7 @@ import {
 
 export default function StudentVibeLearnPage() {
   const router = useRouter()
+  const { identity } = useStudent()
   const [brief, setBrief] = useState<VibeLearnWorkstation | null>(null)
   const [readiness, setReadiness] = useState<ExamReadinessBrief | null>(null)
   const [assignedReading, setAssignedReading] = useState<AssignedReadingItem[]>([])
@@ -55,6 +58,7 @@ export default function StudentVibeLearnPage() {
   }
 
   useEffect(() => {
+    if (identity?.independent) { setLoading(false); return }
     let cancelled = false
     Promise.all([
       getVibeLearnWorkstation(),
@@ -77,7 +81,7 @@ export default function StudentVibeLearnPage() {
       .catch(reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not open VibeLearn.') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [identity?.independent])
 
   async function saveReadinessPlan() {
     setSavingPlan(true)
@@ -92,6 +96,8 @@ export default function StudentVibeLearnPage() {
       setSavingPlan(false)
     }
   }
+
+  if (identity?.independent) return <IndependentLearnHome />
 
   if (libraryOpen) return <VibeLearnShellWrapper isOpen={true} onClose={() => setLibraryOpen(false)} />
 
