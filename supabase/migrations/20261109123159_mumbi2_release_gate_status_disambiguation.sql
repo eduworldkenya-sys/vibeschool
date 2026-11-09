@@ -6,6 +6,9 @@ do $repair$
 declare v_def text;
 begin
   select pg_get_functiondef('public.ce_run_publication_release_check(uuid)'::regprocedure) into v_def;
+  if position('select vp.status into v_publication_status from public.vibe_publications vp' in v_def)>0 then
+    return; -- Already corrected in an earlier manual authenticated production apply.
+  end if;
   if position('select status into v_publication_status from public.vibe_publications vp' in v_def) = 0 then
     raise exception 'Unexpected release checker definition; refusing blind repair';
   end if;
