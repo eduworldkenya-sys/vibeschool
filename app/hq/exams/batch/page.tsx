@@ -42,9 +42,10 @@ export default function OriginalTopicBatchPublisher() {
       return validShapes?{papers:value,error:""}:{papers:null,error:"Each set needs Grade 9 Mathematics and exactly five questions."}
     } catch {return {papers:null,error:"Upload a valid JSON batch file."}}
   },[raw])
-  const passed=Boolean(preview?.ok && Array.isArray(preview.results) &&
-    preview.results.length===(parsed.papers?.length??0) &&
-    (preview.results??[]).every(item=>item.validation?.valid===true))
+  const previewResults = preview?.results
+  const passed=Boolean(preview?.ok && Array.isArray(previewResults) &&
+    previewResults.length===(parsed.papers?.length??0) &&
+    previewResults.every(item=>item.validation?.valid===true))
   const canPublish=Boolean(owner&&passed&&approved&&validatedRaw===raw&&!busy&&!published)
   function onText(value:string) {
     setRaw(value);setPreview(null);setValidatedRaw("");setApproved(false);setError("");setPublished(null)
