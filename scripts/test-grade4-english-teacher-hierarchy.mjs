@@ -15,7 +15,7 @@ for(const token of [
   'Theme-specific learning outcomes: not yet reconciled',
   'Selected-term weekly records:',
   'setShowYear(false)',
-  'Week {selectedWeek} · Your teaching plan',
+  'Week {selectedWeek} · Curriculum reference',
   'weekRows.map(row',
   'View existing weekly curriculum',
   'Open my scheme of work',
