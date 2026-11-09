@@ -40,7 +40,7 @@ export default function StudentHomePage() {
   const [studyTime, setStudyTime] = useState<PreferredStudyTime>('evening')
 
   async function load() {
-    if (!identity || identity.independent) return
+    if (!identity) return
     setLoading(true); setError('')
     try {
       const [brief, twin] = await Promise.all([getStudentHomeOsBrief(), getLearnerTwinState()])
@@ -58,7 +58,7 @@ export default function StudentHomePage() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Your learner home could not be loaded.') } finally { setLoading(false) }
   }
 
-  useEffect(() => { if (!identityLoading && identity && !identity.independent) void load() }, [identityLoading, identity])
+  useEffect(() => { if (!identityLoading && identity) void load() }, [identityLoading, identity])
 
   async function openTask(task: StudentTask) { if (launchingTaskId) return; setLaunchingTaskId(task.taskId); setError(''); try { const launch = await resolveTaskLaunch(task.taskId); router.push(launch.actionUrl) } catch (cause) { setError(cause instanceof Error ? cause.message : 'This task could not be opened.'); await load() } finally { setLaunchingTaskId(null) } }
   async function openTwinTask(taskId: string) { const task = data?.brief.taskFeed.tasks.find(candidate => candidate.taskId === taskId); if (task) await openTask(task); else router.push('/student/tasks') }
@@ -71,23 +71,6 @@ export default function StudentHomePage() {
   const nextTask = (twinTaskId ? feed?.tasks.find(task => task.taskId === twinTaskId) : null) ?? brief?.nextAction ?? focusTasks[0] ?? null
   const goal = progress?.dailyGoal; const goalRate = goal ? Math.min(100, Math.round((goal.completed / Math.max(1, goal.target)) * 100)) : 0
   const nowMinutes = nairobiNowMinutes(); const firstUpcomingId = data?.todaySlots.find(slot => minutes(slot.start) > nowMinutes)?.id ?? null
-
-  if (!identityLoading && identity?.independent) return <div style={{ maxWidth: 760, margin: '0 auto', display: 'grid', gap: 16, paddingBottom: 24 }}>
-    <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 18, padding: '22px 20px' }}>
-      <p style={{ color: '#5145e8', fontWeight: 750, fontSize: 12, margin: '0 0 10px' }}>MY LEARNING SPACE</p>
-      <h1 style={{ color: '#17213b', fontSize: 25, margin: '0 0 8px' }}>Welcome, {identity.firstName}</h1>
-      <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>{identity.className || 'Independent learner'} · Start learning at your own pace.</p>
-    </section>
-    <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
-      <h2 style={{ color: '#17213b', fontSize: 18, margin: '0 0 8px' }}>Learn</h2>
-      <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>Find published materials for your grade in VibeSchool Learn.</p>
-      <button type="button" onClick={() => router.push('/student/vibelearn')} style={{ ...primaryButton, width: 'auto', padding: '12px 18px' }}>Open Learn</button>
-    </section>
-    <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
-      <h2 style={{ color: '#17213b', fontSize: 18, margin: '0 0 8px' }}>Your learning account</h2>
-      <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, margin: 0 }}>Your grade is saved. School assignments, attendance and class results appear only after verified school enrollment. Your independent account is preserved.</p>
-    </section>
-  </div>
 
   if (identityLoading || (loading && !data)) return <div style={{ display: 'grid', gap: 12 }}><Skel h={220} radius={22} /><Skel h={120} radius={16} /><Skel h={220} radius={16} /></div>
   if (!identity) return null

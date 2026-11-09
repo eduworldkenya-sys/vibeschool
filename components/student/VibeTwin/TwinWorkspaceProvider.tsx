@@ -87,7 +87,7 @@ export default function TwinWorkspaceProvider({ children }: { children: React.Re
   return (
     <TwinWorkspaceContext.Provider value={value}>
       {children}
-      {!identity?.independent && <button
+      {<button
         onClick={openTwin}
         aria-label={brainError ? "Open VibeTwin learning workspace (limited mode)" : "Open VibeTwin learning workspace"}
         title={brainError ? "Twin is temporarily limited. The rest of Student OS remains available." : "Open VibeTwin"}
