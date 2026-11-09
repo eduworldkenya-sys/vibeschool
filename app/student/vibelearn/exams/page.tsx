@@ -9,7 +9,7 @@ import { getLearnerAssessmentHub, type LearnerAssessmentHub } from '@/lib/assess
 import './exams.css'
 
 type View = 'for-you' | 'history' | 'progress'
-type ExamState = 'in-progress' | 'new' | 'completed' | 'awaiting' | 'retake' | 'unavailable'
+type ExamState = 'in-progress' | 'new' | 'completed' | 'awaiting' | 'expired' | 'retake' | 'unavailable'
 
 function mayRetake(item: LearnerAssessmentAssignment): boolean {
   // Discovery may have processed a timed-out attempt but not yet reflected
@@ -21,6 +21,7 @@ function examState(item: LearnerAssessmentAssignment): ExamState {
   const active = item.attemptStatus === 'in_progress'
     && (!item.attemptExpiresAt || Date.parse(item.attemptExpiresAt) > Date.now())
   if (active) return 'in-progress'
+  if (item.attemptStatus === 'in_progress' && item.attemptExpiresAt && Date.parse(item.attemptExpiresAt) <= Date.now()) return 'expired'
   if (item.attemptId) {
     if (item.resultStatus === 'released' || (item.assessmentType === 'practice'
       && item.showScorePolicy === 'immediate' && item.resultStatus === 'marked')) return 'completed'
@@ -42,6 +43,7 @@ const statusText: Record<ExamState, string> = {
   new: 'New',
   completed: 'Completed',
   awaiting: 'Awaiting result',
+  expired: 'Time ended',
   retake: 'Retake available',
   unavailable: 'Unavailable',
 }
@@ -129,7 +131,7 @@ export default function VibeLearnExamsPage() {
       if (state === 'in-progress') ongoing.push(item)
       else if (state === 'new') fresh.push(item)
       else if (state === 'retake') retakes.push(item)
-      else if (state === 'awaiting') awaiting.push(item)
+      else if (state === 'awaiting' || state === 'expired') awaiting.push(item)
       else if (state === 'completed') {
         completed.push(item)
         if (mayRetake(item)) retakes.push(item)
@@ -158,7 +160,7 @@ export default function VibeLearnExamsPage() {
   }
 
   function examCard(item: LearnerAssessmentAssignment, kind: ExamState) {
-    const action = kind === 'in-progress' ? 'Resume exam' : kind === 'new' ? 'Start exam'
+    const action = kind === 'expired' ? 'Refresh status' : kind === 'in-progress' ? 'Resume exam' : kind === 'new' ? 'Start exam'
       : kind === 'retake' ? 'Retake exam' : kind === 'completed' && item.attemptId ? 'View result' : 'View status'
     const resultAvailable = item.resultStatus === 'released' ||
       (item.assessmentType === 'practice' && item.showScorePolicy === 'immediate' && item.resultStatus === 'marked')
@@ -169,6 +171,7 @@ export default function VibeLearnExamsPage() {
         <p>{item.assessmentType.replaceAll('_', ' ')}{item.timeLimitMinutes ? ` · ${item.timeLimitMinutes} minutes` : ''}</p>
         {item.attemptNumber && <p>Attempt {item.attemptNumber} of {item.maxAttempts}</p>}
         {kind === 'awaiting' && <p>Your attempt was submitted. Results will appear when released.</p>}
+        {kind === 'expired' && <p>Your time has ended. The server must finalize this attempt before any further action.</p>}
         {kind === 'retake' && <p>This creates another attempt. Your previous result stays in History.</p>}
         {kind === 'completed' && resultAvailable && item.percentage !== null &&
           <p className="vs-exam-score">Latest score: {item.percentage.toFixed(1)}%</p>}
@@ -179,6 +182,7 @@ export default function VibeLearnExamsPage() {
             if (kind === 'retake' && mayRetake(item)) openRetake(item, event.currentTarget)
             else if (kind === 'completed' && resultAvailable && item.attemptId) viewResult(item.attemptId)
             else if (kind === 'new' || kind === 'in-progress') start(item)
+            else if (kind === 'expired') reload()
             else changeView('history')
           }}>{action}</button>
       </div>
@@ -231,7 +235,7 @@ export default function VibeLearnExamsPage() {
         </section>
         {groups.awaiting.length > 0 && <section aria-labelledby="vs-exams-awaiting">
           <h2 id="vs-exams-awaiting">Waiting for results</h2>
-          <div className="vs-exams-card-list">{groups.awaiting.map(item => examCard(item, 'awaiting'))}</div>
+          <div className="vs-exams-card-list">{groups.awaiting.map(item => examCard(item, examState(item)))}</div>
         </section>}
         {groups.retakes.length > 0 && <section aria-labelledby="vs-exams-retakes">
           <h2 id="vs-exams-retakes">Practise again</h2>
