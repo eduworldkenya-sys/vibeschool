@@ -483,8 +483,10 @@ export default function LearnerAssessmentPage() {
         Object.values(saveTimers.current).forEach(window.clearTimeout)
         for (const item of workspace.items) {
           const answer = answersRef.current[item.id]
-          if (answer && (answer.dirty || !answer.saved)) {
-            await persistAnswer(item, answer)
+          if (answer?.saving) throw new Error('An answer is still saving. Please retry submission in a moment.')
+          if (answer?.dirty) {
+            const saved = await persistAnswer(item, answer)
+            if (!saved) throw new Error('An answer was not saved. Submission cancelled; please retry.')
           }
         }
       }
@@ -575,10 +577,10 @@ export default function LearnerAssessmentPage() {
         <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700 }}>{answeredCount}/{workspace.items.length} answered · Attempt {workspace.attemptNumber}</div>
         {recoveredDraft && <div style={notice}>Recovered newer work saved on this device.</div>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-          <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => void saveAndExit()} style={secondaryButton}>{exiting ? 'Saving…' : workspace.expiresAt ? 'Save & Exit' : 'Pause & Exit'}</button>
+          <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => void saveAndExit()} style={secondaryButton}>{exiting ? 'Saving…' : workspace.expiresAt || workspace.closesAt ? 'Save & Exit' : 'Pause & Exit'}</button>
           <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => setShowConfirm(true)} style={primaryButton}>Submit & Finish</button>
         </div>
-        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 0 }}>{workspace.expiresAt ? 'Save & Exit keeps saved answers, but the exam timer continues. You cannot pause a timed exam.' : 'Pause & Exit saves your answers. Resume later to continue this untimed practice.'}</p>
+        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 0 }}>{workspace.expiresAt || workspace.closesAt ? 'Save & Exit keeps saved answers, but the exam timer continues. You cannot pause a timed exam.' : 'Pause & Exit saves your answers. Resume later to continue this untimed practice.'}</p>
       </section>
 
       {activeElsewhere && <section style={{ ...card, borderColor: '#f59e0b', background: '#fffbeb' }}>
