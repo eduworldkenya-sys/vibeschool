@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useStudent } from "@/lib/student-context";
 import { supabase } from "@/lib/supabase";
 import Skel from "@/components/student/Skel";
+import { FolderKanban } from "lucide-react";
 
 interface ProjItem {
   id:          string;
@@ -64,11 +65,11 @@ export default function StudentProjectsPage() {
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px 100px", fontFamily: "'Plus Jakarta Sans', sans-serif", color: "var(--vs-text)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 900, marginBottom: 4, color: "var(--vs-text)" }}>Projects</h1>
-      <p style={{ fontSize: 13, color: "var(--vs-muted)", marginBottom: 20 }}>Longer-term work — submit a photo of your progress.</p>
+      <p style={{ fontSize: 13, color: "var(--vs-muted)", marginBottom: 20 }}>School-assigned projects and your submission progress.</p>
 
       {list.length === 0 ? (
         <div style={{ textAlign: "center", padding: "40px 0", color: "var(--vs-muted)" }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>🛠️</div>
+          <FolderKanban aria-hidden="true" size={36} strokeWidth={1.8} style={{ margin: "0 auto 10px" }} />
           <div style={{ fontSize: 14, fontWeight: 700 }}>No projects yet</div>
         </div>
       ) : (
