@@ -77,25 +77,27 @@ function GeneralLearnerVibeLearn() {
     <main className="vs-learn-home" style={{ maxWidth: 760, margin: "0 auto", padding: "18px 14px 110px", display: "grid", gap: 14 }}>
       <section style={{ padding: "8px 2px 2px" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--vs-muted)" }}>{identity?.className || workspace?.className || "My learning"}</div>
-        <h1 style={{ margin: "5px 0 0", fontSize: 24, lineHeight: 1.2 }}>What would you like to learn?</h1>
+        <h1 style={{ margin: "5px 0 0", fontSize: 24, lineHeight: 1.2 }}>Start learning</h1>
       </section>
       {error && <div role="status" style={{ padding: 12, borderRadius: 12, background: "#fee2e2", color: "#991b1b", fontSize: 12 }}>{error}</div>}
 
+      <LearnActivityHub />
+
       {workspace?.twin.now && (
         <section style={{ border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", padding: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 850, color: "var(--vs-accent)", letterSpacing: 1 }}>NEXT BEST ACTION</div>
+          <div style={{ fontSize: 10, fontWeight: 850, color: "var(--vs-accent)", letterSpacing: 1 }}>SUGGESTED FOR YOU</div>
           <h2 style={{ fontSize: 16, margin: "6px 0 4px" }}>{workspace.twin.now.title}</h2>
           <p style={{ margin: 0, color: "var(--vs-muted)", fontSize: 12, lineHeight: 1.5 }}>{workspace.twin.now.reason ?? "Your highest-priority verified learning action."}</p>
-          {workspace.twin.now.actionUrl && <button onClick={() => router.push(workspace.twin.now!.actionUrl!)} style={{ marginTop: 12, minHeight: 44, border: 0, borderRadius: 11, background: "var(--vs-accent)", color: "#fff", padding: "0 16px", fontWeight: 800 }}>Open now</button>}
+          {workspace.twin.now.actionUrl && <button onClick={() => router.push(workspace.twin.now!.actionUrl!)} style={{ marginTop: 12, minHeight: 44, border: 0, borderRadius: 11, background: "var(--vs-accent)", color: "#fff", padding: "0 16px", fontWeight: 800 }}>Go to activity →</button>}
         </section>
       )}
 
       <section style={{ border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", padding: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div><div style={{ fontSize: 10, fontWeight: 850, color: "var(--vs-accent)", letterSpacing: 1 }}>CONTINUE LEARNING</div><h2 style={{ fontSize: 17, margin: "5px 0 0" }}>Pick up where you stopped</h2></div>
+          <div><div style={{ fontSize: 10, fontWeight: 850, color: "var(--vs-accent)", letterSpacing: 1 }}>PICK UP WHERE YOU LEFT OFF</div><h2 style={{ fontSize: 17, margin: "5px 0 0" }}>Continue learning</h2></div>
         </div>
         {(workspace?.continueLearning.length ?? 0) === 0 ? (
-          <p style={{ color: "var(--vs-muted)", fontSize: 12, lineHeight: 1.55, margin: "10px 0 0" }}>Nothing is in progress yet. Choose a class resource below to begin.</p>
+          <p style={{ color: "var(--vs-muted)", fontSize: 12, lineHeight: 1.55, margin: "10px 0 0" }}>Nothing in progress yet. Choose an activity above to get started.</p>
         ) : (
           <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
             {workspace!.continueLearning.filter(item => item.progressPercent < 100).slice(0, 2).map(item => (
@@ -108,7 +110,6 @@ function GeneralLearnerVibeLearn() {
         )}
       </section>
 
-      <LearnActivityHub />
       <section id="class-resources" style={{ scrollMarginTop: 110, border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", padding: 16 }}>
         <div style={{ fontSize: 10, fontWeight: 850, color: "var(--vs-accent)", letterSpacing: 1 }}>MY CLASS RESOURCES</div>
         <h2 style={{ fontSize: 17, margin: "5px 0 0" }}>Learn by subject</h2>
