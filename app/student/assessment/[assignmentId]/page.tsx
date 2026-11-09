@@ -9,6 +9,7 @@ import {
   releaseAttemptClient,
   saveResponseWithRevision,
   startOrResumeAttempt,
+  ExpiredAssessmentAttemptError,
   submitAttempt,
 } from '@/lib/assessment'
 import type {
@@ -17,6 +18,7 @@ import type {
   SubmitAttemptResult,
 } from '@/lib/assessment'
 import type { Json } from '@/lib/database.types'
+import { getMyResult } from '@/lib/assessment/results'
 
 type Answer = {
   text: string
@@ -182,6 +184,23 @@ export default function LearnerAssessmentPage() {
           setRecoveredDraft(Object.values(initial).some(answer => answer.dirty))
         }
       } catch (loadError) {
+        if (cancelled) return
+        if (loadError instanceof ExpiredAssessmentAttemptError) {
+          // Only an authorised released result is navigable. Checking the result
+          // does not create or consume another attempt.
+          try {
+            await getMyResult(loadError.attemptId)
+            if (!cancelled) {
+              router.replace(`/student/results/${encodeURIComponent(loadError.attemptId)}`)
+            }
+          } catch {
+            // Formal/unreleased results remain protected by the existing RPC.
+            if (!cancelled) {
+              setError('Your exam time ended and this attempt was submitted. Your result is not available yet. Return to Exams to check its status. No new attempt has been started.')
+            }
+          }
+          return
+        }
         console.error('[LearnerAssessment] start attempt', loadError)
         if (!cancelled) {
           setError(
@@ -200,7 +219,7 @@ export default function LearnerAssessmentPage() {
       cancelled = true
       Object.values(saveTimers.current).forEach(window.clearTimeout)
     }
-  }, [assignmentId, claim])
+  }, [assignmentId, claim, router])
 
   useEffect(() => {
     if (!workspace || activeElsewhere || result) return
