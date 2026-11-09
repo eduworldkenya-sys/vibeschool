@@ -48,6 +48,9 @@ for (const token of [
   "const rangeStart = matchingWeek.start_date",
   "const rangeEnd = matchingWeek.end_date",
   "existing?.scheme_id === schemeId",
+  "const numberedLesson = scheme.lesson_number ?? scheme.period",
+  "setChoices(available)",
+  "Choose this lesson’s timetable period",
 ]) assert.ok(launcher.includes(token), 'Scheme launcher lost exact week / identity requirement: '+token)
 assert.ok(!launcher.includes('nairobiDateAdd(\n          rangeStart,\n          55'), 'Never find a lesson plan in a different instructional week')
 console.log('Grade 4 English teacher hierarchy and Scheme week identity checks passed')
