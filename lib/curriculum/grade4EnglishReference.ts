@@ -84,3 +84,16 @@ export const GRADE4_ENGLISH_STRANDS = [
 export function suggestedTermForTheme(themeNumber: number): 1 | 2 | 3 {
   return themeNumber <= 5 ? 1 : themeNumber <= 9 ? 2 : 3
 }
+
+/**
+ * The first five themes have their four sub-strand headings identified from
+ * the KICD source. These headings are descriptive reference metadata only;
+ * no specific learning outcome is represented as verified or published.
+ */
+export const GRADE4_ENGLISH_INITIAL_SUBSTRANDS: Readonly<Record<number, readonly string[]>> = {
+  1: ['Pronunciation and Vocabulary — Listening Comprehension', 'Extensive Reading — Reference Materials', 'Grammar in Use — Articles', 'Functional Writing — Forms'],
+  2: ['Pronunciation and Vocabulary — Target Sounds', 'Intensive Reading — Poems and Stories', 'Grammar in Use — Regular and Irregular Nouns', 'Creative Writing — Open-ended Composition'],
+  3: ['Pronunciation and Vocabulary — Polite Words and Sounds', 'Intensive Reading — Comprehension', 'Grammar in Use — Enough to / A lot of', 'Mechanics of Writing — Handwriting and Spelling'],
+  4: ['Pronunciation and Vocabulary — Word Stress', 'Intensive Reading — Visual Information', 'Grammar in Use — Personal and Possessive Pronouns', 'Functional Writing — Friendly Letters and SMS'],
+  5: ['Pronunciation and Vocabulary — Listening Comprehension', 'Extensive Reading — Independent Reading', 'Grammar in Use — Adjectives', 'Creative Writing — Narrative Composition'],
+}
