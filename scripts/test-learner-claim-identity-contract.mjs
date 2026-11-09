@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 
 const read = (p) => fs.readFileSync(p, 'utf8')
-const signup = read('app/signup/student/page.tsx')
+const signup = read('app/signup/student/SchoolSignupForm.tsx')
 const parent = read('app/parent/link-child/page.tsx')
 const api = read('app/api/create-student-account/route.ts')
 const classhub = read('app/teacher/classhub/[id]/page.tsx')
@@ -11,7 +11,7 @@ const activationMigration = read('supabase/migrations/20260820224500_learner_act
 const checks = [
   ['signup does not collect learner name', !signup.includes('setName(') && !signup.includes('Full name') && !signup.includes('full_name:')],
   ['signup submits normalized learner code and PIN only', signup.includes('claim_code: normalizedCode') && signup.includes('password: pin')],
-  ['signup no longer requires parent as step one', !signup.includes('Parent or guardian connects') && signup.includes('can connect separately')],
+  ['signup no longer requires parent as step one', !signup.includes('Parent or guardian connects') && !signup.includes("issueCode === 'guardian_required'")],
   ['parent page accepts canonical 8-character claims', parent.includes('MAX_CODE_LENGTH = 12') && parent.includes('placeholder="e.g. 9FFA0680"') && !parent.includes('6-character claim code')],
   ['parent page handles replaced and expired claims', parent.includes("case 'replaced'") && parent.includes("case 'expired'")],
   ['parent page treats already_linked as success', parent.includes("case 'already_linked'")],

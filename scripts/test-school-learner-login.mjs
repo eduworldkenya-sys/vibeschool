@@ -16,7 +16,7 @@ assert.equal(learnerLoginEmail(' LEGACY 001 '), 'legacy001@vs.internal', 'existi
 assert.equal(learnerLoginEmail('teacher@example.com'), null, 'learner input cannot select an external email')
 assert.equal(learnerLoginEmail('  '), null)
 const login = fs.readFileSync('app/login/[role]/page.tsx', 'utf8')
-const signup = fs.readFileSync('app/signup/student/page.tsx', 'utf8')
+const signup = fs.readFileSync('app/signup/student/SchoolSignupForm.tsx', 'utf8')
 const route = fs.readFileSync('app/api/create-student-account/route.ts', 'utf8')
 assert.match(login, /learnerLoginEmail\(identifier, schoolCode\)/)
 assert.match(route, /schoolLearnerEmail\(school.subdomain \|\| school.id, admission\)/)
