@@ -14,6 +14,7 @@ assert.match(privateSql,/hq_publish_original_practice\(v_draft\.paper,true,true\
 assert.match(privateSql,/select jsonb_agg\(jsonb_build_object\(/)
 assert.doesNotMatch(privateSql,/['"]correctAnswer['"]\s*[:,]/)
 assert.match(publisherSql,/owner_authored_original/)
+assert.match(publisherSql,/grade4_private_independent_review_required/, 'Direct Grade 4 JSON publication must be blocked unless reviewed and stored privately')
 assert.match(publisherSql,/'paper_id',v_id/)
 assert.doesNotMatch(publisherSql,/owner_authored_pilot/)
 assert.match(publisherSql,/replace\(lower\(btrim\(g\.subject_name\)\),'&','and'\)/)
