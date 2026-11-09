@@ -14,6 +14,11 @@ declare
  v_added integer;
  v_count integer;
  v_origins integer;
+ v_publication uuid;
+ v_chapter uuid;
+ v_block3 uuid;
+ v_block4 uuid;
+ v_block5 uuid;
 begin
  select count(*) into v_existing from public.assessment_definitions
  where title=v_title and generation_metadata->>'topic_practice'='true';
@@ -84,14 +89,43 @@ begin
  and ai.auto_marking_mode='option_match' and ai.question_type='multiple_choice'
  order by ad.title,ai.order_num;
 
+ -- Preserve original source provenance independently from both exam pilots.
+ insert into public.vibe_publications(
+   author_id,format,title,description,status,cbc_subject,cbc_grade,cbc_aligned,chapter_count
+ ) values (
+   v_owner,'ebook','Grade 9 Mathematics Indices — Topic Practice 01 sources',
+   'Three newly authored VibeSchool indices questions; provisional curriculum mapping, not certified KICD aligned.',
+   'draft','Mathematics','Grade 9',false,1
+ ) returning id into v_publication;
+
+ insert into public.vibe_chapters(publication_id,title,number,status,alignment_status)
+ values(v_publication,'Indices — original practice items',1,'draft','creator_claimed')
+ returning id into v_chapter;
+
+ insert into public.content_blocks(publication_id,chapter_id,block_type,sequence,payload,title,status,is_assessable)
+ values(v_publication,v_chapter,'question',1,
+   jsonb_build_object('prompt','Evaluate 3² × 3³.','topic','Indices','bank_key','G9TP-IND-003'),
+   'Indices G9TP-IND-003','draft',true)
+ returning id into v_block3;
+ insert into public.content_blocks(publication_id,chapter_id,block_type,sequence,payload,title,status,is_assessable)
+ values(v_publication,v_chapter,'question',2,
+   jsonb_build_object('prompt','Simplify 5⁴ ÷ 5².','topic','Indices','bank_key','G9TP-IND-004'),
+   'Indices G9TP-IND-004','draft',true)
+ returning id into v_block4;
+ insert into public.content_blocks(publication_id,chapter_id,block_type,sequence,payload,title,status,is_assessable)
+ values(v_publication,v_chapter,'question',3,
+   jsonb_build_object('prompt','Evaluate (2³)².','topic','Indices','bank_key','G9TP-IND-005'),
+   'Indices G9TP-IND-005','draft',true)
+ returning id into v_block5;
+
  -- New original questions: multiply, divide and apply the power-of-a-power rule.
  insert into public.assessment_items(
-  assessment_id,source_exercise_ref,question_type,prompt,options,correct_answer,
+  assessment_id,source_block_id,source_exercise_ref,question_type,prompt,options,correct_answer,
   explanation,worked_solution,marks,difficulty,auto_marking_mode,order_num,
   status,generated_by,teacher_approved_at
  ) values
  (
-  v_assessment,jsonb_build_object('topic','Indices','bank_key','G9TP-IND-003','source_origin','VibeSchool original','curriculum_mapping','provisional'),
+  v_assessment,v_block3,jsonb_build_object('topic','Indices','bank_key','G9TP-IND-003','source_origin','VibeSchool original','curriculum_mapping','provisional'),
   'multiple_choice','Evaluate 3² × 3³.',
   '[{"value":"A","label":"27"},{"value":"B","label":"81"},{"value":"C","label":"243"},{"value":"D","label":"729"}]'::jsonb,
   '"C"'::jsonb,
@@ -100,7 +134,7 @@ begin
   'approved','owner_authored_pilot',now()
  ),
  (
-  v_assessment,jsonb_build_object('topic','Indices','bank_key','G9TP-IND-004','source_origin','VibeSchool original','curriculum_mapping','provisional'),
+  v_assessment,v_block4,jsonb_build_object('topic','Indices','bank_key','G9TP-IND-004','source_origin','VibeSchool original','curriculum_mapping','provisional'),
   'multiple_choice','Simplify 5⁴ ÷ 5².',
   '[{"value":"A","label":"5"},{"value":"B","label":"25"},{"value":"C","label":"125"},{"value":"D","label":"625"}]'::jsonb,
   '"B"'::jsonb,
@@ -109,7 +143,7 @@ begin
   'approved','owner_authored_pilot',now()
  ),
  (
-  v_assessment,jsonb_build_object('topic','Indices','bank_key','G9TP-IND-005','source_origin','VibeSchool original','curriculum_mapping','provisional'),
+  v_assessment,v_block5,jsonb_build_object('topic','Indices','bank_key','G9TP-IND-005','source_origin','VibeSchool original','curriculum_mapping','provisional'),
   'multiple_choice','Evaluate (2³)².',
   '[{"value":"A","label":"32"},{"value":"B","label":"64"},{"value":"C","label":"16"},{"value":"D","label":"256"}]'::jsonb,
   '"B"'::jsonb,
