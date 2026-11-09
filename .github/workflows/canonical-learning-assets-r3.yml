@@ -38,6 +38,12 @@ jobs:
           deno-version: v2.x
       - name: Start disposable Supabase
         run: supabase start
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned project dependencies
+        run: npm ci --ignore-scripts
       - name: Verify canonical identity contract
         run: bash scripts/test-canonical-learning-asset-identity.sh
       - name: Verify database authority and security contract
