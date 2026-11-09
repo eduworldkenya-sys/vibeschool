@@ -11,7 +11,7 @@ import Icon, { type IconName } from './Icon'
 const TABS: { href: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
   { href: '/vibetutor', label: 'Discover', icon: 'search', match: p => p === '/vibetutor' || p.startsWith('/vibetutor/browse') || p.startsWith('/vibetutor/find-') },
   { href: '/vibetutor/post-request', label: 'Learn', icon: 'book', match: p => p.startsWith('/vibetutor/post-request') },
-  { href: '/vibetutor/become-tutor', label: 'Teach', icon: 'users', match: p => p.startsWith('/vibetutor/become-tutor') },
+  { href: '/vibetutor/my-tutoring', label: 'Teach', icon: 'users', match: p => p.startsWith('/vibetutor/my-tutoring') || p.startsWith('/vibetutor/become-tutor') || p.startsWith('/vibetutor/availability') },
   { href: '/login', label: 'Account', icon: 'user', match: p => p === '/login' || p.startsWith('/signup') || p.startsWith('/account') },
 ]
 
