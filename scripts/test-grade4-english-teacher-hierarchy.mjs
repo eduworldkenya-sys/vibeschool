@@ -11,15 +11,21 @@ for(const token of [
   'setSelectedTheme(null)',
   'aria-expanded={expanded}',
   'aria-controls={',
-  'Specific learning outcomes: not yet reconciled',
+  'Theme-specific learning outcomes: not yet reconciled',
+  'Selected-term weekly records:',
+  'setShowYear(true)',
   'View existing weekly curriculum',
   'Open my scheme of work',
   'Only canonical curriculum records may be used',
 ]) assert.ok(component.includes(token), 'Missing curriculum browser requirement: '+token)
+assert.ok(page.includes('verifiedOutcomeCount={Object.values(curriculumOutcomes)'), 'Verified outcomes must be counted from loaded curriculum')
+assert.ok(page.includes('schemeCount={schemeItems.length}'), 'Scheme count must reflect the teacher records')
 assert.ok(page.includes('<Grade4EnglishMap'), 'Teacher page must mount the new browser')
 assert.ok(page.includes('showEnglishLegacy'), 'Existing records must remain accessible')
 assert.ok(page.includes("display:isGrade4English&&!showEnglishLegacy?'none':undefined"), 'Legacy grid must hide by default')
 assert.ok(page.includes('commit_curriculum_scheme'), 'Existing Scheme flow must be preserved')
 assert.ok(reference.includes('GRADE4_ENGLISH_THEMES'), 'Source theme index must remain available')
 assert.equal((reference.match(/"number": \d+/g)||[]).length,13, 'Expected 13 English themes')
+assert.ok(reference.includes('https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.ENGLISH.LANGUAGE.pdf'), 'Must use first-party KICD 2024 source')
+assert.deepEqual([...reference.matchAll(/"sourcePage": (\d+)/g)].map(match=>Number(match[1])),[1,8,15,22,30,37,44,50,56,62,69,75,81], 'Theme locators must match KICD 2024 contents')
 console.log('Grade 4 English teacher hierarchy checks passed')

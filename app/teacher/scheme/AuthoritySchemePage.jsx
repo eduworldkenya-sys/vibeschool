@@ -306,6 +306,9 @@ function Inner({ curriculumView = false }) {
       selectedTerm={termObj?.term ?? null}
       showExisting={showEnglishLegacy}
       onToggleExisting={()=>setShowEnglishLegacy(value=>!value)}
+      weeklyCount={allCurriculumRows.length}
+      schemeCount={schemeItems.length}
+      verifiedOutcomeCount={Object.values(curriculumOutcomes).flat().filter(outcome=>outcome.status==='verified').length}
       onOpenScheme={()=>router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}`)}
     />}
     {curriculumView ? <section className="studio-canonical-map" style={{display:isGrade4English&&!showEnglishLegacy?'none':undefined}}>
