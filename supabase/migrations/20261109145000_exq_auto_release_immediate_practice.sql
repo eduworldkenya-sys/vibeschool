@@ -10,7 +10,7 @@ begin
  if new.score is null or new.max_score is null or new.max_score<=0 then return new; end if;
  if exists(select 1 from public.assessment_moderation_requests where attempt_id=new.id and status='pending') then return new; end if;
  if exists(select 1 from public.assessment_responses where attempt_id=new.id and status<>'void' and final_score is null) then return new; end if;
- update public.assessment_attempts set status='released',result_status='released',released_at=coalesce(released_at,now()),updated_at=now() where id=new.id and status='auto_marked' and result_status='marked';
+ update public.assessment_attempts set status='released',result_status='released',updated_at=now() where id=new.id and status='auto_marked' and result_status='marked';
  insert into public.assessment_gradebook_entries(attempt_id,assignment_id,assessment_id,student_id,school_id,class_id,subject_id,teacher_id,score,max_score,percentage,assessment_type,assessment_title,released_at,updated_at)
  values(new.id,new.assignment_id,new.assessment_id,new.student_id,new.school_id,new.class_id,v_def.subject_id,v_assignment.teacher_id,new.score,new.max_score,new.percentage,v_def.assessment_type,v_def.title,now(),now())
  on conflict(attempt_id) do update set score=excluded.score,max_score=excluded.max_score,percentage=excluded.percentage,updated_at=now();
