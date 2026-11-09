@@ -6,6 +6,13 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getMyResult, type LearnerResultDetail } from '@/lib/assessment/results'
 
+function answerWithOption(value: unknown, options: { value: string; label: string }[]): string {
+  if (value === null || value === undefined) return 'Not answered'
+  const code = typeof value === 'string' ? value : JSON.stringify(value)
+  const match = options.find(option => option.value === code)
+  return match ? `${match.value}. ${match.label}` : code
+}
+
 export default function StudentResultDetailPage() {
   const params = useParams<{ attemptId: string }>()
   const router = useRouter()
@@ -72,7 +79,7 @@ export default function StudentResultDetailPage() {
             <p style={{ lineHeight: 1.6 }}>{item.prompt}</p>
             <div style={answerBox}>
               <div style={label}>Your answer</div>
-              {item.responseText || JSON.stringify(item.responseValue)}
+              {item.options.length ? answerWithOption(item.responseValue ?? item.responseText, item.options) : item.responseText || answerWithOption(item.responseValue, [])}
             </div>
             {item.teacherFeedback && (
               <div style={{ ...answerBox, marginTop: 10, borderColor: '#bfdbfe', background: '#eff6ff' }}>
@@ -83,7 +90,7 @@ export default function StudentResultDetailPage() {
             {item.answerRevealed && item.correctAnswer !== null && (
               <div style={{ ...answerBox, marginTop: 10, borderColor: '#a7f3d0', background: '#ecfdf5' }}>
                 <div style={label}>Correct answer</div>
-                {typeof item.correctAnswer === 'string' ? item.correctAnswer : JSON.stringify(item.correctAnswer)}
+                {answerWithOption(item.correctAnswer, item.options)}
               </div>
             )}
             {item.explanation && <p style={{ color: '#374151', lineHeight: 1.5 }}><strong>Explanation:</strong> {item.explanation}</p>}
