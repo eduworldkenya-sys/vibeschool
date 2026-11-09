@@ -103,6 +103,7 @@ export default function OriginalExamPublisher() {
       <header>
         <p style={{ color: "#516789", fontSize: 12, letterSpacing: 1.5, fontWeight: 800 }}>HQ · EXAM BANK</p>
         <h1 style={{ fontSize: "clamp(24px, 4vw, 36px)", marginBottom: 8 }}>Publish original practice</h1>
+        <Link href="/hq/exams/batch" style={{ display: "inline-block", marginBottom: 10, color: "#1251a4", fontWeight: 800 }}>Batch publish Topic Practice →</Link>
         <p style={{ color: "#53657c", lineHeight: 1.6, margin: 0 }}>Upload a question-paper JSON file, validate it, review the result, then publish. No school enrolment or SQL required.</p>
       </header>
       {owner === null && <section style={surface} role="status">Checking publisher permissions…</section>}
