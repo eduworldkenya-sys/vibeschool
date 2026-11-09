@@ -1,3 +1,7 @@
+-- access: service-only private.original_exam_drafts
+-- authorization-test: private.original_exam_drafts
+-- Verification: anon and authenticated have no SELECT/INSERT/UPDATE/DELETE grants
+-- on the private table; owner-only security-definer RPC exposes metadata only.
 -- Secure original exam staging. No question text or answer keys are stored in Git.
 -- Existing private schema is not exposed to the Supabase Data API.
 create schema if not exists private;
