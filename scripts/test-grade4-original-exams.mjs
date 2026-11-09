@@ -55,3 +55,9 @@ test('Owner publisher uses non-pilot provenance for new original papers', () => 
   assert.match(migration, /exq_publish_public_practice/)
   assert.match(migration, /replace\(lower\(btrim\(g\.subject_name\)\),'&','and'\)/, 'Science and Technology subject alias remains supported')
 })
+
+test('Fresh database can skip dependent Grade 9 seed without fabricating an owner', () => {
+  const migration = readFileSync('supabase/migrations/20261110143000_grade9_indices_topic_practice_01.sql','utf8')
+  assert.match(migration, /Skipping dependent Grade 9 indices seed/)
+  assert.match(migration, /if v_owner is null or v_subject is null then/)
+})
