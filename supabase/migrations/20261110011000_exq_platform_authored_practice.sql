@@ -97,6 +97,13 @@ begin
       'Grade 9 Mathematics '||(v_q->>'bank_key'),'draft',true
     ) returning id into v_block;
 
+    insert into public.chapter_learning_outcome_links(
+      publication_id,chapter_id,outcome_id,alignment_strength,sequence,evidence_note,created_by
+    ) values (
+      v_publication,v_chapter,v_outcome,'supports',(v_q->>'number')::integer,
+      'VibeSchool original pilot competency — provisional, not KICD verified',v_owner
+    );
+
     insert into public.content_block_outcome_links(
       publication_id,chapter_id,content_block_id,outcome_id,relationship,created_by
     ) values(v_publication,v_chapter,v_block,v_outcome,'supports',v_owner);
