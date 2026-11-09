@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { hqSupabase } from "@/lib/hq/supabase"
 
+type PrivateDraft = {
+  id: string; grade: string; subject: string; title: string;
+  question_count: number; status: string; published: boolean;
+}
 type PublishResult = {
   ok?: boolean; valid?: boolean; published?: boolean; already_exists?: boolean
   ready_to_publish?: boolean; title?: string; grade?: string; subject?: string
@@ -46,6 +50,9 @@ export default function OriginalExamPublisher() {
   const [error, setError] = useState("")
   const [owner, setOwner] = useState<boolean | null>(null)
   const [result, setResult] = useState<PublishResult | null>(null)
+  const [privateDrafts, setPrivateDrafts] = useState<PrivateDraft[]>([])
+  const [privateDraftError, setPrivateDraftError] = useState("")
+  const [approvedPrivateId, setApprovedPrivateId] = useState("")
 
   useEffect(() => {
     let mounted = true
@@ -54,6 +61,34 @@ export default function OriginalExamPublisher() {
     })
     return () => { mounted = false }
   }, [])
+
+  useEffect(() => {
+    if (owner !== true) return
+    let active = true
+    void api.rpc("hq_list_original_exam_drafts").then(({ data, error: failure }: { data: unknown; error: { message?: string } | null }) => {
+      if (!active) return
+      if (failure) { setPrivateDraftError(failure.message || "Private drafts unavailable"); return }
+      setPrivateDrafts(Array.isArray(data) ? data as PrivateDraft[] : [])
+    }).catch(() => { if (active) setPrivateDraftError("Private drafts unavailable") })
+    return () => { active = false }
+  }, [owner])
+
+  async function publishPrivateDraft(paper: PrivateDraft) {
+    if (owner !== true || busy || paper.status !== "reviewed" || approvedPrivateId !== paper.id) return
+    setBusy(true); setError("")
+    try {
+      const { data, error: failure } = await api.rpc("hq_publish_staged_original_exam", {
+        p_paper_id: paper.id, p_approved: true
+      })
+      if (failure) throw new Error(failure.message || "Private publication failed")
+      const next = data as PublishResult
+      if (!next?.published || !next.assignment_id) throw new Error("Publication not confirmed")
+      setResult(next)
+      setApprovedPrivateId("")
+      setPrivateDrafts(items => items.map(item => item.id === paper.id ? { ...item, published: true } : item))
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Private publication failed") }
+    finally { setBusy(false) }
+  }
 
   const parsed = useMemo(() => {
     if (!raw.trim()) return { paper: null, error: "" }
