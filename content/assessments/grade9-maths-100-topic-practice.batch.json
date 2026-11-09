@@ -1,0 +1,3207 @@
+{
+  "batch_id": "g9-maths-five-topics-100-original-v1",
+  "curriculum_source": "KICD Grade 9 Mathematics Curriculum Design (2024)",
+  "curriculum_verification": "provisional",
+  "papers": [
+    {
+      "id": "g9m2026-int-topic-1",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Integers · Topic Practice Batch 1",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INT-001",
+          "topic": "Integers",
+          "difficulty": "challenging",
+          "prompt": "Calculate −6 + 4 × 5.",
+          "options": [
+            {
+              "value": "A",
+              "label": "14"
+            },
+            {
+              "value": "B",
+              "label": "15"
+            },
+            {
+              "value": "C",
+              "label": "12"
+            },
+            {
+              "value": "D",
+              "label": "17"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Multiply first: 4 × 5 = 20. Then 20 − 6 = 14.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INT-002",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "Calculate −7 + 5 × 6.",
+          "options": [
+            {
+              "value": "A",
+              "label": "24"
+            },
+            {
+              "value": "B",
+              "label": "23"
+            },
+            {
+              "value": "C",
+              "label": "21"
+            },
+            {
+              "value": "D",
+              "label": "26"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Multiply first: 5 × 6 = 30. Then 30 − 7 = 23.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INT-003",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "Calculate −8 + 6 × 7.",
+          "options": [
+            {
+              "value": "A",
+              "label": "35"
+            },
+            {
+              "value": "B",
+              "label": "32"
+            },
+            {
+              "value": "C",
+              "label": "34"
+            },
+            {
+              "value": "D",
+              "label": "37"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Multiply first: 6 × 7 = 42. Then 42 − 8 = 34.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INT-004",
+          "topic": "Integers",
+          "difficulty": "medium",
+          "prompt": "Calculate −9 + 7 × 8.",
+          "options": [
+            {
+              "value": "A",
+              "label": "48"
+            },
+            {
+              "value": "B",
+              "label": "45"
+            },
+            {
+              "value": "C",
+              "label": "50"
+            },
+            {
+              "value": "D",
+              "label": "47"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Multiply first: 7 × 8 = 56. Then 56 − 9 = 47.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INT-005",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "Calculate −10 + 8 × 9.",
+          "options": [
+            {
+              "value": "A",
+              "label": "62"
+            },
+            {
+              "value": "B",
+              "label": "63"
+            },
+            {
+              "value": "C",
+              "label": "60"
+            },
+            {
+              "value": "D",
+              "label": "65"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Multiply first: 8 × 9 = 72. Then 72 − 10 = 62.",
+          "marks": 1,
+          "skill": "integer_operations"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-int-topic-2",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Integers · Topic Practice Batch 2",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INT-006",
+          "topic": "Integers",
+          "difficulty": "challenging",
+          "prompt": "A temperature rises from −5 °C to 9 °C. What is the increase in degrees?",
+          "options": [
+            {
+              "value": "A",
+              "label": "15"
+            },
+            {
+              "value": "B",
+              "label": "14"
+            },
+            {
+              "value": "C",
+              "label": "12"
+            },
+            {
+              "value": "D",
+              "label": "17"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Increase = 9 − (−5) = 14 °C.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INT-007",
+          "topic": "Integers",
+          "difficulty": "medium",
+          "prompt": "A temperature rises from −6 °C to 10 °C. What is the increase in degrees?",
+          "options": [
+            {
+              "value": "A",
+              "label": "17"
+            },
+            {
+              "value": "B",
+              "label": "14"
+            },
+            {
+              "value": "C",
+              "label": "16"
+            },
+            {
+              "value": "D",
+              "label": "19"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Increase = 10 − (−6) = 16 °C.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INT-008",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "A temperature rises from −7 °C to 11 °C. What is the increase in degrees?",
+          "options": [
+            {
+              "value": "A",
+              "label": "19"
+            },
+            {
+              "value": "B",
+              "label": "16"
+            },
+            {
+              "value": "C",
+              "label": "21"
+            },
+            {
+              "value": "D",
+              "label": "18"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Increase = 11 − (−7) = 18 °C.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INT-009",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "A temperature rises from −8 °C to 12 °C. What is the increase in degrees?",
+          "options": [
+            {
+              "value": "A",
+              "label": "20"
+            },
+            {
+              "value": "B",
+              "label": "21"
+            },
+            {
+              "value": "C",
+              "label": "18"
+            },
+            {
+              "value": "D",
+              "label": "23"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Increase = 12 − (−8) = 20 °C.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INT-010",
+          "topic": "Integers",
+          "difficulty": "medium",
+          "prompt": "A temperature rises from −9 °C to 13 °C. What is the increase in degrees?",
+          "options": [
+            {
+              "value": "A",
+              "label": "23"
+            },
+            {
+              "value": "B",
+              "label": "22"
+            },
+            {
+              "value": "C",
+              "label": "20"
+            },
+            {
+              "value": "D",
+              "label": "25"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Increase = 13 − (−9) = 22 °C.",
+          "marks": 1,
+          "skill": "integer_operations"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-int-topic-3",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Integers · Topic Practice Batch 3",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INT-011",
+          "topic": "Integers",
+          "difficulty": "challenging",
+          "prompt": "Evaluate (−6) × 4 + 3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "-20"
+            },
+            {
+              "value": "B",
+              "label": "-23"
+            },
+            {
+              "value": "C",
+              "label": "-21"
+            },
+            {
+              "value": "D",
+              "label": "-18"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Multiply first to get −24, then add 3, giving -21.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INT-012",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "Evaluate (−7) × 5 + 4.",
+          "options": [
+            {
+              "value": "A",
+              "label": "-30"
+            },
+            {
+              "value": "B",
+              "label": "-33"
+            },
+            {
+              "value": "C",
+              "label": "-28"
+            },
+            {
+              "value": "D",
+              "label": "-31"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Multiply first to get −35, then add 4, giving -31.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INT-013",
+          "topic": "Integers",
+          "difficulty": "medium",
+          "prompt": "Evaluate (−8) × 6 + 5.",
+          "options": [
+            {
+              "value": "A",
+              "label": "-43"
+            },
+            {
+              "value": "B",
+              "label": "-42"
+            },
+            {
+              "value": "C",
+              "label": "-45"
+            },
+            {
+              "value": "D",
+              "label": "-40"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Multiply first to get −48, then add 5, giving -43.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INT-014",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "Evaluate (−9) × 7 + 6.",
+          "options": [
+            {
+              "value": "A",
+              "label": "-56"
+            },
+            {
+              "value": "B",
+              "label": "-57"
+            },
+            {
+              "value": "C",
+              "label": "-59"
+            },
+            {
+              "value": "D",
+              "label": "-54"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Multiply first to get −63, then add 6, giving -57.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INT-015",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "Evaluate (−10) × 8 + 7.",
+          "options": [
+            {
+              "value": "A",
+              "label": "-72"
+            },
+            {
+              "value": "B",
+              "label": "-75"
+            },
+            {
+              "value": "C",
+              "label": "-73"
+            },
+            {
+              "value": "D",
+              "label": "-70"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Multiply first to get −80, then add 7, giving -73.",
+          "marks": 1,
+          "skill": "integer_operations"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-int-topic-4",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Integers · Topic Practice Batch 4",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INT-016",
+          "topic": "Integers",
+          "difficulty": "challenging",
+          "prompt": "Calculate 11 − (−5) − 4.",
+          "options": [
+            {
+              "value": "A",
+              "label": "13"
+            },
+            {
+              "value": "B",
+              "label": "10"
+            },
+            {
+              "value": "C",
+              "label": "15"
+            },
+            {
+              "value": "D",
+              "label": "12"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Subtracting a negative means adding: 11 + 5 − 4 = 12.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INT-017",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "Calculate 12 − (−6) − 5.",
+          "options": [
+            {
+              "value": "A",
+              "label": "13"
+            },
+            {
+              "value": "B",
+              "label": "14"
+            },
+            {
+              "value": "C",
+              "label": "11"
+            },
+            {
+              "value": "D",
+              "label": "16"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Subtracting a negative means adding: 12 + 6 − 5 = 13.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INT-018",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "Calculate 13 − (−7) − 6.",
+          "options": [
+            {
+              "value": "A",
+              "label": "15"
+            },
+            {
+              "value": "B",
+              "label": "14"
+            },
+            {
+              "value": "C",
+              "label": "12"
+            },
+            {
+              "value": "D",
+              "label": "17"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Subtracting a negative means adding: 13 + 7 − 6 = 14.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INT-019",
+          "topic": "Integers",
+          "difficulty": "medium",
+          "prompt": "Calculate 14 − (−8) − 7.",
+          "options": [
+            {
+              "value": "A",
+              "label": "16"
+            },
+            {
+              "value": "B",
+              "label": "13"
+            },
+            {
+              "value": "C",
+              "label": "15"
+            },
+            {
+              "value": "D",
+              "label": "18"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Subtracting a negative means adding: 14 + 8 − 7 = 15.",
+          "marks": 1,
+          "skill": "integer_operations"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INT-020",
+          "topic": "Integers",
+          "difficulty": "easy",
+          "prompt": "Calculate 15 − (−9) − 8.",
+          "options": [
+            {
+              "value": "A",
+              "label": "17"
+            },
+            {
+              "value": "B",
+              "label": "14"
+            },
+            {
+              "value": "C",
+              "label": "19"
+            },
+            {
+              "value": "D",
+              "label": "16"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Subtracting a negative means adding: 15 + 9 − 8 = 16.",
+          "marks": 1,
+          "skill": "integer_operations"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-cube-topic-1",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Cubes and Cube Roots · Topic Practice Batch 1",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-CUBE-001",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "challenging",
+          "prompt": "Find the cube of 3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "9"
+            },
+            {
+              "value": "B",
+              "label": "27"
+            },
+            {
+              "value": "C",
+              "label": "64"
+            },
+            {
+              "value": "D",
+              "label": "30"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "3³ = 3 × 3 × 3 = 27.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-CUBE-002",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "Find the cube of 4.",
+          "options": [
+            {
+              "value": "A",
+              "label": "16"
+            },
+            {
+              "value": "B",
+              "label": "125"
+            },
+            {
+              "value": "C",
+              "label": "64"
+            },
+            {
+              "value": "D",
+              "label": "68"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "4³ = 4 × 4 × 4 = 64.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-CUBE-003",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "Find the cube of 5.",
+          "options": [
+            {
+              "value": "A",
+              "label": "25"
+            },
+            {
+              "value": "B",
+              "label": "216"
+            },
+            {
+              "value": "C",
+              "label": "130"
+            },
+            {
+              "value": "D",
+              "label": "125"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "5³ = 5 × 5 × 5 = 125.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-CUBE-004",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "medium",
+          "prompt": "Find the cube of 6.",
+          "options": [
+            {
+              "value": "A",
+              "label": "216"
+            },
+            {
+              "value": "B",
+              "label": "36"
+            },
+            {
+              "value": "C",
+              "label": "343"
+            },
+            {
+              "value": "D",
+              "label": "222"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "6³ = 6 × 6 × 6 = 216.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-CUBE-005",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "Find the cube of 7.",
+          "options": [
+            {
+              "value": "A",
+              "label": "49"
+            },
+            {
+              "value": "B",
+              "label": "343"
+            },
+            {
+              "value": "C",
+              "label": "512"
+            },
+            {
+              "value": "D",
+              "label": "350"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "7³ = 7 × 7 × 7 = 343.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-cube-topic-2",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Cubes and Cube Roots · Topic Practice Batch 2",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-CUBE-006",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "challenging",
+          "prompt": "Find ∛343.",
+          "options": [
+            {
+              "value": "A",
+              "label": "6"
+            },
+            {
+              "value": "B",
+              "label": "8"
+            },
+            {
+              "value": "C",
+              "label": "7"
+            },
+            {
+              "value": "D",
+              "label": "9"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "The cube root of 343 is 7 because 7³ = 343.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-CUBE-007",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "medium",
+          "prompt": "Find ∛512.",
+          "options": [
+            {
+              "value": "A",
+              "label": "7"
+            },
+            {
+              "value": "B",
+              "label": "9"
+            },
+            {
+              "value": "C",
+              "label": "10"
+            },
+            {
+              "value": "D",
+              "label": "8"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "The cube root of 512 is 8 because 8³ = 512.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-CUBE-008",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "Find ∛729.",
+          "options": [
+            {
+              "value": "A",
+              "label": "9"
+            },
+            {
+              "value": "B",
+              "label": "8"
+            },
+            {
+              "value": "C",
+              "label": "10"
+            },
+            {
+              "value": "D",
+              "label": "11"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "The cube root of 729 is 9 because 9³ = 729.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-CUBE-009",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "Find ∛1000.",
+          "options": [
+            {
+              "value": "A",
+              "label": "9"
+            },
+            {
+              "value": "B",
+              "label": "10"
+            },
+            {
+              "value": "C",
+              "label": "11"
+            },
+            {
+              "value": "D",
+              "label": "12"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "The cube root of 1000 is 10 because 10³ = 1000.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-CUBE-010",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "medium",
+          "prompt": "Find ∛1331.",
+          "options": [
+            {
+              "value": "A",
+              "label": "10"
+            },
+            {
+              "value": "B",
+              "label": "12"
+            },
+            {
+              "value": "C",
+              "label": "11"
+            },
+            {
+              "value": "D",
+              "label": "13"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "The cube root of 1331 is 11 because 11³ = 1331.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-cube-topic-3",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Cubes and Cube Roots · Topic Practice Batch 3",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-CUBE-011",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "challenging",
+          "prompt": "A cube is 4 cm long along each edge. What is its volume in cm³?",
+          "options": [
+            {
+              "value": "A",
+              "label": "16"
+            },
+            {
+              "value": "B",
+              "label": "12"
+            },
+            {
+              "value": "C",
+              "label": "68"
+            },
+            {
+              "value": "D",
+              "label": "64"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Volume = side³ = 4³ = 64 cm³.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-CUBE-012",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "A cube is 5 cm long along each edge. What is its volume in cm³?",
+          "options": [
+            {
+              "value": "A",
+              "label": "125"
+            },
+            {
+              "value": "B",
+              "label": "25"
+            },
+            {
+              "value": "C",
+              "label": "15"
+            },
+            {
+              "value": "D",
+              "label": "130"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Volume = side³ = 5³ = 125 cm³.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-CUBE-013",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "medium",
+          "prompt": "A cube is 6 cm long along each edge. What is its volume in cm³?",
+          "options": [
+            {
+              "value": "A",
+              "label": "36"
+            },
+            {
+              "value": "B",
+              "label": "216"
+            },
+            {
+              "value": "C",
+              "label": "18"
+            },
+            {
+              "value": "D",
+              "label": "222"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Volume = side³ = 6³ = 216 cm³.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-CUBE-014",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "A cube is 7 cm long along each edge. What is its volume in cm³?",
+          "options": [
+            {
+              "value": "A",
+              "label": "49"
+            },
+            {
+              "value": "B",
+              "label": "21"
+            },
+            {
+              "value": "C",
+              "label": "343"
+            },
+            {
+              "value": "D",
+              "label": "350"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Volume = side³ = 7³ = 343 cm³.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-CUBE-015",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "A cube is 8 cm long along each edge. What is its volume in cm³?",
+          "options": [
+            {
+              "value": "A",
+              "label": "64"
+            },
+            {
+              "value": "B",
+              "label": "24"
+            },
+            {
+              "value": "C",
+              "label": "520"
+            },
+            {
+              "value": "D",
+              "label": "512"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Volume = side³ = 8³ = 512 cm³.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-cube-topic-4",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Cubes and Cube Roots · Topic Practice Batch 4",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-CUBE-016",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "challenging",
+          "prompt": "A cube-shaped container holds 1331 m³. What is the length of an edge in metres?",
+          "options": [
+            {
+              "value": "A",
+              "label": "11"
+            },
+            {
+              "value": "B",
+              "label": "10"
+            },
+            {
+              "value": "C",
+              "label": "12"
+            },
+            {
+              "value": "D",
+              "label": "13"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "The edge length equals ∛1331 = 11 m.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-CUBE-017",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "A cube-shaped container holds 1728 m³. What is the length of an edge in metres?",
+          "options": [
+            {
+              "value": "A",
+              "label": "11"
+            },
+            {
+              "value": "B",
+              "label": "12"
+            },
+            {
+              "value": "C",
+              "label": "13"
+            },
+            {
+              "value": "D",
+              "label": "14"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "The edge length equals ∛1728 = 12 m.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-CUBE-018",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "A cube-shaped container holds 2197 m³. What is the length of an edge in metres?",
+          "options": [
+            {
+              "value": "A",
+              "label": "12"
+            },
+            {
+              "value": "B",
+              "label": "14"
+            },
+            {
+              "value": "C",
+              "label": "13"
+            },
+            {
+              "value": "D",
+              "label": "15"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "The edge length equals ∛2197 = 13 m.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-CUBE-019",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "medium",
+          "prompt": "A cube-shaped container holds 2744 m³. What is the length of an edge in metres?",
+          "options": [
+            {
+              "value": "A",
+              "label": "13"
+            },
+            {
+              "value": "B",
+              "label": "15"
+            },
+            {
+              "value": "C",
+              "label": "16"
+            },
+            {
+              "value": "D",
+              "label": "14"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "The edge length equals ∛2744 = 14 m.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-CUBE-020",
+          "topic": "Cubes and Cube Roots",
+          "difficulty": "easy",
+          "prompt": "A cube-shaped container holds 3375 m³. What is the length of an edge in metres?",
+          "options": [
+            {
+              "value": "A",
+              "label": "15"
+            },
+            {
+              "value": "B",
+              "label": "14"
+            },
+            {
+              "value": "C",
+              "label": "16"
+            },
+            {
+              "value": "D",
+              "label": "17"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "The edge length equals ∛3375 = 15 m.",
+          "marks": 1,
+          "skill": "cube_and_cube_root"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-indices-topic-1",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Indices and Logarithms · Topic Practice Batch 1",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INDICES-001",
+          "topic": "Indices and Logarithms",
+          "difficulty": "challenging",
+          "prompt": "Evaluate 3^2 × 3^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "81"
+            },
+            {
+              "value": "B",
+              "label": "729"
+            },
+            {
+              "value": "C",
+              "label": "243"
+            },
+            {
+              "value": "D",
+              "label": "246"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Add exponents for the same base: 2+3=5. Hence 3^5=243.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INDICES-002",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Evaluate 4^3 × 4^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "1024"
+            },
+            {
+              "value": "B",
+              "label": "16384"
+            },
+            {
+              "value": "C",
+              "label": "4100"
+            },
+            {
+              "value": "D",
+              "label": "4096"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Add exponents for the same base: 3+3=6. Hence 4^6=4096.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INDICES-003",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Evaluate 5^2 × 5^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "3125"
+            },
+            {
+              "value": "B",
+              "label": "625"
+            },
+            {
+              "value": "C",
+              "label": "15625"
+            },
+            {
+              "value": "D",
+              "label": "3130"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Add exponents for the same base: 2+3=5. Hence 5^5=3125.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INDICES-004",
+          "topic": "Indices and Logarithms",
+          "difficulty": "medium",
+          "prompt": "Evaluate 6^3 × 6^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "7776"
+            },
+            {
+              "value": "B",
+              "label": "46656"
+            },
+            {
+              "value": "C",
+              "label": "279936"
+            },
+            {
+              "value": "D",
+              "label": "46662"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Add exponents for the same base: 3+3=6. Hence 6^6=46656.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INDICES-005",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Evaluate 7^2 × 7^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "2401"
+            },
+            {
+              "value": "B",
+              "label": "117649"
+            },
+            {
+              "value": "C",
+              "label": "16807"
+            },
+            {
+              "value": "D",
+              "label": "16814"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Add exponents for the same base: 2+3=5. Hence 7^5=16807.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-indices-topic-2",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Indices and Logarithms · Topic Practice Batch 2",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INDICES-006",
+          "topic": "Indices and Logarithms",
+          "difficulty": "challenging",
+          "prompt": "Simplify 4^5 ÷ 4^2.",
+          "options": [
+            {
+              "value": "A",
+              "label": "16"
+            },
+            {
+              "value": "B",
+              "label": "256"
+            },
+            {
+              "value": "C",
+              "label": "68"
+            },
+            {
+              "value": "D",
+              "label": "64"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Subtract the exponents: 5−2=3, so 4^3=64.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INDICES-007",
+          "topic": "Indices and Logarithms",
+          "difficulty": "medium",
+          "prompt": "Simplify 5^6 ÷ 5^2.",
+          "options": [
+            {
+              "value": "A",
+              "label": "625"
+            },
+            {
+              "value": "B",
+              "label": "125"
+            },
+            {
+              "value": "C",
+              "label": "3125"
+            },
+            {
+              "value": "D",
+              "label": "630"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Subtract the exponents: 6−2=4, so 5^4=625.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INDICES-008",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Simplify 6^5 ÷ 6^2.",
+          "options": [
+            {
+              "value": "A",
+              "label": "36"
+            },
+            {
+              "value": "B",
+              "label": "216"
+            },
+            {
+              "value": "C",
+              "label": "1296"
+            },
+            {
+              "value": "D",
+              "label": "222"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Subtract the exponents: 5−2=3, so 6^3=216.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INDICES-009",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Simplify 7^6 ÷ 7^2.",
+          "options": [
+            {
+              "value": "A",
+              "label": "343"
+            },
+            {
+              "value": "B",
+              "label": "16807"
+            },
+            {
+              "value": "C",
+              "label": "2401"
+            },
+            {
+              "value": "D",
+              "label": "2408"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Subtract the exponents: 6−2=4, so 7^4=2401.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INDICES-010",
+          "topic": "Indices and Logarithms",
+          "difficulty": "medium",
+          "prompt": "Simplify 8^5 ÷ 8^2.",
+          "options": [
+            {
+              "value": "A",
+              "label": "64"
+            },
+            {
+              "value": "B",
+              "label": "4096"
+            },
+            {
+              "value": "C",
+              "label": "520"
+            },
+            {
+              "value": "D",
+              "label": "512"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Subtract the exponents: 5−2=3, so 8^3=512.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-indices-topic-3",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Indices and Logarithms · Topic Practice Batch 3",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INDICES-011",
+          "topic": "Indices and Logarithms",
+          "difficulty": "challenging",
+          "prompt": "Evaluate (3^2)^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "729"
+            },
+            {
+              "value": "B",
+              "label": "243"
+            },
+            {
+              "value": "C",
+              "label": "81"
+            },
+            {
+              "value": "D",
+              "label": "732"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Multiply the exponents: 2×3=6, hence 3^6=729.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INDICES-012",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Evaluate (4^2)^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "1024"
+            },
+            {
+              "value": "B",
+              "label": "4096"
+            },
+            {
+              "value": "C",
+              "label": "256"
+            },
+            {
+              "value": "D",
+              "label": "4100"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Multiply the exponents: 2×3=6, hence 4^6=4096.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INDICES-013",
+          "topic": "Indices and Logarithms",
+          "difficulty": "medium",
+          "prompt": "Evaluate (5^2)^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "3125"
+            },
+            {
+              "value": "B",
+              "label": "625"
+            },
+            {
+              "value": "C",
+              "label": "15625"
+            },
+            {
+              "value": "D",
+              "label": "15630"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Multiply the exponents: 2×3=6, hence 5^6=15625.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INDICES-014",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Evaluate (6^2)^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "7776"
+            },
+            {
+              "value": "B",
+              "label": "1296"
+            },
+            {
+              "value": "C",
+              "label": "46662"
+            },
+            {
+              "value": "D",
+              "label": "46656"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Multiply the exponents: 2×3=6, hence 6^6=46656.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INDICES-015",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Evaluate (7^2)^3.",
+          "options": [
+            {
+              "value": "A",
+              "label": "117649"
+            },
+            {
+              "value": "B",
+              "label": "16807"
+            },
+            {
+              "value": "C",
+              "label": "2401"
+            },
+            {
+              "value": "D",
+              "label": "117656"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Multiply the exponents: 2×3=6, hence 7^6=117649.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-indices-topic-4",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Indices and Logarithms · Topic Practice Batch 4",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INDICES-016",
+          "topic": "Indices and Logarithms",
+          "difficulty": "challenging",
+          "prompt": "Find log₁₀(10^3).",
+          "options": [
+            {
+              "value": "A",
+              "label": "2"
+            },
+            {
+              "value": "B",
+              "label": "3"
+            },
+            {
+              "value": "C",
+              "label": "4"
+            },
+            {
+              "value": "D",
+              "label": "5"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "The common logarithm reverses a power of ten, so log₁₀(10^3) = 3.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INDICES-017",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Find log₁₀(10^4).",
+          "options": [
+            {
+              "value": "A",
+              "label": "3"
+            },
+            {
+              "value": "B",
+              "label": "5"
+            },
+            {
+              "value": "C",
+              "label": "4"
+            },
+            {
+              "value": "D",
+              "label": "6"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "The common logarithm reverses a power of ten, so log₁₀(10^4) = 4.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INDICES-018",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Find log₁₀(10^5).",
+          "options": [
+            {
+              "value": "A",
+              "label": "4"
+            },
+            {
+              "value": "B",
+              "label": "6"
+            },
+            {
+              "value": "C",
+              "label": "7"
+            },
+            {
+              "value": "D",
+              "label": "5"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "The common logarithm reverses a power of ten, so log₁₀(10^5) = 5.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INDICES-019",
+          "topic": "Indices and Logarithms",
+          "difficulty": "medium",
+          "prompt": "Find log₁₀(10^6).",
+          "options": [
+            {
+              "value": "A",
+              "label": "6"
+            },
+            {
+              "value": "B",
+              "label": "5"
+            },
+            {
+              "value": "C",
+              "label": "7"
+            },
+            {
+              "value": "D",
+              "label": "8"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "The common logarithm reverses a power of ten, so log₁₀(10^6) = 6.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INDICES-020",
+          "topic": "Indices and Logarithms",
+          "difficulty": "easy",
+          "prompt": "Find log₁₀(10^7).",
+          "options": [
+            {
+              "value": "A",
+              "label": "6"
+            },
+            {
+              "value": "B",
+              "label": "7"
+            },
+            {
+              "value": "C",
+              "label": "8"
+            },
+            {
+              "value": "D",
+              "label": "9"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "The common logarithm reverses a power of ten, so log₁₀(10^7) = 7.",
+          "marks": 1,
+          "skill": "indices_logarithms"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-ineq-topic-1",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Linear Inequalities · Topic Practice Batch 1",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INEQ-001",
+          "topic": "Linear Inequalities",
+          "difficulty": "challenging",
+          "prompt": "Solve 2x + 2 < 10.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x ≤ 4"
+            },
+            {
+              "value": "B",
+              "label": "x > 4"
+            },
+            {
+              "value": "C",
+              "label": "x ≥ 4"
+            },
+            {
+              "value": "D",
+              "label": "x < 4"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Subtract 2, then divide by positive 2. The result is x < 4.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INEQ-002",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve 3x + 3 < 18.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 5"
+            },
+            {
+              "value": "B",
+              "label": "x ≤ 5"
+            },
+            {
+              "value": "C",
+              "label": "x > 5"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 5"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Subtract 3, then divide by positive 3. The result is x < 5.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INEQ-003",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve 4x + 4 < 28.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x ≤ 6"
+            },
+            {
+              "value": "B",
+              "label": "x < 6"
+            },
+            {
+              "value": "C",
+              "label": "x > 6"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 6"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Subtract 4, then divide by positive 4. The result is x < 6.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INEQ-004",
+          "topic": "Linear Inequalities",
+          "difficulty": "medium",
+          "prompt": "Solve 5x + 5 < 40.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x ≤ 7"
+            },
+            {
+              "value": "B",
+              "label": "x > 7"
+            },
+            {
+              "value": "C",
+              "label": "x < 7"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 7"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Subtract 5, then divide by positive 5. The result is x < 7.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INEQ-005",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve 6x + 6 < 54.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x ≤ 8"
+            },
+            {
+              "value": "B",
+              "label": "x > 8"
+            },
+            {
+              "value": "C",
+              "label": "x ≥ 8"
+            },
+            {
+              "value": "D",
+              "label": "x < 8"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Subtract 6, then divide by positive 6. The result is x < 8.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-ineq-topic-2",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Linear Inequalities · Topic Practice Batch 2",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INEQ-006",
+          "topic": "Linear Inequalities",
+          "difficulty": "challenging",
+          "prompt": "Solve 2x − 2 > 6.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x > 4"
+            },
+            {
+              "value": "B",
+              "label": "x < 4"
+            },
+            {
+              "value": "C",
+              "label": "x ≤ 4"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 4"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Add 2, then divide by positive 2: x > 4.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INEQ-007",
+          "topic": "Linear Inequalities",
+          "difficulty": "medium",
+          "prompt": "Solve 3x − 3 > 12.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 5"
+            },
+            {
+              "value": "B",
+              "label": "x > 5"
+            },
+            {
+              "value": "C",
+              "label": "x ≤ 5"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 5"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Add 3, then divide by positive 3: x > 5.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INEQ-008",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve 4x − 4 > 20.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 6"
+            },
+            {
+              "value": "B",
+              "label": "x ≤ 6"
+            },
+            {
+              "value": "C",
+              "label": "x > 6"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 6"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Add 4, then divide by positive 4: x > 6.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INEQ-009",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve 5x − 5 > 30.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 7"
+            },
+            {
+              "value": "B",
+              "label": "x ≤ 7"
+            },
+            {
+              "value": "C",
+              "label": "x ≥ 7"
+            },
+            {
+              "value": "D",
+              "label": "x > 7"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Add 5, then divide by positive 5: x > 7.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INEQ-010",
+          "topic": "Linear Inequalities",
+          "difficulty": "medium",
+          "prompt": "Solve 6x − 6 > 42.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x > 8"
+            },
+            {
+              "value": "B",
+              "label": "x < 8"
+            },
+            {
+              "value": "C",
+              "label": "x ≤ 8"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 8"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Add 6, then divide by positive 6: x > 8.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-ineq-topic-3",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Linear Inequalities · Topic Practice Batch 3",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INEQ-011",
+          "topic": "Linear Inequalities",
+          "difficulty": "challenging",
+          "prompt": "Solve −2x + 2 < −6.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 4"
+            },
+            {
+              "value": "B",
+              "label": "x > 4"
+            },
+            {
+              "value": "C",
+              "label": "x ≤ 4"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 4"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Subtract 2, then divide by negative −2, reversing the inequality: x > 4.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INEQ-012",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve −3x + 3 < −12.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 5"
+            },
+            {
+              "value": "B",
+              "label": "x ≤ 5"
+            },
+            {
+              "value": "C",
+              "label": "x > 5"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 5"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Subtract 3, then divide by negative −3, reversing the inequality: x > 5.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INEQ-013",
+          "topic": "Linear Inequalities",
+          "difficulty": "medium",
+          "prompt": "Solve −4x + 4 < −20.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 6"
+            },
+            {
+              "value": "B",
+              "label": "x ≤ 6"
+            },
+            {
+              "value": "C",
+              "label": "x ≥ 6"
+            },
+            {
+              "value": "D",
+              "label": "x > 6"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Subtract 4, then divide by negative −4, reversing the inequality: x > 6.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INEQ-014",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve −5x + 5 < −30.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x > 7"
+            },
+            {
+              "value": "B",
+              "label": "x < 7"
+            },
+            {
+              "value": "C",
+              "label": "x ≤ 7"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 7"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Subtract 5, then divide by negative −5, reversing the inequality: x > 7.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INEQ-015",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve −6x + 6 < −42.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 8"
+            },
+            {
+              "value": "B",
+              "label": "x > 8"
+            },
+            {
+              "value": "C",
+              "label": "x ≤ 8"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 8"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Subtract 6, then divide by negative −6, reversing the inequality: x > 8.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-ineq-topic-4",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Linear Inequalities · Topic Practice Batch 4",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-INEQ-016",
+          "topic": "Linear Inequalities",
+          "difficulty": "challenging",
+          "prompt": "Solve −2x − 2 ≥ −10.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 4"
+            },
+            {
+              "value": "B",
+              "label": "x > 4"
+            },
+            {
+              "value": "C",
+              "label": "x ≤ 4"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 4"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Add 2, then divide by negative −2, reversing the inequality: x ≤ 4.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-INEQ-017",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve −3x − 3 ≥ −18.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 5"
+            },
+            {
+              "value": "B",
+              "label": "x > 5"
+            },
+            {
+              "value": "C",
+              "label": "x ≥ 5"
+            },
+            {
+              "value": "D",
+              "label": "x ≤ 5"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Add 3, then divide by negative −3, reversing the inequality: x ≤ 5.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-INEQ-018",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve −4x − 4 ≥ −28.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x ≤ 6"
+            },
+            {
+              "value": "B",
+              "label": "x < 6"
+            },
+            {
+              "value": "C",
+              "label": "x > 6"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 6"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Add 4, then divide by negative −4, reversing the inequality: x ≤ 6.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-INEQ-019",
+          "topic": "Linear Inequalities",
+          "difficulty": "medium",
+          "prompt": "Solve −5x − 5 ≥ −40.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 7"
+            },
+            {
+              "value": "B",
+              "label": "x ≤ 7"
+            },
+            {
+              "value": "C",
+              "label": "x > 7"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 7"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Add 5, then divide by negative −5, reversing the inequality: x ≤ 7.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-INEQ-020",
+          "topic": "Linear Inequalities",
+          "difficulty": "easy",
+          "prompt": "Solve −6x − 6 ≥ −54.",
+          "options": [
+            {
+              "value": "A",
+              "label": "x < 8"
+            },
+            {
+              "value": "B",
+              "label": "x > 8"
+            },
+            {
+              "value": "C",
+              "label": "x ≤ 8"
+            },
+            {
+              "value": "D",
+              "label": "x ≥ 8"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Add 6, then divide by negative −6, reversing the inequality: x ≤ 8.",
+          "marks": 1,
+          "skill": "solve_linear_inequalities"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-prob-topic-1",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Probability · Topic Practice Batch 1",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-PROB-001",
+          "topic": "Probability",
+          "difficulty": "challenging",
+          "prompt": "A bag holds 2 red and 5 blue counters. What is the probability of drawing red?",
+          "options": [
+            {
+              "value": "A",
+              "label": "2/7"
+            },
+            {
+              "value": "B",
+              "label": "5/7"
+            },
+            {
+              "value": "C",
+              "label": "1/3"
+            },
+            {
+              "value": "D",
+              "label": "1/7"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "There are 2 favourable counters among 7 counters. P(red) = 2/7.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-PROB-002",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A bag holds 3 red and 6 blue counters. What is the probability of drawing red?",
+          "options": [
+            {
+              "value": "A",
+              "label": "2/3"
+            },
+            {
+              "value": "B",
+              "label": "1/3"
+            },
+            {
+              "value": "C",
+              "label": "4/11"
+            },
+            {
+              "value": "D",
+              "label": "1/9"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "There are 3 favourable counters among 9 counters. P(red) = 1/3.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-PROB-003",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A bag holds 4 red and 7 blue counters. What is the probability of drawing red?",
+          "options": [
+            {
+              "value": "A",
+              "label": "7/11"
+            },
+            {
+              "value": "B",
+              "label": "5/13"
+            },
+            {
+              "value": "C",
+              "label": "4/11"
+            },
+            {
+              "value": "D",
+              "label": "1/11"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "There are 4 favourable counters among 11 counters. P(red) = 4/11.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-PROB-004",
+          "topic": "Probability",
+          "difficulty": "medium",
+          "prompt": "A bag holds 5 red and 8 blue counters. What is the probability of drawing red?",
+          "options": [
+            {
+              "value": "A",
+              "label": "8/13"
+            },
+            {
+              "value": "B",
+              "label": "2/5"
+            },
+            {
+              "value": "C",
+              "label": "1/13"
+            },
+            {
+              "value": "D",
+              "label": "5/13"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "There are 5 favourable counters among 13 counters. P(red) = 5/13.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-PROB-005",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A bag holds 6 red and 9 blue counters. What is the probability of drawing red?",
+          "options": [
+            {
+              "value": "A",
+              "label": "2/5"
+            },
+            {
+              "value": "B",
+              "label": "3/5"
+            },
+            {
+              "value": "C",
+              "label": "7/17"
+            },
+            {
+              "value": "D",
+              "label": "1/15"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "There are 6 favourable counters among 15 counters. P(red) = 2/5.",
+          "marks": 1,
+          "skill": "simple_probability"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-prob-topic-2",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Probability · Topic Practice Batch 2",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-PROB-006",
+          "topic": "Probability",
+          "difficulty": "challenging",
+          "prompt": "A number is chosen equally likely from 1 to 7. What is the probability it is even?",
+          "options": [
+            {
+              "value": "A",
+              "label": "4/7"
+            },
+            {
+              "value": "B",
+              "label": "3/7"
+            },
+            {
+              "value": "C",
+              "label": "4/9"
+            },
+            {
+              "value": "D",
+              "label": "1/7"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "There are 3 even choices out of 7. P(even) = 3/7.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-PROB-007",
+          "topic": "Probability",
+          "difficulty": "medium",
+          "prompt": "A number is chosen equally likely from 1 to 8. What is the probability it is even?",
+          "options": [
+            {
+              "value": "A",
+              "label": "1/8"
+            },
+            {
+              "value": "B",
+              "label": "2/11"
+            },
+            {
+              "value": "C",
+              "label": "1/2"
+            },
+            {
+              "value": "D",
+              "label": "3/13"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "There are 4 even choices out of 8. P(even) = 1/2.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-PROB-008",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A number is chosen equally likely from 1 to 9. What is the probability it is even?",
+          "options": [
+            {
+              "value": "A",
+              "label": "5/9"
+            },
+            {
+              "value": "B",
+              "label": "5/11"
+            },
+            {
+              "value": "C",
+              "label": "1/9"
+            },
+            {
+              "value": "D",
+              "label": "4/9"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "There are 4 even choices out of 9. P(even) = 4/9.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-PROB-009",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A number is chosen equally likely from 1 to 10. What is the probability it is even?",
+          "options": [
+            {
+              "value": "A",
+              "label": "1/2"
+            },
+            {
+              "value": "B",
+              "label": "1/10"
+            },
+            {
+              "value": "C",
+              "label": "2/13"
+            },
+            {
+              "value": "D",
+              "label": "1/5"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "There are 5 even choices out of 10. P(even) = 1/2.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-PROB-010",
+          "topic": "Probability",
+          "difficulty": "medium",
+          "prompt": "A number is chosen equally likely from 1 to 11. What is the probability it is even?",
+          "options": [
+            {
+              "value": "A",
+              "label": "6/11"
+            },
+            {
+              "value": "B",
+              "label": "5/11"
+            },
+            {
+              "value": "C",
+              "label": "6/13"
+            },
+            {
+              "value": "D",
+              "label": "1/11"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "There are 5 even choices out of 11. P(even) = 5/11.",
+          "marks": 1,
+          "skill": "simple_probability"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-prob-topic-3",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Probability · Topic Practice Batch 3",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-PROB-011",
+          "topic": "Probability",
+          "difficulty": "challenging",
+          "prompt": "A fair six-sided die is rolled. What is the probability of rolling more than 1?",
+          "options": [
+            {
+              "value": "A",
+              "label": "1/6"
+            },
+            {
+              "value": "B",
+              "label": "3/4"
+            },
+            {
+              "value": "C",
+              "label": "5/6"
+            },
+            {
+              "value": "D",
+              "label": "2/9"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "There are 5 outcomes greater than 1 out of 6, giving 5/6.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-PROB-012",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A fair six-sided die is rolled. What is the probability of rolling more than 2?",
+          "options": [
+            {
+              "value": "A",
+              "label": "1/3"
+            },
+            {
+              "value": "B",
+              "label": "5/8"
+            },
+            {
+              "value": "C",
+              "label": "1/6"
+            },
+            {
+              "value": "D",
+              "label": "2/3"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "There are 4 outcomes greater than 2 out of 6, giving 2/3.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-PROB-013",
+          "topic": "Probability",
+          "difficulty": "medium",
+          "prompt": "A fair six-sided die is rolled. What is the probability of rolling more than 3?",
+          "options": [
+            {
+              "value": "A",
+              "label": "1/2"
+            },
+            {
+              "value": "B",
+              "label": "1/6"
+            },
+            {
+              "value": "C",
+              "label": "2/9"
+            },
+            {
+              "value": "D",
+              "label": "3/11"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "There are 3 outcomes greater than 3 out of 6, giving 1/2.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-PROB-014",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A fair six-sided die is rolled. What is the probability of rolling more than 4?",
+          "options": [
+            {
+              "value": "A",
+              "label": "2/3"
+            },
+            {
+              "value": "B",
+              "label": "1/3"
+            },
+            {
+              "value": "C",
+              "label": "3/8"
+            },
+            {
+              "value": "D",
+              "label": "1/6"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "There are 2 outcomes greater than 4 out of 6, giving 1/3.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-PROB-015",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A fair six-sided die is rolled. What is the probability of rolling more than 5?",
+          "options": [
+            {
+              "value": "A",
+              "label": "5/6"
+            },
+            {
+              "value": "B",
+              "label": "1/4"
+            },
+            {
+              "value": "C",
+              "label": "1/6"
+            },
+            {
+              "value": "D",
+              "label": "2/9"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "There are 1 outcomes greater than 5 out of 6, giving 1/6.",
+          "marks": 1,
+          "skill": "simple_probability"
+        }
+      ]
+    },
+    {
+      "id": "g9m2026-prob-topic-4",
+      "batch_id": "g9-maths-five-topics-100-original-v1",
+      "title": "Grade 9 Mathematics — Probability · Topic Practice Batch 4",
+      "grade": "Grade 9",
+      "subject": "Mathematics",
+      "assessment_type": "practice",
+      "visibility": "public_practice",
+      "duration_minutes": 5,
+      "max_attempts": 3,
+      "total_marks": 5,
+      "instructions": "Choose one answer per question or skip. Receive immediate feedback, then continue at your own pace.",
+      "items": [
+        {
+          "number": 1,
+          "bank_key": "G9B26-PROB-016",
+          "topic": "Probability",
+          "difficulty": "challenging",
+          "prompt": "A box contains 4 green and 7 yellow beads. What is the probability of not selecting yellow?",
+          "options": [
+            {
+              "value": "A",
+              "label": "7/11"
+            },
+            {
+              "value": "B",
+              "label": "5/13"
+            },
+            {
+              "value": "C",
+              "label": "1/11"
+            },
+            {
+              "value": "D",
+              "label": "4/11"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Not yellow means green: 4 favourable beads out of 11, giving 4/11.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 2,
+          "bank_key": "G9B26-PROB-017",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A box contains 5 green and 8 yellow beads. What is the probability of not selecting yellow?",
+          "options": [
+            {
+              "value": "A",
+              "label": "5/13"
+            },
+            {
+              "value": "B",
+              "label": "8/13"
+            },
+            {
+              "value": "C",
+              "label": "2/5"
+            },
+            {
+              "value": "D",
+              "label": "1/13"
+            }
+          ],
+          "correctAnswer": "A",
+          "explanation": "Not yellow means green: 5 favourable beads out of 13, giving 5/13.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 3,
+          "bank_key": "G9B26-PROB-018",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A box contains 6 green and 9 yellow beads. What is the probability of not selecting yellow?",
+          "options": [
+            {
+              "value": "A",
+              "label": "3/5"
+            },
+            {
+              "value": "B",
+              "label": "2/5"
+            },
+            {
+              "value": "C",
+              "label": "7/17"
+            },
+            {
+              "value": "D",
+              "label": "1/15"
+            }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Not yellow means green: 6 favourable beads out of 15, giving 2/5.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 4,
+          "bank_key": "G9B26-PROB-019",
+          "topic": "Probability",
+          "difficulty": "medium",
+          "prompt": "A box contains 7 green and 10 yellow beads. What is the probability of not selecting yellow?",
+          "options": [
+            {
+              "value": "A",
+              "label": "10/17"
+            },
+            {
+              "value": "B",
+              "label": "8/19"
+            },
+            {
+              "value": "C",
+              "label": "7/17"
+            },
+            {
+              "value": "D",
+              "label": "1/17"
+            }
+          ],
+          "correctAnswer": "C",
+          "explanation": "Not yellow means green: 7 favourable beads out of 17, giving 7/17.",
+          "marks": 1,
+          "skill": "simple_probability"
+        },
+        {
+          "number": 5,
+          "bank_key": "G9B26-PROB-020",
+          "topic": "Probability",
+          "difficulty": "easy",
+          "prompt": "A box contains 8 green and 11 yellow beads. What is the probability of not selecting yellow?",
+          "options": [
+            {
+              "value": "A",
+              "label": "11/19"
+            },
+            {
+              "value": "B",
+              "label": "3/7"
+            },
+            {
+              "value": "C",
+              "label": "1/19"
+            },
+            {
+              "value": "D",
+              "label": "8/19"
+            }
+          ],
+          "correctAnswer": "D",
+          "explanation": "Not yellow means green: 8 favourable beads out of 19, giving 8/19.",
+          "marks": 1,
+          "skill": "simple_probability"
+        }
+      ]
+    }
+  ]
+}
