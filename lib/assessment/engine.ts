@@ -115,6 +115,17 @@ function mapAttemptWorkspace(value: unknown): AttemptWorkspace {
   }
 }
 
+/** Canonical expiry means the server submitted the original attempt, not that it was lost.
+ * The runner may show the saved result, but must never start another attempt automatically. */
+export class ExpiredAssessmentAttemptError extends Error {
+  readonly attemptId: string
+  constructor(attemptId: string) {
+    super('Time ended for this attempt. Your answers have been submitted.')
+    this.name = 'ExpiredAssessmentAttemptError'
+    this.attemptId = attemptId
+  }
+}
+
 export async function startOrResumeAttempt(assignmentId: string): Promise<AttemptWorkspace> {
   const { data, error } = await rpc<Json>('exq_start_or_resume_attempt', { p_assignment_id: assignmentId })
   if (error) throw rpcError('attempt start', error)
@@ -122,7 +133,11 @@ export async function startOrResumeAttempt(assignmentId: string): Promise<Attemp
   // Never consume another permitted attempt without a fresh, explicit learner action.
   const payload = assertRecord(data, 'Attempt start')
   if (payload.ok === false && payload.reason === 'attempt_time_expired') {
-    throw new Error('Your exam time ended. Your attempt has been submitted. Return to Exams to view your result or choose another attempt if available.')
+    const expiredId = payload.attempt_id
+    if (typeof expiredId !== 'string' || !/^[0-9a-f-]{36}$/i.test(expiredId)) {
+      throw new Error('Time ended for your attempt. Return to Exams to check its result.')
+    }
+    throw new ExpiredAssessmentAttemptError(expiredId)
   }
   return mapAttemptWorkspace(data)
 }
