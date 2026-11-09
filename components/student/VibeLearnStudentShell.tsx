@@ -42,14 +42,14 @@ export default function VibeLearnStudentShell({
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '100vw',
-        height: '100vh',
+        width: '100%',
+        height: '100dvh',
         backgroundColor: '#090D16',
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        transform: isOpen ? 'translateY(0)' : 'translateY(100vh)',
+        transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)',
         pointerEvents: isOpen ? 'auto' : 'none'
       }}
@@ -60,10 +60,10 @@ export default function VibeLearnStudentShell({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '16px 24px',
+        padding: '10px clamp(12px, 4vw, 24px)',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         flexShrink: 0,
-        height: '60px'
+        minHeight: '60px'
       }}>
 
         <button
@@ -81,7 +81,7 @@ export default function VibeLearnStudentShell({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            minWidth: '80px'
+            minWidth: '64px'
           }}
         >
           ← Back
@@ -106,6 +106,9 @@ export default function VibeLearnStudentShell({
       {/* Scrollable content — no padding, children own their spacing */}
       <main style={{
         flex: 1,
+        minHeight: 0,
+        minWidth: 0,
+        overflowX: 'auto',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch'
       }}>

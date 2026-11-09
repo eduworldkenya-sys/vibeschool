@@ -104,7 +104,8 @@ function Toast({ msg }: { msg: string }) {
       zIndex:     9999,
       animation:  "fadeIn 0.2s ease",
       boxShadow:  "0 8px 24px rgba(0,0,0,0.18)",
-      whiteSpace: "nowrap",
+      maxWidth: "calc(100vw - 32px)",
+      overflowWrap: "anywhere",
     }}>
       {msg}
     </div>
@@ -140,7 +141,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div style={identity?.independent ? {
+    <div className="student-app" style={identity?.independent ? {
       minHeight: '100dvh', background: '#f6f7fb', color: '#17213b',
       ['--vs-bg' as string]: '#f6f7fb',
       ['--vs-card' as string]: '#ffffff',
@@ -157,7 +158,9 @@ function StudentShell({ children }: { children: React.ReactNode }) {
         schoolName={identity?.schoolName ?? ""}
       />
       <OfflineBar />
-      <main style={{
+      <main className="student-content" style={{
+        width: "100%",
+        minWidth: 0,
         maxWidth:      isExamWorkspace ? 1120 : 768,
         margin:        "0 auto",
         padding:       "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
@@ -218,6 +221,26 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           }
 
           body { background: var(--vs-bg); color: var(--vs-text); }
+          .student-app { width:100%; min-width:0; overflow-x:clip; }
+          .student-content { min-width:0; }
+          .student-content img, .student-content video, .student-content iframe { max-width:100%; height:auto; }
+          .student-content :where(h1,h2,h3,p,span,strong) { overflow-wrap:break-word; }
+          .student-home { min-width:0; }
+          .student-home button, .student-app nav button { touch-action:manipulation; }
+          @media(max-width:480px) {
+            .student-home .student-home-hero-row { flex-wrap:wrap; }
+            .student-home .student-home-goals { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+            .student-home .student-home-pulse { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+            .student-home .student-home-hero { padding:16px !important; }
+            .student-home .student-home-hero h1 { font-size:clamp(19px,5.5vw,23px) !important; }
+            .student-home .student-home-change { flex-wrap:wrap; }
+          }
+          @media(min-width:768px) {
+            .student-content { padding-bottom:110px !important; }
+          }
+          @media(prefers-reduced-motion:reduce) {
+            .student-home { animation:none !important; }
+          }
 
           @keyframes slideIn  { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:translateY(0) } }
           @keyframes fadeIn   { from{ opacity:0 } to{ opacity:1 } }
