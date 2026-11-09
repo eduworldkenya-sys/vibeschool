@@ -45,6 +45,14 @@ function numberOrNull(value: unknown): number | null {
 }
 
 export async function listMyAssessmentAssignments(): Promise<LearnerAssessmentAssignment[]> {
+  // Best-effort, learner-authorized reconciliation of expired or stranded
+  // attempts. Discovery must remain usable even if this RPC is not deployed yet.
+  try {
+    const { error: reconciliationError } = await supabase.rpc('exq_reconcile_my_exam_attempts' as never)
+    if (reconciliationError) console.warn('[ExamDiscovery] reconciliation unavailable:', reconciliationError.message)
+  } catch (reconciliationError) {
+    console.warn('[ExamDiscovery] reconciliation unavailable:', reconciliationError)
+  }
   const { data, error } = await supabase.rpc('exq_list_my_assignments' as never)
   if (error) throw new Error(error.message || 'Could not load assessments.')
 
