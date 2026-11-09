@@ -1,4 +1,5 @@
 -- Complete classroom structure for six EXISTING Form 4 Agriculture teacher guide drafts.
+-- Distinct teaching plans; do not infer that a structure-only self-review equals editorial approval.
 -- Independent editorial preparation only; preserves existing source sequence,
 -- does NOT approve any derivative or mutate published student content.
 do $repair$
