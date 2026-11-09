@@ -23,8 +23,18 @@ import {
 } from '@/lib/student/vibelearn'
 
 export default function StudentVibeLearnPage() {
+  const { identity, loading, error } = useStudent()
+  if (loading || !identity) {
+    return <main role="status" style={{ padding: 24, color: '#64748b' }}>
+      {error || 'Opening your learning space…'}
+    </main>
+  }
+  if (identity.independent) return <IndependentLearnHome />
+  return <SchoolVibeLearnWorkstation />
+}
+
+function SchoolVibeLearnWorkstation() {
   const router = useRouter()
-  const { identity } = useStudent()
   const [brief, setBrief] = useState<VibeLearnWorkstation | null>(null)
   const [readiness, setReadiness] = useState<ExamReadinessBrief | null>(null)
   const [assignedReading, setAssignedReading] = useState<AssignedReadingItem[]>([])
@@ -58,8 +68,6 @@ export default function StudentVibeLearnPage() {
   }
 
   useEffect(() => {
-    if (!identity) return
-    if (identity.independent) { setLoading(false); return }
     let cancelled = false
     Promise.all([
       getVibeLearnWorkstation(),
@@ -82,7 +90,7 @@ export default function StudentVibeLearnPage() {
       .catch(reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not open VibeLearn.') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [identity])
+  }, [])
 
   async function saveReadinessPlan() {
     setSavingPlan(true)
@@ -97,8 +105,6 @@ export default function StudentVibeLearnPage() {
       setSavingPlan(false)
     }
   }
-
-  if (identity?.independent) return <IndependentLearnHome />
 
   if (libraryOpen) return <VibeLearnShellWrapper isOpen={true} onClose={() => setLibraryOpen(false)} />
 
