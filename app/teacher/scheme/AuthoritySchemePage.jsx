@@ -71,6 +71,8 @@ function Inner({ curriculumView = false }) {
   const [schemeItems,setSchemeItems] = useState([])
   const [curriculumRows,setCurriculumRows] = useState([])
   const [allCurriculumRows,setAllCurriculumRows] = useState([])
+  const [curriculumOutcomes,setCurriculumOutcomes] = useState({})
+  const [curriculumMaterials,setCurriculumMaterials] = useState({})
   const [selectedStrand,setSelectedStrand] = useState('')
   const [linkedResources,setLinkedResources] = useState({})
   const [weeklyTarget,setWeeklyTarget] = useState(null)
@@ -193,7 +195,40 @@ function Inner({ curriculumView = false }) {
       }else setLinkedResources({})
       const globalId=await resolveGlobalSubjectId(selectedSubject);if(!globalId)throw new Error('Subject is not linked to the canonical taxonomy')
       const c=await supabase.from('curriculum').select('id,grade,subject,strand,sub_strand,topic,week,term').eq('grade',classObj.grade).eq('global_subject_id',globalId).eq('term',termObj.term).order('week',{ascending:true}).order('created_at',{ascending:true})
-      if(c.error)throw c.error;setAllCurriculumRows(c.data||[]);const present=new Set(items.map(x=>x.curriculum_id).filter(Boolean));setCurriculumRows((c.data||[]).filter(x=>!present.has(x.id)))
+      if(c.error)throw c.error
+      const rows=c.data||[]
+      setAllCurriculumRows(rows)
+      setCurriculumOutcomes({})
+      setCurriculumMaterials({})
+      const ids=rows.map(x=>x.id)
+      if(ids.length){
+        // Outcome identity and published learning material are independent of
+        // whether the teacher has committed a scheme of work.
+        const [outcomeResult,resourceResult]=await Promise.all([
+          supabase.from('curriculum_learning_outcomes').select('id,curriculum_id,outcome_text,status').in('curriculum_id',ids),
+          supabase.from('learning_resources').select('id,curriculum_id,title,status,visibility,source_type,publication_id').in('curriculum_id',ids).eq('status','active')
+        ])
+        // Never turn query failures into a misleading "No content" state.
+        if(outcomeResult.error)throw new Error('Curriculum learning outcomes: '+outcomeResult.error.message)
+        if(resourceResult.error)throw new Error('Curriculum resources: '+resourceResult.error.message)
+        const outcomeMap={}
+        ;(outcomeResult.data||[]).forEach(x=>{(outcomeMap[x.curriculum_id]??=[]).push(x)})
+        const materialMap={}
+        const candidates=(resourceResult.data||[]).filter(x=>x.visibility==='public')
+        const publicationIds=unique(candidates.filter(x=>x.source_type==='publication'&&x.publication_id).map(x=>x.publication_id))
+        const pubResult=publicationIds.length
+          ? await supabase.from('vibe_publications').select('id,status').in('id',publicationIds)
+          : {data:[],error:null}
+        if(pubResult.error)throw new Error('Published material checks: '+pubResult.error.message)
+        const publishedIds=new Set((pubResult.data||[]).filter(x=>x.status==='published').map(x=>x.id))
+        candidates.filter(x=>x.source_type!=='publication'||publishedIds.has(x.publication_id)).forEach(x=>{
+          (materialMap[x.curriculum_id]??=[]).push(x)
+        })
+        setCurriculumOutcomes(outcomeMap)
+        setCurriculumMaterials(materialMap)
+      }
+      const present=new Set(items.map(x=>x.curriculum_id).filter(Boolean))
+      setCurriculumRows(rows.filter(x=>!present.has(x.id)))
     }catch(err){setError(err instanceof Error?err.message:'Scheme could not be loaded')}finally{setFetching(false)}
   },[uid,schoolId,selectedClass,selectedSubject,selectedTermId,classObj,termObj])
 
@@ -228,7 +263,13 @@ function Inner({ curriculumView = false }) {
       <p className="studio-map-source">Stored curriculum · {classObj?.label} · {subjectObj?.label} · {termObj ? termLabel(termObj) : 'Select term'}</p>
       {fetching ? <p role="status">Loading curriculum…</p> : !allCurriculumRows.length ? <Empty title="No curriculum records for this context" desc="Select a class, subject and term. Missing curriculum is not treated as completed coverage."/> : <>
       <div className="studio-curriculum-grid">{unique(allCurriculumRows.map(row => row.strand || 'Unspecified strand')).map((strand,index) => <button type="button" key={strand} className="studio-curriculum-tile" aria-pressed={(selectedStrand || allCurriculumRows[0]?.strand || 'Unspecified strand') === strand} onClick={() => setSelectedStrand(strand)}><div className="studio-strand-cover" aria-hidden="true">{String(index+1).padStart(2,'0')}</div><h2>{strand}</h2><span>{allCurriculumRows.filter(row => (row.strand || 'Unspecified strand') === strand).length} curriculum items</span><span aria-hidden="true">↗</span></button>)}</div>
-      <article className="studio-map-detail"><h2>{selectedStrand || allCurriculumRows[0]?.strand || 'Unspecified strand'}</h2>{allCurriculumRows.filter(row => (row.strand || 'Unspecified strand') === (selectedStrand || allCurriculumRows[0]?.strand || 'Unspecified strand')).map(row => {const linked=ordered.find(item=>item.curriculum_id===row.id);return <div key={row.id} className="studio-map-row"><div><h3>{row.topic || row.sub_strand || 'Curriculum item'}</h3><small>{row.sub_strand} · Week {row.week ?? 'unassigned'}</small>{linked?.objectives && <details className="studio-curriculum-outcomes"><summary>Linked lesson outcomes</summary><p style={{whiteSpace:'pre-wrap'}}>{typeof linked.objectives === 'string' ? linked.objectives : JSON.stringify(linked.objectives)}</p></details>}</div><span>{linked ? (STATUS[linked.status]?.label || linked.status) : 'Not in scheme'}</span>{linked && <button onClick={() => router.push(`/teacher/scheme/generate?schemeId=${encodeURIComponent(linked.id)}`)}>Plan →</button>}</div>})}<button className="studio-map-action" onClick={() => router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}`)}>Open linked scheme →</button></article>
+      <article className="studio-map-detail"><h2>{selectedStrand || allCurriculumRows[0]?.strand || 'Unspecified strand'}</h2>{allCurriculumRows.filter(row => (row.strand || 'Unspecified strand') === (selectedStrand || allCurriculumRows[0]?.strand || 'Unspecified strand')).map(row => {const linked=ordered.find(item=>item.curriculum_id===row.id);return <div key={row.id} className="studio-map-row"><div><h3>{row.topic || row.sub_strand || 'Curriculum item'}</h3><small>{row.sub_strand} · Week {row.week ?? 'unassigned'}</small>
+                <div style={{marginTop:8,fontSize:12,color:C.text2}}>
+                  {(curriculumMaterials[row.id]||[]).length===0 ? 'No published learning content yet' : `${curriculumMaterials[row.id].length} published learning resource(s)`}
+                </div>
+                {(curriculumMaterials[row.id]||[]).map(resource=><div key={resource.id} style={{marginTop:4,fontSize:12,color:C.teal}}>Resource: {resource.title}</div>)}
+                {(curriculumOutcomes[row.id]||[]).length>0 ? <details className="studio-curriculum-outcomes"><summary>Specific learning outcomes ({curriculumOutcomes[row.id].length})</summary><ul>{curriculumOutcomes[row.id].map(outcome=><li key={outcome.id}>{outcome.outcome_text} {outcome.status !== 'verified' ? '(not verified)' : ''}</li>)}</ul></details> : <small style={{display:'block',marginTop:5,color:C.text3}}>Specific learning outcomes not yet mapped</small>}
+                {linked?.objectives && <details className="studio-curriculum-outcomes"><summary>Linked lesson outcomes</summary><p style={{whiteSpace:'pre-wrap'}}>{typeof linked.objectives === 'string' ? linked.objectives : JSON.stringify(linked.objectives)}</p></details>}</div><span>{linked ? (STATUS[linked.status]?.label || linked.status) : 'Not in scheme'}</span>{linked && <button onClick={() => router.push(`/teacher/scheme/generate?schemeId=${encodeURIComponent(linked.id)}`)}>Plan →</button>}</div>})}<button className="studio-map-action" onClick={() => router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}`)}>Open linked scheme →</button></article>
       <p className="studio-map-source">Planning status comes from your scheme. It does not establish learner mastery or certify the source version.</p></>}
     </section> : <>
     {classObj&&subjectObj&&termObj&&<>
