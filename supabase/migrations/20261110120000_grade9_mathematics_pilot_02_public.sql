@@ -17,7 +17,12 @@ begin
   select p.id into v_owner from public.profiles p
   join public.platform_owners po on po.profile_id=p.id
   where p.role='teacher' order by p.id limit 1;
-  if v_owner is null then raise exception 'missing_platform_owner_author'; end if;
+  -- New installations have no verified owner account at migration time.
+  -- Do not impersonate or fabricate one to publish learner content.
+  if v_owner is null then
+    raise notice 'Skipping Grade 9 Pilot 02 publication until an owner exists';
+    return;
+  end if;
   select id into v_subject from public.subjects
   where school_id is null and lower(btrim(name))='mathematics'
   order by id limit 1;

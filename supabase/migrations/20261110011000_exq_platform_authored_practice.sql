@@ -32,7 +32,13 @@ begin
   select p.id into v_owner from public.profiles p
   join public.platform_owners po on po.profile_id=p.id
   where p.role='teacher' order by p.id limit 1;
-  if v_owner is null then raise exception 'missing_platform_owner_author'; end if;
+  -- Fresh installs have no account-backed platform owner yet.
+  -- Do not fabricate a privileged author or block schema reconstruction.
+  -- The pilot can be published only after a real owner is provisioned.
+  if v_owner is null then
+    raise notice 'Skipping Grade 9 pilot seed: no verified platform owner exists';
+    return;
+  end if;
   select id into v_subject from public.subjects
   where school_id is null and lower(btrim(name))='mathematics'
   order by id limit 1;
