@@ -59,7 +59,7 @@ export default function VibeLearnExamsPage() {
 
   const releasedByAssignment = new Map<string, NonNullable<LearnerAssessmentHub>['results'][number]>()
   for (const result of hub?.results ?? []) {
-    const assignment = assignments.find(item => item.assessmentId === result.assessmentId || item.attemptId === result.attemptId)
+    const assignment = assignments.find(item => item.title === result.assessmentTitle || item.attemptId === result.attemptId)
     if (assignment && !releasedByAssignment.has(assignment.assignmentId)) releasedByAssignment.set(assignment.assignmentId, result)
   }
 
