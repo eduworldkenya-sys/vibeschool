@@ -153,6 +153,15 @@
         "identity.account_state !== 'restricted'",
         "status: 403"
       ]
+    },
+    "app/api/learner/independent/home/route.ts": {
+      "authority": "verified_bearer_user_and_restricted_independent_learner_identity",
+      "requiredEvidence": [
+        "admin.auth.getUser(bearer.slice(7).trim())",
+        ".eq('user_id', user.id)",
+        "identity.account_state !== 'restricted'",
+        "status: 403"
+      ]
     }
   }
 }
