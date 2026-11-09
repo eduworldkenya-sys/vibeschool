@@ -89,18 +89,18 @@ export default function RoleLoginPage() {
   }
 
   async function google() {
-    if (!config.email || busy) return
+    if (busy) return
     setBusy(true)
     const requestedRole = role
     const next = safeInternalPath(searchParams.get('redirect'))
     const flow = crypto.randomUUID()
     console.info(JSON.stringify({ scope: 'auth_journey', stage: 'oauth_started', flow_id: flow, detail: `${requestedRole}_signin` }))
     const callback = new URL('/auth/callback', window.location.origin)
-    callback.searchParams.set('intent', 'signin')
+    callback.searchParams.set('intent', role === 'student' ? 'signup' : 'signin')
     callback.searchParams.set('role', requestedRole)
     callback.searchParams.set('flow', flow)
     if (next) callback.searchParams.set('next', next)
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: callback.toString() } })
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: callback.toString(), queryParams: { prompt: 'select_account' } } })
     if (error) { setMessage('Google sign in could not start. Check your connection and try again.'); setBusy(false) }
   }
 
@@ -128,6 +128,11 @@ export default function RoleLoginPage() {
       </nav>
       {message && <div className="message" role="alert" aria-live="polite">{message}</div>}
       {config.email && <><button className="secondary google-first" disabled={busy} onClick={()=>void google()}><svg className="google-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="#4285F4" d="M21.35 12.23c0-.71-.06-1.23-.2-1.77H12v3.5h5.37a4.6 4.6 0 0 1-2 3.02v2.5h3.22c1.88-1.74 2.76-4.3 2.76-7.25Z"/><path fill="#34A853" d="M12 21.72c2.7 0 4.97-.89 6.63-2.44l-3.22-2.5c-.89.6-2.03.96-3.41.96-2.62 0-4.84-1.77-5.64-4.14H3.05v2.58A10 10 0 0 0 12 21.72Z"/><path fill="#FBBC05" d="M6.36 13.6a6 6 0 0 1 0-3.2V7.82H3.05a10 10 0 0 0 0 8.36l3.31-2.58Z"/><path fill="#EA4335" d="M12 6.28c1.43 0 2.71.49 3.72 1.45l2.79-2.79A9.5 9.5 0 0 0 12 2.28a10 10 0 0 0-8.95 5.54l3.31 2.58c.8-2.37 3.02-4.12 5.64-4.12Z"/></svg> Continue with Google</button><div className="or"><span/>or continue with email<span/></div></>}
+      {role === 'student' && <>
+        <button className="secondary google-first" disabled={busy} onClick={()=>void google()}>Continue with Google</button>
+        <a className="secondary" href="/signup/student/email" style={{marginTop:10,textDecoration:'none'}}>Continue with email</a>
+        <div className="or"><span/>or use school ID and PIN<span/></div>
+      </>}
       {!config.email && <div className="field"><label htmlFor="school-code">School code (leave blank for a full sign-in ID)</label><input id="school-code" type="text" autoCapitalize="none" placeholder="School code from your teacher" value={schoolCode} onChange={e=>setSchoolCode(e.target.value)} disabled={busy} /></div>}
       <div className="field"><label htmlFor="identifier">{config.email ? 'Email address' : 'Admission number or full sign-in ID'}</label><input id="identifier" type={config.email ? 'email' : 'text'} autoComplete="username" autoCapitalize="none" placeholder={config.email ? 'you@example.com' : 'e.g. ADM001 or school_adm001'} value={identifier} onChange={e=>setIdentifier(e.target.value)} disabled={busy} /></div>
       <div className="field"><div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/auth/forgot-password">Forgot password?</a>}</div><div className="password-field"><input id="password" type={showPassword ? 'text' : 'password'} inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" placeholder={config.email ? 'Enter your password' : 'Enter your PIN'} value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} /><button type="button" className="password-toggle" aria-label={showPassword ? (config.email ? 'Hide password' : 'Hide PIN') : (config.email ? 'Show password' : 'Show PIN')} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)} disabled={busy}>{showPassword ? 'Hide' : 'Show'}</button></div></div>
