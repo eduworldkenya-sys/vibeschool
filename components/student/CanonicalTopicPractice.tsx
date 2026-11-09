@@ -66,6 +66,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
   const [index,setIndex]=useState(0)
   const [finished,setFinished]=useState<SubmitAttemptResult|null>(null)
   const [reviewing,setReviewing]=useState(false)
+  const [retryChoices,setRetryChoices]=useState<Record<string,string>>({})
   const [busy,setBusy]=useState(false)
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
@@ -91,7 +92,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
       const first=attempt.items.findIndex(item=>!attempt.responses.some(response=>response.assessmentItemId===item.id))
       setWorkspace(attempt);setFeedback(marks)
       setIndex(first<0?5:first)
-      setFinished(null);setReviewing(false)
+      setFinished(null);setReviewing(false);setRetryChoices({})
     }catch(cause){setError(cause instanceof Error?cause.message:'Could not open topic practice.')}
     finally{setBusy(false)}
   }
@@ -171,13 +172,22 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
       <p style={{fontSize:17,fontWeight:800}}>{correct} correct · {incorrect} incorrect · {skipped} skipped</p>
       <button style={button} onClick={()=>setReviewing(true)}>Review mistakes</button>
       <button style={{...secondary,marginLeft:8}} onClick={()=>{setWorkspace(null);setFinished(null);setFeedback([]);setReviewing(false)}}>Choose another topic</button>
-      {reviewing && <div style={{display:'grid',gap:10,marginTop:16}}>{workspace.items.filter(question=>feedback.some(mark=>mark.item_id===question.id&&mark.correct!==true)).map(question=>{
+      {reviewing && <div style={{display:'grid',gap:10,marginTop:16}}><p style={muted}>Retry missed or skipped questions for learning. These retries do not change your recorded score.</p>{workspace.items.filter(question=>feedback.some(mark=>mark.item_id===question.id&&mark.correct!==true)).map(question=>{
         const mark=feedback.find(row=>row.item_id===question.id)
         const options=optionsOf(question.options)
+        const retryChoice=retryChoices[question.id] ?? null
         return <article key={question.id} style={{padding:12,border:'1px solid var(--vs-border)',borderRadius:12}}>
           <strong>{question.prompt}</strong>
-          <p style={muted}>{mark?.skipped?'Skipped':'Incorrect'} · Correct answer: {mark?.correct_answer} {options.find(option=>option.value===mark?.correct_answer)?.label}</p>
-          {mark?.explanation && <p style={muted}>{mark.explanation}</p>}
+          <p style={muted}>{mark?.skipped?'Skipped question':'Question to revise'}</p>
+          <div style={{display:'grid',gap:8,marginTop:10}}>
+            {options.map(option=><button key={option.value} style={{...optionStyle,background:retryChoice===option.value?'#e0e7ff':'var(--vs-card)'}} disabled={retryChoice!==null} onClick={()=>setRetryChoices(prev=>({...prev,[question.id]:option.value}))}>{option.value}. {option.label}</button>)}
+          </div>
+          {retryChoice!==null && <div role="status" style={{marginTop:12}}>
+            <strong>{retryChoice===mark?.correct_answer?'Correct on retry':'Not correct yet'}</strong>
+            <p style={muted}>Correct answer: {mark?.correct_answer}. {options.find(option=>option.value===mark?.correct_answer)?.label}</p>
+            {mark?.explanation && <p style={muted}>{mark.explanation}</p>}
+            <button style={secondary} onClick={()=>setRetryChoices(prev=>{const next={...prev};delete next[question.id];return next})}>Try this question again</button>
+          </div>}
         </article>
       })}</div>}
     </section>}
