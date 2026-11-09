@@ -11,15 +11,17 @@ const exams = read("app/student/vibelearn/exams/page.tsx");
 const practice = read("app/student/vibelearn/practice/page.tsx");
 const nav = read("components/student/BottomNav.tsx");
 
-for (const title of ["Read", "Practice", "Exams", "Projects", "Lessons", "Activities", "My Work", "Study Plan"]) {
-  assert.match(hub, new RegExp('title: "' + title + '"'), 'Learn destination missing: ' + title);
+for (const title of ["Read", "Practice", "Exams", "Projects", "My Work", "Revision", "My Tuition"]) {
+  assert.match(hub, new RegExp('title:\\s*["\\\']' + title + '["\\\']'), 'Learn destination missing: ' + title);
 }
 assert.match(hub, /from "lucide-react"/, "Learn icons must be SVG");
 assert.doesNotMatch(hub, /[\u{1F300}-\u{1FAFF}]/u, "Learn tiles must not use emoji");
 assert.match(hub, /href: "\/student\/vibelearn\/reading"/);
-assert.match(hub, /href: hasSchoolClass \? "\/student\/projects" : "\/student\/projects\/independent"/);
+assert.match(hub, /href:\s*hasSchoolClass\s*\?\s*"\/student\/projects"\s*:\s*"\/student\/projects\/independent"/);
 assert.match(hub, /hasSchoolClass/, "School and independent project navigation must be differentiated");
 assert.match(hub, /Coming soon/);
+assert.match(hub, />Lessons</, "Lessons must remain discoverable as upcoming");
+assert.match(hub, />Activities</, "Activities must remain discoverable as upcoming");
 assert.match(reading, /eq\("status", "published"\)/, "Reading must not include unpublished content");
 assert.match(reading, /eq\("format", "vibetextbook"\)/, "Reading must use canonical textbooks");
 assert.match(reading, /\/read\/textbook\//, "Reading must navigate to canonical reader");

@@ -1,0 +1,33 @@
+/* VibeSchool Learn presentation layer: no data or assessment behaviour changes. */
+.vs-learn-home{max-width:1040px!important;padding:clamp(16px,3vw,32px) 16px 108px!important;gap:18px!important}
+.vs-learn-home h1{font-size:clamp(23px,3vw,30px)!important;letter-spacing:-.035em}
+.vs-learn-home h2{letter-spacing:-.022em}
+.vs-learn-home section:not(.vs-activity-hub){box-shadow:0 3px 16px rgba(31,41,82,.035);transition:box-shadow .22s ease,border-color .22s ease}
+.vs-learn-home section:not(.vs-activity-hub):hover{border-color:#cbd5e1;box-shadow:0 8px 26px rgba(31,41,82,.055)}
+.vs-learn-home button{cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,background-color .2s ease,border-color .2s ease}
+.vs-learn-home button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 5px 14px rgba(67,56,202,.10)}
+.vs-learn-home button:active:not(:disabled){transform:scale(.985)}
+.vs-learn-home :is(a,button):focus-visible,.vs-activity-hub :is(a,button):focus-visible{outline:3px solid #a5b4fc;outline-offset:3px}
+.vs-activity-hub{margin-bottom:0}
+.vs-activity-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.vs-activity-card{display:flex;align-items:flex-start;gap:12px;min-width:0;min-height:100px;padding:18px;border:1px solid #dfe3f1;border-radius:17px;background:#fff;color:#15213b;text-decoration:none;text-align:left;font:inherit;cursor:pointer;box-shadow:0 2px 9px rgba(20,30,80,.025);transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+.vs-activity-card:hover{transform:translateY(-3px);border-color:#b4b5f8;box-shadow:0 12px 24px rgba(55,48,163,.09)}
+.vs-activity-card:active{transform:scale(.985)}
+.vs-activity-card-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#f1f0ff;color:#5145e8;flex-shrink:0}
+.vs-activity-card-title{display:block;font-weight:750;font-size:15px;line-height:1.4}
+.vs-activity-card-detail{display:block;margin-top:5px;color:#5b6579;font-size:13px;line-height:1.45}
+.vs-activity-more{margin-top:12px;display:flex;align-items:center;gap:8px;padding:10px 0;border:0;background:transparent;color:#4338ca;font-size:14px;font-weight:750;cursor:pointer}
+.vs-activity-more svg{transition:transform .2s ease}
+.vs-activity-more[aria-expanded=true] svg{transform:rotate(180deg)}
+.vs-activity-secondary{margin-top:8px}
+.vs-activity-upcoming{border:1px dashed #d9deeb;border-radius:14px;padding:14px;color:#626d83;background:#fafbfe}
+.vs-activity-upcoming strong{display:block;font-size:14px;color:#4b5563}
+.vs-activity-upcoming span{display:block;font-size:12px;margin-top:3px}
+.vs-activity-hub h2{font-size:19px;margin:0 0 6px}
+.vs-activity-hub p{color:#5b6579;font-size:13px;line-height:1.55;margin:0 0 15px}
+.vs-learn-page{max-width:1040px!important}
+.vs-learn-page button{transition:transform .2s ease,box-shadow .2s ease}
+.vs-learn-page button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 5px 14px rgba(67,56,202,.09)}
+.vs-learn-page button:focus-visible{outline:3px solid #a5b4fc;outline-offset:3px}
+@media(max-width:540px){.vs-activity-grid{gap:9px}.vs-activity-card{padding:13px;min-height:112px;display:block}.vs-activity-card-icon{width:36px;height:36px;margin-bottom:9px}.vs-activity-card-detail{font-size:12px}.vs-learn-home{padding-inline:12px!important}}
+@media(prefers-reduced-motion:reduce){.vs-learn-home *, .vs-activity-hub *, .vs-learn-page *{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
