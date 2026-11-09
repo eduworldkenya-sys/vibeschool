@@ -81,7 +81,7 @@ export default function IndependentProjects() {
       const { error: writeError } = await supabase.from("projects").insert({
         independent_owner_profile_id: userId, title: cleanTitle,
         description: description.trim() || null, status: "active",
-      } as never);
+      });
       if (writeError) throw writeError;
       setTitle(""); setDescription("");
       await load(userId);
@@ -100,7 +100,7 @@ export default function IndependentProjects() {
         independent_notes: draft,
         status: complete ? "submitted" : "active",
         independent_completed_at: complete ? new Date().toISOString() : null,
-      } as never).eq("id", project.id).eq("independent_owner_profile_id", userId);
+      }).eq("id", project.id).eq("independent_owner_profile_id", userId);
       if (writeError) throw writeError;
       await load(userId);
     } catch {
