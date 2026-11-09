@@ -119,8 +119,7 @@ begin
 
   return jsonb_build_object('ok',true,'assignments',payload);
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.exq_start_or_resume_attempt(p_assignment_id uuid)
  RETURNS jsonb
@@ -233,7 +232,7 @@ begin
     'show_score_policy',aa.show_score_policy,'items',item_payload,'responses',response_payload
   );
 end;
-$function$
+$function$;
 
 revoke all on function public.exq_list_my_assignments() from public,anon;
 revoke all on function public.exq_start_or_resume_attempt(uuid) from public,anon;
