@@ -1710,7 +1710,7 @@ export default function LessonPlanModal({
               </div>
               {suggestionLinked && !canonicalIdentity && (
                 <p style={{ fontSize: 11, color: '#b45309', marginBottom: 12 }}>
-                  Scheme linked. This legacy source is not yet eligible for reusable canonical assets, so this lesson will be generated from its authoritative Scheme data instead.
+                  Linked to your scheme. This entry has no verified curriculum outcome link and cannot be used for reusable lesson assets.
                 </p>
               )}
               {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
@@ -1760,7 +1760,7 @@ export default function LessonPlanModal({
               <details className="studio-lesson-details"><summary>Resources, readiness & delivery</summary>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: suggestionLinked && suggestion ? 8 : 16, fontSize: 12, color: C.textMuted }}>
                 <span style={{ color: C.accent }}>✦</span>
-                <span>{canonicalIdentity ? 'Built from Scheme + VibeSchool Content · KICD aligned · No AI' : 'Built from authoritative Scheme data · No AI'}</span>
+                <span>{canonicalIdentity ? 'Built from Scheme + VibeSchool Content · KICD aligned · No AI' : 'Built from your scheme · No AI'}</span>
                 {topic !== '' && (
                   <span style={{
                     marginLeft: 'auto', fontSize: 11, fontWeight: 700,

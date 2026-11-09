@@ -27,3 +27,35 @@ export function singleDateSchedule(date: string): { dayOfWeek: number; effective
   if (!Number.isFinite(parsed.getTime()) || parsed.getUTCFullYear()!==year || parsed.getUTCMonth()+1!==month || parsed.getUTCDate()!==day) return null;
   return {dayOfWeek:parsed.getUTCDay() || 7,effectiveFrom:date,effectiveUntil:date};
 }
+
+// Ministry of Education CBE Timetabling Guidelines, section 2.3 and appendix 3.
+const UPPER_PRIMARY_PERIODS = [
+  ['08:20', '08:55'], ['08:55', '09:30'], ['09:50', '10:25'],
+  ['10:25', '11:00'], ['11:30', '12:05'], ['12:05', '12:40'],
+  ['14:00', '14:35'],
+] as const
+
+export function isUpperPrimary(grade: string) {
+  return /^grade [456]$/i.test(grade.trim())
+}
+
+export function upperPrimaryPeriods(schoolId: string, day: number): SchoolPeriod[] {
+  if (day < 1 || day > 5) return []
+  return UPPER_PRIMARY_PERIODS.map(([start_time, end_time], index) => ({
+    id: `upper-primary-${index + 1}`,
+    school_id: schoolId,
+    schedule_day: day,
+    period_number: index + 1,
+    label: `Period ${index + 1}`,
+    start_time,
+    end_time,
+    kind: 'lesson',
+    protected: false,
+  }))
+}
+
+export function isUpperPrimaryPeriod(day: number, start: string, end: string) {
+  return upperPrimaryPeriods('', day).some(period =>
+    period.start_time === start.slice(0, 5) && period.end_time === end.slice(0, 5)
+  )
+}

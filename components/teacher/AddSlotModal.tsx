@@ -1,7 +1,7 @@
 "use client";
 
 import { nairobiDayOfWeek } from '@/lib/time'
-import { periodsForDay, teachingBlock, protectedBlockConflict, singleDateSchedule, type SchoolPeriod } from '@/lib/timetable/periods'
+import { periodsForDay, teachingBlock, protectedBlockConflict, singleDateSchedule, isUpperPrimary, upperPrimaryPeriods, isUpperPrimaryPeriod, type SchoolPeriod } from '@/lib/timetable/periods'
 import type { SuggestedPlacement } from '@/lib/timetable/operations'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -85,6 +85,8 @@ function toFriendlyError(err: { message?: string }): string {
       return 'This class already has a lesson at this time.'
     case 'ROOM_CONFLICT':
       return 'This room is already occupied.'
+    case 'UPPER_PRIMARY_PERIOD_REQUIRED':
+      return 'Choose a 35-minute weekday teaching period for Grades 4–6.'
     case 'PROTECTED_SCHOOL_BLOCK':
       return 'This lesson overlaps a break, lunch or another protected activity.'
     case 'PERIOD_TIME_MISMATCH':
@@ -135,6 +137,8 @@ function nairobiTodayISO(): string {
 // contract than create_timetable_slot — never reuse toFriendlyError for them.
 function toFriendlyEditError(err: { message?: string }): string {
   switch ((err.message ?? '').trim()) {
+    case 'UPPER_PRIMARY_PERIOD_REQUIRED':
+      return 'Choose a 35-minute weekday teaching period for Grades 4–6.'
     case 'TEACHER_CONFLICT':
       return 'You already have a lesson at this time.'
     case 'CLASS_CONFLICT':
@@ -296,21 +300,36 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
     return () => { cancelled = true }
   }, [selectedAssignment?.schoolId, selectedAssignment?.gradeLabel])
 
-  const dayPeriods = selectedAssignment ? periodsForDay(periods, selectedAssignment.schoolId, Number(dayOfWeek)) : []
+  const upperPrimary = isUpperPrimary(selectedAssignment?.gradeLabel ?? editSlot?.gradeLabel ?? '')
+  const usesCustomTime = customTime && !upperPrimary
+  const units = upperPrimary ? 1 : Number(allocationUnits)
+  const schoolId = selectedAssignment?.schoolId ?? editSlot?.schoolId ?? ''
+  const configuredPeriods = periodsForDay(periods, schoolId, Number(dayOfWeek))
+  const dayPeriods = upperPrimary
+    ? upperPrimaryPeriods(schoolId, Number(dayOfWeek)).filter(period =>
+        !protectedBlockConflict(configuredPeriods, period.start_time, period.end_time))
+    : configuredPeriods
   const hasTeachingPeriods = dayPeriods.some(p => p.kind === 'lesson')
-  const selectedBlock = teachingBlock(dayPeriods, periodId, Number(allocationUnits))
+  const selectedBlock = teachingBlock(dayPeriods, periodId, units)
+  const selectedStart = selectedBlock?.[0].start_time.slice(0, 5)
+  const selectedEnd = selectedBlock?.at(-1)?.end_time.slice(0, 5)
   useEffect(() => {
-    const block = teachingBlock(selectedAssignment ? periodsForDay(periods, selectedAssignment.schoolId, Number(dayOfWeek)) : [], periodId, Number(allocationUnits))
-    if (isEdit || customTime || !block) return
-    setStartTime(block[0].start_time.slice(0,5))
-    setEndTime(block[block.length-1].end_time.slice(0,5))
-  }, [isEdit, customTime, periodId, allocationUnits, dayOfWeek, teacherClassId, periods, selectedAssignment])
+    if ((isEdit && !upperPrimary) || usesCustomTime || !selectedStart || !selectedEnd) return
+    setStartTime(selectedStart)
+    setEndTime(selectedEnd)
+  }, [isEdit, upperPrimary, usesCustomTime, selectedStart, selectedEnd])
+
+  useEffect(() => {
+    if (isEdit || upperPrimary || !gradeDurationDefault || !startTime ||
+        (hasTeachingPeriods && !usesCustomTime)) return
+    setEndTime(addMinutesToTime(startTime, gradeDurationDefault * units))
+  }, [isEdit, upperPrimary, gradeDurationDefault, startTime, hasTeachingPeriods, usesCustomTime, units])
 
   useEffect(() => {
     if (!initialPlacement || isEdit || periodId || !selectedAssignment) return
-    const first = periodsForDay(periods, selectedAssignment.schoolId, Number(dayOfWeek)).find(p => p.kind === 'lesson' && p.start_time.slice(0,5) === initialPlacement.startTime)
+    const first = dayPeriods.find(p => p.kind === 'lesson' && p.start_time.slice(0,5) === initialPlacement.startTime)
     if (first) setPeriodId(first.id)
-  }, [initialPlacement, isEdit, periodId, selectedAssignment, periods, dayOfWeek])
+  }, [initialPlacement, isEdit, periodId, selectedAssignment, dayPeriods])
 
   const suggestionContext = useRef('')
   suggestionContext.current = [teacherClassId,effectiveFrom,effectiveUntil,allocationUnits,room,preferredSession,recurrence,dayOfWeek].join('|')
@@ -322,9 +341,13 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
     const contextKey = suggestionContext.current
     try {
       const candidates = (recurrence === 'once' ? [Number(dayOfWeek)] : [1,2,3,4,5]).flatMap(day => {
-        const dayBlocks = periodsForDay(periods,selectedAssignment.schoolId,day)
+        const schoolBlocks = periodsForDay(periods, selectedAssignment.schoolId, day)
+        const dayBlocks = upperPrimary
+          ? upperPrimaryPeriods(selectedAssignment.schoolId, day).filter(period =>
+              !protectedBlockConflict(schoolBlocks, period.start_time, period.end_time))
+          : schoolBlocks
         return dayBlocks.filter(p => p.kind === 'lesson').flatMap(p => {
-          const block = teachingBlock(dayBlocks,p.id,Number(allocationUnits))
+          const block = teachingBlock(dayBlocks,p.id,units)
           if (!block) return []
           return [{day_of_week:day,period_id:p.id,start_time:block[0].start_time,end_time:block.at(-1)!.end_time,score:0,explanation:'Consecutive teaching periods; no clash found.'}]
         })
@@ -392,11 +415,19 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
     setError(null)
     const onceSchedule = !isEdit && recurrence === 'once' ? singleDateSchedule(effectiveFrom) : null
     if (!isEdit && recurrence === 'once' && !onceSchedule) {setError('Choose a valid date for this one-time lesson.');return}
+    const changedPlacement = !editSlot || Number(dayOfWeek) !== editSlot.dayOfWeek
+      || startTime.slice(0, 5) !== editSlot.startTime.slice(0, 5)
+      || endTime.slice(0, 5) !== editSlot.endTime.slice(0, 5)
+    if (upperPrimary && changedPlacement &&
+        !isUpperPrimaryPeriod(onceSchedule?.dayOfWeek ?? Number(dayOfWeek), startTime, endTime)) {
+      setError('Choose a 35-minute weekday teaching period for Grades 4–6.')
+      return
+    }
     if (!isEdit) {
       if (periodsLoading || periodsError) {setError('Load school periods before saving.');return}
-      const blocked = protectedBlockConflict(dayPeriods, startTime, endTime)
+      const blocked = protectedBlockConflict(configuredPeriods, startTime, endTime)
       if (blocked) {setError(`This lesson overlaps ${blocked.label}. Choose a teaching period.`);return}
-      if (hasTeachingPeriods && !customTime && !selectedBlock) {setError('Choose consecutive teaching periods without crossing a break.');return}
+      if (hasTeachingPeriods && !usesCustomTime && !selectedBlock) {setError('Choose consecutive teaching periods without crossing a break.');return}
       if (effectiveUntil && effectiveUntil < effectiveFrom) {setError('End date cannot be before start date.');return}
     }
 
@@ -425,7 +456,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
       } catch (e) {
         setSaving(false)
         submittingRef.current = false
-        setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? e.code : undefined }))
+        setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? (e.code === 'unknown' ? e.message : e.code) : undefined }))
       }
       return
     }
@@ -459,7 +490,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
       p_room:            room.trim() || undefined,
       p_effective_from:  onceSchedule?.effectiveFrom ?? (effectiveFrom || undefined),
       p_effective_until: onceSchedule?.effectiveUntil ?? (effectiveUntil || undefined),
-      p_allocation_units: Number(allocationUnits) || 1,
+      p_allocation_units: units || 1,
       p_period_id: undefined,
     })
 
@@ -496,7 +527,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
       await deleteTimetableSlot(editSlot.id)
       onSaved(undoSnapshotId)
     } catch (e) {
-      setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? e.code : undefined }))
+      setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? (e.code === 'unknown' ? e.message : e.code) : undefined }))
     } finally {
       setDeleting(false)
     }
@@ -511,7 +542,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
       await expireTimetableSlot(editSlot.id)
       onSaved(undoSnapshotId)
     } catch (e) {
-      setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? e.code : undefined }))
+      setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? (e.code === 'unknown' ? e.message : e.code) : undefined }))
     } finally {
       setDeleting(false)
     }
@@ -599,26 +630,27 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
           </select>
         </div>
 
-        {!isEdit && <div>
+        {(!isEdit || upperPrimary) && <div>
+          {upperPrimary && <p style={{fontSize:13}}>Grades 4–6 use single 35-minute periods on school days.</p>}
           {periodsLoading ? <p>Loading school periods…</p> : periodsError ? <p role="alert">{periodsError}</p> : hasTeachingPeriods ? <>
             <label htmlFor="teaching-period" style={labelStyle}>Teaching period</label>
             <select id="teaching-period" style={inputStyle} value={periodId} onChange={e => {setPeriodId(e.target.value);setCustomTime(false)}}>
               <option value="">Choose a period</option>
               {dayPeriods.filter(p => p.kind === 'lesson').map(p => <option key={p.id} value={p.id}>{p.label} · {p.start_time.slice(0,5)}–{p.end_time.slice(0,5)}</option>)}
             </select>
-            <label style={{display:'block',marginTop:10,fontSize:13}}><input type="checkbox" checked={customTime} onChange={e => setCustomTime(e.target.checked)} /> Use a custom school time</label>
-            {customTime && <p style={{fontSize:12}}>Use this only for a genuine school exception. Breaks and clashes still apply.</p>}
-          </> : <p style={{fontSize:13}}>No teaching periods are configured for this day. Enter your actual school times; do not assume a national lesson duration.</p>}
-          {gradeDurationDefault && selectedAssignment && (customTime || !hasTeachingPeriods) && (
+            {!upperPrimary && <label style={{display:'block',marginTop:10,fontSize:13}}><input type="checkbox" checked={customTime} onChange={e => setCustomTime(e.target.checked)} /> Use a custom school time</label>}
+            {usesCustomTime && <p style={{fontSize:12}}>Use this only for a genuine school exception. Breaks and clashes still apply.</p>}
+          </> : upperPrimary ? <p style={{fontSize:13}}>Choose Monday to Friday.</p> : <p style={{fontSize:13}}>No teaching periods are configured for this day. Enter your actual school times; do not assume a national lesson duration.</p>}
+          {!upperPrimary && gradeDurationDefault && selectedAssignment && (usesCustomTime || !hasTeachingPeriods) && (
             <div style={{ marginTop: 8, padding: 10, borderRadius: 10, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
               <strong>{selectedAssignment.gradeLabel} school default: {gradeDurationDefault} minutes.</strong>
               {' '}Your current custom time is {durationBetween(startTime, endTime)} minutes.
               <button
                 type="button"
-                onClick={() => setEndTime(addMinutesToTime(startTime, gradeDurationDefault))}
+                onClick={() => setEndTime(addMinutesToTime(startTime, gradeDurationDefault * units))}
                 style={{ display: 'block', marginTop: 6, padding: 0, border: 0, background: 'transparent', color: '#1d4ed8', fontWeight: 750, cursor: 'pointer' }}
               >
-                Use {gradeDurationDefault}-minute duration
+                Use {gradeDurationDefault * units}-minute duration
               </button>
             </div>
           )}
@@ -632,15 +664,15 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Start Time *</label>
-            <input disabled={!isEdit && hasTeachingPeriods && !customTime} type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} />
+            <input disabled={upperPrimary || (!isEdit && hasTeachingPeriods && !usesCustomTime)} type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} />
           </div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>End Time *</label>
-            <input disabled={!isEdit && hasTeachingPeriods && !customTime} type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
+            <input disabled={upperPrimary || (!isEdit && hasTeachingPeriods && !usesCustomTime)} type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
           </div>
         </div>
 
-        {!isEdit && (
+        {!isEdit && !upperPrimary && (
           <div>
             <label style={labelStyle}>Lesson Units *</label>
             <select value={allocationUnits} onChange={e => setAllocationUnits(e.target.value)} style={inputStyle}>

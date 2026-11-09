@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { nairobiDateAdd, nairobiDayOfWeek } from '@/lib/time'
 import {
   getActiveTerm,
   getTermForDate,
@@ -68,6 +69,8 @@ interface InstructionalWeekRow {
   term_id: string
   term_number: number
   week_number: number
+  week_start: string
+  week_end: string
 }
 
 interface CurriculumAuthorityDetailRow {
@@ -210,7 +213,8 @@ async function resolveInstructionalWeekForDate(
     !row ||
     typeof row.term_id !== 'string' ||
     typeof row.term_number !== 'number' ||
-    typeof row.week_number !== 'number'
+    typeof row.week_number !== 'number' ||
+    typeof row.week_start !== 'string' || typeof row.week_end !== 'string'
   ) {
     throw new Error(
       `lessonSource: no authoritative instructional week for ${occurrenceDate}.`,
@@ -289,7 +293,7 @@ async function loadCurrentSchemeProgression({
 async function loadSchemeSourceForOccurrenceFallback({
   timetableSlotId,
   occurrenceDate,
-  occurrenceWeek,
+  instructionalWeek,
   userId,
   schoolId,
   classId,
@@ -298,7 +302,7 @@ async function loadSchemeSourceForOccurrenceFallback({
 }: {
   timetableSlotId: string
   occurrenceDate: string
-  occurrenceWeek: number
+  instructionalWeek: InstructionalWeekRow
   userId: string
   schoolId: string
   classId: string
@@ -315,18 +319,24 @@ async function loadSchemeSourceForOccurrenceFallback({
 
   if (slotError) throw slotError
 
+  const firstDay = nairobiDayOfWeek(new Date(`${instructionalWeek.week_start}T12:00:00+03:00`))
   const activeSlots = ((slotRows ?? []) as TimetableSourceRow[])
-    .filter(slot =>
-      (!slot.effective_from || slot.effective_from <= occurrenceDate) &&
-      (!slot.effective_until || slot.effective_until >= occurrenceDate),
+    .map(slot => ({
+      slot,
+      date: nairobiDateAdd(instructionalWeek.week_start, (slot.day_of_week - firstDay + 7) % 7),
+    }))
+    .filter(({ slot, date }) =>
+      date <= instructionalWeek.week_end &&
+      (!slot.effective_from || slot.effective_from <= date) &&
+      (!slot.effective_until || slot.effective_until >= date),
     )
     .sort((left, right) =>
-      left.day_of_week - right.day_of_week ||
-      left.start_time.localeCompare(right.start_time) ||
-      left.id.localeCompare(right.id),
+      left.date.localeCompare(right.date) ||
+      left.slot.start_time.localeCompare(right.slot.start_time) ||
+      left.slot.id.localeCompare(right.slot.id),
     )
 
-  const weeklyPeriodIndex = activeSlots.findIndex(slot => slot.id === timetableSlotId)
+  const weeklyPeriodIndex = activeSlots.findIndex(({ slot, date }) => slot.id === timetableSlotId && date === occurrenceDate)
   if (weeklyPeriodIndex < 0) return null
 
   const { data: exactScheme, error: exactSchemeError } = await supabase
@@ -337,7 +347,7 @@ async function loadSchemeSourceForOccurrenceFallback({
     .eq('class_id', classId)
     .eq('subject_id', subjectId)
     .eq('academic_term_id', academicTerm.id)
-    .eq('week', occurrenceWeek)
+    .eq('week', instructionalWeek.week_number)
     .eq('period', weeklyPeriodIndex + 1)
     .maybeSingle()
 
@@ -361,8 +371,8 @@ async function enrichedSchemeSuggestion(
  * Authority order:
  * 1. occurrence date -> academic term
  * 2. explicit/persisted Scheme item
- * 3. completed-teaching Scheme progression
- * 4. exact dated timetable ordinal compatibility fallback
+ * 3. exact dated timetable ordinal for scheduled lessons
+ * 4. completed-teaching Scheme progression for undated lessons
  * 5. curriculum fallback
  * 6. custom teacher topic
  */
@@ -398,23 +408,20 @@ export async function resolveLessonSource({
     return enrichedSchemeSuggestion(requestedScheme, term.term)
   }
 
-  let occurrenceWeek: number | null = null
-  if (occurrenceDate) {
-    const instructionalWeek = await resolveInstructionalWeekForDate(
-      schoolId,
-      occurrenceDate,
-    )
+  const instructionalWeek = occurrenceDate
+    ? await resolveInstructionalWeekForDate(schoolId, occurrenceDate)
+    : null
+  if (instructionalWeek) {
     if (instructionalWeek.term_id !== term.id) {
       throw new Error('lessonSource: term and instructional-week authorities disagree.')
     }
-    occurrenceWeek = instructionalWeek.week_number
   }
 
-  if (timetableSlotId && occurrenceDate && occurrenceWeek !== null) {
+  if (timetableSlotId && occurrenceDate && instructionalWeek) {
     const occurrenceScheme = await loadSchemeSourceForOccurrenceFallback({
       timetableSlotId,
       occurrenceDate,
-      occurrenceWeek,
+      instructionalWeek,
       userId,
       schoolId,
       classId,
@@ -459,7 +466,7 @@ export async function resolveLessonSource({
 
   }
 
-  const curriculumWeek = occurrenceWeek ?? currentWeekOf(term)
+  const curriculumWeek = instructionalWeek?.week_number ?? currentWeekOf(term)
   const { data: curriculumRows, error: curriculumError } = await supabase
     .from('curriculum')
     .select('id, strand, sub_strand, topic, sub_strand_id, reference')

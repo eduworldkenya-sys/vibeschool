@@ -58,7 +58,7 @@ const assertions = [
   ],
   [
     source.indexOf('if (!occurrenceDate) {') > source.indexOf('loadSchemeSourceForOccurrenceFallback({') &&
-      source.indexOf('if (!occurrenceDate) {') < source.indexOf('const curriculumWeek = occurrenceWeek ?? currentWeekOf(term)') &&
+      source.indexOf('if (!occurrenceDate) {') < source.indexOf('const curriculumWeek = instructionalWeek?.week_number ?? currentWeekOf(term)') &&
       source.includes('if (progressionScheme)'),
     'Dated timetable occurrences must not prefill from global Scheme progression; undated flows may retain progression.',
   ],

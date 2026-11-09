@@ -12,6 +12,7 @@ import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 import { supabase } from '@/lib/supabase'
 import { studio } from '@/components/teacher/studio-tokens'
 import { ensureMyActiveSchoolTerm } from '@/lib/academicTerm'
+import { nairobiDateStr } from '@/lib/time'
 
 const C = {
   surface: studio.surface, surface2: studio.canvas, border: studio.border, border2: studio.border,
@@ -27,7 +28,7 @@ const STATUS = {
   cancelled: { bg: C.redLight, color: C.red, label: 'Cancelled' },
 }
 
-function todayIso() { return new Date().toISOString().slice(0, 10) }
+function todayIso() { return nairobiDateStr() }
 function unique(values) { return Array.from(new Set(values)) }
 function termLabel(term) {
   return term.name.includes(String(term.academic_year)) ? term.name : `${term.name} ${term.academic_year}`
@@ -109,10 +110,7 @@ function Inner({ curriculumView = false }) {
     return Array.from(map.values()).sort((a,b)=>a.week_number-b.week_number)
   },[termWeeks])
 
-  const currentWeek = useMemo(()=>{
-    if (todayResolution && todayResolution.term_id===selectedTermId) return todayResolution.week_number
-    const d=todayIso(); const row=weeks.find(x=>d>=x.start_date&&d<=x.end_date); return row?row.week_number:0
-  },[todayResolution,selectedTermId,weeks])
+  const currentWeek = todayResolution?.term_id === selectedTermId ? todayResolution.week_number : null
 
   const ordered = useMemo(()=>schemeItems.slice().sort((a,b)=>(a.sequence_number||999999)-(b.sequence_number||999999)||(a.lesson_number||999999)-(b.lesson_number||999999)||a.id.localeCompare(b.id)),[schemeItems])
   const selectedWeekItems = useMemo(()=>ordered.filter(x=>x.week===selectedWeek),[ordered,selectedWeek])
@@ -292,7 +290,6 @@ function Inner({ curriculumView = false }) {
       <div style={{fontSize:11,letterSpacing:1.5,opacity:.65,fontWeight:800}}>{curriculumView ? "CURRICULUM" : "SCHEME OF WORK"}</div>
       <div style={{fontSize:20,fontWeight:800,marginTop:3}}>{curriculumView ? "Curriculum map" : "Scheme of work"}</div>
       <div style={{fontSize:13,opacity:.9,marginTop:4}}>{termObj?`${termLabel(termObj)} · Selected Week ${selectedWeek}${currentWeek ? ` · Current Week ${currentWeek}` : ''}`:'Select term'}</div>
-      {weeklyTarget!==null&&<div style={{fontSize:11,fontWeight:700,marginTop:10}}>Week {selectedWeek}: {selectedWeekItems.length} of {weeklyTarget} scheduled</div>}
     </div>
     {error&&<div role="alert" style={{background:C.redLight,color:C.red,padding:10,borderRadius:9,fontSize:12,fontWeight:700,marginBottom:10}}>{error}</div>}
     <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:14,padding:14,marginBottom:12}}>

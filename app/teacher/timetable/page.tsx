@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import ClassicTimetable, { type SchoolDayBlock } from '@/components/teacher/ClassicTimetable'
-import type { SchoolPeriod } from '@/lib/timetable/periods'
+import { isUpperPrimary, isUpperPrimaryPeriod, type SchoolPeriod } from '@/lib/timetable/periods'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
@@ -1219,6 +1219,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // across teacher_classes, classes, subjects, subject_weekly_allocations,
   // and timetable_slots. Replaces client-side grouping (Fix 13).
   useEffect(() => {
+    if (!teacherId) return
     let cancelled = false
     supabase.rpc('get_teacher_weekly_timetable_load').then(({ data, error }) => {
       if (cancelled) return
@@ -1237,12 +1238,17 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       setWeeklyLoadRows(rows)
     })
     return () => { cancelled = true }
-  }, [teacherId])
+  }, [teacherId, renderedWeekSlots])
 
   // Only non-OK rows are actionable — OK stays silent, same rule as before.
   const loadMismatches = useMemo(
     () => weeklyLoadRows.filter(r => r.status !== 'OK'),
     [weeklyLoadRows]
+  )
+
+  const periodIssues = renderedWeekSlots.filter(slot =>
+    isUpperPrimary(slot.grade) &&
+    !isUpperPrimaryPeriod(slot.dayOfWeek, slot.startTime, slot.endTime)
   )
 
   // FIX [LOGIC-06]: on weekends show Monday count, not 0
@@ -1443,7 +1449,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             }}
           >
             <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>
-              ⚠️ {loadMismatches.length} subject{loadMismatches.length !== 1 ? 's' : ''} off weekly allocation
+              Weekly allocation · {loadMismatches.filter(m => m.status !== 'NO_TARGET').length} outside target · {loadMismatches.filter(m => m.status === 'NO_TARGET').length} without a target
             </span>
             <span style={{ fontSize: 12, color: C.textMuted }}>{showLoadCheck ? 'Hide' : 'Show'}</span>
           </button>
@@ -1454,7 +1460,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
                   m.status === 'ZERO'      ? 'not scheduled' :
                   m.status === 'UNDER'     ? 'under allocation' :
                   m.status === 'OVER'      ? 'over allocation' :
-                  'no KICD target set'
+                  'weekly target unavailable'
                 const color =
                   m.status === 'NO_TARGET' ? C.textMuted :
                   m.status === 'OVER'      ? '#dc2626' :
@@ -1473,6 +1479,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             </div>
           )}
         </div>
+      )}
+
+      {periodIssues.length > 0 && (
+        <details className="no-print" style={{ marginBottom: 14 }}>
+          <summary>{periodIssues.length} upper-primary slots outside the 35-minute timetable</summary>
+          <ul>{periodIssues.map(slot => (
+            <li key={slot.id}>{slot.subject} · {slot.className} · {DAYS.find(day => day.dow === slot.dayOfWeek)?.label} · {slot.startTime}–{slot.endTime}</li>
+          ))}</ul>
+        </details>
       )}
 
       {/* Day tabs */}
@@ -1695,6 +1710,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           initialPlacement={initialPlacement}
           editSlot={editSlot ? {
             id:             editSlot.id,
+            gradeLabel:     editSlot.grade,
+            schoolId:       editSlot.schoolId,
             className:      editSlot.className,
             subjectName:    editSlot.subject,
             dayOfWeek:      editSlot.dayOfWeek,
