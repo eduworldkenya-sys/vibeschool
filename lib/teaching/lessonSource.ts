@@ -398,33 +398,6 @@ export async function resolveLessonSource({
     return enrichedSchemeSuggestion(requestedScheme, term.term)
   }
 
-  // Progression is a convenience lookup, not the sole authority for a dated
-  // lesson. If it is unavailable, try the timetable/week and curriculum sources.
-  // Authorization failures remain fatal: never turn them into a fallback.
-  let progressionScheme: SchemeSourceRow | null = null
-  try {
-    progressionScheme = await loadCurrentSchemeProgression({
-      userId,
-      schoolId,
-      classId,
-      subjectId,
-      academicTerm: term,
-    })
-  } catch (progressionError) {
-    const detail = String(
-      progressionError instanceof Error
-        ? progressionError.message
-        : (progressionError as { message?: string } | null)?.message ?? progressionError,
-    )
-    if (/auth|permission|access|assignment_not_found|academic_term_not_found|jwt|403|401/i.test(detail)) {
-      throw progressionError
-    }
-    console.error('[lessonSource] progression unavailable; trying dated sources', progressionError)
-  }
-  if (progressionScheme) {
-    return enrichedSchemeSuggestion(progressionScheme, term.term)
-  }
-
   let occurrenceWeek: number | null = null
   if (occurrenceDate) {
     const instructionalWeek = await resolveInstructionalWeekForDate(
@@ -451,6 +424,39 @@ export async function resolveLessonSource({
     if (occurrenceScheme) {
       return enrichedSchemeSuggestion(occurrenceScheme, term.term)
     }
+  }
+
+  // A dated occurrence must never inherit the next unfinished Scheme item.
+  // Only an explicit scheme selection (above) or the exact occurrence/week
+  // lookup may supply its Scheme topic. Preserve progression for undated flows.
+  if (!occurrenceDate) {
+    // Progression is a convenience lookup, not the sole authority for a dated
+    // lesson. If it is unavailable, try the timetable/week and curriculum sources.
+    // Authorization failures remain fatal: never turn them into a fallback.
+    let progressionScheme: SchemeSourceRow | null = null
+    try {
+      progressionScheme = await loadCurrentSchemeProgression({
+        userId,
+        schoolId,
+        classId,
+        subjectId,
+        academicTerm: term,
+      })
+    } catch (progressionError) {
+      const detail = String(
+        progressionError instanceof Error
+          ? progressionError.message
+          : (progressionError as { message?: string } | null)?.message ?? progressionError,
+      )
+      if (/auth|permission|access|assignment_not_found|academic_term_not_found|jwt|403|401/i.test(detail)) {
+        throw progressionError
+      }
+      console.error('[lessonSource] progression unavailable; trying dated sources', progressionError)
+    }
+    if (progressionScheme) {
+      return enrichedSchemeSuggestion(progressionScheme, term.term)
+    }
+
   }
 
   const curriculumWeek = occurrenceWeek ?? currentWeekOf(term)
