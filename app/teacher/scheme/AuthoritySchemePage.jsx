@@ -206,7 +206,7 @@ function Inner({ curriculumView = false }) {
         // whether the teacher has committed a scheme of work.
         const [outcomeResult,resourceResult]=await Promise.all([
           supabase.from('curriculum_learning_outcomes').select('id,curriculum_id,outcome_text,status').in('curriculum_id',ids),
-          supabase.from('learning_resources').select('id,curriculum_id,title,status,visibility').in('curriculum_id',ids).eq('status','active')
+          supabase.from('learning_resources').select('id,curriculum_id,title,status,visibility,source_type,publication_id').in('curriculum_id',ids).eq('status','active')
         ])
         // Never turn query failures into a misleading "No content" state.
         if(outcomeResult.error)throw new Error('Curriculum learning outcomes: '+outcomeResult.error.message)
@@ -214,7 +214,16 @@ function Inner({ curriculumView = false }) {
         const outcomeMap={}
         ;(outcomeResult.data||[]).forEach(x=>{(outcomeMap[x.curriculum_id]??=[]).push(x)})
         const materialMap={}
-        ;(resourceResult.data||[]).filter(x=>x.visibility==='public').forEach(x=>{(materialMap[x.curriculum_id]??=[]).push(x)})
+        const candidates=(resourceResult.data||[]).filter(x=>x.visibility==='public')
+        const publicationIds=unique(candidates.filter(x=>x.source_type==='publication'&&x.publication_id).map(x=>x.publication_id))
+        const pubResult=publicationIds.length
+          ? await supabase.from('vibe_publications').select('id,status').in('id',publicationIds)
+          : {data:[],error:null}
+        if(pubResult.error)throw new Error('Published material checks: '+pubResult.error.message)
+        const publishedIds=new Set((pubResult.data||[]).filter(x=>x.status==='published').map(x=>x.id))
+        candidates.filter(x=>x.source_type!=='publication'||publishedIds.has(x.publication_id)).forEach(x=>{
+          (materialMap[x.curriculum_id]??=[]).push(x)
+        })
         setCurriculumOutcomes(outcomeMap)
         setCurriculumMaterials(materialMap)
       }
