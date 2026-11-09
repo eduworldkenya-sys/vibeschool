@@ -1,5 +1,6 @@
 -- Secure original exam staging. No question text or answer keys are stored in Git.
 -- Existing private schema is not exposed to the Supabase Data API.
+create schema if not exists private;
 create table if not exists private.original_exam_drafts (
   paper_id text primary key check (paper_id ~ '^[a-z0-9][a-z0-9_-]{2,79}$'),
   grade text not null,
@@ -63,7 +64,7 @@ begin
     return v_draft.publication_receipt;
   end if;
   if v_draft.content_state<>'reviewed'
-     or v_draft.review_evidence->>'independent_review'<>'passed' then
+     or coalesce(v_draft.review_evidence->>'independent_review','')<>'passed' then
     raise exception 'independent_educational_review_required';
   end if;
   if coalesce(v_draft.review_evidence->>'public_repository_exposure','false')<>'false' then
