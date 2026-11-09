@@ -152,7 +152,10 @@ export default function VibeLearnGradeModeLayout({ children }: { children: React
   const { identity, loading } = useStudent();
   const pathname = usePathname();
   // Grade-specific landing replaces only the Learn index, never nested destinations.
-  if (loading || !identity || pathname !== "/student/vibelearn") return children;
+  // A verified independent learner has no school-owned public.students row.
+  // Never mount GeneralLearnerVibeLearn (and its school-only workstation RPC)
+  // for this identity, regardless of grade or form.
+  if (loading || !identity || identity.independent || pathname !== "/student/vibelearn") return children;
 
   const classKey = normaliseClass(identity.className);
   const isForm4 = classKey === "form4";
