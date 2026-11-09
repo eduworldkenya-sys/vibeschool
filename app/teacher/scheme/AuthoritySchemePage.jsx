@@ -1,7 +1,7 @@
 "use client"
 
 import TeachingWorkspaceNav from '@/components/teacher/TeachingWorkspaceNav'
-import { GRADE4_ENGLISH_THEMES, GRADE4_ENGLISH_STRANDS, GRADE4_ENGLISH_SOURCE, GRADE4_ENGLISH_INITIAL_SUBSTRANDS, suggestedTermForTheme } from '@/lib/curriculum/grade4EnglishReference'
+import { GRADE4_ENGLISH_THEMES, GRADE4_ENGLISH_STRANDS, GRADE4_ENGLISH_SOURCE, GRADE4_ENGLISH_SUBSTRANDS, suggestedTermForTheme } from '@/lib/curriculum/grade4EnglishReference'
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -270,7 +270,7 @@ function Inner({ curriculumView = false }) {
           return <div key={theme.number} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:11}}>
             <div style={{fontSize:10,color:C.text3,fontWeight:800}}>THEME {theme.number} · SUGGESTED TERM {suggestedTermForTheme(theme.number)}</div>
             <div style={{fontSize:13,fontWeight:800,marginTop:4}}>{theme.name}</div>
-            {GRADE4_ENGLISH_INITIAL_SUBSTRANDS[theme.number] && <ul style={{paddingLeft:17,margin:'8px 0 0',fontSize:11,color:C.text2,lineHeight:1.6}}>{GRADE4_ENGLISH_INITIAL_SUBSTRANDS[theme.number].map((item,i)=><li key={i}>{item}</li>)}</ul>}
+            {GRADE4_ENGLISH_SUBSTRANDS[theme.number] && <ul style={{paddingLeft:17,margin:'8px 0 0',fontSize:11,color:C.text2,lineHeight:1.6}}>{GRADE4_ENGLISH_SUBSTRANDS[theme.number].map((item,i)=><li key={i}>{item}</li>)}</ul>}
             <div style={{fontSize:11,color:sameThemeRows.length?C.teal:C.text2,marginTop:6}}>{sameThemeRows.length?`${sameThemeRows.length} matching curriculum row(s)`:'Official theme not yet mapped to canonical rows'}</div>
             <div style={{fontSize:11,color:C.text3,marginTop:3}}>Source page {theme.sourcePage} · Outcomes require verification</div>
           </div>
