@@ -257,16 +257,17 @@ declare
   v_count integer;
 begin
   perform public.hq_assert_owner();
-  if v_grade='' or not exists (
-    select 1 from public.grade_subject_authority g
-    where lower(btrim(g.grade))=lower(v_grade)
-      and g.subject_name='Mathematics'
-      and (g.effective_to is null or g.effective_to>=current_date)
-  ) then raise exception 'unrecognised_public_practice_grade'; end if;
   if p_max_attempts < 1 or p_max_attempts > 5 then raise exception 'invalid_max_attempts'; end if;
   select * into v_definition from public.assessment_definitions
   where id=p_assessment_id for update;
   if not found then raise exception 'assessment_not_found'; end if;
+  if v_grade='' or not exists (
+    select 1 from public.grade_subject_authority g
+    join public.subjects subj on lower(btrim(subj.name))=lower(btrim(g.subject_name))
+    where lower(btrim(g.grade))=lower(v_grade)
+      and subj.id=v_definition.subject_id
+      and (g.effective_to is null or g.effective_to>=current_date)
+  ) then raise exception 'unrecognised_public_practice_grade_subject'; end if;
   if v_definition.assessment_type<>'practice'
     or v_definition.status not in ('approved','assigned','open','closed')
     or v_definition.published_at is null
