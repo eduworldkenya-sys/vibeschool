@@ -1,0 +1,23 @@
+import fs from 'node:fs'
+import assert from 'node:assert/strict'
+
+const page=fs.readFileSync('app/student/vibelearn/topic-practice/page.tsx','utf8')
+const canonical=fs.readFileSync('components/student/CanonicalTopicPractice.tsx','utf8')
+const sql=fs.readFileSync('supabase/migrations/20261110131000_grade9_canonical_topic_practice.sql','utf8')
+assert.match(page,/CanonicalTopicPractice grade=\{grade\}/)
+assert.match(page,/api\/learner\/independent\/grade/)
+assert.match(canonical,/startOrResumeAttempt/)
+assert.match(canonical,/saveResponse/)
+assert.match(canonical,/submitAttempt/)
+assert.match(canonical,/student_get_canonical_topic_practice_feedback/)
+assert.match(canonical,/Question \{index\+1\} of 5/)
+assert.match(canonical,/Skip/)
+assert.match(canonical,/Review mistakes/)
+assert.doesNotMatch(canonical,/student_record_vibelearn_practice_answer/)
+assert.match(sql,/current_student_id\(\)/)
+assert.match(sql,/topic_practice'='true'/)
+assert.match(sql,/count\(distinct ai\.id\)=5/)
+assert.match(sql,/ar\.response_value=ai\.correct_answer/)
+assert.match(sql,/attempt_not_owned/)
+assert.doesNotMatch(sql,/create table/i)
+console.log('Canonical Grade 9 Topic Practice contract PASSED')
