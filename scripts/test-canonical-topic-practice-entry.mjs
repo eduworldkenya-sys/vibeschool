@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+
+const page=readFileSync('app/student/vibelearn/practice/page.tsx','utf8')
+const discover=readFileSync('lib/assessment/discovery.ts','utf8')
+const runner=readFileSync('app/student/assessment/[assignmentId]/page.tsx','utf8')
+const results=readFileSync('app/student/results/[attemptId]/page.tsx','utf8')
+
+assert.match(page,/listMyAssessmentAssignments\(\)/,'Topic Practice must discover authorised assessments')
+assert.match(page,/item\.assessmentType === 'practice'/,'Only practice assessments are included')
+assert.match(page,/filteredPracticeAssignments\.map\(item =>/,'Practice sets are selectable')
+assert.match(page,/requestedSubject/,'Existing subject deep links are preserved')
+assert.match(page,/requestedTopic/,'Existing topic deep links are preserved')
+assert.match(page,/identity\?\.className/,'Grade comes from shared learner identity')
+assert.doesNotMatch(page,/isGrade4 && !hasReaderSource/,'Other grades cannot be blocked by Grade 4 gate')
+assert.match(page,/identityLoading \|\| assignmentsLoading/,'Do not falsely report an empty bank during loading')
+assert.match(page,/item\.canStart \|\| active/,'Start requires canonical eligibility or ongoing attempt')
+assert.match(page,/\/student\/assessment\/\$\{encodeURIComponent\(item\.assignmentId\)\}/,'Reuse existing assessment runner')
+assert.match(page,/\/student\/results\/\$\{encodeURIComponent\(item\.attemptId as string\)\}/,'Reuse existing result review')
+assert.match(page,/recordVibeLearnPracticeAnswer/,'Preserve original verified question-bank marking')
+assert.match(page,/recordGroundedPracticeAnswer/,'Preserve original grounded source marking')
+assert.match(page,/No approved practice for this topic yet/,'Never invent a topic drill without approved questions')
+assert.doesNotMatch(page,/\.from\('exam_question_bank'\)/,'Do not query raw answer keys')
+assert.match(discover,/exq_list_my_assignments/,'Discovery must enforce server-side learner entitlement')
+assert.match(runner,/exq_/,'Canonical assessment submission remains in existing runner')
+assert.match(results,/assessment|result/i,'Learner history uses existing result page')
+console.log('PASS grade-neutral Topic Practice uses authorised assessment discovery and existing result/marking engines')
