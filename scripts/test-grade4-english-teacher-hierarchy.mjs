@@ -14,7 +14,7 @@ for(const token of [
   'aria-controls={',
   'Theme-specific learning outcomes: not yet reconciled',
   'Selected-term weekly records:',
-  'setShowYear(false)',
+  'setShowYear(true)',
   'Week {selectedWeek} · Curriculum reference',
   'weekRows.map(row',
   'View existing weekly curriculum',
