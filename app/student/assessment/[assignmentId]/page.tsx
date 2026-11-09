@@ -581,7 +581,7 @@ export default function LearnerAssessmentPage() {
         {workspace.instructions && <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.5 }}>{workspace.instructions}</p>}
         <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700 }}>{answeredCount}/{workspace.items.length} answered · Attempt {workspace.attemptNumber}</div>
         <p style={{ margin: '8px 0 0', color: '#92400e', fontSize: 12, fontWeight: 700 }}>{unansweredIndexes.length} unanswered · Skipped questions receive 0 marks if submitted.</p>
-        {recoveredDraft && <div style={notice}>Recovered newer work saved on this device.</div>}
+        {recoveredDraft && <div style={notice}>Recovered newer work saved on this device.</div>}}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
           <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => void saveAndExit()} style={secondaryButton}>{exiting ? 'Saving…' : workspace.expiresAt || workspace.closesAt ? 'Save & Exit' : 'Pause & Exit'}</button>
           <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => setShowConfirm(true)} style={primaryButton}>Submit & Finish</button>
