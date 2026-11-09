@@ -1,0 +1,28 @@
+name: Grade 9 Mathematics draft integrity
+
+on:
+  pull_request:
+    paths:
+      - 'content/drafts/grade9-mathematics-100-candidates.json'
+      - 'scripts/test-grade9-mathematics-draft.mjs'
+      - '.github/workflows/grade9-mathematics-draft.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/drafts/grade9-mathematics-100-candidates.json'
+      - 'scripts/test-grade9-mathematics-draft.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  draft-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check draft mathematical answer keys and publication gates
+        run: node scripts/test-grade9-mathematics-draft.mjs
