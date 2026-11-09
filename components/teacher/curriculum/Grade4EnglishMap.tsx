@@ -27,7 +27,7 @@ type Props = {
  */
 export default function Grade4EnglishMap({ selectedTerm, selectedWeek, weeklyRows, showExisting, onToggleExisting, onOpenScheme, weeklyCount, schemeCount, verifiedOutcomeCount }: Props) {
   const [selectedTheme, setSelectedTheme] = useState<number | null>(null)
-  const [showYear, setShowYear] = useState(false)
+  const [showYear, setShowYear] = useState(true)
   const weekRows = useMemo(() => weeklyRows.filter(row => row.week === selectedWeek), [weeklyRows, selectedWeek])
   const visibleThemes = useMemo(() =>
     showYear || !selectedTerm
@@ -37,7 +37,7 @@ export default function Grade4EnglishMap({ selectedTerm, selectedWeek, weeklyRow
   useEffect(() => {
     // Reset the expanded theme when a teacher changes the school term.
     setSelectedTheme(null)
-    setShowYear(false)
+    setShowYear(true)
   }, [selectedTerm])
 
   return <section aria-label="Grade 4 English curriculum reference" style={{background:'#fff',border:'1px solid #dce6e0',borderRadius:16,padding:16,marginBottom:16}}>
