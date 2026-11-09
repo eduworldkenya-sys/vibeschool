@@ -71,6 +71,9 @@ begin
      or coalesce(v_draft.review_evidence->>'independent_review','')<>'passed' then
     raise exception 'independent_educational_review_required';
   end if;
+  if coalesce(v_draft.review_evidence->>'reviewed_content_md5','')<>md5(v_draft.paper::text) then
+    raise exception 'reviewed_paper_content_mismatch';
+  end if;
   if coalesce(v_draft.review_evidence->>'public_repository_exposure','false')<>'false' then
     raise exception 'exposed_answer_key_cannot_be_published';
   end if;
