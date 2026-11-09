@@ -84,7 +84,11 @@ export default function VibeLearnPracticePage() {
       setLoading(true)
       setError('')
       try {
-        if (!hasReaderSource && !identityLoading && identity && !/^form\s*[1-4]$/i.test(identity.className.trim())) {
+        if (identityLoading || !identity) {
+          if (!cancelled) { setQuestions([]); setSourceContext(null) }
+          return
+        }
+        if (!hasReaderSource && !/^form\s*[1-4]$/i.test(identity.className.trim())) {
           if (!cancelled) { setSourceContext(null); setQuestions([]) }
           return
         }
@@ -126,6 +130,7 @@ export default function VibeLearnPracticePage() {
     if (identityLoading || !identity) return
     let cancelled = false
     setAssignmentsLoading(true)
+    setPracticeAssignments([])
     setAssignmentError('')
     listMyAssessmentAssignments()
       .then(items => { if (!cancelled) setPracticeAssignments(items.filter(item => item.assessmentType === 'practice')) })
