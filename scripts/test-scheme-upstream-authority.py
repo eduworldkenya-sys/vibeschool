@@ -21,7 +21,7 @@ assert "'get_next_scheme_item'" in lesson_source, (
     'lesson resolver must use persisted Scheme progression'
 )
 progression = lesson_source.index(
-    'const progressionScheme = await loadCurrentSchemeProgression'
+    'progressionScheme = await loadCurrentSchemeProgression'
 )
 occurrence_fallback = lesson_source.index(
     'const occurrenceScheme = await loadSchemeSourceForOccurrenceFallback'
