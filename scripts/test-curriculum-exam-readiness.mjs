@@ -28,3 +28,12 @@ test("HQ makes missing curriculum evidence discoverable, never editable through 
  assert.match(page,/This dashboard cannot alter authority records/)
  assert.match(parent,/grade9-mathematics/)
 })
+
+test("original practice explicitly rejects unsupported KICD verification claims",()=>{
+ const guarded=readFileSync("supabase/migrations/20261110161000_original_practice_provisional_claim_guard.sql","utf8")
+ assert.match(guarded,/p_paper->>'curriculum_verification'/)
+ assert.match(guarded,/curriculum_verified_claim_requires_official_authority_pipeline/)
+ assert.match(guarded,/not in \('provisional','unverified'\)/)
+ assert.match(guarded,/public\.is_platform_owner\(\)/)
+ assert.match(guarded,/exq_publish_public_practice/)
+})
