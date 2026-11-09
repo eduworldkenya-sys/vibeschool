@@ -46,17 +46,17 @@ export default function RevisionWorkspacePage() {
       <VibeLearnSubnav />
       <button style={backButton} onClick={() => router.push('/student/vibelearn')}>← VibeLearn</button>
       <section style={hero}>
-        <div style={eyebrow}>Personal revision OS</div>
-        <h1 style={{ margin: '7px 0 5px' }}>Your plan, mistakes and progress</h1>
-        <p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.6 }}>Built from your own practice, assessment and reading evidence—not from public rankings.</p>
+        <div style={eyebrow}>My revision</div>
+        <h1 style={{ margin: '7px 0 5px' }}>What should I revise?</h1>
+        <p style={{ margin: 0, color: '#64748b', lineHeight: 1.6 }}>Use your own learning progress to plan your next steps.</p>
       </section>
 
       {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
       {loading ? <section style={card}>Preparing your revision workspace…</section> : workspace && <>
         <section style={{ ...card, borderColor: workspace.revisionMode.mode === 'final_sprint' ? '#fca5a5' : '#c7d2fe' }}>
-          <div style={eyebrowDark}>{workspace.revisionMode.mode.replaceAll('_', ' ')}</div>
-          <h2 style={title}>{workspace.revisionMode.daysRemaining} days remaining</h2>
-          <p style={muted}>{workspace.revisionMode.message}</p>
+          <div style={eyebrowDark}>Your study plan</div>
+          <h2 style={title}>{workspace.revisionMode.daysRemaining > 0 ? `${workspace.revisionMode.daysRemaining} days until your exam` : 'Plan your next 7 days'}</h2>
+          {workspace.revisionMode.daysRemaining > 0 && <p style={muted}>{workspace.revisionMode.message}</p>}
           <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:14 }}>
             <button style={primaryButton} disabled={working} onClick={() => void buildPlan()}>{working ? 'Building…' : workspace.weekPlan.length ? 'Refresh 7-day plan' : 'Build my 7-day plan'}</button>
             <button style={secondaryButton} onClick={() => router.push('/student/vibelearn/mistakes')}>Open mistake notebook</button>
@@ -81,7 +81,7 @@ export default function RevisionWorkspacePage() {
 function Metric({ value, label }: { value: number; label: string }) { return <div style={metric}><strong style={{ fontSize: 24 }}>{value}</strong><span style={muted}>{label}</span></div> }
 
 const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 90px', color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }
-const hero: React.CSSProperties = { background: 'linear-gradient(135deg,#0f172a,#312e81)', color: '#fff', borderRadius: 20, padding: 20, marginBottom: 12 }
+const hero: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', color: '#0f172a', borderRadius: 20, padding: 20, marginBottom: 12 }
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 16, marginBottom: 12 }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1, color: '#a5b4fc' }
 const eyebrowDark: React.CSSProperties = { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1, color: '#4f46e5' }
