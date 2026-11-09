@@ -1,0 +1,70 @@
+.vs-exams{min-height:100vh;background:#f6f7fb;color:#17213b;padding:20px clamp(12px,3vw,36px) calc(110px + env(safe-area-inset-bottom));font-family:'Plus Jakarta Sans',sans-serif}
+.vs-exams *{box-sizing:border-box}
+.vs-exams-container{max-width:1000px;margin:0 auto;min-width:0}
+.vs-exams-back{background:none;border:0;color:#5145e8;font:700 13px inherit;cursor:pointer;padding:7px 0 16px}
+.vs-exams-heading{display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:20px}
+.vs-exams-kicker{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6557cf;margin:0 0 5px}
+.vs-exams-heading h1{font-size:clamp(24px,4vw,32px);letter-spacing:-.035em;line-height:1.2;margin:0}
+.vs-exams-heading p:not(.vs-exams-kicker){font-size:14px;color:#667186;line-height:1.5;margin:8px 0 0}
+.vs-exams-refresh{background:white;border:1px solid #d6dbe7;border-radius:11px;color:#39445d;min-height:44px;padding:8px 14px;font:700 13px inherit;cursor:pointer;flex-shrink:0}
+.vs-exams-refresh:disabled{opacity:.55;cursor:wait}
+.vs-exams-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 20px}
+.vs-exams-overview>div{background:#fff;border:1px solid #e1e5f0;border-radius:16px;padding:14px 18px;display:grid;gap:3px;min-width:0}
+.vs-exams-overview strong{font-size:clamp(21px,3vw,28px);font-weight:850;line-height:1.2;font-variant-numeric:tabular-nums}
+.vs-exams-overview span{font-size:12px;color:#606c83}
+.vs-exams-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:5px;background:#e9ecf6;border-radius:14px;margin-bottom:20px}
+.vs-exams-tab{min-width:0;min-height:44px;cursor:pointer;border:0;border-radius:10px;background:transparent;color:#546179;font:750 14px inherit;transition:background .18s ease,color .18s ease,box-shadow .18s ease}
+.vs-exams-tab.is-active{background:#fff;color:#382fc3;box-shadow:0 2px 8px #20294b18}
+.vs-exams-sections{display:grid;gap:23px}
+.vs-exams-sections h2{font-size:18px;letter-spacing:-.02em;line-height:1.35;margin:0 0 12px}
+.vs-exams-section-header{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.vs-exams-section-header span{font-size:12px;color:#667186}
+.vs-exams-section-note{font-size:13px;color:#697589;line-height:1.5;margin:-5px 0 12px}
+.vs-exams-card-list{display:grid;gap:10px}
+.vs-exam-card{background:#fff;border:1px solid #dfe4ef;border-radius:15px;padding:16px 18px;display:flex;gap:14px;align-items:center;justify-content:space-between;min-width:0;box-shadow:0 3px 15px #25305108;transition:border-color .18s ease,box-shadow .18s ease}
+.vs-exam-card:hover{border-color:#bbb9ef;box-shadow:0 5px 18px #25305112}
+.vs-exam-card-main{min-width:0;flex:1}
+.vs-exam-card h3{font-size:15px;line-height:1.45;overflow-wrap:anywhere;letter-spacing:-.012em;margin:7px 0 4px}
+.vs-exam-card p{font-size:12px;color:#67728a;line-height:1.5;margin:3px 0}
+.vs-exam-card p.vs-exam-score{color:#236249;font-weight:750}
+.vs-exam-card-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:0 0 auto}
+.vs-exam-status{display:inline-flex;align-items:center;max-width:100%;font-size:11px;font-weight:750;line-height:1.35;border-radius:999px;padding:4px 9px;color:#4e5870;background:#f0f2f7}
+.vs-exam-status--new{background:#e7f7ee;color:#156b43}
+.vs-exam-status--in-progress{background:#fff2d9;color:#87590d}
+.vs-exam-status--awaiting{background:#e8efff;color:#3759a4}
+.vs-exam-status--completed{background:#edf1f6;color:#455268}
+.vs-exam-status--retake{background:#f0edff;color:#5744ac}
+.vs-exam-button{min-height:44px;max-width:100%;border:1px solid #5145e8;background:#5145e8;color:#fff;border-radius:10px;padding:9px 15px;font:750 13px inherit;cursor:pointer;white-space:normal;text-align:center}
+.vs-exam-button:hover{background:#4437d7}
+.vs-exam-button--outline{background:#fff;color:#4438c7;border-color:#cbc6fa}
+.vs-exam-button--outline:hover{background:#f4f2ff}
+.vs-exam-result-value{font-weight:850;font-size:19px;font-variant-numeric:tabular-nums}
+.vs-exams-message{border:1px solid #dfe4ee;background:#fff;color:#657089;padding:19px;border-radius:14px;line-height:1.6;font-size:13px}
+.vs-exams-error{border-color:#f6bdc0;color:#9f2424}
+.vs-exams-error button{margin-left:10px;border:0;background:transparent;text-decoration:underline;color:inherit;cursor:pointer}
+.vs-exams-progress-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.vs-exams-progress-grid>div{background:#fff;border:1px solid #dfe4ee;border-radius:15px;padding:19px;display:grid;gap:9px}
+.vs-exams-progress-grid span{font-size:12px;color:#627087}
+.vs-exams-progress-grid strong{font-size:25px;letter-spacing:-.02em}
+.vs-exam-modal-backdrop{position:fixed;inset:0;background:#111c38a8;z-index:1000;display:grid;place-items:center;padding:18px}
+.vs-exam-modal{width:min(100%,440px);border-radius:19px;padding:24px;background:#fff;box-shadow:0 20px 60px #0004}
+.vs-exam-modal h2{margin:0 0 9px;font-size:21px}
+.vs-exam-modal p{font-size:14px;line-height:1.65;color:#556178;margin:0 0 20px}
+.vs-exam-modal-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:9px}
+.vs-exams button:focus-visible{outline:3px solid #f2b74b;outline-offset:3px}
+@media(max-width:580px){
+.vs-exams{padding:16px 12px calc(100px + env(safe-area-inset-bottom))}
+.vs-exams-heading{gap:8px;align-items:center}
+.vs-exams-heading p:not(.vs-exams-kicker){font-size:12px}
+.vs-exams-refresh{padding:7px 10px}
+.vs-exams-overview{gap:7px}
+.vs-exams-overview>div{padding:12px 9px}
+.vs-exams-overview span{font-size:10px}
+.vs-exams-tab{font-size:12px}
+.vs-exam-card{padding:14px;flex-direction:column;align-items:stretch;gap:12px}
+.vs-exam-card-actions{align-items:stretch;flex-direction:row;justify-content:space-between;align-items:center}
+.vs-exam-card-actions .vs-exam-button{width:100%}
+.vs-exam-card-actions .vs-exam-result-value+.vs-exam-button{width:auto;flex:1}
+.vs-exams-progress-grid>div{padding:14px}
+}
+@media(prefers-reduced-motion:reduce){.vs-exams .vs-exam-card,.vs-exams .vs-exams-tab{transition:none}}
