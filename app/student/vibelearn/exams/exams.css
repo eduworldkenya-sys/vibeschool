@@ -1,19 +1,19 @@
 .vs-exams{min-height:100vh;background:#f6f7fb;color:#17213b;padding:20px clamp(12px,3vw,36px) calc(110px + env(safe-area-inset-bottom));font-family:'Plus Jakarta Sans',sans-serif}
 .vs-exams *{box-sizing:border-box}
 .vs-exams-container{max-width:1000px;margin:0 auto;min-width:0}
-.vs-exams-back{background:none;border:0;color:#5145e8;font:700 13px inherit;cursor:pointer;padding:7px 0 16px}
+.vs-exams-back{background:none;border:0;color:#5145e8;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;padding:7px 0 16px}
 .vs-exams-heading{display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:20px}
 .vs-exams-kicker{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6557cf;margin:0 0 5px}
 .vs-exams-heading h1{font-size:clamp(24px,4vw,32px);letter-spacing:-.035em;line-height:1.2;margin:0}
 .vs-exams-heading p:not(.vs-exams-kicker){font-size:14px;color:#667186;line-height:1.5;margin:8px 0 0}
-.vs-exams-refresh{background:white;border:1px solid #d6dbe7;border-radius:11px;color:#39445d;min-height:44px;padding:8px 14px;font:700 13px inherit;cursor:pointer;flex-shrink:0}
+.vs-exams-refresh{background:white;border:1px solid #d6dbe7;border-radius:11px;color:#39445d;min-height:44px;padding:8px 14px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0}
 .vs-exams-refresh:disabled{opacity:.55;cursor:wait}
 .vs-exams-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 20px}
 .vs-exams-overview>div{background:#fff;border:1px solid #e1e5f0;border-radius:16px;padding:14px 18px;display:grid;gap:3px;min-width:0}
 .vs-exams-overview strong{font-size:clamp(21px,3vw,28px);font-weight:850;line-height:1.2;font-variant-numeric:tabular-nums}
 .vs-exams-overview span{font-size:12px;color:#606c83}
 .vs-exams-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:5px;background:#e9ecf6;border-radius:14px;margin-bottom:20px}
-.vs-exams-tab{min-width:0;min-height:44px;cursor:pointer;border:0;border-radius:10px;background:transparent;color:#546179;font:750 14px inherit;transition:background .18s ease,color .18s ease,box-shadow .18s ease}
+.vs-exams-tab{min-width:0;min-height:44px;cursor:pointer;border:0;border-radius:10px;background:transparent;color:#546179;font-family:inherit;font-weight:750;font-size:14px;transition:background .18s ease,color .18s ease,box-shadow .18s ease}
 .vs-exams-tab.is-active{background:#fff;color:#382fc3;box-shadow:0 2px 8px #20294b18}
 .vs-exams-sections{display:grid;gap:23px}
 .vs-exams-sections h2{font-size:18px;letter-spacing:-.02em;line-height:1.35;margin:0 0 12px}
@@ -34,7 +34,7 @@
 .vs-exam-status--awaiting{background:#e8efff;color:#3759a4}
 .vs-exam-status--completed{background:#edf1f6;color:#455268}
 .vs-exam-status--retake{background:#f0edff;color:#5744ac}
-.vs-exam-button{min-height:44px;max-width:100%;border:1px solid #5145e8;background:#5145e8;color:#fff;border-radius:10px;padding:9px 15px;font:750 13px inherit;cursor:pointer;white-space:normal;text-align:center}
+.vs-exam-button{min-height:44px;max-width:100%;border:1px solid #5145e8;background:#5145e8;color:#fff;border-radius:10px;padding:9px 15px;font-family:inherit;font-weight:750;font-size:13px;cursor:pointer;white-space:normal;text-align:center}
 .vs-exam-button:hover{background:#4437d7}
 .vs-exam-button--outline{background:#fff;color:#4438c7;border-color:#cbc6fa}
 .vs-exam-button--outline:hover{background:#f4f2ff}
