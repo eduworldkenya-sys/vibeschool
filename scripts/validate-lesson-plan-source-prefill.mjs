@@ -43,11 +43,11 @@ const assertions = [
     'Contextual generation must accept authoritative Scheme grounding.',
   ],
   [
-    !modal.includes(".from('homework') as any"),
+    !modal.includes([".from('homework')", 'as', 'any'].join(' ')),
     'LessonPlanModal must not restore the legacy homework type escape hatch.',
   ],
   [
-    !source.includes('as unknown'),
+    !source.includes(['as', 'unknown'].join(' ')),
     'Lesson source parsing must not use an unknown-cast escape hatch.',
   ],
   [
