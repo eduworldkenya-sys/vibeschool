@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const migration = readFileSync('supabase/migrations/20261109180000_exq_independent_public_practice.sql', 'utf8')
+const migration = readFileSync('supabase/migrations/20261110010000_exq_independent_public_practice.sql', 'utf8')
 const page = readFileSync('app/student/vibelearn/exams/grade-9/mathematics/page.tsx', 'utf8')
 
 test('public practice is explicitly grade-scoped and limited to published practice', () => {
