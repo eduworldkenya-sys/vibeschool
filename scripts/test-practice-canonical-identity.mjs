@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const sql = readFileSync("supabase/migrations/20261109133000_canonical_practice_identity_parity.sql","utf8");
+assert.match(sql,/create or replace function public\.student_list_vibelearn_practice_questions/i);
+assert.match(sql,/create or replace function public\.student_record_vibelearn_practice_answer/i);
+assert.equal((sql.match(/v_student := public\.current_student_id\(\);/g)||[]).length,2);
+assert.doesNotMatch(sql,/select (?:s\.)?id into v_student from (?:public\.)?students[^;]*limit 1/i);
+assert.match(sql,/b\.provenance_status in \('teacher_verified','publisher_verified','official_verified'\)/);
+assert.match(sql,/revoke execute on function public\.student_list_vibelearn_practice_questions/);
+assert.doesNotMatch(sql,/create table /i);
+console.log("PASS: practice question delivery and marking use identical canonical student resolver");
