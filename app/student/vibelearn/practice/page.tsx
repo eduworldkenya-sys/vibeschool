@@ -59,6 +59,7 @@ export default function VibeLearnPracticePage() {
   const [sourceContext, setSourceContext] = useState<GroundedPracticeSource | null>(null)
   const [practiceAssignments, setPracticeAssignments] = useState<LearnerAssessmentAssignment[]>([])
   const [assignmentError, setAssignmentError] = useState('')
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true)
   const [practiceSubject, setPracticeSubject] = useState('')
   const [questions, setQuestions] = useState<PracticeQuestion[]>([])
   const [index, setIndex] = useState(0)
@@ -124,10 +125,12 @@ export default function VibeLearnPracticePage() {
   useEffect(() => {
     if (identityLoading || !identity) return
     let cancelled = false
+    setAssignmentsLoading(true)
     setAssignmentError('')
     listMyAssessmentAssignments()
       .then(items => { if (!cancelled) setPracticeAssignments(items.filter(item => item.assessmentType === 'practice')) })
       .catch(() => { if (!cancelled) setAssignmentError('Available practice sets could not be loaded. Please refresh.') })
+      .finally(() => { if (!cancelled) setAssignmentsLoading(false) })
     return () => { cancelled = true }
   }, [identityLoading, identity?.studentId])
 
@@ -188,7 +191,7 @@ export default function VibeLearnPracticePage() {
     {sourceContext && <section style={{ ...card, borderColor: '#c7d2fe', background: '#f5f3ff' }}><div style={eyebrowDark}>Exact learning source</div><strong style={{ display: 'block', margin: '6px 0 3px' }}>{sourceContext.publicationTitle} · {sourceContext.chapterTitle}</strong><p style={muted}>{[sourceContext.grade, sourceContext.subject].filter(Boolean).join(' · ') || 'VibeTextbook'} · {sourceContext.assessableBlockCount} assessable blocks · {sourceContext.verifiedOutcomeCount} verified outcomes</p><p style={{ ...muted, marginTop: 8 }}>Questions come from authored assessable blocks in this exact unit. Answers are scored by the server, and mistakes retain a link back to their source section.</p></section>}
     {assignmentError && <section role="alert" style={{ ...card, color: '#b91c1c' }}>{assignmentError}</section>}
     {!hasReaderSource && <section style={card} aria-label="Available practice assessments">
-      <div style={eyebrowDark}>Your grade · Approved practice</div>
+      <div style={eyebrowDark}>{identity?.className || 'Your grade'} · Approved practice</div>
       <h2 style={{ fontSize: 19, margin: '7px 0 8px' }}>Choose a subject and practise</h2>
       <p style={{ ...muted, lineHeight: 1.6 }}>Only practice available to your learner account appears here. School linkage is optional for public practice. Marks and attempts stay in your existing assessment history.</p>
       {practiceSubjects.length > 1 && <div aria-label="Practice subjects" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
@@ -196,7 +199,7 @@ export default function VibeLearnPracticePage() {
         {practiceSubjects.map(subject => <button type="button" key={subject} aria-pressed={selectedPracticeSubject.toLowerCase() === subject.toLowerCase()} onClick={() => setPracticeSubject(subject)} style={{ ...secondaryButton, background: selectedPracticeSubject.toLowerCase() === subject.toLowerCase() ? '#c7d2fe' : '#eef2ff' }}>{subject}</button>)}
       </div>}
       {assignmentError ? <p role="alert" style={{ color: '#b91c1c', marginTop: 12 }}>{assignmentError}</p>
-        : identityLoading ? <p role="status" style={{ ...muted, marginTop: 12 }}>Checking your available practice…</p>
+        : identityLoading || assignmentsLoading ? <p role="status" style={{ ...muted, marginTop: 12 }}>Checking your available practice…</p>
         : filteredPracticeAssignments.length === 0 ? <div style={{ marginTop: 14 }}>
           <strong>{requestedTopic ? 'No approved practice for this topic yet' : 'No practice sets available for this selection yet'}</strong>
           <p style={{ ...muted, marginTop: 6 }}>Only approved questions are offered. Explore available exams or read published units while more topic sets are prepared.</p>
