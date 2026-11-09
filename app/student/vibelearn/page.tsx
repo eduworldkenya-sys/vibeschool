@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
+import LearnActivityHub from '@/components/student/LearnActivityHub'
 import {
   getAdaptiveLearningPath,
   getAdaptiveResourceRecommendations,
@@ -101,6 +102,7 @@ export default function StudentVibeLearnPage() {
       <a href="/student/vibelearn/exams" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 56, padding: '14px 18px', marginBottom: 14, borderRadius: 14, background: '#243f83', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 17 }}>
         <span>Exams</span><span aria-hidden="true">Open →</span>
       </a>
+      <LearnActivityHub />
       <section style={hero}>
         <div style={eyebrow}>VibeLearn Workstation</div>
         <h1 style={{ margin: '8px 0 6px', fontSize: 28 }}>Learn. Practise. Revise. Master.</h1>
