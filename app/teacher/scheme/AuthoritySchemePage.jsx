@@ -1,6 +1,7 @@
 "use client"
 
 import TeachingWorkspaceNav from '@/components/teacher/TeachingWorkspaceNav'
+import { GRADE4_ENGLISH_THEMES, GRADE4_ENGLISH_STRANDS, GRADE4_ENGLISH_SOURCE, suggestedTermForTheme } from '@/lib/curriculum/grade4EnglishReference'
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -259,6 +260,23 @@ function Inner({ curriculumView = false }) {
       {!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
     </div>
 
+    {curriculumView && classObj?.grade?.trim().toLowerCase()==='grade 4' && subjectObj?.label?.trim().toLowerCase()==='english' && <section style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:14,padding:16,marginBottom:14}}>
+      <h2 style={{fontSize:17,fontWeight:800,margin:'0 0 6px'}}>KICD Grade 4 English — full-year reference</h2>
+      <p style={{fontSize:12,color:C.text2,lineHeight:1.6}}>13 official themes and four language strands. Theme-to-term grouping is a suggested plan, not a KICD-prescribed schedule. The existing weekly curriculum remains unchanged until individual learning outcomes are reconciled and verified.</p>
+      <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:12}}>{GRADE4_ENGLISH_STRANDS.map(strand=><span key={strand} style={{fontSize:11,padding:'5px 8px',background:C.surface2,borderRadius:7}}>{strand}</span>)}</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:9}}>
+        {GRADE4_ENGLISH_THEMES.map(theme=>{
+          const sameThemeRows=allCurriculumRows.filter(row=>String(row.topic||'').trim().toLowerCase()===theme.name.toLowerCase())
+          return <div key={theme.number} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:11}}>
+            <div style={{fontSize:10,color:C.text3,fontWeight:800}}>THEME {theme.number} · SUGGESTED TERM {suggestedTermForTheme(theme.number)}</div>
+            <div style={{fontSize:13,fontWeight:800,marginTop:4}}>{theme.name}</div>
+            <div style={{fontSize:11,color:sameThemeRows.length?C.teal:C.text2,marginTop:6}}>{sameThemeRows.length?`${sameThemeRows.length} matching curriculum row(s)`:'Official theme not yet mapped to canonical rows'}</div>
+            <div style={{fontSize:11,color:C.text3,marginTop:3}}>Source page {theme.sourcePage} · Outcomes require verification</div>
+          </div>
+        })}
+      </div>
+      <p style={{fontSize:11,color:C.text3,marginTop:12}}>This source index is visible even when no material is published. It does not imply lessons or KICD-specific outcomes have been imported. <a href={GRADE4_ENGLISH_SOURCE} target="_blank" rel="noopener noreferrer" style={{color:C.teal,textDecoration:'underline'}}>Curriculum source (2024)</a></p>
+    </section>}
     {curriculumView ? <section className="studio-canonical-map">
       <p className="studio-map-source">Stored curriculum · {classObj?.label} · {subjectObj?.label} · {termObj ? termLabel(termObj) : 'Select term'}</p>
       {fetching ? <p role="status">Loading curriculum…</p> : !allCurriculumRows.length ? <Empty title="No curriculum records for this context" desc="Select a class, subject and term. Missing curriculum is not treated as completed coverage."/> : <>
