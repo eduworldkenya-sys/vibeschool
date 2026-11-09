@@ -96,13 +96,8 @@ export default function VibeLearnPracticePage() {
           return
         }
         if (!cancelled) setSourceContext(null)
-        const secureClient = supabase as unknown as {
-          rpc(fn: 'student_list_vibelearn_practice_questions', args: {
-            p_subject: string | null; p_topic: string | null; p_form: string | null; p_limit: number
-          }): Promise<{ data: unknown; error: { message: string } | null }>
-        }
         const form = identity?.className?.trim() ?? ''
-        const { data, error: loadError } = await secureClient.rpc('student_list_vibelearn_practice_questions', {
+        const { data, error: loadError } = await supabase.rpc('student_list_vibelearn_practice_questions' as never, {
           p_subject: requestedSubject || null,
           p_topic: requestedTopic || null,
           p_form: /^form\s*[1-4]$/i.test(form) ? form : null,
@@ -128,8 +123,8 @@ export default function VibeLearnPracticePage() {
     if (identityLoading || !isGrade4) return
     let cancelled = false
     listMyAssessmentAssignments()
-      .then(items => { if (!cancelled) setGrade4Assignments(items.filter(item => item.assessmentType === 'practice' && /^Grade 4 English\b/i.test(item.title))) })
-      .catch(() => { if (!cancelled) setAssignmentError('Your assigned English practice could not be loaded.') })
+      .then(items => { if (!cancelled) setGrade4Assignments(items.filter(item => item.assessmentType === 'practice')) })
+      .catch(() => { if (!cancelled) setAssignmentError('Your assigned practice could not be loaded.') })
     return () => { cancelled = true }
   }, [identityLoading, isGrade4])
 
@@ -178,11 +173,11 @@ export default function VibeLearnPracticePage() {
 
     {sourceContext && <section style={{ ...card, borderColor: '#c7d2fe', background: '#f5f3ff' }}><div style={eyebrowDark}>Exact learning source</div><strong style={{ display: 'block', margin: '6px 0 3px' }}>{sourceContext.publicationTitle} · {sourceContext.chapterTitle}</strong><p style={muted}>{[sourceContext.grade, sourceContext.subject].filter(Boolean).join(' · ') || 'VibeTextbook'} · {sourceContext.assessableBlockCount} assessable blocks · {sourceContext.verifiedOutcomeCount} verified outcomes</p><p style={{ ...muted, marginTop: 8 }}>Questions come from authored assessable blocks in this exact unit. Answers are scored by the server, and mistakes retain a link back to their source section.</p></section>}
     {assignmentError && <section role="alert" style={{ ...card, color: '#b91c1c' }}>{assignmentError}</section>}
-    {isGrade4 && !hasReaderSource && <section style={card} aria-label="Grade 4 English practice assessments">
-      <div style={eyebrowDark}>Grade 4 · English</div>
-      <h2 style={{ fontSize: 19, margin: '6px 0 8px' }}>English practice</h2>
+    {isGrade4 && !hasReaderSource && <section style={card} aria-label="Grade 4 practice assessments">
+      <div style={eyebrowDark}>Grade 4 · Practice assessments</div>
+      <h2 style={{ fontSize: 19, margin: '6px 0 8px' }}>Assigned subject practice</h2>
       <p style={muted}>Use your approved practice assessments. Answers, marks and released results stay in your existing assessment record.</p>
-      {grade4Assignments.length === 0 ? <p style={{ ...muted, marginTop: 12 }}>No English practice assessment is currently assigned to your account.</p> : <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+      {grade4Assignments.length === 0 ? <p style={{ ...muted, marginTop: 12 }}>No subject practice assessment is currently assigned to your account.</p> : <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
         {grade4Assignments.map(item => <div key={item.assignmentId} style={{ border: '1px solid #e2e8f0', padding: 12, borderRadius: 12 }}>
           <strong>{item.title}</strong>
           <p style={{ ...muted, marginTop: 6 }}>{item.timeLimitMinutes ? `${item.timeLimitMinutes} minutes · ` : ''}{item.availability.replaceAll('_', ' ')}</p>
