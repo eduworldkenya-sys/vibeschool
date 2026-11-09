@@ -168,19 +168,56 @@ export default function VibeTwinLearningOS() {
   if (loading && !state) return <main style={shell}><div style={loadingCard}>Preparing your learning journey…</div></main>
 
   return <main style={shell}>
-    <header style={topbar}><div><div style={brand}>✦ VibeTwin</div><div style={subtitle}>{identity?.firstName ? `${identity.firstName}'s learning journey` : 'Your learning journey'}</div></div><div style={confidencePill}>{hasEvidence ? `${confidence}% confidence` : 'Building evidence'}</div></header>
+    <header style={topbar}><div><div style={brand}>VibeTwin</div><div style={subtitle}>{identity?.className ? `${identity.className} · ` : ''}{identity?.firstName ? `Learning with ${identity.firstName}` : 'Your learning companion'}</div></div><div style={confidencePill}>{hasEvidence ? `${confidence}% confidence` : 'Building evidence'}</div></header>
 
-    <nav aria-label="VibeTwin workspace" style={layerNav}>{(['now','learn','grow'] as Layer[]).map(item => <button key={item} onClick={() => setLayer(item)} aria-pressed={layer === item} style={{ ...layerButton, ...(layer === item ? layerButtonActive : {}) }}>{item === 'now' ? 'Now' : item === 'learn' ? 'Learn' : 'Grow'}</button>)}</nav>
+    <nav aria-label="VibeTwin workspace" style={layerNav}>{(['now','learn','grow'] as Layer[]).map(item => <button key={item} onClick={() => setLayer(item)} aria-pressed={layer === item} style={{ ...layerButton, ...(layer === item ? layerButtonActive : {}) }}>{item === 'now' ? 'Start' : item === 'learn' ? 'Work on a skill' : 'My progress'}</button>)}</nav>
     {error && <div role="status" style={degraded}>Twin is in limited mode. The rest of your learning workspace still works. <button style={textButton} onClick={() => void refresh()}>Try again</button></div>}
 
     {layer === 'now' && <div style={stack}>
-      <section style={hero}><div style={eyebrow}>YOUR NEXT BEST MOVE</div><h1 style={heroTitle}>{cleanLearningText(now?.title) || 'Let’s build your next learning signal'}</h1><p style={heroBody}>{now?.reason ?? 'I am waiting for enough verified evidence to choose a learner-specific next step.'}</p>{(now?.reasonChain.length ?? 0) > 0 && <div style={chips}>{now?.reasonChain.map(reason => <span key={reason} style={chip}>{reason}</span>)}</div>}<div style={actions}>{now?.actionUrl && <button style={primary} onClick={() => router.push(now.actionUrl!)}>{now.actionLabel ?? 'Start now'} →</button>}<button style={secondary} onClick={() => setChatOpen(true)}>Talk it through</button></div></section>
-      <AdaptiveSessionCard />
-      <section style={card}><div style={eyebrowDark}>CHOOSE HOW TO LEARN</div><div style={modeGrid}>{MODES.map(item => <button key={item.id} onClick={() => selectMode(item.id)} style={modeButton}><strong>{item.label}</strong><span>{item.detail}</span></button>)}</div></section>
+      <section style={{ ...card, padding: 20, display: 'grid', gap: 14 }}>
+        <div>
+          <div style={eyebrowDark}>YOUR LEARNING COMPANION</div>
+          <h1 style={{ ...heroTitle, color: 'var(--vs-text)', margin: '7px 0 5px' }}>
+            {hasEvidence && now?.title ? cleanLearningText(now.title) : 'What would you like to learn?'}
+          </h1>
+          <p style={{ ...body, margin: 0 }}>
+            {hasEvidence && now?.reason
+              ? now.reason
+              : 'Choose an activity below. Twin will learn from your completed work and improve its guidance.'}
+          </p>
+        </div>
+        {hasEvidence && now?.actionUrl && <button style={primary} onClick={() => router.push(now.actionUrl!)}>
+          {now.actionLabel || 'Continue recommended work'}
+        </button>}
+        <button style={{ ...primary, minHeight: 48, width: '100%', fontSize: 15 }}
+          onClick={() => setChatOpen(true)}>Ask Twin a question</button>
+      </section>
+
+      <section style={card}>
+        <div style={eyebrowDark}>START LEARNING</div>
+        <h2 style={{ ...sectionTitle, margin: '6px 0 14px' }}>Choose what you need</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,210px),1fr))', gap: 10 }}>
+          {MODES.map(item => <button key={item.id} type="button" onClick={() => selectMode(item.id)}
+            style={{ ...modeButton, minHeight: 82, padding: 14, textAlign: 'left', borderRadius: 14 }}>
+            <strong style={{ fontSize: 15 }}>{item.label}</strong><span>{item.detail}</span>
+          </button>)}
+        </div>
+      </section>
+
+      <section style={card}>
+        <div style={sectionHead}>
+          <div><div style={eyebrowDark}>STUDY SESSION</div>
+            <h2 style={{ ...sectionTitle, marginTop: 5 }}>Learn at your pace</h2></div>
+          <button type="button" style={textButton} onClick={() => router.push('/student/twin/companion')}>
+            My learning memory
+          </button>
+        </div>
+        <AdaptiveSessionCard />
+      </section>
     </div>}
 
     {layer === 'learn' && <div style={stack}>
-      <section style={learnHero}><div><div style={eyebrow}>CURRENT FOCUS</div><h2 style={heroTitle}>{cleanLearningText(practice?.outcomeText ?? weakest?.outcomeText) || 'Choose a skill to begin'}</h2><p style={heroBody}>Twin will slow down, speed up, reteach prerequisites, or increase difficulty based on your verified responses.</p></div><button style={primary} onClick={() => void startPractice()}>{busy ? 'Preparing…' : practice ? 'New question' : 'Start adaptive practice'}</button></section>
+      <section style={learnHero}><div><div style={eyebrow}>PRACTISE A SKILL</div><h2 style={heroTitle}>{cleanLearningText(practice?.outcomeText ?? weakest?.outcomeText) || 'Build your skills through practice'}</h2><p style={heroBody}>Choose a question, try it and request a hint. Verified answers help Twin improve future learning guidance.</p></div><button style={primary} onClick={() => void startPractice()}>{busy ? 'Preparing…' : practice ? 'New question' : 'Start adaptive practice'}</button></section>
 
       <section style={card}>
         <div style={sectionHead}><div><div style={eyebrowDark}>LEARN YOUR WAY</div><h2 style={sectionTitle}>Same material. A format that clicks.</h2></div><span style={muted}>Source grounded · personalized · cached</span></div>
@@ -240,7 +277,7 @@ export default function VibeTwinLearningOS() {
       <section style={card}><div style={eyebrowDark}>REVISION TIMELINE</div>{(summary?.revisionPlan ?? []).slice(0,5).map(item => <button key={item.id} style={timelineItem} onClick={() => router.push(item.actionUrl)}><div><strong>{cleanLearningText(item.topic)}</strong><div style={muted}>{item.subject} · {item.targetMinutes} min</div></div><span>→</span></button>)}{(summary?.revisionPlan.length ?? 0) === 0 && <p style={body}>Your spaced-revision timeline will appear as Twin gathers enough evidence.</p>}</section>
     </div>}
 
-    <button style={askDock} onClick={() => setChatOpen(true)}>✦ Ask Twin anything about what you are learning</button>
+    {layer !== 'now' && <button style={askDock} onClick={() => setChatOpen(true)}>Ask Twin a question</button>}
     <VibeTwin isOpen={chatOpen} onClose={() => setChatOpen(false)} userName={identity?.firstName ?? 'Learner'} learnerState={state} />
   </main>
 }
