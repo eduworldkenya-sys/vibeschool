@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useStudent } from "@/lib/student-context"
 import { getLearnerTwinState, type LearnerTwinState } from "@/lib/student/twin"
 
@@ -30,6 +30,7 @@ export function useTwinBrain() {
 
 export default function TwinWorkspaceProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const { identity } = useStudent()
   const [brain, setBrain] = useState<LearnerTwinState | null>(null)
   const [brainLoading, setBrainLoading] = useState(false)
@@ -87,7 +88,7 @@ export default function TwinWorkspaceProvider({ children }: { children: React.Re
   return (
     <TwinWorkspaceContext.Provider value={value}>
       {children}
-      {<button
+      {pathname !== "/student" && pathname !== "/student/" && <button
         onClick={openTwin}
         aria-label={brainError ? "Open VibeTwin learning workspace (limited mode)" : "Open VibeTwin learning workspace"}
         title={brainError ? "Twin is temporarily limited. The rest of Student OS remains available." : "Open VibeTwin"}
