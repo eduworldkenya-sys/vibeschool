@@ -29,7 +29,7 @@ const checks = [
   [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the server-side account creation boundary'],
   [studentAccountRoute.includes("rpc('lookup_student_claim'") && studentAccountRoute.includes("status !== 'ready'") && studentAccountRoute.includes("rpc('finalize_student_provisioning'"), 'learner claim is validated through the canonical server-side provisioning boundary'],
   [studentAccountRoute.includes("case 'class_not_found'") && studentAccountRoute.includes("code: 'class_required'") && studentAccountRoute.includes('!studentId || !studentName || !schoolId'), 'learner credentials require valid school identity and class enrollment'],
-  [studentSignup.includes('Enter your school learner code and create a PIN.') && studentSignup.includes('No learner code? Ask your school.') && !studentSignup.includes('className="steps"'), 'school learner signup remains clear after its approved copy simplification'],
+  [studentSignup.includes('Joining through your school? Use learner code') && studentSignup.includes('schoolExpanded') && studentSignup.includes('Enter the learner code provided by your school.') && !studentSignup.includes('className="steps"'), 'school learner signup remains clear and optional after its approved simplification'],
   [roleLogin.includes("student: '/signup/student'") && roleLogin.includes("parent: '/signup/parent'") && roleLogin.includes("href={signupLink}"), 'focused sign in connects new learners and parents to direct signup'],
 
   // The selected login page is presentation/intent only. DB access state + onboarding own routing.

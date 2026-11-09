@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { LEARNER_GRADES } from '@/lib/learner/independent-grade'
 
 export default function IndependentLearnerSignup() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [verified, setVerified] = useState(false)
   const [grade, setGrade] = useState('')
@@ -40,6 +42,7 @@ export default function IndependentLearnerSignup() {
         throw new Error(result.error || 'Could not save your grade.')
       }
       setSaved(true)
+      router.replace('/student')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not finish setup.')
     } finally {
@@ -56,7 +59,7 @@ export default function IndependentLearnerSignup() {
         <a href="/signup/student" style={{color:'#c8a84b'}}>Go to signup</a>
       </> : saved ? <>
         <p>Your grade is saved. You can start reading and learning.</p>
-        <a href="/global/read" style={{color:'#c8a84b'}}>Open reading library</a>
+        <a href="/student" style={{color:'#c8a84b'}}>Open learner home</a>
       </> : <>
         <p>Your Google account is verified. Choose your grade to get started.</p>
         <label htmlFor="grade">Your grade or form</label>
@@ -69,7 +72,7 @@ export default function IndependentLearnerSignup() {
           style={{width:'100%',padding:14,background:'#c8a84b',color:'#090915',border:0,borderRadius:8,fontWeight:700}}>
           {busy?'Saving…':'Continue learning'}
         </button>
-        <p style={{fontSize:13,color:'#aeb4c2'}}>Independent accounts can use the reading library now. School-only lessons, exams and tutoring are not yet available through this signup.</p>
+        <p style={{fontSize:13,color:'#aeb4c2'}}>You will enter your learner homepage. School-specific records require verified school enrollment.</p>
       </>}
       {message && <p role="alert" style={{color:'#fda4af'}}>{message}</p>}
     </section>

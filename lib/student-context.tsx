@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase"
 import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core"
 
 export interface StudentIdentity {
+  independent?: boolean
   profileId:   string
   studentId:   string
   classId:     string | null
@@ -49,6 +50,27 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       setError(null)
       try {
+        // An independent learner has verified identity and a saved grade but no
+        // school-owned Student Twin binding. Only canonical server authority may
+        // establish this home mode; never infer it from email or user metadata.
+        const { data: journey, error: journeyError } = await supabase.rpc('get_my_onboarding_state')
+        if (journeyError || !journey || typeof journey !== 'object' || Array.isArray(journey)) {
+          throw new Error('Could not verify your learner access. Please retry.')
+        }
+        if (journey.independent === true && journey.role === 'student' && journey.state === 'ready') {
+          const { data: { user }, error: userError } = await supabase.auth.getUser()
+          if (userError || !user) throw new Error('Sign in again to continue.')
+          const { data: profile, error: profileError } = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
+          if (profileError) throw new Error('Could not load your learner profile.')
+          const name = profile?.full_name?.trim() || user.email?.split('@')[0] || 'Learner'
+          if (!cancelled) setIdentity({
+            independent: true, profileId: user.id, studentId: '', classId: null, schoolId: null,
+            name, firstName: name.split(/\s+/)[0] || 'Learner', admissionNo: '',
+            className: typeof journey.grade_label === 'string' ? journey.grade_label : '',
+            schoolName: '',
+          })
+          return
+        }
         // Twin/portal role authority is relationship-derived. profiles.role is not
         // an authorization root, which allows one identity to hold multiple roles.
         const authority = await getTwinAuthorityContext()

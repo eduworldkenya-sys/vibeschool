@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter, usePathname } from "next/navigation"
+import { useStudent } from "@/lib/student-context"
 
 const TABS = [
   { id: "home",    label: "Home",     href: "/student"           },
@@ -31,8 +32,10 @@ const ICONS: Record<TabId, ({ active }: { active: boolean }) => React.ReactNode>
 
 export default function BottomNav() {
   const router = useRouter(); const pathname = usePathname(); const current = activeTab(pathname)
+  const { identity } = useStudent()
+  const tabs = identity?.independent ? TABS.filter(tab => tab.id === 'home' || tab.id === 'learn') : TABS
   return <nav aria-label="Student primary navigation" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, display: "flex", height: 66, borderTop: "1px solid var(--vs-nav-border)", background: "var(--vs-nav-bg)", paddingBottom: "env(safe-area-inset-bottom)" }}>
-    {TABS.map(tab => { const isActive = tab.id === current; const Icon = ICONS[tab.id]; return <button key={tab.id} aria-current={isActive ? "page" : undefined} onClick={() => router.push(tab.href)} style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, border: "none", background: "transparent", cursor: "pointer", color: isActive ? "var(--vs-accent)" : "var(--vs-muted)", transition: "color .15s, transform .15s", minWidth: 44, minHeight: 44, transform: tab.id === 'twin' && isActive ? 'translateY(-1px)' : undefined }}>
+    {tabs.map(tab => { const isActive = tab.id === current; const Icon = ICONS[tab.id]; return <button key={tab.id} aria-current={isActive ? "page" : undefined} onClick={() => router.push(identity?.independent && tab.id === 'learn' ? '/global/read' : tab.href)} style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, border: "none", background: "transparent", cursor: "pointer", color: isActive ? "var(--vs-accent)" : "var(--vs-muted)", transition: "color .15s, transform .15s", minWidth: 44, minHeight: 44, transform: tab.id === 'twin' && isActive ? 'translateY(-1px)' : undefined }}>
       {isActive && <span style={{ position: "absolute", top: 0, width: tab.id === 'twin' ? 30 : 24, height: 2, borderRadius: "0 0 4px 4px", background: "var(--vs-accent)" }} />}
       <Icon active={isActive} /><span style={{ fontSize: 9.5, lineHeight: 1, fontWeight: isActive ? 800 : 500, fontFamily: "inherit" }}>{tab.label}</span>
     </button> })}
