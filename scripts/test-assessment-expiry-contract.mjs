@@ -7,5 +7,6 @@ assert.match(runner, /if \(expired\) \{[\s\S]*?Promise\.allSettled\(Object\.valu
 assert.match(runner, /submissionInFlightRef\.current = true/, 'Prevent concurrent submits')
 assert.match(runner, /automaticExpiryAttemptedRef\.current = true/, 'Prevent repeated automatic expiry submit')
 assert.match(runner, /Retry finalising attempt/, 'Expose manual retry after expiry error')
-assert.match(runner, /const skipped = !expired/, 'Do not claim local-only answers were scored')
+assert.match(runner, /const skipped = !deadlineReached/, 'Do not claim local-only answers were scored')
+assert.match(runner, /const deadlineReached = expired \|\|/, 'A manual submission must respect expired server deadlines')
 console.log('Assessment expiry and in-flight save contracts: PASS')
