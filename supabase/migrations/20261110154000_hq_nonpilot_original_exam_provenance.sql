@@ -67,7 +67,7 @@ begin
   end if;
 
   select s.id into v_subject from public.subjects s
-  join public.grade_subject_authority g on lower(btrim(g.subject_name))=lower(btrim(s.name))
+  join public.grade_subject_authority g on replace(lower(btrim(g.subject_name)),'&','and')=replace(lower(btrim(s.name)),'&','and')
   where s.school_id is null and lower(btrim(s.name))=lower(v_subject_name)
     and lower(btrim(g.grade))=lower(v_grade)
     and (g.effective_to is null or g.effective_to>=current_date)
