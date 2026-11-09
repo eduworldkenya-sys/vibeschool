@@ -80,6 +80,11 @@ begin
 
   select count(distinct chapter_id) into v_count
   from tmp_mumbi2_history_block_guard;
+  -- Clean rebuilds have no Mumbi2 tenant content; zero targets is a valid no-op.
+  -- Any partially populated production cohort must fail closed, not silently skip.
+  if v_count=0 then
+    return;
+  end if;
   if v_count<>4
      or (select count(*) from tmp_mumbi2_history_block_guard)<>40
   then
