@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import { useStudent } from '@/lib/student-context'
 
 const TABS = [
   { label: 'Learn', href: '/student/vibelearn' },
@@ -19,7 +20,9 @@ function isActive(pathname: string, href: string): boolean {
 export default function VibeLearnSubnav() {
   const router = useRouter()
   const pathname = usePathname()
-  return <nav aria-label="VibeLearn sections" style={navStyle}>{TABS.map(tab => {
+  const { identity, loading } = useStudent()
+  const isForm4 = !loading && /^form\s*4$/i.test(identity?.className?.trim() ?? '')
+  return <nav aria-label="VibeLearn sections" style={navStyle}>{TABS.filter(tab => tab.label !== 'KCSE' || isForm4).map(tab => {
     const active = isActive(pathname, tab.href)
     return <button key={tab.href} type="button" onClick={() => router.push(tab.href)} aria-current={active ? 'page' : undefined} style={{ ...tabStyle, ...(active ? activeTabStyle : {}) }}>{tab.label}</button>
   })}</nav>
