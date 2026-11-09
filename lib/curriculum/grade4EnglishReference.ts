@@ -76,8 +76,17 @@ export const GRADE4_ENGLISH_THEMES = [
 ] as const
 
 export const GRADE4_ENGLISH_STRANDS = [
-  'Listening and Speaking', 'Reading', 'Grammar in Use', 'Writing'
+  'Listening and Speaking', 'Reading', 'Language Use', 'Writing'
 ] as const
+
+// Source summary: Listening/Speaking 35, Reading 39, Language Use 39, Writing 37.
+// These are annual suggested lessons, not fixed term allocations.
+export const GRADE4_ENGLISH_ANNUAL_LESSONS = {
+  'Listening and Speaking': 35,
+  Reading: 39,
+  'Language Use': 39,
+  Writing: 37,
+} as const
 
 // A local teaching plan may put themes 1–5 in Term 1, 6–9 in Term 2
 // and 10–13 in Term 3. KICD does not prescribe these term boundaries.
@@ -170,3 +179,62 @@ export const GRADE4_ENGLISH_SUBSTRANDS: Readonly<Record<number, readonly string[
     "Mechanics of Writing — Double Consonants"
   ]
 }
+
+/**
+ * Source-traced, independently paraphrased learning-outcome summaries for
+ * Theme 1, pp. 1, 3, 5, 7 (KICD standard Grade 4 English revised 2024).
+ *
+ * They are for teacher reference only. They are NOT entered into canonical
+ * curriculum_learning_outcomes or represented as platform-verified.
+ */
+export const GRADE4_ENGLISH_THEME1_OUTCOME_REFERENCE = [
+  {
+    code: '1.1.1',
+    title: 'Pronunciation and Vocabulary — Listening Comprehension',
+    lessons: 3,
+    sourcePage: 1,
+    outcomes: [
+      'Articulate the selected English sounds and related words clearly.',
+      'Use words associated with family in meaningful spoken sentences.',
+      'Listen attentively and respond to questions about a spoken passage.',
+      'Value clear pronunciation when communicating.'
+    ],
+    inquiry: ['Why is accurate pronunciation important?']
+  },
+  {
+    code: '1.2.1',
+    title: 'Extensive Reading — Reference Materials',
+    lessons: 3,
+    sourcePage: 3,
+    outcomes: [
+      'Use a dictionary to establish word spelling and meaning.',
+      'Consult a junior encyclopaedia to find information.',
+      'Recognise reference materials as useful sources of knowledge.'
+    ],
+    inquiry: ['Why does correct spelling matter?', 'How can a dictionary support learning?']
+  },
+  {
+    code: '1.3.1',
+    title: 'Grammar in Use — Definite and Indefinite Articles',
+    lessons: 3,
+    sourcePage: 5,
+    outcomes: [
+      'Recognise definite and indefinite articles in text.',
+      'Choose and use a, an and the appropriately in sentences.',
+      'Appreciate the role of articles in spoken and written communication.'
+    ],
+    inquiry: ['How do articles work with nouns?']
+  },
+  {
+    code: '1.4.1',
+    title: 'Functional Writing — Completing Forms',
+    lessons: 3,
+    sourcePage: 7,
+    outcomes: [
+      'Determine the details required in a form.',
+      'Enter information accurately in a suitable form.',
+      'Understand why careful completion of forms matters.'
+    ],
+    inquiry: ['Why should forms be completed carefully?', 'What details do forms request?']
+  },
+] as const
