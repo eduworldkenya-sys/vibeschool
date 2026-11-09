@@ -2,10 +2,10 @@
  * KICD Grade 4 English revised 2024: published annual theme index.
  * This is a curriculum REFERENCE, not a substitute for canonical curriculum
  * rows, verified specific learning outcomes, or school term allocations.
- * Source: KICD English Grade 4 (2024), pp. 1–104.
+ * Source: KICD Grade 4 English revised 2024, curriculum pp. 1–91.
  */
 export const GRADE4_ENGLISH_SOURCE =
-  'https://www.teacherspalace.co.ke/public/uploads/documents/english-grade-4-updated-revised-sept-unlocked-2024-12-25-ACtnqR8fEw.pdf'
+  'https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.ENGLISH.LANGUAGE.pdf'
 
 export const GRADE4_ENGLISH_THEMES = [
   {
@@ -16,62 +16,62 @@ export const GRADE4_ENGLISH_THEMES = [
   {
     "number": 2,
     "name": "Family Celebrations",
-    "sourcePage": 9
+    "sourcePage": 8
   },
   {
     "number": 3,
     "name": "Etiquette",
-    "sourcePage": 17
+    "sourcePage": 15
   },
   {
     "number": 4,
     "name": "Accidents: First Aid",
-    "sourcePage": 25
+    "sourcePage": 22
   },
   {
     "number": 5,
     "name": "Nutrition: Balanced Diet",
-    "sourcePage": 33
+    "sourcePage": 30
   },
   {
     "number": 6,
     "name": "Internet: Email",
-    "sourcePage": 41
+    "sourcePage": 37
   },
   {
     "number": 7,
     "name": "Technology: Cyber Safety",
-    "sourcePage": 49
+    "sourcePage": 44
   },
   {
     "number": 8,
     "name": "The Farm",
-    "sourcePage": 57
+    "sourcePage": 50
   },
   {
     "number": 9,
     "name": "HIV and AIDS",
-    "sourcePage": 65
+    "sourcePage": 56
   },
   {
     "number": 10,
     "name": "Hygiene and Sanitation",
-    "sourcePage": 73
+    "sourcePage": 62
   },
   {
     "number": 11,
     "name": "Sports: My Favourite Game",
-    "sourcePage": 81
+    "sourcePage": 69
   },
   {
     "number": 12,
     "name": "Clean Environment",
-    "sourcePage": 89
+    "sourcePage": 75
   },
   {
     "number": 13,
     "name": "Money",
-    "sourcePage": 97
+    "sourcePage": 81
   }
 ] as const
 
