@@ -13,7 +13,7 @@ export default function LearnActivityHub() {
   const hasSchoolClass = Boolean(identity?.classId);
   const primary: Activity[] = [
     { title: "Exams", detail:"Start an exam and see results", Icon:ClipboardCheck, href: "/student/vibelearn/exams" },
-    { title: "Practice", detail:"Choose approved practice by subject", Icon:PencilLine, href: "/student/vibelearn/practice" },
+    { title: "Topic Practice", detail:"Five questions per ready topic", Icon:PencilLine, href: "/student/vibelearn/topic-practice" },
     { title: "Read", detail:"Open books and resources", Icon:BookOpen, href: "/student/vibelearn/reading" },
     { title: "My Work", detail:"Open your tasks", Icon:FolderOpen, href: "/student/tasks" },
     { title: "Revision", detail:"Review what you learned", Icon:CalendarDays, href: "/student/vibelearn/revision" },
