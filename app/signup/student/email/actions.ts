@@ -1,7 +1,6 @@
 'use server'
 
 import { emailPilotEnabled, pilotEmail } from './config'
-import { validLearnerGrade } from '@/lib/learner/independent-grade'
 import { canUsePilot, finishPilotSignup, hasRestrictedIdentity, pilotClient, pilotAdminClient } from './server'
 
 const unavailable = 'Email signup is unavailable for this address.'
@@ -66,7 +65,7 @@ export async function signOutLearnerEmail() {
 
 export async function saveIndependentEmailGrade(form: FormData) {
   const grade = form.get('grade')
-  if (!validLearnerGrade(grade)) return { error: 'Choose your grade.' }
+  if (typeof grade !== 'string' || !/^(Grade (?:[1-9]|1[0-2])|Form [1-4])$/.test(grade)) return { error: 'Choose your grade.' }
   try {
     const { client, commit } = pilotClient()
     const { data: { user }, error } = await client.auth.getUser()
