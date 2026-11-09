@@ -67,7 +67,7 @@ export default function GradeNineMathematicsPage() {
 
   function open(item: LearnerAssessmentAssignment) {
     if (item.percentage !== null) {
-      router.push('/student/vibelearn/exams#exam-results')
+      router.push(item.attemptId ? `/student/results/${encodeURIComponent(item.attemptId)}` : '/student/vibelearn/exams')
       return
     }
     if (item.canStart) router.push(`/student/assessment/${item.assignmentId}`)
