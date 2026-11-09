@@ -89,6 +89,7 @@ export default function LearnerAssessmentPage() {
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [showReview, setShowReview] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [skippedAtSubmission, setSkippedAtSubmission] = useState<number[]>([])
   const [recoveredDraft, setRecoveredDraft] = useState(false)
   const [activeElsewhere, setActiveElsewhere] = useState(false)
   const [claiming, setClaiming] = useState(false)
@@ -491,7 +492,9 @@ export default function LearnerAssessmentPage() {
         }
       }
 
+      const skipped = workspace.items.map((question, index) => hasAnswer(answersRef.current[question.id]) ? -1 : index + 1).filter(index => index > 0)
       const submitted = await submitAttempt(workspace.attemptId)
+      setSkippedAtSubmission(skipped)
       await releaseAttemptClient(workspace.attemptId, clientIdRef.current)
       localStorage.removeItem(draftKey(workspace.attemptId))
       setShowConfirm(false)
@@ -557,7 +560,9 @@ export default function LearnerAssessmentPage() {
           ? `${result.manualItems} written response${result.manualItems === 1 ? '' : 's'} will be reviewed by your teacher.`
           : 'All questions were processed.'}
       </p>
-      <button onClick={() => router.push('/student/assessment')} style={primaryButton}>Done</button>
+      <p style={{ color: '#374151', fontWeight: 700 }}>{skippedAtSubmission.length === 0 ? 'All questions answered.' : `${skippedAtSubmission.length} skipped question${skippedAtSubmission.length === 1 ? '' : 's'}: ${skippedAtSubmission.join(', ')}. Skipped questions receive 0 marks.`}</p>
+      {result.scoreReleased && <button onClick={() => router.push(`/student/results/${workspace.attemptId}`)} style={{ ...primaryButton, marginBottom: 10 }}>Review answers and skipped questions</button>}
+      <button onClick={() => router.push('/student/assessment')} style={secondaryButton}>Done</button>
     </section></main>
   }
 
@@ -575,7 +580,8 @@ export default function LearnerAssessmentPage() {
         <h1 style={{ margin: '6px 0' }}>{workspace.title}</h1>
         {workspace.instructions && <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.5 }}>{workspace.instructions}</p>}
         <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700 }}>{answeredCount}/{workspace.items.length} answered · Attempt {workspace.attemptNumber}</div>
-        {recoveredDraft && <div style={notice}>Recovered newer work saved on this device.</div>}
+        <p style={{ margin: '8px 0 0', color: '#92400e', fontSize: 12, fontWeight: 700 }}>{unansweredIndexes.length} unanswered · Skipped questions receive 0 marks if submitted.</p>
+        {recoveredDraft && <div style={notice}>Recovered newer work saved on this device.</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
           <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => void saveAndExit()} style={secondaryButton}>{exiting ? 'Saving…' : workspace.expiresAt || workspace.closesAt ? 'Save & Exit' : 'Pause & Exit'}</button>
           <button type="button" disabled={exiting || submitting || activeElsewhere || !!conflict} onClick={() => setShowConfirm(true)} style={primaryButton}>Submit & Finish</button>
@@ -633,7 +639,7 @@ export default function LearnerAssessmentPage() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
         <button type="button" disabled={currentIndex === 0} onClick={() => setCurrentIndex(index => Math.max(0, index - 1))} style={{ ...secondaryButton, flex: 1, opacity: currentIndex === 0 ? 0.5 : 1 }}>Previous</button>
         {currentIndex < workspace.items.length - 1
-          ? <button type="button" onClick={() => setCurrentIndex(index => Math.min(workspace.items.length - 1, index + 1))} style={{ ...primaryButton, flex: 1 }}>Next</button>
+          ? <button type="button" onClick={() => setCurrentIndex(index => Math.min(workspace.items.length - 1, index + 1))} style={{ ...primaryButton, flex: 1 }}>{hasAnswer(answer) ? 'Next' : 'Skip for now'}</button>
           : <button type="button" disabled={activeElsewhere} onClick={() => setShowReview(true)} style={{ ...primaryButton, flex: 1, opacity: activeElsewhere ? 0.5 : 1 }}>Review answers</button>}
       </div>
 
@@ -652,7 +658,7 @@ export default function LearnerAssessmentPage() {
     {showConfirm && <div style={overlay}><section style={modal}>
       <h2 style={{ marginTop: 0 }}>Submit & Finish?</h2>
       <p style={{ lineHeight: 1.6 }}>After submission, this attempt will be locked and answers cannot be changed.</p>
-      {unansweredIndexes.length > 0 && <p style={{ color: '#b45309', fontWeight: 700 }}>{unansweredIndexes.length} question{unansweredIndexes.length === 1 ? '' : 's'} still unanswered.</p>}
+      {unansweredIndexes.length > 0 && <><p style={{ color: '#b45309', fontWeight: 700 }}>{unansweredIndexes.length} skipped / unanswered question{unansweredIndexes.length === 1 ? '' : 's'}: {unansweredIndexes.map(index => index + 1).join(', ')}. Each receives 0 marks if you submit now.</p><button type="button" onClick={() => { setCurrentIndex(unansweredIndexes[0]); setShowConfirm(false) }} style={{ ...secondaryButton, marginBottom: 12 }}>Review skipped questions</button></>}
       <div style={{ display: 'flex', gap: 10 }}><button disabled={submitting} onClick={() => setShowConfirm(false)} style={{ ...secondaryButton, flex: 1 }}>Cancel</button><button disabled={submitting} onClick={() => void submit(false)} style={{ ...primaryButton, flex: 1, opacity: submitting ? 0.6 : 1 }}>{submitting ? 'Submitting…' : 'Submit & Finish'}</button></div>
     </section></div>}
 

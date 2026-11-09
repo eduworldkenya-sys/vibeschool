@@ -6,6 +6,10 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getMyResult, type LearnerResultDetail } from '@/lib/assessment/results'
 
+function isSkipped(responseValue: unknown, responseText: string | null): boolean {
+  return (responseValue === null || responseValue === undefined) && !responseText?.trim()
+}
+
 function answerWithOption(value: unknown, options: { value: string; label: string }[]): string {
   if (value === null || value === undefined) return 'Not answered'
   const code = typeof value === 'string' ? value : JSON.stringify(value)
@@ -52,6 +56,7 @@ export default function StudentResultDetailPage() {
             <span style={{ color: '#6b7280' }}>{result.score}/{result.maxScore}</span>
           </div>
           <div style={muted}>Attempt {result.attemptNumber} of {result.maxAttempts}</div>
+          <div style={{ ...muted, color: '#92400e', fontWeight: 700 }}>{result.items.filter(item => isSkipped(item.responseValue, item.responseText)).length} skipped / unanswered · 0 marks for each skipped question</div>
           {result.releasedAt && <div style={muted}>Released {new Date(result.releasedAt).toLocaleString('en-KE')}</div>}
           {result.feedback && (
             <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: '#ecfdf5', color: '#065f46', lineHeight: 1.5 }}>
@@ -73,12 +78,12 @@ export default function StudentResultDetailPage() {
         {result.items.map(item => (
           <section key={item.assessmentItemId} style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-              <strong>Question {item.orderNum}</strong>
+              <strong>Question {item.orderNum} {isSkipped(item.responseValue, item.responseText) ? '· Skipped' : ''}</strong>
               <span>{item.finalScore}/{item.maxScore}</span>
             </div>
             <p style={{ lineHeight: 1.6 }}>{item.prompt}</p>
             <div style={answerBox}>
-              <div style={label}>Your answer</div>
+              <div style={label}>{isSkipped(item.responseValue, item.responseText) ? 'Skipped — 0 marks' : 'Your answer'}</div>
               {item.options.length ? answerWithOption(item.responseValue ?? item.responseText, item.options) : item.responseText || answerWithOption(item.responseValue, [])}
             </div>
             {item.teacherFeedback && (
