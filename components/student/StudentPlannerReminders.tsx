@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bell, X } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useStudent } from '@/lib/student-context'
 import { dueReminders, type DueReminder, type ReminderItem } from '@/lib/student/planner-reminders'
@@ -12,6 +12,7 @@ export default function StudentPlannerReminders() {
   const { identity } = useStudent()
   const owner = identity?.profileId
   const router = useRouter()
+  const pathname = usePathname()
   const [due, setDue] = useState<DueReminder[]>([])
   const [error, setError] = useState('')
   const [browserEnabled, setBrowserEnabled] = useState(false)
@@ -69,7 +70,11 @@ export default function StudentPlannerReminders() {
     if (open) router.push('/student/tasks')
   }
 
-  if (!owner) return null
+  // Study reminders remain accessible from Tasks, but must not cover exam choices,
+  // answer controls or result-review actions. The planner is still polled in the background.
+  const examFocused = pathname?.startsWith('/student/vibelearn/exams') ||
+    pathname?.startsWith('/student/assessment/') || pathname?.startsWith('/student/results/')
+  if (!owner || examFocused) return null
   return <>
     {active && <aside role="status" aria-live="polite" style={{position:'fixed',right:12,bottom:'calc(84px + env(safe-area-inset-bottom, 0px))',width:'min(360px,calc(100vw - 24px))',zIndex:900,padding:15,borderRadius:14,background:'#fff',color:'#17213b',border:'1px solid #c7d2fe',boxShadow:'0 14px 42px rgba(15,23,42,.22)',display:'grid',gap:9}}>
       <div style={{display:'flex',alignItems:'center',gap:8}}><Bell size={19} color="#5145e8"/><strong style={{flex:1}}>Study reminder</strong><button type="button" aria-label="Dismiss reminder" onClick={()=>void acknowledge(active,false)} style={{border:0,background:'transparent',padding:8,cursor:'pointer'}}><X size={18}/></button></div>
