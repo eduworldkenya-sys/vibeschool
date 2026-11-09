@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
-import { checkLearnerEmailSession, sendLearnerEmail, signOutLearnerEmail, verifyLearnerEmail } from './actions'
+import { checkLearnerEmailSession, sendLearnerEmail, signOutLearnerEmail, verifyLearnerEmail, saveIndependentEmailGrade } from './actions'
 import styles from './signup.module.css'
+import { LEARNER_GRADES } from '@/lib/learner/independent-grade'
 
 export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean }) {
   const [email, setEmail] = useState('')
   const [signedIn, setSignedIn] = useState(false)
+  const [grade, setGrade] = useState('')
+  const [gradeSaved, setGradeSaved] = useState(false)
   const [checking, setChecking] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(linkFailed ? 'This link could not be verified. Request a new email and open it on this browser.' : '')
@@ -62,6 +65,19 @@ export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean })
     }
   }
 
+  async function saveGrade() {
+    if (!grade || busy) return
+    setBusy(true); setError('')
+    const data = new FormData()
+    data.set('grade', grade)
+    try {
+      const result = await saveIndependentEmailGrade(data)
+      if (result.error) setError(result.error)
+      else setGradeSaved(true)
+    } catch { setError('Could not save grade. Try again.') }
+    finally { setBusy(false) }
+  }
+
   async function signOut() {
     setBusy(true)
     setError('')
@@ -83,7 +99,9 @@ export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean })
     {error && <p className={styles.error} role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {checking ? <p role="status">Checking your session…</p> : signedIn ? <>
-      <a className={styles.primary} href="/global/read">Open reading library</a>
+      {!gradeSaved && <><label htmlFor="independent-grade">Choose your grade or form</label><select id="independent-grade" value={grade} onChange={e=>setGrade(e.target.value)} style={{display:'block',width:'100%',padding:13,borderRadius:8,margin:'10px 0'}}><option value="">Select grade</option>{LEARNER_GRADES.map(value=><option key={value} value={value}>{value}</option>)}</select><button className={styles.primary} type="button" disabled={!grade || busy} onClick={()=>void saveGrade()}>{busy?'Saving…':'Save grade and continue'}</button></>}
+      {gradeSaved && <a className={styles.primary} href="/global/read">Open reading library</a>}
+      <p>Independent learners can access the reading library. School-only areas are not included in this account yet.</p>
       <button className={styles.secondary} type="button" disabled={busy} onClick={() => void signOut()}>Sign out</button>
     </> : <form key={email ? 'verify' : 'send'} onSubmit={submit}>
       {email ? <>
