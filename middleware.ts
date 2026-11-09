@@ -156,6 +156,16 @@ export async function middleware(request: NextRequest) {
       return supabaseResponse
     }
 
+    // Independent learners share /student home, never an implicit school scope.
+    // School-only routes remain unavailable until a verified enrollment exists.
+    if (role === 'student' && (onboarding as { independent?: unknown }).independent === true
+        && pathname.startsWith('/student/')) {
+      const home = request.nextUrl.clone()
+      home.pathname = '/student'
+      home.search = ''
+      return redirectWithAuth(home)
+    }
+
     if (requiredRole && requiredRole !== role) {
       const target = request.nextUrl.clone()
       target.pathname = AUTH_DASHBOARDS[role]
