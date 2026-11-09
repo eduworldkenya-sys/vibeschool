@@ -12,7 +12,7 @@ for(const token of [
   'aria-expanded={expanded}',
   'aria-controls={',
   'Theme-specific learning outcomes: not yet reconciled',
-  'Existing weekly records:',
+  'Selected-term weekly records:',
   'setShowYear(true)',
   'View existing weekly curriculum',
   'Open my scheme of work',
