@@ -198,6 +198,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
         ? <p style={{fontSize:23,fontWeight:800,margin:'10px 0'}}>{finished.score} / {finished.maxScore} marks{finished.percentage!==null ? ` · ${Math.round(finished.percentage)}%` : ''}</p>
         : <p role="status" style={muted}>Your attempt is saved. The result is not yet released.</p>}
       <p style={{fontSize:17,fontWeight:800}}>{correct} correct · {incorrect} incorrect · {skipped} skipped</p>
+      {finished.scoreReleased && <button style={{...secondary,marginRight:8,marginBottom:8}} onClick={()=>router.push('/student/results/'+encodeURIComponent(finished.attemptId))}>View saved result</button>}
       <button style={button} onClick={()=>setReviewing(true)}>{incorrect+skipped>0?'Review mistakes':'Review answers'}</button>
       <button style={{...secondary,marginLeft:8}} onClick={()=>{setWorkspace(null);setFinished(null);setFeedback([]);setReviewing(false)}}>Choose another topic</button>
       {reviewing && <div style={{display:'grid',gap:10,marginTop:16}}>
