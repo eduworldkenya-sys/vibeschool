@@ -141,10 +141,19 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
     if(!workspace || busy || feedback.length!==5)return
     setBusy(true);setError('')
     try{
+      // Canonical submission is the authority for marks and completion. Never
+      // report a successful submission as failed because a follow-up read failed.
       const result=await submitAttempt(workspace.attemptId)
       setFinished(result)
-      setFeedback(await fetchFeedback(workspace.attemptId))
-      await refresh()
+      setReviewing(false)
+      const [updatedFeedback,updatedTopics]=await Promise.allSettled([
+        fetchFeedback(workspace.attemptId),
+        fetchTopics(grade),
+      ])
+      if(updatedFeedback.status==='fulfilled')setFeedback(updatedFeedback.value)
+      if(updatedTopics.status==='fulfilled')setTopics(updatedTopics.value)
+      if(updatedFeedback.status==='rejected' || updatedTopics.status==='rejected')
+        setError('Your practice result is saved. Some review details could not be refreshed; reopen Topic Practice to try again.')
     }catch(cause){setError(cause instanceof Error?cause.message:'The practice attempt could not be submitted.')}
     finally{setBusy(false)}
   }
@@ -185,10 +194,16 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
     </section>}
     {workspace && finished && <section style={card}>
       <h2 style={{fontSize:20}}>Practice complete</h2>
+      {finished.scoreReleased && finished.score!==null && finished.maxScore!==null
+        ? <p style={{fontSize:23,fontWeight:800,margin:'10px 0'}}>{finished.score} / {finished.maxScore} marks{finished.percentage!==null ? ` · ${Math.round(finished.percentage)}%` : ''}</p>
+        : <p role="status" style={muted}>Your attempt is saved. The result is not yet released.</p>}
       <p style={{fontSize:17,fontWeight:800}}>{correct} correct · {incorrect} incorrect · {skipped} skipped</p>
-      <button style={button} onClick={()=>setReviewing(true)}>Review mistakes</button>
+      <button style={button} onClick={()=>setReviewing(true)}>{incorrect+skipped>0?'Review mistakes':'Review answers'}</button>
       <button style={{...secondary,marginLeft:8}} onClick={()=>{setWorkspace(null);setFinished(null);setFeedback([]);setReviewing(false)}}>Choose another topic</button>
-      {reviewing && <div style={{display:'grid',gap:10,marginTop:16}}><p style={muted}>Retry missed or skipped questions for learning. These retries do not change your recorded score.</p>{workspace.items.filter(question=>feedback.some(mark=>mark.item_id===question.id&&mark.correct!==true)).map(question=>{
+      {reviewing && <div style={{display:'grid',gap:10,marginTop:16}}>
+        {incorrect+skipped===0 ? <p style={muted}>All five answers were correct. Choose another topic to continue learning.</p>
+          : <p style={muted}>Retry missed or skipped questions for learning. These retries do not change your recorded score.</p>}
+        {workspace.items.filter(question=>feedback.some(mark=>mark.item_id===question.id&&mark.correct!==true)).map(question=>{
         const mark=feedback.find(row=>row.item_id===question.id)
         const options=optionsOf(question.options)
         const retryChoice=retryChoices[question.id] ?? null
