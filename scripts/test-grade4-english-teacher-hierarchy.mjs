@@ -8,20 +8,26 @@ const launcher = readFileSync(new URL('../app/teacher/scheme/generate/page.tsx',
 const reference = readFileSync(new URL('../lib/curriculum/grade4EnglishReference.ts', import.meta.url),'utf8')
 
 for(const token of [
-  'suggestedTermForTheme(theme.number) === selectedTerm',
-  'showYear || !selectedTerm',
-  'setSelectedTheme(null)',
-  'aria-expanded={expanded}',
-  'aria-controls={',
-  'Theme-specific learning outcomes: not yet reconciled',
-  'term curriculum records',
-  'setShowYear(true)',
-  'Browse 13 themes',
-  'browseThemes &&',
-  'View existing weekly curriculum',
-  'Open my scheme of work',
-  'Only canonical curriculum records may be used',
-]) assert.ok(component.includes(token), 'Missing curriculum browser requirement: '+token)
+  "useState<number>(1)",
+  "useState(false)",
+  "Read the curriculum",
+  "Choose another theme",
+  "aria-label=\"Grade 4 English native curriculum reader\"",
+  "const matches = useMemo",
+  "aria-label=\"Grade 4 English theme list\"",
+  "sections.map((heading,index)",
+  "GRADE4_ENGLISH_SUBSTRANDS[theme.number]",
+  "Original KICD document",
+  "outcomes and learning experiences: awaiting source verification",
+  "Full in-app republication needs appropriate permission",
+  "Open Scheme of Work",
+  "View stored weekly plan",
+  "onToggleExisting",
+  "onOpenScheme",
+]) assert.ok(component.includes(token), 'Missing native curriculum reader requirement: '+token)
+assert.ok(!component.includes('suggestedTermForTheme'), 'KICD annual curriculum must not be limited to school terms')
+assert.ok(!component.includes('setSelectedTheme(null)'), 'Theme 1 must open by default')
+
 assert.ok(page.includes('verifiedOutcomeCount={Object.values(curriculumOutcomes)'), 'Verified outcomes must be counted from loaded curriculum')
 assert.ok(page.includes('curriculumTopics={curriculumView ? allCurriculumRows : []}'), 'Use stored weekly curriculum topics in the single overview')
 assert.ok(page.includes('<WeeklyLessonSlots'), 'All subjects must see their distinct weekly lesson slots')
@@ -42,7 +48,7 @@ assert.ok(slots.includes('const topics=curriculumTopics.filter(row=>row.week===w
 assert.ok(slots.includes('Not planned yet'), 'Unplanned slots must remain visibly empty')
 assert.ok(slots.includes('lessons.length>target'), 'Weekly over-allocation must be flagged')
 for (const token of [
-  "'id, teacher_id, school_id, class_id, subject_id, academic_term_id, week'",
+  "'id, teacher_id, school_id, class_id, subject_id, academic_term_id, week, lesson_number, period'",
   ".eq('term_id', scheme.academic_term_id)",
   ".eq('week_number', scheme.week)",
   "const rangeStart = matchingWeek.start_date",
@@ -53,4 +59,4 @@ for (const token of [
   "Choose this lesson’s timetable period",
 ]) assert.ok(launcher.includes(token), 'Scheme launcher lost exact week / identity requirement: '+token)
 assert.ok(!launcher.includes('nairobiDateAdd(\n          rangeStart,\n          55'), 'Never find a lesson plan in a different instructional week')
-console.log('Grade 4 English teacher hierarchy and Scheme week identity checks passed')
+console.log('Grade 4 English native reader, teacher hierarchy and Scheme week identity checks passed')
