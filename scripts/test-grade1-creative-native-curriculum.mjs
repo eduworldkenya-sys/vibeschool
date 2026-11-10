@@ -29,6 +29,8 @@ assert.ok(mapPage.includes('curriculumOutcomes[row.id]'), 'Existing canonical ou
 assert.ok(mapPage.includes("display:isGrade4English&&!showEnglishLegacy?'none':undefined"), 'Preserve Grade 4 English map regression contract')
 
 assert.ok(subjectHub.includes('grade1CreativeClass'), 'SubjectHub must scope the reader to an assigned Grade 1 class')
+assert.ok(mapPage.includes('creative arts and sports'), 'Existing Grade 1 subject label must resolve to the VibeSchool curriculum reader')
+assert.ok(subjectHub.includes('creative arts and sports'), 'Mumbi2 Grade 1 Bluezzz existing subject label must open the curriculum')
 assert.ok(subjectHub.includes('<Grade1CreativeActivitiesMap compact />'), 'Subject page must show the native curriculum inline')
 assert.ok(subjectHub.includes("'/teacher/curriculum?classId='"), 'Full curriculum link must pass the assigned class identity')
 assert.ok(subjectHub.includes("'&subjectId='"), 'Full curriculum link must pass the actual subject identity')
