@@ -1,6 +1,8 @@
 -- Grade 4 original VibeSchool Exam 01: one-time, service-operated release.
 -- Owner instruction: publish without separate editorial reviewer (2026-11-10).
 -- This is NOT a KICD certification or an educational review attestation.
+-- The assessment approval timestamp is an administrative release timestamp;
+-- approved_by and teacher_reviewed_at intentionally remain NULL.
 -- No question texts or marking keys are stored in this public repository.
 -- The existing owner-facing RPC permissions and review rules remain unchanged.
 -- Only original, nonexposed, structurally checked private drafts are eligible.
@@ -148,7 +150,7 @@ begin
         'automated_review','passed_structural_validation',
         'content_hash',md5(v_paper::text),
         'publisher','grade4_original_owner_requested_admin_release'),
-      null,null,now(),null
+      null,now(),now(),null
     ) returning id into v_assessment;
 
     for v_item in select value from jsonb_array_elements(v_paper->'items') order by (value->>'number')::int
