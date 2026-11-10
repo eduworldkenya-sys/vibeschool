@@ -11,6 +11,9 @@ create unique index if not exists curriculum_grade1_creative_outcome_source_uniq
   on public.curriculum_learning_outcomes (source_ref)
   where source_ref like 'VS-CUR-G01-CA-2026#%';
 
+-- authorization-test: public.curriculum_unit_guidance
+-- Assert anon has no SELECT, only authenticated readers can see active VibeSchool
+-- Grade 1 sourced guidance, and school teachers cannot write global guidance.
 create table if not exists public.curriculum_unit_guidance (
   sub_strand_id uuid primary key references public.cbc_strands(id) on delete cascade,
   suggested_lessons integer not null check (suggested_lessons > 0),
@@ -31,6 +34,9 @@ using (content_status='active' and exists (
     and s.source_ref like 'VS-CUR-G01-CA-2026#%'
 ));
 
+-- authorization-test: public.scheme_lesson_outcomes
+-- Assert anon cannot read/write links; an authenticated teacher can only link
+-- outcomes to a scheme lesson owned by that teacher and assigned class/subject.
 create table if not exists public.scheme_lesson_outcomes (
   scheme_lesson_id uuid not null references public.scheme_of_work(id) on delete cascade,
   curriculum_outcome_id uuid not null references public.curriculum_learning_outcomes(id) on delete restrict,
