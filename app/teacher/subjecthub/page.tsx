@@ -12,6 +12,7 @@ import { Card, C, Modal as SharedModal } from '@/components/teacher/ui'
 import SubjectCompanion from '@/components/teacher/SubjectCompanion'
 import Grade1CreativeActivitiesMap from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 import Grade1MathematicsMap from '@/components/teacher/curriculum/Grade1MathematicsMap'
+import Grade1EnglishMap from '@/components/teacher/curriculum/Grade1EnglishMap'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -880,6 +881,10 @@ export default function SubjectHubPage() {
     /^(mathematics|mathematical activities|mathematics activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*1\b/i.test(item.name)) ?? null
       : null
+  const grade1EnglishClass =
+    /^(english|english activities|english language activities)$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\b(?:grade|class)\s*1\b/i.test(item.name)) ?? null
+      : null
 
   const readiness: { label: string; bg: string; color: string } = (() => {
     if (lessonCount > 0 && assessCount > 0) return { label: 'Ready',     bg: '#d1fae5', color: '#065f46' }
@@ -1170,6 +1175,20 @@ export default function SubjectHubPage() {
             >Open full curriculum map →</button>
           </div>
           <Grade1MathematicsMap compact />
+        </div>
+      )}
+
+      {/* Grade 1 English native annual curriculum: skill sub-strands and thematic contexts. */}
+      {!loading && !classLoading && activeSubject && grade1EnglishClass && (
+        <div style={{ margin: '14px 16px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 9 }}>
+            <button
+              type="button"
+              onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade1EnglishClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id))}
+              style={{ background: '#175b43', color: '#fff', minHeight: 44, border: 0, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontWeight: 800 }}
+            >Open full curriculum map →</button>
+          </div>
+          <Grade1EnglishMap compact />
         </div>
       )}
 
