@@ -195,8 +195,8 @@ const card: CSSProperties = { border: '1px solid #dce7e0', borderRadius: 12, bac
 const h: CSSProperties = { fontSize: 13, color: '#1d4937', fontWeight: 800, margin: '0 0 9px' }
 const bullet: CSSProperties = { margin: '4px 0', lineHeight: 1.65, fontSize: 13, color: '#253d32' }
 
-export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUnit }: { compact?: boolean; onPlanUnit?: (unitId: string) => void }) {
-  const [selectedId, setSelectedId] = useState('1.1')
+export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUnit, selectedUnitId = '1.1' }: { compact?: boolean; onPlanUnit?: (unitId: string) => void; selectedUnitId?: string }) {
+  const [selectedId, setSelectedId] = useState(GRADE1_CREATIVE_UNITS.some(unit => unit.id === selectedUnitId) ? selectedUnitId : '1.1')
   const [search, setSearch] = useState('')
   const [indexOpen, setIndexOpen] = useState(false)
   const unit = GRADE1_CREATIVE_UNITS.find(item => item.id === selectedId) ?? GRADE1_CREATIVE_UNITS[0]
