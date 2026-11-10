@@ -2,7 +2,7 @@
 
 import TeachingWorkspaceNav from '@/components/teacher/TeachingWorkspaceNav'
 import Grade4EnglishMap from '@/components/teacher/curriculum/Grade4EnglishMap'
-import Grade1CreativeActivitiesMap from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
+import Grade1CreativeActivitiesMap, { GRADE1_CREATIVE_STRANDS, GRADE1_CREATIVE_UNITS } from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 import Grade1MathematicsMap from '@/components/teacher/curriculum/Grade1MathematicsMap'
 import WeeklyLessonSlots from '@/components/teacher/scheme/WeeklyLessonSlots'
 
@@ -59,7 +59,7 @@ function Chip({ label, active, onClick }) {
 function Inner({ curriculumView = false }) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const initial = useRef({classId:searchParams.get('classId'),subjectId:searchParams.get('subjectId'),termId:searchParams.get('termId'),week:searchParams.get('week'),curriculumId:searchParams.get('curriculumId')})
+  const initial = useRef({classId:searchParams.get('classId'),subjectId:searchParams.get('subjectId'),termId:searchParams.get('termId'),week:searchParams.get('week'),curriculumId:searchParams.get('curriculumId'),unitId:searchParams.get('unitId')})
 
   const [uid,setUid] = useState(null)
   const [schoolId,setSchoolId] = useState(null)
@@ -90,6 +90,12 @@ function Inner({ curriculumView = false }) {
   const [pendingStatusChange,setPendingStatusChange] = useState(null)
   useEffect(() => setSelectedStrand(''), [selectedClass,selectedSubject,selectedTermId])
   useEffect(() => setShowEnglishLegacy(false), [selectedClass,selectedSubject,selectedTermId])
+  // A curriculum-map selection is a planning draft, not a saved or KICD-verified lesson.
+  const [draftUnitId,setDraftUnitId] = useState(initial.current.unitId||'')
+  const [draftOutcomeIds,setDraftOutcomeIds] = useState([])
+  const [creativeCatalog,setCreativeCatalog] = useState({})
+  const [creativeCatalogLoading,setCreativeCatalogLoading] = useState(false)
+  const [creativeCatalogError,setCreativeCatalogError] = useState('')
   const [newTopic,setNewTopic] = useState('')
   const [newStrand,setNewStrand] = useState('')
   const [adding,setAdding] = useState(false)
@@ -100,6 +106,48 @@ function Inner({ curriculumView = false }) {
   const isGrade4English = classObj?.grade?.trim().toLowerCase()==='grade 4' && subjectObj?.label?.trim().toLowerCase()==='english'
   const isGrade1Creative = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(creative activities|creative arts activities|creative arts and sports)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade1Mathematics = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(mathematics|mathematical activities|mathematics activities)$/i.test(subjectObj?.label?.trim()||'')
+  const creativeDraftUnit = !curriculumView && isGrade1Creative ? GRADE1_CREATIVE_UNITS.find(unit=>unit.id===draftUnitId) : null
+  const creativeDraftStrand = creativeDraftUnit ? GRADE1_CREATIVE_STRANDS.find(strand=>strand.id===creativeDraftUnit.strand)?.title : null
+  const creativeDraftRecord = creativeDraftUnit ? creativeCatalog[creativeDraftUnit.id] : null
+  useEffect(()=>{
+    let live=true
+    if(!isGrade1Creative||!selectedSubject){setCreativeCatalog({});setCreativeCatalogError('');setCreativeCatalogLoading(false);return}
+    ;(async()=>{
+      setCreativeCatalogLoading(true);setCreativeCatalogError('');setCreativeCatalog({})
+      try{
+        // Load genuine persisted VibeSchool curriculum identities, not display-name matches.
+        const globalId=await resolveGlobalSubjectId(selectedSubject)
+        if(!globalId)throw new Error('Global Creative Activities subject is not linked.')
+        const strands=await supabase.from('cbc_strands')
+          .select('id,source_ref,sub_strand,name')
+          .eq('subject_id',globalId).eq('grade','Grade 1')
+          .like('source_ref','VS-CUR-G01-CA-2026#%')
+        if(strands.error)throw strands.error
+        if((strands.data||[]).length!==16)throw new Error('Grade 1 curriculum mapping is incomplete (expected 16 sub-strands).')
+        const refs=strands.data||[]
+        const outcomes=await supabase.from('curriculum_learning_outcomes')
+          .select('id,sub_strand_id,outcome_text,source_ref')
+          .in('sub_strand_id',refs.map(row=>row.id))
+          .eq('status','active').like('source_ref','VS-CUR-G01-CA-2026#%')
+          .order('outcome_code',{ascending:true})
+        if(outcomes.error)throw outcomes.error
+        if((outcomes.data||[]).length!==68)throw new Error('Grade 1 learning-outcome mapping is incomplete (expected 68 outcomes).')
+        const mapped={}
+        refs.forEach(row=>{
+          const unitId=row.source_ref?.split('#')[1]
+          if(unitId && GRADE1_CREATIVE_UNITS.some(unit=>unit.id===unitId))
+            mapped[unitId]={id:row.id,name:row.name,sub_strand:row.sub_strand,outcomes:(outcomes.data||[]).filter(outcome=>outcome.sub_strand_id===row.id)}
+        })
+        if(Object.keys(mapped).length!==16)throw new Error('Grade 1 curriculum mapping contains unidentified sub-strands.')
+        if(live)setCreativeCatalog(mapped)
+      }catch(err){if(live)setCreativeCatalogError(err instanceof Error?err.message:'Curriculum mapping unavailable.')}
+      finally{if(live)setCreativeCatalogLoading(false)}
+    })()
+    return()=>{live=false}
+  },[isGrade1Creative,selectedSubject])
+  useEffect(()=>{
+    setDraftOutcomeIds(creativeDraftRecord?.outcomes?.[0]?.id?[creativeDraftRecord.outcomes[0].id]:[])
+  },[creativeDraftRecord,selectedClass,selectedSubject,selectedTermId])
   const filteredSubjects = useMemo(()=>{
     const ids = new Set(pairs.filter(x=>x.class_id===selectedClass).map(x=>x.subject_id))
     return subjects.filter(x=>ids.has(x.id))
@@ -201,7 +249,7 @@ function Inner({ curriculumView = false }) {
 
   useEffect(()=>{void boot()},[boot])
   useEffect(()=>{if(selectedClass&&!filteredSubjects.some(x=>x.id===selectedSubject))setSelectedSubject(filteredSubjects[0]?filteredSubjects[0].id:null)},[filteredSubjects,selectedClass,selectedSubject])
-  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));if(curriculumView&&initial.current.curriculumId&&allCurriculumRows.some(x=>x.id===initial.current.curriculumId))p.set('curriculumId',initial.current.curriculumId);router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView,allCurriculumRows])
+  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));if(curriculumView&&initial.current.curriculumId&&allCurriculumRows.some(x=>x.id===initial.current.curriculumId))p.set('curriculumId',initial.current.curriculumId);if(curriculumView&&initial.current.unitId)p.set('unitId',initial.current.unitId);if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId);router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView,allCurriculumRows,draftUnitId])
 
   useEffect(()=>{let live=true;(async()=>{
     if(!schoolId||!selectedTermId){setTermWeeks([]);return}
@@ -219,7 +267,7 @@ function Inner({ curriculumView = false }) {
     if(!uid||!schoolId||!selectedClass||!selectedSubject||!selectedTermId||!classObj||!termObj)return
     setFetching(true);setError(null)
     try{
-      const s=await supabase.from('scheme_of_work').select('id,curriculum_id,curriculum_content_id,week,strand,sub_strand,topic,status,source,lesson_number,sequence_number,reflection,objectives,key_inquiry_question,learning_resources,assessment_methods,learning_experiences').eq('teacher_id',uid).eq('school_id',schoolId).eq('class_id',selectedClass).eq('subject_id',selectedSubject).eq('academic_term_id',selectedTermId).order('sequence_number',{ascending:true,nullsFirst:false}).order('lesson_number',{ascending:true,nullsFirst:false}).order('id',{ascending:true})
+      const s=await supabase.from('scheme_of_work').select('id,curriculum_id,curriculum_content_id,week,strand,sub_strand,topic,status,source,lesson_number,sequence_number,reflection,objectives,key_inquiry_question,learning_resources,assessment_methods,learning_experiences,reference,sub_strand_id,curriculum_outcome_id').eq('teacher_id',uid).eq('school_id',schoolId).eq('class_id',selectedClass).eq('subject_id',selectedSubject).eq('academic_term_id',selectedTermId).order('sequence_number',{ascending:true,nullsFirst:false}).order('lesson_number',{ascending:true,nullsFirst:false}).order('id',{ascending:true})
       if(s.error)throw s.error;const items=s.data||[];setSchemeItems(items)
       if(items.length){
         const b=await supabase.rpc('list_scheme_lesson_resources_batch',{p_scheme_ids:items.map(x=>x.id)});if(b.error)throw b.error
@@ -282,6 +330,30 @@ function Inner({ curriculumView = false }) {
 
   async function commitScheme(){if(!selectedClass||!selectedSubject||!selectedTermId||!curriculumRows.length)return;setCommitting(true);setError(null);const r=await supabase.rpc('commit_curriculum_scheme',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_curriculum_ids:curriculumRows.map(x=>x.id)});if(r.error)setError(commitError(r.error.message));else await loadScheme();setCommitting(false)}
   async function addCustom(){if(!selectedClass||!selectedSubject||!selectedTermId||!newTopic.trim())return;setAdding(true);setError(null);const r=await supabase.rpc('commit_custom_scheme_item',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_week:selectedWeek,p_topic:newTopic.trim(),p_strand:newStrand.trim()||null,p_resource_id:null,p_resource_role:null});if(r.error)setError(commitError(r.error.message));else{setNewTopic('');setNewStrand('');await loadScheme()}setAdding(false)}
+  async function addMappedCreativeLesson(){
+    if (!creativeDraftRecord || !creativeDraftStrand || !selectedClass || !selectedSubject || !selectedTermId || !weeks.some(w=>w.week_number===selectedWeek)) {
+      setError('Select a connected curriculum sub-strand, class, subject, term and instructional week.')
+      return
+    }
+    const allowed=new Set(creativeDraftRecord.outcomes.map(x=>x.id))
+    const selected=draftOutcomeIds.filter(id=>allowed.has(id))
+    if(!selected.length){setError('Select at least one learning outcome.');return}
+    setAdding(true);setError(null)
+    try{
+      // Atomic server-side save: validates assignment, term/week, grade/subject,
+      // sub-strand and every selected outcome before persisting one scheme lesson.
+      const saved=await supabase.rpc('commit_mapped_scheme_lesson',{
+        p_class_id:selectedClass,p_subject_id:selectedSubject,
+        p_academic_term_id:selectedTermId,p_week:selectedWeek,
+        p_sub_strand_id:creativeDraftRecord.id,p_outcome_ids:selected
+      })
+      if(saved.error)throw new Error(commitError(saved.error.message))
+      await loadScheme()
+      setDraftUnitId('')
+      setDraftOutcomeIds([])
+    }catch(err){setError(err instanceof Error?err.message:'Could not save the linked curriculum lesson.')}
+    finally{setAdding(false)}
+  }
   async function setStatus(id,status){setPendingStatusChange(null);setError(null);const r=await supabase.from('scheme_of_work').update({status}).eq('id',id).eq('school_id',schoolId).eq('teacher_id',uid);if(r.error)setError(r.error.message);else setSchemeItems(xs=>xs.map(x=>x.id===id?Object.assign({},x,{status}):x))}
   async function saveReflection(id,reflection){const r=await supabase.from('scheme_of_work').update({reflection}).eq('id',id).eq('school_id',schoolId).eq('teacher_id',uid);if(r.error)setError(r.error.message)}
 
@@ -305,7 +377,10 @@ function Inner({ curriculumView = false }) {
     </div>
 
     {selectedSubject && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
-    {curriculumView && isGrade1Creative && <Grade1CreativeActivitiesMap />}
+    {curriculumView && isGrade1Creative && <Grade1CreativeActivitiesMap selectedUnitId={initial.current.unitId||'1.1'} mappedUnits={creativeCatalog} catalogLoading={creativeCatalogLoading} catalogError={creativeCatalogError} onPlanUnit={selectedClass&&selectedSubject&&selectedTermId ? unitId=>{
+      const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId})
+      router.push('/teacher/scheme?'+p.toString())
+    }:undefined} />}
     {curriculumView && isGrade1Mathematics && <Grade1MathematicsMap />}
     {curriculumView && isGrade4English && <Grade4EnglishMap
       selectedTerm={termObj?.term ?? null}
@@ -316,7 +391,7 @@ function Inner({ curriculumView = false }) {
       verifiedOutcomeCount={Object.values(curriculumOutcomes).flat().filter(outcome=>outcome.status==='verified').length}
       onOpenScheme={()=>router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}&week=${selectedWeek}`)}
     />}
-    {curriculumView ? <section className="studio-canonical-map" style={{display:isGrade4English&&!showEnglishLegacy?'none':undefined}}>
+    {curriculumView ? <section className="studio-canonical-map" style={{display:isGrade1Creative||(isGrade4English&&!showEnglishLegacy)?'none':undefined}}>
       <p className="studio-map-source">Stored curriculum · {classObj?.label} · {subjectObj?.label} · {termObj ? termLabel(termObj) : 'Select term'}</p>
       {fetching ? <p role="status">Loading curriculum…</p> : !allCurriculumRows.length ? <Empty title="No curriculum records for this context" desc="Select a class, subject and term. Missing curriculum is not treated as completed coverage."/> : <>
       <div className="studio-curriculum-grid">{unique(allCurriculumRows.map(row => row.strand || 'Unspecified strand')).map((strand,index) => <button type="button" key={strand} className="studio-curriculum-tile" aria-pressed={(selectedStrand || allCurriculumRows[0]?.strand || 'Unspecified strand') === strand} onClick={() => setSelectedStrand(strand)}><div className="studio-strand-cover" aria-hidden="true">{String(index+1).padStart(2,'0')}</div><h2>{strand}</h2><span>{allCurriculumRows.filter(row => (row.strand || 'Unspecified strand') === strand).length} curriculum items</span><span aria-hidden="true">↗</span></button>)}</div>
@@ -335,9 +410,32 @@ function Inner({ curriculumView = false }) {
       <details style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:12,padding:12,marginBottom:12}}><summary style={{cursor:'pointer',color:C.text,fontWeight:700,fontSize:13}}>Teaching notes and observations</summary><div style={{marginTop:12}}><LessonPanel teacherId={uid} classId={selectedClass} subjectId={selectedSubject} subjectLabel={subjectObj.label} academicTermId={selectedTermId} schoolId={schoolId} week={selectedWeek}/></div></details>
     </>}
 
+    {creativeDraftUnit && <section aria-label="Plan mapped Grade 1 curriculum lesson" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+      <div style={{fontSize:11,fontWeight:800,color:C.teal,letterSpacing:'.04em'}}>CURRICULUM MAP → SCHEME OF WORK</div>
+      <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{creativeDraftUnit.title}</h2>
+      <p style={{fontSize:13,color:C.text2,margin:'0 0 10px'}}>{creativeDraftStrand} · Sub-strand {creativeDraftUnit.id} · Week {selectedWeek}</p>
+      <p style={{fontSize:12,color:C.text2,margin:'0 0 12px'}}>Select the outcomes for one lesson. The draft uses VibeSchool-authored guidance and will not be recorded as officially KICD-verified.</p>
+      {creativeCatalogLoading&&<p role="status" style={{fontSize:12}}>Loading linked curriculum outcomes…</p>}
+      {creativeCatalogError&&<p role="alert" style={{fontSize:12,color:C.red}}>{creativeCatalogError}</p>}
+      <fieldset style={{border:0,padding:0,margin:0}}>
+        <legend style={{fontSize:13,fontWeight:800,marginBottom:8}}>Specific learning outcomes</legend>
+        {(creativeDraftRecord?.outcomes||[]).map((outcome,i)=><label key={outcome.id} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'8px 0',fontSize:13,lineHeight:1.5}}>
+          <input type="checkbox" checked={draftOutcomeIds.includes(outcome.id)} onChange={e=>setDraftOutcomeIds(old=>e.target.checked?[...new Set([...old,outcome.id])]:old.filter(id=>id!==outcome.id))} style={{marginTop:4,minWidth:18,minHeight:18}}/>
+          <span>{outcome.outcome_text}</span>
+        </label>)}
+      </fieldset>
+      <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>
+        <button type="button" disabled={adding||!creativeDraftRecord||!draftOutcomeIds.length||!!creativeCatalogError||!weeks.some(w=>w.week_number===selectedWeek)} onClick={()=>void addMappedCreativeLesson()} style={{minHeight:44,padding:'10px 14px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:800,opacity:adding?0.5:1}}>{adding?'Adding lesson…':`Add to Week ${selectedWeek} Scheme`}</button>
+        <button type="button" onClick={()=>setDraftUnitId('')} style={{minHeight:44,padding:'10px 14px',border:`1px solid ${C.border}`,borderRadius:9,background:'#fff',color:C.text2,fontWeight:700}}>Cancel</button>
+      </div>
+    </section>}
     <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:14,padding:14}}>
       {curriculumRows.length>0&&<div style={{background:C.indigoLight,padding:12,borderRadius:10,marginBottom:12}}><div style={{fontWeight:800,color:C.indigo,fontSize:13}}>{curriculumRows.length} curriculum item{curriculumRows.length===1?'':'s'} available</div><div style={{fontSize:11,color:C.text2,margin:'4px 0 8px'}}>The server will commit only confirmed, complete canonical lesson content.</div><button type="button" disabled={committing} onClick={()=>void commitScheme()} style={{padding:'8px 12px',border:0,borderRadius:8,background:C.indigo,color:'#fff',fontWeight:700}}>{committing?'Committing…':'Commit approved curriculum'}</button></div>}
-      {!selectedTermId?<Empty title="Scheme setup incomplete" desc={`${subjectObj?.label||'This subject'} is connected to ${classObj?.label||'this class'}, but the school calendar could not be prepared automatically. Retry before creating a term-scoped Scheme.`}/>:fetching?<div style={{fontSize:12,color:C.text3}}>Loading authoritative Scheme…</div>:selectedWeekItems.length===0?<Empty title="No lessons scheduled" desc="Commit approved canonical curriculum content or add a legitimate teacher-created lesson."/>:<div className="studio-scheme-sequence">{selectedWeekItems.map((item,index)=>{const st=STATUS[item.status]||STATUS.planned;return <div key={item.id} className="studio-lesson-card studio-sequence-card"><span className="studio-sequence-number" aria-label={`Lesson ${index+1}`}>{String(index+1).padStart(2,'0')}</span><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><div style={{fontWeight:800,color:C.text}}>{item.topic}</div><div style={{fontSize:11,color:C.text2}}>{[item.strand,item.sub_strand].filter(Boolean).join(' · ')}</div><div style={{fontSize:11,color:C.text3,marginTop:4}}>{item.curriculum_id&&canonicalRowIds.has(item.curriculum_id)?'Linked to an existing curriculum record · KICD alignment not yet verified':'No curriculum record linked · KICD alignment not yet verified'}</div>{(linkedResources[item.id]||[]).map(r=><div key={r.id} style={{fontSize:11,color:C.indigo,marginTop:5}}>{r.chapterTitle} · {r.resourceRole}</div>)}</div><span style={{fontSize:11,fontWeight:800,padding:'4px 7px',borderRadius:99,background:st.bg,color:st.color}}>{st.label}</span></div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:8}}><button type="button" onClick={()=>prepareSchemeLesson(item)} style={{fontSize:12,padding:'10px 15px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:800}}>Prepare lesson →</button>
+      {!selectedTermId?<Empty title="Scheme setup incomplete" desc={`${subjectObj?.label||'This subject'} is connected to ${classObj?.label||'this class'}, but the school calendar could not be prepared automatically. Retry before creating a term-scoped Scheme.`}/>:fetching?<div style={{fontSize:12,color:C.text3}}>Loading authoritative Scheme…</div>:selectedWeekItems.length===0?<Empty title="No lessons scheduled" desc="Commit approved canonical curriculum content or add a legitimate teacher-created lesson."/>:<div className="studio-scheme-sequence">{selectedWeekItems.map((item,index)=>{const st=STATUS[item.status]||STATUS.planned;const mappedUnitId=isGrade1Creative&&item.sub_strand_id?Object.keys(creativeCatalog).find(id=>creativeCatalog[id].id===item.sub_strand_id):null;return <div key={item.id} className="studio-lesson-card studio-sequence-card"><span className="studio-sequence-number" aria-label={`Lesson ${index+1}`}>{String(index+1).padStart(2,'0')}</span><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><div style={{fontWeight:800,color:C.text}}>{item.topic}</div><div style={{fontSize:11,color:C.text2}}>{[item.strand,item.sub_strand].filter(Boolean).join(' · ')}</div><div style={{fontSize:11,color:C.text3,marginTop:4}}>{item.curriculum_id&&canonicalRowIds.has(item.curriculum_id)?'Linked to an existing curriculum record · KICD alignment not yet verified':mappedUnitId?'Linked to VibeSchool curriculum outcomes · KICD alignment not yet verified':'No curriculum record linked · KICD alignment not yet verified'}</div>{(linkedResources[item.id]||[]).map(r=><div key={r.id} style={{fontSize:11,color:C.indigo,marginTop:5}}>{r.chapterTitle} · {r.resourceRole}</div>)}</div><span style={{fontSize:11,fontWeight:800,padding:'4px 7px',borderRadius:99,background:st.bg,color:st.color}}>{st.label}</span></div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:8}}><button type="button" onClick={()=>prepareSchemeLesson(item)} style={{fontSize:12,padding:'10px 15px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:800}}>Prepare lesson →</button>
+      {mappedUnitId&&<button type="button" onClick={()=>{
+        const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(item.week),unitId:mappedUnitId})
+        router.push('/teacher/curriculum?'+p.toString())
+      }} style={{fontSize:12,padding:'9px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:'#fff',color:C.teal,fontWeight:700}}>View curriculum map</button>}
       {item.curriculum_id&&canonicalRowIds.has(item.curriculum_id)&&<button type="button" onClick={()=>openLinkedCurriculum(item)} style={{fontSize:12,padding:'9px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:'#fff',color:C.teal,fontWeight:700}}>View curriculum</button>}
       <details style={{position:'relative'}}><summary style={{fontSize:12,padding:'9px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:'#fff',color:C.text2,cursor:'pointer'}}>Change status</summary><div style={{display:'flex',gap:6,flexWrap:'wrap',padding:'8px 0'}}>{['planned','teaching','done','cancelled'].filter(s=>s!==item.status).map(next=><button key={next} type="button" onClick={()=>setPendingStatusChange({id:item.id,status:next,topic:item.topic})} style={{fontSize:12,padding:'8px 10px',border:`1px solid ${C.border}`,borderRadius:8,background:'#fff'}}>{STATUS[next].label}</button>)}</div></details></div>{pendingStatusChange?.id===item.id&&<div role="alert" style={{marginTop:10,padding:10,border:`1px solid ${C.border}`,borderRadius:9,background:C.surface2}}><div style={{fontSize:12,fontWeight:700}}>Change “{item.topic}” to {STATUS[pendingStatusChange.status]?.label}?</div><div style={{display:'flex',gap:8,marginTop:7}}><button type="button" onClick={()=>void setStatus(item.id,pendingStatusChange.status)} style={{padding:'8px 12px',background:C.teal,color:'#fff',border:0,borderRadius:7,fontWeight:700}}>Confirm</button><button type="button" onClick={()=>setPendingStatusChange(null)} style={{padding:'8px 12px',border:`1px solid ${C.border}`,borderRadius:7,background:'#fff'}}>Cancel</button></div></div>}
       <details className="studio-scheme-reflection"><summary>Teaching reflection</summary><textarea aria-label={`Reflection for ${item.topic}`} defaultValue={item.reflection||''} onBlur={e=>void saveReflection(item.id,e.target.value)} placeholder="Reflection after teaching" rows={2} style={{width:'100%',marginTop:8,padding:7,border:`1px solid ${C.border2}`,borderRadius:7,fontFamily:'inherit'}}/></details></div>})}</div>}

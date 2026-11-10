@@ -195,11 +195,22 @@ const card: CSSProperties = { border: '1px solid #dce7e0', borderRadius: 12, bac
 const h: CSSProperties = { fontSize: 13, color: '#1d4937', fontWeight: 800, margin: '0 0 9px' }
 const bullet: CSSProperties = { margin: '4px 0', lineHeight: 1.65, fontSize: 13, color: '#253d32' }
 
-export default function Grade1CreativeActivitiesMap({ compact = false }: { compact?: boolean }) {
-  const [selectedId, setSelectedId] = useState('1.1')
+type LinkedCurriculumUnit = { id: string; name: string; sub_strand: string; outcomes: { id: string; outcome_text: string }[] }
+
+export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUnit, selectedUnitId = '1.1', mappedUnits, catalogLoading = false, catalogError = '' }: {
+  compact?: boolean;
+  onPlanUnit?: (unitId: string) => void;
+  selectedUnitId?: string;
+  mappedUnits?: Record<string, LinkedCurriculumUnit>;
+  catalogLoading?: boolean;
+  catalogError?: string;
+}) {
+  const [selectedId, setSelectedId] = useState(GRADE1_CREATIVE_UNITS.some(unit => unit.id === selectedUnitId) ? selectedUnitId : '1.1')
   const [search, setSearch] = useState('')
   const [indexOpen, setIndexOpen] = useState(false)
   const unit = GRADE1_CREATIVE_UNITS.find(item => item.id === selectedId) ?? GRADE1_CREATIVE_UNITS[0]
+  const linkedUnit = mappedUnits?.[unit.id]
+  const displayedOutcomes = linkedUnit ? linkedUnit.outcomes.map(outcome => outcome.outcome_text) : unit.outcomes
   const index = GRADE1_CREATIVE_UNITS.findIndex(item => item.id === unit.id)
   const results = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -242,7 +253,7 @@ export default function Grade1CreativeActivitiesMap({ compact = false }: { compa
       </nav>
     </div>}
     <article aria-label={'Sub-strand ' + unit.id + ' ' + unit.title} style={{ display: 'grid', gap: 11 }}>
-      <div style={card}><h4 style={h}>Specific learning outcomes ({unit.outcomes.length})</h4>{list(unit.outcomes.map((text, i) => String.fromCharCode(97 + i) + '. ' + text))}</div>
+      <div style={card}><h4 style={h}>Specific learning outcomes ({displayedOutcomes.length})</h4>{list(displayedOutcomes.map((text, i) => String.fromCharCode(97 + i) + '. ' + text))}</div>
       <div style={card}><h4 style={h}>Suggested learning experiences</h4>{list(unit.experiences)}</div>
       <div style={card}><h4 style={h}>Key inquiry questions</h4>{list(unit.inquiry)}</div>
       <div style={card}><h4 style={h}>Competencies, values and issues</h4><p style={bullet}>{unit.competencies}</p></div>
@@ -250,10 +261,15 @@ export default function Grade1CreativeActivitiesMap({ compact = false }: { compa
       <div style={card}><h4 style={h}>Learning resources</h4><p style={bullet}>{unit.resources}</p></div>
       {unit.safety && <div style={{ ...card, background: '#fffaf0' }}><h4 style={h}>Safety and inclusion</h4><p style={bullet}>{unit.safety}</p></div>}
     </article>
+    {onPlanUnit && <div style={{ ...card, marginTop: 15, borderColor: '#9fbbaa' }}>
+      {linkedUnit ? <button type="button" onClick={() => onPlanUnit(unit.id)} style={{ width: '100%', minHeight: 44, padding: '11px 14px', borderRadius: 10, border: 0, background: '#175b43', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Plan this sub-strand in Scheme of Work</button>
+        : <p role="status" style={{ fontSize: 13, color: '#526d5e', margin: 0 }}>{catalogLoading ? 'Connecting curriculum records…' : catalogError || 'This curriculum unit is not yet linked to a database record.'}</p>}
+      <p style={{ margin: '8px 0 0', fontSize: 12, color: '#526d5e', lineHeight: 1.5 }}>Choose an instructional week and the learning outcomes for a lesson. This is VibeSchool-authored guidance, not verified KICD text.</p>
+    </div>}
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 15 }}>
       <button type="button" disabled={index === 0} onClick={() => choose(GRADE1_CREATIVE_UNITS[index - 1].id)} style={{ minHeight: 44, padding: '10px 14px', borderRadius: 10, border: '1px solid #c8d7cc', background: '#fff', color: '#1a5a40', fontWeight: 700, opacity: index === 0 ? 0.45 : 1, cursor: index === 0 ? 'default' : 'pointer' }}>← Previous</button>
       <button type="button" disabled={index === GRADE1_CREATIVE_UNITS.length - 1} onClick={() => choose(GRADE1_CREATIVE_UNITS[index + 1].id)} style={{ minHeight: 44, padding: '10px 14px', borderRadius: 10, border: 'none', background: '#175b43', color: '#fff', fontWeight: 800, opacity: index === GRADE1_CREATIVE_UNITS.length - 1 ? 0.45 : 1, cursor: index === GRADE1_CREATIVE_UNITS.length - 1 ? 'default' : 'pointer' }}>Next topic →</button>
     </div>
-    {!compact && <p style={{ fontSize: 11, color: '#5f776b', margin: '13px 0 0' }}>Reference: VS-CUR-G01-CA-2026. These reading entries are not verified canonical database outcomes and do not change teaching records.</p>}
+    {!compact && <p style={{ fontSize: 11, color: '#5f776b', margin: '13px 0 0' }}>Reference: VS-CUR-G01-CA-2026. Curriculum outcomes may now link to a teacher's scheme, but VibeSchool-authored material remains pending official KICD reconciliation.</p>}
   </section>
 }
