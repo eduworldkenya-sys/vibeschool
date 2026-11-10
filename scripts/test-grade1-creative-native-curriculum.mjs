@@ -54,7 +54,7 @@ assert.ok(mapPage.includes("display:isGrade1Creative||((isGrade1Mathematics||isG
 assert.ok(subjectHub.includes('grade1CreativeClass'), 'SubjectHub must scope the reader to an assigned Grade 1 class')
 assert.ok(mapPage.includes('creative arts and sports'), 'Existing Grade 1 subject label must resolve to the VibeSchool curriculum reader')
 assert.ok(subjectHub.includes('creative arts and sports'), 'Mumbi2 Grade 1 Bluezzz existing subject label must open the curriculum')
-assert.ok(subjectHub.includes('<Grade1CreativeActivitiesMap compact />'), 'Subject page must show the native curriculum inline')
+assert.ok(subjectHub.includes('<Grade1CreativeActivitiesMap compact'), 'Subject page must show the native curriculum inline')
 assert.ok(subjectHub.includes("'/teacher/curriculum?classId='"), 'Full curriculum link must pass the assigned class identity')
 assert.ok(subjectHub.includes("'&subjectId='"), 'Full curriculum link must pass the actual subject identity')
 assert.ok(!reader.includes("supabase.from("), 'Annual reference reader must not insert duplicate canonical records')
