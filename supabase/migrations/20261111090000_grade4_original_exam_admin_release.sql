@@ -35,6 +35,12 @@ begin
     and published_at is null
     and coalesce(review_evidence->>'public_repository_exposure','false')='false'
     and review_evidence->>'automated_review'='passed_structural_validation';
+  -- A clean CI/database install has no private drafts or owner account yet.
+  -- This one-time data migration must be safe to replay on such installations.
+  if v_all=0 then
+    raise notice 'No staged Grade 4 original exams; skipping service release';
+    return;
+  end if;
   if v_all<>7 then raise exception 'Expected exactly seven unpublished Grade 4 originals; got %',v_all; end if;
 
   -- The active platform owner is assigned as the required record custodian,
