@@ -215,7 +215,7 @@ export default function Grade1CreativeActivitiesMap({ compact = false }: { compa
     <div style={{ ...card, background: '#eff6f1', fontSize: 12, lineHeight: 1.6, marginBottom: 15 }}>
       <strong>Source:</strong> KICD 2024 revised Grades 1–3 Creative Activities & Indigenous Languages curriculum. This is independently written VibeSchool guidance, not the official KICD text; final source-to-outcome certification is pending.{' '}
       <a href={GRADE1_CREATIVE_SOURCE} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 800, color: '#13573e' }}>View original KICD source</a>.
-      <div style={{ marginTop: 5, color: '#526d5e' }}>Curriculum scope is independent of the teacher's weekly timetable, scheme and lesson plans.</div>
+      <div style={{ marginTop: 5, color: '#526d5e' }}>Curriculum scope is independent of the teacher’s weekly timetable, scheme and lesson plans.</div>
     </div>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 12 }}>
       <div>
