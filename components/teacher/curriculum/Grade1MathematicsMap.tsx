@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
 /**
  * Read-only curriculum reference drawn from the independent VibeSchool
@@ -319,8 +319,14 @@ const card: CSSProperties = { border: '1px solid #dce7e0', borderRadius: 12, bac
 const h: CSSProperties = { fontSize: 13, color: '#1d4937', fontWeight: 800, margin: '0 0 9px' }
 const bullet: CSSProperties = { margin: '4px 0', lineHeight: 1.65, fontSize: 13, color: '#253d32' }
 
-export default function Grade1MathematicsMap({ compact = false }: { compact?: boolean }) {
-  const [selectedId, setSelectedId] = useState('1.1')
+export default function Grade1MathematicsMap({ compact = false, selectedUnitId = '1.1', onSelectUnit }: {
+  compact?: boolean;
+  selectedUnitId?: string;
+  onSelectUnit?: (unitId: string) => void;
+}) {
+  const validUnitId = GRADE1_MATHEMATICS_UNITS.some(item => item.id === selectedUnitId) ? selectedUnitId : '1.1'
+  const [selectedId, setSelectedId] = useState(validUnitId)
+  useEffect(() => { setSelectedId(validUnitId) }, [validUnitId])
   const [search, setSearch] = useState('')
   const [indexOpen, setIndexOpen] = useState(false)
   const unit = GRADE1_MATHEMATICS_UNITS.find(item => item.id === selectedId) ?? GRADE1_MATHEMATICS_UNITS[0]
@@ -329,11 +335,11 @@ export default function Grade1MathematicsMap({ compact = false }: { compact?: bo
     const term = search.trim().toLowerCase()
     return GRADE1_MATHEMATICS_UNITS.filter(item => !term || [item.id, item.title, ...item.outcomes].some(text => text.toLowerCase().includes(term)))
   }, [search])
-  const choose = (id: string) => { setSelectedId(id); setIndexOpen(false); setSearch('') }
+  const choose = (id: string) => { setSelectedId(id); setIndexOpen(false); setSearch(''); onSelectUnit?.(id) }
   const list = (items: readonly string[]) => <ul style={{ paddingLeft: 19, margin: 0 }}>{items.map((item, i) => <li key={i} style={bullet}>{item}</li>)}</ul>
 
   return <section aria-label="VibeSchool Grade 1 Mathematics curriculum map" style={{ color: '#153b2a', maxWidth: '100%', overflowWrap: 'anywhere', marginBottom: 18, borderRadius: 16, border: '1px solid #dce7e0', background: '#f9fbfa', padding: 'clamp(13px,3vw,22px)' }}>
-    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.09em', color: '#28624b' }}>VIBESCHOOL CURRICULUM LIBRARY · GRADE 1</div>
+    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.09em', color: '#28624b' }}>VIBESCHOOL CURRICULUM MAP · GRADE 1</div>
     <h2 style={{ margin: '6px 0', fontSize: 'clamp(20px,3vw,26px)' }}>Mathematics</h2>
     <p style={{ color: '#536c60', fontSize: 13, lineHeight: 1.6, margin: '0 0 12px' }}>Read the annual curriculum directly inside the teacher app. Three strands · 11 sub-strands · 54 mapped VibeSchool learning outcomes · 150 suggested lessons.</p>
     <div style={{ ...card, background: '#eff6f1', fontSize: 12, lineHeight: 1.6, marginBottom: 15 }}>
@@ -341,6 +347,21 @@ export default function Grade1MathematicsMap({ compact = false }: { compact?: bo
       <a href={GRADE1_MATHEMATICS_SOURCE} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 800, color: '#13573e' }}>View original KICD source</a>.
       <div style={{ marginTop: 5, color: '#526d5e' }}>Curriculum scope is independent of the teacher’s weekly timetable, scheme and lesson plans.</div>
     </div>
+    {/* The annual map is the subject's primary entry point. Select a strand to view its first sub-strand. */}
+    <nav aria-label="Grade 1 Mathematics curriculum strands" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(145px,1fr))', gap: 8, marginBottom: 15 }}>
+      {GRADE1_MATHEMATICS_STRANDS.map(strand => {
+        const units = GRADE1_MATHEMATICS_UNITS.filter(item => item.strand === strand.id)
+        const active = strand.id === unit.strand
+        return <button type="button" key={strand.id} onClick={() => choose(units[0].id)} aria-pressed={active} style={{
+          minHeight: 74, textAlign: 'left', border: active ? '2px solid #175b43' : '1px solid #bad0c1',
+          borderRadius: 12, background: active ? '#e6f3e9' : '#fff', color: '#173f32',
+          padding: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        }}>
+          <strong style={{ fontSize: 13 }}>{strand.title}</strong>
+          <span style={{ fontSize: 11, color: '#536c60' }}>{units.length} sub-strand{units.length === 1 ? '' : 's'}</span>
+        </button>
+      })}
+    </nav>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 12 }}>
       <div>
         <div style={{ fontSize: 11, fontWeight: 800, color: '#587363' }}>STRAND {unit.strand} · SUB-STRAND {unit.id}</div>

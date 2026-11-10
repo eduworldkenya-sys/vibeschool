@@ -41,13 +41,13 @@ for (const token of [
   'without explicit grammar labels',
   'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-English-Activities-Revised-Sept.pdf',
 ]) assert.ok(reader.includes(token), 'Missing English reader requirement: ' + token)
-assert.ok(scheme.includes('isGrade1English') && scheme.includes('<Grade1EnglishMap />'))
-assert.ok(subject.includes('grade1EnglishClass') && subject.includes('<Grade1EnglishMap compact />'))
+assert.ok(scheme.includes('isGrade1English') && scheme.includes('<Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId} />'))
+assert.ok(subject.includes('grade1EnglishClass') && subject.includes('<Grade1EnglishMap compact selectedUnitId={grade1EnglishUnitId} onSelectUnit={setGrade1EnglishUnitId} />'))
 assert.ok(scheme.includes('commit_curriculum_scheme') && scheme.includes('curriculumOutcomes[row.id]'), 'Canonical workflow must be preserved')
-assert.ok(scheme.includes('<Grade1MathematicsMap />'), 'Preserve Mathematics map')
-assert.ok(subject.includes('<Grade1MathematicsMap compact />'), 'Preserve Mathematics hub')
+assert.ok(scheme.includes('<Grade1MathematicsMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId} />'), 'Preserve Mathematics map')
+assert.ok(subject.includes('<Grade1MathematicsMap compact selectedUnitId={grade1MathematicsUnitId} onSelectUnit={setGrade1MathematicsUnitId} />'), 'Preserve Mathematics hub')
 assert.ok(scheme.includes('<Grade1CreativeActivitiesMap'), 'Preserve Creative Activities map')
-assert.ok(subject.includes('<Grade1CreativeActivitiesMap compact />'), 'Preserve Creative Activities hub')
+assert.ok(subject.includes('<Grade1CreativeActivitiesMap compact'), 'Preserve Creative Activities hub')
 assert.ok(scheme.includes('<Grade4EnglishMap'), 'Preserve Grade 4 English map')
 assert.ok(!reader.includes('supabase.from('), 'Reader must not mutate canonical records')
 console.log('Grade 1 English KICD source structure and teacher reader routing: PASS')
