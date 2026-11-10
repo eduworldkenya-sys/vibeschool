@@ -12,6 +12,10 @@ function extractJson(begin, end) {
 const themes = JSON.parse(reader.split('export const GRADE1_ENGLISH_THEMES = ')[1].split(' as const\n\n/** Reader index IDs')[0])
 const units = extractJson('export const GRADE1_ENGLISH_UNITS: readonly CurriculumUnit[] = ', '\n\nconst card: CSSProperties')
 
+assert.ok(!reader.includes('englishematics'), 'Accessible IDs must use English-only prefixes')
+assert.ok(reader.includes('id="grade1-english-index"') && reader.includes('id="grade1-english-search"'))
+assert.equal(reader.split("case '").length - 1, 13, 'Each English sub-strand needs a contextual activity')
+assert.ok(reader.includes('VibeSchool activity for this skill:'))
 assert.equal(themes.length, 15, 'Grade 1 English uses fifteen teaching themes')
 assert.equal(new Set(themes.map(theme => theme.id)).size, 15)
 assert.deepEqual(themes.map(theme => theme.id), Array.from({ length: 15 }, (_, i) => i + 1))
