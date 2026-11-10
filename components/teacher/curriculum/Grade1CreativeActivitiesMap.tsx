@@ -197,9 +197,10 @@ const bullet: CSSProperties = { margin: '4px 0', lineHeight: 1.65, fontSize: 13,
 
 type LinkedCurriculumUnit = { id: string; name: string; sub_strand: string; outcomes: { id: string; outcome_text: string }[] }
 
-export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUnit, selectedUnitId = '1.1', mappedUnits, catalogLoading = false, catalogError = '' }: {
+export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUnit, onOpenSchemeUnit, selectedUnitId = '1.1', mappedUnits, catalogLoading = false, catalogError = '' }: {
   compact?: boolean;
   onPlanUnit?: (unitId: string) => void;
+  onOpenSchemeUnit?: (unitId: string) => void;
   selectedUnitId?: string;
   mappedUnits?: Record<string, LinkedCurriculumUnit>;
   catalogLoading?: boolean;
@@ -236,6 +237,15 @@ export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUni
       </div>
       <button type="button" onClick={() => setIndexOpen(x => !x)} aria-expanded={indexOpen} aria-controls="grade1-creative-index" style={{ minHeight: 44, border: '1px solid #9fbbaa', borderRadius: 10, background: '#fff', padding: '10px 13px', fontWeight: 800, color: '#175b43', cursor: 'pointer' }}>{indexOpen ? 'Close topics' : 'All 16 topics'}</button>
     </div>
+    {onPlanUnit && <div style={{ ...card, marginBottom: 14, borderColor: '#9fbbaa' }}>
+      {linkedUnit ? <button type="button" onClick={() => onPlanUnit(unit.id)} style={{ width: '100%', minHeight: 44, padding: '11px 14px', borderRadius: 10, border: 0, background: '#175b43', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Plan this sub-strand in Scheme of Work</button>
+        : <p role="status" style={{ fontSize: 13, color: '#526d5e', margin: 0 }}>{catalogLoading ? 'Connecting curriculum records…' : catalogError || 'This curriculum unit is not yet linked to a database record.'}</p>}
+      <p style={{ margin: '8px 0 0', fontSize: 12, color: '#526d5e', lineHeight: 1.5 }}>Choose an instructional week and the learning outcomes for a lesson. This is VibeSchool-authored guidance, not verified KICD text.</p>
+    </div>}
+    {onOpenSchemeUnit && <div style={{ ...card, marginBottom: 14, borderColor: '#9fbbaa' }}>
+      <button type="button" onClick={() => onOpenSchemeUnit(unit.id)} style={{ width: '100%', minHeight: 44, padding: '12px 14px', borderRadius: 10, border: 0, background: '#175b43', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Plan {unit.title} in Scheme of Work</button>
+      <p style={{ margin: '8px 0 0', fontSize: 12, color: '#526d5e', lineHeight: 1.5 }}>Opens your assigned class, selected sub-strand and term. Choose the week and learning outcomes before saving.</p>
+    </div>}
     {indexOpen && <div id="grade1-creative-index" style={{ ...card, marginBottom: 14 }}>
       <label htmlFor="grade1-creative-search" style={h}>Find a sub-strand or outcome</label>
       <input id="grade1-creative-search" type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search all 16 topics" style={{ boxSizing: 'border-box', width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid #a9c2b1', fontSize: 15, minHeight: 44 }} />
@@ -261,11 +271,6 @@ export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUni
       <div style={card}><h4 style={h}>Learning resources</h4><p style={bullet}>{unit.resources}</p></div>
       {unit.safety && <div style={{ ...card, background: '#fffaf0' }}><h4 style={h}>Safety and inclusion</h4><p style={bullet}>{unit.safety}</p></div>}
     </article>
-    {onPlanUnit && <div style={{ ...card, marginTop: 15, borderColor: '#9fbbaa' }}>
-      {linkedUnit ? <button type="button" onClick={() => onPlanUnit(unit.id)} style={{ width: '100%', minHeight: 44, padding: '11px 14px', borderRadius: 10, border: 0, background: '#175b43', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Plan this sub-strand in Scheme of Work</button>
-        : <p role="status" style={{ fontSize: 13, color: '#526d5e', margin: 0 }}>{catalogLoading ? 'Connecting curriculum records…' : catalogError || 'This curriculum unit is not yet linked to a database record.'}</p>}
-      <p style={{ margin: '8px 0 0', fontSize: 12, color: '#526d5e', lineHeight: 1.5 }}>Choose an instructional week and the learning outcomes for a lesson. This is VibeSchool-authored guidance, not verified KICD text.</p>
-    </div>}
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 15 }}>
       <button type="button" disabled={index === 0} onClick={() => choose(GRADE1_CREATIVE_UNITS[index - 1].id)} style={{ minHeight: 44, padding: '10px 14px', borderRadius: 10, border: '1px solid #c8d7cc', background: '#fff', color: '#1a5a40', fontWeight: 700, opacity: index === 0 ? 0.45 : 1, cursor: index === 0 ? 'default' : 'pointer' }}>← Previous</button>
       <button type="button" disabled={index === GRADE1_CREATIVE_UNITS.length - 1} onClick={() => choose(GRADE1_CREATIVE_UNITS[index + 1].id)} style={{ minHeight: 44, padding: '10px 14px', borderRadius: 10, border: 'none', background: '#175b43', color: '#fff', fontWeight: 800, opacity: index === GRADE1_CREATIVE_UNITS.length - 1 ? 0.45 : 1, cursor: index === GRADE1_CREATIVE_UNITS.length - 1 ? 'default' : 'pointer' }}>Next topic →</button>

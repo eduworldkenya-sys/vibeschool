@@ -1160,7 +1160,11 @@ export default function SubjectHubPage() {
               style={{ background: '#175b43', color: '#fff', minHeight: 44, border: 0, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontWeight: 800 }}
             >Open full curriculum map →</button>
           </div>
-          <Grade1CreativeActivitiesMap compact />
+          <Grade1CreativeActivitiesMap compact onOpenSchemeUnit={(unitId) => {
+            const params = new URLSearchParams({ classId: grade1CreativeClass.id, subjectId: activeSubject.id, unitId })
+            if (activeAcademicTerm?.id) params.set('termId', activeAcademicTerm.id)
+            router.push('/teacher/scheme?' + params.toString())
+          }} />
         </div>
       )}
 
