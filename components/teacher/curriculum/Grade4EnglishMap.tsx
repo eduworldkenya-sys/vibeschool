@@ -34,7 +34,6 @@ const sourceLinkStyle = {
  * and local weekly curriculum are separate from the official annual index.
  */
 export default function Grade4EnglishMap({
-  selectedTerm: _selectedTerm,
   showExisting,
   onToggleExisting,
   onOpenScheme,
@@ -140,11 +139,11 @@ export default function Grade4EnglishMap({
 
     <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:8,marginTop:13}}>
       <button type="button" disabled={theme.number===1} onClick={() => setSelectedTheme(theme.number-1)} style={{
-        padding:'10px 13px',minHeight:44,borderRadius:9,border:'1px solid #c4d5cb',background:'#fff',color:'#214a39',fontWeight:700,opacity:theme.number===1?.45:1,
+        padding:'10px 13px',minHeight:44,borderRadius:9,border:'1px solid #c4d5cb',background:'#fff',color:'#214a39',fontWeight:700,opacity: theme.number === 1 ? 0.45 : 1,
       }}>← Previous theme</button>
       <button type="button" disabled={theme.number===GRADE4_ENGLISH_THEMES.length} onClick={() => setSelectedTheme(theme.number+1)} style={{
         padding:'10px 13px',minHeight:44,borderRadius:9,border:'1px solid #c4d5cb',background:'#e9f5ed',color:'#214a39',fontWeight:700,
-        opacity:theme.number===GRADE4_ENGLISH_THEMES.length?.45:1,
+        opacity: theme.number === GRADE4_ENGLISH_THEMES.length ? 0.45 : 1,
       }}>Next theme →</button>
     </div>
 
