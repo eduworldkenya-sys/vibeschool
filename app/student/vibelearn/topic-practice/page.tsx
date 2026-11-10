@@ -52,7 +52,11 @@ export default function TopicPracticePage() {
   const storageKey = identity?.studentId ? STORAGE + identity.studentId : ''
   useEffect(() => {
     if (identityLoading || !identity || initialised) return
-    const profileGrade = /^grade\s*\d+$/i.test(identity.className.trim()) ? identity.className.trim() : /^form\s*[1-4]$/i.test(identity.className.trim()) ? identity.className.trim() : ''
+    // StudentProvider includes the optional school stream in className
+    // (e.g. "Grade 9 East"). Practice selection must use the canonical grade.
+    const classLabel = identity.className.trim()
+    const gradeMatch = classLabel.match(/^(Grade\s*\d{1,2}|Form\s*[1-4])(?:\s+.+)?$/i)
+    const profileGrade = gradeMatch ? gradeMatch[1].replace(/\s+/g,' ').replace(/^grade/i,'Grade').replace(/^form/i,'Form') : ''
     setGrade(profileGrade || window.localStorage.getItem(STORAGE + identity.studentId + ':grade') || '')
     setSession(readSession(STORAGE + identity.studentId))
     try { const saved = JSON.parse(window.localStorage.getItem(STORAGE + identity.studentId + ':completed') || '[]'); if (Array.isArray(saved)) setCompletedTopics(saved.filter((x):x is string => typeof x === 'string')) } catch { setCompletedTopics([]) }
