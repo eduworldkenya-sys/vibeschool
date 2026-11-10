@@ -48,7 +48,7 @@ assert.ok(slots.includes('const topics=curriculumTopics.filter(row=>row.week===w
 assert.ok(slots.includes('Not planned yet'), 'Unplanned slots must remain visibly empty')
 assert.ok(slots.includes('lessons.length>target'), 'Weekly over-allocation must be flagged')
 for (const token of [
-  "'id, teacher_id, school_id, class_id, subject_id, academic_term_id, week'",
+  "'id, teacher_id, school_id, class_id, subject_id, academic_term_id, week, lesson_number, period'",
   ".eq('term_id', scheme.academic_term_id)",
   ".eq('week_number', scheme.week)",
   "const rangeStart = matchingWeek.start_date",
