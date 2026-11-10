@@ -10,7 +10,7 @@ import { useMemo, useState, type CSSProperties } from 'react'
  * This annual reference is distinct from the canonical, dated curriculum
  * records and the teacher-owned Scheme of Work. No PDF rendering required.
  */
-export const GRADE1_CREATIVE_SOURCE = 'https://kicd.ac.ke/wp-content/uploads/2024/10/Creative-Activities-IL-G1-3-Revised.pdf'
+export const GRADE1_CREATIVE_SOURCE = 'https://drive.google.com/file/d/1vrC5cJO2MpDm9v4u3-qwCze9yPa9HcEZ/preview'
 
 type CurriculumUnit = {
   id: string
