@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const scheme = readFileSync(new URL('../app/teacher/scheme/AuthoritySchemePage.jsx', import.meta.url), 'utf8')
+const hub = readFileSync(new URL('../app/teacher/subjecthub/page.tsx', import.meta.url), 'utf8')
 const math = readFileSync(new URL('../components/teacher/curriculum/Grade1MathematicsMap.tsx', import.meta.url), 'utf8')
 const english = readFileSync(new URL('../components/teacher/curriculum/Grade1EnglishMap.tsx', import.meta.url), 'utf8')
 
@@ -43,5 +44,12 @@ assert.ok(scheme.includes("curriculumOutcomes[row.id]"),'Preserve verified canon
 assert.ok(scheme.includes("commit_curriculum_scheme"),'Preserve canonical scheme authority')
 assert.ok(scheme.includes("<Grade1CreativeActivitiesMap selectedUnitId="),'Preserve Grade 1 Creative Activities')
 assert.ok(scheme.includes('<Grade4EnglishMap'),'Preserve Grade 4 English')
+assert.ok(hub.includes('grade1MathematicsUnitId')&&hub.includes('grade1EnglishUnitId'),
+  'Subject Hub must preserve separate selected unit identities')
+assert.ok(hub.includes("'&unitId=' + encodeURIComponent(grade1MathematicsUnitId)") &&
+  hub.includes("'&unitId=' + encodeURIComponent(grade1EnglishUnitId)"),
+  'Opening full Curriculum Map must preserve the currently selected reader unit')
+assert.ok(hub.includes('<Grade1MathematicsMap compact selectedUnitId={grade1MathematicsUnitId} onSelectUnit={setGrade1MathematicsUnitId} />'))
+assert.ok(hub.includes('<Grade1EnglishMap compact selectedUnitId={grade1EnglishUnitId} onSelectUnit={setGrade1EnglishUnitId} />'))
 assert.ok(scheme.includes('get_operating_context')||scheme.includes('teacher_get_operating_context'),'Preserve assigned teacher scoping')
 console.log('Grade 1 Mathematics and English unified Curriculum Map and deep links: PASS')
