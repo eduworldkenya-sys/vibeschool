@@ -4,9 +4,9 @@ const route=fs.readFileSync('app/student/vibelearn/topic-practice/page.tsx','utf
 const hub=fs.readFileSync('components/student/LearnActivityHub.tsx','utf8')
 assert.match(route,/classLabel\.match\(/)
 assert.match(route,/gradeMatch\[1\]/)
-assert.match(hub,/Grade\\s\*9\(\?:\\s\+\.\+\)\?/)
+assert.ok(hub.includes(String.raw`/^Grade\s*9(?:\s+.+)?$/i`))
 const normalize=(label)=>{
-  const m=label.trim().match(/^(Grade\s*\d{1,2}|Form\s*[1-4])(?:\s+.+)?$/i)
+  const m=label.trim().match(/^(Grade\s*(?:[1-9]|1[0-2])|Form\s*[1-4])(?:\s+.+)?$/i)
   return m?m[1].replace(/\s+/g,' ').replace(/^grade/i,'Grade').replace(/^form/i,'Form'):''
 }
 for(const label of ['Grade 9','grade9','Grade 9 A','Grade 9 East','grade 9 stream B'])

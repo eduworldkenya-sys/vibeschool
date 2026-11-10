@@ -55,7 +55,7 @@ export default function TopicPracticePage() {
     // StudentProvider includes the optional school stream in className
     // (e.g. "Grade 9 East"). Practice selection must use the canonical grade.
     const classLabel = identity.className.trim()
-    const gradeMatch = classLabel.match(/^(Grade\s*\d{1,2}|Form\s*[1-4])(?:\s+.+)?$/i)
+    const gradeMatch = classLabel.match(/^(Grade\s*(?:[1-9]|1[0-2])|Form\s*[1-4])(?:\s+.+)?$/i)
     const profileGrade = gradeMatch ? gradeMatch[1].replace(/\s+/g,' ').replace(/^grade/i,'Grade').replace(/^form/i,'Form') : ''
     setGrade(profileGrade || window.localStorage.getItem(STORAGE + identity.studentId + ':grade') || '')
     setSession(readSession(STORAGE + identity.studentId))
