@@ -85,6 +85,8 @@ export default function SubjectHubPage() {
 
   const [subjects,       setSubjects]       = useState<SubjectOption[]>([])
   const [activeIdx,      setActiveIdx]      = useState(0)
+  const [grade1MathematicsUnitId, setGrade1MathematicsUnitId] = useState('1.1')
+  const [grade1EnglishUnitId, setGrade1EnglishUnitId] = useState('1.1')
   const [classes,        setClasses]        = useState<ClassForSubject[]>([])
   const [teammates,      setTeammates]      = useState<Teammate[]>([])
   const [schoolId,       setSchoolId]       = useState<string | null>(null)
@@ -1174,11 +1176,11 @@ export default function SubjectHubPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 9 }}>
             <button
               type="button"
-              onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade1MathematicsClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id))}
+              onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade1MathematicsClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id) + '&unitId=' + encodeURIComponent(grade1MathematicsUnitId))}
               style={{ background: '#175b43', color: '#fff', minHeight: 44, border: 0, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontWeight: 800 }}
             >Open full curriculum map →</button>
           </div>
-          <Grade1MathematicsMap compact />
+          <Grade1MathematicsMap compact selectedUnitId={grade1MathematicsUnitId} onSelectUnit={setGrade1MathematicsUnitId} />
         </div>
       )}
 
@@ -1188,11 +1190,11 @@ export default function SubjectHubPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 9 }}>
             <button
               type="button"
-              onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade1EnglishClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id))}
+              onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade1EnglishClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id) + '&unitId=' + encodeURIComponent(grade1EnglishUnitId))}
               style={{ background: '#175b43', color: '#fff', minHeight: 44, border: 0, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontWeight: 800 }}
             >Open full curriculum map →</button>
           </div>
-          <Grade1EnglishMap compact />
+          <Grade1EnglishMap compact selectedUnitId={grade1EnglishUnitId} onSelectUnit={setGrade1EnglishUnitId} />
         </div>
       )}
 
