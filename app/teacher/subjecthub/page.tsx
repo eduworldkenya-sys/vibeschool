@@ -10,6 +10,7 @@ import { loadActiveTeacherTimetable, timetableSlotsForDay, type CanonicalTimetab
 export const dynamic = "force-dynamic";
 import { Card, C, Modal as SharedModal } from '@/components/teacher/ui'
 import SubjectCompanion from '@/components/teacher/SubjectCompanion'
+import Grade1CreativeActivitiesMap from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -870,6 +871,10 @@ export default function SubjectHubPage() {
   }
 
   const activeSubject = subjects[activeIdx] ?? null
+  const grade1CreativeClass =
+    /^(creative activities|creative arts activities|creative arts and sports)$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\b(?:grade|class)\s*1\b/i.test(item.name)) ?? null
+      : null
 
   const readiness: { label: string; bg: string; color: string } = (() => {
     if (lessonCount > 0 && assessCount > 0) return { label: 'Ready',     bg: '#d1fae5', color: '#065f46' }
@@ -1131,6 +1136,21 @@ export default function SubjectHubPage() {
             <span style={{ fontSize: 11, color: C.textMuted }}>📖 {lessonCount} lesson{lessonCount !== 1 ? 's' : ''} this term</span>
             <span style={{ fontSize: 11, color: C.textMuted }}>📊 {assessCount} assessment{assessCount !== 1 ? 's' : ''} this term</span>
           </div>
+        </div>
+      )}
+
+      {/* Annual subject curriculum reference: the same native reader used by /teacher/curriculum.
+          Read-only, source-attributed and separate from teacher-owned scheme records. */}
+      {!loading && !classLoading && activeSubject && grade1CreativeClass && (
+        <div style={{ margin: '14px 16px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 9 }}>
+            <button
+              type="button"
+              onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade1CreativeClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id))}
+              style={{ background: '#175b43', color: '#fff', minHeight: 44, border: 0, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontWeight: 800 }}
+            >Open full curriculum map →</button>
+          </div>
+          <Grade1CreativeActivitiesMap compact />
         </div>
       )}
 

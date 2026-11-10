@@ -2,6 +2,7 @@
 
 import TeachingWorkspaceNav from '@/components/teacher/TeachingWorkspaceNav'
 import Grade4EnglishMap from '@/components/teacher/curriculum/Grade4EnglishMap'
+import Grade1CreativeActivitiesMap from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 import WeeklyLessonSlots from '@/components/teacher/scheme/WeeklyLessonSlots'
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -96,6 +97,7 @@ function Inner({ curriculumView = false }) {
   const subjectObj = useMemo(()=>subjects.find(x=>x.id===selectedSubject)||null,[subjects,selectedSubject])
   const termObj = useMemo(()=>terms.find(x=>x.id===selectedTermId)||null,[terms,selectedTermId])
   const isGrade4English = classObj?.grade?.trim().toLowerCase()==='grade 4' && subjectObj?.label?.trim().toLowerCase()==='english'
+  const isGrade1Creative = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(creative activities|creative arts activities|creative arts and sports)$/i.test(subjectObj?.label?.trim()||'')
   const filteredSubjects = useMemo(()=>{
     const ids = new Set(pairs.filter(x=>x.class_id===selectedClass).map(x=>x.subject_id))
     return subjects.filter(x=>ids.has(x.id))
@@ -301,6 +303,7 @@ function Inner({ curriculumView = false }) {
     </div>
 
     {selectedSubject && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
+    {curriculumView && isGrade1Creative && <Grade1CreativeActivitiesMap />}
     {curriculumView && isGrade4English && <Grade4EnglishMap
       selectedTerm={termObj?.term ?? null}
       showExisting={showEnglishLegacy}
