@@ -460,6 +460,25 @@ export default function Grade1EnglishMap({ compact = false }: { compact?: boolea
   const [indexOpen, setIndexOpen] = useState(false)
   const unit = GRADE1_ENGLISH_UNITS.find(item => item.id === selectedId) ?? GRADE1_ENGLISH_UNITS[0]
   const index = GRADE1_ENGLISH_UNITS.findIndex(item => item.id === unit.id)
+  const contextualActivity = (() => {
+    switch (unit.id) {
+      case '1.1': return theme.context
+      case '2.1': return 'Use a simple poster about ' + theme.title.toLowerCase() + ' to practise book and print tracking before reading.'
+      case '2.2': return 'Blend sounds and read short familiar words from the theme, checking their meaning with pictures.'
+      case '2.3': return 'Echo-read two short theme sentences aloud, focusing on smooth phrasing and pauses.'
+      case '2.4': return 'Read or listen to a short illustrated theme text and answer who, what and where questions.'
+      case '3.1': return 'Talk naturally about people, things and actions in a theme picture, using clear short sentences.'
+      case '3.2': return 'Say one short sentence about a theme activity happening now and another about an earlier activity.'
+      case '3.3': return 'Use the theme words to speak a clear and polite short message to a partner.'
+      case '4.1': return 'Trace large marks and the starting letter shapes of familiar theme words using suitable writing tools.'
+      case '4.2': return 'Copy two familiar theme words carefully, attending to clear letter shapes and spacing.'
+      case '4.3': return 'Sound out and spell one or two taught words from the selected theme using a picture or word bank.'
+      case '4.4': return 'Write one simple theme sentence with a starting capital letter and ending full stop.'
+      case '4.5': return 'Discuss a theme picture, rehearse a short sentence orally and write it with supportive prompts.'
+      default: return theme.context
+    }
+  })()
+
   const results = useMemo(() => {
     const term = search.trim().toLowerCase()
     return GRADE1_ENGLISH_UNITS.filter(item => !term || [item.id, item.title, ...item.outcomes].some(text => text.toLowerCase().includes(term)))
@@ -506,7 +525,7 @@ export default function Grade1EnglishMap({ compact = false }: { compact?: boolea
         {GRADE1_ENGLISH_THEMES.map(item => <option key={item.id} value={item.id}>{item.id}. {item.title}</option>)}
       </select>
       <p style={{ ...bullet, marginTop: 9 }}><strong>Useful words:</strong> {theme.words}</p>
-      <p style={{ ...bullet, marginTop: 6 }}><strong>Suggested activity:</strong> {theme.context}</p>
+      <p style={{ ...bullet, marginTop: 6 }}><strong>VibeSchool activity for this skill:</strong> {contextualActivity}</p>
       <p style={{ fontSize: 11, color: '#567065', margin: '7px 0 0' }}>The theme supplies familiar context for the selected skill; it does not assign a fixed instructional week or create a lesson plan.</p>
     </div>
     <article aria-label={'Sub-strand ' + unit.id + ' ' + unit.title} style={{ display: 'grid', gap: 11 }}>
