@@ -23,7 +23,7 @@ for (const token of [
 ]) assert.ok(reader.includes(token), 'Missing native reader content: ' + token)
 
 assert.ok(mapPage.includes('isGrade1Creative'), 'Curriculum must resolve assigned Grade 1 Creative Activities')
-assert.ok(mapPage.includes('<Grade1CreativeActivitiesMap onPlanUnit='), 'Canonical teacher curriculum route must offer the contextual scheme planning action')
+assert.ok(mapPage.includes('<Grade1CreativeActivitiesMap selectedUnitId='), 'Canonical teacher curriculum route must offer the contextual scheme planning action')
 assert.ok(reader.includes('onPlanUnit(unit.id)'), 'The selected Grade 1 sub-strand must flow to the scheme planner')
 assert.ok(mapPage.includes("unitId:searchParams.get('unitId')"), 'Scheme must restore the selected curriculum unit')
 assert.ok(mapPage.includes("if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId)"), 'Selected unit must survive week selection')
@@ -33,6 +33,9 @@ assert.ok(mapPage.includes("supabase.from('scheme_of_work').update"), 'Mapped le
 assert.ok(mapPage.includes("supabase.from('scheme_of_work').delete"), 'Incomplete mapped lessons must be rolled back on update failure')
 assert.ok(mapPage.includes('KICD reconciliation pending'), 'Mapped custom lessons cannot claim KICD certification')
 assert.ok(mapPage.includes('Plan mapped Grade 1 curriculum lesson'), 'Scheme must show mapped curriculum content before save')
+assert.ok(mapPage.includes("learning_experiences,reference').eq('teacher_id'"), 'Scheme must load the VibeSchool source reference for a mapped lesson')
+assert.ok(mapPage.includes('View curriculum map</button>'), 'Saved Grade 1 lessons must link back to the curriculum map')
+assert.ok(reader.includes('selectedUnitId'), 'Return link must open the original mapped curriculum sub-strand')
 assert.ok(mapPage.includes("commit_curriculum_scheme"), 'Do not replace the existing canonical scheme engine')
 assert.ok(mapPage.includes('curriculumOutcomes[row.id]'), 'Existing canonical outcome records must remain available')
 assert.ok(mapPage.includes("display:isGrade4English&&!showEnglishLegacy?'none':undefined"), 'Preserve Grade 4 English map regression contract')
