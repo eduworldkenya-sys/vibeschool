@@ -482,11 +482,11 @@ export default function Grade1EnglishMap({ compact = false }: { compact?: boolea
         <h3 style={{ fontSize: 19, margin: '4px 0' }}>{unit.title}</h3>
         <div style={{ fontSize: 12, color: '#607467' }}>{GRADE1_ENGLISH_STRANDS.find(s => s.id === unit.strand)?.title} · {unit.lessons} suggested lessons</div>
       </div>
-      <button type="button" onClick={() => setIndexOpen(x => !x)} aria-expanded={indexOpen} aria-controls="grade1-englishematics-index" style={{ minHeight: 44, border: '1px solid #9fbbaa', borderRadius: 10, background: '#fff', padding: '10px 13px', fontWeight: 800, color: '#175b43', cursor: 'pointer' }}>{indexOpen ? 'Close topics' : 'All 13 sub-strands'}</button>
+      <button type="button" onClick={() => setIndexOpen(x => !x)} aria-expanded={indexOpen} aria-controls="grade1-english-index" style={{ minHeight: 44, border: '1px solid #9fbbaa', borderRadius: 10, background: '#fff', padding: '10px 13px', fontWeight: 800, color: '#175b43', cursor: 'pointer' }}>{indexOpen ? 'Close topics' : 'All 13 sub-strands'}</button>
     </div>
-    {indexOpen && <div id="grade1-englishematics-index" style={{ ...card, marginBottom: 14 }}>
-      <label htmlFor="grade1-englishematics-search" style={h}>Find a sub-strand or outcome</label>
-      <input id="grade1-englishematics-search" type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search all 13 sub-strands" style={{ boxSizing: 'border-box', width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid #a9c2b1', fontSize: 15, minHeight: 44 }} />
+    {indexOpen && <div id="grade1-english-index" style={{ ...card, marginBottom: 14 }}>
+      <label htmlFor="grade1-english-search" style={h}>Find a sub-strand or outcome</label>
+      <input id="grade1-english-search" type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search all 13 sub-strands" style={{ boxSizing: 'border-box', width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid #a9c2b1', fontSize: 15, minHeight: 44 }} />
       <nav aria-label="Grade 1 English strands and sub-strands" style={{ maxHeight: 350, overflowY: 'auto', marginTop: 12 }}>
         {GRADE1_ENGLISH_STRANDS.map(strand => {
           const items = results.filter(item => item.strand === strand.id)
