@@ -1192,7 +1192,7 @@ export default function SubjectHubPage() {
         </div>
       )}
 
-      {/* ── CURRICULUM OUTCOMES CARD ── */
+      {/* ── CURRICULUM OUTCOMES CARD ── */}
       {!loading && activeSubject && outcomesByStrand.length > 0 && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
