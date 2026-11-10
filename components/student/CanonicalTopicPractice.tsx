@@ -115,7 +115,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
   const item=workspace?.items[index]??null
   const currentFeedback=item?feedback.find(row=>row.item_id===item.id):null
   const options=item?optionsOf(item.options):[]
-  const seen=new Set(feedback.map(entry=>entry.item_id))
+  const seen=new Set([...feedback.map(entry=>entry.item_id),...(workspace?.responses??[]).map(response=>response.assessmentItemId)])
   const incorrect=feedback.filter(entry=>entry.correct===false).length
   const correct=feedback.filter(entry=>entry.correct===true).length
   const skipped=feedback.filter(entry=>entry.skipped).length
@@ -125,11 +125,15 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
     try{
       // Canonical EXQ saves and owns the response. No alternate attempt record.
       await saveResponse({attemptId:workspace.attemptId,assessmentItemId:item.id,responseValue:value})
-      const marks=await fetchFeedback(workspace.attemptId)
-      setFeedback(marks)
       setWorkspace(previous=>previous?{...previous,responses:[...previous.responses.filter(response=>response.assessmentItemId!==item.id),{
         assessmentItemId:item.id,responseValue:value,responseText:null,status:'saved',revision:1,clientUpdatedAt:null,lastSavedAt:new Date().toISOString()
       }]}:previous)
+      try {
+        const marks=await fetchFeedback(workspace.attemptId)
+        setFeedback(marks)
+      } catch {
+        setError('Your answer was saved, but feedback could not load. Choose topic, then Continue to restore your progress.')
+      }
     }catch(cause){setError(cause instanceof Error?cause.message:'Your response could not be saved.')}
     finally{setBusy(false)}
   }
@@ -180,6 +184,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
         <div style={{display:'grid',gap:10}}>
           {options.map(option=><button key={option.value} disabled={busy||seen.has(item.id)} style={{...optionStyle,background:currentFeedback?.selected===option.value?'#e0e7ff':'var(--vs-card)'}} onClick={()=>void save(option.value)}><strong>{option.value}.</strong> {option.label}</button>)}
         </div>
+        {seen.has(item.id) && !currentFeedback && <div role="status" style={{...card,background:'var(--vs-bg)'}}>Answer saved. Feedback could not load. Choose topic and Continue to restore your attempt.</div>}
         {currentFeedback?<div role='status' style={{...card,background:'var(--vs-bg)'}}>
           <strong>{currentFeedback.skipped?'Skipped':currentFeedback.correct?'Correct':'Not correct'}</strong>
           {currentFeedback.correct_answer && <p>Correct answer: {currentFeedback.correct_answer}. {options.find(option=>option.value===currentFeedback.correct_answer)?.label}</p>}
