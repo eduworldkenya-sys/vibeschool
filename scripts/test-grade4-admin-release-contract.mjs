@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+const sql=readFileSync('supabase/migrations/20261111090000_grade4_original_exam_admin_release.sql','utf8')
+for(const x of ['private.original_exam_drafts','content_state=\'needs_editorial_review\'','automated_review','curriculum_verification','provisional','public.assessment_definitions','public.assessment_items','public.assessment_item_outcomes','public.assessment_assignments','published_at=now()','one_time_admin_release_without_human_review']) assert.ok(sql.includes(x),x)
+assert.match(sql,/if v_all<>7 then/)
+assert.match(sql,/if v_issued<>7 then/)
+assert.match(sql,/'owner_approved',false/)
+assert.match(sql,/'human_educational_review','not_performed'/)
+assert.match(sql,/null,now\(\),now\(\),null/)
+assert.match(sql,/approved_by and teacher_reviewed_at intentionally remain NULL/)
+assert.match(sql,/public\.hq_profile_is_active/)
+assert.match(sql,/public\.grade_subject_authority/)
+assert.doesNotMatch(sql,/set_config\s*\(/i)
+assert.doesNotMatch(sql,/owner_authenticated_signoff','completed'/i)
+assert.doesNotMatch(sql,/G4-PRIVATE-(?:ENG|KIS|SCI|AGR|SOC|CRA|MAT)-\d{3}/)
+console.log('Grade 4 one-time provisional release provenance and safety contracts: PASS')
