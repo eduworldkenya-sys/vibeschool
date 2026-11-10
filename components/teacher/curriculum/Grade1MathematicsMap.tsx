@@ -112,7 +112,7 @@ export const GRADE1_MATHEMATICS_UNITS: readonly CurriculumUnit[] = [
     ],
     "resources": "Counters, dice, number cards, a place-value chart, an abacus where available and simple story cards.",
     "assessment": "Check concrete modelling, correct use of signs, the 2- and 3-addend calculations and two-digit plus one-digit calculations without regrouping.",
-    "competencies": "Problem solving; creativity and collaboration. Values: inclusion and fairness. PCIs: safety and mathematics thinking."
+    "competencies": "Problem solving; creativity and collaboration. Values: inclusion and fairness. PCIs: safety and creative thinking."
   },
   {
     "id": "1.4",
@@ -310,7 +310,7 @@ export const GRADE1_MATHEMATICS_UNITS: readonly CurriculumUnit[] = [
     ],
     "resources": "Large shape cut-outs, coloured paper, safe classroom objects, crayons and pattern cards.",
     "assessment": "Check naming of shapes and ability to construct and explain a repeating pattern.",
-    "competencies": "Creativity and imagination; learning to learn. Values: peaceful cooperation and responsibility. PCIs: classroom safety and mathematics thinking.",
+    "competencies": "Creativity and imagination; learning to learn. Values: peaceful cooperation and responsibility. PCIs: classroom safety and creative thinking.",
     "safety": "Use pre-cut shapes and supervise scissors if used."
   }
 ]
@@ -378,6 +378,6 @@ export default function Grade1MathematicsMap({ compact = false }: { compact?: bo
       <button type="button" disabled={index === 0} onClick={() => choose(GRADE1_MATHEMATICS_UNITS[index - 1].id)} style={{ minHeight: 44, padding: '10px 14px', borderRadius: 10, border: '1px solid #c8d7cc', background: '#fff', color: '#1a5a40', fontWeight: 700, opacity: index === 0 ? 0.45 : 1, cursor: index === 0 ? 'default' : 'pointer' }}>← Previous</button>
       <button type="button" disabled={index === GRADE1_MATHEMATICS_UNITS.length - 1} onClick={() => choose(GRADE1_MATHEMATICS_UNITS[index + 1].id)} style={{ minHeight: 44, padding: '10px 14px', borderRadius: 10, border: 'none', background: '#175b43', color: '#fff', fontWeight: 800, opacity: index === GRADE1_MATHEMATICS_UNITS.length - 1 ? 0.45 : 1, cursor: index === GRADE1_MATHEMATICS_UNITS.length - 1 ? 'default' : 'pointer' }}>Next topic →</button>
     </div>
-    {!compact && <p style={{ fontSize: 11, color: '#5f776b', margin: '13px 0 0' }}>Reference: VS-CUR-G01-CA-2026. These reading entries are not verified canonical database outcomes and do not change teaching records.</p>}
+    {!compact && <p style={{ fontSize: 11, color: '#5f776b', margin: '13px 0 0' }}>Reference: VS-CUR-G01-MA-2026. These reading entries are not verified canonical database outcomes and do not change teaching records.</p>}
   </section>
 }
