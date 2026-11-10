@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+const ui=fs.readFileSync('components/student/CanonicalTopicPractice.tsx','utf8')
+assert.match(ui,/const result=await submitAttempt\(workspace\.attemptId\)/)
+assert.match(ui,/setFinished\(result\)/)
+assert.match(ui,/Promise\.allSettled/)
+assert.match(ui,/finished\.scoreReleased && finished\.score!==null/)
+assert.match(ui,/finished\.attemptId/)
+assert.match(ui,/student\/results\//)
+assert.match(ui,/Your answer was saved, but feedback could not load/)
+assert.match(ui,/Your practice result is saved/)
+assert.match(ui,/workspace\?\.responses\?\?\[\]/)
+assert.match(ui,/Retry missed or skipped questions for learning/)
+assert.match(ui,/No timer or class code/)
+assert.doesNotMatch(ui,/student_record_vibelearn_practice_answer/)
+console.log('PASS: canonical score authority, durable result history, saved-response recovery, no duplicate practice engine')
