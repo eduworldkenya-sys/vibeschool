@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 
 /**
  * Read-only curriculum reference drawn from the independent VibeSchool
@@ -191,9 +191,9 @@ export const GRADE1_CREATIVE_UNITS: readonly CurriculumUnit[] = [
   },
 ]
 
-const card: React.CSSProperties = { border: '1px solid #dce7e0', borderRadius: 12, background: '#fff', padding: 15 }
-const h: React.CSSProperties = { fontSize: 13, color: '#1d4937', fontWeight: 800, margin: '0 0 9px' }
-const bullet: React.CSSProperties = { margin: '4px 0', lineHeight: 1.65, fontSize: 13, color: '#253d32' }
+const card: CSSProperties = { border: '1px solid #dce7e0', borderRadius: 12, background: '#fff', padding: 15 }
+const h: CSSProperties = { fontSize: 13, color: '#1d4937', fontWeight: 800, margin: '0 0 9px' }
+const bullet: CSSProperties = { margin: '4px 0', lineHeight: 1.65, fontSize: 13, color: '#253d32' }
 
 export default function Grade1CreativeActivitiesMap({ compact = false }: { compact?: boolean }) {
   const [selectedId, setSelectedId] = useState('1.1')
