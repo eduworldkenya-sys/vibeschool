@@ -16,7 +16,7 @@ export default function LearnActivityHub() {
     let active=true
     if (!identity?.studentId) { setHasPendingTopicPractice(false); return }
     const grade=identity.className.trim()
-    if (/^Grade\s*9$/i.test(grade)) {
+    if (/^Grade\s*9(?:\s+.+)?$/i.test(grade)) {
       void supabase.rpc("student_list_canonical_topic_practice" as never,{p_grade:"Grade 9"})
         .then(({data,error})=>{
           if(!active)return
