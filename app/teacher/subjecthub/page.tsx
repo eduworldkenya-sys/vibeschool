@@ -872,7 +872,7 @@ export default function SubjectHubPage() {
 
   const activeSubject = subjects[activeIdx] ?? null
   const grade1CreativeClass =
-    /^(creative activities|creative arts activities)$/i.test(activeSubject?.name?.trim() ?? '')
+    /^(creative activities|creative arts activities|creative arts and sports)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*1\b/i.test(item.name)) ?? null
       : null
 
