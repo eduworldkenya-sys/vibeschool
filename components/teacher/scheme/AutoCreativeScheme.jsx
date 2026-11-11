@@ -80,7 +80,7 @@ export default function AutoCreativeScheme({draft,termId,week,savedLessons,catal
                 onClick={()=>onSaveAndPrepare(item)}>
                 {savingKey===item.key?'Saving…':'Save & prepare lesson'}
               </button>}
-            <button type="button" style={button} onClick={()=>onViewUnit(item.unitId)}>View curriculum</button>
+            <button type="button" style={button} onClick={()=>onViewUnit(item.unitId,item.themeId)}>View curriculum</button>
           </div>
         </div>)}
       </div>}
