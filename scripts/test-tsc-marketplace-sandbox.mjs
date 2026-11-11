@@ -28,7 +28,7 @@ assert.match(view, /https:\/\/teachersonline\.tsc\.go\.ke\//, "official portal l
 assert.match(view, /useKenyaCounties/, "reuse canonical counties directory");
 assert.match(view, /aria-live="polite"/, "match result updates accessible");
 assert.match(css, /max-width:480px/, "mobile small-screen treatment");
-for (const token of [".from(", ".insert(", ".upsert(", ".update("]) {
+for (const token of [".insert(", ".upsert(", ".update(", ".delete(", ".rpc("]) {
   assert.equal(view.includes(token), false, "sandbox cannot write to production tables: " + token);
 }
 
