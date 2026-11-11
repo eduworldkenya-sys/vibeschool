@@ -1,0 +1,646 @@
+{
+  "schemaVersion": 1,
+  "grade": "Grade 9",
+  "learningArea": "English",
+  "edition": "2024 revised October",
+  "publisher": "Kenya Institute of Curriculum Development",
+  "document": "English Grade 9 - Revised Oct.pdf",
+  "officialIndexUrl": "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-nine-designs/",
+  "officialPreviewUrl": "https://drive.google.com/file/d/1ehe01q4q8G-ft1PsA0r7skcz6grZfiNQ/preview",
+  "weeklyLessons": 5,
+  "suggestedLessons": 150,
+  "scope": "Native VibeSchool index of source headings and thematic ordering. KICD specific learning outcomes, activities and inquiry questions are not republished or represented as verified.",
+  "verification": "structure_crosschecked_outcomes_pending",
+  "themes": [
+    {
+      "number": 1,
+      "title": "Citizenship",
+      "printedPage": 1,
+      "units": [
+        {
+          "code": "1.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Polite language: euphemism",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "1.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Independent reading: appropriate texts",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "1.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Gender-neutral language",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "1.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: structure and setting",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "1.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Legibility and neatness",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "Science: Fiction",
+      "printedPage": 11,
+      "units": [
+        {
+          "code": "2.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Oral literature: short forms",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "2.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Intensive reading: simple poems",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "2.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Nouns and quantifiers",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "2.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: plot",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "2.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Punctuation marks",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "Environmental Conservation",
+      "printedPage": 19,
+      "units": [
+        {
+          "code": "3.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Listening comprehension: main ideas and details",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "3.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Reading for information and meaning",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "3.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Modal auxiliaries",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "3.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Poems: structure",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "3.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Paragraph structure",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "Consumer Protection: Laws and Policies",
+      "printedPage": 28,
+      "units": [
+        {
+          "code": "4.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Selective listening",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "4.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Intensive reading: key events",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "4.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Present and past perfect aspect",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "4.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: characters",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "4.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Narrative and descriptive paragraphs",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "title": "Relationships: Community",
+      "printedPage": 38,
+      "units": [
+        {
+          "code": "5.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Pronunciation",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "5.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Reference materials",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "5.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Order of adjectives",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "5.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: style",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "5.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Letter of application",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "title": "Leisure Time",
+      "printedPage": 48,
+      "units": [
+        {
+          "code": "6.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Conversational skills: negotiation",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "6.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Reading fluency",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "6.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Comparison of adverbs",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "6.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: themes",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "6.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Spelling",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "title": "Natural Resources: Marine Life",
+      "printedPage": 58,
+      "units": [
+        {
+          "code": "7.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Listening for details",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "7.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Interpretation and evaluation",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "7.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Relative and interrogative pronouns",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "7.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: character study",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "7.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Writing process: steps",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "title": "Tourism: International",
+      "printedPage": 68,
+      "units": [
+        {
+          "code": "8.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Oral poetry",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "8.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Reading for interpretation",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "8.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Complex prepositions",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "8.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Poetry: characters",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "8.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Assessing writing",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "title": "Heroes and Heroines: World",
+      "printedPage": 77,
+      "units": [
+        {
+          "code": "9.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Diphthongs and sentence stress",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "9.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Extensive reading: fiction",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "9.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Correlative conjunctions",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "9.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: style",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "9.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Narrative composition",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "title": "Social and Mass Media",
+      "printedPage": 87,
+      "units": [
+        {
+          "code": "10.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Impromptu speeches",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "10.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Study skills: note making",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "10.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Numerals and ordinals",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "10.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: play project",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "10.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Completing application forms",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "title": "Income Generating Activities",
+      "printedPage": 97,
+      "units": [
+        {
+          "code": "11.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Job interview conversations",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "11.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Extensive reading: fiction",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "11.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Nouns",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "11.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: lessons learnt",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "11.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Abbreviations and acronyms",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "title": "Personal Grooming",
+      "printedPage": 107,
+      "units": [
+        {
+          "code": "12.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Listening and responding: feelings",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "12.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Comprehension strategies",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "12.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Phrasal verbs",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "12.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: characterisation",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "12.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Writing process",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 13,
+      "title": "Sea Travel",
+      "printedPage": 117,
+      "units": [
+        {
+          "code": "13.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Extensive listening: speeches",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "13.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Visualising and summarising",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "13.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Complex sentences",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "13.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Class reader: style",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "13.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Creative writing with idioms",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 14,
+      "title": "Sports: World Cup Football",
+      "printedPage": 127,
+      "units": [
+        {
+          "code": "14.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Intonation in question tags",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "14.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Summarising argumentative texts",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "14.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Direct and indirect speech",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "14.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Relating characters and themes to life",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "14.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Descriptive writing",
+          "suggestedLessons": 2
+        }
+      ]
+    },
+    {
+      "number": 15,
+      "title": "Tourist Attraction Sites: World",
+      "printedPage": 136,
+      "units": [
+        {
+          "code": "15.1.1",
+          "strand": "Listening and Speaking",
+          "focus": "Listening and Speaking",
+          "title": "Oral news reporting",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "15.2.1",
+          "strand": "Reading",
+          "focus": "Reading",
+          "title": "Reading fluency",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "15.3.1",
+          "strand": "Grammar in Use",
+          "focus": "Grammar in Use",
+          "title": "Imperatives and exclamatory sentences",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "15.4.1",
+          "strand": "Reading",
+          "focus": "Literature",
+          "title": "Intensive reading: poems",
+          "suggestedLessons": 2
+        },
+        {
+          "code": "15.5.1",
+          "strand": "Writing",
+          "focus": "Writing",
+          "title": "Emails",
+          "suggestedLessons": 2
+        }
+      ]
+    }
+  ]
+}
