@@ -32,7 +32,15 @@ async function handle(req: NextRequest, id: string, join: boolean) {
     // Pending guardian approval and revoked invitations never grant a room/token.
     const { data: rows, error: lessonError } = await db.rpc('vibetutor_my_lessons');
     if (lessonError) throw new VideoError('Could not check lesson access.', 503);
-    const lesson = availableLesson(rows, id);
+    let lesson;
+    try {
+      lesson = availableLesson(rows, id);
+    } catch (error) {
+      // The authenticated account role remains known even when a lesson has
+      // ended. Return it so the classroom can navigate to the correct OS.
+      if (error instanceof VideoError) return json({ error: error.message, role, userId: user.id }, error.status);
+      throw error;
+    }
     if (!join) return json({ lesson, role, userId: user.id });
     const session = await createVideoSession(lesson, user.id, role, process.env.DAILY_API_KEY ?? '');
     return json({ ...session, lesson, role, userId: user.id });
