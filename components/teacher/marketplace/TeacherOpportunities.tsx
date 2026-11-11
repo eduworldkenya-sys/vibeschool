@@ -62,7 +62,7 @@ function PublicSwaps() {
       {showAllSwaps && <section id="all-teacher-swaps" aria-label="All teacher swaps"><div className={styles.filters}><input aria-label="Search teacher swaps" placeholder="Search county, school, subject or teacher" value={query} onChange={e => setQuery(e.target.value)} /></div>
       {visible.length === 0 ? <p role="status" className={styles.empty}>No swaps match your search.</p> : <div className={styles.cards} aria-label="Current VibeSchool teacher swaps">{visible.map(row => <article className={styles.card} key={row.id}><button type="button" className={styles.cardButton} onClick={() => open(row)} aria-label={"View swap: " + row.current_county + " to " + row.preferred_county}><span className={styles.badge}>{row.employment_sector==="tsc"?"TSC swap":row.employment_sector==="private"?"Private-school move":"Teacher swap"}</span><h3>{row.current_county} → {row.preferred_county}</h3><p>{provided(row.current_subcounty)} · {provided(row.school_level)}</p><p>Subjects: {provided(row.subject)}</p><span className={styles.view}>View details →</span></button></article>)}</div>}</section>}
     </>}
-    {selected && <ListingDetailDialog key={selected.id} listing={swapListing(selected)} onClose={close} interest={{ href: "/login?redirect=" + encodeURIComponent("/teacher/marketplace?swap=" + selected.id + "&interest=1") }} />}
+    {selected && <ListingDetailDialog key={selected.id} listing={swapListing(selected)} onClose={close} interest={{ href: "/login?redirect=" + encodeURIComponent("/teacher/marketplace/manage?swap=" + selected.id + "&interest=1") }} />}
   </div>;
 }
 
