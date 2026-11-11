@@ -26,11 +26,12 @@ export default function AutoCreativeScheme({draft,termId,week,savedLessons,catal
   }
   const marked = weekRows.map(row=>{
     const record = catalog?.[row.unitId]
-    const outcome = record?.outcomes?.[row.outcomeIndex]
-    const id = record?.id&&outcome?.id ? record.id+':'+outcome.id : null
-    const alreadySaved = !!id && (used.get(id)||0)>0
+    const outcomes=(row.outcomeIndexes||[row.outcomeIndex]).map(index=>record?.outcomes?.[index]).filter(Boolean)
+    const outcomeIds=outcomes.map(outcome=>outcome.id)
+    const id=record?.id&&outcomeIds.length?record.id+':'+outcomeIds[0]:null
+    const alreadySaved=!!id&&(used.get(id)||0)>0
     if(alreadySaved)used.set(id,used.get(id)-1)
-    return {...row,outcomeId:outcome?.id,subStrandId:record?.id,alreadySaved}
+    return {...row,outcomeId:outcomeIds[0],outcomeIds,subStrandId:record?.id,alreadySaved}
   })
   const topics = items => [...new Set(items.map(item=>item.title))].join(' · ')
   return <section aria-label={`Automatically linked Grade 1 ${learningArea} scheme`} style={surface}>
@@ -62,11 +63,13 @@ export default function AutoCreativeScheme({draft,termId,week,savedLessons,catal
       <div style={{display:'grid',gap:8}}>
         {marked.map((item,index)=><div key={item.key} style={{background:'#fff',border:'1px solid #dce8de',borderRadius:10,padding:'10px 12px'}}>
           <div style={{fontSize:12,fontWeight:800,color:'#183e2b'}}>Draft lesson {index+1}: {item.title}</div>
-          <p style={{fontSize:12,lineHeight:1.5,color:'#476050',margin:'5px 0 8px'}}>{item.outcome}</p>
+          <ul style={{fontSize:12,lineHeight:1.5,color:'#476050',margin:'5px 0 8px',paddingLeft:20}}>
+            {(item.outcomes||[item.outcome]).map((outcome,i)=><li key={i}>{outcome}</li>)}
+          </ul>
           <div style={{display:'flex',flexWrap:'wrap',gap:7,alignItems:'center'}}>
             {item.alreadySaved?<span style={{fontSize:12,color:'#176442',fontWeight:700}}>Saved in this week</span>:
               <button type="button" style={{...button,background:'#175b43',color:'#fff'}}
-                disabled={!item.subStrandId||!item.outcomeId||!!savingKey}
+                disabled={!item.subStrandId||item.outcomeIds?.length!==(item.outcomeIndexes||[item.outcomeIndex]).length||!!savingKey}
                 onClick={()=>onSaveAndPrepare(item)}>
                 {savingKey===item.key?'Saving…':'Save & prepare lesson'}
               </button>}
