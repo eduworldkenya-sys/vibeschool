@@ -6,6 +6,7 @@ import { useKenyaCounties, normalizeKenyaCounty } from "@/lib/geography/kenyaCou
 import { createClient } from "@supabase/supabase-js";
 import { JOB_SELECT, PublicJob, jobListing, jobLifecycle, listingDate, provided, validListingId } from "@/lib/public/teacherListings";
 import ListingDetailDialog from "@/components/teacher/marketplace/ListingDetailDialog";
+import TscRecruitmentFeature from "@/components/teacher/marketplace/TscRecruitmentFeature";
 import styles from "@/components/teacher/marketplace/listingDetails.module.css";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -99,6 +100,7 @@ export default function TeachingJobs() {
     </button>
   </article>);
   return <div>
+    <TscRecruitmentFeature />
     {unavailable && <p role="status" className={styles.empty}>This job is no longer available. <button type="button" onClick={close}>Dismiss</button></p>}
     {loading ? <p role="status">Loading current vacancies…</p> : error ? <div role="alert"><p>Vacancies are temporarily unavailable.</p><button type="button" className={styles.retry} onClick={() => setRetry(n => n + 1)}>Try again</button></div> : jobs.length === 0 ? <p role="status">No approved teaching vacancies are listed right now.</p> : <>
       {featured.length > 0 && <section className={styles.featured} aria-labelledby="featured-jobs-title">
