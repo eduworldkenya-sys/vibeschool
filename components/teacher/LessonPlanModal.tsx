@@ -1122,6 +1122,7 @@ export default function LessonPlanModal({
         week_start:         weekStart,
         day_of_week:        slot.day_of_week,
         taught_date:        taughtDate,
+        duration_minutes:  parseLessonDurationMinutes(calcDuration(slot.start, slot.end)),
         topic:              topic.trim(),
         title:              slot.subject + ' — ' + slot.class + ' — ' + topic.trim(),
         body:               serializeLessonPlanBody(parsed),
