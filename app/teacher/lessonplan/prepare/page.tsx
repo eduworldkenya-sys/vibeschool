@@ -7,6 +7,10 @@ import { supabase } from '@/lib/supabase'
 import { nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange, type CanonicalTimetableSlot } from '@/lib/timetable/engine'
 import { generateLessonPlan } from '@/lib/teaching/lessonGeneration'
+import { generateCanonicalLessonPlan } from '@/lib/teaching/canonicalLessonGeneration'
+import { loadCertifiedContentForSource } from '@/lib/teaching/lessonSourceBundle'
+import JumpingSchemeContent from '@/components/teacher/JumpingSchemeContent'
+import { buildJumpingDraftSections, type JumpingContentSelection } from '@/lib/teaching/jumpingDraftSections'
 import { LESSON_PLAN_SECTION_KEYS, parseLessonPlanBody, serializeLessonPlanBody } from '@/lib/teaching/lessonPlanCodec'
 import {
   archiveLessonPlanDraft,
@@ -34,6 +38,7 @@ interface SchemeChoice {
   id: string
   topic: string
   week: number
+  lesson_number: number | null
   curriculum_id: string | null
   sub_strand_id: string | null
   curriculum_outcome_id: string
@@ -48,7 +53,7 @@ interface SchemeChoice {
   reference: string | null
 }
 
-const SCHEME_CHOICE_FIELDS = 'id,topic,week,curriculum_id,sub_strand_id,curriculum_outcome_id,strand,sub_strand,objectives,key_inquiry_question,learning_resources,learning_experiences,assessment_methods,reference'
+const SCHEME_CHOICE_FIELDS = 'id,topic,week,lesson_number,curriculum_id,sub_strand_id,curriculum_outcome_id,strand,sub_strand,objectives,key_inquiry_question,learning_resources,learning_experiences,assessment_methods,reference'
 const SECTION_LABELS: Record<(typeof LESSON_PLAN_SECTION_KEYS)[number], string> = {
   objectives: 'Learning outcomes', resources: 'Resources and references',
   introduction: 'Introduction', development: 'Lesson development',
@@ -114,6 +119,8 @@ export default function PrepareLessonPage() {
   const [schemeLoading, setSchemeLoading] = useState(false)
   const [schemeChoices, setSchemeChoices] = useState<SchemeChoice[]>([])
   const [schemeId, setSchemeId] = useState('')
+  const [jumpingDraft, setJumpingDraft] = useState<JumpingContentSelection | null>(null)
+  const [contentNotice, setContentNotice] = useState<string | null>(null)
   const [requestedSchemeId, setRequestedSchemeId] = useState('')
   const [draftsLoaded, setDraftsLoaded] = useState(false)
   const hydratedSchemeRef = useRef<string | null>(null)
@@ -401,34 +408,86 @@ export default function PrepareLessonPage() {
     if (body.trim() && !window.confirm('Replace the current notes with a Scheme-grounded lesson plan?')) return
     setBusy(true)
     setError(null)
+    setContentNotice(null)
     try {
-      // The same deterministic eight-section lesson generator is used by
-      // scheduled lessons. A draft does not create a teaching occurrence.
-      const generated = await generateLessonPlan({
-        accessToken: '',
-        teacherName: '',
-        schoolName: '',
-        subject: selectedAssignment.subject_name,
-        className: selectedAssignment.class_name,
-        studentCount: 0,
-        duration,
-        topic: selectedScheme.topic,
-        previousTopics: [],
-        curriculumStrand: selectedScheme.strand ?? undefined,
-        curriculumSubStrand: selectedScheme.sub_strand ?? undefined,
-        curriculumObjectives: selectedScheme.objectives,
-        keyInquiryQuestion: selectedScheme.key_inquiry_question,
-        learningResources: selectedScheme.learning_resources,
-        learningExperiences: selectedScheme.learning_experiences,
-        assessmentMethods: selectedScheme.assessment_methods,
-        reference: selectedScheme.reference,
+      // One certified source resolver powers both scheduled and independent
+      // preparation. Do not require a timetable occurrence to read content.
+      const approved = await loadCertifiedContentForSource({
+        schemeId: selectedScheme.id,
+        lessonNumber: selectedScheme.lesson_number,
+        id: selectedScheme.curriculum_id,
+        strandId: selectedScheme.sub_strand_id,
       })
-      if (!generated.ok) throw new Error(generated.message)
+      const chosenDraft = jumpingDraft?.schemeId === selectedScheme.id ? jumpingDraft : null
+      let sections
+
+      if (approved.length > 0 && selectedScheme.curriculum_id && selectedScheme.sub_strand_id) {
+        const { data: { session } } = await supabase.auth.getSession()
+        const generated = await generateCanonicalLessonPlan(session?.access_token ?? '', {
+          curriculumId: selectedScheme.curriculum_id,
+          subjectId: selectedAssignment.subject_id,
+          subjectName: selectedAssignment.subject_name,
+          grade: selectedAssignment.class_name,
+          subStrandId: selectedScheme.sub_strand_id,
+          topicTitle: selectedScheme.topic,
+          curriculumStrand: selectedScheme.strand ?? undefined,
+          curriculumSubStrand: selectedScheme.sub_strand ?? undefined,
+          duration: String(duration) + ' minutes',
+          schemeId: selectedScheme.id,
+          schemeObjectives: selectedScheme.objectives,
+          keyInquiryQuestion: selectedScheme.key_inquiry_question,
+          learningResources: selectedScheme.learning_resources,
+          learningExperiences: selectedScheme.learning_experiences,
+          assessmentMethods: selectedScheme.assessment_methods,
+          reference: selectedScheme.reference,
+          certifiedContent: approved,
+        })
+        if (!generated.ok) throw new Error(generated.message)
+        sections = generated.sections
+        setContentNotice('Prepared from certified VibeSchool content. Review and save your lesson draft.')
+      } else if (chosenDraft) {
+        // The Jumping pilot is an authorised editorial preview only. Never
+        // classify candidate manuscripts as published or licensed content.
+        sections = buildJumpingDraftSections(chosenDraft, {
+          objectives: selectedScheme.objectives,
+          keyInquiryQuestion: selectedScheme.key_inquiry_question,
+          learningResources: selectedScheme.learning_resources,
+          assessmentMethods: selectedScheme.assessment_methods,
+        })
+        setContentNotice('Working Jumping manuscript. This is a private teacher-review draft, not certified content for delivery.')
+      } else {
+        // Preserve existing independent Scheme preparation if production has
+        // no certified content; do not invent an approval or choose lesson N.
+        const generated = await generateLessonPlan({
+          accessToken: '',
+          teacherName: '',
+          schoolName: '',
+          subject: selectedAssignment.subject_name,
+          className: selectedAssignment.class_name,
+          studentCount: 0,
+          duration,
+          topic: selectedScheme.topic,
+          previousTopics: [],
+          curriculumStrand: selectedScheme.strand ?? undefined,
+          curriculumSubStrand: selectedScheme.sub_strand ?? undefined,
+          curriculumObjectives: selectedScheme.objectives,
+          keyInquiryQuestion: selectedScheme.key_inquiry_question,
+          learningResources: selectedScheme.learning_resources,
+          learningExperiences: selectedScheme.learning_experiences,
+          assessmentMethods: selectedScheme.assessment_methods,
+          reference: selectedScheme.reference,
+        })
+        if (!generated.ok) throw new Error(generated.message)
+        sections = generated.sections
+        setContentNotice(approved.length > 0
+          ? 'Certified assets exist, but this Scheme has no complete canonical identity. This is a Scheme-only draft.'
+          : 'No certified content is available for this Scheme lesson. This is a Scheme-only preparation draft.')
+      }
       setTitle(current => current.trim() || selectedScheme.topic)
       setTopic(selectedScheme.topic)
-      setBody(serializeLessonPlanBody(generated.sections))
+      setBody(serializeLessonPlanBody(sections))
     } catch (e) {
-      setError(friendlyError(e, 'Could not prepare a Scheme-grounded lesson plan.'))
+      setError(friendlyError(e, 'Could not prepare a content-grounded lesson plan.'))
     } finally {
       setBusy(false)
     }
@@ -629,12 +688,12 @@ export default function PrepareLessonPage() {
             ) : (
               <>
                 <label className="lp-prepare__label" htmlFor="draft-class">Class and subject</label>
-                <select id="draft-class" className="lp-prepare__field" value={scopeKey} onChange={e=>{setScopeKey(e.target.value);setSchemeId('')}}>
+                <select id="draft-class" className="lp-prepare__field" value={scopeKey} onChange={e=>{setScopeKey(e.target.value);setSchemeId('');setJumpingDraft(null);setContentNotice(null)}}>
                   <option value="">Choose assigned class or subject</option>
                   {scopeOptions.map(option=><option key={option.key} value={option.key}>{option.label}</option>)}
                 </select>
                 <label className="lp-prepare__label" htmlFor="draft-scheme">Scheme & learning outcome</label>
-                <select id="draft-scheme" className="lp-prepare__field" value={schemeId} onChange={e=>setSchemeId(e.target.value)}
+                <select id="draft-scheme" className="lp-prepare__field" value={schemeId} onChange={e=>{setSchemeId(e.target.value);setJumpingDraft(null);setContentNotice(null)}}
                   disabled={!selectedScope?.classId || schemeLoading || schemeChoices.length===0}>
                   <option value="">Not linked · keep as draft</option>
                   {schemeChoices.map(s=><option key={s.id} value={s.id}>Week {s.week} · {s.topic}{s.outcome_status === 'active' ? ' · review pending' : ''}</option>)}
@@ -659,7 +718,14 @@ export default function PrepareLessonPage() {
                 ) : selectedScheme ? (
                   <div className="lp-prepare__notice lp-prepare__notice--subtle">{selectedScheme.outcome_status === 'verified' ? 'Linked to a verified Scheme learning outcome.' : 'Linked to the saved Scheme; this outcome is active but not verified. The lesson remains a draft until reviewed.'}</div>
                 ) : <p className="lp-prepare__hint">Choose a verified Scheme item to preserve outcome authority.</p>}
-                {selectedScheme && <button type="button" className="lp-prepare__btn" disabled={busy} onClick={()=>void buildFromScheme()}>Build lesson plan from Scheme</button>}
+                {selectedScheme?.sub_strand === 'Jumping' && selectedAssignment?.class_name === 'Grade 1' && (
+                  <JumpingSchemeContent schemeId={selectedScheme.id} onUse={selection => {
+                    setJumpingDraft(selection)
+                    setContentNotice('Jumping lesson ' + selection.lessonNumber + ' selected for private editorial review.')
+                  }} />
+                )}
+                {selectedScheme && <button type="button" className="lp-prepare__btn" disabled={busy} onClick={()=>void buildFromScheme()}>Build lesson plan from Scheme & content</button>}
+                {contentNotice && <div className="lp-prepare__notice" role="status">{contentNotice}</div>
                 <label className="lp-prepare__label" htmlFor="draft-title">Lesson title</label>
                 <input id="draft-title" className="lp-prepare__field" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Reading and responding" />
                 <label className="lp-prepare__label" htmlFor="draft-topic">Specific focus <span style={{fontWeight:400}}>(optional)</span></label>
