@@ -114,6 +114,8 @@ for(const token of [
   "public.resolve_subject_weekly_allocation(p_class_id,p_subject_id)",
   "pg_advisory_xact_lock(hashtextextended",
   "status is distinct from 'cancelled'",
+  "order by (tw.school_id is not null) desc",
+  "coalesce(tw.week_type,'normal')",
   "SCHEME_WEEK_ALLOCATION_FULL",
   "SCHEME_WEEKLY_ALLOCATION_REQUIRED",
   "v_reader_ref like 'VS-CUR-G01-MA-2026#%'",
