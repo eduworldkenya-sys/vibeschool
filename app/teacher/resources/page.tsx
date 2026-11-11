@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { C, Modal } from '@/components/teacher/ui'
+import TeachingLibraryStructure from '@/components/teacher/TeachingLibraryStructure'
 
 type ResourceType = 'notes' | 'assessment' | 'exercise' | 'quiz' | 'video' | 'other'
 
@@ -154,13 +155,14 @@ export default function TeacherResourcesPage() {
     () => subjects.find(row => row.id === requestedSubjectId)?.name ?? '',
     [requestedSubjectId, subjects],
   )
-  const visibleLibrary = useMemo(() => {
-    const typed = filter === 'all' ? library : library.filter(row => row.type === filter)
-    return typed.filter(row =>
-      (!requestedClassId || row.class_id === requestedClassId) &&
-      (!scopedSubjectName || row.subject === scopedSubjectName),
-    )
-  }, [filter, library, requestedClassId, scopedSubjectName])
+  const catalogueLibrary = useMemo(() => library.filter(row =>
+    (!requestedClassId || row.class_id === requestedClassId) &&
+    (!scopedSubjectName || row.subject === scopedSubjectName),
+  ), [library, requestedClassId, scopedSubjectName])
+  const visibleLibrary = useMemo(() =>
+    filter === 'all' ? catalogueLibrary : catalogueLibrary.filter(row => row.type === filter),
+    [catalogueLibrary, filter],
+  )
   const visiblePacks = useMemo(
     () => packs.filter(pack =>
       (!requestedClassId || pack.scheme.class_id === requestedClassId) &&
@@ -170,13 +172,13 @@ export default function TeacherResourcesPage() {
   )
   const readyCount = useMemo(() => visiblePacks.reduce((sum, pack) => sum + pack.resources.length, 0), [visiblePacks])
 
-  const openAdd = useCallback(() => {
+  const openAdd = useCallback((requestedType: ResourceType = 'notes') => {
     const requestedClassIsAssigned = classes.some(row => row.id === requestedClassId)
     const classId = requestedClassIsAssigned ? requestedClassId : (classes[0]?.id ?? '')
     const subjectIds = assignments.filter(row => row.class_id === classId).map(row => row.subject_id)
     const requestedSubjectIsAssigned = subjectIds.includes(requestedSubjectId)
     const subjectId = requestedSubjectIsAssigned ? requestedSubjectId : (subjectIds[0] ?? '')
-    setForm({ type: 'notes', title: '', class_id: classId, subject_id: subjectId, description: '', external_url: '', content: '' })
+    setForm({ type: requestedType, title: '', class_id: classId, subject_id: subjectId, description: '', external_url: '', content: '' })
     setFormError('')
     setShowAdd(true)
   }, [assignments, classes, requestedClassId, requestedSubjectId])
@@ -342,10 +344,10 @@ export default function TeacherResourcesPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 750, letterSpacing: '.08em', textTransform: 'uppercase', opacity: .72 }}>Teaching materials</div>
-              <h1 style={{ fontSize: 23, margin: '5px 0 4px', fontWeight: 750 }}>Resources</h1>
-              <p style={{ margin: 0, fontSize: 13, maxWidth: 680, opacity: .82 }}>Lesson materials for this week, plus your saved resources.</p>
+              <h1 style={{ fontSize: 23, margin: '5px 0 4px', fontWeight: 750 }}>Teaching Library</h1>
+              <p style={{ margin: 0, fontSize: 13, maxWidth: 680, opacity: .82 }}>Find teaching resource types, Scheme-linked lesson materials and your saved resources.</p>
             </div>
-            <button type="button" onClick={openAdd} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: 'var(--teacher-green)', minHeight: 44, fontWeight: 650, whiteSpace: 'nowrap' }}>+ Add resource</button>
+            <button type="button" onClick={() => openAdd()} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: 'var(--teacher-green)', minHeight: 44, fontWeight: 650, whiteSpace: 'nowrap' }}>+ Add resource</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginTop: 18 }}>
             {[
@@ -362,9 +364,10 @@ export default function TeacherResourcesPage() {
           <strong style={{ fontSize: 14 }}>Grade 1 Creative Activities · Learning library</strong>
           <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Read the shared curriculum activities and approved materials. Draft lesson manuscripts remain private.</span>
         </Link>
+        <TeachingLibraryStructure savedResources={catalogueLibrary} onAddPersonalResource={openAdd} />
         {error && <div role="alert" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 12, padding: 12, marginBottom: 14 }}>{error}</div>}
 
-        <section style={{ marginBottom: 24 }}>
+        <section id="scheme-linked-resources" style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 10 }}>
             <div><h2 style={{ fontSize: 18, margin: 0 }}>Ready this week</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>Exact Scheme-linked VibeSchool resources. These feed the lesson-preparation and Teach Now journey; nothing here is title-matched or guessed.</p></div>
           </div>
@@ -394,7 +397,7 @@ export default function TeacherResourcesPage() {
           ))}
         </section>
 
-        <section>
+        <section id="saved-teaching-resources">
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'end', marginBottom: 10 }}>
             <div><h2 style={{ fontSize: 18, margin: 0 }}>My teaching library</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>Personal supplementary resources. Teacher-added resources stay class-scoped.</p></div>
           </div>
@@ -406,7 +409,7 @@ export default function TeacherResourcesPage() {
             const meta = typeMeta(resource.type)
             const classLabel = resource.class_id ? classById.get(resource.class_id)?.label ?? 'Class' : 'Legacy school-wide'
             const isExpanded = expanded === resource.id
-            return <article key={resource.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, marginBottom: 8, overflow: 'hidden' }}>
+            return <article id={'saved-resource-' + resource.id} key={resource.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, marginBottom: 8, overflow: 'hidden' }}>
               <button type="button" onClick={() => setExpanded(isExpanded ? null : resource.id)} aria-expanded={isExpanded} style={{ border: 0, width: '100%', background: '#fff', textAlign: 'left', padding: 13, display: 'flex', gap: 10, alignItems: 'center' }}>
                 <span style={{ fontSize: 19 }}>{meta.icon}</span><span style={{ flex: 1 }}><strong style={{ display: 'block', color: C.textPrimary }}>{resource.title}</strong><span style={{ fontSize: 11, color: C.textMuted }}>{resource.subject} · {classLabel} · {timeAgo(resource.created_at)}</span></span><span>{isExpanded ? '⌃' : '⌄'}</span>
               </button>

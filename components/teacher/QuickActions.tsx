@@ -56,7 +56,7 @@ function actionsFor(slot?: Slot, context?: TeachingContext): ActionItem[] {
     return [
       { label: "Timetable", href: "/teacher/timetable", icon: <IconTimetable /> },
       { label: "New lesson", href: contextualLessonUrl(context), icon: <IconPlan /> },
-      { label: "Resources", href: "/teacher/resources", icon: <IconFolder /> },
+      { label: "Teaching Library", href: "/teacher/resources", icon: <IconFolder /> },
       { label: "Class Results", href: "/teacher/assessment/gradebook", icon: <IconMarking /> },
     ];
   }
@@ -74,7 +74,7 @@ function actionsFor(slot?: Slot, context?: TeachingContext): ActionItem[] {
     return [
       { label: "Plan lesson", href: lessonUrl, icon: <IconPlan /> },
       { label: "Prepare notes", href: notesUrl, icon: <IconNotes /> },
-      { label: "Resources", href: "/teacher/resources", icon: <IconFolder /> },
+      { label: "Teaching Library", href: "/teacher/resources", icon: <IconFolder /> },
       { label: "Timetable", href: "/teacher/timetable", icon: <IconTimetable /> },
     ];
   }
@@ -88,7 +88,7 @@ function actionsFor(slot?: Slot, context?: TeachingContext): ActionItem[] {
         icon: <IconAttendance />,
       },
       { label: "Homework", href: homeworkUrl, icon: <IconHomework /> },
-      { label: "Resources", href: "/teacher/resources", icon: <IconFolder /> },
+      { label: "Teaching Library", href: "/teacher/resources", icon: <IconFolder /> },
     ];
   }
 
@@ -100,7 +100,7 @@ function actionsFor(slot?: Slot, context?: TeachingContext): ActionItem[] {
       href: `/teacher/classhub/${encodeURIComponent(slot.class_id)}/homework`,
       icon: <IconMarking />,
     },
-    { label: "Resources", href: "/teacher/resources", icon: <IconFolder /> },
+    { label: "Teaching Library", href: "/teacher/resources", icon: <IconFolder /> },
   ];
 }
 
