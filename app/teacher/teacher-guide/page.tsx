@@ -80,10 +80,11 @@ function TeacherGuideInner() {
   const context=workspace?.sourceBundle?.classContext;
   const canonical=workspace?.canonicalIdentity;
   const readiness=useMemo(()=>workspace?.existingPlan?.body?evaluateLessonReadiness(workspace.existingPlan.body):null,[workspace?.existingPlan?.body]);
+  const savedSchemeAuthority = Boolean(source?.schemeId && (source?.strandId || source?.id));
   const guideGaps=[
     !workspace?.existingPlan?"Prepare the Lesson Plan.":null,
-    !canonical?"Attach an authoritative curriculum outcome and certified source.":null,
-    certified.length===0?"Attach at least one usable certified resource.":null,
+    !savedSchemeAuthority?"Connect this lesson to its saved Scheme and curriculum position.":null,
+    certified.length===0?"No certified teaching resource is attached yet. Linked editorial manuscripts are review-only.":null,
     ...(readiness?.reasons??[]),
   ].filter((item): item is string=>Boolean(item));
   const guideReady=guideGaps.length===0;
