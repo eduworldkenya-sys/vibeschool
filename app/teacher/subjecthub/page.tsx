@@ -893,6 +893,10 @@ export default function SubjectHubPage() {
     /^(english|english activities|english language activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*1\b/i.test(item.name)) ?? null
       : null
+  const grade4EnglishClass =
+    /^(english|english language)$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
+      : null
   const grade4MathematicsClass =
     /^(mathematics|mathematical activities|mathematics activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
@@ -1240,6 +1244,20 @@ export default function SubjectHubPage() {
             </button>
           </div>
           <Grade4MathematicsMap compact selectedUnitId={grade4MathematicsUnitId} onSelectUnit={setGrade4MathematicsUnitId} />
+        </div>
+      )}
+
+      {/* Grade 4 English: one action to official theme index and original mapped guidance. */}
+      {!loading && !classLoading && activeSubject && grade4EnglishClass && (
+        <div style={{margin:'14px 16px 0',background:'#fff',padding:15,border:'1px solid #d7e7dd',borderRadius:12}}>
+          <strong style={{color:'#173f32'}}>Grade 4 English curriculum</strong>
+          <p style={{fontSize:12,margin:'6px 0 12px',color:'#53695d'}}>
+            13 themes · 4 language strands · 52 curriculum planning units · linked Scheme of Work.
+          </p>
+          <button type="button" onClick={()=>router.push('/teacher/curriculum?classId='+encodeURIComponent(grade4EnglishClass.id)+'&subjectId='+encodeURIComponent(activeSubject.id)+'&unitId=01-LS')}
+            style={{background:'#175b43',color:'#fff',border:0,borderRadius:9,minHeight:44,padding:'10px 14px',fontWeight:800,cursor:'pointer',width:'100%'}}>
+            Open Grade 4 English curriculum
+          </button>
         </div>
       )}
 
