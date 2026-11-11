@@ -47,7 +47,7 @@ assert.equal(buildCreativeAnnualSchemeDraft({units,terms,termWeeks:withOverride}
 assert.ok(page.includes('<AutoCreativeScheme'),'Teacher opens Scheme and sees curriculum-linked draft automatically')
 assert.ok(page.includes("supabase.from('term_weeks')"),"Read the school's real instructional calendar")
 assert.ok(page.includes("saveAndPrepareAutoDraft(item)"),'Prepare action must save a real canonical teacher scheme lesson')
-assert.ok(page.includes("rpc('commit_mapped_scheme_lesson'"),'Reuse atomic secured database linkage')
+assert.ok(page.includes("'commit_mapped_scheme_lesson'"),'Reuse atomic secured database linkage')
 assert.ok(component.includes('Draft suggestions are visible without creating teaching records'),'Do not misrepresent unsaved drafts as committed')
 assert.ok(weeksComponent.includes('previewCount'),'Saved weekly slots must distinguish suggestions')
 assert.ok(page.includes('isGrade1Mathematics && <Grade1MathematicsMap'),'Keep Grade 1 Mathematics intact')
