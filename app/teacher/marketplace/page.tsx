@@ -24,18 +24,18 @@ export default function PublicTeacherMarketplace() {
               <div>
                 <p className={styles.eyebrow}>TEACHER MARKETPLACE · KENYA</p>
                 <h1 id="marketplace-title">Find teaching opportunities. <span>Explore your options.</span></h1>
-                <p className={styles.lead}>Explore TSC recruitment information, teaching vacancies and teacher station swaps. Browse first; sign in only when you need to manage a listing or contact another teacher privately.</p>
+                <p className={styles.lead}>Find TSC recruitment figures and application guidance, plus published school vacancies and station swaps.</p>
                 <div className={styles.actions}>
-                  <Link href="/teacher/marketplace/sandbox" className={styles.primary}>Explore vacancy matching <ArrowRight size={17} aria-hidden="true" /></Link>
+                  <Link href="/teacher/marketplace/sandbox" className={styles.primary}>Explore TSC vacancies <ArrowRight size={17} aria-hidden="true" /></Link>
                   <a href="#listings" className={styles.secondary}>Browse published vacancies <ArrowRight size={17} aria-hidden="true" /></a>
                 </div>
               </div>
               <div className={styles.tscInfo}>
                 <p className={styles.tscLabel}>TSC RECRUITMENT</p>
                 <h2>Check your options before applying.</h2>
-                <p>Read the advertised recruitment details, explore the county allocation figures and try a subject-matching example.</p>
-                <Link className={styles.tscLink} href="/teacher/marketplace/sandbox">Explore the TSC matching preview <ArrowRight size={16} aria-hidden="true" /></Link>
-                <p className={styles.tscNote}>The matching preview uses example school records, not verified school-by-subject vacancies. Official applications are submitted to TSC.</p>
+                <p>View county recruitment totals, confirm the qualifications and prepare your TSC application.</p>
+                <Link className={styles.tscLink} href="/teacher/marketplace/sandbox">View TSC recruitment details <ArrowRight size={16} aria-hidden="true" /></Link>
+                <p className={styles.tscNote}>County figures are reported totals, not school-by-subject vacancy matches. Applications go directly to TSC.</p>
               </div>
             </div>
           </div>
