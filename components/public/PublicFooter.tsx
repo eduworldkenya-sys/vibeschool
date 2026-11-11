@@ -5,11 +5,12 @@ import Link from 'next/link'
 import { TrackedLink } from './TrackedLink'
 import styles from './PublicShell.module.css'
 
-const WHATSAPP_URL = 'https://wa.me/254728232157?text=Hello%20VibeSchool%2C%20I%20need%20help%20with...'
+const WHATSAPP_URL = 'https://wa.me/254728232157?text=Hello%20VibeSchool'
 const TIKTOK_URL = 'https://www.tiktok.com/@vibeschoolkenya'
 
 export function PublicFooter({ compact = false }: { compact?: boolean } = {}) {
   const footerRef = useRef<HTMLElement>(null)
+
   useEffect(() => {
     const media = window.matchMedia('(max-width: 640px)')
     const sync = () => {
@@ -21,26 +22,79 @@ export function PublicFooter({ compact = false }: { compact?: boolean } = {}) {
     media.addEventListener('change', sync)
     return () => media.removeEventListener('change', sync)
   }, [])
-  if (compact) return <footer ref={footerRef} className={styles.compactFooter}><Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={110} height={28}/><span>© 2026 VibeSchool</span><Link href="/learn/careers">Search careers</Link><TrackedLink href={WHATSAPP_URL} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">Contact VibeSchool</TrackedLink><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link></footer>
-  return <footer ref={footerRef} className={styles.footer}>
-    <section className={styles.whatsapp} aria-label="VibeSchool support"><div className={styles.whatsappInner}>
-      <div className={styles.whatsappText}><strong>Need help or want to talk to VibeSchool?</strong><span>Use WhatsApp for the fastest conversation. Never send passwords, one-time codes or payment credentials.</span></div>
-      <TrackedLink className={styles.whatsappCta} href={WHATSAPP_URL} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer" aria-label="Chat with VibeSchool on WhatsApp">Chat on WhatsApp</TrackedLink>
-    </div></section>
-    <div className={styles.footerInner}>
-      <div className={styles.footerTop}>
-        <div className={styles.footerBrand}>
-          <Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={620} height={160} className={styles.footerLogo}/>
-          <p className={styles.tagline}>One learning system connecting curriculum, teaching, evidence, progress, families, schools and future direction.</p>
-          <div className={styles.social}><a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer">TikTok</a><TrackedLink href={WHATSAPP_URL} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">WhatsApp</TrackedLink></div>
+
+  if (compact) return (
+    <footer ref={footerRef} className={styles.compactFooter}>
+      <Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={110} height={28}/>
+      <span>© 2026 VibeSchool</span>
+      <Link href="/learn/careers">Search careers</Link>
+      <TrackedLink href={WHATSAPP_URL} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">Contact VibeSchool</TrackedLink>
+      <Link href="/legal/privacy">Privacy</Link>
+      <Link href="/legal/terms">Terms</Link>
+    </footer>
+  )
+
+  return (
+    <footer ref={footerRef} className={styles.footer}>
+      <section className={styles.whatsapp} aria-label="VibeSchool support">
+        <div className={styles.whatsappInner}>
+          <div className={styles.whatsappText}><strong>Need help?</strong></div>
+          <TrackedLink className={styles.whatsappCta} href={WHATSAPP_URL} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer" aria-label="Chat with VibeSchool on WhatsApp">WhatsApp</TrackedLink>
         </div>
-        <details data-footer-group open className={styles.footerGroup}><summary className={styles.columnTitle}>Product</summary><div className={styles.linkList}><Link href="/product">Product overview</Link><Link href="/sandbox">Try the sandbox</Link><Link href="/evidence">Learning evidence</Link><Link href="/global">Learning</Link><Link href="/blog">News & guides</Link><Link href="/pathways">Pathways</Link><Link href="/schools">School directory</Link><Link href="/institutions">For school leaders</Link></div></details>
-        <details data-footer-group open className={styles.footerGroup}><summary className={styles.columnTitle}>Educators</summary><div className={styles.linkList}><Link href="/product">Teacher system</Link><Link href="/schools">Find a school</Link><Link href="/institutions">Run a school</Link><Link href="/global">Learning resources</Link><TrackedLink href="/login/global?role=teacher" event="public_auth_signin">Teacher sign in</TrackedLink></div></details>
-        <details data-footer-group open className={styles.footerGroup}><summary className={styles.columnTitle}>Families</summary><div className={styles.linkList}><Link href="/product">Parent experience</Link><Link href="/schools">Find a school</Link><Link href="/blog">Education news & guides</Link><Link href="/pathways">Future choices</Link><TrackedLink href="/login/global?role=parent" event="public_auth_signin">Parent sign in</TrackedLink></div></details>
-        <details data-footer-group open className={styles.footerGroup}><summary className={styles.columnTitle}>VibeSchool</summary><div className={styles.linkList}><Link href="/about">About</Link><Link href="/institutions">Institutions & government</Link><Link href="/institutions/constituency-pilot">Constituency pilot</Link><Link href="/trust">Trust Centre</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div></details>
+      </section>
+
+      <div className={styles.footerInner}>
+        <div className={styles.footerBrand}>
+          <div className={styles.brandIdentity}>
+            <Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={620} height={160} className={styles.footerLogo}/>
+            <p className={styles.tagline}>Teaching and learning, connected.</p>
+          </div>
+          <div className={styles.social}>
+            <a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer">TikTok</a>
+          </div>
+        </div>
+
+        <nav className={styles.footerTop} aria-label="Footer navigation">
+          <details data-footer-group open className={styles.footerGroup}>
+            <summary className={styles.columnTitle}>Explore</summary>
+            <div className={styles.linkList}>
+              <Link href="/global">Learn</Link>
+              <Link href="/schools">Find schools</Link>
+              <Link href="/pathways">Pathways</Link>
+              <Link href="/blog">News &amp; guides</Link>
+              <Link href="/success-wishes">Success Wishes</Link>
+            </div>
+          </details>
+          <details data-footer-group open className={styles.footerGroup}>
+            <summary className={styles.columnTitle}>Educators</summary>
+            <div className={styles.linkList}>
+              <Link href="/teacher">Teachers</Link>
+              <Link href="/institutions">For schools</Link>
+              <Link href="/sandbox">Sandbox</Link>
+              <Link href="/evidence">Learning evidence</Link>
+              <TrackedLink href="/login/global?role=teacher" event="public_auth_signin">Sign in</TrackedLink>
+            </div>
+          </details>
+          <details data-footer-group open className={styles.footerGroup}>
+            <summary className={styles.columnTitle}>Company</summary>
+            <div className={styles.linkList}>
+              <Link href="/about">About</Link>
+              <Link href="/contact">Contact</Link>
+              <Link href="/trust">Trust</Link>
+              <Link href="/careers">Careers</Link>
+            </div>
+          </details>
+        </nav>
+
+        <div className={styles.footerBottom}>
+          <span>© 2026 VibeSchool · Kenya</span>
+          <div className={styles.legalLinks}>
+            <Link href="/legal/privacy">Privacy</Link>
+            <Link href="/legal/terms">Terms</Link>
+            <Link href="/legal/aup">Acceptable Use</Link>
+          </div>
+        </div>
       </div>
-      <nav className={styles.legalLinks} aria-label="Success Wishes"><Link href="/success-wishes">Success Wishes</Link></nav>
-      <div className={styles.footerBottom}><span>© 2026 VibeSchool · Kenya</span><div className={styles.legalLinks}><Link href="/trust">Trust</Link><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/aup">Acceptable Use</Link></div></div>
-    </div>
-  </footer>
+    </footer>
+  )
 }
