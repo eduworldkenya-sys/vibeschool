@@ -3,7 +3,8 @@
 **Policy version:** 1.0  
 **Decision:** Approved by the VibeSchool owner, 11 November 2026  
 **Scope:** All new and materially revised VibeSchool-original competency-based content for Grades 1–9, across subjects, terms and learner/teacher surfaces  
-**Status:** Repository policy when merged; **not** itself a production deployment, worker commissioning or publishing authorization
+**Status:** Repository policy; **not** itself a production deployment, worker commissioning or publishing authorization
+**Current production method (11 November 2026):** **ChatGPT-led manual content production**; follow [Content Production Operating Model](./CONTENT_OPERATING_MODEL.md). New Cyborg content-authoring automation is deferred; current engineering governance and release controls remain unchanged.
 
 ## 1. Purpose and operating principle
 
@@ -250,11 +251,11 @@ Every subject or sub-strand package should supply or link to:
 - **Evidence:** source retrieval/reference, content/answer checks, independent/quality evaluation as required, defect dispositions and author/reviewer separation.
 - **Release facts:** draft/reviewed/authorized/published, version/SHA if applicable, learner/teacher journey results and access constraints.
 
-Use [Content Package Template](./CONTENT_PACKAGE_TEMPLATE.md). A template is a practical checklist and manifest, not permission to invent certification or require owner signatures.
+Use the [ChatGPT-Led Content Operating Model](./CONTENT_OPERATING_MODEL.md) to execute this work today and the [Content Package Template](./CONTENT_PACKAGE_TEMPLATE.md) for each batch. The operating model defines the current team responsibilities and step-by-step workflow; this standard defines educational quality and canonical outcome requirements. Neither document creates a new runtime worker or requires routine owner sign-off.
 
 ## 14. Governance, implementation and review
 
-This policy is a **content-production specification** subordinate to existing repository governance and live system authority. Read alongside:
+This policy is a **content-production specification** subordinate to existing repository governance and live system authority. The **current authoring process** is [ChatGPT-Led Content Production](./CONTENT_OPERATING_MODEL.md); the Cyborg automation roadmap is deferred for curriculum authoring only, **not** removed from repository engineering or existing release governance. Read alongside:
 
 - Repository root AGENTS.md and the Cyborg executor / canonical guardrails.
 - docs/CONTENT_FACTORY_HANDOVER.md for canonical Content Factory remediation and release controls.

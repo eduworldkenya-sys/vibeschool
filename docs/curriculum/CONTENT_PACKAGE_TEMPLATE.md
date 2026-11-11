@@ -1,6 +1,6 @@
 # VibeSchool Content Package Template — Grades 1–9
 
-Use this template **per subject, term, sub-strand or batch**; declare the exact scope. It operationalizes [CONTENT_PRODUCTION_STANDARD.md](./CONTENT_PRODUCTION_STANDARD.md) without creating a separate approval system or content engine.
+Use this template **per subject, term, sub-strand or batch**; declare the exact scope. It operationalizes [CONTENT_PRODUCTION_STANDARD.md](./CONTENT_PRODUCTION_STANDARD.md) under the current **[ChatGPT-Led Content Production Operating Model](./CONTENT_OPERATING_MODEL.md)**, without creating a separate approval system or content engine.
 
 **This is a working manifest, not a form the VibeSchool owner must complete.** Production agents/teams populate it from source evidence, existing canonical records and performed checks. Do not replace missing evidence with signatures, guesses or “verified” labels.
 
