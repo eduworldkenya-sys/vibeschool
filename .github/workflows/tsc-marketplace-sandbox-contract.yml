@@ -5,6 +5,10 @@ on:
     paths:
       - "app/teacher/marketplace/sandbox/**"
       - "lib/teacher/tscSandboxMatching.ts"
+      - "lib/teacher/tsc2026CountyAllocations.ts"
+      - "lib/auth-routing.ts"
+      - "app/teacher/layout.tsx"
+      - "middleware.ts"
       - "scripts/test-tsc-marketplace-sandbox.mjs"
       - ".github/workflows/tsc-marketplace-sandbox-contract.yml"
   push:
@@ -12,6 +16,10 @@ on:
     paths:
       - "app/teacher/marketplace/sandbox/**"
       - "lib/teacher/tscSandboxMatching.ts"
+      - "lib/teacher/tsc2026CountyAllocations.ts"
+      - "lib/auth-routing.ts"
+      - "app/teacher/layout.tsx"
+      - "middleware.ts"
       - "scripts/test-tsc-marketplace-sandbox.mjs"
       - ".github/workflows/tsc-marketplace-sandbox-contract.yml"
 
