@@ -45,6 +45,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  // The Grade 1 VibeLearn Originals deep link opens its canonical public reader.
+  // Do not alter role restrictions for other /student routes.
+  if (pathname === '/student/vibelearn/grade-1/creative-activities'
+      || pathname === '/student/vibelearn/grade-1/creative-activities/') {
+    const reader = request.nextUrl.clone()
+    reader.pathname = '/learn/grade-1/creative-activities'
+    return NextResponse.redirect(reader, 307)
+  }
+
   // Global account UI is retired. Public Reader routes remain available.
   if (pathname === '/global' || (pathname.startsWith('/global/') && !pathname.startsWith('/global/read'))) {
     const home = request.nextUrl.clone()
