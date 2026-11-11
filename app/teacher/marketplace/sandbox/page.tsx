@@ -4,8 +4,8 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import VacancyMatchSandbox from "./VacancyMatchSandbox";
 
 export const metadata: Metadata = {
-  title: "TSC Vacancy Matching Sandbox | VibeSchool Teacher Marketplace",
-  description: "Try a safe demo of the VibeSchool Teacher Marketplace vacancy matcher. Example records only; applications are made through the official TSC portal.",
+  title: "TSC Recruitment Guide | VibeSchool Teacher Marketplace",
+  description: "Explore 2026 TSC teaching vacancies by county and level, check minimum requirements, and use the official application portal.",
   robots: { index: false, follow: false },
 };
 
