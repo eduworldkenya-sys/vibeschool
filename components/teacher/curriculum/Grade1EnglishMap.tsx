@@ -460,13 +460,14 @@ type LinkedCurriculumUnit = {
 }
 
 export default function Grade1EnglishMap({
-  compact = false, selectedUnitId = '1.1', onSelectUnit, onPlanUnit,
+  compact = false, selectedUnitId = '1.1', selectedThemeId = 1, onSelectUnit, onPlanUnit,
   mappedUnits, catalogLoading = false, catalogError = '',
 }: {
   compact?: boolean;
   selectedUnitId?: string;
+  selectedThemeId?: number;
   onSelectUnit?: (unitId: string) => void;
-  onPlanUnit?: (unitId: string) => void;
+  onPlanUnit?: (unitId: string, themeId: number) => void;
   mappedUnits?: Record<string, LinkedCurriculumUnit>;
   catalogLoading?: boolean;
   catalogError?: string;
@@ -475,7 +476,8 @@ export default function Grade1EnglishMap({
   const [selectedId, setSelectedId] = useState(validUnitId)
   useEffect(() => { setSelectedId(validUnitId) }, [validUnitId])
   const [search, setSearch] = useState('')
-  const [themeId, setThemeId] = useState(1)
+  const [themeId, setThemeId] = useState(selectedThemeId)
+  useEffect(() => { setThemeId(GRADE1_ENGLISH_THEMES.some(theme=>theme.id===selectedThemeId) ? selectedThemeId : 1) }, [selectedThemeId])
   const theme = GRADE1_ENGLISH_THEMES.find(item => item.id === themeId) ?? GRADE1_ENGLISH_THEMES[0]
   const [indexOpen, setIndexOpen] = useState(false)
   const unit = GRADE1_ENGLISH_UNITS.find(item => item.id === selectedId) ?? GRADE1_ENGLISH_UNITS[0]
@@ -566,7 +568,7 @@ export default function Grade1EnglishMap({
       <p style={{ fontSize: 11, color: '#567065', margin: '7px 0 0' }}>The theme supplies familiar context for the selected skill; it does not assign a fixed instructional week or create a lesson plan.</p>
     </div>
     {onPlanUnit && <div style={{ ...card, marginBottom: 14, borderColor: '#9fbbaa' }}>
-      {linkedUnit ? <button type="button" onClick={() => onPlanUnit(unit.id)} style={{ width: '100%', minHeight: 44, padding: '11px 14px', borderRadius: 10, border: 0, background: '#175b43', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Plan this sub-strand in Scheme of Work</button>
+      {linkedUnit ? <button type="button" onClick={() => onPlanUnit(unit.id, themeId)} style={{ width: '100%', minHeight: 44, padding: '11px 14px', borderRadius: 10, border: 0, background: '#175b43', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Plan this sub-strand in Scheme of Work</button>
         : <p role="status" style={{ fontSize: 13, color: '#526d5e', margin: 0 }}>{catalogLoading ? 'Connecting persisted curriculum outcomes…' : catalogError || 'This sub-strand is not yet connected to a database curriculum record.'}</p>}
       <p style={{ margin: '8px 0 0', fontSize: 12, color: '#526d5e' }}>Select an instructional week and real stored outcome IDs before saving. VibeSchool-authored guidance is not official KICD text.</p>
     </div>}
