@@ -14,7 +14,6 @@ import {
 import styles from "./sandbox.module.css";
 import { COUNTY_ALLOCATION_SOURCE, OFFICIAL_TSC_ADVERTS, REPORTED_COUNTY_ALLOCATIONS, reportedAllocation } from "@/lib/teacher/tsc2026CountyAllocations";
 
-const articleHref = "/blog/50ef6c33-da45-4a6e-a951-77da15386fa3";
 const portalHref = "https://teachersonline.tsc.go.ke/";
 const deadline = Date.parse("2026-11-23T21:00:00Z");
 
@@ -296,7 +295,7 @@ export default function VacancyMatchSandbox() {
           <a href={portalHref} target="_blank" rel="noopener noreferrer" className={styles.apply}>
             {applicationClosed ? "Check TSC for updates" : "Go to official TSC portal"} <ArrowUpRight aria-hidden="true" size={18} />
           </a>
-          <Link href={articleHref} className={styles.readArticle}>Read recruitment requirements <ArrowRight aria-hidden="true" size={17} /></Link>
+          <a href={OFFICIAL_TSC_ADVERTS} target="_blank" rel="noopener noreferrer" className={styles.readArticle}>Check TSC adverts and requirements <ArrowUpRight aria-hidden="true" size={17} /></a>
           <p>Applications are free. We never ask for TSC passwords or submission details.</p>
         </div>
       </section>
