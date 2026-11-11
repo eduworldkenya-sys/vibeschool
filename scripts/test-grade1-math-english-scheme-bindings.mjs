@@ -70,3 +70,5 @@ assert.ok(scheme.includes('grade1ReaderCatalogError')&&scheme.includes('grade1Re
 assert.ok(math.includes('linkedUnit.outcomes.map')&&math.includes('onPlanUnit(unit.id)'))
 assert.ok(english.includes('linkedUnit.outcomes.map')&&english.includes('onPlanUnit(unit.id)'))
 console.log('Grade 1 Mathematics + English canonical curriculum binding and Scheme authority: PASS')
+
+await import('./test-grade1-math-english-auto-scheme.mjs')
