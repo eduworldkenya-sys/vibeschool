@@ -153,7 +153,7 @@ export default function SubjectLessonHandoff({
           const needsPlan = purpose === "notes" && !candidate.lessonPlanId;
           return (
             <button
-              key={candidate.lessonPlanId || `${candidate.timetableSlotId}:${candidate.occurrenceDate}`}
+              key={`${candidate.timetableSlotId}:${candidate.occurrenceDate}:${candidate.lessonPlanId ?? "no-plan"}`}
               type="button"
               onClick={() => openCandidate(candidate)}
               style={{
