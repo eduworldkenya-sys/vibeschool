@@ -81,9 +81,9 @@ function authorityMessage(code: Exclude<LessonOutcomeAuthorityCode, 'grounded'>)
 
 /**
  * One client boundary for the server-authoritative lesson outcome chain.
- * The RPC validates ownership, Scheme identity, Scheme curriculum identity and
- * resolves only active curriculum outcomes that are actually present in the
- * saved lesson body. Callers must never infer authority from free-text sections.
+ * The RPC validates ownership and saved Scheme identity, resolving linked outcome
+ * IDs first. Older Scheme records without linked outcome IDs retain the legacy
+ * lesson-body fallback. Callers must not infer authority from free-text sections.
  */
 export async function resolveLessonOutcomeAuthority(
   lessonPlanId: string,
@@ -107,8 +107,14 @@ export async function resolveLessonOutcomeAuthority(
 
   const payload = data as Record<string, unknown>
   const schemeId = typeof payload.scheme_id === 'string' ? payload.scheme_id : null
+  // Native Scheme mappings use sub-strand IDs rather than legacy curriculum IDs.
+  // Either identifies the saved curriculum authority; neither implies KICD approval.
   const curriculumId =
-    typeof payload.curriculum_id === 'string' ? payload.curriculum_id : null
+    typeof payload.curriculum_id === 'string'
+      ? payload.curriculum_id
+      : typeof payload.sub_strand_id === 'string'
+        ? payload.sub_strand_id
+        : null
 
   const outcomes = (Array.isArray(payload.outcomes) ? payload.outcomes : [])
     .flatMap(value => {
