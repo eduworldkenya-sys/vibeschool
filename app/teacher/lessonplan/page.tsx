@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import nextDynamic from 'next/dynamic'
 const LessonPlanModal = nextDynamic(() => import('@/components/teacher/LessonPlanModal'), { loading: () => <p role="status">Opening lesson workspace…</p> })
+import { attachMatchingPreparedDraftToOccurrence } from '@/lib/teaching/lessonDrafts'
 import { isLessonPlanReadyToTeach } from '@/lib/teaching/lessonReadiness'
 import type { TimetableSlot, PlanRow, HistoryRow } from '@/lib/types'
 
@@ -136,11 +137,37 @@ function LessonPlanInner() {
   const [sourceCheckError, setSourceCheckError] = useState<string | null>(null)
   const [readinessFilter, setReadinessFilter] = useState<ReadinessFilter>('all')
   const [refreshNonce, setRefreshNonce] = useState(0)
+  const [teacherScope, setTeacherScope] = useState<{teacherId: string; schoolId: string} | null>(null)
   const autoOpenedKeyRef = useRef<string | null>(null)
 
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
+  }
+
+  async function openScheduledSlot(slot: TimetableSlot, hasPlan: boolean) {
+    // An opening scheduled lesson is the first moment with an exact slot/date.
+    // Reuse its unique matching prepared Scheme draft before creating a plan.
+    if (!hasPlan && teacherScope && slot.occurrenceDate) {
+      try {
+        const id = await attachMatchingPreparedDraftToOccurrence({
+          teacherId: teacherScope.teacherId,
+          schoolId: teacherScope.schoolId,
+          classId: slot.class_id,
+          subjectId: slot.subject_id,
+          timetableSlotId: slot.id,
+          taughtDate: slot.occurrenceDate,
+        })
+        if (id) {
+          setRefreshNonce(value => value + 1)
+          showToast('Prepared lesson reused')
+        }
+      } catch (error) {
+        console.error('[LessonPlan] prepared draft attachment failed:', error)
+        showToast('Could not attach prepared lesson. Check its Scheme week.')
+      }
+    }
+    setActiveSlot(slot)
   }
 
   useEffect(() => {
@@ -176,6 +203,8 @@ function LessonPlanInner() {
         setLoading(false)
         return
       }
+
+      setTeacherScope({ teacherId: user.id, schoolId: resolvedSchoolId })
 
       if (urlSchemeId && (!urlClassId || !urlSubjectId)) {
         setLoadError(
@@ -357,6 +386,23 @@ function LessonPlanInner() {
           const autoOpenKey = `${urlTimetableSlotId}:${urlOccurrenceDate}`
           if (autoOpenedKeyRef.current !== autoOpenKey) {
             autoOpenedKeyRef.current = autoOpenKey
+            // Direct timetable URLs must reuse prepared drafts as well.
+            // Never guess when multiple Scheme lessons share the same week.
+            if (!planMap.has(target.slot.id)) {
+              try {
+                const attached = await attachMatchingPreparedDraftToOccurrence({
+                  teacherId: user.id,
+                  schoolId: resolvedSchoolId,
+                  classId: target.slot.class_id,
+                  subjectId: target.slot.subject_id,
+                  timetableSlotId: target.slot.id,
+                  taughtDate: target.slot.occurrenceDate!,
+                })
+                if (attached) setRefreshNonce(value => value + 1)
+              } catch (error) {
+                console.error('[LessonPlan] direct-link draft attachment failed:', error)
+              }
+            }
             setActiveSlot(target.slot)
           }
         } else {
@@ -536,7 +582,7 @@ function LessonPlanInner() {
                     <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0 }}>{badge.label}</span>
                   </div>
                   <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                    <Btn small variant="ghost" ariaLabel={state === 'no_plan' ? 'Create plan' : state === 'needs_review' ? 'Review plan' : 'Open Teaching Workspace'} onClick={() => setActiveSlot(slot)}>
+                    <Btn small variant="ghost" ariaLabel={state === 'no_plan' ? 'Create plan' : state === 'needs_review' ? 'Review plan' : 'Open Teaching Workspace'} onClick={() => void openScheduledSlot(slot, Boolean(plan))}>
                       {state === 'no_plan' ? 'Create plan' : state === 'needs_review' ? 'Review plan' : 'Open lesson'}
                     </Btn>
                   </div>

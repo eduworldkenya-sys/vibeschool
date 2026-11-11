@@ -133,3 +133,64 @@ export async function attachLessonPlanDraftToOccurrence(input: {
   }
   return data
 }
+
+
+/**
+ * Attach an unscheduled draft only when a scheduled occurrence has exactly
+ * one Scheme match in its authoritative school term and instructional week.
+ * No topic/title string matching, no cross-week guessing, no writes when
+ * candidates are ambiguous. The database RPC rechecks scope and exact week.
+ */
+export async function attachMatchingPreparedDraftToOccurrence(input: {
+  teacherId: string
+  schoolId: string
+  classId: string
+  subjectId: string
+  timetableSlotId: string
+  taughtDate: string
+}): Promise<string | null> {
+  const drafts = (await loadLessonPlanDrafts(input.teacherId, input.schoolId))
+    .filter(draft =>
+      draft.class_id === input.classId &&
+      draft.subject_id === input.subjectId &&
+      Boolean(draft.scheme_id))
+  if (drafts.length === 0) return null
+
+  const { data: instructional, error: weekError } = await supabase.rpc(
+    'resolve_instructional_week_for_date',
+    { p_school_id: input.schoolId, p_date: input.taughtDate },
+  )
+  assertNoError(weekError, 'Could not determine the scheduled instructional week.')
+  const week = Array.isArray(instructional) ? instructional[0] : null
+  if (!week || typeof week.term_id !== 'string' || !Number.isInteger(week.week_number)) {
+    return null
+  }
+
+  const { data: schemeRows, error: schemeError } = await supabase
+    .from('scheme_of_work')
+    .select('id,academic_term_id,week,teacher_id,school_id,class_id,subject_id,curriculum_outcome_id')
+    .in('id', drafts.map(draft => draft.scheme_id as string))
+    .eq('school_id', input.schoolId)
+    .eq('teacher_id', input.teacherId)
+    .eq('class_id', input.classId)
+    .eq('subject_id', input.subjectId)
+  assertNoError(schemeError, 'Could not confirm prepared Scheme identity.')
+
+  const matchingIds = new Set((schemeRows ?? [])
+    .filter(row =>
+      row.academic_term_id === week.term_id &&
+      row.week === week.week_number &&
+      typeof row.curriculum_outcome_id === 'string')
+    .map(row => row.id))
+  const matchingDrafts = drafts.filter(draft =>
+    draft.scheme_id !== null && matchingIds.has(draft.scheme_id))
+  // A school week may contain several Scheme lessons for the same subject.
+  // Do not arbitrarily attach a draft to the wrong period.
+  if (matchingDrafts.length !== 1) return null
+
+  return attachLessonPlanDraftToOccurrence({
+    draftId: matchingDrafts[0].id,
+    timetableSlotId: input.timetableSlotId,
+    taughtDate: input.taughtDate,
+  })
+}
