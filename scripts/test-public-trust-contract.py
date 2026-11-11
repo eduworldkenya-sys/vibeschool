@@ -156,7 +156,7 @@ if "title: 'Contact'," not in contact_layout:
     errors.append('contact browser title must use site title template exactly once')
 if 'hideSupport' not in footer:
     errors.append('contact page must be able to hide redundant footer WhatsApp banner')
-contact_support_migration = text('supabase/migrations/20261111091500_contact_support_safety_category.sql')
+contact_support_migration = text('supabase/migrations/20261111091331_contact_support_safety_category.sql')
 for fragment in [
     'contact_requests_category_check',
     "'privacy','legal','safety','other'",
