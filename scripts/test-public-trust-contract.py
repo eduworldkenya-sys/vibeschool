@@ -156,6 +156,16 @@ if "title: 'Contact'," not in contact_layout:
     errors.append('contact browser title must use site title template exactly once')
 if 'hideSupport' not in footer:
     errors.append('contact page must be able to hide redundant footer WhatsApp banner')
+contact_support_migration = text('supabase/migrations/20261111091500_contact_support_safety_category.sql')
+for fragment in [
+    'contact_requests_category_check',
+    "'privacy','legal','safety','other'",
+    "if v_uid is null then raise exception 'Authentication required'",
+    "when p_category in ('privacy','legal','safety') then 'high'",
+    "insert into public.hq_support_cases",
+]:
+    if fragment not in contact_support_migration:
+        errors.append(f'contact safeguarding route/migration missing: {fragment}')
 
 institutions = text('app/institutions/page.tsx')
 for fragment in ['VIBESCHOOL FOR SCHOOLS','WHAT A SCHOOL CAN BRING TOGETHER','IMPLEMENTATION PRINCIPLE','BEFORE ADOPTION','QUESTIONS A SCHOOL SHOULD ASK BEFORE BUYING','does not publish an invented support or uptime guarantee','/trust']:
