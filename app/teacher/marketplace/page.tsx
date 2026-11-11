@@ -26,8 +26,8 @@ export default function PublicTeacherMarketplace() {
                 <h1 id="marketplace-title">Find teaching opportunities. <span>No login needed.</span></h1>
                 <p className={styles.lead}>Explore TSC recruitment information, teaching vacancies and teacher station swaps. Browse first; sign in only when you need to manage a listing or contact another teacher privately.</p>
                 <div className={styles.actions}>
-                  <a href="#listings" className={styles.primary}>Browse opportunities <ArrowRight size={17} aria-hidden="true" /></a>
-                  <Link href="/teacher/marketplace/sandbox" className={styles.secondary}>Try TSC matching preview <ArrowUpRight size={17} aria-hidden="true" /></Link>
+                  <Link href="/teacher/marketplace/sandbox" className={styles.primary}>Try vacancy matching — no login <ArrowRight size={17} aria-hidden="true" /></Link>
+                  <a href="#listings" className={styles.secondary}>Browse published vacancies <ArrowRight size={17} aria-hidden="true" /></a>
                 </div>
               </div>
               <div className={styles.tscInfo}>
