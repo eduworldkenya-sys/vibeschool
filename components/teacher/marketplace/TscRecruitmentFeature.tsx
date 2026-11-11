@@ -1,4 +1,3 @@
-import Link from "next/link";
 import styles from "./TscRecruitmentFeature.module.css";
 
 const articleHref = "/blog/50ef6c33-da45-4a6e-a951-77da15386fa3";
@@ -32,7 +31,7 @@ export default function TscRecruitmentFeature() {
         <div><strong>2,086</strong><span>Secondary schools</span></div>
       </div>
       <div className={styles.actions}>
-        <Link href={articleHref} className={styles.primary}>Read full advert and requirements <span aria-hidden="true">→</span></Link>
+        <a href={articleHref} className={styles.primary}>Read full advert and requirements <span aria-hidden="true">→</span></a>
         <a href={officialApplicationHref} className={styles.secondary} target="_blank" rel="noopener noreferrer">
           {applicationsOpen ? "Apply on official TSC portal" : "Visit official TSC portal"} <span aria-hidden="true">↗</span>
         </a>
