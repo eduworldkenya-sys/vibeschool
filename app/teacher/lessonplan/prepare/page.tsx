@@ -384,13 +384,13 @@ export default function PrepareLessonPage() {
     setSchemeWeekError(null)
     if (!authorizedSchoolId || !authorizedTeacherId || schemeIds.length === 0) return () => { cancelled = true }
 
-    async function loadSchemeWeeks() {
+    async function loadSchemeWeeks(sid: string, uid: string) {
       try {
         const { data: schemeRows, error: schemeError } = await supabase
           .from('scheme_of_work')
           .select('id,school_id,academic_term_id,week')
-          .eq('school_id', authorizedSchoolId)
-          .eq('teacher_id', authorizedTeacherId)
+          .eq('school_id', sid)
+          .eq('teacher_id', uid)
           .in('id', schemeIds)
         if (schemeError) throw schemeError
 
@@ -410,9 +410,9 @@ export default function PrepareLessonPage() {
           const matchingWeek = (weekRows ?? [])
             .filter(week => week.term_id === scheme.academic_term_id &&
               week.week_number === scheme.week &&
-              (week.school_id === authorizedSchoolId || week.school_id === null))
+              (week.school_id === sid || week.school_id === null))
             .sort((left, right) =>
-              Number(right.school_id === authorizedSchoolId) - Number(left.school_id === authorizedSchoolId))[0]
+              Number(right.school_id === sid) - Number(left.school_id === sid))[0]
           if (matchingWeek?.start_date && matchingWeek?.end_date) {
             ranges[scheme.id] = {
               startDate: matchingWeek.start_date,
@@ -426,7 +426,7 @@ export default function PrepareLessonPage() {
           'The Scheme calendar could not be verified. Prepared lessons are still saved; dated attachment is unavailable.')
       }
     }
-    void loadSchemeWeeks()
+    void loadSchemeWeeks(authorizedSchoolId, authorizedTeacherId)
     return () => { cancelled = true }
   }, [drafts, schoolId, teacherId])
 
