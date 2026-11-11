@@ -95,7 +95,7 @@ await act(async()=>fireEvent.click(button('Close listing')));await act(async()=>
 window.history.replaceState(null,'','/teacher?swap='+swap.id);await render(Opportunities);assert(queryByRole(document.body,'dialog'),'Shared swap links select the swap tab and open details')
 await act(async()=>root.unmount())
 const page=fs.readFileSync('app/teacher/page.tsx','utf8');assert(!page.includes('See how your work connects'));assert(!page.includes('Already using VibeSchool?'));assert(page.includes('TeacherExperiencePreview')&&page.includes('/teacher/pulse')&&page.includes('TeacherOpportunities'))
-const managed=fs.readFileSync('app/teacher/marketplace/page.tsx','utf8');
+const managed=fs.readFileSync('app/teacher/marketplace/manage/page.tsx','utf8');
 assert(managed.includes('employment_sector')&&managed.includes('Choose TSC or private-school employment.'),'A new swap must explicitly declare its employment system');
 const sectorMigration=fs.readFileSync('supabase/migrations/20261106234000_teacher_swap_employment_sector.sql','utf8');assert(sectorMigration.includes("'unspecified'")&&sectorMigration.includes("'tsc'")&&sectorMigration.includes("'private'"),'Preserve unknown legacy sector instead of inventing verified TSC status');assert(managed.includes('ListingDetailDialog')&&managed.includes('swapListing(detail)'));assert(managed.includes('contact_phone:null')&&managed.includes('listing_id:selected,sender_id:userId'));assert(managed.includes('teacher_swap_messages')&&managed.includes('Private swap conversation'));
 const subcountyPicker=fs.readFileSync('components/teacher/marketplace/SwapSubcountyField.tsx','utf8');
