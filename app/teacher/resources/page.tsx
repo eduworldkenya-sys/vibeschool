@@ -155,13 +155,14 @@ export default function TeacherResourcesPage() {
     () => subjects.find(row => row.id === requestedSubjectId)?.name ?? '',
     [requestedSubjectId, subjects],
   )
-  const visibleLibrary = useMemo(() => {
-    const typed = filter === 'all' ? library : library.filter(row => row.type === filter)
-    return typed.filter(row =>
-      (!requestedClassId || row.class_id === requestedClassId) &&
-      (!scopedSubjectName || row.subject === scopedSubjectName),
-    )
-  }, [filter, library, requestedClassId, scopedSubjectName])
+  const catalogueLibrary = useMemo(() => library.filter(row =>
+    (!requestedClassId || row.class_id === requestedClassId) &&
+    (!scopedSubjectName || row.subject === scopedSubjectName),
+  ), [library, requestedClassId, scopedSubjectName])
+  const visibleLibrary = useMemo(() =>
+    filter === 'all' ? catalogueLibrary : catalogueLibrary.filter(row => row.type === filter),
+    [catalogueLibrary, filter],
+  )
   const visiblePacks = useMemo(
     () => packs.filter(pack =>
       (!requestedClassId || pack.scheme.class_id === requestedClassId) &&
@@ -363,7 +364,7 @@ export default function TeacherResourcesPage() {
           <strong style={{ fontSize: 14 }}>Grade 1 Creative Activities · Learning library</strong>
           <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Read the shared curriculum activities and approved materials. Draft lesson manuscripts remain private.</span>
         </Link>
-        <TeachingLibraryStructure savedResources={library} onAddPersonalResource={openAdd} />
+        <TeachingLibraryStructure savedResources={catalogueLibrary} onAddPersonalResource={openAdd} />
         {error && <div role="alert" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 12, padding: 12, marginBottom: 14 }}>{error}</div>}
 
         <section id="scheme-linked-resources" style={{ marginBottom: 24 }}>
