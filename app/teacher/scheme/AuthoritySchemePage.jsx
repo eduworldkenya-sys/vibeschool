@@ -954,11 +954,16 @@ function Inner({ curriculumView = false }) {
     }
     setAutoSavingKey(item.key);setError(null)
     try{
-      const result=await supabase.rpc('commit_mapped_scheme_lesson',{
+      const params={
         p_class_id:selectedClass,p_subject_id:selectedSubject,
         p_academic_term_id:selectedTermId,p_week:item.week,
         p_sub_strand_id:item.subStrandId,p_outcome_ids:item.outcomeIds
-      })
+      }
+      const result=isGrade4Mathematics && item.unitId==='2.6'
+        ? await supabase.rpc('commit_grade4_time_scheme_lesson',{
+            ...params,p_content_lesson:item.suggestedLesson
+          })
+        : await supabase.rpc('commit_mapped_scheme_lesson',params)
       if(result.error)throw new Error(commitError(result.error.message))
       const saved=Array.isArray(result.data)?result.data[0]:result.data
       if(!saved?.id)throw new Error('Scheme did not return a saved lesson.')

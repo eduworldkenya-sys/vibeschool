@@ -15,7 +15,7 @@ import {
 import type { LessonPackageSourceIdentity } from '@/lib/teaching/lessonPackageCache'
 
 export interface CanonicalLessonIdentity {
-  curriculumId: string
+  curriculumId: string | null
   subjectId: string
   grade: string
   subStrandId: string
@@ -57,7 +57,7 @@ export type CanonicalLessonGenerationResult =
     }
 
 const FIELD_KEYS = {
-  teachingPoints: new Set(['body','content','explanation','explanations','summary','keyPoints','key_points','teacherNotes','teacher_notes','workedExamples','worked_examples','kenyanExamples','kenyan_examples','examples']),
+  teachingPoints: new Set(['body','content','content_text','explanation','explanations','summary','keyPoints','key_points','teacherNotes','teacher_notes','workedExamples','worked_examples','kenyanExamples','kenyan_examples','examples']),
   activities: new Set(['activities','learningActivities','learning_activities','learnerActivities','learner_activities']),
   questions: new Set(['questions','assessmentQuestions','assessment_questions','diagnostics','diagnosticQuestions','diagnostic_questions']),
   answers: new Set(['answers','expectedAnswers','expected_answers','markingGuide','marking_guide']),
@@ -242,7 +242,7 @@ async function requestGroundedPedagogy(
 }
 
 function cacheIdentity(
-  identity: CanonicalLessonIdentity,
+  identity: CanonicalLessonIdentity & { curriculumId: string },
   assets: CertifiedLessonContentAsset[],
   durationMinutes: number,
 ): LessonPackageSourceIdentity {
@@ -303,10 +303,12 @@ export async function generateCanonicalLessonPlan(
 
   const timing = allocateLessonTiming(parseLessonDurationMinutes(identity.duration))
   const ranges = lessonTimingRanges(timing)
-  const packageIdentity = cacheIdentity(identity, assets, timing.total)
+  const packageIdentity = identity.curriculumId
+    ? cacheIdentity({ ...identity, curriculumId: identity.curriculumId }, assets, timing.total)
+    : null
 
   try {
-    const cached = await loadExactLessonPackage(packageIdentity)
+    const cached = packageIdentity ? await loadExactLessonPackage(packageIdentity) : null
     if (cached) {
       const cachedValidation = validateLessonPlanGrounding({
         sections: cached.sections,
@@ -434,7 +436,7 @@ export async function generateCanonicalLessonPlan(
   if (!validation.ok) return { ok: false, status: 'error', message: validation.message }
 
   try {
-    await storeSchemeLessonPackage({ identity: packageIdentity, sections, generationMode })
+    if (packageIdentity) await storeSchemeLessonPackage({ identity: packageIdentity, sections, generationMode })
   } catch (cacheWriteError) {
     console.warn('[canonicalLessonGeneration] package cache write failed', cacheWriteError)
   }

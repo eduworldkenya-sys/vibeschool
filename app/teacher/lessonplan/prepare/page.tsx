@@ -500,7 +500,7 @@ export default function PrepareLessonPage() {
       const chosenDraft = jumpingDraft?.schemeId === selectedScheme.id ? jumpingDraft : null
       let sections
 
-      if (approved.length > 0 && selectedScheme.curriculum_id && selectedScheme.sub_strand_id) {
+      if (approved.length > 0 && selectedScheme.sub_strand_id) {
         const { data: { session } } = await supabase.auth.getSession()
         const generated = await generateCanonicalLessonPlan(session?.access_token ?? '', {
           curriculumId: selectedScheme.curriculum_id,

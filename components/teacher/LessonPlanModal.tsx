@@ -1101,7 +1101,6 @@ export default function LessonPlanModal({
         if (
           canonicalResource &&
           (
-            !curriculumId ||
             !strandId ||
             curriculumId !== canonicalIdentity?.curriculumId ||
             strandId !== canonicalIdentity?.subStrandId
