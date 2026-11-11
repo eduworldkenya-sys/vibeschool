@@ -94,7 +94,7 @@ export default function PathwayQuickCheckPage() {
     <p className="lead">This is guidance, not a test. The first five prompts compare interests across the three Senior School pathway families. The final prompt asks what you want to explore next and does not change your direction score.</p>
     <section className="how"><div><span>1</span><strong>Answer honestly</strong><small>No right or wrong answers.</small></div><div><span>2</span><strong>We compare signals</strong><small>Only direction choices add pathway evidence.</small></div><div><span>3</span><strong>We show uncertainty</strong><small>Ties and weak signals stay uncertain.</small></div><div><span>4</span><strong>You decide what to explore</strong><small>The result is guidance, not placement.</small></div></section>
     <button className="start" onClick={()=>setStarted(true)}>Start — about 2 minutes</button>
-    <p className="privacy">No login required · Answers stay on this device unless you choose to save later.</p>
+    <p className="privacy">Answers stay on this device unless you choose to save later.</p>
   </div><style jsx>{styles}</style></main>
 
   if (complete) {
@@ -150,7 +150,7 @@ export default function PathwayQuickCheckPage() {
     <p className="instruction">{finalPreferencePrompt?'This last choice helps VibeSchool understand what you want to do next. It does not change your pathway score.':'Choose the answer that feels closest to you. There is no right or wrong answer.'}</p>
     <div className="choices">{question.choices.map((choice, index) => <button key={choice.label} onClick={() => choose(index)}><span className="choiceMain"><span className="choiceIcon"><Icon name={choiceIconName(choice.scores)} /></span><span>{choice.label}</span></span><span aria-hidden="true">→</span></button>)}</div>
     <div className="bottomRow">{step > 0 ? <button className="back" onClick={() => setStep(current => current - 1)}>← Back</button> : <span />}</div>
-    <p className="privacy">No login required. Your answers stay on this device unless you choose to save the result later.</p>
+    <p className="privacy">Your answers stay on this device unless you choose to save the result later.</p>
   </div><style jsx>{styles}</style></main>
 }
 
