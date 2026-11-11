@@ -4,7 +4,7 @@ import { TrackedLink } from './TrackedLink'
 import { PublicJourneyTracker } from './PublicJourneyTracker'
 import styles from './PublicShell.module.css'
 
-type PublicHeaderProps = { product?: string; compact?: boolean }
+type PublicHeaderProps = { product?: string; compact?: boolean; navigation?: ReadonlyArray<readonly [string, string]> }
 
 const navItems = [
   ['/product', 'Product'],
@@ -21,8 +21,8 @@ const navItems = [
   ['/contact', 'Contact'],
 ] as const
 
-export function PublicHeader({ product, compact = false }: PublicHeaderProps) {
-  const displayedNav: ReadonlyArray<readonly [string, string]> = compact ? [['/', 'Home'], ['/pathways', 'Pathways']] : navItems
+export function PublicHeader({ product, compact = false, navigation }: PublicHeaderProps) {
+  const displayedNav: ReadonlyArray<readonly [string, string]> = navigation ?? (compact ? [['/', 'Home'], ['/pathways', 'Pathways']] : navItems)
   return <>
     <PublicJourneyTracker />
     <a href="#main-content" className={styles.skip}>Skip to content</a>
@@ -41,7 +41,7 @@ export function PublicHeader({ product, compact = false }: PublicHeaderProps) {
         <details className={styles.mobileMenu}>
           <summary aria-label="Open public navigation">Menu</summary>
           <nav className={styles.mobilePanel} aria-label="Mobile public navigation">
-            {navItems.map(([href,label]) => <Link key={href} href={href}>{label}</Link>)}
+            {displayedNav.map(([href,label]) => <Link key={href} href={href}>{label}</Link>)}
             <TrackedLink href="/login/global" event="public_auth_signin" className={styles.mobileSignin}>Sign in</TrackedLink>
           </nav>
         </details>
