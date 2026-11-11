@@ -161,7 +161,7 @@ for fragment in [
     '@media(max-width:750px)',
 ]:
     if fragment not in trust: errors.append(f'Trust Centre clarity/brand contract missing: {fragment}')
-trust_actions = re.findall(r'<Link\\s+href=["\\']([^"\\']+)["\\']', trust)
+trust_actions = re.findall(r'<Link\s+href="([^"]+)"', trust)
 if trust_actions != ['/contact', '/legal']:
     errors.append(f'Trust Centre should answer concerns on-page and offer only contact/policy links: {trust_actions}')
 for forbidden in ['Trust should be understandable before it becomes legal language.', 'Honest product communication', 'Consequential catalogue']:
