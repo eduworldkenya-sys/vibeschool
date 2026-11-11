@@ -88,6 +88,9 @@ function TeacherGuideInner() {
     ...(readiness?.reasons??[]),
   ].filter((item): item is string=>Boolean(item));
   const guideReady=guideGaps.length===0;
+  // Teaching content can be available even while a separate saved lesson plan
+  // needs review. Do not call the linked Teacher Guide itself incomplete.
+  const guideContentAvailable=Boolean(source?.schemeId && (source?.objectives || source?.learningExperiences || certified.length>0));
 
   const query=useMemo(()=>{
     const q=new URLSearchParams();
@@ -131,7 +134,7 @@ function TeacherGuideInner() {
   return (
     <div style={{maxWidth:760,margin:"0 auto",padding:"16px 14px 100px",display:"grid",gap:12}}>
       <header style={{...card,background:"var(--teacher-ink, #1c2923)",color:"#fff",border:0}}>
-        <div style={{fontSize:11,fontWeight:750,textTransform:"uppercase",opacity:.7}}>{guideReady?"Teacher Guide · ready for delivery":"Incomplete Teacher Guide"}</div>
+        <div style={{fontSize:11,fontWeight:750,textTransform:"uppercase",opacity:.7}}>{guideReady?"Teacher Guide · ready for delivery":guideContentAvailable?"Teacher Guide · lesson plan review":"Teacher Guide · connect lesson source"}</div>
         <h1 style={{fontSize:24,margin:"6px 0"}}>{source?.topic || source?.subStrand || subjectName || "Lesson guide"}</h1>
         <div style={{fontSize:12,opacity:.78}}>{subjectName || "Subject"} · {context?.grade || workspace.context.grade || "Class"} · {context?.schoolName || "Active school"}</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:14}}>
@@ -140,7 +143,7 @@ function TeacherGuideInner() {
         </div>
       </header>
 
-      {!guideReady && <section role="status" style={{...card,background:"#fff7ed",borderColor:"#fdba74",color:"#9a3412"}}><strong>Complete this guide before teaching</strong><ul style={{margin:"8px 0 0",paddingLeft:20,fontSize:12,lineHeight:1.6}}>{guideGaps.map(gap=><li key={gap}>{gap}</li>)}</ul></section>}
+      {!guideReady && <section role="status" style={{...card,background:"#fff7ed",borderColor:"#fdba74",color:"#9a3412"}}><strong>{guideContentAvailable?"Review the saved lesson plan before teaching":"Connect the lesson source before teaching"}</strong><ul style={{margin:"8px 0 0",paddingLeft:20,fontSize:12,lineHeight:1.6}}>{guideGaps.map(gap=><li key={gap}>{gap}</li>)}</ul></section>}
 
       {(workspace.sourceError || workspace.sourceBundleError || workspace.occurrenceError) && <div style={{...card,background:"#fff7ed",borderColor:"#fdba74",fontSize:12,color:"#9a3412"}}>{workspace.sourceError || workspace.sourceBundleError || workspace.occurrenceError}</div>}
 
@@ -187,7 +190,7 @@ function TeacherGuideInner() {
           <div>School scoped: <strong>{workspace.context.schoolId?"Yes":"No"}</strong></div>
           <div>Scheme linked: <strong>{source?.schemeId?"Yes":"No"}</strong></div>
           <div>Certified resources: <strong>{certified.length}</strong></div>
-          <div>Certified delivery package: <strong>{canonical?"Complete":"Not complete"}</strong></div>
+          <div>Certified delivery package: <strong>{canonical?"Available":"Not assembled"}</strong></div>
           <div style={{marginTop:7,color:"#64748b"}}>Teacher Guide is read-only composition. Curriculum, Scheme, Lesson Plan, resources and teaching occurrence remain their existing authorities.</div>
         </div>
       </Section>
