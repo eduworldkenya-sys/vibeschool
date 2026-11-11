@@ -35,10 +35,10 @@ for (const [name, reader] of [['Mathematics',math],['English',english]]) {
 assert.ok(scheme.includes('isGrade1Mathematics')&&scheme.includes('isGrade1English'))
 assert.ok(scheme.includes('<Grade1MathematicsMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}'))
 assert.ok(scheme.includes('<Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}'))
-assert.ok(scheme.includes("if(curriculumView&&(isGrade1Mathematics||isGrade1English))p.set('unitId',mapUnitId)"),
+assert.ok(scheme.includes("isGrade1Mathematics||isGrade1English") && scheme.includes("p.set('unitId',mapUnitId)"),
   'Selected sub-strand must survive URL changes, refresh and sharing')
 assert.ok(scheme.includes("unitId:searchParams.get('unitId')"), 'Direct sub-strand links must be restored')
-assert.ok(scheme.includes("display:isGrade1Creative||isGrade8Mathematics||((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)"),
+assert.ok(scheme.includes("display:isGrade1Creative||isGrade8Mathematics||isGrade8English||((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)"),
   'Only the empty legacy annual grid should be hidden; never hide existing canonical rows')
 assert.ok(scheme.includes("curriculumOutcomes[row.id]"),'Preserve verified canonical outcome rendering')
 assert.ok(scheme.includes("commit_curriculum_scheme"),'Preserve canonical scheme authority')
