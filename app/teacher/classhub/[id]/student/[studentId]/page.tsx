@@ -57,7 +57,7 @@ type HomeworkRow = {
   subject: string | null;
   due_date: string | null;
   type: string | null;
-  created_at: string;
+  created_at: string | null;
   target_group_id: string | null;
 };
 type SubmissionRow = {
