@@ -189,7 +189,7 @@ const learnerContextFields: Array<{
   {
     key: "responsibilities",
     label: "Additional responsibility notes",
-    help: "Optional teaching context. Manage actual duties and team positions in School life → Roles.",
+    help: "Optional teaching context. Manage actual duties and team positions in Activities and responsibilities → Roles.",
     placeholder: "e.g. Group leader; football team; library monitor",
   },
 ];
@@ -1066,9 +1066,9 @@ export default function TeacherStudentProgressPage() {
         onSupport={() => setPanel("support")}
       />
 
-      <section className={experience.schoolLife} aria-label="School life">
+      <section className={experience.schoolLife} aria-label="Activities and responsibilities">
         <div className={experience.sectionTitle}>
-          <h2>School life</h2>
+          <h2>Activities and responsibilities</h2>
           <button type="button" className={experience.viewAll} onClick={() => setPanel("all")}>View all</button>
         </div>
         <div>
@@ -1375,11 +1375,9 @@ export default function TeacherStudentProgressPage() {
                           : "Repeated support-level CBC evidence"}
                     </strong>
                     <div style={{ marginTop: 3 }}>{signal.reason}</div>
-                    <div style={{ marginTop: 6, fontSize: 11, opacity: 0.75 }}>
-                      {signal.evidenceCount} evidence record
-                      {signal.evidenceCount === 1 ? "" : "s"} ·{" "}
-                      {signal.confidence} confidence
-                    </div>
+                    <button type="button" onClick={() => setTab(signal.id === "missing_work" ? "work" : "assessment")} style={{ marginTop: 8, display: "block", border: "1px solid currentColor", borderRadius: 8, background: "transparent", color: "inherit", fontSize: 11, fontWeight: 750, padding: "6px 9px" }}>
+                      Review {signal.id === "missing_work" ? "assigned work" : "assessments"}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -2310,7 +2308,7 @@ export default function TeacherStudentProgressPage() {
           )}
         </Card>
       )}
-      {panel && <LearnerDetailSheet title={panel === "all" ? "School life" : panel.charAt(0).toUpperCase() + panel.slice(1)} learnerName={student.name} busy={panelBusy || eventSaving}
+      {panel && <LearnerDetailSheet title={panel === "all" ? "Activities and responsibilities" : panel.charAt(0).toUpperCase() + panel.slice(1)} learnerName={student.name} busy={panelBusy || eventSaving}
         onClose={() => { setPanel(null); setEventMessage(""); }}>
         {panel === "all" && <>{(["groups", ...(!requestedSubjectId ? ["roles", "activities", "resources"] as const : []), "recognition", "notes"] as const).map(kind =>
           <button key={kind} type="button" onClick={() => setPanel(kind)}>{kind.charAt(0).toUpperCase() + kind.slice(1)}</button>)}</>}
