@@ -57,6 +57,8 @@ for (const phrase of ["v.lifecycle_status = 'certified'",'v.certified_at is not 
   assert.ok(rpc.includes(phrase), 'Missing release-only guard: ' + phrase)
 }
 assert.ok(!rpc.includes("v.lifecycle_status = 'candidate'"))
+assert.ok(reader.includes("background: '#f5f9f6'"), 'Reader must have readable light page canvas on dark global theme')
+assert.ok(reader.includes("color: INK"), 'Reader must provide appropriate text contrast')
 assert.ok(!reader.includes('service_role'))
 assert.ok(!reader.includes('supabase.auth.getUser()'))
 assert.ok(reader.includes("supabase.rpc('vs_public_grade4_math_time_learner_lessons')"))
