@@ -3,15 +3,124 @@ import Link from 'next/link'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 
-export const metadata: Metadata = { title:'Trust Centre | VibeSchool', description:'Plain-language information about privacy, child safety, security, educational evidence and responsible technology at VibeSchool.' }
+export const metadata: Metadata = {
+  title: 'Trust Centre',
+  description: 'How VibeSchool approaches child safety, personal information, account access, learning content and AI — and how to raise a concern.',
+}
 
-const cards=[
-['Child safety','Children deserve stronger safeguards, not merely smaller versions of adult accounts. VibeSchool designs learner access, adult relationships and data use around legitimate authority and the learner’s interests.','/trust/child-safety','Read child-safety approach'],
-['Privacy','We aim to collect and expose information for a defined educational or operational purpose. Public exploration should not become a route into private learner, family, staff or school information.','/legal/privacy','Read Privacy Policy'],
-['Security & authority','A browser choice should never create institutional authority. Sensitive actions should be constrained by authenticated identity, verified role or relationship and server/database enforcement.','/trust/security','Read security approach'],
-['Educational evidence','Guidance, incomplete information and verified claims are different things. Consequential catalogue and Pathways information should preserve provenance and avoid silently guessing missing truth.','/pathways','Inspect Pathways evidence'],
-['AI & automation','Technology may assist learning and operations, but high-consequence educational or authority decisions need appropriate evidence, safeguards and human responsibility.','/trust/responsible-ai','Read responsible AI approach'],
-['Honest product communication','We do not need fabricated adoption numbers, fake vacancies or unsupported credentials to look established. Product maturity and evidence should be represented honestly.','/about','Why VibeSchool exists'],
+const answers = [
+  {
+    title: 'How do you protect children?',
+    body: 'Children need more protection than adult users. Learner information is intended for people with the right school or family relationship, not anyone who asks to see it. Parental or guardian consent is required where the law calls for it. Safety concerns must be taken seriously and handled by people.',
+  },
+  {
+    title: 'What happens to personal information?',
+    body: 'We use information to provide learning and school services, manage accounts and provide support. We aim to collect only what is needed for a clear purpose. VibeSchool does not sell personal data or use learner information for behavioural advertising. You can ask about accessing, correcting or deleting your information, subject to applicable rules.',
+  },
+  {
+    title: 'Who can see my account or school records?',
+    body: 'Being signed in does not give someone access to every learner or school. Access should depend on verified identity, assigned responsibilities and the right relationship to the information. Private records must not become public simply because someone knows a name, phone number or link. Never share passwords or one-time codes with support staff.',
+  },
+  {
+    title: 'Can I rely on learning information?',
+    body: 'We work to keep curriculum information, teaching materials and learning records accurate. Official sources, VibeSchool-created content and user-provided information are different, and should be clearly distinguished. When something is incomplete or unverified, we should say so instead of presenting a guess as a fact. You can report a mistake.',
+  },
+  {
+    title: 'What does VibeSchool use AI for?',
+    body: 'AI can help explain a topic, prepare material or suggest practice. Its answers can still be wrong. Teachers and other responsible adults remain in charge of important educational and safeguarding decisions. AI-generated suggestions should not be treated as official curriculum or as proof that a learner has mastered a skill.',
+  },
 ] as const
-export default function TrustPage(){return <div className="page"><PublicHeader product="Trust"/><main id="main-content"><section className="hero"><div className="wrap"><p className="eyebrow">VIBESCHOOL TRUST CENTRE</p><h1>Trust should be understandable before it becomes legal language.</h1><p className="lead">This page explains the principles behind VibeSchool’s approach to learners, data, authority, educational evidence and responsible technology. The formal policies remain available for people who need the full terms.</p></div></section><section className="section wrap"><div className="grid">{cards.map(([t,d,href,action])=><article key={t}><h2>{t}</h2><p>{d}</p><Link href={href}>{action} →</Link></article>)}</div></section><section className="section alt"><div className="wrap two"><div><p className="eyebrow dark">WHEN SOMETHING GOES WRONG</p><h2 className="big">A trustworthy system needs a route for questions and problems.</h2></div><div><p>If you believe information is wrong, an account is unsafe, a learner may be at risk, or VibeSchool is handling information inappropriately, contact us. Account-specific support uses authenticated channels where identity matters; general enquiries can start through the public Contact page.</p><Link className="button" href="/contact">Contact VibeSchool</Link></div></div></section><section className="section wrap"><p className="eyebrow dark">FORMAL POLICIES</p><h2 className="big">Read the underlying rules.</h2><div className="policies"><Link href="/legal/privacy"><strong>Privacy Policy</strong><span>Personal data, rights and handling principles →</span></Link><Link href="/legal/terms"><strong>Terms of Service</strong><span>Rules governing use of VibeSchool →</span></Link><Link href="/legal/aup"><strong>Acceptable Use</strong><span>Safe, respectful and lawful use →</span></Link><Link href="/legal"><strong>Policy hub</strong><span>All current trust and policy documents →</span></Link></div></section><section className="institution"><div className="wrap"><h2>Evaluating VibeSchool for a school, institution or public-sector use?</h2><p>Review the institutional adoption and due-diligence surface before contacting us.</p><Link href="/institutions">For institutions & government →</Link></div></section></main><PublicFooter/><style>{styles}</style></div>}
-const styles=`.page{background:#f8f8f5;color:#101827;font-family:var(--font-jakarta),Arial,sans-serif;line-height:1.7}.page *{box-sizing:border-box}.wrap{max-width:1100px;margin:auto}.hero{background:#07111f;color:#fff;padding:90px 24px}.eyebrow{font:850 11px var(--font-mono),monospace;letter-spacing:.15em;color:#d0b154}.eyebrow.dark{color:#755b17}h1,.big{font-family:var(--font-display),Arial,sans-serif;letter-spacing:-.04em;line-height:1.05}h1{font-size:clamp(42px,6vw,70px);max-width:900px;margin:14px 0 24px}.lead{font-size:18px;color:#c6cfda;max-width:780px}.section{padding:84px 24px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.grid article{background:#fff;border:1px solid #e0e3e7;border-radius:14px;padding:28px}.grid h2{font-size:21px;margin:0 0 8px}.grid p,.two p{color:#5d6674}.grid a{font-weight:850;color:#6f5615;text-decoration:none}.alt{background:#eeeae0}.two{display:grid;grid-template-columns:1fr 1fr;gap:65px}.big{font-size:clamp(31px,4.3vw,48px);margin:10px 0}.button{display:inline-flex;margin-top:14px;padding:12px 18px;border-radius:10px;background:#101827;color:#fff;text-decoration:none;font-weight:850}.policies{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.policies a{display:grid;gap:5px;padding:22px;border:1px solid #dedfe5;border-radius:13px;background:#fff;text-decoration:none;color:#171720}.policies span{font-size:14px;color:#666e79}.institution{background:#13243a;color:#fff;padding:66px 24px}.institution h2{font-size:30px;margin:0}.institution p{color:#c6cfda}.institution a{color:#e2c66e;font-weight:850;text-decoration:none}@media(max-width:700px){.hero,.section{padding:62px 18px}.grid,.two,.policies{grid-template-columns:1fr}.two{gap:18px}}`
+
+export default function TrustPage() {
+  return (
+    <div className="trust-page">
+      <PublicHeader product="Trust"/>
+      <main id="main-content">
+        <section className="trust-hero" aria-labelledby="trust-heading">
+          <div className="trust-wrap">
+            <p className="trust-eyebrow">VIBESCHOOL TRUST CENTRE</p>
+            <h1 id="trust-heading">Your safety and information matter.</h1>
+            <p className="trust-lead">Here is how we approach children’s safety, your information and the learning content you use. You should not have to read a legal document to understand the basics.</p>
+          </div>
+        </section>
+
+        <section className="trust-section" aria-labelledby="trust-answers-heading">
+          <div className="trust-wrap">
+            <p className="trust-eyebrow trust-eyebrow-dark">YOUR QUESTIONS, ANSWERED</p>
+            <h2 id="trust-answers-heading">What you should know</h2>
+            <div className="trust-grid">
+              {answers.map(item => (
+                <article key={item.title} className="trust-answer">
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="trust-section trust-soft" aria-labelledby="trust-report-heading">
+          <div className="trust-wrap trust-report">
+            <div>
+              <p className="trust-eyebrow trust-eyebrow-dark">NEED TO REPORT A PROBLEM?</p>
+              <h2 id="trust-report-heading">Tell us what happened.</h2>
+            </div>
+            <div>
+              <p>Found incorrect learning information? Worried about privacy, a school account or a child’s safety? Tell VibeSchool so the concern can be reviewed.</p>
+              <p>For an account-related concern, sign in on the Contact page and choose <strong>Privacy</strong> or <strong>Safety / safeguarding</strong> when submitting a support request. For a general question, you can contact us without an account.</p>
+              <p className="trust-caution">Do not send passwords, access codes or private learner records through public WhatsApp. If someone is in immediate danger, contact local emergency or safeguarding authorities instead of relying on a website response.</p>
+              <Link href="/contact" className="trust-primary">Contact VibeSchool</Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="trust-policy" aria-labelledby="trust-policy-heading">
+          <div className="trust-wrap trust-policy-inner">
+            <div>
+              <p className="trust-eyebrow">FORMAL POLICIES</p>
+              <h2 id="trust-policy-heading">Need the full rules?</h2>
+              <p>Our policy hub includes privacy, terms, acceptable use and detailed guidance on child safety, security and responsible AI. Schools can use these documents when evaluating VibeSchool.</p>
+            </div>
+            <Link href="/legal" className="trust-policy-link">Read policies and guidance <span aria-hidden="true">→</span></Link>
+          </div>
+        </section>
+      </main>
+      <PublicFooter/>
+      <style>{styles}</style>
+    </div>
+  )
+}
+
+const styles = `
+.trust-page{background:#f8f8f5;color:#101827;font-family:var(--font-jakarta),Arial,sans-serif;line-height:1.7}
+.trust-page *{box-sizing:border-box}
+.trust-page .trust-wrap{max-width:1100px;margin:0 auto}
+.trust-page .trust-hero{background:#07111f;color:#fff;padding:78px 24px 86px}
+.trust-page .trust-eyebrow{font:850 11px var(--font-mono),monospace;letter-spacing:.15em;color:#d0b154;margin:0 0 13px}
+.trust-page .trust-eyebrow-dark{color:#755b17}
+.trust-page h1,.trust-page h2{font-family:var(--font-display),Arial,sans-serif;letter-spacing:-.04em;line-height:1.08}
+.trust-page .trust-hero h1{font-size:clamp(40px,6vw,68px);max-width:900px;margin:0 0 20px}
+.trust-page .trust-lead{font-size:clamp(17px,2vw,19px);color:#cbd4df;max-width:760px;margin:0}
+.trust-page .trust-section{padding:70px 24px}
+.trust-page .trust-section h2{font-size:clamp(30px,4vw,46px);margin:0 0 25px}
+.trust-page .trust-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.trust-page .trust-answer{border:1px solid #e0e3e7;border-radius:14px;background:#fff;padding:25px;min-width:0}
+.trust-page .trust-answer h3{font-size:20px;line-height:1.3;margin:0 0 11px;color:#17243a}
+.trust-page .trust-answer p{font-size:15px;color:#505d6c;margin:0;line-height:1.72}
+.trust-page .trust-soft{background:#eeeae0}
+.trust-page .trust-report{display:grid;grid-template-columns:.85fr 1.15fr;gap:56px;align-items:start}
+.trust-page .trust-report h2{margin-bottom:0}
+.trust-page .trust-report p{font-size:16px;color:#4f5967;margin:0 0 14px}
+.trust-page .trust-report .trust-caution{font-size:14px;color:#5a5147}
+.trust-page .trust-primary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:11px 19px;background:#13243a;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;margin-top:6px}
+.trust-page .trust-policy{background:#13243a;color:#fff;padding:52px 24px}
+.trust-page .trust-policy-inner{display:flex;align-items:center;justify-content:space-between;gap:28px}
+.trust-page .trust-policy h2{font-size:clamp(29px,3.5vw,39px);margin:0 0 10px}
+.trust-page .trust-policy p:last-child{color:#c5cfdb;max-width:720px;margin:0;font-size:15px}
+.trust-page .trust-policy-link{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:10px 17px;border:1px solid #d0b154;border-radius:10px;color:#e5cb7c;text-decoration:none;font-weight:800;white-space:nowrap;flex-shrink:0}
+.trust-page a:focus-visible{outline:3px solid #d0b154;outline-offset:4px}
+.trust-page .trust-primary:hover{background:#243956}
+.trust-page .trust-policy-link:hover{background:rgba(208,177,84,.12)}
+@media(max-width:750px){.trust-page .trust-hero{padding:61px 20px 70px}.trust-page .trust-section{padding:55px 20px}.trust-page .trust-grid,.trust-page .trust-report{grid-template-columns:1fr}.trust-page .trust-report{gap:15px}.trust-page .trust-policy{padding:46px 20px}.trust-page .trust-policy-inner{flex-direction:column;align-items:stretch}.trust-page .trust-policy-link{align-self:flex-start;white-space:normal}}
+@media(max-width:480px){.trust-page .trust-answer{padding:20px}.trust-page .trust-answer p{font-size:15px}}
+`
