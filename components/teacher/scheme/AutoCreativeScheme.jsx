@@ -63,6 +63,7 @@ export default function AutoCreativeScheme({draft,termId,week,savedLessons,catal
       <div style={{display:'grid',gap:8}}>
         {marked.map((item,index)=><div key={item.key} style={{background:'#fff',border:'1px solid #dce8de',borderRadius:10,padding:'10px 12px'}}>
           <div style={{fontSize:12,fontWeight:800,color:'#183e2b'}}>Draft lesson {index+1}: {item.title}</div>
+          {item.isVibeSchoolReview&&<p style={{fontSize:11,fontWeight:700,color:'#8a4d19',margin:'4px 0'}} data-curriculum-source="vibeschool-supplementary">VibeSchool supplementary review · not an additional KICD-listed lesson</p>}
           <ul style={{fontSize:12,lineHeight:1.5,color:'#476050',margin:'5px 0 8px',paddingLeft:20}}>
             {(item.outcomes||[item.outcome]).map((outcome,i)=><li key={i}>{outcome}</li>)}
           </ul>
