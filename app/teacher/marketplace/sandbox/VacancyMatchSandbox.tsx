@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 import {
-  DEMO_OPENINGS, SUBJECT_OPTIONS, matchDemoOpenings,
+  SUBJECT_OPTIONS, matchDemoOpenings,
   type TeachingLevel,
 } from "@/lib/teacher/tscSandboxMatching";
 import styles from "./sandbox.module.css";
