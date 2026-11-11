@@ -85,3 +85,9 @@
  .taskIcon,.number{background:#284233;color:#b7e8c8}
  .jobsEmpty{color:#b5c9bd}
 }
+
+/* Make the no-login vacancy matching playboard the first, clearest teacher action. */
+.matchPrimary{min-height:56px;background:#f9cb77;color:#173327;border:1px solid #e4b45f;box-shadow:0 8px 24px rgba(80,66,28,.12);font-size:15px;font-weight:850}
+.matchPrimary:hover{background:#ffe0a1;color:#132b20}
+.matchHint{color:#50665c;font-size:12px;line-height:1.5;max-width:620px;margin:12px 0 0}
+@media(prefers-color-scheme:dark){.matchPrimary{background:#f9cb77;color:#173327}.matchPrimary:hover{background:#ffe0a1;color:#132b20}.matchHint{color:#c2d2c8}}

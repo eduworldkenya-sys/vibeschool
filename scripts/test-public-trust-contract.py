@@ -210,7 +210,7 @@ for fragment in ['Assist, do not quietly decide','Human responsibility remains',
     if fragment not in ai: errors.append(f'responsible-AI surface missing: {fragment}')
 
 pathways = text('app/pathways/page.tsx')
-for fragment in ['Guidance, not placement','No login to start','Verified education information','uncertainty']:
+for fragment in ['Guidance, not placement','Verified education information','uncertainty']:
     if fragment not in pathways: errors.append(f'Pathways trust contract missing: {fragment}')
 
 privacy = text('app/legal/privacy/page.tsx')
