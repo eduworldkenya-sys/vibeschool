@@ -104,7 +104,7 @@ export default function JumpingSchemeContent({ schemeId, onUse, showGuide=false 
         style={{...button,background:'#174f38',color:'#fff',border:'none',fontWeight:800,marginTop:14}}>
         Use this content in Lesson Plan
       </button>}
-      <p style={{fontSize:11,color:'#64748b',margin:'10px 0 0'}}>Working teaching draft · review before classroom delivery</p>
+      <p style={{fontSize:11,color:'#64748b',margin:'10px 0 0'}}>Review this VibeSchool content before classroom delivery</p>
     </div>}
   </section>
 }

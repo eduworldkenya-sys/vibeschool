@@ -532,7 +532,7 @@ export default function PrepareLessonPage() {
           learningResources: selectedScheme.learning_resources,
           assessmentMethods: selectedScheme.assessment_methods,
         })
-        setContentNotice('Working Jumping manuscript. This is a private teacher-review draft, not certified content for delivery.')
+        setContentNotice('Selected VibeSchool Jumping content. Review the lesson before classroom delivery.')
       } else {
         // Preserve existing independent Scheme preparation if production has
         // no certified content; do not invent an approval or choose lesson N.
