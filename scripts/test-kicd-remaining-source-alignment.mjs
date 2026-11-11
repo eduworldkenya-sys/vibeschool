@@ -90,6 +90,16 @@ const officialGrade8Math = [
   ['4.3','Scale Drawing',14],['4.4','Common Solids',16],
   ['5.1','Data Presentation and Interpretation',10],['5.2','Probability',7]
 ]
+// KICD Grade 6 English revised 2024, summary p. xii.
+const officialGrade6English = [
+  ['1.1','Pronunciation and Vocabulary',39],
+  ['2.1','Extensive Reading',11],['2.2','Intensive Reading',22],['2.3','Fluency',3],
+  ['3.1','Word Classes',33],['3.2','Tenses',6],
+  ['4.1','Creative Writing',14],['4.2','Functional Writing',6],
+  ['4.3','Mechanics of Writing',13],['4.4','Guided Compositions',3],
+]
+assert.deepEqual(GRADE6_ENGLISH_UNITS.map(u=>[u.id,u.title,u.lessons]),officialGrade6English,
+  'All ten Grade 6 English KICD strands and lesson counts must match the official 2024 table')
 for(const [label,source,units] of [
   ['Grade 6 Mathematics',officialGrade6Math,GRADE6_MATHEMATICS_UNITS],
   ['Grade 8 Mathematics',officialGrade8Math,GRADE8_MATHEMATICS_UNITS],
