@@ -61,11 +61,11 @@ for(const item of cases){
 }
 assert.ok(page.includes('isGrade1AutoScheme = isGrade1Creative || isGrade1Reader'),
   'All three subjects must use the same automatic scheme entry')
-assert.ok(page.includes('!curriculumView && isGrade1AutoScheme && <AutoCreativeScheme'),
+assert.ok(page.includes('!curriculumView && isAutoScheme && <AutoCreativeScheme'),
   'Open Scheme must automatically display the linked curriculum drafts')
-assert.ok(page.includes('buildGrade1AnnualSchemeDraft({...shared,units:readerUnits,expectedUnitCount:readerUnits.length})'),
+assert.ok(page.includes('buildGrade1AnnualSchemeDraft({...shared,units:readerUnits,expectedUnitCount:readerUnits.length,gradeLabel:isGrade8Mathematics?'Grade 8':'Grade 1'})'),
   'Mathematics and English must use canonical shared pacing')
-assert.ok(page.includes('catalog={isGrade1Creative?creativeCatalog:grade1ReaderCatalog}'),
+assert.ok(page.includes('catalog={isGrade8Mathematics?grade8Catalog:isGrade1Creative?creativeCatalog:grade1ReaderCatalog}'),
   'Draft suggestions must reference the saved IDs and authenticated mapped outcomes')
 assert.ok(page.includes('loading={annualCalendarLoading||mappedCatalogLoading}'))
 assert.ok(page.includes('error={annualCalendarError||mappedCatalogError}'))
