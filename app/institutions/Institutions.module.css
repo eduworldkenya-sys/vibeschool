@@ -1,0 +1,98 @@
+.page{--navy:#07172a;--deep:#0c223a;--gold:#dfba61;--ink:#152234;--muted:#596779;background:#fff;color:var(--ink);font-family:var(--font-jakarta),Arial,sans-serif;line-height:1.6}
+.page *{box-sizing:border-box}
+.container{width:min(1170px,100%);margin-inline:auto}
+.eyebrow,.eyebrowLight{margin:0 0 16px;font-size:11px;line-height:1.4;font-weight:850;letter-spacing:.15em;text-transform:uppercase}
+.eyebrow{color:#8b671d}
+.eyebrowLight{color:#efd189}
+.hero{padding:94px 24px 96px;background:radial-gradient(ellipse at 80% 12%,rgba(52,100,148,.24),transparent 50%),linear-gradient(145deg,#07172a 20%,#0c2541 100%);color:#fff;overflow:hidden}
+.heroGrid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);align-items:center;gap:65px}
+.heroCopy h1{margin:0;font-family:var(--font-display),Arial,sans-serif;letter-spacing:-.055em;line-height:1.03;font-size:clamp(47px,5.2vw,74px);font-weight:750}
+.heroCopy h1 span{color:#e8c77a}
+.heroLead{max-width:605px;margin:28px 0 0;color:#d3dfec;font-size:18px;line-height:1.75}
+.heroActions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:32px}
+.buttonGold,.buttonGhost{display:inline-flex;justify-content:center;align-items:center;gap:22px;min-height:52px;padding:13px 21px;text-decoration:none;font-size:14px;font-weight:800;border-radius:10px;transition:transform .18s ease,background .18s ease,border-color .18s ease}
+.buttonGold{background:var(--gold);color:#101f30;border:1px solid var(--gold)}
+.buttonGhost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.36)}
+.buttonGold:hover,.buttonGhost:hover{transform:translateY(-2px)}
+.buttonGold:hover{background:#f3d48c}
+.buttonGhost:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+.heroSignals{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:32px;color:#b2c2d4;font-size:12px;font-weight:650}
+.heroSignals span{display:flex;align-items:center;gap:9px}
+.heroSignals span:before{content:'';width:5px;height:5px;display:inline-block;border-radius:50%;background:#e8c77a}
+.productFrame{max-width:560px;width:100%;margin-left:auto;border-radius:18px;border:1px solid rgba(255,255,255,.23);background:#f6f8fb;color:#192738;box-shadow:0 35px 80px rgba(0,0,0,.28);overflow:hidden;transform:rotate(1deg)}
+.frameTop{display:flex;align-items:center;gap:9px;padding:14px 17px;background:#fff;border-bottom:1px solid #e1e7ef;font-size:11px;font-weight:800;color:#526477}
+.frameDot{height:8px;width:8px;border-radius:50%;background:#d8af54}
+.frameMark{margin-left:auto;border-radius:8px;background:#0c2541;color:#f4d58c;padding:5px 7px;font-size:10px;letter-spacing:.08em}
+.frameBody{padding:28px 29px 22px}
+.frameOverline{font-size:10px;letter-spacing:.14em;font-weight:900;color:#96722d;margin:0 0 8px}
+.frameBody h2{font-family:var(--font-display),Arial,sans-serif;font-size:27px;letter-spacing:-.035em;line-height:1.18;margin:0}
+.frameDescription{font-size:12px;color:#6a798c;margin:9px 0 22px}
+.workflow{display:grid;gap:9px}
+.workflowRow{display:flex;align-items:center;gap:13px;padding:13px 14px;background:#fff;border:1px solid #e2e7ef;border-radius:10px}
+.workflowIndex{display:grid;place-items:center;flex:none;width:34px;height:34px;background:#eaf0f8;color:#1c416b;border-radius:8px;font-size:11px;font-weight:900}
+.workflowRow div{min-width:0;flex:1}
+.workflowRow strong,.workflowRow small{display:block;line-height:1.4}
+.workflowRow strong{font-size:13px}
+.workflowRow small{font-size:11px;color:#748395;margin-top:3px}
+.workflowTail{color:#a2803d;font-size:19px;font-weight:800}
+.frameFootnote{font-size:10px;color:#8290a0;margin:16px 0 0}
+.section{padding:96px 24px}
+.sectionHeading{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.75fr);gap:60px;align-items:end;margin-bottom:37px}
+.sectionHeading h2,.split h2{font-family:var(--font-display),Arial,sans-serif;font-size:clamp(35px,4vw,54px);letter-spacing:-.045em;line-height:1.1;margin:0;max-width:690px}
+.sectionHeading>p,.sectionHeading>div+p,.bodyLead{font-size:17px;color:#627083;line-height:1.75;margin:0 0 4px}
+.capabilityGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.capabilityCard{min-height:295px;padding:29px 29px 27px;display:flex;flex-direction:column;align-items:flex-start;border-radius:15px;border:1px solid #e3e8ed;background:#fff;box-shadow:0 10px 25px rgba(12,34,58,.035);transition:box-shadow .18s ease,transform .18s ease}
+.capabilityCard:hover{box-shadow:0 18px 32px rgba(12,34,58,.09);transform:translateY(-3px)}
+.cardNumber{font-size:12px;font-weight:900;color:#9a793c}
+.capabilityCard h3{font-size:22px;line-height:1.2;letter-spacing:-.025em;margin:22px 0 12px}
+.capabilityCard p{color:#657185;font-size:14px;line-height:1.7;margin:0 0 20px}
+.capabilityCard a{display:inline-flex;align-items:center;gap:9px;margin-top:auto;color:#153b62;font-size:13px;font-weight:800;text-decoration:none}
+.capabilityCard a:hover,.textLink:hover{text-decoration:underline}
+.learningSection{padding:92px 24px;background:#f3f5f8}
+.learningSection .sectionHeading{margin-bottom:35px}
+.journeyGrid{list-style:none;padding:0;margin:0 0 26px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.journeyItem{background:#fff;border:1px solid #e4e7ed;border-radius:12px;min-height:191px;padding:24px 20px;position:relative}
+.journeyItem:not(:last-child):after{content:'→';position:absolute;right:-13px;top:32px;z-index:1;display:grid;place-items:center;width:24px;height:24px;background:#d9b76c;border-radius:50%;font-weight:900;color:#0b253c;font-size:14px}
+.journeyItem>span{font-size:12px;font-weight:900;color:#a27a2f}
+.journeyItem h3{font-size:20px;margin:16px 0 8px;letter-spacing:-.025em}
+.journeyItem p{font-size:13px;color:#687589;margin:0;line-height:1.6}
+.textLink{font-size:14px;font-weight:850;color:#173d65;text-decoration:none;display:inline-flex;gap:10px;align-items:center}
+.roleGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.roleCard{background:#f7f8fa;border-top:3px solid #d9b46a;padding:28px 23px 30px;border-radius:0 0 12px 12px;min-height:196px}
+.roleCard h3{margin:0 0 13px;font-size:20px;letter-spacing:-.025em}
+.roleCard p{font-size:14px;color:#617084;margin:0}
+.rolloutSection{padding:96px 24px;background:#0b223b;color:#fff}
+.rolloutSection .sectionHeading>p{color:#c4d2e0}
+.rolloutGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:42px 0 30px}
+.rolloutCard{border:1px solid rgba(255,255,255,.17);border-radius:12px;padding:25px 23px;min-height:228px;background:rgba(255,255,255,.035)}
+.rolloutCard>span{font-size:12px;font-weight:900;color:#f0cb7a}
+.rolloutCard h3{font-size:20px;line-height:1.25;margin:21px 0 12px;letter-spacing:-.02em}
+.rolloutCard p{color:#c7d3df;font-size:13px;line-height:1.75;margin:0}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:90px}
+.split h2{max-width:520px}
+.bodyLead{max-width:450px;margin:23px 0 0}
+.benefits{display:grid;gap:22px}
+.benefits>div{padding-bottom:20px;border-bottom:1px solid #e3e8ef}
+.benefits h3{font-size:18px;margin:0 0 8px;letter-spacing:-.02em}
+.benefits p{color:#637184;font-size:14px;line-height:1.75;margin:0}
+.faqSection{background:#f6f8fa;padding:96px 24px}
+.faqList{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:12px}
+.faqList details{background:#fff;border:1px solid #e1e6ed;border-radius:10px;overflow:hidden}
+.faqList summary{display:flex;gap:20px;align-items:center;justify-content:space-between;cursor:pointer;padding:20px 22px;list-style:none;font-size:14px;font-weight:800;line-height:1.45;min-height:65px}
+.faqList summary::-webkit-details-marker{display:none}
+.faqList summary span{font-size:22px;color:#9f7d3e;font-weight:450}
+.faqList details[open] summary span{transform:rotate(45deg)}
+.faqList details p{margin:0;padding:0 22px 22px;color:#68778a;font-size:14px;line-height:1.75}
+.ctaSection{padding:85px 24px;background:#0a1b2e;color:#fff}
+.ctaGrid{display:grid;grid-template-columns:1.25fr .65fr;align-items:center;gap:60px}
+.ctaGrid h2{font-family:var(--font-display),Arial,sans-serif;font-size:clamp(35px,4vw,53px);letter-spacing:-.04em;line-height:1.13;max-width:750px;margin:0}
+.ctaGrid p:not(.eyebrowLight){font-size:16px;color:#c8d4df;line-height:1.8;max-width:700px;margin:18px 0 0}
+.ctaActions{display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.institutionalNote{padding:21px 24px;background:#f5f6f8;color:#5c6879;font-size:13px;text-align:center}
+.institutionalNote a{color:#173d65;font-weight:800;text-decoration:none}
+.institutionalNote a:hover{text-decoration:underline}
+.page a:focus-visible,.page summary:focus-visible{outline:3px solid #c49847;outline-offset:3px}
+@media(max-width:1100px){.heroGrid{gap:35px}.roleGrid,.rolloutGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.journeyGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.journeyItem:nth-child(3):after{display:none}}
+@media(max-width:850px){.heroGrid{grid-template-columns:1fr}.hero{padding-top:74px}.heroCopy h1{max-width:750px}.productFrame{max-width:650px;margin:30px 0 0;transform:none}.sectionHeading,.split,.ctaGrid{grid-template-columns:1fr;gap:20px}.sectionHeading>p{max-width:650px}.capabilityGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.faqList{grid-template-columns:1fr}.ctaActions{flex-direction:row;flex-wrap:wrap}}
+@media(max-width:640px){.hero,.section,.learningSection,.rolloutSection,.faqSection,.ctaSection{padding:64px 18px}.institutionalNote{padding:22px 18px}.heroCopy h1{font-size:clamp(40px,10vw,57px)}.heroLead{font-size:16px;line-height:1.7}.heroActions,.ctaActions{flex-direction:column;align-items:stretch}.buttonGold,.buttonGhost{width:100%}.heroSignals{gap:10px 17px}.frameBody{padding:23px 18px 19px}.frameBody h2{font-size:24px}.capabilityGrid,.roleGrid,.rolloutGrid,.journeyGrid{grid-template-columns:1fr}.capabilityCard{min-height:235px;padding:25px}.sectionHeading h2,.split h2{font-size:clamp(34px,9vw,45px)}.journeyItem{min-height:0}.journeyItem:after{display:none!important}.rolloutCard{min-height:0}.roleCard{min-height:0}.faqList summary{padding:18px}.faqList details p{padding:0 18px 18px}.ctaGrid{gap:28px}}
+@media(prefers-reduced-motion:reduce){.buttonGold,.buttonGhost,.capabilityCard{transition:none}.buttonGold:hover,.buttonGhost:hover,.capabilityCard:hover{transform:none}}
