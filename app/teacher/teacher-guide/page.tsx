@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { loadLessonWorkspace, type LessonWorkspaceBootResult } from "@/lib/teaching/lessonWorkspace";
+import { loadLessonWorkspace, loadSavedTeacherGuide, type LessonWorkspaceBootResult } from "@/lib/teaching/lessonWorkspace";
 import { parseLessonPlanBody, type LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
 import { evaluateLessonReadiness } from "@/lib/teaching/lessonReadiness";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
@@ -36,19 +36,31 @@ function TeacherGuideInner() {
   const lessonPlanId=params.get("lessonPlanId");
   const occurrenceId=params.get("occurrenceId");
   const [workspace,setWorkspace]=useState<LessonWorkspaceBootResult|null>(null);
-  const [loading,setLoading]=useState(Boolean(occurrenceDate && classId && subjectId));
+  const [loading,setLoading]=useState(Boolean(lessonPlanId || schemeId || (occurrenceDate && classId && subjectId)));
   const [error,setError]=useState<string|null>(null);
 
   useEffect(()=>{
     let cancelled=false;
     async function run(){
-      if(!occurrenceDate || !classId || !subjectId){
+      const savedSelection = Boolean(lessonPlanId || schemeId);
+      if(!savedSelection && (!occurrenceDate || !classId || !subjectId)){
+        setWorkspace(null);
         setLoading(false);
         return;
       }
-      setLoading(true); setError(null);
+      setLoading(true); setError(null); setWorkspace(null);
       try {
-        const result=await loadLessonWorkspace({timetableSlotId,occurrenceDate,classId,subjectId,subjectName,requestedSchemeId:schemeId,expectedLessonPlanId:lessonPlanId,expectedOccurrenceId:occurrenceId});
+        // Saved IDs restore the authoritative Scheme + dated Plan directly, even
+        // when a tool or link omitted the timetable/date URL parameters.
+        const result = savedSelection
+          ? await loadSavedTeacherGuide({
+              lessonPlanId, schemeId, classId, subjectId, subjectName,
+              expectedOccurrenceId: occurrenceId,
+            })
+          : await loadLessonWorkspace({
+              timetableSlotId,occurrenceDate,classId,subjectId,subjectName,
+              requestedSchemeId:schemeId,expectedLessonPlanId:lessonPlanId,expectedOccurrenceId:occurrenceId,
+            });
         if(!cancelled) setWorkspace(result);
       } catch(e) {
         if(!cancelled) setError(e instanceof Error?e.message:"Teacher Guide could not load this lesson.");
@@ -90,7 +102,7 @@ function TeacherGuideInner() {
 
   if(loading) return <div role="status" style={{padding:24,color:"#475569",fontWeight:700}}>Opening the canonical Teacher Guide…</div>;
 
-  if(!occurrenceDate || !classId || !subjectId) return (
+  if(!(lessonPlanId || schemeId) && (!occurrenceDate || !classId || !subjectId)) return (
     <div style={{maxWidth:760,margin:"0 auto",padding:18,display:"grid",gap:12}}>
       <div style={{...card,borderColor:"#c7d2fe"}}>
         <div style={{fontSize:11,fontWeight:750,color:"#4f46e5",textTransform:"uppercase"}}>Teacher Guide</div>
@@ -131,6 +143,8 @@ function TeacherGuideInner() {
 
       {(workspace.sourceError || workspace.sourceBundleError || workspace.occurrenceError) && <div style={{...card,background:"#fff7ed",borderColor:"#fdba74",fontSize:12,color:"#9a3412"}}>{workspace.sourceError || workspace.sourceBundleError || workspace.occurrenceError}</div>}
 
+      {source?.schemeId && source?.subStrand === "Jumping" && (workspace.context.grade || context?.grade) === "Grade 1" && <JumpingSchemeContent schemeId={source.schemeId} showGuide />}
+
       <Section title="Curriculum position">
         <TextBlock value={[source?.strand && `Strand: ${source.strand}`,source?.subStrand && `Sub-strand: ${source.subStrand}`,source?.week != null && `Week: ${source.week}`,source?.term != null && `Term: ${source.term}`].filter(Boolean).join("\n")} empty="No Scheme/curriculum position has been resolved for this teaching occurrence." />
       </Section>
@@ -161,7 +175,7 @@ function TeacherGuideInner() {
         {certified.length>0 && <div style={{display:"grid",gap:8,marginTop:12}}>{certified.map(asset=><div key={asset.resourceVersionId} style={{padding:11,border:"1px solid #d1fae5",borderRadius:12}}><div style={{fontWeight:800,fontSize:13}}>{asset.title}</div><div style={{fontSize:11,color:"#64748b"}}>{asset.assetKind || "learning resource"} · certified {new Date(asset.certifiedAt).toLocaleDateString()}</div></div>)}</div>}
       </Section>
 
-      {source?.schemeId && source?.subStrand === "Jumping" && (workspace.context.grade || context?.grade) === "Grade 1" && <JumpingSchemeContent schemeId={source.schemeId} />}
+
 
       <Section title="Homework & follow-through">
         <TextBlock value={nonEmpty(sections?.homework)} empty="No prepared homework is attached to the canonical Lesson Plan yet." />
@@ -172,7 +186,7 @@ function TeacherGuideInner() {
           <div>School scoped: <strong>{workspace.context.schoolId?"Yes":"No"}</strong></div>
           <div>Scheme linked: <strong>{source?.schemeId?"Yes":"No"}</strong></div>
           <div>Certified resources: <strong>{certified.length}</strong></div>
-          <div>Canonical content identity: <strong>{canonical?"Verified":"Not complete"}</strong></div>
+          <div>Certified delivery package: <strong>{canonical?"Complete":"Not complete"}</strong></div>
           <div style={{marginTop:7,color:"#64748b"}}>Teacher Guide is read-only composition. Curriculum, Scheme, Lesson Plan, resources and teaching occurrence remain their existing authorities.</div>
         </div>
       </Section>
