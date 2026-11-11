@@ -177,6 +177,11 @@ export default function StudentResourcesPage() {
         </p>
       </div>
 
+      <Link href="/learn/grade-4/mathematics/time" style={{ display: 'block', borderRadius: 14, border: '1px solid #9dcbb0', background: '#eaf6ee', padding: '14px 16px', marginBottom: 16, color: '#174d35', textDecoration: 'none' }}>
+        <strong style={{ display: 'block', fontSize: 15 }}>Grade 4 Mathematics · Time</strong>
+        <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.6 }}>Open the shared Time lesson reader. Only released learning materials appear.</span>
+      </Link>
+
       <Link href="/learn/grade-1/creative-activities" style={{ display: 'block', borderRadius: 14, border: '1px solid #9dcbb0', background: '#eaf6ee', padding: '14px 16px', marginBottom: 16, color: '#174d35', textDecoration: 'none' }}>
         <strong style={{ display: 'block', fontSize: 15 }}>Grade 1 Creative Activities</strong>
         <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.6 }}>Explore drawing, music and movement. Open the shared activity library.</span>
