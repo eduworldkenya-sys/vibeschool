@@ -14,6 +14,7 @@ export default function PrivateVideoClassroom({ lessonId }: { lessonId: string }
   const generation = useRef(0);
   const identity = useRef<string | null>(null);
   const [access, setAccess] = useState<Access | null>(null);
+  const [returnRole, setReturnRole] = useState<Access["role"] | null>(null);
   const [error, setError] = useState('');
   const [signInRequired, setSignInRequired] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -33,7 +34,10 @@ export default function PrivateVideoClassroom({ lessonId }: { lessonId: string }
       signal: AbortSignal.timeout(20000),
     });
     const data = await response.json();
-    if (mounted.current && response.status === 401) setSignInRequired(true);
+    if (mounted.current) {
+      if (response.status === 401) setSignInRequired(true);
+      setReturnRole(data.role === "teacher" || data.role === "student" ? data.role : null);
+    }
     if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Could not check lesson access.');
     if (!data.lesson || !data.userId || !['teacher', 'student'].includes(data.role)) throw new Error('Could not check lesson access.');
     return data;
@@ -56,7 +60,7 @@ export default function PrivateVideoClassroom({ lessonId }: { lessonId: string }
     const timer = setInterval(() => void refresh(), 20000);
     const { data: listener } = getSupabaseClient().auth.onAuthStateChange((_event, session) => {
       if (identity.current && session?.user.id !== identity.current) {
-        setAccess(null); setError('Your account changed. Reopen this lesson.'); void stop();
+        setAccess(null); setReturnRole(null); setError('Your account changed. Reopen this lesson.'); void stop();
       }
     });
     return () => { mounted.current = false; clearInterval(timer); listener.subscription.unsubscribe(); void stop(); };
@@ -87,7 +91,7 @@ export default function PrivateVideoClassroom({ lessonId }: { lessonId: string }
     } finally { joining.current = false; if (mounted.current) setBusy(false); }
   }
   return <main style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px', minHeight: '100dvh' }}>
-    <Link href={access?.role === 'teacher' ? '/teacher/tutoring/students' : '/student/tutoring'}>← My tuition</Link>
+    {returnRole && <Link href={returnRole === 'teacher' ? '/teacher/tutoring/students?tool=lessons' : '/student/tutoring'}>← My tuition</Link>}
     <h1>{access?.lesson.title ?? 'Private lesson'}</h1>
     <p>Only your connected tutor and student can join. Recording is off.</p>
     <p role="status">{state}</p>

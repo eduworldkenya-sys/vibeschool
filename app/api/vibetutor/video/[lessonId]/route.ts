@@ -11,6 +11,7 @@ function json(body: unknown, status = 200) {
   } });
 }
 async function handle(req: NextRequest, id: string, join: boolean) {
+  let role: "teacher" | "student" | undefined;
   try {
     if (!validLessonId(id)) throw new VideoError('Invalid lesson.', 400);
     if (join && !sameVideoOrigin(req.headers.get('origin'), req.headers.get('host'))) throw new VideoError('Open the lesson from VibeSchool.', 403);
@@ -27,7 +28,7 @@ async function handle(req: NextRequest, id: string, join: boolean) {
     if (error || !user) throw new VideoError('Sign in to join this lesson.', 401);
     const { data: authority, error: authorityError } = await db.rpc('get_my_auth_access_state');
     if (authorityError) throw new VideoError('Could not check account access.', 503);
-    const role = videoRole(authority);
+    role = videoRole(authority);
     // Canonical RPC only returns lessons for accepted invitations belonging to this JWT.
     // Pending guardian approval and revoked invitations never grant a room/token.
     const { data: rows, error: lessonError } = await db.rpc('vibetutor_my_lessons');
@@ -38,7 +39,7 @@ async function handle(req: NextRequest, id: string, join: boolean) {
     return json({ ...session, lesson, role, userId: user.id });
   } catch (error) {
     // Provider responses and credentials must never enter logs or browser errors.
-    return error instanceof VideoError ? json({ error: error.message }, error.status)
+    return error instanceof VideoError ? json({ error: error.message, role }, error.status)
       : json({ error: 'Video is temporarily unavailable. Please retry.' }, 503);
   }
 }

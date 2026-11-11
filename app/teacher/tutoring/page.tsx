@@ -7,7 +7,7 @@ import { CalendarDays, BookOpen, Users, GraduationCap, ArrowRight, RefreshCw, Vi
 import { getSupabaseClient } from "@/lib/supabase";
 
 type Listing = {
-  display_name: string; subjects: string[] | null; levels: string[] | null;
+  subjects: string[] | null; levels: string[] | null;
   teaching_mode: "online" | "physical" | "either"; area: string | null;
   rate_kes: number | null; available_days: string[] | null; status: "published" | "paused";
 };
@@ -23,6 +23,7 @@ const linkStyle: React.CSSProperties = { minHeight: 44, display: "inline-flex", 
 export default function TeacherTutoringPage() {
   const router = useRouter();
   const [state, setState] = useState<LoadState>("loading");
+  const [teacherName, setTeacherName] = useState("Tutor");
   const [listing, setListing] = useState<Listing | null>(null);
   const [students, setStudents] = useState<TuitionStudent[] | null>(null);
   const [lessons, setLessons] = useState<TuitionLesson[] | null>(null);
@@ -33,8 +34,10 @@ export default function TeacherTutoringPage() {
       const { data: auth, error: authError } = await client.auth.getUser();
       if (authError) throw authError;
       if (!auth.user) { router.replace("/login?redirect=%2Fteacher%2Ftutoring"); return; }
+      const { data: profile } = await client.from("profiles").select("full_name").eq("id", auth.user.id).maybeSingle();
+      setTeacherName(profile?.full_name?.trim().split(/\s+/)[0] || "Tutor");
       const { data, error } = await client.from("vibetutor_tutors")
-        .select("display_name,subjects,levels,teaching_mode,area,rate_kes,available_days,status")
+        .select("subjects,levels,teaching_mode,area,rate_kes,available_days,status")
         .eq("profile_id", auth.user.id).maybeSingle();
       if (error) throw error;
       setListing(data as Listing | null);
@@ -60,7 +63,6 @@ export default function TeacherTutoringPage() {
 
   const muted = "var(--teacher-muted, #627168)";
   const green = "var(--teacher-green, #087451)";
-  const firstName = listing?.display_name?.trim().split(/\s+/)[0] || "Tutor";
   const tools = [
     { label: "My Students", detail: students === null ? "Your connected learners" : `${students.length} connected ${students.length === 1 ? "learner" : "learners"}`, href: "/teacher/tutoring/students", icon: Users },
     { label: "Lessons", detail: "Schedule & timetable", href: "/teacher/tutoring/students?tool=lessons", icon: CalendarDays },
@@ -74,7 +76,7 @@ export default function TeacherTutoringPage() {
   return <div style={{ width: "100%", maxWidth: 900, margin: "0 auto", padding: "20px 14px 100px", display: "grid", gap: 16, color: "var(--teacher-ink, #1c2923)" }}>
     <header>
       <span style={{ color: green, fontSize: 12, fontWeight: 750, letterSpacing: ".05em" }}>VIBESCHOOL · MY TUTORING</span>
-      <h1 style={{ fontSize: "clamp(24px, 3vw, 30px)", margin: "7px 0 4px" }}>Good morning, {firstName}</h1>
+      <h1 style={{ fontSize: "clamp(24px, 3vw, 30px)", margin: "7px 0 4px" }}>My tutoring, {teacherName}</h1>
       <p style={{ margin: 0, fontSize: 13, color: muted }}>Manage your private teaching</p>
     </header>
     {state === "loading" && <section role="status" style={panel}>Loading your tutoring details…</section>}
