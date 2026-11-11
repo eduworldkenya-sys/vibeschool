@@ -41,7 +41,7 @@ for (const token of [
   'without explicit grammar labels',
   'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-English-Activities-Revised-Sept.pdf',
 ]) assert.ok(reader.includes(token), 'Missing English reader requirement: ' + token)
-assert.ok(scheme.includes('isGrade1English') && scheme.includes('<Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}') && scheme.includes('mappedUnits={grade1ReaderCatalog}'))
+assert.ok(scheme.includes('isGrade1English') && scheme.includes('<Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} selectedThemeId={Number(initial.current.themeId)||1} onSelectUnit={setMapUnitId}') && scheme.includes('mappedUnits={grade1ReaderCatalog}'))
 assert.ok(subject.includes('grade1EnglishClass') && subject.includes('<Grade1EnglishMap compact selectedUnitId={grade1EnglishUnitId} onSelectUnit={setGrade1EnglishUnitId} />'))
 assert.ok(scheme.includes('commit_curriculum_scheme') && scheme.includes('curriculumOutcomes[row.id]'), 'Canonical workflow must be preserved')
 assert.ok(scheme.includes('<Grade1MathematicsMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}'), 'Preserve Mathematics map')
