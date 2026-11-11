@@ -40,4 +40,16 @@ assert 'Operational row counts alone are never treated as adoption or impact pro
 assert '/evidence' in sitemap
 assert 'href="/evidence"' in footer
 assert any(entry.get('route') == '/evidence' and entry.get('owner') == 'Evidence' for entry in governance.get('entries', []))
+
+# This public route intentionally offers one clear action and a smaller
+# route-specific shell. The shared shell defaults remain unchanged.
+header = (root / 'components/public/PublicHeader.tsx').read_text()
+assert 'navigation={evidenceNavigation}' in page, 'evidence header should use focused navigation'
+assert '<PublicFooter focused/>' in page, 'evidence footer should not show the full site directory'
+assert '<Link className="primary" href="/sandbox">' in page, 'evidence action must open the public experience'
+assert page.count('<Link className="primary"') == 1, 'evidence page should have one primary action'
+assert 'navigation ??' in header, 'public header must retain the shared navigation fallback'
+assert '{displayedNav.map(([href,label]) => <Link key={href} href={href}>{label}</Link>)}' in header, 'mobile navigation must honor the focused links'
+assert 'if (focused) return (' in footer, 'focused footer must be supported'
+
 print(f'Public Evidence Contract: PASS ({len(claims)} claims, {sum(c.get("status") == "published" for c in claims)} published)')
