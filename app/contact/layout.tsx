@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Contact VibeSchool | Support & Enquiries',
+  title: 'Contact',
   description:'Contact VibeSchool for general enquiries, schools, institutions, government, partnerships, careers or authenticated account support.',
   alternates:{canonical:'/contact'},
   openGraph: {
