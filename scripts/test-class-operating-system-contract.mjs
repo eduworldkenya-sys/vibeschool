@@ -85,3 +85,4 @@ if (failures.length) {
   process.exit(1)
 }
 console.log('\nClass Operating System contract PASSED')
+await import('./test-classhub-homework-eligibility.mjs')
