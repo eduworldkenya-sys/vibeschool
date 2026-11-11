@@ -58,8 +58,8 @@ export default function Grade6MathematicsMap({
       </>}
     </article>
     <div style={{display:'flex',gap:8,justifyContent:'space-between',marginTop:12}}>
-      <button type="button" disabled={index===0} onClick={()=>choose(GRADE6_MATHEMATICS_UNITS[index-1].id)} style={{minHeight:44,borderRadius:9,border:'1px solid #bccfc2',background:'#fff',color:green,padding:'9px 13px',opacity:index===0?.5:1}}>Previous</button>
-      <button type="button" disabled={index===GRADE6_MATHEMATICS_UNITS.length-1} onClick={()=>choose(GRADE6_MATHEMATICS_UNITS[index+1].id)} style={{minHeight:44,borderRadius:9,border:0,background:green,color:'#fff',padding:'9px 13px',opacity:index===GRADE6_MATHEMATICS_UNITS.length-1?.5:1}}>Next topic</button>
+      <button type="button" disabled={index===0} onClick={()=>choose(GRADE6_MATHEMATICS_UNITS[index-1].id)} style={{minHeight:44,borderRadius:9,border:'1px solid #bccfc2',background:'#fff',color:green,padding:'9px 13px',opacity:index===0?0.5:1}}>Previous</button>
+      <button type="button" disabled={index===GRADE6_MATHEMATICS_UNITS.length-1} onClick={()=>choose(GRADE6_MATHEMATICS_UNITS[index+1].id)} style={{minHeight:44,borderRadius:9,border:0,background:green,color:'#fff',padding:'9px 13px',opacity:index===GRADE6_MATHEMATICS_UNITS.length-1?0.5:1}}>Next topic</button>
     </div>
   </section>
 }
