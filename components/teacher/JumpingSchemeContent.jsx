@@ -61,10 +61,14 @@ export default function JumpingSchemeContent({ schemeId, onUse, showGuide=false 
         throw new Error('This lesson content cannot be opened.')
       }
       const found = units.find(unit=>unit.lessonNumber===lessonNumber)
-      setSelected({
+      const selection = {
         schemeId,lessonNumber,title:found?.title||'Jumping',
         content:asRecord(data.content),
-      })
+      }
+      setSelected(selection)
+      // A single explicit unit choice carries the manuscript into the builder.
+      // Never infer a unit from the broad Jumping sub-strand.
+      if (typeof onUse === 'function') onUse(selection)
     } catch(err){setSelected(null);setError(err instanceof Error?err.message:'Lesson content unavailable.')}
     finally{setLoading(false)}
   }
@@ -100,10 +104,7 @@ export default function JumpingSchemeContent({ schemeId, onUse, showGuide=false 
       <Plain title="Support different learners" value={teacher.differentiation}/>
       <Plain title="Learner content" value={learner.body}/>
       <Plain title="Learner activities" value={learner.learnerActivities}/>
-      {typeof onUse==='function' && <button type="button" onClick={()=>onUse(selected)}
-        style={{...button,background:'#174f38',color:'#fff',border:'none',fontWeight:800,marginTop:14}}>
-        Use this content in Lesson Plan
-      </button>}
+      {typeof onUse==='function' && <p role="status" style={{fontSize:12,fontWeight:750,color:'#174f38'}}>Selected for this lesson plan. The builder will use this exact manuscript.</p>}
       <p style={{fontSize:11,color:'#64748b',margin:'10px 0 0'}}>Working teaching draft · review before classroom delivery</p>
     </div>}
   </section>
