@@ -45,7 +45,7 @@ export interface LoadLessonWorkspaceInput {
 }
 
 export interface LessonCanonicalSourceIdentity {
-  curriculumId: string
+  curriculumId: string | null
   subjectId: string
   grade: string
   subStrandId: string
@@ -160,8 +160,8 @@ function buildCanonicalIdentity(
   if (
     !sourceBundle ||
     sourceBundle.certifiedContent.length === 0 ||
-    !source?.id ||
-    !source.strandId ||
+    !source?.strandId ||
+    (!source.id && !source.schemeId) ||
     !subjectId ||
     !grade
   ) {

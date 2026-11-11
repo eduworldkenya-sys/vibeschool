@@ -201,6 +201,7 @@ async function queryCurriculumCandidates(
     .filter(isTeachingContentCandidate)
     .filter(resource => {
       const original = (data ?? []).find(row => row.id === resource.id)
+      if (original?.canonical_key?.startsWith('vs:g4:mathematics:time:learner:lesson:')) return false
       return includeGradeOneJumpingAsset(
         typeof original?.canonical_key==='string' ? original.canonical_key : null,
         lessonNumber,
