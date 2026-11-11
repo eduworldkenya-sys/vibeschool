@@ -144,6 +144,7 @@ for fragment in [
     'Account or login help', 'Privacy or child safety', 'Careers',
     "topic === 'account' || topic === 'safety'",
     'authReady && !signedIn', 'authReady && signedIn',
+    "new URLSearchParams(window.location.search)", "'/login?redirect='",
     'submit_contact_request', 'public_contact_support_submit',
     'Child safety or safeguarding', 'Do not include passwords', 'PublicFooter hideSupport',
 ]:
