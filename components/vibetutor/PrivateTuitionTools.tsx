@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getSupabaseClient } from "@/lib/supabase";
+import { tuitionLessonCanCancel, tuitionLessonState } from "@/lib/vibetutor/lessonLifecycle";
 
 type Lesson = { id: string; invitation_id: string; title: string; starts_at: string; ends_at: string; status: string };
 type Message = { id: string; body: string; mine: boolean; created_at: string };
@@ -65,12 +66,17 @@ export default function PrivateTuitionTools({ invitationId, isTutor, section = "
         <label>Duration<select value={duration} onChange={e => setDuration(Number(e.target.value))} style={{ display: "block", padding: 10 }}><option value={30}>30 minutes</option><option value={60}>1 hour</option><option value={90}>90 minutes</option><option value={120}>2 hours</option></select></label>
         <button disabled={busy} style={btn}>Schedule lesson</button>
       </form>}
-      {lessons.length === 0 ? <p>No scheduled lessons yet.</p> : lessons.map(l => <div key={l.id} style={{ borderTop: "1px solid #eee", padding: "10px 0" }}>
-        <strong>{l.title}</strong><div>{new Date(l.starts_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })} · {Math.round((new Date(l.ends_at).getTime() - new Date(l.starts_at).getTime()) / 60000)} min</div>
-        <small>{l.status}</small>
-        {isTutor && l.status === "scheduled" && <button type="button" onClick={() => void cancel(l.id)} disabled={busy} style={{ marginLeft: 10 }}>Cancel</button>}
-        {l.status === "scheduled" && <div style={{ marginTop: 8 }}><Link href={"/tuition/lessons/" + l.id} style={{ ...btn, display: "inline-block", textDecoration: "none" }}>Join lesson</Link><small style={{ display: "block", marginTop: 6 }}>Opens 15 minutes before the lesson.</small></div>}
-      </div>)}
+      {lessons.length === 0 ? <p>No lessons yet.</p> : lessons.map(l => {
+        const state = tuitionLessonState(l);
+        return <div key={l.id} style={{ borderTop: "1px solid #eee", padding: "10px 0" }}>
+        <strong>{l.title}</strong><div>{new Date(l.starts_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Nairobi" })} · {Math.round((new Date(l.ends_at).getTime() - new Date(l.starts_at).getTime()) / 60000)} min</div>
+        <small>{state === "ended" ? "Ended" : state === "joinable" ? "Ready to join" : state === "upcoming" ? "Scheduled" : state === "completed" ? "Completed" : state === "cancelled" ? "Cancelled" : "Unavailable"}</small>
+        {isTutor && tuitionLessonCanCancel(l) && <button type="button" onClick={() => void cancel(l.id)} disabled={busy} style={{ marginLeft: 10 }}>Cancel</button>}
+        {state === "joinable" && <div style={{ marginTop: 8 }}><Link href={"/tuition/lessons/" + l.id} style={{ ...btn, display: "inline-block", textDecoration: "none" }}>Join lesson</Link></div>}
+        {state === "upcoming" && <small style={{ display: "block", marginTop: 6 }}>Join opens 15 minutes before the lesson.</small>}
+        {state === "ended" && <small style={{ display: "block", marginTop: 6 }}>This lesson has ended.</small>}
+      </div>;
+      })}
     </section>}
     {(section === "all" || section === "messages") && <section style={panel} aria-label="Private tuition messages">
       <h3 style={{ marginTop: 0 }}>Messages</h3>
