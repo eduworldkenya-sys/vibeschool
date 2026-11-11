@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { nairobiDateStr } from "@/lib/time";
+import { isLearnerAssignedHomework } from "@/lib/homework/eligibility";
 
 type Context = {
   teacher_id: string;
@@ -23,14 +24,14 @@ type HomeworkRow = {
   created_at: string;
   lesson_plan_id: string | null;
   teaching_occurrence_id: string | null;
-  homework_submissions: Array<{ id: string }>;
+  homework_submissions: Array<{ id: string; student_id: string }>;
   target_group_id: string | null;
 };
 
-type FormState = { title: string; subject: string; instructions: string; dueDate: string; type: string };
+type FormState = { title: string; subject: string; instructions: string; dueDate: string; type: string; audience: "class" | "group" | "learners"; groupId: string; studentIds: string[] };
 type LessonContext = { subject: string; occurrenceDate: string | null; startTime: string | null; endTime: string | null };
 
-const EMPTY_FORM: FormState = { title: "", subject: "", instructions: "", dueDate: "", type: "homework" };
+const EMPTY_FORM: FormState = { title: "", subject: "", instructions: "", dueDate: "", type: "homework", audience: "class", groupId: "", studentIds: [] };
 const INPUT_STYLE = {
   width: "100%",
   minHeight: 46,
@@ -84,7 +85,10 @@ function HomeworkInner() {
   const [context, setContext] = useState<Context | null>(null);
   const [lessonContext, setLessonContext] = useState<LessonContext | null>(null);
   const [list, setList] = useState<HomeworkRow[]>([]);
-  const [rosterCount, setRosterCount] = useState(0);
+  const [roster, setRoster] = useState<Array<{ student_id: string; joined_at: string | null; name: string }>>([]);
+  const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([]);
+  const [members, setMembers] = useState<Array<{ group_id: string; student_id: string; created_at: string }>>([]);
+  const selectedGroupRequestId = useRef<string | null>(null);
   const [targetGroup, setTargetGroup] = useState<{ id: string; name: string; memberCount: number } | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [draftReady, setDraftReady] = useState(false);
@@ -126,14 +130,30 @@ function HomeworkInner() {
       }
       setContext(ctx);
 
-      const [homeworkRes, rosterRes] = await Promise.all([
-        supabase.from("homework").select("id,title,subject,instructions,due_date,type,created_at,lesson_plan_id,teaching_occurrence_id,target_group_id,homework_submissions(id)").eq("school_id", ctx.school_id).eq("class_id", classId).eq("teacher_id", auth.user.id).order("created_at", { ascending: false }),
-        supabase.from("student_classes").select("student_id", { count: "exact", head: true }).eq("school_id", ctx.school_id).eq("class_id", classId).eq("is_current", true),
+      const [homeworkRes, rosterRes, groupsRes] = await Promise.all([
+        supabase.from("homework").select("id,title,subject,instructions,due_date,type,created_at,lesson_plan_id,teaching_occurrence_id,target_group_id,homework_submissions(id,student_id)").eq("school_id", ctx.school_id).eq("class_id", classId).eq("teacher_id", auth.user.id).order("created_at", { ascending: false }),
+        supabase.from("student_classes").select("student_id,joined_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("is_current", true),
+        supabase.from("class_groups").select("id,name").eq("school_id", ctx.school_id).eq("class_id", classId).is("archived_at", null),
       ]);
       if (homeworkRes.error) throw homeworkRes.error;
       if (rosterRes.error) throw rosterRes.error;
+      if (groupsRes.error) throw groupsRes.error;
+      const enrolled = rosterRes.data ?? [];
+      const learnerIds = enrolled.map(row => row.student_id);
+      const namesRes = learnerIds.length
+        ? await supabase.from("students").select("id,name").in("id", learnerIds).is("deleted_at", null)
+        : { data: [], error: null };
+      if (namesRes.error) throw namesRes.error;
+      const names = new Map((namesRes.data ?? []).map(row => [row.id, row.name]));
+      setRoster(enrolled.map(row => ({ ...row, name: names.get(row.student_id) ?? "Learner" })));
       setList((homeworkRes.data ?? []) as HomeworkRow[]);
-      setRosterCount(rosterRes.count ?? 0);
+      setGroups(groupsRes.data ?? []);
+      const groupIds = [...new Set([...(groupsRes.data ?? []).map(g => g.id), ...(homeworkRes.data ?? []).flatMap(h => h.target_group_id ? [h.target_group_id] : [])])];
+      const memberRes = groupIds.length
+        ? await supabase.from("class_group_members").select("group_id,student_id,created_at").in("group_id", groupIds)
+        : { data: [], error: null };
+      if (memberRes.error) throw memberRes.error;
+      setMembers(memberRes.data ?? []);
 
       if (sourceGroupId) {
         const groupRes = await supabase
@@ -183,9 +203,9 @@ function HomeworkInner() {
       const savedDraft = readDraft(key);
       const defaultSubject = resolvedLesson?.subject || sourceSubjectName || ctx.classes.find((item) => item.class_id === classId && (!sourceSubjectId || item.subject_id === sourceSubjectId))?.subject_name || "";
       if (savedDraft) {
-        setForm({ ...savedDraft, subject: lessonLinked ? defaultSubject : savedDraft.subject });
-      } else if (lessonLinked) {
-        setForm({ ...EMPTY_FORM, subject: defaultSubject, title: sourceTopic ? `${sourceTopic} Homework` : "" });
+        setForm({ ...EMPTY_FORM, ...savedDraft, subject: lessonLinked ? defaultSubject : savedDraft.subject, ...(sourceGroupId ? { audience: "group" as const, groupId: sourceGroupId } : {}) });
+      } else {
+        setForm({ ...EMPTY_FORM, ...(sourceGroupId ? { audience: "group" as const, groupId: sourceGroupId } : {}), subject: defaultSubject, title: lessonLinked && sourceTopic ? `${sourceTopic} Homework` : "" });
       }
       setDraftReady(true);
     } catch (loadError) {
@@ -199,6 +219,14 @@ function HomeworkInner() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (draftReady && showForm && context?.school_id) writeDraft(storageKey, { ...form, subject: lessonLinked ? authoritativeSubject : form.subject }); }, [authoritativeSubject, context?.school_id, draftReady, form, lessonLinked, showForm, storageKey]);
 
+  const activeGroupId = sourceGroupId || (form.audience === "group" ? form.groupId : null);
+  const selectedRecipientIds = roster.filter(row =>
+    sourceGroupId || form.audience === "group"
+      ? members.some(m => m.group_id === activeGroupId && m.student_id === row.student_id)
+      : form.audience === "learners" ? form.studentIds.includes(row.student_id) : true
+  ).map(row => row.student_id);
+  const recipientCount = selectedRecipientIds.length;
+
   async function createHomework() {
     if (submitInFlight.current || saving) return;
     setError(null);
@@ -206,6 +234,10 @@ function HomeworkInner() {
     setFieldErrors({});
     if (!context?.school_id || !assignment) {
       setError("Your active class assignment could not be verified.");
+      return;
+    }
+    if (recipientCount === 0) {
+      setError("Choose at least one currently enrolled learner before publishing.");
       return;
     }
     if (!form.title.trim() || !form.dueDate) {
@@ -233,6 +265,19 @@ function HomeworkInner() {
         if (!occurrence || (sourceSubjectId && occurrence.subject_id !== sourceSubjectId)) throw new Error("The source teaching occurrence no longer matches this class and subject.");
       }
 
+      let publishGroupId = activeGroupId;
+      if (!sourceGroupId && form.audience === "learners") {
+        if (!selectedGroupRequestId.current) selectedGroupRequestId.current = crypto.randomUUID();
+        const { data: newGroup, error: groupError } = await supabase.rpc("teacher_create_workbook_group", {
+          p_school_id: context.school_id,
+          p_class_id: classId,
+          p_name: ("Work: " + form.title.trim()).slice(0, 80),
+          p_student_ids: selectedRecipientIds,
+          p_request_id: selectedGroupRequestId.current,
+        });
+        if (groupError || typeof newGroup !== "string") throw groupError ?? new Error("Could not create the selected learner group.");
+        publishGroupId = newGroup;
+      }
       const { data: created, error: createError } = await supabase.from("homework").insert({
         school_id: context.school_id,
         class_id: classId,
@@ -244,16 +289,17 @@ function HomeworkInner() {
         type: form.type,
         lesson_plan_id: sourceLessonPlanId,
         teaching_occurrence_id: sourceOccurrenceId,
-        target_group_id: sourceGroupId,
+        target_group_id: publishGroupId,
       }).select("id").single();
       if (createError || !created?.id) throw createError ?? new Error("Homework insert returned no ID.");
 
       clearDraft(storageKey);
+      selectedGroupRequestId.current = null;
       setForm(EMPTY_FORM);
       setDraftReady(true);
       setFieldErrors({});
       setShowForm(false);
-      setSuccess(sourceGroupId ? "Homework assigned to the selected learner group." : "Homework assigned. Current enrolled learners can now access it.");
+      setSuccess(`Work published for ${recipientCount} learner${recipientCount === 1 ? "" : "s"}.`);
       await load();
     } catch (createError) {
       console.error("[ClassHomework] create", createError);
@@ -285,7 +331,8 @@ function HomeworkInner() {
 
   const classLabel = assignment ? `${assignment.class_name}${assignment.stream ? ` ${assignment.stream}` : ""}` : "Class";
   const lessonTime = lessonContext?.startTime && lessonContext?.endTime ? `${lessonContext.startTime.slice(0, 5)}–${lessonContext.endTime.slice(0, 5)}` : null;
-  const formValid = Boolean(context?.school_id && assignment && form.title.trim() && form.dueDate && form.dueDate >= minimumDueDate);
+  const formValid = Boolean(context?.school_id && assignment && recipientCount > 0 && form.title.trim() && form.dueDate && form.dueDate >= minimumDueDate);
+  const rosterCount = roster.length;
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px", colorScheme: "light" }}>
