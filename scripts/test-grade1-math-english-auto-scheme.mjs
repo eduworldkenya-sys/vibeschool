@@ -49,7 +49,8 @@ for(const item of cases){
   for(const unit of catalog){
     const rows=draft.items.filter(row=>row.unitId===unit.id)
     assert.equal(rows.length,unit.lessons,subject+' prescribed unit lesson count')
-    assert.equal(new Set(rows.map(row=>row.outcomeIndex)).size,unit.outcomes.length,subject+' outcome coverage')
+    assert.equal(new Set(rows.flatMap(row=>row.outcomeIndexes)).size,unit.outcomes.length,subject+' outcome coverage')
+    assert.ok(rows.every(row=>row.outcomes.length===row.outcomeIndexes.length),'Every draft outcome carries a full explanation')
   }
   assert.deepEqual(buildGrade1AnnualSchemeDraft({units:catalog,expectedUnitCount:count,terms,termWeeks:weeks,weeklyAllocation:5}),draft,
     subject+' deterministic reload')
@@ -70,6 +71,8 @@ assert.ok(page.includes('loading={annualCalendarLoading||mappedCatalogLoading}')
 assert.ok(page.includes('error={annualCalendarError||mappedCatalogError}'))
 assert.ok(page.includes("rpc('commit_mapped_scheme_lesson'"),
   'Save and prepare must use the existing authorized scheme function')
+assert.ok(page.includes('p_outcome_ids:item.outcomeIds'),'Persist all selected outcomes in one scheme record')
+assert.ok(panel.includes('item.outcomeIds?.length'),'Never save partially mapped outcomes')
 assert.ok(page.includes('learningArea={autoLearningArea}'),
   'Display the teacher selected subject, not Creative Activities for every subject')
 assert.ok(panel.includes('learningArea=\'Creative Activities\''),
