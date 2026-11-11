@@ -1,0 +1,79 @@
+.page{--ink:#182739;--navy:#09182a;--gold:#d5b66b;--paper:#f7f7f4;--subtle:#536174;min-height:100vh;background:#fff;color:var(--ink);font-family:var(--font-jakarta),Arial,sans-serif;line-height:1.6}
+.page *{box-sizing:border-box}
+.container{width:min(1150px,100%);margin-inline:auto}
+.eyebrow,.eyebrowLight{font-size:11px;font-weight:850;letter-spacing:.15em;line-height:1.3;text-transform:uppercase;margin:0 0 19px}
+.eyebrow{color:#8b6d2e}
+.eyebrowLight{color:#dabe80}
+.hero{padding:99px 24px 100px;background:#09182a;color:#fff}
+.heroGrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(290px,.7fr);align-items:center;gap:80px}
+.heroText h1{margin:0;max-width:750px;font-family:var(--font-display),Arial,sans-serif;font-size:clamp(48px,6.2vw,82px);font-weight:700;line-height:1.045;letter-spacing:-.05em}
+.heroText h1 em{font-weight:400;color:#ddc27f;font-family:var(--font-serif),Georgia,serif}
+.heroLead{font-size:18px;line-height:1.77;color:#cfdae5;margin:25px 0 0;max-width:620px}
+.heroActions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:32px}
+.primaryAction,.secondaryAction,.whatsappAction{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:51px;padding:12px 21px;border:1px solid transparent;border-radius:8px;text-decoration:none;font-size:14px;font-weight:820;transition:background .18s ease,border-color .18s ease}
+.primaryAction{background:#d7b96f;color:#101f30}
+.primaryAction:hover{background:#f0d38f}
+.secondaryAction{border-color:#66778a;color:#fff}
+.secondaryAction:hover{background:#1d3045;border-color:#c8d2dc}
+.hiringPanel{border:1px solid rgba(255,255,255,.27);padding:32px;background:#12263b}
+.panelEyebrow{font-size:11px;font-weight:850;letter-spacing:.15em;margin:0;color:#dec48a}
+.panelRule{height:1px;background:#43576a;margin:23px 0 28px}
+.panelHeadline{font-size:clamp(27px,3vw,38px);line-height:1.17;font-family:var(--font-display),Arial,sans-serif;letter-spacing:-.035em;font-weight:700;margin:0}
+.panelCopy{font-size:14px;line-height:1.75;color:#bfcbd8;margin:17px 0 26px}
+.panelLink,.lightLink{font-size:13px;font-weight:780;text-decoration:none;color:#ebcd88;display:inline-flex;align-items:center;gap:11px;min-height:44px}
+.panelLink:hover,.lightLink:hover{text-decoration:underline;text-underline-offset:4px}
+.openingsSection{scroll-margin-top:85px;padding:86px 24px 94px;background:#fff}
+.sectionIntro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.65fr);gap:60px;align-items:end;margin-bottom:39px}
+.sectionIntro h2,.interestGrid h2,.workPrinciples h2{font-family:var(--font-display),Arial,sans-serif;font-size:clamp(34px,4vw,53px);line-height:1.12;letter-spacing:-.043em;margin:0}
+.sectionIntro>p{max-width:440px;color:#606e7f;font-size:16px;line-height:1.75;margin:0}
+.noOpenings{display:flex;align-items:center;justify-content:space-between;gap:45px;background:#f8f8f5;border:1px solid #e5e5df;border-left:4px solid #d3b574;padding:35px 38px}
+.availabilityLabel{display:flex;align-items:center;gap:10px;font-size:11px;color:#7a673e;font-weight:850;letter-spacing:.11em;margin:0 0 12px}
+.dot{display:inline-block;width:8px;height:8px;background:#bca46c;border-radius:50%}
+.noOpenings h3{font-size:24px;letter-spacing:-.03em;margin:0 0 9px}
+.noOpenings p:last-child{max-width:650px;color:#57677a;font-size:14px;line-height:1.75;margin:0}
+.inlineAction{display:inline-flex;align-items:center;justify-content:space-between;gap:24px;color:#133957;font-size:14px;font-weight:820;text-decoration:none;white-space:nowrap;min-height:48px;border-bottom:1px solid #a7aeb5}
+.inlineAction:hover{text-decoration:underline;text-underline-offset:4px}
+.roleList{border-top:1px solid #dce1e5}
+.roleRow{display:flex;justify-content:space-between;align-items:center;gap:35px;padding:31px 0;border-bottom:1px solid #dce1e5}
+.roleTeam{color:#89672a;text-transform:uppercase;font-size:11px;font-weight:850;letter-spacing:.11em;margin:0 0 8px}
+.roleRow h3{font-size:24px;line-height:1.2;letter-spacing:-.03em;margin:0 0 8px}
+.roleSummary{font-size:14px;color:#596779;margin:0 0 13px;max-width:700px}
+.roleMeta{font-size:12px;font-weight:700;color:#5d6e80;margin:0}
+.roleMeta span{margin-inline:5px}
+.roleLink{font-size:14px;font-weight:850;color:#173a5c;border:1px solid #a8b5c2;min-height:48px;padding:10px 18px;display:inline-flex;align-items:center;gap:15px;text-decoration:none;white-space:nowrap}
+.roleLink:hover{background:#edf0f3}
+.workSection{padding:88px 24px 104px;background:var(--paper)}
+.focusList{border-top:1px solid #d6dcd8}
+.focusItem{display:grid;grid-template-columns:70px minmax(0,1fr) 230px;gap:28px;align-items:center;min-height:156px;padding:24px 0;border-bottom:1px solid #d6dcd8}
+.focusNumber{align-self:start;margin-top:6px;font-family:var(--font-serif),Georgia,serif;color:#96773e;font-size:22px}
+.focusBody h3{font-size:23px;line-height:1.2;letter-spacing:-.03em;margin:0 0 10px}
+.focusBody p{font-size:14px;line-height:1.75;color:#5c6b7c;max-width:650px;margin:0}
+.focusLink{font-size:13px;font-weight:850;color:#193d60;justify-self:end;min-height:44px;display:inline-flex;align-items:center;gap:14px;text-decoration:none;text-align:right}
+.focusLink:hover{text-decoration:underline;text-underline-offset:4px}
+.workPrinciples{background:#14283c;color:#fff;padding:83px 24px 92px}
+.principlesGrid{display:grid;grid-template-columns:1fr 1fr;gap:80px}
+.workPrinciples h2{max-width:570px}
+.principlesGrid>div:last-child p{font-size:16px;line-height:1.85;color:#ccd6df;margin:0 0 19px}
+.interestSection{scroll-margin-top:85px;background:#f3ede1;padding:89px 24px}
+.interestGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.82fr);gap:90px}
+.interestGrid h2{max-width:590px}
+.interestGrid>div:first-child>p:not(.eyebrow){font-size:16px;color:#455468;line-height:1.8;max-width:570px;margin:19px 0 0}
+.interestGrid .interestClarification{font-size:13px!important;color:#756c5d!important;margin-top:18px!important}
+.interestForm{background:#fff;border:1px solid #dfd5c4;padding:31px}
+.interestForm label{display:block;font-size:13px;font-weight:850;margin:0 0 9px;color:#1d2a3a}
+.interestForm select{display:block;width:100%;height:52px;min-height:48px;max-width:100%;background:#fff;border:1px solid #a8b0b7;color:#1b2939;font:inherit;font-size:15px;border-radius:6px;padding:0 13px}
+.whatsappAction{margin-top:17px;background:#0c2540;color:#fff;width:100%;justify-content:space-between}
+.whatsappAction:hover{background:#203b5b}
+.interestHint,.interestPrivacy{font-size:12px!important;line-height:1.65!important;color:#536477;margin:16px 0 0}
+.interestPrivacy{border-top:1px solid #ebe7df;padding-top:13px;color:#796f60!important}
+.teacherStrip{background:#fff;padding:48px 24px}
+.teacherStripInner{display:flex;align-items:center;justify-content:space-between;gap:30px}
+.teacherStrip h2{font-size:22px;line-height:1.3;letter-spacing:-.02em;margin:0}
+.teacherStrip .eyebrow{margin-bottom:9px}
+.teacherStrip a{display:inline-flex;align-items:center;gap:15px;font-weight:800;font-size:14px;color:#193d60;text-decoration:none;border-bottom:1px solid #a7b3bd;min-height:44px;white-space:nowrap}
+.teacherStrip a:hover{text-decoration:underline;text-underline-offset:4px}
+.page a:focus-visible,.page select:focus-visible{outline:3px solid #d1a950;outline-offset:3px}
+@media(max-width:950px){.heroGrid{gap:36px}.focusItem{grid-template-columns:48px minmax(0,1fr) 180px;gap:19px}.interestGrid{gap:36px}}
+@media(max-width:780px){.hero{padding:72px 20px}.heroGrid{grid-template-columns:1fr}.hiringPanel{max-width:600px}.heroText h1{font-size:clamp(42px,9vw,67px)}.sectionIntro,.principlesGrid,.interestGrid{grid-template-columns:1fr;gap:24px}.openingsSection,.workSection,.workPrinciples,.interestSection{padding:65px 20px}.noOpenings{flex-direction:column;align-items:flex-start;gap:20px}.teacherStrip{padding:35px 20px}.teacherStripInner{align-items:flex-start;flex-direction:column;gap:15px}}
+@media(max-width:560px){.hero{padding:62px 18px}.heroText h1{font-size:clamp(39px,11vw,57px)}.heroLead{font-size:16px}.heroActions{align-items:stretch;flex-direction:column}.heroActions a{width:100%}.hiringPanel{padding:25px}.openingsSection,.workSection,.workPrinciples,.interestSection{padding:59px 18px}.sectionIntro h2,.interestGrid h2,.workPrinciples h2{font-size:clamp(33px,9vw,44px)}.noOpenings{padding:24px 22px}.focusItem{grid-template-columns:35px minmax(0,1fr);gap:16px;min-height:0;padding:24px 0}.focusNumber{font-size:18px}.focusBody h3{font-size:21px}.focusLink{grid-column:2;justify-self:start;text-align:left;margin-top:-4px}.interestForm{padding:23px 20px}.roleRow{align-items:flex-start;flex-direction:column;gap:16px}.teacherStrip{padding:33px 18px}.teacherStrip a{white-space:normal}}
+@media(prefers-reduced-motion:reduce){.primaryAction,.secondaryAction,.whatsappAction{transition:none}}
