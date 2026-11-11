@@ -2,7 +2,7 @@ import fs from "node:fs";
 import assert from "node:assert/strict";
 
 const consumers = [
-  "app/teacher/marketplace/page.tsx",
+  "app/teacher/marketplace/manage/page.tsx",
   "app/teacher/onboarding/school/page.tsx",
   "app/admin/settings/school/page.tsx",
   "app/hq/schools/intelligence/page.tsx",
