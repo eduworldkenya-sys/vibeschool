@@ -31,6 +31,14 @@ export default function Grade1CreativeContentReader() {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
   const unit = GRADE1_CREATIVE_UNITS.find(item => item.id === selectedId) ?? GRADE1_CREATIVE_UNITS[0]
 
+  // Links from VibeLearn discovery resolve to this single canonical reader.
+  useEffect(() => {
+    const requestedUnit = new URLSearchParams(window.location.search).get("unit")
+    if (requestedUnit && GRADE1_CREATIVE_UNITS.some(item => item.id === requestedUnit)) {
+      setSelectedId(requestedUnit)
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
 

@@ -15,6 +15,7 @@ import type {
 } from "@/lib/content-engine/vibelearnClassAdoption";
 import { C } from "@/components/teacher/ui";
 import { BookOpen, Library, NotebookPen, Search, ArrowUpRight } from "lucide-react";
+import { GRADE1_CREATIVE_UNITS } from "@/components/teacher/curriculum/Grade1CreativeActivitiesMap";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Content {
@@ -2554,6 +2555,11 @@ function DiscoverTab({ userId }: { userId: string | null }) {
   const router = useRouter();
   const [items,   setItems]   = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
+  // VibeSchool Originals live in the certified Content Engine, not vibelearn_content.
+  // Discover the same published reader records; never copy them into teacher publications.
+  const [originalTopics, setOriginalTopics] = useState<{ unitId: string; title: string; lessonCount: number; lessonTitles: string[] }[]>([]);
+  const [originalsLoading, setOriginalsLoading] = useState(true);
+  const [originalsError, setOriginalsError] = useState(false);
   const [query,   setQuery]   = useState("");
   const [filter,  setFilter]  =
     useState<"all" | "epage" | "ebook" | "textbook">("all");
@@ -2582,6 +2588,40 @@ function DiscoverTab({ userId }: { userId: string | null }) {
     return () => { mounted.current = false; };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    async function loadPublishedOriginals() {
+      try {
+        // This RPC only returns certified, active, public learner manuscripts.
+        // Existing reader and teacher discovery share one publication authority.
+        const { data, error } = await supabase.rpc("vs_public_grade1_creative_learner_lessons");
+        if (error) throw error;
+        const units = new Map<string, { unitId: string; title: string; lessonCount: number; lessonTitles: string[] }>();
+        for (const entry of Array.isArray(data) ? data : []) {
+          if (!entry || typeof entry !== "object") continue;
+          const row = entry as Record<string, unknown>;
+          if (typeof row.unit_id !== "string" || typeof row.title !== "string" ||
+              typeof row.lesson_order !== "number" || typeof row.body !== "string" || !row.body.trim()) continue;
+          const unit = GRADE1_CREATIVE_UNITS.find(item => item.id === row.unit_id);
+          if (!unit) continue;
+          const current = units.get(unit.id) ?? {
+            unitId: unit.id, title: unit.title, lessonCount: 0, lessonTitles: [],
+          };
+          if (row.lesson_order > 0) current.lessonCount += 1;
+          current.lessonTitles.push(row.title);
+          units.set(unit.id, current);
+        }
+        if (active) setOriginalTopics([...units.values()].filter(item => item.lessonCount > 0));
+      } catch (error) {
+        console.error("[VibeLearn] certified Originals discovery failed", error);
+        if (active) setOriginalsError(true);
+      } finally {
+        if (active) setOriginalsLoading(false);
+      }
+    }
+    void loadPublishedOriginals();
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(
@@ -2813,6 +2853,14 @@ function DiscoverTab({ userId }: { userId: string | null }) {
     adoptionClasses,
   ]);
 
+  const originalMatches = filter === "all" ? originalTopics.filter(topic => {
+    const searchable = [
+      "VibeSchool Originals", "Grade 1", "Creative Activities", "Creative Arts",
+      topic.title, ...topic.lessonTitles,
+    ].join(" ").toLowerCase();
+    return query.trim().toLowerCase().split(/\s+/).filter(Boolean).every(word => searchable.includes(word));
+  }) : [];
+
   const discoverCard: React.CSSProperties = {
     background: "#fff", borderRadius: 14,
     border: "1px solid #e5e7eb",
@@ -2892,9 +2940,40 @@ function DiscoverTab({ userId }: { userId: string | null }) {
           </button>
         ))}
       </div>
+      {filter === "all" && originalsLoading && <Shimmer h={100} r={14} />}
+      {originalMatches.map(topic => (
+        <section key={topic.unitId} className="studio-library-resource" style={{
+          ...discoverCard, borderColor: "#a7d8bc", background: "#f5fbf7",
+        }} aria-label={"VibeSchool Originals: " + topic.title}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12, justifyContent: "space-between", flexWrap: "wrap" }}>
+            <div style={{ minWidth: 0, flex: "1 1 220px" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: "#047857", letterSpacing: ".08em" }}>
+                VIBESCHOOL ORIGINALS · PUBLISHED LESSONS
+              </div>
+              <div style={{ marginTop: 6, fontSize: 15, fontWeight: 800, color: "var(--teacher-ink, #1c2923)" }}>
+                Grade 1 Creative Activities · {topic.title}
+              </div>
+              <div style={{ marginTop: 5, fontSize: 12, color: "var(--teacher-muted, #627168)" }}>
+                {topic.lessonCount} learner lessons · From VibeSchool's certified content library
+              </div>
+            </div>
+            <button type="button" onClick={() => router.push(
+              "/learn/grade-1/creative-activities?unit=" + encodeURIComponent(topic.unitId)
+            )} style={{
+              background: C.accent, border: "none", borderRadius: 9, color: "#fff",
+              fontWeight: 750, padding: "10px 14px", cursor: "pointer", fontSize: 12,
+            }}>Read lessons →</button>
+          </div>
+        </section>
+      ))}
+      {filter === "all" && originalsError && (
+        <p role="status" style={{ color: "#92400e", fontSize: 12 }}>
+          Published VibeSchool Originals could not be loaded.
+        </p>
+      )}
       {loading ? (
         [1,2,3].map(i => <div key={i} style={{ marginBottom: 10 }}><Shimmer h={90} r={14} /></div>)
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && originalMatches.length === 0 && !originalsLoading ? (
         <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--teacher-muted, #627168)", fontSize: 13 }}>
           {query ? `No results for "${query}"` : "No content from other teachers yet."}
         </div>
