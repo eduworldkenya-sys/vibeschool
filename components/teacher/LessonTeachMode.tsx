@@ -39,6 +39,7 @@ type Props = {
   onCaptureEvidence?: () => void
   linkedResources?: Array<{ id: string; title: string; available: boolean }>
   onOpenResource?: (id: string) => void
+  loadCompletionFacts?: () => Promise<{ emptyRoster: boolean; attendanceSaved: boolean; evidenceSaved: boolean }>
   onFinishLesson?: (review: LessonCompletionReview) => Promise<void> | void
   onClose: () => void
 }
@@ -85,7 +86,7 @@ function cacheKey(context: ClassroomContext) {
 
 export default function LessonTeachMode({
   subject, className, topic, sections, context, initialScratchpad = '',
-  onScratchpadChange, onUseInReflection, onCaptureEvidence, onFinishLesson, onClose, linkedResources = [], onOpenResource,
+  onScratchpadChange, onUseInReflection, onCaptureEvidence, loadCompletionFacts, onFinishLesson, onClose, linkedResources = [], onOpenResource,
 }: Props) {
   const router = useRouter()
   const total = useMemo(() => totalMinutes(sections), [sections])
@@ -97,6 +98,7 @@ export default function LessonTeachMode({
   const [online, setOnline] = useState(true)
   const [finishing, setFinishing] = useState(false)
   const [finishError, setFinishError] = useState<string | null>(null)
+  const [completionFacts, setCompletionFacts] = useState({ emptyRoster: false, attendanceSaved: false, evidenceSaved: false })
   const [finishOpen, setFinishOpen] = useState(false)
   const [coverageOutcome, setCoverageOutcome] = useState<LessonCoverageOutcome>('covered')
   const [whatWasTaught, setWhatWasTaught] = useState('')
@@ -222,21 +224,33 @@ export default function LessonTeachMode({
     router.push(`${path}?${q.toString()}`)
   }
 
+  const noClassCoverage = completionFacts.emptyRoster && (coverageOutcome === 'not_covered' || coverageOutcome === 'postponed')
+
+  async function openFinish() {
+    setFinishOpen(true)
+    if (!loadCompletionFacts) return
+    try {
+      setCompletionFacts(await loadCompletionFacts())
+    } catch {
+      setCompletionFacts({ emptyRoster: false, attendanceSaved: false, evidenceSaved: false })
+    }
+  }
+
   async function finish() {
     if (!onFinishLesson || finishing) return
     if (!whatWasTaught.trim()) {
       setFinishError('Record what was actually taught before finishing the lesson.')
       return
     }
-    if (!reflection.trim()) {
+    if (!noClassCoverage && !reflection.trim()) {
       setFinishError('Add a brief reflection before finishing the lesson.')
       return
     }
-    if (!attendanceResolved && !attendanceUnavailableReason.trim()) {
+    if (!noClassCoverage && !completionFacts.attendanceSaved && !attendanceResolved && !attendanceUnavailableReason.trim()) {
       setFinishError('Confirm attendance or explain why it is unavailable.')
       return
     }
-    if (!evidenceResolved && !noEvidenceReason.trim()) {
+    if (!noClassCoverage && !completionFacts.evidenceSaved && !evidenceResolved && !noEvidenceReason.trim()) {
       setFinishError('Confirm learning evidence or explain why none was recorded.')
       return
     }
@@ -246,9 +260,9 @@ export default function LessonTeachMode({
       await onFinishLesson({
         coverage: coverageOutcome,
         whatWasTaught: whatWasTaught.trim(),
-        reflection: reflection.trim(),
-        attendanceUnavailableReason: attendanceResolved ? null : attendanceUnavailableReason.trim(),
-        noEvidenceReason: evidenceResolved ? null : noEvidenceReason.trim(),
+        reflection: noClassCoverage ? whatWasTaught.trim() : reflection.trim(),
+        attendanceUnavailableReason: noClassCoverage ? 'No current learners in this class.' : completionFacts.attendanceSaved || attendanceResolved ? null : attendanceUnavailableReason.trim(),
+        noEvidenceReason: noClassCoverage ? 'No current learners in this class.' : completionFacts.evidenceSaved || evidenceResolved ? null : noEvidenceReason.trim(),
         followUpDecision,
         nextSteps: nextSteps.trim() || null,
       })
@@ -330,6 +344,9 @@ export default function LessonTeachMode({
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
+          {step.key === 'assessmentHook' && onCaptureEvidence && (
+            <button type="button" style={{ ...actionStyle, marginTop: 12 }} onClick={onCaptureEvidence}>Record observation or evidence</button>
+          )}
         </section>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
@@ -401,7 +418,10 @@ export default function LessonTeachMode({
                 router.push(`/teacher/attendance?${q.toString()}`)
               }}>Attendance</button>
               <button style={actionStyle} disabled={!onCaptureEvidence} onClick={()=>onCaptureEvidence?.()}>Evidence</button>
-              <button style={actionStyle} onClick={()=>openAction('/teacher/assessment/new')}>Assessment</button>
+              {available.some(phase => phase.key === 'assessmentHook') && (
+                <button type="button" style={actionStyle} onClick={() => changeStep(available.findIndex(phase => phase.key === 'assessmentHook'))}>Check learning</button>
+              )}
+              <button type="button" style={actionStyle} onClick={() => openAction('/teacher/assessment/new')}>Exercise or quiz</button>
             </div>
           </section>
         ) : (
@@ -423,7 +443,7 @@ export default function LessonTeachMode({
         ) : onFinishLesson ? (
           <>
             {!finishOpen ? (
-              <button type="button" disabled={finishing} onClick={()=>setFinishOpen(true)} style={{ width:'100%', border:0, borderRadius:12, padding:13, background:"var(--teacher-green, #087451)", color:'#fff', fontWeight:750 }}>Finish lesson</button>
+              <button type="button" disabled={finishing} onClick={() => void openFinish()} style={{ width:'100%', border:0, borderRadius:12, padding:13, background:"var(--teacher-green, #087451)", color:'#fff', fontWeight:750 }}>Finish lesson</button>
             ) : (
               <section style={{ background:'#fff', border:'1px solid #bbf7d0', borderRadius:16, padding:13 }}>
                 <div style={{ fontSize:12, fontWeight:750 }}>How did coverage end?</div>
@@ -441,18 +461,24 @@ export default function LessonTeachMode({
                 </div>
                 <label style={{ display:'block', fontSize:11, fontWeight:800, marginTop:10 }}>What was actually taught?</label>
                 <textarea value={whatWasTaught} onChange={e=>setWhatWasTaught(e.target.value)} rows={3} placeholder="Briefly record the content actually covered in this occurrence." style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5, font:'inherit' }} />
+                {noClassCoverage ? <p>No current learners in this class. Record one note to finish.</p> : <>
                 <label style={{ display:'block', fontSize:11, fontWeight:800, marginTop:10 }}>Reflection</label>
                 <textarea value={reflection} onChange={e=>setReflection(e.target.value)} rows={3} placeholder="What worked, what needs attention, and what will you change?" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5, font:'inherit' }} />
+                </>}
+                {completionFacts.attendanceSaved ? <p>Attendance is already complete.</p> : !noClassCoverage && <>
                 <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:10, fontSize:12 }}><input type="checkbox" checked={attendanceResolved} onChange={e=>setAttendanceResolved(e.target.checked)} /> Attendance is complete for this occurrence</label>
                 {!attendanceResolved && <input value={attendanceUnavailableReason} onChange={e=>setAttendanceUnavailableReason(e.target.value)} placeholder="Reason attendance is unavailable" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />}
+                </>}
+                {completionFacts.evidenceSaved ? <p>Learning evidence is already recorded.</p> : !noClassCoverage && <>
                 <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:10, fontSize:12 }}><input type="checkbox" checked={evidenceResolved} onChange={e=>setEvidenceResolved(e.target.checked)} /> Learning evidence has been recorded</label>
                 {!evidenceResolved && <input value={noEvidenceReason} onChange={e=>setNoEvidenceReason(e.target.value)} placeholder="Reason no learning evidence was recorded" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />}
+                </>}
                 <label style={{ display:'block', fontSize:11, fontWeight:800, marginTop:10 }}>Follow-up</label>
                 <select value={followUpDecision} onChange={e=>setFollowUpDecision(e.target.value as LessonCompletionReview['followUpDecision'])} style={{ width:'100%', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5 }}><option value="none">No follow-up</option><option value="existing_task">Use an existing task</option><option value="create_task">Create a task after completion</option></select>
                 <input value={nextSteps} onChange={e=>setNextSteps(e.target.value)} placeholder="Next teaching step (optional)" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:8, marginTop:9 }}>
                   <button type="button" disabled={finishing} onClick={()=>setFinishOpen(false)} style={actionStyle}>Cancel</button>
-                  <button type="button" disabled={finishing || !online || !whatWasTaught.trim() || !reflection.trim()} onClick={finish} style={{...actionStyle,background:"var(--teacher-green, #087451)",color:'#fff',opacity:finishing || !online || !whatWasTaught.trim() || !reflection.trim()?0.55:1}}>{finishing?'Finishing lesson…':online?'Confirm finish':'Reconnect to finish safely'}</button>
+                  <button type="button" disabled={finishing || !online || !whatWasTaught.trim() || (!noClassCoverage && !reflection.trim())} onClick={finish} style={{...actionStyle,background:"var(--teacher-green, #087451)",color:'#fff',opacity:finishing || !online || !whatWasTaught.trim() || (!noClassCoverage && !reflection.trim())?0.55:1}}>{finishing?'Finishing lesson…':online?'Confirm finish':'Reconnect to finish safely'}</button>
                 </div>
               </section>
             )}
