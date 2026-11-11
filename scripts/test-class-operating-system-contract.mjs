@@ -61,7 +61,7 @@ must(groups.includes('createAbilityGroups("mixed")') && groups.includes('createA
 must(groups.includes('Not enough assessment evidence to balance by performance.'), 'ability grouping refuses unsupported intelligence')
 must(groups.includes('teacher_snapshot_class_group'), 'smart groups snapshot before downstream assignment')
 must(groups.includes('/games'), 'Groups & Lists links to the classroom scoreboard')
-must(homework.includes('target_group_id: sourceGroupId'), 'homework persists canonical target group authority')
+must(homework.includes('target_group_id: publishGroupId') && homework.includes('teacher_create_workbook_group'), 'homework persists authorized class, group and selected-learner targeting')
 must(homework.includes('Targeted group:'), 'teacher sees the targeted homework cohort before assigning')
 must(games.includes('teacher_adjust_game_score'), 'classroom scoreboard changes score through guarded RPC')
 must(games.includes('never converted into mastery') || games.includes('not academic evidence'), 'game UI explicitly separates scores from academic mastery')
