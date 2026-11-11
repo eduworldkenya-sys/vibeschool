@@ -19,7 +19,7 @@ import styles from './assessment.module.css'
 
 interface ClassOption   { id: string; name: string; stream: string }
 interface SubjectOption { id: string; name: string }
-interface StrandOption  { id: string; name: string }
+interface StrandOption  { id: string; name: string; sub_strand: string | null }
 interface Student       { id: string; name: string }
 interface TeachingContext { class_id: string; class_name: string; stream?: string | null; subject_id: string; subject_name: string }
 
@@ -250,7 +250,7 @@ function AssessmentInner() {
 
     const [strandsRes, scRes] = await Promise.all([
       cls && globalSubjectId
-        ? supabase.from('cbc_strands').select('id, name').eq('subject_id', globalSubjectId).ilike('grade', cls.name).order('name')
+        ? supabase.from('cbc_strands').select('id, name, sub_strand').eq('subject_id', globalSubjectId).ilike('grade', cls.name).order('name')
         : Promise.resolve({ data: [], error: null }),
       supabase.from('student_classes').select('student_id').eq('school_id', schoolId!).eq('class_id', classId).eq('is_current', true),
     ])
@@ -372,6 +372,10 @@ function AssessmentInner() {
   async function saveAssessment() {
     if (saving) return
     if (!selStrand)       { setSaveError('Select a strand'); return }
+    const chosenStrand = strands.find(row => row.id === selStrand)
+    if (strands.some(row => row.name === chosenStrand?.name && row.sub_strand) && !selSubStrand) {
+      setSaveError('Choose a curriculum sub-strand'); return
+    }
     if (!selPerf)         { setSaveError('Select a performance level'); return }
     if (!teacherId)       { setSaveError('Not signed in'); return }
     if (!schoolId)        { setSaveError("Your profile isn't linked to a school yet."); return }
@@ -445,6 +449,10 @@ function AssessmentInner() {
   async function saveBulk(): Promise<boolean> {
     if (bulkSaving) return false
     if (!bulkStrand)             { setBulkError('Select a strand'); return false }
+    const chosenBulkStrand = strands.find(row => row.id === bulkStrand)
+    if (strands.some(row => row.name === chosenBulkStrand?.name && row.sub_strand) && !bulkSubStrand) {
+      setBulkError('Choose a curriculum sub-strand'); return false
+    }
     if (!bulkPerf)               { setBulkError('Select a performance level'); return false }
     if (bulkSelected.size === 0) { setBulkError('Select at least one learner'); return false }
     if (!schoolId)               { setBulkError("Profile isn't linked to a school yet."); return false }
@@ -546,6 +554,11 @@ function AssessmentInner() {
     </div>
   )
 
+  const uniqueStrands = Array.from(new Map(strands.map(row => [row.name, row])).values())
+  const subStrandsFor = (id: string) => {
+    const strandName = strands.find(row => row.id === id)?.name
+    return strands.filter(row => row.name === strandName && Boolean(row.sub_strand))
+  }
   const activeClass   = classes[activeClassIdx]
   const activeSubject = subjects[activeSubjectIdx]
 
@@ -593,7 +606,7 @@ function AssessmentInner() {
 
       <section className={styles.overview} aria-label="Assessment overview">
         <div className={styles.heroMetric}><strong>{recordedCount}/{students.length}</strong><span>recorded</span></div>
-        <button className={styles.metric} style={{textAlign:'left',background:'none',borderTop:0,borderRight:0,borderBottom:0,cursor:'pointer'}} onClick={() => setPerformanceFilter('none')}><strong>{students.length-recordedCount}</strong><span>missing</span></button>
+        <button className={styles.metric} style={{textAlign:'left',background:'none',borderTop:0,borderRight:0,borderBottom:0,cursor:'pointer'}} onClick={() => setPerformanceFilter('none')}><strong>{students.length-recordedCount}</strong><span>without a record for {activeSubject?.name ?? "subject"} · Term {selectedTerm}</span></button>
         <button className={styles.metric} style={{textAlign:'left',background:'none',borderTop:0,borderRight:0,borderBottom:0,cursor:'pointer'}} onClick={() => setPerformanceFilter('below_expectation')}><strong>{studentRows.filter(s=>s.badge?.value==='below_expectation').length}</strong><span>follow-up</span></button>
       </section>
 
@@ -601,7 +614,7 @@ function AssessmentInner() {
         <label className={styles.search}><Search size={18}/><input id="assessment-learner-search" type="search" value={learnerQuery} onChange={e=>setLearnerQuery(e.target.value)} placeholder="Find learner" aria-label="Find learner" /></label>
       </div>
       <div className={styles.filters} role="group" aria-label="Filter learners">
-        {([{value:'all',short:`All ${students.length}`},...PERFORMANCE_OPTIONS,{value:'none',short:`Missing ${students.length-recordedCount}`} ] as const).map(option=><button type="button" key={option.value} aria-pressed={performanceFilter===option.value} onClick={()=>setPerformanceFilter(option.value)} className={`${styles.filterChip} ${performanceFilter===option.value?styles.filterChipActive:''}`}>{option.short}</button>)}
+        {([{value:'all',short:`All ${students.length}`},...PERFORMANCE_OPTIONS,{value:'none',short:`No record ${students.length-recordedCount}`} ] as const).map(option=><button type="button" key={option.value} aria-pressed={performanceFilter===option.value} onClick={()=>setPerformanceFilter(option.value)} className={`${styles.filterChip} ${performanceFilter===option.value?styles.filterChipActive:''}`}>{option.short}</button>)}
       </div>
 
       <div className={styles.listHeader}><strong>Learners</strong><span>{filteredRows.length} shown</span></div>
@@ -619,7 +632,8 @@ function AssessmentInner() {
 
       {bulkMode && <div className={styles.bulkBar} role="region" aria-label="Bulk assessment actions"><div><strong>{bulkSelected.size} selected</strong><span> · {filteredRows.length} shown</span></div><button type="button" disabled={bulkSelected.size===0} onClick={()=>setBulkEditorOpen(true)}>Record</button></div>}
 
-      {bulkEditorOpen && <div style={overlayStyle} onClick={e=>{if(e.target===e.currentTarget)setBulkEditorOpen(false)}}><div style={sheetStyle} role="dialog" aria-modal="true" aria-label="Record for selected learners"><div className={styles.sheetTitle}><div><p className={styles.eyebrow}>{bulkSelected.size} learners</p><h2 style={{margin:0,fontSize:20}}>Record together</h2></div><button className={styles.iconButton} aria-label="Close" onClick={()=>setBulkEditorOpen(false)}><X size={19}/></button></div><div style={{display:'grid',gap:12,marginTop:18}}><select aria-label="Select strand" value={bulkStrand} onChange={e=>setBulkStrand(e.target.value)} style={selectStyle}><option value="">Select strand</option>{strands.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select><input placeholder="Sub-strand (optional)" value={bulkSubStrand} onChange={e=>setBulkSubStrand(e.target.value)} style={inputStyle}/><div style={{display:'flex',gap:8}}>{ASSESSMENT_TYPES.map(t=><button key={t} onClick={()=>setBulkType(t)} className={styles.filterChip} style={bulkType===t?{borderColor:'#087d57',color:'#087d57'}:undefined}>{t}</button>)}</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>{PERFORMANCE_OPTIONS.map(p=><button key={p.value} onClick={()=>setBulkPerf(p.value)} style={{minHeight:48,borderRadius:12,border:`2px solid ${bulkPerf===p.value?p.color:'#e5e7eb'}`,background:bulkPerf===p.value?p.bg:'#fff',color:p.color,fontWeight:800}}>{p.short} <small>{p.label}</small></button>)}</div><textarea placeholder="Note (optional)" value={bulkNotes} onChange={e=>setBulkNotes(e.target.value)} rows={2} style={{...inputStyle,resize:'none'}}/>{bulkError&&<p role="alert" style={{color:'#991b1b',fontSize:12,margin:0}}>{bulkError}</p>}{bulkDone&&<p style={{color:'#087d57',fontSize:12,margin:0}}>Saved</p>}<button className={styles.primaryButton} disabled={bulkSaving} onClick={async()=>{if(await saveBulk()){setBulkEditorOpen(false);setBulkMode(false)}}}>{bulkSaving?'Saving…':`Save ${bulkSelected.size} records`}</button></div></div></div>}
+      {bulkEditorOpen && <div style={overlayStyle} onClick={e=>{if(e.target===e.currentTarget)setBulkEditorOpen(false)}}><div style={sheetStyle} role="dialog" aria-modal="true" aria-label="Record for selected learners"><div className={styles.sheetTitle}><div><p className={styles.eyebrow}>{bulkSelected.size} learners</p><h2 style={{margin:0,fontSize:20}}>Record together</h2></div><button className={styles.iconButton} aria-label="Close" onClick={()=>setBulkEditorOpen(false)}><X size={19}/></button></div><div style={{display:'grid',gap:12,marginTop:18}}><select aria-label="Select strand" value={strands.find(row => row.id === bulkStrand)?.name ?? ""} onChange={e=>{setBulkStrand(uniqueStrands.find(row=>row.name===e.target.value)?.id??"");setBulkSubStrand("")}} style={selectStyle}><option value="">Select strand</option>{uniqueStrands.map(row=><option key={row.name} value={row.name}>{row.name}</option>)}</select>
+          {subStrandsFor(bulkStrand).length ? <select aria-label="Select curriculum sub-strand" value={bulkSubStrand} onChange={e=>{const match=subStrandsFor(bulkStrand).find(row=>row.sub_strand===e.target.value);setBulkSubStrand(e.target.value);if(match)setBulkStrand(match.id)}} style={selectStyle}><option value="">Choose sub-strand</option>{subStrandsFor(bulkStrand).map(row=><option key={row.id} value={row.sub_strand??""}>{row.sub_strand}</option>)}</select> : <input placeholder="Sub-strand (optional)" value={bulkSubStrand} onChange={e=>setBulkSubStrand(e.target.value)} style={inputStyle}/>}<div style={{display:'flex',gap:8}}>{ASSESSMENT_TYPES.map(t=><button key={t} onClick={()=>setBulkType(t)} className={styles.filterChip} style={bulkType===t?{borderColor:'#087d57',color:'#087d57'}:undefined}>{t}</button>)}</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>{PERFORMANCE_OPTIONS.map(p=><button key={p.value} onClick={()=>setBulkPerf(p.value)} style={{minHeight:48,borderRadius:12,border:`2px solid ${bulkPerf===p.value?p.color:'#e5e7eb'}`,background:bulkPerf===p.value?p.bg:'#fff',color:p.color,fontWeight:800}}>{p.short} <small>{p.label}</small></button>)}</div><textarea placeholder="Note (optional)" value={bulkNotes} onChange={e=>setBulkNotes(e.target.value)} rows={2} style={{...inputStyle,resize:'none'}}/>{bulkError&&<p role="alert" style={{color:'#991b1b',fontSize:12,margin:0}}>{bulkError}</p>}{bulkDone&&<p style={{color:'#087d57',fontSize:12,margin:0}}>Saved</p>}<button className={styles.primaryButton} disabled={bulkSaving} onClick={async()=>{if(await saveBulk()){setBulkEditorOpen(false);setBulkMode(false)}}}>{bulkSaving?'Saving…':`Save ${bulkSelected.size} records`}</button></div></div></div>}
 
       {/* ════════════════════════════════════════════════════════
           RECORD / EDIT MODAL
@@ -686,21 +700,23 @@ function AssessmentInner() {
                 {/* Strand */}
                 <div>
                   <label style={labelStyle}>Strand *</label>
-                  <select value={selStrand} onChange={e => setSelStrand(e.target.value)} style={selectStyle}>
+                  <select value={strands.find(row => row.id === selStrand)?.name ?? ""} onChange={e => {setSelStrand(uniqueStrands.find(row => row.name === e.target.value)?.id ?? "");setSelSubStrand("")}} style={selectStyle}>
                     <option value="">— Select strand —</option>
-                    {strands.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {uniqueStrands.map(row => <option key={row.name} value={row.name}>{row.name}</option>)}
                   </select>
                 </div>
 
                 {/* Sub-strand */}
                 <div>
-                  <label style={labelStyle}>Sub-strand (optional)</label>
-                  <input
-                    placeholder="e.g. Listening and Speaking"
-                    value={selSubStrand}
-                    onChange={e => setSelSubStrand(e.target.value)}
-                    style={inputStyle}
-                  />
+                  <label style={labelStyle}>Sub-strand {subStrandsFor(selStrand).length ? "*" : "(optional)"}</label>
+                  {subStrandsFor(selStrand).length ? (
+                    <select value={selSubStrand} onChange={e => {const match = subStrandsFor(selStrand).find(row => row.sub_strand === e.target.value);setSelSubStrand(e.target.value);if (match) setSelStrand(match.id)}} style={selectStyle}>
+                      <option value="">— Choose from curriculum —</option>
+                      {subStrandsFor(selStrand).map(row => <option key={row.id} value={row.sub_strand ?? ""}>{row.sub_strand}</option>)}
+                    </select>
+                  ) : (
+                    <input placeholder="Sub-strand (optional)" value={selSubStrand} onChange={e => setSelSubStrand(e.target.value)} style={inputStyle}/>
+                  )}
                 </div>
 
                 {/* Type */}
