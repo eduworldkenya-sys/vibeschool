@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { GRADE4_ENGLISH_UNITS } from '@/lib/teaching/grade4EnglishCatalog.mjs'
 import {
   GRADE4_ENGLISH_SOURCE,
   GRADE4_ENGLISH_STRANDS,
@@ -16,6 +17,12 @@ type Props = {
   weeklyCount: number
   schemeCount: number
   verifiedOutcomeCount: number
+  selectedUnitId?: string
+  onSelectUnit?: (unitId: string) => void
+  onPlanUnit?: (unitId: string) => void
+  mappedUnits?: Record<string,{id: string,outcomes: {id: string,outcome_text: string}[]}>
+  catalogLoading?: boolean
+  catalogError?: string
 }
 
 const sourceLinkStyle = {
@@ -40,12 +47,23 @@ export default function Grade4EnglishMap({
   weeklyCount,
   schemeCount,
   verifiedOutcomeCount,
+  selectedUnitId,
+  onSelectUnit,
+  onPlanUnit,
+  mappedUnits={},
+  catalogLoading=false,
+  catalogError='',
 }: Props) {
   const [selectedTheme, setSelectedTheme] = useState<number>(1)
+  useEffect(() => {
+    const selected = GRADE4_ENGLISH_UNITS.find(unit => unit.id === selectedUnitId)
+    if (selected) setSelectedTheme(selected.theme)
+  }, [selectedUnitId])
   const [search, setSearch] = useState('')
   const [showIndex, setShowIndex] = useState(false)
   const theme = GRADE4_ENGLISH_THEMES.find(item => item.number === selectedTheme) ?? GRADE4_ENGLISH_THEMES[0]
   const sections = GRADE4_ENGLISH_SUBSTRANDS[theme.number] ?? []
+  const mappedSkills = GRADE4_ENGLISH_UNITS.filter(unit=>unit.theme===theme.number)
   const matches = useMemo(() => {
     const needle = search.trim().toLowerCase()
     if (!needle) return GRADE4_ENGLISH_THEMES
@@ -92,6 +110,7 @@ export default function Grade4EnglishMap({
       <nav aria-label="Grade 4 English theme list" style={{display:'grid',gap:5,marginTop:10,maxHeight:320,overflowY:'auto'}}>
         {matches.map(item => <button key={item.number} type="button" aria-current={item.number===selectedTheme?'true':undefined} onClick={() => {
           setSelectedTheme(item.number)
+          onSelectUnit?.(GRADE4_ENGLISH_UNITS.find(unit=>unit.theme===item.number)?.id ?? '01-LS')
           setShowIndex(false)
           setSearch('')
         }} style={{
@@ -113,11 +132,11 @@ export default function Grade4EnglishMap({
       </div>
       <div style={{padding:'14px 16px'}}>
         <p style={{fontSize:12,color:'#4d6659',margin:'0 0 14px',lineHeight:1.6}}>
-          Curriculum section headings are shown below in their theme order. Specific learning outcomes,
-          suggested experiences and inquiry questions have not yet been imported or verified against this source.
+          Explore each language skill in its theme order. The original KICD document remains the curriculum authority;
+          independently written VibeSchool learning guidance appears below when its canonical records are connected.
         </p>
         <div style={{display:'grid',gap:11}}>
-          {sections.map((heading,index) => <section key={heading} aria-label={GRADE4_ENGLISH_STRANDS[index]} style={{
+          {sections.map((heading,index) => {const unit=mappedSkills[index];const linked=unit ? mappedUnits[unit.id] : undefined;return <section key={heading} aria-label={GRADE4_ENGLISH_STRANDS[index]} style={{
             border:'1px solid #e0e9e2',borderRadius:10,padding:13,background:'#fff',
           }}>
             <div style={{color:'#306d53',fontSize:11,fontWeight:800,marginBottom:5}}>
@@ -127,10 +146,19 @@ export default function Grade4EnglishMap({
             <p style={{fontSize:12,color:'#677a6f',margin:0,lineHeight:1.6}}>
               Official outcomes and learning experiences: awaiting source verification.
             </p>
-          </section>)}
+            {catalogLoading && <p role="status" style={{fontSize:12}}>Connecting saved VibeSchool curriculum outcomes…</p>}
+            {catalogError && <p role="alert" style={{fontSize:12,color:'#a11b36'}}>{catalogError}</p>}
+            {linked?.outcomes?.length ? <div style={{borderTop:'1px solid #e1ebe4',marginTop:10,paddingTop:10}}>
+              <p style={{fontSize:12,fontWeight:800,color:'#175b43'}}>VibeSchool learning guidance · {unit.lessons} proposed lessons</p>
+              <ul style={{fontSize:13,lineHeight:1.65,paddingLeft:19}}>{linked.outcomes.map(outcome=><li key={outcome.id}>{outcome.outcome_text}</li>)}</ul>
+              <p style={{fontSize:12,lineHeight:1.6}}><strong>Teaching activity:</strong> {unit.experiences[0]}</p>
+              <p style={{fontSize:12,lineHeight:1.6}}><strong>Assessment:</strong> {unit.assessment}</p>
+              {onPlanUnit && !catalogError && <button type="button" onClick={()=>onPlanUnit(unit.id)} style={{minHeight:44,border:0,borderRadius:9,padding:'10px 13px',background:'#175b43',color:'#fff',fontWeight:800,cursor:'pointer'}}>Plan in Scheme of Work</button>}
+            </div> : <p style={{fontSize:12,color:'#68796f',marginTop:7}}>VibeSchool teaching outcomes are not yet linked for this skill.</p>}
+          </section>})}
         </div>
         <div role="note" style={{fontSize:12,color:'#4c6658',background:'#f3f7f4',padding:11,borderRadius:8,marginTop:14,lineHeight:1.6}}>
-          This reader currently contains the KICD theme and section index, not the full official curriculum text.
+          This is a KICD-referenced theme index with VibeSchool-authored teaching outcomes, not the full official curriculum text.
           Read the <a href={GRADE4_ENGLISH_SOURCE} target="_blank" rel="noopener noreferrer" style={sourceLinkStyle}>original KICD document</a> for the complete requirements.
           Full in-app republication needs appropriate permission.
         </div>
