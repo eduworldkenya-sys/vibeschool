@@ -1,0 +1,38 @@
+name: Grade 6 English KICD curriculum and Scheme integrity
+on:
+  pull_request:
+    paths:
+      - 'lib/teaching/grade6EnglishCatalog.mjs'
+      - 'components/teacher/curriculum/Grade6EnglishMap.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'app/teacher/subjecthub/page.tsx'
+      - 'supabase/migrations/*grade6_english*'
+      - 'scripts/test-grade6-english-native-curriculum.mjs'
+      - '.github/workflows/grade6-english-curriculum.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lib/teaching/grade6EnglishCatalog.mjs'
+      - 'components/teacher/curriculum/Grade6EnglishMap.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'app/teacher/subjecthub/page.tsx'
+      - 'supabase/migrations/*grade6_english*'
+      - 'scripts/test-grade6-english-native-curriculum.mjs'
+permissions:
+  contents: read
+jobs:
+  curriculum-scheme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify source facts, identity and annual Scheme
+        run: node scripts/test-grade6-english-native-curriculum.mjs
+      - name: Recheck previous Grade 1 and Grade 8 readers
+        run: |
+          node scripts/test-grade1-math-english-auto-scheme.mjs
+          node scripts/test-grade8-english-scheme.mjs
+          node scripts/test-grade8-mathematics-scheme.mjs

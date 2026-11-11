@@ -10,6 +10,8 @@ import Grade1EnglishMap, { GRADE1_ENGLISH_STRANDS, GRADE1_ENGLISH_UNITS } from '
 import Grade8MathematicsMap from '@/components/teacher/curriculum/Grade8MathematicsMap'
 import Grade6MathematicsMap from '@/components/teacher/curriculum/Grade6MathematicsMap'
 import Grade8EnglishMap from '@/components/teacher/curriculum/Grade8EnglishMap'
+import Grade6EnglishMap from '@/components/teacher/curriculum/Grade6EnglishMap'
+import { GRADE6_ENGLISH_UNITS, GRADE6_ENGLISH_PREFIX } from '@/lib/teaching/grade6EnglishCatalog.mjs'
 import { GRADE8_ENGLISH_UNITS, GRADE8_ENGLISH_PREFIX } from '@/lib/teaching/grade8EnglishCatalog.mjs'
 import { GRADE8_MATHEMATICS_UNITS, GRADE8_MATHEMATICS_PREFIX } from '@/lib/teaching/grade8MathematicsCatalog.mjs'
 import { GRADE6_MATHEMATICS_UNITS, GRADE6_MATHEMATICS_PREFIX } from '@/lib/teaching/grade6MathematicsCatalog.mjs'
@@ -121,6 +123,9 @@ function Inner({ curriculumView = false }) {
   const [grade8EnglishCatalog,setGrade8EnglishCatalog] = useState({})
   const [grade8EnglishCatalogLoading,setGrade8EnglishCatalogLoading] = useState(false)
   const [grade8EnglishCatalogError,setGrade8EnglishCatalogError] = useState('')
+  const [grade6EnglishCatalog,setGrade6EnglishCatalog] = useState({})
+  const [grade6EnglishCatalogLoading,setGrade6EnglishCatalogLoading] = useState(false)
+  const [grade6EnglishCatalogError,setGrade6EnglishCatalogError] = useState('')
   const [annualTermWeeks,setAnnualTermWeeks] = useState([])
   const [annualCalendarYear,setAnnualCalendarYear] = useState(null)
   const [annualCalendarLoading,setAnnualCalendarLoading] = useState(false)
@@ -142,14 +147,15 @@ function Inner({ curriculumView = false }) {
   const isGrade8Mathematics = /^grade\s*8$/i.test(classObj?.grade?.trim()||'') && /^mathematics$/i.test(subjectObj?.label?.trim()||'')
   const isGrade6Mathematics = /^grade\s*6$/i.test(classObj?.grade?.trim()||'') && /^mathematics$/i.test(subjectObj?.label?.trim()||'')
   const isGrade8English = /^grade\s*8$/i.test(classObj?.grade?.trim()||'') && /^(english|english language)$/i.test(subjectObj?.label?.trim()||'')
+  const isGrade6English = /^grade\s*6$/i.test(classObj?.grade?.trim()||'') && /^(english|english language)$/i.test(subjectObj?.label?.trim()||'')
   const creativeDraftUnit = !curriculumView && isGrade1Creative ? GRADE1_CREATIVE_UNITS.find(unit=>unit.id===draftUnitId) : null
   const creativeDraftStrand = creativeDraftUnit ? GRADE1_CREATIVE_STRANDS.find(strand=>strand.id===creativeDraftUnit.strand)?.title : null
   const creativeDraftRecord = creativeDraftUnit ? creativeCatalog[creativeDraftUnit.id] : null
   const isGrade1Reader = isGrade1Mathematics || isGrade1English
   const isGrade1AutoScheme = isGrade1Creative || isGrade1Reader
-  const isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics || isGrade8English || isGrade6Mathematics
+  const isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics || isGrade8English || isGrade6Mathematics || isGrade6English
   const autoLearningArea = isGrade1Creative ? 'Creative Activities' : (isGrade1Mathematics || isGrade8Mathematics || isGrade6Mathematics) ? 'Mathematics' : 'English'
-  const readerUnits = isGrade6Mathematics ? GRADE6_MATHEMATICS_UNITS : isGrade8Mathematics ? GRADE8_MATHEMATICS_UNITS : isGrade1Mathematics ? GRADE1_MATHEMATICS_UNITS : GRADE1_ENGLISH_UNITS
+  const readerUnits = isGrade6English ? GRADE6_ENGLISH_UNITS : isGrade6Mathematics ? GRADE6_MATHEMATICS_UNITS : isGrade8Mathematics ? GRADE8_MATHEMATICS_UNITS : isGrade1Mathematics ? GRADE1_MATHEMATICS_UNITS : GRADE1_ENGLISH_UNITS
   const readerStrands = isGrade1Mathematics ? GRADE1_MATHEMATICS_STRANDS : GRADE1_ENGLISH_STRANDS
   const readerPrefix = isGrade8Mathematics ? GRADE8_MATHEMATICS_PREFIX : isGrade1Mathematics ? 'VS-CUR-G01-MA-2026' : 'VS-CUR-G01-EN-2026'
   const grade1DraftUnit = !curriculumView && isGrade1Reader ? readerUnits.find(unit=>unit.id===draftUnitId) : null
@@ -161,11 +167,13 @@ function Inner({ curriculumView = false }) {
   const grade6DraftRecord = grade6DraftUnit ? grade6Catalog[grade6DraftUnit.id] : null
   const grade8EnglishDraftUnit = !curriculumView && isGrade8English ? GRADE8_ENGLISH_UNITS.find(unit=>unit.id===draftUnitId) : null
   const grade8EnglishDraftRecord = grade8EnglishDraftUnit ? grade8EnglishCatalog[grade8EnglishDraftUnit.id] : null
-  const mappedDraftUnit = creativeDraftUnit || grade1DraftUnit || grade8DraftUnit || grade8EnglishDraftUnit || grade6DraftUnit
-  const mappedDraftStrand = creativeDraftStrand || grade1DraftStrand || grade8DraftUnit?.strand || grade8EnglishDraftUnit?.strand || grade6DraftUnit?.strand
-  const mappedDraftRecord = creativeDraftRecord || grade1DraftRecord || grade8DraftRecord || grade8EnglishDraftRecord || grade6DraftRecord
-  const mappedCatalogLoading = isGrade6Mathematics ? grade6CatalogLoading : isGrade8English ? grade8EnglishCatalogLoading : isGrade8Mathematics ? grade8CatalogLoading : isGrade1Creative ? creativeCatalogLoading : grade1ReaderCatalogLoading
-  const mappedCatalogError = isGrade6Mathematics ? grade6CatalogError : isGrade8English ? grade8EnglishCatalogError : isGrade8Mathematics ? grade8CatalogError : isGrade1Creative ? creativeCatalogError : grade1ReaderCatalogError
+  const grade6EnglishDraftUnit = !curriculumView && isGrade6English ? GRADE6_ENGLISH_UNITS.find(unit=>unit.id===draftUnitId) : null
+  const grade6EnglishDraftRecord = grade6EnglishDraftUnit ? grade6EnglishCatalog[grade6EnglishDraftUnit.id] : null
+  const mappedDraftUnit = creativeDraftUnit || grade1DraftUnit || grade8DraftUnit || grade8EnglishDraftUnit || grade6DraftUnit || grade6EnglishDraftUnit
+  const mappedDraftStrand = creativeDraftStrand || grade1DraftStrand || grade8DraftUnit?.strand || grade8EnglishDraftUnit?.strand || grade6DraftUnit?.strand || grade6EnglishDraftUnit?.strand
+  const mappedDraftRecord = creativeDraftRecord || grade1DraftRecord || grade8DraftRecord || grade8EnglishDraftRecord || grade6DraftRecord || grade6EnglishDraftRecord
+  const mappedCatalogLoading = isGrade6English ? grade6EnglishCatalogLoading : isGrade6Mathematics ? grade6CatalogLoading : isGrade8English ? grade8EnglishCatalogLoading : isGrade8Mathematics ? grade8CatalogLoading : isGrade1Creative ? creativeCatalogLoading : grade1ReaderCatalogLoading
+  const mappedCatalogError = isGrade6English ? grade6EnglishCatalogError : isGrade6Mathematics ? grade6CatalogError : isGrade8English ? grade8EnglishCatalogError : isGrade8Mathematics ? grade8CatalogError : isGrade1Creative ? creativeCatalogError : grade1ReaderCatalogError
   const autoUnits = isGrade8English ? GRADE8_ENGLISH_UNITS : readerUnits
   const annualTerms = useMemo(()=>terms.filter(term=>Number(term.academic_year)===Number(termObj?.academic_year)),[terms,termObj?.academic_year])
   const annualDraft = useMemo(()=>{
@@ -175,8 +183,8 @@ function Inner({ curriculumView = false }) {
     // Do not create a second scheme engine or write any draft rows on page open.
     return isGrade1Creative
       ? buildCreativeAnnualSchemeDraft({...shared,units:GRADE1_CREATIVE_UNITS})
-      : buildGrade1AnnualSchemeDraft({...shared,units:autoUnits,expectedUnitCount:autoUnits.length,gradeLabel:isGrade6Mathematics?'Grade 6':(isGrade8Mathematics||isGrade8English)?'Grade 8':'Grade 1'})
-  },[isAutoScheme,isGrade1Creative,isGrade8Mathematics,isGrade8English,isGrade6Mathematics,autoUnits,curriculumView,annualCalendarYear,termObj?.academic_year,annualTerms,annualTermWeeks,weeklyTarget])
+      : buildGrade1AnnualSchemeDraft({...shared,units:autoUnits,expectedUnitCount:autoUnits.length,gradeLabel:(isGrade6Mathematics||isGrade6English)?'Grade 6':(isGrade8Mathematics||isGrade8English)?'Grade 8':'Grade 1'})
+  },[isAutoScheme,isGrade1Creative,isGrade8Mathematics,isGrade8English,isGrade6Mathematics,isGrade6English,autoUnits,curriculumView,annualCalendarYear,termObj?.academic_year,annualTerms,annualTermWeeks,weeklyTarget])
   const autoWeekSuggestions = useMemo(()=>termCreativeSchemeRows(annualDraft,selectedTermId).filter(item=>item.week===selectedWeek),[annualDraft,selectedTermId,selectedWeek])
   useEffect(()=>{
     let live=true
@@ -424,6 +432,53 @@ function Inner({ curriculumView = false }) {
     return()=>{live=false}
   },[isGrade8English,selectedSubject])
   useEffect(()=>{
+    let live=true
+    if(!isGrade6English||!selectedSubject){
+      setGrade6EnglishCatalog({});setGrade6EnglishCatalogError('');setGrade6EnglishCatalogLoading(false)
+      return
+    }
+    ;(async()=>{
+      setGrade6EnglishCatalogLoading(true);setGrade6EnglishCatalogError('');setGrade6EnglishCatalog({})
+      try{
+        const globalId=await resolveGlobalSubjectId(selectedSubject)
+        if(!globalId)throw new Error('Canonical English identity is not available.')
+        const b=await supabase.from('grade6_english_reader_bindings')
+          .select('source_ref,sub_strand_id').eq('status','active')
+          .like('source_ref',GRADE6_ENGLISH_PREFIX+'#%')
+        if(b.error)throw b.error
+        const bindings=b.data||[]
+        if(bindings.length!==GRADE6_ENGLISH_UNITS.length)throw new Error('Grade 6 English catalog is incomplete. Expected 10 sub-strands.')
+        const ids=bindings.map(row=>row.sub_strand_id)
+        const [strands,outcomes]=await Promise.all([
+          supabase.from('cbc_strands').select('id,subject_id,grade,name,sub_strand').in('id',ids)
+            .eq('subject_id',globalId).eq('grade','Grade 6'),
+          supabase.from('curriculum_learning_outcomes')
+            .select('id,sub_strand_id,outcome_text,source_ref,outcome_code')
+            .in('sub_strand_id',ids).eq('status','active')
+            .eq('source_type','creator_claimed').like('source_ref',GRADE6_ENGLISH_PREFIX+'#%')
+            .order('outcome_code',{ascending:true})
+        ])
+        if(strands.error)throw strands.error
+        if(outcomes.error)throw outcomes.error
+        const mapped={}
+        for(const unit of GRADE6_ENGLISH_UNITS){
+          const link=bindings.find(row=>row.source_ref===GRADE6_ENGLISH_PREFIX+'#'+unit.id)
+          const record=(strands.data||[]).find(row=>row.id===link?.sub_strand_id)
+          if(!link||!record||record.name!==unit.strand||record.sub_strand!==unit.title)
+            throw new Error('Grade 6 English curriculum identity conflict: '+unit.id)
+          const found=(outcomes.data||[]).filter(row=>row.sub_strand_id===record.id && row.source_ref?.startsWith(GRADE6_ENGLISH_PREFIX+'#'+unit.id+'/'))
+          if(found.length!==unit.outcomes.length)throw new Error('Grade 6 English learning-outcome coverage incomplete: '+unit.id)
+          mapped[unit.id]={id:record.id,name:record.name,sub_strand:record.sub_strand,outcomes:found}
+        }
+        if((outcomes.data||[]).length!==GRADE6_ENGLISH_UNITS.reduce((sum,u)=>sum+u.outcomes.length,0))
+          throw new Error('Unexpected Grade 6 English outcome references.')
+        if(live)setGrade6EnglishCatalog(mapped)
+      }catch(err){if(live)setGrade6EnglishCatalogError(err instanceof Error?err.message:'Grade 6 English curriculum unavailable.')}
+      finally{if(live)setGrade6EnglishCatalogLoading(false)}
+    })()
+    return()=>{live=false}
+  },[isGrade6English,selectedSubject])
+  useEffect(()=>{
     setDraftOutcomeIds(mappedDraftRecord?.outcomes?.[0]?.id?[mappedDraftRecord.outcomes[0].id]:[])
   },[mappedDraftRecord,selectedClass,selectedSubject,selectedTermId])
   const filteredSubjects = useMemo(()=>{
@@ -551,7 +606,7 @@ function Inner({ curriculumView = false }) {
 
   useEffect(()=>{void boot()},[boot])
   useEffect(()=>{if(selectedClass&&!filteredSubjects.some(x=>x.id===selectedSubject))setSelectedSubject(filteredSubjects[0]?filteredSubjects[0].id:null)},[filteredSubjects,selectedClass,selectedSubject])
-  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));if(curriculumView&&initial.current.curriculumId&&allCurriculumRows.some(x=>x.id===initial.current.curriculumId))p.set('curriculumId',initial.current.curriculumId);if(curriculumView&&(isGrade1Mathematics||isGrade1English||isGrade8Mathematics||isGrade8English||isGrade6Mathematics))p.set('unitId',mapUnitId);else if(curriculumView&&initial.current.unitId)p.set('unitId',initial.current.unitId);if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId);router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView,allCurriculumRows,draftUnitId,mapUnitId,isGrade1Mathematics,isGrade1English,isGrade8Mathematics,isGrade8English,isGrade6Mathematics])
+  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));if(curriculumView&&initial.current.curriculumId&&allCurriculumRows.some(x=>x.id===initial.current.curriculumId))p.set('curriculumId',initial.current.curriculumId);if(curriculumView&&(isGrade1Mathematics||isGrade1English||isGrade8Mathematics||isGrade8English||isGrade6Mathematics||isGrade6English))p.set('unitId',mapUnitId);else if(curriculumView&&initial.current.unitId)p.set('unitId',initial.current.unitId);if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId);router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView,allCurriculumRows,draftUnitId,mapUnitId,isGrade1Mathematics,isGrade1English,isGrade8Mathematics,isGrade8English,isGrade6Mathematics,isGrade6English])
 
   useEffect(()=>{let live=true;(async()=>{
     if(!schoolId||!selectedTermId){setTermWeeks([]);return}
@@ -687,7 +742,7 @@ function Inner({ curriculumView = false }) {
     <div style={{background:'#173f32',color:'#fff',borderRadius:18,padding:18,marginBottom:12}}>
       <div style={{fontSize:11,letterSpacing:1.5,opacity:.65,fontWeight:800}}>{curriculumView ? "CURRICULUM" : "SCHEME OF WORK"}</div>
       <div style={{fontSize:20,fontWeight:800,marginTop:3}}>{curriculumView ? "Curriculum map" : "Scheme of work"}</div>
-      <div style={{fontSize:13,opacity:.9,marginTop:4}}>{curriculumView&&isGrade6Mathematics ? 'Grade 6 · Revised KICD 2024 structure · VibeSchool-authored guidance' : curriculumView&&isGrade8English ? 'Grade 8 · English · KICD-referenced themes · VibeSchool original guidance' : curriculumView&&isGrade8Kiswahili ? 'Grade 8 · Kiswahili · KICD 2024 thematic reference' : curriculumView&&isGrade9English ? 'Grade 9 · Revised KICD 2024 structure · Specific outcomes pending verification' : curriculumView&&(isGrade1Mathematics||isGrade1English) ? 'Grade 1 · Annual learning-area reference · VibeSchool-authored' : termObj?`${termLabel(termObj)} · Selected Week ${selectedWeek}${currentWeek ? ` · Current Week ${currentWeek}` : ''}`:'Select term'}</div>
+      <div style={{fontSize:13,opacity:.9,marginTop:4}}>{curriculumView&&isGrade6Mathematics ? 'Grade 6 · Revised KICD 2024 structure · VibeSchool-authored guidance' : curriculumView&&isGrade8English ? 'Grade 8 · English · KICD-referenced themes · VibeSchool original guidance' : curriculumView&&isGrade6English ? 'Grade 6 · English · KICD 2024 structural reference; VibeSchool-authored outcomes' : curriculumView&&isGrade8Kiswahili ? 'Grade 8 · Kiswahili · KICD 2024 thematic reference' : curriculumView&&isGrade9English ? 'Grade 9 · Revised KICD 2024 structure · Specific outcomes pending verification' : curriculumView&&(isGrade1Mathematics||isGrade1English) ? 'Grade 1 · Annual learning-area reference · VibeSchool-authored' : termObj?`${termLabel(termObj)} · Selected Week ${selectedWeek}${currentWeek ? ` · Current Week ${currentWeek}` : ''}`:'Select term'}</div>
     </div>
     {error&&<div role="alert" style={{background:C.redLight,color:C.red,padding:10,borderRadius:9,fontSize:12,fontWeight:700,marginBottom:10}}>{error}</div>}
     <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:14,padding:14,marginBottom:12}}>
@@ -698,11 +753,11 @@ function Inner({ curriculumView = false }) {
       {!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
     </div>
 
-    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English || isGrade8Mathematics || isGrade8English || isGrade9English || isGrade8Kiswahili || isGrade6Mathematics)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isAutoScheme?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
+    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English || isGrade8Mathematics || isGrade8English || isGrade9English || isGrade8Kiswahili || isGrade6Mathematics || isGrade6English)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isAutoScheme?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
     {!curriculumView && isAutoScheme && <AutoCreativeScheme
       draft={annualDraft} termId={selectedTermId} week={selectedWeek}
-      savedLessons={ordered} catalog={isGrade6Mathematics?grade6Catalog:isGrade8English?grade8EnglishCatalog:isGrade8Mathematics?grade8Catalog:isGrade1Creative?creativeCatalog:grade1ReaderCatalog}
-      learningArea={autoLearningArea} gradeLabel={isGrade6Mathematics?'Grade 6':(isGrade8Mathematics||isGrade8English)?'Grade 8':'Grade 1'}
+      savedLessons={ordered} catalog={isGrade6English?grade6EnglishCatalog:isGrade6Mathematics?grade6Catalog:isGrade8English?grade8EnglishCatalog:isGrade8Mathematics?grade8Catalog:isGrade1Creative?creativeCatalog:grade1ReaderCatalog}
+      learningArea={autoLearningArea} gradeLabel={(isGrade6Mathematics||isGrade6English)?'Grade 6':(isGrade8Mathematics||isGrade8English)?'Grade 8':'Grade 1'}
       onWeekChange={setSelectedWeek}
       onSaveAndPrepare={item=>void saveAndPrepareAutoDraft(item)}
       onViewUnit={unitId=>{
@@ -725,6 +780,12 @@ function Inner({ curriculumView = false }) {
       }:undefined} />}
     {curriculumView && isGrade1English && <Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
       mappedUnits={grade1ReaderCatalog} catalogLoading={grade1ReaderCatalogLoading} catalogError={grade1ReaderCatalogError}
+      onPlanUnit={selectedClass&&selectedSubject&&selectedTermId ? unitId=>{
+        const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId})
+        router.push('/teacher/scheme?'+p.toString())
+      }:undefined} />}
+    {curriculumView && isGrade6English && <Grade6EnglishMap selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
+      mappedUnits={grade6EnglishCatalog} catalogLoading={grade6EnglishCatalogLoading} catalogError={grade6EnglishCatalogError}
       onPlanUnit={selectedClass&&selectedSubject&&selectedTermId ? unitId=>{
         const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId})
         router.push('/teacher/scheme?'+p.toString())
@@ -768,7 +829,7 @@ function Inner({ curriculumView = false }) {
       verifiedOutcomeCount={Object.values(curriculumOutcomes).flat().filter(outcome=>outcome.status==='verified').length}
       onOpenScheme={()=>router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}&week=${selectedWeek}`)}
     />}
-    {curriculumView ? <section className="studio-canonical-map" style={{display:isGrade1Creative||isGrade8Mathematics||isGrade8English||isGrade6Mathematics||((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)||(isGrade4English&&!showEnglishLegacy)||(isGrade8Kiswahili&&!showEnglishLegacy)||isGrade9English?'none':undefined}}>
+    {curriculumView ? <section className="studio-canonical-map" style={{display:isGrade1Creative||isGrade8Mathematics||isGrade8English||isGrade6Mathematics||isGrade6English||((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)||(isGrade4English&&!showEnglishLegacy)||(isGrade8Kiswahili&&!showEnglishLegacy)||isGrade9English?'none':undefined}}>
       <p className="studio-map-source">Stored curriculum · {classObj?.label} · {subjectObj?.label} · {termObj ? termLabel(termObj) : 'Select term'}</p>
       {fetching ? <p role="status">Loading curriculum…</p> : !allCurriculumRows.length ? <Empty title="No curriculum records for this context" desc="Select a class, subject and term. Missing curriculum is not treated as completed coverage."/> : <>
       <div className="studio-curriculum-grid">{unique(allCurriculumRows.map(row => row.strand || 'Unspecified strand')).map((strand,index) => <button type="button" key={strand} className="studio-curriculum-tile" aria-pressed={(selectedStrand || allCurriculumRows[0]?.strand || 'Unspecified strand') === strand} onClick={() => setSelectedStrand(strand)}><div className="studio-strand-cover" aria-hidden="true">{String(index+1).padStart(2,'0')}</div><h2>{strand}</h2><span>{allCurriculumRows.filter(row => (row.strand || 'Unspecified strand') === strand).length} curriculum items</span><span aria-hidden="true">↗</span></button>)}</div>
@@ -787,7 +848,7 @@ function Inner({ curriculumView = false }) {
       <details style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:12,padding:12,marginBottom:12}}><summary style={{cursor:'pointer',color:C.text,fontWeight:700,fontSize:13}}>Teaching notes and observations</summary><div style={{marginTop:12}}><LessonPanel teacherId={uid} classId={selectedClass} subjectId={selectedSubject} subjectLabel={subjectObj.label} academicTermId={selectedTermId} schoolId={schoolId} week={selectedWeek}/></div></details>
     </>}
 
-    {mappedDraftUnit && <section aria-label={isGrade6Mathematics?'Plan mapped Grade 6 curriculum lesson':(isGrade8Mathematics||isGrade8English)?'Plan mapped Grade 8 curriculum lesson':'Plan mapped Grade 1 curriculum lesson'} style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+    {mappedDraftUnit && <section aria-label={(isGrade6Mathematics||isGrade6English)?'Plan mapped Grade 6 curriculum lesson':(isGrade8Mathematics||isGrade8English)?'Plan mapped Grade 8 curriculum lesson':'Plan mapped Grade 1 curriculum lesson'} style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
       <div style={{fontSize:11,fontWeight:800,color:C.teal,letterSpacing:'.04em'}}>CURRICULUM MAP → SCHEME OF WORK</div>
       <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{mappedDraftUnit.title}</h2>
       <p style={{fontSize:13,color:C.text2,margin:'0 0 10px'}}>{mappedDraftStrand} · Sub-strand {mappedDraftUnit.id} · Week {selectedWeek}</p>
@@ -808,7 +869,7 @@ function Inner({ curriculumView = false }) {
     </section>}
     <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:14,padding:14}}>
       {curriculumRows.length>0&&<div style={{background:C.indigoLight,padding:12,borderRadius:10,marginBottom:12}}><div style={{fontWeight:800,color:C.indigo,fontSize:13}}>{curriculumRows.length} curriculum item{curriculumRows.length===1?'':'s'} available</div><div style={{fontSize:11,color:C.text2,margin:'4px 0 8px'}}>The server will commit only confirmed, complete canonical lesson content.</div><button type="button" disabled={committing} onClick={()=>void commitScheme()} style={{padding:'8px 12px',border:0,borderRadius:8,background:C.indigo,color:'#fff',fontWeight:700}}>{committing?'Committing…':'Commit approved curriculum'}</button></div>}
-      {!selectedTermId?<Empty title="Scheme setup incomplete" desc={`${subjectObj?.label||'This subject'} is connected to ${classObj?.label||'this class'}, but the school calendar could not be prepared automatically. Retry before creating a term-scoped Scheme.`}/>:fetching?<div style={{fontSize:12,color:C.text3}}>Loading authoritative Scheme…</div>:selectedWeekItems.length===0?<Empty title="No lessons scheduled" desc="Commit approved canonical curriculum content or add a legitimate teacher-created lesson."/>:<div className="studio-scheme-sequence">{selectedWeekItems.map((item,index)=>{const st=STATUS[item.status]||STATUS.planned;const mappedCatalog=isGrade6Mathematics?grade6Catalog:isGrade8English?grade8EnglishCatalog:isGrade8Mathematics?grade8Catalog:isGrade1Creative?creativeCatalog:grade1ReaderCatalog;const mappedUnitId=item.sub_strand_id?Object.keys(mappedCatalog).find(id=>mappedCatalog[id].id===item.sub_strand_id):null;return <div key={item.id} className="studio-lesson-card studio-sequence-card"><span className="studio-sequence-number" aria-label={`Lesson ${index+1}`}>{String(index+1).padStart(2,'0')}</span><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><div style={{fontWeight:800,color:C.text}}>{item.topic}</div><div style={{fontSize:11,color:C.text2}}>{[item.strand,item.sub_strand].filter(Boolean).join(' · ')}</div><div style={{fontSize:11,color:C.text3,marginTop:4}}>{item.curriculum_id&&canonicalRowIds.has(item.curriculum_id)?'Linked to an existing curriculum record · KICD alignment not yet verified':mappedUnitId?'Linked to VibeSchool curriculum outcomes · KICD alignment not yet verified':'No curriculum record linked · KICD alignment not yet verified'}</div>{(linkedResources[item.id]||[]).map(r=><div key={r.id} style={{fontSize:11,color:C.indigo,marginTop:5}}>{r.chapterTitle} · {r.resourceRole}</div>)}</div><span style={{fontSize:11,fontWeight:800,padding:'4px 7px',borderRadius:99,background:st.bg,color:st.color}}>{st.label}</span></div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:8}}><button type="button" onClick={()=>prepareSchemeLesson(item)} style={{fontSize:12,padding:'10px 15px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:800}}>Prepare lesson →</button>
+      {!selectedTermId?<Empty title="Scheme setup incomplete" desc={`${subjectObj?.label||'This subject'} is connected to ${classObj?.label||'this class'}, but the school calendar could not be prepared automatically. Retry before creating a term-scoped Scheme.`}/>:fetching?<div style={{fontSize:12,color:C.text3}}>Loading authoritative Scheme…</div>:selectedWeekItems.length===0?<Empty title="No lessons scheduled" desc="Commit approved canonical curriculum content or add a legitimate teacher-created lesson."/>:<div className="studio-scheme-sequence">{selectedWeekItems.map((item,index)=>{const st=STATUS[item.status]||STATUS.planned;const mappedCatalog=isGrade6English?grade6EnglishCatalog:isGrade6Mathematics?grade6Catalog:isGrade8English?grade8EnglishCatalog:isGrade8Mathematics?grade8Catalog:isGrade1Creative?creativeCatalog:grade1ReaderCatalog;const mappedUnitId=item.sub_strand_id?Object.keys(mappedCatalog).find(id=>mappedCatalog[id].id===item.sub_strand_id):null;return <div key={item.id} className="studio-lesson-card studio-sequence-card"><span className="studio-sequence-number" aria-label={`Lesson ${index+1}`}>{String(index+1).padStart(2,'0')}</span><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><div style={{fontWeight:800,color:C.text}}>{item.topic}</div><div style={{fontSize:11,color:C.text2}}>{[item.strand,item.sub_strand].filter(Boolean).join(' · ')}</div><div style={{fontSize:11,color:C.text3,marginTop:4}}>{item.curriculum_id&&canonicalRowIds.has(item.curriculum_id)?'Linked to an existing curriculum record · KICD alignment not yet verified':mappedUnitId?'Linked to VibeSchool curriculum outcomes · KICD alignment not yet verified':'No curriculum record linked · KICD alignment not yet verified'}</div>{(linkedResources[item.id]||[]).map(r=><div key={r.id} style={{fontSize:11,color:C.indigo,marginTop:5}}>{r.chapterTitle} · {r.resourceRole}</div>)}</div><span style={{fontSize:11,fontWeight:800,padding:'4px 7px',borderRadius:99,background:st.bg,color:st.color}}>{st.label}</span></div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:8}}><button type="button" onClick={()=>prepareSchemeLesson(item)} style={{fontSize:12,padding:'10px 15px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:800}}>Prepare lesson →</button>
       {mappedUnitId&&<button type="button" onClick={()=>{
         const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(item.week),unitId:mappedUnitId})
         router.push('/teacher/curriculum?'+p.toString())
