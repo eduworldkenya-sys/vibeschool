@@ -279,7 +279,7 @@ export default function VacancyMatchSandbox() {
               ))}
             </ol>
             {visibleCounties.length === 0 && <p className={styles.noCountyResults}>No county matches that search.</p>}
-            {county && <p className={styles.countySelection} role="status">Selected: <strong>{county}</strong> · The allocation panel above shows the reported total.</p>}
+            {county && <p className={styles.countySelection} role="status">Selected: <strong>{county}</strong> · {countyTotal === null ? "County total not verified" : `${countyTotal.toLocaleString("en-KE")} advertised ${levelNames[level]} posts`}</p>}
           </>
         )}
         <p className={styles.countyFootnote}>
