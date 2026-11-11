@@ -6,7 +6,7 @@
 begin;
 
 create table if not exists public.grade1_curriculum_reader_bindings (
-  source_ref text primary key check(source_ref ~ '^VS-CUR-G01-(MA|EN)-2026#[1-4]\\.[1-9][0-9]*$'),
+  source_ref text primary key check(source_ref like 'VS-CUR-G01-MA-2026#%' or source_ref like 'VS-CUR-G01-EN-2026#%'),
   sub_strand_id uuid not null unique references public.cbc_strands(id) on delete restrict,
   key_inquiry_questions text[] not null,
   suggested_experiences text[] not null,
@@ -182,11 +182,11 @@ begin
   -- Reuse Creative Activities source refs, or the audited VibeSchool reader
   -- binding for Mathematics/English. Legacy placeholders keep their original
   -- source_ref and identity; no official KICD promotion happens here.
-  select * into v_unit from public.cbc_strands
-  where id=p_sub_strand_id and grade='Grade 1'
-    and (source_ref like 'VS-CUR-G01-CA-2026#%'
+  select * into v_unit from public.cbc_strands s
+  where s.id=p_sub_strand_id and s.grade='Grade 1'
+    and (s.source_ref like 'VS-CUR-G01-CA-2026#%'
       or exists (select 1 from public.grade1_curriculum_reader_bindings b
-                 where b.sub_strand_id=id and b.status='active'));
+                 where b.sub_strand_id=s.id and b.status='active'));
   if not found then raise exception 'SCHEME_CURRICULUM_SUBSTRAND_NOT_FOUND'; end if;
 
   select b.source_ref,b.key_inquiry_questions,b.suggested_experiences
