@@ -66,7 +66,7 @@ export type Homework = {
   subject: string | null;
   type: string | null;
   target_group_id: string | null;
-  created_at: string;
+  created_at: string | null;
 };
 export type Submission = {
   student_id: string | null;
