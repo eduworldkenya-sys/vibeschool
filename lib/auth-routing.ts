@@ -39,9 +39,9 @@ export function requiredRoleForPath(pathname: string): string | null {
   const normalized = pathnameOnly(pathname)
   // Reader is a public learning surface, not a Global account dashboard.
   // This exception must remain before the broader /global role prefix.
-  // Public, demonstration-only TSC sandbox. Never grant access to its
-  // protected /teacher/marketplace parent or any unrelated teacher routes.
-  if (normalized === '/teacher/marketplace/sandbox' || normalized === '/teacher/marketplace/sandbox/') return null
+  // Public, read-only marketplace and example-only TSC matching preview.
+  // /teacher/marketplace/manage and all other Teacher OS operations stay role-protected.
+  if (['/teacher/marketplace', '/teacher/marketplace/', '/teacher/marketplace/sandbox', '/teacher/marketplace/sandbox/'].includes(normalized)) return null
   if (normalized === '/global/read' || normalized.startsWith('/global/read/')) return null
   for (const [prefix, role] of Object.entries(PROTECTED_ROLE_PREFIXES)) {
     if (normalized === prefix || normalized.startsWith(`${prefix}/`)) return role

@@ -24,18 +24,43 @@ assert.ok(DEMO_OPENINGS.every(item => item.school.startsWith("Example ")), "all 
 assert.equal(requiredRoleForPath("/teacher/marketplace/sandbox"), null, "sandbox must be accessible anonymously");
 assert.equal(requiredRoleForPath("/teacher/marketplace/sandbox/"), null, "trailing slash public");
 assert.equal(requiredRoleForPath("/teacher/marketplace/sandbox/other"), "teacher", "no broad role bypass");
-assert.equal(requiredRoleForPath("/teacher/marketplace"), "teacher", "real marketplace must stay protected");
-assert.equal(requiredRoleForPath("/teacher/pulse"), "teacher", "teacher OS must stay protected");
+assert.equal(requiredRoleForPath("/teacher/marketplace"), null, "anonymous marketplace browsing allowed");
+assert.equal(requiredRoleForPath("/teacher/marketplace/"), null, "public trailing slash allowed");
+assert.equal(requiredRoleForPath("/teacher/marketplace/manage"), "teacher", "account features must remain protected");
+assert.equal(requiredRoleForPath("/teacher/marketplace/manage/"), "teacher", "private trailing slash remains protected");
+assert.equal(requiredRoleForPath("/teacher/marketplace/other"), "teacher", "no blanket marketplace access");
+assert.equal(requiredRoleForPath("/teacher/pulse"), "teacher", "teacher OS remains protected");
 assert.equal(roleCanVisit(null, "/teacher/marketplace/sandbox"), true, "anonymous sandbox allowed");
-assert.equal(roleCanVisit(null, "/teacher/marketplace"), false, "anonymous marketplace denied");
+assert.equal(roleCanVisit(null, "/teacher/marketplace"), true, "anonymous browsing allowed");
+assert.equal(roleCanVisit(null, "/teacher/marketplace/manage"), false, "anonymous private controls denied");
 
 const middleware = fs.readFileSync("middleware.ts", "utf8");
 const teacherShell = fs.readFileSync("app/teacher/layout.tsx", "utf8");
-assert.ok(middleware.includes("pathname === '/teacher/marketplace/sandbox'"), "middleware must explicitly skip sandbox login");
-assert.ok(middleware.indexOf("pathname === '/teacher/marketplace/sandbox'") < middleware.indexOf("createServerClient("),
-  "anonymous exception must run before Supabase initialization");
+assert.ok(middleware.includes("pathname === '/teacher/marketplace'"), "public discovery route must bypass login");
+assert.ok(middleware.includes("pathname === '/teacher/marketplace/sandbox'"), "sandbox must bypass login");
+assert.ok(middleware.indexOf("pathname === '/teacher/marketplace'") < middleware.indexOf("createServerClient("),
+  "anonymous discovery must run before Supabase session initialization");
+assert.equal((teacherShell.match(/pathname === "\/teacher\/marketplace"/g) ?? []).length, 2,
+  "teacher shell must render public marketplace without account bootstrap");
 assert.equal((teacherShell.match(/pathname === "\/teacher\/marketplace\/sandbox"/g) ?? []).length, 2,
-  "teacher shell must bypass auth both during effect and render");
+  "teacher shell must render sandbox without account bootstrap");
+
+const discovery = fs.readFileSync("app/teacher/marketplace/page.tsx", "utf8");
+const managed = fs.readFileSync("app/teacher/marketplace/manage/page.tsx", "utf8");
+const gateway = fs.readFileSync("app/teacher/page.tsx", "utf8");
+const navigation = fs.readFileSync("components/teacher/navigation.ts", "utf8");
+const publicOpportunities = fs.readFileSync("components/teacher/marketplace/TeacherOpportunities.tsx", "utf8");
+assert.match(discovery, /PublicHeader/);
+assert.match(discovery, /PublicFooter/);
+assert.match(discovery, /TeacherOpportunities/, "published jobs and swaps must be discoverable");
+assert.match(discovery, /\/teacher\/marketplace\/sandbox/, "matching preview linked");
+assert.match(discovery, /\/teacher\/marketplace\/manage/, "management linked separately");
+assert.doesNotMatch(discovery, /getSupabaseClient|\.insert\(|\.update\(|\.delete\(/, "public route cannot execute private writes");
+assert.match(managed, /teacher_swap_interests/, "interest management preserved");
+assert.match(managed, /teacher_swap_messages/, "private messaging preserved");
+assert.match(gateway, /href="\/teacher\/marketplace"/, "teacher public entry links directly to marketplace");
+assert.match(navigation, /href: '\/teacher\/marketplace\/manage'/, "Teacher OS menu links to manager");
+assert.match(publicOpportunities, /marketplace\/manage\?swap=/, "swap interest redirects to protected manager");
 
 assert.equal(REPORTED_COUNTY_ALLOCATIONS.length, 47, "all counties must be represented");
 assert.equal(new Set(REPORTED_COUNTY_ALLOCATIONS.map(row => row.county)).size, 47, "county unique");

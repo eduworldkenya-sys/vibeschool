@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { AUTH_DASHBOARDS, requiredRoleForPath, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
+import { AUTH_DASHBOARDS, requiredRoleForPath, roleCanVisit, safeInternalPath, pathnameOnly } from '@/lib/auth-routing'
 
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
 const PUBLIC_AUTH_ROUTES = new Set(['/login', '/reset-password', '/auth/forgot-password', '/auth/reset-password', '/auth/error'])
@@ -39,9 +39,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(gateway)
   }
 
-  // Anonymous access to the approved demo only. Avoid any Supabase session
-  // lookup here; authenticated Teacher OS and Marketplace stay protected.
-  if (pathname === '/teacher/marketplace/sandbox' || pathname === '/teacher/marketplace/sandbox/') {
+  // Public marketplace browsing and approved example-only TSC matching.
+  // Do not initialise auth for discovery; /teacher/marketplace/manage stays protected.
+  if (pathname === '/teacher/marketplace' || pathname === '/teacher/marketplace/' || pathname === '/teacher/marketplace/sandbox' || pathname === '/teacher/marketplace/sandbox/') {
     return NextResponse.next({ request })
   }
 
@@ -172,8 +172,10 @@ export async function middleware(request: NextRequest) {
     if (pathname === '/' || pathname === '/login') {
       const requested = safeInternalPath(request.nextUrl.searchParams.get('redirect'))
       const target = request.nextUrl.clone()
-      target.pathname = requested && roleCanVisit(role, requested) ? requested : destination
-      target.search = ''
+      const next = requested && roleCanVisit(role, requested) ? requested : destination
+      // Preserve legitimate deep-link filters after sign-in (e.g. a selected swap).
+      target.pathname = pathnameOnly(next)
+      target.search = next.includes('?') ? next.slice(next.indexOf('?')) : ''
       return redirectWithAuth(target)
     }
   }
