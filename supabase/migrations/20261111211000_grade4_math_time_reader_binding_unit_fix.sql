@@ -70,7 +70,9 @@ begin
       and resource_version_id is not null and title<>'' and length(body)>100
   ) into v_all,v_valid
   from public.vs_public_grade4_math_time_learner_lessons();
-  if v_all<>10 or v_valid<>10 then
+  -- A fresh database has no platform-authored lessons yet; schema replay must
+  -- succeed without seeded production content. Validate a populated batch only.
+  if v_all>0 and (v_all<>10 or v_valid<>10) then
     raise exception 'GRADE4_TIME_READER_BAD_UNIT_ID_OR_INCOMPLETE_LESSONS: % / %',v_valid,v_all;
   end if;
 end
