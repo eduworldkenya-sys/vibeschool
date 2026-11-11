@@ -108,7 +108,7 @@ export function useHomeworkFeed(
       }
       // Never show pre-enrollment work as owed by a learner who joined later.
       // Missing enrollment evidence must not create unsupported assignments.
-      const memberSince = new Map((grpRes.data ?? []).map((g: { group_id: string; created_at: string }) => [g.group_id, g.created_at]));
+      const memberSince = new Map<string, string | null>((grpRes.data ?? []).map((g): [string, string | null] => [g.group_id, g.created_at]));
       const enrolledAt = enrollmentRes.error ? null : enrollmentRes.data?.joined_at ?? null;
 
       const result: HomeworkFeedItem[] = ((hwRes.data as Homework[] | null) ?? [])
