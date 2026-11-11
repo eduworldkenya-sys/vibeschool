@@ -407,6 +407,12 @@ function HomeworkInner() {
             <div style={{ marginTop: 8, height: 5, borderRadius: 99, background: "#f3f4f6", overflow: "hidden" }}><div style={{ width: `${Math.min(100, percentage)}%`, height: "100%", background: "#0f766e" }} /></div>
             {item.teaching_occurrence_id && <div style={{ marginTop: 7, fontSize: 11, color: "#2563eb", fontWeight: 800 }}>Linked to taught lesson</div>}
           </button>
+          <button type="button" onClick={() => {
+            setForm({ ...EMPTY_FORM, title: item.title, subject: item.subject ?? "", instructions: item.instructions ?? "", type: item.type ?? "homework", audience: "learners", studentIds: [] });
+            setShowForm(true);
+            setSuccess("Catch-up work is not published yet. Choose the learners and set a new due date before publishing.");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }} style={{ minHeight: 38, marginTop: 8, marginRight: 8, border: "1px solid #0f766e", borderRadius: 10, background: "#ecfdf5", color: "#065f46", padding: "0 10px", fontSize: 11, fontWeight: 750 }}>Assign as catch-up</button>
           <button type="button" onClick={() => void deleteHomework(item)} disabled={deletingId !== null} style={{ minHeight: 38, marginTop: 8, border: "1px solid #fecaca", borderRadius: 10, background: "#fff", color: "#991b1b", padding: "0 10px", fontSize: 11, fontWeight: 750 }}>{deletingId === item.id ? "Deleting…" : "Delete if no submissions"}</button>
         </section>;
       })}</div>}
