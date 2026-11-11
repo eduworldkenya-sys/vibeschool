@@ -897,7 +897,7 @@ export default function SubjectHubPage() {
       : null
   const grade4IndigenousClass =
     /^indigenous languages?$/i.test(activeSubject?.name?.trim() ?? '')
-      ? classes.find(item => /\\b(?:grade|class)\\s*4\\b/i.test(item.name)) ?? null
+      ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
       : null
   const grade4EnglishClass =
     /^(english|english language)$/i.test(activeSubject?.name?.trim() ?? '')
