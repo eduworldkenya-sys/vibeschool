@@ -8,7 +8,7 @@ import styles from './PublicShell.module.css'
 const WHATSAPP_URL = 'https://wa.me/254728232157?text=Hello%20VibeSchool'
 const TIKTOK_URL = 'https://www.tiktok.com/@vibeschoolkenya'
 
-export function PublicFooter({ compact = false, hideSupport = false }: { compact?: boolean; hideSupport?: boolean } = {}) {
+export function PublicFooter({ compact = false, hideSupport = false, focused = false }: { compact?: boolean; hideSupport?: boolean; focused?: boolean } = {}) {
   const footerRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -22,6 +22,16 @@ export function PublicFooter({ compact = false, hideSupport = false }: { compact
     media.addEventListener('change', sync)
     return () => media.removeEventListener('change', sync)
   }, [])
+
+  if (focused) return (
+    <footer ref={footerRef} className={styles.compactFooter}>
+      <Link href="/" aria-label="VibeSchool home"><Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={110} height={28}/></Link>
+      <span>© 2026 VibeSchool</span>
+      <Link href="/trust">Trust</Link>
+      <Link href="/contact">Contact</Link>
+      <Link href="/legal/privacy">Privacy</Link>
+    </footer>
+  )
 
   if (compact) return (
     <footer ref={footerRef} className={styles.compactFooter}>
