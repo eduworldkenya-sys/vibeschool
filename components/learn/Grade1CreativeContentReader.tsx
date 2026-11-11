@@ -8,14 +8,6 @@ import Grade1CreativeActivitiesMap, {
 } from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 
 type View = 'learn' | 'teach'
-type CreativeRoot = {
-  id: string
-  title: string
-  sub_strand_id: string | null
-  asset_kind: string | null
-  canonical_key: string | null
-}
-
 type ReleasedResource = {
   id: string
   title: string
@@ -64,10 +56,11 @@ export default function Grade1CreativeContentReader() {
         const unitByStrand = new Map(
           (strands ?? []).map(row => [row.id, row.source_ref?.split('#')[1] ?? '']),
         )
-        // These columns exist in production but are not yet in generated database.types.ts.
-        // Keep the typed projection local rather than changing the shared schema contract.
-        const eligible = (roots as CreativeRoot[]).filter(root =>
+        // Only approved learner-facing kinds can enter the shared reader.
+        // asset_kind exists in production but not the generated client types.
+        const eligible = roots.filter(root =>
           root.sub_strand_id && unitByStrand.has(root.sub_strand_id)
+          && 'asset_kind' in root
           && (root.asset_kind === 'learner_notes' || root.asset_kind === 'worksheet'),
         )
         if (!eligible.length) return
@@ -104,7 +97,8 @@ export default function Grade1CreativeContentReader() {
             id: version.id,
             title: root.title,
             unitId,
-            assetKind: root.asset_kind ?? 'learner_notes',
+            assetKind: 'asset_kind' in root && typeof root.asset_kind === 'string'
+              ? root.asset_kind : 'learner_notes',
             body,
             lessonOrder: orderMatch ? Number(orderMatch[1]) : 999,
           })
