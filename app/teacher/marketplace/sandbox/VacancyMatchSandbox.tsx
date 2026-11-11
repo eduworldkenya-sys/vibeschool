@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check,
-  ClipboardCheck, Info, MapPin, RotateCcw, ShieldCheck,
+  ClipboardCheck, Info, MapPin, RotateCcw, ShieldCheck, Search,
 } from "lucide-react";
 import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 import type { TeachingLevel } from "@/lib/teacher/tscSandboxMatching";
@@ -16,6 +16,14 @@ import styles from "./sandbox.module.css";
 
 const portalHref = "https://teachersonline.tsc.go.ke/";
 const deadline = Date.parse("2026-11-23T21:00:00Z");
+// This is the application deadline for the national exercise, not a county-specific deadline.
+function countdownParts(ms: number) {
+  const totalMinutes = Math.ceil(Math.max(0, ms) / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  return { days, hours, minutes };
+}
 const levelNames: Record<TeachingLevel, string> = {
   primary: "Primary",
   junior: "Junior School",
@@ -30,11 +38,16 @@ const requirements: Record<TeachingLevel, string> = {
 export default function VacancyMatchSandbox() {
   const [level, setLevel] = useState<TeachingLevel>("secondary");
   const [county, setCounty] = useState("");
-  const [applicationClosed, setApplicationClosed] = useState(false);
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
+  const [countyQuery, setCountyQuery] = useState("");
+  const [showAllCounties, setShowAllCounties] = useState(false);
   const { countyNames, error: countyError } = useKenyaCounties();
 
   useEffect(() => {
-    setApplicationClosed(Date.now() >= deadline);
+    const update = () => setRemainingMs(Math.max(0, deadline - Date.now()));
+    update();
+    const timer = window.setInterval(update, 30000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const fallbackCounties = useMemo(
@@ -48,6 +61,21 @@ export default function VacancyMatchSandbox() {
   );
   const nationalTotal = level === "primary" ? 5609 : level === "junior" ? 25 : 2086;
   const countyTotal = allocation.count;
+  const applicationClosed = remainingMs !== null && remainingMs <= 0;
+  const countdown = remainingMs === null ? null : countdownParts(remainingMs);
+  const rankedCounties = useMemo(() => {
+    if (level === "junior") return [];
+    const key = level === "primary" ? "primary" : "secondary";
+    return [...REPORTED_COUNTY_ALLOCATIONS]
+      .map(row => ({ county: row.county, count: row[key] }))
+      .sort((a, b) => b.count - a.count || a.county.localeCompare(b.county, "en-KE"))
+      .map((row, index) => ({ ...row, rank: index + 1 }));
+  }, [level]);
+  const query = countyQuery.trim().toLocaleLowerCase("en-KE");
+  const visibleCounties = query
+    ? rankedCounties.filter(row => row.county.toLocaleLowerCase("en-KE").includes(query))
+    : showAllCounties ? rankedCounties : rankedCounties.slice(0, 8);
+  const maxCountyCount = rankedCounties[0]?.count ?? 1;
 
   return (
     <div className={styles.shell}>
@@ -68,9 +96,13 @@ export default function VacancyMatchSandbox() {
             <span><ClipboardCheck aria-hidden="true" size={16} /> Deadline: 23 Nov 2026, midnight EAT</span>
           </div>
         </div>
-        <div className={styles.heroStamp} aria-hidden="true">
-          <strong>V</strong>
-          <span>VIBESCHOOL<br />TEACHERS</span>
+        <div className={styles.deadlineClock} aria-label="TSC application deadline countdown">
+          <span>APPLICATION DEADLINE</span>
+          <strong>{countdown === null ? "23 NOV" : applicationClosed ? "Closed" : countdown.days > 0
+            ? `${countdown.days}d ${countdown.hours}h`
+            : `${countdown.hours}h ${countdown.minutes}m`}</strong>
+          <small>{countdown === null ? "23 November 2026" : applicationClosed ? "Application window ended" : "Time left to apply"}</small>
+          <small>23 Nov 2026 · 11:59 p.m. EAT</small>
         </div>
       </section>
 
@@ -194,6 +226,69 @@ export default function VacancyMatchSandbox() {
           </div>
         </section>
       </div>
+
+      <section className={styles.countyBoard} aria-labelledby="county-board-title">
+        <div className={styles.countyBoardHeading}>
+          <div>
+            <span className={styles.step}>COUNTY VACANCY COUNT · 11 NOVEMBER 2026</span>
+            <h2 id="county-board-title">See advertised posts in every county</h2>
+            <p>Compare the published county allocations for {levelNames[level]}. Select a county to view its total above.</p>
+          </div>
+          <span className={styles.countyBoardTotal}>{level === "junior" ? "25 nationwide" : "47 counties"}</span>
+        </div>
+        {level === "junior" ? (
+          <div className={styles.countyUnavailable} role="status">
+            The 25 junior-school posts are confirmed nationally, but the complete county-by-county distribution has not been reconciled here.
+            <a href={OFFICIAL_TSC_ADVERTS} target="_blank" rel="noopener noreferrer">Check the original TSC vacancy schedules <ArrowUpRight size={15} aria-hidden="true" /></a>
+          </div>
+        ) : (
+          <>
+            <div className={styles.countyTools}>
+              <label htmlFor="county-allocation-search"><Search size={16} aria-hidden="true" /> Find a county</label>
+              <input
+                id="county-allocation-search"
+                type="search"
+                value={countyQuery}
+                onChange={event => setCountyQuery(event.target.value)}
+                placeholder="Search all 47 counties"
+              />
+              {!query && <button type="button" onClick={() => setShowAllCounties(value => !value)} aria-expanded={showAllCounties}>
+                {showAllCounties ? "Show top 8" : "Show all 47 counties"}
+              </button>}
+            </div>
+            <ol className={styles.countyList} aria-label={`Reported ${levelNames[level]} allocations ranked by county`}>
+              {visibleCounties.map(row => (
+                <li key={row.county}>
+                  <button
+                    type="button"
+                    className={county === row.county ? styles.countySelected : styles.countyRow}
+                    aria-pressed={county === row.county}
+                    onClick={() => setCounty(row.county)}
+                  >
+                    <span className={styles.countyRank}>{row.rank.toString().padStart(2, "0")}</span>
+                    <span className={styles.countyRowName}>
+                      <span>{row.county}</span>
+                      <span className={styles.countyBar} aria-hidden="true">
+                        <span style={{ width: `${Math.max(2, (row.count / maxCountyCount) * 100)}%` }} />
+                      </span>
+                    </span>
+                    <strong>{row.count.toLocaleString("en-KE")}</strong>
+                    <span className={styles.countyPostLabel}>posts</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+            {visibleCounties.length === 0 && <p className={styles.noCountyResults}>No county matches that search.</p>}
+            {county && <p className={styles.countySelection} role="status">Selected: <strong>{county}</strong> · {countyTotal === null ? "County total not verified" : `${countyTotal.toLocaleString("en-KE")} advertised ${levelNames[level]} posts`}</p>}
+          </>
+        )}
+        <p className={styles.countyFootnote}>
+          Source: published allocation breakdown, 11 November 2026.
+          These are advertised allocations, not live vacancies remaining, application counts, or subject-specific openings.
+          The 25 junior-school posts are excluded from the primary and secondary county rankings.
+          <a href={COUNTY_ALLOCATION_SOURCE} target="_blank" rel="noopener noreferrer">View source <ArrowUpRight size={13} aria-hidden="true" /></a>
+        </p>
+      </section>
 
       <section className={styles.next} aria-labelledby="next-heading">
         <div className={styles.nextText}>
