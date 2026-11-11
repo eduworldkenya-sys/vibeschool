@@ -1,4 +1,5 @@
 import type { Data, Learner } from '@/lib/class-workbook/model';
+import { isAssignedHomeworkOverdue } from '@/lib/homework/eligibility';
 export type Event = {id:string;student_id:string;subject_id:string|null;event_kind:string;note:string|null;due_at:string|null;resolved_at:string|null;created_at:string;created_by:string};
 export type Insight = {learner:Learner;attendance:number|null;missing:number;average:number|null;change:number|null;participation:number;followups:Event[];reasons:string[]};
 /** Compare only released assessments of the same type and subject. Absence is not zero. */
@@ -6,7 +7,7 @@ export function insights(data:Data,events:Event[],subjectId:string,today:string)
  return data.learners.map(learner=>{
   const att=data.attendance.filter(a=>a.student_id===learner.id&&a.timetable_slot_id===null);
   const subjectName=data.subjects.find(s=>s.id===subjectId)?.name;
-  const work=data.homework.filter(h=>(!subjectId||h.subject===subjectName)&&h.due_date&&h.due_date.slice(0,10)<today&&(!learner.joined_at||h.due_date.slice(0,10)>=learner.joined_at.slice(0,10))&&(!h.target_group_id||data.members.some(m=>m.group_id===h.target_group_id&&m.student_id===learner.id)));
+  const work=data.homework.filter(h=>(!subjectId||h.subject===subjectName)&&isAssignedHomeworkOverdue(h,learner.joined_at,today,h.target_group_id?data.members.find(m=>m.group_id===h.target_group_id&&m.student_id===learner.id)?.created_at:null));
   const missing=work.filter(h=>!data.submissions.some(s=>s.student_id===learner.id&&s.homework_id===h.id&&['submitted','received','marked','returned','resubmitted'].includes(s.status))).length;
   const scores=data.assessments.filter(a=>a.student_id===learner.id&&a.released_at&&a.percentage!==null&&Number.isFinite(a.percentage)&&(!subjectId||a.subject_id===subjectId)).sort((a,b)=>a.released_at!.localeCompare(b.released_at!)||a.assessment_id.localeCompare(b.assessment_id));
   const latest=scores.at(-1);const comparable=latest?scores.filter(a=>a.subject_id===latest.subject_id&&a.assessment_type===latest.assessment_type):[];

@@ -22,6 +22,7 @@ import LearnerRelatedRecords from "@/components/teacher/LearnerRelatedRecords";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
+import { isLearnerAssignedHomework } from "@/lib/homework/eligibility";
 import {
   listInterventionQueue,
   type InterventionQueueItem,
@@ -56,6 +57,8 @@ type HomeworkRow = {
   subject: string | null;
   due_date: string | null;
   type: string | null;
+  created_at: string | null;
+  target_group_id: string | null;
 };
 type SubmissionRow = {
   homework_id: string | null;
@@ -186,7 +189,7 @@ const learnerContextFields: Array<{
   {
     key: "responsibilities",
     label: "Additional responsibility notes",
-    help: "Optional teaching context. Manage actual duties and team positions in School life → Roles.",
+    help: "Optional teaching context. Manage actual duties and team positions in Activities and responsibilities → Roles.",
     placeholder: "e.g. Group leader; football team; library monitor",
   },
 ];
@@ -314,6 +317,8 @@ export default function TeacherStudentProgressPage() {
   const [student, setStudent] = useState<Student | null>(null);
   const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
   const [homework, setHomework] = useState<HomeworkRow[]>([]);
+  const [joinedAt, setJoinedAt] = useState<string | null>(null);
+  const [groupMemberships, setGroupMemberships] = useState<Record<string, string>>({});
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [gradebook, setGradebook] = useState<GradebookRow[]>([]);
   const [cbc, setCbc] = useState<CbcRow[]>([]);
@@ -394,7 +399,7 @@ export default function TeacherStudentProgressPage() {
 
       const enrollmentRes = await supabase
         .from("student_classes")
-        .select("student_id")
+        .select("student_id,joined_at")
         .eq("school_id", ctx.school_id)
         .eq("class_id", classId)
         .eq("student_id", studentId)
@@ -419,6 +424,7 @@ export default function TeacherStudentProgressPage() {
           "This learner identity could not be loaded. Retry instead of treating the enrolment as missing.",
         );
       setStudent(learner);
+      setJoinedAt(enrollmentRes.data.joined_at);
 
       const subjectIds = requestedSubjectId
         ? [requestedSubjectId]
@@ -451,7 +457,7 @@ export default function TeacherStudentProgressPage() {
           .limit(120),
         supabase
           .from("homework")
-          .select("id,title,subject,due_date,type")
+          .select("id,title,subject,due_date,type,created_at,target_group_id")
           .eq("school_id", ctx.school_id)
           .eq("class_id", classId)
           .eq("teacher_id", auth.user.id)
@@ -542,6 +548,12 @@ export default function TeacherStudentProgressPage() {
         if (result.error) throw result.error;
 
       const homeworkRows: HomeworkRow[] = homeworkRes.data ?? [];
+      const groupIds = [...new Set(homeworkRows.flatMap(row => row.target_group_id ? [row.target_group_id] : []))];
+      const membershipRes = groupIds.length
+        ? await supabase.from("class_group_members").select("group_id,created_at").eq("student_id", studentId).in("group_id", groupIds)
+        : { data: [], error: null };
+      if (membershipRes.error) throw membershipRes.error;
+      setGroupMemberships(Object.fromEntries((membershipRes.data ?? []).map(row => [row.group_id, row.created_at])));
       const submissionRes = homeworkRows.length
         ? await supabase
             .from("homework_submissions")
@@ -755,17 +767,21 @@ export default function TeacherStudentProgressPage() {
     () => new Map(submissions.map((item) => [item.homework_id, item])),
     [submissions],
   );
+  const assignedHomework = useMemo(
+    () => homework.filter(row => isLearnerAssignedHomework(row, joinedAt, row.target_group_id ? groupMemberships[row.target_group_id] : null)),
+    [homework, joinedAt, groupMemberships],
+  );
   const truth = useMemo(
     () =>
       buildLearnerTruthSummary({
         attendance,
-        homework,
+        homework: assignedHomework,
         submissions,
         assessments: gradebook,
         cbc,
         examCount: exams.length,
       }),
-    [attendance, homework, submissions, gradebook, cbc, exams.length],
+    [attendance, assignedHomework, submissions, gradebook, cbc, exams.length],
   );
 
   if (loading)
@@ -891,7 +907,7 @@ export default function TeacherStudentProgressPage() {
       title: item.is_late ? "Arrived late" : item.status,
       detail: "Attendance record",
     })),
-    ...homework.flatMap((item) => {
+    ...assignedHomework.flatMap((item) => {
       const submission = submissionMap.get(item.id);
       return submission?.submitted_at
         ? [
@@ -1050,9 +1066,9 @@ export default function TeacherStudentProgressPage() {
         onSupport={() => setPanel("support")}
       />
 
-      <section className={experience.schoolLife} aria-label="School life">
+      <section className={experience.schoolLife} aria-label="Activities and responsibilities">
         <div className={experience.sectionTitle}>
-          <h2>School life</h2>
+          <h2>Activities and responsibilities</h2>
           <button type="button" className={experience.viewAll} onClick={() => setPanel("all")}>View all</button>
         </div>
         <div>
@@ -1359,11 +1375,9 @@ export default function TeacherStudentProgressPage() {
                           : "Repeated support-level CBC evidence"}
                     </strong>
                     <div style={{ marginTop: 3 }}>{signal.reason}</div>
-                    <div style={{ marginTop: 6, fontSize: 11, opacity: 0.75 }}>
-                      {signal.evidenceCount} evidence record
-                      {signal.evidenceCount === 1 ? "" : "s"} ·{" "}
-                      {signal.confidence} confidence
-                    </div>
+                    <button type="button" onClick={() => setTab(signal.id === "missing_work" ? "work" : "assessment")} style={{ marginTop: 8, display: "block", border: "1px solid currentColor", borderRadius: 8, background: "transparent", color: "inherit", fontSize: 11, fontWeight: 750, padding: "6px 9px" }}>
+                      Review {signal.id === "missing_work" ? "assigned work" : "assessments"}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -1840,7 +1854,7 @@ export default function TeacherStudentProgressPage() {
 
       {tab === "work" && (
         <Card>
-          {homework.length === 0 ? (
+          {assignedHomework.length === 0 ? (
             <div
               style={{
                 padding: 22,
@@ -1848,11 +1862,11 @@ export default function TeacherStudentProgressPage() {
                 color: "var(--teacher-muted, #627168)",
               }}
             >
-              No homework assigned by you for this class yet.
+              No work assigned to this learner since enrolment.
             </div>
           ) : (
             <div style={{ display: "grid", gap: 9 }}>
-              {homework.map((item) => {
+              {assignedHomework.map((item) => {
                 const submission = submissionMap.get(item.id);
                 const overdue =
                   Boolean(item.due_date) &&
@@ -2294,7 +2308,7 @@ export default function TeacherStudentProgressPage() {
           )}
         </Card>
       )}
-      {panel && <LearnerDetailSheet title={panel === "all" ? "School life" : panel.charAt(0).toUpperCase() + panel.slice(1)} learnerName={student.name} busy={panelBusy || eventSaving}
+      {panel && <LearnerDetailSheet title={panel === "all" ? "Activities and responsibilities" : panel.charAt(0).toUpperCase() + panel.slice(1)} learnerName={student.name} busy={panelBusy || eventSaving}
         onClose={() => { setPanel(null); setEventMessage(""); }}>
         {panel === "all" && <>{(["groups", ...(!requestedSubjectId ? ["roles", "activities", "resources"] as const : []), "recognition", "notes"] as const).map(kind =>
           <button key={kind} type="button" onClick={() => setPanel(kind)}>{kind.charAt(0).toUpperCase() + kind.slice(1)}</button>)}</>}

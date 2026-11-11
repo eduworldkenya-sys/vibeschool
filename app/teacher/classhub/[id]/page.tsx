@@ -1,6 +1,7 @@
 "use client";
 import { rosterRows } from '@/lib/classroom/model'
 import { nairobiDateStr } from '@/lib/time'
+import { isAssignedHomeworkOverdue } from '@/lib/homework/eligibility'
 export const dynamic = "force-dynamic";
 import { Users, ClipboardCheck, Table2, School, TrendingUp, NotebookPen, CalendarDays, UsersRound, ClipboardList, Folder, Ruler, Bell, BookOpen, ArrowUpRight, Award } from 'lucide-react'
 import { C } from '@/components/teacher/ui'
@@ -20,6 +21,8 @@ interface ClassInfo {
   name:    string
   stream:  string | null
   subject: string
+  classRole: string
+  subjectsTaught: string
 }
 
 interface FormState {
@@ -70,36 +73,22 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 }
 
 const CLASS_ACTIONS = [
-  { id: 'workspace', label: 'Class workspace', icon: '🔎', bg: '#244c37', route: '' },
-  { id: 'workbook', label: 'Class sheets', icon: '▦', bg: '#244c37', route: '' },
-  { id: 'students',   label: 'Students',     icon: '👥', bg: C.dark,    route: '' },
-  { id: 'attendance', label: 'Attendance',   icon: '✅', bg: '#065f46', route: '/teacher/attendance' },
-  { id: 'history',    label: 'History',      icon: '📈', bg: '#047857', route: '' },
-  { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
-  { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
-  { id: 'timetable',  label: 'Timetable',    icon: '🗓️', bg: '#075985', route: '/teacher/timetable' },
-  { id: 'groups',     label: 'Groups',       icon: '🫂', bg: '#b45309', route: '' },
-  { id: 'activities', label: 'Activities', icon: '', bg: C.accent, route: '' },
-  { id: 'homework',   label: 'Homework',     icon: '📝', bg: '#0f766e', route: '' },
-  { id: 'projects',   label: 'Projects',     icon: '🛠️', bg: '#92400e', route: '' },
-  { id: 'exercises',  label: 'Exercises',    icon: '📐', bg: '#0369a1', route: '' },
+  { id: 'students', label: 'Learners', route: '' },
+  { id: 'attendance', label: 'Register', route: '/teacher/attendance' },
+  { id: 'homework', label: 'Classwork', route: '' },
+  { id: 'assessment', label: 'Assessment', route: '/teacher/assessment' },
+  { id: 'timetable', label: 'Timetable', route: '/teacher/timetable' },
+  { id: 'progress', label: 'Progress', route: '' },
+  { id: 'workbook', label: 'Class records', route: '' },
+  { id: 'more', label: 'More class tools', route: '' },
 ]
 
 const SUBJECT_ACTIONS = [
-  { id: 'workspace', label: 'Class workspace', icon: '🔎', bg: '#244c37', route: '' },
-  { id: 'workbook', label: 'Class sheets', icon: '▦', bg: '#244c37', route: '' },
-  { id: 'attendance', label: 'Attendance',   icon: '✅', bg: '#065f46', route: '/teacher/attendance' },
-  { id: 'history',    label: 'History',      icon: '📈', bg: '#047857', route: '' },
-  { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
-  { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
-  { id: 'scheme',     label: 'Scheme',       icon: '📋', bg: '#0f4c75', route: '/teacher/scheme' },
-  { id: 'timetable',  label: 'Timetable',    icon: '🗓️', bg: '#075985', route: '/teacher/timetable' },
-  { id: 'groups',     label: 'Groups',       icon: '🫂', bg: '#b45309', route: '' },
-  { id: 'projects',   label: 'Projects',     icon: '🛠️', bg: '#92400e', route: '' },
-  { id: 'exercises',  label: 'Exercises',    icon: '📐', bg: '#0369a1', route: '' },
+  ...CLASS_ACTIONS.filter(action => action.id !== 'students'),
+  { id: 'scheme', label: 'Scheme of work', route: '/teacher/scheme' },
 ]
 
-const actionIcons = { workspace: School, workbook: Table2, students: Users, attendance: ClipboardCheck, history: TrendingUp, lessonplan: NotebookPen, assessment: ClipboardList, timetable: CalendarDays, groups: UsersRound, activities: Award, homework: NotebookPen, projects: Folder, exercises: Ruler, scheme: BookOpen }
+const actionIcons = { workspace: School, workbook: Table2, students: Users, attendance: ClipboardCheck, history: TrendingUp, lessonplan: NotebookPen, assessment: ClipboardList, timetable: CalendarDays, groups: UsersRound, activities: Award, homework: NotebookPen, projects: Folder, exercises: Ruler, scheme: BookOpen, progress: TrendingUp, more: UsersRound }
 
 function ClassPageInner() {
   const router       = useRouter()
@@ -113,6 +102,7 @@ function ClassPageInner() {
   const [classInfo,      setClassInfo]      = useState<ClassInfo | null>(null)
   const [students,       setStudents]       = useState<Student[]>([])
   const [loading,        setLoading]        = useState(true)
+  const [moreToolsOpen, setMoreToolsOpen] = useState(false)
   const [showRoster,     setShowRoster]     = useState(false)
   const rosterRef = useRef<HTMLDivElement | null>(null)
   const [addedLearnerId, setAddedLearnerId] = useState<string | null>(null)
@@ -162,6 +152,8 @@ function ClassPageInner() {
       name: activeAssignment.class_name,
       stream: activeAssignment.stream,
       subject: isSubject ? activeAssignment.subject_name : 'Class overview',
+      classRole: assignments.some(item => item.is_class_teacher) ? 'Class teacher' : 'Subject teacher',
+      subjectsTaught: Array.from(new Set(assignments.map(item => item.subject_name))).join(', '),
     })
 
     let assessmentQuery = supabase
@@ -172,7 +164,7 @@ function ClassPageInner() {
     if (isSubject && subjectId) assessmentQuery = assessmentQuery.eq('subject_id', subjectId)
 
     const [enrollmentRes, requestsRes, attRes, assessRes, grpRes] = await Promise.all([
-      supabase.from('student_classes').select('student_id').eq('school_id', activeSchoolId).eq('class_id', classId).eq('is_current', true),
+      supabase.from('student_classes').select('student_id,joined_at').eq('school_id', activeSchoolId).eq('class_id', classId).eq('is_current', true),
       supabase.from('class_join_requests').select('id').eq('class_id', classId).eq('status', 'pending'),
       supabase.from('attendance').select('student_id,status').eq('school_id', activeSchoolId).eq('class_id', classId).eq('date', nairobiDateStr()).is('timetable_slot_id', null),
       assessmentQuery,
@@ -185,6 +177,7 @@ function ClassPageInner() {
       return []
     }
 
+    const enrollmentDates = new Map((enrollmentRes.data ?? []).map((row: { student_id: string; joined_at: string | null }) => [row.student_id, row.joined_at]))
     const studentIds = Array.from(new Set((enrollmentRes.data ?? []).map((row: { student_id: string }) => row.student_id)))
     let loadedStudents: Student[] = []
     if (studentIds.length > 0) {
@@ -232,7 +225,7 @@ function ClassPageInner() {
 
     const overdueHomeworkRes = await supabase
       .from('homework')
-      .select('id,title,target_group_id')
+      .select('id,title,target_group_id,created_at,due_date')
       .eq('school_id', activeSchoolId)
       .eq('class_id', classId)
       .eq('teacher_id', user.id)
@@ -243,9 +236,15 @@ function ClassPageInner() {
       : { data: [] }
     const submittedPairs = new Set((overdueSubmissionsRes.data ?? []).flatMap(row => row.homework_id && row.student_id ? [row.homework_id + ':' + row.student_id] : []))
     const targetIds = [...new Set((overdueHomeworkRes.data ?? []).flatMap(h => h.target_group_id ? [h.target_group_id] : []))]
-    const targetMembers = targetIds.length ? await supabase.from('class_group_members').select('group_id,student_id').in('group_id', targetIds) : { data: [], error: null }
+    const targetMembers = targetIds.length ? await supabase.from('class_group_members').select('group_id,student_id,created_at').in('group_id', targetIds) : { data: [], error: null }
     const missingWork = overdueHomeworkRes.error || ('error' in overdueSubmissionsRes && overdueSubmissionsRes.error) || targetMembers.error ? [] : loadedStudents.flatMap(student => {
-      const count = (overdueHomeworkRes.data ?? []).filter(h => (!h.target_group_id || (targetMembers.data ?? []).some(m => m.group_id === h.target_group_id && m.student_id === student.id)) && !submittedPairs.has(h.id + ':' + student.id)).length
+      const count = (overdueHomeworkRes.data ?? []).filter(h => {
+        const membership = h.target_group_id
+          ? (targetMembers.data ?? []).find(m => m.group_id === h.target_group_id && m.student_id === student.id)
+          : null
+        return isAssignedHomeworkOverdue(h, enrollmentDates.get(student.id), nairobiDateStr(), membership?.created_at) &&
+          !submittedPairs.has(h.id + ':' + student.id)
+      }).length
       return count > 0 ? [{ student_id: student.id, reason: `${count} overdue task${count === 1 ? '' : 's'} without a submission`, kind: 'work' as const }] : []
     })
 
@@ -444,6 +443,7 @@ function ClassPageInner() {
 
   function handleAction(a: { id: string; route: string }) {
     if (a.id === 'students') { openStudentRoster(); return }
+    if (a.id === 'more') { setMoreToolsOpen(open => !open); return }
     let route = a.route
     if (a.id === 'workbook') route = `/teacher/classhub/${classId}/workbook`
     if (a.id === 'workspace') route = `/teacher/classhub/${classId}/workspace`
@@ -453,6 +453,7 @@ function ClassPageInner() {
     if (a.id === 'projects') route = `/teacher/classhub/${classId}/projects`
     if (a.id === 'exercises') route = `/teacher/classhub/${classId}/exercises`
     if (a.id === 'history') route = `/teacher/classhub/${classId}/attendance-history`
+    if (a.id === 'progress') route = `/teacher/classhub/${classId}/progress`
     const r = buildRoute(route)
     if (r) router.push(r)
   }
@@ -525,13 +526,23 @@ function ClassPageInner() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}><Skeleton h={28} w="60%" /><Skeleton h={14} w="40%" /><div style={{ display: 'flex', gap: 8, marginTop: 8 }}><Skeleton h={36} w="30%" /><Skeleton h={36} w="30%" /><Skeleton h={36} w="30%" /></div></div>
         ) : (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}><div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{isSubject ? <BookOpen size={25}/> : <School size={25}/>}</div><div><h1 style={{ fontSize: 22, fontWeight: 750, color: C.textPrimary, margin: 0, lineHeight: 1.2 }}>{isSubject ? classInfo?.subject : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}</h1><p style={{ fontSize: 13, color: C.textMuted, margin: '3px 0 0' }}>{isSubject ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : '')) : classInfo?.subject}</p></div></div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>{[{ label: 'Students', value: students.length },{ label: 'Claimed', value: students.filter(s => s.profile_id).length },{ label: 'Avg Score', value: avgScore }].map(s => s.label === 'Students' ? <button key={s.label} type="button" aria-label={`View ${students.length} students in this class`} onClick={openStudentRoster} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid '+C.border, cursor: 'pointer', minHeight: 48 }}><div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label} ↓</div></button> : <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div></div>)}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}><div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{isSubject ? <BookOpen size={25}/> : <School size={25}/>}</div><div><h1 style={{ fontSize: 22, fontWeight: 750, color: C.textPrimary, margin: 0, lineHeight: 1.2 }}>{isSubject ? classInfo?.subject : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}</h1><p style={{ fontSize: 13, color: C.textMuted, margin: '3px 0 0' }}>{isSubject ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : '')) : classInfo?.subject}</p>
+            <p style={{ fontSize: 11, color: C.textMuted, margin: '3px 0 0' }}>Class role: {classInfo?.classRole} · Subjects taught: {classInfo?.subjectsTaught}</p></div></div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>{[{ label: 'Students', value: students.length },{ label: 'Accounts linked', value: students.filter(s => s.profile_id).length },{ label: 'Avg Score', value: avgScore }].map(s => s.label === 'Students' ? <button key={s.label} type="button" aria-label={`View ${students.length} students in this class`} onClick={openStudentRoster} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid '+C.border, cursor: 'pointer', minHeight: 48 }}><div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label} ↓</div></button> : <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div></div>)}</div>
           </>
         )}
       </div>
 
       <section className="studio-class-tools studio-tools"><h2>{isSubject ? 'Subject tools' : 'Class tools'}</h2><div className="studio-class-tool-grid">{actions.map(a => {const Icon=actionIcons[a.id as keyof typeof actionIcons];return <button key={a.id} type="button" onClick={() => handleAction(a)} className="studio-tools__tile"><Icon size={25} aria-hidden="true"/><strong>{a.label}</strong><ArrowUpRight className="studio-arrow" aria-hidden="true"/></button>})}</div></section>
+
+      {moreToolsOpen && <nav aria-label="More class tools" style={{ margin: '10px 16px', padding: 12, background: '#fff', borderRadius: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {[
+          { label: 'Learner groups', url: `/teacher/classhub/${classId}/groups` },
+          { label: 'Activities and responsibilities', url: `/teacher/classhub/${classId}/activities` },
+          { label: 'Class duties and books', url: `/teacher/classhub/${classId}/operations` },
+          { label: 'Attendance history', url: `/teacher/classhub/${classId}/attendance-history` },
+        ].map(item => <button type="button" key={item.url} onClick={() => router.push(item.url)} style={{ minHeight: 40, border: '1px solid #d1d5db', borderRadius: 10, background: '#fff', padding: '6px 10px', fontSize: 12, fontWeight: 750 }}>{item.label}</button>)}
+      </nav>}
 
       {(isSubject || showRoster) && (
         <div ref={rosterRef} style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', animation: 'slideDown 0.2s ease', scrollMarginTop: 96 }}>
@@ -586,7 +597,7 @@ function ClassPageInner() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 40, height: 40, borderRadius: '50%', background: claimed ? C.accentLight : '#ede9fe', display: 'grid', placeItems: 'center', fontWeight: 800, color: claimed ? '#065f46' : C.dark }}>{student.name.charAt(0).toUpperCase()}</div>
-                        <div><div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{student.name}</div><div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3 }}>{student.admission_number && <span style={{ fontSize: 11, color: C.textMuted }}>{student.admission_number}</span>}{studentGroups[student.id] && <span style={{ fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: studentGroups[student.id].color + '22', color: studentGroups[student.id].color }}>{studentGroups[student.id].name}</span>}<span style={{ fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: claimed ? C.accentLight : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>{claimed ? 'Claimed' : 'Unclaimed'}</span></div></div>
+                        <div><div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{student.name}</div><div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3 }}>{student.admission_number && <span style={{ fontSize: 11, color: C.textMuted }}>{student.admission_number}</span>}{studentGroups[student.id] && <span style={{ fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: studentGroups[student.id].color + '22', color: studentGroups[student.id].color }}>{studentGroups[student.id].name}</span>}<span style={{ fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: claimed ? C.accentLight : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>{claimed ? 'Learner account linked' : 'Account not linked'}</span></div></div>
                       </div><span>›</span>
                     </div>
                   </button>
@@ -600,13 +611,13 @@ function ClassPageInner() {
         </div>
       )}
 
-      <div style={{margin:'14px 16px',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:8}}><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/workbook${subjectId ? `?subjectId=${encodeURIComponent(subjectId)}` : ''}`)} style={{width:'100%',padding:14,borderRadius:14,border:0,background:C.accent,color:'white',fontWeight:800,fontSize:14}}>Class workbook</button><button type="button" aria-label="Run the class — duties & books" onClick={() => router.push(`/teacher/classhub/${classId}/operations`)} style={{width:'100%',padding:14,borderRadius:14,border:0,background:C.dark,color:'white',fontWeight:800,fontSize:14}}>Class duties & books</button></div>
+      <div style={{margin:'14px 16px',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:8}}><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/workbook${subjectId ? `?subjectId=${encodeURIComponent(subjectId)}` : ''}`)} style={{width:'100%',padding:14,borderRadius:14,border:0,background:C.accent,color:'white',fontWeight:800,fontSize:14}}>Class records</button><button type="button" aria-label="Run the class — duties & books" onClick={() => router.push(`/teacher/classhub/${classId}/operations`)} style={{width:'100%',padding:14,borderRadius:14,border:0,background:C.dark,color:'white',fontWeight:800,fontSize:14}}>Activities & responsibilities</button></div>
 
       {!isSubject && !showRoster && <div style={{ margin:'14px 16px 0' }}><button onClick={openStudentRoster} style={{ width:'100%',padding:'13px',borderRadius:14,border:'1.5px dashed #d1d5db',background:'transparent',color:C.textMuted,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>👥 View Student Roster ({students.length})</button></div>}
 
       <div style={{ margin:'14px 16px 0', background:'#fff', borderRadius:20, padding:16, boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-          <div><p style={{ fontSize:11, fontWeight:800, color:C.textMuted, letterSpacing:1.4, textTransform:'uppercase', margin:0 }}>Needs attention</p><p style={{ fontSize:11, color:C.textMuted, margin:'3px 0 0' }}>Evidence-backed items from attendance, work and follow-ups</p></div>
+          <div><p style={{ fontSize:11, fontWeight:800, color:C.textMuted, letterSpacing:1.4, textTransform:'uppercase', margin:0 }}>Needs attention</p><p style={{ fontSize:11, color:C.textMuted, margin:'3px 0 0' }}>Check attendance, outstanding work and follow-ups</p></div>
           {attentionItems.length > 0 && <span style={{ minWidth:28, height:28, borderRadius:20, background:'#fef3c7', color:'#92400e', display:'grid', placeItems:'center', fontWeight:750 }}>{attentionItems.length}</span>}
         </div>
         {students.length === 0 ? <div style={{ padding:'14px 0', color:C.textMuted, textAlign:'center' }}>Add learners to start building the class picture.</div> :

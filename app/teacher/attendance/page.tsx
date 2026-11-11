@@ -134,6 +134,7 @@ function AttendancePageInner() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [savedMessage, setSavedMessage] = useState("Register submitted.");
 
   const classOptions = useMemo<ClassOption[]>(() => {
     const map = new Map<string, ClassOption>();
@@ -380,7 +381,7 @@ function AttendancePageInner() {
     setSaved(false);
   }
 
-  async function saveRegister() {
+  async function saveRegister(allowIncomplete = false) {
     const classId = mode === "lesson" ? activeSlot?.classId : activeClassId;
     if (!context?.school_id || !classId || students.length === 0 || saving) return;
     if (mode === "lesson" && (!activeSlot || !occurrenceId)) {
@@ -388,15 +389,19 @@ function AttendancePageInner() {
       return;
     }
     const unmarked = students.filter((student) => (statuses[student.id] ?? "unmarked") === "unmarked");
-    if (unmarked.length > 0) {
-      setError(`Mark all ${unmarked.length} remaining learner${unmarked.length === 1 ? "" : "s"} before saving.`);
+    if (unmarked.length > 0 && !allowIncomplete) {
+      setError(`Mark all ${unmarked.length} remaining learner${unmarked.length === 1 ? "" : "s"} before submitting the register.`);
+      return;
+    }
+    if (unmarked.length === students.length) {
+      setError("Mark at least one learner to save progress.");
       return;
     }
     setSaving(true);
     setError(null);
     setSaved(false);
     try {
-      const rows = students.map((student) => {
+      const rows = students.filter(student => (statuses[student.id] ?? "unmarked") !== "unmarked").map((student) => {
         const value = statuses[student.id] as AttendanceStatus;
         return {
           student_id: student.id,
@@ -413,10 +418,14 @@ function AttendancePageInner() {
       });
       const { error: saveError } = await supabase.rpc("upsert_attendance_batch", { p_rows: rows });
       if (saveError) throw saveError;
-      clearDraft(storageKey);
+      if (unmarked.length === 0) clearDraft(storageKey);
+      else saveDraft(storageKey, statuses);
+      setSavedMessage(unmarked.length > 0
+        ? `Saved ${students.length - unmarked.length} marked learner${students.length - unmarked.length === 1 ? "" : "s"}. ${unmarked.length} remaining — register not yet complete.`
+        : "Register submitted.");
       setSaved(true);
       refreshPulse("attendance");
-      if (mode === "lesson" && activeSlot) {
+      if (unmarked.length === 0 && mode === "lesson" && activeSlot) {
         const subjectId = activeSlot.subjectId || urlSubjectId || "";
         router.push(`/teacher/lessonplan?timetableSlotId=${encodeURIComponent(activeSlot.id)}&date=${encodeURIComponent(selectedDate)}&subjectId=${encodeURIComponent(subjectId)}&classId=${encodeURIComponent(activeSlot.classId)}`);
       }
@@ -483,7 +492,7 @@ function AttendancePageInner() {
       </section>
 
       {error && <div role="alert" style={{ borderRadius: 14, background: "#fef2f2", color: "#991b1b", padding: 13, marginBottom: 12, fontSize: 13, lineHeight: 1.45 }}>{error}</div>}
-      {saved && <div role="status" style={{ borderRadius: 14, background: "#ecfdf5", color: "#065f46", padding: 13, marginBottom: 12, fontSize: 13, fontWeight: 800 }}>Attendance saved.</div>}
+      {saved && <div role="status" style={{ borderRadius: 14, background: "#ecfdf5", color: "#065f46", padding: 13, marginBottom: 12, fontSize: 13, fontWeight: 800 }}>{savedMessage}</div>}
 
       {context?.state === "needs_school" ? (
         <section style={{ background: "#fff", borderRadius: 18, padding: 24, textAlign: "center" }}><strong>School connection needed</strong><p style={{ color: "var(--teacher-muted, #627168)", fontSize: 13 }}>Connect your school before taking attendance.</p><button type="button" onClick={() => router.push("/teacher/onboarding/school")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "var(--teacher-ink, #1c2923)", color: "#fff", padding: "0 16px", fontWeight: 750 }}>Connect school</button></section>
@@ -536,7 +545,10 @@ function AttendancePageInner() {
                     </div>
                   ))}
                 </div>
-                <button type="button" onClick={() => void saveRegister()} disabled={saving || unmarkedCount > 0} style={{ width: "100%", minHeight: 50, marginTop: 14, border: 0, borderRadius: 13, background: saving || unmarkedCount > 0 ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 750, fontSize: 14 }}>{saving ? "Saving…" : unmarkedCount > 0 ? `Mark ${unmarkedCount} remaining` : "Save attendance"}</button>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 8, marginTop: 14 }}>
+                  <button type="button" onClick={() => void saveRegister(true)} disabled={saving || unmarkedCount === students.length} style={{ minHeight: 50, border: "1px solid #0f766e", borderRadius: 13, background: "#ecfdf5", color: "#065f46", fontWeight: 750, fontSize: 14 }}>Save progress</button>
+                  <button type="button" onClick={() => void saveRegister(false)} disabled={saving || unmarkedCount > 0} style={{ minHeight: 50, border: 0, borderRadius: 13, background: saving || unmarkedCount > 0 ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 750, fontSize: 14 }}>{saving ? "Saving…" : unmarkedCount > 0 ? `Mark ${unmarkedCount} remaining` : "Submit register"}</button>
+                </div>
               </>
             )}
           </section>
