@@ -31,7 +31,7 @@ assert.ok(subjectHub.includes('onOpenSchemeUnit={(unitId) => {'), 'Subject Hub m
 assert.ok(subjectHub.includes("router.push('/teacher/scheme?' + params.toString())"), 'Subject Hub must preserve class and subject context in the Scheme link')
 assert.ok(mapPage.includes("unitId:searchParams.get('unitId')"), 'Scheme must restore the selected curriculum unit')
 assert.ok(mapPage.includes("if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId)"), 'Selected unit must survive week selection')
-assert.ok(mapPage.includes('creativeDraftRecord?.outcomes||[]'), 'Teacher must select persisted outcome records')
+assert.ok(mapPage.includes('mappedDraftRecord?.outcomes||[]'), 'Teacher must select persisted outcome records')
 assert.ok(mapPage.includes("supabase.rpc('commit_mapped_scheme_lesson'"), 'Mapped lesson must call the atomic identity-checked server function')
 assert.ok(migration.includes('v_scheme:=public.commit_custom_scheme_item('), 'Mapped RPC must reuse teacher assignment/calendar/ordering authority')
 assert.ok(migration.includes('security invoker'), 'Mapped RPC must retain invoker security and RLS')
@@ -59,4 +59,5 @@ assert.ok(subjectHub.includes("'/teacher/curriculum?classId='"), 'Full curriculu
 assert.ok(subjectHub.includes("'&subjectId='"), 'Full curriculum link must pass the actual subject identity')
 assert.ok(!reader.includes("supabase.from("), 'Annual reference reader must not insert duplicate canonical records')
 console.log('Grade 1 Creative Activities native curriculum and teacher subject mapping: PASS')
+
 await import('./test-grade1-creative-auto-scheme.mjs')

@@ -32,7 +32,7 @@ for (const token of [
 ]) assert.ok(reader.includes(token), 'Missing read-only curriculum element: ' + token)
 
 assert.ok(curriculum.includes('isGrade1Mathematics'), 'Curriculum route must resolve Grade 1 Mathematics')
-assert.ok(curriculum.includes('<Grade1MathematicsMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId} />'), 'Curriculum must render the Mathematics map')
+assert.ok(curriculum.includes('<Grade1MathematicsMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}') && curriculum.includes('mappedUnits={grade1ReaderCatalog}'), 'Curriculum must render the Mathematics map')
 assert.ok(subject.includes('grade1MathematicsClass'), 'Subject Hub must verify an assigned Grade 1 class')
 assert.ok(subject.includes('<Grade1MathematicsMap compact selectedUnitId={grade1MathematicsUnitId} onSelectUnit={setGrade1MathematicsUnitId} />'), 'Subject Hub must render the same map')
 assert.ok(curriculum.includes('commit_curriculum_scheme'), 'Preserve the canonical Scheme engine')
