@@ -179,7 +179,7 @@ function HomeworkInner() {
       if (sourceOccurrenceId) {
         const { data: occurrence, error: occurrenceError } = await supabase
           .from("teaching_occurrences")
-          .select("id,school_id,class_id,subject_id,teacher_id,occurrence_date,timetable_slots(start_time,end_time),subjects(name)")
+          .select("id,school_id,class_id,subject_id,teacher_id,occurrence_date,timetable_slots:timetable_slots!teaching_occurrences_timetable_slot_id_fkey(start_time,end_time),subjects(name)")
           .eq("id", sourceOccurrenceId)
           .eq("teacher_id", auth.user.id)
           .eq("school_id", ctx.school_id)

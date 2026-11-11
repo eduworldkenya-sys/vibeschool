@@ -34,7 +34,7 @@ export default function WeeklyLessonSlots({week,allocation,lessons,label,curricu
             <span className="studio-weekly-slot-number">Lesson {i+1}</span>
             {item?<div className="studio-weekly-slot-copy">
               {!compact&&<strong>{item.topic||'Untitled lesson'}</strong>}
-              <span>{item.status==='done'?'Taught':item.status==='teaching'?'In progress':item.status==='cancelled'?'Cancelled':'Planned'}{!compact&&` · ${(item.curriculum_id||item.sub_strand_id||item.curriculum_outcome_id)?'Curriculum record linked; KICD alignment unverified':'Teacher-created; no curriculum link'}`}</span>
+              <span>{item.status==='done'?'Taught':item.status==='teaching'?'In progress':item.status==='cancelled'?'Cancelled':'Planned'}{!compact&&` · ${(item.curriculum_id||item.sub_strand_id||item.curriculum_outcome_id)?'Curriculum record linked':'Teacher-created; no curriculum link'}`}</span>
             </div>:<span className="studio-weekly-slot-missing">Not planned yet</span>}
           </div>
         })}
