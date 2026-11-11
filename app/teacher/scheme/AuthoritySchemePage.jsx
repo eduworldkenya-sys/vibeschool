@@ -8,7 +8,7 @@ import Grade1EnglishMap, { GRADE1_ENGLISH_STRANDS, GRADE1_ENGLISH_UNITS } from '
 import WeeklyLessonSlots from '@/components/teacher/scheme/WeeklyLessonSlots'
 
 import AutoCreativeScheme from '@/components/teacher/scheme/AutoCreativeScheme'
-import { buildCreativeAnnualSchemeDraft, termCreativeSchemeRows } from '@/lib/teaching/creativeSchemeDraft.mjs'
+import { buildCreativeAnnualSchemeDraft, buildGrade1AnnualSchemeDraft, termCreativeSchemeRows } from '@/lib/teaching/creativeSchemeDraft.mjs'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
@@ -123,6 +123,8 @@ function Inner({ curriculumView = false }) {
   const creativeDraftStrand = creativeDraftUnit ? GRADE1_CREATIVE_STRANDS.find(strand=>strand.id===creativeDraftUnit.strand)?.title : null
   const creativeDraftRecord = creativeDraftUnit ? creativeCatalog[creativeDraftUnit.id] : null
   const isGrade1Reader = isGrade1Mathematics || isGrade1English
+  const isGrade1AutoScheme = isGrade1Creative || isGrade1Reader
+  const autoLearningArea = isGrade1Creative ? 'Creative Activities' : isGrade1Mathematics ? 'Mathematics' : 'English'
   const readerUnits = isGrade1Mathematics ? GRADE1_MATHEMATICS_UNITS : GRADE1_ENGLISH_UNITS
   const readerStrands = isGrade1Mathematics ? GRADE1_MATHEMATICS_STRANDS : GRADE1_ENGLISH_STRANDS
   const readerPrefix = isGrade1Mathematics ? 'VS-CUR-G01-MA-2026' : 'VS-CUR-G01-EN-2026'
@@ -136,11 +138,14 @@ function Inner({ curriculumView = false }) {
   const mappedCatalogError = isGrade1Creative ? creativeCatalogError : grade1ReaderCatalogError
   const annualTerms = useMemo(()=>terms.filter(term=>Number(term.academic_year)===Number(termObj?.academic_year)),[terms,termObj?.academic_year])
   const annualDraft = useMemo(()=>{
-    if(!isGrade1Creative||curriculumView||annualCalendarYear!==termObj?.academic_year)return null
-    return buildCreativeAnnualSchemeDraft({
-      units:GRADE1_CREATIVE_UNITS,terms:annualTerms,termWeeks:annualTermWeeks,weeklyAllocation:weeklyTarget
-    })
-  },[isGrade1Creative,curriculumView,annualCalendarYear,termObj?.academic_year,annualTerms,annualTermWeeks,weeklyTarget])
+    if(!isGrade1AutoScheme||curriculumView||annualCalendarYear!==termObj?.academic_year)return null
+    const shared = {terms:annualTerms,termWeeks:annualTermWeeks,weeklyAllocation:weeklyTarget}
+    // The same teacher-safe, read-only preview engine serves all three Grade 1 areas.
+    // Do not create a second scheme engine or write any draft rows on page open.
+    return isGrade1Creative
+      ? buildCreativeAnnualSchemeDraft({...shared,units:GRADE1_CREATIVE_UNITS})
+      : buildGrade1AnnualSchemeDraft({...shared,units:readerUnits,expectedUnitCount:readerUnits.length})
+  },[isGrade1AutoScheme,isGrade1Creative,readerUnits,curriculumView,annualCalendarYear,termObj?.academic_year,annualTerms,annualTermWeeks,weeklyTarget])
   const autoWeekSuggestions = useMemo(()=>termCreativeSchemeRows(annualDraft,selectedTermId).filter(item=>item.week===selectedWeek),[annualDraft,selectedTermId,selectedWeek])
   useEffect(()=>{
     let live=true
@@ -249,7 +254,7 @@ function Inner({ curriculumView = false }) {
 
   useEffect(()=>{
     let live=true
-    if(!schoolId||!termObj||!isGrade1Creative||curriculumView){
+    if(!schoolId||!termObj||!isGrade1AutoScheme||curriculumView){
       setAnnualCalendarYear(null);setAnnualTermWeeks([]);setAnnualCalendarLoading(false);setAnnualCalendarError('')
       return
     }
@@ -269,7 +274,7 @@ function Inner({ curriculumView = false }) {
       finally{if(live)setAnnualCalendarLoading(false)}
     })()
     return()=>{live=false}
-  },[schoolId,termObj?.academic_year,isGrade1Creative,curriculumView,terms])
+  },[schoolId,termObj?.academic_year,isGrade1AutoScheme,curriculumView,terms])
 
   const ordered = useMemo(()=>schemeItems.slice().sort((a,b)=>(a.sequence_number||999999)-(b.sequence_number||999999)||(a.lesson_number||999999)-(b.lesson_number||999999)||a.id.localeCompare(b.id)),[schemeItems])
   const selectedWeekItems = useMemo(()=>ordered.filter(x=>x.week===selectedWeek),[ordered,selectedWeek])
@@ -462,7 +467,7 @@ function Inner({ curriculumView = false }) {
     finally{setAdding(false)}
   }
   async function saveAndPrepareAutoDraft(item){
-    if(!item?.subStrandId||!item?.outcomeId||!selectedClass||!selectedSubject||!selectedTermId){
+    if(!item?.subStrandId||!Array.isArray(item.outcomeIds)||!item.outcomeIds.length||!selectedClass||!selectedSubject||!selectedTermId){
       setError('Linked curriculum records or teacher context are unavailable.')
       return
     }
@@ -471,7 +476,7 @@ function Inner({ curriculumView = false }) {
       const result=await supabase.rpc('commit_mapped_scheme_lesson',{
         p_class_id:selectedClass,p_subject_id:selectedSubject,
         p_academic_term_id:selectedTermId,p_week:item.week,
-        p_sub_strand_id:item.subStrandId,p_outcome_ids:[item.outcomeId]
+        p_sub_strand_id:item.subStrandId,p_outcome_ids:item.outcomeIds
       })
       if(result.error)throw new Error(commitError(result.error.message))
       const saved=Array.isArray(result.data)?result.data[0]:result.data
@@ -503,10 +508,11 @@ function Inner({ curriculumView = false }) {
       {!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
     </div>
 
-    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isGrade1Creative?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
-    {!curriculumView && isGrade1Creative && <AutoCreativeScheme
+    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isGrade1AutoScheme?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
+    {!curriculumView && isGrade1AutoScheme && <AutoCreativeScheme
       draft={annualDraft} termId={selectedTermId} week={selectedWeek}
-      savedLessons={ordered} catalog={creativeCatalog}
+      savedLessons={ordered} catalog={isGrade1Creative?creativeCatalog:grade1ReaderCatalog}
+      learningArea={autoLearningArea}
       onWeekChange={setSelectedWeek}
       onSaveAndPrepare={item=>void saveAndPrepareAutoDraft(item)}
       onViewUnit={unitId=>{
@@ -514,8 +520,8 @@ function Inner({ curriculumView = false }) {
         router.push('/teacher/curriculum?'+p.toString())
       }}
       savingKey={autoSavingKey}
-      loading={annualCalendarLoading||creativeCatalogLoading}
-      error={annualCalendarError||creativeCatalogError}
+      loading={annualCalendarLoading||mappedCatalogLoading}
+      error={annualCalendarError||mappedCatalogError}
     />}
     {curriculumView && isGrade1Creative && <Grade1CreativeActivitiesMap selectedUnitId={initial.current.unitId||'1.1'} mappedUnits={creativeCatalog} catalogLoading={creativeCatalogLoading} catalogError={creativeCatalogError} onPlanUnit={selectedClass&&selectedSubject&&selectedTermId ? unitId=>{
       const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId})
