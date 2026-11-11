@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { includeGradeOneJumpingAsset } from '@/lib/teaching/jumpingContentSelection'
 import type { Json } from '@/lib/database.types'
 import type { LessonContext } from '@/lib/teaching/lessonContext'
 import type { LessonSourceSuggestion } from '@/lib/teaching/lessonSource'
@@ -118,9 +119,53 @@ async function loadExplicitSchemeResources(
     .map(({ sequence: _sequence, ...resource }) => resource)
 }
 
+/**
+ * Generic Scheme -> canonical resource links are the source authority for
+ * VibeSchool-original materials. The old publication-specific links remain
+ * a compatibility path, but they cannot carry these original lesson units.
+ */
+async function loadGenericSchemeResources(
+  schemeId: string,
+  lessonNumber: number | null,
+): Promise<ResourceCandidate[]> {
+  const {data, error} = await supabase.rpc('list_teaching_resources', {
+    p_target_type: 'scheme_lesson', p_target_id: schemeId,
+  })
+  if (error) throw error
+  const payload = data as {ok?:boolean;resources?:Array<{
+    resource_id?:string;sequence?:number
+  }>} | null
+  if (!payload?.ok) return []
+  const links = (payload.resources ?? []).filter(item => Boolean(item.resource_id))
+  const ids = Array.from(new Set(links.map(item => item.resource_id).filter((id): id is string => typeof id==='string')))
+  if (ids.length === 0) return []
+
+  const {data: roots,error: rootsError} = await supabase.from('learning_resources')
+    .select('*')
+    .in('id',ids).eq('status','active')
+  if (rootsError) throw rootsError
+
+  const rootsById = new Map((roots ?? []).map(root => [root.id,root]))
+  return links.flatMap(link => {
+    const root = link.resource_id ? rootsById.get(link.resource_id) : null
+    if (!root) return []
+    if (!includeGradeOneJumpingAsset(root.canonical_key,lessonNumber)) return []
+    const candidate: ResourceCandidate = {
+      id:root.id,title:root.title,
+      asset_kind:'asset_kind' in root && typeof root.asset_kind==='string' ? root.asset_kind : null,
+      purpose:'purpose' in root && typeof root.purpose==='string' ? root.purpose : null,
+    }
+    return isTeachingContentCandidate(candidate) ? [{
+      ...candidate,sequence:link.sequence ?? 0,
+    }] : []
+  }).sort((a,b)=>a.sequence-b.sequence || a.id.localeCompare(b.id))
+    .map(({sequence:_sequence,...resource})=>resource)
+}
+
 async function queryCurriculumCandidates(
   column: 'curriculum_id' | 'sub_strand_id',
   id: string,
+  lessonNumber: number | null,
 ): Promise<ResourceCandidate[]> {
   const { data, error } = await supabase
     .from('learning_resources')
@@ -128,7 +173,7 @@ async function queryCurriculumCandidates(
     .eq('status', 'active')
     .eq(column, id)
     .order('id', { ascending: true })
-    .limit(25)
+    .limit(100)
 
   if (error) throw error
 
@@ -154,6 +199,14 @@ async function queryCurriculumCandidates(
       }
     })
     .filter(isTeachingContentCandidate)
+    .filter(resource => {
+      const original = (data ?? []).find(row => row.id === resource.id)
+      return includeGradeOneJumpingAsset(
+        typeof original?.canonical_key==='string' ? original.canonical_key : null,
+        lessonNumber,
+      )
+    })
+    .slice(0,25)
 }
 
 /**
@@ -169,12 +222,13 @@ async function loadCurriculumResourceCandidates(
     const subStrandResources = await queryCurriculumCandidates(
       'sub_strand_id',
       source.strandId,
+      source.lessonNumber,
     )
     if (subStrandResources.length > 0) return subStrandResources
   }
 
   if (source.id) {
-    return queryCurriculumCandidates('curriculum_id', source.id)
+    return queryCurriculumCandidates('curriculum_id', source.id, source.lessonNumber)
   }
 
   return []
@@ -253,9 +307,11 @@ export async function buildCanonicalLessonSourceBundle({
   source: LessonSourceSuggestion | null
 }): Promise<CanonicalLessonSourceBundle> {
   let explicitResources: ResourceCandidate[] = []
+  let genericSchemeResources: ResourceCandidate[] = []
   let curriculumResources: ResourceCandidate[] = []
 
   if (source?.schemeId) {
+    genericSchemeResources = await loadGenericSchemeResources(source.schemeId,source.lessonNumber)
     explicitResources = await loadExplicitSchemeResources(source.schemeId)
   }
 
@@ -266,6 +322,7 @@ export async function buildCanonicalLessonSourceBundle({
   // Explicit Scheme links are authoritative and retain their declared order.
   // Curriculum-linked resources provide deterministic fallback coverage only.
   const candidates = uniqueById([
+    ...genericSchemeResources,
     ...explicitResources,
     ...curriculumResources,
   ])

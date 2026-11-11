@@ -45,6 +45,8 @@ import type {
 import { C } from '@/components/teacher/ui'
 import type { TimetableSlot } from '@/lib/types'
 import type { LessonSourceSuggestion } from '@/lib/teaching/lessonSource'
+import JumpingSchemeContent from '@/components/teacher/JumpingSchemeContent'
+import { buildJumpingDraftSections, type JumpingContentSelection } from '@/lib/teaching/jumpingDraftSections'
 import { refreshPulse } from "@/lib/pulse/refresh";
 import {
   StartOccurrenceError,
@@ -246,6 +248,7 @@ export default function LessonPlanModal({
   const [suggestion,      setSuggestion]      = useState<LessonSourceSuggestion | null>(null)
   const [suggestionLinked,  setSuggestionLinked]  = useState(false)
   const [canonicalIdentity, setCanonicalIdentity] = useState<LessonCanonicalSourceIdentity | null>(null)
+  const [jumpingDraft, setJumpingDraft] = useState<JumpingContentSelection | null>(null)
   const [ctx,      setCtx]      = useState<Ctx>({
     teacherName: '', schoolName: '', schoolId: '',
     studentCount: 0, previousTopics: [], students: [], grade: null,
@@ -702,6 +705,7 @@ export default function LessonPlanModal({
         planSchemeIdRef.current = null
         setSuggestionLinked(false)
         setCanonicalIdentity(null)
+        setJumpingDraft(null)
         setLessonResources([])
         setLessonResourcesError(null)
         setTopic('')
@@ -927,7 +931,15 @@ export default function LessonPlanModal({
         resourceVersionId: string
       } | null = null
 
-      if (suggestionLinked && canonicalIdentity) {
+      if (jumpingDraft) {
+        if (!suggestionLinked || !suggestion?.schemeId || suggestion.schemeId !== jumpingDraft.schemeId) {
+          throw new Error('The selected Jumping content does not belong to this lesson Scheme.')
+        }
+        // Exact teacher-selected original content, composed deterministically
+        // through the existing eight-section plan codec; no model rewriting.
+        parsed = buildJumpingDraftSections(jumpingDraft, suggestion)
+        if (focus.trim()) parsed.differentiation += '\n\nTeacher focus: ' + focus.trim()
+      } else if (suggestionLinked && canonicalIdentity) {
         const generation = await generateCanonicalLessonPlan(
           token,
           {
@@ -1130,6 +1142,18 @@ export default function LessonPlanModal({
         setPlanId(savedPlan.id)
       }
 
+      if (jumpingDraft) {
+        if (savedPlan.scheme_id !== jumpingDraft.schemeId) {
+          throw new Error('Jumping source cannot be pinned to a different Scheme lesson.')
+        }
+        const { data: pinned, error: pinError } = await supabase.rpc(
+          'vs_pin_jumping_draft_to_plan',
+          { p_lesson_plan_id: savedPlan.id, p_scheme_id: jumpingDraft.schemeId, p_lesson_number: jumpingDraft.lessonNumber },
+        )
+        if (pinError || !pinned?.ok) {
+          throw new Error('The lesson draft was saved but its content source could not be attached. Retry before using it.')
+        }
+      }
       if (canonicalResource) {
         await pinCanonicalLessonResource({
           lessonPlanId: savedPlan.id,
@@ -1708,6 +1732,19 @@ export default function LessonPlanModal({
                   }}
                 />
               </div>
+              {suggestionLinked && suggestion?.schemeId && suggestion?.subStrand === 'Jumping' && ctx.grade === 'Grade 1' && (
+                <JumpingSchemeContent
+                  schemeId={suggestion.schemeId}
+                  onUse={(selection: JumpingContentSelection) => {
+                    setJumpingDraft(selection)
+                    setTopic(selection.title)
+                    setError('')
+                  }}
+                />
+              )}
+              {jumpingDraft && <p role="status" style={{fontSize:12,color:'#174f38',marginBottom:12}}>
+                Using Lesson {jumpingDraft.lessonNumber}: {jumpingDraft.title}. This creates a teacher-review draft; it is not published content.
+              </p>}
               {suggestionLinked && !canonicalIdentity && (
                 <p style={{ fontSize: 11, color: '#b45309', marginBottom: 12 }}>
                   Linked to your scheme. This entry has no verified curriculum outcome link and cannot be used for reusable lesson assets.

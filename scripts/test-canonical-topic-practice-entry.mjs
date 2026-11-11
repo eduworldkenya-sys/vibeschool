@@ -7,7 +7,7 @@ const learn=readFileSync('components/student/LearnActivityHub.tsx','utf8')
 const runner=readFileSync('app/student/assessment/[assignmentId]/page.tsx','utf8')
 const results=readFileSync('app/student/results/[attemptId]/page.tsx','utf8')
 
-assert.match(learn,/const primary:[\s\S]*href: "\/student\/vibelearn\/practice"/,'Topic Practice must appear directly in Learn primary activities')
+assert.match(learn,/const primary:[\s\S]*title: "Topic Practice"[\s\S]*href: "\/student\/vibelearn\/topic-practice"/,'Topic Practice must appear directly in Learn primary activities')
 assert.match(page,/listMyAssessmentAssignments\(\)/,'Topic Practice must discover authorised assessments')
 assert.match(page,/item\.assessmentType === 'practice'/,'Only practice assessments are included')
 assert.match(page,/filteredPracticeAssignments\.map\(item =>/,'Practice sets are selectable')

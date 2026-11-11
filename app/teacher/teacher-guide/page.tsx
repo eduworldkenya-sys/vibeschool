@@ -8,6 +8,7 @@ import { loadLessonWorkspace, type LessonWorkspaceBootResult } from "@/lib/teach
 import { parseLessonPlanBody, type LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
 import { evaluateLessonReadiness } from "@/lib/teaching/lessonReadiness";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
+import JumpingSchemeContent from "@/components/teacher/JumpingSchemeContent";
 
 const card: React.CSSProperties = { background:"#fff", border:"1px solid #e2e8f0", borderRadius:16, padding:16 };
 const action: React.CSSProperties = { border:0, borderRadius:12, padding:"11px 14px", fontWeight:800, cursor:"pointer", background:"#1e1b4b", color:"#fff" };
@@ -159,6 +160,8 @@ function TeacherGuideInner() {
         <TextBlock value={nonEmpty(source?.learningResources) || nonEmpty(source?.resources) || nonEmpty(sections?.resources)} empty="No Scheme or Lesson Plan resources are linked." />
         {certified.length>0 && <div style={{display:"grid",gap:8,marginTop:12}}>{certified.map(asset=><div key={asset.resourceVersionId} style={{padding:11,border:"1px solid #d1fae5",borderRadius:12}}><div style={{fontWeight:800,fontSize:13}}>{asset.title}</div><div style={{fontSize:11,color:"#64748b"}}>{asset.assetKind || "learning resource"} · certified {new Date(asset.certifiedAt).toLocaleDateString()}</div></div>)}</div>}
       </Section>
+
+      {source?.schemeId && source?.subStrand === "Jumping" && (workspace.context.grade || context?.grade) === "Grade 1" && <JumpingSchemeContent schemeId={source.schemeId} />}
 
       <Section title="Homework & follow-through">
         <TextBlock value={nonEmpty(sections?.homework)} empty="No prepared homework is attached to the canonical Lesson Plan yet." />

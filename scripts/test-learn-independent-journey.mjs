@@ -11,7 +11,7 @@ const exams = read("app/student/vibelearn/exams/page.tsx");
 const practice = read("app/student/vibelearn/practice/page.tsx");
 const nav = read("components/student/BottomNav.tsx");
 
-for (const title of ["Read", "Practice", "Exams", "Projects", "My Work", "Revision", "My Tuition"]) {
+for (const title of ["Read", "Topic Practice", "Exams", "Projects", "My Work", "Revision", "My Tuition"]) {
   assert.match(hub, new RegExp('title:\\s*["\\\']' + title + '["\\\']'), 'Learn destination missing: ' + title);
 }
 assert.match(hub, /from "lucide-react"/, "Learn icons must be SVG");
