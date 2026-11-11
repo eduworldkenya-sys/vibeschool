@@ -8,7 +8,7 @@ import styles from './PublicShell.module.css'
 const WHATSAPP_URL = 'https://wa.me/254728232157?text=Hello%20VibeSchool'
 const TIKTOK_URL = 'https://www.tiktok.com/@vibeschoolkenya'
 
-export function PublicFooter({ compact = false }: { compact?: boolean } = {}) {
+export function PublicFooter({ compact = false, hideSupport = false }: { compact?: boolean; hideSupport?: boolean } = {}) {
   const footerRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -36,12 +36,12 @@ export function PublicFooter({ compact = false }: { compact?: boolean } = {}) {
 
   return (
     <footer ref={footerRef} className={styles.footer}>
-      <section className={styles.whatsapp} aria-label="VibeSchool support">
+      {!hideSupport && <section className={styles.whatsapp} aria-label="VibeSchool support">
         <div className={styles.whatsappInner}>
           <div className={styles.whatsappText}><strong>Need help?</strong></div>
           <TrackedLink className={styles.whatsappCta} href={WHATSAPP_URL} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer" aria-label="Chat with VibeSchool on WhatsApp">WhatsApp</TrackedLink>
         </div>
-      </section>
+      </section>}
 
       <div className={styles.footerInner}>
         <div className={styles.footerBrand}>
