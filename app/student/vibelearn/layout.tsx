@@ -83,6 +83,16 @@ function GeneralLearnerVibeLearn() {
 
       <LearnActivityHub />
 
+      <section aria-label="VibeSchool original learning content" style={{ border: "1px solid #a8cbb6", borderRadius: 16, background: "#f0faf4", padding: 16 }}>
+        <div style={{ fontSize: 10, fontWeight: 850, color: "#175b43", letterSpacing: 1 }}>VIBESCHOOL ORIGINALS</div>
+        <h2 style={{ fontSize: 17, margin: "6px 0 6px", color: "#164e35" }}>Grade 1 Creative Activities</h2>
+        <p style={{ color: "#355b47", fontSize: 13, lineHeight: 1.55, margin: "0 0 12px" }}>Explore jumping, drawing, music and other creative activities. Approved lesson notes appear here when released.</p>
+        <button type="button" onClick={() => router.push("/student/vibelearn/grade-1/creative-activities")}
+          style={{ minHeight: 48, width: "100%", textAlign: "center", border: 0, borderRadius: 11, background: "#175b43", color: "#fff", padding: "0 14px", fontWeight: 800 }}>
+          Open Creative Activities
+        </button>
+      </section>
+
       {workspace?.twin.now && (
         <section style={{ border: "1px solid var(--vs-border)", borderRadius: 16, background: "var(--vs-card)", padding: 16 }}>
           <div style={{ fontSize: 10, fontWeight: 850, color: "var(--vs-accent)", letterSpacing: 1 }}>SUGGESTED FOR YOU</div>
