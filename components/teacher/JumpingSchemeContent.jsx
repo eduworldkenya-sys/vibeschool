@@ -82,9 +82,9 @@ export default function JumpingSchemeContent({ schemeId, onUse, showGuide=false 
     </p>
     {error && <p role="alert" style={{fontSize:12,color:'#b91c1c'}}>{error}</p>}
     {str(guide.body) && <details open={showGuide} style={{border:'1px solid #d1fae5',borderRadius:10,padding:12,marginBottom:12,background:'#f7fdf9'}}>
-      <summary style={{fontWeight:800,fontSize:13,cursor:'pointer'}}>Read the linked Jumping Teacher Guide (working draft)</summary>
+      <summary style={{fontWeight:800,fontSize:13,cursor:'pointer'}}>Read the linked Jumping Teacher Guide</summary>
       <Plain title="Original VibeSchool teacher guidance" value={guide.body}/>
-      <p style={{fontSize:11,color:'#64748b'}}>Editorial candidate · not yet certified or released for learners</p>
+      <p style={{fontSize:11,color:'#64748b'}}>Teacher guidance is for the assigned teacher; learner-facing content is published separately.</p>
     </details>}
     {units.length>0 && <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
       {units.map(unit=><button key={unit.lessonNumber} type="button"
@@ -105,7 +105,7 @@ export default function JumpingSchemeContent({ schemeId, onUse, showGuide=false 
       <Plain title="Learner content" value={learner.body}/>
       <Plain title="Learner activities" value={learner.learnerActivities}/>
       {typeof onUse==='function' && <p role="status" style={{fontSize:12,fontWeight:750,color:'#174f38'}}>Selected for this lesson plan. The builder will use this exact manuscript.</p>}
-      <p style={{fontSize:11,color:'#64748b',margin:'10px 0 0'}}>Working teaching draft · review before classroom delivery</p>
+      <p style={{fontSize:11,color:'#64748b',margin:'10px 0 0'}}>Review this VibeSchool content before classroom delivery</p>
     </div>}
   </section>
 }
