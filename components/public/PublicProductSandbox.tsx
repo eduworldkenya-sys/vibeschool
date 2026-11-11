@@ -194,7 +194,7 @@ export function PublicProductSandbox() {
             <strong>Teaching that stays connected.</strong>
             <p>One example of how content, practice and evidence can inform the next action.</p>
           </div>
-          <Link className={styles.bottomAction} href="/global/signup">Start with VibeSchool <ArrowRight size={17} aria-hidden="true" /></Link>
+          
         </div>
         <p className={styles.disclosure}><strong>Demonstration boundary.</strong> Client-only demo state. No production learner data. This is VibeSchool-authored example content, not a verbatim KICD curriculum extract. One answer is not a mastery judgement. No real learner or school records are accessed.</p>
       </main>
