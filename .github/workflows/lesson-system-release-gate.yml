@@ -55,6 +55,7 @@ jobs:
         with:
           prebuild_command: |
             npm run typecheck
+            node scripts/test-grade1-creative-native-curriculum.mjs
             python scripts/test-lesson-system-release-contract.py
             python scripts/test-lesson-plan-prepared-mobile-contract.py
             python scripts/test-lesson-plan-spine-security-contract.py
