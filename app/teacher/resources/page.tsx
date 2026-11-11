@@ -358,6 +358,10 @@ export default function TeacherResourcesPage() {
       </header>
 
       <div style={{ maxWidth: 980, margin: '0 auto', padding: 16 }}>
+        <Link href="/learn/grade-1/creative-activities" style={{ display: 'block', marginBottom: 16, padding: '14px 16px', border: '1px solid #a8cbb6', borderRadius: 12, background: '#f0faf4', color: '#175b43', textDecoration: 'none' }}>
+          <strong style={{ fontSize: 14 }}>Grade 1 Creative Activities · Learning library</strong>
+          <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Read the shared curriculum activities and approved materials. Draft lesson manuscripts remain private.</span>
+        </Link>
         {error && <div role="alert" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 12, padding: 12, marginBottom: 14 }}>{error}</div>}
 
         <section style={{ marginBottom: 24 }}>
