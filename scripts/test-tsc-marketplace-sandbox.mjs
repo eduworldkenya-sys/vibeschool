@@ -68,6 +68,18 @@ assert.match(view, /OFFICIAL_TSC_ADVERTS/);
 assert.match(view, /applications are free/i);
 assert.match(view, /aria-live="polite"/);
 assert.match(css, /max-width:480px/);
+assert.match(view, /const \[countyQuery, setCountyQuery\]/, "county search input must be controlled");
+assert.match(view, /rankedCounties/, "county counts must be sorted by the selected teaching level");
+assert.match(view, /visibleCounties\.map/, "ranked counties must actually be rendered");
+assert.match(view, /showAllCounties \? rankedCounties : rankedCounties\.slice\(0, 8\)/, "top eight by default, all 47 on demand");
+assert.match(view, /level === "junior" \? \(/, "junior-school unavailable state instead of fabricated county counts");
+assert.match(view, /COUNTY_ALLOCATION_SOURCE/, "show the reported allocation source");
+assert.match(view, /not live vacancies remaining/, "do not present allocation counts as unfilled live posts");
+assert.match(view, /const timer = window\.setInterval\(update, 30000\)/, "deadline countdown automatically updates");
+assert.match(view, /window\.clearInterval\(timer\)/, "deadline countdown must clean up its interval");
+assert.match(view, /Date\.parse\("2026-11-23T21:00:00Z"\)/, "countdown is based on Kenya local midnight at end of 23 November");
+assert.match(css, /\.countyList\{/, "county list has a responsive layout");
+assert.match(css, /\.deadlineClock\{/, "countdown has a dedicated presentation");
 assert.doesNotMatch(view + dataModule, /DEMO_OPENINGS|Example Secondary School|Example Primary School|Example Junior School|matchDemoOpenings/i);
 for(const file of ["app/teacher/page.tsx","app/teacher/marketplace/page.tsx","app/teacher/marketplace/sandbox/VacancyMatchSandbox.tsx","app/pathways/page.tsx","app/pathways/check/page.tsx","app/sandbox/page.tsx","components/public/PublicProductSandbox.tsx"]){
  const value=fs.readFileSync(file, "utf8");
