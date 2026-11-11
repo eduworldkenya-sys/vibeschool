@@ -61,6 +61,16 @@ check(lessonMigration.includes('delete from public.assessment_items'), 'stale/fa
 check(lessonMigration.includes('pg_advisory_xact_lock'), 'lesson generation is transaction-race-safe')
 check(lessonMigration.includes('revoke all on function public.exq_resolve_lesson_assessment_outcomes'), 'lesson resolver is not anonymously executable')
 
+const nativeSchemeFix = read('supabase/migrations/20261111210000_assessment_scheme_outcome_identity.sql')
+check(nativeSchemeFix.includes('scheme_lesson_outcomes slo'), 'Assessment resolves saved Scheme outcome IDs')
+check(nativeSchemeFix.includes('sow.curriculum_outcome_id'), 'Assessment supports older single-ID Scheme links')
+check(nativeSchemeFix.includes("resolution_source := 'legacy_lesson_body'"), 'Historical Schemes retain text fallback')
+check(nativeSchemeFix.includes("clo.status = 'active'"), 'Linked outcomes require active status')
+check(nativeSchemeFix.includes('sow.school_id is distinct from lp.school_id'), 'Scheme authority checks school ownership')
+check(nativeSchemeFix.includes('revoke all on function public.exq_resolve_lesson_assessment_outcomes'), 'Native resolver remains non-anonymous')
+check(lessonOutcomeAuthority.includes("typeof payload.sub_strand_id === 'string'"), 'Native Scheme authority accepted by client')
+
+
 const catPage = read('app/teacher/assessment/cat/new/page.tsx')
 check(catPage.includes('exq_resolve_cumulative_cat_outcomes'), 'CAT derives scope from completed teaching occurrences')
 check(catPage.includes('exq_prepare_certified_cat_assessment'), 'CAT uses server-enforced cumulative scope gate')
