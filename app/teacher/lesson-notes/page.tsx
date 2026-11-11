@@ -524,6 +524,21 @@ function LessonNotesInner() {
             setReflectionSeed(value);
             setReflectionOpen(true);
           }}
+          loadCompletionFacts={occurrence ? async () => {
+            const [roster, day] = await Promise.all([
+              supabase.from("student_classes").select("student_id", { count: "exact", head: true })
+                .eq("school_id", occurrence.school_id).eq("class_id", occurrence.class_id).eq("is_current", true),
+              supabase.rpc("get_teacher_day", { p_date: occurrence.occurrence_date }),
+            ]);
+            if (day.error) throw day.error;
+            const row = (day.data as Array<{ occurrence_id: string; attendance_state: string; evidence_count: number }> | null)
+              ?.find(item => item.occurrence_id === occurrence.id);
+            return {
+              emptyRoster: !roster.error && roster.count === 0,
+              attendanceSaved: row?.attendance_state === "complete",
+              evidenceSaved: (row?.evidence_count ?? 0) > 0,
+            };
+          } : undefined}
           onFinishLesson={occurrence && plan.timetable_slot_id && occurrence.lifecycle === "in_progress" ? async (review: LessonCompletionReview) => {
             const outcome = review.coverage;
             const whatWasTaught = review.whatWasTaught;
