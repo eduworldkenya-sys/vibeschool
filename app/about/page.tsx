@@ -118,7 +118,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="about-founder" aria-label="Founder’s note">
+        <section id="founder-dedication" className="about-founder" aria-label="Founder’s note">
           <div className="about-wrap about-founder-inner">
             <div>
               <p className="about-eyebrow about-eyebrow-dark">FROM THE FOUNDER</p>
