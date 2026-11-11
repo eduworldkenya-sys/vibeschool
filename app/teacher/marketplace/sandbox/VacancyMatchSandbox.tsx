@@ -48,7 +48,9 @@ export default function VacancyMatchSandbox() {
     () => Array.from(new Set(DEMO_OPENINGS.map(item => item.county))).sort(),
     []
   );
-  const countyOptions = countyNames.length > 0 ? countyNames : demoCounties;
+  const countyOptions = countyNames.length > 0
+    ? (county && !countyNames.includes(county) ? [...countyNames, county] : countyNames)
+    : demoCounties;
 
   const { ready, matches, inOtherCounties } = useMemo(() =>
     matchDemoOpenings({ level, subjectOne, subjectTwo, county }),
@@ -143,7 +145,7 @@ export default function VacancyMatchSandbox() {
           {level !== "primary" && (
             <div className={styles.subjectFields}>
               <label htmlFor="tsc-demo-subject-one">First teaching subject</label>
-              <select id="tsc-demo-subject-one" value={subjectOne} onChange={event => { setSubjectOne(event.target.value); setExpanded(null); }}>
+              <select id="tsc-demo-subject-one" value={subjectOne} onChange={event => { const next = event.target.value; setSubjectOne(next); if (next === subjectTwo) setSubjectTwo(""); setExpanded(null); }}>
                 <option value="">Choose a subject</option>
                 {SUBJECT_OPTIONS.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
