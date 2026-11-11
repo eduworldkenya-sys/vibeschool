@@ -6,6 +6,11 @@ on:
       - 'app/teacher/scheme/AuthoritySchemePage.jsx'
       - 'components/teacher/curriculum/Grade1*Map.tsx'
       - 'components/teacher/curriculum/Grade8MathematicsMap.jsx'
+      - 'components/teacher/curriculum/Grade6MathematicsMap.jsx'
+      - 'lib/curriculum/grade6Mathematics2024.json'
+      - 'lib/teaching/grade6MathematicsCatalog.mjs'
+      - 'scripts/test-grade6-mathematics-scheme.mjs'
+      - 'supabase/migrations/20261111131700_grade6_mathematics_kicd_reference_scheme.sql'
       - 'lib/teaching/grade8MathematicsCatalog.mjs'
       - 'scripts/test-grade8-mathematics-scheme.mjs'
       - 'supabase/migrations/20261111100935_grade8_mathematics_kicd_reference_scheme_20261111.sql'
@@ -17,6 +22,11 @@ on:
       - 'app/teacher/scheme/AuthoritySchemePage.jsx'
       - 'components/teacher/curriculum/Grade1*Map.tsx'
       - 'components/teacher/curriculum/Grade8MathematicsMap.jsx'
+      - 'components/teacher/curriculum/Grade6MathematicsMap.jsx'
+      - 'lib/curriculum/grade6Mathematics2024.json'
+      - 'lib/teaching/grade6MathematicsCatalog.mjs'
+      - 'scripts/test-grade6-mathematics-scheme.mjs'
+      - 'supabase/migrations/20261111131700_grade6_mathematics_kicd_reference_scheme.sql'
       - 'lib/teaching/grade8MathematicsCatalog.mjs'
       - 'scripts/test-grade8-mathematics-scheme.mjs'
       - 'supabase/migrations/20261111100935_grade8_mathematics_kicd_reference_scheme_20261111.sql'
@@ -47,3 +57,5 @@ jobs:
         run: node scripts/test-grade1-math-english-scheme-bindings.mjs
       - name: Verify Grade 8 Mathematics curriculum and annual scheme
         run: node scripts/test-grade8-mathematics-scheme.mjs
+      - name: Verify Grade 6 Mathematics curriculum and annual scheme
+        run: node scripts/test-grade6-mathematics-scheme.mjs
