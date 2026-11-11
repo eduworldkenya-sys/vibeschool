@@ -104,7 +104,8 @@ begin
        where o.source_ref like 'VS-CUR-G06-MA-2026#%' and o.status='active')<>97
  then raise exception 'GRADE6_MATH_PERSISTENCE_INCOMPLETE'; end if;
 end;$verify$;
--- Extend the existing invoker RPC, preserving all Grade 1 authorization boundaries.
+-- Grade 1 trusted teacher workflow stays intact; extend only for bound Grade 8 English.
+-- Retain already deployed Grade 8 Mathematics and Grade 1 mapping safety.
 create or replace function public.commit_mapped_scheme_lesson(
   p_class_id uuid,
   p_subject_id uuid,
@@ -153,6 +154,9 @@ begin
       or (s.grade='Grade 8' and exists
         (select 1 from public.grade8_mathematics_reader_bindings b
          where b.sub_strand_id=s.id and b.status='active'))
+      or (s.grade='Grade 8' and exists
+        (select 1 from public.grade8_english_reader_bindings b
+         where b.sub_strand_id=s.id and b.status='active'))
       or (s.grade='Grade 6' and exists
         (select 1 from public.grade6_mathematics_reader_bindings b
          where b.sub_strand_id=s.id and b.status='active'))
@@ -169,7 +173,13 @@ begin
     from public.grade8_mathematics_reader_bindings b
     where b.sub_strand_id=v_unit.id and b.status='active';
   end if;
-  if not found then
+  if v_reader_ref is null then
+    select b.source_ref,b.key_inquiry_questions,b.suggested_experiences
+      into v_reader_ref,v_reader_inquiry,v_reader_experiences
+    from public.grade8_english_reader_bindings b
+    where b.sub_strand_id=v_unit.id and b.status='active';
+  end if;
+  if v_reader_ref is null then
     select b.source_ref,b.key_inquiry_questions,b.suggested_experiences
       into v_reader_ref,v_reader_inquiry,v_reader_experiences
     from public.grade6_mathematics_reader_bindings b
