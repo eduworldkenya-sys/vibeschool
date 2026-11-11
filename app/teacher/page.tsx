@@ -31,9 +31,11 @@ export default function TeacherGateway() {
       <section className={styles.jobs} aria-labelledby="teacher-marketplace-title">
         <div className={styles.wrap}>
           <div className={styles.jobsHeading}><h2 id="teacher-marketplace-title">Teacher marketplace</h2><BriefcaseBusiness size={19} aria-hidden="true"/></div>
+          <p className={styles.demoNote}>TSC recruitment and teaching vacancies are open to everyone. No sign-in needed to browse.</p>
+          <div className={styles.heroActions}><a className={styles.primary} href="/teacher/marketplace">Open public marketplace <ArrowRight size={18} aria-hidden="true"/></a><a className={styles.secondary} href="/teacher/marketplace/sandbox">Try TSC matching preview <ArrowRight size={18} aria-hidden="true"/></a></div>
           <TeacherOpportunities />
           <p className={styles.demoNote}>Browse school jobs or find a possible station swap.</p>
-          <div className={styles.heroActions}><a className={styles.secondary} href="/login?redirect=%2Fteacher%2Fmarketplace%3Ftab%3Dswap">Post or manage a swap <ArrowLeftRight size={18} aria-hidden="true"/></a></div>
+          <div className={styles.heroActions}><a className={styles.secondary} href="/login?redirect=%2Fteacher%2Fmarketplace%2Fmanage%3Ftab%3Dswap">Post or manage a swap <ArrowLeftRight size={18} aria-hidden="true"/></a></div>
         </div>
       </section>
     </main>
