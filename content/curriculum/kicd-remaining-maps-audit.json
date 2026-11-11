@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-11-11",
+  "authority": "Kenya Institute of Curriculum Development",
+  "sourceEdition": "Revised 2024",
+  "scope": "VibeSchool remaining eleven native curriculum maps",
+  "certificationRule": "Every outcome must be linked to a specific KICD source locator and independently reconciled; indexes and lesson counts alone never certify learning outcomes.",
+  "subjects": [
+    {
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+      "modulePath": "lib/teaching/grade4MathematicsCatalog.mjs",
+      "units": 19,
+      "authoredOutcomes": 110,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "2024 indexed structure; independent outcomes; 1.1 allocation of 20 provisionally supplied where summary was unclear"
+    },
+    {
+      "grade": "Grade 4",
+      "subject": "English",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.ENGLISH.LANGUAGE.pdf",
+      "modulePath": "lib/teaching/grade4EnglishCatalog.mjs",
+      "units": 52,
+      "authoredOutcomes": 156,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "13 themes and 4 teaching skills; original outcomes require theme-by-theme reconciliation"
+    },
+    {
+      "grade": "Grade 4",
+      "subject": "Kiswahili",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/Kiswahili-Gredi-ya-4-Revised.pdf",
+      "modulePath": "lib/curriculum/grade4KiswahiliReference.ts",
+      "units": 52,
+      "authoredOutcomes": 0,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "11 themes, 52 indexed topics; printed annual total 120 versus itemised 121, do not silently normalise"
+    },
+    {
+      "grade": "Grade 4",
+      "subject": "Indigenous Languages",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/GRADE-4-INDIGENOUS-LANGUAGE-DESIGN-Revised.pdf",
+      "modulePath": "lib/teaching/grade4IndigenousCatalog.mjs",
+      "units": 28,
+      "authoredOutcomes": 84,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "Nine source themes and 27 KICD-derived units; one 6-lesson VibeSchool cross-strand showcase is supplementary; language-specific outcomes need fluent-speaker review"
+    },
+    {
+      "grade": "Grade 6",
+      "subject": "Mathematics",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-6-Mathematics-Revised.pdf",
+      "modulePath": "lib/teaching/grade6MathematicsCatalog.mjs",
+      "units": 16,
+      "authoredOutcomes": 97,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "Official KICD 2024 summary p.xii: 16 units and 150 lessons matched; actual outcome descriptions independently authored"
+    },
+    {
+      "grade": "Grade 6",
+      "subject": "English",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/ENGLISH-GRADE-6-UPDATED-Revised-Sept.pdf",
+      "modulePath": "lib/teaching/grade6EnglishCatalog.mjs",
+      "units": 10,
+      "authoredOutcomes": 42,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "13 themes and ten recurring skill sub-strands; authoring needs per-theme learning-outcome reconciliation"
+    },
+    {
+      "grade": "Grade 6",
+      "subject": "Kiswahili",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/LATEST-6.8.2024-KISWAHILI-GRADE-6-Revised.pdf",
+      "modulePath": "lib/teaching/grade6KiswahiliCatalog.mjs",
+      "units": 53,
+      "authoredOutcomes": 159,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "Source row total 115 against printed 120; five VibeSchool supplementary review lessons must never be labelled KICD-listed"
+    },
+    {
+      "grade": "Grade 8",
+      "subject": "Mathematics",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/06/Mathematics-Grade-8-Design-Formatted-April-2024.pdf",
+      "modulePath": "lib/teaching/grade8MathematicsCatalog.mjs",
+      "units": 16,
+      "authoredOutcomes": 75,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "Official KICD 2024 summary p.x: 16 units and 150 lessons; 5.1 title corrected to Data Presentation and Interpretation"
+    },
+    {
+      "grade": "Grade 8",
+      "subject": "English",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/06/English-Grade-8-Design-Formatted-April-2024.pdf",
+      "modulePath": "lib/teaching/grade8EnglishCatalog.mjs",
+      "units": 75,
+      "authoredOutcomes": 150,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "15 themes by five recurring skills; full theme-specific outcome crosswalk not certified"
+    },
+    {
+      "grade": "Grade 8",
+      "subject": "Kiswahili",
+      "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-8-KISWAHILI.pdf",
+      "modulePath": "lib/curriculum/grade8KiswahiliReference.ts",
+      "units": 60,
+      "authoredOutcomes": 0,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "Official summary pp.xvi-xx indexes 60 topics at two lessons each; no independently verified outcome texts"
+    },
+    {
+      "grade": "Grade 9",
+      "subject": "English",
+      "sourceUrl": "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-nine-designs/",
+      "modulePath": "content/curriculum/grade9-english-2024-index.json",
+      "units": 75,
+      "authoredOutcomes": 0,
+      "officialOutcomeVerification": "not_verified",
+      "notes": "15 themes and 75 structural skill headings; no outcome-by-outcome evidence yet"
+    }
+  ]
+}

@@ -27,6 +27,13 @@ const termWeeks=terms.flatMap(t=>Array.from({length:10},(_,i)=>({term_id:t.id,we
 const preview=buildGrade1AnnualSchemeDraft({units:GRADE6_KISWAHILI_UNITS,terms,termWeeks,weeklyAllocation:4,expectedUnitCount:53,gradeLabel:'Grade 6'})
 assert.equal(preview.error,null)
 assert.equal(preview.items.length,120)
+assert.equal(preview.items.filter(x=>x.isVibeSchoolReview).length,5,
+  'Exactly five VibeSchool review periods must be marked as supplementary')
+assert.equal(preview.items.filter(x=>!x.isVibeSchoolReview).length,115,
+  'The 115 itemised KICD-source periods must remain separate')
+assert.ok(readFileSync(new URL('../components/teacher/scheme/AutoCreativeScheme.jsx',import.meta.url),'utf8')
+  .includes('data-curriculum-source="vibeschool-supplementary"'),
+  'Teachers must see supplemental periods clearly labelled')
 assert.equal(new Set(preview.items.map(x=>x.key)).size,120)
 assert.ok(preview.items.every(x=>x.outcomes?.length&&x.termId&&x.week>=1))
 console.log('Grade 6 Kiswahili: 53 units, 115 KICD row totals + 5 labelled VibeSchool review periods, 120 canonical Scheme previews: PASS')

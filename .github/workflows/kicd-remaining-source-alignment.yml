@@ -1,0 +1,48 @@
+name: KICD Remaining Curriculum Alignment
+
+on:
+  pull_request:
+    paths:
+      - 'lib/teaching/grade4*Catalog.mjs'
+      - 'lib/teaching/grade6*Catalog.mjs'
+      - 'lib/teaching/grade8*Catalog.mjs'
+      - 'lib/teaching/creativeSchemeDraft.mjs'
+      - 'lib/curriculum/grade*KiswahiliReference.ts'
+      - 'content/curriculum/kicd-remaining-maps-audit.json'
+      - 'content/curriculum/grade9-english-2024-index.json'
+      - 'components/teacher/scheme/AutoCreativeScheme.jsx'
+      - 'scripts/test-kicd-remaining-source-alignment.mjs'
+      - 'scripts/test-grade8-mathematics-scheme.mjs'
+      - 'scripts/test-grade6-kiswahili-native-curriculum.mjs'
+      - 'supabase/migrations/20261111195000_grade8_mathematics_kicd_data_presentation_title.sql'
+      - '.github/workflows/kicd-remaining-source-alignment.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/curriculum/kicd-remaining-maps-audit.json'
+      - 'lib/teaching/creativeSchemeDraft.mjs'
+      - 'lib/teaching/grade8MathematicsCatalog.mjs'
+      - 'components/teacher/scheme/AutoCreativeScheme.jsx'
+      - 'scripts/test-kicd-remaining-source-alignment.mjs'
+      - '.github/workflows/kicd-remaining-source-alignment.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  source-alignment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Check eleven curriculum source contracts
+        run: node scripts/test-kicd-remaining-source-alignment.mjs
+      - name: Check Grade 8 Mathematics canonical scheme
+        run: node scripts/test-grade8-mathematics-scheme.mjs
+      - name: Check Grade 6 Kiswahili source versus supplementary periods
+        run: node scripts/test-grade6-kiswahili-native-curriculum.mjs
