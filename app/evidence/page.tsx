@@ -7,38 +7,77 @@ import { getEvidencePublicationState, getPublishableEvidenceClaims } from '@/lib
 export const metadata: Metadata = {
   alternates: { canonical: '/evidence' },
   title: 'Evidence & Product Status',
-  description: 'Inspect what VibeSchool has measured, verified, permissioned and published — and what is still undergoing validation.',
+  description: 'See what VibeSchool offers publicly and what school results have been verified for publication.',
 }
 
-const lifecycle = [
-  ['01', 'Define', 'Agree the school problem, workflow, metric definition, measurement window and decision threshold before the pilot starts.'],
-  ['02', 'Baseline', 'Record the starting condition with the same definition that will be used after implementation.'],
-  ['03', 'Pilot', 'Run one bounded workflow with real users while measuring implementation, reliability, workload and educational usefulness.'],
-  ['04', 'Verify', 'Check source lineage, calculation, exclusions and limitations. Operational row counts alone are never treated as adoption or impact proof.'],
-  ['05', 'Permission', 'Measurement permission and public-name, quote, logo and case-study permissions are separate decisions.'],
-  ['06', 'Publish', 'Only a fully verified and permissioned claim can appear here, together with its method and limitations.'],
-] as const
-
-const ledger = [
-  ['Connected-learning public model', 'Available', 'Mission, role journeys, readiness assessment and product explanation are publicly inspectable.'],
-  ['School readiness self-assessment', 'Available', 'Eight-question browser-local self-assessment. It is not represented as an external audit or certification.'],
-  ['Real-school outcome evidence', 'Validation', 'No verified pilot outcome is published until a measured pilot passes the evidence release gate.'],
-  ['End-to-end role authorization certification', 'Validation', 'Authorization hardening exists, but learner → teacher → family → school certification is still treated as an explicit validation gate.'],
-  ['Success Wishes release verification', 'Validation', 'Automated browser fixtures check card presentation and recovery without sending real SMS or taking money. These checks are not evidence of successful live payment, real-device acceptance or school adoption.'],
-  ['Public institutional pricing', 'Planned', 'A value-based commercial model will be published only after pilot scope, support cost and value evidence are strong enough to defend it.'],
+// Page-specific navigation keeps this evidence page focused without changing
+// the shared public navigation used by other VibeSchool experiences.
+const evidenceNavigation = [
+  ['/product', 'Product'],
+  ['/sandbox', 'Experience'],
+  ['/trust', 'Trust'],
 ] as const
 
 export default function EvidencePage() {
   const claims = getPublishableEvidenceClaims()
   const state = getEvidencePublicationState()
-  return <div className="page"><PublicHeader product="Evidence"/><main id="main-content">
-    <section className="hero"><div className="wrap"><p className="eyebrow">VIBESCHOOL EVIDENCE LEDGER</p><h1>Claims should become stronger only when the evidence becomes stronger.</h1><p className="lead">This is the public boundary between product capability, pilot validation and verified outcomes. VibeSchool does not turn database rows, demo state or private school activity into marketing proof.</p><div className="actions"><Link className="primary" href="/institutions">Plan a measured pilot</Link><Link className="secondary" href="/trust">Review Trust Centre</Link></div></div></section>
-    <section className="section wrap"><p className="eyebrow dark">PUBLIC PROOF</p><h2>Verified, permissioned outcome claims</h2>{claims.length === 0 ? <div className="empty"><strong>No verified pilot outcome has been published yet.</strong><p>That is intentional. The publication default is withhold until measurement, verification, permission and limitations are complete. Product capability can exist before public outcome evidence exists; the two are not presented as the same thing.</p></div> : <div className="claims">{claims.map(claim=><article key={claim.id}><p className="status">VERIFIED & PERMISSIONED</p><h3>{claim.title}</h3><div className="metric">{claim.value}</div><dl><div><dt>Metric</dt><dd>{claim.metric_definition}</dd></div><div><dt>Window</dt><dd>{claim.measurement_window}</dd></div><div><dt>Population</dt><dd>{claim.population}</dd></div><div><dt>Method</dt><dd>{claim.method}</dd></div><div><dt>Limitations</dt><dd>{claim.limitations.join(' ')}</dd></div></dl></article>)}</div>}<p className="review">Evidence manifest last reviewed {state.reviewedAt}. Publication policy: {state.defaultPolicy} by default.</p></section>
-    <section className="section alt"><div className="wrap"><p className="eyebrow dark">EVIDENCE ENGINE</p><h2>From pilot question to defensible public proof.</h2><div className="steps">{lifecycle.map(([n,title,body])=><article key={n}><span>{n}</span><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
-    <section className="section wrap"><p className="eyebrow dark">CAPABILITY & VALIDATION LEDGER</p><h2>What is available, what is being validated, and what is not yet claimed.</h2><div className="ledger">{ledger.map(([title,status,body])=><article key={title}><div><h3>{title}</h3><p>{body}</p></div><strong data-status={status}>{status}</strong></article>)}</div></section>
-    <section className="section dark"><div className="wrap two"><div><p className="eyebrow">MEASUREMENT STANDARD</p><h2>Useful evidence is more than a before-and-after number.</h2></div><div><p><strong>Implementation:</strong> Did people actually use the intended workflow?</p><p><strong>Reliability:</strong> Did it work under the devices, connectivity and school conditions that matter?</p><p><strong>Workload:</strong> Did the workflow reduce avoidable duplication or time without creating hidden work elsewhere?</p><p><strong>Educational signal:</strong> Did teachers receive better evidence for the next action?</p><p><strong>Outcome:</strong> If a learning or institutional outcome is claimed, the method must justify the strength of that claim. Association is not automatically causation.</p></div></div></section>
-    <section className="section wrap"><div className="two"><div><p className="eyebrow dark">PRIVACY & PERMISSION</p><h2>Evidence should not require exposing children.</h2></div><div><p>Public claims should use the minimum data needed and should not publish raw learner records, identifiers or private school evidence. A school can permit measurement without permitting its name, logo, staff quote or learner story to be used publicly.</p><div className="actions"><Link className="primary" href="/contact">Discuss a pilot</Link><Link className="outline" href="/legal/privacy">Privacy policy</Link></div></div></div></section>
-  </main><PublicFooter/><style>{styles}</style></div>
+
+  return <div className="page">
+    <PublicHeader product="Evidence" navigation={evidenceNavigation}/>
+    <main id="main-content">
+      <section className="hero">
+        <div className="wrap">
+          <p className="eyebrow">VIBESCHOOL EVIDENCE</p>
+          <h1>What works today. What the evidence shows.</h1>
+          <p className="lead">See what you can explore now and which school results have been checked and approved for publication.</p>
+          <div className="actions"><Link className="primary" href="/sandbox">Explore VibeSchool</Link></div>
+        </div>
+      </section>
+
+      <section className="section wrap" aria-labelledby="status-title">
+        <p className="eyebrow dark">PRODUCT STATUS</p>
+        <h2 id="status-title">What you can inspect</h2>
+        <div className="ledger">
+          <article><div><h3>Public product experience</h3><p>Explore how VibeSchool connects teaching, learning and evidence.</p></div><strong data-status="Available">Available</strong></article>
+          <article><div><h3>School readiness check</h3><p>An eight-question, browser-local planning tool; not an external certification.</p></div><strong data-status="Available">Available</strong></article>
+          <article><div><h3>Measured school outcomes</h3><p>Results are published only after they are measured, verified and approved for public use.</p></div><strong data-status="Validation">Validation</strong></article>
+        </div>
+      </section>
+
+      <section className="section alt" aria-labelledby="results-title">
+        <div className="wrap">
+          <p className="eyebrow dark">SCHOOL RESULTS</p>
+          <h2 id="results-title">Verified outcomes</h2>
+          {claims.length === 0
+            ? <div className="empty"><strong>No verified pilot outcome has been published yet.</strong><p>Working features and successful product tests do not, by themselves, prove improved learning outcomes.</p></div>
+            : <div className="claims">{claims.map(claim => <article key={claim.id}>
+              <p className="status">VERIFIED &amp; PERMISSIONED</p><h3>{claim.title}</h3>
+              <div className="metric">{claim.value}</div>
+              <dl>
+                <div><dt>Metric</dt><dd>{claim.metric_definition}</dd></div>
+                <div><dt>Window</dt><dd>{claim.measurement_window}</dd></div>
+                <div><dt>Population</dt><dd>{claim.population}</dd></div>
+                <div><dt>Method</dt><dd>{claim.method}</dd></div>
+                <div><dt>Limitations</dt><dd>{claim.limitations.join(' ')}</dd></div>
+              </dl>
+            </article>)}</div>}
+          <p className="review">Evidence register last reviewed {state.reviewedAt}. Unverified claims remain unpublished.</p>
+        </div>
+      </section>
+
+      <section className="section wrap" aria-labelledby="standard-title">
+        <div className="two">
+          <div><p className="eyebrow dark">OUR STANDARD</p><h2 id="standard-title">Proof before public claims.</h2></div>
+          <div>
+            <p>We define the measure, record a starting point, run the pilot, check the results and obtain permission before publication. Operational row counts alone are never treated as adoption or impact proof.</p>
+            <p>Public evidence does not expose raw learner records or private school information.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <PublicFooter focused/>
+    <style>{styles}</style>
+  </div>
 }
 
-const styles=`.page{background:#f8f8f5;color:#101827;font-family:var(--font-jakarta),Arial,sans-serif;line-height:1.7}.page *{box-sizing:border-box}.wrap{max-width:1120px;margin:auto}.hero{background:#07111f;color:#fff;padding:94px 24px;background-image:radial-gradient(circle at 82% 8%,rgba(208,177,84,.14),transparent 31%)}.eyebrow{font:850 11px var(--font-mono),monospace;letter-spacing:.15em;color:#d0b154}.eyebrow.dark{color:#755b17}h1,h2{font-family:var(--font-display),Arial,sans-serif;letter-spacing:-.04em;line-height:1.05}h1{font-size:clamp(43px,6vw,72px);max-width:920px;margin:14px 0 22px}h2{font-size:clamp(31px,4.4vw,50px);margin:10px 0 28px}.lead{font-size:18px;color:#c6cfda;max-width:820px}.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px}.actions a{padding:12px 17px;border-radius:10px;font-weight:850;text-decoration:none}.primary{background:#d0b154;color:#07111f}.secondary{border:1px solid #687789;color:#fff}.outline{border:1px solid #c9ccd3;color:#202632}.section{padding:82px 24px}.alt{background:#eeeae0}.dark{background:#13243a;color:#fff}.empty{border:1px solid #d9dce3;background:#fff;border-radius:18px;padding:28px;max-width:850px}.empty strong{font-size:20px}.empty p,.steps p,.ledger p,.two p{color:#5f6875}.review{font-size:13px;color:#707782;margin-top:18px}.claims{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.claims article{background:#fff;border:1px solid #dfe2e7;border-radius:16px;padding:26px}.status{font:800 11px var(--font-mono);letter-spacing:.12em;color:#6f5615}.metric{font-size:38px;font-weight:900}.claims dl div{margin-top:11px}.claims dt{font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.claims dd{margin:2px 0;color:#5f6875}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.steps article{background:#fff;border:1px solid #dedbd2;border-radius:15px;padding:23px}.steps span{font:850 11px var(--font-mono);color:#755b17}.steps h3{margin:8px 0 5px}.ledger{display:grid;gap:10px}.ledger article{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;background:#fff;border:1px solid #dfe2e7;border-radius:14px;padding:22px}.ledger h3{margin:0}.ledger p{margin:5px 0 0}.ledger strong{white-space:nowrap;border-radius:999px;padding:7px 10px;font-size:12px;background:#eef0f4}.ledger strong[data-status='Available']{background:#e7f4eb;color:#205c35}.ledger strong[data-status='Validation']{background:#fff2cf;color:#76580c}.two{display:grid;grid-template-columns:1fr 1fr;gap:64px}.dark .two p{color:#bdc7d4}@media(max-width:780px){.hero,.section{padding:62px 18px}.claims,.steps,.two{grid-template-columns:1fr}.ledger article{flex-direction:column;gap:10px}}`
+const styles = ".page{background:#f8f8f5;color:#101827;font-family:var(--font-jakarta),Arial,sans-serif;line-height:1.7}.page *{box-sizing:border-box}.wrap{max-width:1120px;margin:auto}.hero{background:#07111f;color:#fff;padding:74px 24px;background-image:radial-gradient(circle at 82% 8%,rgba(208,177,84,.14),transparent 31%)}.eyebrow{font:850 11px var(--font-mono),monospace;letter-spacing:.15em;color:#d0b154}.eyebrow.dark{color:#755b17}h1,h2{font-family:var(--font-display),Arial,sans-serif;letter-spacing:-.04em;line-height:1.05}h1{font-size:clamp(43px,6vw,72px);max-width:920px;margin:14px 0 22px}h2{font-size:clamp(31px,4.4vw,50px);margin:10px 0 28px}.lead{font-size:18px;color:#c6cfda;max-width:820px}.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px}.actions a{padding:12px 17px;border-radius:10px;font-weight:850;text-decoration:none}.primary{background:#d0b154;color:#07111f}.secondary{border:1px solid #687789;color:#fff}.outline{border:1px solid #c9ccd3;color:#202632}.section{padding:64px 24px}.alt{background:#eeeae0}.dark{background:#13243a;color:#fff}.empty{border:1px solid #d9dce3;background:#fff;border-radius:18px;padding:28px;max-width:850px}.empty strong{font-size:20px}.empty p,.ledger p,.two p{color:#5f6875}.review{font-size:13px;color:#707782;margin-top:18px}.claims{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.claims article{background:#fff;border:1px solid #dfe2e7;border-radius:16px;padding:26px}.status{font:800 11px var(--font-mono);letter-spacing:.12em;color:#6f5615}.metric{font-size:38px;font-weight:900}.claims dl div{margin-top:11px}.claims dt{font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.claims dd{margin:2px 0;color:#5f6875}.ledger{display:grid;gap:10px}.ledger article{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;background:#fff;border:1px solid #dfe2e7;border-radius:14px;padding:22px}.ledger h3{margin:0}.ledger p{margin:5px 0 0}.ledger strong{white-space:nowrap;border-radius:999px;padding:7px 10px;font-size:12px;background:#eef0f4}.ledger strong[data-status='Available']{background:#e7f4eb;color:#205c35}.ledger strong[data-status='Validation']{background:#fff2cf;color:#76580c}.two{display:grid;grid-template-columns:1fr 1fr;gap:64px}.dark .two p{color:#bdc7d4}@media(max-width:780px){.hero,.section{padding:62px 18px}.claims,.two{grid-template-columns:1fr}.ledger article{flex-direction:column;gap:10px}}"
