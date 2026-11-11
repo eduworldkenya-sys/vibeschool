@@ -33,8 +33,8 @@ for (const [name, reader] of [['Mathematics',math],['English',english]]) {
   assert.ok(!reader.includes('supabase.from('),name+' reference reader must never mutate canonical data')
 }
 assert.ok(scheme.includes('isGrade1Mathematics')&&scheme.includes('isGrade1English'))
-assert.ok(scheme.includes('<Grade1MathematicsMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId} />'))
-assert.ok(scheme.includes('<Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId} />'))
+assert.ok(scheme.includes('<Grade1MathematicsMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}'))
+assert.ok(scheme.includes('<Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}'))
 assert.ok(scheme.includes("if(curriculumView&&(isGrade1Mathematics||isGrade1English))p.set('unitId',mapUnitId)"),
   'Selected sub-strand must survive URL changes, refresh and sharing')
 assert.ok(scheme.includes("unitId:searchParams.get('unitId')"), 'Direct sub-strand links must be restored')
