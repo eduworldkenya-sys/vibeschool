@@ -1,0 +1,35 @@
+name: Grade 4 Kiswahili curriculum integrity
+
+on:
+  pull_request:
+    paths:
+      - 'lib/curriculum/grade4KiswahiliReference.ts'
+      - 'components/teacher/curriculum/Grade4KiswahiliMap.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'app/teacher/subjecthub/page.tsx'
+      - 'scripts/test-grade4-kiswahili-reference.mjs'
+      - '.github/workflows/grade4-kiswahili-curriculum.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lib/curriculum/grade4KiswahiliReference.ts'
+      - 'components/teacher/curriculum/Grade4KiswahiliMap.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'app/teacher/subjecthub/page.tsx'
+      - 'scripts/test-grade4-kiswahili-reference.mjs'
+      - '.github/workflows/grade4-kiswahili-curriculum.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  grade4-kiswahili:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check official structural catalog and UI routing
+        run: node scripts/test-grade4-kiswahili-reference.mjs
