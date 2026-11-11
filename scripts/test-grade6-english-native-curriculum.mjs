@@ -37,7 +37,7 @@ for(const token of [
 ]) assert.ok(reader.includes(token), 'Missing reader element: '+token)
 
 for(const token of [
- "isGrade6English", "isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics || isGrade8English || isGrade6English",
+ "isGrade6English", "isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics || isGrade8English || isGrade6Mathematics || isGrade6English",
  "from('grade6_english_reader_bindings')", "eq('grade','Grade 6')",
  "GRADE6_ENGLISH_PREFIX", "mappedUnits={grade6EnglishCatalog}",
  "catalog={isGrade6English?grade6EnglishCatalog:", "commit_mapped_scheme_lesson",
