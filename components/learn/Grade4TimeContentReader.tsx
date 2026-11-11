@@ -63,7 +63,7 @@ export default function Grade4TimeContentReader() {
   const currentIndex = current ? lessons.findIndex(l => l.id === current.id) : -1
 
   return (
-    <main style={{ maxWidth: 930, margin: '0 auto', padding: 'clamp(14px, 3vw, 28px)', color: INK }}>
+    <main style={{ maxWidth: 930, margin: '0 auto', padding: 'clamp(14px, 3vw, 28px)', paddingBottom: 110, minHeight: '100vh', color: INK, background: '#f5f9f6' }}>
       <header style={{ marginBottom: 24 }}>
         <p style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', color: GREEN }}>VIBESCHOOL ORIGINALS · GRADE 4 MATHEMATICS</p>
         <h1 style={{ fontSize: 'clamp(26px,4vw,38px)', margin: '4px 0 10px' }}>Time</h1>
