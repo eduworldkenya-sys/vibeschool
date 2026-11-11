@@ -895,6 +895,10 @@ export default function SubjectHubPage() {
     /^(english|english activities|english language activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*1\b/i.test(item.name)) ?? null
       : null
+  const grade4IndigenousClass =
+    /^indigenous languages?$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\\b(?:grade|class)\\s*4\\b/i.test(item.name)) ?? null
+      : null
   const grade4EnglishClass =
     /^(english|english language)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
@@ -1253,6 +1257,19 @@ export default function SubjectHubPage() {
         </div>
       )}
 
+      {/* Native Grade 4 Indigenous Languages: teacher access without a timetable prerequisite. */}
+      {!loading && !classLoading && activeSubject && grade4IndigenousClass && (
+        <div style={{margin:'14px 16px 0',background:'#fff',padding:15,border:'1px solid #d7e7dd',borderRadius:12}}>
+          <strong style={{color:'#173f32'}}>Grade 4 Indigenous Languages</strong>
+          <p style={{fontSize:12,margin:'6px 0 12px',color:'#53695d'}}>
+            KICD 2024 · 9 themes · 3 strands · 60 lessons including cross-strand skills showcase. Adapt to your selected community language.
+          </p>
+          <button type="button" onClick={()=>router.push('/teacher/curriculum?classId='+encodeURIComponent(grade4IndigenousClass.id)+'&subjectId='+encodeURIComponent(activeSubject.id)+'&unitId=01-LS')}
+           style={{background:'#175b43',color:'#fff',border:0,borderRadius:9,minHeight:44,padding:'10px 14px',fontWeight:800,cursor:'pointer',width:'100%'}}>
+           Open Indigenous Languages curriculum
+          </button>
+        </div>
+      )}
       {/* Grade 4 English: one action to official theme index and original mapped guidance. */}
       {!loading && !classLoading && activeSubject && grade4EnglishClass && (
         <div style={{margin:'14px 16px 0',background:'#fff',padding:15,border:'1px solid #d7e7dd',borderRadius:12}}>
