@@ -40,6 +40,31 @@ for fragment in ['@vibeschoolkenya','wa.me/254728232157','/legal/privacy','/lega
 for fragment in [':focus-visible','@media(max-width:640px)','min-height:44px','prefers-reduced-motion']:
     if fragment not in shell_css: errors.append(f'PublicShell accessibility/responsive contract missing: {fragment}')
 
+# Footer clarity and mobile-public navigation must not regress to duplicated
+# contact CTAs or signed-in global activity/profile routes.
+bottom_nav = text('components/public/PublicBottomNav.tsx')
+for label, destination in [
+    ('Home', '/'),
+    ('Explore', '/product'),
+    ('Schools', '/schools'),
+    ('Teachers', '/teacher'),
+    ('Contact', '/contact'),
+]:
+    if f"label: '{label}', href: '{destination}'" not in bottom_nav:
+        errors.append(f'public mobile navigation missing {label}: {destination}')
+for forbidden in ["label: 'Create'", "href: '/global/activity'", "href: '/global/profile'", "href: '/global/signup'"]:
+    if forbidden in bottom_nav:
+        errors.append(f'public mobile navigation contains account-only destination: {forbidden}')
+for fragment in ['Need help?', 'Teaching and learning, connected.', 'Footer navigation', 'Success Wishes', 'Explore', 'Educators', 'Company']:
+    if fragment not in footer:
+        errors.append(f'simplified public footer missing: {fragment}')
+if footer.count('href={WHATSAPP_URL}') != 2:
+    errors.append('public footer must have WhatsApp once in its regular view and once in compact view')
+if 'margin-top:0' not in shell_css:
+    errors.append('public footer should not reintroduce a large blank margin')
+if 'min-height:44px' not in shell_css or 'font-size:14px' not in shell_css:
+    errors.append('public footer link readability/touch sizing was reduced')
+
 # Mission and vision are strategic product invariants, not mutable campaign copy.
 mission = text('docs/strategy/VIBESCHOOL-MISSION-VISION-LOCK.md')
 for fragment in [
