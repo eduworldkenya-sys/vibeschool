@@ -8,6 +8,10 @@ on:
       - 'components/teacher/curriculum/Grade8MathematicsMap.jsx'
       - 'components/teacher/curriculum/Grade6MathematicsMap.jsx'
       - 'components/teacher/curriculum/Grade4MathematicsMap.jsx'
+      - 'components/teacher/curriculum/Grade4EnglishMap.tsx'
+      - 'lib/teaching/grade4EnglishCatalog.mjs'
+      - 'scripts/test-grade4-english-canonical-scheme.mjs'
+      - 'supabase/migrations/20261111153500_grade4_english_kicd_scheme.sql'
       - 'lib/teaching/grade4MathematicsCatalog.mjs'
       - 'scripts/test-grade4-mathematics-scheme.mjs'
       - 'supabase/migrations/20261111140500_grade4_mathematics_kicd_map_scheme.sql'
@@ -29,6 +33,10 @@ on:
       - 'components/teacher/curriculum/Grade8MathematicsMap.jsx'
       - 'components/teacher/curriculum/Grade6MathematicsMap.jsx'
       - 'components/teacher/curriculum/Grade4MathematicsMap.jsx'
+      - 'components/teacher/curriculum/Grade4EnglishMap.tsx'
+      - 'lib/teaching/grade4EnglishCatalog.mjs'
+      - 'scripts/test-grade4-english-canonical-scheme.mjs'
+      - 'supabase/migrations/20261111153500_grade4_english_kicd_scheme.sql'
       - 'lib/teaching/grade4MathematicsCatalog.mjs'
       - 'scripts/test-grade4-mathematics-scheme.mjs'
       - 'supabase/migrations/20261111140500_grade4_mathematics_kicd_map_scheme.sql'
@@ -71,3 +79,5 @@ jobs:
         run: node scripts/test-grade6-mathematics-scheme.mjs
       - name: Verify Grade 4 Mathematics curriculum and annual scheme
         run: node scripts/test-grade4-mathematics-scheme.mjs
+      - name: Verify Grade 4 English source-linked curriculum and annual Scheme
+        run: node scripts/test-grade4-english-canonical-scheme.mjs
