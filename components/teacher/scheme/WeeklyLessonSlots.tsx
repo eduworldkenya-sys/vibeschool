@@ -1,6 +1,6 @@
 'use client'
 
-type Lesson = { id:string; topic:string|null; status:string; curriculum_id:string|null }
+type Lesson = { id:string; topic:string|null; status:string; curriculum_id:string|null; sub_strand_id?:string|null; curriculum_outcome_id?:string|null }
 type CurriculumTopic = { id:string; week:number|null; topic:string|null; strand:string|null; sub_strand:string|null }
 type Props = {
   week:number
@@ -9,10 +9,11 @@ type Props = {
   label:string
   curriculumTopics?:readonly CurriculumTopic[]
   compact?:boolean
+  previewCount?:number
 }
 
 /** Display actual saved lessons only; unused allocation slots are never synthetic lessons. */
-export default function WeeklyLessonSlots({week,allocation,lessons,label,curriculumTopics=[],compact=false}:Props) {
+export default function WeeklyLessonSlots({week,allocation,lessons,label,curriculumTopics=[],compact=false,previewCount=0}:Props) {
   const target=allocation!==null&&Number.isInteger(allocation)&&allocation>0?allocation:null
   const count=target===null?lessons.length:Math.max(target,lessons.length)
   const topics=curriculumTopics.filter(row=>row.week===week)
@@ -21,11 +22,11 @@ export default function WeeklyLessonSlots({week,allocation,lessons,label,curricu
     <div className="studio-weekly-heading">
       <div>
         <h2>Week {week} · {label}</h2>
-        <p>{target===null?`${lessons.length} saved lessons · weekly allocation unavailable`:`${lessons.length} of ${target} lessons planned · ${Math.max(0,target-lessons.length)} unplanned`}</p>
+        <p>{target===null?`${lessons.length} saved lessons · weekly allocation unavailable`:`${lessons.length} of ${target} lessons saved · ${Math.max(0,target-lessons.length)} unplanned`}{previewCount>0?` · ${previewCount} curriculum-linked draft suggestions below`:''}</p>
       </div>
       <span className="studio-weekly-progress">{finished} taught</span>
     </div>
-    {count===0?<p className="studio-weekly-empty">No lessons planned for this week.</p>:
+    {count===0?<p className="studio-weekly-empty">{previewCount>0?'No saved lessons yet. The curriculum-linked draft is shown below.':'No lessons planned for this week.'}</p>:
       <div className={compact?'studio-weekly-slots studio-weekly-slots--compact':'studio-weekly-slots'}>
         {Array.from({length:count},(_,i)=>{
           const item=lessons[i]
@@ -33,7 +34,7 @@ export default function WeeklyLessonSlots({week,allocation,lessons,label,curricu
             <span className="studio-weekly-slot-number">Lesson {i+1}</span>
             {item?<div className="studio-weekly-slot-copy">
               {!compact&&<strong>{item.topic||'Untitled lesson'}</strong>}
-              <span>{item.status==='done'?'Taught':item.status==='teaching'?'In progress':item.status==='cancelled'?'Cancelled':'Planned'}{!compact&&` · ${item.curriculum_id?'Curriculum record linked; KICD alignment unverified':'Teacher-created; no curriculum link'}`}</span>
+              <span>{item.status==='done'?'Taught':item.status==='teaching'?'In progress':item.status==='cancelled'?'Cancelled':'Planned'}{!compact&&` · ${(item.curriculum_id||item.sub_strand_id||item.curriculum_outcome_id)?'Curriculum record linked; KICD alignment unverified':'Teacher-created; no curriculum link'}`}</span>
             </div>:<span className="studio-weekly-slot-missing">Not planned yet</span>}
           </div>
         })}
