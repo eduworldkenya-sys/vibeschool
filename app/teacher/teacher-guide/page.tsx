@@ -134,7 +134,7 @@ function TeacherGuideInner() {
   return (
     <div style={{maxWidth:760,margin:"0 auto",padding:"16px 14px 100px",display:"grid",gap:12}}>
       <header style={{...card,background:"var(--teacher-ink, #1c2923)",color:"#fff",border:0}}>
-        <div style={{fontSize:11,fontWeight:750,textTransform:"uppercase",opacity:.7}}>{guideReady?"Teacher Guide · ready for delivery":guideContentAvailable?"Teacher Guide · lesson plan review":"Teacher Guide · connect lesson source"}</div>
+        <div style={{fontSize:11,fontWeight:750,textTransform:"uppercase",opacity:.7}}>{guideReady?"Teacher Guide · ready to teach from":guideContentAvailable?"Teacher Guide · lesson plan review":"Teacher Guide · connect lesson source"}</div>
         <h1 style={{fontSize:24,margin:"6px 0"}}>{source?.topic || source?.subStrand || subjectName || "Lesson guide"}</h1>
         <div style={{fontSize:12,opacity:.78}}>{subjectName || "Subject"} · {context?.grade || workspace.context.grade || "Class"} · {context?.schoolName || "Active school"}</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:14}}>
@@ -190,7 +190,7 @@ function TeacherGuideInner() {
           <div>School scoped: <strong>{workspace.context.schoolId?"Yes":"No"}</strong></div>
           <div>Scheme linked: <strong>{source?.schemeId?"Yes":"No"}</strong></div>
           <div>Certified resources: <strong>{certified.length}</strong></div>
-          <div>Certified delivery package: <strong>{canonical?"Available":"Not assembled"}</strong></div>
+          <div>Publishing package: <strong>{canonical?"Available":"Not assembled for publishing"}</strong></div>
           <div style={{marginTop:7,color:"#64748b"}}>Teacher Guide is read-only composition. Curriculum, Scheme, Lesson Plan, resources and teaching occurrence remain their existing authorities.</div>
         </div>
       </Section>
