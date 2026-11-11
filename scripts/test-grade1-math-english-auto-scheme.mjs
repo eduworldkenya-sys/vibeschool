@@ -63,9 +63,9 @@ assert.ok(page.includes('isGrade1AutoScheme = isGrade1Creative || isGrade1Reader
   'All three subjects must use the same automatic scheme entry')
 assert.ok(page.includes('!curriculumView && isAutoScheme && <AutoCreativeScheme'),
   'Open Scheme must automatically display the linked curriculum drafts')
-assert.ok(page.includes('buildGrade1AnnualSchemeDraft({...shared,units:autoUnits,expectedUnitCount:autoUnits.length,gradeLabel:')&&page.includes("isGrade4Mathematics?'Grade 4':")&&page.includes("(isGrade6Mathematics||isGrade6English)?'Grade 6':"),
+assert.ok(page.includes('buildGrade1AnnualSchemeDraft({...shared,units:autoUnits,expectedUnitCount:autoUnits.length,gradeLabel:')&&page.includes("(isGrade4English||isGrade4Mathematics)?'Grade 4':")&&page.includes("(isGrade6Mathematics||isGrade6English)?'Grade 6':"),
   'Mathematics and English must use canonical shared pacing')
-assert.ok(page.includes('catalog={isGrade4Mathematics?grade4Catalog:isGrade6English?grade6EnglishCatalog:')&&page.includes('isGrade1Creative?creativeCatalog:grade1ReaderCatalog}'),
+assert.ok(page.includes('catalog={isGrade4English?grade4EnglishCatalog:isGrade4Mathematics?grade4Catalog:isGrade6English?grade6EnglishCatalog:')&&page.includes('isGrade1Creative?creativeCatalog:grade1ReaderCatalog}'),
   'Draft suggestions must reference the saved IDs and authenticated mapped outcomes')
 assert.ok(page.includes('loading={annualCalendarLoading||mappedCatalogLoading}'))
 assert.ok(page.includes('error={annualCalendarError||mappedCatalogError}'))
