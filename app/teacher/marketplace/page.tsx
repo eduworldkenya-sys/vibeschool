@@ -8,7 +8,7 @@ import styles from "./publicMarketplace.module.css";
 
 export const metadata: Metadata = {
   title: "Teacher Marketplace | TSC Recruitment & School Jobs",
-  description: "Browse the VibeSchool Teacher Marketplace and explore TSC recruitment information without signing in. Apply directly through official recruitment channels.",
+  description: "Browse the VibeSchool Teacher Marketplace and explore TSC recruitment information and apply directly through official recruitment channels.",
   alternates: { canonical: "/teacher/marketplace" },
 };
 
@@ -23,10 +23,10 @@ export default function PublicTeacherMarketplace() {
             <div className={styles.heroGrid}>
               <div>
                 <p className={styles.eyebrow}>TEACHER MARKETPLACE · KENYA</p>
-                <h1 id="marketplace-title">Find teaching opportunities. <span>No login needed.</span></h1>
+                <h1 id="marketplace-title">Find teaching opportunities. <span>Explore your options.</span></h1>
                 <p className={styles.lead}>Explore TSC recruitment information, teaching vacancies and teacher station swaps. Browse first; sign in only when you need to manage a listing or contact another teacher privately.</p>
                 <div className={styles.actions}>
-                  <Link href="/teacher/marketplace/sandbox" className={styles.primary}>Try vacancy matching — no login <ArrowRight size={17} aria-hidden="true" /></Link>
+                  <Link href="/teacher/marketplace/sandbox" className={styles.primary}>Explore vacancy matching <ArrowRight size={17} aria-hidden="true" /></Link>
                   <a href="#listings" className={styles.secondary}>Browse published vacancies <ArrowRight size={17} aria-hidden="true" /></a>
                 </div>
               </div>
