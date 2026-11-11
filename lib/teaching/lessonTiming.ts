@@ -1,3 +1,5 @@
+import type { LessonPlanSections } from './lessonPlanCodec'
+
 export interface LessonTiming {
   total: number
   introduction: number
@@ -46,5 +48,26 @@ export function lessonTimingRanges(timing: LessonTiming): {
     development: `${introEnd}–${developmentEnd} min`,
     consolidation: `${developmentEnd}–${consolidationEnd} min`,
     assessment: `${consolidationEnd}–${timing.total} min`,
+  }
+}
+
+/** Apply the exact slot/draft duration to an original manuscript without changing its teaching content. */
+export function timeOriginalLessonSections(
+  sections: LessonPlanSections,
+  durationMinutes: number,
+): LessonPlanSections {
+  if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+    throw new Error('A positive lesson duration is required.')
+  }
+  const timing = allocateLessonTiming(durationMinutes)
+  const ranges = lessonTimingRanges(timing)
+  const mark = (content: string, range: string, minutes: number) =>
+    `Timing: ${range} (${minutes} min).\n${content}`
+  return {
+    ...sections,
+    introduction: mark(sections.introduction, ranges.introduction, timing.introduction),
+    development: mark(sections.development, ranges.development, timing.development),
+    consolidation: mark(sections.consolidation, ranges.consolidation, timing.consolidation),
+    assessmentHook: mark(sections.assessmentHook, ranges.assessment, timing.assessment),
   }
 }

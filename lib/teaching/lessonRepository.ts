@@ -33,6 +33,7 @@ export interface SaveGeneratedLessonPlanInput {
     week_start: string
     day_of_week: number
     taught_date: string
+    duration_minutes?: number | null
     topic: string
     title: string
     body: string
