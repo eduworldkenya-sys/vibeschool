@@ -43,7 +43,7 @@ assert.ok(draft.weeks.every(w=>draft.items.filter(x=>x.termId===w.termId&&x.week
 assert.deepEqual(buildGrade1AnnualSchemeDraft(options),draft,'Opening a teacher scheme must not write or change it')
 assert.ok(buildGrade1AnnualSchemeDraft({...options,weeklyAllocation:4}).error,'Insufficient school allocation must fail closed')
 assert.ok(buildGrade1AnnualSchemeDraft({...options,terms:terms.slice(0,2)}).error,'Incomplete term calendars fail closed')
-for(const needle of ['GRADE4_ENGLISH_UNITS','mappedUnits[unit.id]','onPlanUnit(unit.id)','13 themes','Original KICD document','showEnglishLegacy','outcomes and learning experiences: awaiting source verification'])
+for(const needle of ['GRADE4_ENGLISH_UNITS','mappedUnits[unit.id]','onPlanUnit(unit.id)','13 themes','Original KICD document','onToggleExisting','outcomes and learning experiences: awaiting source verification'])
  assert.ok(map.includes(needle),'Native English theme map missing '+needle)
 for(const needle of ['isGrade4English','grade4_english_reader_bindings','GRADE4_ENGLISH_PREFIX','GRADE4_ENGLISH_UNITS','grade4EnglishCatalogError','mappedUnits={grade4EnglishCatalog}','isAutoScheme','commit_mapped_scheme_lesson','p_outcome_ids:item.outcomeIds'])
  assert.ok(page.includes(needle),'Canonical Scheme missing '+needle)
