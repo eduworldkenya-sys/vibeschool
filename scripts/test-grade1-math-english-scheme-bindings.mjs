@@ -68,5 +68,5 @@ assert.ok(scheme.includes("(mappedDraftRecord?.outcomes||[]).map"),
 assert.ok(scheme.includes('grade1ReaderCatalogError')&&scheme.includes('grade1ReaderCatalogLoading'),
   'Mapping errors must fail closed')
 assert.ok(math.includes('linkedUnit.outcomes.map')&&math.includes('onPlanUnit(unit.id)'))
-assert.ok(english.includes('linkedUnit.outcomes.map')&&english.includes('onPlanUnit(unit.id)'))
+assert.ok(english.includes('linkedUnit.outcomes.map')&&english.includes('onPlanUnit(unit.id, themeId)'))
 console.log('Grade 1 Mathematics + English canonical curriculum binding and Scheme authority: PASS')
