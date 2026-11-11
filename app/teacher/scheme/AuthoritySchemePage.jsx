@@ -4,7 +4,7 @@ import TeachingWorkspaceNav from '@/components/teacher/TeachingWorkspaceNav'
 import Grade4EnglishMap from '@/components/teacher/curriculum/Grade4EnglishMap'
 import Grade1CreativeActivitiesMap, { GRADE1_CREATIVE_STRANDS, GRADE1_CREATIVE_UNITS } from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 import Grade1MathematicsMap, { GRADE1_MATHEMATICS_STRANDS, GRADE1_MATHEMATICS_UNITS } from '@/components/teacher/curriculum/Grade1MathematicsMap'
-import Grade1EnglishMap, { GRADE1_ENGLISH_STRANDS, GRADE1_ENGLISH_UNITS } from '@/components/teacher/curriculum/Grade1EnglishMap'
+import Grade1EnglishMap, { GRADE1_ENGLISH_STRANDS, GRADE1_ENGLISH_UNITS, GRADE1_ENGLISH_THEMES } from '@/components/teacher/curriculum/Grade1EnglishMap'
 import WeeklyLessonSlots from '@/components/teacher/scheme/WeeklyLessonSlots'
 
 import AutoCreativeScheme from '@/components/teacher/scheme/AutoCreativeScheme'
@@ -143,8 +143,8 @@ function Inner({ curriculumView = false }) {
     // subject allocations for Maths/English before suggesting any weekly lessons.
     return isGrade1Creative
       ? buildCreativeAnnualSchemeDraft({...options,units:GRADE1_CREATIVE_UNITS})
-      : buildGrade1AnnualSchemeDraft({...options,units:readerUnits,expectedUnitCount:readerUnits.length,requireWeeklyAllocation:true})
-  },[isGrade1Paced,isGrade1Creative,curriculumView,annualCalendarYear,termObj?.academic_year,annualTerms,annualTermWeeks,weeklyTarget,readerUnits])
+      : buildGrade1AnnualSchemeDraft({...options,units:readerUnits,expectedUnitCount:readerUnits.length,requireWeeklyAllocation:true,themes:isGrade1English?GRADE1_ENGLISH_THEMES:null})
+  },[isGrade1Paced,isGrade1Creative,curriculumView,annualCalendarYear,termObj?.academic_year,annualTerms,annualTermWeeks,weeklyTarget,readerUnits,isGrade1English])
   const autoWeekSuggestions = useMemo(()=>termCreativeSchemeRows(annualDraft,selectedTermId).filter(item=>item.week===selectedWeek),[annualDraft,selectedTermId,selectedWeek])
   useEffect(()=>{
     let live=true
