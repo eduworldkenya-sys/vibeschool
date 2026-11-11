@@ -7,7 +7,7 @@ import { focusAreas, publishedRoles } from './careerContent'
 import styles from './careers.module.css'
 
 export const metadata: Metadata = {
-  title: 'Careers | VibeSchool',
+  title: 'Careers',
   description: 'Explore VibeSchool careers, check current published vacancies and introduce your work to the team.',
   alternates: { canonical: '/careers' },
 }
