@@ -68,8 +68,15 @@ export async function saveTutorListing(input: {
   const { data: userData, error: authError } = await client.auth.getUser()
   if (authError) return { ok: false, error: 'We could not verify your sign-in. Please try again.' }
   if (!userData.user) return { ok: false, error: 'Sign in to publish your listing.' }
+  // Tutor public identity follows the verified Teacher OS account, not
+  // a separately typed form value or stale local draft.
+  const { data: profile, error: profileError } = await client.from('profiles')
+    .select('full_name,role').eq('id', userData.user.id).maybeSingle()
+  const officialName = profile?.full_name?.trim()
+  if (profileError || profile?.role !== 'teacher' || !officialName)
+    return { ok: false, error: 'Complete your teacher account name before publishing a tutor profile.' }
   const { error } = await client.from('vibetutor_tutors').upsert({
-    profile_id: userData.user.id, display_name: input.name.trim(), levels: input.levels,
+    profile_id: userData.user.id, display_name: officialName, levels: input.levels,
     subjects: input.subjects, teaching_mode: input.mode, area: input.area || null,
     rate_kes: Number(input.rate) || null, available_days: input.days, phone: input.phone,
     status: 'published', updated_at: new Date().toISOString(),
