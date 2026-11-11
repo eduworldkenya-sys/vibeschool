@@ -72,6 +72,31 @@ assert.equal(GRADE6_KISWAHILI_SOURCE_ROW_TOTAL,115)
 assert.equal(GRADE6_KISWAHILI_VIBESCHOOL_REVIEW,5)
 assert.equal(GRADE6_KISWAHILI_UNITS.reduce((sum,x)=>sum+x.lessons,0),120)
 assert.equal(GRADE6_KISWAHILI_UNITS.reduce((sum,x)=>sum+x.supportLessons,0),5)
+// Exact revised-2024 KICD summary-table identity and pacing, not inferred
+// from the catalogue itself. KICD Grade 6 Mathematics p. xii; Grade 8 p. x.
+const officialGrade6Math = [
+  ['1.1','Whole Numbers',20],['1.2','Multiplication',6],['1.3','Division',6],
+  ['1.4','Fractions',12],['1.5','Decimals',12],['1.6','Inequalities',8],
+  ['2.1','Length',14],['2.2','Area',6],['2.3','Capacity',6],['2.4','Mass',14],
+  ['2.5','Time',10],['2.6','Money',8],['3.1','Lines',6],['3.2','Angles',6],
+  ['3.3','3-D Objects',6],['4.1','Bar Graphs',10]
+]
+const officialGrade8Math = [
+  ['1.1','Integers',6],['1.2','Fractions',6],['1.3','Decimals',8],
+  ['1.4','Squares and Square Roots',6],['1.5','Rates, Ratio, Proportions and Percentages',14],
+  ['2.1','Algebraic Expressions',6],['2.2','Linear Equations',7],
+  ['3.1','Circles',5],['3.2','Area',10],['3.3','Money',9],
+  ['4.1','Geometrical Constructions',12],['4.2','Coordinates and Graphs',14],
+  ['4.3','Scale Drawing',14],['4.4','Common Solids',16],
+  ['5.1','Data Presentation and Interpretation',10],['5.2','Probability',7]
+]
+for(const [label,source,units] of [
+  ['Grade 6 Mathematics',officialGrade6Math,GRADE6_MATHEMATICS_UNITS],
+  ['Grade 8 Mathematics',officialGrade8Math,GRADE8_MATHEMATICS_UNITS],
+]) {
+  assert.deepEqual(units.map(u=>[u.id,u.title,u.lessons]),source,
+    label+' must match every KICD sub-strand identifier, heading and period count')
+}
 assert.equal(GRADE8_MATHEMATICS_UNITS.find(x=>x.id==='5.1')?.title,'Data Presentation and Interpretation',
   'KICD Grade 8 Mathematics source 5.1 title must match its revised 2024 summary')
 const schoolTerms=[1,2,3].map(term=>({term,id:'term-'+term}))
