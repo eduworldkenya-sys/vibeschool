@@ -54,6 +54,11 @@ export default function ContactPage() {
   const [ticketId, setTicketId] = useState<string | null>(null)
 
   useEffect(() => {
+    const requestedTopic = new URLSearchParams(window.location.search).get('support')
+    if (requestedTopic === 'account' || requestedTopic === 'safety') {
+      setTopic(requestedTopic)
+      setCategory(requestedTopic === 'safety' ? 'safety' : 'account')
+    }
     let active = true
     supabase.auth.getUser()
       .then(({ data: { user } }) => { if (active) setSignedIn(Boolean(user)) })
@@ -174,7 +179,7 @@ export default function ContactPage() {
                   {!authReady && <p className={styles.statusText} role="status">Checking your sign-in status…</p>}
                   {authReady && !signedIn && (
                     <div className={styles.accountActions}>
-                      <Link className={styles.primaryAction} href="/login/global">Sign in for private support <span aria-hidden="true">→</span></Link>
+                      <Link className={styles.primaryAction} href={'/login?redirect=' + encodeURIComponent('/contact?support=' + topic)}>Sign in for private support <span aria-hidden="true">→</span></Link>
                       <p className={styles.recoveryLead}>{topic === 'account' ? 'Can’t sign in?' : 'Can’t use your account?'}</p>
                       <TrackedLink className={styles.secondaryAction} href={whatsappLink(topic === 'safety' ? 'safety' : 'account')} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">Ask how to get help on WhatsApp <span aria-hidden="true">↗</span></TrackedLink>
                     </div>
