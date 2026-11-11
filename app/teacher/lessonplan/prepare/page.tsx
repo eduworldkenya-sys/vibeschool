@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange, type CanonicalTimetableSlot } from '@/lib/timetable/engine'
@@ -35,6 +35,7 @@ interface SchemeChoice {
   curriculum_id: string | null
   sub_strand_id: string | null
   curriculum_outcome_id: string
+  outcome_status: 'verified' | 'active'
 }
 
 function friendlyError(value: unknown, fallback: string): string {
@@ -81,6 +82,10 @@ function formatDate(date: string) {
 
 export default function PrepareLessonPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const requestedClassId = searchParams.get('classId')
+  const requestedSubjectId = searchParams.get('subjectId')
+  const requestedSchemeId = searchParams.get('schemeId')
   const [teacherId, setTeacherId] = useState<string | null>(null)
   const [schoolId, setSchoolId] = useState<string | null>(null)
   const [assignments, setAssignments] = useState<OperatingClass[]>([])
@@ -94,7 +99,7 @@ export default function PrepareLessonPage() {
   const [schemeError, setSchemeError] = useState<string | null>(null)
   const [schemeLoading, setSchemeLoading] = useState(false)
   const [schemeChoices, setSchemeChoices] = useState<SchemeChoice[]>([])
-  const [schemeId, setSchemeId] = useState('')
+  const [schemeId, setSchemeId] = useState(requestedSchemeId ?? '')
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null)
   const [existingPlanTarget, setExistingPlanTarget] = useState<DraftTarget | null>(null)
   const [scopeKey, setScopeKey] = useState('')
@@ -196,12 +201,34 @@ export default function PrepareLessonPage() {
     return options
   }, [assignments])
 
+  useEffect(() => {
+    if (!requestedClassId || !requestedSubjectId || scopeKey || !scopeOptions.length) return
+    const match = scopeOptions.find(option => option.classId === requestedClassId && option.subjectId === requestedSubjectId)
+    if (match) setScopeKey(match.key)
+    else setError('The selected Scheme does not match a current class and subject assignment.')
+  }, [requestedClassId, requestedSubjectId, scopeOptions, scopeKey])
+
   const selectedScope = scopeOptions.find(option => option.key === scopeKey) ?? null
 
   const selectedScheme = schemeChoices.find(s => s.id === schemeId) ?? null
   const selectedAssignment = selectedScope
     ? assignments.find(row => row.class_id === selectedScope.classId && row.subject_id === selectedScope.subjectId)
     : null
+  useEffect(() => {
+    if (!requestedSchemeId || !selectedScheme || editingDraftId || !selectedScope?.classId) return
+    const saved = drafts.find(d => d.scheme_id === requestedSchemeId && d.class_id === selectedScope.classId && d.subject_id === selectedScope.subjectId)
+    if (saved) {
+      setEditingDraftId(saved.id)
+      setTitle(saved.title ?? '')
+      setTopic(saved.topic ?? '')
+      setBody(saved.body ?? '')
+      setDuration(String(saved.duration_minutes ?? 40))
+    } else if (!title && !body) {
+      setTitle(selectedScheme.topic)
+      setTopic(selectedScheme.topic)
+    }
+  }, [requestedSchemeId, selectedScheme, selectedScope?.classId, selectedScope?.subjectId, drafts, editingDraftId, title, body])
+
   const isGrade1English = Boolean(selectedAssignment
     && /^Grade\s*1$/i.test(selectedAssignment.class_name.trim())
     && /^English$/i.test(selectedAssignment.subject_name.trim()))
@@ -238,17 +265,28 @@ export default function PrepareLessonPage() {
           .order('week', { ascending: true })
           .limit(60)
         if (schemeLoadError) throw schemeLoadError
-        // An ID alone is not an approved curriculum authority.
+        // Preserve verified outcomes and the explicitly admitted VibeSchool-authored
+        // Grade 1 Creative Arts reference. Never label active as KICD verified.
         const ids = (data ?? []).map(item => item.curriculum_outcome_id).filter((id): id is string => typeof id === 'string')
-        let verifiedIds = new Set<string>()
+        const eligible = new Map<string, 'verified' | 'active'>()
         if (ids.length) {
           const { data: outcomes, error: outcomeError } = await supabase
-            .from('curriculum_learning_outcomes').select('id')
-            .in('id', ids).eq('status', 'verified')
+            .from('curriculum_learning_outcomes')
+            .select('id,sub_strand_id,status,source_ref,source_type,created_by')
+            .in('id', ids)
           if (outcomeError) throw outcomeError
-          verifiedIds = new Set((outcomes ?? []).map(item => item.id))
+          for (const outcome of outcomes ?? []) {
+            if (outcome.status === 'verified') eligible.set(outcome.id, 'verified')
+            else if (outcome.status === 'active'
+              && outcome.source_type === 'creator_claimed'
+              && outcome.created_by === null
+              && typeof outcome.source_ref === 'string'
+              && outcome.source_ref.startsWith('VS-CUR-G01-CA-2026#')) eligible.set(outcome.id, 'active')
+          }
         }
-        if (!cancelled) setSchemeChoices((data ?? []).filter((item): item is SchemeChoice => typeof item.curriculum_outcome_id === 'string' && verifiedIds.has(item.curriculum_outcome_id)))
+        if (!cancelled) setSchemeChoices((data ?? [])
+          .filter(item => item.curriculum_outcome_id && eligible.has(item.curriculum_outcome_id))
+          .map(item => ({ ...item, outcome_status: eligible.get(item.curriculum_outcome_id!)! } as SchemeChoice)))
       } catch {
         if (!cancelled) setSchemeError('Could not check Scheme learning outcomes. Save as a draft and reconnect later.')
       } finally {
@@ -487,7 +525,7 @@ export default function PrepareLessonPage() {
                   <p className="lp-prepare__hint">Checking current-term learning outcomes…</p>
                 ) : schemeError || schemeChoices.length === 0 ? (
                   <div className="lp-prepare__notice" role="status">
-                    {schemeError ?? 'No current-term Scheme item has a verified learning outcome. You can save a draft, but it is not ready to teach.'}
+                    {schemeError ?? 'No current-term Scheme item has an eligible learning outcome. You can still save an unlinked draft.'}
                     {isGrade1English && (
                       <div style={{marginTop:9}}>
                         <a href="https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-English-Activities-Revised-Sept.pdf"
@@ -499,8 +537,8 @@ export default function PrepareLessonPage() {
                     )}
                   </div>
                 ) : selectedScheme ? (
-                  <div className="lp-prepare__notice lp-prepare__notice--subtle">Linked to a current-term Scheme and its canonical learning outcome.</div>
-                ) : <p className="lp-prepare__hint">Choose a verified Scheme item to preserve outcome authority.</p>}
+                  <div className="lp-prepare__notice lp-prepare__notice--subtle">Linked to the saved Scheme and its learning outcome. {selectedScheme.outcome_status === 'active' ? 'VibeSchool-authored content; official KICD reconciliation remains pending.' : 'Verified outcome.'}</div>
+                ) : <p className="lp-prepare__hint">Choose a Scheme item to preserve its learning-outcome identity.</p>}
                 <label className="lp-prepare__label" htmlFor="draft-title">Lesson title</label>
                 <input id="draft-title" className="lp-prepare__field" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Reading and responding" />
                 <label className="lp-prepare__label" htmlFor="draft-topic">Specific focus <span style={{fontWeight:400}}>(optional)</span></label>
