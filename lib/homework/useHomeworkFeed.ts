@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { readCache, writeCache } from "@/lib/student-cache";
 import { Homework, HomeworkSubmission } from "@/lib/types";
+import { isLearnerAssignedHomework } from "@/lib/homework/eligibility";
 
 export type LifecycleStatus =
   | "marked"
@@ -94,20 +95,24 @@ export function useHomeworkFeed(
         .order("due_date", { ascending: true });
       if (validSchoolId) hwQuery = hwQuery.eq("school_id", validSchoolId);
 
-      const [hwRes, subRes, grpRes] = await Promise.all([
+      const [hwRes, subRes, grpRes, enrollmentRes] = await Promise.all([
         hwQuery,
         supabase.from("homework_submissions").select("*").eq("student_id", validStudentId),
-        supabase.from("class_group_members").select("group_id").eq("student_id", validStudentId),
+        supabase.from("class_group_members").select("group_id,created_at").eq("student_id", validStudentId),
+        supabase.from("student_classes").select("joined_at").eq("student_id", validStudentId).eq("class_id", validClassId).eq("is_current", true).maybeSingle(),
       ]);
 
       const subMap = new Map<string, HomeworkSubmission>();
       for (const s of (subRes.data as HomeworkSubmission[] | null) ?? []) {
         subMap.set(s.homework_id, s);
       }
-      const myGroupIds = new Set((grpRes.data ?? []).map((g: { group_id: string }) => g.group_id));
+      // Never show pre-enrollment work as owed by a learner who joined later.
+      // Missing enrollment evidence must not create unsupported assignments.
+      const memberSince = new Map((grpRes.data ?? []).map((g: { group_id: string; created_at: string }) => [g.group_id, g.created_at]));
+      const enrolledAt = enrollmentRes.error ? null : enrollmentRes.data?.joined_at ?? null;
 
       const result: HomeworkFeedItem[] = ((hwRes.data as Homework[] | null) ?? [])
-        .filter(h => h.target_group_id === null || myGroupIds.has(h.target_group_id))
+        .filter(h => isLearnerAssignedHomework(h, enrolledAt, h.target_group_id ? memberSince.get(h.target_group_id) : null))
         .map(h => {
           const sub    = subMap.get(h.id);
           const status = (sub?.status ?? "pending") as "pending" | "submitted" | "marked";
