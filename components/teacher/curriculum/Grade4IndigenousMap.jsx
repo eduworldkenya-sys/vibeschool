@@ -9,7 +9,7 @@ const green='#175b43',border='#d9e5dc'
 /** Planning/editorial reference: outcomes need local-language expert adaptation before learner publication. */
 export default function Grade4IndigenousMap({
  selectedUnitId='01-LS',onSelectUnit,onPlanUnit,mappedUnits={},
- catalogLoading=false,catalogError='',schemeCount=0,compact=false
+ catalogLoading=false,catalogError='',schemeCount=0,compact=false,showExisting=false,onToggleExisting
 }){
  const [themeId,setThemeId]=useState(1)
  const [expanded,setExpanded]=useState('')
@@ -75,5 +75,9 @@ export default function Grade4IndigenousMap({
    {schemeCount} existing saved Scheme lessons. The annual plan is a read-only suggested schedule until a teacher saves a lesson.
    The six showcasing lessons are cross-strand, not a fourth KICD strand.
   </p>
+  {onToggleExisting&&<button type="button" onClick={onToggleExisting} aria-expanded={showExisting}
+    style={{border:'1px solid #a8c0b1',background:'#fff',color:green,borderRadius:9,padding:'10px 14px',minHeight:44,cursor:'pointer',fontWeight:800}}>
+     {showExisting?'Hide earlier weekly curriculum records':'View earlier weekly curriculum records'}
+   </button>}
  </section>
 }
