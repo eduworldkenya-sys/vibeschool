@@ -85,6 +85,7 @@ function HomeworkInner() {
   const [context, setContext] = useState<Context | null>(null);
   const [lessonContext, setLessonContext] = useState<LessonContext | null>(null);
   const [list, setList] = useState<HomeworkRow[]>([]);
+  const [typeFilter, setTypeFilter] = useState("all");
   const [roster, setRoster] = useState<Array<{ student_id: string; joined_at: string | null; name: string }>>([]);
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([]);
   const [members, setMembers] = useState<Array<{ group_id: string; student_id: string; created_at: string }>>([]);
@@ -338,9 +339,9 @@ function HomeworkInner() {
     <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px", colorScheme: "light" }}>
       <section style={{ background: "linear-gradient(135deg,#0f766e,#14b8a6)", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 12 }}>
         <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={{ minHeight: 38, border: 0, borderRadius: 10, background: "rgba(255,255,255,.15)", color: "#fff", padding: "0 11px", fontWeight: 750 }}>‹ Class</button>
-        <h1 style={{ margin: "12px 0 3px", fontSize: 23 }}>Homework · {classLabel}</h1>
+        <h1 style={{ margin: "12px 0 3px", fontSize: 23 }}>Classwork · {classLabel}</h1>
         <div style={{ fontSize: 12, opacity: .82 }}>{targetGroup ? `${targetGroup.memberCount} targeted learners · ${targetGroup.name}` : `${rosterCount} current learners`} · {list.length} assignments</div>
-        <button type="button" onClick={() => setShowForm((value) => !value)} style={{ width: "100%", minHeight: 46, marginTop: 12, border: 0, borderRadius: 12, background: "#fff", color: "#0f766e", fontWeight: 750 }}>{showForm ? "Close form" : "Create homework / exercise"}</button>
+        <button type="button" onClick={() => setShowForm((value) => !value)} style={{ width: "100%", minHeight: 46, marginTop: 12, border: 0, borderRadius: 12, background: "#fff", color: "#0f766e", fontWeight: 750 }}>{showForm ? "Close form" : "Set work"}</button>
       </section>
 
       {error && <div role="alert" style={{ background: "#fef2f2", color: "#991b1b", borderRadius: 14, padding: 13, marginBottom: 12, fontSize: 13 }}>{error}</div>}
@@ -354,6 +355,25 @@ function HomeworkInner() {
           {sourceTopic && <span style={{ display: "block", marginTop: 2 }}>Topic: {sourceTopic}</span>}
         </div>}
         <div style={{ display: "grid", gap: 12 }}>
+          <label style={{ display: "grid", gap: 5, fontSize: 12, fontWeight: 750 }}>Assign to
+            <select aria-label="Assign to" value={sourceGroupId ? "group" : form.audience} disabled={Boolean(sourceGroupId)} onChange={event => setForm(current => ({ ...current, audience: event.target.value as FormState["audience"] }))} style={INPUT_STYLE}>
+              <option value="class">Whole class</option><option value="group">Saved group</option><option value="learners">Selected learners</option>
+            </select>
+          </label>
+          {!sourceGroupId && form.audience === "group" && <label style={{ display: "grid", gap: 5, fontSize: 12, fontWeight: 750 }}>Choose a group
+            <select aria-label="Choose a group" value={form.groupId} onChange={event => setForm(current => ({ ...current, groupId: event.target.value }))} style={INPUT_STYLE}>
+              <option value="">Select group</option>
+              {groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </select>
+          </label>}
+          {!sourceGroupId && form.audience === "learners" && <fieldset style={{ border: "1px solid #d1d5db", borderRadius: 12, padding: 12, maxHeight: 210, overflowY: "auto" }}>
+            <legend style={{ fontSize: 12, fontWeight: 750 }}>Choose learners</legend>
+            {roster.map(row => <label key={row.student_id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 0", fontSize: 13 }}>
+              <input type="checkbox" checked={form.studentIds.includes(row.student_id)} onChange={event => setForm(current => ({ ...current, studentIds: event.target.checked ? [...current.studentIds, row.student_id] : current.studentIds.filter(id => id !== row.student_id) }))} />
+              {row.name}
+            </label>)}
+          </fieldset>}
+          <p role="status" style={{ fontSize: 12, margin: 0, color: recipientCount ? "#065f46" : "#b91c1c", fontWeight: 750 }}>{recipientCount} learner{recipientCount === 1 ? "" : "s"} will receive this work. Work published before enrolment is not automatically owed.</p>
           <label><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>TITLE *</span><input aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "homework-title-error" : undefined} value={form.title} onChange={(event) => { setForm((current) => ({ ...current, title: event.target.value })); setFieldErrors((current) => ({ ...current, title: undefined })); }} style={{ ...INPUT_STYLE, border: fieldErrors.title ? "1px solid #dc2626" : INPUT_STYLE.border }} />{fieldErrors.title && <span id="homework-title-error" role="alert" style={{ display: "block", marginTop: 5, color: "#b91c1c", fontSize: 12 }}>{fieldErrors.title}</span>}</label>
           <label><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>SUBJECT</span><input value={lessonLinked ? authoritativeSubject : form.subject} onChange={(event) => !lessonLinked && setForm((current) => ({ ...current, subject: event.target.value }))} readOnly={lessonLinked} aria-readonly={lessonLinked} placeholder={assignment?.subject_name ?? "Subject"} style={{ ...INPUT_STYLE, background: lessonLinked ? "#f8fafc" : "#fff", color: lessonLinked ? "#475569" : "#111827" }} /></label>
           <label><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>INSTRUCTIONS</span><textarea rows={4} value={form.instructions} onChange={(event) => setForm((current) => ({ ...current, instructions: event.target.value }))} style={{ ...INPUT_STYLE, minHeight: 110, resize: "vertical" }} /></label>
@@ -362,18 +382,28 @@ function HomeworkInner() {
             <label style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>TYPE</span><select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))} style={{ ...INPUT_STYLE, appearance: "auto" }}><option value="homework">Homework</option><option value="exercise">Exercise</option><option value="quiz">Quiz</option><option value="assignment">Assignment</option><option value="project">Project</option></select></label>
           </div>
         </div>
-        <button type="button" onClick={() => void createHomework()} disabled={saving || !formValid} style={{ width: "100%", minHeight: 49, marginTop: 14, border: 0, borderRadius: 12, background: saving || !formValid ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 750 }}>{saving ? "Saving…" : "Assign learner work"}</button>
+        <button type="button" onClick={() => { writeDraft(storageKey, form); setSuccess("Draft saved on this device. No work has been published."); }} style={{ width: "100%", minHeight: 44, marginTop: 12, border: "1px solid #0f766e", borderRadius: 12, background: "#fff", color: "#065f46", fontWeight: 750 }}>Save draft</button>
+        <button type="button" onClick={() => void createHomework()} disabled={saving || !formValid} style={{ width: "100%", minHeight: 49, marginTop: 14, border: 0, borderRadius: 12, background: saving || !formValid ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 750 }}>{saving ? "Publishing…" : `Publish to ${recipientCount} learner${recipientCount === 1 ? "" : "s"}`}</button>
         <div style={{ marginTop: 8, fontSize: 11, color: "var(--teacher-muted, #627168)", lineHeight: 1.4 }}>Your unfinished form is retained for this exact {sourceOccurrenceId ? "lesson" : "class"} if the connection is interrupted.</div>
         <style jsx>{`@media (max-width: 430px) { .homework-meta-grid { grid-template-columns: 1fr !important; } }`}</style>
       </section>}
 
-      {loading ? <div aria-label="Loading class homework" style={{ display: "grid", gap: 9 }}>{[1,2,3].map((item) => <div key={item} style={{ height: 96, borderRadius: 16, background: "var(--teacher-border, #dfe5de)" }} />)}</div> : list.length === 0 ? (!showForm && <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center", color: "var(--teacher-muted, #627168)", fontSize: 13 }}>No learner work assigned yet. Create one here or open this page from a lesson to preserve exact lesson lineage.</section>) : <div style={{ display: "grid", gap: 9 }}>{list.map((item) => {
-        const submitted = item.homework_submissions.length;
-        const denominator = item.target_group_id && targetGroup?.id === item.target_group_id ? targetGroup.memberCount : rosterCount;
+      <label style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, fontSize: 13 }}>Filter classwork
+        <select value={typeFilter} onChange={event => setTypeFilter(event.target.value)} style={{ ...INPUT_STYLE, width: "auto", minHeight: 40 }}>
+          <option value="all">All types</option><option value="homework">Homework</option><option value="exercise">Exercises</option><option value="quiz">Quizzes</option><option value="assignment">Assignments</option><option value="project">Projects</option>
+        </select>
+      </label>
+      {loading ? <div aria-label="Loading class homework" style={{ display: "grid", gap: 9 }}>{[1,2,3].map((item) => <div key={item} style={{ height: 96, borderRadius: 16, background: "var(--teacher-border, #dfe5de)" }} />)}</div> : list.length === 0 ? (!showForm && <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center", color: "var(--teacher-muted, #627168)", fontSize: 13 }}>No learner work assigned yet. Create one here or open this page from a lesson to preserve exact lesson lineage.</section>) : <div style={{ display: "grid", gap: 9 }}>{list.filter(item => typeFilter === "all" || item.type === typeFilter).map((item) => {
+        const eligibleIds = new Set(roster.filter(row => {
+          const membership = item.target_group_id ? members.find(member => member.group_id === item.target_group_id && member.student_id === row.student_id) : null;
+          return isLearnerAssignedHomework(item, row.joined_at, membership?.created_at);
+        }).map(row => row.student_id));
+        const denominator = eligibleIds.size;
+        const submitted = new Set(item.homework_submissions.filter(sub => eligibleIds.has(sub.student_id)).map(sub => sub.student_id)).size;
         const percentage = denominator ? Math.round((submitted / denominator) * 100) : 0;
         return <section key={item.id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 13, boxShadow: "0 1px 5px rgba(0,0,0,.04)" }}>
           <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework/${item.id}`)} style={{ width: "100%", textAlign: "left", border: 0, background: "transparent", padding: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div><div style={{ fontSize: 14, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{item.title}</div><div style={{ marginTop: 3, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{item.subject || assignment?.subject_name || "Subject"} · Due {item.due_date}</div></div><strong style={{ flexShrink: 0, fontSize: 11, color: "#0f766e" }}>{submitted}/{rosterCount}</strong></div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div><div style={{ fontSize: 14, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{item.title}</div><div style={{ marginTop: 3, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{item.subject || assignment?.subject_name || "Subject"} · Due {item.due_date}</div></div><strong style={{ flexShrink: 0, fontSize: 11, color: "#0f766e" }}>{submitted}/{denominator}</strong></div>
             <div style={{ marginTop: 8, height: 5, borderRadius: 99, background: "#f3f4f6", overflow: "hidden" }}><div style={{ width: `${Math.min(100, percentage)}%`, height: "100%", background: "#0f766e" }} /></div>
             {item.teaching_occurrence_id && <div style={{ marginTop: 7, fontSize: 11, color: "#2563eb", fontWeight: 800 }}>Linked to taught lesson</div>}
           </button>
