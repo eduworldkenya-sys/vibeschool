@@ -9,6 +9,8 @@ const map=read('../components/teacher/curriculum/Grade8MathematicsMap.jsx')
 const sql=read('../supabase/migrations/20261111100935_grade8_mathematics_kicd_reference_scheme_20261111.sql')
 const units=GRADE8_MATHEMATICS_UNITS
 assert.equal(units.length,16,'complete 16-sub-strand KICD structural reference')
+assert.equal(units.find(u=>u.id==='5.1')?.title,'Data Presentation and Interpretation',
+  'Use the KICD 2024 Grade 8 Mathematics source heading, not an invented synonym')
 assert.equal(new Set(units.map(u=>u.id)).size,16,'unique curriculum unit keys')
 assert.equal(new Set(units.map(u=>u.strand)).size,5,'five curriculum strands')
 assert.equal(units.reduce((n,u)=>n+u.lessons,0),GRADE8_MATHEMATICS_LESSONS)
