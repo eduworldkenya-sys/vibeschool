@@ -8,7 +8,7 @@ import { approveAssessment } from '@/lib/assessment'
 import { loadBuilderAssessment, type BuilderAssessment } from '@/lib/assessment/builder'
 import { supabase } from '@/lib/supabase'
 
-type DefinitionContext = { classId: string; status: string; estimatedMinutes: number | null }
+type DefinitionContext = { classId: string; status: string; estimatedMinutes: number | null; recipientCount: number | null }
 type ExistingAssignment = { id: string; status: string }
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 
@@ -43,15 +43,20 @@ export default function AssessmentReviewPage() {
     try {
       const [builder, definitionResult, assignmentResult] = await Promise.all([
         loadBuilderAssessment(assessmentId),
-        supabase.from('assessment_definitions').select('class_id,status,estimated_minutes').eq('id', assessmentId).maybeSingle(),
+        supabase.from('assessment_definitions').select('class_id,school_id,status,estimated_minutes').eq('id', assessmentId).maybeSingle(),
         supabase.from('assessment_assignments').select('id,status').eq('assessment_id', assessmentId).in('status', ['assigned', 'open']).order('assigned_at', { ascending: false }).limit(1).maybeSingle(),
       ])
       if (definitionResult.error) throw definitionResult.error
       if (assignmentResult.error) throw assignmentResult.error
       if (!definitionResult.data?.class_id) throw new Error('Assessment assignment is blocked because class authority is missing.')
 
+      const { count, error: rosterError } = await supabase.from('student_classes')
+        .select('student_id', { count: 'exact', head: true })
+        .eq('class_id', definitionResult.data.class_id)
+        .eq('school_id', definitionResult.data.school_id)
+        .eq('is_current', true)
       setAssessment(builder)
-      setContext({ classId: definitionResult.data.class_id, status: definitionResult.data.status, estimatedMinutes: definitionResult.data.estimated_minutes })
+      setContext({ classId: definitionResult.data.class_id, status: definitionResult.data.status, estimatedMinutes: definitionResult.data.estimated_minutes, recipientCount: rosterError ? null : count })
       setAssignment(assignmentResult.data ? { id: assignmentResult.data.id, status: assignmentResult.data.status } : null)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Assessment review could not be loaded.')
@@ -63,7 +68,7 @@ export default function AssessmentReviewPage() {
   useEffect(() => { void load() }, [assessmentId])
 
   async function assignNow() {
-    if (!assessment || !context || busy || assignment) return
+    if (!assessment || !context || busy || assignment || context.recipientCount !== null && context.recipientCount === 0) return
     setBusy(true)
     setError('')
     try {
@@ -88,8 +93,8 @@ export default function AssessmentReviewPage() {
       setAssignment({ id: payload.assignment_id, status: payload.status })
       setContext(current => current ? { ...current, status: payload.status as string } : current)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Assessment could not be assigned.')
       await load()
+      setError(cause instanceof Error ? cause.message : 'Assessment could not be assigned.')
     } finally {
       setBusy(false)
     }
@@ -104,7 +109,7 @@ export default function AssessmentReviewPage() {
           <h1 style={{ margin: '6px 0' }}>{assessment?.title ?? 'Assessment'}</h1>
           <p style={{ margin: 0, color: "var(--teacher-muted, #627168)", lineHeight: 1.5 }}>VibeSchool prepared this from authoritative curriculum outcomes. Check the questions, then assign in one tap. Full Builder controls are optional before release.</p>
         </section>
-        {error && <section style={errorBox}>{error}</section>}
+        {error && <section role="alert" style={errorBox}>{error}</section>}
         {loading ? <section style={card}>Loading assessment…</section> : !assessment || !context ? null : <>
           <section style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -116,10 +121,11 @@ export default function AssessmentReviewPage() {
             </ol>
           </section>
           {assignment ? <>
-            <section style={successBox}><strong>✓ Assigned to the class</strong><div style={{ marginTop: 5 }}>Learners can now receive this assessment through the canonical assessment assignment flow.</div></section>
+            <section role="status" style={successBox}><strong>✓ Assigned to the class</strong><div style={{ marginTop: 5 }}>Learners can now receive this assessment through the canonical assessment assignment flow.</div></section>
             <button type="button" onClick={() => router.push('/teacher/assessment')} style={{ ...secondary, width: '100%', marginTop: 10 }}>Done · Assessment workspace</button>
           </> : <>
-            <button type="button" disabled={busy || items.length === 0} onClick={() => void assignNow()} style={{ ...primary, width: '100%' }}>{busy ? 'Assigning…' : 'Assign now'}</button>
+            {context.recipientCount !== null && <p role="status">{context.recipientCount === 0 ? 'This class has no current learners to assign to.' : `${context.recipientCount} current learners in this class`}</p>}
+            <button type="button" disabled={busy || items.length === 0 || context.recipientCount === 0} onClick={() => void assignNow()} style={{ ...primary, width: '100%' }}>{busy ? 'Assigning…' : 'Assign now'}</button>
             <button type="button" onClick={() => router.push(`/teacher/assessment/builder/${assessmentId}`)} style={{ ...secondary, width: '100%', marginTop: 10 }}>Advanced Edit · Sections · Question Bank</button>
           </>}
         </>}
