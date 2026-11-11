@@ -21,9 +21,10 @@ export type SubjectLessonCandidate = {
   endTime: string;
   room: string | null;
   lessonPlanId: string | null;
+  schemeId: string | null;
   lessonPlanStatus: string | null;
   lessonTitle: string | null;
-  relation: "today" | "upcoming" | "recent";
+  relation: "today" | "upcoming" | "recent" | "unscheduled";
 };
 
 type OperatingContext = {
@@ -127,7 +128,7 @@ export async function loadSubjectLessonCandidates(
       .lte("occurrence_date", rangeEnd),
     supabase
       .from("lesson_plans")
-      .select("id,timetable_slot_id,week_start,taught_date,status,title,topic")
+      .select("id,scheme_id,timetable_slot_id,week_start,taught_date,status,title,topic")
       .eq("teacher_id", authority.teacherId)
       .eq("school_id", authority.schoolId)
       .eq("class_id", authority.classId)
@@ -173,6 +174,7 @@ export async function loadSubjectLessonCandidates(
         endTime: slot.end_time,
         room: slot.room ?? null,
         lessonPlanId: plan?.id ?? null,
+        schemeId: plan?.scheme_id ?? null,
         lessonPlanStatus: plan?.status ?? null,
         lessonTitle: plan?.title ?? plan?.topic ?? null,
         relation: date === today ? "today" : date > today ? "upcoming" : "recent",
@@ -180,7 +182,25 @@ export async function loadSubjectLessonCandidates(
     }
   }
 
-  return candidates
+  // Scheme-based preparations are first-class lesson choices, even when no
+  // timetable slot exists. Do not manufacture an occurrence/date for them.
+  const independent = plans
+    .filter(plan => !plan.timetable_slot_id && Boolean(plan.scheme_id))
+    .map(plan => ({
+      timetableSlotId: "",
+      occurrenceId: null,
+      occurrenceDate: "",
+      lifecycle: null,
+      startTime: "",
+      endTime: "",
+      room: null,
+      lessonPlanId: plan.id,
+      schemeId: plan.scheme_id,
+      lessonPlanStatus: plan.status,
+      lessonTitle: plan.title ?? plan.topic ?? null,
+      relation: "unscheduled" as const,
+    }))
+  return [...candidates, ...independent]
     .filter((candidate) => candidate.lifecycle !== "cancelled")
     .sort((a, b) => {
       const rank = (value: SubjectLessonCandidate) =>
@@ -202,9 +222,12 @@ export function buildTeacherGuideHref(
     classId: authority.classId,
     subjectId: authority.subjectId,
     subjectName: authority.subjectName,
-    timetableSlotId: candidate.timetableSlotId,
-    date: candidate.occurrenceDate,
   });
+  if (candidate.lessonPlanId) q.set("lessonPlanId",candidate.lessonPlanId);
+  if (candidate.schemeId) q.set("schemeId",candidate.schemeId);
+  if (candidate.timetableSlotId) q.set("timetableSlotId",candidate.timetableSlotId);
+  if (candidate.occurrenceDate) q.set("date",candidate.occurrenceDate);
+  if (candidate.occurrenceId) q.set("occurrenceId",candidate.occurrenceId);
   return `/teacher/teacher-guide?${q.toString()}`;
 }
 
@@ -217,9 +240,10 @@ export function buildLessonNotesHref(
     lessonPlanId: candidate.lessonPlanId,
     classId: authority.classId,
     subjectId: authority.subjectId,
-    timetableSlotId: candidate.timetableSlotId,
-    date: candidate.occurrenceDate,
   });
+  if (candidate.schemeId) q.set("schemeId",candidate.schemeId);
+  if (candidate.timetableSlotId) q.set("timetableSlotId",candidate.timetableSlotId);
+  if (candidate.occurrenceDate) q.set("date",candidate.occurrenceDate);
   if (candidate.occurrenceId) q.set("occurrenceId", candidate.occurrenceId);
   return `/teacher/lesson-notes?${q.toString()}`;
 }
