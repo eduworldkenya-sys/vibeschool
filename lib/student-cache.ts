@@ -16,7 +16,8 @@ export const STUDENT_CACHE_TTL = {
 export type CacheKey = keyof typeof STUDENT_CACHE_TTL
 
 export function studentCacheKey(page: CacheKey, studentId: string): string {
-  return `vs_student_${page}_${studentId}_v1`
+  // Enrollment-aware homework data must never reuse pre-fix cached assignments.
+  return `vs_student_${page}_${studentId}_${page === "homework" ? "v2" : "v1"}`
 }
 
 export function readCache<T>(page: CacheKey, studentId: string): T | null {
