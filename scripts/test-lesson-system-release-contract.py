@@ -68,8 +68,9 @@ require(source, 'meaningful(source.keyInquiryQuestion) ?? authorityList(authorit
 require(source, 'meaningful(source.learningExperiences) ?? authorityList(authority.suggested_experiences)', 'Scheme experiences win')
 
 # Exact Scheme resource boundary and certified content authority.
-require(source_bundle, 'if (source?.schemeId)', 'exact Scheme boundary')
-require(source_bundle, 'loadExplicitSchemeResources(source.schemeId)', 'exact Scheme resources')
+require(source_bundle, "source.schemeId ? loadGenericSchemeResources(source.schemeId, source.lessonNumber)", 'exact numbered Scheme boundary')
+require(source_bundle, "source.schemeId ? loadExplicitSchemeResources(source.schemeId)", 'exact Scheme resources')
+require(source_bundle, 'const certifiedContent = await loadCertifiedContentForSource(source)', 'shared scheduled and unscheduled content authority')
 require(source_bundle, ".eq('lifecycle_status', 'certified')", 'certified resource version')
 require(source_bundle, '!version.certification_policy_version', 'resource certification policy')
 require(source_bundle, '!version.certified_at', 'resource certification timestamp')
