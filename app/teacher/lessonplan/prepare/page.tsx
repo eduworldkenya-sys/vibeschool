@@ -535,7 +535,7 @@ export default function PrepareLessonPage() {
         })
         sections = timeOriginalLessonSections(sections, Number(duration))
         setContentNotice('Working Jumping manuscript. This is a private teacher-review draft, not certified content for delivery.')
-      } else if (/^Grade\\s*1$/i.test(selectedAssignment.class_name.trim()) && selectedScheme.sub_strand?.trim().toLowerCase() === 'jumping') {
+      } else if (selectedAssignment.class_name.trim().toLowerCase() === 'grade 1' && selectedScheme.sub_strand?.trim().toLowerCase() === 'jumping') {
         throw new Error('Choose one of the 14 Jumping lessons to use its original content. No lesson number is saved in this Scheme, so VibeSchool cannot select one automatically.')
       } else {
         // Preserve existing independent Scheme preparation if production has
