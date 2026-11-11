@@ -47,7 +47,7 @@ export const teacherTools = {
   me: [
     { label: 'Profile', href: '/teacher/profile', icon: UserRound },
     { label: 'My school', href: '/teacher/schoolhub', icon: School },
-    { label: 'Marketplace · Jobs, Swap', href: '/teacher/marketplace', icon: ArrowLeftRight },
+    { label: 'Marketplace · Jobs, Swap', href: '/teacher/marketplace/manage', icon: ArrowLeftRight },
     { label: 'TPAD', href: '/teacher/tpad', icon: ClipboardCheck },
     { label: 'Credits', href: '/teacher/credits', icon: Wallet },
     { label: 'Settings', href: '/teacher/settings', icon: SlidersHorizontal },
