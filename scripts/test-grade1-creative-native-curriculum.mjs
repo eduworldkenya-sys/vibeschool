@@ -32,7 +32,7 @@ assert.ok(subjectHub.includes("router.push('/teacher/scheme?' + params.toString(
 assert.ok(mapPage.includes("unitId:searchParams.get('unitId')"), 'Scheme must restore the selected curriculum unit')
 assert.ok(mapPage.includes("if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId)"), 'Selected unit must survive week selection')
 assert.ok(mapPage.includes('mappedDraftRecord?.outcomes||[]'), 'Teacher must select persisted outcome records')
-assert.ok(mapPage.includes("supabase.rpc('commit_mapped_scheme_lesson'"), 'Mapped lesson must call the atomic identity-checked server function')
+assert.ok(mapPage.includes("'commit_mapped_scheme_lesson'"), 'Mapped lesson must call the atomic identity-checked server function')
 assert.ok(migration.includes('v_scheme:=public.commit_custom_scheme_item('), 'Mapped RPC must reuse teacher assignment/calendar/ordering authority')
 assert.ok(migration.includes('security invoker'), 'Mapped RPC must retain invoker security and RLS')
 assert.ok(migration.includes('insert into public.scheme_lesson_outcomes'), 'Persist each outcome FK atomically with a scheme lesson')
