@@ -65,6 +65,36 @@ if 'margin-top:0' not in shell_css:
 if 'min-height:44px' not in shell_css or 'font-size:14px' not in shell_css:
     errors.append('public footer link readability/touch sizing was reduced')
 
+
+# About Us should speak to real visitors, not reproduce internal architecture.
+# Preserve the founder's original dedication on its own public page.
+about = text('app/about/page.tsx')
+founder_note = text('app/about/founder-note/page.tsx')
+for fragment in [
+    'Making teaching easier.', 'Making learning better.',
+    'Teachers already have enough work to do.',
+    'WHO WE SERVE', 'BUILT FOR KENYA',
+    '/about/founder-note', '/product', '/contact',
+    'PublicHeader', 'PublicFooter',
+]:
+    if fragment not in about:
+        errors.append(f'About Us clarity contract missing: {fragment}')
+for fragment in [
+    'The People Who Matter', 'To All My Sons',
+    'Ramadhan Ali · Brian Kariara · James Maina',
+    'Each of you holds a special place in my heart',
+    "canonical: '/about/founder-note'",
+    'PublicHeader', 'PublicFooter',
+]:
+    if fragment not in founder_note:
+        errors.append(f'founder dedication preservation missing: {fragment}')
+for fragment in ['THE NORTH-STAR LOOP', 'THE CANONICAL LEARNING CHAIN', 'WHAT WE WILL NOT BECOME']:
+    if fragment in about:
+        errors.append(f'About Us still exposes internal architecture: {fragment}')
+for fragment in ['#07111f', '#d4b65b', '@media(max-width:780px)', 'about-audiences']:
+    if fragment not in about:
+        errors.append(f'About Us branded/responsive design missing: {fragment}')
+
 # Mission and vision are strategic product invariants, not mutable campaign copy.
 mission = text('docs/strategy/VIBESCHOOL-MISSION-VISION-LOCK.md')
 for fragment in [
