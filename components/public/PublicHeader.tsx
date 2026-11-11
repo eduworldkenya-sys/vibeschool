@@ -9,7 +9,7 @@ type PublicHeaderProps = { product?: string; compact?: boolean }
 const navItems = [
   ['/product', 'Product'],
   ['/teacher', 'Teachers'],
-  ['/sandbox', 'Live Sandbox'],
+  ['/sandbox', 'Experience'],
   ['/global', 'Learn'],
   ['/success-wishes', 'Success Wishes'],
   ['/vibetutor', 'VibeTutor'],
