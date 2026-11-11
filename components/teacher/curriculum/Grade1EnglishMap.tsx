@@ -460,13 +460,14 @@ type LinkedCurriculumUnit = {
 }
 
 export default function Grade1EnglishMap({
-  compact = false, selectedUnitId = '1.1', selectedThemeId = 1, onSelectUnit, onPlanUnit,
+  compact = false, selectedUnitId = '1.1', selectedThemeId = 1, onSelectUnit, onSelectTheme, onPlanUnit,
   mappedUnits, catalogLoading = false, catalogError = '',
 }: {
   compact?: boolean;
   selectedUnitId?: string;
   selectedThemeId?: number;
   onSelectUnit?: (unitId: string) => void;
+  onSelectTheme?: (themeId: number) => void;
   onPlanUnit?: (unitId: string, themeId: number) => void;
   mappedUnits?: Record<string, LinkedCurriculumUnit>;
   catalogLoading?: boolean;
@@ -560,7 +561,7 @@ export default function Grade1EnglishMap({
     </div>}
     <div style={{ ...card, background: '#f2f7fa', marginBottom: 12 }}>
       <label htmlFor="grade1-english-theme" style={h}>Teaching theme (15 KICD contexts)</label>
-      <select id="grade1-english-theme" value={themeId} onChange={event => setThemeId(Number(event.target.value))} style={{ display: 'block', width: '100%', minHeight: 44, padding: '10px 12px', border: '1px solid #a9c2b1', background: '#fff', borderRadius: 9, fontSize: 15 }}>
+      <select id="grade1-english-theme" value={themeId} onChange={event => { const next=Number(event.target.value); setThemeId(next); onSelectTheme?.(next) }} style={{ display: 'block', width: '100%', minHeight: 44, padding: '10px 12px', border: '1px solid #a9c2b1', background: '#fff', borderRadius: 9, fontSize: 15 }}>
         {GRADE1_ENGLISH_THEMES.map(item => <option key={item.id} value={item.id}>{item.id}. {item.title}</option>)}
       </select>
       <p style={{ ...bullet, marginTop: 9 }}><strong>Useful words:</strong> {theme.words}</p>
