@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function TeacherMarketplaceSandboxPage() {
   return (
     <div>
-      <PublicHeader product="Teacher Marketplace Sandbox" />
+      <PublicHeader product="Teacher Marketplace" />
       <main id="main-content">
         <VacancyMatchSandbox />
       </main>
