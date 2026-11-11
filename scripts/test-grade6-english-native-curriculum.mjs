@@ -40,7 +40,7 @@ for(const token of [
  "isGrade6English", "isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics || isGrade8English || isGrade6Mathematics || isGrade6English",
  "from('grade6_english_reader_bindings')", "eq('grade','Grade 6')",
  "GRADE6_ENGLISH_PREFIX", "mappedUnits={grade6EnglishCatalog}",
- "catalog={isGrade6English?grade6EnglishCatalog:", "commit_mapped_scheme_lesson",
+ "isGrade6English?grade6EnglishCatalog:isGrade6Mathematics?grade6Catalog:", "commit_mapped_scheme_lesson",
 ]) assert.ok(page.includes(token),'Grade 6 Scheme binding missing: '+token)
 assert.ok(subject.includes('grade6EnglishClass') && subject.includes('<Grade6EnglishMap compact'))
 for(const token of [

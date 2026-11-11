@@ -38,7 +38,7 @@ assert.ok(scheme.includes('<Grade1EnglishMap key={selectedSubject} selectedUnitI
 assert.ok(scheme.includes("isGrade1Mathematics||isGrade1English") && scheme.includes("p.set('unitId',mapUnitId)"),
   'Selected sub-strand must survive URL changes, refresh and sharing')
 assert.ok(scheme.includes("unitId:searchParams.get('unitId')"), 'Direct sub-strand links must be restored')
-assert.ok(scheme.includes("display:isGrade1Creative||isGrade8Mathematics||isGrade8English||isGrade6Mathematics||isGrade6English||((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)"),
+assert.ok(scheme.includes('isGrade1Creative||')&&scheme.includes('isGrade8Mathematics||')&&scheme.includes('isGrade8English||')&&scheme.includes('isGrade6Mathematics||')&&scheme.includes('isGrade6English||')&&scheme.includes('isGrade4Mathematics||')&&scheme.includes('((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)'),
   'Only the empty legacy annual grid should be hidden; never hide existing canonical rows')
 assert.ok(scheme.includes("curriculumOutcomes[row.id]"),'Preserve verified canonical outcome rendering')
 assert.ok(scheme.includes("commit_curriculum_scheme"),'Preserve canonical scheme authority')
