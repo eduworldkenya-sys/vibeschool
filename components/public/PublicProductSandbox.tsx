@@ -1,128 +1,203 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { ArrowRight, BookOpenText, Check, RotateCcw } from 'lucide-react'
 import { trackPublicEvent } from '@/lib/publicTelemetry'
 import styles from './PublicProductSandbox.module.css'
 
 type Role = 'teacher' | 'learner' | 'family' | 'leader'
-type EvidenceKey = 'identify' | 'explain' | 'apply'
+type Answer = '6' | '8' | '10'
 
-type DemoLearner = {
-  id: string
-  label: string
-  present: boolean
-  participated: boolean
-  evidence: Record<EvidenceKey, boolean>
-}
-
-const stages = [
-  { key: 'plan', label: 'Plan', eyebrow: '01 · PLAN' },
-  { key: 'teach', label: 'Teach', eyebrow: '02 · TEACH' },
-  { key: 'evidence', label: 'Evidence', eyebrow: '03 · EVIDENCE' },
-  { key: 'assess', label: 'Assess', eyebrow: '04 · ASSESS' },
-  { key: 'understand', label: 'Understand', eyebrow: '05 · UNDERSTAND' },
-  { key: 'next', label: 'Next action', eyebrow: '06 · NEXT ACTION' },
-] as const
-
-const evidenceCriteria: { key: EvidenceKey; short: string; label: string }[] = [
-  { key: 'identify', short: 'Identify', label: 'Identifies relevant cell structures from the learning task' },
-  { key: 'explain', short: 'Explain', label: 'Explains how a structure supports a function' },
-  { key: 'apply', short: 'Apply', label: 'Uses the idea in a new example or comparison' },
-]
-
-const initialLearners: DemoLearner[] = [
-  { id: 'learner-a', label: 'Learner A', present: false, participated: false, evidence: { identify: false, explain: false, apply: false } },
-  { id: 'learner-b', label: 'Learner B', present: false, participated: false, evidence: { identify: false, explain: false, apply: false } },
-  { id: 'learner-c', label: 'Learner C', present: false, participated: false, evidence: { identify: false, explain: false, apply: false } },
-]
+const options: Answer[] = ['6', '8', '10']
 
 const roleLabels: Record<Role, string> = {
-  teacher: 'Teacher', learner: 'Learner', family: 'Family', leader: 'School leader',
-}
-
-const breadth = [
-  { label: 'Curriculum & teaching', detail: 'Curriculum structure, schemes, lesson planning, classroom activity and teacher evidence.', href: '/teachers' },
-  { label: 'Learning & content', detail: 'VibeLearn connects curriculum content, reading, study activity and the learner journey.', href: '/learners' },
-  { label: 'Assessment & progress', detail: 'Evidence, assessment and progress remain connected so the next action has context.', href: '/product' },
-  { label: 'Families', detail: 'Families receive the learner context appropriate to their relationship and authority.', href: '/families' },
-  { label: 'Senior School Pathways', detail: 'Pathways, tracks, subject combinations and future direction connect to learner context.', href: '/pathways' },
-  { label: 'School operations', detail: 'Institutional identity, staff, finance, resources and operations sit around the learning core.', href: '/institutions' },
-  { label: 'Trust & governance', detail: 'Role authority, provenance, auditability and evidence boundaries are product requirements.', href: '/trust' },
-  { label: 'Publishing ecosystem', detail: 'VibeSchool is building curriculum-aligned publishing and distribution into the learning network.', href: '/global' },
-]
-
-function evidenceCount(learner: DemoLearner) {
-  return evidenceCriteria.reduce((sum, criterion) => sum + Number(learner.evidence[criterion.key]), 0)
-}
-
-function learnerEvidenceState(learner: DemoLearner) {
-  if (!learner.present) return { label: 'No lesson evidence', explanation: 'Absence is not treated as evidence of learning.' }
-  const count = evidenceCount(learner)
-  if (count === 3) return { label: 'Strong evidence coverage', explanation: 'All three demonstration criteria have observable evidence.' }
-  if (count === 2) return { label: 'Developing evidence coverage', explanation: 'Two criteria have evidence; one still needs confirmation.' }
-  if (count === 1) return { label: 'Limited evidence coverage', explanation: 'One criterion has evidence; more observation is needed.' }
-  return { label: 'Evidence not yet captured', explanation: 'The learner was present, but no criterion has been evidenced yet.' }
+  teacher: 'Teacher',
+  learner: 'Learner',
+  family: 'Family',
+  leader: 'School leader',
 }
 
 export function PublicProductSandbox() {
-  const [stageIndex, setStageIndex] = useState(0)
+  const [answer, setAnswer] = useState<Answer | null>(null)
   const [role, setRole] = useState<Role>('teacher')
-  const [learners, setLearners] = useState<DemoLearner[]>(initialLearners)
 
   useEffect(() => { trackPublicEvent('public_sandbox_open', '/sandbox') }, [])
 
-  const presentLearners = useMemo(() => learners.filter((learner) => learner.present), [learners])
-  const evidenceTotal = useMemo(() => learners.reduce((sum, learner) => sum + evidenceCount(learner), 0), [learners])
-  const possibleEvidence = presentLearners.length * evidenceCriteria.length
-  const criterionTotals = useMemo(() => evidenceCriteria.map((criterion) => ({ ...criterion, observed: presentLearners.filter((learner) => learner.evidence[criterion.key]).length })), [presentLearners])
-  const lowestCriterion = useMemo(() => [...criterionTotals].sort((a, b) => a.observed - b.observed)[0] ?? null, [criterionTotals])
-  const focusLearner = learners[1]
-  const focusState = learnerEvidenceState(focusLearner)
-  const stage = stages[stageIndex]
+  const answered = answer !== null
+  const correct = answer === '8'
 
-  const updateLearner = (id: string, patch: Partial<DemoLearner>) => setLearners((current) => current.map((learner) => learner.id === id ? { ...learner, ...patch } : learner))
-  const toggleEvidence = (id: string, key: EvidenceKey) => setLearners((current) => current.map((learner) => learner.id === id ? { ...learner, evidence: { ...learner.evidence, [key]: !learner.evidence[key] } } : learner))
-  const moveStage = (index: number) => { setStageIndex(index); trackPublicEvent(index === stages.length - 1 ? 'public_sandbox_complete' : 'public_sandbox_progress', '/sandbox') }
-  const changeRole = (nextRole: Role) => { setRole(nextRole); trackPublicEvent('public_sandbox_role', '/sandbox') }
-  const reset = () => { setLearners(initialLearners); setRole('teacher'); setStageIndex(0) }
-
-  const recommendation = (() => {
-    if (!presentLearners.length) return 'Mark attendance first. VibeSchool should not infer learning from a lesson that has no observed learner participation.'
-    if (!lowestCriterion) return 'Capture evidence before recommending a learning response.'
-    if (lowestCriterion.observed === presentLearners.length) return 'Evidence is complete across the demonstration criteria. Use the next lesson for extension, transfer or a fresh learning outcome.'
-    if (lowestCriterion.key === 'identify') return 'Revisit visual identification with a short guided example before asking learners to explain function.'
-    if (lowestCriterion.key === 'explain') return 'Use a compare-and-explain activity focused on how structure supports function, then capture one fresh explanation per learner.'
-    return 'Give a new example and ask learners to transfer the idea independently before closing the learning loop.'
-  })()
-
-  const renderStage = () => {
-    if (stage.key === 'plan') return <div className={styles.stageGrid}><article className={styles.primaryCard}><p className={styles.cardEyebrow}>CURRICULUM-ANCHORED DEMONSTRATION</p><h2>Plan one Grade 10 Biology lesson as part of a connected learning record.</h2><dl className={styles.planList}><div><dt>Learning area</dt><dd>Grade 10 Biology</dd></div><div><dt>Demonstration focus</dt><dd>Cell structure and function</dd></div><div><dt>Learning intention</dt><dd>Relate observed cell structures to the functions they support.</dd></div></dl><div className={styles.criteriaBlock}><strong>Success evidence we will look for</strong><ol>{evidenceCriteria.map((criterion) => <li key={criterion.key}>{criterion.label}</li>)}</ol></div><p className={styles.boundary}>This is safe demonstration content. It shows VibeSchool&apos;s workflow logic; it is not presented as a verbatim KICD curriculum statement.</p></article><aside className={styles.signalCard}><span>Why this matters</span><h3>The lesson starts with a learning intention, not an empty document.</h3><p>Planning creates the reference point that teaching, evidence, assessment and the next action can continue to use.</p></aside></div>
-    if (stage.key === 'teach') return <div className={styles.stageGrid}><article className={styles.primaryCard}><p className={styles.cardEyebrow}>CLASSROOM ACTIVITY</p><h2>Record what actually happened in the lesson.</h2><div className={styles.learnerRows}>{learners.map((learner) => <div className={styles.learnerRow} key={learner.id}><div><strong>{learner.label}</strong><span>Safe demo identity</span></div><label><input type="checkbox" checked={learner.present} onChange={(event) => updateLearner(learner.id, { present: event.target.checked, participated: event.target.checked ? learner.participated : false, evidence: event.target.checked ? learner.evidence : { identify: false, explain: false, apply: false } })}/> Present</label><label><input type="checkbox" checked={learner.participated} disabled={!learner.present} onChange={(event) => updateLearner(learner.id, { participated: event.target.checked })}/> Participated</label></div>)}</div><p className={styles.boundary}>Attendance and participation are context. They are not converted into mastery or a learning score.</p></article><aside className={styles.signalCard}><span>Live classroom signal</span><strong className={styles.bigNumber}>{presentLearners.length}/{learners.length}</strong><p>demo learners marked present</p><strong>{learners.filter((learner) => learner.participated).length}</strong><p>participation observations</p></aside></div>
-    if (stage.key === 'evidence') return <div className={styles.stageGrid}><article className={styles.primaryCard}><p className={styles.cardEyebrow}>OBSERVABLE LEARNING EVIDENCE</p><h2>Capture what each present learner demonstrated.</h2><div className={styles.evidenceMatrix}>{learners.map((learner) => <section key={learner.id} className={!learner.present ? styles.dimmedLearner : undefined}><div className={styles.matrixHeading}><strong>{learner.label}</strong><span>{learner.present ? 'Present' : 'No lesson evidence'}</span></div>{evidenceCriteria.map((criterion) => <label key={criterion.key}><input type="checkbox" disabled={!learner.present} checked={learner.evidence[criterion.key]} onChange={() => toggleEvidence(learner.id, criterion.key)}/><span><b>{criterion.short}</b>{criterion.label}</span></label>)}</section>)}</div></article><aside className={styles.signalCard}><span>Evidence coverage</span><strong className={styles.bigNumber}>{evidenceTotal}/{possibleEvidence || 0}</strong><p>possible demonstration observations captured for present learners</p><p className={styles.boundary}>No score is invented when evidence is missing.</p></aside></div>
-    if (stage.key === 'assess') return <div className={styles.stageGrid}><article className={styles.primaryCard}><p className={styles.cardEyebrow}>EVIDENCE-BOUND ASSESSMENT</p><h2>Turn observations into a transparent evidence summary.</h2><div className={styles.assessmentList}>{learners.map((learner) => { const state = learnerEvidenceState(learner); return <div key={learner.id}><span>{learner.label}</span><strong>{state.label}</strong><p>{state.explanation}</p><small>{evidenceCount(learner)} of 3 demonstration criteria evidenced</small></div> })}</div><p className={styles.boundary}>This sandbox deliberately reports evidence coverage rather than pretending a short demonstration proves full mastery.</p></article><aside className={styles.signalCard}><span>Assessment principle</span><h3>Evidence first. Interpretation second.</h3><p>A consequential learning claim should be traceable to what was observed, not generated from attendance, activity counts or hidden AI confidence.</p></aside></div>
-    if (stage.key === 'understand') return <div className={styles.stageGrid}><article className={styles.primaryCard}><p className={styles.cardEyebrow}>CLASS UNDERSTANDING</p><h2>See the gap without losing the evidence behind it.</h2><div className={styles.criterionBars}>{criterionTotals.map((criterion) => { const denominator = presentLearners.length || 1; const percent = Math.round((criterion.observed / denominator) * 100); return <div key={criterion.key}><div><strong>{criterion.short}</strong><span>{criterion.observed}/{presentLearners.length} present learners</span></div><progress max="100" value={percent} aria-label={`${criterion.short} evidence coverage ${percent}%`}>{percent}%</progress></div> })}</div><div className={styles.gapCallout}><span>Current evidence gap</span><strong>{presentLearners.length ? (lowestCriterion?.label ?? 'Capture evidence') : 'No classroom evidence yet'}</strong><p>{presentLearners.length ? 'This is the least-observed criterion in the current demonstration state.' : 'Return to Teach and mark attendance before interpreting learning.'}</p></div></article><aside className={styles.signalCard}><span>Interpretation boundary</span><h3>VibeSchool can say what the evidence currently supports—and what it does not.</h3><p>Missing evidence remains visible. That prevents false certainty and makes the next teaching decision easier to defend.</p></aside></div>
-    return <div className={styles.stageGrid}><article className={styles.primaryCard}><p className={styles.cardEyebrow}>NEXT ACTION</p><h2>Close the loop with a response tied to the weakest evidence.</h2><div className={styles.nextAction}><span>Recommended demonstration response</span><strong>{recommendation}</strong><p>After the response, the next evidence capture should show whether the gap narrowed. That creates a learning history instead of a one-off dashboard statistic.</p></div><div className={styles.loop}>{stages.map((item, index) => <span key={item.key} className={index === stageIndex ? styles.loopActive : undefined}>{item.label}</span>)}</div></article><aside className={styles.signalCard}><span>Connected record</span><h3>One learning story survived from intention to response.</h3><p>The next cycle can begin from what this cycle established rather than resetting to disconnected documents and dashboards.</p></aside></div>
+  const choose = (choice: Answer) => {
+    setAnswer(choice)
+    trackPublicEvent(choice === '8' ? 'public_sandbox_complete' : 'public_sandbox_progress', '/sandbox')
   }
 
-  const renderRoleLens = () => {
-    if (role === 'teacher') return <><span>Teacher lens</span><h3>What should I do next in the classroom?</h3><p>{recommendation}</p><small>The teacher sees learner-level evidence because it is needed for teaching and assessment.</small></>
-    if (role === 'learner') return <><span>Learner lens · {focusLearner.label}</span><h3>{focusState.label}</h3><p>{focusLearner.present ? `Your current demonstration evidence shows ${evidenceCount(focusLearner)} of 3 criteria. The next activity should help you produce clearer evidence where it is missing.` : 'You were not marked present in this demonstration, so VibeSchool does not invent a learning judgement.'}</p><small>The learner sees their own learning context and next step, not another learner&apos;s record.</small></>
-    if (role === 'family') return <><span>Family lens · {focusLearner.label}</span><h3>How is my child doing, where is the difficulty, and what happens next?</h3><p>{focusLearner.present ? `${focusState.label}. The school has evidence for ${evidenceCount(focusLearner)} of 3 demonstration criteria. ${recommendation}` : 'There is no lesson evidence for this demonstration because the learner is not marked present.'}</p><small>The family view explains relevant progress without exposing private teacher workspace or other learners.</small></>
-    return <><span>School leader lens</span><h3>What educational signal should leadership act on?</h3><p>{presentLearners.length ? `${evidenceTotal} of ${possibleEvidence} possible observations are captured. The weakest current criterion is ${lowestCriterion?.short ?? 'not yet known'}. The recommended instructional response is visible before leadership interprets a result.` : 'No classroom evidence has been captured yet, so leadership should not infer a teaching or learner-performance problem.'}</p><small>Leadership sees the causal chain—curriculum → teaching → participation → evidence → response—rather than only an aggregate score.</small></>
+  const changeRole = (nextRole: Role) => {
+    setRole(nextRole)
+    trackPublicEvent('public_sandbox_role', '/sandbox')
   }
 
-  return <section className={styles.sandbox} aria-labelledby="sandbox-title">
-    <div className={styles.hero}><div><p className={styles.eyebrow}>PUBLIC REAL-PRODUCT SANDBOX</p><h1 id="sandbox-title">Use VibeSchool before you sign in.</h1><p>Run one safe demonstration lesson through the real VibeSchool product logic: plan what should be learned, record what happened, capture evidence, interpret only what the evidence supports, and decide the next action.</p><div className={styles.heroBadges}><span>No login</span><span>No production learner data</span><span>No screenshots</span><span>Client-only demo state</span></div></div><aside><strong>What this proves</strong><p>VibeSchool&apos;s differentiation is the connection between educational events—not the number of modules on a feature list.</p><Link href="/institutions">See the school adoption path →</Link></aside></div>
+  const reset = () => {
+    setAnswer(null)
+    setRole('teacher')
+  }
 
-    <div className={styles.workspace}><nav className={styles.stageNav} aria-label="Sandbox learning loop">{stages.map((item, index) => <button key={item.key} type="button" onClick={() => moveStage(index)} aria-current={index === stageIndex ? 'step' : undefined} className={index === stageIndex ? styles.activeStage : undefined}><small>{String(index + 1).padStart(2, '0')}</small><span>{item.label}</span></button>)}</nav><div className={styles.stageHeader}><div><p>{stage.eyebrow}</p><strong>VibeSchool demonstration workspace</strong></div><button type="button" onClick={reset}>Reset demo</button></div>{renderStage()}<div className={styles.controls}><button type="button" onClick={() => moveStage(Math.max(0, stageIndex - 1))} disabled={stageIndex === 0}>← Previous</button><span>{stageIndex + 1} of {stages.length}</span><button type="button" onClick={() => moveStage(Math.min(stages.length - 1, stageIndex + 1))} disabled={stageIndex === stages.length - 1}>Continue →</button></div></div>
+  const nextAction = !answered
+    ? 'Answer the question to see an evidence-based next step.'
+    : correct
+      ? 'Try another ratio with larger quantities to check whether the method transfers.'
+      : 'Return to the ratio 3:2. Find the scale factor from 3 to 12, then multiply 2 by the same factor.'
 
-    <section className={styles.roleSection} aria-labelledby="role-lens-title"><div className={styles.roleIntro}><p className={styles.eyebrow}>ONE TRUTH · DIFFERENT AUTHORITY</p><h2 id="role-lens-title">Change role. Notice that the evidence does not change—only the authorised view does.</h2></div><div className={styles.roleButtons} role="group" aria-label="Choose a role lens">{(Object.keys(roleLabels) as Role[]).map((item) => <button key={item} type="button" onClick={() => changeRole(item)} aria-pressed={role === item} className={role === item ? styles.activeRole : undefined}>{roleLabels[item]}</button>)}</div><article className={styles.roleCard}>{renderRoleLens()}</article></section>
+  const roleMessage: Record<Role, { heading: string; body: string }> = {
+    teacher: {
+      heading: answered ? (correct ? 'Ready for a second check' : 'Revisit the scale factor') : 'Start with a visible response',
+      body: answered
+        ? (correct ? 'The selected answer is correct. One question is evidence of this response, not proof of mastery. Follow with a different example.'
+          : 'The selected answer is incorrect. Use a quick worked comparison before another question.')
+        : 'Choose an answer. The lesson then connects the response to an appropriate follow-up activity.',
+    },
+    learner: {
+      heading: answered ? (correct ? 'Your method worked here' : 'Try scaling both quantities') : 'Practice one idea at a time',
+      body: answered
+        ? (correct ? 'You found 8 blue counters. Keep the same method when the numbers change.'
+          : 'Three red counters go with two blue counters. Twelve red counters are four groups of three, so the blue counters must also be four groups.')
+        : 'Study the example, answer the question and see how the numbers fit together.',
+    },
+    family: {
+      heading: answered ? 'One practice response recorded' : 'See what the learner is practising',
+      body: answered
+        ? (correct ? 'This sample answer is correct. A single response does not establish the learner’s overall performance.'
+          : 'This sample answer needs another attempt. The next activity should practise the scaling method.')
+        : 'This is an illustrative activity, not a real child’s record or report.',
+    },
+    leader: {
+      heading: answered ? 'One observed sample response' : 'Do not infer school performance',
+      body: answered
+        ? 'A single synthetic answer cannot show class attainment, teacher effectiveness or curriculum coverage. More authorised evidence would be required.'
+        : 'The sample lesson has no submitted response. There is no learning result to interpret.',
+    },
+  }
 
-    <section className={styles.breadthSection} aria-labelledby="breadth-title"><div className={styles.breadthIntro}><p className={styles.eyebrow}>ONE LOOP · A WIDER PLATFORM</p><h2 id="breadth-title">The sandbox is one learning journey. VibeSchool reaches further without losing the learner at the centre.</h2><p>This is a map of the wider product, not a claim that every workflow has identical production maturity. Explore the public surfaces that matter to you.</p></div><div className={styles.breadthGrid}>{breadth.map((item) => <Link href={item.href} key={item.label} onClick={() => trackPublicEvent('public_sandbox_breadth', '/sandbox')}><strong>{item.label}</strong><span>{item.detail}</span><small>Explore →</small></Link>)}</div></section>
+  return (
+    <section className={styles.experience} aria-labelledby="experience-heading">
+      <a className={styles.skipLink} href="#experience-main">Skip to lesson</a>
+      <header className={styles.topbar}>
+        <Link className={styles.brand} href="/" aria-label="VibeSchool home">
+          <span className={styles.brandMark} aria-hidden="true">V</span>
+          <span>VibeSchool</span>
+        </Link>
+        <div className={styles.topbarRight}>
+          <span className={styles.productLabel}>Experience</span>
+          <Link href="/global/signup" className={styles.topAction}>Get started <ArrowRight size={15} aria-hidden="true" /></Link>
+        </div>
+      </header>
 
-    <section className={styles.conversionSection} aria-labelledby="sandbox-next-title"><div><p className={styles.eyebrow}>YOUR NEXT STEP</p><h2 id="sandbox-next-title">You have seen the logic. Choose how you want to enter VibeSchool.</h2><p>No forced demo call. Explore independently, create an account when you are ready, or scope one measurable school workflow with us.</p></div><div className={styles.conversionCards}><article><span>INDIVIDUAL</span><h3>Start using VibeSchool</h3><p>Create your account and continue into the supported learner, teacher or public product journey.</p><Link href="/global/signup" onClick={() => trackPublicEvent('public_sandbox_signup', '/sandbox')}>Create an account →</Link></article><article><span>SCHOOL / INSTITUTION</span><h3>Start with one measured workflow</h3><p>See the adoption model, then discuss a bounded pilot around a real school problem.</p><Link href="/institutions" onClick={() => trackPublicEvent('public_sandbox_pilot', '/sandbox')}>Plan a school pilot →</Link></article><article><span>STILL EXPLORING</span><h3>Inspect the product before deciding</h3><p>Review product status, trust boundaries and the wider VibeSchool model without talking to sales.</p><Link href="/product" onClick={() => trackPublicEvent('public_sandbox_product', '/sandbox')}>Explore product status →</Link></article></div></section>
+      <main id="experience-main" className={styles.main}>
+        <div className={styles.introduction}>
+          <div className={styles.introductionText}>
+            <p className={styles.eyebrow}>VIBESCHOOL EXPERIENCE <span aria-hidden="true">/</span> GRADE 8 MATHEMATICS</p>
+            <h1 id="experience-heading">One lesson. Everything connected.</h1>
+            <p className={styles.lead}>See a concept, try a question and get a useful next step. All on one screen.</p>
+          </div>
+          <span className={styles.demoLabel}>Interactive sample · No sign-in</span>
+        </div>
 
-    <section className={styles.truthStrip} aria-label="Sandbox truth boundary"><strong>Demonstration boundary</strong><p>All learner labels and observations on this page are fabricated demo state created in your browser. Nothing here is a claim about a real learner, school, KICD wording, pilot outcome or production usage. The workflow mirrors VibeSchool&apos;s connected product architecture while keeping production data out of the public experience.</p></section>
-  </section>
+        <div className={styles.workspace}>
+          <div className={styles.workspaceBar}>
+            <div className={styles.courseTitle}><BookOpenText size={19} aria-hidden="true" /><span>Mathematics <span className={styles.courseSeparator}>/</span> Ratios</span></div>
+            <button type="button" className={styles.reset} onClick={reset}><RotateCcw size={15} aria-hidden="true" /> Reset demo</button>
+          </div>
+
+          <div className={styles.columns}>
+            <article className={styles.lesson} aria-label="Sample Grade 8 Mathematics lesson">
+              <div className={styles.lessonMeta}><span className={styles.miniLabel}>LEARN</span><span>01 / CONCEPT</span></div>
+              <h2>Ratios describe a relationship.</h2>
+              <p>A ratio compares quantities in a fixed order. When one quantity changes, use the same scale factor for the other.</p>
+              <div className={styles.example}>
+                <div className={styles.exampleHeading}><span>Worked example</span><span>4 : 3</span></div>
+                <p>For every <strong>4 exercise books</strong>, there are <strong>3 covers</strong>.</p>
+                <div className={styles.exampleNumbers} aria-label="4 books to 3 covers becomes 8 books to 6 covers">
+                  <div><span>4 books</span><strong>4</strong></div>
+                  <span className={styles.scaleFactor}>× 2</span>
+                  <div><span>8 books</span><strong>8</strong></div>
+                  <div className={styles.verticalRule} aria-hidden="true" />
+                  <div><span>3 covers</span><strong>3</strong></div>
+                  <span className={styles.scaleFactor}>× 2</span>
+                  <div><span>6 covers</span><strong>6</strong></div>
+                </div>
+                <p className={styles.exampleFootnote}>Both quantities double. The ratio stays the same.</p>
+              </div>
+
+              <div className={styles.practice}>
+                <div className={styles.lessonMeta}><span className={styles.miniLabel}>TRY IT</span><span>02 / PRACTICE</span></div>
+                <h3>There are 3 red counters for every 2 blue counters. If there are 12 red counters, how many are blue?</h3>
+                <div className={styles.answers} role="group" aria-label="Choose the number of blue counters">
+                  {options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={answer === option ? styles.selectedAnswer : undefined}
+                      aria-pressed={answer === option}
+                      onClick={() => choose(option)}
+                    >
+                      <span>{option} blue counters</span>
+                      {answer === option ? <Check size={18} aria-hidden="true" /> : <span className={styles.answerCircle} aria-hidden="true" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </article>
+
+            <aside className={styles.insight} aria-label="Connected lesson feedback">
+              <p className={styles.miniLabel}>CONNECTED LEARNING</p>
+              <h2>From an answer to a next step.</h2>
+              <div className={styles.flow} aria-label="Curriculum aligned sample, teaching content, practice and feedback">
+                <span>Learning goal</span><span aria-hidden="true">→</span><span>Content</span><span aria-hidden="true">→</span><span>Practice</span>
+              </div>
+              <div className={styles.result} aria-live="polite" aria-atomic="true">
+                <span className={styles.resultEyebrow}>ASSESSMENT EVIDENCE</span>
+                <strong className={answered ? (correct ? styles.correct : styles.retry) : styles.pending}>
+                  {!answered ? 'Your answer appears here' : correct ? 'Correct: 8 blue counters' : 'Not quite. Try the scale factor.'}
+                </strong>
+                <p>{!answered
+                  ? 'Select an answer to see how VibeSchool responds.'
+                  : '12 ÷ 3 = 4 groups. There are 2 blue counters in each group, so 2 × 4 = 8.'}</p>
+              </div>
+              <div className={styles.action}>
+                <span className={styles.resultEyebrow}>NEXT TEACHING ACTION</span>
+                <p>{nextAction}</p>
+              </div>
+              <div className={styles.roleLens}>
+                <p className={styles.resultEyebrow}>ONE RECORD · DIFFERENT VIEW</p>
+                <div className={styles.roleButtons} role="group" aria-label="View this example by role">
+                  {(Object.keys(roleLabels) as Role[]).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={role === item ? styles.activeRole : undefined}
+                      aria-pressed={role === item}
+                      onClick={() => changeRole(item)}
+                    >{roleLabels[item]}</button>
+                  ))}
+                </div>
+                <div className={styles.roleContent} aria-live="polite">
+                  <strong>{roleMessage[role].heading}</strong>
+                  <p>{roleMessage[role].body}</p>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <div className={styles.after}>
+          <div>
+            <strong>Teaching that stays connected.</strong>
+            <p>One example of how content, practice and evidence can inform the next action.</p>
+          </div>
+          
+        </div>
+        <p className={styles.disclosure}><strong>Demonstration boundary.</strong> Client-only demo state. No production learner data. This is VibeSchool-authored example content, not a verbatim KICD curriculum extract. One answer is not a mastery judgement. No real learner or school records are accessed.</p>
+      </main>
+    </section>
+  )
 }
