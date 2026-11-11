@@ -49,7 +49,7 @@ assert.equal((migration.match(/\$vs_g1\$/g)||[]).length, 6, 'All seeded source s
 assert.ok(reader.includes('selectedUnitId'), 'Return link must open the original mapped curriculum sub-strand')
 assert.ok(mapPage.includes("commit_curriculum_scheme"), 'Do not replace the existing canonical scheme engine')
 assert.ok(mapPage.includes('curriculumOutcomes[row.id]'), 'Existing canonical outcome records must remain available')
-assert.ok(mapPage.includes("display:isGrade1Creative||isGrade8Mathematics||((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)||(isGrade4English&&!showEnglishLegacy)||isGrade9English?'none':undefined"), 'Preserve Grade 4 English, hide obsolete Grade 1 grid, and show native Grade 8 map')
+assert.ok(mapPage.includes("display:isGrade1Creative||isGrade8Mathematics||isGrade6Mathematics||((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)||(isGrade4English&&!showEnglishLegacy)||isGrade9English?'none':undefined"), 'Preserve Grade 4 English, hide obsolete Grade 1 grid, and show native Grade 8 map')
 
 assert.ok(subjectHub.includes('grade1CreativeClass'), 'SubjectHub must scope the reader to an assigned Grade 1 class')
 assert.ok(mapPage.includes('creative arts and sports'), 'Existing Grade 1 subject label must resolve to the VibeSchool curriculum reader')
