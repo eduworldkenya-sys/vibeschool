@@ -8,10 +8,11 @@ import {
 } from "lucide-react";
 import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 import {
-  DEMO_OPENINGS, SUBJECT_OPTIONS, matchDemoOpenings,
+  SUBJECT_OPTIONS, matchDemoOpenings,
   type TeachingLevel,
 } from "@/lib/teacher/tscSandboxMatching";
 import styles from "./sandbox.module.css";
+import { COUNTY_ALLOCATION_SOURCE, OFFICIAL_TSC_ADVERTS, REPORTED_COUNTY_ALLOCATIONS, reportedAllocation } from "@/lib/teacher/tsc2026CountyAllocations";
 
 const articleHref = "/blog/50ef6c33-da45-4a6e-a951-77da15386fa3";
 const portalHref = "https://teachersonline.tsc.go.ke/";
@@ -42,16 +43,14 @@ export default function VacancyMatchSandbox() {
     setApplicationClosed(Date.now() >= deadline);
   }, []);
 
-  // The canonical directory supplies all 47 counties when available. Only the
-  // counties in synthetic fixtures are available if that read is unavailable.
-  const demoCounties = useMemo(
-    () => Array.from(new Set(DEMO_OPENINGS.map(item => item.county))).sort(),
-    []
-  );
+  // The canonical directory supplies all 47 counties when available. The
+  // county names from the reported 47-county distribution remain available.
+  const demoCounties = useMemo(() => REPORTED_COUNTY_ALLOCATIONS.map(item => item.county), []);
   const countyOptions = countyNames.length > 0
     ? (county && !countyNames.includes(county) ? [...countyNames, county] : countyNames)
     : demoCounties;
 
+  const allocation = useMemo(() => reportedAllocation(level, county), [level, county]);
   const { ready, matches, inOtherCounties } = useMemo(() =>
     matchDemoOpenings({ level, subjectOne, subjectTwo, county }),
     [level, subjectOne, subjectTwo, county]
@@ -83,8 +82,8 @@ export default function VacancyMatchSandbox() {
   return (
     <div className={styles.shell}>
       <div className={styles.trail}>
-        <Link href="/teacher/marketplace" className={styles.back}>
-          <ArrowLeft aria-hidden="true" size={16} /> Teacher Marketplace
+        <Link href="/for-teachers" className={styles.back}>
+          <ArrowLeft aria-hidden="true" size={16} /> VibeSchool Teachers
         </Link>
         <span className={styles.sandboxTag}>SANDBOX · NO LOGIN</span>
       </div>
@@ -92,7 +91,7 @@ export default function VacancyMatchSandbox() {
       <section className={styles.hero} aria-labelledby="sandbox-title">
         <div className={styles.heroCopy}>
           <span className={styles.eyebrow}>TSC RECRUITMENT 2026 / 2027</span>
-          <h1 id="sandbox-title">Find where your subjects could take you.</h1>
+          <h1 id="sandbox-title">Explore vacancies by level, subjects and county.</h1>
           <p>Tell us what you teach. See how VibeSchool will help you find the right vacancy when the official schedules are verified.</p>
           <div className={styles.heroMeta}>
             <span><BookOpen aria-hidden="true" size={16} /> 7,720 advertised posts nationwide</span>
@@ -109,7 +108,7 @@ export default function VacancyMatchSandbox() {
         <Info aria-hidden="true" size={19} />
         <div>
           <strong>This is a working demo, not a live vacancy search.</strong>
-          <p>Every school and vacancy shown below is an invented example. No actual TSC school openings are being claimed.</p>
+          <p>The subject-matching examples below use invented school records. County-level allocations are reported 2026 TSC recruitment figures, not school-level subject matches.</p>
         </div>
       </div>
 
@@ -188,11 +187,33 @@ export default function VacancyMatchSandbox() {
           </div>
           <div className={styles.matchesTitle}>
             <div>
-              <h2 id="matches-heading">Vacancies matching you</h2>
-              <p className={styles.supportText}>Results change as you choose your subjects and county.</p>
+              <h2 id="matches-heading">Try the subject-matching preview</h2>
+              <p className={styles.supportText}>The school cards are fictional examples. Reported county figures appear separately below.</p>
             </div>
             <span className={styles.matchCount} aria-label={String(matches.length) + " demo matches"}>{ready ? matches.length : "—"}</span>
           </div>
+
+          <section className={styles.allocationPanel} aria-label="Reported vacancy allocation">
+            <div className={styles.allocationHeading}>
+              <span>REPORTED RECRUITMENT ALLOCATION</span>
+              <span>{levelNames[level]}</span>
+            </div>
+            <div className={styles.allocationNumber}>
+              <strong>{allocation.count === null ? "Not available" : allocation.count.toLocaleString("en-KE")}</strong>
+              <span>{county ? "posts reported for " + county : "posts advertised nationally"}</span>
+            </div>
+            <p>{allocation.count === null
+              ? level === "junior"
+                ? "The junior-school county distribution has not been verified here. The national announcement advertises 25 posts."
+                : "We do not have a reconciled figure for this county. Check the official vacancy schedule."
+              : level === "junior"
+                ? "The national total is shown. County-specific junior-school figures are not yet verified."
+                : "This is the total for this teaching level, not a subject-specific match. You may not be eligible for every post."}</p>
+            <div className={styles.allocationSources}>
+              <a href={COUNTY_ALLOCATION_SOURCE} target="_blank" rel="noopener noreferrer">Read reported breakdown <ArrowUpRight aria-hidden="true" size={13} /></a>
+              <a href={OFFICIAL_TSC_ADVERTS} target="_blank" rel="noopener noreferrer">Check original TSC adverts <ArrowUpRight aria-hidden="true" size={13} /></a>
+            </div>
+          </section>
 
           <div className={styles.matchContent} aria-live="polite">
             {!ready ? (
@@ -204,8 +225,8 @@ export default function VacancyMatchSandbox() {
             ) : matches.length === 0 ? (
               <div className={styles.empty}>
                 <span className={styles.emptyIcon}><Search aria-hidden="true" size={24} /></span>
-                <h3>No matching example in this demo</h3>
-                <p>This does not mean that TSC has no vacancies for your subjects or county. Our example dataset is deliberately small.</p>
+                <h3>No sample record for this combination</h3>
+                <p>We have not verified any school-specific openings for this selection. This small demonstration cannot establish whether real vacancies exist. Use the reported county figures above and check the official schedule.</p>
                 {inOtherCounties.length > 0 && (
                   <button type="button" className={styles.showAll} onClick={() => { setCounty(""); setExpanded(null); }}>
                     See {inOtherCounties.length} example {inOtherCounties.length === 1 ? "record" : "records"} in other counties
@@ -245,7 +266,7 @@ export default function VacancyMatchSandbox() {
                         <p>{opening.level === "primary"
                           ? "The teaching level and county preference match this sample record."
                           : "Both teaching subjects match the sample combination, regardless of order."}{" "}
-                          This is a subject match only, not a TSC eligibility decision.</p>
+                          This illustrates how the matching tool works. It is not a verified TSC vacancy or eligibility decision.</p>
                       </div>
                     )}
                   </article>
@@ -255,7 +276,7 @@ export default function VacancyMatchSandbox() {
           </div>
           <div className={styles.sourceFoot}>
             <ShieldCheck aria-hidden="true" size={19} />
-            <p><strong>Real vacancy matching is not active.</strong> School names, subject combinations and vacancy numbers will require checking against official TSC schedules before public use.</p>
+            <p><strong>Real vacancy matching is not active.</strong> School-by-school and subject-specific records still require reconciliation against the complete official TSC schedules. The reported county allocations above do not establish a personal match.</p>
           </div>
         </section>
       </div>

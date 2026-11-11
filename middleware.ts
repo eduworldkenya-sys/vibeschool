@@ -39,6 +39,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(gateway)
   }
 
+  // Anonymous access to the approved demo only. Avoid any Supabase session
+  // lookup here; authenticated Teacher OS and Marketplace stay protected.
+  if (pathname === '/teacher/marketplace/sandbox' || pathname === '/teacher/marketplace/sandbox/') {
+    return NextResponse.next({ request })
+  }
+
   // Global account UI is retired. Public Reader routes remain available.
   if (pathname === '/global' || (pathname.startsWith('/global/') && !pathname.startsWith('/global/read'))) {
     const home = request.nextUrl.clone()
