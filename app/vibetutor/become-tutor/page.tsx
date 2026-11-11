@@ -28,6 +28,7 @@ const validKenyanPhone = (value: string) => /^(?:0[71][0-9]{8}|254[71][0-9]{8}|\
 
 export default function BecomeTutor() {
   const [name, setName] = useState('')
+  const [professionalName, setProfessionalName] = useState('')
   const [levels, setLevels] = useState<string[]>([])
   const [subjects, setSubjects] = useState<string[]>([])
   const [mode, setMode] = useState<Mode>('either')
@@ -80,10 +81,12 @@ export default function BecomeTutor() {
         const { data: profile } = await client.from('profiles')
           .select('full_name').eq('id', data.user.id).maybeSingle()
         if (!active) return
+        const canonicalName = profile?.full_name?.trim() || ''
+        setProfessionalName(canonicalName)
         setSignedIn(true)
         setExistingListing(!!listing)
         if (listing) {
-          setName(listing.display_name || '')
+          setName(canonicalName || listing.display_name || '')
           setLevels(listing.levels || [])
           setSubjects(listing.subjects || [])
           setMode(listing.teaching_mode === 'online' || listing.teaching_mode === 'physical' ? listing.teaching_mode : 'either')
@@ -95,7 +98,7 @@ export default function BecomeTutor() {
           setTouched(false)
           clearDraft(DRAFT_KEY)
         } else {
-          setName(current => current || String(profile?.full_name || metadata.full_name || metadata.name || metadata.display_name || ''))
+          setName(canonicalName || String(metadata.full_name || metadata.name || metadata.display_name || ''))
           setPhone(current => current || normalizedPhone(String(metadata.phone || data.user?.phone || '')))
         }
         setAuthStatus('signed-in')
@@ -114,7 +117,7 @@ export default function BecomeTutor() {
     setSubjects(current => current.filter(subject => allowed.has(subject)))
   }
   const updatePhone = (value: string) => { setTouched(true); setPhone(normalizedPhone(value)) }
-  const clearForm = () => { setName(''); setLevels([]); setSubjects([]); setMode('either'); setArea(''); setRate(''); setDays([]); setPhone(''); setConsent(false); setTouched(false); clearDraft(DRAFT_KEY) }
+  const clearForm = () => { setName(professionalName); setLevels([]); setSubjects([]); setMode('either'); setArea(''); setRate(''); setDays([]); setPhone(''); setConsent(false); setTouched(false); clearDraft(DRAFT_KEY) }
   const completion = [levels.length > 0 && subjects.length > 0, !!area && Number(rate) > 0, days.length > 0, !!name.trim() && validKenyanPhone(phone) && consent]
   const validForm = completion.every(Boolean) && !!name.trim() && validKenyanPhone(phone) && consent
   return (
@@ -142,8 +145,8 @@ export default function BecomeTutor() {
         <Field label="Area" required><select className={styles.input} value={area} onChange={e => { setTouched(true); setArea(e.target.value) }}><option value="">Choose area</option>{AREAS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Rate per hour (KSh)" required><input className={styles.input} inputMode="numeric" value={rate} onChange={e => { setTouched(true); setRate(e.target.value.replace(/[^0-9]/g, '')) }} placeholder="e.g. 500" /></Field>
         <Field label="Days available" required><SchedulePicker days={days} onDays={value => { setTouched(true); setDays(value) }} /></Field>
-        {signedIn && <p className={polish.prefillNote}>Account details prefilled where available. You can edit them.</p>}
-        <Field label="Name" required><input className={styles.input} value={name} onChange={e => { setTouched(true); setName(e.target.value) }} maxLength={60} autoComplete="name" /></Field>
+        {signedIn && <p className={polish.prefillNote}>Your public tutor name comes from your teacher account. You can edit your other teaching details here.</p>}
+        <Field label="Tutor name" required><input className={styles.input} value={name} readOnly={signedIn && !!professionalName} onChange={e => { if (!professionalName) { setTouched(true); setName(e.target.value) } }} maxLength={60} autoComplete="name" />{signedIn && !!professionalName && <span className={styles.hint}>Matches your teacher profile. Update your account name to change the public name.</span>}</Field>
         <Field label="Phone number" required><input className={styles.input} type="tel" inputMode="numeric" autoComplete="tel" maxLength={13} pattern="(?:0[17][0-9]{8}|[+]?254[17][0-9]{8})" value={phone} onChange={e => updatePhone(e.target.value)}  placeholder="07XXXXXXXX or +2547XXXXXXXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
         <label className={styles.checkRow}><input type="checkbox" checked={consent} onChange={e => { setTouched(true); setConsent(e.target.checked) }} /><span>I agree to be listed on VibeTutor. My phone number stays private.</span></label>
         <div className={styles.formActions}>{!existingListing && <button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button>}<button type="submit" className={styles.btnSubmit} disabled={!validForm || submitting || authStatus === 'checking' || authStatus === 'error'}>{submitting ? 'Saving…' : existingListing ? 'Save profile changes' : 'Create tutor profile'}</button></div>
