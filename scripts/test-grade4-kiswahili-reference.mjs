@@ -1,0 +1,57 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+
+const read=path=>readFileSync(path,'utf8')
+const source=read('lib/curriculum/grade4KiswahiliReference.ts')
+const reader=read('components/teacher/curriculum/Grade4KiswahiliMap.tsx')
+const scheme=read('app/teacher/scheme/AuthoritySchemePage.jsx')
+const hub=read('app/teacher/subjecthub/page.tsx')
+function collection(name){
+  const match=source.match(new RegExp('export const '+name+' = (\\[[\\s\\S]*?\\]) as const'))
+  assert.ok(match,name+' must be an immutable literal catalog')
+  return JSON.parse(match[1])
+}
+const themes=collection('GRADE4_KISWAHILI_THEMES')
+const strands=collection('GRADE4_KISWAHILI_STRANDS')
+const units=collection('GRADE4_KISWAHILI_UNITS')
+
+assert.equal(themes.length,11)
+assert.deepEqual(themes.map(x=>x.number),[1,2,3,4,5,6,7,8,9,10,11])
+assert.deepEqual(themes.map(x=>x.title),[
+ 'Nyumbani','Nidhamu Mezani','Mavazi','Dira','Ushauri-nasaha',
+ 'Bendera ya Taifa','Matunda na Mimea','Wanyama wa Porini',
+ 'Afya Bora','Kukabiliana na Uhalifu','Mapato'
+])
+assert.deepEqual(themes.map(x=>x.sourcePage),[1,13,22,34,42,50,58,68,76,84,92])
+assert.deepEqual(strands,['Kusikiliza na Kuzungumza','Kusoma','Kuandika','Sarufi'])
+assert.equal(units.length,52)
+assert.deepEqual(strands.map(s=>units.filter(u=>u.strand===s).length),[11,11,11,19])
+assert.equal(new Set(units.map(u=>u.id)).size,52,'every unit has unique stable ID')
+assert.equal(new Set(units.map(u=>u.code)).size,52)
+assert.ok(units.every(u=>u.code===u.id && /^\d+\.\d+\.\d+$/.test(u.id)),'stable canonical code')
+assert.ok(units.every(u=>u.theme>=1 && u.theme<=11 && strands.includes(u.strand) && u.title && Number.isInteger(u.suggestedLessons)))
+assert.deepEqual(themes.map(t=>units.filter(u=>u.theme===t.number).length),[6,5,6,4,4,4,5,4,4,4,6])
+assert.deepEqual(themes.map(t=>units.filter(u=>u.theme===t.number).reduce((sum,u)=>sum+u.suggestedLessons,0)),[12,10,12,10,10,10,15,10,9,10,13])
+assert.equal(units.reduce((n,u)=>n+u.suggestedLessons,0),121,'KICD listed allocations sum to 121')
+assert.match(source,/GRADE4_KISWAHILI_REPORTED_LESSONS = 120/,'KICD states 120')
+assert.match(source,/GRADE4_KISWAHILI_ALLOCATED_LESSONS = 121/,'source discrepancy is not silently hidden')
+assert.match(source,/GRADE4_KISWAHILI_WEEKLY_LESSONS = 4/)
+assert.match(source,/https:\/\/kicd\.ac\.ke\/wp-content\/uploads\/2024\/10\/Kiswahili-Gredi-ya-4-Revised\.pdf/)
+assert.equal(units.find(u=>u.id==='1.1.1')?.title,'Matamshi Bora')
+assert.equal(units.find(u=>u.id==='5.1.1')?.sourceCode,'5..1')
+assert.equal(units.find(u=>u.id==='7.2.1')?.suggestedLessons,3)
+assert.equal(units.find(u=>u.id==='11.4.3')?.title,'Udogo wa Nomino')
+assert.ok(reader.includes('GREDI YA 4 · KISWAHILI'))
+assert.ok(reader.includes('grade4-kiswahili-search'))
+assert.ok(reader.includes('onOpenScheme'))
+assert.ok(reader.includes('onToggleExisting'))
+assert.ok(reader.includes('GRADE4_KISWAHILI_ALLOCATED_LESSONS'))
+assert.ok(!reader.includes('iframe'),'must render natively, not embed PDF')
+assert.ok(!reader.includes("supabase.from('scheme_of_work').insert"),'reading cannot save teacher scheme')
+assert.ok(scheme.includes('isGrade4Kiswahili && <Grade4KiswahiliMap'))
+assert.ok(scheme.includes('(isGrade4Kiswahili&&!showEnglishLegacy)'))
+assert.ok(scheme.includes('isGrade8Kiswahili && <Grade8KiswahiliMap'),'Grade 8 Kiswahili retained')
+assert.ok(scheme.includes('isGrade8English && <Grade8EnglishMap'),'Grade 8 English retained')
+assert.ok(hub.includes('grade4KiswahiliClass'))
+assert.ok(hub.includes('Fungua mtaala wa Kiswahili'))
+console.log('Grade 4 Kiswahili revised KICD 2024 index + routing: PASS (11 themes, 52 units, 4 strands; allocation discrepancy preserved).')
