@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
 import { readCache, writeCache } from "@/lib/student-cache";
@@ -175,6 +176,11 @@ export default function StudentResourcesPage() {
           {resources.length} resource{resources.length !== 1 ? "s" : ""} available
         </p>
       </div>
+
+      <Link href="/learn/grade-1/creative-activities" style={{ display: 'block', borderRadius: 14, border: '1px solid #9dcbb0', background: '#eaf6ee', padding: '14px 16px', marginBottom: 16, color: '#174d35', textDecoration: 'none' }}>
+        <strong style={{ display: 'block', fontSize: 15 }}>Grade 1 Creative Activities</strong>
+        <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.6 }}>Explore drawing, music and movement. Open the shared activity library.</span>
+      </Link>
 
       {/* Filter chips */}
       <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 16, paddingBottom: 4 }}>

@@ -1187,6 +1187,11 @@ export default function SubjectHubPage() {
               onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade1CreativeClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id))}
               style={{ background: '#175b43', color: '#fff', minHeight: 44, border: 0, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontWeight: 800 }}
             >Open full curriculum map →</button>
+            <button
+              type="button"
+              onClick={() => router.push('/learn/grade-1/creative-activities')}
+              style={{ background: '#fff', color: '#175b43', minHeight: 44, border: '1px solid #9fbbaa', padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontWeight: 750, marginLeft: 8 }}
+            >Read learning activities</button>
           </div>
           <Grade1CreativeActivitiesMap compact onOpenSchemeUnit={(unitId) => {
             const params = new URLSearchParams({ classId: grade1CreativeClass.id, subjectId: activeSubject.id, unitId })
