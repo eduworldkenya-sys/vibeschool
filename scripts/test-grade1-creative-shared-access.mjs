@@ -12,6 +12,8 @@ const studentResources = read('../app/student/resources/page.tsx')
 const studentVibeLearn = read('../app/student/vibelearn/layout.tsx')
 const studentVibeLearnReader = read('../app/student/vibelearn/grade-1/creative-activities/page.tsx')
 const accessPath = '/learn/grade-1/creative-activities'
+const readerRpc = read('../supabase/migrations/20261111151000_grade1_ca_public_certified_reader.sql')
+const middleware = read('../middleware.ts')
 
 // One source for 16 curriculum sub-strands; no forked, editorial or PDF data store.
 assert.ok(shared.includes("from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'"))
@@ -25,22 +27,28 @@ assert.ok(studentVibeLearn.includes('/student/vibelearn/grade-1/creative-activit
 assert.ok(studentVibeLearnReader.includes('<Grade1CreativeContentReader />'), 'Student VibeLearn must reuse the shared read-only reader, not duplicate lessons')
 assert.ok(!studentVibeLearnReader.includes('service_role') && !studentVibeLearnReader.includes('candidate'), 'Student route must not bypass resource certification')
 
-// Release safety: only learner-facing assets, active roots and certified immutable versions.
+// Public Originals reader never needs auth or service-role secrets.
+assert.ok(shared.includes("supabase.rpc('vs_public_grade1_creative_learner_lessons')"))
+assert.ok(!shared.includes('supabase.auth.getUser()'))
+assert.ok(shared.includes('READY TO READ'))
+assert.ok(shared.includes('Next lesson'))
 for (const fragment of [
-  "supabase.auth.getUser()",
-  ".eq('status', 'active')",
-  ".eq('lifecycle_status', 'certified')",
-  ".not('certified_at', 'is', null)",
-  ".filter('asset_kind', 'in', '(learner_notes,worksheet)')",
-  "root.asset_kind === 'learner_notes' || root.asset_kind === 'worksheet'",
-  ".like('source_ref', 'VS-CUR-G01-CA-2026#%')",
-  "root.sub_strand_id",
-  "unitByStrand.get(root.sub_strand_id)",
-]) assert.ok(shared.includes(fragment), 'Missing canonical safety condition: ' + fragment)
-
-assert.ok(!shared.includes(".eq('lifecycle_status', 'candidate')"))
-assert.ok(!shared.includes("'teacher_notes'"), 'Teacher-only manuscripts must never reach the shared learner reader')
-assert.ok(shared.includes('editorial') || shared.includes('Draft manuscripts'))
+  "security definer", "set search_path = ''",
+  "r.owner_type = 'platform'", "r.source_type = 'platform_authored'",
+  "r.grade = 'Grade 1'", "r.subject = 'Creative Activities'",
+  "r.status = 'active'", "r.visibility = 'public'",
+  "r.asset_kind in ('learner_notes','worksheet')",
+  "r.canonical_key like 'vs:g1:%:learner:%'",
+  "s.source_ref like 'VS-CUR-G01-CA-2026#%'",
+  "v.lifecycle_status = 'certified'", "v.certified_at is not null",
+  "v.payload->>'source_edition' = 'learner'",
+  "public.fn_learning_resource_visible(r.id)",
+  "to anon, authenticated",
+]) assert.ok(readerRpc.includes(fragment), 'Missing strict public reader condition: ' + fragment)
+assert.ok(!readerRpc.includes('service_role'))
+assert.ok(middleware.includes("pathname === '/student/vibelearn/grade-1/creative-activities'"))
+assert.ok(middleware.includes("reader.pathname = '/learn/grade-1/creative-activities'"))
+assert.ok(middleware.includes("return NextResponse.redirect(reader, 307)"))
 assert.ok(shared.includes("view === 'teach'"))
 assert.ok(shared.includes('Try these activities'))
 

@@ -27,6 +27,8 @@ export default function Grade1CreativeContentReader() {
   const [view, setView] = useState<View>('learn')
   const [released, setReleased] = useState<ReleasedResource[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
   const unit = GRADE1_CREATIVE_UNITS.find(item => item.id === selectedId) ?? GRADE1_CREATIVE_UNITS[0]
 
   useEffect(() => {
@@ -34,78 +36,34 @@ export default function Grade1CreativeContentReader() {
 
     async function loadCertifiedResources() {
       try {
-        // An anonymous visitor can read the public curriculum guidance,
-        // but only authenticated, RLS-authorised users can query versions.
-        const { data: auth } = await supabase.auth.getUser()
-        if (!auth.user) return
-
-        const [{ data: strands, error: strandError }, { data: roots, error: rootError }] = await Promise.all([
-          supabase.from('cbc_strands')
-            .select('id,source_ref')
-            .like('source_ref', 'VS-CUR-G01-CA-2026#%'),
-          supabase.from('learning_resources')
-            .select('*')
-            .eq('grade', 'Grade 1')
-            .eq('subject', 'Creative Activities')
-            .eq('status', 'active')
-            .filter('asset_kind', 'in', '(learner_notes,worksheet)')
-            .limit(100),
-        ])
-        if (strandError || rootError || !roots?.length) return
-
-        const unitByStrand = new Map(
-          (strands ?? []).map(row => [row.id, row.source_ref?.split('#')[1] ?? '']),
-        )
-        // Only approved learner-facing kinds can enter the shared reader.
-        // asset_kind exists in production but not the generated client types.
-        const eligible = roots.filter(root =>
-          root.sub_strand_id && unitByStrand.has(root.sub_strand_id)
-          && 'asset_kind' in root
-          && (root.asset_kind === 'learner_notes' || root.asset_kind === 'worksheet'),
-        )
-        if (!eligible.length) return
-
-        const { data: versions, error: versionsError } = await supabase
-          .from('learning_resource_versions')
-          .select('id,resource_id,payload,certified_at')
-          .in('resource_id', eligible.map(root => root.id))
-          .eq('lifecycle_status', 'certified')
-          .not('certified_at', 'is', null)
-          .order('certified_at', { ascending: false })
-        if (versionsError || !versions?.length) return
-
-        const rootsById = new Map(eligible.map(root => [root.id, root]))
-        const chosen = new Set<string>()
+        // Public learner manuscripts are selected by the database's narrow,
+        // certification-guarded read authority. No login or direct version
+        // table permissions are needed; teacher and draft versions stay hidden.
+        const { data, error } = await supabase.rpc('vs_public_grade1_creative_learner_lessons')
+        if (error) throw error
         const next: ReleasedResource[] = []
-        for (const version of versions) {
-          if (chosen.has(version.resource_id)) continue
-          const root = rootsById.get(version.resource_id)
-          if (!root || !root.sub_strand_id) continue
-          const payload = version.payload
-          if (!payload || typeof payload !== 'object' || Array.isArray(payload)) continue
-          const data = payload as Record<string, unknown>
-          const body = typeof data.content_text === 'string'
-            ? data.content_text
-            : typeof data.body === 'string' ? data.body : ''
-          if (!body.trim()) continue
-          const unitId = unitByStrand.get(root.sub_strand_id) ?? ''
-          if (!GRADE1_CREATIVE_UNITS.some(item => item.id === unitId)) continue
-          const orderMatch = typeof root.canonical_key === 'string'
-            ? /:lesson:(\d+)$/.exec(root.canonical_key) : null
-          chosen.add(version.resource_id)
+        for (const item of Array.isArray(data) ? data : []) {
+          if (!item || typeof item !== 'object') continue
+          const row = item as Record<string, unknown>
+          if (typeof row.resource_version_id !== 'string'
+            || typeof row.title !== 'string'
+            || typeof row.unit_id !== 'string'
+            || typeof row.body !== 'string'
+            || typeof row.lesson_order !== 'number'
+            || !row.body.trim()
+            || !GRADE1_CREATIVE_UNITS.some(unit => unit.id === row.unit_id)) continue
           next.push({
-            id: version.id,
-            title: root.title,
-            unitId,
-            assetKind: 'asset_kind' in root && typeof root.asset_kind === 'string'
-              ? root.asset_kind : 'learner_notes',
-            body,
-            lessonOrder: orderMatch ? Number(orderMatch[1]) : 999,
+            id: row.resource_version_id,
+            title: row.title,
+            unitId: row.unit_id,
+            assetKind: typeof row.asset_kind === 'string' ? row.asset_kind : 'learner_notes',
+            body: row.body,
+            lessonOrder: row.lesson_order,
           })
         }
         if (!cancelled) setReleased(next)
       } catch {
-        // Editorial and access errors must never expose unpublished versions.
+        if (!cancelled) setLoadError('The published lessons could not be loaded. Please try opening this page again.')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -119,6 +77,8 @@ export default function Grade1CreativeContentReader() {
     released.filter(item => item.unitId === unit.id)
       .sort((a, b) => a.lessonOrder - b.lessonOrder || a.title.localeCompare(b.title)),
   [released, unit.id])
+  const activeLesson = lessons.find(item => item.id === selectedLessonId) ?? lessons[0] ?? null
+  const activeLessonIndex = activeLesson ? lessons.findIndex(item => item.id === activeLesson.id) : -1
 
   return (
     <main style={{ maxWidth: 960, margin: '0 auto', padding: 'clamp(14px,3vw,30px)', color: '#183b2b', fontFamily: 'inherit' }}>
@@ -154,6 +114,53 @@ export default function Grade1CreativeContentReader() {
           ))}
         </select>
       </nav>
+
+      <section aria-label="Published VibeSchool lessons" style={{ ...sectionStyle, marginBottom: 18, borderColor: '#b3d7c3', background: '#f7fcf9' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: '#176348' }}>
+          VIBESCHOOL ORIGINALS · READY TO READ
+        </div>
+        <h2 style={{ fontSize: 22, margin: '6px 0 8px' }}>{unit.title} lessons</h2>
+        {lessons.length ? (
+          <>
+            <p style={{ ...paragraphStyle, marginBottom: 12 }}>Choose a lesson, read it, try the activity, then move to the next one.</p>
+            <div role="group" aria-label="Choose your lesson" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+              {lessons.map(lesson => (
+                <button
+                  key={lesson.id}
+                  type="button"
+                  aria-pressed={activeLesson?.id === lesson.id}
+                  onClick={() => setSelectedLessonId(lesson.id)}
+                  style={{
+                    minHeight: 44, padding: '9px 12px', borderRadius: 10, cursor: 'pointer',
+                    border: '1px solid #9bb7a5', fontSize: 14, fontWeight: 750,
+                    color: activeLesson?.id === lesson.id ? '#fff' : '#175b43',
+                    background: activeLesson?.id === lesson.id ? '#175b43' : '#fff',
+                  }}
+                >
+                  {lesson.lessonOrder === 0 ? 'Introduction' : 'Lesson ' + lesson.lessonOrder}
+                </button>
+              ))}
+            </div>
+            {activeLesson && (
+              <article aria-live="polite" style={{ background: '#fff', border: '1px solid #d0e4d7', borderRadius: 12, padding: 18 }}>
+                <h3 style={{ fontSize: 20, margin: '0 0 12px', color: '#164e35' }}>{activeLesson.title}</h3>
+                <div style={{ fontSize: 16, whiteSpace: 'pre-wrap', lineHeight: 1.85, color: '#183b2b' }}>{activeLesson.body}</div>
+                {activeLessonIndex + 1 < lessons.length && (
+                  <button type="button" onClick={() => setSelectedLessonId(lessons[activeLessonIndex + 1].id)}
+                    style={{ minHeight: 46, marginTop: 16, background: '#175b43', color: '#fff', border: 0, borderRadius: 10, padding: '9px 18px', fontWeight: 750, cursor: 'pointer' }}>
+                    Next lesson
+                  </button>
+                )}
+              </article>
+            )}
+          </>
+        ) : (
+          <p role="status" style={paragraphStyle}>
+            {loading ? 'Loading published learning materials…'
+              : loadError || 'No full lessons are published for this topic yet. The curriculum activities below are available.'}
+          </p>
+        )}
+      </section>
 
       <div role="group" aria-label="Reading mode" style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {([{ id: 'learn', label: 'Learn and try' }, { id: 'teach', label: 'Teacher guide' }] as const).map(option => (
@@ -210,27 +217,9 @@ export default function Grade1CreativeContentReader() {
         </section>
       )}
 
-      <section aria-label="Published learning material" style={{ ...sectionStyle, marginTop: 18 }}>
-        <h2 style={{ fontSize: 19, margin: '0 0 9px' }}>Learning materials</h2>
-        {lessons.length ? (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {lessons.map(lesson => (
-              <article key={lesson.id} style={{ borderTop: '1px solid #e1e9e2', paddingTop: 12 }}>
-                <h3 style={{ fontSize: 16, margin: '0 0 8px' }}>{lesson.title}</h3>
-                <p style={{ ...paragraphStyle, whiteSpace: 'pre-wrap' }}>{lesson.body}</p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p style={paragraphStyle}>
-            {loading ? 'Checking for published learning materials…'
-              : 'There are no certified lesson notes published for this topic yet. The curriculum activities above are available now.'}
-          </p>
-        )}
-      </section>
       <p style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5, color: '#65786d' }}>
         VibeSchool-original curriculum guidance · VS-CUR-G01-CA-2026.
-        Official KICD source-to-outcome reconciliation remains pending. Draft manuscripts are not published.
+        Only certified learner manuscripts are shown. This content is VibeSchool-original, not an official KICD publication.
       </p>
     </main>
   )
