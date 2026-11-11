@@ -11,6 +11,7 @@ import { generateCanonicalLessonPlan } from '@/lib/teaching/canonicalLessonGener
 import { loadCertifiedContentForSource } from '@/lib/teaching/lessonSourceBundle'
 import JumpingSchemeContent from '@/components/teacher/JumpingSchemeContent'
 import { buildJumpingDraftSections, type JumpingContentSelection } from '@/lib/teaching/jumpingDraftSections'
+import { timeOriginalLessonSections } from '@/lib/teaching/lessonTiming'
 import { LESSON_PLAN_SECTION_KEYS, parseLessonPlanBody, serializeLessonPlanBody } from '@/lib/teaching/lessonPlanCodec'
 import {
   archiveLessonPlanDraft,
@@ -532,7 +533,10 @@ export default function PrepareLessonPage() {
           learningResources: selectedScheme.learning_resources,
           assessmentMethods: selectedScheme.assessment_methods,
         })
+        sections = timeOriginalLessonSections(sections, Number(duration))
         setContentNotice('Working Jumping manuscript. This is a private teacher-review draft, not certified content for delivery.')
+      } else if (/^Grade\\s*1$/i.test(selectedAssignment.class_name.trim()) && selectedScheme.sub_strand?.trim().toLowerCase() === 'jumping') {
+        throw new Error('Choose one of the 14 Jumping lessons to use its original content. No lesson number is saved in this Scheme, so VibeSchool cannot select one automatically.')
       } else {
         // Preserve existing independent Scheme preparation if production has
         // no certified content; do not invent an approval or choose lesson N.
