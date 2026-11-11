@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import {buildJumpingDraftSections} from '../lib/teaching/jumpingDraftSections.ts'
+import {timeOriginalLessonSections} from '../lib/teaching/lessonTiming.ts'
 
 const read = path => readFileSync(path,'utf8')
 const scheme = read('app/teacher/scheme/AuthoritySchemePage.jsx')
@@ -12,10 +13,17 @@ const subject = read('lib/teacher/subjectContext.ts')
 const handoff = read('components/teacher/SubjectLessonHandoff.tsx')
 const guideMigration = read('supabase/migrations/20261111211500_jumping_scheme_teacher_guide_reader.sql')
 const picker = read('components/teacher/JumpingSchemeContent.jsx')
+const prepare = read('app/teacher/lessonplan/prepare/page.tsx')
+const listing = read('app/teacher/lessonplan/page.tsx')
 const migration = read('supabase/migrations/20261111122000_grade1_jumping_scheme_content_draft_integration.sql')
 
 assert.ok(scheme.includes('<JumpingSchemeContent schemeId={item.id}/>'),'Scheme must show exact linked content.')
 assert.ok(modal.includes('buildJumpingDraftSections(jumpingDraft, suggestion)'),'Plan must use original content, not regenerate it.')
+assert.ok(modal.includes('timeOriginalLessonSections(parsed, parseLessonDurationMinutes(calcDuration(slot.start, slot.end)))'),'Scheduled Jumping drafts must use timetable timing.')
+assert.ok(prepare.includes('timeOriginalLessonSections(sections, Number(duration))'),'Independent preparation must use its saved duration.')
+assert.ok(prepare.includes('Choose one of the 14 Jumping lessons'),'Broad Scheme must not silently choose an original manuscript.')
+assert.ok(picker.includes("onUse(selection)"),'Choosing one manuscript must load it into the builder without another click.')
+assert.ok(listing.includes('Outcomes linked · curriculum source review pending'),'Active outcomes must be distinguished from verified outcomes.')
 assert.ok(modal.includes("'vs_pin_jumping_draft_to_plan'"),'A saved draft must pin exact source versions.')
 assert.ok(guide.includes('<JumpingSchemeContent schemeId={source.schemeId} showGuide />'),'Teacher guide must open linked Scheme draft directly.')
 assert.ok(guide.includes('loadSavedTeacherGuide({'),'Teacher guide must restore saved IDs without URL date fields.')
@@ -58,4 +66,10 @@ assert.ok(sections.homework.includes('Name a safe place'))
 assert.ok(sections.differentiation.includes('Use a shorter distance.'))
 assert.ok(!JSON.stringify(sections).includes('Lesson 08'),'Lesson sources must not cross units.')
 assert.throws(()=>buildJumpingDraftSections({...selection,content:{teacher:selection.content.teacher}},{}),/missing its teaching or learner content/)
+const timed = timeOriginalLessonSections(sections,30)
+assert.match(timed.introduction,/Timing: 0–4 min \(4 min\)/)
+assert.match(timed.development,/Timing: 4–22 min \(18 min\)/)
+assert.match(timed.consolidation,/Timing: 22–26 min \(4 min\)/)
+assert.match(timed.assessmentHook,/Timing: 26–30 min \(4 min\)/)
+assert.ok(timed.development.includes('Show a controlled jump across a chalk river.'),'Timing must preserve authored content')
 console.log('Grade 1 Jumping Scheme → content → Lesson Plan and tools: PASS')
