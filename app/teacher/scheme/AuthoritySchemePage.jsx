@@ -7,6 +7,8 @@ import Grade1MathematicsMap, { GRADE1_MATHEMATICS_STRANDS, GRADE1_MATHEMATICS_UN
 import Grade1EnglishMap, { GRADE1_ENGLISH_STRANDS, GRADE1_ENGLISH_UNITS } from '@/components/teacher/curriculum/Grade1EnglishMap'
 import WeeklyLessonSlots from '@/components/teacher/scheme/WeeklyLessonSlots'
 
+import AutoCreativeScheme from '@/components/teacher/scheme/AutoCreativeScheme'
+import { buildCreativeAnnualSchemeDraft, termCreativeSchemeRows } from '@/lib/teaching/creativeSchemeDraft.mjs'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
@@ -101,6 +103,11 @@ function Inner({ curriculumView = false }) {
   const [grade1ReaderCatalog,setGrade1ReaderCatalog] = useState({})
   const [grade1ReaderCatalogLoading,setGrade1ReaderCatalogLoading] = useState(false)
   const [grade1ReaderCatalogError,setGrade1ReaderCatalogError] = useState('')
+  const [annualTermWeeks,setAnnualTermWeeks] = useState([])
+  const [annualCalendarYear,setAnnualCalendarYear] = useState(null)
+  const [annualCalendarLoading,setAnnualCalendarLoading] = useState(false)
+  const [annualCalendarError,setAnnualCalendarError] = useState('')
+  const [autoSavingKey,setAutoSavingKey] = useState(null)
   const [newTopic,setNewTopic] = useState('')
   const [newStrand,setNewStrand] = useState('')
   const [adding,setAdding] = useState(false)
@@ -127,6 +134,14 @@ function Inner({ curriculumView = false }) {
   const mappedDraftRecord = creativeDraftRecord || grade1DraftRecord
   const mappedCatalogLoading = isGrade1Creative ? creativeCatalogLoading : grade1ReaderCatalogLoading
   const mappedCatalogError = isGrade1Creative ? creativeCatalogError : grade1ReaderCatalogError
+  const annualTerms = useMemo(()=>terms.filter(term=>Number(term.academic_year)===Number(termObj?.academic_year)),[terms,termObj?.academic_year])
+  const annualDraft = useMemo(()=>{
+    if(!isGrade1Creative||curriculumView||annualCalendarYear!==termObj?.academic_year)return null
+    return buildCreativeAnnualSchemeDraft({
+      units:GRADE1_CREATIVE_UNITS,terms:annualTerms,termWeeks:annualTermWeeks,weeklyAllocation:weeklyTarget
+    })
+  },[isGrade1Creative,curriculumView,annualCalendarYear,termObj?.academic_year,annualTerms,annualTermWeeks,weeklyTarget])
+  const autoWeekSuggestions = useMemo(()=>termCreativeSchemeRows(annualDraft,selectedTermId).filter(item=>item.week===selectedWeek),[annualDraft,selectedTermId,selectedWeek])
   useEffect(()=>{
     let live=true
     if(!isGrade1Creative||!selectedSubject){setCreativeCatalog({});setCreativeCatalogError('');setCreativeCatalogLoading(false);return}
@@ -231,6 +246,30 @@ function Inner({ curriculumView = false }) {
   },[termWeeks])
 
   const currentWeek = todayResolution?.term_id === selectedTermId ? todayResolution.week_number : null
+
+  useEffect(()=>{
+    let live=true
+    if(!schoolId||!termObj||!isGrade1Creative||curriculumView){
+      setAnnualCalendarYear(null);setAnnualTermWeeks([]);setAnnualCalendarLoading(false);setAnnualCalendarError('')
+      return
+    }
+    const forYear=terms.filter(term=>Number(term.academic_year)===Number(termObj.academic_year))
+    setAnnualCalendarLoading(true);setAnnualCalendarError('');setAnnualCalendarYear(null);setAnnualTermWeeks([])
+    ;(async()=>{
+      try{
+        if(forYear.length!==3||new Set(forYear.map(term=>Number(term.term))).size!==3)
+          throw new Error('The school needs Term 1, Term 2 and Term 3 for this annual scheme.')
+        const response=await supabase.from('term_weeks')
+          .select('school_id,term_id,week_number,week_type')
+          .in('term_id',forYear.map(term=>term.id))
+          .or(`school_id.eq.${schoolId},school_id.is.null`)
+        if(response.error)throw response.error
+        if(live){setAnnualTermWeeks(response.data||[]);setAnnualCalendarYear(termObj.academic_year)}
+      }catch(err){if(live)setAnnualCalendarError(err instanceof Error?err.message:'Annual instructional calendar unavailable.')}
+      finally{if(live)setAnnualCalendarLoading(false)}
+    })()
+    return()=>{live=false}
+  },[schoolId,termObj?.academic_year,isGrade1Creative,curriculumView,terms])
 
   const ordered = useMemo(()=>schemeItems.slice().sort((a,b)=>(a.sequence_number||999999)-(b.sequence_number||999999)||(a.lesson_number||999999)-(b.lesson_number||999999)||a.id.localeCompare(b.id)),[schemeItems])
   const selectedWeekItems = useMemo(()=>ordered.filter(x=>x.week===selectedWeek),[ordered,selectedWeek])
@@ -422,6 +461,26 @@ function Inner({ curriculumView = false }) {
     }catch(err){setError(err instanceof Error?err.message:'Could not save the linked curriculum lesson.')}
     finally{setAdding(false)}
   }
+  async function saveAndPrepareAutoDraft(item){
+    if(!item?.subStrandId||!item?.outcomeId||!selectedClass||!selectedSubject||!selectedTermId){
+      setError('Linked curriculum records or teacher context are unavailable.')
+      return
+    }
+    setAutoSavingKey(item.key);setError(null)
+    try{
+      const result=await supabase.rpc('commit_mapped_scheme_lesson',{
+        p_class_id:selectedClass,p_subject_id:selectedSubject,
+        p_academic_term_id:selectedTermId,p_week:item.week,
+        p_sub_strand_id:item.subStrandId,p_outcome_ids:[item.outcomeId]
+      })
+      if(result.error)throw new Error(commitError(result.error.message))
+      const saved=Array.isArray(result.data)?result.data[0]:result.data
+      if(!saved?.id)throw new Error('Scheme did not return a saved lesson.')
+      await loadScheme()
+      prepareSchemeLesson(saved)
+    }catch(err){setError(err instanceof Error?err.message:'Could not save and prepare the curriculum lesson.')}
+    finally{setAutoSavingKey(null)}
+  }
   async function setStatus(id,status){setPendingStatusChange(null);setError(null);const r=await supabase.from('scheme_of_work').update({status}).eq('id',id).eq('school_id',schoolId).eq('teacher_id',uid);if(r.error)setError(r.error.message);else setSchemeItems(xs=>xs.map(x=>x.id===id?Object.assign({},x,{status}):x))}
   async function saveReflection(id,reflection){const r=await supabase.from('scheme_of_work').update({reflection}).eq('id',id).eq('school_id',schoolId).eq('teacher_id',uid);if(r.error)setError(r.error.message)}
 
@@ -444,7 +503,20 @@ function Inner({ curriculumView = false }) {
       {!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
     </div>
 
-    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
+    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isGrade1Creative?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
+    {!curriculumView && isGrade1Creative && <AutoCreativeScheme
+      draft={annualDraft} termId={selectedTermId} week={selectedWeek}
+      savedLessons={ordered} catalog={creativeCatalog}
+      onWeekChange={setSelectedWeek}
+      onSaveAndPrepare={item=>void saveAndPrepareAutoDraft(item)}
+      onViewUnit={unitId=>{
+        const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId})
+        router.push('/teacher/curriculum?'+p.toString())
+      }}
+      savingKey={autoSavingKey}
+      loading={annualCalendarLoading||creativeCatalogLoading}
+      error={annualCalendarError||creativeCatalogError}
+    />}
     {curriculumView && isGrade1Creative && <Grade1CreativeActivitiesMap selectedUnitId={initial.current.unitId||'1.1'} mappedUnits={creativeCatalog} catalogLoading={creativeCatalogLoading} catalogError={creativeCatalogError} onPlanUnit={selectedClass&&selectedSubject&&selectedTermId ? unitId=>{
       const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId})
       router.push('/teacher/scheme?'+p.toString())

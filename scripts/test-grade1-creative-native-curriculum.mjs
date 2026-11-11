@@ -59,3 +59,5 @@ assert.ok(subjectHub.includes("'/teacher/curriculum?classId='"), 'Full curriculu
 assert.ok(subjectHub.includes("'&subjectId='"), 'Full curriculum link must pass the actual subject identity')
 assert.ok(!reader.includes("supabase.from("), 'Annual reference reader must not insert duplicate canonical records')
 console.log('Grade 1 Creative Activities native curriculum and teacher subject mapping: PASS')
+
+await import('./test-grade1-creative-auto-scheme.mjs')
