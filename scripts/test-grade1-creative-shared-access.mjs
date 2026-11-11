@@ -14,6 +14,7 @@ const studentVibeLearnReader = read('../app/student/vibelearn/grade-1/creative-a
 const accessPath = '/learn/grade-1/creative-activities'
 const readerRpc = read('../supabase/migrations/20261111151000_grade1_ca_public_certified_reader.sql')
 const middleware = read('../middleware.ts')
+const teacherVibeLearn = read('../app/teacher/vibelearn/page.tsx')
 
 // One source for 16 curriculum sub-strands; no forked, editorial or PDF data store.
 assert.ok(shared.includes("from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'"))
@@ -31,6 +32,16 @@ assert.ok(!studentVibeLearnReader.includes('service_role') && !studentVibeLearnR
 assert.ok(shared.includes("supabase.rpc('vs_public_grade1_creative_learner_lessons')"))
 assert.ok(!shared.includes('supabase.auth.getUser()'))
 assert.ok(shared.includes('READY TO READ'))
+// Teacher Find Learning must discover the *same* certified learner RPC and link
+// to the same canonical reader, not create a vibelearn_content publication copy.
+assert.ok(teacherVibeLearn.includes('supabase.rpc("vs_public_grade1_creative_learner_lessons")'))
+assert.ok(teacherVibeLearn.includes('GRADE1_CREATIVE_UNITS'))
+assert.ok(teacherVibeLearn.includes('VIBESCHOOL ORIGINALS · PUBLISHED LESSONS'))
+assert.ok(teacherVibeLearn.includes('originalMatches.map'))
+assert.ok(teacherVibeLearn.includes('/learn/grade-1/creative-activities?unit='))
+assert.ok(shared.includes('new URLSearchParams(window.location.search).get("unit")'))
+assert.ok(!teacherVibeLearn.includes('insert({ source_type: "platform_authored"'))
+
 assert.ok(shared.includes('Next lesson'))
 for (const fragment of [
   "security definer", "set search_path = ''",
