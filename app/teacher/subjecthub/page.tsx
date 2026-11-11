@@ -887,6 +887,10 @@ export default function SubjectHubPage() {
     /^(english|english activities|english language activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*1\b/i.test(item.name)) ?? null
       : null
+  const grade8EnglishClass =
+    /^(english|english language)$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\b(?:grade|class)\s*8\b/i.test(item.name)) ?? null
+      : null
 
   const readiness: { label: string; bg: string; color: string } = (() => {
     if (lessonCount > 0 && assessCount > 0) return { label: 'Ready',     bg: '#d1fae5', color: '#065f46' }
@@ -1195,6 +1199,20 @@ export default function SubjectHubPage() {
             >Open full curriculum map →</button>
           </div>
           <Grade1EnglishMap compact selectedUnitId={grade1EnglishUnitId} onSelectUnit={setGrade1EnglishUnitId} />
+        </div>
+      )}
+
+      {/* Grade 8 English — teacher enters its curriculum in one action. */}
+      {!loading && !classLoading && activeSubject && grade8EnglishClass && (
+        <div style={{ margin: '14px 16px 0', background: '#fff', padding: 15, border: '1px solid #d7e7dd', borderRadius: 12 }}>
+          <strong style={{ color: '#173f32' }}>Grade 8 English curriculum</strong>
+          <p style={{ fontSize: 12, margin: '6px 0 12px', color: '#53695d' }}>
+            15 themes · 150 lesson suggestions. Open a theme and plan into your Scheme of Work.
+          </p>
+          <button type="button" onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade8EnglishClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id) + '&unitId=01-LS')}
+            style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 14px', fontWeight: 800, cursor: 'pointer', width: '100%' }}>
+            Open Grade 8 English curriculum
+          </button>
         </div>
       )}
 
