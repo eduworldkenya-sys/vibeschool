@@ -91,6 +91,11 @@ interface ScopeOption {
   label: string
 }
 
+interface SchemeWeekRange {
+  startDate: string
+  endDate: string
+}
+
 function formatDate(date: string) {
   return new Intl.DateTimeFormat('en-KE', {
     weekday: 'short', day: 'numeric', month: 'short',
@@ -124,9 +129,14 @@ export default function PrepareLessonPage() {
   const [topic, setTopic] = useState('')
   const [body, setBody] = useState('')
   const [duration, setDuration] = useState('40')
+  const [saveNotice, setSaveNotice] = useState<string | null>(null)
+  const [schemeWeekRanges, setSchemeWeekRanges] = useState<Record<string, SchemeWeekRange>>({})
+  const [schemeWeekError, setSchemeWeekError] = useState<string | null>(null)
 
   async function refreshDrafts(uid: string, sid: string) {
     setDrafts(await loadLessonPlanDrafts(uid, sid))
+    setDraftsLoaded(true)
+    setDraftError(null)
   }
 
   useEffect(() => {
@@ -359,14 +369,81 @@ export default function PrepareLessonPage() {
     return () => { cancelled = true }
   }, [schoolId, teacherId, requestedSchemeId, selectedScope?.classId, selectedScope?.subjectId])
 
+
+  // A prepared Scheme lesson can only be attached within its *own* school
+  // instructional week. Never offer a future slot merely because its subject
+  // and class happen to match; the canonical attach RPC enforces the same rule.
+  useEffect(() => {
+    let cancelled = false
+    const schemeIds = [...new Set(drafts.map(draft => draft.scheme_id)
+      .filter((id): id is string => typeof id === 'string'))]
+    // Capture and narrow the identity before the asynchronous lookup.
+    const authorizedSchoolId = schoolId
+    const authorizedTeacherId = teacherId
+    setSchemeWeekRanges({})
+    setSchemeWeekError(null)
+    if (!authorizedSchoolId || !authorizedTeacherId || schemeIds.length === 0) return () => { cancelled = true }
+
+    async function loadSchemeWeeks(sid: string, uid: string) {
+      try {
+        const { data: schemeRows, error: schemeError } = await supabase
+          .from('scheme_of_work')
+          .select('id,school_id,academic_term_id,week')
+          .eq('school_id', sid)
+          .eq('teacher_id', uid)
+          .in('id', schemeIds)
+        if (schemeError) throw schemeError
+
+        const termIds = [...new Set((schemeRows ?? [])
+          .map(row => row.academic_term_id)
+          .filter((id): id is string => typeof id === 'string'))]
+        if (termIds.length === 0) return
+
+        const { data: weekRows, error: weekError } = await supabase
+          .from('term_weeks')
+          .select('school_id,term_id,week_number,start_date,end_date')
+          .in('term_id', termIds)
+        if (weekError) throw weekError
+
+        const ranges: Record<string, SchemeWeekRange> = {}
+        for (const scheme of schemeRows ?? []) {
+          const matchingWeek = (weekRows ?? [])
+            .filter(week => week.term_id === scheme.academic_term_id &&
+              week.week_number === scheme.week &&
+              (week.school_id === sid || week.school_id === null))
+            .sort((left, right) =>
+              Number(right.school_id === sid) - Number(left.school_id === sid))[0]
+          if (matchingWeek?.start_date && matchingWeek?.end_date) {
+            ranges[scheme.id] = {
+              startDate: matchingWeek.start_date,
+              endDate: matchingWeek.end_date,
+            }
+          }
+        }
+        if (!cancelled) setSchemeWeekRanges(ranges)
+      } catch {
+        if (!cancelled) setSchemeWeekError(
+          'The Scheme calendar could not be verified. Prepared lessons are still saved; dated attachment is unavailable.')
+      }
+    }
+    void loadSchemeWeeks(authorizedSchoolId, authorizedTeacherId)
+    return () => { cancelled = true }
+  }, [drafts, schoolId, teacherId])
+
   const targetMap = useMemo(() => {
     const result = new Map<string, DraftTarget[]>()
     const start = nairobiWeekStart()
 
     for (const draft of drafts) {
       const targets: DraftTarget[] = []
+      const schemeWindow = draft.scheme_id ? schemeWeekRanges[draft.scheme_id] : null
+      if (draft.scheme_id && !schemeWindow) {
+        result.set(draft.id, targets)
+        continue
+      }
       for (let offset = 0; offset < 28 && targets.length < 6; offset += 1) {
         const date = nairobiDateAdd(start, offset)
+        if (schemeWindow && (date < schemeWindow.startDate || date > schemeWindow.endDate)) continue
         const dow = nairobiDayOfWeek(new Date(date + 'T12:00:00+03:00'))
         for (const slot of slots) {
           if (slot.day_of_week !== dow) continue
@@ -394,10 +471,11 @@ export default function PrepareLessonPage() {
       result.set(draft.id, targets)
     }
     return result
-  }, [drafts, slots, assignments])
+  }, [drafts, slots, assignments, schemeWeekRanges])
 
   async function buildFromScheme() {
     if (!selectedScheme || !selectedAssignment || busy) return
+    setSaveNotice(null)
     if (body.trim() && !window.confirm('Replace the current notes with a Scheme-grounded lesson plan?')) return
     setBusy(true)
     setError(null)
@@ -436,14 +514,15 @@ export default function PrepareLessonPage() {
 
   async function saveDraft() {
     if (!teacherId || !schoolId || !selectedScope || busy) return
+    setSaveNotice(null)
     // Do not silently discard an attached Scheme while its verified outcome
     // is temporarily unavailable or being fetched.
     if (schemeId && !selectedScheme) {
       setError('The linked Scheme item is no longer available or verified. Reconnect it before saving changes.')
       return
     }
-    if (!title.trim() && !body.trim()) {
-      setError('Add a title or lesson content before saving.')
+    if (!body.trim()) {
+      setError('Build the lesson plan from the Scheme, or add teaching notes, before saving.')
       return
     }
     setBusy(true)
@@ -456,7 +535,7 @@ export default function PrepareLessonPage() {
       if (matchingDraft && editingDraftId && matchingDraft.id !== editingDraftId) {
         throw new Error('A prepared lesson already exists for this Scheme item. Open and edit the existing lesson.')
       }
-      await saveLessonPlanDraft({
+      const saved = await saveLessonPlanDraft({
         id: editingDraftId ?? matchingDraft?.id ?? null,
         schoolId,
         teacherId,
@@ -478,6 +557,9 @@ export default function PrepareLessonPage() {
       setEditingDraftId(null)
       setSchemeId('')
       await refreshDrafts(teacherId, schoolId)
+      setSaveNotice((saved.title || saved.topic || 'Lesson') +
+        ' saved under Prepared lessons. You can reopen it here or attach it to a matching scheduled lesson.')
+      document.getElementById('prepared-lessons')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
     } catch (e) {
       setError(friendlyError(e, 'Could not save prepared lesson.'))
     } finally {
@@ -547,6 +629,7 @@ export default function PrepareLessonPage() {
     setBody(draft.body ?? '')
     setDuration(String(draft.duration_minutes ?? 40))
     setError(null)
+    setSaveNotice(null)
     document.getElementById('prepared-editor')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   }
 
@@ -676,16 +759,19 @@ export default function PrepareLessonPage() {
                 <label className="lp-prepare__label" htmlFor="draft-duration">Duration (minutes)</label>
                 <input id="draft-duration" className="lp-prepare__field" type="number" min={10} max={240} value={duration} onChange={e=>setDuration(e.target.value)} />
                 <p className="lp-prepare__hint">Saving a draft does not mark a lesson taught, create attendance or record progress.</p>
+                {!body.trim() && <p className="lp-prepare__hint">To save a prepared lesson, build it from your Scheme or write teaching notes first.</p>}
                 <div className="lp-prepare__row">
-                  <button type="button" className="lp-prepare__btn lp-prepare__btn--main" disabled={!selectedScope || busy || (!title.trim() && !body.trim())} onClick={()=>void saveDraft()}>{busy ? 'Saving…' : editingDraftId ? 'Save changes' : 'Save prepared lesson'}</button>
+                  <button type="button" className="lp-prepare__btn lp-prepare__btn--main" disabled={!selectedScope || busy || !body.trim()} onClick={()=>void saveDraft()}>{busy ? 'Saving…' : editingDraftId ? 'Save changes' : 'Save prepared lesson'}</button>
                   {body.trim() && <button type="button" className="lp-prepare__btn" onClick={()=>window.print()}>Print lesson plan</button>}
                   {editingDraftId && <button type="button" className="lp-prepare__btn" onClick={()=>{setEditingDraftId(null);setTitle('');setTopic('');setBody('');setSchemeId('')}}>Cancel edit</button>}
                 </div>
               </>
             )}
         </section>
-        <section className="lp-prepare__panel" aria-label="Prepared lessons">
+        <section className="lp-prepare__panel" id="prepared-lessons" aria-label="Prepared lessons">
           <div className="lp-prepare__paneltop"><h2>Prepared lessons</h2><span className="lp-prepare__count">{drafts.length} saved</span></div>
+          {saveNotice && <div className="lp-prepare__notice lp-prepare__notice--subtle" role="status">{saveNotice}</div>}
+          {schemeWeekError && <div className="lp-prepare__notice" role="status">{schemeWeekError}</div>}
           {draftError && <div className="lp-prepare__notice lp-prepare__notice--red" role="alert">{draftError}</div>}
           {scheduleError && <div className="lp-prepare__notice" role="status">{scheduleError}</div>}
           {loading ? <div className="lp-prepare__empty" role="status">Loading saved lessons…</div> :
@@ -705,7 +791,9 @@ export default function PrepareLessonPage() {
                 <div className="lp-prepare__targets">
                   <div className="lp-prepare__label" style={{marginTop:0}}>Attach to a dated lesson</div>
                   {targets.length>0?targets.map(target=><button type="button" className="lp-prepare__target" key={target.slotId+':'+target.date} disabled={busy} onClick={()=>void attach(draft,target)}>{target.label} →</button>) :
-                    <p className="lp-prepare__hint">{scheduleError ? 'Schedule unavailable; retry later.' : 'No matching timetable lesson in the next four weeks. Your draft stays saved.'}</p>}
+                    <p className="lp-prepare__hint">{scheduleError ? 'Schedule unavailable; retry later.' :
+                      draft.scheme_id ? 'No matching timetable lesson in this Scheme\'s saved week. Your draft stays saved.' :
+                      'No matching timetable lesson in the next four weeks. Your draft stays saved.'}</p>}
                 </div>
               </article>
             })}

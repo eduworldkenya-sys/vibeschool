@@ -30,6 +30,13 @@ assert.ok(prepare.includes('generateLessonPlan({'),
 assert.ok(prepare.includes('serializeLessonPlanBody(generated.sections)'),
           'generated plan must use the canonical eight-section body codec')
 assert.ok(prepare.includes('window.print()'), 'unscheduled plans must print')
+assert.ok(prepare.includes("if (!body.trim())"), 'a title-only record cannot be saved as a prepared lesson')
+assert.ok(prepare.includes("disabled={!selectedScope || busy || !body.trim()}"), 'empty lesson body cannot enable Save')
+assert.ok(prepare.includes('setSaveNotice('), 'saved lesson must tell the teacher where it is')
+assert.ok(prepare.includes('id="prepared-lessons"'), 'saved lesson destination must be visible')
+assert.ok(prepare.includes('draft.scheme_id ? schemeWeekRanges[draft.scheme_id]'), 'scheduled targets must resolve saved Scheme week')
+assert.ok(prepare.includes('date < schemeWindow.startDate || date > schemeWindow.endDate'), 'never offer a cross-week Scheme attachment')
+assert.ok(prepare.includes(".from('term_weeks')"), 'attach options must use the canonical instructional calendar')
 assert.ok(drafts.includes('resolve_instructional_week_for_date'),
           'auto-attachment must check the actual instructional calendar')
 assert.ok(drafts.includes('if (matchingDrafts.length !== 1) return null'),
