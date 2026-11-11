@@ -725,7 +725,7 @@ export default function PrepareLessonPage() {
                   }} />
                 )}
                 {selectedScheme && <button type="button" className="lp-prepare__btn" disabled={busy} onClick={()=>void buildFromScheme()}>Build lesson plan from Scheme & content</button>}
-                {contentNotice && <div className="lp-prepare__notice" role="status">{contentNotice}</div>
+                {contentNotice && <div className="lp-prepare__notice" role="status">{contentNotice}</div>}
                 <label className="lp-prepare__label" htmlFor="draft-title">Lesson title</label>
                 <input id="draft-title" className="lp-prepare__field" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Reading and responding" />
                 <label className="lp-prepare__label" htmlFor="draft-topic">Specific focus <span style={{fontWeight:400}}>(optional)</span></label>
