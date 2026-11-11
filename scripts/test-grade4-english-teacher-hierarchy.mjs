@@ -36,7 +36,7 @@ assert.ok(page.includes('allocation={weeklyTarget}'), 'Resolve weekly lesson tar
 assert.ok(page.includes('schemeCount={schemeItems.length}'), 'Scheme count must reflect the teacher records')
 assert.ok(page.includes('<Grade4EnglishMap'), 'Teacher page must mount the new browser')
 assert.ok(page.includes('showEnglishLegacy'), 'Existing records must remain accessible')
-assert.ok(page.includes("display:isGrade4English&&!showEnglishLegacy?'none':undefined"), 'Legacy grid must hide by default')
+assert.ok(page.includes('(isGrade4English&&!showEnglishLegacy)'), 'Legacy grid must hide by default when native English map is shown')
 assert.ok(page.includes('commit_curriculum_scheme'), 'Existing Scheme flow must be preserved')
 assert.ok(reference.includes('GRADE4_ENGLISH_THEMES'), 'Source theme index must remain available')
 assert.equal((reference.match(/"number": \d+/g)||[]).length,13, 'Expected 13 English themes')
