@@ -377,17 +377,20 @@ export default function PrepareLessonPage() {
     let cancelled = false
     const schemeIds = [...new Set(drafts.map(draft => draft.scheme_id)
       .filter((id): id is string => typeof id === 'string'))]
+    // Capture and narrow the identity before the asynchronous lookup.
+    const authorizedSchoolId = schoolId
+    const authorizedTeacherId = teacherId
     setSchemeWeekRanges({})
     setSchemeWeekError(null)
-    if (!schoolId || !teacherId || schemeIds.length === 0) return () => { cancelled = true }
+    if (!authorizedSchoolId || !authorizedTeacherId || schemeIds.length === 0) return () => { cancelled = true }
 
     async function loadSchemeWeeks() {
       try {
         const { data: schemeRows, error: schemeError } = await supabase
           .from('scheme_of_work')
           .select('id,school_id,academic_term_id,week')
-          .eq('school_id', schoolId)
-          .eq('teacher_id', teacherId)
+          .eq('school_id', authorizedSchoolId)
+          .eq('teacher_id', authorizedTeacherId)
           .in('id', schemeIds)
         if (schemeError) throw schemeError
 
@@ -407,9 +410,9 @@ export default function PrepareLessonPage() {
           const matchingWeek = (weekRows ?? [])
             .filter(week => week.term_id === scheme.academic_term_id &&
               week.week_number === scheme.week &&
-              (week.school_id === schoolId || week.school_id === null))
+              (week.school_id === authorizedSchoolId || week.school_id === null))
             .sort((left, right) =>
-              Number(right.school_id === schoolId) - Number(left.school_id === schoolId))[0]
+              Number(right.school_id === authorizedSchoolId) - Number(left.school_id === authorizedSchoolId))[0]
           if (matchingWeek?.start_date && matchingWeek?.end_date) {
             ranges[scheme.id] = {
               startDate: matchingWeek.start_date,
