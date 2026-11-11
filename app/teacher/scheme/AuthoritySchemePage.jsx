@@ -467,7 +467,7 @@ function Inner({ curriculumView = false }) {
     finally{setAdding(false)}
   }
   async function saveAndPrepareAutoDraft(item){
-    if(!item?.subStrandId||!item?.outcomeId||!selectedClass||!selectedSubject||!selectedTermId){
+    if(!item?.subStrandId||!Array.isArray(item.outcomeIds)||!item.outcomeIds.length||!selectedClass||!selectedSubject||!selectedTermId){
       setError('Linked curriculum records or teacher context are unavailable.')
       return
     }
@@ -476,7 +476,7 @@ function Inner({ curriculumView = false }) {
       const result=await supabase.rpc('commit_mapped_scheme_lesson',{
         p_class_id:selectedClass,p_subject_id:selectedSubject,
         p_academic_term_id:selectedTermId,p_week:item.week,
-        p_sub_strand_id:item.subStrandId,p_outcome_ids:[item.outcomeId]
+        p_sub_strand_id:item.subStrandId,p_outcome_ids:item.outcomeIds
       })
       if(result.error)throw new Error(commitError(result.error.message))
       const saved=Array.isArray(result.data)?result.data[0]:result.data
