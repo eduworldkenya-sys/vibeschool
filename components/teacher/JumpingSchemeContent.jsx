@@ -23,17 +23,18 @@ function Plain({ title, value }) {
  */
 /**
  * @typedef {import('@/lib/teaching/jumpingDraftSections').JumpingContentSelection} JumpingContentSelection
- * @param {{schemeId: string, onUse?: (selection: JumpingContentSelection) => void}} props
+ * @param {{schemeId: string, onUse?: (selection: JumpingContentSelection) => void, showGuide?: boolean}} props
  */
-export default function JumpingSchemeContent({ schemeId, onUse }) {
+export default function JumpingSchemeContent({ schemeId, onUse, showGuide=false }) {
   const [units,setUnits] = useState([])
   const [selected,setSelected] = useState(null)
+  const [topicGuide,setTopicGuide] = useState(null)
   const [loading,setLoading] = useState(false)
   const [error,setError] = useState('')
 
   useEffect(() => {
     let active = true
-    setUnits([]);setSelected(null);setError('')
+    setUnits([]);setSelected(null);setTopicGuide(null);setError('')
     if (!schemeId) return undefined
     ;(async () => {
       const {data,error} = await supabase.rpc('vs_read_linked_jumping_scheme_content', {
@@ -45,6 +46,7 @@ export default function JumpingSchemeContent({ schemeId, onUse }) {
         return
       }
       setUnits(Array.isArray(data.units) ? data.units : [])
+      setTopicGuide(asRecord(data.content?.guide))
     })()
     return () => { active=false }
   },[schemeId])
@@ -66,6 +68,7 @@ export default function JumpingSchemeContent({ schemeId, onUse }) {
     } catch(err){setSelected(null);setError(err instanceof Error?err.message:'Lesson content unavailable.')}
     finally{setLoading(false)}
   }
+  const guide=asRecord(topicGuide)
   const teacher=asRecord(selected?.content?.teacher)
   const learner=asRecord(selected?.content?.learner)
   return <section style={frame} aria-label="Jumping lesson content">
@@ -74,6 +77,11 @@ export default function JumpingSchemeContent({ schemeId, onUse }) {
       Choose the actual lesson to review. This is teaching content, not a PDF or a timetable assignment.
     </p>
     {error && <p role="alert" style={{fontSize:12,color:'#b91c1c'}}>{error}</p>}
+    {str(guide.body) && <details open={showGuide} style={{border:'1px solid #d1fae5',borderRadius:10,padding:12,marginBottom:12,background:'#f7fdf9'}}>
+      <summary style={{fontWeight:800,fontSize:13,cursor:'pointer'}}>Read the linked Jumping Teacher Guide (working draft)</summary>
+      <Plain title="Original VibeSchool teacher guidance" value={guide.body}/>
+      <p style={{fontSize:11,color:'#64748b'}}>Editorial candidate · not yet certified or released for learners</p>
+    </details>}
     {units.length>0 && <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
       {units.map(unit=><button key={unit.lessonNumber} type="button"
         aria-pressed={selected?.lessonNumber===unit.lessonNumber}
