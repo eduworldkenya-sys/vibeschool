@@ -176,7 +176,7 @@ export default function ContactPage() {
                     <div className={styles.accountActions}>
                       <Link className={styles.primaryAction} href="/login/global">Sign in for private support <span aria-hidden="true">→</span></Link>
                       <p className={styles.recoveryLead}>{topic === 'account' ? 'Can’t sign in?' : 'Can’t use your account?'}</p>
-                      <TrackedLink className={styles.secondaryAction} href={whatsappLink(topic)} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">Ask how to get help on WhatsApp <span aria-hidden="true">↗</span></TrackedLink>
+                      <TrackedLink className={styles.secondaryAction} href={whatsappLink(topic === 'safety' ? 'safety' : 'account')} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">Ask how to get help on WhatsApp <span aria-hidden="true">↗</span></TrackedLink>
                     </div>
                   )}
                   {authReady && signedIn && (
