@@ -137,6 +137,9 @@ function SchemeLessonLauncherInner() {
   const classId = params.get('classId') ?? ''
   const subjectId = params.get('subjectId') ?? ''
   const schemeId = params.get('schemeId') ?? ''
+  // Preparation is independent of scheduling; explicit scheduled mode preserves
+  // the existing exact-week timetable workflow for opening a dated lesson.
+  const scheduledMode = params.get('mode') === 'scheduled'
   const curriculumId =
     params.get('curriculumId') ?? ''
   const grade = params.get('grade') ?? ''
@@ -254,6 +257,18 @@ function SchemeLessonLauncherInner() {
         if (!scheme.academic_term_id || !Number.isInteger(scheme.week) || scheme.week < 1) {
           setError('This Scheme lesson has no valid saved term and week. Open the Scheme to correct its placement.')
           setResolving(false)
+          return
+        }
+
+        // The Scheme is the preparation authority. Never require a timetable
+        // before opening an unscheduled draft, including an existing draft.
+        if (!scheduledMode) {
+          const target = new URLSearchParams({
+            classId,
+            subjectId,
+            schemeId,
+          })
+          router.replace(`/teacher/lessonplan/prepare?${target.toString()}`)
           return
         }
 
@@ -448,6 +463,7 @@ function SchemeLessonLauncherInner() {
       grade,
       router,
       schemeId,
+      scheduledMode,
       strand,
       subStrand,
       subject,
