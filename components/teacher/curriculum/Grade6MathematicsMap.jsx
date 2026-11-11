@@ -19,7 +19,7 @@ const line = { fontSize:13, color:'#345746', lineHeight:1.6 }
  * }} props
  */
 export default function Grade6MathematicsMap({
-  selectedUnitId='1.1',onSelectUnit,onPlanUnit,mappedUnits={},catalogLoading=false,catalogError='',compact=false
+  selectedUnitId='1.1',onSelectUnit=()=>{},onPlanUnit=undefined,mappedUnits={},catalogLoading=false,catalogError='',compact=false
 }){
   const [showIndex,setShowIndex]=useState(false)
   const [query,setQuery]=useState('')
