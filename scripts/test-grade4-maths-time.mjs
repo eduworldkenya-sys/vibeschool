@@ -6,6 +6,7 @@ const pack = JSON.parse(read('../content/curriculum/grade4/mathematics/time.v1.j
 const reader = read('../components/learn/Grade4TimeContentReader.tsx')
 const route = read('../app/learn/grade-4/mathematics/time/page.tsx')
 const rpc = read('../supabase/migrations/20261111200000_grade4_math_time_certified_reader.sql')
+const unitFix = read('../supabase/migrations/20261111211000_grade4_math_time_reader_binding_unit_fix.sql')
 
 assert.equal(pack.grade, 'Grade 4')
 assert.equal(pack.subject, 'Mathematics')
@@ -56,6 +57,11 @@ for (const phrase of ["v.lifecycle_status = 'certified'",'v.certified_at is not 
   'to anon, authenticated']) {
   assert.ok(rpc.includes(phrase), 'Missing release-only guard: ' + phrase)
 }
+assert.ok(unitFix.includes("split_part(b.source_ref, '#', 2)::text,"), 'Reader unit ID must be supplied by active canonical binding')
+assert.ok(!unitFix.includes("split_part(s.source_ref, '#', 2)::text,"), 'Do not read nullable cbc_strands.source_ref')
+assert.ok(unitFix.includes("v.lifecycle_status = 'certified'"), 'Release-only policy must survive RPC repair')
+assert.ok(reader.includes("clean.length !== data.length"), 'Client must reject malformed RPC rows as an error')
+assert.ok(!reader.includes("Lesson manuscripts are being prepared for release."), 'Do not report published lessons as drafts')
 assert.ok(!rpc.includes("v.lifecycle_status = 'candidate'"))
 assert.ok(reader.includes("background: '#f5f9f6'"), 'Reader must have readable light page canvas on dark global theme')
 assert.ok(reader.includes("color: INK"), 'Reader must provide appropriate text contrast')
