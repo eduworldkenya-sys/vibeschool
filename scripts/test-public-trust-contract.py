@@ -145,8 +145,31 @@ for fragment in ['VIBESCHOOL FOR SCHOOLS','WHAT A SCHOOL CAN BRING TOGETHER','IM
     if fragment not in institutions: errors.append(f'institutional surface missing: {fragment}')
 
 trust = text('app/trust/page.tsx')
-for fragment in ['/trust/child-safety','/trust/security','/trust/responsible-ai','FORMAL POLICIES','/institutions']:
-    if fragment not in trust: errors.append(f'Trust Centre missing: {fragment}')
+for fragment in [
+    'Your safety and information matter.',
+    'How do you protect children?',
+    'What happens to personal information?',
+    'Who can see my account or school records?',
+    'Can I rely on learning information?',
+    'What does VibeSchool use AI for?',
+    'Safety / safeguarding',
+    'FORMAL POLICIES',
+    'Contact VibeSchool',
+    "title: 'Trust Centre'",
+    '#07111f',
+    '#d0b154',
+    '@media(max-width:750px)',
+]:
+    if fragment not in trust: errors.append(f'Trust Centre clarity/brand contract missing: {fragment}')
+trust_actions = re.findall(r'<Link\\s+href=["\\']([^"\\']+)["\\']', trust)
+if trust_actions != ['/contact', '/legal']:
+    errors.append(f'Trust Centre should answer concerns on-page and offer only contact/policy links: {trust_actions}')
+for forbidden in ['Trust should be understandable before it becomes legal language.', 'Honest product communication', 'Consequential catalogue']:
+    if forbidden in trust: errors.append(f'Trust Centre still contains jargon or defensive copy: {forbidden}')
+policy_hub = text('app/legal/page.tsx')
+for destination in ['/trust/child-safety', '/trust/security', '/trust/responsible-ai', '/legal/privacy', '/legal/terms', '/legal/aup']:
+    if destination not in policy_hub:
+        errors.append(f'Policy hub no longer exposes detailed guidance: {destination}')
 
 child = text('app/trust/child-safety/page.tsx')
 security = text('app/trust/security/page.tsx')
