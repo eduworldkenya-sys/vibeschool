@@ -26,7 +26,7 @@ assert.ok(all.every(unit => unit.title.trim() && unit.strand.trim() && unit.sugg
 assert.ok(all.every(unit => !('outcomes' in unit) && !('experiences' in unit)))
 assert.ok(map.includes('grade9-english-theme') && map.includes('grade9-english-search'))
 assert.ok(map.includes('View original KICD source'))
-assert.ok(map.includes('onOpenScheme') && map.includes('Specific Learning Outcomes'))
+assert.ok(map.includes('onOpenScheme') && map.includes('learning outcomes'))
 assert.ok(teacher.includes("import Grade9EnglishMap from '@/components/teacher/curriculum/Grade9EnglishMap'"))
 assert.ok(teacher.includes('isGrade9English') && teacher.includes('curriculumView && isGrade9English && <Grade9EnglishMap'))
 assert.ok(teacher.includes('isGrade9English?\'none\'') || teacher.includes('||isGrade9English?\'none\''))
