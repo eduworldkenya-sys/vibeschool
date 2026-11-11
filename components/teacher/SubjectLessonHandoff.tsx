@@ -14,6 +14,7 @@ import {
 type Purpose = "guide" | "notes" | "overview";
 
 function dateLabel(candidate: SubjectLessonCandidate) {
+  if (candidate.relation === "unscheduled") return "Prepared";
   if (candidate.relation === "today") return "Today";
   const parsed = new Date(`${candidate.occurrenceDate}T12:00:00+03:00`);
   return parsed.toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short" });
@@ -144,7 +145,7 @@ export default function SubjectLessonHandoff({
       </div>
       {!compact && (
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, lineHeight: 1.5 }}>
-          {authority.subjectName} · {authority.className}{authority.stream ? ` ${authority.stream}` : ""}. Only authorised timetable lessons are shown.
+          {authority.subjectName} · {authority.className}{authority.stream ? ` ${authority.stream}` : ""}. Authorised scheduled lessons and saved Scheme preparations are shown.
         </div>
       )}
       <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
@@ -152,7 +153,7 @@ export default function SubjectLessonHandoff({
           const needsPlan = purpose === "notes" && !candidate.lessonPlanId;
           return (
             <button
-              key={`${candidate.timetableSlotId}:${candidate.occurrenceDate}`}
+              key={`${candidate.timetableSlotId}:${candidate.occurrenceDate}:${candidate.lessonPlanId ?? "no-plan"}`}
               type="button"
               onClick={() => openCandidate(candidate)}
               style={{
@@ -170,7 +171,7 @@ export default function SubjectLessonHandoff({
                 <span style={{ color: candidate.relation === "today" ? "#1d4ed8" : "#64748b", fontSize: 11, fontWeight: 750 }}>{dateLabel(candidate)}</span>
               </div>
               <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>
-                {timeLabel(candidate.startTime)}–{timeLabel(candidate.endTime)}
+                {candidate.relation === "unscheduled" ? "Scheme-based preparation · no timetable needed" : `${timeLabel(candidate.startTime)}–${timeLabel(candidate.endTime)}`}
                 {candidate.room ? ` · ${candidate.room}` : ""}
                 {candidate.lessonPlanId ? " · Plan ready" : " · No lesson plan yet"}
               </div>

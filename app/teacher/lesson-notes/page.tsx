@@ -13,6 +13,7 @@ import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
 import LessonPreparationStudio from "@/components/teacher/LessonPreparationStudio";
 import TeachingWorkspaceNav from "@/components/teacher/TeachingWorkspaceNav";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
+import JumpingSchemeContent from "@/components/teacher/JumpingSchemeContent";
 
 
 type PlanRow = {
@@ -92,6 +93,7 @@ function LessonNotesInner() {
   const [resources, setResources] = useState<ResourceRow[]>([]);
   const [exactChapters, setExactChapters] = useState<ExactChapterRow[]>([]);
   const [teacherNotes, setTeacherNotes] = useState<TeacherNoteRow[]>([]);
+  const [jumpingSchemeId, setJumpingSchemeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [teachMode, setTeachMode] = useState(params.get("teach") === "1");
@@ -134,7 +136,9 @@ function LessonNotesInner() {
       }
 
       const typedPlan = planData as PlanRow;
+      if (typedPlan.teacher_id !== authData.user.id) throw new Error("This lesson belongs to another teacher.");
       setPlan(typedPlan);
+      setJumpingSchemeId(null);
 
       if (occurrenceId) {
         const { data: occurrenceData, error: occurrenceError } = await supabase
@@ -203,12 +207,20 @@ function LessonNotesInner() {
       if (typedPlan.scheme_id) {
         const { data: schemeData } = await supabase
           .from("scheme_of_work")
-          .select("curriculum_id,sub_strand_id")
+          .select("curriculum_id,sub_strand_id,sub_strand,grade,teacher_id,class_id,subject_id")
           .eq("id", typedPlan.scheme_id)
           .maybeSingle();
 
+        if (schemeData && (schemeData.teacher_id !== authData.user.id ||
+          schemeData.class_id !== typedPlan.class_id ||
+          schemeData.subject_id !== typedPlan.subject_id)) {
+          throw new Error("The linked Scheme does not match this lesson.");
+        }
         subStrandId = schemeData?.sub_strand_id ?? null;
         curriculumId = schemeData?.curriculum_id ?? curriculumId;
+        if (schemeData?.grade === "Grade 1" && schemeData?.sub_strand === "Jumping") {
+          setJumpingSchemeId(typedPlan.scheme_id);
+        }
       }
 
       const chapterIds = new Set<string>();
@@ -351,6 +363,27 @@ function LessonNotesInner() {
 
       {plan.class_id && plan.subject_id && <TeachingWorkspaceNav classId={plan.class_id} subjectId={plan.subject_id} lessonPlanId={plan.id} occurrenceId={occurrence?.id} timetableSlotId={plan.timetable_slot_id} occurrenceDate={plan.taught_date} current="Lesson" />}
       {sections && <LessonPreparationStudio sections={sections} topic={plan.topic || plan.title || "Lesson notes"} resourceCount={resources.length} onTeach={() => setTeachMode(true)} onEdit={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(plan.class_id || contextClassId)}&subjectId=${encodeURIComponent(plan.subject_id || contextSubjectId)}&timetableSlotId=${encodeURIComponent(plan.timetable_slot_id || "")}&date=${encodeURIComponent(plan.taught_date || "")}`)} />}
+      {plan.scheme_id && (
+        <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",margin:"12px 0"}}>
+          <button type="button" onClick={() => {
+            const q = new URLSearchParams({lessonPlanId:plan.id,schemeId:plan.scheme_id!});
+            if (plan.class_id) q.set("classId",plan.class_id);
+            if (plan.subject_id) q.set("subjectId",plan.subject_id);
+            if (plan.timetable_slot_id) q.set("timetableSlotId",plan.timetable_slot_id);
+            if (plan.taught_date) q.set("date",plan.taught_date);
+            if (occurrence?.id) q.set("occurrenceId",occurrence.id);
+            router.push(`/teacher/teacher-guide?${q.toString()}`);
+          }} style={{background:"#1e1b4b",color:"#fff",border:0,borderRadius:10,padding:"11px 14px",fontWeight:800}}>
+            Open this lesson’s Teacher Guide
+          </button>
+          <span style={{fontSize:12,color:"#64748b"}}>{resources.length} approved resources attached to this plan</span>
+        </div>
+      )}
+      {jumpingSchemeId && (
+        <section aria-label="Linked VibeSchool Jumping manuscripts" style={{margin:"12px 0"}}>
+          <JumpingSchemeContent schemeId={jumpingSchemeId} />
+        </section>
+      )}
       <details className="studio-lesson-details"><summary>Teaching pack & private notes</summary>
       <section style={{ background: "#2c2944", color: "#fff", borderRadius: 22, padding: 18, marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontWeight: 750, color: "#d0c5e8", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes</div>
