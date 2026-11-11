@@ -1,6 +1,6 @@
 import styles from "./TscRecruitmentFeature.module.css";
+import { OFFICIAL_TSC_ADVERTS } from "@/lib/teacher/tsc2026CountyAllocations";
 
-const articleHref = "/blog/50ef6c33-da45-4a6e-a951-77da15386fa3";
 const officialApplicationHref = "https://teachersonline.tsc.go.ke/";
 const applicationDeadline = Date.parse("2026-11-23T21:00:00Z"); // Midnight 24 Nov in Kenya.
 
@@ -31,7 +31,7 @@ export default function TscRecruitmentFeature() {
         <div><strong>2,086</strong><span>Secondary schools</span></div>
       </div>
       <div className={styles.actions}>
-        <a href={articleHref} className={styles.primary}>Read full advert and requirements <span aria-hidden="true">→</span></a>
+        <a href={OFFICIAL_TSC_ADVERTS} className={styles.primary} target="_blank" rel="noopener noreferrer">Check official TSC adverts <span aria-hidden="true">↗</span></a>
         <a href={officialApplicationHref} className={styles.secondary} target="_blank" rel="noopener noreferrer">
           {applicationsOpen ? "Apply on official TSC portal" : "Visit official TSC portal"} <span aria-hidden="true">↗</span>
         </a>
