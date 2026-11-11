@@ -161,7 +161,7 @@ export async function loadWorkbook(
     pages<Homework>((from, to) =>
       supabase
         .from("homework")
-        .select("id,title,due_date,subject,type,target_group_id")
+        .select("id,title,due_date,subject,type,target_group_id,created_at")
         .eq("school_id", schoolId)
         .eq("class_id", classId)
         .eq("teacher_id", teacherId)
@@ -251,7 +251,7 @@ export async function loadWorkbook(
       ...(await pages<Member>((from, to) =>
         supabase
           .from("class_group_members")
-          .select("student_id,group_id")
+          .select("student_id,group_id,created_at")
           .in(
             "group_id",
             memberGroupIds.slice(i, i + 200),
@@ -263,8 +263,9 @@ export async function loadWorkbook(
   for (const group of groups) {
     const r = await supabase.rpc('teacher_resolve_class_group_members', { p_group_id: group.id });
     if (r.error) throw new Error(`Group membership could not be confirmed: ${r.error.message}`);
+    const verifiedMemberTimestamps = new Map(members.filter(m => m.group_id === group.id).map(m => [m.student_id, m.created_at]));
     for (let i = members.length - 1; i >= 0; i--) if (members[i].group_id === group.id) members.splice(i, 1);
-    members.push(...(r.data ?? []).map((row: { student_id: string }) => ({ group_id: group.id, student_id: row.student_id })));
+    members.push(...(r.data ?? []).map((row: { student_id: string }) => ({ group_id: group.id, student_id: row.student_id, created_at: verifiedMemberTimestamps.get(row.student_id) ?? null })));
   }
   const submissions: Submission[] = [];
   for (let i = 0; i < homework.length; i += 200)
