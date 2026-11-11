@@ -1,0 +1,30 @@
+name: Grade 6 Kiswahili source and Scheme integrity
+on:
+  pull_request:
+    paths:
+      - 'lib/teaching/grade6KiswahiliCatalog.mjs'
+      - 'components/teacher/curriculum/Grade6KiswahiliMap.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'app/teacher/subjecthub/page.tsx'
+      - 'supabase/migrations/*grade6_kiswahili*'
+      - 'scripts/test-grade6-kiswahili-native-curriculum.mjs'
+      - '.github/workflows/grade6-kiswahili-curriculum.yml'
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  curriculum-scheme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify Grade 6 Kiswahili source, identities and Scheme
+        run: node scripts/test-grade6-kiswahili-native-curriculum.mjs
+      - name: Recheck Grade 6 English and Mathematics
+        run: |
+          node scripts/test-grade6-english-native-curriculum.mjs
+          node scripts/test-grade6-mathematics-scheme.mjs

@@ -16,6 +16,7 @@ import Grade6MathematicsMap from '@/components/teacher/curriculum/Grade6Mathemat
 import Grade4MathematicsMap from '@/components/teacher/curriculum/Grade4MathematicsMap'
 import Grade1EnglishMap from '@/components/teacher/curriculum/Grade1EnglishMap'
 import Grade6EnglishMap from '@/components/teacher/curriculum/Grade6EnglishMap'
+import Grade6KiswahiliMap from '@/components/teacher/curriculum/Grade6KiswahiliMap'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -93,6 +94,7 @@ export default function SubjectHubPage() {
   const [grade4MathematicsUnitId, setGrade4MathematicsUnitId] = useState('1.1')
   const [grade1EnglishUnitId, setGrade1EnglishUnitId] = useState('1.1')
   const [grade6EnglishUnitId, setGrade6EnglishUnitId] = useState('1.1')
+  const [grade6KiswahiliUnitId, setGrade6KiswahiliUnitId] = useState('1.1.1')
   const [classes,        setClasses]        = useState<ClassForSubject[]>([])
   const [teammates,      setTeammates]      = useState<Teammate[]>([])
   const [schoolId,       setSchoolId]       = useState<string | null>(null)
@@ -909,6 +911,10 @@ export default function SubjectHubPage() {
     /^(english|english language)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*6\b/i.test(item.name)) ?? null
       : null
+  const grade6KiswahiliClass =
+    /^kiswahili$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\b(?:grade|class)\s*6\b/i.test(item.name)) ?? null
+      : null
   const grade4KiswahiliClass =
     /^kiswahili$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
@@ -1286,6 +1292,20 @@ export default function SubjectHubPage() {
             </button>
           </div>
           <Grade6EnglishMap compact selectedUnitId={grade6EnglishUnitId} onSelectUnit={setGrade6EnglishUnitId} />
+        </div>
+      )}
+
+      {/* Grade 6 Kiswahili — curriculum reader and Scheme handoff. */}
+      {!loading && !classLoading && activeSubject && grade6KiswahiliClass && (
+        <div style={{ margin: '14px 16px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 9 }}>
+            <button type="button"
+              onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade6KiswahiliClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id) + '&unitId=' + encodeURIComponent(grade6KiswahiliUnitId))}
+              style={{ background: '#175b43', color: '#fff', minHeight: 44, border: 0, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontWeight: 800 }}>
+              Fungua ramani ya mtaala
+            </button>
+          </div>
+          <Grade6KiswahiliMap compact selectedUnitId={grade6KiswahiliUnitId} onSelectUnit={setGrade6KiswahiliUnitId} />
         </div>
       )}
 

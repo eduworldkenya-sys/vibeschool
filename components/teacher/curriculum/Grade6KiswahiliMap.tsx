@@ -1,27 +1,96 @@
 'use client'
-import {useMemo,useState} from 'react'
-import {GRADE6_KISWAHILI_SOURCE,GRADE6_KISWAHILI_STRANDS,GRADE6_KISWAHILI_THEMES,GRADE6_KISWAHILI_UNITS,GRADE6_KISWAHILI_WEEKLY_LESSONS,GRADE6_KISWAHILI_PRINTED_TOTAL,GRADE6_KISWAHILI_ITEMISED_TOTAL} from '@/lib/curriculum/grade6KiswahiliReference'
-type Props={onOpenScheme:()=>void;schemeCount:number}
-export default function Grade6KiswahiliMap({onOpenScheme,schemeCount}:Props){
- const [selectedTheme,setSelectedTheme]=useState(1)
- const [search,setSearch]=useState('')
- const theme=GRADE6_KISWAHILI_THEMES[selectedTheme-1]
- const units=GRADE6_KISWAHILI_UNITS.filter(u=>u.themeNumber===selectedTheme)
- const themes=useMemo(()=>{
-  const q=search.trim().toLocaleLowerCase('sw')
-  return q?GRADE6_KISWAHILI_THEMES.filter(t=>t.title.toLocaleLowerCase('sw').includes(q)||String(t.number)===q||GRADE6_KISWAHILI_UNITS.some(u=>u.themeNumber===t.number&&u.title.toLocaleLowerCase('sw').includes(q))):GRADE6_KISWAHILI_THEMES
- },[search])
- const select=(n:number)=>{setSelectedTheme(n);setSearch('')}
- return <section aria-label="Kiswahili Gredi ya 6 — Mtaala" style={{background:'#fff',border:'1px solid #d8e5dc',borderRadius:14,padding:'clamp(14px,3vw,22px)',marginBottom:18,color:'#193a2e'}}>
-  <header><div style={{fontSize:11,fontWeight:800,color:'#28654d'}}>GREDI YA 6 · KISWAHILI</div><h2 style={{margin:'8px 0',fontSize:24}}>Ramani ya Mtaala</h2>
-  <p style={{fontSize:13,lineHeight:1.6}}>Mada 11 · Stadi 4 · Mada ndogo {GRADE6_KISWAHILI_UNITS.length} · Vipindi {GRADE6_KISWAHILI_WEEKLY_LESSONS} kwa wiki.</p>
-  <p style={{fontSize:12,lineHeight:1.6,color:'#66572b'}}>KICD imechapisha jumla ya vipindi {GRADE6_KISWAHILI_PRINTED_TOTAL}, lakini mgawanyo wa mada ndogo uliorodheshwa ni {GRADE6_KISWAHILI_ITEMISED_TOTAL}. Kwa hivyo VibeSchool haitengenezi mpangilio wa wiki kiotomatiki kutokana na takwimu hizi zisizolingana.</p>
-  <p style={{fontSize:12,lineHeight:1.6,color:'#536a5e'}}>Huu ni muhtasari wa muundo wa KICD wa 2024, si nakala ya matokeo maalumu au shughuli zote rasmi. Mwalimu anaweza kusoma bila ratiba.</p>
-  <a href={GRADE6_KISWAHILI_SOURCE} target="_blank" rel="noopener noreferrer" style={{color:'#175b43',fontWeight:700,fontSize:13}}>Fungua mtaala rasmi wa KICD</a></header>
-  <div style={{margin:'18px 0 12px'}}><label htmlFor="kiswahili-grade6-search" style={{display:'block',fontSize:13,fontWeight:700,marginBottom:6}}>Tafuta mada au mada ndogo</label><input id="kiswahili-grade6-search" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Tafuta mada…" style={{boxSizing:'border-box',width:'100%',minHeight:44,padding:10,fontSize:15,borderRadius:9,border:'1px solid #b9cec0'}}/>
-  {search?<div style={{display:'grid',gap:7,marginTop:8}}>{themes.map(t=><button type="button" key={t.number} onClick={()=>select(t.number)} style={{minHeight:44,padding:10,textAlign:'left',border:'1px solid #d8e7dd',borderRadius:9,background:'#f6faf7'}}>{t.number}. {t.title}</button>)}{themes.length===0&&<p role="status">Hakuna mada iliyopatikana.</p>}</div>:<div style={{display:'flex',gap:7,overflowX:'auto',padding:'9px 0'}} aria-label="Chagua mada">{GRADE6_KISWAHILI_THEMES.map(t=><button type="button" key={t.number} onClick={()=>select(t.number)} aria-pressed={selectedTheme===t.number} title={t.title} style={{flex:'0 0 auto',minWidth:44,minHeight:44,borderRadius:8,border:'1px solid #b8d4c0',fontWeight:700,background:selectedTheme===t.number?'#175b43':'#fff',color:selectedTheme===t.number?'#fff':'#175b43'}}>{t.number}</button>)}</div>}</div>
-  <article style={{border:'1px solid #d8e7dd',borderRadius:12,overflow:'hidden'}}><div style={{padding:14,background:'#f3f8f4'}}><div style={{fontSize:12}}>MADA {theme.number}</div><h3 style={{fontSize:18,margin:'5px 0 0'}}>{theme.title}</h3></div><div style={{padding:12,display:'grid',gap:9}}>{units.map(u=><div key={u.code} style={{border:'1px solid #e0e9e2',padding:12,borderRadius:9}}><div style={{fontSize:11,color:'#28654d',fontWeight:700}}>{u.code} · {GRADE6_KISWAHILI_STRANDS[u.strand-1]} · Vipindi {u.lessons}</div><div style={{fontSize:15,fontWeight:700,marginTop:5}}>{u.title}</div></div>)}</div></article>
-  <div style={{display:'flex',justifyContent:'space-between',gap:8,marginTop:12}}><button type="button" disabled={selectedTheme===1} onClick={()=>setSelectedTheme(n=>n-1)} style={{minHeight:44,padding:10,borderRadius:8,border:'1px solid #b9cfbf'}}>Mada iliyotangulia</button><button type="button" disabled={selectedTheme===11} onClick={()=>setSelectedTheme(n=>n+1)} style={{minHeight:44,padding:10,borderRadius:8,border:'1px solid #b9cfbf'}}>Mada inayofuata</button></div>
-  <div style={{borderTop:'1px solid #dfe8e1',marginTop:17,paddingTop:14}}><h3 style={{fontSize:16,margin:'0 0 8px'}}>Mpango wa Kazi</h3><p style={{fontSize:12,color:'#526b5f'}}>Masomo yaliyohifadhiwa: {schemeCount}. Rekodi za mwalimu hazibadilishwi na ramani hii. Hakuna masomo yanayohifadhiwa bila kitendo cha mwalimu.</p><button type="button" onClick={onOpenScheme} style={{minHeight:44,border:0,borderRadius:9,padding:'11px 16px',background:'#175b43',color:'#fff',fontWeight:800}}>Fungua Scheme of Work</button></div>
- </section>
+
+import { useMemo, useState } from 'react'
+import { GRADE6_KISWAHILI_ITEMISED_TOTAL } from '@/lib/curriculum/grade6KiswahiliReference'
+import {
+  GRADE6_KISWAHILI_SOURCE_URL, GRADE6_KISWAHILI_THEMES, GRADE6_KISWAHILI_UNITS,
+  GRADE6_KISWAHILI_PUBLISHED_TOTAL,
+  GRADE6_KISWAHILI_VIBESCHOOL_REVIEW,
+} from '@/lib/teaching/grade6KiswahiliCatalog.mjs'
+
+type CatalogRecord = {
+  id: string
+  name: string
+  sub_strand: string
+  outcomes: { id: string; outcome_text: string }[]
+}
+type Props = {
+  compact?: boolean
+  selectedUnitId?: string
+  onSelectUnit?: (id: string) => void
+  onPlanUnit?: (id: string) => void
+  mappedUnits?: Record<string, CatalogRecord>
+  catalogLoading?: boolean
+  catalogError?: string
+  onOpenScheme?: () => void
+  schemeCount?: number
+}
+const ink = '#173f32'
+const muted = '#51665c'
+const border = '#d9e5dc'
+const inputStyle = { minHeight: 44, padding: '9px 11px', background: '#fff', color: ink, border: '1px solid #cbdacf', borderRadius: 9, width: '100%' } as const
+
+/** Reader and original outcomes belong to VibeSchool; KICD provides only the structural reference. */
+export default function Grade6KiswahiliMap({ compact=false, selectedUnitId, onSelectUnit, onPlanUnit, mappedUnits={}, catalogLoading=false, catalogError='', onOpenScheme, schemeCount=0 }: Props) {
+  const [localUnitId, setLocalUnitId] = useState('1.1.1')
+  const [themeId, setThemeId] = useState(() => GRADE6_KISWAHILI_UNITS.find(u=>u.id===selectedUnitId)?.themeId || 1)
+  const [search, setSearch] = useState('')
+  const selected=selectedUnitId ?? localUnitId
+  const allForTheme=GRADE6_KISWAHILI_UNITS.filter(u=>u.themeId===themeId)
+  const visible=useMemo(()=>allForTheme.filter(u=>(u.strand+' '+u.title+' '+u.outcomes.join(' ')).toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),[allForTheme,search])
+  const current=allForTheme.find(u=>u.id===selected) || allForTheme[0]
+  const saved=mappedUnits[current.id]
+  const choose=(id:string)=>{ onSelectUnit?.(id); if(!onSelectUnit)setLocalUnitId(id) }
+  const onTheme=(next:number)=>{setThemeId(next); const first=GRADE6_KISWAHILI_UNITS.find(u=>u.themeId===next); if(first)choose(first.id)}
+  return <section aria-label="Ramani ya mtaala wa Kiswahili wa Gredi ya 6" style={{ background:'#fff',border:'1px solid '+border,borderRadius:14,padding:compact?14:18,color:ink,marginBottom:14 }}>
+    <div style={{fontSize:11,fontWeight:800,letterSpacing:'.08em',color:'#397652'}}>GREDI YA 6 · KISWAHILI</div>
+    <h2 style={{fontSize:compact?19:23,margin:'5px 0 8px'}}>Ramani ya mtaala</h2>
+    <p style={{fontSize:13,color:muted,lineHeight:1.6,margin:'0 0 12px'}}>Muundo wa mada na mada ndogo umeongozwa na KICD 2024. Matokeo, shughuli na maelezo ya kufundishia ni kazi asilia ya VibeSchool; si maneno rasmi ya KICD.</p>
+    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:13}}>
+      {['Mada kuu 11','Mada ndogo 53','Stadi 4','Vipindi 4 kwa wiki','Vipindi 120 vya mpango'].map(s=><span key={s} style={{background:'#edf5ef',padding:'6px 9px',borderRadius:16,fontSize:12,fontWeight:700}}>{s}</span>)}
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,220px),1fr))',gap:10,marginBottom:12}}>
+      <label style={{fontWeight:700,fontSize:13}}>Mada kuu
+        <select aria-label="Chagua mada kuu" value={themeId} onChange={e=>onTheme(Number(e.target.value))} style={{...inputStyle,marginTop:5}}>
+          {GRADE6_KISWAHILI_THEMES.map(t=><option key={t.id} value={t.id}>{t.id}. {t.title}</option>)}
+        </select>
+      </label>
+      <label style={{fontWeight:700,fontSize:13}}>Tafuta stadi
+        <input id="kiswahili-grade6-search" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Mf. sarufi, ufasaha, insha" style={{...inputStyle,marginTop:5}}/>
+      </label>
+    </div>
+    <p style={{fontSize:13,color:muted,margin:'0 0 12px'}}>{GRADE6_KISWAHILI_THEMES[themeId-1]?.context}</p>
+    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:13}}>
+      {visible.map(u=><button type="button" key={u.id} aria-pressed={u.id===current.id} onClick={()=>choose(u.id)}
+        style={{minHeight:42,padding:'9px 11px',borderRadius:9,border:'1px solid '+(u.id===current.id?ink:border),background:u.id===current.id?ink:'#fff',color:u.id===current.id?'#fff':ink,fontSize:12,fontWeight:700,cursor:'pointer'}}>{u.id} · {u.title}</button>)}
+      {visible.length===0&&<p role="status">Hakuna stadi inayolingana na utafutaji.</p>}
+    </div>
+    <article style={{padding:compact?12:16,borderRadius:12,background:'#f8faf8',border:'1px solid '+border}}>
+      <div style={{fontSize:12,color:muted,fontWeight:700}}>{current.strand} · {current.sourceLessons} vya KICD{current.supportLessons>0?' + '+current.supportLessons+' cha marudio cha VibeSchool':''}</div>
+      <h3 style={{fontSize:19,margin:'5px 0 12px'}}>{current.title}</h3>
+      <h4 style={{fontSize:13,margin:'0 0 6px'}}>Matokeo ya VibeSchool</h4>
+      <ol style={{fontSize:13,lineHeight:1.7,paddingLeft:20,margin:'0 0 13px'}}>{current.outcomes.map((x,i)=><li key={i}>{x}</li>)}</ol>
+      <h4 style={{fontSize:13,margin:'0 0 6px'}}>Shughuli zilizopendekezwa</h4>
+      <ul style={{fontSize:13,lineHeight:1.7,paddingLeft:20,margin:'0 0 13px'}}>{current.experiences.map((x,i)=><li key={i}>{x}</li>)}</ul>
+      <div style={{fontSize:13,lineHeight:1.7}}>
+        <strong>Swali dadisi:</strong> {current.inquiry.join(' ')}
+        <div><strong>Nyenzo:</strong> {current.resources}</div>
+        <div><strong>Tathmini:</strong> {current.assessment}</div>
+        <div><strong>Umilisi:</strong> {current.competencies}</div>
+      </div>
+      {onPlanUnit&&<div style={{marginTop:14}}>
+        <p style={{fontSize:12,color:muted,marginBottom:8}}>{catalogLoading?'Inapakia utambulisho wa mtaala…':catalogError||(!saved?'Mada ndogo haijaunganishwa kwenye rekodi za mfumo.':saved.outcomes.length+' matokeo yameunganishwa kwenye mfumo.')}</p>
+        <button type="button" disabled={!saved||catalogLoading||Boolean(catalogError)} onClick={()=>onPlanUnit(current.id)}
+          style={{minHeight:44,border:0,borderRadius:9,padding:'10px 14px',background:ink,color:'#fff',fontWeight:800,opacity:saved&&!catalogLoading&&!catalogError?1:.4,cursor:'pointer'}}>Tayarisha Scheme of Work</button>
+      </div>}
+    </article>
+    {onOpenScheme && <div style={{borderTop:'1px solid '+border,marginTop:14,paddingTop:12}}>
+      <p style={{fontSize:12,color:muted,margin:'0 0 8px'}}>Masomo yaliyohifadhiwa kwenye Scheme: {schemeCount}. Hakuna rekodi inayoundwa bila kitendo cha mwalimu.</p>
+      <button type="button" onClick={onOpenScheme} style={{minHeight:44,border:0,borderRadius:9,padding:'10px 14px',background:ink,color:'#fff',fontWeight:800,cursor:'pointer'}}>Fungua Scheme of Work</button>
+    </div>}
+    <p style={{color:muted,fontSize:12,lineHeight:1.6,margin:'12px 0 0'}}>
+      KICD imechapisha jumla ya vipindi {GRADE6_KISWAHILI_PUBLISHED_TOTAL}, lakini vipindi vya mada ndogo vinapojumlishwa ni {GRADE6_KISWAHILI_ITEMISED_TOTAL}. VibeSchool imependekeza vipindi {GRADE6_KISWAHILI_VIBESCHOOL_REVIEW} vya marudio ili kufikia 120; hivi si mgawanyo rasmi wa KICD. Ulinganisho wa kila matokeo rasmi bado haujakamilika.{' '}
+      <a href={GRADE6_KISWAHILI_SOURCE_URL} target="_blank" rel="noopener noreferrer" style={{color:'#175b43',textDecoration:'underline',fontWeight:700}}>Fungua mtaala asilia wa KICD</a>
+    </p>
+  </section>
 }
