@@ -99,7 +99,7 @@ export function PublicProductSandbox() {
             <h1 id="experience-heading">One lesson. Everything connected.</h1>
             <p className={styles.lead}>See a concept, try a question and get a useful next step. All on one screen.</p>
           </div>
-          <span className={styles.demoLabel}>Interactive sample · No sign-in</span>
+          <span className={styles.demoLabel}>Interactive learning sample</span>
         </div>
 
         <div className={styles.workspace}>
