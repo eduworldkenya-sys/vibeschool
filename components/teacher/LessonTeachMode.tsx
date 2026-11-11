@@ -330,6 +330,9 @@ export default function LessonTeachMode({
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
+          {step.key === 'assessmentHook' && onCaptureEvidence && (
+            <button type="button" style={{ ...actionStyle, marginTop: 12 }} onClick={onCaptureEvidence}>Record observation or evidence</button>
+          )}
         </section>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
@@ -401,7 +404,10 @@ export default function LessonTeachMode({
                 router.push(`/teacher/attendance?${q.toString()}`)
               }}>Attendance</button>
               <button style={actionStyle} disabled={!onCaptureEvidence} onClick={()=>onCaptureEvidence?.()}>Evidence</button>
-              <button style={actionStyle} onClick={()=>openAction('/teacher/assessment/new')}>Assessment</button>
+              {available.some(phase => phase.key === 'assessmentHook') && (
+                <button type="button" style={actionStyle} onClick={() => changeStep(available.findIndex(phase => phase.key === 'assessmentHook'))}>Check learning</button>
+              )}
+              <button type="button" style={actionStyle} onClick={() => openAction('/teacher/assessment/new')}>Exercise or quiz</button>
             </div>
           </section>
         ) : (
