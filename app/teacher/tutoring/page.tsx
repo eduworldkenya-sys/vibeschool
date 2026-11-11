@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, BookOpen, Users, GraduationCap, ArrowRight, RefreshCw, Video, MessageCircle, BarChart3 } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
+import { tuitionLessonState } from "@/lib/vibetutor/lessonLifecycle";
 
 type Listing = {
   display_name: string; subjects: string[] | null; levels: string[] | null;
@@ -13,7 +14,7 @@ type Listing = {
 };
 type LoadState = "loading" | "ready" | "error";
 type TuitionStudent = { id: string; student: string | null; status: string };
-type TuitionLesson = { id: string; invitation_id: string; title: string; starts_at: string; status: string };
+type TuitionLesson = { id: string; invitation_id: string; title: string; starts_at: string; ends_at: string; status: string };
 
 const labels: Record<string, string> = { Mon: "Mon", Tue: "Tue", Wed: "Wed", Thu: "Thu", Fri: "Fri", Sat: "Sat", Sun: "Sun" };
 const order = Object.keys(labels);
@@ -24,10 +25,14 @@ export default function TeacherTutoringPage() {
   const router = useRouter();
   const [state, setState] = useState<LoadState>("loading");
   const [listing, setListing] = useState<Listing | null>(null);
+  const [professionalName, setProfessionalName] = useState("");
+  const [nairobiHour, setNairobiHour] = useState<number | null>(null);
+  const [messageCount, setMessageCount] = useState<number | null>(null);
   const [students, setStudents] = useState<TuitionStudent[] | null>(null);
   const [lessons, setLessons] = useState<TuitionLesson[] | null>(null);
   const load = useCallback(async () => {
     setState("loading");
+    setMessageCount(null);
     try {
       const client = getSupabaseClient();
       const { data: auth, error: authError } = await client.auth.getUser();
@@ -38,34 +43,54 @@ export default function TeacherTutoringPage() {
         .eq("profile_id", auth.user.id).maybeSingle();
       if (error) throw error;
       setListing(data as Listing | null);
+      // The account identity is canonical; a separately editable public listing
+      // must never change how Teacher OS addresses the signed-in teacher.
+      const { data: profile } = await client.from("profiles")
+        .select("full_name").eq("id", auth.user.id).maybeSingle();
+      setProfessionalName(profile?.full_name?.trim() || "");
       // Reuse the same owner-scoped RPCs as My tuition students. Failure in one
       // summary never blocks listing management or exposes school learner data.
       const [invitesResult, lessonsResult] = await Promise.all([
         client.rpc("vibetutor_my_student_invites"),
         client.rpc("vibetutor_my_lessons"),
       ]);
-      setStudents(invitesResult.error ? null : (invitesResult.data ?? []).filter(row => row.status === "accepted"));
-      setLessons(lessonsResult.error ? null : (lessonsResult.data ?? []).filter(row => row.status === "scheduled"));
+      const accepted = invitesResult.error ? null : ((invitesResult.data ?? []) as TuitionStudent[]).filter(row => row.status === "accepted");
+      setStudents(accepted);
+      setLessons(lessonsResult.error ? null : (lessonsResult.data ?? []) as TuitionLesson[]);
       setState("ready");
+      if (accepted) {
+        // Scope every read to an accepted private connection. Errors remain unknown,
+        // never a misleading zero; the underlying RPC returns up to 100 recent messages.
+        const conversations = await Promise.all(accepted.map(row =>
+          client.rpc("vibetutor_my_lesson_messages", { p_invitation: row.id })
+        ));
+        setMessageCount(conversations.some(item => item.error) ? null :
+          conversations.reduce((total, item) => total + (Array.isArray(item.data) ? item.data.length : 0), 0));
+      }
     } catch {
       setState("error");
     }
   }, [router]);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "2-digit", hourCycle: "h23", timeZone: "Africa/Nairobi" }).format(new Date()));
+    setNairobiHour(hour);
+  }, []);
   const days = order.filter(day => listing?.available_days?.includes(day));
   const subjects = listing?.subjects ?? [];
   const connectedIds = new Set(students?.map(student => student.id) ?? []);
-  const upcoming = (lessons ?? []).filter(lesson => connectedIds.has(lesson.invitation_id) && new Date(lesson.starts_at).getTime() >= Date.now()).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const upcoming = (lessons ?? []).filter(lesson => connectedIds.has(lesson.invitation_id) && ["upcoming", "joinable"].includes(tuitionLessonState(lesson))).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const nextLesson = upcoming[0];
+  const joinableLesson = upcoming.find(lesson => tuitionLessonState(lesson) === "joinable");
 
   const muted = "var(--teacher-muted, #627168)";
   const green = "var(--teacher-green, #087451)";
-  const firstName = listing?.display_name?.trim().split(/\s+/)[0] || "Tutor";
+  const firstName = professionalName.split(/\s+/)[0] || "Tutor";
+  const greeting = nairobiHour === null ? "Welcome" : nairobiHour < 12 ? "Good morning" : nairobiHour < 17 ? "Good afternoon" : "Good evening";
   const tools = [
     { label: "My Students", detail: students === null ? "Your connected learners" : `${students.length} connected ${students.length === 1 ? "learner" : "learners"}`, href: "/teacher/tutoring/students", icon: Users },
     { label: "Lessons", detail: "Schedule & timetable", href: "/teacher/tutoring/students?tool=lessons", icon: CalendarDays },
-    { label: "Live Classroom", detail: "Join through your lessons", href: "/teacher/tutoring/students?tool=lessons", icon: Video },
-    { label: "Messages", detail: "Private conversations", href: "/teacher/tutoring/students?tool=messages", icon: MessageCircle },
+     { label: "Messages", detail: "Private conversations", href: "/teacher/tutoring/students?tool=messages", icon: MessageCircle },
   ];
   const futureTools = [
     { label: "Resources", detail: "Teaching materials", icon: BookOpen },
@@ -74,7 +99,7 @@ export default function TeacherTutoringPage() {
   return <div style={{ width: "100%", maxWidth: 900, margin: "0 auto", padding: "20px 14px 100px", display: "grid", gap: 16, color: "var(--teacher-ink, #1c2923)" }}>
     <header>
       <span style={{ color: green, fontSize: 12, fontWeight: 750, letterSpacing: ".05em" }}>VIBESCHOOL · MY TUTORING</span>
-      <h1 style={{ fontSize: "clamp(24px, 3vw, 30px)", margin: "7px 0 4px" }}>Good morning, {firstName}</h1>
+      <h1 style={{ fontSize: "clamp(24px, 3vw, 30px)", margin: "7px 0 4px" }}>{greeting}, {firstName}</h1>
       <p style={{ margin: 0, fontSize: 13, color: muted }}>Manage your private teaching</p>
     </header>
     {state === "loading" && <section role="status" style={panel}>Loading your tutoring details…</section>}
@@ -84,7 +109,7 @@ export default function TeacherTutoringPage() {
         {[
           { number: students?.length ?? "—", label: "Students" },
           { number: upcoming.length, label: "Upcoming lessons" },
-          { number: "—", label: "Messages" },
+          { number: messageCount === null ? "—" : messageCount >= 100 ? `${messageCount}+` : messageCount, label: "Recent messages" },
         ].map(item => <div key={item.label} style={{ padding: "13px 7px", borderRadius: 12, background: "var(--teacher-surface, #fff)", border: "1px solid var(--teacher-border, #dfe5de)", textAlign: "center" }}>
           <strong style={{ display: "block", fontSize: 23 }}>{item.number}</strong>
           <span style={{ fontSize: 11, color: muted }}>{item.label}</span>
@@ -98,7 +123,7 @@ export default function TeacherTutoringPage() {
         {nextLesson ? <>
           <p style={{ margin: "12px 0 3px", fontSize: 16, fontWeight: 750 }}>{nextLesson.title}</p>
           <p style={{ fontSize: 13, color: muted, margin: "0 0 14px" }}>{new Date(nextLesson.starts_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Nairobi" })} · Open lesson details to join</p>
-          <Link href="/teacher/tutoring/students" style={{ ...linkStyle, display: "flex", width: "100%" }}>View classroom <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link href={tuitionLessonState(nextLesson) === "joinable" ? "/tuition/lessons/" + nextLesson.id : "/teacher/tutoring/students?tool=lessons"} style={{ ...linkStyle, display: "flex", width: "100%" }}>{tuitionLessonState(nextLesson) === "joinable" ? "Join classroom" : "View lesson details"} <ArrowRight size={16} aria-hidden="true" /></Link>
         </> : <p style={{ color: muted, margin: "10px 0 0", fontSize: 14 }}>No upcoming lessons. Schedule one with a connected student.</p>}
       </section>
       <section aria-label="Teaching tools">
@@ -112,6 +137,15 @@ export default function TeacherTutoringPage() {
               <span style={{ fontSize: 12, color: muted }}>{tool.detail}</span>
             </Link>;
           })}
+          {joinableLesson ? <Link href={"/tuition/lessons/" + joinableLesson.id} style={{ ...panel, display: "grid", alignContent: "start", gap: 5, minHeight: 108, padding: 14, color: "inherit", textDecoration: "none" }}>
+            <Video size={21} color={green} aria-hidden="true" />
+            <strong style={{ fontSize: 14 }}>Join live classroom</strong>
+            <span style={{ fontSize: 12, color: muted }}>{joinableLesson.title}</span>
+          </Link> : <div aria-label="No live classroom available" style={{ ...panel, display: "grid", alignContent: "start", gap: 5, minHeight: 108, padding: 14, opacity: .7 }}>
+            <Video size={21} color={green} aria-hidden="true" />
+            <strong style={{ fontSize: 14 }}>Live Classroom</strong>
+            <span style={{ fontSize: 12, color: muted }}>Opens shortly before your next lesson</span>
+          </div>}
           {futureTools.map(tool => {
             const Icon = tool.icon;
             return <div key={tool.label} aria-label={`${tool.label} is not available yet`} style={{ ...panel, display: "grid", alignContent: "start", gap: 5, minWidth: 0, minHeight: 108, padding: 14, opacity: .7 }}>
