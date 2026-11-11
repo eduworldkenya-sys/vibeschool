@@ -52,7 +52,6 @@ const STEPS: TeachStep[] = [
   { key: 'development', label: 'Development', timed: true },
   { key: 'consolidation', label: 'Consolidation', timed: true },
   { key: 'assessmentHook', label: 'Check learning', timed: true },
-  { key: 'homework', label: 'Homework', timed: false },
 ]
 
 const TIMED_STEPS = STEPS.filter(step => step.timed)
@@ -331,11 +330,6 @@ export default function LessonTeachMode({
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
-          {context && step.key === 'homework' && (
-            <button type="button" style={{ ...actionStyle, marginTop: 12 }} onClick={() => openAction('/teacher/assessment/new', 'homework')}>
-              Review homework to assign
-            </button>
-          )}
         </section>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
@@ -349,8 +343,8 @@ export default function LessonTeachMode({
           <div style={{ fontSize:12, color:'#64748b', margin:'3px 0 9px' }}>{sections.resources.trim() ? 'Resources ready' : 'Resources missing'} · {sections.differentiation.trim() ? 'Differentiation ready' : 'Differentiation missing'} · Prepared Teaching Pack</div>
           <div style={{ display:'flex', gap:7, overflowX:'auto', marginBottom:9 }}>
             {([
-              ['notes','Notes'],['resources','Resources'],['assessment','Check learning'],['homework','Homework'],
-            ] as Array<[PackView,string]>).map(([value,label]) => (
+              ['notes','Notes'],['resources','Resources'],['assessment','Check learning'],['homework','Follow-up work'],
+            ] as Array<[PackView,string]>).filter(([value]) => value !== 'homework' || sections.homework.trim()).map(([value,label]) => (
               <button key={value} type="button" onClick={()=>setPackView(value)} style={{...actionStyle,whiteSpace:'nowrap',borderColor:packView===value?'var(--teacher-accent, #6352bd)':'#cbd5e1',background:packView===value?'var(--teacher-accent-soft, #eeeafa)':'#fff'}}>{label}</button>
             ))}
           </div>
@@ -358,7 +352,16 @@ export default function LessonTeachMode({
             {packView === 'notes' && [sections.introduction, sections.development, sections.consolidation].filter(Boolean).join('\n\n')}
             {packView === 'resources' && <>{sections.resources}{linkedResources.length > 0 && <div className="studio-teach-resource-links">{linkedResources.map(resource => <button key={resource.id} type="button" disabled={!resource.available || !onOpenResource} onClick={() => onOpenResource?.(resource.id)}>{resource.title} {resource.available ? '↗' : '· Reader unavailable'}</button>)}</div>}</>}
             {packView === 'assessment' && sections.assessmentHook}
-            {packView === 'homework' && <><div>{sections.homework}</div><div style={{ marginTop:8, fontSize:11, fontWeight:750, color:'var(--teacher-accent, #6352bd)' }}>View · Edit · Assign · Share</div></>}
+            {packView === 'homework' && sections.homework.trim() && (
+              <>
+                <div>{sections.homework}</div>
+                {context && (
+                  <button type="button" style={{ ...actionStyle, marginTop: 8 }} onClick={() => openAction('/teacher/assessment/new', 'homework')}>
+                    Review homework to assign
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </section>
 
