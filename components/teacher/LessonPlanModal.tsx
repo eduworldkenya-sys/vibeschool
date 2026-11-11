@@ -47,6 +47,7 @@ import type { TimetableSlot } from '@/lib/types'
 import type { LessonSourceSuggestion } from '@/lib/teaching/lessonSource'
 import JumpingSchemeContent from '@/components/teacher/JumpingSchemeContent'
 import { buildJumpingDraftSections, type JumpingContentSelection } from '@/lib/teaching/jumpingDraftSections'
+import { parseLessonDurationMinutes, timeOriginalLessonSections } from '@/lib/teaching/lessonTiming'
 import { refreshPulse } from "@/lib/pulse/refresh";
 import {
   StartOccurrenceError,
@@ -912,6 +913,10 @@ export default function LessonPlanModal({
 
   async function generate() {
     if (topic.trim() === '') { setError('Please enter a topic first.'); return }
+    if (suggestionLinked && ctx.grade === 'Grade 1' && suggestion?.subStrand?.trim().toLowerCase() === 'jumping' && !canonicalIdentity && !jumpingDraft) {
+      setError('Choose the exact Jumping lesson below. VibeSchool will then place its original teaching, learner, assessment and differentiation content into the plan automatically.')
+      return
+    }
 
     // G1
     const token = await getToken()
@@ -938,6 +943,7 @@ export default function LessonPlanModal({
         // Exact teacher-selected original content, composed deterministically
         // through the existing eight-section plan codec; no model rewriting.
         parsed = buildJumpingDraftSections(jumpingDraft, suggestion)
+        parsed = timeOriginalLessonSections(parsed, parseLessonDurationMinutes(calcDuration(slot.start, slot.end)))
         if (focus.trim()) parsed.differentiation += '\n\nTeacher focus: ' + focus.trim()
       } else if (suggestionLinked && canonicalIdentity) {
         const generation = await generateCanonicalLessonPlan(
@@ -1116,6 +1122,7 @@ export default function LessonPlanModal({
         week_start:         weekStart,
         day_of_week:        slot.day_of_week,
         taught_date:        taughtDate,
+        duration_minutes:  parseLessonDurationMinutes(calcDuration(slot.start, slot.end)),
         topic:              topic.trim(),
         title:              slot.subject + ' — ' + slot.class + ' — ' + topic.trim(),
         body:               serializeLessonPlanBody(parsed),
@@ -1743,7 +1750,7 @@ export default function LessonPlanModal({
                 />
               )}
               {jumpingDraft && <p role="status" style={{fontSize:12,color:'#174f38',marginBottom:12}}>
-                Using Lesson {jumpingDraft.lessonNumber}: {jumpingDraft.title}. This creates a teacher-review draft; it is not published content.
+                Using Lesson {jumpingDraft.lessonNumber}: {jumpingDraft.title}. The saved lesson plan remains editable until delivery.
               </p>}
               {suggestionLinked && !canonicalIdentity && (
                 <p style={{ fontSize: 11, color: '#b45309', marginBottom: 12 }}>

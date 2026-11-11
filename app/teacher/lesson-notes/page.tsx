@@ -90,6 +90,7 @@ function LessonNotesInner() {
   const contextSubjectId = params.get("subjectId") || "";
 
   const [plan, setPlan] = useState<PlanRow | null>(null);
+  const [scheduledMinutes, setScheduledMinutes] = useState<number | null>(null);
   const [resources, setResources] = useState<ResourceRow[]>([]);
   const [exactChapters, setExactChapters] = useState<ExactChapterRow[]>([]);
   const [teacherNotes, setTeacherNotes] = useState<TeacherNoteRow[]>([]);
@@ -139,6 +140,19 @@ function LessonNotesInner() {
       if (typedPlan.teacher_id !== authData.user.id) throw new Error("This lesson belongs to another teacher.");
       setPlan(typedPlan);
       setJumpingSchemeId(null);
+      setScheduledMinutes(null);
+      if (typedPlan.timetable_slot_id) {
+        const { data: slot, error: slotError } = await supabase.from('timetable_slots')
+          .select('teacher_id,class_id,subject_id,start_time,end_time')
+          .eq('id', typedPlan.timetable_slot_id).maybeSingle();
+        if (!slotError && slot && slot.teacher_id === authData.user.id
+          && slot.class_id === typedPlan.class_id && slot.subject_id === typedPlan.subject_id) {
+          const [sh, sm] = slot.start_time.split(':').map(Number);
+          const [eh, em] = slot.end_time.split(':').map(Number);
+          const minutes = (eh * 60 + em) - (sh * 60 + sm);
+          if (Number.isFinite(minutes) && minutes > 0) setScheduledMinutes(minutes);
+        }
+      }
 
       if (occurrenceId) {
         const { data: occurrenceData, error: occurrenceError } = await supabase
@@ -361,6 +375,12 @@ function LessonNotesInner() {
     <section style={{ padding: "12px 14px 32px", maxWidth: 1100, margin: "0 auto" }}>
       <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: "8px 0", color: "#374151" }}>← Back to lesson</button>
 
+      {plan.duration_minutes && scheduledMinutes && plan.duration_minutes !== scheduledMinutes && (
+        <section role="status" style={{margin:'10px 0',padding:12,borderRadius:12,border:'1px solid #fbbf24',background:'#fffbeb',fontSize:13}}>
+          <strong>Lesson timing needs review:</strong> this saved plan is {plan.duration_minutes} minutes but its timetable slot is {scheduledMinutes} minutes.
+          Review the lesson plan before teaching; VibeSchool will not silently change teacher-authored content.
+        </section>
+      )}
       {plan.class_id && plan.subject_id && <TeachingWorkspaceNav classId={plan.class_id} subjectId={plan.subject_id} lessonPlanId={plan.id} occurrenceId={occurrence?.id} timetableSlotId={plan.timetable_slot_id} occurrenceDate={plan.taught_date} current="Lesson" />}
       {sections && <LessonPreparationStudio sections={sections} topic={plan.topic || plan.title || "Lesson notes"} resourceCount={resources.length} onTeach={() => setTeachMode(true)} onEdit={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(plan.class_id || contextClassId)}&subjectId=${encodeURIComponent(plan.subject_id || contextSubjectId)}&timetableSlotId=${encodeURIComponent(plan.timetable_slot_id || "")}&date=${encodeURIComponent(plan.taught_date || "")}`)} />}
       {plan.scheme_id && (

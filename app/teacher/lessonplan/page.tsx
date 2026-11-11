@@ -19,6 +19,7 @@ interface SlotWithPlan {
   slot: TimetableSlot
   plan: PlanRow | null
   curriculumLinked: boolean
+  outcomeLinked: boolean
 }
 
 type ReadinessState = 'ready' | 'needs_review' | 'no_plan'
@@ -246,10 +247,10 @@ function LessonPlanInner() {
       }
 
       const authoredPlans = plansRes.data ?? []
-      const candidatePlans = authoredPlans.filter(p => Boolean(p.scheme_id && p.curriculum_outcome_id))
-      const schemeIds = [...new Set(candidatePlans.map(p => p.scheme_id).filter((id): id is string => Boolean(id)))]
-      const outcomeIds = [...new Set(candidatePlans.map(p => p.curriculum_outcome_id).filter((id): id is string => Boolean(id)))]
+      const schemeIds = [...new Set(authoredPlans.map(p => p.scheme_id).filter((id): id is string => Boolean(id)))]
       const verifiedOutcomes = new Set<string>()
+      const activeOutcomes = new Set<string>()
+      const linkedOutcomeIds = new Map<string, Set<string>>()
       const canonicalSchemes = new Map<string, {
         school_id: string
         teacher_id: string | null
@@ -257,20 +258,43 @@ function LessonPlanInner() {
         subject_id: string
         curriculum_outcome_id: string | null
       }>()
-      if (schemeIds.length && outcomeIds.length) {
-        const [verified, schemes] = await Promise.all([
-          supabase.from('curriculum_learning_outcomes')
-            .select('id').in('id', outcomeIds).eq('status', 'verified'),
+
+      if (schemeIds.length > 0) {
+        const [schemes, links] = await Promise.all([
           supabase.from('scheme_of_work')
             .select('id,school_id,teacher_id,class_id,subject_id,curriculum_outcome_id')
             .in('id', schemeIds),
+          supabase.from('scheme_lesson_outcomes')
+            .select('scheme_lesson_id,curriculum_outcome_id')
+            .in('scheme_lesson_id', schemeIds),
         ])
-        if (verified.error || schemes.error) {
-          setSourceCheckError('Curriculum verification is temporarily unavailable. Lesson readiness cannot be confirmed.')
+        if (schemes.error || links.error) {
+          setSourceCheckError('Scheme outcome authority could not be loaded. Lesson readiness cannot be confirmed.')
         } else {
-          setSourceCheckError(null)
-          for (const outcome of verified.data ?? []) verifiedOutcomes.add(outcome.id)
           for (const scheme of schemes.data ?? []) canonicalSchemes.set(scheme.id, scheme)
+          for (const link of links.data ?? []) {
+            const ids = linkedOutcomeIds.get(link.scheme_lesson_id) ?? new Set<string>()
+            ids.add(link.curriculum_outcome_id)
+            linkedOutcomeIds.set(link.scheme_lesson_id, ids)
+          }
+          const outcomeIds = [...new Set([
+            ...authoredPlans.map(p => p.curriculum_outcome_id),
+            ...(schemes.data ?? []).map(p => p.curriculum_outcome_id),
+            ...(links.data ?? []).map(p => p.curriculum_outcome_id),
+          ].filter((id): id is string => Boolean(id)))]
+          const outcomes = outcomeIds.length > 0
+            ? await supabase.from('curriculum_learning_outcomes')
+                .select('id,status').in('id', outcomeIds).in('status', ['verified', 'active'])
+            : { data: [], error: null }
+          if (outcomes.error) {
+            setSourceCheckError('Curriculum outcome status is temporarily unavailable. Lesson readiness cannot be confirmed.')
+          } else {
+            setSourceCheckError(null)
+            for (const outcome of outcomes.data ?? []) {
+              if (outcome.status === 'verified') verifiedOutcomes.add(outcome.id)
+              if (outcome.status === 'active') activeOutcomes.add(outcome.id)
+            }
+          }
         }
       } else {
         setSourceCheckError(null)
@@ -278,18 +302,27 @@ function LessonPlanInner() {
 
       const planMap = new Map<string, PlanRow>()
       const outcomeBySlot = new Map<string, boolean>()
+      const linkedBySlot = new Map<string, boolean>()
       for (const p of authoredPlans) {
         if (!p.timetable_slot_id) continue
         const scheme = p.scheme_id ? canonicalSchemes.get(p.scheme_id) : null
-        const outcomeValid = Boolean(scheme
-          && p.curriculum_outcome_id
-          && verifiedOutcomes.has(p.curriculum_outcome_id)
-          && scheme.curriculum_outcome_id === p.curriculum_outcome_id
+        const matchesAssignment = Boolean(scheme
           && scheme.school_id === resolvedSchoolId
           && scheme.teacher_id === user.id
           && scheme.class_id === p.class_id
           && scheme.subject_id === p.subject_id)
+        const explicitIds = p.scheme_id ? linkedOutcomeIds.get(p.scheme_id) : null
+        const selectedIds = explicitIds && explicitIds.size > 0
+          ? [...explicitIds]
+          : scheme?.curriculum_outcome_id ? [scheme.curriculum_outcome_id] : []
+        const matchesSelection = !p.curriculum_outcome_id || selectedIds.includes(p.curriculum_outcome_id)
+        const outcomeLinked = matchesAssignment && matchesSelection && selectedIds.length > 0
+          && selectedIds.every(id => verifiedOutcomes.has(id) || activeOutcomes.has(id))
+        const outcomeValid = outcomeLinked
+          && selectedIds.every(id => verifiedOutcomes.has(id))
+          && (!p.curriculum_outcome_id || verifiedOutcomes.has(p.curriculum_outcome_id))
         outcomeBySlot.set(p.timetable_slot_id, outcomeValid)
+        linkedBySlot.set(p.timetable_slot_id, outcomeLinked)
         planMap.set(p.timetable_slot_id, {
           id: p.id, classId: p.class_id, subjectId: p.subject_id,
           title: p.title ?? '', body: p.body ?? '', topic: p.topic ?? '',
@@ -362,6 +395,7 @@ function LessonPlanInner() {
           slot,
           plan: planMap.get(s.id) ?? null,
           curriculumLinked: outcomeBySlot.get(s.id) ?? false,
+          outcomeLinked: linkedBySlot.get(s.id) ?? false,
         }
       })
 
@@ -559,7 +593,7 @@ function LessonPlanInner() {
           <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No lessons match this readiness filter</div>
         ) : (
           <div className="studio-lesson-grid">
-            {visibleItems.map(({ slot, plan, curriculumLinked }) => {
+            {visibleItems.map(({ slot, plan, curriculumLinked, outcomeLinked }) => {
               const state = readinessState(plan, curriculumLinked)
               const badge = READINESS_BADGE[state]
               return (
@@ -572,7 +606,7 @@ function LessonPlanInner() {
                       <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
                         {slot.class} · {formatTime(slot.start)}–{formatTime(slot.end)}{slot.room ? ' · ' + slot.room : ''}
                       </div>
-                      {plan && !curriculumLinked && <div className="lp-outcome-needed">Scheme outcome needs verification</div>}
+                      {plan && !curriculumLinked && <div className="lp-outcome-needed">{outcomeLinked ? 'Outcomes linked · curriculum source review pending' : 'Scheme outcome link missing or inactive'}</div>}
                       {plan && (
                         <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
                           Plan status: {STATUS_BADGE[plan.status]?.label ?? 'Draft'}
