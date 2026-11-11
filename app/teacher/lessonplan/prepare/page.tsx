@@ -1,11 +1,13 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange, type CanonicalTimetableSlot } from '@/lib/timetable/engine'
+import { generateLessonPlan } from '@/lib/teaching/lessonGeneration'
+import { LESSON_PLAN_SECTION_KEYS, parseLessonPlanBody, serializeLessonPlanBody } from '@/lib/teaching/lessonPlanCodec'
 import {
   archiveLessonPlanDraft,
   attachLessonPlanDraftToOccurrence,
@@ -35,6 +37,23 @@ interface SchemeChoice {
   curriculum_id: string | null
   sub_strand_id: string | null
   curriculum_outcome_id: string
+  outcome_status: 'verified' | 'active'
+  strand: string | null
+  sub_strand: string | null
+  objectives: string | null
+  key_inquiry_question: string | null
+  learning_resources: string | null
+  learning_experiences: string | null
+  assessment_methods: string | null
+  reference: string | null
+}
+
+const SCHEME_CHOICE_FIELDS = 'id,topic,week,curriculum_id,sub_strand_id,curriculum_outcome_id,strand,sub_strand,objectives,key_inquiry_question,learning_resources,learning_experiences,assessment_methods,reference'
+const SECTION_LABELS: Record<(typeof LESSON_PLAN_SECTION_KEYS)[number], string> = {
+  objectives: 'Learning outcomes', resources: 'Resources and references',
+  introduction: 'Introduction', development: 'Lesson development',
+  consolidation: 'Conclusion and consolidation', assessmentHook: 'Assessment',
+  homework: 'Follow-up activity', differentiation: 'Supporting different learners',
 }
 
 function friendlyError(value: unknown, fallback: string): string {
@@ -52,7 +71,7 @@ function friendlyError(value: unknown, fallback: string): string {
     return 'This lesson outcome is no longer verified. Reconnect the Scheme before attaching.'
   }
   if (/DRAFT_SCHEME|DRAFT_OUTCOME/i.test(message)) {
-    return 'The selected Scheme must have a verified learning outcome. Reconnect it before saving.'
+    return 'The selected Scheme must have a current learning outcome. Reconnect it before saving.'
   }
   return message && !/(PGRST|public\.|syntax error|relation |constraint |function )/i.test(message) ? message : fallback
 }
@@ -95,6 +114,9 @@ export default function PrepareLessonPage() {
   const [schemeLoading, setSchemeLoading] = useState(false)
   const [schemeChoices, setSchemeChoices] = useState<SchemeChoice[]>([])
   const [schemeId, setSchemeId] = useState('')
+  const [requestedSchemeId, setRequestedSchemeId] = useState('')
+  const [draftsLoaded, setDraftsLoaded] = useState(false)
+  const hydratedSchemeRef = useRef<string | null>(null)
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null)
   const [existingPlanTarget, setExistingPlanTarget] = useState<DraftTarget | null>(null)
   const [scopeKey, setScopeKey] = useState('')
@@ -131,6 +153,20 @@ export default function PrepareLessonPage() {
         const rows = (context?.classes ?? []).filter(
           row => row.assignment_id && row.class_id && row.subject_id,
         )
+        // A Scheme deep link must resolve to the teacher's actual assignment,
+        // never merely to a display label or an arbitrary URL-supplied class.
+        const link = new URLSearchParams(window.location.search)
+        const linkClass = link.get('classId')
+        const linkSubject = link.get('subjectId')
+        const linkScheme = link.get('schemeId')
+        if (linkScheme) {
+          const assignment = rows.find(row =>
+            row.class_id === linkClass && row.subject_id === linkSubject)
+          if (!assignment) throw new Error('This Scheme lesson is not part of your current teaching assignments.')
+          setScopeKey('class:' + assignment.assignment_id)
+          setRequestedSchemeId(linkScheme)
+          setSchemeId(linkScheme)
+        }
         const start = nairobiWeekStart()
         const end = nairobiDateAdd(start, 27)
         // A missing draft dependency must not erase valid teaching assignments.
@@ -156,6 +192,7 @@ export default function PrepareLessonPage() {
         }
         if (draftResult.status === 'fulfilled') {
           setDrafts(draftResult.value)
+          setDraftsLoaded(true)
           setDraftError(null)
         } else {
           setDraftError(friendlyError(draftResult.reason, 'Could not load prepared lessons. Retry this page.'))
@@ -199,6 +236,35 @@ export default function PrepareLessonPage() {
   const selectedScope = scopeOptions.find(option => option.key === scopeKey) ?? null
 
   const selectedScheme = schemeChoices.find(s => s.id === schemeId) ?? null
+  const structuredBody = useMemo(() => parseLessonPlanBody(body), [body])
+
+  // Reopen the same teacher-owned unscheduled draft for a Scheme item instead
+  // of creating another plan whenever the teacher taps Prepare lesson again.
+  useEffect(() => {
+    if (!requestedSchemeId || !draftsLoaded || schemeLoading || !selectedScope?.classId) return
+    const source = schemeChoices.find(item => item.id === requestedSchemeId)
+    if (!source) return
+    const key = selectedScope.key + ':' + requestedSchemeId
+    if (hydratedSchemeRef.current === key) return
+    hydratedSchemeRef.current = key
+    const existing = drafts.find(draft =>
+      draft.scheme_id === requestedSchemeId &&
+      draft.class_id === selectedScope.classId &&
+      draft.subject_id === selectedScope.subjectId)
+    setSchemeId(source.id)
+    if (existing) {
+      setEditingDraftId(existing.id)
+      setTitle(existing.title ?? source.topic)
+      setTopic(existing.topic ?? source.topic)
+      setBody(existing.body ?? '')
+      setDuration(String(existing.duration_minutes ?? 40))
+    } else {
+      setEditingDraftId(null)
+      setTitle(source.topic)
+      setTopic(source.topic)
+      setBody('')
+    }
+  }, [requestedSchemeId, draftsLoaded, schemeLoading, selectedScope, schemeChoices, drafts])
   const selectedAssignment = selectedScope
     ? assignments.find(row => row.class_id === selectedScope.classId && row.subject_id === selectedScope.subjectId)
     : null
@@ -212,7 +278,7 @@ export default function PrepareLessonPage() {
     async function loadSchemeOptions() {
       setSchemeChoices([])
       setSchemeError(null)
-      if (!schoolId || !selectedScope?.classId) return
+      if (!schoolId || !teacherId || !selectedScope?.classId) return
       setSchemeLoading(true)
       try {
         const { data: terms, error: termError } = await supabase
@@ -223,32 +289,66 @@ export default function PrepareLessonPage() {
           .order('start_date', { ascending: false })
           .limit(1)
         if (termError) throw termError
-        if (!terms?.[0]?.id) {
+        const activeTermId = terms?.[0]?.id ?? null
+        if (!activeTermId && !requestedSchemeId) {
           if (!cancelled) setSchemeError('No active academic term is configured for this school.')
           return
         }
-        const { data, error: schemeLoadError } = await supabase
-          .from('scheme_of_work')
-          .select('id,topic,week,curriculum_id,sub_strand_id,curriculum_outcome_id')
-          .eq('school_id', schoolId)
-          .eq('class_id', selectedScope.classId)
-          .eq('subject_id', selectedScope.subjectId)
-          .eq('academic_term_id', terms[0].id)
-          .not('curriculum_outcome_id', 'is', null)
-          .order('week', { ascending: true })
-          .limit(60)
-        if (schemeLoadError) throw schemeLoadError
-        // An ID alone is not an approved curriculum authority.
-        const ids = (data ?? []).map(item => item.curriculum_outcome_id).filter((id): id is string => typeof id === 'string')
-        let verifiedIds = new Set<string>()
-        if (ids.length) {
-          const { data: outcomes, error: outcomeError } = await supabase
-            .from('curriculum_learning_outcomes').select('id')
-            .in('id', ids).eq('status', 'verified')
-          if (outcomeError) throw outcomeError
-          verifiedIds = new Set((outcomes ?? []).map(item => item.id))
+        let candidates: Array<Omit<SchemeChoice, 'outcome_status'>> = []
+        if (activeTermId) {
+          const { data, error: schemeLoadError } = await supabase
+            .from('scheme_of_work')
+            .select(SCHEME_CHOICE_FIELDS)
+            .eq('school_id', schoolId)
+            .eq('teacher_id', teacherId)
+            .eq('class_id', selectedScope.classId)
+            .eq('subject_id', selectedScope.subjectId)
+            .eq('academic_term_id', activeTermId)
+            .not('curriculum_outcome_id', 'is', null)
+            .order('week', { ascending: true })
+            .limit(120)
+          if (schemeLoadError) throw schemeLoadError
+          candidates = (data ?? []) as Array<Omit<SchemeChoice, 'outcome_status'>>
         }
-        if (!cancelled) setSchemeChoices((data ?? []).filter((item): item is SchemeChoice => typeof item.curriculum_outcome_id === 'string' && verifiedIds.has(item.curriculum_outcome_id)))
+        // Explicitly selected lessons retain their stored term/week even when
+        // an administrator has moved the active term to the next period.
+        if (requestedSchemeId && !candidates.some(row => row.id === requestedSchemeId)) {
+          const { data, error: requestedError } = await supabase
+            .from('scheme_of_work')
+            .select(SCHEME_CHOICE_FIELDS)
+            .eq('id', requestedSchemeId)
+            .eq('school_id', schoolId)
+            .eq('teacher_id', teacherId)
+            .eq('class_id', selectedScope.classId)
+            .eq('subject_id', selectedScope.subjectId)
+            .maybeSingle()
+          if (requestedError) throw requestedError
+          if (!data) throw new Error('The selected Scheme item is no longer available for this teaching assignment.')
+          candidates = [...candidates, data as Omit<SchemeChoice, 'outcome_status'>]
+        }
+        const ids = candidates
+          .map(item => item.curriculum_outcome_id)
+          .filter((id): id is string => typeof id === 'string')
+        const statusById = new Map<string, 'active' | 'verified'>()
+        if (ids.length) {
+          const [verified, active] = await Promise.all([
+            supabase.from('curriculum_learning_outcomes').select('id').in('id', ids).eq('status', 'verified'),
+            supabase.from('curriculum_learning_outcomes').select('id').in('id', ids).eq('status', 'active'),
+          ])
+          if (verified.error) throw verified.error
+          if (active.error) throw active.error
+          for (const outcome of active.data ?? []) statusById.set(outcome.id, 'active')
+          for (const outcome of verified.data ?? []) statusById.set(outcome.id, 'verified')
+        }
+        if (!cancelled) {
+          setSchemeChoices(candidates.flatMap(item => {
+            const status = statusById.get(item.curriculum_outcome_id)
+            return status ? [{ ...item, outcome_status: status } as SchemeChoice] : []
+          }))
+          if (requestedSchemeId && !statusById.has(
+            candidates.find(item => item.id === requestedSchemeId)?.curriculum_outcome_id ?? ''
+          )) setSchemeError('The selected Scheme learning outcome is not active or verified. It cannot be used until reviewed.')
+        }
       } catch {
         if (!cancelled) setSchemeError('Could not check Scheme learning outcomes. Save as a draft and reconnect later.')
       } finally {
@@ -257,7 +357,7 @@ export default function PrepareLessonPage() {
     }
     void loadSchemeOptions()
     return () => { cancelled = true }
-  }, [schoolId, selectedScope?.classId, selectedScope?.subjectId])
+  }, [schoolId, teacherId, requestedSchemeId, selectedScope?.classId, selectedScope?.subjectId])
 
   const targetMap = useMemo(() => {
     const result = new Map<string, DraftTarget[]>()
@@ -296,6 +396,44 @@ export default function PrepareLessonPage() {
     return result
   }, [drafts, slots, assignments])
 
+  async function buildFromScheme() {
+    if (!selectedScheme || !selectedAssignment || busy) return
+    if (body.trim() && !window.confirm('Replace the current notes with a Scheme-grounded lesson plan?')) return
+    setBusy(true)
+    setError(null)
+    try {
+      // The same deterministic eight-section lesson generator is used by
+      // scheduled lessons. A draft does not create a teaching occurrence.
+      const generated = await generateLessonPlan({
+        accessToken: '',
+        teacherName: '',
+        schoolName: '',
+        subject: selectedAssignment.subject_name,
+        className: selectedAssignment.class_name,
+        studentCount: 0,
+        duration,
+        topic: selectedScheme.topic,
+        previousTopics: [],
+        curriculumStrand: selectedScheme.strand ?? undefined,
+        curriculumSubStrand: selectedScheme.sub_strand ?? undefined,
+        curriculumObjectives: selectedScheme.objectives,
+        keyInquiryQuestion: selectedScheme.key_inquiry_question,
+        learningResources: selectedScheme.learning_resources,
+        learningExperiences: selectedScheme.learning_experiences,
+        assessmentMethods: selectedScheme.assessment_methods,
+        reference: selectedScheme.reference,
+      })
+      if (!generated.ok) throw new Error(generated.message)
+      setTitle(current => current.trim() || selectedScheme.topic)
+      setTopic(selectedScheme.topic)
+      setBody(serializeLessonPlanBody(generated.sections))
+    } catch (e) {
+      setError(friendlyError(e, 'Could not prepare a Scheme-grounded lesson plan.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function saveDraft() {
     if (!teacherId || !schoolId || !selectedScope || busy) return
     // Do not silently discard an attached Scheme while its verified outcome
@@ -311,8 +449,15 @@ export default function PrepareLessonPage() {
     setBusy(true)
     setError(null)
     try {
+      const matchingDraft = selectedScheme && drafts.find(draft =>
+        draft.scheme_id === selectedScheme.id &&
+        draft.class_id === selectedScope.classId &&
+        draft.subject_id === selectedScope.subjectId)
+      if (matchingDraft && editingDraftId && matchingDraft.id !== editingDraftId) {
+        throw new Error('A prepared lesson already exists for this Scheme item. Open and edit the existing lesson.')
+      }
       await saveLessonPlanDraft({
-        id: editingDraftId,
+        id: editingDraftId ?? matchingDraft?.id ?? null,
         schoolId,
         teacherId,
         classId: selectedScope.classId,
@@ -393,6 +538,9 @@ export default function PrepareLessonPage() {
     }
     setEditingDraftId(draft.id)
     setScopeKey(matching.key)
+    // The edit action can reopen a Scheme from an older term.
+    setRequestedSchemeId(draft.scheme_id ?? '')
+    hydratedSchemeRef.current = matching.key + ':' + (draft.scheme_id ?? '')
     setSchemeId(draft.scheme_id ?? '')
     setTitle(draft.title ?? '')
     setTopic(draft.topic ?? '')
@@ -440,7 +588,17 @@ export default function PrepareLessonPage() {
         .lp-prepare__targets{border-top:1px solid var(--lp-line);margin-top:10px;padding-top:9px}
         .lp-prepare__target{display:block;width:100%;margin:5px 0;text-align:left;border:1px solid #d9e9de;background:#f2f8f3;color:var(--lp-green);font-size:12px;font-weight:720;border-radius:10px;padding:10px;cursor:pointer}
         .lp-prepare__empty{display:flex;flex-direction:column;gap:5px;color:var(--lp-muted);font-size:12px;line-height:1.55;padding:15px 0}
-        .lp-prepare__empty strong{color:var(--lp-ink);font-size:14px}
+.lp-prepare__empty strong{color:var(--lp-ink);font-size:14px}
+        .lp-prepare__print{display:none}
+        @media print{
+          body *{visibility:hidden!important}
+          .lp-prepare__print,.lp-prepare__print *{visibility:visible!important}
+          .lp-prepare__print{display:block!important;position:absolute;left:0;top:0;width:100%;padding:16px;background:white;color:#111;font:12pt/1.5 Georgia,serif}
+          .lp-prepare__print h1{font-size:22pt}
+          .lp-prepare__print section{break-inside:avoid;margin:16px 0}
+          .lp-prepare__print h2{font-size:13pt;margin:0 0 6px}
+          .lp-prepare__print p{white-space:pre-wrap}
+        }
         @media(max-width:760px){.lp-prepare{padding:14px 16px 106px}.lp-prepare__grid{grid-template-columns:1fr}.lp-prepare h1{font-size:25px}.lp-prepare__panel{padding:14px;border-radius:17px}}
       `}</style>
       <button type="button" className="lp-prepare__back" onClick={() => router.push('/teacher/lessonplan')}>← Lesson plans</button>
@@ -479,7 +637,7 @@ export default function PrepareLessonPage() {
                 <select id="draft-scheme" className="lp-prepare__field" value={schemeId} onChange={e=>setSchemeId(e.target.value)}
                   disabled={!selectedScope?.classId || schemeLoading || schemeChoices.length===0}>
                   <option value="">Not linked · keep as draft</option>
-                  {schemeChoices.map(s=><option key={s.id} value={s.id}>Week {s.week} · {s.topic}</option>)}
+                  {schemeChoices.map(s=><option key={s.id} value={s.id}>Week {s.week} · {s.topic}{s.outcome_status === 'active' ? ' · review pending' : ''}</option>)}
                 </select>
                 {!selectedScope?.classId ? (
                   <p className="lp-prepare__hint">Select a specific class to link a Scheme item. Subject-wide drafts can be saved without a Scheme.</p>
@@ -487,7 +645,7 @@ export default function PrepareLessonPage() {
                   <p className="lp-prepare__hint">Checking current-term learning outcomes…</p>
                 ) : schemeError || schemeChoices.length === 0 ? (
                   <div className="lp-prepare__notice" role="status">
-                    {schemeError ?? 'No current-term Scheme item has a verified learning outcome. You can save a draft, but it is not ready to teach.'}
+                    {schemeError ?? 'No Scheme item with an active or verified learning outcome is available. You can still save an independent draft.'}
                     {isGrade1English && (
                       <div style={{marginTop:9}}>
                         <a href="https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-English-Activities-Revised-Sept.pdf"
@@ -499,19 +657,28 @@ export default function PrepareLessonPage() {
                     )}
                   </div>
                 ) : selectedScheme ? (
-                  <div className="lp-prepare__notice lp-prepare__notice--subtle">Linked to a current-term Scheme and its canonical learning outcome.</div>
+                  <div className="lp-prepare__notice lp-prepare__notice--subtle">{selectedScheme.outcome_status === 'verified' ? 'Linked to a verified Scheme learning outcome.' : 'Linked to the saved Scheme; this outcome is active but not verified. The lesson remains a draft until reviewed.'}</div>
                 ) : <p className="lp-prepare__hint">Choose a verified Scheme item to preserve outcome authority.</p>}
+                {selectedScheme && <button type="button" className="lp-prepare__btn" disabled={busy} onClick={()=>void buildFromScheme()}>Build lesson plan from Scheme</button>}
                 <label className="lp-prepare__label" htmlFor="draft-title">Lesson title</label>
                 <input id="draft-title" className="lp-prepare__field" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Reading and responding" />
                 <label className="lp-prepare__label" htmlFor="draft-topic">Specific focus <span style={{fontWeight:400}}>(optional)</span></label>
                 <input id="draft-topic" className="lp-prepare__field" value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Teaching focus or note" />
                 <label className="lp-prepare__label" htmlFor="draft-body">Teaching notes</label>
-                <textarea id="draft-body" className="lp-prepare__field" rows={5} style={{resize:'vertical'}} value={body} onChange={e=>setBody(e.target.value)} placeholder="Key explanations, worked examples, questions, activities and resources…" />
+                {structuredBody ? (
+                  <div>{LESSON_PLAN_SECTION_KEYS.map(key=><div key={key}>
+                    <label className="lp-prepare__label" htmlFor={'draft-section-'+key}>{SECTION_LABELS[key]}</label>
+                    <textarea id={'draft-section-'+key} className="lp-prepare__field" rows={4}
+                      value={structuredBody[key]}
+                      onChange={e=>setBody(serializeLessonPlanBody({...structuredBody,[key]:e.target.value}))} />
+                  </div>)}</div>
+                ) : <textarea id="draft-body" className="lp-prepare__field" rows={5} style={{resize:'vertical'}} value={body} onChange={e=>setBody(e.target.value)} placeholder="Key explanations, worked examples, questions, activities and resources…" />}
                 <label className="lp-prepare__label" htmlFor="draft-duration">Duration (minutes)</label>
                 <input id="draft-duration" className="lp-prepare__field" type="number" min={10} max={240} value={duration} onChange={e=>setDuration(e.target.value)} />
                 <p className="lp-prepare__hint">Saving a draft does not mark a lesson taught, create attendance or record progress.</p>
                 <div className="lp-prepare__row">
                   <button type="button" className="lp-prepare__btn lp-prepare__btn--main" disabled={!selectedScope || busy || (!title.trim() && !body.trim())} onClick={()=>void saveDraft()}>{busy ? 'Saving…' : editingDraftId ? 'Save changes' : 'Save prepared lesson'}</button>
+                  {body.trim() && <button type="button" className="lp-prepare__btn" onClick={()=>window.print()}>Print lesson plan</button>}
                   {editingDraftId && <button type="button" className="lp-prepare__btn" onClick={()=>{setEditingDraftId(null);setTitle('');setTopic('');setBody('');setSchemeId('')}}>Cancel edit</button>}
                 </div>
               </>
@@ -543,6 +710,14 @@ export default function PrepareLessonPage() {
               </article>
             })}
         </section>
+      </div>
+      <div className="lp-prepare__print" aria-label="Printable prepared lesson">
+        <h1>{title || topic || 'Prepared lesson'}</h1>
+        <p>{selectedAssignment?.class_name ?? ''} · {selectedAssignment?.subject_name ?? ''} · {selectedScheme ? 'Week '+selectedScheme.week : 'Unscheduled'} · {duration} min</p>
+        {structuredBody ? LESSON_PLAN_SECTION_KEYS.map(key=><section key={key}>
+          <h2>{SECTION_LABELS[key]}</h2><p>{structuredBody[key]}</p>
+        </section>) : <section><h2>Teaching notes</h2><p>{body}</p></section>}
+        <p>Prepared lesson · Not a record of teaching or attendance</p>
       </div>
     </main>
   )
