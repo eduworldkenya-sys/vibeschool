@@ -216,7 +216,7 @@ async function queryCurriculumCandidates(
  * from becoming the canonical source merely because it shares one identifier.
  */
 async function loadCurriculumResourceCandidates(
-  source: LessonSourceSuggestion,
+  source: Pick<LessonSourceSuggestion, 'id' | 'strandId' | 'lessonNumber'>,
 ): Promise<ResourceCandidate[]> {
   if (source.strandId) {
     const subStrandResources = await queryCurriculumCandidates(
