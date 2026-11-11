@@ -36,7 +36,7 @@ export default function AutoCreativeScheme({draft,termId,week,savedLessons,catal
     if(alreadySaved)used.set(id,used.get(id)-1)
     return {...row,outcomeId:outcome?.id,subStrandId:record?.id,alreadySaved}
   })
-  const topics = items => [...new Set(items.map(item=>item.title))].join(' · ')
+  const topics = items => [...new Set(items.map(item=>item.themeTitle?`${item.themeTitle}: ${item.title}`:item.title))].join(' · ')
   return <section aria-label={`Automatically linked Grade 1 ${subjectName} scheme`} style={surface}>
     <div style={{fontSize:11,fontWeight:800,color:'#175b43',letterSpacing:'.04em'}}>CURRICULUM → SCHEME OF WORK</div>
     <h2 style={{fontSize:18,color:'#173f32',margin:'5px 0'}}>Your curriculum-linked scheme</h2>
@@ -71,6 +71,7 @@ export default function AutoCreativeScheme({draft,termId,week,savedLessons,catal
       <div style={{display:'grid',gap:8}}>
         {marked.map((item,index)=><div key={item.key} style={{background:'#fff',border:'1px solid #dce8de',borderRadius:10,padding:'10px 12px'}}>
           <div style={{fontSize:12,fontWeight:800,color:'#183e2b'}}>Draft lesson {index+1}: {item.title}</div>
+          {item.themeTitle && <p style={{fontSize:12,fontWeight:700,color:'#276647',margin:'4px 0'}}>Theme {item.themeId}: {item.themeTitle}</p>}
           <p style={{fontSize:12,lineHeight:1.5,color:'#476050',margin:'5px 0 8px'}}>{item.outcome}</p>
           <div style={{display:'flex',flexWrap:'wrap',gap:7,alignItems:'center'}}>
             {item.alreadySaved?<span style={{fontSize:12,color:'#176442',fontWeight:700}}>Saved in this week</span>:
