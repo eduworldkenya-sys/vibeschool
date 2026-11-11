@@ -23,7 +23,7 @@ export default function TeacherGateway() {
             <h1 id="teacher-hero-title">Explore current TSC teaching vacancies.</h1>
             <p className={styles.intro}>Find published vacancy totals by teaching level and county, check the requirements, and continue to the official TSC application.</p>
             <div className={styles.heroActions}>
-              <TrackedLink className={`${styles.primary} ${styles.matchPrimary}`} event="public_teacher_tsc_sandbox" href="/teacher/marketplace/sandbox">Explore TSC vacancies <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
+              <TrackedLink className={`${styles.primary} ${styles.matchPrimary}`} event="public_sandbox_open" href="/teacher/marketplace/sandbox">Explore TSC vacancies <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
               <TrackedLink className={styles.secondary} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Open Teacher OS <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
             </div>
             <p className={styles.matchHint}>School-by-school subject matching is being verified against the original TSC schedules.</p>
