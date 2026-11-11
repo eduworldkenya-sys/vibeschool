@@ -9,6 +9,8 @@ const publicLearn = read('../app/learn/page.tsx')
 const teacherSubject = read('../app/teacher/subjecthub/page.tsx')
 const teacherResources = read('../app/teacher/resources/page.tsx')
 const studentResources = read('../app/student/resources/page.tsx')
+const studentVibeLearn = read('../app/student/vibelearn/layout.tsx')
+const studentVibeLearnReader = read('../app/student/vibelearn/grade-1/creative-activities/page.tsx')
 const accessPath = '/learn/grade-1/creative-activities'
 
 // One source for 16 curriculum sub-strands; no forked, editorial or PDF data store.
@@ -19,6 +21,9 @@ assert.ok(teacherMap.includes("VS-CUR-G01-CA-2026"))
 assert.ok(publicRoute.includes('alternates: { canonical:'))
 assert.ok(publicRoute.includes('<Grade1CreativeContentReader />'))
 assert.ok(!shared.includes('service_role'), 'Do not bypass browser RLS to serve editorial content')
+assert.ok(studentVibeLearn.includes('/student/vibelearn/grade-1/creative-activities'), 'VibeLearn must link directly to the reusable Grade 1 reader')
+assert.ok(studentVibeLearnReader.includes('<Grade1CreativeContentReader />'), 'Student VibeLearn must reuse the shared read-only reader, not duplicate lessons')
+assert.ok(!studentVibeLearnReader.includes('service_role') && !studentVibeLearnReader.includes('candidate'), 'Student route must not bypass resource certification')
 
 // Release safety: only learner-facing assets, active roots and certified immutable versions.
 for (const fragment of [
