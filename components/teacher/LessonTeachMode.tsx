@@ -209,7 +209,7 @@ export default function LessonTeachMode({
     persist(safeIndex, value)
   }
 
-  function openAction(path: string) {
+  function openAction(path: string, type?: 'homework') {
     if (!context) return
     const q = new URLSearchParams({
       lessonPlanId: context.lessonPlanId,
@@ -219,6 +219,7 @@ export default function LessonTeachMode({
       timetableSlotId: context.timetableSlotId,
       date: context.occurrenceDate,
     })
+    if (type) q.set('type', type)
     router.push(`${path}?${q.toString()}`)
   }
 
@@ -330,6 +331,11 @@ export default function LessonTeachMode({
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
+          {context && step.key === 'homework' && (
+            <button type="button" style={{ ...actionStyle, marginTop: 12 }} onClick={() => openAction('/teacher/assessment/new', 'homework')}>
+              Review homework to assign
+            </button>
+          )}
         </section>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
@@ -392,7 +398,6 @@ export default function LessonTeachMode({
                 router.push(`/teacher/attendance?${q.toString()}`)
               }}>Attendance</button>
               <button style={actionStyle} disabled={!onCaptureEvidence} onClick={()=>onCaptureEvidence?.()}>Evidence</button>
-              <button style={actionStyle} onClick={()=>openAction(`/teacher/classhub/${encodeURIComponent(context.classId)}/homework`)}>Homework</button>
               <button style={actionStyle} onClick={()=>openAction('/teacher/assessment/new')}>Assessment</button>
             </div>
           </section>
