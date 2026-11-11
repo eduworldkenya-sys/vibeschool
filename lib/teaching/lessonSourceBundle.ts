@@ -289,6 +289,34 @@ async function loadCertifiedVersions(
   })
 }
 
+/**
+ * Shared, certification-only content access for both scheduled teaching and
+ * independent preparation. Source identities come from the teacher's Scheme;
+ * database RLS controls what the current session can read. Candidate editorial
+ * drafts are deliberately never returned by this production retrieval path.
+ *
+ * Lesson-specific resources require an explicit Scheme lesson number. Never
+ * choose a different unit using the instructional week or sequence number.
+ */
+export async function loadCertifiedContentForSource(
+  source: Pick<LessonSourceSuggestion, 'schemeId' | 'lessonNumber' | 'id' | 'strandId'> | null,
+): Promise<CertifiedLessonContentAsset[]> {
+  if (!source) return []
+
+  const [genericSchemeResources, explicitResources, curriculumResources] = await Promise.all([
+    source.schemeId ? loadGenericSchemeResources(source.schemeId, source.lessonNumber) : Promise.resolve([]),
+    source.schemeId ? loadExplicitSchemeResources(source.schemeId) : Promise.resolve([]),
+    loadCurriculumResourceCandidates(source),
+  ])
+
+  const candidates = uniqueById([
+    ...genericSchemeResources,
+    ...explicitResources,
+    ...curriculumResources,
+  ])
+  return loadCertifiedVersions(candidates)
+}
+
 export async function buildCanonicalLessonSourceBundle({
   timetableSlotId,
   occurrenceDate,
@@ -306,28 +334,7 @@ export async function buildCanonicalLessonSourceBundle({
   context: LessonContext
   source: LessonSourceSuggestion | null
 }): Promise<CanonicalLessonSourceBundle> {
-  let explicitResources: ResourceCandidate[] = []
-  let genericSchemeResources: ResourceCandidate[] = []
-  let curriculumResources: ResourceCandidate[] = []
-
-  if (source?.schemeId) {
-    genericSchemeResources = await loadGenericSchemeResources(source.schemeId,source.lessonNumber)
-    explicitResources = await loadExplicitSchemeResources(source.schemeId)
-  }
-
-  if (source) {
-    curriculumResources = await loadCurriculumResourceCandidates(source)
-  }
-
-  // Explicit Scheme links are authoritative and retain their declared order.
-  // Curriculum-linked resources provide deterministic fallback coverage only.
-  const candidates = uniqueById([
-    ...genericSchemeResources,
-    ...explicitResources,
-    ...curriculumResources,
-  ])
-
-  const certifiedContent = await loadCertifiedVersions(candidates)
+  const certifiedContent = await loadCertifiedContentForSource(source)
 
   return {
     timetableOccurrence: {
