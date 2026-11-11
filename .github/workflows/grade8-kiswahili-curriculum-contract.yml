@@ -1,0 +1,31 @@
+name: Grade 8 Kiswahili curriculum contract
+
+on:
+  pull_request:
+    paths:
+      - 'lib/curriculum/grade8KiswahiliReference.ts'
+      - 'components/teacher/curriculum/Grade8KiswahiliMap.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'scripts/test-grade8-kiswahili-reference.mjs'
+  push:
+    branches: [main]
+    paths:
+      - 'lib/curriculum/grade8KiswahiliReference.ts'
+      - 'components/teacher/curriculum/Grade8KiswahiliMap.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'scripts/test-grade8-kiswahili-reference.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  grade8-kiswahili:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate official index and native reader routing
+        run: node scripts/test-grade8-kiswahili-reference.mjs
