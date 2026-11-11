@@ -5,7 +5,7 @@ import { termCreativeSchemeRows } from '@/lib/teaching/creativeSchemeDraft.mjs'
 const surface = {border:'1px solid #d4e4d9',borderRadius:14,background:'#f8fbf9',padding:14,marginBottom:14}
 const button = {border:'1px solid #c8dbd0',borderRadius:9,background:'#fff',color:'#175b43',minHeight:40,padding:'8px 12px',fontWeight:700,cursor:'pointer'}
 
-export default function AutoCreativeScheme({draft,termId,week,savedLessons,catalog,onWeekChange,onSaveAndPrepare,onViewUnit,savingKey,loading,error,learningArea='Creative Activities'}) {
+export default function AutoCreativeScheme({draft,termId,week,savedLessons,catalog,onWeekChange,onSaveAndPrepare,onViewUnit,savingKey,loading,error,learningArea='Creative Activities',gradeLabel='Grade 1'}) {
   const termRows = termCreativeSchemeRows(draft,termId)
   if (!termId) return null
   if (error || draft?.error) return <section aria-label="Curriculum scheme connection" style={surface}>
@@ -34,7 +34,7 @@ export default function AutoCreativeScheme({draft,termId,week,savedLessons,catal
     return {...row,outcomeId:outcomeIds[0],outcomeIds,subStrandId:record?.id,alreadySaved}
   })
   const topics = items => [...new Set(items.map(item=>item.title))].join(' · ')
-  return <section aria-label={`Automatically linked Grade 1 ${learningArea} scheme`} style={surface}>
+  return <section aria-label={`Automatically linked ${gradeLabel} ${learningArea} scheme`} style={surface}>
     <div style={{fontSize:11,fontWeight:800,color:'#175b43',letterSpacing:'.04em'}}>CURRICULUM → SCHEME OF WORK</div>
     <h2 style={{fontSize:18,color:'#173f32',margin:'5px 0'}}>Your {learningArea} curriculum-linked scheme</h2>
     <p style={{fontSize:13,color:'#425e50',margin:'0 0 10px'}}>

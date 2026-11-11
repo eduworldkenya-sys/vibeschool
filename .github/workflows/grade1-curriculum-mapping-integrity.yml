@@ -5,6 +5,10 @@ on:
     paths:
       - 'app/teacher/scheme/AuthoritySchemePage.jsx'
       - 'components/teacher/curriculum/Grade1*Map.tsx'
+      - 'components/teacher/curriculum/Grade8MathematicsMap.jsx'
+      - 'lib/teaching/grade8MathematicsCatalog.mjs'
+      - 'scripts/test-grade8-mathematics-scheme.mjs'
+      - 'supabase/migrations/20261111100935_grade8_mathematics_kicd_reference_scheme_20261111.sql'
       - 'scripts/test-grade1-*.mjs'
       - 'supabase/migrations/20261111080000_grade1_math_english_curriculum_scheme_bindings.sql'
   push:
@@ -12,6 +16,10 @@ on:
     paths:
       - 'app/teacher/scheme/AuthoritySchemePage.jsx'
       - 'components/teacher/curriculum/Grade1*Map.tsx'
+      - 'components/teacher/curriculum/Grade8MathematicsMap.jsx'
+      - 'lib/teaching/grade8MathematicsCatalog.mjs'
+      - 'scripts/test-grade8-mathematics-scheme.mjs'
+      - 'supabase/migrations/20261111100935_grade8_mathematics_kicd_reference_scheme_20261111.sql'
       - 'scripts/test-grade1-*.mjs'
       - 'supabase/migrations/20261111080000_grade1_math_english_curriculum_scheme_bindings.sql'
 
@@ -37,3 +45,5 @@ jobs:
         run: node scripts/test-grade1-english-mathematics-curriculum-map.mjs
       - name: Verify persistent reader identity and Scheme authority
         run: node scripts/test-grade1-math-english-scheme-bindings.mjs
+      - name: Verify Grade 8 Mathematics curriculum and annual scheme
+        run: node scripts/test-grade8-mathematics-scheme.mjs
