@@ -62,7 +62,7 @@ export default function PublicTeacherMarketplace() {
                 <h2 id="account-title">Post or manage a station swap</h2>
                 <p>Public browsing stays open. Your own listings, private interest requests and conversations require a teacher account.</p>
               </div>
-              <Link href="/login?redirect=%2Fteacher%2Fmarketplace%2Fmanage%3Ftab%3Dswap" className={styles.manageLink}>Manage my swaps <ArrowRight size={17} aria-hidden="true" /></Link>
+              <Link href="/teacher/marketplace/manage?tab=swap" className={styles.manageLink}>Manage my swaps <ArrowRight size={17} aria-hidden="true" /></Link>
             </div>
             <p className={styles.footnote}><ShieldCheck size={15} aria-hidden="true" /> TSC applications and transfer approvals happen on official channels, not inside VibeSchool.</p>
           </div>
