@@ -70,7 +70,7 @@ export function PublicFooter({ compact = false, hideSupport = false }: { compact
             <div className={styles.linkList}>
               <Link href="/teacher">Teachers</Link>
               <Link href="/institutions">For schools</Link>
-              <Link href="/sandbox">Sandbox</Link>
+              <Link href="/sandbox">Experience</Link>
               <Link href="/evidence">Learning evidence</Link>
               <TrackedLink href="/login/global?role=teacher" event="public_auth_signin">Sign in</TrackedLink>
             </div>
