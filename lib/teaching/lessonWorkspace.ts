@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { nairobiDateStr } from '@/lib/time'
 import {
   loadLessonContext,
 } from '@/lib/teaching/lessonContext'
@@ -317,5 +318,123 @@ export async function loadLessonWorkspace({
     canonicalIdentity,
     occurrence,
     occurrenceError,
+  }
+}
+
+
+/**
+ * Restore a teacher-selected lesson directly from its persisted Plan or Scheme ID.
+ * The URL may omit timetable fields; these are recovered from the saved Plan,
+ * never invented from today's timetable. Scheme-only preparation stays available.
+ * This is a read-only viewer, not an authorization to deliver candidate assets.
+ */
+export async function loadSavedTeacherGuide({
+  lessonPlanId,
+  schemeId,
+  classId,
+  subjectId,
+  subjectName = '',
+  expectedOccurrenceId = null,
+}: {
+  lessonPlanId?: string | null
+  schemeId?: string | null
+  classId?: string | null
+  subjectId?: string | null
+  subjectName?: string
+  expectedOccurrenceId?: string | null
+}): Promise<LessonWorkspaceBootResult | null> {
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError) throw authError
+  if (!user) return null
+  if (!lessonPlanId && !schemeId) throw new Error('Choose an actual lesson plan or Scheme lesson.')
+
+  const { data: plan, error: planError } = lessonPlanId
+    ? await supabase.from('lesson_plans')
+      .select('id,title,body,topic,status,curriculum_id,strand_id,scheme_id,teacher_id,school_id,class_id,subject_id,timetable_slot_id,taught_date')
+      .eq('id', lessonPlanId).eq('teacher_id',user.id).maybeSingle()
+    : { data: null, error: null }
+  if (planError) throw planError
+  if (lessonPlanId && !plan) throw new Error('The saved lesson is not available to this teacher.')
+  if (plan && schemeId && plan.scheme_id !== schemeId) {
+    throw new Error('The requested Scheme is not linked to this lesson plan.')
+  }
+
+  const savedSchemeId = plan?.scheme_id ?? schemeId
+  if (!savedSchemeId) throw new Error('The selected lesson has no saved Scheme authority.')
+  const { data: scheme, error: schemeError } = await supabase
+    .from('scheme_of_work')
+    .select('id,teacher_id,school_id,class_id,subject_id,curriculum_id,sub_strand_id')
+    .eq('id', savedSchemeId).eq('teacher_id', user.id).maybeSingle()
+  if (schemeError) throw schemeError
+  if (!scheme) throw new Error('This Scheme lesson is not available to this teacher.')
+  if (!scheme.class_id || !scheme.subject_id || !scheme.school_id) {
+    throw new Error('The selected Scheme has an incomplete teaching assignment.')
+  }
+  if ((classId && classId !== scheme.class_id) ||
+      (subjectId && subjectId !== scheme.subject_id) ||
+      (plan && (plan.teacher_id !== user.id ||
+        plan.school_id !== scheme.school_id ||
+        plan.class_id !== scheme.class_id ||
+        plan.subject_id !== scheme.subject_id))) {
+    throw new Error('The requested lesson and Scheme do not belong to the same teacher, school, class and subject.')
+  }
+
+  // A saved, dated plan can reuse the existing canonical scheduled resolver.
+  if (plan?.timetable_slot_id && plan.taught_date) {
+    return loadLessonWorkspace({
+      timetableSlotId: plan.timetable_slot_id,
+      occurrenceDate: plan.taught_date,
+      classId: scheme.class_id,
+      subjectId: scheme.subject_id,
+      subjectName,
+      requestedSchemeId: savedSchemeId,
+      expectedLessonPlanId: plan.id,
+      expectedOccurrenceId,
+    })
+  }
+  if (expectedOccurrenceId) throw new Error('This Scheme lesson has no matching teaching occurrence.')
+
+  // Date is only used for optional history in the existing class context loader,
+  // not as a requirement for lesson planning or as a fabricated occurrence.
+  const context = await loadLessonContext({
+    userId: user.id,
+    classId: scheme.class_id,
+    subjectId: scheme.subject_id,
+    occurrenceDate: nairobiDateStr(),
+  })
+  if (context.schoolId !== scheme.school_id) {
+    throw new Error('The Scheme belongs to a different teaching assignment.')
+  }
+  const existingPlan: ExistingLessonPlan | null = plan ? {
+    id: plan.id, title: plan.title, body: plan.body, topic: plan.topic,
+    status: plan.status as ExistingLessonPlan['status'],
+    curriculum_id: plan.curriculum_id, strand_id: plan.strand_id,
+    scheme_id: plan.scheme_id,
+  } : null
+
+  const source = await restorePersistedLessonSource(existingPlan ?? {
+    id: '', title: null, body: null, topic: null, status: null,
+    curriculum_id: scheme.curriculum_id,
+    strand_id: scheme.sub_strand_id,
+    scheme_id: scheme.id,
+  })
+  let sourceBundle: CanonicalLessonSourceBundle | null = null
+  let sourceBundleError: string | null = null
+  try {
+    sourceBundle = await buildCanonicalLessonSourceBundle({
+      timetableSlotId: '', occurrenceDate: '',
+      classId: scheme.class_id, subjectId: scheme.subject_id,
+      subjectName, context, source,
+    })
+  } catch (cause) {
+    console.error('[teacher-guide] Scheme material lookup failed', cause)
+    sourceBundleError = 'Certified resources could not be loaded. Scheme guidance is still available.'
+  }
+  return {
+    teacherId: user.id, context, existingPlan,
+    source, sourceLinked: source !== null,
+    sourceError: null, sourceBundle, sourceBundleError,
+    canonicalIdentity: buildCanonicalIdentity(sourceBundle, scheme.subject_id, context.grade),
+    occurrence: null, occurrenceError: null,
   }
 }
