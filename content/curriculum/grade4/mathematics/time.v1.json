@@ -1,0 +1,1047 @@
+{
+  "schema": "vibeschool.originals.time-topic.v1",
+  "package_id": "VS-G04-MA-2.6-TIME-20261111",
+  "version": 1,
+  "status": "content_complete_author_self_checked_release_candidate",
+  "grade": "Grade 4",
+  "subject": "Mathematics",
+  "strand": "2.0 Measurement",
+  "sub_strand": "2.6 Time",
+  "source": {
+    "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+    "authority": "Kenya Institute of Curriculum Development",
+    "design_revision": "Revised 2024",
+    "section": "Measurement 2.6 Time, printed pages 32–33",
+    "checked_on": "2026-11-11",
+    "lesson_allocation": 10,
+    "notes": "Regular Grade 4 design; aligned in educational scope, not endorsed or certified by KICD."
+  },
+  "canonical": {
+    "curriculum_source_ref": "VS-CUR-G04-MA-2026#2.6",
+    "sub_strand_id": "e975dcc6-32a9-4274-a2a3-3d19e409cf5c",
+    "subject_catalog": "lib/teaching/grade4MathematicsCatalog.mjs",
+    "resource_key_prefix": "vs:g4:mathematics:time:learner:lesson:",
+    "release_note": "Must use existing resource-version certification and reader policy; repository merge alone does not publish."
+  },
+  "outcomes": [
+    {
+      "id": "VS-G04-MA-T-A",
+      "text": "Tell the time in a.m. and p.m. from everyday analogue and digital clock readings.",
+      "kicd": "a"
+    },
+    {
+      "id": "VS-G04-MA-T-B",
+      "text": "Estimate likely a.m. or p.m. times using daily events and observations.",
+      "kicd": "b"
+    },
+    {
+      "id": "VS-G04-MA-T-C",
+      "text": "Change units between minutes and hours, hours and days, and days and weeks.",
+      "kicd": "c"
+    },
+    {
+      "id": "VS-G04-MA-T-D",
+      "text": "Measure and record how long an event takes in hours and minutes.",
+      "kicd": "d"
+    },
+    {
+      "id": "VS-G04-MA-T-E",
+      "text": "Calculate time duration in meaningful daily situations, including adding and subtracting time.",
+      "kicd": "e"
+    },
+    {
+      "id": "VS-G04-MA-T-F",
+      "text": "Read, record and explain time on a digital clock for everyday activities.",
+      "kicd": "f"
+    },
+    {
+      "id": "VS-G04-MA-T-G",
+      "text": "Show why accurate timekeeping matters for planning, punctuality and safety.",
+      "kicd": "g"
+    }
+  ],
+  "learning_sequence": "Ten VibeSchool learning units suggested for the official ten-lesson sub-strand. Classroom pacing belongs in a school's scheme of work.",
+  "materials": "Clock or clock drawing, paper, pencil, simple daily schedule, optional digital display. All activities have low-resource alternatives.",
+  "skills_and_values": [
+    "Critical thinking and problem solving",
+    "Digital literacy",
+    "Creativity and imagination",
+    "Integrity",
+    "Responsibility and keeping time"
+  ],
+  "lessons": [
+    {
+      "title": "Morning, afternoon and a.m./p.m.",
+      "outcomes": [
+        "VS-G04-MA-T-A",
+        "VS-G04-MA-T-G"
+      ],
+      "goal": "Tell whether a clock time is before or after midday and say it correctly.",
+      "vocabulary": [
+        "a.m.",
+        "p.m.",
+        "midday",
+        "midnight"
+      ],
+      "explanation": "A day has 24 hours. We often write the time in two 12-hour groups. a.m. describes the hours from midnight until just before midday. p.m. describes the hours from midday until just before midnight. We say 7:15 a.m. for a morning time and 7:15 p.m. for an evening time. The same number on a clock can mean different times, so include a.m. or p.m. when it matters. Be careful: 12:00 a.m. is midnight (the start of the day); 12:00 p.m. is midday (noon).",
+      "worked": {
+        "prompt": "A school assembly begins at 8:00 in the morning. Write the complete time.",
+        "steps": [
+          "8:00 is before midday.",
+          "Times after midnight and before midday use a.m.",
+          "Answer: 8:00 a.m."
+        ]
+      },
+      "activity": {
+        "materials": "Paper and pencil; optional clock",
+        "steps": [
+          "Draw a line labelled midnight, morning, midday, afternoon, evening and midnight.",
+          "Write a sensible daily event beside each part of the line.",
+          "Tell a partner or family member which of your events happen a.m. and which happen p.m."
+        ],
+        "evidence": "A simple day line with events labelled a.m./p.m."
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L01-G1",
+          "prompt": "Breakfast at 6:30 in the morning: write the time.",
+          "answer": "6:30 a.m.",
+          "explanation": "Morning comes before midday.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L01-G2",
+          "prompt": "Supper at 7:00 in the evening: write the time.",
+          "answer": "7:00 p.m.",
+          "explanation": "Evening comes after midday.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L01-E1",
+          "prompt": "The library closes at 4:30 in the afternoon. Write the time.",
+          "answer": "4:30 p.m.",
+          "explanation": "Afternoon is after noon.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L01-E2",
+          "prompt": "The radio news begins at 6:00 in the morning. Write the time.",
+          "answer": "6:00 a.m.",
+          "explanation": "Morning is before midday.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L01-E3",
+          "prompt": "Write 12:00 noon with the correct label.",
+          "answer": "12:00 p.m.",
+          "explanation": "12 noon is p.m., not a.m.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L01-Q1",
+          "prompt": "A child arrives home at 5:15 in the afternoon. Is it a.m. or p.m.?",
+          "answer": "p.m.",
+          "explanation": "Afternoon is after midday.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L01-Q2",
+          "prompt": "Is 12:00 a.m. midday or midnight?",
+          "answer": "midnight",
+          "explanation": "12:00 a.m. starts the new day.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Thinking that 12 a.m. means noon. Use a daily timeline: 12 a.m. begins the day; 12 p.m. splits morning from afternoon.",
+      "remedial": "Sort four event cards into 'before midday' and 'after midday' before writing the letters.",
+      "enrichment": "Explain why 6:00 alone is not enough to tell a person when to meet.",
+      "teacher": "Begin with the pupils' own arrival, lunch and home times. Ask learners to explain their labels, not just say letters. Allow spoken, pointed or written answers. Approximate lesson share: one of ten lessons.",
+      "order": 1,
+      "id": "VS-G04-MA-TIME-L01"
+    },
+    {
+      "title": "Reading analogue and digital clocks",
+      "outcomes": [
+        "VS-G04-MA-T-A",
+        "VS-G04-MA-T-F"
+      ],
+      "goal": "Read an analogue clock and write the same time on a digital clock.",
+      "vocabulary": [
+        "hour hand",
+        "minute hand",
+        "analogue",
+        "digital"
+      ],
+      "explanation": "An analogue clock has hands. The short hand gives the hour; the long hand gives the minutes. Each number the minute hand passes counts five minutes: 1 means 5, 2 means 10, 3 means 15, 6 means 30, 9 means 45 and 12 means 00. Between hour numbers, the short hand moves towards the next hour. A digital clock usually shows hours:minutes, such as 09:25. The minutes are two digits. You can add a.m. or p.m. when a display uses the 12-hour system. Some electronic clocks use 24-hour time; for example 15:00 is 3:00 p.m. (optional comparison).",
+      "worked": {
+        "prompt": "The long hand points to 5 and the short hand is just after 8. Write the time.",
+        "steps": [
+          "Minute hand at 5 means 5 × 5 = 25 minutes.",
+          "Short hand just after 8 means the hour is 8.",
+          "The reading is 8:25. If it is morning, write 8:25 a.m."
+        ]
+      },
+      "activity": {
+        "materials": "Paper clock face with movable paper hands, or draw a clock",
+        "steps": [
+          "Set the long hand to 3 and short hand just after 9; read 9:15.",
+          "Set the hands to show 4:30 and write 04:30 on paper.",
+          "Compare the two representations with a partner; discuss why the hour hand moves gradually."
+        ],
+        "evidence": "Two matching analogue and digital readings"
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L02-G1",
+          "prompt": "Long hand at 6, short hand between 2 and 3: what time?",
+          "answer": "2:30",
+          "explanation": "6 × 5 = 30 minutes; it is still the second hour.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L02-G2",
+          "prompt": "Long hand at 12, short hand at 11: what time?",
+          "answer": "11:00",
+          "explanation": "The minute hand shows zero minutes.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L02-E1",
+          "prompt": "Minute hand at 9, hour hand almost at 5 but not yet: what time?",
+          "answer": "4:45",
+          "explanation": "45 minutes have passed after 4; the hour hand approaches 5.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L02-E2",
+          "prompt": "Write quarter past 7 digitally.",
+          "answer": "7:15",
+          "explanation": "Quarter of an hour is 15 minutes.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L02-E3",
+          "prompt": "Write twenty minutes past 10 digitally.",
+          "answer": "10:20",
+          "explanation": "Hours are before the colon and minutes after.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L02-Q1",
+          "prompt": "A digital clock shows 06:05 in the morning. Read it with a.m.",
+          "answer": "6:05 a.m.",
+          "explanation": "05 means five minutes past six.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L02-Q2",
+          "prompt": "On an analogue clock the minute hand is at 4. How many minutes past?",
+          "answer": "20 minutes",
+          "explanation": "4 × 5 = 20.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Reading the minute-hand number as the minutes (for example 4 as four minutes). Count fives from 12.",
+      "remedial": "Point to 12, 3, 6 and 9 and rehearse 00, 15, 30 and 45 before other numbers.",
+      "enrichment": "Compare 3:40 p.m. with a 24-hour display of 15:40; explain why they mean the same moment.",
+      "teacher": "Use a large clock that clearly shows both hands. Invite learners to move hands and explain. Use written/text alternatives for learners who cannot turn the hands. Approximate lesson share: one of ten lessons.",
+      "order": 2,
+      "id": "VS-G04-MA-TIME-L02"
+    },
+    {
+      "title": "Estimating time during the day",
+      "outcomes": [
+        "VS-G04-MA-T-B",
+        "VS-G04-MA-T-G"
+      ],
+      "goal": "Choose a sensible time estimate and explain the clue used.",
+      "vocabulary": [
+        "estimate",
+        "shadow",
+        "morning",
+        "afternoon"
+      ],
+      "explanation": "To estimate a time is to make a reasonable guess, not give an exact clock reading. Daily routines can help: waking and breakfast often happen in the morning; lunch often happens near midday. Outdoors, the Sun's position changes the length and direction of shadows. At one particular place, shadows are often shorter around midday than earlier or later, but clouds, season and location make shadows unsuitable for reading an exact time. Check your estimate against a clock. Never look straight at the Sun. Estimate using what you can safely observe.",
+      "worked": {
+        "prompt": "A learner sees that classes are about to stop for lunch near the middle of the school day. Is 1:00 a.m. or 1:00 p.m. a better estimate?",
+        "steps": [
+          "Lunch usually takes place during the daytime after morning learning.",
+          "1:00 a.m. is at night, long before morning school.",
+          "1:00 p.m. is a sensible estimate; the exact time depends on the school."
+        ]
+      },
+      "activity": {
+        "materials": "A safe outdoor spot, paper, pencil and clock if available",
+        "steps": [
+          "Choose a building or tree whose shadow you can see safely without climbing or touching hazards.",
+          "Record whether its shadow looks long or short during morning and later in the day.",
+          "Write an estimated time period and check using a clock; discuss why the shadow cannot give an exact hour."
+        ],
+        "evidence": "Two observations with time-period estimates and a comparison with a clock"
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L03-G1",
+          "prompt": "A child is getting ready for school at 7:00. Which is likelier, a.m. or p.m.?",
+          "answer": "a.m.",
+          "explanation": "Getting ready for morning school is commonly before noon.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L03-G2",
+          "prompt": "Would a shadow alone prove that the time is exactly 12:15?",
+          "answer": "no",
+          "explanation": "Shadows give clues, not precise minutes.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L03-E1",
+          "prompt": "A family eats supper at about 6:30. Which label is sensible?",
+          "answer": "p.m.",
+          "explanation": "Supper is an evening event in this example.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L03-E2",
+          "prompt": "A clock shows 10:00 a.m. Does this fall before or after midday?",
+          "answer": "before midday",
+          "explanation": "a.m. means before midday.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L03-E3",
+          "prompt": "Give one reason an estimate using a shadow may be inaccurate.",
+          "answer": "Clouds or different seasons can change the visible shadow.",
+          "explanation": "Many factors besides clock time affect an observed shadow.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L03-Q1",
+          "prompt": "Which is a better guess for school lunch, 12:30 a.m. or 12:30 p.m.?",
+          "answer": "12:30 p.m.",
+          "explanation": "Lunch is a daytime event.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L03-Q2",
+          "prompt": "Is an estimate the same as an exact measurement?",
+          "answer": "no",
+          "explanation": "Estimation is an informed approximation.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Claiming the shadow gives an exact time. Label estimates as approximate and confirm with a clock.",
+      "remedial": "Match picture or word cards for waking, lunch and supper to morning, afternoon or evening.",
+      "enrichment": "Explain why two schools may have lunch at different times yet both call it lunchtime.",
+      "teacher": "Accept different sensible local routines when explained. Supervise any outdoor activity; allow a teacher-provided shadow description if outdoors is unavailable. Approximate lesson share: one of ten lessons.",
+      "order": 3,
+      "id": "VS-G04-MA-TIME-L03"
+    },
+    {
+      "title": "Changing hours and minutes",
+      "outcomes": [
+        "VS-G04-MA-T-C"
+      ],
+      "goal": "Convert between hours and minutes, including a whole hour and extra minutes.",
+      "vocabulary": [
+        "convert",
+        "hour",
+        "minute",
+        "remainder"
+      ],
+      "explanation": "One hour contains 60 minutes. To change hours to minutes, multiply the number of hours by 60. To change minutes to hours, divide by 60. If the division leaves extra minutes, record them after the complete hours. For example, 90 minutes is one full hour and 30 extra minutes. For very short tasks we may count minutes; for a long lesson or journey we may use hours and minutes together.",
+      "worked": {
+        "prompt": "Change 2 hours 25 minutes into minutes.",
+        "steps": [
+          "Two hours = 2 × 60 = 120 minutes.",
+          "Add the extra 25 minutes: 120 + 25 = 145.",
+          "Answer: 145 minutes."
+        ]
+      },
+      "activity": {
+        "materials": "Paper, pencil and a 60-space number strip if helpful",
+        "steps": [
+          "Draw a strip representing 60 minutes.",
+          "Make two copies of the strip to show two hours.",
+          "Add a strip of 15 more minutes; explain why that makes 135 minutes."
+        ],
+        "evidence": "A labelled model for 2 hours 15 minutes = 135 minutes"
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L04-G1",
+          "prompt": "How many minutes are in 3 hours?",
+          "answer": "180 minutes",
+          "explanation": "3 × 60 = 180.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L04-G2",
+          "prompt": "How long is 75 minutes in hours and minutes?",
+          "answer": "1 hour 15 minutes",
+          "explanation": "75 − 60 = 15 minutes after one hour.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L04-E1",
+          "prompt": "Change 4 hours to minutes.",
+          "answer": "240 minutes",
+          "explanation": "4 × 60 = 240.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L04-E2",
+          "prompt": "Change 120 minutes to hours.",
+          "answer": "2 hours",
+          "explanation": "120 ÷ 60 = 2.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L04-E3",
+          "prompt": "Change 185 minutes into hours and minutes.",
+          "answer": "3 hours 5 minutes",
+          "explanation": "3 × 60 = 180; 185 − 180 = 5.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L04-Q1",
+          "prompt": "How many minutes are in 1 hour 40 minutes?",
+          "answer": "100 minutes",
+          "explanation": "60 + 40 = 100.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L04-Q2",
+          "prompt": "Is 90 minutes equal to 1 hour 90 minutes?",
+          "answer": "no",
+          "explanation": "After 60 minutes, count one hour; 90 = 1 hour 30 minutes.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Treating one hour as 100 minutes, or leaving 90 in the minutes column. Time groups in sixties.",
+      "remedial": "Use 60 counters or six groups of ten to represent each complete hour.",
+      "enrichment": "A bus trip lasts 245 minutes. Express this as hours and minutes and explain the remainder (4 hours 5 minutes).",
+      "teacher": "Check 60-minute grouping before algorithmic conversion. Show at least one answer in each direction, and use a paper number strip if no clock is available. Approximate lesson share: one of ten lessons.",
+      "order": 4,
+      "id": "VS-G04-MA-TIME-L04"
+    },
+    {
+      "title": "Hours, days and weeks",
+      "outcomes": [
+        "VS-G04-MA-T-C"
+      ],
+      "goal": "Convert between hours and days and between days and weeks.",
+      "vocabulary": [
+        "day",
+        "week",
+        "24 hours",
+        "7 days"
+      ],
+      "explanation": "One day contains 24 hours. One week contains 7 days. The rules are different from hours and minutes: multiply by 24 to change days to hours, and by 7 to change weeks to days. Divide by the same number to work backwards. For example, 48 hours is 2 days because 48 ÷ 24 = 2. A school week may have five school days, but a full calendar week still has seven days.",
+      "worked": {
+        "prompt": "A community project takes 3 weeks and 2 extra days. How many days is that?",
+        "steps": [
+          "3 weeks = 3 × 7 = 21 days.",
+          "Add 2 days: 21 + 2 = 23.",
+          "Answer: 23 days."
+        ]
+      },
+      "activity": {
+        "materials": "Any calendar or a hand-drawn seven-day strip",
+        "steps": [
+          "Label a strip Monday through Sunday.",
+          "Draw two strips and count all days: 7 + 7 = 14.",
+          "Mark five school days on one strip and explain why the week is still seven days."
+        ],
+        "evidence": "Two labelled seven-day strips and an explanation"
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L05-G1",
+          "prompt": "How many hours are in 3 days?",
+          "answer": "72 hours",
+          "explanation": "3 × 24 = 72.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L05-G2",
+          "prompt": "How many weeks are in 28 days?",
+          "answer": "4 weeks",
+          "explanation": "28 ÷ 7 = 4.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L05-E1",
+          "prompt": "Change 5 days into hours.",
+          "answer": "120 hours",
+          "explanation": "5 × 24 = 120.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L05-E2",
+          "prompt": "Change 96 hours into days.",
+          "answer": "4 days",
+          "explanation": "96 ÷ 24 = 4.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L05-E3",
+          "prompt": "Change 6 weeks into days.",
+          "answer": "42 days",
+          "explanation": "6 × 7 = 42.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L05-Q1",
+          "prompt": "How many days are in 2 weeks and 1 day?",
+          "answer": "15 days",
+          "explanation": "14 + 1 = 15.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L05-Q2",
+          "prompt": "Are 24 days the same as 24 hours?",
+          "answer": "no",
+          "explanation": "24 hours are one day; 24 days are much longer.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Confusing seven calendar days with five common school days. Keep a labelled full-week strip visible.",
+      "remedial": "Count 7, 14, 21, 28 using week strips; count days to hours as groups of 24.",
+      "enrichment": "Express 17 days as weeks and days (2 weeks 3 days).",
+      "teacher": "Connect to the learner's calendar without assuming all learners follow the same weekly routine. Compare units on the board. Approximate lesson share: one of ten lessons.",
+      "order": 5,
+      "id": "VS-G04-MA-TIME-L05"
+    },
+    {
+      "title": "Measuring and recording duration",
+      "outcomes": [
+        "VS-G04-MA-T-D",
+        "VS-G04-MA-T-F",
+        "VS-G04-MA-T-G"
+      ],
+      "goal": "Record the start and finish of an activity and say how long it lasted.",
+      "vocabulary": [
+        "start time",
+        "finish time",
+        "duration",
+        "record"
+      ],
+      "explanation": "Duration tells us how long something lasts. A start time and a finish time are clock readings. Duration is the difference between them. Write start and finish clearly, including a.m. or p.m. where needed. If a reading passes an hour, count to the next full hour first and then count on. For example, from 9:40 to 10:00 is 20 minutes, and from 10:00 to 10:15 is another 15 minutes: the whole activity lasted 35 minutes. A stopwatch can measure short tasks; a clock is useful for longer tasks.",
+      "worked": {
+        "prompt": "A pupil starts drawing at 2:25 p.m. and finishes at 3:05 p.m. Find the duration.",
+        "steps": [
+          "2:25 p.m. to 3:00 p.m. = 35 minutes.",
+          "3:00 p.m. to 3:05 p.m. = 5 minutes.",
+          "Total = 35 + 5 = 40 minutes."
+        ]
+      },
+      "activity": {
+        "materials": "A clock or phone clock used with permission, pencil and notebook",
+        "steps": [
+          "Agree on a safe two-minute quiet reading activity.",
+          "Write the start time; carry out the activity; write the finish time.",
+          "Calculate the duration and compare with a partner's record. If there is no clock, use a teacher-supplied pair of times."
+        ],
+        "evidence": "Table with activity, start, finish and calculated duration"
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L06-G1",
+          "prompt": "An activity runs 10:10 to 10:35. How long?",
+          "answer": "25 minutes",
+          "explanation": "35 − 10 = 25.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L06-G2",
+          "prompt": "A class runs 11:45 a.m. to 12:15 p.m. How long?",
+          "answer": "30 minutes",
+          "explanation": "15 minutes to noon and 15 minutes after noon.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L06-E1",
+          "prompt": "Reading begins 8:50 a.m. and ends 9:20 a.m. Find duration.",
+          "answer": "30 minutes",
+          "explanation": "10 minutes to nine plus 20.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L06-E2",
+          "prompt": "A game starts 1:05 p.m. and ends 1:50 p.m. Find duration.",
+          "answer": "45 minutes",
+          "explanation": "50 − 5 = 45.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L06-E3",
+          "prompt": "Why should we record both start and finish?",
+          "answer": "To calculate how long an activity lasted.",
+          "explanation": "One clock reading alone does not show duration.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L06-Q1",
+          "prompt": "A lesson starts 10:55 and ends 11:10. How long is it?",
+          "answer": "15 minutes",
+          "explanation": "5 minutes to eleven and 10 after.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L06-Q2",
+          "prompt": "Does duration require an a.m. or p.m. label?",
+          "answer": "no",
+          "explanation": "A duration is a length such as 30 minutes, not a clock time.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Subtracting just the minute digits when crossing an hour. Use the next hour as a bridge.",
+      "remedial": "Mark 9:50, 10:00 and 10:10 on a paper time line; count two 10-minute parts.",
+      "enrichment": "Plan a 45-minute activity that starts at 3:35 p.m. and find its end (4:20 p.m.).",
+      "teacher": "Make the difference between clock time and elapsed time explicit. Use a safe ordinary classroom activity without pressuring learners to race. Approximate lesson share: one of ten lessons.",
+      "order": 6,
+      "id": "VS-G04-MA-TIME-L06"
+    },
+    {
+      "title": "Finding elapsed time across an hour",
+      "outcomes": [
+        "VS-G04-MA-T-D",
+        "VS-G04-MA-T-E"
+      ],
+      "goal": "Find elapsed time by counting forward from start to finish.",
+      "vocabulary": [
+        "elapsed time",
+        "timeline",
+        "bridge",
+        "minutes"
+      ],
+      "explanation": "When events cross an hour, breaking the calculation into pieces helps. Find the minutes from the starting time to the next full hour, then the minutes from that hour to the finish. Add the pieces. If an event lasts more than one hour, count full hours too. When a lesson starts at 9:35 and ends at 10:20, the calculation is 25 minutes to 10:00 plus 20 minutes to 10:20, giving 45 minutes. Always ask whether the answer is sensible.",
+      "worked": {
+        "prompt": "A journey starts at 8:45 a.m. and ends at 10:10 a.m. How long is the journey?",
+        "steps": [
+          "8:45 to 9:00 = 15 minutes.",
+          "9:00 to 10:00 = 1 hour.",
+          "10:00 to 10:10 = 10 minutes.",
+          "Total = 1 hour and 25 minutes."
+        ]
+      },
+      "activity": {
+        "materials": "Ruler, pencil and paper",
+        "steps": [
+          "Draw a straight line with labels 1:50, 2:00, 2:20.",
+          "Write +10 minutes on the first section and +20 on the second.",
+          "Read the full duration: 30 minutes. Try another line of your own."
+        ],
+        "evidence": "A timeline with correctly added intervals"
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L07-G1",
+          "prompt": "9:35 to 10:20: find duration.",
+          "answer": "45 minutes",
+          "explanation": "25 minutes to ten and 20 after.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L07-G2",
+          "prompt": "2:50 p.m. to 4:05 p.m.: find duration.",
+          "answer": "1 hour 15 minutes",
+          "explanation": "10 + 60 + 5 = 75 minutes.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L07-E1",
+          "prompt": "7:55 a.m. to 8:25 a.m.: how long?",
+          "answer": "30 minutes",
+          "explanation": "5 + 25 = 30.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L07-E2",
+          "prompt": "11:40 a.m. to 1:10 p.m.: how long?",
+          "answer": "1 hour 30 minutes",
+          "explanation": "20 + 60 + 10 = 90 minutes.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L07-E3",
+          "prompt": "3:20 p.m. to 4:00 p.m.: how long?",
+          "answer": "40 minutes",
+          "explanation": "60 − 20 = 40.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L07-Q1",
+          "prompt": "9:50 to 10:15: how long?",
+          "answer": "25 minutes",
+          "explanation": "10 + 15 = 25.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L07-Q2",
+          "prompt": "2:15 to 3:45: how long?",
+          "answer": "1 hour 30 minutes",
+          "explanation": "45 minutes to three plus 45 to 3:45.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Subtracting 10:20 − 9:35 as 0 hours −15 minutes. Count through the hour instead of subtracting digits independently.",
+      "remedial": "Use clocks set to the next hour and count in 5-minute jumps.",
+      "enrichment": "A sports event lasts 2 hours 20 minutes and ends at 5:05 p.m. Find its start (2:45 p.m.).",
+      "teacher": "Model an actual time line and ask learners to label each jump. Check both arithmetic and unit labels. Approximate lesson share: one of ten lessons.",
+      "order": 7,
+      "id": "VS-G04-MA-TIME-L07"
+    },
+    {
+      "title": "Adding hours and minutes",
+      "outcomes": [
+        "VS-G04-MA-T-E",
+        "VS-G04-MA-T-C"
+      ],
+      "goal": "Add two durations and exchange 60 minutes for one hour when needed.",
+      "vocabulary": [
+        "add duration",
+        "exchange",
+        "total time"
+      ],
+      "explanation": "When we add durations, add the hours to hours and minutes to minutes. If the total minutes reach 60 or more, exchange every 60 minutes for one extra hour. This is like regrouping in addition, but a time hour has 60 minutes, not 100. For example, 1 hour 40 minutes plus 50 minutes is 1 hour 90 minutes before regrouping; 90 minutes is 1 hour 30 minutes, so the correct total is 2 hours 30 minutes. Do not confuse adding a length of time with finding a clock reading.",
+      "worked": {
+        "prompt": "Add 2 hours 35 minutes and 1 hour 50 minutes.",
+        "steps": [
+          "Hours: 2 + 1 = 3 hours.",
+          "Minutes: 35 + 50 = 85 minutes.",
+          "85 minutes = 1 hour 25 minutes.",
+          "Total = 4 hours 25 minutes."
+        ]
+      },
+      "activity": {
+        "materials": "Paper cards marked 1 hour, 10 minutes and 5 minutes",
+        "steps": [
+          "Build 1 hour 45 minutes with cards.",
+          "Build another 35 minutes.",
+          "Group 60 minutes into an hour card; record the new total."
+        ],
+        "evidence": "Card model and the equation 1 h 45 min + 35 min = 2 h 20 min"
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L08-G1",
+          "prompt": "1 hour 20 minutes + 35 minutes = ?",
+          "answer": "1 hour 55 minutes",
+          "explanation": "20 + 35 = 55; no regrouping.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L08-G2",
+          "prompt": "2 hours 50 minutes + 25 minutes = ?",
+          "answer": "3 hours 15 minutes",
+          "explanation": "50 + 25 = 75 = 1 hour 15 minutes.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L08-E1",
+          "prompt": "1 hour 45 minutes + 30 minutes.",
+          "answer": "2 hours 15 minutes",
+          "explanation": "75 minutes = 1 hour 15 minutes.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L08-E2",
+          "prompt": "2 hours 15 minutes + 1 hour 25 minutes.",
+          "answer": "3 hours 40 minutes",
+          "explanation": "15 + 25 = 40 minutes.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L08-E3",
+          "prompt": "3 hours 55 minutes + 20 minutes.",
+          "answer": "4 hours 15 minutes",
+          "explanation": "55 + 20 = 75 minutes.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L08-Q1",
+          "prompt": "45 minutes + 35 minutes = ?",
+          "answer": "1 hour 20 minutes",
+          "explanation": "80 minutes is 60 + 20.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L08-Q2",
+          "prompt": "Is 2 hours 80 minutes written in normal hours/minutes form?",
+          "answer": "no",
+          "explanation": "Exchange 60 minutes: 3 hours 20 minutes.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Leaving the minutes total at 80 or adding by hundreds. Practise trading a group of 60 minutes for one hour.",
+      "remedial": "Use 6 ten-minute cards as one hour before adding two durations.",
+      "enrichment": "A journey has three legs of 50 minutes, 1 hour 35 minutes and 45 minutes. Total 3 hours 10 minutes.",
+      "teacher": "Ask for units on every line and verify by converting both addends to minutes as an alternative method. Approximate lesson share: one of ten lessons.",
+      "order": 8,
+      "id": "VS-G04-MA-TIME-L08"
+    },
+    {
+      "title": "Subtracting time durations",
+      "outcomes": [
+        "VS-G04-MA-T-E",
+        "VS-G04-MA-T-G"
+      ],
+      "goal": "Subtract durations, exchanging one hour for 60 minutes when necessary.",
+      "vocabulary": [
+        "difference",
+        "remaining",
+        "borrow",
+        "exchange"
+      ],
+      "explanation": "Subtraction can tell us how much time remains or how much longer one activity takes than another. Write hours under hours and minutes under minutes. If the top number of minutes is smaller, exchange one whole hour for 60 minutes. For example, 3 hours 10 minutes is the same as 2 hours 70 minutes. Then you can subtract 1 hour 45 minutes: 2 hours 70 minutes minus 1 hour 45 minutes is 1 hour 25 minutes. You can check by adding the difference back.",
+      "worked": {
+        "prompt": "Subtract 1 hour 45 minutes from 4 hours 20 minutes.",
+        "steps": [
+          "20 minutes is less than 45, so exchange 1 hour.",
+          "4 hours 20 minutes becomes 3 hours 80 minutes.",
+          "Subtract minutes: 80 − 45 = 35.",
+          "Subtract hours: 3 − 1 = 2. Answer: 2 hours 35 minutes."
+        ]
+      },
+      "activity": {
+        "materials": "Paper cards marked hour and ten-minute parts",
+        "steps": [
+          "Show 2 hours 10 minutes with cards.",
+          "Exchange one hour for six ten-minute cards: this becomes 1 hour 70 minutes.",
+          "Take away 45 minutes and discuss what is left: 1 hour 25 minutes."
+        ],
+        "evidence": "A correct regrouping model"
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L09-G1",
+          "prompt": "3 hours 50 minutes − 1 hour 20 minutes = ?",
+          "answer": "2 hours 30 minutes",
+          "explanation": "50 − 20 = 30; 3 − 1 = 2.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L09-G2",
+          "prompt": "2 hours 5 minutes − 45 minutes = ?",
+          "answer": "1 hour 20 minutes",
+          "explanation": "Exchange: 2 h 5 min = 1 h 65 min.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L09-E1",
+          "prompt": "5 hours 15 minutes − 2 hours 40 minutes.",
+          "answer": "2 hours 35 minutes",
+          "explanation": "4 h 75 min − 2 h 40 min = 2 h 35 min.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L09-E2",
+          "prompt": "3 hours 30 minutes − 1 hour 55 minutes.",
+          "answer": "1 hour 35 minutes",
+          "explanation": "2 h 90 min − 1 h 55 min = 1 h 35 min.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L09-E3",
+          "prompt": "2 hours − 35 minutes.",
+          "answer": "1 hour 25 minutes",
+          "explanation": "1 h 60 min − 35 min.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L09-Q1",
+          "prompt": "4 hours 10 minutes − 1 hour 30 minutes = ?",
+          "answer": "2 hours 40 minutes",
+          "explanation": "3 h 70 min − 1 h 30 min.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L09-Q2",
+          "prompt": "Check 2 h 35 min + 1 h 45 min = ?",
+          "answer": "4 hours 20 minutes",
+          "explanation": "35 + 45 = 80 min, or 1 h 20 min.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Borrowing ten minutes rather than sixty from an hour. One exchanged hour always adds 60 minutes.",
+      "remedial": "First subtract times with no exchange, then use a drawn 60-minute hour box to exchange.",
+      "enrichment": "A community hall is booked for 6 h 15 min; cleaning needs 1 h 50 min. Find available activity time (4 h 25 min).",
+      "teacher": "Emphasise the reason for exchange, then check by addition. Use a number line for pupils who prefer counting on. Approximate lesson share: one of ten lessons.",
+      "order": 9,
+      "id": "VS-G04-MA-TIME-L09"
+    },
+    {
+      "title": "Digital schedules, revision and time responsibility",
+      "outcomes": [
+        "VS-G04-MA-T-A",
+        "VS-G04-MA-T-B",
+        "VS-G04-MA-T-C",
+        "VS-G04-MA-T-D",
+        "VS-G04-MA-T-E",
+        "VS-G04-MA-T-F",
+        "VS-G04-MA-T-G"
+      ],
+      "goal": "Use digital times to plan a day, calculate duration and check sensible answers.",
+      "vocabulary": [
+        "schedule",
+        "arrival",
+        "departure",
+        "punctual",
+        "revision"
+      ],
+      "explanation": "Digital clocks help us record daily events clearly. We can use a simple schedule to see which event starts first and how long activities last. Write both the time and whether it is a.m. or p.m. when using the 12-hour system. For a timetable, check the order: the finishing time must usually be later than the start unless the event crosses midnight. Add a duration to a start time to work out the finish. Accurate time records help us keep appointments, reach school or a clinic when expected and give others reliable information.",
+      "worked": {
+        "prompt": "A reading club begins at 3:35 p.m. and lasts 50 minutes. When does it finish?",
+        "steps": [
+          "3:35 to 4:00 = 25 minutes.",
+          "50 − 25 = 25 minutes still to go.",
+          "Finish at 4:25 p.m."
+        ]
+      },
+      "activity": {
+        "materials": "Paper and pencil; optional digital clock",
+        "steps": [
+          "Make a three-event afternoon plan: 2:00 p.m. for 30 min, 2:45 p.m. for 40 min, and 4:10 p.m. for 20 min.",
+          "Calculate the finish times for each event.",
+          "Explain whether any events overlap; adjust your plan if they do."
+        ],
+        "evidence": "A correct three-row timetable and explanation"
+      },
+      "guided": [
+        {
+          "id": "VS-G04-MA-TIME-L10-G1",
+          "prompt": "A meeting starts at 10:15 a.m. and lasts 45 minutes. Finish?",
+          "answer": "11:00 a.m.",
+          "explanation": "15 + 45 = 60, so one hour later.",
+          "kind": "guided"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L10-G2",
+          "prompt": "3 weeks are how many days?",
+          "answer": "21 days",
+          "explanation": "3 × 7 = 21.",
+          "kind": "guided"
+        }
+      ],
+      "independent": [
+        {
+          "id": "VS-G04-MA-TIME-L10-E1",
+          "prompt": "07:40 a.m. to 08:15 a.m.: duration?",
+          "answer": "35 minutes",
+          "explanation": "20 min to 8:00 plus 15.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L10-E2",
+          "prompt": "Convert 2 hours 30 minutes to minutes.",
+          "answer": "150 minutes",
+          "explanation": "2 × 60 + 30.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L10-E3",
+          "prompt": "A bus leaves at 1:50 p.m. and travels 1 h 25 min. When does it arrive?",
+          "answer": "3:15 p.m.",
+          "explanation": "10 min to 2:00, then 1 h 15 min further.",
+          "kind": "exercise"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L10-E4",
+          "prompt": "Explain one reason a correct time record is useful.",
+          "answer": "It helps others arrive or plan at the right time.",
+          "explanation": "Practical planning needs accurate timekeeping.",
+          "kind": "exercise"
+        }
+      ],
+      "check": [
+        {
+          "id": "VS-G04-MA-TIME-L10-Q1",
+          "prompt": "2 hours 40 minutes + 35 minutes = ?",
+          "answer": "3 hours 15 minutes",
+          "explanation": "40 + 35 = 75 minutes.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L10-Q2",
+          "prompt": "5 hours 10 minutes − 2 hours 35 minutes = ?",
+          "answer": "2 hours 35 minutes",
+          "explanation": "4 h 70 min − 2 h 35 min.",
+          "kind": "formative_check"
+        },
+        {
+          "id": "VS-G04-MA-TIME-L10-Q3",
+          "prompt": "Should we rely on a shadow to measure exactly 10:27 a.m.?",
+          "answer": "no",
+          "explanation": "A shadow only supports a rough time estimate.",
+          "kind": "formative_check"
+        }
+      ],
+      "misconception": "Mixing a finish clock time with a duration; always label the first as a time of day and the second as elapsed time.",
+      "remedial": "Retry three cards in order: choose a.m./p.m., convert an hour, find duration across one hour. Correct each with its worked example.",
+      "enrichment": "Design a safe half-day study plan with at least four activities, no overlaps and a total of 3 hours 30 minutes. Show the arithmetic.",
+      "teacher": "Use this as a formative check of all seven Time outcomes; sample each child at least once. Let learners explain reasoning orally or in writing. Record actual observed evidence only; no automatic mastery. Approximate lesson share: one of ten lessons.",
+      "order": 10,
+      "id": "VS-G04-MA-TIME-L10"
+    }
+  ],
+  "revision": {
+    "rules": [
+      "1 hour = 60 minutes",
+      "1 day = 24 hours",
+      "1 week = 7 days",
+      "12:00 a.m. = midnight; 12:00 p.m. = midday",
+      "Duration = time elapsed between start and finish",
+      "When minutes total 60 or more, exchange 60 minutes for an hour",
+      "For subtraction, exchange 1 hour for 60 minutes if needed"
+    ],
+    "reflection": [
+      "Can I say why a time is a.m. or p.m.?",
+      "Can I show my method when finding a duration?",
+      "Can I check a time answer for common mistakes?"
+    ]
+  },
+  "coverage_rule": "KICD outcomes a–g map to outcome IDs T-A through T-G. Each has a relevant explained/experienced/practised/assessed unit; the final unit samples all seven.",
+  "quality": {
+    "reviewer": "ChatGPT author self-review, not independent human review",
+    "correctness": "Arithmetic and answer-key review required before resource certification",
+    "publisher": "VibeSchool Originals"
+  }
+}
