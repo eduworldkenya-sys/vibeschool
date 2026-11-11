@@ -452,10 +452,24 @@ const card: CSSProperties = { border: '1px solid #dce7e0', borderRadius: 12, bac
 const h: CSSProperties = { fontSize: 13, color: '#1d4937', fontWeight: 800, margin: '0 0 9px' }
 const bullet: CSSProperties = { margin: '4px 0', lineHeight: 1.65, fontSize: 13, color: '#253d32' }
 
-export default function Grade1EnglishMap({ compact = false, selectedUnitId = '1.1', onSelectUnit }: {
+type LinkedCurriculumUnit = {
+  id: string;
+  name: string;
+  sub_strand: string;
+  outcomes: { id: string; outcome_text: string }[];
+}
+
+export default function Grade1EnglishMap({
+  compact = false, selectedUnitId = '1.1', onSelectUnit, onPlanUnit,
+  mappedUnits, catalogLoading = false, catalogError = '',
+}: {
   compact?: boolean;
   selectedUnitId?: string;
   onSelectUnit?: (unitId: string) => void;
+  onPlanUnit?: (unitId: string) => void;
+  mappedUnits?: Record<string, LinkedCurriculumUnit>;
+  catalogLoading?: boolean;
+  catalogError?: string;
 }) {
   const validUnitId = GRADE1_ENGLISH_UNITS.some(item => item.id === selectedUnitId) ? selectedUnitId : '1.1'
   const [selectedId, setSelectedId] = useState(validUnitId)
@@ -465,6 +479,8 @@ export default function Grade1EnglishMap({ compact = false, selectedUnitId = '1.
   const theme = GRADE1_ENGLISH_THEMES.find(item => item.id === themeId) ?? GRADE1_ENGLISH_THEMES[0]
   const [indexOpen, setIndexOpen] = useState(false)
   const unit = GRADE1_ENGLISH_UNITS.find(item => item.id === selectedId) ?? GRADE1_ENGLISH_UNITS[0]
+  const linkedUnit = mappedUnits?.[unit.id]
+  const displayedOutcomes = linkedUnit ? linkedUnit.outcomes.map(outcome => outcome.outcome_text) : unit.outcomes
   const index = GRADE1_ENGLISH_UNITS.findIndex(item => item.id === unit.id)
   const contextualActivity = (() => {
     switch (unit.id) {
@@ -549,8 +565,13 @@ export default function Grade1EnglishMap({ compact = false, selectedUnitId = '1.
       <p style={{ ...bullet, marginTop: 6 }}><strong>VibeSchool activity for this skill:</strong> {contextualActivity}</p>
       <p style={{ fontSize: 11, color: '#567065', margin: '7px 0 0' }}>The theme supplies familiar context for the selected skill; it does not assign a fixed instructional week or create a lesson plan.</p>
     </div>
+    {onPlanUnit && <div style={{ ...card, marginBottom: 14, borderColor: '#9fbbaa' }}>
+      {linkedUnit ? <button type="button" onClick={() => onPlanUnit(unit.id)} style={{ width: '100%', minHeight: 44, padding: '11px 14px', borderRadius: 10, border: 0, background: '#175b43', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Plan this sub-strand in Scheme of Work</button>
+        : <p role="status" style={{ fontSize: 13, color: '#526d5e', margin: 0 }}>{catalogLoading ? 'Connecting persisted curriculum outcomes…' : catalogError || 'This sub-strand is not yet connected to a database curriculum record.'}</p>}
+      <p style={{ margin: '8px 0 0', fontSize: 12, color: '#526d5e' }}>Select an instructional week and real stored outcome IDs before saving. VibeSchool-authored guidance is not official KICD text.</p>
+    </div>}
     <article aria-label={'Sub-strand ' + unit.id + ' ' + unit.title} style={{ display: 'grid', gap: 11 }}>
-      <div style={card}><h4 style={h}>VibeSchool learning outcomes ({unit.outcomes.length})</h4>{list(unit.outcomes.map((text, i) => String.fromCharCode(97 + i) + '. ' + text))}</div>
+      <div style={card}><h4 style={h}>VibeSchool learning outcomes ({displayedOutcomes.length})</h4>{list(displayedOutcomes.map((text, i) => String.fromCharCode(97 + i) + '. ' + text))}</div>
       <div style={card}><h4 style={h}>Suggested learning experiences</h4>{list(unit.experiences)}</div>
       <div style={card}><h4 style={h}>Key inquiry questions</h4>{list(unit.inquiry)}</div>
       <div style={card}><h4 style={h}>Competencies, values and issues</h4><p style={bullet}>{unit.competencies}</p></div>
