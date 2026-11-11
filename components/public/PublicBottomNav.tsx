@@ -29,7 +29,7 @@ function NavIcon({ name }: { name: (typeof items)[number]['icon'] }) {
   }
 }
 
-const PUBLIC_ROOTS = new Set(['/', '/teacher', '/schools', '/product', '/about', '/contact', '/institutions', '/trust'])
+const PUBLIC_ROOTS = new Set(['/', '/teacher', '/schools', '/product', '/about', '/about/founder-note', '/contact', '/institutions', '/trust'])
 
 export function PublicBottomNav() {
   const pathname = usePathname()
