@@ -1,0 +1,33 @@
+name: Grade 9 English Curriculum Index Integrity
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'components/teacher/curriculum/Grade9EnglishMap.tsx'
+      - 'content/curriculum/grade9-english-2024-index.json'
+      - 'scripts/test-grade9-english-curriculum-index.mjs'
+      - 'supabase/migrations/20261111101500_grade9_english_revised_index.sql'
+  push:
+    branches: [main]
+    paths:
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'components/teacher/curriculum/Grade9EnglishMap.tsx'
+      - 'content/curriculum/grade9-english-2024-index.json'
+      - 'scripts/test-grade9-english-curriculum-index.mjs'
+      - 'supabase/migrations/20261111101500_grade9_english_revised_index.sql'
+
+permissions:
+  contents: read
+
+jobs:
+  grade9-english-index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate source index, preservation and teacher routing
+        run: node scripts/test-grade9-english-curriculum-index.mjs
