@@ -84,7 +84,7 @@ export default function VacancyMatchSandbox() {
         <Link href="/for-teachers" className={styles.back}>
           <ArrowLeft aria-hidden="true" size={16} /> VibeSchool Teachers
         </Link>
-        <span className={styles.sandboxTag}>SANDBOX · NO LOGIN</span>
+        <span className={styles.sandboxTag}>TEACHER MARKETPLACE</span>
       </div>
 
       <section className={styles.hero} aria-labelledby="sandbox-title">
@@ -120,7 +120,7 @@ export default function VacancyMatchSandbox() {
             </button>
           </div>
           <h2 id="choose-heading">What do you teach?</h2>
-          <p className={styles.supportText}>No account or personal details needed.</p>
+          <p className={styles.supportText}>Select your teaching details to explore opportunities.</p>
 
           <fieldset className={styles.fieldset}>
             <legend>Teaching level</legend>
