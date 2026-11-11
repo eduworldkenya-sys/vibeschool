@@ -45,7 +45,7 @@ assert.equal(buildCreativeAnnualSchemeDraft({units,terms,termWeeks:weeks,weeklyA
 const withOverride=[...weeks,{term_id:'term-1',week_number:1,week_type:'normal',school_id:'school'}]
 assert.equal(buildCreativeAnnualSchemeDraft({units,terms,termWeeks:withOverride}).weeks.length,40,'Do not duplicate school-specific and global week')
 assert.ok(page.includes('<AutoCreativeScheme'),'Teacher opens Scheme and sees curriculum-linked draft automatically')
-assert.ok(page.includes("supabase.from('term_weeks')"),'Read the school's real instructional calendar')
+assert.ok(page.includes("supabase.from('term_weeks')"),"Read the school's real instructional calendar")
 assert.ok(page.includes("saveAndPrepareAutoDraft(item)"),'Prepare action must save a real canonical teacher scheme lesson')
 assert.ok(page.includes("rpc('commit_mapped_scheme_lesson'"),'Reuse atomic secured database linkage')
 assert.ok(component.includes('Draft suggestions are visible without creating teaching records'),'Do not misrepresent unsaved drafts as committed')
