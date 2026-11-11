@@ -102,6 +102,7 @@ for(const expected of [
   "weekAllocationFull",
   "prepareSchemeLesson(saved)"
 ]) assert.ok(map.includes(expected),'Missing canonical UI-to-Scheme connection: '+expected)
+assert.ok(preview.includes('outcome:outcome?.outcome_text||null'),'Suggested lesson text must come from canonical persisted outcomes')
 assert.ok(preview.includes('capacityFull'),'Preview must block adding mapped lessons when week is full')
 assert.ok(preview.includes('activeThisWeek'),'Preview must count the same active lessons as the database')
 assert.ok(preview.includes('subjectName'),'Reuse Creative Activities UI rather than duplicate a new Scheme engine')
