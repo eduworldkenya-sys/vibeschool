@@ -1,0 +1,27 @@
+name: Grade 6 Kiswahili curriculum index integrity
+on:
+  pull_request:
+    paths:
+      - 'lib/curriculum/grade6KiswahiliReference.ts'
+      - 'components/teacher/curriculum/Grade6KiswahiliMap.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'scripts/test-grade6-kiswahili-reference.mjs'
+      - '.github/workflows/grade6-kiswahili-curriculum-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lib/curriculum/grade6KiswahiliReference.ts'
+      - 'components/teacher/curriculum/Grade6KiswahiliMap.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'scripts/test-grade6-kiswahili-reference.mjs'
+permissions:
+  contents: read
+jobs:
+  structural-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/test-grade6-kiswahili-reference.mjs
