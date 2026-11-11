@@ -97,11 +97,11 @@ begin
     end if;
 
     -- Respect a school-specific week over a global calendar fallback.
-    select tw.week_type into v_week_type
+    select coalesce(tw.week_type,'normal') into v_week_type
       from public.term_weeks tw
       where tw.term_id=p_academic_term_id and tw.week_number=p_week
         and (tw.school_id=v_school_id or tw.school_id is null)
-      order by (tw.school_id=v_school_id) desc
+      order by (tw.school_id is not null) desc
       limit 1;
     if v_week_type is distinct from 'normal'
        and v_week_type is distinct from 'instructional' then
