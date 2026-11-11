@@ -48,6 +48,12 @@ export default function Grade4TimeContentReader() {
             order: row.lesson_order,
           })
         }
+        // An incompatible RPC response must never look like unpublished content.
+        // Failing closed also avoids silently hiding a malformed certified lesson.
+        if (!Array.isArray(data) || clean.length !== data.length) {
+          if (active) setLoadError(true)
+          return
+        }
         if (active) setLessons(clean.sort((a,b) => a.order - b.order))
       } catch {
         if (active) setLoadError(true)
@@ -79,7 +85,7 @@ export default function Grade4TimeContentReader() {
         ) : loadError ? (
           <p role="alert">The lesson library could not load. Please reopen this page.</p>
         ) : lessons.length === 0 ? (
-          <p role="status">Full Time lessons are not published yet. Lesson manuscripts are being prepared for release.</p>
+          <p role="status">No certified Time lessons are available in the library right now.</p>
         ) : (
           <>
             <div role="group" aria-label="Select a Time lesson" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
