@@ -288,7 +288,7 @@ function Inner({ curriculumView = false }) {
       subjectId:selectedSubject,
     })
     if(item.curriculum_id&&canonicalRowIds.has(item.curriculum_id))params.set('curriculumId',item.curriculum_id)
-    router.push(`/teacher/scheme/generate?${params.toString()}`)
+    router.push(`/teacher/lessonplan/prepare?${params.toString()}`)
   }
 
   function openLinkedCurriculum(item) {
