@@ -22,6 +22,7 @@ import LearnerRelatedRecords from "@/components/teacher/LearnerRelatedRecords";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
+import { isLearnerAssignedHomework } from "@/lib/homework/eligibility";
 import {
   listInterventionQueue,
   type InterventionQueueItem,
@@ -56,6 +57,8 @@ type HomeworkRow = {
   subject: string | null;
   due_date: string | null;
   type: string | null;
+  created_at: string;
+  target_group_id: string | null;
 };
 type SubmissionRow = {
   homework_id: string | null;
@@ -314,6 +317,8 @@ export default function TeacherStudentProgressPage() {
   const [student, setStudent] = useState<Student | null>(null);
   const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
   const [homework, setHomework] = useState<HomeworkRow[]>([]);
+  const [joinedAt, setJoinedAt] = useState<string | null>(null);
+  const [groupMemberships, setGroupMemberships] = useState<Record<string, string>>({});
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [gradebook, setGradebook] = useState<GradebookRow[]>([]);
   const [cbc, setCbc] = useState<CbcRow[]>([]);
@@ -394,7 +399,7 @@ export default function TeacherStudentProgressPage() {
 
       const enrollmentRes = await supabase
         .from("student_classes")
-        .select("student_id")
+        .select("student_id,joined_at")
         .eq("school_id", ctx.school_id)
         .eq("class_id", classId)
         .eq("student_id", studentId)
@@ -419,6 +424,7 @@ export default function TeacherStudentProgressPage() {
           "This learner identity could not be loaded. Retry instead of treating the enrolment as missing.",
         );
       setStudent(learner);
+      setJoinedAt(enrollmentRes.data.joined_at);
 
       const subjectIds = requestedSubjectId
         ? [requestedSubjectId]
@@ -451,7 +457,7 @@ export default function TeacherStudentProgressPage() {
           .limit(120),
         supabase
           .from("homework")
-          .select("id,title,subject,due_date,type")
+          .select("id,title,subject,due_date,type,created_at,target_group_id")
           .eq("school_id", ctx.school_id)
           .eq("class_id", classId)
           .eq("teacher_id", auth.user.id)
@@ -542,6 +548,12 @@ export default function TeacherStudentProgressPage() {
         if (result.error) throw result.error;
 
       const homeworkRows: HomeworkRow[] = homeworkRes.data ?? [];
+      const groupIds = [...new Set(homeworkRows.flatMap(row => row.target_group_id ? [row.target_group_id] : []))];
+      const membershipRes = groupIds.length
+        ? await supabase.from("class_group_members").select("group_id,created_at").eq("student_id", studentId).in("group_id", groupIds)
+        : { data: [], error: null };
+      if (membershipRes.error) throw membershipRes.error;
+      setGroupMemberships(Object.fromEntries((membershipRes.data ?? []).map(row => [row.group_id, row.created_at])));
       const submissionRes = homeworkRows.length
         ? await supabase
             .from("homework_submissions")
@@ -755,17 +767,21 @@ export default function TeacherStudentProgressPage() {
     () => new Map(submissions.map((item) => [item.homework_id, item])),
     [submissions],
   );
+  const assignedHomework = useMemo(
+    () => homework.filter(row => isLearnerAssignedHomework(row, joinedAt, row.target_group_id ? groupMemberships[row.target_group_id] : null)),
+    [homework, joinedAt, groupMemberships],
+  );
   const truth = useMemo(
     () =>
       buildLearnerTruthSummary({
         attendance,
-        homework,
+        homework: assignedHomework,
         submissions,
         assessments: gradebook,
         cbc,
         examCount: exams.length,
       }),
-    [attendance, homework, submissions, gradebook, cbc, exams.length],
+    [attendance, assignedHomework, submissions, gradebook, cbc, exams.length],
   );
 
   if (loading)
@@ -891,7 +907,7 @@ export default function TeacherStudentProgressPage() {
       title: item.is_late ? "Arrived late" : item.status,
       detail: "Attendance record",
     })),
-    ...homework.flatMap((item) => {
+    ...assignedHomework.flatMap((item) => {
       const submission = submissionMap.get(item.id);
       return submission?.submitted_at
         ? [
@@ -1840,7 +1856,7 @@ export default function TeacherStudentProgressPage() {
 
       {tab === "work" && (
         <Card>
-          {homework.length === 0 ? (
+          {assignedHomework.length === 0 ? (
             <div
               style={{
                 padding: 22,
@@ -1848,11 +1864,11 @@ export default function TeacherStudentProgressPage() {
                 color: "var(--teacher-muted, #627168)",
               }}
             >
-              No homework assigned by you for this class yet.
+              No work assigned to this learner since enrolment.
             </div>
           ) : (
             <div style={{ display: "grid", gap: 9 }}>
-              {homework.map((item) => {
+              {assignedHomework.map((item) => {
                 const submission = submissionMap.get(item.id);
                 const overdue =
                   Boolean(item.due_date) &&
