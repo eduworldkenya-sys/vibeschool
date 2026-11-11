@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { includeGradeOneJumpingAsset } from '@/lib/teaching/jumpingContentSelection'
 import type { Json } from '@/lib/database.types'
 import type { LessonContext } from '@/lib/teaching/lessonContext'
 import type { LessonSourceSuggestion } from '@/lib/teaching/lessonSource'
@@ -121,6 +122,7 @@ async function loadExplicitSchemeResources(
 async function queryCurriculumCandidates(
   column: 'curriculum_id' | 'sub_strand_id',
   id: string,
+  lessonNumber: number | null,
 ): Promise<ResourceCandidate[]> {
   const { data, error } = await supabase
     .from('learning_resources')
@@ -128,7 +130,8 @@ async function queryCurriculumCandidates(
     .eq('status', 'active')
     .eq(column, id)
     .order('id', { ascending: true })
-    .limit(25)
+    // Filter lesson-scoped manuscripts after retrieval, before retaining 25.
+    .limit(100)
 
   if (error) throw error
 
@@ -154,6 +157,14 @@ async function queryCurriculumCandidates(
       }
     })
     .filter(isTeachingContentCandidate)
+    .filter(resource => {
+      const source = (data ?? []).find(row => row.id === resource.id)
+      return includeGradeOneJumpingAsset(
+        typeof source?.canonical_key === 'string' ? source.canonical_key : null,
+        lessonNumber,
+      )
+    })
+    .slice(0, 25)
 }
 
 /**
@@ -169,12 +180,13 @@ async function loadCurriculumResourceCandidates(
     const subStrandResources = await queryCurriculumCandidates(
       'sub_strand_id',
       source.strandId,
+      source.lessonNumber,
     )
     if (subStrandResources.length > 0) return subStrandResources
   }
 
   if (source.id) {
-    return queryCurriculumCandidates('curriculum_id', source.id)
+    return queryCurriculumCandidates('curriculum_id', source.id, source.lessonNumber)
   }
 
   return []
