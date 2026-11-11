@@ -9,6 +9,10 @@ on:
       - 'components/teacher/curriculum/Grade6MathematicsMap.jsx'
       - 'components/teacher/curriculum/Grade4MathematicsMap.jsx'
       - 'components/teacher/curriculum/Grade4EnglishMap.tsx'
+      - 'components/teacher/curriculum/Grade4IndigenousMap.jsx'
+      - 'lib/teaching/grade4IndigenousCatalog.mjs'
+      - 'scripts/test-grade4-indigenous-scheme.mjs'
+      - 'supabase/migrations/20261111162500_grade4_indigenous_kicd_scheme.sql'
       - 'lib/teaching/grade4EnglishCatalog.mjs'
       - 'scripts/test-grade4-english-canonical-scheme.mjs'
       - 'supabase/migrations/20261111153500_grade4_english_kicd_scheme.sql'
@@ -34,6 +38,10 @@ on:
       - 'components/teacher/curriculum/Grade6MathematicsMap.jsx'
       - 'components/teacher/curriculum/Grade4MathematicsMap.jsx'
       - 'components/teacher/curriculum/Grade4EnglishMap.tsx'
+      - 'components/teacher/curriculum/Grade4IndigenousMap.jsx'
+      - 'lib/teaching/grade4IndigenousCatalog.mjs'
+      - 'scripts/test-grade4-indigenous-scheme.mjs'
+      - 'supabase/migrations/20261111162500_grade4_indigenous_kicd_scheme.sql'
       - 'lib/teaching/grade4EnglishCatalog.mjs'
       - 'scripts/test-grade4-english-canonical-scheme.mjs'
       - 'supabase/migrations/20261111153500_grade4_english_kicd_scheme.sql'
@@ -81,3 +89,5 @@ jobs:
         run: node scripts/test-grade4-mathematics-scheme.mjs
       - name: Verify Grade 4 English source-linked curriculum and annual Scheme
         run: node scripts/test-grade4-english-canonical-scheme.mjs
+      - name: Verify Grade 4 Indigenous Languages source, localization and canonical Scheme
+        run: node scripts/test-grade4-indigenous-scheme.mjs
