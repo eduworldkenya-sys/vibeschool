@@ -66,6 +66,7 @@ export type Homework = {
   subject: string | null;
   type: string | null;
   target_group_id: string | null;
+  created_at: string;
 };
 export type Submission = {
   student_id: string | null;
@@ -116,7 +117,7 @@ export type Evidence = {
   max_score: number | null;
 };
 export type Group = { id: string; name: string; type: string };
-export type Member = { student_id: string; group_id: string };
+export type Member = { student_id: string; group_id: string; created_at?: string | null };
 export type Intervention = {
   studentId: string;
   subjectId: string;
