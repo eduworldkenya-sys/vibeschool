@@ -136,12 +136,12 @@ export default function ContactPage() {
               ))}
             </fieldset>
 
-            <section className={styles.nextStep} aria-labelledby="contact-next" aria-live="polite">
+            <section className={styles.nextStep} aria-labelledby="contact-next">
               <p className={styles.stepHeading}><span className={styles.step}>02</span> YOUR NEXT STEP</p>
 
               {topic === 'general' && (
                 <>
-                  <h2 id="contact-next">Ask us directly.</h2>
+                  <h2 id="contact-next" aria-live="polite">Ask us directly.</h2>
                   <p>Have a question about VibeSchool? Start a WhatsApp conversation. You don’t need an account.</p>
                   <TrackedLink className={styles.primaryAction} href={whatsappLink('general')} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">Chat on WhatsApp <span aria-hidden="true">↗</span></TrackedLink>
                   <p className={styles.contactNumber}>WhatsApp · 0728 232 157</p>
@@ -150,7 +150,7 @@ export default function ContactPage() {
 
               {topic === 'school' && (
                 <>
-                  <h2 id="contact-next">Tell us about your school or idea.</h2>
+                  <h2 id="contact-next" aria-live="polite">Tell us about your school or idea.</h2>
                   <p>Exploring VibeSchool for a school, institution, government programme or partnership? Start with a short WhatsApp message.</p>
                   <TrackedLink className={styles.primaryAction} href={whatsappLink('school')} event="public_institution_contact" external target="_blank" rel="noopener noreferrer">Start the conversation <span aria-hidden="true">↗</span></TrackedLink>
                   <p className={styles.contactNumber}>WhatsApp · 0728 232 157</p>
@@ -159,7 +159,7 @@ export default function ContactPage() {
 
               {topic === 'careers' && (
                 <>
-                  <h2 id="contact-next">Interested in working with us?</h2>
+                  <h2 id="contact-next" aria-live="polite">Interested in working with us?</h2>
                   <p>Explore the careers page for information about opportunities at VibeSchool.</p>
                   <Link className={styles.primaryAction} href="/careers">Explore careers <span aria-hidden="true">→</span></Link>
                 </>
@@ -167,7 +167,7 @@ export default function ContactPage() {
 
               {privateTopic && (
                 <>
-                  <h2 id="contact-next">{topic === 'account' ? 'Let’s sort out your account.' : 'Tell us about your concern.'}</h2>
+                  <h2 id="contact-next" aria-live="polite">{topic === 'account' ? 'Let’s sort out your account.' : 'Tell us about your concern.'}</h2>
                   <p>{topic === 'account'
                     ? 'For account or school-access problems, a signed-in request helps us find the right records without asking for passwords.'
                     : 'For privacy or learner-safety concerns, share the minimum detail needed. Do not include private learner records or passwords in public messages.'}</p>
