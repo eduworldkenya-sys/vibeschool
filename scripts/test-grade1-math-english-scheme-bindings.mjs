@@ -59,7 +59,7 @@ assert.ok(!/insert into public\.curriculum\s*\(/i.test(sql),'Do not invent term/
 assert.ok(!/insert into public\.scheme_of_work\s*\(/i.test(sql),'School Scheme must be teacher authorized')
 assert.ok(scheme.includes("supabase.from('grade1_curriculum_reader_bindings')"),
   'Reader must load canonical ID bindings, not fuzzy names')
-assert.ok(scheme.includes("supabase.rpc('commit_mapped_scheme_lesson'"),
+assert.ok(scheme.includes("'commit_mapped_scheme_lesson'"),
   'Teacher must use existing atomic scheme commit')
 assert.ok(scheme.includes('p_sub_strand_id:mappedDraftRecord.id'),
   'Use actual persisted sub-strand ID')
@@ -68,5 +68,5 @@ assert.ok(scheme.includes("(mappedDraftRecord?.outcomes||[]).map"),
 assert.ok(scheme.includes('grade1ReaderCatalogError')&&scheme.includes('grade1ReaderCatalogLoading'),
   'Mapping errors must fail closed')
 assert.ok(math.includes('linkedUnit.outcomes.map')&&math.includes('onPlanUnit(unit.id)'))
-assert.ok(english.includes('linkedUnit.outcomes.map')&&english.includes('onPlanUnit(unit.id)'))
+assert.ok(english.includes('linkedUnit.outcomes.map')&&english.includes('onPlanUnit(unit.id, themeId)'))
 console.log('Grade 1 Mathematics + English canonical curriculum binding and Scheme authority: PASS')

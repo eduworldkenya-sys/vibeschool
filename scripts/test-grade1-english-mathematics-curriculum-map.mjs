@@ -34,7 +34,7 @@ for (const [name, reader] of [['Mathematics',math],['English',english]]) {
 }
 assert.ok(scheme.includes('isGrade1Mathematics')&&scheme.includes('isGrade1English'))
 assert.ok(scheme.includes('<Grade1MathematicsMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}'))
-assert.ok(scheme.includes('<Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}'))
+assert.ok(scheme.includes('<Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} selectedThemeId={Number(initial.current.themeId)||1} onSelectUnit={setMapUnitId}'))
 assert.ok(scheme.includes("if(curriculumView&&(isGrade1Mathematics||isGrade1English))p.set('unitId',mapUnitId)"),
   'Selected sub-strand must survive URL changes, refresh and sharing')
 assert.ok(scheme.includes("unitId:searchParams.get('unitId')"), 'Direct sub-strand links must be restored')
@@ -50,6 +50,6 @@ assert.ok(hub.includes("'&unitId=' + encodeURIComponent(grade1MathematicsUnitId)
   hub.includes("'&unitId=' + encodeURIComponent(grade1EnglishUnitId)"),
   'Opening full Curriculum Map must preserve the currently selected reader unit')
 assert.ok(hub.includes('<Grade1MathematicsMap compact selectedUnitId={grade1MathematicsUnitId} onSelectUnit={setGrade1MathematicsUnitId} />'))
-assert.ok(hub.includes('<Grade1EnglishMap compact selectedUnitId={grade1EnglishUnitId} onSelectUnit={setGrade1EnglishUnitId} />'))
+assert.ok(hub.includes('<Grade1EnglishMap compact selectedUnitId={grade1EnglishUnitId} selectedThemeId={grade1EnglishThemeId} onSelectUnit={setGrade1EnglishUnitId} onSelectTheme={setGrade1EnglishThemeId} />'))
 assert.ok(scheme.includes('get_operating_context')||scheme.includes('teacher_get_operating_context'),'Preserve assigned teacher scoping')
 console.log('Grade 1 Mathematics and English unified Curriculum Map and deep links: PASS')
