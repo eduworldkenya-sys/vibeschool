@@ -137,8 +137,36 @@ for forbidden in ['10,000 learners','100 schools','99.9% uptime']:
     if forbidden in capability: errors.append(f'capability status contains unsupported proof: {forbidden}')
 
 contact = text('app/contact/page.tsx')
-for fragment in ['GENERAL ENQUIRIES','No account needed.','ACCOUNT SUPPORT','Government / public sector','Partnership / funding','Careers / talent','Never include passwords','public_contact_support_submit']:
-    if fragment not in contact: errors.append(f'contact trust/routing contract missing: {fragment}')
+contact_css = text('app/contact/contact.module.css')
+contact_layout = text('app/contact/layout.tsx')
+for fragment in [
+    'What brings you here?', 'A general question', 'Schools & partnerships',
+    'Account or login help', 'Privacy or child safety', 'Careers',
+    "topic === 'account' || topic === 'safety'",
+    'authReady && !signedIn', 'authReady && signedIn',
+    "new URLSearchParams(window.location.search)", "'/login?redirect='",
+    'submit_contact_request', 'public_contact_support_submit',
+    'Child safety or safeguarding', 'Do not include passwords', 'PublicFooter hideSupport',
+]:
+    if fragment not in contact: errors.append(f'contact intent/support contract missing: {fragment}')
+for fragment in ['GENERAL ENQUIRIES', 'SOCIAL LINKS', 'socialSection', 'FOLLOW VIBESCHOOL', 'No account needed.']:
+    if fragment in contact: errors.append(f'contact page reintroduced duplicate sections: {fragment}')
+for fragment in ['#07111f', '#d0b154', 'min-height:48px', '@media(max-width:780px)', ':focus-visible']:
+    if fragment not in contact_css: errors.append(f'contact theme/accessibility contract missing: {fragment}')
+if "title: 'Contact'," not in contact_layout:
+    errors.append('contact browser title must use site title template exactly once')
+if 'hideSupport' not in footer:
+    errors.append('contact page must be able to hide redundant footer WhatsApp banner')
+contact_support_migration = text('supabase/migrations/20261111091331_contact_support_safety_category.sql')
+for fragment in [
+    'contact_requests_category_check',
+    "'privacy','legal','safety','other'",
+    "if v_uid is null then raise exception 'Authentication required'",
+    "when p_category in ('privacy','legal','safety') then 'high'",
+    "insert into public.hq_support_cases",
+]:
+    if fragment not in contact_support_migration:
+        errors.append(f'contact safeguarding route/migration missing: {fragment}')
 
 institutions = text('app/institutions/page.tsx')
 for fragment in ['VIBESCHOOL FOR SCHOOLS','WHAT A SCHOOL CAN BRING TOGETHER','IMPLEMENTATION PRINCIPLE','BEFORE ADOPTION','QUESTIONS A SCHOOL SHOULD ASK BEFORE BUYING','does not publish an invented support or uptime guarantee','/trust']:
