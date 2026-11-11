@@ -145,7 +145,7 @@ for fragment in [
     "topic === 'account' || topic === 'safety'",
     'authReady && !signedIn', 'authReady && signedIn',
     'submit_contact_request', 'public_contact_support_submit',
-    'Safety / safeguarding', 'Do not include passwords', 'PublicFooter hideSupport',
+    'Child safety or safeguarding', 'Do not include passwords', 'PublicFooter hideSupport',
 ]:
     if fragment not in contact: errors.append(f'contact intent/support contract missing: {fragment}')
 for fragment in ['GENERAL ENQUIRIES', 'SOCIAL LINKS', 'socialSection', 'FOLLOW VIBESCHOOL', 'No account needed.']:
