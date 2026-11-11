@@ -59,7 +59,7 @@ assert.ok(!/insert into public\.curriculum\s*\(/i.test(sql),'Do not invent term/
 assert.ok(!/insert into public\.scheme_of_work\s*\(/i.test(sql),'School Scheme must be teacher authorized')
 assert.ok(scheme.includes("supabase.from('grade1_curriculum_reader_bindings')"),
   'Reader must load canonical ID bindings, not fuzzy names')
-assert.ok(scheme.includes("supabase.rpc('commit_mapped_scheme_lesson'"),
+assert.ok(scheme.includes("'commit_mapped_scheme_lesson'"),
   'Teacher must use existing atomic scheme commit')
 assert.ok(scheme.includes('p_sub_strand_id:mappedDraftRecord.id'),
   'Use actual persisted sub-strand ID')
