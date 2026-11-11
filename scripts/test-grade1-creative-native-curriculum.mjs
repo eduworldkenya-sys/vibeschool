@@ -19,7 +19,7 @@ assert.equal(outcomeCount, 68, 'Expected 68 authored outcome descriptions')
 for (const token of [
   'Specific learning outcomes', 'Suggested learning experiences', 'Key inquiry questions',
   'Assessment guidance', 'Learning resources', 'Safety and inclusion',
-  'View original KICD source', 'source-to-outcome certification is pending',
+  'View original KICD source', 'VibeSchool-original teaching guidance mapped to the KICD curriculum',
   'All 16 topics', 'Next topic', 'Find a sub-strand or outcome',
 ]) assert.ok(reader.includes(token), 'Missing native reader content: ' + token)
 
@@ -61,3 +61,5 @@ assert.ok(!reader.includes("supabase.from("), 'Annual reference reader must not 
 console.log('Grade 1 Creative Activities native curriculum and teacher subject mapping: PASS')
 
 await import('./test-grade1-creative-auto-scheme.mjs')
+
+assert.ok(reader.includes('not the official KICD text'),'Do not imply this is official KICD wording')
