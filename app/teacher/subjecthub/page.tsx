@@ -891,6 +891,10 @@ export default function SubjectHubPage() {
     /^(english|english language)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*8\b/i.test(item.name)) ?? null
       : null
+  const grade4KiswahiliClass =
+    /^kiswahili$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
+      : null
 
   const readiness: { label: string; bg: string; color: string } = (() => {
     if (lessonCount > 0 && assessCount > 0) return { label: 'Ready',     bg: '#d1fae5', color: '#065f46' }
@@ -1212,6 +1216,20 @@ export default function SubjectHubPage() {
           <button type="button" onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade8EnglishClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id) + '&unitId=01-LS')}
             style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 14px', fontWeight: 800, cursor: 'pointer', width: '100%' }}>
             Open Grade 8 English curriculum
+          </button>
+        </div>
+      )}
+
+      {/* Grade 4 Kiswahili: native KICD-referenced curriculum, one tap from subject hub. */}
+      {!loading && !classLoading && activeSubject && grade4KiswahiliClass && (
+        <div style={{margin:'14px 16px 0',background:'#fff',padding:15,border:'1px solid #d7e7dd',borderRadius:12}}>
+          <strong style={{color:'#173f32'}}>Kiswahili Gredi ya 4</strong>
+          <p style={{fontSize:12,margin:'6px 0 12px',color:'#53695d'}}>
+            Mada 11 · Mada ndogo 52 · KICD 2024. Mtaala unapatikana bila ratiba.
+          </p>
+          <button type="button" onClick={()=>router.push('/teacher/curriculum?classId='+encodeURIComponent(grade4KiswahiliClass.id)+'&subjectId='+encodeURIComponent(activeSubject.id))}
+            style={{background:'#175b43',color:'#fff',border:0,borderRadius:9,minHeight:44,padding:'10px 14px',fontWeight:800,cursor:'pointer',width:'100%'}}>
+            Fungua mtaala wa Kiswahili
           </button>
         </div>
       )}
