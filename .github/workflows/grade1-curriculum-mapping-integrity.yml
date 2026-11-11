@@ -1,0 +1,39 @@
+name: Grade 1 Curriculum Mapping Integrity
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'components/teacher/curriculum/Grade1*Map.tsx'
+      - 'scripts/test-grade1-*.mjs'
+      - 'supabase/migrations/20261111080000_grade1_math_english_curriculum_scheme_bindings.sql'
+  push:
+    branches: [main]
+    paths:
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'components/teacher/curriculum/Grade1*Map.tsx'
+      - 'scripts/test-grade1-*.mjs'
+      - 'supabase/migrations/20261111080000_grade1_math_english_curriculum_scheme_bindings.sql'
+
+permissions:
+  contents: read
+
+jobs:
+  curriculum-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify Creative Activities canonical regression
+        run: node scripts/test-grade1-creative-native-curriculum.mjs
+      - name: Verify Mathematics map
+        run: node scripts/test-grade1-mathematics-native-curriculum.mjs
+      - name: Verify English map
+        run: node scripts/test-grade1-english-native-curriculum.mjs
+      - name: Verify combined Curriculum Map
+        run: node scripts/test-grade1-english-mathematics-curriculum-map.mjs
+      - name: Verify persistent reader identity and Scheme authority
+        run: node scripts/test-grade1-math-english-scheme-bindings.mjs
