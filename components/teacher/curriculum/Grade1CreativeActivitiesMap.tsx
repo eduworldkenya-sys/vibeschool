@@ -223,7 +223,7 @@ export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUni
   return <section aria-label="VibeSchool Grade 1 Creative Activities curriculum map" style={{ color: '#153b2a', maxWidth: '100%', overflowWrap: 'anywhere', marginBottom: 18, borderRadius: 16, border: '1px solid #dce7e0', background: '#f9fbfa', padding: 'clamp(13px,3vw,22px)' }}>
     <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.09em', color: '#28624b' }}>VIBESCHOOL CURRICULUM LIBRARY · GRADE 1</div>
     <h2 style={{ margin: '6px 0', fontSize: 'clamp(20px,3vw,26px)' }}>Creative Activities</h2>
-    <p style={{ color: '#536c60', fontSize: 13, lineHeight: 1.6, margin: '0 0 12px' }}>Read the annual curriculum directly inside the teacher app. Three strands · 16 sub-strands · 68 mapped VibeSchool learning outcomes · 210 suggested lessons.</p>
+    <p style={{ color: '#536c60', fontSize: 13, lineHeight: 1.6, margin: '0 0 12px' }}>Read the annual curriculum directly in VibeSchool. Three strands · 16 sub-strands · 68 mapped VibeSchool learning outcomes · 210 suggested lessons.</p>
     <div style={{ ...card, background: '#eff6f1', fontSize: 12, lineHeight: 1.6, marginBottom: 15 }}>
       <strong>Source:</strong> KICD 2024 revised Grades 1–3 Creative Activities & Indigenous Languages curriculum. This is independently written VibeSchool guidance, not the official KICD text; final source-to-outcome certification is pending.{' '}
       <a href={GRADE1_CREATIVE_SOURCE} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 800, color: '#13573e' }}>View original KICD source</a>.
