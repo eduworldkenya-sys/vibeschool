@@ -39,9 +39,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(gateway)
   }
 
-  // Anonymous access to the approved demo only. Avoid any Supabase session
-  // lookup here; authenticated Teacher OS and Marketplace stay protected.
-  if (pathname === '/teacher/marketplace/sandbox' || pathname === '/teacher/marketplace/sandbox/') {
+  // Public marketplace browsing and approved example-only TSC matching.
+  // Do not initialise auth for discovery; /teacher/marketplace/manage stays protected.
+  if (pathname === '/teacher/marketplace' || pathname === '/teacher/marketplace/' || pathname === '/teacher/marketplace/sandbox' || pathname === '/teacher/marketplace/sandbox/') {
     return NextResponse.next({ request })
   }
 
