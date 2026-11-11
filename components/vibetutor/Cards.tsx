@@ -25,7 +25,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
           <p className={styles.price}>KSh {t.rateKes.toLocaleString('en-KE')}<span className={styles.priceUnit}> / hour</span></p>
           <span className={styles.modeText}>{modeLabel(t.mode)}</span>
         </div>
-        <p className={styles.holiday}>{t.holidayAvailable ? 'Available this holiday' : 'Holiday availability not set'} · {summarizeDays(t.days)}</p>
+        <p className={styles.holiday}>{t.holidayAvailable ? 'Holiday tuition' : 'Available days'} · {summarizeDays(t.days)}</p>
         <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>View tutor <Icon name="arrow" size={15} /></button>
       </article>
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
@@ -40,7 +40,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
           <p className={styles.meta}><strong>Experience:</strong> {t.experience}</p>
           <p className={styles.meta}><strong>Availability:</strong> {summarizeDays(t.days)}</p>
           <p className={styles.modalPrice}>KSh {t.rateKes.toLocaleString('en-KE')} / hour</p>
-          <p className={styles.hint}>Sample profile only. Sign in before contacting a tutor and agree on the first lesson together.</p>
+          <p className={styles.hint}>{t.real ? 'Sign in to discuss tuition arrangements. Confirm the tutor and lesson details before attending.' : 'Example profile only. No tutor is connected to this example.'}</p>
           <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>
         </section>
       </div>}
@@ -80,7 +80,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
           <p className={styles.meta}><strong>Available days:</strong> {summarizeDays(r.days)}</p>
           <p className={styles.meta}><strong>Preferred time:</strong> {summarizeParts(r.dayparts)}</p>
           <p className={styles.modalPrice}>Budget up to KSh {r.budgetKes.toLocaleString('en-KE')} / hour</p>
-          <p className={styles.hint}>Sample request only. Parent or guardian oversight is required for learners under 18.</p>
+          <p className={styles.hint}>{r.real ? 'Sign in to respond. Parent or guardian oversight is required for learners under 18.' : 'Example request only. No learner is connected to this example.'}</p>
           <Link href="/login" className={styles.modalSignIn}>Sign in to respond</Link>
         </section>
       </div>}
