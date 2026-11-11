@@ -26,7 +26,7 @@ export default function TeacherGateway() {
               <TrackedLink className={`${styles.primary} ${styles.matchPrimary}`} event="public_teacher_tsc_sandbox" href="/teacher/marketplace/sandbox">Try vacancy matching <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
               <TrackedLink className={styles.secondary} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Open Teacher OS <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
             </div>
-            <p className={styles.matchHint}>No login needed. This preview uses example school records, not verified TSC vacancies.</p>
+            <p className={styles.matchHint}>This preview uses sample school records while verified TSC vacancy matching is being prepared.</p>
           </div>
           <div className={styles.heroPreview}><TeacherExperiencePreview /></div>
         </div>
@@ -34,7 +34,7 @@ export default function TeacherGateway() {
       <section className={styles.jobs} aria-labelledby="teacher-marketplace-title">
         <div className={styles.wrap}>
           <div className={styles.jobsHeading}><h2 id="teacher-marketplace-title">Teacher marketplace</h2><BriefcaseBusiness size={19} aria-hidden="true"/></div>
-          <p className={styles.demoNote}>TSC recruitment and teaching vacancies are open to everyone. No sign-in needed to browse.</p>
+          <p className={styles.demoNote}>Explore recruitment information and published teaching vacancies.</p>
           <div className={styles.heroActions}><a className={`${styles.primary} ${styles.matchPrimary}`} href="/teacher/marketplace/sandbox">Try vacancy matching <ArrowRight size={18} aria-hidden="true"/></a><a className={styles.secondary} href="/teacher/marketplace">Browse published vacancies <ArrowRight size={18} aria-hidden="true"/></a></div>
           <TeacherOpportunities />
           <p className={styles.demoNote}>Browse school jobs or find a possible station swap.</p>
