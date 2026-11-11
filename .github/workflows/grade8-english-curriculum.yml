@@ -1,0 +1,36 @@
+name: Grade 8 English curriculum integration
+on:
+  pull_request:
+    paths:
+      - 'lib/teaching/grade8EnglishCatalog.mjs'
+      - 'components/teacher/curriculum/Grade8EnglishMap.jsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'app/teacher/subjecthub/page.tsx'
+      - 'supabase/migrations/*grade8_english*'
+      - 'scripts/test-grade8-english-scheme.mjs'
+      - '.github/workflows/grade8-english-curriculum.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lib/teaching/grade8EnglishCatalog.mjs'
+      - 'components/teacher/curriculum/Grade8EnglishMap.jsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'app/teacher/subjecthub/page.tsx'
+      - 'supabase/migrations/*grade8_english*'
+      - 'scripts/test-grade8-english-scheme.mjs'
+jobs:
+  source-and-linkage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: English Grade 8 integrity
+        run: node scripts/test-grade8-english-scheme.mjs
+      - name: Grade 1 English integrity regression
+        run: node scripts/test-grade1-english-native-curriculum.mjs
+      - name: Grade 1 auto-scheme regression
+        run: node scripts/test-grade1-math-english-auto-scheme.mjs
