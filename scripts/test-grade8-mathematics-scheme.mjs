@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { GRADE8_MATHEMATICS_UNITS, GRADE8_MATHEMATICS_LESSONS, GRADE8_MATHEMATICS_PREFIX, GRADE8_MATHEMATICS_SOURCE_URL } from '../lib/teaching/grade8MathematicsCatalog.mjs'
+import { buildGrade1AnnualSchemeDraft, termCreativeSchemeRows } from '../lib/teaching/creativeSchemeDraft.mjs'
+
+const read=path=>readFileSync(new URL(path,import.meta.url),'utf8')
+const page=read('../app/teacher/scheme/AuthoritySchemePage.jsx')
+const map=read('../components/teacher/curriculum/Grade8MathematicsMap.jsx')
+const sql=read('../supabase/migrations/20261111100935_grade8_mathematics_kicd_reference_scheme_20261111.sql')
+const units=GRADE8_MATHEMATICS_UNITS
+assert.equal(units.length,16,'complete 16-sub-strand KICD structural reference')
+assert.equal(new Set(units.map(u=>u.id)).size,16,'unique curriculum unit keys')
+assert.equal(new Set(units.map(u=>u.strand)).size,5,'five curriculum strands')
+assert.equal(units.reduce((n,u)=>n+u.lessons,0),GRADE8_MATHEMATICS_LESSONS)
+assert.equal(GRADE8_MATHEMATICS_LESSONS,150)
+assert.equal(units.reduce((n,u)=>n+u.outcomes.length,0),75,'75 separately authored outcome guides')
+assert.ok(units.every(u=>u.outcomes.length>=3&&u.inquiry.length&&u.experiences.length))
+assert.ok(GRADE8_MATHEMATICS_SOURCE_URL.startsWith('https://kicd.ac.ke/'))
+assert.equal(GRADE8_MATHEMATICS_PREFIX,'VS-CUR-G08-MA-2026')
+
+const terms=[1,2,3].map(n=>({id:'t'+n,term:n}))
+const weeks=terms.flatMap(t=>Array.from({length:10},(_,i)=>({term_id:t.id,week_number:i+1,week_type:'normal',school_id:null})))
+const opts={units,terms,termWeeks:weeks,weeklyAllocation:5,expectedUnitCount:16,gradeLabel:'Grade 8'}
+const draft=buildGrade1AnnualSchemeDraft(opts)
+assert.equal(draft.error,null)
+assert.equal(draft.items.length,150,'150 automatic lesson suggestions')
+assert.equal(draft.weeks.length,30)
+assert.equal(draft.unitCount,16)
+assert.equal(new Set(draft.items.map(x=>x.key)).size,150)
+assert.deepEqual(new Set(draft.items.map(x=>x.unitId)),new Set(units.map(x=>x.id)))
+assert.ok(draft.weeks.every(w=>draft.items.filter(x=>x.termId===w.termId&&x.week===w.week).length===5))
+assert.deepEqual(buildGrade1AnnualSchemeDraft(opts),draft,'deterministic after refresh')
+assert.equal(terms.reduce((n,t)=>n+termCreativeSchemeRows(draft,t.id).length,0),150)
+assert.ok(buildGrade1AnnualSchemeDraft({...opts,terms:terms.slice(0,2)}).error,'missing school term must fail closed')
+assert.ok(buildGrade1AnnualSchemeDraft({...opts,weeklyAllocation:4}).error,'cannot exceed school weekly allocation')
+assert.ok(page.includes('isGrade8Mathematics && <Grade8MathematicsMap'))
+assert.ok(page.includes('isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics'))
+assert.ok(page.includes("from('grade8_mathematics_reader_bindings')"))
+assert.ok(page.includes("p_outcome_ids:item.outcomeIds"))
+assert.ok(page.includes('grade8CatalogError'))
+assert.ok(map.includes('GRADE8_MATHEMATICS_SOURCE_URL'))
+assert.ok(sql.includes('security invoker'),'grade-neutral saver must retain invoker authorization')
+assert.ok(sql.includes("s.grade='Grade 8'"))
+assert.ok(sql.includes("public.grade8_mathematics_reader_bindings"))
+assert.ok(sql.includes("KICD PDF is copyrighted"))
+assert.ok(!sql.includes('insert into public.scheme_of_work'),'opening catalog must not pre-save teacher records')
+console.log('Grade 8 Mathematics KICD-referenced curriculum and auto-scheme: PASS')
