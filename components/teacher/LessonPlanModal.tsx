@@ -1750,7 +1750,7 @@ export default function LessonPlanModal({
                 />
               )}
               {jumpingDraft && <p role="status" style={{fontSize:12,color:'#174f38',marginBottom:12}}>
-                Using Lesson {jumpingDraft.lessonNumber}: {jumpingDraft.title}. This creates a teacher-review draft; it is not published content.
+                Using Lesson {jumpingDraft.lessonNumber}: {jumpingDraft.title}. The saved lesson plan remains editable until delivery.
               </p>}
               {suggestionLinked && !canonicalIdentity && (
                 <p style={{ fontSize: 11, color: '#b45309', marginBottom: 12 }}>
