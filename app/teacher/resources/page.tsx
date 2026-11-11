@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { C, Modal } from '@/components/teacher/ui'
 import TeachingLibraryStructure from '@/components/teacher/TeachingLibraryStructure'
+import type { CanonicalTeachingLibraryItem } from '@/components/teacher/TeachingLibraryStructure'
 
 type ResourceType = 'notes' | 'assessment' | 'exercise' | 'quiz' | 'video' | 'other'
 
@@ -30,6 +31,7 @@ type SchemeLesson = {
   id: string
   class_id: string
   subject_id: string
+  academic_term_id: string | null
   topic: string | null
   sub_strand: string | null
   strand: string | null
@@ -55,6 +57,7 @@ type LearningResource = {
   subject: string | null
   grade: string | null
   asset_kind: string | null
+  material_variant: string | null
   purpose: string | null
   status: string
   visibility: string
@@ -126,9 +129,11 @@ export default function TeacherResourcesPage() {
   const requestedSubjectId = searchParams.get('subjectId') ?? ''
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [linkWarning, setLinkWarning] = useState('')
   const [teacherId, setTeacherId] = useState<string | null>(null)
   const [schoolId, setSchoolId] = useState<string | null>(null)
   const [week, setWeek] = useState<number | null>(null)
+  const [termId, setTermId] = useState<string | null>(null)
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [classes, setClasses] = useState<ClassOption[]>([])
   const [subjects, setSubjects] = useState<SubjectOption[]>([])
@@ -163,12 +168,44 @@ export default function TeacherResourcesPage() {
     filter === 'all' ? catalogueLibrary : catalogueLibrary.filter(row => row.type === filter),
     [catalogueLibrary, filter],
   )
-  const visiblePacks = useMemo(
+  // The library is independent of the current week or a timetable. "Ready
+  // this week" remains a separate, correctly date-scoped view of the same
+  // Scheme-linked inventory.
+  const cataloguePacks = useMemo(
     () => packs.filter(pack =>
       (!requestedClassId || pack.scheme.class_id === requestedClassId) &&
       (!requestedSubjectId || pack.scheme.subject_id === requestedSubjectId),
     ),
     [packs, requestedClassId, requestedSubjectId],
+  )
+  const visiblePacks = useMemo(
+    () => cataloguePacks.filter(pack =>
+      week !== null && termId !== null &&
+      pack.scheme.week === week &&
+      pack.scheme.academic_term_id === termId,
+    ),
+    [cataloguePacks, week, termId],
+  )
+  const canonicalLibraryItems = useMemo<CanonicalTeachingLibraryItem[]>(() =>
+    cataloguePacks.flatMap(pack => pack.resources.flatMap(item => {
+      if (!item.resource) return []
+      const resource = item.resource
+      const schemeHref = `/teacher/scheme?classId=${encodeURIComponent(pack.scheme.class_id)}&subjectId=${encodeURIComponent(pack.scheme.subject_id)}`
+      return [{
+        id: resource.id,
+        title: resource.title,
+        description: resource.description,
+        assetKind: resource.asset_kind,
+        materialVariant: resource.material_variant,
+        purpose: resource.purpose,
+        resourceRole: item.resource_role,
+        href: readerHref(item),
+        schemeHref,
+        classLabel: pack.classLabel,
+        subjectLabel: pack.subjectLabel,
+      }]
+    })),
+    [cataloguePacks],
   )
   const readyCount = useMemo(() => visiblePacks.reduce((sum, pack) => sum + pack.resources.length, 0), [visiblePacks])
 
@@ -186,6 +223,7 @@ export default function TeacherResourcesPage() {
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
+    setLinkWarning('')
     try {
       const auth = await supabase.auth.getUser()
       if (auth.error) throw auth.error
@@ -240,26 +278,67 @@ export default function TeacherResourcesPage() {
       const resolvedWeek = calendarRow?.week_number ?? null
       const termId = calendarRow?.term_id ?? null
       setWeek(resolvedWeek)
-      if (!resolvedWeek || !termId || !classIds.length) { setPacks([]); return }
+      setTermId(termId)
+      // A teacher can browse linked resources even during holidays or before
+      // the school calendar assigns an instructional week.
+      if (!classIds.length) { setPacks([]); return }
 
       const schemeResult = await supabase
         .from('scheme_of_work')
-        .select('id,class_id,subject_id,topic,sub_strand,strand,week,lesson_number,sequence_number')
+        .select('id,class_id,subject_id,academic_term_id,topic,sub_strand,strand,week,lesson_number,sequence_number')
         .eq('teacher_id', user.id)
         .eq('school_id', resolvedSchoolId)
-        .eq('academic_term_id', termId)
-        .eq('week', resolvedWeek)
         .in('class_id', classIds)
+        .order('week', { ascending: true })
+        .limit(300)
       if (schemeResult.error) throw schemeResult.error
       const schemes = ((schemeResult.data ?? []) as SchemeLesson[]).sort(orderScheme)
       if (!schemes.length) { setPacks([]); return }
 
-      const linkResult = await supabase.rpc('list_scheme_lesson_resources_batch', { p_scheme_ids: schemes.map(row => row.id) })
+      const schemeIds = schemes.map(row => row.id)
+      const [linkResult, canonicalLinkResult] = await Promise.all([
+        supabase.rpc('list_scheme_lesson_resources_batch', { p_scheme_ids: schemeIds }),
+        supabase.from('teaching_resource_links')
+          .select('id,scheme_lesson_id,resource_id,usage_role,sequence,page_start,page_end')
+          .eq('target_type', 'scheme_lesson').in('scheme_lesson_id', schemeIds),
+      ])
       if (linkResult.error) throw linkResult.error
-      const links = (linkResult.data ?? []) as LinkedResourceRow[]
+      // The canonical generic resource bridge is additive. If older tenants
+      // cannot read it, keep their legacy Scheme content usable and show a
+      // non-blocking warning instead of losing the entire library.
+      if (canonicalLinkResult.error) {
+        setLinkWarning('Some additional Scheme links could not be loaded; available resources are still shown.')
+      }
+      const legacyLinks = (linkResult.data ?? []) as LinkedResourceRow[]
+      const canonicalLinks: LinkedResourceRow[] = ((canonicalLinkResult.data ?? []) as Array<{
+        id: string
+        scheme_lesson_id: string
+        resource_id: string
+        usage_role: string
+        sequence: number
+        page_start: number | null
+        page_end: number | null
+      }>).map(row => ({
+        id: row.id,
+        scheme_lesson_id: row.scheme_lesson_id,
+        resource_id: row.resource_id,
+        publication_id: '',
+        chapter_id: '',
+        resource_role: row.usage_role,
+        sequence: row.sequence,
+        page_start: row.page_start,
+        page_end: row.page_end,
+      }))
+      const seenLinks = new Set<string>()
+      const links = [...legacyLinks, ...canonicalLinks].filter(row => {
+        const key = row.scheme_lesson_id + ':' + row.resource_id
+        if (seenLinks.has(key)) return false
+        seenLinks.add(key)
+        return true
+      })
       const resourceIds = unique(links.map(row => row.resource_id).filter(Boolean))
       const learningResult = resourceIds.length
-        ? await supabase.from('learning_resources').select('id,title,description,subject,grade,asset_kind,purpose,status,visibility,publication_id,chapter_id').in('id', resourceIds).eq('status', 'active').eq('visibility', 'public')
+        ? await supabase.from('learning_resources').select('id,title,description,subject,grade,asset_kind,material_variant,purpose,status,visibility,publication_id,chapter_id').in('id', resourceIds).eq('status', 'active').eq('visibility', 'public')
         : { data: [], error: null }
       if (learningResult.error) throw learningResult.error
       const learningMap = new Map(((learningResult.data ?? []) as LearningResource[]).map(row => [row.id, row]))
@@ -368,8 +447,9 @@ export default function TeacherResourcesPage() {
           <strong style={{ fontSize: 14 }}>Grade 1 Creative Activities · Learning library</strong>
           <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Read the shared curriculum activities and approved materials. Draft lesson manuscripts remain private.</span>
         </Link>
-        <TeachingLibraryStructure savedResources={catalogueLibrary} onAddPersonalResource={openAdd} />
+        <TeachingLibraryStructure savedResources={catalogueLibrary} linkedResources={canonicalLibraryItems} onAddPersonalResource={openAdd} />
         {error && <div role="alert" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 12, padding: 12, marginBottom: 14 }}>{error}</div>}
+        {linkWarning && <p role="status" style={{ color: '#8a6300', fontSize: 12 }}>{linkWarning}</p>}
 
         <section id="scheme-linked-resources" style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 10 }}>

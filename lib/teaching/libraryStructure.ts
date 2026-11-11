@@ -63,3 +63,86 @@ export function filterTeachingLibrarySlots(
       .some(value => value.toLocaleLowerCase().includes(normalized))
   })
 }
+
+
+/**
+ * Reuse canonical Content Engine identity and metadata to classify a resource.
+ * No category is required. If metadata does not prove the kind, the resource
+ * remains in the existing Scheme/library view rather than being guessed into
+ * a slot. Titles are never used for classification.
+ *
+ * material_variant is the explicit authorable type for the slots that do not
+ * have a dedicated asset_kind in the existing canonical schema.
+ */
+const EXPLICIT_VARIANTS: Readonly<Record<string, string>> = {
+  lesson_notes: 'lesson-notes',
+  teacher_notes: 'lesson-notes',
+  learner_notes: 'lesson-notes',
+  worked_example: 'worked-examples',
+  worked_examples: 'worked-examples',
+  illustration: 'illustrations-diagrams',
+  illustrations: 'illustrations-diagrams',
+  diagram: 'illustrations-diagrams',
+  diagrams: 'illustrations-diagrams',
+  demonstration: 'demonstrations',
+  experiment: 'experiments',
+  discussion: 'discussions',
+  project: 'projects',
+  educational_game: 'educational-games',
+  game: 'educational-games',
+  assignment: 'assignments',
+  homework: 'homework',
+  quiz: 'quizzes',
+  test: 'tests-exams',
+  exam: 'tests-exams',
+  tests_exams: 'tests-exams',
+  revision: 'revision',
+  reflection: 'reflection',
+  remedial: 'remedial-enrichment',
+  enrichment: 'remedial-enrichment',
+}
+
+const CANONICAL_KINDS: Readonly<Record<string, string>> = {
+  teacher_notes: 'lesson-notes',
+  learner_notes: 'lesson-notes',
+  worked_example: 'worked-examples',
+  project: 'projects',
+  homework: 'homework',
+  quiz: 'quizzes',
+  revision: 'revision',
+  remedial: 'remedial-enrichment',
+  enrichment: 'remedial-enrichment',
+}
+
+const EXPLICIT_SCHEME_ROLES: Readonly<Record<string, string>> = {
+  project: 'projects',
+  homework: 'homework',
+  homework_source: 'homework',
+  project_brief: 'projects',
+  revision_source: 'revision',
+  teacher_notes: 'lesson-notes',
+  remedial: 'remedial-enrichment',
+  enrichment: 'remedial-enrichment',
+}
+
+function normalizedMetadata(value: string | null | undefined) {
+  return (value ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+}
+
+/** Returns null for materials without explicit evidence of a matching slot. */
+export function teachingLibrarySlotForResource(resource: {
+  assetKind?: string | null
+  materialVariant?: string | null
+  purpose?: string | null
+  resourceRole?: string | null
+}): string | null {
+  const variant = EXPLICIT_VARIANTS[normalizedMetadata(resource.materialVariant)]
+  if (variant) return variant
+  const kind = CANONICAL_KINDS[normalizedMetadata(resource.assetKind)]
+  if (kind) return kind
+  const role = EXPLICIT_SCHEME_ROLES[normalizedMetadata(resource.resourceRole)]
+  if (role) return role
+  const purpose = normalizedMetadata(resource.purpose)
+  if (purpose === 'remediate' || purpose === 'enrich') return 'remedial-enrichment'
+  return null
+}
