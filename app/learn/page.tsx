@@ -247,6 +247,14 @@ export default function LearnPage() {
         </div>
       </div>
 
+      <div style={{ padding: '16px 16px 0' }}>
+        <button type="button" onClick={() => router.push('/learn/grade-1/creative-activities')}
+          style={{ display: 'block', width: '100%', padding: '16px 18px', textAlign: 'left', border: '1px solid #32684d', borderRadius: 14, background: '#10241a', color: TEXT, cursor: 'pointer', fontFamily: FONT_BODY }}>
+          <strong style={{ fontSize: 15, fontFamily: FONT_DISPLAY }}>Grade 1 Creative Activities</strong>
+          <span style={{ display: 'block', marginTop: 4, color: '#b0cdb9', fontSize: 12, lineHeight: 1.5 }}>Read original curriculum activities and published learning resources. No PDF or sign-in needed for the activities.</span>
+        </button>
+      </div>
+
       {/* STATS BAR */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8,
