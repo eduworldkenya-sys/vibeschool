@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, BookOpen, Users, GraduationCap, ArrowRight, RefreshCw, Video, MessageCircle, BarChart3 } from "lucide-react";
+import { CalendarDays, Users, GraduationCap, ArrowRight, RefreshCw, Video, MessageCircle } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { tuitionLessonState } from "@/lib/vibetutor/lessonLifecycle";
 
@@ -92,10 +92,6 @@ export default function TeacherTutoringPage() {
     { label: "Lessons", detail: "Schedule & timetable", href: "/teacher/tutoring/students?tool=lessons", icon: CalendarDays },
      { label: "Messages", detail: "Private conversations", href: "/teacher/tutoring/students?tool=messages", icon: MessageCircle },
   ];
-  const futureTools = [
-    { label: "Resources", detail: "Teaching materials", icon: BookOpen },
-    { label: "Progress", detail: "Learning outcomes", icon: BarChart3 },
-  ];
   return <div style={{ width: "100%", maxWidth: 900, margin: "0 auto", padding: "20px 14px 100px", display: "grid", gap: 16, color: "var(--teacher-ink, #1c2923)" }}>
     <header>
       <span style={{ color: green, fontSize: 12, fontWeight: 750, letterSpacing: ".05em" }}>VIBESCHOOL · MY TUTORING</span>
@@ -122,7 +118,7 @@ export default function TeacherTutoringPage() {
         </div>
         {nextLesson ? <>
           <p style={{ margin: "12px 0 3px", fontSize: 16, fontWeight: 750 }}>{nextLesson.title}</p>
-          <p style={{ fontSize: 13, color: muted, margin: "0 0 14px" }}>{new Date(nextLesson.starts_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Nairobi" })} · Open lesson details to join</p>
+          <p style={{ fontSize: 13, color: muted, margin: "0 0 14px" }}>{new Date(nextLesson.starts_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Nairobi" })} · {tuitionLessonState(nextLesson) === "joinable" ? "Classroom ready" : "Join opens 15 minutes before the lesson"}</p>
           <Link href={tuitionLessonState(nextLesson) === "joinable" ? "/tuition/lessons/" + nextLesson.id : "/teacher/tutoring/students?tool=lessons"} style={{ ...linkStyle, display: "flex", width: "100%" }}>{tuitionLessonState(nextLesson) === "joinable" ? "Join classroom" : "View lesson details"} <ArrowRight size={16} aria-hidden="true" /></Link>
         </> : <p style={{ color: muted, margin: "10px 0 0", fontSize: 14 }}>No upcoming lessons. Schedule one with a connected student.</p>}
       </section>
@@ -141,19 +137,8 @@ export default function TeacherTutoringPage() {
             <Video size={21} color={green} aria-hidden="true" />
             <strong style={{ fontSize: 14 }}>Join live classroom</strong>
             <span style={{ fontSize: 12, color: muted }}>{joinableLesson.title}</span>
-          </Link> : <div aria-label="No live classroom available" style={{ ...panel, display: "grid", alignContent: "start", gap: 5, minHeight: 108, padding: 14, opacity: .7 }}>
-            <Video size={21} color={green} aria-hidden="true" />
-            <strong style={{ fontSize: 14 }}>Live Classroom</strong>
-            <span style={{ fontSize: 12, color: muted }}>Opens shortly before your next lesson</span>
-          </div>}
-          {futureTools.map(tool => {
-            const Icon = tool.icon;
-            return <div key={tool.label} aria-label={`${tool.label} is not available yet`} style={{ ...panel, display: "grid", alignContent: "start", gap: 5, minWidth: 0, minHeight: 108, padding: 14, opacity: .7 }}>
-              <Icon size={21} color={green} aria-hidden="true" />
-              <strong style={{ fontSize: 14 }}>{tool.label}</strong>
-              <span style={{ fontSize: 12, color: muted }}>{tool.detail} · Coming later</span>
-            </div>;
-          })}
+          </Link> : null}
+
         </div>
       </section>
       <section aria-label="My tutor listing" style={{ ...panel, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
