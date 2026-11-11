@@ -7,6 +7,10 @@ on:
       - 'components/teacher/curriculum/Grade1*Map.tsx'
       - 'scripts/test-grade1-*.mjs'
       - 'supabase/migrations/20261111080000_grade1_math_english_curriculum_scheme_bindings.sql'
+      - 'supabase/migrations/2026111110*_grade1_*.sql'
+      - 'lib/teaching/creativeSchemeDraft.mjs'
+      - 'components/teacher/scheme/AutoCreativeScheme.jsx'
+      - 'components/teacher/scheme/WeeklyLessonSlots.tsx'
   push:
     branches: [main]
     paths:
@@ -14,6 +18,10 @@ on:
       - 'components/teacher/curriculum/Grade1*Map.tsx'
       - 'scripts/test-grade1-*.mjs'
       - 'supabase/migrations/20261111080000_grade1_math_english_curriculum_scheme_bindings.sql'
+      - 'supabase/migrations/2026111110*_grade1_*.sql'
+      - 'lib/teaching/creativeSchemeDraft.mjs'
+      - 'components/teacher/scheme/AutoCreativeScheme.jsx'
+      - 'components/teacher/scheme/WeeklyLessonSlots.tsx'
 
 permissions:
   contents: read
@@ -37,3 +45,7 @@ jobs:
         run: node scripts/test-grade1-english-mathematics-curriculum-map.mjs
       - name: Verify persistent reader identity and Scheme authority
         run: node scripts/test-grade1-math-english-scheme-bindings.mjs
+      - name: Verify Creative Activities annual Scheme remains intact
+        run: node scripts/test-grade1-creative-auto-scheme.mjs
+      - name: Verify Grade 1 English/Maths weekly pacing and thematic Scheme save
+        run: node scripts/test-grade1-math-english-weekly-scheme-pacing.mjs
