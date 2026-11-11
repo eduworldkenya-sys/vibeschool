@@ -225,7 +225,7 @@ export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUni
     <h2 style={{ margin: '6px 0', fontSize: 'clamp(20px,3vw,26px)' }}>Creative Activities</h2>
     <p style={{ color: '#536c60', fontSize: 13, lineHeight: 1.6, margin: '0 0 12px' }}>Read the annual curriculum directly in VibeSchool. Three strands · 16 sub-strands · 68 mapped VibeSchool learning outcomes · 210 suggested lessons.</p>
     <div style={{ ...card, background: '#eff6f1', fontSize: 12, lineHeight: 1.6, marginBottom: 15 }}>
-      <strong>Source:</strong> KICD 2024 revised Grades 1–3 Creative Activities & Indigenous Languages curriculum. This is independently written VibeSchool guidance, not the official KICD text; final source-to-outcome certification is pending.{' '}
+      <strong>Source:</strong> KICD 2024 revised Grades 1–3 Creative Activities & Indigenous Languages curriculum. This is VibeSchool-original teaching guidance mapped to the KICD curriculum, not the official KICD text.{' '}
       <a href={GRADE1_CREATIVE_SOURCE} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 800, color: '#13573e' }}>View original KICD source</a>.
       <div style={{ marginTop: 5, color: '#526d5e' }}>Curriculum scope is independent of the teacher’s weekly timetable, scheme and lesson plans.</div>
     </div>
@@ -240,7 +240,7 @@ export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUni
     {onPlanUnit && <div style={{ ...card, marginBottom: 14, borderColor: '#9fbbaa' }}>
       {linkedUnit ? <button type="button" onClick={() => onPlanUnit(unit.id)} style={{ width: '100%', minHeight: 44, padding: '11px 14px', borderRadius: 10, border: 0, background: '#175b43', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Plan this sub-strand in Scheme of Work</button>
         : <p role="status" style={{ fontSize: 13, color: '#526d5e', margin: 0 }}>{catalogLoading ? 'Connecting curriculum records…' : catalogError || 'This curriculum unit is not yet linked to a database record.'}</p>}
-      <p style={{ margin: '8px 0 0', fontSize: 12, color: '#526d5e', lineHeight: 1.5 }}>Choose an instructional week and the learning outcomes for a lesson. This is VibeSchool-authored guidance, not verified KICD text.</p>
+      <p style={{ margin: '8px 0 0', fontSize: 12, color: '#526d5e', lineHeight: 1.5 }}>Choose an instructional week and the linked VibeSchool learning outcomes for the lesson. The original KICD source remains available above.</p>
     </div>}
     {onOpenSchemeUnit && <div style={{ ...card, marginBottom: 14, borderColor: '#9fbbaa' }}>
       <button type="button" onClick={() => onOpenSchemeUnit(unit.id)} style={{ width: '100%', minHeight: 44, padding: '12px 14px', borderRadius: 10, border: 0, background: '#175b43', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Plan {unit.title} in Scheme of Work</button>
@@ -275,6 +275,6 @@ export default function Grade1CreativeActivitiesMap({ compact = false, onPlanUni
       <button type="button" disabled={index === 0} onClick={() => choose(GRADE1_CREATIVE_UNITS[index - 1].id)} style={{ minHeight: 44, padding: '10px 14px', borderRadius: 10, border: '1px solid #c8d7cc', background: '#fff', color: '#1a5a40', fontWeight: 700, opacity: index === 0 ? 0.45 : 1, cursor: index === 0 ? 'default' : 'pointer' }}>← Previous</button>
       <button type="button" disabled={index === GRADE1_CREATIVE_UNITS.length - 1} onClick={() => choose(GRADE1_CREATIVE_UNITS[index + 1].id)} style={{ minHeight: 44, padding: '10px 14px', borderRadius: 10, border: 'none', background: '#175b43', color: '#fff', fontWeight: 800, opacity: index === GRADE1_CREATIVE_UNITS.length - 1 ? 0.45 : 1, cursor: index === GRADE1_CREATIVE_UNITS.length - 1 ? 'default' : 'pointer' }}>Next topic →</button>
     </div>
-    {!compact && <p style={{ fontSize: 11, color: '#5f776b', margin: '13px 0 0' }}>Reference: VS-CUR-G01-CA-2026. Curriculum outcomes may now link to a teacher's scheme, but VibeSchool-authored material remains pending official KICD reconciliation.</p>}
+    {!compact && <p style={{ fontSize: 11, color: '#5f776b', margin: '13px 0 0' }}>Reference: VS-CUR-G01-CA-2026. These VibeSchool-authored outcomes connect directly to the teacher's Scheme; the cited KICD document remains the curriculum reference.</p>}
   </section>
 }
