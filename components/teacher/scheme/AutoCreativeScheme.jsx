@@ -34,7 +34,7 @@ export default function AutoCreativeScheme({draft,termId,week,savedLessons,catal
     const id = record?.id&&outcome?.id ? record.id+':'+outcome.id : null
     const alreadySaved = !!id && (used.get(id)||0)>0
     if(alreadySaved)used.set(id,used.get(id)-1)
-    return {...row,outcomeId:outcome?.id,subStrandId:record?.id,alreadySaved}
+    return {...row,outcome:outcome?.outcome_text||null,outcomeId:outcome?.id,subStrandId:record?.id,alreadySaved}
   })
   const topics = items => [...new Set(items.map(item=>item.themeTitle?`${item.themeTitle}: ${item.title}`:item.title))].join(' · ')
   return <section aria-label={`Automatically linked Grade 1 ${subjectName} scheme`} style={surface}>
@@ -72,7 +72,7 @@ export default function AutoCreativeScheme({draft,termId,week,savedLessons,catal
         {marked.map((item,index)=><div key={item.key} style={{background:'#fff',border:'1px solid #dce8de',borderRadius:10,padding:'10px 12px'}}>
           <div style={{fontSize:12,fontWeight:800,color:'#183e2b'}}>Draft lesson {index+1}: {item.title}</div>
           {item.themeTitle && <p style={{fontSize:12,fontWeight:700,color:'#276647',margin:'4px 0'}}>Theme {item.themeId}: {item.themeTitle}</p>}
-          <p style={{fontSize:12,lineHeight:1.5,color:'#476050',margin:'5px 0 8px'}}>{item.outcome}</p>
+          <p style={{fontSize:12,lineHeight:1.5,color:'#476050',margin:'5px 0 8px'}}>{item.outcome||'Persisted curriculum outcome unavailable. Reconnect before saving.'}</p>
           <div style={{display:'flex',flexWrap:'wrap',gap:7,alignItems:'center'}}>
             {item.alreadySaved?<span style={{fontSize:12,color:'#176442',fontWeight:700}}>Saved in this week</span>:
               <button type="button" style={{...button,background:'#175b43',color:'#fff'}}
