@@ -3,7 +3,7 @@ name: TSC Marketplace Sandbox Contract
 on:
   pull_request:
     paths:
-      - "app/teacher/marketplace/sandbox/**"
+      - "app/teacher/marketplace/**"
       - "lib/teacher/tscSandboxMatching.ts"
       - "lib/teacher/tsc2026CountyAllocations.ts"
       - "lib/auth-routing.ts"
@@ -14,7 +14,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "app/teacher/marketplace/sandbox/**"
+      - "app/teacher/marketplace/**"
       - "lib/teacher/tscSandboxMatching.ts"
       - "lib/teacher/tsc2026CountyAllocations.ts"
       - "lib/auth-routing.ts"
