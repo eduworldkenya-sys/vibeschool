@@ -88,7 +88,7 @@ function HomeworkInner() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [roster, setRoster] = useState<Array<{ student_id: string; joined_at: string | null; name: string }>>([]);
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([]);
-  const [members, setMembers] = useState<Array<{ group_id: string; student_id: string; created_at: string }>>([]);
+  const [members, setMembers] = useState<Array<{ group_id: string; student_id: string; created_at: string | null }>>([]);
   const selectedGroupRequestId = useRef<string | null>(null);
   const [targetGroup, setTargetGroup] = useState<{ id: string; name: string; memberCount: number } | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -145,7 +145,7 @@ function HomeworkInner() {
         ? await supabase.from("students").select("id,name").in("id", learnerIds).is("deleted_at", null)
         : { data: [], error: null };
       if (namesRes.error) throw namesRes.error;
-      const names = new Map((namesRes.data ?? []).map(row => [row.id, row.name]));
+      const names = new Map<string, string>((namesRes.data ?? []).map((row): [string, string] => [row.id, row.name]));
       setRoster(enrolled.map(row => ({ ...row, name: names.get(row.student_id) ?? "Learner" })));
       setList((homeworkRes.data ?? []) as HomeworkRow[]);
       setGroups(groupsRes.data ?? []);
