@@ -117,12 +117,16 @@ const CANONICAL_KINDS: Readonly<Record<string, string>> = {
 const EXPLICIT_SCHEME_ROLES: Readonly<Record<string, string>> = {
   project: 'projects',
   homework: 'homework',
+  homework_source: 'homework',
+  project_brief: 'projects',
+  revision_source: 'revision',
+  teacher_notes: 'lesson-notes',
   remedial: 'remedial-enrichment',
   enrichment: 'remedial-enrichment',
 }
 
 function normalizedMetadata(value: string | null | undefined) {
-  return (value ?? '').trim().toLowerCase().replace(/[\\s-]+/g, '_')
+  return (value ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_')
 }
 
 /** Returns null for materials without explicit evidence of a matching slot. */
