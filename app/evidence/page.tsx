@@ -29,7 +29,7 @@ export default function EvidencePage() {
         <div className="wrap">
           <p className="eyebrow">VIBESCHOOL EVIDENCE</p>
           <h1>What works today. What the evidence shows.</h1>
-          <p className="lead">See what you can explore now and which school results have been independently checked and approved for publication.</p>
+          <p className="lead">See what you can explore now and which school results have been checked and approved for publication.</p>
           <div className="actions"><Link className="primary" href="/sandbox">Explore VibeSchool</Link></div>
         </div>
       </section>
