@@ -62,7 +62,7 @@ begin
   update public.learning_resource_versions v
     set payload=p.revised_payload,
         content_sha256=encode(extensions.digest(convert_to(p.revised_payload::text,'UTF8'),'sha256'),'hex'),
-        provenance=v.provenance || jsonb_build_object('editorial_fix','2026-11-11 missing-visual and in-lesson song guidance')
+        provenance=v.provenance || jsonb_build_object('editorial_fix','2026-11-11 missing-visual and in-lesson song guidance','pre_release_content_sha256',v.content_sha256)
     from patches p where p.id=v.id;
   get diagnostics v_count = row_count;
   if v_count<>2 then raise exception 'GRADE1_RELEASE_EDITORIAL_FIX_INCOMPLETE'; end if;
