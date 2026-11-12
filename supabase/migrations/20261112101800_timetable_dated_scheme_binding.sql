@@ -131,6 +131,23 @@ begin
     raise exception 'dated_occurrence_required';
   end if;
 
+  -- Dated plans must resolve to this teacher's exact existing slot,
+  -- not merely to an arbitrary slot UUID stored on a plan.
+  if not exists (
+    select 1
+    from public.timetable_slots ts
+    where ts.id = v_plan.timetable_slot_id
+      and ts.school_id = v_plan.school_id
+      and ts.teacher_id = auth.uid()
+      and ts.class_id = v_plan.class_id
+      and ts.subject_id = v_plan.subject_id
+      and ts.day_of_week = extract(isodow from v_plan.taught_date)::integer
+      and ts.effective_from <= v_plan.taught_date
+      and (ts.effective_until is null or ts.effective_until >= v_plan.taught_date)
+  ) then
+    raise exception 'dated_occurrence_slot_mismatch';
+  end if;
+
   if not exists (
     select 1
     from public.teacher_classes tc
@@ -195,6 +212,20 @@ begin
       )
   ) then
     raise exception 'outcome_identity_unverified';
+  end if;
+
+  -- In-progress and completed teaching keeps its original Scheme
+  -- and outcome even when the occurrence-outcome junction is empty.
+  if exists (
+    select 1 from public.teaching_occurrences o
+    where o.timetable_slot_id = v_plan.timetable_slot_id
+      and o.occurrence_date = v_plan.taught_date
+      and o.lifecycle in ('in_progress','completed')
+  ) and (
+    v_plan.scheme_id is distinct from p_scheme_id
+    or v_plan.curriculum_outcome_id is distinct from p_outcome_id
+  ) then
+    raise exception 'occurrence_outcome_immutable';
   end if;
 
   -- Never change an outcome already pinned to an
