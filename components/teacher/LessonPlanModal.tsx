@@ -86,6 +86,13 @@ function startLessonErrorMessage(code: StartOccurrenceErrorCode): string {
       return 'This lesson belongs to a different teacher.'
     case 'invalid_occurrence_date':
       return 'This date no longer matches the lesson schedule.'
+    case 'lesson_plan_outcome_required':
+    case 'scheme_outcome_required':
+      return 'Link a verified curriculum outcome before teaching.'
+    case 'lesson_plan_outcome_mismatch':
+      return 'The outcome does not match the saved Scheme lesson.'
+    case 'occurrence_outcome_immutable':
+      return 'This teaching occurrence has a confirmed outcome and cannot be reassigned.'
     case 'lesson_plan_required':
       return 'Save the lesson plan before starting the lesson.'
     case 'occurrence_completed':

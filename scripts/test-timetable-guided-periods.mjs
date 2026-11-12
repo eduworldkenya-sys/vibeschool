@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import ts from 'typescript';
 const source=fs.readFileSync('lib/timetable/periods.ts','utf8');
 const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ES2022}}).outputText;
-const {periodsForDay,teachingBlock,protectedBlockConflict,singleDateSchedule,isUpperPrimary,upperPrimaryPeriods,isUpperPrimaryPeriod}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
+const {periodsForDay,teachingBlock,protectedBlockConflict,singleDateSchedule,isUpperPrimary,validConfiguredLessonPeriod}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
 const period=(id,start,end,kind='lesson',school='school',day=0)=>({id,school_id:school,schedule_day:day,period_number:1,label:kind,start_time:start,end_time:end,kind,protected:kind!=='lesson'});
 const all=[period('a','08:00:00','08:35:00'),period('b','08:35:00','09:10:00'),period('break','09:10:00','09:30:00','break'),period('c','09:30:00','10:05:00'),period('other','08:00','09:00','lesson','other'),period('tuesday','10:05','10:40','lesson','school',2)];
 const monday=periodsForDay(all,'school',1);
@@ -50,21 +50,17 @@ for(const field of ['dayOfWeek','effectiveFrom','effectiveUntil'])assert.ok(moda
 console.log('Single-date placement regressions: PASS');
 
 
-// School-day template and the database placement guard must agree.
-const upperPrimarySql = fs.readFileSync('supabase/migrations/20261110100000_upper_primary_timetable_rules.sql', 'utf8');
-const guardedPeriods = [...upperPrimarySql.matchAll(/time '(\d\d:\d\d)', time '(\d\d:\d\d)'/g)]
-  .map(([, start, end]) => [start, end]);
-const primaryPeriods = upperPrimaryPeriods('school', 1);
-assert.equal(primaryPeriods.length, 7);
-assert.deepEqual(primaryPeriods.map(({ start_time, end_time }) => [start_time, end_time]), guardedPeriods);
-const minutes = (time) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
-for (const period of primaryPeriods) {
-  assert.equal(minutes(period.end_time) - minutes(period.start_time), 35);
-  assert.ok(isUpperPrimaryPeriod(1, period.start_time, period.end_time));
-}
-assert.ok(isUpperPrimary(' Grade 4 '));
-assert.ok(!isUpperPrimary('Grade 7'));
-assert.ok(!isUpperPrimaryPeriod(6, '08:20', '08:55'));
-assert.ok(!isUpperPrimaryPeriod(4, '08:20', '09:30'));
-assert.ok(!isUpperPrimaryPeriod(4, '16:10', '16:40'));
-console.log('Upper-primary timetable policy regressions: PASS');
+// Only persisted, exact school-period identities qualify.
+const configured = [
+  period('p1', '08:20', '08:55'),
+  period('p2', '08:55', '09:30'),
+  period('break', '09:30', '09:50', 'break'),
+]
+assert.ok(validConfiguredLessonPeriod(configured, 'school', 1, 'p1', '08:20', '08:55'))
+assert.equal(validConfiguredLessonPeriod(configured, 'school', 1, 'p1', '09:50', '10:25'), false)
+assert.equal(validConfiguredLessonPeriod(configured, 'school', 1, 'missing', '08:20', '08:55'), false)
+assert.ok(isUpperPrimary(' Grade 4 '))
+assert.ok(!isUpperPrimary('Grade 7'))
+assert.ok(!modal.includes('upperPrimaryPeriods('))
+assert.ok(modal.includes('p_period_id: selectedBlock?.[0]?.id ?? null'))
+console.log('Configured school-period authority regressions: PASS');

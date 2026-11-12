@@ -7,6 +7,10 @@ export type StartOccurrenceErrorCode =
   | 'slot_not_owned'
   | 'invalid_occurrence_date'
   | 'lesson_plan_required'
+  | 'lesson_plan_outcome_required'
+  | 'scheme_outcome_required'
+  | 'lesson_plan_outcome_mismatch'
+  | 'occurrence_outcome_immutable'
   | 'occurrence_completed'
   | 'occurrence_cancelled'
   | 'occurrence_rescheduled'
@@ -18,6 +22,10 @@ const START_OCCURRENCE_ERROR_CODES: ReadonlyArray<Exclude<StartOccurrenceErrorCo
   'slot_not_owned',
   'invalid_occurrence_date',
   'lesson_plan_required',
+  'lesson_plan_outcome_required',
+  'scheme_outcome_required',
+  'lesson_plan_outcome_mismatch',
+  'occurrence_outcome_immutable',
   'occurrence_completed',
   'occurrence_cancelled',
   'occurrence_rescheduled',

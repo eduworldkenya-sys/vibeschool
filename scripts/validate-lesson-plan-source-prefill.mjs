@@ -23,8 +23,8 @@ const assertions = [
     'New lesson plans must prefill the resolved source topic.',
   ],
   [
-    workspace.includes('sourceLinked = source !== null'),
-    'Resolved Scheme/curriculum sources must be linked by default.',
+    workspace.includes('sourceLinked = Boolean(existingPlan?.scheme_id'),
+    'Only persisted Scheme identity may be marked linked.',
   ],
   [
     source.includes('occurrenceDate'),
@@ -57,9 +57,10 @@ const assertions = [
     'Transient progression errors must preserve dated timetable and curriculum fallback.',
   ],
   [
-    source.indexOf('if (!occurrenceDate) {') > source.indexOf('loadSchemeSourceForOccurrenceFallback({') &&
-      source.indexOf('if (!occurrenceDate) {') < source.indexOf('const curriculumWeek = instructionalWeek?.week_number ?? currentWeekOf(term)') &&
-      source.includes('if (progressionScheme)'),
+    source.includes("plan?.scheme_id") &&
+      source.includes('loadCheckedScheme(') &&
+      !source.includes('loadSchemeSourceForOccurrenceFallback') &&
+      source.indexOf('if (!occurrenceDate) {') < source.indexOf('const curriculumWeek ='),
     'Dated timetable occurrences must not prefill from global Scheme progression; undated flows may retain progression.',
   ],
   [

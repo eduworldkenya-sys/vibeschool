@@ -236,7 +236,7 @@ export async function loadLessonWorkspace({
         occurrenceDate,
         requestedSchemeId,
       })
-      sourceLinked = source !== null
+      sourceLinked = Boolean(existingPlan?.scheme_id && source?.schemeId === existingPlan.scheme_id)
 
       if (!source && timetableSlotId) {
         sourceError =
@@ -254,8 +254,8 @@ export async function loadLessonWorkspace({
       const persistedSource = await restorePersistedLessonSource(existingPlan)
       if (persistedSource) {
         source = persistedSource
-        sourceLinked = true
-        sourceError = null
+        sourceLinked = Boolean(existingPlan.scheme_id && persistedSource.schemeId === existingPlan.scheme_id)
+        sourceError = sourceLinked ? null : 'No confirmed Scheme item linked to this lesson.'
       }
     } catch (sourceResolutionError) {
       console.error('[lessonWorkspace] persisted source restoration failed', sourceResolutionError)
