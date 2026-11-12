@@ -46,6 +46,16 @@
 
 The owner supplies the **educational priority**, not each operational click. This policy does not create a background bot, silently authorize publishing or assert the current chat can access every external platform action.
 
+## Delegated verified-visual release — no recurring owner sign-in
+
+The solo owner authorizes the interactive VibeSchool operator to release **visual aids only** once each actual image has been stored as a canonical private candidate and has passed the existing verification/rights process. Individual diagrams no longer need a separate owner-login certification. This is **not** an exemption from verification or an invitation for anonymous publication.
+
+**Authorization is separate from upload:** `VIBESCHOOL_VISUAL_RELEASE_TOKEN` is a dedicated, server-side, 32+ character secret distinct from `VIBESCHOOL_VISUAL_INTAKE_TOKEN`. The new `POST /api/operator/visual-library/release` endpoint requires the release credential, an exact existing verified visual-version UUID and its canonical SHA-256, and documented educational quality, rights, accessibility and release-reason evidence. The service-only `vs_release_verified_visual` function independently rechecks source strand, private object MIME/size, alt/caption/labels, cleared rights, matching verification/file SHA, unique verified version and immutable certification evidence. It atomically marks **only that visual resource** certified, active and public, preserving the private storage bucket. Retries are idempotent.
+
+**No broad privilege change:** general `cla_certify_learning_resource_version` still requires the platform owner, protected curriculum/manuscript rules remain unchanged, and intake credentials cannot publish. Missing release token fails closed. No autonomous bulk release; each named visual is individually checked by the operator.
+
+**Reader connection is a separate check:** use the certified `[visual:UUID@VERSION_UUID]` reference inside an eligible **new** certified lesson version. Publishing a visual alone does not modify an immutable already-certified lesson body, publish unreviewed answers or guarantee it is embedded. After the release, check public visual endpoint and learner/teacher rendering. When release access or evidence is unavailable, report `VERIFIED_NOT_CERTIFIED` or `RELEASED_NOT_EMBEDDED` accurately without requiring the owner to visit HQ.
+
 ## Visual-production workflow
 
 1. **Outcome and instruction:** decide whether the learner benefits from a visual; no compulsory visuals for every lesson.
