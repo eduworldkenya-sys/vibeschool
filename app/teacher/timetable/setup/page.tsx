@@ -92,13 +92,13 @@ export default function TimetableSetupPage() {
   const [periodId, setPeriodId] = useState<string | null>(null)
   const [scheduleDay, setScheduleDay] = useState('0')
   const [label, setLabel] = useState('')
-  const [startTime, setStartTime] = useState('08:00')
-  const [endTime, setEndTime] = useState('08:40')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [kind, setKind] = useState('lesson')
   const [protectedBlock, setProtectedBlock] = useState(false)
 
   const [gradeLabel, setGradeLabel] = useState('')
-  const [durationMinutes, setDurationMinutes] = useState('40')
+  const [durationMinutes, setDurationMinutes] = useState('')
 
   const selectedSchool = schools.find(school => school.id === selectedSchoolId) ?? null
 
@@ -181,8 +181,8 @@ export default function TimetableSetupPage() {
     setPeriodId(null)
     setScheduleDay('0')
     setLabel('')
-    setStartTime('08:00')
-    setEndTime('08:40')
+    setStartTime('')
+    setEndTime('')
     setKind('lesson')
     setProtectedBlock(false)
   }
@@ -202,6 +202,10 @@ export default function TimetableSetupPage() {
     if (!selectedSchoolId || !canManage || busy) return
     if (!label.trim()) {
       setError('Give this part of the school day a name.')
+      return
+    }
+    if (!startTime || !endTime) {
+      setError('Enter the school-confirmed start and end times. Existing test slots are not a source of official teaching periods.')
       return
     }
     if (startTime >= endTime) {
@@ -342,8 +346,14 @@ export default function TimetableSetupPage() {
             </select>
             <input value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Period 1, Break, Lunch" style={fieldStyle} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={fieldStyle} />
-              <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={fieldStyle} />
+              <label style={{ display: 'grid', gap: 4, fontSize: 12, color: C.textPrimary }}>
+                Confirmed start time
+                <input aria-label="Confirmed start time" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={fieldStyle} />
+              </label>
+              <label style={{ display: 'grid', gap: 4, fontSize: 12, color: C.textPrimary }}>
+                Confirmed end time
+                <input aria-label="Confirmed end time" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={fieldStyle} />
+              </label>
             </div>
             <select value={kind} onChange={e => setKind(e.target.value)} style={fieldStyle}>
               {KINDS.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
@@ -364,7 +374,11 @@ export default function TimetableSetupPage() {
         {loading ? (
           <div style={{ color: C.textMuted, fontSize: 13 }}>Loading school periods…</div>
         ) : periods.length === 0 ? (
-          <div style={{ color: C.textMuted, fontSize: 13 }}>No school-day blocks are configured yet.</div>
+          <div role="status" style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.6 }}>
+             <strong>School timetable setup required.</strong> No confirmed teaching periods or breaks exist.
+             A school administrator must enter the real school-day times before new recurring lessons can be scheduled.
+             Existing test and historical timetable slots are preserved but are not accepted as period authority.
+           </div>
         ) : (
           <div style={{ display: 'grid', gap: 12 }}>
             {[...groupedPeriods.entries()].sort((a,b) => a[0]-b[0]).map(([day, rows]) => (
@@ -415,7 +429,7 @@ export default function TimetableSetupPage() {
             <input value={gradeLabel} onChange={e => setGradeLabel(e.target.value)} placeholder="e.g. Grade 8" style={fieldStyle} />
             <input type="number" min={20} max={120} value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} style={fieldStyle} />
             <div style={{ gridColumn: '1 / -1' }}>
-              <Btn onClick={saveDuration} disabled={busy || !gradeLabel.trim()}>Save grade duration</Btn>
+              <Btn onClick={saveDuration} disabled={busy || !gradeLabel.trim() || !durationMinutes.trim()}>Save grade duration</Btn>
             </div>
           </div>
         )}

@@ -667,7 +667,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
             </select>
             {!upperPrimary && <label style={{display:'block',marginTop:10,fontSize:13}}><input type="checkbox" checked={customTime} onChange={e => setCustomTime(e.target.checked)} /> Use a custom school time</label>}
             {usesCustomTime && <p style={{fontSize:12}}>Use this only for a genuine school exception. Breaks and clashes still apply.</p>}
-          </> : upperPrimary ? <p style={{fontSize:13}}>Choose Monday to Friday.</p> : <p style={{fontSize:13}}>No teaching periods are configured for this day. Enter your actual school times; do not assume a national lesson duration.</p>}
+          </> : upperPrimary ? <p role="alert" style={{fontSize:13}}>A confirmed 35-minute teaching period is required before scheduling Grades 4–6. <a href="/teacher/timetable/setup">Open school day setup</a> to enter your school's real periods and breaks. Existing test slots cannot establish these times.</p> : <p style={{fontSize:13}}>No teaching periods are configured for this day. <a href="/teacher/timetable/setup">Set up the school day</a> or use a real one-date exception with confirmed times.</p>}
           {!upperPrimary && gradeDurationDefault && selectedAssignment && (usesCustomTime || !hasTeachingPeriods) && (
             <div style={{ marginTop: 8, padding: 10, borderRadius: 10, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
               <strong>{selectedAssignment.gradeLabel} school default: {gradeDurationDefault} minutes.</strong>
