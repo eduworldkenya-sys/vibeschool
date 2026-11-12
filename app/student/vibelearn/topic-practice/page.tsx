@@ -40,7 +40,6 @@ export default function TopicPracticePage() {
   const [grade, setGrade] = useState('')
   const [questions, setQuestions] = useState<Question[]>([])
   const [topics, setTopics] = useState<Topic[]>([])
-  const [completedTopics, setCompletedTopics] = useState<string[]>([])
   const [session, setSession] = useState<Session|null>(null)
   const [choice, setChoice] = useState<number|null>(null)
   const [reviewQuestionId, setReviewQuestionId] = useState<string|null>(null)
@@ -59,7 +58,6 @@ export default function TopicPracticePage() {
     const profileGrade = gradeMatch ? gradeMatch[1].replace(/\s+/g,' ').replace(/^grade/i,'Grade').replace(/^form/i,'Form') : ''
     setGrade(profileGrade || window.localStorage.getItem(STORAGE + identity.studentId + ':grade') || '')
     setSession(readSession(STORAGE + identity.studentId))
-    try { const saved = JSON.parse(window.localStorage.getItem(STORAGE + identity.studentId + ':completed') || '[]'); if (Array.isArray(saved)) setCompletedTopics(saved.filter((x):x is string => typeof x === 'string')) } catch { setCompletedTopics([]) }
     setInitialised(true)
   }, [identityLoading, identity, initialised])
   useEffect(() => {
@@ -156,12 +154,6 @@ export default function TopicPracticePage() {
     if (!session || !currentAnswer) return
     const finished = session.index+1 >= TARGET
     remember({...session,index:Math.min(TARGET,session.index+1),finished})
-    if (finished && identity?.studentId) {
-      const key = session.grade + '::' + session.subject + '::' + session.topic
-      const nextCompleted = Array.from(new Set([...completedTopics,key]))
-      setCompletedTopics(nextCompleted)
-      try { window.localStorage.setItem(STORAGE + identity.studentId + ':completed',JSON.stringify(nextCompleted)) } catch {}
-    }
   }
   async function retryQuestion(question:Question) {
     if (choice === null || busy || !session) return
@@ -213,7 +205,7 @@ export default function TopicPracticePage() {
     {error && <p role="alert" style={{color:'#b91c1c'}}>{error}</p>}
     {grade && loading && <section style={card}>Loading available topics…</section>}
     {grade && !loading && session?.finished && <section style={card}>
-      <h2 style={heading}>Practice complete</h2>
+      <h2 style={heading}>Practice session finished</h2><p style={muted}>Finishing a session does not prove mastery. Use the scored answers below to decide what to practise again.</p>
       <p style={{fontSize:18,fontWeight:800}}>{results.correct} correct · {results.incorrect} incorrect · {results.skipped} skipped</p>
       <button style={button} onClick={() => { setReviewQuestionId('all'); setReviewResult(null) }}>Review mistakes</button>
       <button style={secondary} onClick={() => remember(null)}>Choose another topic</button>
@@ -238,7 +230,7 @@ export default function TopicPracticePage() {
     </section>}
     {grade && !loading && !session && <section style={card}>
       <h2 style={heading}>Choose a topic</h2>
-      {topics.length === 0 ? <p style={muted}>No five-question topics are ready for {grade} yet. Only approved practice material will appear here.</p> : <div style={{display:'grid',gap:10}}>{topics.map(item => <button key={item.subject+'::'+item.topic} disabled={busy} style={optionButton} onClick={() => void start(item)}><strong>{item.topic}</strong><span style={{display:'block',fontSize:12,color:'#64748b'}}>{item.subject} · {TARGET} questions · {completedTopics.includes(grade+'::'+item.subject+'::'+item.topic) ? 'Practise again' : 'Start'}</span></button>)}</div>}
+      {topics.length === 0 ? <p style={muted}>No five-question topics are ready for {grade} yet. Only approved practice material will appear here.</p> : <div style={{display:'grid',gap:10}}>{topics.map(item => <button key={item.subject+'::'+item.topic} disabled={busy} style={optionButton} onClick={() => void start(item)}><strong>{item.topic}</strong><span style={{display:'block',fontSize:12,color:'#64748b'}}>{item.subject} · {TARGET} questions · {'Start practice'}</span></button>)}</div>}
     </section>}
   </main>
 }
