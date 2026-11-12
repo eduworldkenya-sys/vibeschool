@@ -5,6 +5,7 @@ import { deriveTeachingWorkspace } from '../lib/teaching/workspace'
 const fixture = {
   key: { timetableSlotId: 'slot-1', occurrenceDate: '2026-11-12' },
   occurrenceId: 'original-1',
+  persistedLifecycle: 'missed',
   schoolId: 'school-1', teacherId: 'teacher-1',
   classId: 'class-1', subjectId: 'subject-1',
   dayOfWeek: 4, startTime: '16:10:00', endTime: '16:40:00',
@@ -22,6 +23,8 @@ const missed = deriveTeachingWorkspace(fixture)
 assert.equal(missed.primaryAction, 'recover_lesson', 'Missed must not start directly')
 assert.equal(missed.canStart, false)
 assert.equal(missed.canRecover, true)
+assert.equal(deriveTeachingWorkspace({ ...fixture, persistedLifecycle: 'planned' }).canRecover, false,
+  'Overdue UI inference must not authorize a writer that requires persisted missed state')
 assert.equal(missed.stages.find(x => x.stage === 'teach')?.state, 'blocked')
 assert.equal(deriveTeachingWorkspace({ ...fixture, occurrenceId: null }).canRecover, false,
   'Recovery requires an actual persisted original UUID')
@@ -32,7 +35,7 @@ const teaching = deriveTeachingWorkspace({ ...fixture, lifecycle: 'in_progress' 
 assert.equal(teaching.canComplete, true)
 assert.equal(teaching.canStart, false)
 const finished = deriveTeachingWorkspace({
-  ...fixture, lifecycle: 'completed',
+  ...fixture, lifecycle: 'completed', persistedLifecycle: 'completed',
   progress: { ...fixture.progress, progressRecordId: 'progress-1', recorded: true },
   reflection: { reflectionId: 'reflection-1', completed: true },
 })
