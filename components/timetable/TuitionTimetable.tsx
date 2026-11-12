@@ -79,17 +79,21 @@ export function useTuitionTimetable() {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const { data, error: readError } = await getSupabaseClient().rpc("vibetutor_my_lessons");
-      if (cancelled) return;
-      if (readError) {
+      try {
+        const { data, error: readError } = await getSupabaseClient().rpc("vibetutor_my_lessons");
+        if (cancelled) return;
+        if (readError) throw readError;
+        setLessons((data ?? []) as TuitionTimetableLesson[]);
+        setError(null);
+      } catch {
+        if (cancelled) return;
+        // A failed read (including a rejected network request) is unknown,
+        // never a confirmed empty private timetable.
         setLessons([]);
         setError("Private tuition lessons could not be loaded. Retry before relying on your timetable.");
-        setLoading(false);
-        return; // A failed read is unknown, not a confirmed empty schedule.
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLessons((data ?? []) as TuitionTimetableLesson[]);
-      setError(null);
-      setLoading(false);
     }
     void load();
     return () => { cancelled = true; };
