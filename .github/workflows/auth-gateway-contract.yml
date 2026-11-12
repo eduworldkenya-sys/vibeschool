@@ -6,6 +6,10 @@ on:
     paths:
       - 'app/auth/**'
       - 'app/api/create-student-account/**'
+      - 'app/signup/student/independent/**'
+      - 'app/signup/student/email/**'
+      - 'components/learner/LearnerGradePicker.*'
+      - 'scripts/test-learner-grade-picker.mjs'
       - 'app/login/**'
       - 'app/reset-password/**'
       - 'lib/auth-routing.ts'
@@ -35,3 +39,4 @@ jobs:
       - run: node scripts/test-auth-identity-reconciliation-contract.mjs
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node scripts/test-signup-role-integrity.mjs
+      - run: node scripts/test-learner-grade-picker.mjs
