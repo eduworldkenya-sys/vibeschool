@@ -13,16 +13,19 @@ const ids = [
 ]
 function validateGuardedMigration(sql) {
   const guards = [
-    'v_valid <> 2', 'v_true = 2', 'v_true = 0',
+    'v_valid <> 2', 'v_true = 2', 'v_true = 0', 'v_present <> 2',
     "b.block_type = 'activity'", "b.status = 'draft'",
     "c.status = 'draft'", "p.status = 'draft'",
     "b.plain_text = $example1$", "b.plain_text = $example2$",
     "from public.assessment_items", "from public.generated_assessment_items",
-    "source_block_id in (", "set is_assessable = false",
+    "source_block_id in (",
+  "v_present <> 2",
+  "controlled no-op.", "set is_assessable = false",
     "if v_true = 2 then", "elsif v_true = 0 then",
     "raise exception 'Grade 4 Place Value repair blocked:",
     "repair postcondition failed", "set local lock_timeout",
     'for update', 'where id in (',
+    'v_present = 0', 'and not exists (', 'controlled no-op.',
   ]
   for (const guard of guards)
     assert.ok(sql.includes(guard), 'Missing fail-closed guard: ' + guard)
