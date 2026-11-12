@@ -116,7 +116,7 @@ assert.match(sw, /url\.pathname\.startsWith\('\/auth\/'\)/)
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/)
 
 // Independent adult onboarding cannot make school/child membership a signup gate.
-const fastEntry = read('supabase/migrations/20261113021000_independent_adult_fast_entry.sql')
+const fastEntry = read('supabase/migrations/20261112231247_independent_adult_fast_entry.sql')
 assert.match(fastEntry, /get_my_auth_journey_state/)
 assert.ok(fastEntry.includes("'reason_code')='TEACHER_SCHOOL_REQUIRED'"))
 assert.ok(fastEntry.includes("'destination','/teacher/pulse'"))
