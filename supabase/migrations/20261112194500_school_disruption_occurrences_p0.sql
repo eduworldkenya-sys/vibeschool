@@ -90,7 +90,7 @@ begin
   select ce.id into v_existing
     from public.school_calendar_exceptions ce
    where ce.school_id=p_school_id and ce.exception_date=p_date
-     and ce.kind='closure' and ce.suppress_ordinary_teaching
+     and ce.suppress_ordinary_teaching
    limit 1;
   return jsonb_build_object(
     'school_id',p_school_id,'date',p_date,
@@ -143,6 +143,12 @@ begin
     from public.school_calendar_exceptions ce
    where ce.school_id=p_school_id and ce.exception_date=p_date and ce.kind='closure';
   if v_existing_count>1 then raise exception 'AMBIGUOUS_SCHOOL_CLOSURE'; end if;
+
+  if exists (
+    select 1 from public.school_calendar_exceptions ce
+    where ce.school_id=p_school_id and ce.exception_date=p_date
+      and ce.kind<>'closure' and ce.suppress_ordinary_teaching
+  ) then raise exception 'DAY_ALREADY_SUPPRESSED_BY_OTHER_CALENDAR_EVENT'; end if;
 
   select * into v_ce from public.school_calendar_exceptions ce
    where ce.school_id=p_school_id and ce.exception_date=p_date and ce.kind='closure'
@@ -254,6 +260,11 @@ begin
     return jsonb_build_object('status','already_reopened',
       'calendar_exception_id',v_ce.id,'restored_occurrences',0);
   end if;
+  if exists (
+    select 1 from public.school_calendar_exceptions ce
+    where ce.school_id=v_ce.school_id and ce.exception_date=v_ce.exception_date
+      and ce.id<>v_ce.id and ce.suppress_ordinary_teaching
+  ) then raise exception 'OTHER_CALENDAR_CLOSURE_REMAINS'; end if;
 
   -- Do not reverse a day while teaching is in progress.
   if exists (select 1 from public.teaching_occurrences o
