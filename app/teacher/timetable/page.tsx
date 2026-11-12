@@ -728,6 +728,12 @@ function SlotDrawer({
             </button>
           )}
 
+          {workspace?.lifecycle === 'missed' && occRowId && !workspace.canRecover && (
+            <p role="status" style={{ fontSize: 12, color: '#92400e' }}>
+              This lesson is overdue, but the school record has not yet confirmed it as missed.
+              Recovery becomes available after the canonical missed-lesson sweep; no replacement has been created.
+            </p>
+          )}
           {/* TBL-009B: recover a missed lesson through the TBL-009A writer. */}
           {!occError && workspace?.canRecover && occRowId && (
             <Btn

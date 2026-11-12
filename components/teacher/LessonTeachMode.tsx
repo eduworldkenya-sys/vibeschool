@@ -104,9 +104,7 @@ export default function LessonTeachMode({
   const [coverageOutcome, setCoverageOutcome] = useState<LessonCoverageOutcome>('covered')
   const [whatWasTaught, setWhatWasTaught] = useState('')
   const [reflection, setReflection] = useState('')
-  const [attendanceResolved, setAttendanceResolved] = useState(false)
   const [attendanceUnavailableReason, setAttendanceUnavailableReason] = useState('')
-  const [evidenceResolved, setEvidenceResolved] = useState(false)
   const [noEvidenceReason, setNoEvidenceReason] = useState('')
   const [followUpDecision, setFollowUpDecision] = useState<LessonCompletionReview['followUpDecision']>('none')
   const [nextSteps, setNextSteps] = useState('')
@@ -251,11 +249,11 @@ export default function LessonTeachMode({
       setFinishError('Add a brief reflection before finishing the lesson.')
       return
     }
-    if (!noClassCoverage && !completionFacts.attendanceSaved && !attendanceResolved && !attendanceUnavailableReason.trim()) {
+    if (!noClassCoverage && !completionFacts.attendanceSaved && !attendanceUnavailableReason.trim()) {
       setFinishError('Confirm attendance or explain why it is unavailable.')
       return
     }
-    if (!noClassCoverage && !completionFacts.evidenceSaved && !evidenceResolved && !noEvidenceReason.trim()) {
+    if (!noClassCoverage && !completionFacts.evidenceSaved && !noEvidenceReason.trim()) {
       setFinishError('Confirm learning evidence or explain why none was recorded.')
       return
     }
@@ -266,8 +264,8 @@ export default function LessonTeachMode({
         coverage: coverageOutcome,
         whatWasTaught: whatWasTaught.trim(),
         reflection: noClassCoverage ? whatWasTaught.trim() : reflection.trim(),
-        attendanceUnavailableReason: context?.unscheduled ? attendanceUnavailableReason.trim() : noClassCoverage ? 'No current learners in this class.' : completionFacts.attendanceSaved || attendanceResolved ? null : attendanceUnavailableReason.trim(),
-        noEvidenceReason: context?.unscheduled ? noEvidenceReason.trim() : noClassCoverage ? 'No current learners in this class.' : completionFacts.evidenceSaved || evidenceResolved ? null : noEvidenceReason.trim(),
+        attendanceUnavailableReason: context?.unscheduled ? attendanceUnavailableReason.trim() : noClassCoverage ? 'No current learners in this class.' : completionFacts.attendanceSaved ? null : attendanceUnavailableReason.trim(),
+        noEvidenceReason: context?.unscheduled ? noEvidenceReason.trim() : noClassCoverage ? 'No current learners in this class.' : completionFacts.evidenceSaved ? null : noEvidenceReason.trim(),
         followUpDecision,
         nextSteps: nextSteps.trim() || null,
       })
@@ -478,16 +476,16 @@ export default function LessonTeachMode({
                   <label style={{display:'block',fontSize:11,fontWeight:800,marginTop:10}}>Why is attendance unavailable?</label>
                   <input value={attendanceUnavailableReason} onChange={e=>setAttendanceUnavailableReason(e.target.value)} placeholder="Explain attendance not recorded" style={{width:'100%',boxSizing:'border-box',padding:9,marginTop:5}} />
                 </> : completionFacts.attendanceSaved ? <p>Attendance is already complete.</p> : !noClassCoverage && <>
-                <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:10, fontSize:12 }}><input type="checkbox" checked={attendanceResolved} onChange={e=>setAttendanceResolved(e.target.checked)} /> Attendance is complete for this occurrence</label>
-                {!attendanceResolved && <input value={attendanceUnavailableReason} onChange={e=>setAttendanceUnavailableReason(e.target.value)} placeholder="Reason attendance is unavailable" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />}
+                <p style={{ fontSize:12 }}>Attendance is not verified for this occurrence. Save it through Attendance, or record why it is unavailable.</p>
+                <input value={attendanceUnavailableReason} onChange={e=>setAttendanceUnavailableReason(e.target.value)} placeholder="Reason attendance is unavailable" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />
                 </>}
                 {context?.unscheduled ? <>
                   <p style={{fontSize:12}}>No canonical learner evidence has been attached.</p>
                   <label style={{display:'block',fontSize:11,fontWeight:800,marginTop:10}}>Why is learner evidence unavailable?</label>
                   <input value={noEvidenceReason} onChange={e=>setNoEvidenceReason(e.target.value)} placeholder="Explain why no learner evidence was recorded" style={{width:'100%',boxSizing:'border-box',padding:9,marginTop:5}} />
                 </> : completionFacts.evidenceSaved ? <p>Learning evidence is already recorded.</p> : !noClassCoverage && <>
-                <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:10, fontSize:12 }}><input type="checkbox" checked={evidenceResolved} onChange={e=>setEvidenceResolved(e.target.checked)} /> Learning evidence has been recorded</label>
-                {!evidenceResolved && <input value={noEvidenceReason} onChange={e=>setNoEvidenceReason(e.target.value)} placeholder="Reason no learning evidence was recorded" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />}
+                <p style={{ fontSize:12 }}>Learning evidence is not verified for this occurrence. Save a record through Evidence, or record why none was captured.</p>
+                <input value={noEvidenceReason} onChange={e=>setNoEvidenceReason(e.target.value)} placeholder="Reason no learning evidence was recorded" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />
                 </>}
                 <label style={{ display:'block', fontSize:11, fontWeight:800, marginTop:10 }}>Follow-up</label>
                 <select value={followUpDecision} onChange={e=>setFollowUpDecision(e.target.value as LessonCompletionReview['followUpDecision'])} style={{ width:'100%', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5 }}><option value="none">No follow-up</option><option value="existing_task">Use an existing task</option><option value="create_task">Create a task after completion</option></select>

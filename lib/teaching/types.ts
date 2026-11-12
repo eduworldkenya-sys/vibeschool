@@ -10,6 +10,8 @@ export type Lifecycle =
 export interface TeachingOccurrence {
   key: OccurrenceKey
   occurrenceId: string | null
+  /** Database lifecycle; distinct from a clock-derived overdue display. */
+  persistedLifecycle?: Lifecycle | null
 
   schoolId:  string
   teacherId: string

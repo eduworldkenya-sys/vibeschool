@@ -88,3 +88,30 @@ The baseline table above records original acceptance hypotheses. The evidence be
 **Integration changes made:** PR #1469 was retargeted from main and merged into `integration/intelligent-timetable` at commit `2539755413aa963c1f0835c0fec5cbb0dabf89f6`. PRs #1468 and #1470 were previously merged into integration. The emergency-closure PR #1472 remains draft and must not be merged while its clean-rebuild gate fails.
 
 **Next authorized sequence:** (1) reconcile the four historic structural differences using the protected TBL-012/013 path and exact-version, clean-rebuild evidence; (2) validate pre-existing scheduled tuition conflicts before applying `20261112150000`; (3) apply only vetted original migration versions under the protected deployment procedure (never auto-version or bypass the ledger); (4) obtain school-confirmed Gilgil periods; (5) run authenticated Mumbi2 and cross-school/tuition collision tests; (6) certify all eleven gates before opening an integration-to-main release PR. Neither migrations nor historical slots should be rewritten merely to make checks green.
+
+## TBL-08 — occurrence lifecycle code repair (2026-11-12)
+
+**Branch:** `fix/tbl08-occurrence-lifecycle-replay-20261112` → `integration/intelligent-timetable`.
+**Acceptance:** remains **OPEN** until exact-head CI, database preflight, authenticated Mumbi2 Teach → Finish → Reopen and missed-lesson replay are demonstrated.
+
+### Repaired code defects
+
+- A persisted `missed` occurrence previously became `ready` if a plan existed; a past-due, unsaved planned lesson likewise could appear `ready`. Preserve missed authority and route to the existing TBL-009A recovery writer rather than starting the original occurrence.
+- A same-day overdue lesson can display as missed before the database sweep changes its persisted lifecycle from planned to missed. The recovery action now checks the persisted lifecycle and explains the wait instead of inviting an RPC that must reject it. Same-day canonical missed-state transition is not introduced by this PR.
+- A scheduled Lesson Notes link with no `occurrenceId` previously discarded the exact saved teaching occurrence. Restore from the teacher-owned plan's timetable-slot/date pair, and reject mismatched identities.
+- Scheduled Teach Mode previously could open with no saved occurrence, running a local timer without a server teaching session. Start only via the existing `start_teaching_occurrence_v2` RPC; never create a parallel lifecycle.
+- The Lesson Plan completion shortcut used `complete_teaching_occurrence` without the attendance, evidence, reflection, progress and Scheme review. Route finish through the existing `finalize_teaching_occurrence_v2` Teach Mode flow instead.
+- Teach Mode's two unchecked claims of saved attendance and evidence could be ticked without backing records. Only server-confirmed presence or an explicit truthful unavailable reason can be supplied to the finalization RPC.
+- Reopening a completed dated lesson shows the same occurrence ID with read-only counts for attendance/evidence, progress/reflection presence and teacher remarks/next steps; a recovered lesson displays its original missed occurrence ID.
+- Existing occurrence history remains readable even if timetable slot effective dates are later revised; new out-of-range candidate dates are still rejected.
+
+### Verification gates
+
+1. Run `npm run test:timetable`, `npm run typecheck` and the normal PR CI on the exact feature head.
+2. Confirm the live `start_teaching_occurrence_v2`, `finalize_teaching_occurrence_v2` and `schedule_recovery_occurrence` contracts/schema through the established read-only preflight; no migration is introduced by this repair.
+3. As signed-in Mumbi2, open one exact scheduled occurrence, start it, save attendance/evidence, finish with reflection and coverage decision, reload the same lesson link, and verify all stored IDs and counts by read-only queries.
+4. Use a separate genuine missed occurrence, schedule recovery, inspect original `recovered_from_id` ancestry and the new one-day dated slot, then finish/reopen that recovery and verify the original's history remains intact.
+5. Negative checks: wrong teacher, wrong plan/slot/date, missing outcome, no attendance/evidence with no reason, completed duplicate finish, cancelled/rescheduled original, expired slot and unavailable recovery date.
+6. Do not use a synthetic success message, source-contract test, or a merged PR as proof of live teaching evidence. Do not write fabricated historical lesson, attendance or learner outcomes.
+
+**Release decision:** TBL-08 stays **OPEN** pending authenticated production-compatible replay and the overall 11-gate integration review.

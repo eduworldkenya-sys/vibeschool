@@ -13,6 +13,7 @@ on:
       - 'supabase/migrations/**lesson_package_cache.sql'
       - 'supabase/migrations/**lesson_plan*.sql'
       - 'supabase/migrations/**lesson_homework_occurrence*.sql'
+      - 'scripts/test-tbl08-occurrence-replay.mjs'
       - 'scripts/test-lesson-system-release-contract.py'
       - 'scripts/test-lesson-plan-spine-security-contract.py'
       - 'scripts/test-lesson-plan-remaining-ledger.py'
@@ -32,6 +33,7 @@ on:
       - 'supabase/migrations/**lesson_package_cache.sql'
       - 'supabase/migrations/**lesson_plan*.sql'
       - 'supabase/migrations/**lesson_homework_occurrence*.sql'
+      - 'scripts/test-tbl08-occurrence-replay.mjs'
       - 'scripts/test-lesson-system-release-contract.py'
       - 'scripts/test-lesson-plan-spine-security-contract.py'
       - 'scripts/test-lesson-plan-remaining-ledger.py'
@@ -55,6 +57,7 @@ jobs:
         with:
           prebuild_command: |
             npm run typecheck
+            node --import ./scripts/register-typescript.mjs scripts/test-tbl08-occurrence-replay.mjs
             node scripts/test-grade1-creative-native-curriculum.mjs
             python scripts/test-lesson-system-release-contract.py
             python scripts/test-lesson-plan-prepared-mobile-contract.py
