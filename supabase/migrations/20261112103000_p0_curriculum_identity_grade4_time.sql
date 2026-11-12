@@ -187,7 +187,7 @@ returns trigger language plpgsql security invoker set search_path = ''
 as $guard$
 declare
   r public.learning_resources%rowtype;
-  package_id text;
+  v_package_id text;
   state jsonb;
   expected_aliases jsonb;
   submitted_aliases jsonb;
@@ -204,13 +204,13 @@ begin
   if r.owner_type is distinct from 'platform'
     or r.source_type is distinct from 'platform_authored' then return new; end if;
 
-  package_id := nullif(btrim(coalesce(new.provenance->>'package_id','')),'');
-  if package_id is null then
+  v_package_id := nullif(btrim(coalesce(new.provenance->>'package_id','')),'');
+  if v_package_id is null then
     raise exception using errcode='23514',
       message='VS_CURRICULUM_PACKAGE_ID_REQUIRED';
   end if;
 
-  state := public.vs_curriculum_package_gate(package_id);
+  state := public.vs_curriculum_package_gate(v_package_id);
   if state->>'state' <> 'PASS' then
     raise exception using errcode='23514',
       message='BLOCKED_CURRICULUM_RECONCILIATION',detail=state::text;
@@ -218,7 +218,7 @@ begin
 
   if not exists (
     select 1 from public.vs_curriculum_package_scopes p
-    where p.package_id=package_id and p.sub_strand_id=r.sub_strand_id
+    where p.package_id=v_package_id and p.sub_strand_id=r.sub_strand_id
       and left(r.canonical_key,length(p.resource_key_prefix))=p.resource_key_prefix
   ) then
     raise exception using errcode='23514',
@@ -230,7 +230,7 @@ begin
   from (
     select distinct ra.manuscript_alias as alias
     from public.vs_curriculum_resource_aliases ra
-    where ra.package_id=package_id and ra.resource_id=r.id
+    where ra.package_id=v_package_id and ra.resource_id=r.id
   ) linked;
 
   if jsonb_typeof(new.payload->'curriculum_outcome_aliases') is distinct from 'array' then
