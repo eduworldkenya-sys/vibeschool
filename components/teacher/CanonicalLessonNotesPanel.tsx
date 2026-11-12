@@ -38,27 +38,25 @@ export default function CanonicalLessonNotesPanel({
 
         // Exact outcomes take precedence. Sub-strand-only resources are
         // explicitly identified as related, never asserted as exact matches.
-        const lookup = []
-        if (outcomeId) lookup.push(
-          supabase.from('learning_resources')
+        const roots = new Map<string, CanonicalNoteRoot>()
+        if (outcomeId) {
+          const exactResult = await supabase.from('learning_resources')
             .select('id,title,asset_kind,status,visibility,curriculum_outcome_id,sub_strand_id')
             .in('asset_kind', ['teacher_notes', 'learner_notes'])
             .eq('status', 'active').eq('visibility', 'public')
-            .eq('curriculum_outcome_id', outcomeId).limit(50),
-        )
-        if (subStrandId) lookup.push(
-          supabase.from('learning_resources')
+            .eq('curriculum_outcome_id', outcomeId).limit(50)
+          if (exactResult.error) throw exactResult.error
+          for (const root of (exactResult.data ?? []) as CanonicalNoteRoot[]) roots.set(root.id, root)
+        }
+        if (subStrandId) {
+          const relatedResult = await supabase.from('learning_resources')
             .select('id,title,asset_kind,status,visibility,curriculum_outcome_id,sub_strand_id')
             .in('asset_kind', ['teacher_notes', 'learner_notes'])
             .eq('status', 'active').eq('visibility', 'public')
             .eq('sub_strand_id', subStrandId)
-            .is('curriculum_outcome_id', null).limit(50),
-        )
-        const results = await Promise.all(lookup)
-        const roots = new Map<string, CanonicalNoteRoot>()
-        for (const result of results) {
-          if (result.error) throw result.error
-          for (const root of (result.data ?? []) as CanonicalNoteRoot[]) roots.set(root.id, root)
+            .is('curriculum_outcome_id', null).limit(50)
+          if (relatedResult.error) throw relatedResult.error
+          for (const root of (relatedResult.data ?? []) as CanonicalNoteRoot[]) roots.set(root.id, root)
         }
         if (roots.size === 0) return
         const versions = await supabase.from('learning_resource_versions')
