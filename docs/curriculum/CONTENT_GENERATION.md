@@ -3,7 +3,7 @@
 **Version:** 1.1 — 12 November 2026
 **Owner-approved educational direction:** Top-class, VibeSchool-original, KICD-aligned learning that demonstrates learner understanding and genuinely helps teachers teach.
 **Applies to:** ChatGPT-led generation and material revision for Grades 1–9, all subjects, outcomes, terms, teacher resources, learner materials, exercises and revision. Other grades require their own applicable official curriculum authority.
-**Role:** ONE required start-here operating document for all VibeSchool educational content-generation chats. Use it in full. Do not choose competing instructions from several independent checklists.
+**Role:** ONE required start-here operating document for all VibeSchool educational content-generation chats. Use §0A for the normal execution path and consult the relevant detailed gates; every applicable curriculum, safety, quality and release rule below remains binding. Do not select competing checklists.
 **Nature:** Editorial/production policy only. It does not change application code, database permissions, content-engine publication, runtime/worker authority or certification requirements.
 
 > **Governing rule: Verify KICD against the actual VibeSchool curriculum → repair discrepancies → inspect and reuse canonical libraries → author Core + Supplementary + Revision + Teacher Support together for each outcome → verify answers, media and pedagogy → save and link using existing identities → check actual delivery → advance to the next outcome. The learning product is understanding, not the quantity of content.**
@@ -269,7 +269,9 @@ Use the existing relationships, inspecting current implementations rather than t
 - **Safe visibility:** published learner content, teacher-private materials, draft visuals, protected exam answers and unpublished candidates have different permissions; preserve these boundaries.
 - Mark links and capabilities **NOT_CONNECTED**, **NOT_CHECKED** or an actual verified working state. Never claim a proposed automatic recovery route is functioning until its real reader/assessment/teaching path is tested.
 
-## 9. The production loop — use this for EVERY requested subject
+## 9. Detailed evidence checkpoints for the six-stage workflow
+
+**Sections 9–12 expand the six operator stages in §0A; phases A–J are detailed evidence checkpoints, not a second or longer execution pipeline.**
 
 | Phase | Chat must do | Evidence required before next phase |
 | --- | --- | --- |
