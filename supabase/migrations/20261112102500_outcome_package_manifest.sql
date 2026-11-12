@@ -66,12 +66,12 @@ declare
   v_uuid_pattern constant text := '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
 begin
   select * into v_root from public.learning_resources where id = p_resource_id;
-  if v_root.id is null or v_root.asset_kind <> 'outcome_package'
+  if v_root.id is null or v_root.asset_kind is distinct from 'outcome_package'
      or v_root.curriculum_outcome_id is null then
     return jsonb_build_object('valid',false,'issues',jsonb_build_array('PACKAGE_ROOT_NOT_BOUND'));
   end if;
-  if jsonb_typeof(p_manifest) <> 'object' or
-     p_manifest->>'schema' <> 'vibeschool.outcome-package.v1' or
+  if jsonb_typeof(p_manifest) is distinct from 'object' or
+     p_manifest->>'schema' is distinct from 'vibeschool.outcome-package.v1' or
      p_manifest->>'outcome_id' is distinct from v_root.curriculum_outcome_id::text then
     return jsonb_build_object('valid',false,'issues',jsonb_build_array('PACKAGE_SCHEMA_OR_OUTCOME_MISMATCH'));
   end if;
@@ -79,15 +79,15 @@ begin
   v_refs := p_manifest->'assets';
   v_questions := p_manifest->'question_ids';
   v_release := p_manifest->'release';
-  if jsonb_typeof(v_refs) <> 'object'
-     or jsonb_typeof(v_questions) <> 'object'
-     or jsonb_typeof(v_release) <> 'object'
-     or jsonb_typeof(p_manifest->'requirements') <> 'object' then
+  if jsonb_typeof(v_refs) is distinct from 'object'
+     or jsonb_typeof(v_questions) is distinct from 'object'
+     or jsonb_typeof(v_release) is distinct from 'object'
+     or jsonb_typeof(p_manifest->'requirements') is distinct from 'object' then
     return jsonb_build_object('valid',false,'issues',jsonb_build_array('PACKAGE_SECTIONS_REQUIRED'));
   end if;
 
-  if jsonb_typeof(p_manifest #> '{requirements,teacher_guidance}') <> 'boolean'
-     or jsonb_typeof(p_manifest #> '{requirements,visual_assets}') <> 'boolean' then
+  if jsonb_typeof(p_manifest #> '{requirements,teacher_guidance}') is distinct from 'boolean'
+     or jsonb_typeof(p_manifest #> '{requirements,visual_assets}') is distinct from 'boolean' then
     v_issues := array_append(v_issues,'REQUIREMENT_FLAGS_MUST_BE_BOOLEAN');
   end if;
   v_requires_guidance := coalesce((p_manifest #>> '{requirements,teacher_guidance}')::boolean,false);
@@ -101,14 +101,14 @@ begin
     and nullif(btrim(v_outcome.source_locator),'') is not null, false);
 
   foreach v_role in array array['core','activities','revision','teacher_guidance','visual_assets'] loop
-    if jsonb_typeof(v_refs->v_role) <> 'array' then
+    if jsonb_typeof(v_refs->v_role) is distinct from 'array' then
       return jsonb_build_object('valid',false,'issues',jsonb_build_array('ASSET_ARRAY_REQUIRED:' || v_role));
     end if;
     v_seen := array[]::text[];
     for v_asset in select value from jsonb_array_elements(v_refs->v_role) loop
       v_id := v_asset->>'resource_id';
       v_version_id := v_asset->>'resource_version_id';
-      if jsonb_typeof(v_asset) <> 'object'
+      if jsonb_typeof(v_asset) is distinct from 'object'
          or coalesce(v_id,'') !~ v_uuid_pattern
          or coalesce(v_version_id,'') !~ v_uuid_pattern then
         v_issues := array_append(v_issues,'INVALID_ASSET_PIN:' || v_role);
@@ -131,23 +131,23 @@ begin
         v_cert := jsonb_set(v_cert,array[v_role],'false'::jsonb);
         continue;
       end if;
-      if not (
+      if not coalesce((
         (v_role = 'core' and v_found.asset_kind in ('learner_notes','content_block','worked_example'))
         or (v_role = 'activities' and v_found.asset_kind in ('exercise','worksheet','quiz','project','practical','homework'))
         or (v_role = 'revision' and v_found.asset_kind in ('revision','worksheet','quiz','assessment','exercise'))
         or (v_role = 'teacher_guidance' and v_found.asset_kind in ('teacher_notes','lesson_plan','rubric','marking_scheme'))
         or (v_role = 'visual_assets' and v_found.asset_kind = 'visual_aid')
-      ) then
+      ),false) then
         v_issues := array_append(v_issues,'ASSET_KIND_MISMATCH:' || v_role);
       end if;
-      if not (
+      if not coalesce((
         v_found.curriculum_outcome_id = v_root.curriculum_outcome_id
         or (v_found.content_block_id is not null and exists (
           select 1 from public.content_block_outcome_links l
           where l.content_block_id = v_found.content_block_id
             and l.outcome_id = v_root.curriculum_outcome_id
         ))
-      ) then
+      ),false) then
         v_issues := array_append(v_issues,'ASSET_OUTCOME_UNPROVEN:' || v_role);
       end if;
       if v_found.lifecycle_status <> 'certified'
@@ -165,13 +165,13 @@ begin
     v_issues := array_append(v_issues,'CORE_MUST_HAVE_AT_MOST_ONE_UNIT');
   end if;
   foreach v_role in array array['activities','revision'] loop
-    if jsonb_typeof(v_questions->v_role) <> 'array' then
+    if jsonb_typeof(v_questions->v_role) is distinct from 'array' then
       return jsonb_build_object('valid',false,'issues',jsonb_build_array('QUESTION_ARRAY_REQUIRED:' || v_role));
     end if;
     v_seen := array[]::text[];
     for v_q in select value from jsonb_array_elements(v_questions->v_role) loop
       v_id := trim(both '"' from v_q::text);
-      if jsonb_typeof(v_q) <> 'string' or v_id !~ v_uuid_pattern then
+      if jsonb_typeof(v_q) is distinct from 'string' or v_id !~ v_uuid_pattern then
         v_issues := array_append(v_issues,'INVALID_QUESTION_ID:' || v_role);
         v_cert := jsonb_set(v_cert,array[v_role],'false'::jsonb);
         continue;
