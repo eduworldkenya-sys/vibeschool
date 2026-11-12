@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 // Lightweight repository contract. Actual trigger behavior is exercised by the
 // rollback-only SQL fixture on disposable Postgres, not by this static test.
 const sql = readFileSync(resolve('supabase/migrations/20261112115000_outcome_package_quality_gate.sql'),'utf8')
+const sourceAlignment = readFileSync(resolve('supabase/migrations/20261112114500_align_outcome_manifest_source_gate.sql'),'utf8')
 const smoke = readFileSync(resolve('scripts/sql/outcome_package_quality_verify.sql'),'utf8')
 const guide = readFileSync(resolve('docs/curriculum/OUTCOME_PACKAGE_QUALITY_AND_RELEASE.md'),'utf8')
 
@@ -17,6 +18,10 @@ for (const check of [
 ]) must(sql,`'${check}'`,`check ${check}`)
 for (const item of [
   'public.cla_audit_outcome_package',
+  'public.vs_curriculum_package_gate',
+  'public.vs_curriculum_alias_outcomes',
+  'SOURCE_TO_DATABASE_RECONCILIATION_BLOCKED',
+  'CURRICULUM_MANUSCRIPT_ALIASES_NOT_RECONCILED',
   'public.curriculum_learning_outcomes',
   'public.assessment_questions',
   'public.learning_resource_versions',
@@ -46,6 +51,8 @@ for (const item of [
   'Candidate skipped verified transition',
   'Fabricated human approval accepted',
   'Missing evidence was accepted',
+  'Wrong manuscript alias accepted',
+  'Unreconciled source package accepted',
   'Stale checksum was accepted',
   'Unproven teacher delivery was accepted',
   'Blank diagram caption accepted'
