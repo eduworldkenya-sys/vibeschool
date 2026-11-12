@@ -59,6 +59,7 @@ assert.match(sql,/v_missing_allocations=0/,'publication rejects missing allocati
 assert.match(sql,/v_bad_allocations=0/,'publication rejects KICD allocation gaps')
 assert.match(sql,/v_unreleased=0/,'cannot claim partial release is whole school')
 assert.match(sql,/pg_advisory_xact_lock/,'concurrent publishing serialized by school')
+assert.match(sql,/unique index if not exists timetable_releases_one_published_school/,'enforce single active release per school in the database')
 assert.match(sql,/PUBLISHED_SLOT_IMMUTABLE/,'published slot identity protected')
 assert.match(sql,/APPROVED_SLOT_LOCKED/,'approved release may not be altered without returning to review')
 assert.match(sql,/revoke insert,update,delete on table public\.timetable_releases from authenticated/,'admins cannot bypass transition by direct table write')
