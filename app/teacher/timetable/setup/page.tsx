@@ -81,6 +81,7 @@ function formatTime(value: string) {
 export default function TimetableSetupPage() {
   const router = useRouter()
   const [userId, setUserId] = useState('')
+  const [initialSampleId, setInitialSampleId] = useState<string | null>(null)
   const [schools, setSchools] = useState<SchoolChoice[]>([])
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const [periods, setPeriods] = useState<SchoolPeriodRow[]>([])
@@ -107,6 +108,9 @@ export default function TimetableSetupPage() {
   const loadSchool = useCallback(async (schoolId: string) => {
     setLoading(true)
     setError(null)
+    setCanManage(false)
+    setPeriods([])
+    setDurations([])
     try {
       const [blocksRes, durationRes, manageRes] = await Promise.all([
         supabase.rpc('get_school_day_blocks_for_member', { p_school_id: schoolId }),
@@ -147,18 +151,26 @@ export default function TimetableSetupPage() {
           return
         }
 
+        setUserId(user.id)
+        try {
+          const selected = new URLSearchParams(window.location.search).get('sample')
+          const previous = window.localStorage.getItem('vs.timetable.sample-picked.v1.' + user.id)
+          setInitialSampleId(selected ?? previous)
+        } catch { setInitialSampleId(new URLSearchParams(window.location.search).get('sample')) }
+
         const { data, error } = await supabase.rpc('get_my_teacher_school_context')
         if (error) throw error
         const context = data as SchoolContext | null
         const choices = (context?.schools ?? []).filter(school => school.id && school.name)
-        const active = context?.active_school_id ?? choices[0]?.id ?? ''
-        if (!active) throw new Error('Connect a school before setting up the school day.')
+        const desiredSchoolId = context?.active_school_id ?? ''
+        const active = choices.some(school => school.id === desiredSchoolId)
+          ? desiredSchoolId : (choices[0]?.id ?? '')
 
         if (cancelled) return
-        setUserId(user.id)
         setSchools(choices)
         setSelectedSchoolId(active)
-        await loadSchool(active)
+        if (active) await loadSchool(active)
+        else { setCanManage(false); setPeriods([]); setDurations([]) }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Could not load school-day setup.')
       } finally {
@@ -308,9 +320,9 @@ export default function TimetableSetupPage() {
         >
           ← Timetable
         </button>
-        <h1 style={{ margin: '10px 0 4px', fontSize: 22, color: C.textPrimary }}>School day setup</h1>
+        <h1 style={{ margin: '10px 0 4px', fontSize: 22, color: C.textPrimary }}>Timetable setup</h1>
         <p style={{ margin: 0, color: C.textMuted, fontSize: 13, lineHeight: 1.5 }}>
-          Define the real teaching periods, breaks and grade-specific lesson lengths used by your school. Timetable creation will use these times instead of inventing a 55- or 60-minute lesson.
+          Retrieve and edit optional sample timetables or personal templates here. For connected schools, authorised administrators can also confirm real teaching periods, breaks and grade-specific lesson lengths.
         </p>
       </div>
 
@@ -334,20 +346,27 @@ export default function TimetableSetupPage() {
       {error && <div role="alert" style={{ padding: 11, borderRadius: 12, background: '#fef2f2', color: '#991b1b', fontSize: 12 }}>{error}</div>}
       {notice && <div role="status" style={{ padding: 11, borderRadius: 12, background: '#ecfdf5', color: '#065f46', fontSize: 12 }}>{notice}</div>}
 
-      {!loading && !canManage && (
+      {!loading && userId && !selectedSchoolId && (
+        <div style={{ padding: 12, borderRadius: 12, background: '#fffbeb', color: '#92400e', fontSize: 12, lineHeight: 1.5 }}>
+          You can create, retrieve, save and export personal timetable samples without a school. Connecting a school and receiving administrator permission is required to publish school-wide periods.
+        </div>
+      )}
+      {!loading && selectedSchoolId && !canManage && (
         <div style={{ padding: 12, borderRadius: 12, background: '#fffbeb', color: '#92400e', fontSize: 12, lineHeight: 1.5 }}>
           You can view {selectedSchool?.name ?? 'this school'}’s timetable rules. Only a school administrator can change school-wide periods and grade durations.
         </div>
       )}
 
-      {!loading && selectedSchoolId && userId && <SchoolDaySampleBuilder
-        key={userId + ':' + selectedSchoolId}
-        schoolId={selectedSchoolId}
+      {!loading && userId && <SchoolDaySampleBuilder
+        key={userId + ':' + (selectedSchoolId || 'independent')}
+        mode="editor"
+        initialSampleId={initialSampleId}
+        schoolId={selectedSchoolId || 'independent'}
         userId={userId}
-        schoolName={selectedSchool?.name ?? 'this school'}
-        canManage={canManage}
+        schoolName={selectedSchool?.name ?? 'Independent planning'}
+        canManage={Boolean(selectedSchoolId) && canManage}
         periodCount={periods.length}
-        onReload={() => loadSchool(selectedSchoolId)}
+        onReload={() => selectedSchoolId ? loadSchool(selectedSchoolId) : Promise.resolve()}
       />}
 
       {canManage && (
@@ -382,7 +401,7 @@ export default function TimetableSetupPage() {
         </Card>
       )}
 
-      <Card>
+      {selectedSchoolId && <Card>
         <SectionLabel>School day</SectionLabel>
         {loading ? (
           <div style={{ color: C.textMuted, fontSize: 13 }}>Loading school periods…</div>
@@ -420,9 +439,9 @@ export default function TimetableSetupPage() {
             ))}
           </div>
         )}
-      </Card>
+      </Card>}
 
-      <Card>
+      {selectedSchoolId && <Card>
         <SectionLabel>Lesson length by grade</SectionLabel>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>
           These are your school’s defaults. They guide custom lesson creation when a grade normally uses a different lesson length; configured period times still remain authoritative.
@@ -446,7 +465,7 @@ export default function TimetableSetupPage() {
             </div>
           </div>
         )}
-      </Card>
+      </Card>}
     </div>
   )
 }
