@@ -145,7 +145,7 @@ const groupCopy = {
   },
   teach: {
     title: "Teach & follow up",
-    help: "Guide → lesson notes / Teach → timetable → attendance → homework",
+    help: "Teacher Guide → timetable → attendance → homework",
   },
   evidence: {
     title: "Check learning",
