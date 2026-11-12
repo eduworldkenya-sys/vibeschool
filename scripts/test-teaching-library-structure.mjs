@@ -109,6 +109,7 @@ for(const required of [
   "setClassFilter",
   "setSubjectFilter",
   "setTopicFilter",
+  "p_date: nairobiDateStr()",
   "certifiedCount",
   "No certified materials linked",
   "Ready this week",
@@ -119,3 +120,5 @@ assert.ok(libraryUi.includes('expandedCategory'), 'Resource categories should co
 assert.ok(libraryUi.includes('linkedBySlot'), 'Canonical identity remains linked, not cloned')
 assert.ok(!libraryUi.includes('No linked items yet · View'), 'Heavy 15-card catalog must not return')
 console.log('Teaching Library senior readiness contract: PASS — scoped navigation, exact-version certification, protected reader and optional resources.')
+
+assert.ok(!resourcePage.includes('new Date().toISOString().slice(0, 10)'), 'Nairobi instructional week must not use UTC calendar date')
