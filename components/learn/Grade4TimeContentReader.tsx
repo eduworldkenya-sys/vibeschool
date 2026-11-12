@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 
 type Lesson = {
   id: string
@@ -114,6 +115,7 @@ export default function Grade4TimeContentReader() {
             {current && <article aria-live="polite">
               <h3 style={{ fontSize: 20, margin: '0 0 12px' }}>{current.title}</h3>
               <VisualRichText body={current.body} style={{ fontSize: 16, lineHeight: 1.8 }} />
+              <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
               {currentIndex + 1 < lessons.length && (
                 <button type="button" onClick={() => setSelected(lessons[currentIndex+1].id)}
                   style={{ marginTop: 20, border: 0, borderRadius: 10, background: GREEN, color: '#fff', padding: '11px 18px', minHeight: 46, cursor: 'pointer', fontWeight: 800 }}>Next lesson</button>
