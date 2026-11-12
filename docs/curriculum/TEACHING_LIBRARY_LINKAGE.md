@@ -40,3 +40,34 @@ A resource that lacks metadata may be reviewed and classified at its canonical s
 `npm run test:teaching-library` covers all 15 optional slots, category filtering, explicit known metadata, unknown kinds remaining unclassified, blank searches, and the two canonical Scheme bridge references. Existing `scripts/teacher-resource-os-contract.test.mjs` and full application checks must also continue to pass.
 
 **Scope of this change:** linkage and non-blocking discovery, not automatically filling empty lesson components or publishing additional content.
+
+## Teacher-library reliability correction — 12 November 2026
+
+### Confirmed production diagnosis
+
+Production inspection found 15 active/public Grade 1 Jumping learner notes with certified version records and nonempty text in version payloads. Their root descriptions still mention "review-stage manuscript" from an earlier editorial state. They have no textbook publication/chapter pointers, which caused the existing teacher library to render `Linked` instead of a usable reader link. A resource root being active/public is **not** enough to prove that its exact teaching version is certified. Certified and available must not be conflated with a teacher's saved resource or Scheme links.
+
+### Source of truth
+
+- **Canonical root:** `learning_resources` provides identity, purpose and availability.
+- **Exact content version:** `learning_resource_versions` provides `lifecycle_status='certified'`, non-null `certified_at`, version identity and the content payload.
+- **Teaching occurrence:** `teaching_resource_links.resource_version_id` pins a version. A pinned version must match the resource ID and pass the exact certified-version gate.
+- **Legacy Scheme link:** `scheme_lesson_resource_links` has no version ID. Resolve the highest certified version accessible through existing RLS, or fail closed if none. Do **not** label an active root as ready merely because a link exists.
+- **Reading:** `/teacher/resources/read/[resourceId]?versionId=<uuid>` uses the authenticated Supabase client and existing read RLS; it queries an active public root and that precise certified child version. It does not elevate to service role, alter content, render untrusted HTML, or expose candidates. Historical published versions remain readable only where existing policies permit.
+
+### Teacher experience
+
+1. Find by **class, subject and topic**, then search resource type or title. No timetable required for browsing.
+2. Five compact expandable teaching categories contain fifteen **optional** types, with selected resources and existing class-scoped personal resources.
+3. A certified linked resource opens the existing chapter reader when its publication/chapter identity is present; otherwise use the original canonical text reader pinned to the certified version.
+4. Empty slots, resource types not supported by available metadata, and unlinked Scheme topics are never lesson-preparation blockers.
+5. Current-week Scheme links stay available in a collapsed contextual section. A missing version says **No certified materials linked** or **Not released**, not **0 ready**.
+6. A stale editorial root description containing "review-stage manuscript" is not repeated beside certified content. The original record and version are left unchanged; editorial metadata can be corrected by its existing authorized owner/publishing process.
+
+### Checks
+
+- `npm run test:teaching-library`: structure, optional coverage, contextual links, reader authorization requirements, version identity, fail-closed states and compact UI invariants.
+- Existing Teacher Resource OS contract, Grade 1 Creative Activities, Grade 4 Time, curriculum reader and production-build gates must remain green.
+- Verify on a signed-in real teacher account that Jumping learner notes actually open and other resource types remain safely optional. Deployment and real account smoke testing are separate from merge and CI.
+
+**No migration or data write.** These changes reuse the existing version authority and RLS; their purpose is correct UX, not creating more content or publishing new drafts.
