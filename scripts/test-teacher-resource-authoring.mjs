@@ -69,11 +69,11 @@ console.log('Teacher resource authoring contract PASS: 15 types, draft-by-defaul
 
 for (const rule of [
   "const [loadedForStudentId, setLoadedForStudentId]",
-  "const activeStudentId = identity.studentId",
+  "const activeStudentId = studentId",
   "setLoadedForStudentId(null)",
   "setLoadedForStudentId(activeStudentId)",
-  "loadedForStudentId === identity.studentId",
-  "loadedForStudentId !== identity.studentId",
+  "loadedForStudentId === studentId",
+  "loadedForStudentId !== studentId",
   "setResources([])",
 ]) assert.ok(student.includes(rule), 'Shared-device learner isolation missing: ' + rule)
 assert.ok(student.includes('const visibleResources ='), 'Study Room must render only identity-bound resources')
