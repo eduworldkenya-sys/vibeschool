@@ -344,4 +344,142 @@ revoke all on function public.student_record_vibelearn_practice_skip(uuid,uuid)
 grant execute on function public.student_record_vibelearn_practice_skip(uuid,uuid)
   to authenticated;
 
+
+-- A client or the legacy grounded scorer must not resolve a mistake by
+-- replaying its original answer. Resolution requires fresh, different,
+-- verified, server-scored proof on the same curriculum outcome.
+create or replace function public.vs_exact_recovery_proof(
+  p_student_id uuid, p_outcome_id uuid, p_after timestamptz, p_excluded_block uuid
+)
+returns jsonb language sql stable security definer set search_path = ''
+as $proof$
+  with valid as (
+    select e.id, e.source_id, e.occurred_at,
+           cel.score, cel.max_score
+    from public.students s
+    join public.student_learning_events e on e.student_id=s.profile_id
+    join public.competency_evidence_ledger cel
+      on cel.student_id=s.id and cel.evidence_source='quiz'
+     and cel.evidence_id=e.id and cel.outcome_id=p_outcome_id
+    join public.content_block_outcome_links link
+      on link.content_block_id=e.source_id and link.outcome_id=p_outcome_id
+    join public.curriculum_learning_outcomes o
+      on o.id=link.outcome_id and o.status='verified'
+    where s.id=p_student_id and s.deleted_at is null
+      and p_after is not null and e.occurred_at>p_after
+      and e.source_type='content_block'
+      and e.event_type='practice_answered'
+      and e.source_id is distinct from p_excluded_block
+      and e.metadata->>'outcome_id'=p_outcome_id::text
+  )
+  select jsonb_build_object(
+    'attempts',count(distinct id),
+    'correct_distinct_questions',count(distinct source_id)
+       filter (where score=max_score and max_score>0),
+    'correct_distinct_days',count(distinct (occurred_at at time zone 'Africa/Nairobi')::date)
+       filter (where score=max_score and max_score>0),
+    'qualified',
+       count(distinct source_id) filter (where score=max_score and max_score>0)>=3
+       and count(distinct (occurred_at at time zone 'Africa/Nairobi')::date)
+          filter (where score=max_score and max_score>0)>=2
+  )
+  from valid
+$proof$;
+revoke all on function public.vs_exact_recovery_proof(uuid,uuid,timestamptz,uuid)
+  from public,anon,authenticated;
+
+create or replace function public.vs_guard_mistake_resolution()
+returns trigger language plpgsql security definer set search_path = ''
+as $guard$
+declare proof jsonb;
+begin
+  if new.status <> 'resolved' then return new; end if;
+  if new.outcome_id is null or not exists (
+      select 1 from public.curriculum_learning_outcomes o
+      where o.id=new.outcome_id and o.status='verified'
+  ) then
+    new.status:='practising'; new.resolved_at:=null;
+    return new;
+  end if;
+  proof:=public.vs_exact_recovery_proof(
+    new.student_id,new.outcome_id,new.last_missed_at,new.source_block_id
+  );
+  if coalesce((proof->>'qualified')::boolean,false) is not true then
+    new.status:='practising'; new.resolved_at:=null;
+  else
+    new.resolved_at:=coalesce(new.resolved_at,now());
+  end if;
+  return new;
+end;
+$guard$;
+revoke all on function public.vs_guard_mistake_resolution()
+  from public,anon,authenticated;
+
+drop trigger if exists vs_guard_mistake_resolution on public.student_mistake_notebook;
+create trigger vs_guard_mistake_resolution
+before insert or update of status,resolved_at,outcome_id
+on public.student_mistake_notebook
+for each row execute function public.vs_guard_mistake_resolution();
+
+-- The historic endpoint used broad same-topic score percentages and could
+-- claim success even for an unrelated outcome. Retain its signature but
+-- replace that decision with exact independent server evidence.
+create or replace function public.student_resolve_mistake(p_mistake_id uuid)
+returns jsonb language plpgsql security definer set search_path = ''
+as $resolve$
+declare
+  v_student uuid;
+  m public.student_mistake_notebook%rowtype;
+  proof jsonb;
+  qualified boolean;
+  final_status text;
+begin
+  if auth.uid() is null then raise exception 'authentication_required'; end if;
+  v_student:=public.current_student_id();
+  select * into m from public.student_mistake_notebook
+    where id=p_mistake_id and student_id=v_student for update;
+  if not found then raise exception 'mistake_not_found'; end if;
+
+  proof:=public.vs_exact_recovery_proof(
+    v_student,m.outcome_id,m.last_missed_at,m.source_block_id
+  );
+  qualified:=m.outcome_id is not null and
+    exists(select 1 from public.curriculum_learning_outcomes o
+       where o.id=m.outcome_id and o.status='verified')
+    and coalesce((proof->>'qualified')::boolean,false);
+
+  update public.student_mistake_notebook
+     set status=case when qualified then 'resolved' else 'practising' end,
+         resolved_at=case when qualified then coalesce(resolved_at,now()) else null end
+   where id=p_mistake_id
+   returning status into final_status;
+
+  return jsonb_build_object(
+    'resolved',final_status='resolved','id',p_mistake_id,
+    'correct_since_miss',coalesce((proof->>'correct_distinct_questions')::integer,0),
+    'attempts_since_miss',coalesce((proof->>'attempts')::integer,0),
+    'distinct_practice_days',coalesce((proof->>'correct_distinct_days')::integer,0),
+    'required','3 different correct server-marked questions across 2 days for this exact verified outcome'
+  );
+end;
+$resolve$;
+revoke all on function public.student_resolve_mistake(uuid)
+  from public,anon;
+grant execute on function public.student_resolve_mistake(uuid)
+  to authenticated;
+
+-- Existing historic resolved flags without proof become "practising", not
+-- deleted. Keep all prior responses, receipts and scores unchanged.
+update public.student_mistake_notebook m
+set status='practising',resolved_at=null
+where m.status='resolved' and (
+    m.outcome_id is null or not exists (
+      select 1 from public.curriculum_learning_outcomes o
+      where o.id=m.outcome_id and o.status='verified'
+    ) or coalesce(
+      (public.vs_exact_recovery_proof(m.student_id,m.outcome_id,m.last_missed_at,m.source_block_id)->>'qualified')::boolean,
+      false
+    ) is false
+  );
+
 commit;
