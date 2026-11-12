@@ -90,6 +90,11 @@ const assertions = [
     'An old persisted Scheme identity must not override failed date and week validation.',
   ],
   [
+    modal.includes('ctx.schoolId && (!suggestionLinked || !planSchemeIdRef.current || !savedOutcomeId)') &&
+      modal.includes("setWorkspacePanel('Scheme')"),
+    'Scheduled school teaching must not start without a saved Scheme and outcome link.',
+  ],
+  [
     modal.includes('dated-scheme-choice') &&
       modal.includes('datedSchemeCandidates.some(candidate => candidate.id === schemeId)') &&
       modal.includes('attachSchemeToDatedLesson(') &&
