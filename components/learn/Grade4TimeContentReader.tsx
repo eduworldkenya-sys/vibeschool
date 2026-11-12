@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 
@@ -23,6 +24,7 @@ export default function Grade4TimeContentReader() {
   const [selected, setSelected] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [outcomes, setOutcomes] = useState<Array<{ outcome_id: string; outcome_text: string; lesson_count: number }>>([])
 
   useEffect(() => {
     let active = true
@@ -64,6 +66,18 @@ export default function Grade4TimeContentReader() {
     }
     void load()
     return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const response = await supabase.rpc('vs_published_grade4_time_outcomes')
+      if (alive && !response.error && Array.isArray(response.data)) {
+        setOutcomes(response.data.filter((row: { outcome_id?: string; outcome_text?: string }) =>
+          typeof row.outcome_id === 'string' && typeof row.outcome_text === 'string'))
+      }
+    })()
+    return () => { alive = false }
   }, [])
 
   const current = useMemo(() => lessons.find(l => l.id === selected) ?? lessons[0] ?? null, [lessons, selected])
@@ -108,6 +122,18 @@ export default function Grade4TimeContentReader() {
           </>
         )}
       </section>
+      {outcomes.length > 0 && <section aria-label="Time learning outcomes" style={{ ...SECTION, marginTop: 14 }}>
+        <h2 style={{ fontSize: 20, marginTop: 0 }}>Learn and practise by outcome</h2>
+        <p style={{ fontSize: 13, color: '#476457' }}>Choose exactly what you want to learn. Available to independent and school-linked learners.</p>
+        <div style={{ display: 'grid', gap: 8 }}>
+          {outcomes.map(item => <Link key={item.outcome_id}
+            href={`/learn/grade-4/mathematics/time/outcome/${encodeURIComponent(item.outcome_id)}`}
+            style={{ display: 'block', color: GREEN, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12, textDecoration: 'none', fontWeight: 700 }}>
+            {item.outcome_text}
+            <span style={{ display: 'block', fontWeight: 400, color: '#66786d', fontSize: 12, marginTop: 3 }}>{item.lesson_count} released lessons · guided and formative self-check</span>
+          </Link>)}
+        </div>
+      </section>}
       <p style={{ fontSize: 12, color: '#66786d', lineHeight: 1.6, marginTop: 14 }}>
         VibeSchool-original content aligned to the KICD Grade 4 Mathematics Time learning scope.
         Only certified learning-resource versions appear in this reader.

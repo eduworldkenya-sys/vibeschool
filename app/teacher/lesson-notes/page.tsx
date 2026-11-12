@@ -95,6 +95,7 @@ function LessonNotesInner() {
   const [exactChapters, setExactChapters] = useState<ExactChapterRow[]>([]);
   const [teacherNotes, setTeacherNotes] = useState<TeacherNoteRow[]>([]);
   const [jumpingSchemeId, setJumpingSchemeId] = useState<string | null>(null);
+  const [timeOutcomeId, setTimeOutcomeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [teachMode, setTeachMode] = useState(params.get("teach") === "1");
@@ -140,6 +141,7 @@ function LessonNotesInner() {
       if (typedPlan.teacher_id !== authData.user.id) throw new Error("This lesson belongs to another teacher.");
       setPlan(typedPlan);
       setJumpingSchemeId(null);
+      setTimeOutcomeId(null);
       setScheduledMinutes(null);
       if (typedPlan.timetable_slot_id) {
         const { data: slot, error: slotError } = await supabase.from('timetable_slots')
@@ -221,7 +223,7 @@ function LessonNotesInner() {
       if (typedPlan.scheme_id) {
         const { data: schemeData } = await supabase
           .from("scheme_of_work")
-          .select("curriculum_id,sub_strand_id,sub_strand,grade,teacher_id,class_id,subject_id")
+          .select("curriculum_id,sub_strand_id,curriculum_outcome_id,sub_strand,grade,teacher_id,class_id,subject_id")
           .eq("id", typedPlan.scheme_id)
           .maybeSingle();
 
@@ -231,6 +233,9 @@ function LessonNotesInner() {
           throw new Error("The linked Scheme does not match this lesson.");
         }
         subStrandId = schemeData?.sub_strand_id ?? null;
+        if (subStrandId === 'e975dcc6-32a9-4274-a2a3-3d19e409cf5c') {
+          setTimeOutcomeId(schemeData?.curriculum_outcome_id ?? null);
+        }
         curriculumId = schemeData?.curriculum_id ?? curriculumId;
         if (schemeData?.grade === "Grade 1" && schemeData?.sub_strand === "Jumping") {
           setJumpingSchemeId(typedPlan.scheme_id);
@@ -399,6 +404,14 @@ function LessonNotesInner() {
           <span style={{fontSize:12,color:"#64748b"}}>{resources.length} approved resources attached to this plan</span>
         </div>
       )}
+      {timeOutcomeId && <div style={{margin:'12px 0',padding:12,border:'1px solid #a7d6b7',borderRadius:12,background:'#f2faf4'}}>
+        <strong style={{fontSize:13,color:'#175b43'}}>Published learning package for this outcome</strong>
+        <p style={{fontSize:12,color:'#526b59',margin:'6px 0'}}>Use the same certified lesson explanations, checked formative exercises and teacher guidance without needing a timetable slot.</p>
+        <button type="button" onClick={() => router.push(`/teacher/outcome-package?outcomeId=${encodeURIComponent(timeOutcomeId)}`)}
+          style={{background:'#175b43',color:'#fff',border:0,borderRadius:9,padding:'10px 13px',fontWeight:800}}>
+          Open linked Time outcome package
+        </button>
+      </div>}
       {jumpingSchemeId && (
         <section aria-label="Linked VibeSchool Jumping manuscripts" style={{margin:"12px 0"}}>
           <JumpingSchemeContent schemeId={jumpingSchemeId} />
