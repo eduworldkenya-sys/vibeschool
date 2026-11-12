@@ -162,6 +162,25 @@
         "identity.account_state !== 'restricted'",
         "status: 403"
       ]
+    },
+    "app/api/operator/visual-library/route.ts": {
+      "authority": "scoped_visual_candidate_intake_and_certified_reuse_lookup_only",
+      "requiredEvidence": [
+        "requireVisualOperator(req)",
+        "VIBESCHOOL_VISUAL_INTAKE_TOKEN",
+        "saveVisualCandidate(req, session)",
+        "lifecycle_status",
+        "certified",
+        "Forbidden"
+      ]
+    },
+    "app/api/hq/visual-library/route.ts": {
+      "authority": "verified_hq_content_permission_private_visual_candidate_only",
+      "requiredEvidence": [
+        "requireVisualHQ(req)",
+        "saveVisualCandidate(req",
+        "Forbidden"
+      ]
     }
   }
 }
