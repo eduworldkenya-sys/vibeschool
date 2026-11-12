@@ -45,14 +45,16 @@ function assertNoError(error: { message?: string } | null, fallback: string) {
 export async function loadLessonPlanDrafts(
   teacherId: string,
   schoolId: string,
+  view: 'active' | 'archived' | 'all' = 'active',
 ): Promise<LessonPlanDraft[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('lesson_plan_drafts')
     .select('id,school_id,teacher_id,class_id,subject_id,scheme_id,curriculum_id,strand_id,curriculum_outcome_id,title,topic,body,duration_minutes,status,created_at,updated_at')
     .eq('teacher_id', teacherId)
     .eq('school_id', schoolId)
-    .neq('status', 'archived')
-    .order('updated_at', { ascending: false })
+  if (view === 'active') query = query.neq('status', 'archived')
+  if (view === 'archived') query = query.eq('status', 'archived')
+  const { data, error } = await query.order('updated_at', { ascending: false })
 
   assertNoError(error, 'Could not load prepared lesson drafts.')
   return (data ?? []) as LessonPlanDraft[]
@@ -111,6 +113,30 @@ export async function archiveLessonPlanDraft(
 
   assertNoError(error, 'Could not archive prepared lesson draft.')
   if (!data) throw new Error('Prepared lesson draft was not found.')
+}
+
+/** Restore in place; the existing unique open-Scheme index prevents duplicates.
+ * No historical scheduled lesson, plan or teaching occurrence is changed.
+ */
+export async function restoreLessonPlanDraft(
+  draftId: string,
+  teacherId: string,
+  schoolId: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('lesson_plan_drafts')
+    .update({ status: 'draft', updated_at: new Date().toISOString() })
+    .eq('id', draftId)
+    .eq('teacher_id', teacherId)
+    .eq('school_id', schoolId)
+    .eq('status', 'archived')
+    .select('id')
+    .maybeSingle()
+  if (error?.code === '23505') {
+    throw new Error('An active preparation already exists for this Scheme lesson. Open it rather than restoring a duplicate.')
+  }
+  assertNoError(error, 'Could not restore the archived preparation.')
+  if (!data) throw new Error('The archived preparation was not found or you no longer have access.')
 }
 
 export async function attachLessonPlanDraftToOccurrence(input: {
