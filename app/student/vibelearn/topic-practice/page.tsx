@@ -135,9 +135,22 @@ export default function TopicPracticePage() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not mark this answer.') }
     finally { setBusy(false) }
   }
-  function skip() {
+  async function skip() {
     if (!session || !currentQuestion || busy || currentAnswer) return
-    remember({...session,answers:[...session.answers,{questionId:currentQuestion.id,choice:null,correct:null,correctIndex:null,explanation:null}]})
+    setBusy(true); setError('')
+    try {
+      // Persist the zero-credit skip before advancing local session state.
+      // A failed request leaves the question here for retry; no false receipt.
+      const { data, error: skipError } = await supabase.rpc(
+        'student_record_vibelearn_practice_skip' as never,
+        { p_exam_question_id: currentQuestion.id, p_session_id: session.id } as never,
+      )
+      if (skipError) throw skipError
+      if (!(data as { ok?: boolean } | null)?.ok) throw new Error('The skip was not recorded.')
+      remember({...session,answers:[...session.answers,{questionId:currentQuestion.id,choice:null,correct:null,correctIndex:null,explanation:null}]})
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not save skipped question.')
+    } finally { setBusy(false) }
   }
   function next() {
     if (!session || !currentAnswer) return
@@ -204,6 +217,7 @@ export default function TopicPracticePage() {
       <p style={{fontSize:18,fontWeight:800}}>{results.correct} correct · {results.incorrect} incorrect · {results.skipped} skipped</p>
       <button style={button} onClick={() => { setReviewQuestionId('all'); setReviewResult(null) }}>Review mistakes</button>
       <button style={secondary} onClick={() => remember(null)}>Choose another topic</button>
+      {results.incorrect + results.skipped > 0 && <button style={secondary} onClick={() => router.push('/student/vibelearn/recovery')}>Recover missed and skipped questions</button>}
       {reviewQuestionId && <div style={{marginTop:20,display:'grid',gap:12}}>{session.answers.filter(a => a.correct !== true).length === 0 ? <p style={muted}>No missed or skipped questions.</p> : session.answers.filter(a => a.correct !== true).map(a => {
         const q = questions.find(item => item.id === a.questionId)
         if (!q) return null
@@ -219,7 +233,7 @@ export default function TopicPracticePage() {
         <div style={{display:'grid',gap:10}}>
           {currentQuestion.options.map((option,i)=><button key={i} disabled={busy || Boolean(currentAnswer)} onClick={() => void answer(i)} style={{...optionButton,background:currentAnswer?.choice === i ? '#e0e7ff':'#fff'}}>{String.fromCharCode(65+i)}. {option}</button>)}
         </div>
-        {currentAnswer ? <div role="status" style={{marginTop:16,padding:13,borderRadius:12,background:'#f1f5f9'}}><strong>{currentAnswer.correct === null ? 'Skipped' : currentAnswer.correct ? 'Correct' : 'Not correct'}</strong>{currentAnswer.correctIndex !== null && <p>Correct answer: {String.fromCharCode(65+currentAnswer.correctIndex)}. {currentQuestion.options[currentAnswer.correctIndex]}</p>}{currentAnswer.explanation && <p>{currentAnswer.explanation}</p>}<button style={{...button,marginTop:12}} onClick={next}>{session.index === TARGET-1 ? 'See results' : 'Next'}</button></div> : <button disabled={busy} style={{...secondary,marginTop:14}} onClick={skip}>Skip question</button>}
+        {currentAnswer ? <div role="status" style={{marginTop:16,padding:13,borderRadius:12,background:'#f1f5f9'}}><strong>{currentAnswer.correct === null ? 'Skipped' : currentAnswer.correct ? 'Correct' : 'Not correct'}</strong>{currentAnswer.correctIndex !== null && <p>Correct answer: {String.fromCharCode(65+currentAnswer.correctIndex)}. {currentQuestion.options[currentAnswer.correctIndex]}</p>}{currentAnswer.explanation && <p>{currentAnswer.explanation}</p>}<button style={{...button,marginTop:12}} onClick={next}>{session.index === TARGET-1 ? 'See results' : 'Next'}</button></div> : <button disabled={busy} style={{...secondary,marginTop:14}} onClick={() => void skip()}>{busy ? 'Saving skip…' : 'Skip question'}</button>}
       </> : <p>This question is no longer available. Choose a new topic.</p>}
     </section>}
     {grade && !loading && !session && <section style={card}>
