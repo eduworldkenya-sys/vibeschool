@@ -79,3 +79,43 @@ assert.ok(libraryUi.includes('Nothing is linked to this optional component yet')
 assert.ok(libraryUi.includes('item.href ?? item.schemeHref'), 'actual canonical links should be usable')
 assert.ok(!libraryUi.includes('requiredComponents'), 'all components remain optional')
 console.log('Optional Teaching Library linkage: PASS — 15 slot types, explicit mapping, empty resources, two canonical Scheme bridges.')
+
+
+const reader = fs.readFileSync('app/teacher/resources/read/[resourceId]/page.tsx','utf8')
+for(const required of [
+  "supabase.auth.getUser()",
+  ".from('learning_resources')",
+  ".eq('status', 'active')",
+  ".eq('visibility', 'public')",
+  ".from('learning_resource_versions')",
+  ".eq('id', versionId).eq('resource_id', root.id)",
+  ".eq('lifecycle_status', 'certified')",
+  ".not('certified_at', 'is', null)",
+  "readableBody(version.payload)",
+  "if (!body) throw new Error(",
+]) assert.ok(reader.includes(required), 'Certified reader must fail closed for missing exact-version proof: ' + required)
+for(const forbidden of ["service_role", "lifecycle_status', 'candidate'", ".update(", ".insert(", "dangerouslySetInnerHTML", "JSON.stringify(version.payload)"]) {
+  assert.ok(!reader.includes(forbidden), 'Unsafe reader behavior: ' + forbidden)
+}
+for(const required of [
+  "resource_version_id",
+  ".from('learning_resource_versions')",
+  ".eq('lifecycle_status', 'certified')",
+  ".not('certified_at', 'is', null)",
+  "verifiedVersion(link)",
+  "if (!row.resource || !row.certifiedVersionId) return null",
+  "/teacher/resources/read/",
+  "publishedDescription",
+  "setClassFilter",
+  "setSubjectFilter",
+  "setTopicFilter",
+  "certifiedCount",
+  "No certified materials linked",
+  "Ready this week",
+]) assert.ok(resourcePage.includes(required), 'Certification and context search contract missing: ' + required)
+assert.ok(!resourcePage.includes('pack.resources.length} ready'), 'Resource count alone must not be labelled ready')
+assert.ok(!resourcePage.includes('Ready resources'), 'Ready requires evidence of a readable certified version')
+assert.ok(libraryUi.includes('expandedCategory'), 'Resource categories should collapse for manageable navigation')
+assert.ok(libraryUi.includes('linkedBySlot'), 'Canonical identity remains linked, not cloned')
+assert.ok(!libraryUi.includes('No linked items yet · View'), 'Heavy 15-card catalog must not return')
+console.log('Teaching Library senior readiness contract: PASS — scoped navigation, exact-version certification, protected reader and optional resources.')
