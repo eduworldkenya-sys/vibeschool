@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
-import { readCache, writeCache } from "@/lib/student-cache";
+import { clearCache } from "@/lib/student-cache";
+import { TEACHING_LIBRARY_SLOTS } from "@/lib/teaching/libraryStructure";
+import { componentForPersonalResource } from "@/lib/teaching/personalResourceTypes";
 import Skel from "@/components/student/Skel";
 
 interface Resource {
@@ -13,6 +15,7 @@ interface Resource {
   title:        string;
   description:  string;
   type:         string;
+  component_type: string | null;
   subject:      string;
   external_url: string | null;
   content:      string | null;
@@ -20,11 +23,11 @@ interface Resource {
 }
 
 const TYPES = [
-  { value: "notes",      label: "Notes"      },
-  { value: "assessment", label: "Assessment" },
-  { value: "exercise",   label: "Exercise"   },
-  { value: "quiz",       label: "Quiz"       },
-  { value: "video",      label: "Video"      },
+  { value: "notes", label: "Notes" },
+  { value: "assignment", label: "Assignments" },
+  { value: "quiz", label: "Quiz resources" },
+  { value: "video", label: "Videos" },
+  { value: "link", label: "Links & other materials" },
 ]
 
 function isSafeUrl(url: string | null): boolean {
@@ -104,58 +107,76 @@ function IconChevron({ open }: { open: boolean }) {
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
-  notes:      <IconNotes />,
-  assessment: <IconAssessment />,
-  exercise:   <IconExercise />,
-  quiz:       <IconQuiz />,
-  video:      <IconVideo />,
+  notes: <IconNotes />,
+  assignment: <IconExercise />,
+  quiz: <IconQuiz />,
+  video: <IconVideo />,
+  link: <IconLink />,
 }
 
 export default function StudentResourcesPage() {
   const { identity, loading: idLoading } = useStudent();
+  const studentId = identity?.studentId;
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [filter,    setFilter]    = useState("all");
   const [expanded,  setExpanded]  = useState<string | null>(null);
+  const [loadedForStudentId, setLoadedForStudentId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (idLoading || !identity) return;
+    if (idLoading || !studentId) {
+      setResources([]);
+      setLoadedForStudentId(null);
+      setLoading(true);
+      setExpanded(null);
+      return;
+    }
+    // Prevent a shared device from rendering the previous student's materials.
+    setResources([]);
+    setLoadedForStudentId(null);
+    setLoading(true);
+    setExpanded(null);
+    const activeStudentId = studentId;
 
-    const cached = readCache<Resource[]>("lessons", identity.studentId);
-    if (cached) { setResources(cached); setLoading(false); }
-
+    // Purge old cached class resources from earlier app versions on shared devices.
+    clearCache("lessons", activeStudentId);
+    let active = true;
     async function load() {
-      const { data } = await supabase
+      setLoadedForStudentId(null);
+      setLoading(true);
+      const { data, error } = await supabase
         .from("student_accessible_resources")
         .select("*")
         .order("created_at", { ascending: false });
-
-      const result: Resource[] = (data ?? [])
-        .filter(
-          (row): row is typeof row & { id: string } =>
-            row.id !== null
-        )
+      if (!active) return;
+      // Never persist class resources in a device cache: unsharing must not
+      // leave a stale private copy available on a shared phone.
+      const rows: Resource[] = error ? [] : (data ?? [])
+        .filter((row): row is typeof row & { id: string } => row.id !== null)
         .map(row => ({
           id: row.id,
           title: row.title ?? "Untitled resource",
           description: row.description ?? "",
           type: row.type ?? "notes",
+          component_type: row.component_type ?? null,
           subject: row.subject ?? "General",
           external_url: row.external_url,
           content: row.content,
           created_at: row.created_at ?? new Date(0).toISOString(),
         }));
-
-      writeCache("lessons", identity!.studentId, result);
-      setResources(result);
+      setResources(rows);
+      setLoadedForStudentId(activeStudentId);
       setLoading(false);
     }
-    load();
-  }, [identity, idLoading]);
+    void load();
+    window.addEventListener("focus", load);
+    return () => { active = false; window.removeEventListener("focus", load); };
+  }, [studentId, idLoading]);
 
-  const filtered = filter === "all" ? resources : resources.filter(r => r.type === filter);
+  const visibleResources = studentId && loadedForStudentId === studentId ? resources : [];
+  const filtered = filter === "all" ? visibleResources : visibleResources.filter(r => r.type === filter);
 
-  if (idLoading || (loading && resources.length === 0)) return (
+  if (idLoading || !studentId || loadedForStudentId !== studentId || loading) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
       <Skel h={40} radius={12} />
       <Skel h={80} radius={12} />
@@ -173,7 +194,7 @@ export default function StudentResourcesPage() {
           Study Room
         </h1>
         <p style={{ fontSize: 12, color: "var(--vs-muted)", marginTop: 2 }}>
-          {resources.length} resource{resources.length !== 1 ? "s" : ""} available
+          {visibleResources.length} resource{visibleResources.length !== 1 ? "s" : ""} available
         </p>
       </div>
 
@@ -276,7 +297,7 @@ export default function StudentResourcesPage() {
                     {r.title}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--vs-muted)" }}>
-                    {r.subject} · {TYPES.find(t => t.value === r.type)?.label ?? r.type}
+                    {r.subject} · {TEACHING_LIBRARY_SLOTS.find(t => t.id === componentForPersonalResource(r))?.label ?? TYPES.find(t => t.value === r.type)?.label ?? r.type}
                   </div>
                 </div>
                 <span style={{ color: "var(--vs-muted)", flexShrink: 0 }}>

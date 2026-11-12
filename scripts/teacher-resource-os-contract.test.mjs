@@ -2,6 +2,8 @@ import fs from 'node:fs'
 import assert from 'node:assert/strict'
 
 const resourcePage = fs.readFileSync('app/teacher/resources/page.tsx', 'utf8')
+const resourceEditor = fs.readFileSync('components/teacher/TeacherResourceEditor.tsx', 'utf8')
+const sharingMigration = fs.readFileSync('supabase/migrations/20261112065326_teacher_resource_draft_share_and_component_link.sql', 'utf8')
 const lessonModal = fs.readFileSync('components/teacher/LessonPlanModal.tsx', 'utf8')
 const teachMode = fs.readFileSync('components/teacher/LessonTeachMode.tsx', 'utf8')
 const lessonNotes = fs.readFileSync('app/teacher/lesson-notes/page.tsx', 'utf8')
@@ -15,13 +17,12 @@ const mustContain = [
   ".from('teacher_classes')",
   ".from('scheme_of_work')",
   "Ready this week",
-  "My teaching library",
-  "Teacher-added resources stay class-scoped",
-  "assignments.some(row => row.class_id === form.class_id && row.subject_id === form.subject_id)",
-  "if (!form.external_url.trim() && !form.content.trim())",
-  "isSafeUrl(form.external_url.trim())",
-  "is_school_wide: false",
-  "class_id: form.class_id",
+  "My teaching materials",
+  "TeacherResourceEditor",
+  "setSharingStatus",
+  "Share with class",
+  "Private drafts",
+  "onSavedResource",
   "/read/textbook/${publicationId}/${chapterId}",
 ]
 
@@ -42,7 +43,13 @@ for (const needle of forbidden) {
 
 assert.ok(resourcePage.indexOf(".from('scheme_of_work')") < resourcePage.indexOf("list_scheme_lesson_resources_batch"), 'Scheme authority must be resolved before resource links')
 assert.ok(resourcePage.indexOf("list_scheme_lesson_resources_batch") < resourcePage.indexOf(".from('learning_resources')"), 'Exact Scheme links must be resolved before canonical resource hydration')
-assert.ok(resourcePage.indexOf(".from('teacher_classes')") < resourcePage.indexOf(".from('resources').insert"), 'Teacher assignment authority must be loaded before resource mutation')
+assert.ok(resourcePage.indexOf(".from('teacher_classes')") < resourcePage.indexOf("<TeacherResourceEditor"), 'Teacher assignment authority must load before the editor is rendered')
+for (const needle of ["assignments.some(a => a.class_id === classId && a.subject_id === subjectId)", "publication_status: 'draft'", "is_school_wide: false", "scheme_lesson_id: schemeId || null", "Save private draft", ".from('resources').insert", "onSaved(result.data"]) {
+  assert.ok(resourceEditor.includes(needle), 'Private teacher authoring contract missing: ' + needle)
+}
+for (const needle of ["publication_status = 'shared'", "student_accessible_resources", "security_invoker = true", "resources_student_view", "resource_component_type_canonical_check".replace('resource_component_type', 'resources_component_type')]) {
+  assert.ok(sharingMigration.includes(needle), 'Student sharing RLS contract missing: ' + needle)
+}
 
 for (const needle of [
   "list_teaching_resources",

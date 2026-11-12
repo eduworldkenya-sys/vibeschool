@@ -13216,6 +13216,10 @@ export type Database = {
         Row: {
           class_id: string | null
           content: string | null
+          component_type: string | null
+          publication_status: string
+          subject_id: string | null
+          scheme_lesson_id: string | null
           created_at: string | null
           description: string | null
           external_url: string | null
@@ -13230,6 +13234,10 @@ export type Database = {
         Insert: {
           class_id?: string | null
           content?: string | null
+          component_type?: string | null
+          publication_status?: string | null
+          subject_id?: string | null
+          scheme_lesson_id?: string | null
           created_at?: string | null
           description?: string | null
           external_url?: string | null
@@ -13244,6 +13252,10 @@ export type Database = {
         Update: {
           class_id?: string | null
           content?: string | null
+          component_type?: string | null
+          publication_status?: string | null
+          subject_id?: string | null
+          scheme_lesson_id?: string | null
           created_at?: string | null
           description?: string | null
           external_url?: string | null
@@ -13261,6 +13273,20 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_scheme_lesson_id_fkey"
+            columns: ["scheme_lesson_id"]
+            isOneToOne: false
+            referencedRelation: "scheme_of_work"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
           {
@@ -18856,6 +18882,10 @@ export type Database = {
         Row: {
           class_id: string | null
           content: string | null
+          component_type: string | null
+          publication_status: string
+          subject_id: string | null
+          scheme_lesson_id: string | null
           created_at: string | null
           description: string | null
           external_url: string | null
@@ -18870,6 +18900,10 @@ export type Database = {
         Insert: {
           class_id?: string | null
           content?: string | null
+          component_type?: string | null
+          publication_status?: string | null
+          subject_id?: string | null
+          scheme_lesson_id?: string | null
           created_at?: string | null
           description?: string | null
           external_url?: string | null
@@ -18884,6 +18918,10 @@ export type Database = {
         Update: {
           class_id?: string | null
           content?: string | null
+          component_type?: string | null
+          publication_status?: string | null
+          subject_id?: string | null
+          scheme_lesson_id?: string | null
           created_at?: string | null
           description?: string | null
           external_url?: string | null

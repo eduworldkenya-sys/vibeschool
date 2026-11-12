@@ -9,21 +9,12 @@ import { nairobiDateStr } from '@/lib/time'
 import { C, Modal } from '@/components/teacher/ui'
 import TeachingLibraryStructure from '@/components/teacher/TeachingLibraryStructure'
 import type { CanonicalTeachingLibraryItem } from '@/components/teacher/TeachingLibraryStructure'
+import TeacherResourceEditor from '@/components/teacher/TeacherResourceEditor'
+import type { PersonalResourceRow } from '@/components/teacher/TeacherResourceEditor'
+import { componentForPersonalResource, mayShareResource } from '@/lib/teaching/personalResourceTypes'
+import { TEACHING_LIBRARY_SLOTS } from '@/lib/teaching/libraryStructure'
 
-type ResourceType = 'notes' | 'assessment' | 'exercise' | 'quiz' | 'video' | 'other'
-
-type TeacherResource = {
-  id: string
-  title: string
-  description: string
-  type: ResourceType
-  subject: string
-  external_url: string | null
-  content: string | null
-  is_school_wide: boolean
-  class_id: string | null
-  created_at: string
-}
+type TeacherResource = PersonalResourceRow
 
 type Assignment = { class_id: string; subject_id: string }
 type ClassOption = { id: string; name: string; stream: string; label: string }
@@ -73,35 +64,10 @@ type ReadyPack = {
   subjectLabel: string
   resources: Array<LinkedResourceRow & { resource: LearningResource | null; certifiedVersionId: string | null }>
 }
-type FormState = {
-  type: ResourceType
-  title: string
-  class_id: string
-  subject_id: string
-  description: string
-  external_url: string
-  content: string
-}
-
-const TYPES: Array<{ value: ResourceType; label: string; icon: string }> = [
-  { value: 'notes', label: 'Notes', icon: '📄' },
-  { value: 'assessment', label: 'Assessment', icon: '📝' },
-  { value: 'exercise', label: 'Exercise', icon: '✍️' },
-  { value: 'quiz', label: 'Quiz', icon: '🧪' },
-  { value: 'video', label: 'Video', icon: '🎬' },
-  { value: 'other', label: 'Other', icon: '📎' },
-]
-
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '11px 12px', borderRadius: 10, border: '1px solid #dbe3ea',
   fontSize: 14, color: C.textPrimary, background: '#fff', boxSizing: 'border-box', fontFamily: 'inherit',
 }
-const labelStyle: React.CSSProperties = {
-  display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 800, color: C.textMuted,
-  textTransform: 'uppercase', letterSpacing: '.05em',
-}
-
-function typeMeta(type: string) { return TYPES.find(item => item.value === type) ?? TYPES[TYPES.length - 1] }
 function unique<T>(values: T[]) { return Array.from(new Set(values)) }
 function orderScheme(a: SchemeLesson, b: SchemeLesson) {
   return (a.sequence_number ?? 999999) - (b.sequence_number ?? 999999)
@@ -121,18 +87,6 @@ function publishedDescription(description: string | null): string | null {
   return description && !/review[- ]stage manuscript|candidate manuscript|draft manuscript/i.test(description)
     ? description : null
 }
-function timeAgo(iso: string) {
-  const value = new Date(iso).getTime()
-  if (!Number.isFinite(value)) return ''
-  const minutes = Math.max(0, Math.floor((Date.now() - value) / 60000))
-  if (minutes < 60) return `${minutes}m ago`
-  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`
-  return `${Math.floor(minutes / 1440)}d ago`
-}
-function isSafeUrl(value: string) {
-  try { return ['http:', 'https:'].includes(new URL(value).protocol) } catch { return false }
-}
-
 export default function TeacherResourcesPage() {
   const searchParams = useSearchParams()
   const requestedClassId = searchParams.get('classId') ?? ''
@@ -153,22 +107,16 @@ export default function TeacherResourcesPage() {
   const [library, setLibrary] = useState<TeacherResource[]>([])
   const [packs, setPacks] = useState<ReadyPack[]>([])
   const [showAdd, setShowAdd] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [filter, setFilter] = useState<'all' | ResourceType>('all')
+  const [editorComponent, setEditorComponent] = useState('lesson-notes')
+  const [editingResource, setEditingResource] = useState<TeacherResource | null>(null)
+  const [filter, setFilter] = useState<'all' | 'draft' | 'shared'>('all')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [form, setForm] = useState<FormState>({
-    type: 'notes', title: '', class_id: '', subject_id: '', description: '', external_url: '', content: '',
-  })
-
+  const [sharing, setSharing] = useState<string | null>(null)
+  const [savedQuery, setSavedQuery] = useState('')
+  const [notice, setNotice] = useState('')
   const classById = useMemo(() => new Map(classes.map(row => [row.id, row])), [classes])
   const subjectById = useMemo(() => new Map(subjects.map(row => [row.id, row])), [subjects])
-  const allowedSubjects = useMemo(() => {
-    if (!form.class_id) return subjects
-    const ids = new Set(assignments.filter(row => row.class_id === form.class_id).map(row => row.subject_id))
-    return subjects.filter(row => ids.has(row.id))
-  }, [assignments, form.class_id, subjects])
   useEffect(() => { setClassFilter(requestedClassId); setSubjectFilter(requestedSubjectId) }, [requestedClassId, requestedSubjectId])
   const scopedSubjectName = useMemo(
     () => subjects.find(row => row.id === subjectFilter)?.name ?? '',
@@ -184,8 +132,10 @@ export default function TeacherResourcesPage() {
     (!scopedSubjectName || row.subject === scopedSubjectName),
   ), [library, classFilter, scopedSubjectName])
   const visibleLibrary = useMemo(() =>
-    filter === 'all' ? catalogueLibrary : catalogueLibrary.filter(row => row.type === filter),
-    [catalogueLibrary, filter],
+    catalogueLibrary.filter(row => (filter === 'all' || row.publication_status === filter) &&
+      (!savedQuery.trim() || [row.title, row.description ?? '', row.subject ?? '']
+        .some(value => value.toLocaleLowerCase().includes(savedQuery.trim().toLocaleLowerCase())))),
+    [catalogueLibrary, filter, savedQuery],
   )
   // The library is independent of the current week or a timetable. "Ready
   // this week" remains a separate, correctly date-scoped view of the same
@@ -234,16 +184,18 @@ export default function TeacherResourcesPage() {
     [visiblePacks],
   )
 
-  const openAdd = useCallback((requestedType: ResourceType = 'notes') => {
-    const selectedClassIsAssigned = classes.some(row => row.id === classFilter)
-    const classId = selectedClassIsAssigned ? classFilter : (classes[0]?.id ?? '')
-    const subjectIds = assignments.filter(row => row.class_id === classId).map(row => row.subject_id)
-    const selectedSubjectIsAssigned = subjectIds.includes(subjectFilter)
-    const subjectId = selectedSubjectIsAssigned ? subjectFilter : (subjectIds[0] ?? '')
-    setForm({ type: requestedType, title: '', class_id: classId, subject_id: subjectId, description: '', external_url: '', content: '' })
-    setFormError('')
+  const openAdd = useCallback((component: string = 'lesson-notes') => {
+    setEditingResource(null)
+    setEditorComponent(component)
+    setNotice('')
     setShowAdd(true)
-  }, [assignments, classes, classFilter, subjectFilter])
+  }, [])
+
+  const editSaved = (resource: TeacherResource) => {
+    setEditingResource(resource)
+    setEditorComponent(componentForPersonalResource(resource) ?? 'lesson-notes')
+    setShowAdd(true)
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -286,18 +238,7 @@ export default function TeacherResourcesPage() {
       const subjectRows = (subjectResult.data ?? []) as SubjectOption[]
       setClasses(classRows)
       setSubjects(subjectRows)
-      setLibrary((resourceResult.data ?? []).map(row => ({
-        id: row.id,
-        title: row.title,
-        description: row.description ?? '',
-        type: (TYPES.some(t => t.value === row.type) ? row.type : 'other') as ResourceType,
-        subject: row.subject ?? 'General',
-        external_url: row.external_url,
-        content: row.content,
-        is_school_wide: row.is_school_wide ?? false,
-        class_id: row.class_id,
-        created_at: row.created_at ?? new Date(0).toISOString(),
-      })))
+      setLibrary((resourceResult.data ?? []) as TeacherResource[])
 
       const calendarRow = !calendar.error && Array.isArray(calendar.data) && calendar.data.length === 1 ? calendar.data[0] : null
       const resolvedWeek = calendarRow?.week_number ?? null
@@ -416,46 +357,37 @@ export default function TeacherResourcesPage() {
 
   useEffect(() => { void load() }, [load])
 
-  useEffect(() => {
-    if (!form.class_id) return
-    const ids = assignments.filter(row => row.class_id === form.class_id).map(row => row.subject_id)
-    if (!ids.includes(form.subject_id)) setForm(current => ({ ...current, subject_id: ids[0] ?? '' }))
-  }, [assignments, form.class_id, form.subject_id])
-
-  async function saveResource() {
-    setFormError('')
-    if (!teacherId || !schoolId) return setFormError('Teacher identity is not ready.')
-    if (!form.title.trim()) return setFormError('Add a short title.')
-    if (!form.class_id) return setFormError('Choose a class.')
-    if (!form.subject_id) return setFormError('Choose a subject.')
-    if (!form.external_url.trim() && !form.content.trim()) return setFormError('Paste a link or add the resource content.')
-    if (form.external_url.trim() && !isSafeUrl(form.external_url.trim())) return setFormError('Link must start with http:// or https://.')
-    if (!assignments.some(row => row.class_id === form.class_id && row.subject_id === form.subject_id)) return setFormError('That class and subject are not assigned to this teacher.')
-    const subjectName = subjectById.get(form.subject_id)?.name
-    if (!subjectName) return setFormError('Subject could not be resolved.')
-
-    setSaving(true)
-    const inserted = await supabase.from('resources').insert({
-      teacher_id: teacherId,
-      school_id: schoolId,
-      class_id: form.class_id,
-      is_school_wide: false,
-      subject: subjectName,
-      title: form.title.trim(),
-      description: form.description.trim(),
-      type: form.type,
-      external_url: form.external_url.trim() || null,
-      content: form.content.trim() || null,
-    }).select('*').single()
-    setSaving(false)
-    if (inserted.error || !inserted.data) return setFormError(inserted.error?.message ?? 'Resource could not be saved.')
-    const row = inserted.data
-    setLibrary(current => [{
-      id: row.id, title: row.title, description: row.description ?? '', type: row.type as ResourceType,
-      subject: row.subject ?? subjectName, external_url: row.external_url, content: row.content,
-      is_school_wide: row.is_school_wide ?? false, class_id: row.class_id, created_at: row.created_at ?? new Date().toISOString(),
-    }, ...current])
+  const onSavedResource = (resource: TeacherResource) => {
+    setLibrary(current => [resource, ...current.filter(item => item.id !== resource.id)])
     setShowAdd(false)
+    setEditingResource(null)
+    setExpanded(resource.id)
+    setFilter('all')
+    setNotice('Saved privately. Learners cannot read this material until you explicitly share it.')
+  }
+
+  async function setSharingStatus(resource: TeacherResource, next: 'draft' | 'shared') {
+    if (!teacherId || sharing) return
+    setError('')
+    setNotice('')
+    if (next === 'shared') {
+      if (!mayShareResource(resource)) {
+        setError('Add content or a valid external link before sharing.')
+        return
+      }
+      if (!window.confirm(`Share “${resource.title}” with learners in this class? Learners will be able to read it.`)) return
+    }
+    setSharing(resource.id)
+    const result = await supabase.from('resources')
+      .update({ publication_status: next })
+      .eq('id', resource.id).eq('teacher_id', teacherId).select('*').single()
+    setSharing(null)
+    if (result.error || !result.data) {
+      setError(result.error?.message ?? 'Resource visibility could not be changed.')
+      return
+    }
+    setLibrary(current => current.map(item => item.id === resource.id ? result.data as TeacherResource : item))
+    setNotice(next === 'shared' ? 'Shared with the class.' : 'Unshared. Learner access has been withdrawn.')
   }
 
   async function deleteResource(resource: TeacherResource) {
@@ -479,12 +411,12 @@ export default function TeacherResourcesPage() {
               <h1 style={{ fontSize: 23, margin: '5px 0 4px', fontWeight: 750 }}>Teaching Library</h1><Link href="/learn/visuals" style={{ display: 'inline-block', color: '#175b43', fontSize: 13, fontWeight: 700, padding: '8px 0' }}>Browse diagrams and visual aids →</Link>
               <p style={{ margin: 0, fontSize: 13, maxWidth: 680, opacity: .82 }}>Find teaching resource types, Scheme-linked lesson materials and your saved resources.</p>
             </div>
-            <button type="button" onClick={() => openAdd()} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: 'var(--teacher-green)', minHeight: 44, fontWeight: 650, whiteSpace: 'nowrap' }}>+ Add resource</button>
+            <button type="button" onClick={() => openAdd()} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: 'var(--teacher-green)', minHeight: 44, fontWeight: 650, whiteSpace: 'nowrap' }}>+ Create resource</button>
           </div>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 11, fontSize: 12, opacity: .9 }}>
             <span>Week {week ?? '—'}</span>
             <span>{certifiedCount} certified {certifiedCount === 1 ? 'material' : 'materials'} this week</span>
-            <span>{library.length} saved by me</span>
+            <span>{library.filter(row => row.publication_status === 'draft').length} private drafts · {library.filter(row => row.publication_status === 'shared').length} shared</span>
           </div>
         </div>
       </header>
@@ -527,6 +459,7 @@ export default function TeacherResourcesPage() {
           </Link>
           </div>
         </details>
+        {notice && <div role="status" style={{ background: '#f0faf3', color: '#176346', padding: 12, marginBottom: 12, borderRadius: 10 }}>{notice}</div>}
         {error && <div role="alert" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 12, padding: 12, marginBottom: 14 }}>{error}</div>}
         {linkWarning && <p role="status" style={{ color: '#8a6300', fontSize: 12 }}>{linkWarning}</p>}
 
@@ -578,40 +511,74 @@ export default function TeacherResourcesPage() {
           })}
         </details>
 
-        <section id="saved-teaching-resources">
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'end', marginBottom: 10 }}>
-            <div><h2 style={{ fontSize: 18, margin: 0 }}>My saved materials</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>My teaching library. Teacher-added resources stay class-scoped.</p></div>
+        <section id="saved-teaching-resources" aria-label="My saved teaching materials">
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'end', marginBottom: 12 }}>
+            <div>
+              <h2 style={{ fontSize: 18, margin: 0 }}>My teaching materials</h2>
+              <p style={{ fontSize: 12, color: C.textMuted, margin: '4px 0' }}>Save privately first. Only Share with class makes content visible to learners.</p>
+            </div>
+            <button type="button" onClick={() => openAdd()} style={{ background: '#fff', color: '#126747', padding: 10, border: '1px solid #bfd4c6', borderRadius: 9 }}>+ Create</button>
           </div>
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10 }}>
-            {(['all', ...TYPES.map(t => t.value)] as Array<'all' | ResourceType>).map(value => <button type="button" key={value} onClick={() => setFilter(value)} style={{ border: '1px solid #dbe3ea', background: filter === value ? '#e0f2fe' : '#fff', color: filter === value ? '#075985' : C.textMuted, borderRadius: 999, padding: '7px 10px', fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap' }}>{value === 'all' ? 'All' : typeMeta(value).label}</button>)}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center', marginBottom: 12 }}>
+            {(['all','draft','shared'] as const).map(value =>
+              <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}
+                style={{ border: '1px solid #cddbd3', borderRadius: 999, padding: '8px 12px', fontSize: 12, background: filter === value ? '#e9f6ed' : '#fff' }}>
+                {value === 'all' ? 'All saved' : value === 'draft' ? 'Private drafts' : 'Shared with class'}
+              </button>)}
+            <input aria-label="Search my materials" type="search" value={savedQuery} onChange={e => setSavedQuery(e.target.value)}
+              placeholder="Search my materials…" style={{ ...inputStyle, flex: '1 1 170px', width: 'auto', minHeight: 38, padding: 8 }} />
           </div>
-
-          {visibleLibrary.length === 0 ? <div style={{ background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 14, padding: 18, color: C.textMuted }}>You have no saved {filter === 'all' ? '' : typeMeta(filter).label.toLowerCase() + ' '}resources yet. VibeSchool lesson resources above remain available independently.</div> : visibleLibrary.map(resource => {
-            const meta = typeMeta(resource.type)
-            const classLabel = resource.class_id ? classById.get(resource.class_id)?.label ?? 'Class' : 'Legacy school-wide'
-            const isExpanded = expanded === resource.id
-            return <article id={'saved-resource-' + resource.id} key={resource.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, marginBottom: 8, overflow: 'hidden' }}>
-              <button type="button" onClick={() => setExpanded(isExpanded ? null : resource.id)} aria-expanded={isExpanded} style={{ border: 0, width: '100%', background: '#fff', textAlign: 'left', padding: 13, display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span style={{ fontSize: 19 }}>{meta.icon}</span><span style={{ flex: 1 }}><strong style={{ display: 'block', color: C.textPrimary }}>{resource.title}</strong><span style={{ fontSize: 11, color: C.textMuted }}>{resource.subject} · {classLabel} · {timeAgo(resource.created_at)}</span></span><span>{isExpanded ? '⌃' : '⌄'}</span>
+          {visibleLibrary.length === 0 && <div role="status" style={{ background: '#fff', border: '1px dashed #cad7cf', borderRadius: 12, padding: 16, color: C.textMuted }}>
+            No matching materials. You can create a private draft and add its content later.
+          </div>}
+          {visibleLibrary.map(resource => {
+            const opened = expanded === resource.id
+            const shared = resource.publication_status === 'shared'
+            const componentLabel = TEACHING_LIBRARY_SLOTS.find(slot => slot.id === componentForPersonalResource(resource))?.label ?? 'Teaching material'
+            const classLabel = resource.class_id ? classById.get(resource.class_id)?.label ?? 'Class' : 'Legacy item'
+            const schemeLabel = resource.scheme_lesson_id ? packs.find(p => p.scheme.id === resource.scheme_lesson_id)?.scheme.topic : null
+            return <article id={'saved-resource-' + resource.id} key={resource.id} style={{ border: '1px solid #dce7dd', background: '#fff', borderRadius: 12, marginBottom: 8, overflow: 'hidden' }}>
+              <button type="button" aria-expanded={opened} onClick={() => setExpanded(opened ? null : resource.id)}
+                style={{ display: 'flex', width: '100%', border: 0, background: '#fff', textAlign: 'left', padding: 13, gap: 9, alignItems: 'center', cursor: 'pointer' }}>
+                <span style={{ flex: 1 }}>
+                  <strong style={{ display: 'block', fontSize: 14, color: C.textPrimary }}>{resource.title}</strong>
+                  <span style={{ display: 'block', fontSize: 11, color: C.textMuted }}>{componentLabel} · {classLabel} · {resource.subject || 'Subject'} {schemeLabel ? '· ' + schemeLabel : ''}</span>
+                </span>
+                <span style={{ color: shared ? '#136747' : '#735f38', fontWeight: 750, fontSize: 11, whiteSpace: 'nowrap' }}>{shared ? 'Shared' : 'Private draft'}</span>
+                <span aria-hidden="true">{opened ? '⌃' : '⌄'}</span>
               </button>
-              {isExpanded && <div style={{ padding: '0 13px 13px' }}>{resource.description && <p style={{ lineHeight: 1.6 }}>{resource.description}</p>}{resource.content && <div style={{ whiteSpace: 'pre-wrap', background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 10, padding: 11, lineHeight: 1.65 }}>{resource.content}</div>}{resource.external_url && <a href={resource.external_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 9 }}>Open external resource ↗</a>}<button type="button" disabled={deleting === resource.id} onClick={() => void deleteResource(resource)} style={{ display: 'block', marginTop: 10, border: '1px solid #fecaca', background: '#fff', color: '#991b1b', borderRadius: 9, padding: '7px 9px', fontWeight: 800 }}>{deleting === resource.id ? 'Deleting…' : 'Delete'}</button></div>}
+              {opened && <div style={{ padding: '0 13px 13px', borderTop: '1px solid #edf1ed' }}>
+                {resource.description && <p style={{ fontSize: 13, color: '#566e61' }}>{resource.description}</p>}
+                {resource.content && <div style={{ background: '#f7faf8', padding: 12, borderRadius: 9, whiteSpace: 'pre-wrap', lineHeight: 1.6, marginTop: 10, fontSize: 13 }}>{resource.content}</div>}
+                {resource.external_url && <a href={resource.external_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 10, color: '#136747' }}>Open external resource</a>}
+                {!resource.content && !resource.external_url && <p style={{ fontSize: 12, color: '#687c6e' }}>Content has not been added. This draft can be edited.</p>}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  <button type="button" onClick={() => editSaved(resource)} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #b5cfc0', background: '#fff', color: '#146c4b' }}>Edit</button>
+                  <button type="button" disabled={sharing === resource.id} onClick={() => void setSharingStatus(resource, shared ? 'draft' : 'shared')}
+                    style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #b5cfc0', background: shared ? '#fff' : '#176949', color: shared ? '#146744' : '#fff', fontWeight: 700 }}>
+                    {sharing === resource.id ? 'Updating…' : shared ? 'Unshare' : 'Share with class'}
+                  </button>
+                  <button type="button" disabled={deleting === resource.id} onClick={() => void deleteResource(resource)}
+                    style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #f0c8c8', background: '#fff', color: '#9a2929' }}>
+                    {deleting === resource.id ? 'Deleting…' : 'Delete'}
+                  </button>
+                </div>
+              </div>}
             </article>
           })}
         </section>
       </div>
 
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add my resource">
-        <div style={{ display: 'grid', gap: 13, marginTop: 16 }}>
-          <div><label style={labelStyle}>Type</label><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{TYPES.map(item => <button type="button" key={item.value} onClick={() => setForm(current => ({ ...current, type: item.value }))} aria-pressed={form.type === item.value} style={{ border: form.type === item.value ? '1px solid #0f4c75' : '1px solid #dbe3ea', background: form.type === item.value ? '#e0f2fe' : '#fff', minHeight: 44, borderRadius: 999, padding: '7px 9px', fontWeight: 800 }}>{item.icon} {item.label}</button>)}</div></div>
-          <div><label htmlFor="resource-class" style={labelStyle}>Class</label><select id="resource-class" style={inputStyle} value={form.class_id} onChange={event => setForm(current => ({ ...current, class_id: event.target.value }))}><option value="">Choose class</option>{classes.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}</select></div>
-          <div><label htmlFor="resource-subject" style={labelStyle}>Subject</label><select id="resource-subject" style={inputStyle} value={form.subject_id} onChange={event => setForm(current => ({ ...current, subject_id: event.target.value }))}><option value="">Choose subject</option>{allowedSubjects.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></div>
-          <div><label htmlFor="resource-title" style={labelStyle}>Title</label><input id="resource-title" style={inputStyle} value={form.title} onChange={event => setForm(current => ({ ...current, title: event.target.value }))} placeholder="Short useful title" /></div>
-          <div><label htmlFor="resource-description" style={labelStyle}>Description</label><textarea id="resource-description" style={{ ...inputStyle, minHeight: 64 }} value={form.description} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} /></div>
-          <div><label htmlFor="resource-link" style={labelStyle}>Paste link</label><input id="resource-link" style={inputStyle} value={form.external_url} onChange={event => setForm(current => ({ ...current, external_url: event.target.value }))} placeholder="https://…" /></div>
-          <div><label htmlFor="resource-content" style={labelStyle}>Or add content</label><textarea id="resource-content" style={{ ...inputStyle, minHeight: 110 }} value={form.content} onChange={event => setForm(current => ({ ...current, content: event.target.value }))} placeholder="Notes, questions, instructions…" /></div>
-        </div>
-        {formError && <div role="alert" style={{ marginTop: 10, color: '#991b1b', fontSize: 12 }}>{formError}</div>}
-        <button type="button" onClick={() => void saveResource()} disabled={saving} style={{ width: '100%', marginTop: 14, border: 0, borderRadius: 11, padding: 12, background: '#0f4c75', color: '#fff', fontWeight: 750 }}>{saving ? 'Saving…' : 'Save to my class library'}</button>
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title={editingResource ? 'Edit teaching material' : 'Create teaching material'}>
+        {teacherId && schoolId && <TeacherResourceEditor
+          key={editingResource?.id ?? editorComponent} teacherId={teacherId} schoolId={schoolId}
+          classes={classes} subjects={subjects} assignments={assignments} schemes={packs.map(p => p.scheme)}
+          initialClassId={classFilter && classById.has(classFilter) ? classFilter : classes[0]?.id ?? ''}
+          initialSubjectId={subjectFilter && subjectById.has(subjectFilter) ? subjectFilter
+            : assignments.find(a => a.class_id === (classFilter || classes[0]?.id))?.subject_id ?? ''}
+          initialComponent={editorComponent} editing={editingResource}
+          onClose={() => setShowAdd(false)} onSaved={onSavedResource}
+        />}
       </Modal>
     </section>
   )
