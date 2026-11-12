@@ -10,6 +10,7 @@ declare
   pkg_id uuid;
   pkg_version uuid;
   q_id uuid;
+  other_outcome_id uuid;
   manifest jsonb;
   audit jsonb;
   broken jsonb;
@@ -117,6 +118,26 @@ begin
   if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
     raise exception 'Unmapped question ID accepted';
   end if;
+
+  -- Explicitly wrong outcome identity must fail even when the version exists.
+  select id into other_outcome_id from public.curriculum_learning_outcomes
+   where id <> o.id limit 1;
+  if other_outcome_id is not null then
+    update public.learning_resources set curriculum_outcome_id=other_outcome_id
+     where id=core_id;
+    if public.cla_audit_outcome_package(pkg_id,manifest)->>'valid' <> 'false' then
+      raise exception 'Cross-outcome pinned resource was accepted';
+    end if;
+    update public.learning_resources set curriculum_outcome_id=o.id where id=core_id;
+  end if;
+
+  -- An existing manifest cannot change the identity of its canonical root.
+  begin
+    update public.learning_resources set asset_kind='content_block' where id=pkg_id;
+    raise exception 'PACKAGE ROOT IDENTITY GUARD DID NOT FIRE';
+  exception when check_violation then
+    if sqlerrm <> 'CLA_PACKAGE_ROOT_IDENTITY_IMMUTABLE' then raise; end if;
+  end;
 
   -- Version trigger must reject a false release, not merely report it.
   begin
