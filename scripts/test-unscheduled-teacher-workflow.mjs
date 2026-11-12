@@ -40,7 +40,8 @@ test('unscheduled Teach resumes only this Nairobi date and the teacher-owned occ
   assert.match(teach, /\.eq\('unscheduled_plan_id', plan\.id\)\.eq\('teacher_id', user\.id\)/)
   assert.match(teach, /occurrence\?\.lifecycle === 'in_progress'/)
   assert.match(teach, /occurrence\?\.lifecycle === 'completed'/)
-  assert.match(teach, /setActive\(\{ occurrence: occurrence as Occurrence, plan \}\)/)
+  assert.match(teach, /occurrence\.unscheduled_plan_id !== plan\.id \|\| occurrence\.timetable_slot_id !== null/)
+  assert.match(teach, /setActive\(\{ occurrence: \{ \.\.\.occurrence, unscheduled_plan_id: plan\.id, timetable_slot_id: null \}, plan \}\)/)
   assert.match(teach, /\|\| busy \|\| completed\}/)
 })
 
