@@ -5,7 +5,8 @@ Timetable sample times are **examples**, never automatic defaults or certified
 periods for a school. The teacher may preview and edit any sample. A school
 administrator alone may apply an explicitly confirmed school-day draft.
 
-Entry: `/teacher/timetable/setup` (the existing canonical school-period setup).
+Entry: `/teacher/timetable` for every signed-in teacher, whether their timetable is empty or populated, whether they teach school or tuition, and including independent teachers; the same editable samples remain at `/teacher/timetable/setup` for authorised school-period setup.
+The timetable shows all four optional sample previews immediately, without changing actual scheduled lessons. Selecting a card loads a local draft, never real slots or school periods. Independently registered teachers can edit, save on their device and export, but cannot publish periods without server-confirmed school-admin permission. No sample is a default school timetable.
 There is no second timetable engine or curriculum allocation table.
 
 ## Available examples
