@@ -14,6 +14,7 @@ import LessonPreparationStudio from "@/components/teacher/LessonPreparationStudi
 import TeachingWorkspaceNav from "@/components/teacher/TeachingWorkspaceNav";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 import JumpingSchemeContent from "@/components/teacher/JumpingSchemeContent";
+import CanonicalLessonNotesPanel from "@/components/teacher/CanonicalLessonNotesPanel";
 
 
 type PlanRow = {
@@ -23,6 +24,7 @@ type PlanRow = {
   body: string | null;
   scheme_id: string | null;
   curriculum_id: string | null;
+  curriculum_outcome_id: string | null;
   status: string | null;
   duration_minutes: number | null;
   timetable_slot_id: string | null;
@@ -94,6 +96,7 @@ function LessonNotesInner() {
   const [resources, setResources] = useState<ResourceRow[]>([]);
   const [exactChapters, setExactChapters] = useState<ExactChapterRow[]>([]);
   const [teacherNotes, setTeacherNotes] = useState<TeacherNoteRow[]>([]);
+  const [canonicalNotesScope, setCanonicalNotesScope] = useState<{ outcomeId: string | null; subStrandId: string | null } | null>(null);
   const [jumpingSchemeId, setJumpingSchemeId] = useState<string | null>(null);
   const [timeOutcomeId, setTimeOutcomeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +132,7 @@ function LessonNotesInner() {
 
       const { data: planData, error: planError } = await supabase
         .from("lesson_plans")
-        .select("id,title,topic,body,scheme_id,curriculum_id,status,duration_minutes,timetable_slot_id,taught_date,teacher_id,class_id,subject_id")
+        .select("id,title,topic,body,scheme_id,curriculum_id,curriculum_outcome_id,status,duration_minutes,timetable_slot_id,taught_date,teacher_id,class_id,subject_id")
         .eq("id", lessonPlanId)
         .single();
 
@@ -142,6 +145,7 @@ function LessonNotesInner() {
       setPlan(typedPlan);
       setJumpingSchemeId(null);
       setTimeOutcomeId(null);
+      setCanonicalNotesScope(null);
       setScheduledMinutes(null);
       if (typedPlan.timetable_slot_id) {
         const { data: slot, error: slotError } = await supabase.from('timetable_slots')
@@ -219,6 +223,7 @@ function LessonNotesInner() {
 
       let subStrandId: string | null = null;
       let curriculumId: string | null = typedPlan.curriculum_id ?? null;
+      let exactOutcomeId: string | null = typedPlan.curriculum_outcome_id ?? null;
 
       if (typedPlan.scheme_id) {
         const { data: schemeData } = await supabase
@@ -233,14 +238,21 @@ function LessonNotesInner() {
           throw new Error("The linked Scheme does not match this lesson.");
         }
         subStrandId = schemeData?.sub_strand_id ?? null;
+        const schemeOutcomeId = schemeData?.curriculum_outcome_id ?? null;
+        if (exactOutcomeId && schemeOutcomeId && exactOutcomeId !== schemeOutcomeId) {
+          throw new Error("Lesson Plan and Scheme reference different learning outcomes; reconcile before opening linked notes.");
+        }
+        exactOutcomeId = schemeOutcomeId ?? exactOutcomeId;
         if (subStrandId === 'e975dcc6-32a9-4274-a2a3-3d19e409cf5c') {
-          setTimeOutcomeId(schemeData?.curriculum_outcome_id ?? null);
+          setTimeOutcomeId(exactOutcomeId);
         }
         curriculumId = schemeData?.curriculum_id ?? curriculumId;
         if (schemeData?.grade === "Grade 1" && schemeData?.sub_strand === "Jumping") {
           setJumpingSchemeId(typedPlan.scheme_id);
         }
       }
+
+      setCanonicalNotesScope({ outcomeId: exactOutcomeId, subStrandId });
 
       const chapterIds = new Set<string>();
 
@@ -417,9 +429,10 @@ function LessonNotesInner() {
           <JumpingSchemeContent schemeId={jumpingSchemeId} />
         </section>
       )}
-      <details className="studio-lesson-details"><summary>Teaching pack & private notes</summary>
+      <CanonicalLessonNotesPanel outcomeId={canonicalNotesScope?.outcomeId ?? null} subStrandId={canonicalNotesScope?.subStrandId ?? null} />
+      <details className="studio-lesson-details"><summary>Lesson Plan outline & private reminders</summary>
       <section style={{ background: "#2c2944", color: "#fff", borderRadius: 22, padding: 18, marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 750, color: "#d0c5e8", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes</div>
+        <div style={{ fontSize: 11, fontWeight: 750, color: "#d0c5e8", textTransform: "uppercase", letterSpacing: 1 }}>Prepared Lesson Plan outline</div>
         <h1 style={{ fontSize: 22, lineHeight: 1.2, margin: "7px 0 5px" }}>{plan.topic || plan.title || "Today’s lesson"}</h1>
         <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.45 }}>Everything here belongs to this lesson. Teach from it, then return to the lesson flow.</div>
       </section>
@@ -506,8 +519,8 @@ function LessonNotesInner() {
         </div>
       ) : (
         <section style={{ background: "#fff", borderRadius: 18, padding: 16, border: "1px solid #e5e7eb" }}>
-          <div style={{ fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>No written notes yet</div>
-          <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 5 }}>Return to the lesson plan and prepare the lesson. VibeSchool uses the canonical lesson plan as the baseline teaching notes; approved source-grounded teacher notes can enrich it when available.</div>
+          <div style={{ fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>No prepared Lesson Plan outline yet</div>
+          <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 5 }}>Prepare the Lesson Plan, or open released learner/teacher content above. The teaching outline is not a substitute for a certified content resource.</div>
         </section>
       )}
       </details>
