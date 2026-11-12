@@ -58,10 +58,9 @@ const tools: Tool[] = [
   },
   {
     id: "lesson-notes",
-    label: "Lesson Notes / Teach",
-    help: "Choose the prepared lesson, then open its lesson notes and classroom Teach mode without inventing a lesson.",
-    group: "teach",
-    needsClass: true,
+    label: "Lesson Notes",
+    help: "Browse certified curriculum notes and your saved notes without first preparing a lesson or timetable.",
+    group: "prepare",
     href: (classId, subject) => `/teacher/lesson-notes?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
   },
   {
