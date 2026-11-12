@@ -1,24 +1,6 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import test from 'node:test'
-const read = path => fs.readFileSync(path, 'utf8')
-const migrations = fs.readdirSync('supabase/migrations')
-function migration(suffix) {
-  const matches = migrations.filter(name => name.endsWith(suffix))
-  assert.equal(matches.length, 1, `Expected one migration ending with ${suffix}`)
-  return read(`supabase/migrations/${matches[0]}`)
-}
-const grades = migration('_timetable_canonical_grades_and_allocations.sql')
-const periods = migration('_timetable_school_period_authority.sql')
-const binding = migration('_timetable_dated_scheme_binding.sql')
-const source = read('lib/teaching/lessonSource.ts')
-const workspace = read('lib/teaching/lessonWorkspace.ts')
-const modal = read('components/teacher/AddSlotModal.tsx')
-const timetable = read('app/teacher/timetable/page.tsx')
-
-import assert from 'node:assert/strict'
-import fs from 'node:fs'
-import test from 'node:test'
 
 const read = path => fs.readFileSync(path, 'utf8')
 
