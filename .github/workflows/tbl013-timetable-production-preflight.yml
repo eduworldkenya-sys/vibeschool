@@ -46,6 +46,14 @@ jobs:
           python3 scripts/test-tbl012-live-timetable-schema.py
           python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
           python3 scripts/test-tbl013-live-ledger-audit.py
+      - name: Prove pinned Supabase CLI supports enforced read-only SQL
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+      - name: Reject production-query CLI without read-only guard
+        run: |
+          set -euo pipefail
+          supabase db query --help | grep -Fq -- '--read-only'
 
   production-readonly:
     name: Capture production ledger and exact dry-run without writes
