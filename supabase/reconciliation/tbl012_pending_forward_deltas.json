@@ -5,9 +5,9 @@
       "table": "timetable_slots",
       "section": "triggers",
       "production_hash": "ae2bfdc7c592a5d63b7ba0caafebff6a",
-      "rebuilt_hash": "f5ad5e6b6f5dc8fac89fd5f8d20f39dd",
-      "migration": "20261112101600_timetable_school_period_authority.sql",
-      "rationale": "The period guard now validates edits to effective-date windows; production snapshot stays unchanged until migration deployment."
+      "rebuilt_hash": "a7ac9cc47ec44efe0eef1c1802559dac",
+      "migration": "20261112150000_unified_school_tuition_schedule.sql",
+      "rationale": "The clean-rebuild trigger fingerprint now includes both the unapplied 20261112101600 school-period guard change and the 20261112150000 school/tuition collision trigger. This exact rebuilt hash was taken from the isolated TBL-011 clean-rebuild artifact, not from production or an estimated schema."
     }
   ]
 }
