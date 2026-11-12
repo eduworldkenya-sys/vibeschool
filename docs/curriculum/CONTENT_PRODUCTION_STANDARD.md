@@ -30,7 +30,7 @@ This is the standard for all Grades 1–9. The contents of a particular lesson a
 | --- | --- | --- |
 | Lesson content / learner notes | Explain the concept in understandable language | Readable lesson with vocabulary and connections |
 | Worked examples | Teach the method or reasoning | Ordered calculations/actions, plain-language reason for **each** meaningful step, formula/symbol meanings where applicable, correct answer and valid check |
-| Images / diagrams / media | Make a concept visible or audible where useful | Captioned/accessible asset with source or rights trace |
+| Images / diagrams / media | Make a concept visible or audible where useful | Real asset (not merely a brief), correct labels, meaningful alt text/caption and canonical visual-library reference where appropriate |
 | Demonstrations | Show how a method or performance is done | Ordered model actions and observable criteria |
 | Activities | Learn by doing, exploring, talking or making | Instructions, materials, participation and evidence |
 | Investigations / experiments | Test an idea or observe a result | Question, procedure, observations, interpretation, safety |
@@ -122,6 +122,14 @@ Never force a dated timetable occurrence into a general content lookup, or attac
 - Verify answers and examples independently of their original generation when possible; check mathematics step by step and subject facts against suitable evidence.
 - Run the applicable Content Factory quality, source-fidelity, assessment, safety and independent-critique processes. Record actual evidence and substantive failures.
 - Fix defects within scope, then recheck changed material. Never treat “AI reviewed it” as proof of independent verification by a person.
+
+### Visual learning aids — plan, create and reuse when educationally needed
+
+- Decide for each outcome whether a visual is needed. If not, omit it without filler. When it is needed, include a specific **visual brief**: type, purpose, exact required content, correct labels, caption/alt text, learner/teacher audience and placement in explanation, worked example, activity, exercise, assessment or Teacher Guide.
+- A brief is a **production requirement**, not the finished image. Create or obtain the actual visual; verify subject accuracy, readability, age-appropriateness and meaningful accessible text.
+- Store each approved reusable diagram/image/illustration in the **[canonical Visual Learning Library](./VISUAL_LEARNING_LIBRARY.md)**, reusing `learning_resources` and its version authority; never hardcode lesson image URLs as the content source.
+- Reference the existing visual by stable canonical resource ID (`[visual:UUID]`) in the intended lesson content. Reuse the same ID across surfaces rather than copying binaries. Drafts must not be displayed to learners until independently released through the actual publication process.
+- Do not introduce a new media asset registry, automatic image generation worker or redundant library merely for content production.
 
 ### Stage F — Bind into the canonical system
 
