@@ -11,7 +11,11 @@ on:
       - "supabase/reconciliation/tbl012_live_observation_20261112.json"
       - "supabase/reconciliation/tbl012_production_core_schema_hashes.json"
       - ".github/workflows/tbl013-timetable-production-preflight.yml"
+      - "scripts/sql/tbl013_tuition_collision_preflight.sql"
+      - "scripts/tbl013-assert-tuition-collision-preflight.py"
+      - "scripts/test-tbl013-timetable-tuition-preflight.py"
       - "supabase/migrations/2026111210*.sql"
+      - "supabase/migrations/20261112150000_unified_school_tuition_schedule.sql"
   push:
     branches: [main]
     paths:
@@ -23,7 +27,11 @@ on:
       - "supabase/reconciliation/tbl012_live_observation_20261112.json"
       - "supabase/reconciliation/tbl012_production_core_schema_hashes.json"
       - ".github/workflows/tbl013-timetable-production-preflight.yml"
+      - "scripts/sql/tbl013_tuition_collision_preflight.sql"
+      - "scripts/tbl013-assert-tuition-collision-preflight.py"
+      - "scripts/test-tbl013-timetable-tuition-preflight.py"
       - "supabase/migrations/2026111210*.sql"
+      - "supabase/migrations/20261112150000_unified_school_tuition_schedule.sql"
   workflow_dispatch:
 
 permissions:
@@ -43,6 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/test-tbl013-timetable-ledger-stage.py
+          python3 scripts/test-tbl013-timetable-tuition-preflight.py
           python3 scripts/test-tbl012-live-timetable-schema.py
           python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
           python3 scripts/test-tbl013-live-ledger-audit.py
@@ -126,6 +135,18 @@ jobs:
             --report .tbl013-timetable-readonly/live-structural-verdict.json
           echo 'LIVE OBSERVATION MATCHED — historic parity and migration authorization remain false'
 
+      - name: Detect current school/tuition clashes before plan staging (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db query --remote --read-only \
+            -f scripts/sql/tbl013_tuition_collision_preflight.sql -o csv \
+            > .tbl013-timetable-readonly/tuition-conflicts.csv
+          python3 scripts/tbl013-assert-tuition-collision-preflight.py \
+            --csv .tbl013-timetable-readonly/tuition-conflicts.csv \
+            --report .tbl013-timetable-readonly/tuition-conflict-verdict.json
+          echo 'TUITION PREFLIGHT PASSED — no booking or timetable rows were modified'
+
       - name: Stage approved timetable versions; exclude unrelated repository-only SQL
         run: |
           set -euo pipefail
@@ -145,8 +166,9 @@ jobs:
           expected=Path('.tbl013-timetable-readonly/pending-versions.txt').read_text().split()
           assert set(expected) <= {
             '20261112101500','20261112101600','20261112101700',
-            '20261112101800'
+            '20261112101800','20261112150000'
           }
+          assert '20261112150000' in m['approved_worker_engine_versions']
           assert expected
           print('Timetable-only pending versions:', ', '.join(expected))
           PY
