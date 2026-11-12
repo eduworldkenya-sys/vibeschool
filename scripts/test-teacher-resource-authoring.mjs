@@ -59,6 +59,7 @@ assert.ok(library.includes('onAddPersonalResource(slot.id)'), 'all 15 slots perm
 assert.ok(library.includes('componentForPersonalResource(item)'), 'teacher saved resources must use canonical component')
 assert.ok(!student.includes('readCache<'), 'student app must not retain unshared class content in local caches')
 assert.ok(!student.includes('writeCache('), 'student app must not persist shared content after unshare')
+assert.ok(student.includes('clearCache("lessons", identity.studentId)'), 'legacy locally cached class content must be purged')
 assert.ok(student.includes('student_accessible_resources'), 'student reader uses RLS-protected published view')
 for (const token of ['publication_status: string', 'component_type: string | null', 'scheme_lesson_id: string | null']) {
   assert.ok(types.includes(token), 'typed DB contract missing: '+token)
