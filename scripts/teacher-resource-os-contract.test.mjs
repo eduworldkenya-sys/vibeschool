@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 
 const resourcePage = fs.readFileSync('app/teacher/resources/page.tsx', 'utf8')
 const resourceEditor = fs.readFileSync('components/teacher/TeacherResourceEditor.tsx', 'utf8')
-const sharingMigration = fs.readFileSync('supabase/migrations/20261112062000_teacher_resource_draft_share_and_component_link.sql', 'utf8')
+const sharingMigration = fs.readFileSync('supabase/migrations/20261112065326_teacher_resource_draft_share_and_component_link.sql', 'utf8')
 const lessonModal = fs.readFileSync('components/teacher/LessonPlanModal.tsx', 'utf8')
 const teachMode = fs.readFileSync('components/teacher/LessonTeachMode.tsx', 'utf8')
 const lessonNotes = fs.readFileSync('app/teacher/lesson-notes/page.tsx', 'utf8')
