@@ -23,10 +23,10 @@
     },
     "teaching_occurrences": {
       "table_hash": "80b6182c4e2c655abf4e9445a230442f",
-      "columns_hash": "00a41bb099361c7a421074ef9f5cac66",
-      "indexes_hash": "a34ee9aa568c8eda740da19391459458",
+      "columns_hash": "b6267cbed72bb9835de6d402a11c305b",
+      "indexes_hash": "cab1e33e79b43929983e8e49d54f02c0",
       "triggers_hash": "cb53398290d1829d11359f338b80a11b",
-      "constraints_hash": "a5a8d62fc7d5ca48048a144e06f51ba1"
+      "constraints_hash": "f2402925362f1d18e908fe7decabd3c1"
     }
   },
   "schema_version": 1
