@@ -18,6 +18,23 @@ CURRENT STATE
 
 TIMETABLE
 
+EMERGENCY SCHOOL DISRUPTIONS — P0 BRANCH IMPLEMENTATION (2026-11-12):
+- Branch `feat/timetable-emergency-disruption-p0-20261112` is isolated from
+  `integration/intelligent-timetable`, which is the integration target.
+- P0 code adds full-day school-admin-only closure preview/record/reopen, an
+  audited canonical calendar exception, reversible missed-occurrence marking,
+  a database guard for closed-day lesson starts, and a School Hub route.
+- The canonical existing recovery RPC is reused; it must not schedule on
+  a closed date. Completed teaching and existing timetable slots are retained.
+- Regression assertions live in `scripts/test-school-disruptions.mjs`; see
+  `docs/timetable/EMERGENCY_DISRUPTIONS_P0.md` for verification requirements.
+- This is NOT production certification: no migration applied to live Supabase,
+  no live user action, and TBL-012 remains blocked. Do not change the active
+  fix in this handover, repair the migration ledger or promote this P0 branch
+  as deployed without a checked clean rebuild and exact-head required CI.
+- P1/P2 remain separate: partial-day interruptions, actual Scheme capacity,
+  Week A/B, official calendar ingestion and notifications.
+
 TEACHER DUAL-CONTEXT IDENTITY — STAGE 1 (2026-11-12; INTEGRATION FEATURE PR):
 - Use one authenticated teacher ID for school and independent teaching, not separate profiles.
 - The existing server-filtered `get_my_teacher_school_context` remains membership authority. The pure `lib/teacher/teachingIdentity.ts` projection lists authorised schools and independent scope; active school is selected by default when linked.
