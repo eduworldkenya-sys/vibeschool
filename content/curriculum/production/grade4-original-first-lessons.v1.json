@@ -97,7 +97,17 @@
       "visual": {
         "kind": "place-value chart",
         "description": "Five-column chart labelled ten-thousands to ones, with 43,562 aligned; optional counters show 3 groups of 1,000."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     },
     {
       "id": "VS-G04-EN-01-LS-L01",
@@ -187,7 +197,17 @@
       "visual": {
         "kind": "dialogue sequence",
         "description": "Two speech bubbles labelled Amina and Otieno, plus icons for washing hands, cups and water."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.ENGLISH.LANGUAGE.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1/Listening and Speaking",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     },
     {
       "id": "VS-G04-SW-1.1.1-L01",
@@ -276,7 +296,17 @@
       "visual": {
         "kind": "silabi cards",
         "description": "Kadi za ka, la, mu zinazounganishwa na kutoa neno kalamu."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/Kiswahili-Gredi-ya-4-Revised.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     },
     {
       "id": "VS-G04-IL-01-LS-L01",
@@ -360,7 +390,17 @@
         "kind": "food photo cards",
         "description": "Photographs or drawings of two local foods, labelled only after a fluent speaker verifies spelling."
       },
-      "releaseGate": "native_speaker_and_rights_review_required"
+      "releaseGate": "native_speaker_and_rights_review_required",
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/GRADE-4-INDIGENOUS-LANGUAGE-DESIGN-Revised.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1/Listening and Speaking",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     }
   ]
 }
