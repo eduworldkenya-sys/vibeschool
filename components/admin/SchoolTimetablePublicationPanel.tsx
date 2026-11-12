@@ -26,6 +26,7 @@ export type SchoolTimetableReleasePreflight = {
   missing_allocation_count: number
   allocation_mismatch_count: number
   ambiguous_allocation_count: number
+  uncovered_school_class_count: number
 }
 
 export const publicationBlockerLabels: ReadonlyArray<[keyof SchoolTimetableReleasePreflight,string]> = [
@@ -37,6 +38,7 @@ export const publicationBlockerLabels: ReadonlyArray<[keyof SchoolTimetableRelea
   ["missing_allocation_count", "Subjects without effective approved allocations"],
   ["allocation_mismatch_count", "Weekly allocation mismatches"],
   ["ambiguous_allocation_count", "Overlapping allocation targets"],
+  ["uncovered_school_class_count", "Allocated school classes without scheduled lessons"],
 ]
 
 const shell: React.CSSProperties = {
