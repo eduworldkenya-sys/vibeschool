@@ -93,9 +93,7 @@ function derivePrimaryAction(
         ? 'review_lesson'
         : 'record_progress'
     case 'missed':
-      return occurrence.lessonPlanId
-        ? 'start_lesson'
-        : 'prepare_lesson'
+      return 'recover_lesson'
     case 'cancelled':
     case 'rescheduled':
       return 'none'
@@ -135,8 +133,11 @@ function teachStage(occurrence: TeachingOccurrence) {
   if (!occurrence.lessonPlanId) {
     return stage('teach', 'blocked', 'A lesson plan is required before teaching starts.')
   }
-  if (occurrence.lifecycle === 'ready' || occurrence.lifecycle === 'missed') {
+  if (occurrence.lifecycle === 'ready') {
     return stage('teach', 'available')
+  }
+  if (occurrence.lifecycle === 'missed') {
+    return stage('teach', 'blocked', 'Recover the missed occurrence into a new dated lesson before teaching.')
   }
   return stage('teach', 'blocked', 'The lesson is not ready to start.')
 }
@@ -239,9 +240,9 @@ export function deriveTeachingWorkspace(
     primaryAction: derivePrimaryAction(occurrence),
     canStart: lifecycleActive
       && Boolean(occurrence.lessonPlanId)
-      && (occurrence.lifecycle === 'ready' || occurrence.lifecycle === 'missed'),
+      && occurrence.lifecycle === 'ready',
     canComplete: occurrence.lifecycle === 'in_progress',
-    canRecover: occurrence.lifecycle === 'missed',
+    canRecover: occurrence.lifecycle === 'missed' && Boolean(occurrence.occurrenceId),
     canCaptureAttendance: lifecycleActive && Boolean(occurrence.lessonPlanId),
     canCaptureEvidence: occurrence.lifecycle === 'in_progress' || occurrence.lifecycle === 'completed',
     canAssignHomework: occurrence.lifecycle === 'in_progress' || occurrence.lifecycle === 'completed',
