@@ -164,6 +164,16 @@ begin
         and b.status='published' and b.is_teacher_only=false
         and b.is_assessable=true and b.block_type='question'
         and b.id is distinct from m.source_block_id
+        -- Formal assessment variants are not remediation inventory, even
+        -- when they accidentally share a source content block identity.
+        and not exists (
+          select 1 from public.assessment_items formal_item
+          join public.assessment_definitions formal_assessment
+            on formal_assessment.id=formal_item.assessment_id
+          where formal_item.source_block_id=b.id
+            and formal_item.status='approved'
+            and formal_assessment.assessment_type in ('exam','test')
+        )
         -- The server scorer chooses the FIRST verified outcome for a block;
         -- only offer this block when that exact authoritative identity agrees.
         and (
