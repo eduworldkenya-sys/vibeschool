@@ -1,0 +1,426 @@
+{
+  "schema": "vibeschool.originals.editorial-learning-packets.v1",
+  "scope": "One substantive demonstration lesson for each of Grade 8 Mathematics, English and Kiswahili and Grade 9 English; not full subject coverage.",
+  "status": "editorial_draft_not_published",
+  "publisher": "VibeSchool (independent original teaching materials)",
+  "authority": "KICD revised 2024 (curriculum scope only, not endorsement)",
+  "sourceRevisions": "2024",
+  "createdAt": "2026-11-12",
+  "packets": [
+    {
+      "id": "VS-G08-MA-1.1-L01",
+      "grade": "Grade 8",
+      "subject": "Mathematics",
+      "unit": "1.1",
+      "sourceRef": "VS-CUR-G08-MA-2026#1.1",
+      "sourceIndexCode": "1.1",
+      "strand": "Numbers",
+      "subStrand": "Integers",
+      "focus": "Using a number line to add and subtract integers",
+      "goal": "Represent positive and negative integers and explain integer addition and subtraction on a number line.",
+      "notes": "Integers include negative whole numbers, zero and positive whole numbers. Zero separates the negative numbers from the positive ones. On a number line, moving right increases a value, and moving left decreases it. We can model changes in temperature, elevation or account balances without treating an invented story as real data. For addition, the sign of the added number tells the direction; for subtraction, move in the opposite direction to the number being subtracted.",
+      "vocabulary": [
+        "integer",
+        "negative",
+        "positive",
+        "zero",
+        "number line",
+        "opposite"
+      ],
+      "model": {
+        "prompt": "The starting value is −3. Add 5. Then calculate 2 − 5 using the same number line.",
+        "steps": [
+          {
+            "action": "Mark −3 on a number line.",
+            "why": "It is our starting value, three units to the left of zero."
+          },
+          {
+            "action": "For −3 + 5, make five one-unit jumps to the right: −2, −1, 0, 1, 2.",
+            "why": "Adding a positive integer increases the value."
+          },
+          {
+            "action": "The first answer is 2.",
+            "why": "Five jumps right from −3 end at 2."
+          },
+          {
+            "action": "Start at 2 and for 2 − 5 jump five units left: 1, 0, −1, −2, −3.",
+            "why": "Subtracting a positive integer decreases the value."
+          }
+        ],
+        "answer": "−3 + 5 = 2; 2 − 5 = −3.",
+        "check": "Reverse each movement: 2 − 5 = −3 and −3 + 5 = 2."
+      },
+      "activity": {
+        "materials": [
+          "Large floor number line made from paper or chalk",
+          "Two direction cards"
+        ],
+        "steps": [
+          "Make a number line from −8 to 8 and identify zero.",
+          "Learners take turns demonstrating a given starting point and right or left jumps.",
+          "Pairs draw and explain two different journeys that end at −2."
+        ],
+        "evidence": "A correctly labelled number line with directions, jumps and final value."
+      },
+      "guided": [
+        {
+          "id": "G08-MA-1.1-L01-G1",
+          "prompt": "Start at −2 and add 4. Where do you finish?",
+          "answer": "2",
+          "reason": "Four right jumps from −2 lead through −1, 0, 1 and 2."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G08-MA-1.1-L01-E1",
+          "prompt": "Calculate −4 + 7 using a number line.",
+          "answer": "3",
+          "reason": "Start at −4; moving seven places right gives 3."
+        },
+        {
+          "id": "G08-MA-1.1-L01-E2",
+          "prompt": "Calculate 3 − 8 using a number line.",
+          "answer": "−5",
+          "reason": "Start at 3 and move eight places left, crossing zero."
+        }
+      ],
+      "check": [
+        {
+          "id": "G08-MA-1.1-L01-Q1",
+          "prompt": "A learner says −2 is greater than 1 because 2 is larger than 1. Correct the claim.",
+          "answer": "−2 is less than 1.",
+          "reason": "On a number line −2 lies to the left of 1."
+        }
+      ],
+      "misconception": "Treating the minus sign as decoration. Use directed movement to distinguish negative numbers from the subtraction operation.",
+      "remedial": "Begin with movements that stay on one side of zero, then model crossings of zero in single steps.",
+      "enrichment": "Explain using a line why subtracting a negative integer has the same effect as adding its positive counterpart.",
+      "teacher": "Insist on labelled zero and equal spacing. Let learners justify the direction before they calculate. Use red or black ink without relying on colour alone.",
+      "accessibility": "Provide a tactile raised number line or verbal sequence of values for learners who cannot use floor movement.",
+      "visual": {
+        "kind": "signed number-line diagram",
+        "description": "Line −8 to +8 with equally spaced marks; two arrows show −3→2 (five right jumps) and 2→−3 (five left jumps)."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/06/Mathematics-Grade-8-Design-Formatted-April-2024.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+    },
+    {
+      "id": "VS-G08-EN-01-LS-L01",
+      "grade": "Grade 8",
+      "subject": "English",
+      "unit": "01-LS",
+      "sourceRef": "VS-CUR-G08-EN-2026#01-LS",
+      "sourceIndexCode": "1/Listening and Speaking",
+      "strand": "Listening and Speaking",
+      "subStrand": "Human Rights: Polite Language: Telephone Etiquette",
+      "focus": "Making a respectful telephone enquiry about a community meeting",
+      "goal": "Identify and use opening, purpose, clarification and closing language in a courteous telephone conversation.",
+      "notes": "A telephone caller cannot rely on facial expression. A clear greeting, an accurate purpose and a polite ending help the listener understand the request. Ask before taking up a person's time, confirm names or details carefully and protect private information. A respectful voice does not require a particular accent.",
+      "vocabulary": [
+        "greeting",
+        "enquiry",
+        "clarification",
+        "courteous",
+        "privacy"
+      ],
+      "model": {
+        "prompt": "Listen to this original call. Caller: 'Good morning. My name is Neema. May I ask about the youth rights meeting?' Receptionist: 'Certainly. What would you like to know?' Caller: 'Could you tell me the starting time, please?' Receptionist: 'It begins at ten.' Caller: 'Thank you. Just to confirm, ten in the morning?' Receptionist: 'Yes.' Caller: 'Thank you for your help. Goodbye.'",
+        "steps": [
+          {
+            "action": "Identify the opening greeting and introduction.",
+            "why": "They tell the listener who is speaking and establish a polite tone."
+          },
+          {
+            "action": "Find the purpose: asking for the meeting's starting time.",
+            "why": "The purpose gives the conversation direction."
+          },
+          {
+            "action": "Notice the clarification question about ten in the morning.",
+            "why": "Checking a detail prevents misunderstanding."
+          },
+          {
+            "action": "Identify the closing thanks and goodbye.",
+            "why": "A courteous ending acknowledges the other speaker."
+          }
+        ],
+        "answer": "The caller greets, introduces herself, asks one clear question, confirms the time and thanks the recipient.",
+        "check": "The dialogue contains each of those elements without requesting private information."
+      },
+      "activity": {
+        "materials": [
+          "Original script",
+          "Optional role cards"
+        ],
+        "steps": [
+          "Pairs listen while the teacher reads both roles.",
+          "Swap roles and practise an enquiry about meeting accessibility, location or time.",
+          "Each listener uses a short checklist to record greeting, clear request, clarification and closing."
+        ],
+        "evidence": "Learner performs a respectful call without revealing personal details and correctly confirms one fact."
+      },
+      "guided": [
+        {
+          "id": "G08-EN-01-LS-G1",
+          "prompt": "Which sentence clarifies the time?",
+          "answer": "'Just to confirm, ten in the morning?'",
+          "reason": "It checks whether the speaker meant a.m. rather than p.m."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G08-EN-01-LS-E1",
+          "prompt": "Write a polite opening line when contacting a school office.",
+          "answer": "Example: 'Good morning. My name is Akinyi. May I ask a question about the meeting?'",
+          "reason": "It includes greeting, introduction and purpose."
+        },
+        {
+          "id": "G08-EN-01-LS-E2",
+          "prompt": "Write a suitable closing sentence.",
+          "answer": "Example: 'Thank you for your help. Goodbye.'",
+          "reason": "It thanks the listener and clearly ends the conversation."
+        }
+      ],
+      "check": [
+        {
+          "id": "G08-EN-01-LS-Q1",
+          "prompt": "A caller shares a classmate's private telephone number during an unrelated enquiry. What should they do instead?",
+          "answer": "Avoid sharing the number without permission; ask the responsible person for an appropriate public contact route.",
+          "reason": "Telephone etiquette includes privacy and consent."
+        }
+      ],
+      "misconception": "Treating polite language as long speech. Help learners make one short, precise request with courteous wording.",
+      "remedial": "Supply four labelled prompt cards: greet, ask, confirm, close.",
+      "enrichment": "Compare a hurried but polite enquiry with a long unclear one and explain which is more effective.",
+      "teacher": "Assess clarity, turn-taking and respectful choices. Do not require learners to use or share real telephone numbers.",
+      "accessibility": "Use a printed script, captioned dialogue, visual role cards or signed conversation alternative.",
+      "visual": {
+        "kind": "call sequence diagram",
+        "description": "Four simple boxes: greeting → purpose → confirmation → courteous closing."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/06/English-Grade-8-Design-Formatted-April-2024.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1/Listening and Speaking",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+    },
+    {
+      "id": "VS-G08-SW-1.1.1-L01",
+      "grade": "Grade 8",
+      "subject": "Kiswahili",
+      "unit": "1.1.1",
+      "sourceRef": null,
+      "sourceIndexCode": "1.1.1",
+      "strand": "Kusikiliza na Kuzungumza",
+      "subStrand": "Kusikiliza na Kujibu: Mahojiano",
+      "focus": "Kusikiliza mahojiano kuhusu usafi wa sehemu za umma",
+      "goal": "Kutambua taarifa kuu katika mahojiano na kutunga swali la kufuatilia lenye heshima.",
+      "notes": "Mahojiano ni mazungumzo yanayoongozwa na maswali na majibu. Mhoji anapaswa kuandaa maswali yaliyo wazi; mhojiwa anapaswa kujibu kulingana na anachojua. Msikilizaji hubaini ujumbe mkuu na taarifa zinazounga mkono ujumbe huo. Katika mahojiano ya usafi, hatubuni takwimu au kumlaumu mtu binafsi bila ushahidi.",
+      "vocabulary": [
+        "mahojiano",
+        "mhoji",
+        "mhojiwa",
+        "usafi",
+        "taka",
+        "ushahidi"
+      ],
+      "model": {
+        "prompt": "Mhoji: 'Ni kwa nini tunahitaji mapipa ya taka sokoni?' Mhojiwa: 'Mapipa huwasaidia watu kutupa taka sehemu zinazofaa. Hata hivyo, tunahitaji kuyamwaga na kusafisha eneo mara kwa mara.' Mhoji: 'Nani anaweza kusaidia?' Mhojiwa: 'Wafanyabiashara na wahudumu wa usafi wanaweza kushirikiana.'",
+        "steps": [
+          {
+            "action": "Tambua swali la kwanza: sababu ya kuweka mapipa sokoni.",
+            "why": "Kuelewa swali husaidia kusikia jibu linalolengwa."
+          },
+          {
+            "action": "Taja hoja mbili: mapipa hutumiwa kutupa taka; eneo linahitaji kusafishwa mara kwa mara.",
+            "why": "Hoja za msingi hutokana na majibu ya mhojiwa."
+          },
+          {
+            "action": "Eleza ujumbe mkuu: usafi wa soko unahitaji vifaa na ushirikiano.",
+            "why": "Ujumbe mkuu unajumuisha maelezo yote."
+          }
+        ],
+        "answer": "Usafi wa soko unahitaji mapipa ya taka, utunzaji wake na ushirikiano.",
+        "check": "Rejelea majibu ya mhojiwa na uhakikishe hoja hazijabuniwa."
+      },
+      "activity": {
+        "materials": [
+          "Mazungumzo asilia ya somo",
+          "Karatasi ya kuandika hoja"
+        ],
+        "steps": [
+          "Mwalimu asome mahojiano mara mbili.",
+          "Wanafunzi waandike ujumbe mkuu na hoja mbili walizosikia.",
+          "Kwa jozi, mmoja awe mhoji na mwingine mhojiwa; watunge swali moja kuhusu usafi wa sehemu ya umma bila kutaja watu binafsi."
+        ],
+        "evidence": "Swali linaloeleweka, jibu linalohusiana na swali, na hoja mbili sahihi kutoka mahojiano."
+      },
+      "guided": [
+        {
+          "id": "G08-SW-1.1.1-G1",
+          "prompt": "Mhojiwa anapendekeza ushirikiano kati ya nani?",
+          "answer": "Wafanyabiashara na wahudumu wa usafi.",
+          "reason": "Majibu ya mhojiwa yanawataja."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G08-SW-1.1.1-E1",
+          "prompt": "Eleza sababu moja ya kuwa na mapipa sokoni.",
+          "answer": "Kusaidia watu kutupa taka sehemu zinazofaa.",
+          "reason": "Sababu imetolewa katika mahojiano."
+        },
+        {
+          "id": "G08-SW-1.1.1-E2",
+          "prompt": "Tunga swali la heshima kuhusu usafi wa soko.",
+          "answer": "Mfano: 'Ni hatua gani tunaweza kuchukua ili eneo la soko libaki safi?'",
+          "reason": "Kubali swali linalofaa, lililo wazi na lenye heshima."
+        }
+      ],
+      "check": [
+        {
+          "id": "G08-SW-1.1.1-Q1",
+          "prompt": "Tofautisha kazi ya mhoji na mhojiwa katika mfano huu.",
+          "answer": "Mhoji anauliza maswali; mhojiwa anatoa majibu.",
+          "reason": "Kila mshiriki ana jukumu tofauti katika mahojiano."
+        }
+      ],
+      "misconception": "Kuchukulia kila jibu kama ukweli uliothibitishwa. Tofautisha kilichosemwa kwenye mahojiano na uchunguzi halisi.",
+      "remedial": "Tumia maswali mawili na majibu mafupi kabla ya kufanya mahojiano marefu.",
+      "enrichment": "Tunga swali la kufuatilia linalohitaji mfano wa hatua ya kutunza mapipa na eleza kwa nini swali hilo linafaa.",
+      "teacher": "Epuka kutuma wanafunzi kwenda kuhoji watu wasiowajua bila usimamizi. Tumia mahojiano ya kuigiza darasani.",
+      "accessibility": "Toa maandishi ya mahojiano, nafasi ya kusikiliza tena, au maswali yenye picha na ishara.",
+      "visual": {
+        "kind": "interview role chart",
+        "description": "Majukumu ya mhoji na mhojiwa pamoja na kishale cha swali na kishale cha jibu."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-8-KISWAHILI.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources",
+      "theme": "Usafi wa Sehemu za Umma"
+    },
+    {
+      "id": "VS-G09-EN-1.1.1-L01",
+      "grade": "Grade 9",
+      "subject": "English",
+      "unit": "1.1.1",
+      "sourceRef": null,
+      "sourceIndexCode": "1.1.1",
+      "strand": "Listening and Speaking",
+      "subStrand": "Polite language: euphemism",
+      "focus": "Recognising respectful euphemisms and using them without obscuring important facts",
+      "goal": "Explain what a euphemism is, identify one in a short conversation and choose language appropriate to the audience.",
+      "notes": "A euphemism is a gentler expression used in place of wording that may sound harsh or upsetting. In a sensitive conversation, 'passed away' can be used instead of 'died'. But polite language must still communicate the truth. In safety instructions, emergency reporting or factual records, clear direct wording is often more appropriate than an unclear euphemism. We choose words by thinking about purpose, audience and clarity.",
+      "vocabulary": [
+        "euphemism",
+        "audience",
+        "tone",
+        "sensitive",
+        "precise"
+      ],
+      "model": {
+        "prompt": "A student hears: 'Our neighbour's grandfather passed away yesterday.' Why might the speaker use 'passed away'?",
+        "steps": [
+          {
+            "action": "Identify the expression 'passed away'.",
+            "why": "It carries the key meaning in the sentence."
+          },
+          {
+            "action": "State the direct meaning: the grandfather died.",
+            "why": "Understanding a euphemism requires knowing the real meaning, not just recognising a phrase."
+          },
+          {
+            "action": "Explain the choice: 'passed away' may sound gentler when speaking with a grieving family.",
+            "why": "Sensitive language can show consideration for listeners."
+          },
+          {
+            "action": "Check that the listener understood the fact.",
+            "why": "Courtesy should not create confusion."
+          }
+        ],
+        "answer": "'Passed away' is a gentler expression for 'died', used to communicate sensitively.",
+        "check": "Both expressions refer to the same event; the choice changes tone, not the fact."
+      },
+      "activity": {
+        "materials": [
+          "Three original sentence cards"
+        ],
+        "steps": [
+          "Read two versions of the same sensitive message and discuss how they might affect listeners.",
+          "Pairs mark whether the purpose is comfort, factual reporting or urgent help.",
+          "Each pair rewrites one sentence for a clear but considerate audience, then explains its choice."
+        ],
+        "evidence": "Learner identifies the softened phrase, states its meaning and justifies an appropriate context."
+      },
+      "guided": [
+        {
+          "id": "G09-EN-1.1.1-G1",
+          "prompt": "In 'His grandmother passed away', what does 'passed away' mean?",
+          "answer": "Died",
+          "reason": "The euphemism softens the description without changing what happened."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G09-EN-1.1.1-E1",
+          "prompt": "Explain why a euphemism may be helpful when comforting a family.",
+          "answer": "It may make a sensitive message gentler while still expressing the truth.",
+          "reason": "The intended effect concerns tone and respect."
+        },
+        {
+          "id": "G09-EN-1.1.1-E2",
+          "prompt": "Should an emergency warning use unclear euphemisms? Give a reason.",
+          "answer": "No; it should use clear, direct language.",
+          "reason": "People need to understand a risk promptly."
+        }
+      ],
+      "check": [
+        {
+          "id": "G09-EN-1.1.1-Q1",
+          "prompt": "A learner claims that euphemisms are always more polite and therefore always preferable. Evaluate the statement.",
+          "answer": "Incorrect. Euphemisms can be considerate in some contexts, but direct wording is better when clarity and safety matter.",
+          "reason": "Language choices depend on audience, purpose and accuracy."
+        }
+      ],
+      "misconception": "Treating euphemisms as a license to conceal facts. Compare gentle but clear wording with deliberately misleading statements.",
+      "remedial": "Use one familiar example and ask learners to match the softened expression to its direct meaning.",
+      "enrichment": "Explain the difference between a euphemism, a misleading statement and a polite but direct explanation.",
+      "teacher": "Avoid asking learners to disclose personal bereavements. Use fictional situations and allow a non-bereavement example if a learner finds the topic distressing.",
+      "accessibility": "Offer written examples and alternative role-play; assess meaning and choice, not performance style.",
+      "visual": {
+        "kind": "audience-purpose comparison",
+        "description": "Three columns: respectful comfort, factual report, urgent warning; each shows the preferred degree of directness."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-nine-designs/",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources",
+      "theme": "Citizenship"
+    }
+  ]
+}

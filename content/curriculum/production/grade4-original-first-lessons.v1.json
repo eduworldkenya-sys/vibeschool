@@ -1,0 +1,406 @@
+{
+  "schema": "vibeschool.originals.editorial-learning-packets.v1",
+  "scope": "One substantive demonstration lesson for each of four Grade 4 subject maps; not the complete grade, strand or sub-strand.",
+  "status": "editorial_draft_not_published",
+  "publisher": "VibeSchool (independent original teaching materials)",
+  "authority": "KICD revised 2024 (curriculum scope only, not endorsement)",
+  "sourceRevisions": "2024",
+  "createdAt": "2026-11-12",
+  "packets": [
+    {
+      "id": "VS-G04-MA-1.1-L01",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "unit": "1.1",
+      "sourceRef": "VS-CUR-G04-MA-2026#1.1",
+      "sourceIndexCode": "1.1",
+      "strand": "Numbers",
+      "subStrand": "Whole Numbers",
+      "focus": "Place value and total value through ten-thousands",
+      "goal": "Explain the place and actual value of each digit in a five-digit whole number.",
+      "notes": "A digit has a position and a value. In 43,562, the 4 is in the ten-thousands place and represents 40,000, while the 3 is in the thousands place and represents 3,000. A place-value chart helps us see the groups. Moving a digit one column to the left makes its value ten times as large. We read numbers carefully because the same digit can represent different amounts in different places.",
+      "vocabulary": [
+        "digit",
+        "ones",
+        "tens",
+        "hundreds",
+        "thousands",
+        "ten-thousands",
+        "total value"
+      ],
+      "model": {
+        "prompt": "A school collected 43,562 bottle tops for a reuse project. What is the total value of the digit 3?",
+        "steps": [
+          {
+            "action": "Write 43,562 in columns: ten-thousands 4, thousands 3, hundreds 5, tens 6, ones 2.",
+            "why": "Each column names the size of one group."
+          },
+          {
+            "action": "Find the 3: it is in the thousands column.",
+            "why": "The position, not just the written digit, determines its value."
+          },
+          {
+            "action": "Calculate 3 × 1,000 = 3,000.",
+            "why": "Three groups of one thousand make three thousand."
+          }
+        ],
+        "answer": "The digit 3 represents 3,000 bottle tops.",
+        "check": "Expand the number: 40,000 + 3,000 + 500 + 60 + 2 = 43,562."
+      },
+      "activity": {
+        "materials": [
+          "Five-column chart drawn on paper",
+          "Digit cards or bottle tops"
+        ],
+        "steps": [
+          "Make the place-value headings from ten-thousands to ones.",
+          "Place 4, 3, 5, 6, 2 into the matching columns.",
+          "Swap the 3 and the 5 and discuss how each digit's total value changes."
+        ],
+        "evidence": "Learner labels each column and explains at least one change aloud or in writing."
+      },
+      "guided": [
+        {
+          "id": "G04-MA-1.1-L01-G1",
+          "prompt": "In 25,641, which place holds the digit 5?",
+          "answer": "Thousands",
+          "reason": "5 is second from the left in this five-digit number."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G04-MA-1.1-L01-E1",
+          "prompt": "What value does the digit 7 have in 17,438?",
+          "answer": "7,000",
+          "reason": "7 occupies the thousands place, so 7 × 1,000 = 7,000."
+        },
+        {
+          "id": "G04-MA-1.1-L01-E2",
+          "prompt": "Write 52,306 in expanded form.",
+          "answer": "50,000 + 2,000 + 300 + 6",
+          "reason": "There are zero tens, so that place adds nothing."
+        }
+      ],
+      "check": [
+        {
+          "id": "G04-MA-1.1-L01-Q1",
+          "prompt": "A learner says that the 8 in 48,020 is worth 8. Is that correct?",
+          "answer": "No; it is worth 8,000.",
+          "reason": "The 8 sits in the thousands column."
+        }
+      ],
+      "misconception": "Confusing a digit with its total value. Point to the column and physically group thousands before multiplying.",
+      "remedial": "Build three four-digit numbers with digit cards, circle the thousands digit and say its value before moving to five-digit numbers.",
+      "enrichment": "Find two five-digit numbers containing a 6, where its value is different in each, and explain the difference.",
+      "teacher": "Ask what would happen if 3 moved one place left. Avoid teaching the place names as a chant without showing groups. Mark an answer correct only if the learner identifies both the place and value.",
+      "accessibility": "Use large clear columns, tactile counters or a spoken chart. Do not make access depend on a printed worksheet.",
+      "visual": {
+        "kind": "place-value chart",
+        "description": "Five-column chart labelled ten-thousands to ones, with 43,562 aligned; optional counters show 3 groups of 1,000."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+    },
+    {
+      "id": "VS-G04-EN-01-LS-L01",
+      "grade": "Grade 4",
+      "subject": "English",
+      "unit": "01-LS",
+      "sourceRef": "VS-CUR-G04-EN-2026#01-LS",
+      "sourceIndexCode": "1/Listening and Speaking",
+      "strand": "Listening and Speaking",
+      "subStrand": "The Family: Pronunciation and Vocabulary — Listening Comprehension",
+      "focus": "Attentive listening, helpful questions and accurate retelling",
+      "goal": "Listen to a short exchange about family routines, identify two details and respond clearly.",
+      "notes": "Good listeners allow a speaker to finish, notice important words and ask a clear question when something is missing. A helpful response can be short and respectful. Families organise chores in different ways, so describe what you heard instead of assuming who must do each task.",
+      "vocabulary": [
+        "routine",
+        "share",
+        "prepare",
+        "remind",
+        "clarify"
+      ],
+      "model": {
+        "prompt": "Read or listen: Amina: 'Could you help me arrange the cups, Otieno?' Otieno: 'Yes. I will arrange them after I wash my hands.' Amina: 'Thank you. I will bring the water.'",
+        "steps": [
+          {
+            "action": "Listen once without interrupting.",
+            "why": "You need the whole message before deciding what happened."
+          },
+          {
+            "action": "Identify the two promises: arranging cups and bringing water.",
+            "why": "Remembering actions helps you retell accurately."
+          },
+          {
+            "action": "Retell in one sentence: 'Otieno will arrange the cups and Amina will bring water.'",
+            "why": "A good summary keeps essential details without changing the speakers."
+          }
+        ],
+        "answer": "Otieno will arrange the cups; Amina will bring water.",
+        "check": "Re-read the exchange to confirm who does which task."
+      },
+      "activity": {
+        "materials": [
+          "Original dialogue read aloud",
+          "Optional picture cards"
+        ],
+        "steps": [
+          "Teacher reads the dialogue at a natural pace twice.",
+          "Learners tell a partner who will arrange cups and who will bring water.",
+          "Pairs exchange roles and practise a different polite request about a household task."
+        ],
+        "evidence": "Learner correctly recalls two details and asks or answers a respectful question."
+      },
+      "guided": [
+        {
+          "id": "G04-EN-01-LS-G1",
+          "prompt": "Who says 'I will bring the water'?",
+          "answer": "Amina",
+          "reason": "Her line begins with her name."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G04-EN-01-LS-E1",
+          "prompt": "Write one polite request that could be used at home.",
+          "answer": "Example: 'Could you please help me put away the books?'",
+          "reason": "A complete request explains what help is needed and uses a courteous tone."
+        },
+        {
+          "id": "G04-EN-01-LS-E2",
+          "prompt": "Why does Otieno wash his hands before touching cups?",
+          "answer": "To keep the cups clean.",
+          "reason": "The action supports hygiene in the family's routine."
+        }
+      ],
+      "check": [
+        {
+          "id": "G04-EN-01-LS-Q1",
+          "prompt": "Retell the dialogue in two accurate sentences without changing who promised what.",
+          "answer": "Accept any two sentences that correctly assign the cups to Otieno and the water to Amina.",
+          "reason": "Accuracy matters more than memorising exact wording."
+        }
+      ],
+      "misconception": "A learner repeats a line but swaps the speakers. Read the named turns again and use two name cards.",
+      "remedial": "Give two picture prompts and ask two who-did-what questions before attempting a full retell.",
+      "enrichment": "Invent a fourth line that politely checks whether the cups are ready; explain why it is respectful.",
+      "teacher": "Read rather than display the text on the first listen. Do not grade pronunciation on accent; assess intelligibility, content accuracy and respectful turn-taking.",
+      "accessibility": "Offer a second reading, visual name cards, or signed/pointed answers before requesting a spoken response.",
+      "visual": {
+        "kind": "dialogue sequence",
+        "description": "Two speech bubbles labelled Amina and Otieno, plus icons for washing hands, cups and water."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.ENGLISH.LANGUAGE.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1/Listening and Speaking",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+    },
+    {
+      "id": "VS-G04-SW-1.1.1-L01",
+      "grade": "Grade 4",
+      "subject": "Kiswahili",
+      "unit": "1.1.1",
+      "sourceRef": null,
+      "sourceIndexCode": "1.1.1",
+      "strand": "Kusikiliza na Kuzungumza",
+      "subStrand": "Matamshi Bora",
+      "focus": "Kutamka maneno kwa uwazi na kusikiliza kwa makini",
+      "goal": "Kutamka maneno ya kawaida kwa uwazi na kusikiliza mwenzake bila kumkatiza.",
+      "notes": "Matamshi bora humsaidia msikilizaji kuelewa ujumbe. Unapotamka neno, sikiliza sauti zake na zingatia silabi. Kwa mfano, 'kalamu' lina silabi ka-la-mu; 'kitabu' lina silabi ki-ta-bu; 'meza' lina silabi me-za. Lengo si kupima lahaja ya nyumbani bali kufanya mawasiliano yaeleweke kwa heshima.",
+      "vocabulary": [
+        "matamshi",
+        "silabi",
+        "sikiliza",
+        "zungumza",
+        "ujumbe"
+      ],
+      "model": {
+        "prompt": "Taja silabi za neno 'kalamu' na utumie neno hilo katika sentensi.",
+        "steps": [
+          {
+            "action": "Sema neno lote taratibu: 'kalamu'.",
+            "why": "Kusikia neno lote hutuwezesha kutambua sauti zake."
+          },
+          {
+            "action": "Litenganishe: ka-la-mu.",
+            "why": "Kila kundi la sauti linasaidia kutamka neno kwa mpangilio."
+          },
+          {
+            "action": "Sema: 'Ninaandika kwa kalamu.'",
+            "why": "Sentensi inaonesha maana ya neno katika mawasiliano."
+          }
+        ],
+        "answer": "ka-la-mu; 'Ninaandika kwa kalamu.'",
+        "check": "Silabi tatu zinapounganishwa, zinatoa neno 'kalamu'."
+      },
+      "activity": {
+        "materials": [
+          "Kadi zenye maneno au uandishi ubaoni"
+        ],
+        "steps": [
+          "Mwalimu aseme 'kitabu', 'meza' na 'kalamu' kwa mwendo wa kawaida.",
+          "Wanafunzi wafanye mazoezi ya kusikiliza na kutenganisha silabi kwa makundi.",
+          "Kila mwanafunzi atunge sentensi moja na amsikilize mwenzake bila kumkatiza."
+        ],
+        "evidence": "Mwanafunzi anatenganisha silabi kwa usahihi na kutamka sentensi inayoeleweka."
+      },
+      "guided": [
+        {
+          "id": "G04-SW-1.1.1-G1",
+          "prompt": "Neno 'meza' lina silabi ngapi?",
+          "answer": "Mbili: me-za.",
+          "reason": "Lina sehemu mbili za kutamka."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G04-SW-1.1.1-E1",
+          "prompt": "Tenganisha silabi za 'kitabu'.",
+          "answer": "ki-ta-bu",
+          "reason": "Neno lina silabi tatu."
+        },
+        {
+          "id": "G04-SW-1.1.1-E2",
+          "prompt": "Tunga sentensi yenye neno 'meza'.",
+          "answer": "Mfano: 'Kitabu kiko mezani.'",
+          "reason": "Kubali sentensi nyingine yenye matumizi sahihi ya neno."
+        }
+      ],
+      "check": [
+        {
+          "id": "G04-SW-1.1.1-Q1",
+          "prompt": "Tamka 'kalamu' kisha litumie katika sentensi fupi.",
+          "answer": "Mwanafunzi atamke neno kwa uwazi na atunge sentensi yenye maana.",
+          "reason": "Tathmini uwazi na maana ya mawasiliano, si lafudhi ya nyumbani."
+        }
+      ],
+      "misconception": "Kuchanganya kusoma silabi na kutamka neno. Mwalimu aonyeshe jinsi silabi zinavyounganishwa kutengeneza neno.",
+      "remedial": "Anza na neno lenye silabi mbili, 'meza', kabla ya maneno ya silabi tatu.",
+      "enrichment": "Tafuta maneno mawili ya vitu vya darasani yenye idadi tofauti ya silabi na uyalinganishe.",
+      "teacher": "Tumia maneno yanayofahamika; zingatia usikivu na matamshi yanayoeleweka. Usidharau lugha ya nyumbani ya mwanafunzi.",
+      "accessibility": "Ruhusu kushika kadi, kuonesha silabi au kusikiliza mara nyingi; tumia maandishi makubwa na ishara panapohitajika.",
+      "visual": {
+        "kind": "silabi cards",
+        "description": "Kadi za ka, la, mu zinazounganishwa na kutoa neno kalamu."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/Kiswahili-Gredi-ya-4-Revised.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+    },
+    {
+      "id": "VS-G04-IL-01-LS-L01",
+      "grade": "Grade 4",
+      "subject": "Indigenous Languages",
+      "unit": "01-LS",
+      "sourceRef": "VS-CUR-G04-IL-2026#01-LS",
+      "sourceIndexCode": "1/Listening and Speaking",
+      "strand": "Listening and Speaking",
+      "subStrand": "Cultural Foods: Attentive Listening",
+      "focus": "Attentive listening to a local-language song about cultural foods",
+      "goal": "Listen to a fluent local-language speaker, identify two food words and respond respectfully using accurately checked forms.",
+      "notes": "Food names and noun forms vary among Kenya's indigenous languages. This teacher-facilitated lesson must use the selected language's authentic words, spoken by a proficient speaker. Do not translate an English noun-plural rule into the language or invent a song. A short locally provided, appropriately licensed song or spoken account is the learning text.",
+      "vocabulary": [
+        "spoken word",
+        "meaning",
+        "singular and plural",
+        "respectful turn-taking"
+      ],
+      "model": {
+        "prompt": "A fluent speaker says a local word for a food, then uses its singular and plural forms.",
+        "steps": [
+          {
+            "action": "Play or deliver the speaker-checked example twice.",
+            "why": "A second hearing helps learners notice sounds without guessing."
+          },
+          {
+            "action": "Ask learners to identify one food and repeat the exact source expression.",
+            "why": "The intended form must come from a competent speaker, not an English translation."
+          },
+          {
+            "action": "Invite a short response in the language using the modelled form.",
+            "why": "Speaking in context demonstrates understanding."
+          }
+        ],
+        "answer": "A successful response accurately reflects the chosen language's verified food terms.",
+        "check": "The competent language speaker confirms forms and meaning before any learner-facing use."
+      },
+      "activity": {
+        "materials": [
+          "Fluent speaker or rights-cleared local recording",
+          "Food photographs or real safe ingredients"
+        ],
+        "steps": [
+          "Invite a fluent speaker to introduce two familiar foods using the local language.",
+          "Learners listen, point to matching pictures and ask a respectful question.",
+          "Learners repeat one singular/plural pair after a speaker has validated the forms."
+        ],
+        "evidence": "Learner recognises two foods and uses one speaker-verified noun form appropriately."
+      },
+      "guided": [
+        {
+          "id": "G04-IL-01-LS-G1",
+          "prompt": "Point to the food named by the fluent speaker.",
+          "answer": "The corresponding picture; verified against the speaker's actual recording.",
+          "reason": "Meaning is checked against the authentic local-language source."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G04-IL-01-LS-E1",
+          "prompt": "With a fluent adult, record or write one accurately verified local food name and explain its meaning.",
+          "answer": "Accept a local-speaker-validated example with accurate meaning; there is no generic English-derived answer key.",
+          "reason": "Forms differ among languages and must be locally validated."
+        }
+      ],
+      "check": [
+        {
+          "id": "G04-IL-01-LS-Q1",
+          "prompt": "Describe one detail heard in the authentic local-language food account.",
+          "answer": "Accept a relevant, accurately understood detail confirmed against the actual account.",
+          "reason": "A listening task assesses understanding, not invented vocabulary."
+        }
+      ],
+      "misconception": "Assuming all indigenous languages pluralise nouns as English does. Let the fluent speaker provide the actual forms.",
+      "remedial": "Allow repeated listening, familiar food pictures and a shorter two-word phrase.",
+      "enrichment": "Ask the speaker about a respectful food-sharing expression and identify when it is used.",
+      "teacher": "This packet is teacher guidance ONLY until the selected language is specified, vocabulary and orthography are checked, and text/recording rights are confirmed. Do not release unchanged to learners.",
+      "accessibility": "Use tactile food models or large pictures; use an accessible speaker-led alternative if audio playback is not available.",
+      "visual": {
+        "kind": "food photo cards",
+        "description": "Photographs or drawings of two local foods, labelled only after a fluent speaker verifies spelling."
+      },
+      "releaseGate": "native_speaker_and_rights_review_required",
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/GRADE-4-INDIGENOUS-LANGUAGE-DESIGN-Revised.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1/Listening and Speaking",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+    }
+  ]
+}
