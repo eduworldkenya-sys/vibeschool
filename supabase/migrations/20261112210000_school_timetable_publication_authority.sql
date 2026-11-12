@@ -4,6 +4,60 @@
 -- authorization-test: only school administrators may review, approve and publish.
 begin;
 
+-- The older migration allowed direct INSERT/UPDATE/DELETE by school admins.
+-- RLS school-admin membership is necessary but insufficient: it allows an
+-- unaudited client to set status='published' without the transition RPC.
+-- SELECT remains member-visible; all changes now go through governed RPCs.
+revoke insert,update,delete on table public.timetable_releases from authenticated;
+grant select on table public.timetable_releases to authenticated;
+
+-- Create a DRAFT and associate eligible active, previously unassigned slots
+-- in ONE transaction. Failure cannot strand a partially-created draft.
+create or replace function public.create_school_timetable_release(
+  p_school_id uuid,p_label text,p_effective_from date
+) returns public.timetable_releases
+language plpgsql security definer set search_path=''
+as $body$
+declare
+  v public.timetable_releases%rowtype;
+  v_slots integer;
+begin
+  if (select auth.uid()) is null or not public.is_school_admin(p_school_id) then
+    raise exception 'SCHOOL_ADMIN_REQUIRED' using errcode='42501';
+  end if;
+  if p_effective_from is null
+    or p_effective_from < (now() at time zone 'Africa/Nairobi')::date
+    or nullif(pg_catalog.btrim(p_label),'') is null
+    or pg_catalog.length(p_label)>120 then
+    raise exception 'INVALID_RELEASE_DETAILS';
+  end if;
+  -- Lock by school so two simultaneous drafts cannot attach overlapping rows.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('school-timetable-publication:'||p_school_id::text,0)
+  );
+  if not exists(
+    select 1 from public.timetable_slots ts where ts.school_id=p_school_id
+      and ts.release_id is null and ts.effective_from<=p_effective_from
+      and (ts.effective_until is null or ts.effective_until>=p_effective_from)
+  ) then
+    raise exception 'NO_UNASSIGNED_SCHOOL_TIMETABLE_SLOTS';
+  end if;
+  insert into public.timetable_releases(school_id,label,effective_from,status)
+  values(p_school_id,pg_catalog.btrim(p_label),p_effective_from,'draft')
+  returning * into v;
+
+  update public.timetable_slots ts set release_id=v.id
+  where ts.school_id=p_school_id and ts.release_id is null
+    and ts.effective_from<=p_effective_from
+    and (ts.effective_until is null or ts.effective_until>=p_effective_from);
+  get diagnostics v_slots=row_count;
+  if v_slots=0 then raise exception 'NO_UNASSIGNED_SCHOOL_TIMETABLE_SLOTS'; end if;
+  return v;
+end;
+$body$;
+revoke all on function public.create_school_timetable_release(uuid,text,date) from public,anon,authenticated;
+grant execute on function public.create_school_timetable_release(uuid,text,date) to authenticated;
+
 -- The existing release state machine is preserved. This read-only preflight
 -- runs as the caller and refuses missing authority, missing periods, incomplete
 -- allocations or schedules whose slots are not confirmed by school periods.
