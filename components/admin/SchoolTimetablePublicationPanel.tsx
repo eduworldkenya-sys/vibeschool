@@ -99,17 +99,18 @@ export default function SchoolTimetablePublicationPanel({
     } finally { setBusy(false) }
   }
 
-  async function transition(target: "review"|"approved"|"published"|"retired") {
+  async function transition(target: "draft"|"review"|"approved"|"published"|"retired") {
     if(!current) return
     // No status button may stand in for verified release blockers.
     if((target==="approved"||target==="published")&& (!gate?.ready||gate.release_id!==current.id)) {
       setError("Complete the server publication checks before approving or publishing.")
       return
     }
-    const label=target==="published" ? "publish the official school timetable for all linked teachers"
+    const label=target==="draft" ? "return the reviewed timetable to draft for correction"
+      : target==="published" ? "publish the official school timetable for all linked teachers"
       : target==="retired" ? "retire the current official school timetable"
       : target==="approved" ? "approve the school's reviewed timetable"
-      : "send this draft for school review"
+      : "send or return this timetable for school review"
     if(!window.confirm(`Confirm you want to ${label} for ${schoolName}? This is a school-wide decision.`)) return
     setBusy(true);setError("");setNotice("")
     try {
@@ -119,7 +120,8 @@ export default function SchoolTimetablePublicationPanel({
         ? "Official school timetable published. Linked teachers use this approved release automatically."
         : target==="approved" ? "Timetable approved. Review the effective date before publishing."
         : target==="retired" ? "Release retired. No new official timetable was invented."
-        : "Draft submitted for school review.")
+        : target==="draft" ? "Review returned to draft. Correct the timetable before resubmitting."
+        : "Timetable returned or submitted for school review.")
       await load()
       if(onChanged) await onChanged()
     } catch(e) {
@@ -164,8 +166,14 @@ export default function SchoolTimetablePublicationPanel({
           </div>}
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {current.status==="draft"&&<button type="button" style={button} disabled={busy} onClick={()=>void transition("review")}>Send for review</button>}
-            {current.status==="review"&&<button type="button" style={button} disabled={busy||!gate?.ready} onClick={()=>void transition("approved")}>Approve</button>}
-            {current.status==="approved"&&<button type="button" style={button} disabled={busy||!gate?.ready} onClick={()=>void transition("published")}>Publish official timetable</button>}
+            {current.status==="review"&&<>
+              <button type="button" style={button} disabled={busy} onClick={()=>void transition("draft")}>Return to draft</button>
+              <button type="button" style={button} disabled={busy||!gate?.ready} onClick={()=>void transition("approved")}>Approve</button>
+            </>}
+            {current.status==="approved"&&<>
+              <button type="button" style={button} disabled={busy} onClick={()=>void transition("review")}>Return to review</button>
+              <button type="button" style={button} disabled={busy||!gate?.ready} onClick={()=>void transition("published")}>Publish official timetable</button>
+            </>}
             {current.status==="published"&&<button type="button" style={button} disabled={busy} onClick={()=>void transition("retired")}>Retire timetable</button>}
           </div>
         </div>}
