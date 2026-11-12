@@ -16,7 +16,7 @@ test('source-verified curriculum identity is exact, not a title or keyword guess
   assert.match(migration, /o\.sub_strand_id\s*=\s*v_sub_strand/)
   assert.match(migration, /o\.status='verified'/)
   assert.match(migration, /o\.verified_at is not null/)
-  assert.match(migration, /nullif\(btrim\(o\.source_locator\),' '\) is not null/)
+  assert.match(migration, /nullif\(btrim\(o\.source_locator\),'\'\) is not null/)
   assert.match(migration, /if v_count=1 then new\.curriculum_outcome_id:=v_candidate/)
   assert.doesNotMatch(migration, /similarity\(|levenshtein\(|ilike.*topic|ilike.*outcome_text/)
 })
