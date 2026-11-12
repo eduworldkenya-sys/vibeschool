@@ -1234,7 +1234,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   useEffect(() => {
     if (!teacherId) return
     let cancelled = false
-    supabase.rpc('get_teacher_weekly_timetable_load').then(({ data, error }) => {
+    Promise.resolve(supabase.rpc('get_teacher_weekly_timetable_load')).then(({ data, error }) => {
       if (cancelled) return
       if (error) {
         console.error('[Timetable] weekly load RPC failed:', error)
