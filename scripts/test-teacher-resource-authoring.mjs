@@ -65,3 +65,15 @@ for (const token of ['publication_status: string', 'component_type: string | nul
   assert.ok(types.includes(token), 'typed DB contract missing: '+token)
 }
 console.log('Teacher resource authoring contract PASS: 15 types, draft-by-default, explicit share, Scheme checks, student cache safety.')
+
+
+for (const rule of [
+  "const [loadedForStudentId, setLoadedForStudentId]",
+  "const activeStudentId = identity.studentId",
+  "setLoadedForStudentId(null)",
+  "setLoadedForStudentId(activeStudentId)",
+  "loadedForStudentId === identity.studentId",
+  "loadedForStudentId !== identity.studentId",
+  "setResources([])",
+]) assert.ok(student.includes(rule), 'Shared-device learner isolation missing: ' + rule)
+assert.ok(student.includes('const visibleResources ='), 'Study Room must render only identity-bound resources')
