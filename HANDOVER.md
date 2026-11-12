@@ -82,6 +82,27 @@ FOLLOW-UP TBL-012 READ-ONLY EVIDENCE — 2026-11-12:
   legacy-slot review, and signed-in teacher Teach-to-Completed certification.
   No production records were changed by this follow-up.
 
+TBL-013 MIGRATION PROVENANCE CORRECTION — 2026-11-12:
+- Supabase production ledger stores `unscheduled_teaching_occurrence` at
+  version 20261112104242, although the previously checked-in identical SQL
+  was named 20261112154500_unscheduled_teaching_occurrence.sql.
+- Forensic read compared the single SQL statement stored in
+  supabase_migrations.schema_migrations.statements[1] for 20261112104242
+  with repository 20261112154500 SQL after stripping only the surrounding
+  BEGIN and COMMIT statements. The two 10,199-character bodies were
+  EXACTLY EQUAL (first difference position = 10,199).
+- Production also independently showed the expected unscheduled columns,
+  one-source CHECK, unique indexes, start and complete functions.
+- Remedy: rename repository file to its ACTUAL live version 20261112104242,
+  update exact references, make staging require this version in live parity
+  and dry-run ONLY the four still-pending canonical timetable versions.
+  Do not replay unscheduled SQL or insert an invented ledger entry.
+- This is repository migration-history reconciliation, NOT evidence that
+  the four other timetable migrations were applied. School periods remain
+  unconfirmed and no Grade 4 teaching completion is certified.
+- No production database writes, attendance changes, or timetable deletions
+  were performed during this correction.
+
 Previous verified fix
 
 FIX ID: TBL-011

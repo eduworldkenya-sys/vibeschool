@@ -24,6 +24,7 @@ def fixture(root: Path) -> tuple[Path, Path]:
     config.write_text('project_id = "fixture"\n', encoding="utf-8")
     for name in stage.TIMETABLE_MIGRATIONS.values():
         (directory / name).write_text(f"-- fixture: {name}\n", encoding="utf-8")
+    (directory / stage.ALIGNED_UNSCHEDULED_FILE).write_text("-- applied unscheduled teaching\n", encoding="utf-8")
     (directory / f"{PARITY_VERSION}_parity.sql").write_text("-- parity\n", encoding="utf-8")
     (directory / f"{UNRELATED_VERSION}_unrelated.sql").write_text("-- excluded\n", encoding="utf-8")
     return directory, config
@@ -35,7 +36,7 @@ def report(pending: set[str]) -> dict:
         "read_only_audit": True,
         "authorized_repairs": [],
         "counts": {"duplicate_local_versions": 0, "duplicate_remote_versions": 0},
-        "parity_versions": [PARITY_VERSION, *sorted(approved - pending)],
+        "parity_versions": [PARITY_VERSION, stage.ALIGNED_UNSCHEDULED_VERSION, *sorted(approved - pending)],
         "local_only": [{"version": v} for v in sorted(pending | {UNRELATED_VERSION})],
         "remote_only": [{"version": REMOTE_ONLY_VERSION}],
     }
@@ -52,16 +53,17 @@ def rejected(source: dict, migrations: Path, config: Path, root: Path, message: 
 
 def run() -> None:
     approved = set(stage.APPROVED_TIMETABLE_VERSIONS)
-    assert len(approved) == 5
+    assert len(approved) == 4
     assert sorted(approved) == [
         "20261112101500", "20261112101600", "20261112101700",
-        "20261112101800", "20261112154500",
+        "20261112101800",
     ]
 
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
         migrations, config = fixture(root)
         stage.configure_timetable_scope(migrations)
+        stage.require_aligned_live_ledger(report(approved))
         assert stage.module.APPROVED_WORKER_ENGINE_VERSIONS == approved
         assert stage.module.VERSION_PLACEHOLDER_OVERRIDES == {}
 
@@ -69,7 +71,7 @@ def run() -> None:
         # must not be smuggled into the exact Supabase dry-run plan.
         manifest = stage.module.build_stage(report(approved), migrations, config, root / "stage")
         staged = {p.name.split("_", 1)[0] for p in (root / "stage/supabase/migrations").glob("*.sql")}
-        assert staged == approved | {PARITY_VERSION, REMOTE_ONLY_VERSION}
+        assert staged == approved | {PARITY_VERSION, REMOTE_ONLY_VERSION, stage.ALIGNED_UNSCHEDULED_VERSION}
         assert manifest["expected_worker_engine_versions"] == sorted(approved)
         assert manifest["excluded_unrelated_repository_only"] == [UNRELATED_VERSION]
         assert manifest["authorized_repairs"] == []
@@ -78,8 +80,8 @@ def run() -> None:
         placeholder = root / "stage/supabase/migrations" / f"{REMOTE_ONLY_VERSION}_production_history_placeholder.sql"
         assert "Never executed" in placeholder.read_text(encoding="utf-8")
 
-        # If two of the five versions are in live history, only three may
-        # appear in the dry-run plan; all five must remain in stage provenance.
+        # Already-applied versions stay as history; the remaining subset alone
+        # is eligible for dry-run. The unscheduled SQL is never re-applied.
         pending = set(sorted(approved)[2:])
         partial = stage.module.build_stage(report(pending), migrations, config, root / "stage")
         assert set(partial["expected_worker_engine_versions"]) == pending
@@ -87,6 +89,14 @@ def run() -> None:
 
         # A missing approved version or an allegedly repaired ledger is not a
         # reason to infer a migration ran.
+        old = report(approved)
+        old["parity_versions"].remove(stage.ALIGNED_UNSCHEDULED_VERSION)
+        try:
+            stage.require_aligned_live_ledger(old)
+        except stage.module.StageFailure as error:
+            assert "must already exist" in str(error)
+        else:
+            raise AssertionError("live unscheduled migration provenance must be present")
         missing = report(approved)
         missing["local_only"] = [x for x in missing["local_only"] if x["version"] != min(approved)]
         rejected(missing, migrations, config, root, "absent from ledger classification")

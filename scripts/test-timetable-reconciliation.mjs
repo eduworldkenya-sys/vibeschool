@@ -138,7 +138,7 @@ test('planned timetable and unscheduled teaching deltas are explicit, exact and 
     assert.ok(delta.rationale.length > 35)
   }
   assert.equal(planned.deltas[0].migration, '20261112101600_timetable_school_period_authority.sql')
-  const unscheduled = read('supabase/migrations/20261112154500_unscheduled_teaching_occurrence.sql')
+  const unscheduled = read('supabase/migrations/20261112104242_unscheduled_teaching_occurrence.sql')
   assert.match(unscheduled, /teaching_occurrences_one_source_check/)
   assert.match(unscheduled, /teaching_occurrences_unscheduled_plan_key/)
   assert.match(unscheduled, /start_unscheduled_teaching/)
