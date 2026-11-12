@@ -152,10 +152,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         try {
           const [schoolContextRes, profileRes] = await Promise.all([
             supabase.rpc("get_my_teacher_school_context"),
-            supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+            supabase.from("profiles").select("full_name,role").eq("id", user.id).maybeSingle(),
           ])
           if (cancelled) return
           if (schoolContextRes.error) throw schoolContextRes.error
+          if (profileRes.error) throw profileRes.error;
+          if (profileRes.data?.role !== "teacher") throw new Error("Teacher profile role is required.");
 
           const name = profileRes.data?.full_name ?? ""
           setFullName(name)
