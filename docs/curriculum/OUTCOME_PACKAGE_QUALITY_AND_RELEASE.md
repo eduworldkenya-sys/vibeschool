@@ -12,7 +12,7 @@ The P0 manifest (`vibeschool.outcome-package.v1`) and the P0 KICD reconciliation
 
 | Gate | Deterministic database proof | Additional recorded evidence |
 | --- | --- | --- |
-| Curriculum match | Exact outcome FK, reconciled source locator/import, manifest audit, canonical scope; existing P0 source-to-database gate remains active | Source comparison, evidence reference and method |
+| Curriculum match | Exact outcome FK, source-to-database reconciliation `PASS`, exact alias crosswalk, official source locator and canonical scope; no fabricated legacy `verified` metadata | Source comparison, evidence reference and method |
 | Mathematical correctness | Identifies Mathematics packages; ensures a pinned core has structured worked steps when seeking release | Explicit arithmetic/model checking method and evidence reference; **database cannot prove mathematical truth from prose** |
 | Worked steps | At least two actual ordered steps in structured `worked.steps`, `worked_steps` or `worked_examples[].steps` of a certified core | Worked-step QA method and evidence reference; non-Maths omission requires a genuine outcome-specific explanation |
 | Answer keys | Each included bank question is outcome-bound, platform-scoped, confirmed/approved, has recorded reviewer identity/time, an answer or rubric, and an explanation or rubric | Answer audit method and evidence reference |
@@ -32,6 +32,7 @@ Supply the following in the **existing** `learning_resource_versions.verificatio
   "package_quality_v1": {
     "policy": "outcome-package-quality-v1",
     "content_sha256": "<exact computed package payload SHA-256>",
+    "source_package_id": "<actual reconciled P0 curriculum package ID>",
     "reviewer_kind": "ai_assisted_operator",
     "independent_human_review": false,
     "checks": {
@@ -67,8 +68,9 @@ For non-mathematical outcomes only, `mathematical_correctness` and `worked_steps
 
 ## Verification and deployment
 
-- Migration: `supabase/migrations/20261112115000_outcome_package_quality_gate.sql`.
-- Rollback-only SQL: `scripts/sql/outcome_package_quality_verify.sql`, run after canonical versions, P0 curriculum reconciliation and P0 manifest migrations on a **disposable** database with one verified outcome fixture.
+- Source-readiness compatibility migration: `supabase/migrations/20261112114500_align_outcome_manifest_source_gate.sql`. Grade 4 Time has nine stable `active` outcome IDs mapped to seven official requirements, but those records do not have the unrelated legacy `verified_at` / `source_import_id` fields. The original P0 manifest audit required those fields and could not recognize Time's otherwise passing source crosswalk. This migration **replaces the same canonical audit function in place**, requiring `vs_curriculum_package_gate(...).state='PASS'` for the exact stable outcome instead. It does not modify outcome status, fabricate a reviewer, or alter a source ledger.
+- P1 quality gate migration: `supabase/migrations/20261112115000_outcome_package_quality_gate.sql`.
+- Rollback-only SQL: `scripts/sql/outcome_package_quality_verify.sql`, run after both migrations on a database with an outcome tied to a P0 `PASS` reconciliation. This test deliberately rolls back all changes. It covers valid Core readiness plus missing/stale quality evidence, misaligned source IDs/aliases, inaccessible diagrams, missing cross-surface tests, skipped verification and fake human-review claims.
 - Static contract: `npm run test:package-quality` (also part of `test:outcome-packages`).
 - Before actual production commissioning: run the full migration chain, SQL adversarial fixture and production security/access audit, validate real reading/teaching/practice routes with usable accounts, ensure every evidence reference actually exists, and obtain an explicit owner certification. Merging this code does **not** apply a migration, release a package or validate a production browser session.
 
