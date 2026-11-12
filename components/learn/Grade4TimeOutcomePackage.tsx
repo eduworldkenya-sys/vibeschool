@@ -55,7 +55,7 @@ export default function Grade4TimeOutcomePackage({
   audience?: 'learner' | 'teacher'
 }) {
   const [catalogue, setCatalogue] = useState<Outcome[]>([])
-  const [outcomeId, setOutcomeId] = useState(initialOutcomeId ?? '')
+  const [outcomeId] = useState(initialOutcomeId ?? '')
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [guides, setGuides] = useState<Guide[]>([])
@@ -79,7 +79,7 @@ export default function Grade4TimeOutcomePackage({
         UUID.test(row.outcome_id) && typeof row.outcome_text === 'string'
         && Number(row.lesson_count) > 0)
       setCatalogue(clean)
-      setLoading(false)
+      if (!initialOutcomeId) setLoading(false)
     })()
     return () => { active = false }
   }, [])
