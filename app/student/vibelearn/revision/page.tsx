@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
+import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import { generateRevisionPlan, getRevisionWorkspace, type RevisionWorkspace } from '@/lib/student/vibelearn'
 
 function todayIso(): string {
@@ -44,6 +45,7 @@ export default function RevisionWorkspacePage() {
         <h1 style={{ margin: '7px 0 5px' }}>What should I revise?</h1>
         <p style={{ margin: 0, color: '#64748b', lineHeight: 1.6 }}>Use your own learning progress to plan your next steps.</p>
       </section>
+      <LearningNotebookPrompt stage="revision" />
 
       {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
       {loading ? <section style={card}>Preparing your revision workspace…</section> : workspace && <>
