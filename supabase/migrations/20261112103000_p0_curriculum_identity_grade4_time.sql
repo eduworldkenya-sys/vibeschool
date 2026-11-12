@@ -4,6 +4,8 @@
 -- authorization-test: public.vs_curriculum_package_gate / version promotion trigger.
 begin;
 
+-- access: owner-only public.vs_curriculum_package_scopes
+-- authorization-test: public.vs_curriculum_package_scopes scripts/sql/p0_grade4_time_identity_audit.sql
 create table if not exists public.vs_curriculum_package_scopes (
   package_id text primary key check (btrim(package_id) <> ''),
   sub_strand_id uuid not null references public.cbc_strands(id) on delete restrict,
@@ -17,6 +19,8 @@ create table if not exists public.vs_curriculum_package_scopes (
   required_resources integer not null check (required_resources > 0),
   created_at timestamptz not null default now()
 );
+-- access: owner-only public.vs_curriculum_source_requirements
+-- authorization-test: public.vs_curriculum_source_requirements scripts/sql/p0_grade4_time_identity_audit.sql
 create table if not exists public.vs_curriculum_source_requirements (
   package_id text not null references public.vs_curriculum_package_scopes(package_id) on delete restrict,
   requirement_code text not null check (btrim(requirement_code) <> ''),
@@ -24,6 +28,8 @@ create table if not exists public.vs_curriculum_source_requirements (
   original_intent_summary text not null check (btrim(original_intent_summary) <> ''),
   primary key (package_id, requirement_code)
 );
+-- access: owner-only public.vs_curriculum_manuscript_aliases
+-- authorization-test: public.vs_curriculum_manuscript_aliases scripts/sql/p0_grade4_time_identity_audit.sql
 create table if not exists public.vs_curriculum_manuscript_aliases (
   package_id text not null,
   manuscript_alias text not null check (btrim(manuscript_alias) <> ''),
@@ -33,6 +39,8 @@ create table if not exists public.vs_curriculum_manuscript_aliases (
     references public.vs_curriculum_source_requirements(package_id, requirement_code)
     on delete restrict
 );
+-- access: owner-only public.vs_curriculum_alias_outcomes
+-- authorization-test: public.vs_curriculum_alias_outcomes scripts/sql/p0_grade4_time_identity_audit.sql
 create table if not exists public.vs_curriculum_alias_outcomes (
   package_id text not null,
   manuscript_alias text not null,
@@ -43,6 +51,8 @@ create table if not exists public.vs_curriculum_alias_outcomes (
     references public.vs_curriculum_manuscript_aliases(package_id, manuscript_alias)
     on delete restrict
 );
+-- access: owner-only public.vs_curriculum_resource_aliases
+-- authorization-test: public.vs_curriculum_resource_aliases scripts/sql/p0_grade4_time_identity_audit.sql
 create table if not exists public.vs_curriculum_resource_aliases (
   package_id text not null,
   resource_id uuid not null references public.learning_resources(id) on delete restrict,
