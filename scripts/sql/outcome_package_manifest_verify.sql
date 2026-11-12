@@ -5,6 +5,9 @@ begin;
 do $verify$
 declare
   o public.curriculum_learning_outcomes%rowtype;
+  primary_package_id text;
+  primary_alias text;
+  question_curriculum_id uuid;
   core_id uuid;
   core_version uuid;
   pkg_id uuid;
@@ -27,7 +30,22 @@ begin
      and source_import_id is not null and nullif(btrim(source_locator),'') is not null
      and curriculum_id is not null limit 1;
   if o.id is null then
-    raise exception 'P0 TEST FIXTURE REQUIRED: one reconciled outcome';
+    -- Blank database rebuilds may have no imported-verified outcome. P0 Grade 4
+    -- Time still seeds a fully reconciled active outcome through the source gate.
+    select go.*,ao.package_id,ao.manuscript_alias
+      into o,primary_package_id,primary_alias
+    from public.vs_curriculum_alias_outcomes ao
+    join public.curriculum_learning_outcomes go on go.id=ao.outcome_id
+    where go.status='active' and nullif(btrim(go.source_locator),'') is not null
+      and (public.vs_curriculum_package_gate(ao.package_id)->>'state')='PASS'
+    limit 1;
+  end if;
+  if o.id is null then
+    raise exception 'P0 TEST FIXTURE REQUIRED: a verified-import or P0-gated outcome';
+  end if;
+  question_curriculum_id := coalesce(o.curriculum_id,(select c.id from public.curriculum c limit 1));
+  if question_curriculum_id is null then
+    raise exception 'P0 TEST FIXTURE REQUIRED: an existing curriculum for the question bank';
   end if;
 
   insert into public.learning_resources(
@@ -56,8 +74,8 @@ begin
   manifest := jsonb_build_object(
     'schema','vibeschool.outcome-package.v1',
     'outcome_id',o.id,
-    'curriculum_package_id',null,
-    'curriculum_outcome_aliases','[]'::jsonb,
+    'curriculum_package_id',primary_package_id,
+    'curriculum_outcome_aliases',case when primary_alias is null then '[]'::jsonb else jsonb_build_array(primary_alias) end,
     'requirements',jsonb_build_object('teacher_guidance',false,'visual_assets',false),
     'assets',jsonb_build_object(
       'core',jsonb_build_array(jsonb_build_object('resource_id',core_id,'resource_version_id',core_version)),
@@ -116,7 +134,7 @@ begin
     curriculum_id,question_text,question_type,status,review_status,
     learning_outcome_id
   ) values (
-    o.curriculum_id,'P0 test question','written','draft','approved',o.id
+    question_curriculum_id,'P0 test question','written','draft','approved',o.id
   ) returning id into q_id;
   broken := jsonb_set(manifest,'{question_ids,activities}',jsonb_build_array(q_id::text));
   broken := jsonb_set(broken,'{release,activities}','"ready"'::jsonb);
