@@ -19,7 +19,7 @@ test("HQ is not mandatory for draft curriculum or educational checks",()=>{
   assert.match(playbook,/EDITORIAL_CHECKED/);
   assert.match(playbook,/NOT_CHECKED/);
   assert.match(operating,/HQ remains available for future management/);
-  assert.match(operating,/not an obligatory checkpoint/);
+  assert.match(operating,/not(?:\\*\\*)? an obligatory checkpoint/);
   assert.match(operating,/read-only/);
 });
 
