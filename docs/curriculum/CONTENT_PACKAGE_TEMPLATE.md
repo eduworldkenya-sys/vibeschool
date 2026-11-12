@@ -70,6 +70,9 @@ Duplicate this block for each outcome, or reference its canonical record.
 **Placement: explanation / example / activity / exercise / assessment / teacher guide:**  
 **Real image created? Draft / ready for review / certified (only actual state):**  
 **Canonical Visual Learning Library resource ID (when created):**  
+**ChatGPT operator / actual storage action and evidence:**  
+**Visual status: planned / image created but not stored / private candidate stored / certified / learner-visible:**  
+**HQ manual interaction needed?** No by default; document an actual tool/authorization boundary rather than assigning routine steps to the owner.
 **For Mathematics: problem and known quantities:**  
 **Method chosen and why:**  
 **Formula (if required by the outcome), when used, meaning, each symbol and its unit:**  
@@ -105,6 +108,63 @@ For any non-applicable element, record **why this outcome is better served anoth
 **Mathematics example acceptance:** A naked equation, final answer, unexplained formula, skipped meaningful transformation or unverified answer key is **incomplete**. State the formula *only when appropriate for that grade/outcome* and show why it applies; explain every relevant symbol and each critical step in age-appropriate language. The detailed standard and two illustrated examples are in [Mathematics worked examples](./CONTENT_PRODUCTION_STANDARD.md#mathematics-worked-examples--mandatory-explanation-of-the-method).
 
 **Visual assets:** A descriptive brief without an actual visual does not fulfil a visual-dependent outcome. Reuse the [Visual Learning Library](./VISUAL_LEARNING_LIBRARY.md). Never substitute a hardcoded image URL for a canonical asset ID; learner views can resolve `[visual:UUID]` only for released assets.
+
+## 3A. Core, supplementary and revision experience manifest
+
+**Authoring rule:** Complete the [KICD ↔ VibeSchool reconciliation gate in §1A](#1a-required-kicd--vibeschool-reconciliation-gate--before-any-new-content) for **every included outcome** first. Record three distinct *learning functions* from a **single canonical source**, not three unrelated books, applications, data stores or compulsory menus. Use the content-production [three-experience quality contract](./CONTENT_PRODUCTION_STANDARD.md#4c-three-complementary-learning-experiences-core-learning-supplementary-practice-and-revision).
+
+| Outcome ID and verified KICD locator | Core teaching chapter/resource and status | Supplementary activity IDs and support/core/extension purpose | Revision coverage and question IDs (or status) | Teacher Guide / Lesson Plan / Scheme references | Answer/rubric quality check | Connection and learner visibility evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| | | | | | | |
+
+### A. Core learning (new knowledge or skill)
+
+**Learner need and prerequisites:**  
+**Original explanation/exploration, vocabulary and real-life context:**  
+**Worked example or demonstration: ordered steps and reasons, visual where useful:**  
+**Guided attempt → independent application → check of understanding:**  
+**Likely misconceptions, feedback and scaffold/extension:**  
+**Teacher preparation, materials, pacing, prompts, sample responses and intervention:**  
+**Canonical chapter/block IDs, version, rights/accessibility check, reader status:**  
+
+### B. Supplementary activities (targeted practice)
+
+**Diagnosed skill or extension goal:**  
+**Activity format and why it fits (worksheet, objects, oral, written, physical, inquiry, etc.):**  
+**Guided, independent and/or remedial progression (no arbitrary fixed question count):**  
+**Answer authority / performance rubric, error feedback and supported retry:**  
+**Accessible, low-resource and parent-friendly alternatives as relevant:**  
+**Stable activity/question IDs, outcome and approved eligible uses, version/exposure:**  
+**Teacher exercise/assignment or learner practice surface and actual linkage status:**  
+
+### C. Revision and consolidation (previously learned knowledge)
+
+**Verified taught outcomes/topic/term scope and learner-specific known/unknown learning state:**  
+**Short retrieval prompts before explanations are shown; concise correct recall aids:**  
+**Purposeful mixed, application and transfer tasks/performance:**  
+**Answers, model reasoning/rubric, error diagnosis and marking authority:**  
+**Exact weak-outcome → core explanation → supplementary activity → fresh reassessment references:**  
+**Teacher revision guidance and independent/home learner directions:**  
+**Revision item IDs, exposure/answer release, formal-exam exclusion/variant rules:**  
+**Actual revision/practice surface, evidence and publication status (or NOT_CONNECTED):**  
+
+**Completeness rules:** Core source and age/ability-sensitive teacher guidance are indispensable to a teachable outcome. Practice and revision depth follow the actual instructional purpose; document a specific reason for an inapplicable experience rather than inventing filler. A revision manuscript may exist before a student studies the topic but **must not falsely claim that student's completion or mastery**. Formal exams remain distinct controlled assessments, not the same protected questions as revealed guided examples.
+
+### Three-experience quality and connection checks
+
+| Check | PASS / FAIL / NOT_APPLICABLE / NOT_CHECKED | Evidence and repair reference |
+| --- | --- | --- |
+| All included outcomes reconciled against current official KICD and canonical VibeSchool curriculum | | |
+| Core lesson explains and models what learner should understand (not merely questions) | | |
+| Teacher can prepare, teach, assess and intervene using canonical notes/resources | | |
+| Supplementary activity develops a specific skill with accurate feedback and appropriate adaptations | | |
+| Revision recalls/applies verified previously taught outcomes, with no false learner progress claims | | |
+| Revision weakness navigates to the **exact** core outcome and appropriate practice, followed by new check | | |
+| Content, exercise, revision and assessment IDs/versions are traceable without duplicate question authority | | |
+| Protected formal-exam items/answers remain distinct and inaccessible before authorized release | | |
+| Teacher and learner flows are actually visible/functioning where claimed; mobile/accessibility/low-resource paths checked | | |
+
+**A document is not an implementation test:** mark unavailable links as **NOT_CONNECTED**, unobserved user journeys as **NOT_CHECKED**, and release state only from current canonical evidence. Repair upstream curriculum/content/link defects and re-test before claiming the full connected three-experience journey works.
 
 ## 4. Practice and question integrity
 
@@ -159,6 +219,8 @@ Use existing Content Engine objects and links; do not assume the schema solely f
 | Practical instructions, feasibility and safety | | |
 | Age, accessibility and inclusive Kenyan contexts | | |
 | Learner understanding and adaptation (prior knowledge, scaffold, core, extension, formative evidence) | | |
+| Core / supplementary / revision pedagogical purposes, complete mapping and relevance (no filler) | | |
+| Revision gap-to-core-to-practice-to-fresh-check route and honest learner evidence status | | |
 | Teacher usability (pacing, prompts, worked method, materials, feedback/intervention guidance) | | |
 | Exposed practice vs protected exam item identity / appropriate variant and access rules | | |
 | Originality / source and media rights | | |
@@ -182,6 +244,8 @@ Use existing Content Engine objects and links; do not assume the schema solely f
 - **Known limitations:** Accurate scoped report, not a generic “ready”.
 
 ## 8. Autonomous execution / escalation rule
+
+**Solo-owner, chat-first content operation:** ChatGPT handles preparation, visual design, actual image creation when possible, registered metadata, canonical integration and verification through whichever authenticated tools are available. The VibeSchool HQ screen is optional and must not become an owner-operated prerequisite. An uploaded file, image made in chat, completed schema migration, recorded review and published image are distinct evidence states. If a connected storage-upload/publishing action is missing, complete the content package and report the precise tool boundary. Do not manufacture an asset ID, a published status or an independent approval.
 
 **Routine production needs no repeat approval from the owner:** obtain official evidence, author, revise, check, map, create a release candidate and fix ordinary errors within existing capabilities.
 

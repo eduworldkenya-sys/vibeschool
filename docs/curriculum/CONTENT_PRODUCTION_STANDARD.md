@@ -1,6 +1,6 @@
 # VibeSchool Curriculum Content Production Standard — Grades 1–9
 
-**Policy version:** 1.1
+**Policy version:** 1.2
 **Learning-first and assessment-lineage revision:** 12 November 2026  
 **Decision:** Approved by the VibeSchool owner, 11 November 2026  
 **Scope:** All new and materially revised VibeSchool-original competency-based content for Grades 1–9, across subjects, terms and learner/teacher surfaces  
@@ -105,6 +105,88 @@ For each question or scored performance, retain the **stable source/question ID*
 **Assessment safeguards:** Learners must not receive formal-exam correct answers or marking secrets before permitted release. Prevent direct reuse of exposed worked examples and answers in secure assessments. Preserve distinct practice/exam scheduling, timers, attempt limits, marking, release and security policies. Avoid incorrect inflated mastery from repeated known items; use sufficiently fresh application/transfer evidence and teacher observation where appropriate. Do not silently turn unanswerable/reflection prompts into auto-marked items or invent missing answers. Preserve existing review, access control and publication requirements.
 
 **Integration verification:** Inspect the actual Content Engine/assessment schemas before wiring identities. Test one real outcome across learner notes → worked example → independent exercise → Topic Practice → controlled assessment eligibility → feedback/progress, including wrong answer, skipped question, accessibility, teacher preview and protected-answer negative paths. Where a link is absent, mark it **NOT_CONNECTED**, repair the canonical integration separately and do not imply this policy revision deployed that feature.
+
+## 4C. Three complementary learning experiences: core learning, supplementary practice and revision
+
+**Product decision:** A traditional publishing catalogue distinguishes (1) **core textbooks** that teach new curriculum concepts, (2) **supplementary activity books** that strengthen particular skills through practice, and (3) **revision books** that retrieve, consolidate and apply previously taught knowledge. VibeSchool must provide these **three distinct educational purposes from the same KICD-reconciled, versioned, VibeSchool-original content authority**. They are *learning experiences*, **not three new databases, duplicated textbook manuscripts, engines, compulsory user tabs or independent authoring pipelines**. Their content can appear in the learner reader, Topic Practice, lesson tools, printable worksheets and existing assessment surfaces as appropriate.
+
+**Curriculum gate applies to all three:** Before producing any core lesson, supplementary exercise or revision pack, complete the mandatory official KICD ↔ VibeSchool reconciliation for the **declared grade, subject, strand, sub-strand and outcomes** in Section 2 and Operating Model Step 2A. A revision pack aggregating multiple topics requires verified linkage for **each** included outcome. If any included scope is unresolved, repair the existing canonical curriculum first; do not use revision content to hide missing curriculum mapping.
+
+| Experience | Distinct educational purpose | Primary learner journey | Useful teacher/parent support | Required outcome evidence |
+| --- | --- | --- | --- | --- |
+| **Core learning (textbook-equivalent)** | Introduce and explain new knowledge, skills and competencies accurately | Connect prior knowledge → comprehensible explanation/exploration → concrete or worked demonstration → guided attempt → independent understanding check | Lesson preparation, teaching sequence, materials, board work, dialogue prompts, likely misconceptions, differentiation and evaluation | Learner can explain, model, perform or apply the newly taught outcome; source, lesson and correct worked steps are traceable |
+| **Supplementary activities (activity-book-equivalent)** | Build fluency, resolve a diagnosed difficulty, rehearse, explore or extend an outcome | Select relevant skill → purposeful short activity or scaffold → attempt → meaningful feedback → supported retry or extension | Classroom exercise, worksheet/print option, materials, home-practice instructions, sample responses, marking/observation rubric, low-resource alternatives | Independent attempts or observable performance show whether that specific skill is improving, without treating quantity as mastery |
+| **Revision and consolidation (revision-book-equivalent)** | Retrieve and integrate knowledge already taught across a topic, term or appropriate breadth; prepare for assessment without replacing learning | Identify already-taught outcomes → retrieval without seeing full solutions first → mixed/application practice → diagnostic review → targeted return to teaching → reassess with an appropriate fresh item | Topic/term revision guide, short accurate summary, teacher revision plan, model answers and marking criteria, common-error map and next-lesson suggestion | Learner retrieves and transfers knowledge on adequately varied questions/tasks; record genuine evidence and unresolved gaps |
+
+### A. Core learning — the primary curriculum-linked explanation
+
+For each outcome in scope, author a complete, teachable, learner-readable **master learning unit**, not a heading plus exercises. Select the subject-appropriate elements below rather than artificially padding every lesson:
+
+1. **Purpose and readiness:** clear learner goal, accurate prerequisites, quick prior-knowledge check and key vocabulary in age-appropriate language; start at the learner's point of understanding without silently changing the KICD outcome.
+2. **Explanation or guided discovery:** coherent sequence, accurate terminology, local and varied examples, clear diagrams/visuals only when they teach something, connections between concrete/pictorial/abstract representations where useful. Include accessible and low-resource alternatives.
+3. **Worked example or demonstration:** every meaningful step and its *reason*, expected observation/response, correct conclusion and check; preserve the stricter Mathematics step/formula/units contract. For practical, creative, language and physical outcomes, prefer demonstrations, samples or observable criteria instead of forced written algorithms.
+4. **Guided to independent learning:** supported attempt, fading prompts, independent application or authentic performance. Include checks while teaching, not only a test at the end.
+5. **Feedback and inclusion:** likely misconceptions with different explanations and recovery steps, core/support/extension alternatives, safe practical instructions and constructive feedback.
+6. **Teacher-ready derivative:** preparation, realistic timing, materials, model dialogue, board/visual script, activity management, common learner responses, differentiation and quick observation/marking guidance. The same source supports lesson notes, Teacher Guide, Scheme/lesson resource selection and independent VibeLearn reading.
+
+**Acceptance:** the child can learn the concept without a missing explanation, and a teacher can deliver and adapt the unit without rebuilding the lesson from scratch. A core unit must not be marked complete because it contains a list of learning outcomes, a formula and multiple questions.
+
+### B. Supplementary activities — targeted learning, not empty question volume
+
+Provide additional activities **according to the instructional need**, including practice embedded in a lesson or a separately selected activity set. Appropriate formats include manipulation of objects, oral drills/discussion, writing, drawing, experiments, games, movement, projects, worksheets, digital questions and short home tasks; choose the format from the outcome rather than assuming all learning is multiple-choice.
+
+1. **Specify the learning target and context.** Record stable outcome ID, prerequisite, concept/skill, intended use (guided, independent, remedial, enrichment, home, practical), estimated effort and any materials, safety/accessibility or language needs.
+2. **Progress thoughtfully.** Begin with an accessible supported task for learners who need it, develop increasingly independent practice, and add application or variation to establish transferable understanding. Avoid both repetitive busywork and premature high difficulty.
+3. **Give usable answer authority.** Provide accurate answers with reasoning, sample performances, marking/observation rubric or success criteria. For every likely wrong answer provide diagnostic feedback and a next teaching move; include skipped/retry treatment when supported.
+4. **Adapt without stigma.** Offer a scaffold/reteach option, core practice and worthwhile challenge; no automatic permanent ability label or fixed question-count threshold. Parents receive clear, short home directions that do not require specialist equipment or a paid tutor.
+5. **Preserve assessment lineage.** Identify each item/version, source content, outcome, exposure and reuse eligibility. Reuse compatible question-bank objects through the **existing** assessment architecture; do not manufacture separate worksheet and lesson-exercise question banks.
+6. **Check actual improvement.** A successful set yields correct, explained or observed performance, not simply ten completed questions. Allow another representation or teacher intervention when the learner continues to struggle.
+
+**Acceptance:** the activity gives a meaningful additional way to learn or practise and can be checked correctly; it is not a copy of the worked examples with only cosmetic number/name changes.
+
+### C. Revision and consolidation — retrieval, diagnosis and return to learning
+
+Revision is **not a shortened copy of the core textbook**, a random bank dump, or a premature mock exam. It is built from previously taught, verified outcomes and the learner's actual evidence where available.
+
+1. **Define coverage:** a completed sub-strand/topic, term or other declared collection of outcomes with each question mapped back to a canonical teaching unit; distinguish *available for revision* from *this particular learner has studied or mastered it*. A learner may voluntarily revise any accessible topic, but the system must not falsely mark it as completed.
+2. **Lead with retrieval:** age-appropriate recall, explanation, performance or self-test **before** revealing worked solutions; use concise original summary cards, key vocabulary and accurate reminders after the attempt or as optional support.
+3. **Mix when purposeful:** include foundational, application, reasoning and multi-step/performance items; revisit topics over time and mix earlier skills when educationally suitable. Do not assume every curriculum outcome should become a timed MCQ.
+4. **Diagnose with humility:** use incorrect/skipped responses and authentic observed work to suggest the precise concept or prerequisite to revisit, but avoid definitive claims from a single response or item exposure. Distinguish memory errors, comprehension errors and procedural misconceptions when evidence allows.
+5. **Close the loop:** for a weak area, link to the **exact** canonical core explanation/worked model → appropriate supplementary support/practice → a *fresh* appropriate check → revised progress evidence. Provide a clear 'continue revising' option for stronger learners.
+6. **Prepare for appropriate assessment:** use curricula and assessment policies relevant to the grade and current year. Historical KCPE revision examples are background publisher categories, **not authority to present KCPE as the current Grades 1–9 assessment framework**. Use protected variants for formal exams and avoid exposing official or restricted paper content without rights.
+7. **Support teaching and home study:** teacher-visible scope/gap summary, printable/low-data revision options when available, answer keys/rubrics, recommended grouping and intervention; parent-friendly directions without pressure, rankings or unsupported mastery badges.
+
+**Acceptance:** the revision experience reveals retained understanding and sends the learner to the right existing teaching/practice content when needed, rather than merely showing a score.
+
+### D. One connected learner journey, teacher journey and question policy
+
+**Illustrative Grade 4 Mathematics example — Time** (illustrative teaching sequence, **not** a claim about a verified KICD sub-strand or lesson allocation):
+
+- **Core learning:** explain how to read an analogue clock, model the hour/minute hands with a correct diagram or real clock, guide practice, and check a new clock reading.
+- **Supplementary practice:** if the learner confuses minute-hand positions, provide manipulatives and progressively varied clock readings, observable success criteria, precise feedback and a supported retry. Offer elapsed-time challenges only when prerequisites and outcome scope make them appropriate.
+- **Revision:** after study, mix clock reading with duration and unit conversion **only where all relevant outcomes are included and curriculum-verified**. If time conversion is missed, link to its exact core teaching explanation and targeted supplementary task, then reassess with a new equivalent problem.
+- **Teacher:** from the same verified outcome, open a matching Scheme lesson, content/notes, Teacher Guide, resources, practice and marking evidence. A timetable is not needed to prepare materials; a scheduled occurrence is needed for scheduled attendance/teaching as already defined.
+- **Independent learner:** access published eligible core/practice/revision through existing access policy without artificial class/timetable approval. Do not promise offline functions until the actual reader supports them.
+
+**Decision and data contract:** use one source for *what is taught* and stable cross-surface source IDs; distinct learning-content, exposed-practice and protected-exam **roles** must not be conflated. A question may be eligible for multiple formative contexts after approval, but revealed worked answers and guided-practice copies are not secure exam items by default. Formal assessment maintains existing approval, access, timer, attempt, marking and release safeguards. A published chapter is not automatically a published revision pack, and a reused item is not automatically a valid mastery measurement.
+
+**No blind automation:** the desired transitions (lesson → targeted practice → revision → reteaching → reassessment) are a product contract and an authoring/linkage requirement. Confirm the actual current Content Engine, question bank and progress APIs before claiming that a particular link, diagnosis, auto-routing or revision function is implemented or learner-visible.
+
+### E. Quality gate for the complete three-experience product
+
+For a declared outcome or appropriate completed topic, verify these **distinct functions**, in addition to the general quality, rights, safety and release gates:
+
+| Gate | Required evidence | Failure response |
+| --- | --- | --- |
+| **Curriculum first** | KICD ↔ VibeSchool reconciliation PASS for every included outcome, with source revision and stable IDs | Repair the canonical curriculum and links before any of the three experiences are authored for affected scope |
+| **Teachability** | Age/ability-sensitive coherent explanation, correct model, learner check and real teacher guidance | Repair weak core content before multiplying activity/revision derivatives |
+| **Purposeful practice** | Outcome-linked items/activities, graduated support, correct answer/rubric and feedback on likely errors | Replace padding or broken questions; retain version lineage |
+| **Authentic revision** | Already-taught outcome map, retrieval/application variety, correct answer authority and links back to precise core/remedial content | Repair mappings or diagnostic recommendations; do not fabricate mastery |
+| **Assessment integrity** | Appropriate eligible-use flags, separate unseen variants, protected correct answers and release rules | Remove exposed/leaking items from controlled examinations; recheck negative paths |
+| **Usability and inclusion** | Actual learner and teacher routes where in scope, language/accessibility/low-resource alternatives and suitable pacing | Correct the canonical consumer or material, then re-test |
+| **Learning evidence** | Actual response/performance or observed study results and honest gap reporting; no invented progress | Record not tested, run suitable checks or narrow the claim |
+
+**Required outcome record:** core learning reference; supplementary activities linked or justified as not applicable; revision eligibility and reference (or **not yet taught / not applicable / not produced**); teacher support; item/variant references; verified curriculum gate; answer/rubric checks; real quality status; actual integration and publication status. A full subject can have draft revision resources for as-yet-untaught topics, but those drafts cannot masquerade as completed learner revision or measured mastery.
 
 ## 5. Curriculum identity and planning separation
 
@@ -311,6 +393,7 @@ These are model explanations of **how to author content**, not claims that these
 | Curriculum coverage | Each required source outcome maps to content and assessment evidence | Fill missing outcomes or narrow the scope claim |
 | Subject correctness | Explanations, facts, methods and answer keys independently checked | Correct material and reverify affected items |
 | Pedagogical depth | Understand → example → experience/practise → check → feedback, where applicable | Author the missing function; not filler |
+| Three complementary experiences | Core teaching, purposeful supplementary activity and meaningful revision have distinct purposes, canonical outcome IDs and relevant links | Add or repair missing applicable experience; do not duplicate books or question-bank authority |
 | Ability-sensitive learning and teacher readiness | Prerequisites, scaffold/core/extension where useful; teacher can teach, assess and intervene using the guide | Revise explanations, pacing, materials, prompts or adaptation; validate with users when feasible |
 | Assessment exposure and lineage | Stable item/outcome references; worked examples are not treated as secure exam items; protected answers and fresh variants respected | Repair eligibility/lineage, retire leaked items, recheck security and feedback |
 | Authenticity and originality | VibeSchool-authored material with traceable external rights/source usage | Rewrite, license or remove unsupported material |
