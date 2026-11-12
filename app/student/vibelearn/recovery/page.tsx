@@ -14,6 +14,7 @@ type Recovery = {
   recovery_key: string
   origin: 'released_assessment' | 'practice_notebook'
   attempt_id: string | null
+  assessment_item_id: string | null
   reason: 'skipped' | 'incorrect'
   prompt: string
   context_title: string
@@ -51,6 +52,7 @@ export default function ExactLearningRecoveryPage() {
   const search = useSearchParams()
   const attemptId = search.get('attempt')
   const mistakeId = search.get('mistake')
+  const assessmentItemId = search.get('item')
   const [cases, setCases] = useState<Recovery[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -83,7 +85,9 @@ export default function ExactLearningRecoveryPage() {
 
   const displayed = mistakeId
     ? cases.filter(item => item.recovery_key === `notebook:${mistakeId}`)
-    : cases
+    : assessmentItemId
+      ? cases.filter(item => item.assessment_item_id === assessmentItemId)
+      : cases
 
   async function reassess(item: Recovery) {
     if (!item.reassessment || !item.outcome_id || working) return
