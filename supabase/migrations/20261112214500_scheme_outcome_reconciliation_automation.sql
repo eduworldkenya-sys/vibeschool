@@ -14,6 +14,17 @@ declare
   v_sub_strand uuid;
   v_status_transition boolean := false;
 begin
+  -- Do not reassign the curriculum identity of ongoing/completed teaching.
+  -- Historical unlinked rows are not rewritten by this trigger.
+  if tg_op='UPDATE' and old.status in ('teaching','done') and (
+       old.curriculum_outcome_id is distinct from new.curriculum_outcome_id
+       or old.curriculum_id is distinct from new.curriculum_id
+       or old.sub_strand_id is distinct from new.sub_strand_id
+     ) then
+    raise exception 'SCHEME_TEACHING_LINEAGE_IMMUTABLE'
+      using errcode='23514';
+  end if;
+
   -- Existing scheme generation supplies a canonical curriculum item but
   -- previously left its specific outcome empty. Hydrate ONLY when that same
   -- curriculum item and sub-strand identify ONE source-verified outcome.
