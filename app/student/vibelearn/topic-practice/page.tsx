@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
 import CanonicalTopicPractice from '@/components/student/CanonicalTopicPractice'
+import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import { supabase } from '@/lib/supabase'
 import { recordVibeLearnPracticeAnswer } from '@/lib/student/vibelearn'
 
@@ -222,6 +223,7 @@ export default function TopicPracticePage() {
       <div style={{display:'flex',justifyContent:'space-between',gap:8,margin:'8px 0 18px'}}><strong>Question {session.index+1} of {TARGET}</strong><span>{completed} answered or skipped</span></div>
       {currentQuestion ? <>
         <h2 style={{...heading,fontSize:19,lineHeight:1.5}}>{currentQuestion.question}</h2>
+        <LearningNotebookPrompt subject={session.subject} stage="practice" compact />
         <div style={{display:'grid',gap:10}}>
           {currentQuestion.options.map((option,i)=><button key={i} disabled={busy || Boolean(currentAnswer)} onClick={() => void answer(i)} style={{...optionButton,background:currentAnswer?.choice === i ? '#e0e7ff':'#fff'}}>{String.fromCharCode(65+i)}. {option}</button>)}
         </div>
