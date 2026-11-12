@@ -90,7 +90,7 @@ const extras = expanded.supplementary_v2.items
 assert.equal(extras.length, 63, 'Seven sets of nine new supplementary items')
 assert.equal(new Set(extras.map(q=>q.editorial_id)).size, 63, 'Candidate item keys unique')
 assert.equal(new Set(extras.map(q=>q.prompt)).size, 63, 'No exact repeated new question prompt')
-assert.ok(extras.every(q => q.prompt && q.answer && q.section && q.exam_eligibility==='not_approved' && q.independent_review==='NOT_CHECKED'))
+assert.ok(extras.every(q => q.prompt && q.answer && q.feedback && q.section && q.exam_eligibility==='not_approved' && q.independent_review==='NOT_CHECKED'))
 assert.equal(new Set(extras.map(q=>q.section)).size, 7)
 assert.equal(expanded.teaching_models_v2.length, 6)
 assert.equal(expanded.quality_and_release_v2.public_reader_v2, 'NOT_PUBLISHED')
