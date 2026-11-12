@@ -9,7 +9,7 @@ type Context = { id: string; title: string; grade: string; subject: string }
 type Visual = {
   id: string; title: string; grade: string; subject: string; description: string; type: string;
   caption: string; altText: string; labels: string[]; placements: string[];
-  lifecycle: string; createdAt: string; previewUrl: string | null; referenceToken: string
+  lifecycle: string; createdAt: string; previewUrl: string | null; referenceToken: string | null; resourceVersionId: string | null
 }
 
 const input: React.CSSProperties = {
@@ -144,8 +144,11 @@ export default function HQVisualLearningLibrary() {
                 <span style={{fontSize:11,color:v.lifecycle==='certified'?'#9ee1bb':'#f0c47f'}}>{v.lifecycle}</span></div>
               {v.previewUrl && <img src={v.previewUrl} alt={v.altText} loading="lazy" style={{maxWidth:'100%',maxHeight:230,objectFit:'contain',background:'#fff',borderRadius:8}}/>}
               {v.caption && <div style={{color:'#c5d4e2',fontSize:13}}>{v.caption}</div>}
-              <code style={{fontSize:11,color:'#b5c4d8',overflowWrap:'anywhere'}}>{v.referenceToken}</code>
-              <button type="button" style={{...button,background:'#233b57',color:'#f8fafc'}} onClick={()=>void navigator.clipboard.writeText(v.referenceToken)}>Copy visual reference</button>
+              {v.resourceVersionId && <code style={{fontSize:11,color:'#b5c4d8',overflowWrap:'anywhere'}}>Version: {v.resourceVersionId}</code>}
+              {v.referenceToken ? <>
+                <code style={{fontSize:11,color:'#b5c4d8',overflowWrap:'anywhere'}}>{v.referenceToken}</code>
+                <button type="button" style={{...button,background:'#233b57',color:'#f8fafc'}} onClick={()=>void navigator.clipboard.writeText(v.referenceToken!)}>Copy certified visual reference</button>
+              </> : <small style={{color:'#f0c47f'}}>Private draft — no reader reference until certified and released.</small>}
             </article>)}</div>}
         </section>
       </div>
