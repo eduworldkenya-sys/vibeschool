@@ -57,6 +57,7 @@ assert.match(page,/setSchoolFilter\('all'\); setScheduleContext\('all'\)/,'All m
 assert.match(page,/setSchoolFilter\(activeSchoolId\); setScheduleContext\('school'\)/,'School returns to active school')
 assert.match(page,/projectTeacherDaySchedule\(/)
 assert.match(page,/mayEditSchoolTimetable\(scheduleContext, activeSchoolId, schoolFilter\)/)
+assert.match(page,/!schoolError && !loadError && !blocksError/,'school edits require complete authoritative timetable reads')
 assert.match(page,/canEdit=\{Boolean\(scheduleContext === 'school'/)
 assert.match(page,/scheduleContext === 'school' && canAddSlot && <Btn/,'revisions require active school')
 assert.match(page,/scheduleContext === 'school' && canAddSlot && lastUndoSnapshotId/,'undo requires active school')
