@@ -242,7 +242,11 @@ export function deriveTeachingWorkspace(
       && Boolean(occurrence.lessonPlanId)
       && occurrence.lifecycle === 'ready',
     canComplete: occurrence.lifecycle === 'in_progress',
-    canRecover: occurrence.lifecycle === 'missed' && Boolean(occurrence.occurrenceId),
+    // The recovery RPC accepts only an actually persisted MISSED original.
+    // Clock-derived overdue dates are not enough (same-day sweep may be pending).
+    canRecover: occurrence.lifecycle === 'missed'
+      && Boolean(occurrence.occurrenceId)
+      && occurrence.persistedLifecycle === 'missed',
     canCaptureAttendance: lifecycleActive && Boolean(occurrence.lessonPlanId),
     canCaptureEvidence: occurrence.lifecycle === 'in_progress' || occurrence.lifecycle === 'completed',
     canAssignHomework: occurrence.lifecycle === 'in_progress' || occurrence.lifecycle === 'completed',
