@@ -281,6 +281,12 @@ export default function LessonPlanModal({
   // when no persisted plan exists.
   const planSchemeIdRef = useRef<string | null>(null)
 
+  // Fix 18D: teacherId is required — ReflectionSheet's real prop signature
+  // demands `teacherId: string` (confirmed against components/teacher/
+  // ReflectionSheet.tsx), and boot()'s auth.getUser() result isn't otherwise
+  // exposed outside its own closure.
+  const [teacherId,      setTeacherId]      = useState<string | null>(null)
+
   // Read the current canonical outcome and authorized Scheme choices.
   // These are identities from persisted tables, not topic-derived guesses.
   useEffect(() => {
@@ -373,11 +379,7 @@ export default function LessonPlanModal({
     }
   }
 
-  // Fix 18D: teacherId is required — ReflectionSheet's real prop signature
-  // demands `teacherId: string` (confirmed against components/teacher/
-  // ReflectionSheet.tsx), and boot()'s auth.getUser() result isn't otherwise
-  // exposed outside its own closure.
-  const [teacherId,      setTeacherId]      = useState<string | null>(null)
+
   // TOS-006B: retain the complete authoritative occurrence rather than
   // maintaining a second lifecycle-only interpretation in this component.
   const [teachingOccurrence, setTeachingOccurrence] =
