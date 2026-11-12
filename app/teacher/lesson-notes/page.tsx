@@ -691,15 +691,9 @@ function LessonNotesInner() {
             // do not present locally inferred success as the history snapshot.
             void load();
 
-            const reflectionContext = [
-              liveNote.trim(),
-              review.reflection,
-              `Coverage outcome: ${review.coverage}.`,
-              `What was taught: ${review.whatWasTaught}`,
-              `Next step: ${nextSteps}`,
-            ].filter(Boolean).join("\\n\\n");
-            setReflectionSeed(reflectionContext);
-            setReflectionOpen(true);
+            // finalize_teaching_occurrence_v2 already saved this reflection
+            // atomically. Never open a duplicate form or silently promote the
+            // private scratchpad into an official teaching record.
           } : undefined}
           onClose={() => setTeachMode(false)}
         />
