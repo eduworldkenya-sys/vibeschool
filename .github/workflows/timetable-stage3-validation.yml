@@ -1,0 +1,48 @@
+name: Timetable Stage 3 TypeScript and Publication Validation
+
+on:
+  pull_request:
+    branches:
+      - integration/intelligent-timetable
+    paths:
+      - "app/admin/timetable/page.tsx"
+      - "app/teacher/timetable/page.tsx"
+      - "components/admin/SchoolTimetablePublicationPanel.tsx"
+      - "lib/timetable/engine.ts"
+      - "lib/timetable/operations.ts"
+      - "lib/timetable/schoolPublication.ts"
+      - "scripts/test-school-timetable-publication-stage3.mjs"
+      - "supabase/migrations/20261112210000_school_timetable_publication_authority.sql"
+      - "package.json"
+      - ".github/workflows/timetable-stage3-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage3-validation:
+    name: Stage 3 timetable TypeScript + regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Timetable regression suite
+        run: npm run test:timetable
+      - name: Lint
+        run: npm run lint
+      - name: Build application
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
