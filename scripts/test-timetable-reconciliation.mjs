@@ -54,7 +54,7 @@ test('KICD Grades 1–9 baseline contains exactly the verified learning-area mat
   const sourceMatrix = grades.split('with learning_areas(band, subject_label, kicd_learning_area, units) as (')[1]
   assert.ok(sourceMatrix, 'Official KICD source matrix missing')
   const rows = sourceMatrix.split('grades(grade, band, source_ref')[0]
-  const matches = [...rows.matchAll(/\\('(lower_primary|upper_primary|junior_school)', '([^']+)', '([^']+)', (\\d+)\\)/g)]
+  const matches = [...rows.matchAll(/\('(lower_primary|upper_primary|junior_school)', '([^']+)', '([^']+)', (\d+)\)/g)]
   const expected = {
     lower_primary: { count: 7, lessons: 30 },
     upper_primary: { count: 8, lessons: 34 },
@@ -72,9 +72,9 @@ test('KICD Grades 1–9 baseline contains exactly the verified learning-area mat
   assert.match(rows, /'Mathematics', 'Mathematical Activities', 5/)
   assert.match(rows, /'Agriculture and Nutrition', 'Agriculture', 4/)
   assert.match(rows, /'Creative Arts and Sports', 'Creative Arts', 6/)
-  assert.match(grades, /Grade-1-3-English-Activities-Revised-Sept\\.pdf/)
-  assert.match(grades, /AGRICULTURE-Grade-6-30\\.07\\.2024\\.pdf/)
-  assert.match(grades, /Agriculture-Grade-9-Formatted-April-2024\\.pdf/)
+  assert.match(grades, /Grade-1-3-English-Activities-Revised-Sept\.pdf/)
+  assert.match(grades, /AGRICULTURE-Grade-6-30\.07\.2024\.pdf/)
+  assert.match(grades, /Agriculture-Grade-9-Formatted-April-2024\.pdf/)
   assert.match(grades, /KICD_ALLOCATION_MISMATCH/)
   assert.match(grades, /v_expected_count/)
   assert.match(grades, /v_expected_lessons/)
@@ -84,12 +84,13 @@ test('KICD Grades 1–9 baseline contains exactly the verified learning-area mat
 
 test('PPI is exactly one separate programme period, never an assessed subject', () => {
   assert.match(grades, /1::integer as ppi_periods/)
-  assert.match(grades, /\\(sum\\(swa\\.lessons_per_week\\) \\+ 1\\)::integer as total_periods/)
+  assert.match(grades, /\(sum\(swa\.lessons_per_week\) \+ 1\)::integer as total_periods/)
   assert.match(grades, /security_invoker = true/)
-  assert.doesNotMatch(
-    grades.split('with learning_areas(band, subject_label, kicd_learning_area, units) as (')[1]
-      .split('grades(grade, band, source_ref')[0],
-    /\\('(?:lower_primary|upper_primary|junior_school)', 'Pastoral/,
+  assert.ok(
+    !grades.split('with learning_areas(band, subject_label, kicd_learning_area, units) as (')[1]
+      .split('grades(grade, band, source_ref')[0]
+      .includes("'Pastoral/Religious Instruction Programme'"),
+    'PPI must not become a national teaching subject',
   )
   assert.match(grades, /Kenyan Sign Language/)
   assert.match(grades, /Christian Religious Education/)
