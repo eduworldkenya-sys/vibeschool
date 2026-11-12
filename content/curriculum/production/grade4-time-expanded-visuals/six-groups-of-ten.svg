@@ -1,5 +1,86 @@
-<svg viewBox="0 0 340 160" width="340" height="160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Six groups of 10 minutes add to 60 minutes, equal to one hour">
-  <text x="170" y="19" text-anchor="middle" font-size="13" font-weight="600" fill="#1F2C3B">Understanding one hour</text>
-  <rect x="9" y="31" width="105" height="48" rx="5" fill="#E6EFF2"/><text x="62" y="49" fill="#1F2C3B" font-size="12" text-anchor="middle">10 min</text><rect x="31" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="43" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="55" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="67" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="79" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="122" y="31" width="105" height="48" rx="5" fill="#E6EFF2"/><text x="175" y="49" fill="#1F2C3B" font-size="12" text-anchor="middle">20 min</text><rect x="144" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="156" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="168" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="180" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="192" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="235" y="31" width="105" height="48" rx="5" fill="#E6EFF2"/><text x="288" y="49" fill="#1F2C3B" font-size="12" text-anchor="middle">30 min</text><rect x="257" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="269" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="281" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="293" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="305" y="56" width="7" height="12" rx="1" fill="#25786E"/><rect x="9" y="84" width="105" height="48" rx="5" fill="#E6EFF2"/><text x="62" y="102" fill="#1F2C3B" font-size="12" text-anchor="middle">40 min</text><rect x="31" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="43" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="55" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="67" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="79" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="122" y="84" width="105" height="48" rx="5" fill="#E6EFF2"/><text x="175" y="102" fill="#1F2C3B" font-size="12" text-anchor="middle">50 min</text><rect x="144" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="156" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="168" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="180" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="192" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="235" y="84" width="105" height="48" rx="5" fill="#E6EFF2"/><text x="288" y="102" fill="#1F2C3B" font-size="12" text-anchor="middle">60 min</text><rect x="257" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="269" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="281" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="293" y="109" width="7" height="12" rx="1" fill="#B48742"/><rect x="305" y="109" width="7" height="12" rx="1" fill="#B48742"/>
-  <text x="170" y="148" text-anchor="middle" font-size="11" font-weight="600" fill="#1F2C3B">6 groups of 10 minutes = 60 minutes = 1 hour</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 340" width="840" height="340" role="img" aria-labelledby="title desc">
+  <title id="title">Six groups of ten minutes make one hour</title>
+  <desc id="desc">Six separate boxes, each containing exactly ten dots in two rows of five, show sixty minutes in an hour.</desc>
+  <rect width="840" height="340" fill="#FFFFFF"/>
+  <text x="22" y="33" fill="#14354B" font-size="24" font-weight="700">Understanding one hour</text>
+  <g><rect x="18" y="52" width="254" height="103" rx="12" fill="#EEF3F6" stroke="#B1C5D0" stroke-width="2"/>
+    <text x="145" y="137" text-anchor="middle" font-size="18" fill="#14354B" font-weight="600">10 minutes</text>
+    <circle cx="52" cy="75" r="8" fill="#237A70"/>
+    <circle cx="96" cy="75" r="8" fill="#237A70"/>
+    <circle cx="140" cy="75" r="8" fill="#237A70"/>
+    <circle cx="184" cy="75" r="8" fill="#237A70"/>
+    <circle cx="228" cy="75" r="8" fill="#237A70"/>
+    <circle cx="52" cy="104" r="8" fill="#237A70"/>
+    <circle cx="96" cy="104" r="8" fill="#237A70"/>
+    <circle cx="140" cy="104" r="8" fill="#237A70"/>
+    <circle cx="184" cy="104" r="8" fill="#237A70"/>
+    <circle cx="228" cy="104" r="8" fill="#237A70"/>
+  </g>
+  <g><rect x="288" y="52" width="254" height="103" rx="12" fill="#EEF3F6" stroke="#B1C5D0" stroke-width="2"/>
+    <text x="415" y="137" text-anchor="middle" font-size="18" fill="#14354B" font-weight="600">10 minutes</text>
+    <circle cx="322" cy="75" r="8" fill="#237A70"/>
+    <circle cx="366" cy="75" r="8" fill="#237A70"/>
+    <circle cx="410" cy="75" r="8" fill="#237A70"/>
+    <circle cx="454" cy="75" r="8" fill="#237A70"/>
+    <circle cx="498" cy="75" r="8" fill="#237A70"/>
+    <circle cx="322" cy="104" r="8" fill="#237A70"/>
+    <circle cx="366" cy="104" r="8" fill="#237A70"/>
+    <circle cx="410" cy="104" r="8" fill="#237A70"/>
+    <circle cx="454" cy="104" r="8" fill="#237A70"/>
+    <circle cx="498" cy="104" r="8" fill="#237A70"/>
+  </g>
+  <g><rect x="558" y="52" width="254" height="103" rx="12" fill="#EEF3F6" stroke="#B1C5D0" stroke-width="2"/>
+    <text x="685" y="137" text-anchor="middle" font-size="18" fill="#14354B" font-weight="600">10 minutes</text>
+    <circle cx="592" cy="75" r="8" fill="#237A70"/>
+    <circle cx="636" cy="75" r="8" fill="#237A70"/>
+    <circle cx="680" cy="75" r="8" fill="#237A70"/>
+    <circle cx="724" cy="75" r="8" fill="#237A70"/>
+    <circle cx="768" cy="75" r="8" fill="#237A70"/>
+    <circle cx="592" cy="104" r="8" fill="#237A70"/>
+    <circle cx="636" cy="104" r="8" fill="#237A70"/>
+    <circle cx="680" cy="104" r="8" fill="#237A70"/>
+    <circle cx="724" cy="104" r="8" fill="#237A70"/>
+    <circle cx="768" cy="104" r="8" fill="#237A70"/>
+  </g>
+  <g><rect x="18" y="169" width="254" height="103" rx="12" fill="#EEF3F6" stroke="#B1C5D0" stroke-width="2"/>
+    <text x="145" y="254" text-anchor="middle" font-size="18" fill="#14354B" font-weight="600">10 minutes</text>
+    <circle cx="52" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="96" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="140" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="184" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="228" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="52" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="96" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="140" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="184" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="228" cy="221" r="8" fill="#B4893B"/>
+  </g>
+  <g><rect x="288" y="169" width="254" height="103" rx="12" fill="#EEF3F6" stroke="#B1C5D0" stroke-width="2"/>
+    <text x="415" y="254" text-anchor="middle" font-size="18" fill="#14354B" font-weight="600">10 minutes</text>
+    <circle cx="322" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="366" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="410" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="454" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="498" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="322" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="366" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="410" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="454" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="498" cy="221" r="8" fill="#B4893B"/>
+  </g>
+  <g><rect x="558" y="169" width="254" height="103" rx="12" fill="#EEF3F6" stroke="#B1C5D0" stroke-width="2"/>
+    <text x="685" y="254" text-anchor="middle" font-size="18" fill="#14354B" font-weight="600">10 minutes</text>
+    <circle cx="592" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="636" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="680" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="724" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="768" cy="192" r="8" fill="#B4893B"/>
+    <circle cx="592" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="636" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="680" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="724" cy="221" r="8" fill="#B4893B"/>
+    <circle cx="768" cy="221" r="8" fill="#B4893B"/>
+  </g>
+
+  <text x="420" y="311" fill="#14354B" font-size="23" font-weight="700" text-anchor="middle">6 × 10 minutes = 60 minutes = 1 hour</text>
 </svg>
