@@ -195,7 +195,7 @@ export default function TopicPracticePage() {
     if (identity?.studentId) try { window.localStorage.setItem(STORAGE + identity.studentId + ':grade',value) } catch {}
   }
   if (identityLoading || !identity) return <main style={shell}>Opening practice…</main>
-  if (/^grade\s*9$/i.test(grade)) return <CanonicalTopicPractice grade={grade} />
+  if (/^grade\s*(?:[1-9]|1[0-2])$/i.test(grade)) return <CanonicalTopicPractice grade={grade} />
   return <main style={shell}>
     <button style={plain} onClick={() => router.push('/student/vibelearn')}>← Learn</button>
     <h1 style={{margin:'12px 0 6px',fontSize:26}}>Topic Practice</h1>
