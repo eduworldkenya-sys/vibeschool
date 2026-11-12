@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { nairobiDateStr, nairobiDayOfWeek } from "@/lib/time";
+import { nairobiDateStr, nairobiDayOfWeek, nairobiDateAdd, nairobiWeekStart } from "@/lib/time";
+import { TuitionTimetableCard, tuitionLessonsBetween, tuitionLocalDate, tuitionLocalTime, useTuitionTimetable, type TuitionTimetableLesson } from "@/components/timetable/TuitionTimetable";
 import { loadActiveClassTimetable } from "@/lib/timetable/engine";
 import { useStudent } from "@/lib/student-context";
 import { readCache, writeCache } from "@/lib/student-cache";
@@ -24,6 +25,8 @@ const DAYS = [
   { label: "Wed", int: 3 },
   { label: "Thu", int: 4 },
   { label: "Fri", int: 5 },
+  { label: "Sat", int: 6 },
+  { label: "Sun", int: 7 },
 ]
 
 function todayInt(): number {
@@ -52,6 +55,10 @@ export default function TimetablePage() {
   const [slots,   setSlots]   = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDay, setActiveDay] = useState(todayInt());
+  const [context, setContext] = useState<"all" | "school" | "tuition">("all");
+  const { lessons: tuitionLessons, error: tuitionError, refresh: refreshTuition } = useTuitionTimetable();
+  const weekStart = nairobiWeekStart();
+  const weekTuition = tuitionLessonsBetween(tuitionLessons, weekStart, nairobiDateAdd(weekStart, 6));
 
   useEffect(() => {
     if (idLoading || !identity?.classId) { setLoading(false); return; }
@@ -107,7 +114,12 @@ export default function TimetablePage() {
     load();
   }, [identity, idLoading]);
 
-  const daySlots = slots.filter(s => s.day_of_week === activeDay);
+  const selectedDate = nairobiDateAdd(weekStart, activeDay - 1);
+  const dayTuition = weekTuition.filter(lesson => tuitionLocalDate(lesson.starts_at) === selectedDate);
+  const dayEntries: Array<{ kind: "school"; time: string; slot: Slot } | { kind: "tuition"; time: string; lesson: TuitionTimetableLesson }> = [
+    ...(context === "tuition" ? [] : slots.filter(slot => slot.day_of_week === activeDay).map(slot => ({ kind: "school" as const, time: slot.start_time, slot }))),
+    ...(context === "school" ? [] : dayTuition.map(lesson => ({ kind: "tuition" as const, time: tuitionLocalTime(lesson.starts_at), lesson }))),
+  ].sort((a, b) => a.time.localeCompare(b.time));
   const isLoading = idLoading || (loading && slots.length === 0);
 
   if (isLoading) return (
@@ -128,22 +140,32 @@ export default function TimetablePage() {
           My Day
         </h1>
         <p style={{ fontSize: 12, color: "var(--vs-muted)", marginTop: 2 }}>
-          {identity?.className} timetable
+          {identity?.className ? `${identity.className} · School and Tuition` : "School and Tuition"}
         </p>
       </div>
 
+      <div role="group" aria-label="Schedule context" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        {(["all", "school", "tuition"] as const).map(option => <button key={option} type="button" onClick={() => setContext(option)}
+          aria-pressed={context === option} style={{ borderRadius: 16, padding: "8px 14px", minHeight: 40, border: "1px solid var(--vs-border)", background: context === option ? "var(--vs-accent)" : "var(--vs-card)", color: context === option ? "#fff" : "var(--vs-text)", fontWeight: 750 }}>
+          {option === "all" ? "All" : option === "school" ? "School" : "Tuition"}
+        </button>)}
+      </div>
+      {tuitionError && <div role="alert" style={{ marginBottom: 12, fontSize: 12 }}>{tuitionError} <button type="button" onClick={refreshTuition}>Retry tuition</button></div>}
+
       {/* Day tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto" }}>
         {DAYS.map(d => {
           const isToday  = d.int === todayInt();
           const isActive = d.int === activeDay;
-          const count    = slots.filter(s => s.day_of_week === d.int).length;
+          const schoolCount = slots.filter(s => s.day_of_week === d.int).length;
+          const privateCount = weekTuition.filter(lesson => tuitionLocalDate(lesson.starts_at) === nairobiDateAdd(weekStart, d.int - 1) && lesson.status === "scheduled").length;
+          const count = (context === "tuition" ? 0 : schoolCount) + (context === "school" ? 0 : privateCount);
           return (
             <button
               key={d.int}
               onClick={() => setActiveDay(d.int)}
               style={{
-                flex:          1,
+                flex:          "1 0 46px",
                 padding:       "10px 4px",
                 borderRadius:  12,
                 border:        isActive ? "none" : "1px solid var(--vs-border)",
@@ -165,19 +187,21 @@ export default function TimetablePage() {
       </div>
 
       {/* Slots */}
-      {!identity?.classId ? (
+      {context !== "tuition" && !identity?.classId && dayEntries.length === 0 ? (
         <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "40px 24px", textAlign: "center" }}>
-          <div style={{ fontSize: 13, color: "var(--vs-muted)" }}>No class assigned yet</div>
+          <div style={{ fontSize: 13, color: "var(--vs-muted)" }}>No school class assigned yet. Tuition remains available.</div>
         </div>
-      ) : daySlots.length === 0 ? (
+      ) : dayEntries.length === 0 ? (
         <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "40px 24px", textAlign: "center" }}>
           <div style={{ fontSize: 13, color: "var(--vs-muted)" }}>No lessons on {DAYS.find(d => d.int === activeDay)?.label}</div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {daySlots.map((slot, i) => (
+          {dayEntries.map((entry, i) => entry.kind === "tuition" ? <TuitionTimetableCard key={`tuition:${entry.lesson.id}`} lesson={entry.lesson} role="student" /> : (() => {
+            const slot = entry.slot;
+            return (
             <div
-              key={slot.id}
+              key={`school:${slot.id}`}
               style={{
                 background:   "var(--vs-card)",
                 border:       "1px solid var(--vs-border)",
@@ -208,6 +232,7 @@ export default function TimetablePage() {
               {/* Subject */}
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: "var(--vs-text)" }}>{slot.subject}</div>
+                <div style={{ fontSize: 11, color: "var(--vs-muted)", fontWeight: 700 }}>School</div>
                 {slot.room && (
                   <div style={{ fontSize: 11, color: "var(--vs-muted)", display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
                     <IconRoom />
@@ -233,7 +258,8 @@ export default function TimetablePage() {
                 {i + 1}
               </div>
             </div>
-          ))}
+            );
+          })())}
         </div>
       )}
     </div>
