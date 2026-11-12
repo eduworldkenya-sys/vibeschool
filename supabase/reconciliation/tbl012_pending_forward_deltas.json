@@ -8,6 +8,38 @@
       "rebuilt_hash": "a7ac9cc47ec44efe0eef1c1802559dac",
       "migration": "20261112150000_unified_school_tuition_schedule.sql",
       "rationale": "The clean-rebuild trigger fingerprint now includes both the unapplied 20261112101600 school-period guard change and the 20261112150000 school/tuition collision trigger. This exact rebuilt hash was taken from the isolated TBL-011 clean-rebuild artifact, not from production or an estimated schema."
+    },
+    {
+      "table": "teaching_occurrences",
+      "section": "columns",
+      "production_hash": "b6267cbed72bb9835de6d402a11c305b",
+      "rebuilt_hash": "7a7620c8a88a5b91052a63b9f3bb2bf3",
+      "migration": "20261112194500_school_disruption_occurrences_p0.sql",
+      "rationale": "Audited three new disruption provenance columns, directly traced to the named, as-yet-unapplied emergency-disruption migration. Exact rebuilt hash captured in TBL-011 isolated run 43233363471 artifact 13951158098; production baseline hash retained. This is a forward delta, not deployment approval or historic parity."
+    },
+    {
+      "table": "teaching_occurrences",
+      "section": "constraints",
+      "production_hash": "f2402925362f1d18e908fe7decabd3c1",
+      "rebuilt_hash": "d1e26c0cd4c8746e37298833034fcaa7",
+      "migration": "20261112194500_school_disruption_occurrences_p0.sql",
+      "rationale": "Audited foreign key and previous-lifecycle check, directly traced to the named, as-yet-unapplied emergency-disruption migration. Exact rebuilt hash captured in TBL-011 isolated run 43233363471 artifact 13951158098; production baseline hash retained. This is a forward delta, not deployment approval or historic parity."
+    },
+    {
+      "table": "teaching_occurrences",
+      "section": "indexes",
+      "production_hash": "cab1e33e79b43929983e8e49d54f02c0",
+      "rebuilt_hash": "58a95a92d4ed6ce5d3d9950542194e02",
+      "migration": "20261112194500_school_disruption_occurrences_p0.sql",
+      "rationale": "Audited disruption exception lookup index, directly traced to the named, as-yet-unapplied emergency-disruption migration. Exact rebuilt hash captured in TBL-011 isolated run 43233363471 artifact 13951158098; production baseline hash retained. This is a forward delta, not deployment approval or historic parity."
+    },
+    {
+      "table": "teaching_occurrences",
+      "section": "triggers",
+      "production_hash": "cb53398290d1829d11359f338b80a11b",
+      "rebuilt_hash": "f9d46b391fb98504786741e4fa53e161",
+      "migration": "20261112194500_school_disruption_occurrences_p0.sql",
+      "rationale": "Audited guard_school_disruption_teaching trigger, directly traced to the named, as-yet-unapplied emergency-disruption migration. Exact rebuilt hash captured in TBL-011 isolated run 43233363471 artifact 13951158098; production baseline hash retained. This is a forward delta, not deployment approval or historic parity."
     }
   ]
 }
