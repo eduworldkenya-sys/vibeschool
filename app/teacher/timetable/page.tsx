@@ -1648,9 +1648,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
       <div className="no-print" role="group" aria-label="Teaching context" style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        {activeSchoolId && <Btn variant={scheduleContext === 'school' ? 'primary' : 'ghost'} small onClick={() => { setSelected(null); setScheduleContext('school') }}>School</Btn>}
+        {activeSchoolId && <Btn variant={scheduleContext === 'school' ? 'primary' : 'ghost'} small onClick={() => { setSelected(null); setSchoolFilter(activeSchoolId); setScheduleContext('school') }}>School</Btn>}
         <Btn variant={scheduleContext === 'independent' ? 'primary' : 'ghost'} small onClick={() => { setSelected(null); setScheduleContext('independent') }}>Independent</Btn>
-        {activeSchoolId && <Btn variant={scheduleContext === 'all' ? 'primary' : 'ghost'} small onClick={() => { setSelected(null); setScheduleContext('all') }}>All</Btn>}
+        {activeSchoolId && <Btn variant={scheduleContext === 'all' ? 'primary' : 'ghost'} small onClick={() => { setSelected(null); setSchoolFilter('all'); setScheduleContext('all') }}>All</Btn>}
       </div>
       {scheduleContext === 'independent' && <p className="no-print" style={{fontSize:12,color:C.textMuted,marginBottom:12}}>
         Independent Teaching displays your private tuition sessions. School lessons and attendance stay separate. Personal timetable editing comes in Stage 4.
