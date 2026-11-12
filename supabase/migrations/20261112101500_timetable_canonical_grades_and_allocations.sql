@@ -46,6 +46,34 @@ set lesson_minutes = 35
 where grade in ('Grade 4', 'Grade 5', 'Grade 6')
   and lesson_minutes is null;
 
+-- The clean migration rebuild may predate some junior-school global
+-- learning-area identities. Reconcile by *name* and allow PostgreSQL to
+-- generate IDs only when a missing canonical subject is needed.
+-- Existing production identities are never replaced.
+-- Avoid arbitrary selection when a global subject has duplicate names.
+do $
+declare
+  v_name text;
+  v_count integer;
+begin
+  foreach v_name in array array[
+    'English', 'Kiswahili', 'Mathematics', 'Religious Education',
+    'Social Studies', 'Integrated Science', 'Pre-Technical Studies',
+    'Agriculture and Nutrition', 'Creative Arts and Sports'
+  ] loop
+    select count(*) into v_count
+    from public.subjects s
+    where s.school_id is null and s.name = v_name;
+    if v_count > 1 then
+      raise exception 'AMBIGUOUS_GLOBAL_SUBJECT: %', v_name;
+    end if;
+    if v_count = 0 then
+      insert into public.subjects (name,school_id,global_subject_id)
+      values (v_name,null,null);
+    end if;
+  end loop;
+end $;
+
 -- Revised junior-school learning-area allocations:
 -- 40 curriculum lessons, plus a separate PPI period.
 -- These labels resolve to VibeSchool's existing global subjects.
@@ -140,6 +168,9 @@ create index if not exists
   on public.subject_weekly_allocations
     (grade, global_subject_id);
 
+-- access: service-only public.timetable_allocation_subject_aliases
+-- authorization-test: public.timetable_allocation_subject_aliases is not
+-- readable/writable by anon or authenticated; access only via authorized RPCs.
 create table if not exists
 public.timetable_allocation_subject_aliases (
   grade_code text not null,
