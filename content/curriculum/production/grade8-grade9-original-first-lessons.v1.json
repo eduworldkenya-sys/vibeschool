@@ -100,7 +100,17 @@
       "visual": {
         "kind": "signed number-line diagram",
         "description": "Line −8 to +8 with equally spaced marks; two arrows show −3→2 (five right jumps) and 2→−3 (five left jumps)."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/06/Mathematics-Grade-8-Design-Formatted-April-2024.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     },
     {
       "id": "VS-G08-EN-01-LS-L01",
@@ -194,7 +204,17 @@
       "visual": {
         "kind": "call sequence diagram",
         "description": "Four simple boxes: greeting → purpose → confirmation → courteous closing."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/06/English-Grade-8-Design-Formatted-April-2024.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1/Listening and Speaking",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     },
     {
       "id": "VS-G08-SW-1.1.1-L01",
@@ -285,7 +305,17 @@
       "visual": {
         "kind": "interview role chart",
         "description": "Majukumu ya mhoji na mhojiwa pamoja na kishale cha swali na kishale cha jibu."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-8-KISWAHILI.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     },
     {
       "id": "VS-G09-EN-1.1.1-L01",
@@ -378,7 +408,17 @@
       "visual": {
         "kind": "audience-purpose comparison",
         "description": "Three columns: respectful comfort, factual report, urgent warning; each shows the preferred degree of directness."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-nine-designs/",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     }
   ]
 }
