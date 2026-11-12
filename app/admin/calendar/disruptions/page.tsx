@@ -41,6 +41,35 @@ const buttonStyle: React.CSSProperties = {
   border:"1px solid #0f766e",background:"#0f766e",color:"#fff"
 }
 
+function parsePreview(value: unknown): Preview {
+  if (!value || typeof value!=="object"
+      || !("date" in value) || typeof value.date!=="string"
+      || !("scheduled_slots" in value) || typeof value.scheduled_slots!=="number"
+      || !("completed_lessons_preserved" in value) || typeof value.completed_lessons_preserved!=="number"
+      || !("lessons_in_progress" in value) || typeof value.lessons_in_progress!=="number"
+      || !("already_closed" in value) || typeof value.already_closed!=="boolean"
+      || !("can_confirm" in value) || typeof value.can_confirm!=="boolean") {
+    throw new Error("Invalid school calendar preview response.")
+  }
+  return {
+    date:value.date,
+    scheduled_slots:value.scheduled_slots,
+    completed_lessons_preserved:value.completed_lessons_preserved,
+    lessons_in_progress:value.lessons_in_progress,
+    already_closed:value.already_closed,
+    can_confirm:value.can_confirm
+  }
+}
+
+function parseAffectedCount(value: unknown, key: "affected_occurrences" | "restored_occurrences"): number {
+  if (!value || typeof value!=="object" || !(key in value)
+      || typeof value[key]!=="number" || !Number.isInteger(value[key])
+      || value[key]<0) {
+    throw new Error("Invalid school disruption confirmation response.")
+  }
+  return value[key]
+}
+
 export default function AdminSchoolDisruptionsPage() {
   const router = useRouter()
   const [schoolId,setSchoolId] = useState("")
@@ -92,7 +121,7 @@ export default function AdminSchoolDisruptionsPage() {
         p_school_id:schoolId,p_date:date
       } as never)
       if (rpcError) throw rpcError
-      setPreview(data as unknown as Preview)
+      setPreview(parsePreview(data))
     } catch(cause) {
       setError(cause instanceof Error?cause.message:"Could not check affected lessons.")
     } finally {setWorking(false)}
@@ -106,8 +135,8 @@ export default function AdminSchoolDisruptionsPage() {
         p_school_id:schoolId,p_date:date,p_reason_code:reason,p_details:details.trim()||null
       } as never)
       if (rpcError) throw rpcError
-      const result=data as unknown as {status:string;affected_occurrences:number}
-      setSuccess("Closure recorded. "+result.affected_occurrences+" lessons preserved for recovery. Completed lessons were not changed.")
+      const affected=parseAffectedCount(data,"affected_occurrences")
+      setSuccess("Closure recorded. "+affected+" lessons preserved for recovery. Completed lessons were not changed.")
       setPreview(null)
       await reload(schoolId)
     } catch(cause) {
@@ -124,8 +153,8 @@ export default function AdminSchoolDisruptionsPage() {
         p_calendar_exception_id:reopenId,p_explanation:reopenExplanation.trim()
       } as never)
       if (rpcError) throw rpcError
-      const result=data as unknown as {status:string;restored_occurrences:number}
-      setSuccess("School day reopened. "+result.restored_occurrences+" affected lesson records reconciled; past missed lessons remain visible.")
+      const restored=parseAffectedCount(data,"restored_occurrences")
+      setSuccess("School day reopened. "+restored+" affected lesson records reconciled; past missed lessons remain visible.")
       setReopenId(null);setReopenExplanation("");setPreview(null)
       await reload(schoolId)
     } catch(cause) {
