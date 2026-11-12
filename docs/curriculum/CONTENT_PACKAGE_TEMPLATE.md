@@ -70,6 +70,9 @@ Duplicate this block for each outcome, or reference its canonical record.
 **Placement: explanation / example / activity / exercise / assessment / teacher guide:**  
 **Real image created? Draft / ready for review / certified (only actual state):**  
 **Canonical Visual Learning Library resource ID (when created):**  
+**ChatGPT operator / actual storage action and evidence:**  
+**Visual status: planned / image created but not stored / private candidate stored / certified / learner-visible:**  
+**HQ manual interaction needed?** No by default; document an actual tool/authorization boundary rather than assigning routine steps to the owner.  
 **For Mathematics: problem and known quantities:**  
 **Method chosen and why:**  
 **Formula (if required by the outcome), when used, meaning, each symbol and its unit:**  
@@ -182,6 +185,9 @@ Use existing Content Engine objects and links; do not assume the schema solely f
 - **Known limitations:** Accurate scoped report, not a generic “ready”.
 
 ## 8. Autonomous execution / escalation rule
+
+**Solo-owner, chat-first content operation:** ChatGPT handles preparation, visual design, actual image creation when possible, registered metadata, canonical integration and verification through whichever authenticated tools are available. The VibeSchool HQ screen is optional and must not become an owner-operated prerequisite. An uploaded file, image made in chat, completed schema migration, recorded review and published image are distinct evidence states. If a connected storage-upload/publishing action is missing, complete the content package and report the precise tool boundary. Do not manufacture an asset ID, a published status or an independent approval.
+
 
 **Routine production needs no repeat approval from the owner:** obtain official evidence, author, revise, check, map, create a release candidate and fix ordinary errors within existing capabilities.
 
