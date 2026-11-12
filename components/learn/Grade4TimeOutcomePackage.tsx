@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import { formatGrade4TimeLessonBody } from '@/lib/content/grade4TimePresentation.mjs'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 
@@ -234,6 +235,7 @@ export default function Grade4TimeOutcomePackage({
       {selected && tab === 'core' && <article style={PANEL}>
         <h3 style={{ fontSize: 20 }}>{selected.title}</h3>
         <VisualRichText body={formatGrade4TimeLessonBody(selected.body)} style={{ fontSize: 16, lineHeight: 1.8 }} />
+        <Grade4TimeVisualModels lessonOrder={selected.lesson_order} inlineVisualPresent={/\[visual:/.test(selected.body)} />
         <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
         {audience === 'teacher' && <p style={{ fontSize: 12, color: '#64748b' }}>
           This is the released core explanation. Teaching preparation can be drafted separately without scheduling an occurrence.

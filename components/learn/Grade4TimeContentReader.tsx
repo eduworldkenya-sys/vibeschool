@@ -13,6 +13,7 @@ import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.
 import { buildTimeQuestionCards } from '@/lib/content/grade4TimePractice.mjs'
 import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
 import Grade4TimePracticeCards from '@/components/learn/Grade4TimePracticeCards'
+import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import Grade4TimeWorkedSteps from '@/components/learn/Grade4TimeWorkedSteps'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import styles from './Grade4TimeContentReader.module.css'
@@ -146,6 +147,8 @@ function Grade4TimeLessonArticle({
         <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>
       </section>
     })}
+
+    <Grade4TimeVisualModels lessonOrder={lesson.order} inlineVisualPresent={/\[visual:/.test(lesson.body)} />
 
     <div className={styles.articleBottom}>
       <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
