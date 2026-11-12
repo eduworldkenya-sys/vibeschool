@@ -1,0 +1,80 @@
+.page{min-height:100vh;padding:clamp(16px,2.8vw,32px) clamp(14px,2.8vw,32px) 96px;font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif}
+.wrap{max-width:1160px;margin:0 auto}
+.breadcrumbs{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12px;color:#547464;margin:0 0 18px}
+.breadcrumbs a{color:#185f42;font-weight:750;text-decoration:none;padding:5px 0}
+.breadcrumbs a:hover{text-decoration:underline}
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;margin-bottom:23px}
+.kicker{font-size:10px;color:#14714c;letter-spacing:.11em;font-weight:850;text-transform:uppercase;margin:0 0 6px}
+.heroTitle{font:850 clamp(28px,3.6vw,43px)/1.12 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-1.1px;margin:0 0 9px;color:#193b2b}
+.heroDescription{font-size:14px;color:#4b6858;line-height:1.75;max-width:640px;margin:0}
+.subjectTag{background:#e4f3e8;color:#175d3d;border:1px solid #c6e8d0;border-radius:14px;display:flex;align-items:center;gap:8px;font-weight:750;font-size:12px;padding:12px 15px}
+.layout{display:grid;grid-template-columns:275px minmax(0,1fr);gap:19px;align-items:start}
+.sidebar{position:sticky;top:18px;background:#fff;border:1px solid #dbe8dd;border-radius:17px;padding:16px}
+.sidebarHead{margin:4px 5px 13px}
+.sidebarHead strong{font-size:16px;display:block;margin-bottom:4px;letter-spacing:-.2px}
+.sidebarHead span{color:#6f8576;font-size:11px}
+.lessonList{display:grid;gap:5px;max-height:min(69vh,680px);overflow-y:auto;scrollbar-width:thin;padding:2px}
+.lessonButton{border:0;display:flex;gap:10px;align-items:flex-start;min-height:55px;width:100%;background:transparent;color:#3b5c49;border-radius:11px;text-align:left;padding:10px;cursor:pointer;font-family:inherit}
+.lessonButton:hover{background:#edf7f0}
+.lessonButton:focus-visible{outline:3px solid #56b991;outline-offset:2px}
+.lessonButtonActive{background:#dff4e7!important;color:#165c3c}
+.lessonNumber{background:#edf3ee;border:1px solid #dbe6dd;border-radius:9px;flex:none;width:31px;height:31px;display:grid;place-items:center;font-size:11px;font-weight:850;color:#5d7565}
+.lessonButtonActive .lessonNumber{background:#176c47;color:white;border-color:#176c47}
+.lessonTitle{display:block;font-size:11px;font-weight:790;line-height:1.45;overflow-wrap:anywhere}
+.lessonSmall{display:block;font-size:10px;color:#718577;line-height:1.45;margin-top:3px}
+.sidebarNote{font-size:11px;line-height:1.65;color:#658172;border-top:1px solid #e5eee7;margin:13px 4px 1px;padding-top:13px}
+.contentArea{min-width:0}
+.lessonProgress{border:1px solid #d5e5d9;background:#e9f5ec;color:#286448;border-radius:13px;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:13px;font-size:12px;font-weight:800}
+.position{display:flex;align-items:center;gap:7px}
+.positionTrack{height:6px;border-radius:99px;background:#c6e2d2;width:100px;overflow:hidden}
+.positionFill{height:100%;background:#15805a;border-radius:inherit}
+.positionNote{font-weight:450;font-size:11px;color:#557662}
+.article{background:white;border:1px solid #dbe8df;border-radius:18px;overflow:hidden;box-shadow:0 7px 24px rgba(20,69,41,.04)}
+.articleHead{padding:clamp(20px,3.5vw,33px) clamp(17px,4vw,38px) 25px;border-bottom:1px solid #e8eee8}
+.articleNum{color:#177550;font-size:11px;font-weight:850;letter-spacing:.11em;margin:0 0 9px;text-transform:uppercase}
+.articleTitle{font:850 clamp(24px,3vw,31px)/1.2 'Bricolage Grotesque',system-ui,sans-serif;color:#173829;letter-spacing:-.7px;margin:0 0 16px;overflow-wrap:anywhere}
+.goal{background:#eaf7ee;border-left:4px solid #168659;border-radius:0 12px 12px 0;padding:16px 18px}
+.goalLabel{font-size:10px;color:#186746;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin:0 0 7px}
+.goalText{font-size:15px;font-weight:730;line-height:1.65;color:#1b4c34;margin:0}
+.sectionNav{display:flex;gap:7px;padding:15px clamp(17px,4vw,38px);border-bottom:1px solid #edf1ed;overflow-x:auto;scrollbar-width:thin}
+.sectionNav a{font-size:11px;white-space:nowrap;color:#285d43;text-decoration:none;background:#f1f7f3;border:1px solid #e1eae3;border-radius:8px;padding:9px 12px;font-weight:750}
+.sectionNav a:hover,.sectionNav a:focus-visible{background:#dff2e5;border-color:#8ccbaa}
+.lessonSection{margin:0 clamp(17px,4vw,38px);padding:27px 0;border-bottom:1px solid #e8eee9;scroll-margin-top:20px}
+.lessonSection:last-child{border-bottom:0}
+.sectionTop{display:flex;align-items:flex-start;gap:13px;margin-bottom:15px}
+.sectionIcon{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:12px;background:#e8f4ed;color:#1a7752}
+.sectionIcon.example{background:#e9f0ff;color:#395ea4}
+.sectionIcon.explore{background:#fff2e2;color:#985d1a}
+.sectionIcon.practice{background:#f0edff;color:#7755ab}
+.sectionIcon.feedback{background:#e3f6f0;color:#16765e}
+.sectionIcon.support{background:#fff3e9;color:#a26432}
+.sectionIcon.challenge{background:#fbedef;color:#9a4f61}
+.sectionIcon.reflect{background:#e9f5ec;color:#37734e}
+.sectionHeader{font-size:20px;font-weight:850;letter-spacing:-.4px;color:#1c3e2c;margin:0 0 3px}
+.sectionHint{font-size:12px;color:#6f8376;line-height:1.55;margin:0}
+.sectionContent{font-size:16px!important;line-height:1.85!important;color:#294537!important}
+.exampleSection{background:#f8fbff;border:1px solid #e0e9f9;padding:19px!important;border-radius:14px;margin:17px clamp(12px,2vw,21px)!important}
+.practiceSection{background:#fbfaff;border:1px solid #ebe5fb;padding:19px!important;border-radius:14px;margin:17px clamp(12px,2vw,21px)!important}
+.feedbackSection{background:#eef8f2;border:1px solid #dcece0;padding:19px!important;border-radius:14px;margin:17px clamp(12px,2vw,21px)!important}
+.answerReveal{border:1px solid #cbe4d1;border-radius:10px;background:#fff;margin-top:10px;overflow:hidden}
+.answerReveal summary{cursor:pointer;padding:13px 16px;font-weight:800;color:#1a6948;list-style-position:inside;font-size:13px;min-height:45px}
+.answerReveal summary:focus-visible{outline:2px solid #26936a;outline-offset:-2px}
+.answerBody{padding:1px 16px 17px;border-top:1px solid #e6eee8;font-size:15px;line-height:1.8}
+.articleBottom{padding:0 clamp(17px,4vw,38px) 25px}
+.lessonPager{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:16px 0}
+.pagerButton{border:1px solid #bed8c5;border-radius:11px;min-height:46px;padding:11px 17px;background:#fff;color:#216644;font-weight:800;display:inline-flex;align-items:center;gap:7px;font:inherit;cursor:pointer}
+.pagerButton:hover{background:#ebf6ef}
+.pagerPrimary{border-color:#196c47;background:#196c47;color:#fff}
+.pagerPrimary:hover{background:#145b3c}
+.outcomePanel{border:1px solid #d9e8dd;border-radius:16px;background:#fff;padding:22px;margin-top:18px}
+.outcomePanel h2{font-size:19px;margin:0 0 6px;color:#203f2f}
+.outcomePanel p{margin:0 0 14px;color:#668374;line-height:1.6;font-size:12px}
+.outcomeList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.outcomeLink{display:flex;align-items:center;justify-content:space-between;gap:10px;text-decoration:none;color:#236a49;padding:12px 13px;background:#f7faf7;border:1px solid #e2ece3;border-radius:11px;font-size:12px;font-weight:700;line-height:1.5}
+.outcomeLink:hover{border-color:#8dc9a1;background:#eefaef}
+.empty{background:#fff;border:1px dashed #c4dacc;border-radius:15px;padding:25px;font-size:14px;line-height:1.7;color:#476755}
+.error{background:#fff7f0;color:#954422;border:1px solid #f0cbb9;border-radius:13px;padding:17px;font-size:14px;line-height:1.6}
+@media(max-width:900px){.layout{grid-template-columns:220px minmax(0,1fr)}.sidebar{padding:11px}.lessonButton{padding:8px}.lessonSection{padding:22px 0}}
+@media(max-width:700px){.layout{grid-template-columns:1fr}.sidebar{position:static}.lessonList{display:flex;overflow-x:auto;max-height:none;scroll-snap-type:x proximity;padding-bottom:6px}.lessonButton{width:178px;flex:none;min-height:75px;scroll-snap-align:start}.sidebarNote{display:none}.articleHead{padding:22px 19px}.lessonSection{margin:0 19px;padding:23px 0}.exampleSection,.practiceSection,.feedbackSection{margin:13px 10px!important;padding:16px!important}.sectionNav{padding:12px 19px}.articleBottom{padding:0 19px 22px}.outcomeList{grid-template-columns:1fr}.hero{margin-bottom:17px}.heroTitle{font-size:31px}}
+@media(max-width:430px){.subjectTag{display:none}.sectionHeader{font-size:18px}.sectionContent{font-size:16px!important}.lessonPager{display:grid;grid-template-columns:1fr}.pagerButton{justify-content:center}.positionTrack{width:75px}.goalText{font-size:14px}}
+@media(prefers-reduced-motion:reduce){.lessonList{scroll-behavior:auto}}
