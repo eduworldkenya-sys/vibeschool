@@ -61,20 +61,35 @@ alter table public.resources
   add column if not exists subject_id uuid references public.subjects(id) on delete set null,
   add column if not exists scheme_lesson_id uuid references public.scheme_of_work(id) on delete set null;
 
-alter table public.resources
-  add constraint resources_component_type_canonical_check check (
-    component_type is null or component_type in (
-      'lesson-notes','worked-examples','illustrations-diagrams','demonstrations',
-      'experiments','discussions','projects','educational-games','assignments',
-      'homework','quizzes','tests-exams','revision','reflection','remedial-enrichment'
-    )
-  ),
-  add constraint resources_publication_status_check check (publication_status in ('draft','shared')),
-  add constraint resources_shared_has_content_check check (
-    publication_status = 'draft'
-    or nullif(btrim(coalesce(content,'')), '') is not null
-    or external_url ~* '^https?://[^[:space:]]+$'
-  );
+-- Repeat-safe constraints allow a production-applied migration to converge
+-- with the repository-led migration chain without false duplicate errors.
+do $resource_constraints$
+begin
+  if not exists (select 1 from pg_constraint where conrelid = 'public.resources'::regclass
+       and conname = 'resources_component_type_canonical_check') then
+    alter table public.resources add constraint resources_component_type_canonical_check check (
+      component_type is null or component_type in (
+        'lesson-notes','worked-examples','illustrations-diagrams','demonstrations',
+        'experiments','discussions','projects','educational-games','assignments',
+        'homework','quizzes','tests-exams','revision','reflection','remedial-enrichment'
+      )
+    );
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid = 'public.resources'::regclass
+       and conname = 'resources_publication_status_check') then
+    alter table public.resources add constraint resources_publication_status_check
+      check (publication_status in ('draft','shared'));
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid = 'public.resources'::regclass
+       and conname = 'resources_shared_has_content_check') then
+    alter table public.resources add constraint resources_shared_has_content_check check (
+      publication_status = 'draft'
+      or nullif(btrim(coalesce(content,'')), '') is not null
+      or external_url ~* '^https?://[^[:space:]]+$'
+    );
+  end if;
+end;
+$resource_constraints$;
 
 create index if not exists resources_teacher_status_created_idx
   on public.resources (teacher_id, publication_status, created_at desc);
