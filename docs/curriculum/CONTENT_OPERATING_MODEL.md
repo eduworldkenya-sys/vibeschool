@@ -77,14 +77,14 @@ For each unit provide, when relevant:
 
 1. **Learning goal** stated naturally for the learner.
 2. **Clear explanation** with key vocabulary and background knowledge.
-3. **Worked/concrete example** showing reasoning, procedure or performance.
+3. **Worked/concrete example** showing the method in **ordered, fully explained steps** where applicable. For Mathematics, show each meaningful operation, why it was done, any formula with its purpose and symbols (only if the outcome calls for one), substitution and units, answer and a valid check; see the [Mathematics worked-example contract](./CONTENT_PRODUCTION_STANDARD.md#mathematics-worked-examples--mandatory-explanation-of-the-method).
 4. **Meaningful activity or inquiry** with instructions, materials and what to observe/do.
 5. **Guided practice and independent exercise**, appropriate to age/skill.
 6. **Questions and assessment** aligned to the taught outcome, with correct answers/explanations or rubrics.
 7. **Feedback and common-error correction**, plus a brief remedial and enrichment path.
 8. **Summary/revision** where appropriate.
 
-For Creative Arts or physical outcomes, a demonstration, practical performance and observation rubric may take precedence over a long written exercise. For Mathematics, worked steps, learner practice and independent answer verification are especially important.
+For Creative Arts or physical outcomes, a demonstration, practical performance and observation rubric may take precedence over a long written exercise. **For Mathematics, showing only the final calculation or formula is insufficient:** explain *why* each essential step works, define formula variables and demonstrate substitution when applicable, check answers and units, then follow with guided and independent practice. Do not force formulas or unnecessary algebra on early grades.
 
 **Deliverable:** real readable content, not empty headings, a curriculum listing, one paragraph of notes or a promise of future generation.
 
@@ -102,7 +102,7 @@ For Creative Arts or physical outcomes, a demonstration, practical performance a
 ChatGPT performs a **clearly labelled self-check** for:
 
 - Every declared outcome represented and genuinely taught, practised and assessed.
-- Correctness of every key fact, example, calculation and answer/marking guide.
+- Correctness of every key fact, example, **each mathematical working step**, any formula/symbol definition and substitution, final calculation, units and answer/marking guide.
 - Usability for a child studying independently and for a teacher preparing the lesson.
 - Relevant activities and practical instructions are feasible, inclusive and safe.
 - Appropriate Kenya-specific examples, language, scope and progression.
@@ -135,7 +135,7 @@ Use the [Content Package Template](./CONTENT_PACKAGE_TEMPLATE.md) as the reusabl
 | Grade, subject, strand, sub-strand, outcome ID | Clear curriculum identity and reuse |
 | Learner title and purpose | Learner knows what they are learning |
 | Explanation and vocabulary | Learner can understand without a separate textbook for the basics |
-| Example or demonstration | Makes the skill or idea concrete |
+| Example or demonstration | Makes the skill or idea concrete; Mathematics examples require ordered working, explanations of **why** every essential step works, and correct formula/variable/units/check where applicable |
 | Activity/inquiry/experiment/performance | Learner does something meaningful |
 | Practice and exercise | Builds fluency and understanding |
 | Questions and assessment evidence | Reveals what the learner has learned |
