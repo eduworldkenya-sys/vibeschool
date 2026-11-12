@@ -11,6 +11,8 @@ import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
+import { resolveTeacherTeachingIdentity } from '@/lib/teacher/teachingIdentity'
+import { defaultTeacherScheduleView, mayEditSchoolTimetable, projectTeacherDaySchedule, type TeacherScheduleView } from '@/lib/timetable/teacherScheduleView'
 import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
@@ -859,7 +861,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     []
   )
   const [allSlots,        setAllSlots]         = useState<Slot[]>([])
-  const [scheduleContext, setScheduleContext] = useState<'all' | 'school' | 'tuition'>('all')
+  const [scheduleContext, setScheduleContext] = useState<TeacherScheduleView>('independent')
+  const defaultScopeRef = useRef<{ teacherId: string; hadSchool: boolean } | null>(null)
   const { lessons: tuitionLessons, error: tuitionError, refresh: refreshTuition } = useTuitionTimetable()
   const [loading,         setLoading]          = useState(true)
   const [loadError,       setLoadError]        = useState<string | null>(null)
@@ -945,29 +948,48 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
       setTeacherId(user.id)
 
-      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
-
+      // Keep one authenticated teacher profile. Server-checked membership
+      // determines school choices; an independent teacher needs no school ID.
+      const [schoolResponse, profileResponse] = await Promise.all([
+        supabase.rpc('get_my_teacher_school_context'),
+        supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+      ])
       if (!isMounted.current) return
-
-      const typedSchoolContext = schoolContext as {
-        active_school_id?: string | null
-        schools?: Array<{id:string;name:string;status?:string|null}>
-      } | null
-      const schoolId = typedSchoolContext?.active_school_id ?? null
-      const memberships = (typedSchoolContext?.schools ?? []).filter(s => s.id && s.name)
-      if (schoolContextError || !schoolId) {
-        console.error('[Timetable] failed to resolve canonical teacher school', schoolContextError)
-        setSchoolError('Connect or select your active school before opening the timetable.')
+      if (profileResponse.error || profileResponse.data?.role !== 'teacher') {
+        setSchoolError('A verified teacher account is required to open this timetable.')
         return
       }
-
+      if (schoolResponse.error) {
+        setSchoolError('Could not verify your school memberships. Retry to open your timetable.')
+        return
+      }
+      const identity = resolveTeacherTeachingIdentity(user.id, schoolResponse.data)
+      const schoolId = identity.defaultScope.kind === 'school' ? identity.defaultScope.schoolId : null
+      const memberships = identity.availableScopes
+        .filter(scope => scope.kind === 'school')
+        .map(scope => ({id: scope.schoolId, name: scope.label}))
+      const previous = defaultScopeRef.current
+      if (!previous || previous.teacherId !== user.id || (!previous.hadSchool && !!schoolId)) {
+        setScheduleContext(defaultTeacherScheduleView(identity))
+      } else if (!schoolId) {
+        setScheduleContext('independent')
+      }
+      defaultScopeRef.current = { teacherId: user.id, hadSchool: !!schoolId }
       setActiveSchoolId(schoolId)
       setSchools(memberships)
-      setSchoolFilter(current => {
-        if (current === 'all' && memberships.length > 1) return current
-        if (memberships.some(s => s.id === current)) return current
-        return memberships.length > 1 ? 'all' : schoolId
-      })
+      setSchoolFilter(current => memberships.some(s => s.id === current) ? current : (schoolId ?? 'all'))
+      if (!schoolId) {
+        // Private tuition is already read through its own accepted-invitation
+        // RPC; do not fabricate a school to load school-owned timetable rows.
+        setAllSlots([])
+        setDayBlocks([])
+        setSchoolBlocks({})
+        setCalendarExceptions([])
+        setWeeklyLoadRows([])
+        setWeeklyLoadError(null)
+        setBlocksError(null)
+        return
+      }
 
       const { data: blockData, error: blockError } = await supabase.rpc('get_my_school_day_blocks')
       if (!isMounted.current) return
@@ -1201,12 +1223,11 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
   const tuitionWeek = useMemo(() => tuitionLessonsBetween(tuitionLessons, weekStart, nairobiDateAdd(weekStart, 6)), [tuitionLessons, weekStart])
   const tuitionDay = useMemo(() => tuitionWeek.filter(lesson => tuitionLocalDate(lesson.starts_at) === dateForDow(activeDow)), [tuitionWeek, dateForDow, activeDow])
-  const dayEntries = useMemo(() => {
-    const schoolEntries: Array<{kind: 'school'; start: string; slot: Slot} | {kind: 'tuition'; start: string; lesson: TuitionTimetableLesson}> =
-      scheduleContext === 'tuition' ? [] : daySlots.map(slot => ({kind: 'school' as const, start: slot.startTime, slot}))
-    if (scheduleContext !== 'school') schoolEntries.push(...tuitionDay.map(lesson => ({kind: 'tuition' as const, start: tuitionLocalTime(lesson.starts_at), lesson})))
-    return schoolEntries.sort((a, b) => a.start.localeCompare(b.start))
-  }, [daySlots, tuitionDay, scheduleContext])
+  const dayEntries = useMemo(() => projectTeacherDaySchedule(
+    scheduleContext,
+    daySlots.map(slot => ({kind: 'school' as const, start: slot.startTime, slot})),
+    tuitionDay.map(lesson => ({kind: 'tuition' as const, start: tuitionLocalTime(lesson.starts_at), lesson})),
+  ), [daySlots, tuitionDay, scheduleContext])
 
   const isToday = activeDow === todayDow
 
@@ -1245,7 +1266,11 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // across teacher_classes, classes, subjects, subject_weekly_allocations,
   // and timetable_slots. Replaces client-side grouping (Fix 13).
   useEffect(() => {
-    if (!teacherId) return
+    if (!teacherId || !activeSchoolId || scheduleContext === 'independent') {
+      setWeeklyLoadRows([])
+      setWeeklyLoadError(null)
+      return
+    }
     let cancelled = false
     Promise.resolve(supabase.rpc('get_teacher_weekly_timetable_load')).then(({ data, error }) => {
       if (cancelled) return
@@ -1275,7 +1300,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       setWeeklyLoadError('Weekly subject allocation could not be verified. The lesson counts below are not a confirmed allocation check.')
     })
     return () => { cancelled = true }
-  }, [teacherId, renderedWeekSlots, weeklyLoadRetry])
+  }, [teacherId, activeSchoolId, scheduleContext, renderedWeekSlots, weeklyLoadRetry])
 
   // Only non-OK rows are actionable — OK stays silent, same rule as before.
   const loadMismatches = useMemo(
@@ -1310,7 +1335,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   )
 
   
-  const canAddSlot = !loading && teacherId !== null
+  const canAddSlot = !loading && teacherId !== null && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter) && !schoolError
 
   return (
     <>
