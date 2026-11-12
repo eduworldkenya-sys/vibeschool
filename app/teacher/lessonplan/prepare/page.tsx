@@ -173,12 +173,20 @@ export default function PrepareLessonPage() {
 
   async function restoreArchived(id: string) {
     if (!teacherId || !schoolId || busy) return
+    const archived = archivedDrafts.find(draft => draft.id === id)
     setBusy(true)
     setArchiveError(null)
+    setSaveNotice(null)
     try {
       await restoreLessonPlanDraft(id, teacherId, schoolId)
       await Promise.all([refreshDrafts(teacherId, schoolId), refreshArchived(teacherId, schoolId)])
-      setSaveNotice('Archived preparation restored to Prepared lessons without creating another lesson.')
+      setSaveNotice('Preparation restored in place. It is available under Prepared lessons; curriculum review is still required where indicated.')
+      // Reopen exactly the saved teacher-owned record rather than creating
+      // a new, empty draft for the same Scheme lesson.
+      if (archived && scopeOptions.some(option =>
+        option.classId === archived.class_id && option.subjectId === archived.subject_id)) {
+        editDraft({ ...archived, status: 'draft' })
+      }
     } catch (cause) {
       setArchiveError(friendlyError(cause, 'Could not restore this archived preparation.'))
     } finally { setBusy(false) }
@@ -258,6 +266,20 @@ export default function PrepareLessonPage() {
         } else {
           setDraftError(friendlyError(draftResult.reason, 'Could not load prepared lessons. Retry this page.'))
         }
+        // If a Scheme deep link points to an archived preparation, show that
+        // exact original record. Do not let the empty editor imply it was lost.
+        if (linkScheme) {
+          try {
+            const archived = await loadLessonPlanDrafts(user.id, sid, 'archived')
+            if (!cancelled && archived.some(draft =>
+              draft.scheme_id === linkScheme && draft.class_id === linkClass && draft.subject_id === linkSubject)) {
+              setArchivedDrafts(archived)
+              setArchiveOpen(true)
+            }
+          } catch (cause) {
+            if (!cancelled) setArchiveError(friendlyError(cause, 'Could not check archived Scheme preparations.'))
+          }
+        }
       } catch (e) {
         if (!cancelled) {
           setError(friendlyError(e, 'Could not load lesson preparation.'))
@@ -297,6 +319,11 @@ export default function PrepareLessonPage() {
   const selectedScope = scopeOptions.find(option => option.key === scopeKey) ?? null
 
   const selectedScheme = schemeChoices.find(s => s.id === schemeId) ?? null
+  const archivedSchemeDraft = selectedScope?.classId && schemeId
+    ? archivedDrafts.find(draft =>
+        draft.scheme_id === schemeId && draft.class_id === selectedScope.classId &&
+        draft.subject_id === selectedScope.subjectId) ?? null
+    : null
   const structuredBody = useMemo(() => parseLessonPlanBody(body), [body])
 
   // Reopen the same teacher-owned unscheduled draft for a Scheme item instead
@@ -621,6 +648,11 @@ export default function PrepareLessonPage() {
   async function saveDraft() {
     if (!teacherId || !schoolId || !selectedScope || busy) return
     setSaveNotice(null)
+    if (archivedSchemeDraft) {
+      setError('A preparation for this Scheme lesson is already archived. Restore the original from the archive instead of creating a duplicate.')
+      setArchiveOpen(true)
+      return
+    }
     // Do not silently discard an attached Scheme while its verified outcome
     // is temporarily unavailable or being fetched.
     if (schemeId && !selectedScheme) {
@@ -707,10 +739,19 @@ export default function PrepareLessonPage() {
     if (!window.confirm('Archive this prepared lesson?')) return
     setBusy(true)
     setError(null)
+    setSaveNotice(null)
     try {
       await archiveLessonPlanDraft(draftId, teacherId)
-      await refreshDrafts(teacherId, schoolId)
-      if (archiveOpen) await refreshArchived(teacherId, schoolId)
+      await Promise.all([refreshDrafts(teacherId, schoolId), refreshArchived(teacherId, schoolId)])
+      setArchiveOpen(true)
+      setSaveNotice('Lesson moved to Archived preparations. It was not deleted; restore it below when needed.')
+      if (editingDraftId === draftId) {
+        setEditingDraftId(null)
+        setBody('')
+        setTitle('')
+        setTopic('')
+        setSchemeId('')
+      }
     } catch (e) {
       setError(friendlyError(e, 'Could not archive prepared lesson.'))
     } finally {
@@ -812,7 +853,7 @@ export default function PrepareLessonPage() {
       )}</div>}
       <div className="lp-prepare__grid">
         <section className="lp-prepare__panel" id="prepared-editor" aria-label="Prepare lesson">
-          <div className="lp-prepare__paneltop"><h2>{editingDraftId ? 'Edit prepared lesson' : 'New prepared lesson'}</h2><span className="lp-prepare__chip">Unscheduled draft</span></div>
+          <div className="lp-prepare__paneltop"><h2>{editingDraftId ? 'Edit prepared lesson' : archivedSchemeDraft ? 'Archived preparation' : 'New prepared lesson'}</h2><span className="lp-prepare__chip">{archivedSchemeDraft ? 'Archived · not deleted' : 'Unscheduled draft'}</span></div>
           {loading ? <div role="status" className="lp-prepare__empty">Loading your teaching assignments…</div> :
             scopeOptions.length === 0 ? (
               <div className="lp-prepare__empty"><strong>No class and subject assignment</strong>Connect a teaching assignment in My Classes before preparing a lesson.<button className="lp-prepare__btn" type="button" onClick={() => router.push('/teacher/classes')}>Open My Classes</button></div>
@@ -827,8 +868,14 @@ export default function PrepareLessonPage() {
                 <select id="draft-scheme" className="lp-prepare__field" value={schemeId} onChange={e=>{setSchemeId(e.target.value);setJumpingDraft(null);setContentNotice(null)}}
                   disabled={!selectedScope?.classId || schemeLoading || schemeChoices.length===0}>
                   <option value="">Not linked · keep as draft</option>
-                  {schemeChoices.map(s=><option key={s.id} value={s.id}>Week {s.week} · {s.topic}{s.outcome_status === 'active' ? ' · review pending' : ''}</option>)}
+                  {schemeId && !selectedScheme && <option value={schemeId} disabled>{schemeLoading ? 'Loading selected Scheme…' : 'Selected Scheme unavailable · review required'}</option>}
+                  {schemeChoices.map(s=><option key={s.id} value={s.id}>Week {s.week} · {s.topic}{s.outcome_status === 'active' ? ' · curriculum review pending' : ''}</option>)}
                 </select>
+                {archivedSchemeDraft && <div className="lp-prepare__notice" role="status">
+                  This Scheme already has an archived preparation: <strong>{archivedSchemeDraft.title || archivedSchemeDraft.topic || 'Saved lesson'}</strong>.
+                  Restore the original to keep its identity, teaching notes and Scheme link.
+                  <button type="button" className="lp-prepare__btn" disabled={busy || archiveLoading} onClick={()=>void restoreArchived(archivedSchemeDraft.id)}>Restore this preparation</button>
+                </div>}
                 {!selectedScope?.classId ? (
                   <p className="lp-prepare__hint">Select a specific class to link a Scheme item. Subject-wide drafts can be saved without a Scheme.</p>
                 ) : schemeLoading ? (
@@ -855,7 +902,7 @@ export default function PrepareLessonPage() {
                     setContentNotice('Jumping lesson ' + selection.lessonNumber + ' selected for private editorial review.')
                   }} />
                 )}
-                {selectedScheme && <button type="button" className="lp-prepare__btn" disabled={busy} onClick={()=>void buildFromScheme()}>Build lesson plan from Scheme & content</button>}
+                {selectedScheme && <button type="button" className="lp-prepare__btn" disabled={busy || Boolean(archivedSchemeDraft)} onClick={()=>void buildFromScheme()}>Build lesson plan from Scheme & content</button>}
                 {contentNotice && <div className="lp-prepare__notice" role="status">{contentNotice}</div>}
                 <label className="lp-prepare__label" htmlFor="draft-title">Lesson title</label>
                 <input id="draft-title" className="lp-prepare__field" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Reading and responding" />
@@ -873,9 +920,10 @@ export default function PrepareLessonPage() {
                 <label className="lp-prepare__label" htmlFor="draft-duration">Duration (minutes)</label>
                 <input id="draft-duration" className="lp-prepare__field" type="number" min={10} max={240} value={duration} onChange={e=>setDuration(e.target.value)} />
                 <p className="lp-prepare__hint">Saving a draft does not mark a lesson taught, create attendance or record progress.</p>
+                {selectedScheme?.outcome_status === 'active' && <p className="lp-prepare__notice">Curriculum outcome is active but not verified. You can prepare and save this lesson, but it is not certified ready to teach.</p>}
                 {!body.trim() && <p className="lp-prepare__hint">To save a prepared lesson, build it from your Scheme or write teaching notes first.</p>}
                 <div className="lp-prepare__row">
-                  <button type="button" className="lp-prepare__btn lp-prepare__btn--main" disabled={!selectedScope || busy || !body.trim()} onClick={()=>void saveDraft()}>{busy ? 'Saving…' : editingDraftId ? 'Save changes' : 'Save prepared lesson'}</button>
+                  <button type="button" className="lp-prepare__btn lp-prepare__btn--main" disabled={!selectedScope || busy || !body.trim() || Boolean(archivedSchemeDraft)} onClick={()=>void saveDraft()}>{busy ? 'Saving…' : editingDraftId ? 'Save changes' : 'Save prepared lesson'}</button>
                   {body.trim() && <button type="button" className="lp-prepare__btn" onClick={()=>window.print()}>Print lesson plan</button>}
                   {editingDraftId && <button type="button" className="lp-prepare__btn" onClick={()=>{setEditingDraftId(null);setTitle('');setTopic('');setBody('');setSchemeId('')}}>Cancel edit</button>}
                 </div>
@@ -883,7 +931,7 @@ export default function PrepareLessonPage() {
             )}
         </section>
         <section className="lp-prepare__panel" id="prepared-lessons" aria-label="Prepared lessons">
-          <div className="lp-prepare__paneltop"><h2>Prepared lessons</h2><span className="lp-prepare__count">{drafts.length} saved</span></div>
+          <div className="lp-prepare__paneltop"><h2>Prepared lessons</h2><span className="lp-prepare__count">{drafts.length} active{archiveOpen ? ' · ' + archivedDrafts.length + ' archived' : ''}</span></div>
           <label className="lp-prepare__label" htmlFor="prepared-search">Find a prepared or archived lesson</label>
           <input className="lp-prepare__field" id="prepared-search" type="search" placeholder="Search topic, subject, class or notes" value={draftSearch} onChange={event => setDraftSearch(event.target.value)}/>
           <button className="lp-prepare__btn" type="button" aria-expanded={archiveOpen} onClick={()=>void toggleArchived()}>{archiveOpen ? 'Hide archived lessons' : 'Find archived lessons'}</button>
@@ -893,7 +941,7 @@ export default function PrepareLessonPage() {
           {scheduleError && <div className="lp-prepare__notice" role="status">{scheduleError}</div>}
           {loading ? <div className="lp-prepare__empty" role="status">Loading saved lessons…</div> :
             visibleDrafts.length === 0 ? (
-              <div className="lp-prepare__empty"><strong>{draftSearch.trim() ? 'No matching prepared lessons' : 'No prepared lessons yet'}</strong>{draftSearch.trim() ? 'Try another topic or search archived preparations.' : 'Save your first draft on this page. Your lesson can be linked to a timetable slot later.'}</div>
+              <div className="lp-prepare__empty"><strong>{draftSearch.trim() ? 'No matching prepared lessons' : 'No prepared lessons yet'}</strong>{draftSearch.trim() ? 'Try another topic or search archived preparations.' : 'No active preparations. Your archived lessons remain recoverable using Find archived lessons.'}</div>
             ) : visibleDrafts.map(draft=>{
               const assignment=assignments.find(row=>row.subject_id===draft.subject_id && (!draft.class_id || row.class_id===draft.class_id))
               const targets=targetMap.get(draft.id) ?? []
