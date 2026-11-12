@@ -5,8 +5,9 @@ Timetable sample times are **examples**, never automatic defaults or certified
 periods for a school. The teacher may preview and edit any sample. A school
 administrator alone may apply an explicitly confirmed school-day draft.
 
-Entry: `/teacher/timetable` for every signed-in teacher, whether their timetable is empty or populated, whether they teach school or tuition, and including independent teachers; the same editable samples remain at `/teacher/timetable/setup` for authorised school-period setup.
-The timetable shows all four optional sample previews immediately, without changing actual scheduled lessons. Selecting a card loads a local draft, never real slots or school periods. Independently registered teachers can edit, save on their device and export, but cannot publish periods without server-confirmed school-admin permission. No sample is a default school timetable.
+Entry: `/teacher/timetable` offers a compact, one-time sample chooser to every signed-in teacher, including teachers with existing lessons, tuition-only teachers and teachers without a school. Once a sample is chosen, the chooser disappears from their main timetable and the sample opens in `/teacher/timetable/setup?sample=<sample-id>`. The display preference is kept per signed-in user **in the current browser only**. It is never an indication that a real timetable was applied. A different browser or cleared browser data can display the chooser again.
+
+`/teacher/timetable/setup` is the permanent **Timetable setup** destination from the timetable toolbar for **all teachers**. It can reopen the most recently chosen built-in sample and any personal templates saved on that device. Independent teachers may preview, edit, save and export personal drafts without a school connection. With a connected school, authorised school administrators can separately confirm and apply real bell periods through the existing guarded RPCs; other teachers cannot. Samples never overwrite real lessons or confirmed school periods, and selecting a sample alone does not create a school or tuition timetable.
 There is no second timetable engine or curriculum allocation table.
 
 ## Available examples
