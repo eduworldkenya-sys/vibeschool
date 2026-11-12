@@ -25,6 +25,7 @@ const version = (resource_id, overrides = {}) => ({
 const roots = [
   root('exact'),
   root('same-strand-different-outcome', { curriculum_outcome_id: 'outcome-B' }),
+  root('same-outcome-wrong-strand', { sub_strand_id: 'strand-B' }),
   root('sub-strand-only', { curriculum_outcome_id: null, asset_kind: 'learner_notes' }),
   root('private', { visibility: 'private' }),
   root('inactive', { status: 'inactive' }),
@@ -37,6 +38,7 @@ const versions = [
   version('exact', { id: 'exact-old' }),
   version('exact', { id: 'exact-new', version: 2 }),
   version('same-strand-different-outcome'),
+  version('same-outcome-wrong-strand'),
   version('sub-strand-only'),
   version('private'),
   version('inactive'),
