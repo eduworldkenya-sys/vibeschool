@@ -139,7 +139,6 @@ export default function ExactLearningRecoveryPage() {
       const verified = item.identity_state === 'verified'
       const question = item.reassessment
       const evidence = item.recovery_evidence_met
-      if (question && !startedAt.current[item.recovery_key]) startedAt.current[item.recovery_key] = Date.now()
       return <article style={card} key={item.recovery_key}>
         <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
           <span style={kicker}>{item.context_title}</span>
