@@ -65,6 +65,30 @@ Stage 1 is scoped to canonical identity metadata: one authenticated teacher ID, 
 
 The integration branch is intentionally kept separate from `main`; a feature PR merges applicable current-main work rather than discarding previously merged school-period or tuition code. No production timetable is commissioned by Stage 1.
 
+## Current live-and-branch reconciliation — 12 November 2026 (read-only)
+
+The baseline table above records original acceptance hypotheses. The evidence below supersedes its stale PR statuses; neither repository merges nor a passing read-only schema observation certify a live timetable.
+
+| Gate | GitHub evidence | Deployment / acceptance evidence | Verdict |
+| --- | --- | --- | --- |
+| TBL-01 school + tuition | #1464 merged into main, inherited by integration | Cross-context trigger `timetable_guard_tuition_schedule` absent in production; separate migration `20261112150000` absent | **CODE PRESENT / PROD BLOCKED** |
+| TBL-02 Grades 1–9 allocations | #1465 merged to main; all-grade contract and 2024 source locators in canonical pending migration | 46 national allocation rows in production, not the 72 required by the checked migration; `classes.grade_code` absent | **CODE PRESENT / PROD BLOCKED** |
+| TBL-03 school periods | #1451 and #1467 merged to main, no forced sample defaults | `school_periods` count 0, including Gilgil; 57 total timetable slots are historical evidence, not certified school periods | **CODE PRESENT / CONFIG BLOCKED** |
+| TBL-04 allocation gaps / collisions | #1453 merged to main; existing teacher/class/room exclusion constraints are live | Allocation RPC checks current Nairobi week, not teacher's selected UI week; unverified historical period placements may inflate totals; signed-in collision matrix outstanding | **PARTIAL** |
+| TBL-05 calendar / Scheme capacity | Emergency closure #1472 is draft on integration; canonical calendar handling exists | Clean rebuild failed TBL-012 on teaching_occurrences columns, constraints, indexes and triggers; alternating-week / actual dated capacity not certified | **BLOCKED** |
+| TBL-06 exact dated Scheme → outcome | #1470 merged into integration, not main | Authenticated dated Grade 4 maths trace and outcome link still unverified; required RPC migration pending | **CODE IN INTEGRATION / PROD BLOCKED** |
+| TBL-07 prepare without timetable | #1449 in main, #1469 merged into integration for cross-term search and resumed unscheduled Teach | No signed-in integrated teacher replay | **CODE IN INTEGRATION / ACCEPTANCE OPEN** |
+| TBL-08 Teach → complete → recover | Existing lifecycle / occurrence support in main | Exact Mumbi2 same-occurrence completion and attendance replay not demonstrated | **OPEN** |
+| TBL-09 truthful evidence | Existing UI and data infrastructure | No end-to-end cross-screen evidence reconciliation | **OPEN** |
+| TBL-10 preserve history | Effective-dated slots and historical identity controls exist | No full signed-in future-revision replay | **OPEN** |
+| TBL-11 release gate | TBL-012/#1463 and TBL-013/#1455/#1459 are in main | Four original `20261112101500`–`20261112101800` versions still absent; 20261112104242 was already applied; no signed-in acceptance | **BLOCKED — DO NOT PROMOTE** |
+
+**Fresh schema evidence:** The exact `scripts/sql/tbl012_core_schema_hashes.sql` read-only query was run against production. All 20 structural sections matched `tbl012_live_observation_20261112.json`. The historical pinned reference still differs in four reviewed sections: `teacher_classes.indexes`, `timetable_slots.constraints`, `timetable_slots.triggers`, and `teaching_occurrences.triggers`. Observation matching does **not** establish rebuilt parity or approve SQL deployment. The existing school teacher/class/room exclusion constraints were observed in production. No production records were changed during this audit.
+
+**Integration changes made:** PR #1469 was retargeted from main and merged into `integration/intelligent-timetable` at commit `2539755413aa963c1f0835c0fec5cbb0dabf89f6`. PRs #1468 and #1470 were previously merged into integration. The emergency-closure PR #1472 remains draft and must not be merged while its clean-rebuild gate fails.
+
+**Next authorized sequence:** (1) reconcile the four historic structural differences using the protected TBL-012/013 path and exact-version, clean-rebuild evidence; (2) validate pre-existing scheduled tuition conflicts before applying `20261112150000`; (3) apply only vetted original migration versions under the protected deployment procedure (never auto-version or bypass the ledger); (4) obtain school-confirmed Gilgil periods; (5) run authenticated Mumbi2 and cross-school/tuition collision tests; (6) certify all eleven gates before opening an integration-to-main release PR. Neither migrations nor historical slots should be rewritten merely to make checks green.
+
 ## TBL-08 — occurrence lifecycle code repair (2026-11-12)
 
 **Branch:** `fix/tbl08-occurrence-lifecycle-replay-20261112` → `integration/intelligent-timetable`.

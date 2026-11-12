@@ -38,6 +38,8 @@ interface OperatingContext {
 
 interface SchemeChoice {
   id: string
+  academic_term_id: string
+  term_label?: string
   topic: string
   week: number
   lesson_number: number | null
@@ -55,7 +57,7 @@ interface SchemeChoice {
   reference: string | null
 }
 
-const SCHEME_CHOICE_FIELDS = 'id,topic,week,lesson_number,curriculum_id,sub_strand_id,curriculum_outcome_id,strand,sub_strand,objectives,key_inquiry_question,learning_resources,learning_experiences,assessment_methods,reference'
+const SCHEME_CHOICE_FIELDS = 'id,academic_term_id,topic,week,lesson_number,curriculum_id,sub_strand_id,curriculum_outcome_id,strand,sub_strand,objectives,key_inquiry_question,learning_resources,learning_experiences,assessment_methods,reference'
 const SECTION_LABELS: Record<(typeof LESSON_PLAN_SECTION_KEYS)[number], string> = {
   objectives: 'Learning outcomes', resources: 'Resources and references',
   introduction: 'Introduction', development: 'Lesson development',
@@ -130,6 +132,13 @@ export default function PrepareLessonPage() {
   const [schemeError, setSchemeError] = useState<string | null>(null)
   const [schemeLoading, setSchemeLoading] = useState(false)
   const [schemeChoices, setSchemeChoices] = useState<SchemeChoice[]>([])
+  const [schemeTermScope, setSchemeTermScope] = useState<'current' | 'all'>('current')
+  const [schemeSearch, setSchemeSearch] = useState('')
+  const [schemeQuery, setSchemeQuery] = useState('')
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSchemeQuery(schemeSearch.trim()), 300)
+    return () => window.clearTimeout(timer)
+  }, [schemeSearch])
   const [schemeId, setSchemeId] = useState('')
   const [jumpingDraft, setJumpingDraft] = useState<JumpingContentSelection | null>(null)
   const [contentNotice, setContentNotice] = useState<string | null>(null)
@@ -344,33 +353,31 @@ export default function PrepareLessonPage() {
       try {
         const { data: terms, error: termError } = await supabase
           .from('academic_terms')
-          .select('id')
+          .select('id,term,academic_year,status')
           .eq('school_id', schoolId)
-          .eq('status', 'active')
-          .order('start_date', { ascending: false })
-          .limit(1)
         if (termError) throw termError
-        const activeTermId = terms?.[0]?.id ?? null
-        if (!activeTermId && !requestedSchemeId) {
-          if (!cancelled) setSchemeError('No active academic term is configured for this school.')
-          return
+        const activeTermId = terms?.find(term => term.status === 'active')?.id ?? null
+        const termLabels = new Map((terms ?? []).map(term => [
+          term.id, 'Term ' + term.term + ' · ' + term.academic_year,
+        ]))
+        // Searching older/future Scheme items must not depend on a timetable
+        // or an active academic term, but ownership always remains scoped.
+        let schemeRequest = supabase.from('scheme_of_work')
+          .select(SCHEME_CHOICE_FIELDS)
+          .eq('school_id', schoolId)
+          .eq('teacher_id', teacherId)
+          .eq('class_id', selectedScope.classId)
+          .eq('subject_id', selectedScope.subjectId)
+          .not('curriculum_outcome_id', 'is', null)
+        if (schemeTermScope === 'current' && activeTermId) {
+          schemeRequest = schemeRequest.eq('academic_term_id', activeTermId)
         }
-        let candidates: Array<Omit<SchemeChoice, 'outcome_status'>> = []
-        if (activeTermId) {
-          const { data, error: schemeLoadError } = await supabase
-            .from('scheme_of_work')
-            .select(SCHEME_CHOICE_FIELDS)
-            .eq('school_id', schoolId)
-            .eq('teacher_id', teacherId)
-            .eq('class_id', selectedScope.classId)
-            .eq('subject_id', selectedScope.subjectId)
-            .eq('academic_term_id', activeTermId)
-            .not('curriculum_outcome_id', 'is', null)
-            .order('week', { ascending: true })
-            .limit(120)
-          if (schemeLoadError) throw schemeLoadError
-          candidates = (data ?? []) as Array<Omit<SchemeChoice, 'outcome_status'>>
-        }
+        if (schemeQuery) schemeRequest = schemeRequest.ilike('topic', '%' + schemeQuery + '%')
+        const { data: schemeRows, error: schemeLoadError } = await schemeRequest
+          .order('week', { ascending: true }).limit(120)
+        if (schemeLoadError) throw schemeLoadError
+        let candidates: Array<Omit<SchemeChoice, 'outcome_status'>> =
+          (schemeRows ?? []) as Array<Omit<SchemeChoice, 'outcome_status'>>
         // Explicitly selected lessons retain their stored term/week even when
         // an administrator has moved the active term to the next period.
         if (requestedSchemeId && !candidates.some(row => row.id === requestedSchemeId)) {
@@ -404,7 +411,7 @@ export default function PrepareLessonPage() {
         if (!cancelled) {
           setSchemeChoices(candidates.flatMap(item => {
             const status = statusById.get(item.curriculum_outcome_id)
-            return status ? [{ ...item, outcome_status: status } as SchemeChoice] : []
+            return status ? [{ ...item, term_label: termLabels.get(item.academic_term_id) ?? 'Saved term', outcome_status: status } as SchemeChoice] : []
           }))
           if (requestedSchemeId && !statusById.has(
             candidates.find(item => item.id === requestedSchemeId)?.curriculum_outcome_id ?? ''
@@ -418,7 +425,7 @@ export default function PrepareLessonPage() {
     }
     void loadSchemeOptions()
     return () => { cancelled = true }
-  }, [schoolId, teacherId, requestedSchemeId, selectedScope?.classId, selectedScope?.subjectId])
+  }, [schoolId, teacherId, requestedSchemeId, selectedScope?.classId, selectedScope?.subjectId, schemeTermScope, schemeQuery])
 
 
   // A prepared Scheme lesson can only be attached within its *own* school
@@ -819,15 +826,25 @@ export default function PrepareLessonPage() {
             ) : (
               <>
                 <label className="lp-prepare__label" htmlFor="draft-class">Class and subject</label>
-                <select id="draft-class" className="lp-prepare__field" value={scopeKey} onChange={e=>{setScopeKey(e.target.value);setSchemeId('');setJumpingDraft(null);setContentNotice(null)}}>
+                <select id="draft-class" className="lp-prepare__field" value={scopeKey} onChange={e=>{setScopeKey(e.target.value);setSchemeId('');setSchemeSearch('');setJumpingDraft(null);setContentNotice(null)}}>
                   <option value="">Choose assigned class or subject</option>
                   {scopeOptions.map(option=><option key={option.key} value={option.key}>{option.label}</option>)}
                 </select>
+                <label className="lp-prepare__label" htmlFor="draft-scheme-term">Scheme term</label>
+                <select id="draft-scheme-term" className="lp-prepare__field" value={schemeTermScope}
+                  onChange={e=>{setSchemeTermScope(e.target.value as 'current' | 'all');setSchemeId('')}} disabled={!selectedScope?.classId}>
+                  <option value="current">Current term (or all if none active)</option>
+                  <option value="all">Search all school terms</option>
+                </select>
+                <label className="lp-prepare__label" htmlFor="draft-scheme-search">Find Scheme topic</label>
+                <input id="draft-scheme-search" className="lp-prepare__field" type="search"
+                  placeholder="Search topic across selected term(s)" value={schemeSearch}
+                  onChange={e=>setSchemeSearch(e.target.value)} disabled={!selectedScope?.classId}/>
                 <label className="lp-prepare__label" htmlFor="draft-scheme">Scheme & learning outcome</label>
                 <select id="draft-scheme" className="lp-prepare__field" value={schemeId} onChange={e=>{setSchemeId(e.target.value);setJumpingDraft(null);setContentNotice(null)}}
                   disabled={!selectedScope?.classId || schemeLoading || schemeChoices.length===0}>
                   <option value="">Not linked · keep as draft</option>
-                  {schemeChoices.map(s=><option key={s.id} value={s.id}>Week {s.week} · {s.topic}{s.outcome_status === 'active' ? ' · review pending' : ''}</option>)}
+                  {schemeChoices.map(s=><option key={s.id} value={s.id}>{s.term_label} · Week {s.week} · {s.topic}{s.outcome_status === 'active' ? ' · review pending' : ''}</option>)}
                 </select>
                 {!selectedScope?.classId ? (
                   <p className="lp-prepare__hint">Select a specific class to link a Scheme item. Subject-wide drafts can be saved without a Scheme.</p>
@@ -835,7 +852,7 @@ export default function PrepareLessonPage() {
                   <p className="lp-prepare__hint">Checking current-term learning outcomes…</p>
                 ) : schemeError || schemeChoices.length === 0 ? (
                   <div className="lp-prepare__notice" role="status">
-                    {schemeError ?? 'No Scheme item with an active or verified learning outcome is available. You can still save an independent draft.'}
+                    {schemeError ?? 'No matching Scheme item with an active or verified learning outcome is available. Try another topic or search all terms. You can still save an independent draft.'}
                     {isGrade1English && (
                       <div style={{marginTop:9}}>
                         <a href="https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-English-Activities-Revised-Sept.pdf"

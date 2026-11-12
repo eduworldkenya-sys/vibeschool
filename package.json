@@ -18,12 +18,13 @@
     "test:curriculum-exam-readiness": "node scripts/test-curriculum-exam-readiness.mjs",
     "test:jumping-content": "node --import ./scripts/register-typescript.mjs scripts/test-grade1-jumping-content-integration.mjs && node scripts/test-teacher-canonical-content-access.mjs && node scripts/test-grade1-creative-shared-access.mjs && node scripts/test-grade1-jumping-operator-release.mjs",
     "test:classhub": "node scripts/test-classhub-homework-eligibility.mjs",
-    "test:teaching-library": "node --import ./scripts/register-typescript.mjs scripts/test-teaching-library-structure.mjs && node --import ./scripts/register-typescript.mjs scripts/test-visual-learning-library.mjs && npm run test:resource-authoring && node --import ./scripts/register-typescript.mjs scripts/test-canonical-lesson-notes.mjs && npm run test:outcome-packages",
+    "test:teaching-library": "node --import ./scripts/register-typescript.mjs scripts/test-teaching-library-structure.mjs && node --import ./scripts/register-typescript.mjs scripts/test-visual-learning-library.mjs && npm run test:resource-authoring && node --import ./scripts/register-typescript.mjs scripts/test-canonical-lesson-notes.mjs && npm run test:outcome-packages && npm run test:teacher-unscheduled",
     "test:resource-authoring": "node --import ./scripts/register-typescript.mjs scripts/test-teacher-resource-authoring.mjs",
     "test:curriculum-identity": "node scripts/test-p0-curriculum-reconciliation.mjs && node scripts/test-grade4-maths-time.mjs && node scripts/test-grade4-place-value-integrity.mjs",
     "test:outcome-packages": "node --import ./scripts/register-typescript.mjs scripts/test-outcome-package-manifest.mjs && npm run test:outcome-delivery && npm run test:package-quality",
     "test:outcome-delivery": "node scripts/test-p1-outcome-delivery.mjs && node scripts/test-notebook-learning.mjs",
-    "test:package-quality": "node scripts/test-outcome-package-quality.mjs"
+    "test:package-quality": "node scripts/test-outcome-package-quality.mjs",
+    "test:teacher-unscheduled": "node --test scripts/test-unscheduled-teacher-workflow.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
