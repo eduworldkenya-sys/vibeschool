@@ -226,15 +226,23 @@ as $function$
 declare
   v_uid uuid := auth.uid();
   v_ce public.school_calendar_exceptions;
+  v_school_id uuid;
+  v_date date;
   v_count integer := 0;
   v_today date := (now() at time zone 'Africa/Nairobi')::date;
 begin
+  select school_id,exception_date into v_school_id,v_date
+    from public.school_calendar_exceptions where id=p_calendar_exception_id;
+  if v_school_id is null then raise exception 'DISRUPTION_NOT_FOUND'; end if;
+  if v_uid is null or not public.is_school_admin(v_school_id) then
+    raise exception 'SCHOOL_ADMIN_REQUIRED' using errcode='42501';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('school-disruption:'||v_school_id::text||':'||v_date::text,0)
+  );
   select * into v_ce from public.school_calendar_exceptions
    where id=p_calendar_exception_id for update;
   if v_ce.id is null then raise exception 'DISRUPTION_NOT_FOUND'; end if;
-  if v_uid is null or not public.is_school_admin(v_ce.school_id) then
-    raise exception 'SCHOOL_ADMIN_REQUIRED' using errcode='42501';
-  end if;
   if v_ce.kind<>'closure' or v_ce.disruption_reason_code is null then
     raise exception 'NOT_A_MANAGED_DISRUPTION';
   end if;
@@ -282,15 +290,25 @@ $function$;
 create or replace function public.guard_school_disruption_teaching()
 returns trigger language plpgsql security definer set search_path = ''
 as $function$
+declare v_is_start boolean;
 begin
-  if new.lifecycle in ('in_progress','completed')
-     and (tg_op='INSERT' or old.lifecycle not in ('in_progress','completed'))
-     and exists (
-       select 1 from public.school_calendar_exceptions ce
-       where ce.school_id=new.school_id and ce.exception_date=new.occurrence_date
-         and ce.suppress_ordinary_teaching
-     ) then
-    raise exception 'SCHOOL_DAY_CLOSED';
+  if tg_op='INSERT' then
+    v_is_start := new.lifecycle in ('in_progress','completed');
+  else
+    v_is_start := new.lifecycle in ('in_progress','completed')
+      and old.lifecycle not in ('in_progress','completed');
+  end if;
+  if v_is_start then
+    perform pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended(
+        'school-disruption:'||new.school_id::text||':'||new.occurrence_date::text,0
+      )
+    );
+    if exists (
+      select 1 from public.school_calendar_exceptions ce
+      where ce.school_id=new.school_id and ce.exception_date=new.occurrence_date
+        and ce.suppress_ordinary_teaching
+    ) then raise exception 'SCHOOL_DAY_CLOSED'; end if;
   end if;
   return new;
 end;
