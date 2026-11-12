@@ -342,6 +342,12 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
               <div className={styles.continueText}><strong>{grade} learning library</strong><span>Find approved lessons by subject, revisit textbooks and learn at your own pace.</span></div>
               <Link className={styles.buttonPrimary} href="/student/study">My learning <ArrowRight size={16} /></Link>
             </section>
+            <nav className={styles.linksRow} aria-label="More learning destinations">
+              <Link className={styles.buttonSecondary} href="/student/vibelearn/topic-practice">Topic Practice <ArrowRight size={15}/></Link>
+              <Link className={styles.buttonSecondary} href="/student/vibelearn/revision">Revision <ArrowRight size={15}/></Link>
+              <Link className={styles.buttonSecondary} href="/student/vibelearn/exams">Exams <ArrowRight size={15}/></Link>
+              <Link className={styles.buttonSecondary} href="/student/tasks">My tasks <ArrowRight size={15}/></Link>
+            </nav>
             <div className={styles.sectionHead}><h2>Subjects for {grade}</h2><span>{subjectNames.length} catalogue choices</span></div>
             <label className={styles.searchbox}><Search size={19} aria-hidden="true" />
               <input type="search" value={query} onChange={event => setQuery(event.target.value)}
