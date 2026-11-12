@@ -29,7 +29,7 @@ This is the standard for all Grades 1–9. The contents of a particular lesson a
 | Component | Main function | Typical evidence or output |
 | --- | --- | --- |
 | Lesson content / learner notes | Explain the concept in understandable language | Readable lesson with vocabulary and connections |
-| Worked examples | Model the method or reasoning | Steps, model answer, explanation of why |
+| Worked examples | Teach the method or reasoning | Ordered calculations/actions, plain-language reason for **each** meaningful step, formula/symbol meanings where applicable, correct answer and valid check |
 | Images / diagrams / media | Make a concept visible or audible where useful | Captioned/accessible asset with source or rights trace |
 | Demonstrations | Show how a method or performance is done | Ordered model actions and observable criteria |
 | Activities | Learn by doing, exploring, talking or making | Instructions, materials, participation and evidence |
@@ -103,7 +103,7 @@ Never force a dated timetable occurrence into a general content lookup, or attac
 ### Stage C — Author learner-ready material
 
 - Start with the learner's goal and prerequisite knowledge; explain concepts in clear, natural, age-appropriate language using accurate Kenyan contexts when useful.
-- Provide meaningful examples and step-by-step reasoning; avoid placeholder copy, repetitive filler, unsupported facts, and explanations that only restate outcomes.
+- Provide meaningful examples with **every essential mathematical step and an explanation of why that step works**, not only the answer. When a formula is appropriate, introduce it, define the symbols and show substitution, units and checking. Avoid placeholder copy, repetitive filler, unsupported facts, and explanations that only restate outcomes.
 - Give precise practical or discussion instructions, required resources, expected responses/evidence and a feasible alternative for resource-constrained settings.
 - Make content understandable to an independent learner, not only a teacher who can supply missing explanation orally.
 - Include clear headings, units, language conventions, alternative text/captions for essential visuals and reading-level/accessibility considerations.
@@ -183,7 +183,7 @@ Adapt the presentation to age, subject and device. Students should not need to u
 
 | Subject family | Stronger emphasis | Examples of valid alternative evidence |
 | --- | --- | --- |
-| Mathematics | clear concepts, worked solutions, number sense, reasoning, graduated exercises | written/oral solution with method explanation |
+| Mathematics | clear concepts, **fully worked, explained steps**, formula meaning and symbol definitions **when applicable**, number sense, units, checking and graduated exercises | written/oral solution with method explanation and independently checked working |
 | English / Kiswahili | listening, speaking, reading, writing, language in use | reading response, dialogue, composition, oral fluency rubric |
 | Creative Arts / Sports | model/performance, making, movement, observation and feedback | finished artifact or observed skill performance |
 | Science / Agriculture | investigation, practical reasoning, materials and safety | observation table, explanation, safely completed practical |
@@ -191,12 +191,64 @@ Adapt the presentation to age, subject and device. Students should not need to u
 
 Apply the actual **KICD outcome**, not stereotypes about a subject. For practical work, specify materials, safety, procedure, observable result and an alternative if materials are unavailable.
 
+### Mathematics worked examples — mandatory explanation of the method
+
+For any Mathematics outcome that requires solving, calculating, constructing, measuring or applying a method, a **worked example must teach the process, not merely show a final answer**. Apply the same clarity to numeracy-heavy examples in other subjects when appropriate.
+
+**Required worked-example sequence (adjust vocabulary to the learner's grade):**
+
+1. **Question/problem:** State the task and what must be found. Identify the given numbers, quantities or geometric information.
+2. **Choose the method:** Explain *why* an operation, model, strategy or formula is appropriate; connect it to the concept being taught.
+3. **Introduce a formula when applicable:** Write it **before substitution**, explain in plain language what it means, define every symbol/variable and its units, and say when the formula is used. Never insert an unexplained formula or introduce algebra where the grade/outcome uses a concrete method instead.
+4. **Show the working step by step:** Present each meaningful mathematical transformation or calculation **in order**. Next to or below each step, explain **what was done and why it works** (for example, regrouping, equivalent fractions, place value, inverse operations or unit conversion).
+5. **Substitute carefully:** If a formula applies, show the known values being substituted, keep notation consistent, and work through intermediate calculations without unexplained jumps. Respect units and order of operations.
+6. **State and interpret the answer:** Give the result, correct units where relevant, and a short sentence relating it to the original question.
+7. **Check:** Validate the result using a sensible inverse operation, estimation, substitution, diagram, unit check or alternative method. The check must be **mathematically valid**, not a repeated assertion of the answer.
+8. **Transfer:** Follow the model with a closely related guided question, then an independent exercise; give correct worked solutions or answer explanations in the appropriate learner/teacher view.
+
+**Quality rules:**
+- Do not accept examples that say only `28 + 17 = 45`, `P = 26 cm`, “use the formula”, or “simplify” with no reasoning when the outcome requires the method to be taught.
+- Write explanations at the relevant grade's reading level. Show manipulatives, number lines, place-value tables, drawings and verbal explanations for early grades instead of forcing letter-based formulas.
+- Break a long method into clear, meaningful steps but avoid padding a trivial operation with artificial steps. Do not skip the key reasoning point or hide it behind “obviously”.
+- Distinguish **examples** (fully explained), **guided practice** (partial support) and **independent exercises** (learner solves). In learner self-study, feedback should provide a worked explanation after an attempt where appropriate.
+- Independently recheck **every formula choice, variable definition, substitution, intermediate result, final answer and units**; correct mismatches in the canonical worked solution and all derived answer keys.
+
+**Illustrative worked example A — addition with regrouping (teaching example, not a verbatim KICD outcome):**
+
+**Question:** Add 28 and 17.
+
+| Step | Working | Explanation |
+| --- | --- | --- |
+| 1 | `28 = 20 + 8`; `17 = 10 + 7` | Split into tens and ones so we can combine matching place values. |
+| 2 | `8 + 7 = 15` | Add the ones. Fifteen ones are one ten and five ones. |
+| 3 | `20 + 10 + 10 = 40` | Add the original tens and the extra ten made from the ones. |
+| 4 | `40 + 5 = 45` | Put the tens and remaining five ones together. |
+
+**Answer:** `28 + 17 = 45`. **Check:** `45 - 17 = 28`, so the addition is consistent. **No formula needed**: place-value reasoning is the suitable method.
+
+**Illustrative worked example B — a formula only where the grade/outcome requires it:**
+
+**Question:** Find the perimeter of a rectangle that is 8 cm long and 5 cm wide.
+
+**Formula:** `P = 2(l + w)` means the perimeter is twice the sum of the length and width. Here `P` = perimeter in centimetres, `l` = length in centimetres, and `w` = width in centimetres. We use it because a rectangle has two equal lengths and two equal widths.
+
+| Step | Working | Explanation |
+| --- | --- | --- |
+| 1 | `P = 2(l + w)` | Start with the perimeter formula for a rectangle. |
+| 2 | `P = 2(8 + 5) cm` | Replace `l` and `w` with the given measurements; both are in centimetres. |
+| 3 | `P = 2 × 13 cm` | Add the length and width inside the brackets first. |
+| 4 | `P = 26 cm` | Multiply by 2 to account for both pairs of sides. |
+
+**Answer:** The perimeter is **26 cm**. **Check:** `8 + 5 + 8 + 5 = 26 cm` by adding all four sides. This formula illustration does **not** assign perimeter to a particular grade; use it only if the selected official outcome includes it.
+
+These are model explanations of **how to author content**, not claims that these sample tasks have been officially mapped or published.
+
 ## 10. Example — Grade 3 Mathematics: addition
 
 **Outcome (illustrative VibeSchool formulation; not a quotation from KICD):** Learner adds two whole numbers correctly and explains the method.
 
 - **Learn:** explain combining quantities and place-value reasoning.
-- **Worked example:** 12 + 8 = 20, showing counting on and grouping to a ten.
+- **Worked example:** Show how `12 + 8 = 20` by making the next ten: `12 + 8 = (12 + 3) + 5 = 15 + 5 = 20`. Explain that we split `8` into `3 + 5` because `12 + 3 = 15` is easy to continue from; use counters or a number line if better suited to the learner. Check `20 - 8 = 12`. No formula is necessary.
 - **Activity:** combine 12 and 8 bottle tops and explain the total.
 - **Exercise:** several progressive addition tasks with answer checks.
 - **Question:** “A learner has 12 pencils and receives 8. How many now?” Answer: 20; explain why.
