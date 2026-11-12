@@ -12,7 +12,8 @@ import "@/components/teacher/studio.css";
 import TeacherNavigation from "@/components/teacher/TeacherNavigation";
 import { ArrowLeft, ChevronDown, MessageSquare, Wallet, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { ToastContext, UserContext, CreditContext } from "@/components/teacher/TeacherUiContext";
+import { ToastContext, UserContext, CreditContext, TeachingIdentityContext } from "@/components/teacher/TeacherUiContext";
+import { resolveTeacherTeachingIdentity, type TeacherTeachingIdentity } from "@/lib/teacher/teachingIdentity";
 
 const SHELL_AUTH_TIMEOUT_MS = 12_000;
 
@@ -28,20 +29,6 @@ async function getTeacherShellUserWithTimeout() {
   } finally {
     if (timeout) clearTimeout(timeout);
   }
-}
-
-function activeTeacherSchoolName(value: unknown): string {
-  if (!value || typeof value !== "object") return "";
-  const activeSchoolId = Reflect.get(value, "active_school_id");
-  const schools = Reflect.get(value, "schools");
-  if (typeof activeSchoolId !== "string" || !Array.isArray(schools)) return "";
-  for (const school of schools) {
-    if (!school || typeof school !== "object") continue;
-    if (Reflect.get(school, "id") !== activeSchoolId) continue;
-    const name = Reflect.get(school, "name");
-    return typeof name === "string" ? name : "";
-  }
-  return "";
 }
 
 function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
@@ -103,6 +90,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const [twinUnread, setTwinUnread] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [school, setSchool] = useState("");
+  const [teachingIdentity, setTeachingIdentity] = useState<TeacherTeachingIdentity | null>(null);
   const [initials, setInitials] = useState("");
   const [fullName, setFullName] = useState("");
   const [unreadConnect, setUnreadConnect] = useState(0);
@@ -151,6 +139,10 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
       // Session is the only hard gate for rendering the Teacher OS shell.
       // Every page/RPC retains its own server/RLS authority checks.
+      if (teacherIdRef.current !== user.id) {
+        setSchool("");
+        setTeachingIdentity(null);
+      }
       teacherIdRef.current = user.id
       setAuthReady(true)
 
@@ -160,18 +152,26 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         try {
           const [schoolContextRes, profileRes] = await Promise.all([
             supabase.rpc("get_my_teacher_school_context"),
-            supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+            supabase.from("profiles").select("full_name,role").eq("id", user.id).maybeSingle(),
           ])
           if (cancelled) return
           if (schoolContextRes.error) throw schoolContextRes.error
+          if (profileRes.error) throw profileRes.error;
+          if (profileRes.data?.role !== "teacher") throw new Error("Teacher profile role is required.");
 
           const name = profileRes.data?.full_name ?? ""
           setFullName(name)
           const parts = name.trim().split(" ").filter(Boolean)
           setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""))
 
-          setSchool(activeTeacherSchoolName(schoolContextRes.data))
+          // One auth identity, with school scopes verified by the existing RPC.
+          const resolved = resolveTeacherTeachingIdentity(user.id, schoolContextRes.data);
+          setTeachingIdentity(resolved);
+          setSchool(resolved.defaultScope.kind === "school" ? resolved.defaultScope.label : "");
         } catch (error) {
+          // Missing membership evidence is not evidence of independent mode.
+          setTeachingIdentity(null);
+          setSchool("Context unavailable");
           console.error("Teacher shell enrichment failed:", error)
         }
       })()
@@ -206,6 +206,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   return (
     <ToastContext.Provider value={{ showToast }}>
+      <TeachingIdentityContext.Provider value={teachingIdentity}>
       <UserContext.Provider value={{ fullName, initials, school }}>
         <CreditContext.Provider value={{ creditBalance, refreshCredits }}>
           <div className="teacher-shell"><a href="#teacher-main" className="teacher-skip-link">Skip to workspace</a>
@@ -222,6 +223,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           </div>
         </CreditContext.Provider>
       </UserContext.Provider>
+      </TeachingIdentityContext.Provider>
     </ToastContext.Provider>
   );
 }

@@ -12,7 +12,7 @@
     "test:canonical-references": "node scripts/test-canonical-reference-selectors.mjs",
     "test:seo-authority": "node scripts/seo-content-authority-contract-test.mjs",
     "validate": "npm run typecheck && npm run lint && npm run test:twin && npm run test:classhub && npm run test:seo-authority && npm run test:timetable && npm run test:teaching-library && npm run test:jumping-content && npm run build",
-    "test:timetable": "node --import ./scripts/register-typescript.mjs scripts/test-timetable-modern-intelligence.mjs && node --import ./scripts/register-typescript.mjs scripts/test-timetable-guided-periods.mjs && node scripts/test-timetable-modernization-closure.mjs && node --test scripts/test-timetable-reconciliation.mjs",
+    "test:timetable": "node scripts/test-teacher-dual-context-identity.mjs && node --import ./scripts/register-typescript.mjs scripts/test-timetable-modern-intelligence.mjs && node --import ./scripts/register-typescript.mjs scripts/test-timetable-guided-periods.mjs && node scripts/test-school-day-samples.mjs && node scripts/test-timetable-modernization-closure.mjs && node --test scripts/test-timetable-reconciliation.mjs",
     "test:twin": "node scripts/test-deterministic-twin-contract.mjs && node scripts/test-personal-twin.mjs && node scripts/test-personal-twin-service.mjs",
     "test:vibelearn": "node scripts/test-vibelearn-teacher-learning-os.mjs && node scripts/test-learn-independent-journey.mjs && node scripts/test-secure-vibelearn-practice.mjs && node scripts/test-practice-canonical-identity.mjs && node scripts/test-canonical-topic-practice-entry.mjs && node scripts/test-grade4-english-practice-integration.mjs && node scripts/test-learner-results-navigation.mjs && node scripts/test-learner-context-recovery.mjs && node scripts/test-original-exam-publisher.mjs && node scripts/test-grade4-admin-release-contract.mjs && node scripts/test-private-original-exam-publisher.mjs && node scripts/test-assessment-expiry-contract.mjs",
     "test:curriculum-exam-readiness": "node scripts/test-curriculum-exam-readiness.mjs",
@@ -20,7 +20,7 @@
     "test:classhub": "node scripts/test-classhub-homework-eligibility.mjs",
     "test:teaching-library": "node --import ./scripts/register-typescript.mjs scripts/test-teaching-library-structure.mjs && node --import ./scripts/register-typescript.mjs scripts/test-visual-learning-library.mjs && npm run test:resource-authoring && node --import ./scripts/register-typescript.mjs scripts/test-canonical-lesson-notes.mjs && npm run test:outcome-packages",
     "test:resource-authoring": "node --import ./scripts/register-typescript.mjs scripts/test-teacher-resource-authoring.mjs",
-    "test:curriculum-identity": "node scripts/test-p0-curriculum-reconciliation.mjs && node scripts/test-grade4-maths-time.mjs",
+    "test:curriculum-identity": "node scripts/test-p0-curriculum-reconciliation.mjs && node scripts/test-grade4-maths-time.mjs && node scripts/test-grade4-place-value-integrity.mjs",
     "test:outcome-packages": "node --import ./scripts/register-typescript.mjs scripts/test-outcome-package-manifest.mjs && npm run test:outcome-delivery && npm run test:package-quality",
     "test:outcome-delivery": "node scripts/test-p1-outcome-delivery.mjs && node scripts/test-notebook-learning.mjs",
     "test:package-quality": "node scripts/test-outcome-package-quality.mjs"

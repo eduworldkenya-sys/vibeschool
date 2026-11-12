@@ -18,6 +18,7 @@ import { deriveTeachingWorkspace } from '@/lib/teaching/workspace'
 import { isLessonPlanReadyToTeach } from '@/lib/teaching/lessonReadiness'
 import { duplicateActiveTimetable, restoreTimetableSnapshot, snapshotTimetable } from '@/lib/teaching/slots'
 import type { TeachingOccurrence, EditableSlot } from '@/lib/teaching/types'
+import { TuitionTimetableCard, tuitionLessonsBetween, tuitionLocalDate, tuitionLocalTime, useTuitionTimetable, type TuitionTimetableLesson } from '@/components/timetable/TuitionTimetable'
 
 // Fix 18C: human-facing text for each stable RPC error code. Kept next to
 // the CTA that renders it since these are UI strings, not data-layer concerns.
@@ -251,6 +252,7 @@ const SlotCard = React.memo(function SlotCard({
           </span>
           {slot.isSubstitute && <span style={{ fontSize: 11, fontWeight: 750, color: '#1d4ed8' }}>Substitute lesson</span>}
           {slot.exceptionReason && <span style={{ fontSize: 11, fontWeight: 750, color: '#92400e' }}>{slot.exceptionReason}</span>}
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted }}>School</span>
           {slot.schoolName && <span style={{ fontSize: 11, color: C.textMuted }}>{slot.schoolName}</span>}
         </div>
         {slot.room
@@ -857,6 +859,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     []
   )
   const [allSlots,        setAllSlots]         = useState<Slot[]>([])
+  const [scheduleContext, setScheduleContext] = useState<'all' | 'school' | 'tuition'>('all')
+  const { lessons: tuitionLessons, error: tuitionError, refresh: refreshTuition } = useTuitionTimetable()
   const [loading,         setLoading]          = useState(true)
   const [loadError,       setLoadError]        = useState<string | null>(null)
   const [schoolError,     setSchoolError]      = useState<string | null>(null)
@@ -1195,6 +1199,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     [visibleSlots, activeDow, slotActiveOn, dateForDow]
   )
 
+  const tuitionWeek = useMemo(() => tuitionLessonsBetween(tuitionLessons, weekStart, nairobiDateAdd(weekStart, 6)), [tuitionLessons, weekStart])
+  const tuitionDay = useMemo(() => tuitionWeek.filter(lesson => tuitionLocalDate(lesson.starts_at) === dateForDow(activeDow)), [tuitionWeek, dateForDow, activeDow])
+  const dayEntries = useMemo(() => {
+    const schoolEntries: Array<{kind: 'school'; start: string; slot: Slot} | {kind: 'tuition'; start: string; lesson: TuitionTimetableLesson}> =
+      scheduleContext === 'tuition' ? [] : daySlots.map(slot => ({kind: 'school' as const, start: slot.startTime, slot}))
+    if (scheduleContext !== 'school') schoolEntries.push(...tuitionDay.map(lesson => ({kind: 'tuition' as const, start: tuitionLocalTime(lesson.starts_at), lesson})))
+    return schoolEntries.sort((a, b) => a.start.localeCompare(b.start))
+  }, [daySlots, tuitionDay, scheduleContext])
+
   const isToday = activeDow === todayDow
 
   const nowSlot = useMemo(
@@ -1361,6 +1374,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       {loadError  && <ErrorBanner message={loadError} />}
       {schoolError && <ErrorBanner message={schoolError} />}
+      {tuitionError && <div role="alert" className="no-print" style={{ marginBottom: 12, fontSize: 12 }}>{tuitionError} <button type="button" onClick={refreshTuition}>Retry tuition</button></div>}
 
       {!loading && (
         <div style={{
@@ -1401,7 +1415,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           My Weekly Schedule
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
-          {loading ? 'Loading…' : `${totalLessons} lessons · ${uniqueClasses} classes this week`}
+          {loading ? 'Loading…' : `${totalLessons} school lessons · ${tuitionWeek.filter(lesson => lesson.status === 'scheduled').length} tuition lessons this week`}
         </div>
 
         <div className="no-print" style={{ marginTop: 14 }}>
@@ -1555,13 +1569,19 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         </details>
       )}
 
+      <div className="no-print" role="group" aria-label="Schedule context" style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        {(['all', 'school', 'tuition'] as const).map(context => <Btn key={context} variant={scheduleContext === context ? 'primary' : 'ghost'} small onClick={() => setScheduleContext(context)}>{context === 'all' ? 'All' : context === 'school' ? 'School' : 'Tuition'}</Btn>)}
+      </div>
+
       {/* Day tabs */}
       <div
         className="day-tabs no-print"
         style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}
       >
         {DAYS.map(d => {
-          const count    = visibleSlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
+          const schoolCount = visibleSlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
+          const tuitionCount = tuitionWeek.filter(lesson => tuitionLocalDate(lesson.starts_at) === dateForDow(d.dow) && lesson.status === 'scheduled').length
+          const count = (scheduleContext === 'tuition' ? 0 : schoolCount) + (scheduleContext === 'school' ? 0 : tuitionCount)
           const isActive = activeDow === d.dow
           const isTdy    = d.dow === todayDow
           const wknd     = d.weekend
@@ -1668,16 +1688,26 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </div>
       {blocksError && <p role="alert">{blocksError} <button type="button" onClick={() => load()}>Retry</button></p>}
-      {view === 'week' && schoolFilter === 'all' && schools.length > 1 && !loading && (
+      {view === 'week' && scheduleContext !== 'tuition' && schoolFilter === 'all' && schools.length > 1 && !loading && (
         <div className="no-print" style={{ padding: 12, marginBottom: 12, borderRadius: 12, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
           Choose one school above for its weekly sheet. Daily view combines all of your schools and still respects the global teacher clash rule.
         </div>
       )}
-      {view === 'week' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
+      {view === 'week' && scheduleContext !== 'tuition' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
         slots={visibleSlots} blocks={schoolFilter !== 'all' ? (schoolBlocks[schoolFilter] ?? []) : dayBlocks} dateForDow={dateForDow}
         onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(visibleSlots.find(slot => slot.id === s.id) ?? null) }}
         onAdd={canAddSlot && !blocksError && (schoolFilter === 'all' || schoolFilter === activeSchoolId) ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
       />}
+      {view === 'week' && scheduleContext !== 'school' && (
+        <Card><SectionLabel>Tuition this week</SectionLabel>
+          {tuitionWeek.length === 0 ? <p style={{ fontSize: 13, color: C.textMuted }}>No private tuition lessons this week.</p> : (
+            <div style={{ display: 'grid', gap: 8 }}>{tuitionWeek.map(lesson => <div key={lesson.id}>
+              <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{tuitionLocalDate(lesson.starts_at)}</div>
+              <TuitionTimetableCard lesson={lesson} role="teacher" />
+            </div>)}</div>
+          )}
+        </Card>
+      )}
       {calendarExceptions.filter(event =>
         event.exception_date === dateForDow(activeDow) &&
         (schoolFilter === 'all' || event.school_id === schoolFilter)
@@ -1698,22 +1728,19 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[1, 2, 3].map(i => <Skeleton key={i} h={68} />)}
           </div>
-        ) : loadError ? null : daySlots.length === 0 ? (
+        ) : loadError && scheduleContext !== 'tuition' ? null : dayEntries.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>
             No lessons scheduled
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {daySlots.map(slot => (
-              <SlotCard
-                key={slot.id}
-                slot={slot}
-                isNow={isToday  && slot.id === nowSlot?.id}
-                isNext={isToday && slot.id === nextSlot?.id && !nowSlot}
-                curMin={curMin}
-                onTap={setSelected}
-              />
-            ))}
+            {dayEntries.map(entry => entry.kind === 'tuition'
+              ? <TuitionTimetableCard key={`tuition:${entry.lesson.id}`} lesson={entry.lesson} role="teacher" />
+              : <SlotCard key={`school:${entry.slot.id}`} slot={entry.slot}
+                  isNow={isToday && entry.slot.id === nowSlot?.id}
+                  isNext={isToday && entry.slot.id === nextSlot?.id && !nowSlot}
+                  curMin={curMin} onTap={setSelected} />
+            )}
           </div>
         )}
       </Card>}
@@ -1723,9 +1750,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         <Card>
           <SectionLabel>Week Summary</SectionLabel>
           {[
-            { label: 'Total Lessons', value: totalLessons },
-            { label: 'Classes',       value: uniqueClasses },
-            { label: "Today's Lessons", value: todayCount },
+            { label: 'School Lessons', value: totalLessons },
+            { label: 'Tuition Lessons', value: tuitionWeek.filter(lesson => lesson.status === 'scheduled').length },
+            { label: 'School Classes',       value: uniqueClasses },
+            { label: "Today's School Lessons", value: todayCount },
           ].map(r => (
             <div
               key={r.label}

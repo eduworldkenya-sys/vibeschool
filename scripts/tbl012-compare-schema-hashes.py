@@ -163,24 +163,43 @@ def main() -> int:
                 }:
                     raise ComparisonFailure("forward-delta metadata is incomplete")
                 key = (row["table"], row["section"])
-                # The only declared forward difference is the still-unapplied
-                # timetable period guard. Unscheduled teaching is present in
-                # live production under its verified ledger version 20261112104242.
+                # Only the timetable slot trigger structure may differ. Each
+                # claimed forward hash must match the actual isolated rebuild;
+                # the declaration must also name and verify its migrations.
+                # Neither an unknown trigger nor an arbitrary hash is accepted.
                 if key != ("timetable_slots", "triggers") or key in permitted:
                     raise ComparisonFailure("unexpected or duplicated forward-delta scope")
-                source = Path("supabase/migrations") / row["migration"]
-                if not source.is_file():
-                    raise ComparisonFailure("forward-delta migration is absent")
-                migration_sql = source.read_text(encoding="utf-8").lower()
-                if (
-                    row["migration"] != "20261112101600_timetable_school_period_authority.sql"
-                    or any(requirement not in migration_sql for requirement in (
-                        "create trigger timetable_slot_period_guard",
-                        "effective_from, effective_until",
-                        "public.validate_timetable_slot_period()",
-                    ))
-                ):
-                    raise ComparisonFailure("declared migration does not define reviewed guard")
+                school_period = Path("supabase/migrations/20261112101600_timetable_school_period_authority.sql")
+                if not school_period.is_file():
+                    raise ComparisonFailure("school period migration is absent")
+                school_sql = school_period.read_text(encoding="utf-8").lower()
+                if any(requirement not in school_sql for requirement in (
+                    "create trigger timetable_slot_period_guard",
+                    "effective_from, effective_until",
+                    "public.validate_timetable_slot_period()",
+                )):
+                    raise ComparisonFailure("school period migration does not define reviewed guard")
+
+                if row["migration"] == "20261112101600_timetable_school_period_authority.sql":
+                    if row["rebuilt_hash"] != "f5ad5e6b6f5dc8fac89fd5f8d20f39dd":
+                        raise ComparisonFailure("period-guard forward fingerprint changed")
+                elif row["migration"] == "20261112150000_unified_school_tuition_schedule.sql":
+                    tuition = Path("supabase/migrations") / row["migration"]
+                    if not tuition.is_file():
+                        raise ComparisonFailure("unified school/tuition migration is absent")
+                    tuition_sql = tuition.read_text(encoding="utf-8").lower()
+                    if (
+                        row["rebuilt_hash"] != "a7ac9cc47ec44efe0eef1c1802559dac"
+                        or any(requirement not in tuition_sql for requirement in (
+                            "create trigger timetable_guard_tuition_schedule",
+                            "on public.timetable_slots",
+                            "public.timetable_school_tuition_overlap(new, l)",
+                            "vibetutor_guard_cross_schedule",
+                        ))
+                    ):
+                        raise ComparisonFailure("combined forward trigger fingerprint changed")
+                else:
+                    raise ComparisonFailure("unreviewed forward timetable migration")
                 permitted[key] = row
 
         differences: list[dict[str, str]] = []
