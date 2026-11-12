@@ -45,7 +45,8 @@ import type {
 } from '@/lib/teaching/lessonContext'
 import { C } from '@/components/teacher/ui'
 import type { TimetableSlot } from '@/lib/types'
-import type { LessonSourceSuggestion } from '@/lib/teaching/lessonSource'
+import { listDatedSchemeCandidates } from '@/lib/teaching/lessonSource'
+import type { DatedSchemeCandidate, LessonSourceSuggestion } from '@/lib/teaching/lessonSource'
 import JumpingSchemeContent from '@/components/teacher/JumpingSchemeContent'
 import { buildJumpingDraftSections, type JumpingContentSelection } from '@/lib/teaching/jumpingDraftSections'
 import { parseLessonDurationMinutes, timeOriginalLessonSections } from '@/lib/teaching/lessonTiming'
@@ -256,6 +257,10 @@ export default function LessonPlanModal({
   const [focus,    setFocus]    = useState('')
   const [suggestion,      setSuggestion]      = useState<LessonSourceSuggestion | null>(null)
   const [suggestionLinked,  setSuggestionLinked]  = useState(false)
+  const [datedSchemeCandidates, setDatedSchemeCandidates] = useState<DatedSchemeCandidate[]>([])
+  const [selectedSchemeId, setSelectedSchemeId] = useState('')
+  const [datedSchemeLoading, setDatedSchemeLoading] = useState(false)
+  const [datedSchemeError, setDatedSchemeError] = useState<string | null>(null)
   const [outcomeOptions, setOutcomeOptions] = useState<Array<{id: string; text: string}>>([])
   const [selectedOutcomeId, setSelectedOutcomeId] = useState('')
   const [savedOutcomeId, setSavedOutcomeId] = useState<string | null>(null)
@@ -287,11 +292,36 @@ export default function LessonPlanModal({
   // exposed outside its own closure.
   const [teacherId,      setTeacherId]      = useState<string | null>(null)
 
+  // Exact dated and teacher-owned choices only. Do not infer a weekly link.
+  useEffect(() => {
+    if (phase !== 'view' || !planId || !teacherId || !ctx.schoolId || !taughtDate) return
+    let cancelled = false
+    setDatedSchemeLoading(true)
+    setDatedSchemeCandidates([])
+    setDatedSchemeError(null)
+    void listDatedSchemeCandidates({
+      userId: teacherId,
+      schoolId: ctx.schoolId,
+      classId: slot.class_id,
+      subjectId: slot.subject_id,
+      occurrenceDate: taughtDate,
+    }).then(candidates => {
+      if (!cancelled) setDatedSchemeCandidates(candidates)
+    }).catch(cause => {
+      if (!cancelled) setDatedSchemeError(
+        cause instanceof Error ? cause.message : 'Could not verify the instructional calendar.',
+      )
+    }).finally(() => {
+      if (!cancelled) setDatedSchemeLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [phase, planId, teacherId, ctx.schoolId, slot.class_id, slot.subject_id, taughtDate])
+
   // Read the current canonical outcome and authorized Scheme choices.
   // These are identities from persisted tables, not topic-derived guesses.
   useEffect(() => {
     if (phase !== 'view' || !planId || !teacherId) return
-    const schemeId = planSchemeIdRef.current ?? suggestion?.schemeId
+    const schemeId = planSchemeIdRef.current ?? selectedSchemeId
     let cancelled = false
     async function loadOutcomeAuthority() {
       setOutcomeBindingError(null)
@@ -345,16 +375,21 @@ export default function LessonPlanModal({
     }
     void loadOutcomeAuthority()
     return () => { cancelled = true }
-  }, [phase, planId, teacherId, suggestion?.schemeId])
+  }, [phase, planId, teacherId, selectedSchemeId])
 
   async function saveDatedOutcomeBinding() {
-    if (!planId || !suggestion?.schemeId || !selectedOutcomeId || linkingOutcome) return
+    const schemeId = planSchemeIdRef.current ?? selectedSchemeId
+    if (!planId || !schemeId || !selectedOutcomeId || linkingOutcome) return
+    if (!datedSchemeCandidates.some(candidate => candidate.id === schemeId)) {
+      setOutcomeBindingError('Scheme selection is not eligible for the exact instructional week.')
+      return
+    }
     setLinkingOutcome(true)
     setOutcomeBindingError(null)
     try {
       const verified = await attachSchemeToDatedLesson({
         planId,
-        schemeId: suggestion.schemeId,
+        schemeId,
         outcomeId: selectedOutcomeId,
       })
       const { data: savedPlan, error: reloadError } = await supabase
@@ -370,8 +405,22 @@ export default function LessonPlanModal({
       }
       planSchemeIdRef.current = savedPlan.scheme_id
       setSavedOutcomeId(savedPlan.curriculum_outcome_id)
-      setSuggestionLinked(true)
-      showToast('Curriculum outcome linked to dated lesson')
+      // Only a fresh read from the exact saved occurrence can establish linkage.
+      const refreshed = await loadLessonWorkspace({
+        timetableSlotId: slot.id,
+        occurrenceDate: taughtDate,
+        classId: slot.class_id,
+        subjectId: slot.subject_id,
+        subjectName: slot.subject,
+      })
+      if (!refreshed?.sourceLinked || refreshed.source?.schemeId !== schemeId) {
+        throw new Error('Scheme link saved, but its dated source could not be verified on reload.')
+      }
+      setSuggestion(refreshed.source)
+      setSuggestionLinked(refreshed.sourceLinked)
+      setCanonicalIdentity(refreshed.canonicalIdentity)
+      setError(refreshed.sourceError ?? '')
+      showToast('Dated Scheme and curriculum outcome linked')
     } catch (cause) {
       setOutcomeBindingError(cause instanceof Error ? cause.message : 'Could not link the outcome.')
     } finally {
@@ -812,6 +861,7 @@ export default function LessonPlanModal({
       try {
         planSchemeIdRef.current = null
         setSuggestionLinked(false)
+        setSelectedSchemeId('')
         setCanonicalIdentity(null)
         setJumpingDraft(null)
         setLessonResources([])
@@ -871,6 +921,7 @@ export default function LessonPlanModal({
           setPlanId(existing.id)
           planSchemeIdRef.current =
             existing.scheme_id ?? null
+          setSelectedSchemeId(existing.scheme_id ?? requestedSchemeId ?? '')
 
           await loadLessonResources(
             existing.id,
