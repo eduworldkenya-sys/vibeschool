@@ -69,6 +69,12 @@ export default function StudentResultDetailPage() {
           <div style={muted}>Attempt {result.attemptNumber} of {result.maxAttempts}</div>
           <div style={{ ...muted, color: '#92400e', fontWeight: 700 }}>{skipped.length} skipped / unanswered · 0 marks for each skipped question</div>
           {result.releasedAt && <div style={muted}>Released {new Date(result.releasedAt).toLocaleString('en-KE')}</div>}
+          {(skipped.length + incorrect.length) > 0 && (
+            <button type="button" style={{ ...secondaryButton, marginTop: 12 }}
+              onClick={() => router.push(`/student/vibelearn/recovery?attempt=${encodeURIComponent(params.attemptId)}`)}>
+              Recover missed and skipped learning outcomes
+            </button>
+          )}
           {result.feedback && (
             <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: '#ecfdf5', color: '#065f46', lineHeight: 1.5 }}>
               <strong>Teacher feedback</strong>
