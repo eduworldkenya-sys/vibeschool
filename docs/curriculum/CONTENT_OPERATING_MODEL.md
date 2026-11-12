@@ -88,6 +88,20 @@ For Creative Arts or physical outcomes, a demonstration, practical performance a
 
 **Deliverable:** real readable content, not empty headings, a curriculum listing, one paragraph of notes or a promise of future generation.
 
+
+### Mandatory learning-first authoring and reuse decision (12 November 2026)
+
+Apply [Content Production Standard §4A and §4B](./CONTENT_PRODUCTION_STANDARD.md#4a-learning-first-teaching-standard-understanding-and-teacher-effectiveness) to **every new or materially revised learning packet**:
+
+- Decide from the official outcome and learners' prerequisites, not from a fixed list of content widgets. Select subject-appropriate modelling, guided practice, discussion, investigation, practical action, independent work and formative checks. State what observable understanding looks like.
+- Draft a core explanation plus practical **support** and **extension** responses when useful. Grade and age guide readability and safety but do not predetermine each learner's actual ability. Explain meaningful steps and misconceptions rather than merely providing an answer.
+- Produce teacher-ready materials from the same canonical source: preparation and resources (including low-cost alternatives), prompts, demonstration or board work, pacing guidance, accessible options, expected answers, assessment/observation and next-step remediation/enrichment. Do not require teacher, class or timetable context for independent content creation.
+- Write each question with an answer or rubric, explanation, outcome reference, stable identity, difficulty/cognitive demand, mistake feedback and explicit eligible uses. Worked examples and revealed guided solutions remain learning resources, **not automatically formal-exam questions**. Reuse appropriate independent items for practice/quiz via the existing bank; preserve unseen/variant pools and existing security/release policy for formal exams. Do not build a duplicate question bank or pretend that integration is live based on a draft.
+- Check both **learner understanding** and **teacher teachability** before packaging. Include appropriate misconception recovery and a reasonable transfer task; never report mastery or superior learning outcomes without real evidence.
+- Compare educational quality on clarity, correctness, learner understanding, teacher time/usable support, inclusivity and affordability, not simply chapter volume or claims against other publishers. External comparative claims require actual research or pilot evidence.
+
+**Acceptance signal:** the learner can explain, perform or transfer the intended skill at an appropriate level, and the teacher can prepare, deliver, check and intervene using the packet. Where this has not been tested with learners or teachers, mark it an editorial design objective, not observed effectiveness.
+
 ### Step 5 — Prepare the teacher and independent-learner versions from one master
 
 - **Learner view:** simple flow — Learn → Explore → Practise → Check → Improve. Appropriate reading depth, feedback and offline/low-resource instructions where useful.
