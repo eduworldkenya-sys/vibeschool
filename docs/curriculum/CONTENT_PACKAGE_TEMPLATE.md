@@ -1,5 +1,7 @@
 # VibeSchool Content Package Template — Grades 1–9
 
+**START HERE FOR ALL CONTENT GENERATION:** [Single Canonical Content Generation Playbook](./CONTENT_GENERATION.md) defines the mandatory work sequence and single outcome package. Use this template as an optional **detailed evidence ledger for that same package**, never as another owner questionnaire, competing quality gate, content library or new production flow.
+
 Use this template **per subject, term, sub-strand or batch**; declare the exact scope. It operationalizes [CONTENT_PRODUCTION_STANDARD.md](./CONTENT_PRODUCTION_STANDARD.md) under the current **[ChatGPT-Led Content Production Operating Model](./CONTENT_OPERATING_MODEL.md)**, without creating a separate approval system or content engine.
 
 **This is a working manifest, not a form the VibeSchool owner must complete.** Production agents/teams populate it from source evidence, existing canonical records and performed checks. Do not replace missing evidence with signatures, guesses or “verified” labels.
