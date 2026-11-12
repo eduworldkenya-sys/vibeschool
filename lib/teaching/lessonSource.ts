@@ -313,6 +313,8 @@ export async function resolveLessonSource({
     : await getActiveTerm(schoolId)
 
   if (!term) return null
+  const termId = term.id
+  const termNumber = term.term
 
   const instructionalWeek = occurrenceDate
     ? await resolveInstructionalWeekForDate(
@@ -339,7 +341,7 @@ export async function resolveLessonSource({
       schoolId,
       classId,
       subjectId,
-      academicTermId: term.id,
+      academicTermId: termId,
     })
 
     if (!row) {
@@ -357,7 +359,7 @@ export async function resolveLessonSource({
       )
     }
 
-    return enrichedSchemeSuggestion(row, term.term)
+    return enrichedSchemeSuggestion(row, termNumber)
   }
 
   // First authority: an explicitly saved Scheme relationship
