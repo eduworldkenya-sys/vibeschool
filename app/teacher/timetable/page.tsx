@@ -1837,8 +1837,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
       {/* Slot detail drawer */}
-      <SlotDrawer
-        slot={scheduleContext === 'independent' ? null : selected}
+      {scheduleContext !== 'independent' && activeSchoolId && <SlotDrawer
+        slot={selected}
         curMin={curMin}
         occurrenceDate={dateForDow(activeDow)}
         onClose={() => setSelected(null)}
@@ -1849,7 +1849,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onCopy={s => setCopySlot(s)}
         canCopy={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
         canEdit={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
-      />
+      />}
 
       {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson
           or cancel one still in planned/ready. onDone reloads the timetable
