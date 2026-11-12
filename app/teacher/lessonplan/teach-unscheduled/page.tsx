@@ -78,10 +78,15 @@ function TeachUnscheduledContent() {
             .select('id,unscheduled_plan_id,occurrence_date,school_id,teacher_id,class_id,subject_id,timetable_slot_id,lifecycle')
             .eq('unscheduled_plan_id', plan.id).eq('teacher_id', user.id).maybeSingle()
           if (occurrenceError) throw occurrenceError
+          // The generated timetable_slot_id type still models scheduled rows.
+          // Validate the actual one-source invariant instead of masking a cast.
+          if (occurrence && (occurrence.unscheduled_plan_id !== plan.id || occurrence.timetable_slot_id !== null)) {
+            throw new Error('The saved lesson is not linked to a valid unscheduled teaching occurrence.')
+          }
           if (!cancelled && occurrence?.lifecycle === 'completed') {
             setCompleted(true)
           } else if (!cancelled && occurrence?.lifecycle === 'in_progress') {
-            setActive({ occurrence: occurrence as Occurrence, plan })
+            setActive({ occurrence: { ...occurrence, unscheduled_plan_id: plan.id, timetable_slot_id: null }, plan })
           }
         }
       } catch (cause) {
