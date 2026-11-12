@@ -1,6 +1,7 @@
 # VibeSchool Curriculum Content Production Standard — Grades 1–9
 
-**Policy version:** 1.0  
+**Policy version:** 1.1
+**Learning-first and assessment-lineage revision:** 12 November 2026  
 **Decision:** Approved by the VibeSchool owner, 11 November 2026  
 **Scope:** All new and materially revised VibeSchool-original competency-based content for Grades 1–9, across subjects, terms and learner/teacher surfaces  
 **Status:** Repository policy; **not** itself a production deployment, worker commissioning or publishing authorization
@@ -67,6 +68,41 @@ For **every required outcome**, map the following evidence. Select methods suite
 A non-applicable element must have a brief **reason** tied to that outcome (for example, a performance rubric can replace a written calculation exercise). A generic “N/A” or copied boilerplate does not count as justification.
 
 Do not add six arbitrary questions, a fixed word count, a compulsory video, or a project to **every** lesson simply to satisfy a quota. Apply any stricter **existing subject-specific or release contract** where it actually governs the content; do not weaken it here.
+
+
+## 4A. Learning-first teaching standard: understanding and teacher effectiveness
+
+**Non-negotiable product objective:** A learner should understand and demonstrate the required learning, and a teacher should have practical support to teach, diagnose and respond. Curriculum coverage, question counts, pages, feature usage, artificial lesson length and engagement metrics alone are not evidence of understanding.
+
+1. **Development, not grade stereotypes.** Use the grade and official outcome as the curricular target. Adapt vocabulary, sentence complexity, pacing, representation, cognitive load, fine-motor demands, practical risks and response length to developmental needs. Do not assume children of the same age or grade have the same prior knowledge or ability. Grade 1–3 content will often favour concrete objects, play, talk and visual demonstrations; Grades 4–6 can progressively combine concrete experiences with pictorial and abstract reasoning; Grades 7–9 can deepen inquiry, argument, abstraction and real-world application. These are flexible starting points, not age ceilings.
+2. **Prerequisite diagnosis and differentiated paths.** Identify essential prior understanding and design one or more short checks. Provide a **support path** (simpler language, smaller steps, concrete model, accessible alternative and supported retry), a **core path** (the grade outcome) and an **extension path** (deeper reasoning or transfer). All paths retain the true outcome; accommodation must not silently lower the assessed construct. Do not automatically label a learner as low ability from one answer.
+3. **Evidence-informed, subject-specific pedagogy.** Choose the lesson sequence to suit the outcome, learner and resources; do not impose one branded rigid model. Where applicable, **connect prior knowledge → explain or explore → model and guide → independent application → check understanding → respond with feedback, reteaching or extension**. Explicit modelling and guided practice work well for new procedures; inquiry, discussion, making, experimentation or performance may lead for other outcomes. Clearly specify the transition from teacher support to learner independence.
+4. **Make reasoning visible.** Explain *why*, not just *what*. In Mathematics preserve the existing worked-example contract: explain every meaningful step, relevant formula and symbols, substitution, units, result and checking. In literacy, sciences, arts and practical subjects show the appropriate reasoning, demonstration, model response, criteria or performance process instead of forcing a calculation template.
+5. **Frequent, low-stakes formative checks.** Ask questions or observe performance during teaching, including one transfer/application check where suitable. Record what would count as evidence of understanding and what likely incorrect answers reveal. Give actionable feedback and a useful next step; do not equate exposure, copying an example or completion with mastery.
+6. **Practical teacher enablement.** Supply usable preparation notes, required/low-cost materials, suggested timing, demonstration or board/diagram steps, learner prompts, expected responses, common misconceptions, possible interventions, accessible alternatives, extension options and marking/observation guidance. Teacher aids are outcome-selected, not mandatory separate menus.
+7. **Independence and inclusion.** Make published learner material readable without hidden teacher explanation; offer age-appropriate linguistic, visual, tactile, oral, motor or offline/low-resource alternatives when relevant. Use dignified, locally meaningful Kenyan contexts without stereotypes. Check the safety of physical and experimental work.
+8. **Professional publishing quality.** Write original, accurate, fluent explanations, examples, diagrams and questions with consistent language and clean instructional design. Do not superficially paraphrase a publisher's protected content or imply KICD endorsement. Relevant diagrams must be correct, accessible and rights-clear; omit decorative media that adds no learning value.
+9. **Learning evidence, not promotional claims.** When the system supports it, examine outcomes through real learner answers, teacher observations, corrected misconceptions and appropriately matched pre/post checks. An increase in page views, time spent or attempted questions is not proof of learning. Publish claims of improved results or teacher time savings only after a documented, consent-based comparison or pilot, with method, scope and limitations.
+
+**Authoring acceptance check per outcome:** Can a learner encounter an intelligible explanation or experience; see a sound model when useful; try meaningful practice; demonstrate the intended outcome; receive constructive feedback or performance criteria; obtain appropriate support/extension; and can a teacher deliver and adapt the experience with the provided guidance? Record an outcome-based reason for any inapplicable component. Do not force a fixed question quantity, videos, artificial reading level or identical lesson template across subjects.
+
+## 4B. Canonical assessment lineage and secure reuse
+
+**One outcome-linked content authority; interoperable assessment consumers; no new question engine.** The canonical published Content Engine supplies learner content and content blocks; existing assessment-question and assessment-item structures supply the assessment contexts. Preserve links and stable identity across these existing models; do not assert that a Markdown policy itself connects every live lesson block to the bank.
+
+| Teaching/assessment material | Canonical treatment | Reuse rule |
+| --- | --- | --- |
+| Explanation, worked example and demonstration | Learning content, with its own stable source reference | Not an exam item by default; if assessing the same skill, author a separate independent item |
+| Guided practice, hints and fully revealed solutions | Visible learning support | Keep formative; do not reuse verbatim for a protected exam |
+| Independent exercise or lesson check | Outcome-linked content/question record with correct answer or rubric | Eligible for practice/quiz reuse once checked, with appropriate feedback mode |
+| Topic Practice and low-stakes quizzes | Reuse eligible question identities under their existing attempt/feedback policy | May use exposed practice variants; give immediate feedback where that product policy permits |
+| Formal or controlled exam | Approved, assessment-eligible item set under existing exam rules | Use protected, unseen/equivalent variants; no leaked answer authority or trivial verbatim repeats from taught examples |
+
+For each question or scored performance, retain the **stable source/question ID**, version, grade, subject, strand/sub-strand, verified learning-outcome reference, item type, language/accessibility adaptation, cognitive demand, difficulty, answer or rubric, explained solution, distractor quality where relevant, likely misconception, appropriate feedback, usage eligibility, review state and provenance. A set of exercises references its constituent questions; it is not another competing bank. The same learning outcome may support multiple *distinct* question variants, whose identity and relationship are traceable.
+
+**Assessment safeguards:** Learners must not receive formal-exam correct answers or marking secrets before permitted release. Prevent direct reuse of exposed worked examples and answers in secure assessments. Preserve distinct practice/exam scheduling, timers, attempt limits, marking, release and security policies. Avoid incorrect inflated mastery from repeated known items; use sufficiently fresh application/transfer evidence and teacher observation where appropriate. Do not silently turn unanswerable/reflection prompts into auto-marked items or invent missing answers. Preserve existing review, access control and publication requirements.
+
+**Integration verification:** Inspect the actual Content Engine/assessment schemas before wiring identities. Test one real outcome across learner notes → worked example → independent exercise → Topic Practice → controlled assessment eligibility → feedback/progress, including wrong answer, skipped question, accessibility, teacher preview and protected-answer negative paths. Where a link is absent, mark it **NOT_CONNECTED**, repair the canonical integration separately and do not imply this policy revision deployed that feature.
 
 ## 5. Curriculum identity and planning separation
 
@@ -264,6 +300,8 @@ These are model explanations of **how to author content**, not claims that these
 | Curriculum coverage | Each required source outcome maps to content and assessment evidence | Fill missing outcomes or narrow the scope claim |
 | Subject correctness | Explanations, facts, methods and answer keys independently checked | Correct material and reverify affected items |
 | Pedagogical depth | Understand → example → experience/practise → check → feedback, where applicable | Author the missing function; not filler |
+| Ability-sensitive learning and teacher readiness | Prerequisites, scaffold/core/extension where useful; teacher can teach, assess and intervene using the guide | Revise explanations, pacing, materials, prompts or adaptation; validate with users when feasible |
+| Assessment exposure and lineage | Stable item/outcome references; worked examples are not treated as secure exam items; protected answers and fresh variants respected | Repair eligibility/lineage, retire leaked items, recheck security and feedback |
 | Authenticity and originality | VibeSchool-authored material with traceable external rights/source usage | Rewrite, license or remove unsupported material |
 | Suitability and inclusion | Age, language, Kenyan feasibility, disability/resource access and dignity | Adapt task, wording, modality or resources |
 | Safety | Materially relevant practical/physical/emotional risks mitigated | Stop unsafe activity; repair before use |
