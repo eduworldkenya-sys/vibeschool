@@ -75,7 +75,7 @@ for(const p of packets){
   }else throw new Error('Unsupported unmapped source '+key)
  }
  for(const field of ['id','grade','subject','subStrand','focus','goal','notes','teacher','misconception','remedial','enrichment','accessibility']){
-  assert.ok(typeof p[field]==='string'&&p[field].length>=14 || ['id','grade','subject'].includes(field)&&typeof p[field]==='string'&&p[field].length>=4,
+  assert.ok(typeof p[field]==='string'&&p[field].length>=14 || ['id','grade','subject','subStrand'].includes(field)&&typeof p[field]==='string'&&p[field].length>=4,
     p.id+' missing useful '+field)
  }
  assert.ok(Array.isArray(p.vocabulary)&&p.vocabulary.length>=3,p.id+' vocabulary')
