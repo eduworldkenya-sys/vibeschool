@@ -50,5 +50,5 @@ for (const pattern of [
 ]) assert.ok(ui.includes(pattern), 'missing safety/UX contract: ' + pattern)
 assert.ok(setup.includes('SchoolDaySampleBuilder'), 'samples must be available from existing setup page')
 assert.ok(!setup.includes("useState('08:00')"), 'school day must not be auto-filled from a sample')
-assert.ok(!ui.includes("setDraft(clone(SCHOOL_DAY_SAMPLES[0]")), 'samples may not auto-activate')
+assert.ok(!ui.includes("setDraft(clone(SCHOOL_DAY_SAMPLES[0]"), 'samples may not auto-activate')
 console.log('PASS: optional school-day samples, validation, protected blocks and guarded application')
