@@ -29,7 +29,7 @@ alter table public.learning_resources
 
 -- A versioned manifest must not silently lose its validated root identity.
 create or replace function public.cla_guard_outcome_package_root_identity()
-returns trigger language plpgsql security invoker set search_path = '' as $
+returns trigger language plpgsql security invoker set search_path = '' as $rootguard$
 begin
   if old.asset_kind = 'outcome_package'
      and (new.asset_kind is distinct from old.asset_kind
@@ -41,7 +41,7 @@ begin
   end if;
   return new;
 end;
-$;
+$rootguard$;
 revoke all on function public.cla_guard_outcome_package_root_identity()
   from public,anon,authenticated,service_role;
 drop trigger if exists cla_guard_outcome_package_root_identity on public.learning_resources;
