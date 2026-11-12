@@ -149,6 +149,11 @@ function TeacherGuideInner() {
 
       {source?.schemeId && source?.subStrand === "Jumping" && (workspace.context.grade || context?.grade) === "Grade 1" && <JumpingSchemeContent schemeId={source.schemeId} showGuide />}
 
+      {canonical?.subStrandId === 'e975dcc6-32a9-4274-a2a3-3d19e409cf5c' && <section style={{...card,borderColor:'#b1d8bf',background:'#f0f9f2'}}>
+        <strong style={{fontSize:14,color:'#175b43'}}>Published Time outcome packages</strong>
+        <p style={{fontSize:12,color:'#486654',lineHeight:1.6}}>Open the verified curriculum outcome to reuse its certified notes, teacher support and eligible exercises. Preparation does not require a scheduled occurrence.</p>
+        <button type="button" style={{...action,background:'#175b43'}} onClick={()=>router.push('/teacher/outcome-package')}>Choose an exact Time outcome</button>
+      </section>}
       <Section title="Curriculum position">
         <TextBlock value={[source?.strand && `Strand: ${source.strand}`,source?.subStrand && `Sub-strand: ${source.subStrand}`,source?.week != null && `Week: ${source.week}`,source?.term != null && `Term: ${source.term}`].filter(Boolean).join("\n")} empty="No Scheme/curriculum position has been resolved for this teaching occurrence." />
       </Section>
