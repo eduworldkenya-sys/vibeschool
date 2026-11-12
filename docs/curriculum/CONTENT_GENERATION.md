@@ -104,9 +104,49 @@ For each verified outcome, inspect what already exists in the **real canonical s
 
 ### 4.4 Teacher Support — prepared in the same pass
 
-Provide the actual aids selected for the outcome: lesson notes, Teacher Guide, demonstration instructions, examples, visuals, discussions, assessments/observation, worksheets and assignments, differentiation, remedies and extension, with true outcome/resource IDs. Do not make every Teaching Library slot compulsory. Do not require a timetable for independent content, a scheme or unscheduled lesson preparation; a dated scheduled occurrence remains relevant to actual scheduled teaching/attendance.
+Provide the actual aids selected for the outcome: **teacher Lesson Notes (distinct from full learner content; see §4.5)**, Teacher Guide, demonstration instructions, examples, visuals, discussions, assessments/observation, worksheets and assignments, differentiation, remedies and extension, with true outcome/resource IDs. Do not make every Teaching Library slot compulsory. Do not require a timetable for independent content, a scheme or unscheduled lesson preparation; a dated scheduled occurrence remains relevant to actual scheduled teaching/attendance.
 
 **Teacher acceptance:** teachers can see, understand and use the applicable materials without rebuilding the lesson and without links to the wrong class, week, subject or outcome.
+
+
+## 4.5 Learner Content vs Lesson Notes — two views of one verified outcome
+
+**Learning content** is the complete, learner-ready teaching experience for an outcome. **Lesson Notes** are an educational-content component used as a purposeful teaching reference. Notes alone are **not** the entire learning package. A Lesson Plan arranges how the teacher will teach; it is not the source of content.
+
+- **Learner content** (existing `asset_kind=learner_notes` where appropriate) contains an original accessible explanation/exploration, vocabulary, real-life context, suitable diagram or demonstration, explained worked model, guided attempt, independent practice and constructive feedback. It must make sense to an independent learner, not only a teacher.
+- **Teacher Lesson Notes** (existing `asset_kind=teacher_notes` where appropriate) help the teacher explain the same concept: focus, key facts and vocabulary, board/visual demonstration, explanatory steps, questions and expected answers, misconceptions and remedies, scaffolds/extension, and a brief formative check. The fuller Teacher Guide may separately cover timing, classroom logistics, inclusion, preparation and safety.
+- **Produce and check together.** Facts, formulas, units, diagram labels, reasoning, questions/answers and exact curriculum outcomes must agree. Notes may summarize and link back to the full learner explanation; they should not be verbatim duplicate pages, a second syllabus or an unrelated book.
+- **Canonical lineage:** retain the verified curriculum outcome and actual canonical Content Engine/publication and `learning_resources` / `learning_resource_versions` identities. If both resource types exist, each has its true resource/version ID and links back to the same outcome. Use existing `teaching_resource_links` and Scheme bridges where relevant. Never invent IDs or create a second content engine, assessment authority, or curriculum identity.
+- **Delivery:** independent learners use released learner content in Learn; authorized teachers discover/read applicable version-checked Lesson Notes and follow links to the full content from Curriculum Map, Scheme, Teaching Library or Lesson Plan where supported. **Preparing and browsing notes never requires a timetable**; scheduled Teach Mode uses the actual occurrence.
+- **Selection:** a dedicated teacher-notes resource is useful for many outcomes but is not a compulsory fifteenth-slot filling exercise. Provide substantive teacher guidance under §4.4, document instructional reasons for omissions and distinguish manuscript, stored, certified, linked and actually visible states.
+
+### Paired illustrative example — Grade 4 Mathematics: hours into minutes
+
+**Illustrative educational example, not a verified KICD outcome, certified asset, or live VibeSchool resource.** Pass Gate ZERO and inspect current library records before adopting it as an actual content package.
+
+**A. Learner content — full learning explanation**
+
+> **Understanding hours and minutes.** We measure time in hours and minutes. **1 hour = 60 minutes.** The minute hand of a clock completes one full turn in 60 minutes. Imagine 3 groups of 60 minutes. We can add 60 + 60 + 60, or multiply because each group has the same number of minutes: **3 × 60 = 180**. Therefore, **3 hours = 180 minutes**. We can check by separating 180 minutes into three groups of 60.
+>
+> **Guided practice:** How many minutes are in 2 hours? Two groups of 60 give **2 × 60 = 120 minutes**. **Independent check:** Find the minutes in 4 hours. The answer is **240 minutes** because 4 × 60 = 240. If you got 400 minutes, remember that each hour has 60 minutes, not 100.
+
+A certified and accurate clock illustration may support this explanation when its actual visual resource/version is available. A text description of an image is not an image.
+
+**B. Teacher Lesson Notes — concise teaching reference**
+
+| Notes field | Classroom-ready reference |
+| --- | --- |
+| Focus | Understand the relationship between whole hours and minutes and explain a conversion |
+| Key fact and method | 1 hour = 60 minutes; minutes = number of hours × 60 |
+| Board model | Draw three equal groups of 60; show 60 + 60 + 60 = 3 × 60 = 180 minutes; explain *why* multiplication works |
+| Teaching prompt | “Why do we multiply by 60, not 100?” “How could you check 3 hours = 180 minutes?” |
+| Expected response | An hour contains 60 minutes; three groups of 60 contain 180; each group can be checked |
+| Misconception | 1 hour ≠ 100 minutes; point to clock divisions and rebuild groups of 60 |
+| Support / extension | Use counters or drawn groups; extend to a simple duration context when ready |
+| Formative check | 2 hours = **120 minutes**; 5 hours = **300 minutes**; ask learners to explain |
+| Resource links | Same **verified** outcome; actual learner/teacher resource versions and permitted links (no made-up IDs) |
+
+**Acceptance:** learner content should *teach the why* and guide practice; teacher notes should make the same learning teachable, assessable and correctable. Both share verified source lineage and checked mathematical answers, while serving different audiences.
 
 ## 5. The 15 Teaching Library slots — OPTIONAL, not content quotas
 
@@ -242,7 +282,7 @@ Use one record per outcome. The chat assembles it as part of the actual work; it
 - **Core:** Explain 1 hour = 60 minutes with clock or clear minute-group visual; model 3 hours = 3 × 60 = 180 minutes and explain why multiplication represents three groups of sixty. Check with inverse reasoning.
 - **Supplementary:** Give supported conversion of 2 hours, independent conversion of 5 hours, a short applicable context problem and an appropriate extension. Give checked answers, reasoning, a physical or drawn 60-minute scaffold and misconception-specific feedback.
 - **Revision readiness:** Draft a fresh conversion/application prompt, independent retrieval check, explained answer and exact link back to the hours/minutes lesson and suitable targeted practice. Later mix with elapsed-time outcomes **only if those outcomes are verified and genuinely in the revision scope**.
-- **Teacher:** Prepare a lesson-board or clock model, instructions for questioning, common error (confusing hours/minutes), quick feedback, differentiation and verified resource references.
+- **Teacher:** Prepare concise teacher Lesson Notes (key fact, board model, questions, expected answers, misconceptions/remedies and checks), alongside the fuller Teacher Guide, clock model, differentiation and verified resource references. Keep notes linked to the same verified outcome as learner Core (see §4.5).
 - **Assets and bank:** Reuse a suitable certified clock visual or create and register a new asset through the existing library. Identify practice item IDs and eligibility; do not make a revealed lesson solution a protected exam question.
 - **Finish:** Record curriculum PASS, manuscript/asset actual state, correct IDs and real reader/assessment evidence. Fix missing essential components before advancing to the next outcome.
 
