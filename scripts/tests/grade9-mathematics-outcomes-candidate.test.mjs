@@ -39,6 +39,14 @@ function validateUnreleasedCrosswalk(candidate) {
     assert.equal(u.experience_wording_status,'VIBESCHOOL_ORIGINAL_DRAFT');
     assert.equal(u.inquiry_wording_status,'VIBESCHOOL_ORIGINAL_DRAFT');
     assert.ok(u.vibeschool_assessment_evidence.some(x=>x.length>=40),u.code+' assessment evidence missing');
+    assert.ok(u.vibeschool_competencies?.length>=2,u.code+' competencies missing');
+    assert.ok(u.vibeschool_values?.length>=1,u.code+' values missing');
+    assert.ok(u.vibeschool_pertinent_contemporary_issues?.length>=1,u.code+' contemporary-issue connection missing');
+    assert.ok(u.vibeschool_assessment_dimensions?.length>=3,u.code+' assessment scope incomplete');
+    for(const field of ['vibeschool_competencies','vibeschool_values','vibeschool_pertinent_contemporary_issues','vibeschool_assessment_dimensions']) {
+      assert.ok(u[field].every(x=>typeof x==='string'&&x.length>=6),u.code+' '+field+' contains empty entries');
+    }
+    assert.equal(u.source_verification_status,'EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED');
     for (const [i,item] of u.manuscript_outcomes.entries()) {
       assert.equal(item.source_outcome_ordinal,i+1);
       assert.equal(item.manuscript_alias,`VS-G09-MA-${u.code}-${String.fromCharCode(97+i)}`);
@@ -68,6 +76,15 @@ test('missing outcome or duplicate alias fails editorial coverage',()=>{
   const duplicate=structuredClone(manuscript);
   duplicate.july_2024_editorial_crosswalk.units[1].manuscript_outcomes[0].manuscript_alias='VS-G09-MA-1.1-a';
   assert.throws(()=>validateUnreleasedCrosswalk(duplicate));
+});
+
+test('missing core competencies and assessment coverage fails closed',()=>{
+  const missing=structuredClone(manuscript);
+  missing.july_2024_editorial_crosswalk.units[0].vibeschool_competencies=[];
+  assert.throws(()=>validateUnreleasedCrosswalk(missing));
+  const missingAssessment=structuredClone(manuscript);
+  missingAssessment.july_2024_editorial_crosswalk.units[8].vibeschool_assessment_dimensions=[];
+  assert.throws(()=>validateUnreleasedCrosswalk(missingAssessment));
 });
 
 test('false source certification, publication and fake UUID are rejected',()=>{
