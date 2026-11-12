@@ -42,13 +42,14 @@ begin
     source_type,title,owner_type,visibility,canonical_key,
     asset_kind,purpose,curriculum_outcome_id
   ) values (
-    'platform_authored','P0 test package','platform','public','p0-test-package-'||gen_random_uuid(),
+    'platform_generated','P0 test package','platform','public','p0-test-package-'||gen_random_uuid(),
     'outcome_package','teach',o.id
   ) returning id into pkg_id;
 
   manifest := jsonb_build_object(
     'schema','vibeschool.outcome-package.v1',
     'outcome_id',o.id,
+    'curriculum_package_id',null,
     'curriculum_outcome_aliases',jsonb_build_array('p0-test-manuscript-alias'),
     'requirements',jsonb_build_object('teacher_guidance',false,'visual_assets',false),
     'assets',jsonb_build_object(
