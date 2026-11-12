@@ -213,6 +213,10 @@ export interface RevisionPlanItem {
 export interface MistakeNotebookItem {
   id: string
   questionId: string | null
+  /** Source bank grade, if available. Historical attempts remain preserved. */
+  sourceGrade: string | null
+  /** Verified question provenance is mandatory for current-grade targeting. */
+  sourceVerified: boolean
   sourceBlockId: string | null
   reviewUrl: string | null
   subject: string
@@ -763,9 +767,37 @@ export async function updateExamReadiness(input: { examDate: string | null; dail
   if (error) throw new Error(error.message)
 }
 
+export function isCurrentGradeMistake(item: MistakeNotebookItem, className: string | null | undefined): boolean {
+  // Grounded reader mistakes rely on their exact outcome verification gate.
+  if (!item.questionId) return true
+  const grade = className?.match(/^(Grade\s*\d+|Form\s*[1-4])(?:\s|$)/i)?.[1]
+  if (!grade || !item.sourceVerified || !item.sourceGrade) return false
+  const normalize = (value: string) => value.toLowerCase().replace(/\s+/g, '')
+  return normalize(item.sourceGrade) === normalize(grade)
+}
+
 export async function getRevisionWorkspace(subject: string | null = null, topic: string | null = null): Promise<RevisionWorkspace> {
   const { data, error } = await supabase.rpc('student_get_revision_workspace', { p_subject: subject, p_topic: topic })
   if (error) throw new Error(error.message)
+  // Learner-owned provenance prevents an old Form 4 bank mistake from being
+  // presented as recommended Grade 4 study. A failed lookup is fail-closed:
+  // unknown bank provenance is historical, never current-grade evidence.
+  const provenance = new Map<string, { grade: string | null; verified: boolean }>()
+  try {
+    const { data: gradeRows, error: gradeError } = await supabase.rpc('student_get_my_mistake_source_grades' as never)
+    if (!gradeError && Array.isArray(gradeRows)) {
+      for (const value of gradeRows) {
+        const entry = asRecord(value)
+        const id = asString(entry.mistake_id)
+        if (id) provenance.set(id, {
+          grade: asString(entry.source_grade),
+          verified: entry.source_verified === true,
+        })
+      }
+    }
+  } catch {
+    // Do not reclassify unverified/unknown bank evidence as current-grade.
+  }
   const row = asRecord(data)
   const mode = asRecord(row.revision_mode)
   const journey = asRecord(row.journey)
@@ -778,7 +810,11 @@ export async function getRevisionWorkspace(subject: string | null = null, topic:
     },
     todayPlan: parsePlanItems(row.today_plan),
     weekPlan: parsePlanItems(row.week_plan),
-    mistakes: parseMistakes(row.mistakes),
+    mistakes: parseMistakes(row.mistakes).map(item => ({
+      ...item,
+      sourceGrade: provenance.get(item.id)?.grade ?? null,
+      sourceVerified: provenance.get(item.id)?.verified ?? false,
+    })),
     weakTopics: (Array.isArray(row.weak_topics) ? row.weak_topics : []).flatMap(value => {
       const item = asRecord(value); const subjectName = asString(item.subject); const topicName = asString(item.topic)
       return subjectName && topicName ? [{ subject: subjectName, topic: topicName, misses: asNumber(item.misses), attempts: asNumber(item.attempts), accuracy: asNumber(item.accuracy) }] : []
