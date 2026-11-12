@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { LEARNER_GRADES } from '@/lib/learner/independent-grade'
+import LearnerGradePicker from '@/components/learner/LearnerGradePicker'
 
 export default function IndependentLearnerSignup() {
   const router = useRouter()
@@ -62,12 +62,7 @@ export default function IndependentLearnerSignup() {
         <a href="/student" style={{color:'#c8a84b'}}>Open learner home</a>
       </> : <>
         <p>Your Google account is verified. Choose your grade to get started.</p>
-        <label htmlFor="grade">Your grade or form</label>
-        <select id="grade" value={grade} onChange={e=>setGrade(e.target.value)}
-          style={{display:'block',width:'100%',margin:'10px 0',padding:14,fontSize:16,borderRadius:8}}>
-          <option value="">Choose grade</option>
-          {LEARNER_GRADES.map(item=><option key={item} value={item}>{item}</option>)}
-        </select>
+        <LearnerGradePicker value={grade} onChange={setGrade} legend="Your grade or form" />
         <button onClick={()=>void saveGrade()} disabled={!grade||busy}
           style={{width:'100%',padding:14,background:'#c8a84b',color:'#090915',border:0,borderRadius:8,fontWeight:700}}>
           {busy?'Saving…':'Continue learning'}
