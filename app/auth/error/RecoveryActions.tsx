@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
 
-export default function RecoveryActions() {
+export default function RecoveryActions({ signupConflict = false }: { signupConflict?: boolean }) {
   const [changingAccount, setChangingAccount] = useState(false)
   const [error, setError] = useState('')
 
@@ -14,7 +14,7 @@ export default function RecoveryActions() {
     try {
       const response = await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin', cache: 'no-store' })
       if (!response.ok) throw new Error('logout_failed')
-      window.location.assign('/login')
+      window.location.assign(signupConflict ? '/signup/student' : '/login')
     } catch {
       setError('We could not clear the current session. You can still return home or try again.')
       setChangingAccount(false)
@@ -33,11 +33,11 @@ export default function RecoveryActions() {
   return (
     <div style={{ marginTop: 24 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-        <button type="button" onClick={() => window.location.assign('/login')} style={{ ...buttonBase, border: 0, background: '#c8a84b', color: '#05050f' }}>
-          Try Again
+        <button type="button" onClick={() => window.location.assign(signupConflict ? '/signup/student' : '/login')} style={{ ...buttonBase, border: 0, background: '#c8a84b', color: '#05050f' }}>
+          {signupConflict ? 'Learner signup' : 'Try Again'}
         </button>
         <button type="button" onClick={changeAccount} disabled={changingAccount} aria-busy={changingAccount} style={{ ...buttonBase, border: '1px solid rgba(255,255,255,.22)', background: 'transparent', color: '#fff', opacity: changingAccount ? .65 : 1 }}>
-          {changingAccount ? 'Clearing session…' : 'Change account'}
+          {changingAccount ? 'Clearing session…' : signupConflict ? 'Use a different account' : 'Change account'}
         </button>
         <button type="button" onClick={() => window.location.assign('/')} style={{ ...buttonBase, border: '1px solid rgba(255,255,255,.22)', background: 'transparent', color: '#fff' }}>
           VibeSchool Home
