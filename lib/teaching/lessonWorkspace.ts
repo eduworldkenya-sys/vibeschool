@@ -238,9 +238,9 @@ export async function loadLessonWorkspace({
       })
       sourceLinked = Boolean(existingPlan?.scheme_id && source?.schemeId === existingPlan.scheme_id)
 
-      if (!source && timetableSlotId) {
+      if (!sourceLinked && timetableSlotId && !requestedSchemeId) {
         sourceError =
-          "Scheme connection needs attention. VibeSchool knows this scheduled class, but couldn't resolve its Scheme lesson. You can still create a custom lesson."
+          'No Scheme item linked to this dated lesson. Any curriculum topic shown is a suggestion, not a confirmed lesson assignment.'
       }
     } catch (sourceResolutionError) {
       console.error('[lessonWorkspace] lesson source resolution failed', sourceResolutionError)
@@ -249,19 +249,14 @@ export async function loadLessonWorkspace({
     }
   }
 
-  if (existingPlan) {
-    try {
-      const persistedSource = await restorePersistedLessonSource(existingPlan)
-      if (persistedSource) {
-        source = persistedSource
-        sourceLinked = Boolean(existingPlan.scheme_id && persistedSource.schemeId === existingPlan.scheme_id)
-        sourceError = sourceLinked ? null : 'No confirmed Scheme item linked to this lesson.'
-      }
-    } catch (sourceResolutionError) {
-      console.error('[lessonWorkspace] persisted source restoration failed', sourceResolutionError)
-      sourceError =
-        "Scheme connection needs attention. VibeSchool couldn't restore this plan's linked Scheme lesson."
-    }
+  // Dated authority must pass the exact occurrence / term / week checks above.
+  // Do not restore an old plan's Scheme or curriculum record after validation
+  // fails: doing so could make a wrong-week draft look safely curriculum-linked.
+  // The teacher-authored draft remains available for editing unchanged.
+  if (existingPlan?.scheme_id && !sourceLinked) {
+    source = null
+    sourceError =
+      'Saved Scheme link does not match this dated lesson or could not be verified. Review the term, week and teacher assignment before teaching.'
   }
 
   let sourceBundle: CanonicalLessonSourceBundle | null = null
