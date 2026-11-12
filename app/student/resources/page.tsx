@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
+import { clearCache } from "@/lib/student-cache";
 import { TEACHING_LIBRARY_SLOTS } from "@/lib/teaching/libraryStructure";
 import { componentForPersonalResource } from "@/lib/teaching/personalResourceTypes";
 import Skel from "@/components/student/Skel";
@@ -123,6 +124,8 @@ export default function StudentResourcesPage() {
   useEffect(() => {
     if (idLoading || !identity) return;
 
+    // Purge old cached class resources from earlier app versions on shared devices.
+    clearCache("lessons", identity.studentId);
     let active = true;
     async function load() {
       const { data, error } = await supabase
