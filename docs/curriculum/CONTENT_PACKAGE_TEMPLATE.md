@@ -38,6 +38,11 @@ Cross-check the total against the official source, explain any source-version di
 Duplicate this block for each outcome, or reference its canonical record.
 
 **Outcome ID:**  
+**Target learner age/grade and prerequisite check:**  
+**Learner variability to plan for (prior knowledge, pace, language and accessibility):**  
+**Pedagogical choice and why it fits this outcome (model, explore, investigate, perform, etc.):**  
+**Observable understanding / transfer evidence (not mere lesson completion):**  
+**Support/core/extension pathways and learner choice where appropriate:**  
 **Learner can:**  
 **Prerequisites / vocabulary:**  
 **Concept explanation / learner notes:**  
@@ -90,6 +95,18 @@ For each reusable assessment item or set, preserve:
 
 **No separate question-bank copy for each consuming tool.**
 
+### Distinct teaching and assessment uses
+
+| Material/source item ID and version | Outcome ID | Learning role | Visibility/exposure | Eligible use (lesson exercise / Topic Practice / quiz / formal exam) | Answer authority and review state | Existing canonical ID / integration check |
+| --- | --- | --- | --- | --- | --- | --- |
+| | | Worked example / guided solution / independent question / unseen assessment variant | Revealed / practice / protected | | | |
+
+- Keep a separate learning content identity for worked examples and revealed solutions: they **must not become protected-exam items by default**.
+- Independent questions can be reused in eligible formative contexts only after answer/feedback validation; formal exams need appropriately protected, fresh or equivalent items with the existing exam policy and approval.
+- Track variant relationships without confusing separate question identities. Do not duplicate the question bank or claim automatic live linkage from a planned row.
+- Verify a representative wrong answer, skipped answer, retry, misconception feedback and securely withheld formal-exam answer.
+- Distinguish **content-ready**, **connected to the question bank**, **approved for a stated assessment use**, and **deployed/learner-visible** with direct evidence.
+
 ## 5. Canonical binding audit
 
 Record the **real** IDs and inspected links instead of placeholders in the deployed system.
@@ -116,6 +133,9 @@ Use existing Content Engine objects and links; do not assume the schema solely f
 | Sufficient teachable depth for outcomes | | |
 | Practical instructions, feasibility and safety | | |
 | Age, accessibility and inclusive Kenyan contexts | | |
+| Learner understanding and adaptation (prior knowledge, scaffold, core, extension, formative evidence) | | |
+| Teacher usability (pacing, prompts, worked method, materials, feedback/intervention guidance) | | |
+| Exposed practice vs protected exam item identity / appropriate variant and access rules | | |
 | Originality / source and media rights | | |
 | Question/rubric and feedback integrity | | |
 | Teacher usability and independent learner readability | | |
