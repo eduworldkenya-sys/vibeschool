@@ -9409,6 +9409,7 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          asset_kind?: string | null
           canonical_key: string
           chapter_id?: string | null
           content_block_id?: string | null
