@@ -190,7 +190,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
   return <main style={shell}>
     <button style={secondary} onClick={()=>workspace?setWorkspace(null):router.push('/student/vibelearn')}>{workspace?'Choose topic':'← Learn'}</button>
     <h1 style={{fontSize:26,margin:'16px 0 6px'}}>Topic Practice</h1>
-    <p style={muted}>{grade} · Five questions · No timer or class code</p>
+    <p style={muted}>{grade} · {topics.length>0?'Five questions · No timer or class code':'Choose approved practice while five-question topics are prepared'}</p>
     {error && <div role='alert' style={{...card,borderColor:'#fda4af',color:'#be123c'}}>{error}</div>}
     {loading && <div style={card}>Loading available topics…</div>}
     {!loading && !workspace && <section style={card}>
