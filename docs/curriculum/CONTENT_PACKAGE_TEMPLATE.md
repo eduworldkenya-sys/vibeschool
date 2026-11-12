@@ -166,6 +166,34 @@ For any non-applicable element, record **why this outcome is better served anoth
 
 **A document is not an implementation test:** mark unavailable links as **NOT_CONNECTED**, unobserved user journeys as **NOT_CHECKED**, and release state only from current canonical evidence. Repair upstream curriculum/content/link defects and re-test before claiming the full connected three-experience journey works.
 
+## 3B. Atomic outcome production ledger and consolidation gates
+
+**Required method:** Treat a **complete outcome package** as the smallest normal content-production unit. For each KICD-reconciled outcome, author and check its **Core Learning → Supplementary Practice → Revision readiness → Teacher Guide → Canonical link/evidence** in **the same production pass**, before proceeding to the next outcome. Preserve the separate educational purposes in §3A; do not defer all activities or revision until an entire textbook is finished. This is an authoring template, not a new question bank or a claim that the existing app already performs automated routing.
+
+**One-row-per-outcome progress tracker:**
+
+| Outcome ID / KICD page and canonical match | Core explanation/model CHECKED | Supplementary targeted practice + answer authority CHECKED (or reasoned N/A) | Revision retrieval/application + remedial return link CHECKED (or reasoned N/A) | Teacher notes and differentiation CHECKED | Existing canonical content/question/version references | Actual runtime link/evidence | Disposition and next outcome |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| | | | | | | | |
+
+For each row preserve:
+
+- **Source gate:** KICD and current VibeSchool curriculum source version, `MATCH`/verified correction evidence, correct strand/sub-strand/outcome ID and relevant Scheme references.
+- **Integrated authoring:** learner goal, prerequisites, explanation and reasoned worked/demonstrated model; age/ability appropriate guided and independent tasks, support and extension; later retrieval/application question and accurate feedback; teacher prompts, materials, timing and interventions. Record why any modality is inapplicable instead of padding content.
+- **Checked answers:** mathematics working and units or appropriate sample responses/observation criteria; likely misconceptions, skipped/wrong/retry behaviour and learner-friendly feedback; genuine answer checking rather than generated guess.
+- **Identity and exposure:** canonical chapter/resource IDs and item IDs/versions, source/content/exam-eligibility; known-answer examples and formative practice remain separate from secure formal-exam variants; no duplicate bank.
+- **Honest states:** `DRAFT`, `CONTENT_COMPLETE`, `SELF_CHECKED`, `QUALITY_REVIEWED`, `INTEGRATED`, `AUTHORIZED`, `PUBLISHED`, `LEARNER_VISIBLE` only with current evidence of the claimed stage. Record missing integration as `NOT_CONNECTED`, not invented functional links. Learner-specific not-yet-studied revision remains `NOT_YET_TAUGHT`.
+
+**Consolidation ledger (run at actual boundaries, not as a separate textbook project):**
+
+| Boundary | Required additional product | Verified contributing scope/outcomes | Revision and assessment item IDs / solution checks | Teacher and learner links / actual evidence | Status, gaps and repair |
+| --- | --- | --- | --- | --- | --- |
+| Sub-strand/topic | Integrated activities, mixed retrieval and transfer, misconception/reteaching route | | | | |
+| Term | Concise curriculum-referenced review, mixed/spaced practice as appropriate, teacher revision guidance and assessment blueprint | | | | |
+| Declared subject | Cumulative cross-topic revision/application, complete coverage report, teacher and independent-learner navigation check | | | | |
+
+**Non-negotiable stop:** An outcome package cannot be marked **content-complete** if the core is missing explanations, supplementary work does not meaningfully practise the stated skill, revision simply repeats visible worked answers, required teacher guidance is absent, or answer/rubric quality is unchecked. Repair and recheck before moving to the next outcome. If an aspect is genuinely not applicable to that outcome, cite the subject-appropriate reason. Do not equate completed content, draft revision items or page counts with published access or demonstrated individual mastery.
+
 ## 4. Practice and question integrity
 
 For each reusable assessment item or set, preserve:
@@ -221,6 +249,8 @@ Use existing Content Engine objects and links; do not assume the schema solely f
 | Learner understanding and adaptation (prior knowledge, scaffold, core, extension, formative evidence) | | |
 | Core / supplementary / revision pedagogical purposes, complete mapping and relevance (no filler) | | |
 | Revision gap-to-core-to-practice-to-fresh-check route and honest learner evidence status | | |
+| Same-pass core + supplementary + revision readiness + teacher support for each reconciled outcome before moving on | | |
+| Topic, term and subject consolidation assembled from checked outcome packages, without duplicated question authority | | |
 | Teacher usability (pacing, prompts, worked method, materials, feedback/intervention guidance) | | |
 | Exposed practice vs protected exam item identity / appropriate variant and access rules | | |
 | Originality / source and media rights | | |

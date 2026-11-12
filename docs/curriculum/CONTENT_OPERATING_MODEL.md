@@ -136,7 +136,7 @@ After the **mandatory KICD ↔ VibeSchool reconciliation has passed** and the ma
 | **Supplementary practice (activity-book-equivalent)** | Author targeted, varied, accessible and gradually independent activities, worksheets or performance tasks with correct solutions/rubrics; offer remedial and enrichment variants | Teacher assignment/exercise, learner Topic Practice/worksheet/home activity where appropriate; check answer, feedback, and question identity/eligible uses |
 | **Revision (revision-book-equivalent)** | Author retrieval and mixed-transfer checks for **already taught and source-verified** outcomes, concise accurate reminders and a wrong-answer → exact lesson → supported practice → fresh check pathway | Existing revision/Topic Practice/assessment surfaces where available; verify mappings, honest completion state, feedback, fresh items and safe exam separation |
 
-**Delivery order:** author and quality-check the **core** teaching source first; design outcome-appropriate supplementary activities second; derive revision plans/items and links third. Do not rush into hundreds of generic exam questions to make an incomplete core lesson appear complete. The three experiences may be packaged as one release candidate, but each function, eligibility and status must remain separately inspectable.
+**Delivery order is WITHIN EACH OUTCOME, not across three subject-wide book projects:** author and quality-check the **core** teaching source for Outcome 1, create its appropriate supplementary activities, derive its revision-ready prompts/answers and support links, check the integrated outcome package, **then** proceed to Outcome 2. Repeat for every reconciled outcome in the requested scope. Do not write all core chapters first and postpone the other two categories, and do not rush into hundreds of generic exam questions to make an incomplete core lesson appear complete. The three experiences may be packaged as one release candidate, but each function, eligibility and status must remain separately inspectable.
 
 **Pedagogical acceptance:** (a) learners can understand a new idea from core content; (b) learners with different prerequisites can practise it with useful feedback and support; (c) learners who have studied it can later retrieve/apply it and identify what to relearn; (d) teachers can prepare, deliver, differentiate and respond from the same source. This is an editorial acceptance target until demonstrated in actual teacher/learner tests.
 
@@ -147,6 +147,34 @@ After the **mandatory KICD ↔ VibeSchool reconciliation has passed** and the ma
 **Illustrative example:** Grade 4 Mathematics Time: core model of reading an analogue clock; additional clock-reading practice with accessible alternative and feedback when a learner confuses the hands; later revision across verified taught Time outcomes, with a wrong-answer link to the specific explanation, targeted exercise and a fresh check. Treat that example as pedagogy, not as a verified official KICD allocation.
 
 **Deliverables:** a three-experience manifest per included outcome, teacher/learner derivative references, answer checks, any learner-specific evidence actually observed, missing-component dispositions and honest visibility/release states.
+
+### Step 5B — Atomic outcome loop and cumulative revision assembly
+
+**This is the default content generation loop for every new grade/subject request.** Read the mandatory [atomic production contract](./CONTENT_PRODUCTION_STANDARD.md#4d-atomic-three-experience-production--generate-together-release-by-purpose). The chat must execute the following **for each curriculum-reconciled outcome** before moving to the next:
+
+```text
+OFFICIAL KICD + CANONICAL VIBESCHOOL → COMPARE / REPAIR → PASS FOR REQUESTED SCOPE
+  OUTCOME 1:
+    LEARNER GOAL + PREREQUISITES + PEDAGOGY
+      → CORE explanation / model / guided check + teacher guide
+      → SUPPLEMENTARY guided / independent / support / extension practice
+      → REVISION-ready retrieval / fresh application / answers / remedial links
+      → VALIDATE facts, mathematical steps, rubrics, accessibility, question exposure
+      → STORE / LINK one canonical outcome package; record status and evidence
+  OUTCOME 2: REPEAT ...
+  OUTCOME N: REPEAT ...
+SUB-STRAND / TOPIC BOUNDARY → mixed practice + integrated revision
+TERM BOUNDARY → term review + teacher guidance + scope-based assessment blueprint
+DECLARED SUBJECT BOUNDARY → cumulative revision + full coverage / connection audit
+```
+
+**One pass means one complete outcome package, not one huge response.** Split by sensible outcomes/sub-strands without losing stable IDs, source version or quality evidence. After each pass record the package in the [Content Package Template](./CONTENT_PACKAGE_TEMPLATE.md#3b-atomic-outcome-production-ledger-and-consolidation-gates); a checked manuscript is not proof that a database write or learner journey occurred. Do not require the product owner to select the next outcome, approve every exercise or manually recreate derivatives.
+
+**Topic/term/subject compilers:** Once all contributing packages within the actual defined scope are ready, assemble a small accurate summary, mixed retrieval and transfer tasks, integration/feedback paths and a teacher revision plan. Reference existing outcome/question IDs. Do not re-author unrelated textbook copies, duplicate visible examples into protected exams, or claim an outcome was studied by a learner simply because a revision question was drafted.
+
+**Meaningful quality stop:** if any applicable piece is inaccurate, too difficult/too easy for the intended learner without adaptation, unteachably shallow, repetitive, wrongfully mapped, unanswerable, unsafe, inaccessible or leaks a protected answer, repair that piece and all dependent references **before advancing**. Mark `NOT_CHECKED` or `NOT_CONNECTED` where evidence is absent. Preserve existing independent quality and release gates.
+
+**Illustrative Grade 4 Time single pass:** explain hours and minutes in age-appropriate steps; model 3 h = 180 min with reasoning; practise 2 h and 5 h, including a concrete support path; author a fresh later retrieval/application item and wrong-answer return to the conversion model; supply a short teacher guide with prompts, misconception response and answer keys. Keep the revised item distinct from secured exam variants. This is illustrative pedagogy, not independently verified KICD allocation.
 
 ### Step 6 — Check, repair and package
 
