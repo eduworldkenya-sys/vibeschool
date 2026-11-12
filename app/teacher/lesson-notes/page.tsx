@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { startTeachingOccurrence } from "@/lib/teaching/occurrence";
 import { parseLessonPlanBody } from "@/lib/teaching/lessonPlanCodec";
 import type { LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
 import LessonTeachMode, { type LessonCompletionReview } from "@/components/teacher/LessonTeachMode";
@@ -31,6 +32,7 @@ type PlanRow = {
   timetable_slot_id: string | null;
   taught_date: string | null;
   teacher_id: string | null;
+  school_id: string | null;
   class_id: string | null;
   subject_id: string | null;
 };
@@ -61,6 +63,15 @@ type OccurrenceRow = {
   timetable_slot_id: string;
   occurrence_date: string;
   lifecycle: string;
+};
+
+type CompletedLessonRecord = {
+  attendanceCount: number;
+  evidenceCount: number;
+  progressSaved: boolean;
+  reflectionSaved: boolean;
+  teacherRemarks: string | null;
+  nextSteps: string | null;
 };
 
 type ExactChapterRow = {
@@ -105,6 +116,10 @@ function LessonNotesInner() {
   const [teachMode, setTeachMode] = useState(params.get("teach") === "1");
   const [liveNote, setLiveNote] = useState("");
   const [occurrence, setOccurrence] = useState<OccurrenceRow | null>(null);
+  const [startingLesson, setStartingLesson] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  const [completedRecord, setCompletedRecord] = useState<CompletedLessonRecord | null>(null);
+  const [recordError, setRecordError] = useState<string | null>(null);
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [reflectionSeed, setReflectionSeed] = useState("");
@@ -133,7 +148,7 @@ function LessonNotesInner() {
 
       const { data: planData, error: planError } = await supabase
         .from("lesson_plans")
-        .select("id,title,topic,body,scheme_id,curriculum_id,curriculum_outcome_id,status,duration_minutes,timetable_slot_id,taught_date,teacher_id,class_id,subject_id")
+        .select("id,title,topic,body,scheme_id,curriculum_id,curriculum_outcome_id,status,duration_minutes,timetable_slot_id,taught_date,teacher_id,school_id,class_id,subject_id")
         .eq("id", lessonPlanId)
         .single();
 
@@ -161,26 +176,60 @@ function LessonNotesInner() {
         }
       }
 
-      if (occurrenceId) {
-        const { data: occurrenceData, error: occurrenceError } = await supabase
-          .from("teaching_occurrences")
-          .select("id,school_id,teacher_id,class_id,subject_id,timetable_slot_id,occurrence_date,lifecycle")
-          .eq("id", occurrenceId)
-          .maybeSingle();
+      // Resolve the same persisted teaching occurrence on a fresh link or reload.
+      // The saved plan's exact slot + date are authoritative when no ID was
+      // supplied. Never create an occurrence from a viewer or trust URL IDs.
+      setCompletedRecord(null);
+      setRecordError(null);
+      if (occurrenceId || (typedPlan.timetable_slot_id && typedPlan.taught_date)) {
+        let occurrenceQuery = supabase.from("teaching_occurrences")
+          .select("id,school_id,teacher_id,class_id,subject_id,timetable_slot_id,occurrence_date,lifecycle");
+        occurrenceQuery = occurrenceId
+          ? occurrenceQuery.eq("id", occurrenceId)
+          : occurrenceQuery.eq("timetable_slot_id", typedPlan.timetable_slot_id!)
+              .eq("occurrence_date", typedPlan.taught_date!);
+        const { data: occurrenceData, error: occurrenceError } = await occurrenceQuery.maybeSingle();
         if (occurrenceError) throw occurrenceError;
         const row = occurrenceData as OccurrenceRow | null;
-        const mismatch = !row
-          || row.teacher_id !== authData.user.id
+        if (occurrenceId && !row) throw new Error("The requested teaching occurrence was not found.");
+        if (row && (row.teacher_id !== authData.user.id
+          || row.school_id !== typedPlan.school_id
           || row.timetable_slot_id !== typedPlan.timetable_slot_id
-          || (typedPlan.taught_date && row.occurrence_date !== typedPlan.taught_date)
-          || (typedPlan.teacher_id && row.teacher_id !== typedPlan.teacher_id)
-          || (typedPlan.class_id && row.class_id !== typedPlan.class_id)
-          || (typedPlan.subject_id && row.subject_id !== typedPlan.subject_id);
-        if (mismatch) {
-          setOccurrence(null);
+          || row.occurrence_date !== typedPlan.taught_date
+          || row.teacher_id !== typedPlan.teacher_id
+          || row.class_id !== typedPlan.class_id
+          || row.subject_id !== typedPlan.subject_id)) {
           throw new Error("Lesson changed or this occurrence no longer belongs to the current lesson authority.");
         }
         setOccurrence(row);
+
+        if (row?.lifecycle === "completed") {
+          // Read-only history: a completed session must show its actual saved
+          // evidence, not an assumed 'complete' state from the viewer cache.
+          const [attendance, evidence, progress, reflection] = await Promise.all([
+            supabase.from("attendance").select("student_id", { count: "exact", head: true })
+              .eq("teaching_occurrence_id", row.id),
+            supabase.from("lesson_evidence").select("id", { count: "exact", head: true })
+              .eq("teaching_occurrence_id", row.id),
+            supabase.from("progress_records").select("id,teacher_remarks,next_steps")
+              .eq("teaching_occurrence_id", row.id).maybeSingle(),
+            supabase.from("lesson_reflections").select("id")
+              .eq("teaching_occurrence_id", row.id).maybeSingle(),
+          ]);
+          const historyError = attendance.error ?? evidence.error ?? progress.error ?? reflection.error;
+          if (historyError) {
+            setRecordError("Saved lesson history could not be verified. Refresh or check your access before relying on this record.");
+          } else {
+            setCompletedRecord({
+              attendanceCount: attendance.count ?? 0,
+              evidenceCount: evidence.count ?? 0,
+              progressSaved: Boolean(progress.data?.id),
+              reflectionSaved: Boolean(reflection.data?.id),
+              teacherRemarks: progress.data?.teacher_remarks ?? null,
+              nextSteps: progress.data?.next_steps ?? null,
+            });
+          }
+        }
       } else {
         setOccurrence(null);
       }
@@ -329,6 +378,44 @@ function LessonNotesInner() {
     }
   }
 
+  // Enter the one canonical scheduled lifecycle. Lesson Notes never creates
+  // a local-only teaching session or completes an unstarted occurrence.
+  async function openCanonicalTeach() {
+    if (!plan || startingLesson) return;
+    setStartError(null);
+    if (!plan.timetable_slot_id || !plan.taught_date) {
+      setStartError("This plan has no scheduled lesson identity. Open an unscheduled prepared draft through Lesson Plans → Teach unscheduled.");
+      return;
+    }
+    if (occurrence?.lifecycle === "completed" || occurrence?.lifecycle === "in_progress") {
+      setTeachMode(true);
+      return;
+    }
+    if (occurrence && ["missed", "rescheduled", "cancelled"].includes(occurrence.lifecycle)) {
+      setStartError("This occurrence cannot start. Recover a missed lesson from its timetable entry, or review the archived session.");
+      return;
+    }
+    setStartingLesson(true);
+    try {
+      const row = await startTeachingOccurrence({
+        timetableSlotId: plan.timetable_slot_id,
+        occurrenceDate: plan.taught_date,
+      });
+      if (row.lifecycle !== "in_progress" || row.teacher_id !== plan.teacher_id
+        || row.school_id !== plan.school_id || row.class_id !== plan.class_id
+        || row.subject_id !== plan.subject_id || row.timetable_slot_id !== plan.timetable_slot_id
+        || row.occurrence_date !== plan.taught_date) {
+        throw new Error("The started occurrence does not match this saved lesson.");
+      }
+      setOccurrence(row);
+      setTeachMode(true);
+    } catch (cause) {
+      setStartError(cause instanceof Error ? cause.message : "The lesson could not be started.");
+    } finally {
+      setStartingLesson(false);
+    }
+  }
+
   function openResource(resource: ResourceRow) {
     if (!resource.publicationId) return;
     const next = new URLSearchParams();
@@ -377,8 +464,25 @@ function LessonNotesInner() {
           Review the lesson plan before teaching; VibeSchool will not silently change teacher-authored content.
         </section>
       )}
+      {startError && <p role="alert" style={{ color: "#b91c1c", padding: 10 }}>{startError}</p>}
+      {startingLesson && <p role="status">Starting the scheduled lesson…</p>}
+      {occurrence?.lifecycle === "completed" && (
+        <section aria-label="Saved completed lesson history" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 14, padding: 14, marginBottom: 12 }}>
+          <strong>Completed lesson · saved occurrence</strong>
+          <div style={{ fontSize: 12, marginTop: 6 }}>Lesson date: {occurrence.occurrence_date} · Occurrence ID: {occurrence.id}</div>
+          {recordError && <p role="alert">{recordError}</p>}
+          {completedRecord ? (
+            <div style={{ fontSize: 13, marginTop: 8 }}>
+              <div>Attendance records: {completedRecord.attendanceCount} · Evidence records: {completedRecord.evidenceCount}</div>
+              <div>Teaching progress: {completedRecord.progressSaved ? "saved" : "not found"} · Reflection: {completedRecord.reflectionSaved ? "saved" : "not found"}</div>
+              {completedRecord.teacherRemarks && <p>Teacher remarks: {completedRecord.teacherRemarks}</p>}
+              {completedRecord.nextSteps && <p>Next steps: {completedRecord.nextSteps}</p>}
+            </div>
+          ) : !recordError && <p>Checking the saved teaching record…</p>}
+        </section>
+      )}
       {plan.class_id && plan.subject_id && <TeachingWorkspaceNav classId={plan.class_id} subjectId={plan.subject_id} lessonPlanId={plan.id} occurrenceId={occurrence?.id} timetableSlotId={plan.timetable_slot_id} occurrenceDate={plan.taught_date} current="Lesson" />}
-      {sections && <LessonPreparationStudio sections={sections} topic={plan.topic || plan.title || "Lesson notes"} resourceCount={resources.length} onTeach={() => setTeachMode(true)} onEdit={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(plan.class_id || contextClassId)}&subjectId=${encodeURIComponent(plan.subject_id || contextSubjectId)}&timetableSlotId=${encodeURIComponent(plan.timetable_slot_id || "")}&date=${encodeURIComponent(plan.taught_date || "")}`)} />}
+      {sections && <LessonPreparationStudio sections={sections} topic={plan.topic || plan.title || "Lesson notes"} resourceCount={resources.length} onTeach={() => void openCanonicalTeach()} onEdit={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(plan.class_id || contextClassId)}&subjectId=${encodeURIComponent(plan.subject_id || contextSubjectId)}&timetableSlotId=${encodeURIComponent(plan.timetable_slot_id || "")}&date=${encodeURIComponent(plan.taught_date || "")}`)} />}
       {plan.scheme_id && (
         <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",margin:"12px 0"}}>
           <button type="button" onClick={() => {
@@ -503,7 +607,7 @@ function LessonNotesInner() {
         </section>
       )}
       </details>
-      {teachMode && sections && (
+      {teachMode && sections && occurrence && (occurrence.lifecycle === "in_progress" || occurrence.lifecycle === "completed") && (
         <LessonTeachMode
           subject="Lesson"
           className={occurrence ? "Current class" : "Lesson workspace"}
@@ -574,7 +678,7 @@ function LessonNotesInner() {
               throw new Error(`Lesson was not finalized; no partial completion was accepted: ${finalizeError.message}`);
             }
             const finalizedRow = Array.isArray(finalized) ? finalized[0] : finalized;
-            if (!finalizedRow?.occurrence_id || !finalizedRow?.progress_record_id) {
+            if (finalizedRow?.occurrence_id !== occurrence.id || !finalizedRow?.progress_record_id) {
               throw new Error("Lesson finalization returned no authoritative completion record.");
             }
             setOccurrence(current => current ? { ...current, id: finalizedRow.occurrence_id, lifecycle: "completed" } : current);
