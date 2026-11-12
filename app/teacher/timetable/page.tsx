@@ -900,6 +900,26 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [weeklyLoadRetry, setWeeklyLoadRetry]  = useState(0)
   const [showLoadCheck,   setShowLoadCheck]    = useState(false)
 
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(event => {
+      if (event !== 'SIGNED_OUT') return
+      // Auth state is a data-isolation boundary, including for multiple
+      // teachers sharing one device. Clear cached school details immediately.
+      setVerifiedTeacher(false)
+      setTeacherId(null)
+      setActiveSchoolId(null)
+      setSchools([])
+      setAllSlots([])
+      setSchoolBlocks({})
+      setDayBlocks([])
+      setCalendarExceptions([])
+      setSelected(null)
+      setSchoolError('Sign in to open your timetable.')
+      defaultScopeRef.current = null
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
   // FIX [FATAL-02]: isMounted ref — prevents setState on unmounted component
   const isMounted = useRef(true)
   useEffect(() => {
