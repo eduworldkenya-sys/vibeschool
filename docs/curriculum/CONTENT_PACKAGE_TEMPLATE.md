@@ -64,7 +64,7 @@ Duplicate this block for each outcome, or reference its canonical record.
 **Support/core/extension pathways and learner choice where appropriate:**  
 **Learner can:**  
 **Prerequisites / vocabulary:**  
-**Concept explanation / learner notes:**  
+**Concept explanation / learner notes (full learner-facing content, not a teacher-only summary):**  
 **Worked example / demonstration (where useful):**  
 **Visual aid needed? If yes, why and for which learner action:**  
 **Visual type and exact content description (brief):**  
@@ -89,12 +89,26 @@ Duplicate this block for each outcome, or reference its canonical record.
 **Answer key / sample answer / rubric / feedback:**  
 **Likely misconception and correction:**  
 **Remedial path and enrichment:**  
+**Teacher Lesson Notes: concise key facts, board steps, questions, expected responses, misconceptions and quick checks:**  
 **Teacher Guide: preparation, prompts, resources, differentiation and evidence to observe:**  
+**Notes lineage: actual learner_notes / teacher_notes resource IDs, exact certified or pinned versions, real teacher/reader/Scheme links or NOT_CONNECTED:**  
 **Related competencies / values / PCIs where relevant:**  
 **Safety / accessibility / low-resource alternative:**  
 **Source and canonical resource/item IDs:**  
 
 For any non-applicable element, record **why this outcome is better served another way**; do not paste a generic N/A.
+
+
+### Learner content and teacher Lesson Notes are different but linked
+
+Follow the [paired example and rules in the canonical playbook](./CONTENT_GENERATION.md#45-learner-content-vs-lesson-notes--two-views-of-one-verified-outcome). An outcome should have a complete, usable learner experience and enough teacher support to explain, question, check and intervene. Where a dedicated teacher-notes resource is educationally useful, record its actual contents and version. Both views must agree on the checked outcome, facts, worked steps, answers and resource lineage but need not be identical copies. Do not confuse teacher Lesson Notes with the Lesson Plan, and do not require a timetable for authoring or unscheduled preparation.
+
+| Separate evidence | Record |
+| --- | --- |
+| Learner Core teaching and guided/independent check | Actual learner text, example, feedback and version |
+| Teacher Lesson Notes, or pedagogical reason for using other support | Actual concise notes with prompts, mistakes and checks, or reason |
+| Consistent canonical lineage | Verified outcome plus real learner/teacher resource and version references |
+| Reader and Lesson Plan/Teaching Library links | Actual tested status or NOT_CONNECTED; no invented publication |
 
 ### Learning component selection
 
