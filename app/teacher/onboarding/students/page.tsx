@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { C } from '@/components/teacher/ui'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -27,6 +27,35 @@ export default function StudentsOnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const [schoolId, setSchoolId] = useState('')
+  const [classId, setClassId] = useState('')
+  const [destinationLocked, setDestinationLocked] = useState(false)
+  const [classes, setClasses] = useState<Array<{ class_id: string; class_name: string; stream?: string }>>([])
+  const [classMessage, setClassMessage] = useState('Loading classes…')
+
+  useEffect(() => {
+    let active = true
+    const params = new URLSearchParams(window.location.search)
+    const requestedClass = params.get('class_id')
+    void (async () => {
+      const { data, error } = await supabase.rpc('teacher_get_operating_context', {
+        p_requested_school_id: params.get('school_id') ?? undefined,
+      })
+      if (!active) return
+      const context = data as { school_id?: string; classes?: Array<{ class_id: string; class_name: string; stream?: string; is_class_teacher: boolean }> } | null
+      if (error || !context?.school_id || (params.get('school_id') && params.get('school_id') !== context.school_id)) {
+        setClassMessage('Could not verify the school. Reload and try again.')
+        return
+      }
+      const managed = Array.from(new Map((context.classes ?? []).filter(item => item.is_class_teacher).map(item => [item.class_id, item])).values())
+      setSchoolId(context.school_id)
+      setClasses(managed)
+      if (requestedClass && managed.some(item => item.class_id === requestedClass)) setClassId(requestedClass)
+      setClassMessage(managed.length ? (requestedClass && !managed.some(item => item.class_id === requestedClass) ? 'You cannot add learners to the selected class. Choose a class you manage.' : '') : 'Only class teachers can add learners. No managed classes are available.')
+    })()
+    return () => { active = false }
+  }, [])
+
   function addRow() {
     setStudents(s => [...s, newStudentRow()])
   }
@@ -48,14 +77,13 @@ export default function StudentsOnboardingPage() {
     }
 
     if (loading) return
+    if (!classId || !schoolId) return
     setLoading(true)
+    setDestinationLocked(true)
     let confirmed = 0
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser()
       if (authError || !user) throw new Error('Sign in again before adding learners.')
-      const params = new URLSearchParams(window.location.search)
-      const classId = params.get('class_id')
-      const schoolId = params.get('school_id')
       if (!classId || !schoolId) throw new Error('Open the class you manage before adding learners.')
       const { data: context, error: contextError } = await supabase.rpc('teacher_get_operating_context', { p_requested_school_id: schoolId })
       const ctx = context as { school_id?: string; classes?: Array<{ class_id: string; is_class_teacher: boolean }> } | null
@@ -92,6 +120,14 @@ export default function StudentsOnboardingPage() {
           <p style={{ fontSize: 13, color: C.textMuted }}>Enter names and optional admission numbers. You can add more later.</p>
         </div>
 
+        <label style={{ display: 'grid', gap: 6, marginBottom: 14 }}>
+          Class
+          <select value={classId} disabled={loading || destinationLocked || !classes.length} onChange={event => { setClassId(event.target.value); setClassMessage('') }}>
+            <option value="">Choose a class</option>
+            {classes.map(item => <option key={item.class_id} value={item.class_id}>{item.class_name}{item.stream ? ` ${item.stream}` : ''}</option>)}
+          </select>
+        </label>
+        {classMessage && <p role="status">{classMessage}</p>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
           {students.map((s, i) => (
             <div key={s.request_id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8, padding: 12, border: '1px solid #e5e7eb', borderRadius: 10 }}>
@@ -117,7 +153,7 @@ export default function StudentsOnboardingPage() {
           <button onClick={() => router.push('/teacher')} disabled={loading} style={{ flex: 1, padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
             Skip for now
           </button>
-          <button onClick={handleSave} disabled={loading} style={{ flex: 2, padding: '13px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={handleSave} disabled={loading || !classId || !students.some(student => student.name.trim())} style={{ flex: 2, padding: '13px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
             {loading ? 'Saving…' : "Add learners →"}
           </button>
         </div>
