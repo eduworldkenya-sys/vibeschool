@@ -23,6 +23,16 @@ The existing **Content Engine** remains the canonical storage/publication and co
 
 This is a **current operating choice**, not the deletion of the future automation architecture.
 
+## HQ-optional verification for the current solo-owner phase
+
+**Owner decision (12 November 2026):** HQ remains available for future management but is **not** an obligatory checkpoint for editorial research, official-source comparison, canonical-read-only inspection, content QA or preparation of original learning material. The default operator works in chat and GitHub; authenticated read-only Supabase evidence may be used when available. Neither an HQ account nor an HQ employee/AI workforce identity is required merely to **check** curriculum.
+
+Run `npm run check:content-without-hq` in a repository checkout/CI to execute the existing curriculum-identity, outcome-package and quality static contracts plus the HQ-optional policy regression. The script is **not** official-source authentication, a database migration, an owner approval, or learner delivery certification. Separately compare the exact applicable KICD design and live curriculum for the requested outcome(s), recording source pages, stable IDs and any `MATCH` / `PARTIAL` / `MISSING` / `CONFLICT` / `NOT_CHECKED` evidence.
+
+Existing source-intake, `vs_curriculum_package_gate`, candidate→verified→certified lifecycle, publisher permissions, independent assurance and actual app reader checks still govern consequential transitions. **Do not turn an optional HQ dashboard into an owner-approval bypass.** Where the current protected production action is exposed only by HQ, leave that action blocked for an authenticated owner-capable operator rather than skipping its permission check or claiming publication; routine draft and read-only verification can continue.
+
+This clarifies the editorial working mode; it is not a new runtime flag, worker, database table, publishing API, certification authority or permission grant. The master content playbook remains [CONTENT_GENERATION.md](./CONTENT_GENERATION.md#0a-hq-optional-curriculum-checking--interim-solo-owner-operating-decision-12-november-2026).
+
 ## 2. Working team — ten professional functions, one ChatGPT-led production desk
 
 The roles below describe the **competence lens to apply**, not ten separate deployed AI agents, guaranteed degrees or human staff. When evidence requires a genuinely independent professional review, do not pass off another ChatGPT self-check as that review.
