@@ -3,7 +3,8 @@
 
 Historic pinned production fingerprint != current live schema. This script
 preserves both identities, checks *all* current live hashes and explicitly
-classifies exactly seven known differences. It is NOT a migration approval
+classifies exactly four unresolved structural differences. The three
+already-applied unscheduled-teaching sections must match the updated reference. It is NOT a migration approval
 and must never be treated as production parity with a clean rebuild.
 """
 from __future__ import annotations
@@ -36,7 +37,7 @@ EXISTING_STRUCTURE_DIFFERENCES = frozenset(
         ("teaching_occurrences", "triggers_hash"),
     )
 )
-REVIEWED_DIFFERENCES = ALREADY_APPLIED_UNSCHEDULED | EXISTING_STRUCTURE_DIFFERENCES
+REVIEWED_DIFFERENCES = EXISTING_STRUCTURE_DIFFERENCES
 
 
 class PreflightError(ValueError):
@@ -76,6 +77,7 @@ def assess(observed: dict, pinned: dict, live: dict) -> dict:
     baseline_differences = []
     unexpected_baseline = []
     observation_differences = []
+    unscheduled_mismatches = []
 
     for table in sorted(CORE_TABLES):
         for key in sorted(HASH_KEYS):
@@ -85,9 +87,7 @@ def assess(observed: dict, pinned: dict, live: dict) -> dict:
             identity = (table, key)
             if before != expected:
                 category = (
-                    "EXACT_ALREADY_APPLIED_UNSCHEDULED"
-                    if identity in ALREADY_APPLIED_UNSCHEDULED
-                    else "OBSERVED_EXISTING_STRUCTURE"
+                    "OBSERVED_EXISTING_STRUCTURE"
                     if identity in EXISTING_STRUCTURE_DIFFERENCES
                     else "UNRECOGNIZED_BASELINE_DIFFERENCE"
                 )
@@ -101,6 +101,8 @@ def assess(observed: dict, pinned: dict, live: dict) -> dict:
                 baseline_differences.append(item)
                 if identity not in REVIEWED_DIFFERENCES:
                     unexpected_baseline.append(item)
+            if identity in ALREADY_APPLIED_UNSCHEDULED and before != expected:
+                unscheduled_mismatches.append(f"{table}.{key.removesuffix('_hash')}")
             if current != expected:
                 observation_differences.append(
                     {"table": table, "section": key.removesuffix("_hash"),
@@ -117,6 +119,7 @@ def assess(observed: dict, pinned: dict, live: dict) -> dict:
         and not missing_classifications
         and not unexpected_baseline
         and not observation_differences
+        and not unscheduled_mismatches
     )
     return {
         "schema_version": 1,
@@ -130,6 +133,8 @@ def assess(observed: dict, pinned: dict, live: dict) -> dict:
         "schema_sections_checked": len(CORE_TABLES) * len(HASH_KEYS),
         "classified_historic_differences": baseline_differences,
         "missing_classifications": missing_classifications,
+        "already_applied_unscheduled_sections_checked": len(ALREADY_APPLIED_UNSCHEDULED),
+        "already_applied_unscheduled_mismatches": unscheduled_mismatches,
         "unrecognized_baseline_differences": unexpected_baseline,
         "fresh_live_differences": observation_differences,
     }
