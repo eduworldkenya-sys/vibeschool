@@ -147,8 +147,7 @@ begin
 
   -- Exact manuscript aliases are separate from the stable outcome ID. The
   -- upstream curriculum promotion guard verifies their authoritative mapping.
-  if p_manifest->'curriculum_package_id' is not null
-     and jsonb_typeof(p_manifest->'curriculum_package_id') is distinct from 'string' then
+  if jsonb_typeof(p_manifest->'curriculum_package_id') not in ('null','string') then
     return jsonb_build_object('valid',false,'issues',jsonb_build_array('INVALID_CURRICULUM_PACKAGE_ID'));
   end if;
   if jsonb_typeof(p_manifest->'curriculum_outcome_aliases') is distinct from 'array' then
