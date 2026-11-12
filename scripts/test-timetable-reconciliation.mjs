@@ -132,3 +132,18 @@ test('teacher timetable checks outcome readiness', () => {
     /grade_code/,
   )
 })
+
+
+test('the planned period-guard delta is explicit, exact and not mislabeled production parity', () => {
+  const baseline = JSON.parse(read('supabase/reconciliation/tbl012_production_core_schema_hashes.json'))
+  const planned = JSON.parse(read('supabase/reconciliation/tbl012_pending_forward_deltas.json'))
+  assert.equal(planned.deltas.length, 1)
+  const delta = planned.deltas[0]
+  assert.equal(delta.table, 'timetable_slots')
+  assert.equal(delta.section, 'triggers')
+  assert.equal(delta.production_hash, baseline.tables.timetable_slots.triggers_hash)
+  assert.match(delta.rebuilt_hash, /^[a-f0-9]{32}$/)
+  assert.notEqual(delta.production_hash, delta.rebuilt_hash)
+  assert.match(periods, /effective_from, effective_until/)
+  assert.match(read('scripts/tbl012-compare-schema-hashes.py'), /release_requires_forward_migration/)
+})
