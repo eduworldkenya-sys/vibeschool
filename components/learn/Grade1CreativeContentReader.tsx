@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 import Grade1CreativeActivitiesMap, {
   GRADE1_CREATIVE_STRANDS,
   GRADE1_CREATIVE_UNITS,
@@ -152,7 +153,7 @@ export default function Grade1CreativeContentReader() {
             {activeLesson && (
               <article aria-live="polite" style={{ background: '#fff', border: '1px solid #d0e4d7', borderRadius: 12, padding: 18 }}>
                 <h3 style={{ fontSize: 20, margin: '0 0 12px', color: '#164e35' }}>{activeLesson.title}</h3>
-                <div style={{ fontSize: 16, whiteSpace: 'pre-wrap', lineHeight: 1.85, color: '#183b2b' }}>{activeLesson.body}</div>
+                <VisualRichText body={activeLesson.body} style={{ fontSize: 16, lineHeight: 1.85, color: '#183b2b' }} />
                 {activeLessonIndex + 1 < lessons.length && (
                   <button type="button" onClick={() => setSelectedLessonId(lessons[activeLessonIndex + 1].id)}
                     style={{ minHeight: 46, marginTop: 16, background: '#175b43', color: '#fff', border: 0, borderRadius: 10, padding: '9px 18px', fontWeight: 750, cursor: 'pointer' }}>
