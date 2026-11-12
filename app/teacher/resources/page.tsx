@@ -31,6 +31,7 @@ type SchemeLesson = {
   id: string
   class_id: string
   subject_id: string
+  subject: string | null
   academic_term_id: string | null
   topic: string | null
   sub_strand: string | null
@@ -43,6 +44,7 @@ type LinkedResourceRow = {
   id: string
   scheme_lesson_id: string
   resource_id: string
+  resource_version_id: string | null
   publication_id: string
   chapter_id: string
   resource_role: string
@@ -68,7 +70,7 @@ type ReadyPack = {
   scheme: SchemeLesson
   classLabel: string
   subjectLabel: string
-  resources: Array<LinkedResourceRow & { resource: LearningResource | null }>
+  resources: Array<LinkedResourceRow & { resource: LearningResource | null; certifiedVersionId: string | null }>
 }
 type FormState = {
   type: ResourceType
@@ -106,10 +108,18 @@ function orderScheme(a: SchemeLesson, b: SchemeLesson) {
     || (a.lesson_number ?? 999999) - (b.lesson_number ?? 999999)
     || a.id.localeCompare(b.id)
 }
-function readerHref(row: LinkedResourceRow & { resource: LearningResource | null }) {
-  const publicationId = row.publication_id || row.resource?.publication_id
-  const chapterId = row.chapter_id || row.resource?.chapter_id
-  return publicationId && chapterId ? `/read/textbook/${publicationId}/${chapterId}` : null
+function readerHref(row: LinkedResourceRow & { resource: LearningResource | null; certifiedVersionId: string | null }) {
+  if (!row.resource || !row.certifiedVersionId) return null
+  const publicationId = row.publication_id || row.resource.publication_id
+  const chapterId = row.chapter_id || row.resource.chapter_id
+  if (publicationId && chapterId) return `/read/textbook/${publicationId}/${chapterId}`
+  return `/teacher/resources/read/${row.resource.id}?versionId=${row.certifiedVersionId}`
+}
+function publishedDescription(description: string | null): string | null {
+  // Historical editorial copy is not certification evidence. Do not repeat
+  // a now-false "review-stage manuscript" label on a certified resource.
+  return description && !/review[- ]stage manuscript|candidate manuscript|draft manuscript/i.test(description)
+    ? description : null
 }
 function timeAgo(iso: string) {
   const value = new Date(iso).getTime()
@@ -134,6 +144,9 @@ export default function TeacherResourcesPage() {
   const [schoolId, setSchoolId] = useState<string | null>(null)
   const [week, setWeek] = useState<number | null>(null)
   const [termId, setTermId] = useState<string | null>(null)
+  const [classFilter, setClassFilter] = useState(requestedClassId)
+  const [subjectFilter, setSubjectFilter] = useState(requestedSubjectId)
+  const [topicFilter, setTopicFilter] = useState('')
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [classes, setClasses] = useState<ClassOption[]>([])
   const [subjects, setSubjects] = useState<SubjectOption[]>([])
@@ -156,14 +169,20 @@ export default function TeacherResourcesPage() {
     const ids = new Set(assignments.filter(row => row.class_id === form.class_id).map(row => row.subject_id))
     return subjects.filter(row => ids.has(row.id))
   }, [assignments, form.class_id, subjects])
+  useEffect(() => { setClassFilter(requestedClassId); setSubjectFilter(requestedSubjectId) }, [requestedClassId, requestedSubjectId])
   const scopedSubjectName = useMemo(
-    () => subjects.find(row => row.id === requestedSubjectId)?.name ?? '',
-    [requestedSubjectId, subjects],
+    () => subjects.find(row => row.id === subjectFilter)?.name ?? '',
+    [subjectFilter, subjects],
   )
+  const subjectOptions = useMemo(() => {
+    if (!classFilter) return subjects
+    const allowed = new Set(assignments.filter(row => row.class_id === classFilter).map(row => row.subject_id))
+    return subjects.filter(row => allowed.has(row.id))
+  }, [assignments, classFilter, subjects])
   const catalogueLibrary = useMemo(() => library.filter(row =>
-    (!requestedClassId || row.class_id === requestedClassId) &&
+    (!classFilter || row.class_id === classFilter) &&
     (!scopedSubjectName || row.subject === scopedSubjectName),
-  ), [library, requestedClassId, scopedSubjectName])
+  ), [library, classFilter, scopedSubjectName])
   const visibleLibrary = useMemo(() =>
     filter === 'all' ? catalogueLibrary : catalogueLibrary.filter(row => row.type === filter),
     [catalogueLibrary, filter],
@@ -173,10 +192,12 @@ export default function TeacherResourcesPage() {
   // Scheme-linked inventory.
   const cataloguePacks = useMemo(
     () => packs.filter(pack =>
-      (!requestedClassId || pack.scheme.class_id === requestedClassId) &&
-      (!requestedSubjectId || pack.scheme.subject_id === requestedSubjectId),
+      (!classFilter || pack.scheme.class_id === classFilter) &&
+      (!subjectFilter || pack.scheme.subject_id === subjectFilter) &&
+      (!topicFilter.trim() || [pack.scheme.topic, pack.scheme.sub_strand, pack.scheme.strand]
+        .some(value => (value ?? '').toLocaleLowerCase().includes(topicFilter.trim().toLocaleLowerCase()))),
     ),
-    [packs, requestedClassId, requestedSubjectId],
+    [packs, classFilter, subjectFilter, topicFilter],
   )
   const visiblePacks = useMemo(
     () => cataloguePacks.filter(pack =>
@@ -188,13 +209,13 @@ export default function TeacherResourcesPage() {
   )
   const canonicalLibraryItems = useMemo<CanonicalTeachingLibraryItem[]>(() =>
     cataloguePacks.flatMap(pack => pack.resources.flatMap(item => {
-      if (!item.resource) return []
+      if (!item.resource || !item.certifiedVersionId) return []
       const resource = item.resource
       const schemeHref = `/teacher/scheme?classId=${encodeURIComponent(pack.scheme.class_id)}&subjectId=${encodeURIComponent(pack.scheme.subject_id)}`
       return [{
         id: resource.id,
         title: resource.title,
-        description: resource.description,
+        description: publishedDescription(resource.description),
         assetKind: resource.asset_kind,
         materialVariant: resource.material_variant,
         purpose: resource.purpose,
@@ -203,22 +224,26 @@ export default function TeacherResourcesPage() {
         schemeHref,
         classLabel: pack.classLabel,
         subjectLabel: pack.subjectLabel,
+        topicLabel: pack.scheme.topic || pack.scheme.sub_strand || pack.scheme.strand || 'Scheme lesson',
       }]
     })),
     [cataloguePacks],
   )
-  const readyCount = useMemo(() => visiblePacks.reduce((sum, pack) => sum + pack.resources.length, 0), [visiblePacks])
+  const certifiedCount = useMemo(
+    () => visiblePacks.reduce((sum, pack) => sum + pack.resources.filter(item => item.certifiedVersionId).length, 0),
+    [visiblePacks],
+  )
 
   const openAdd = useCallback((requestedType: ResourceType = 'notes') => {
-    const requestedClassIsAssigned = classes.some(row => row.id === requestedClassId)
-    const classId = requestedClassIsAssigned ? requestedClassId : (classes[0]?.id ?? '')
+    const selectedClassIsAssigned = classes.some(row => row.id === classFilter)
+    const classId = selectedClassIsAssigned ? classFilter : (classes[0]?.id ?? '')
     const subjectIds = assignments.filter(row => row.class_id === classId).map(row => row.subject_id)
-    const requestedSubjectIsAssigned = subjectIds.includes(requestedSubjectId)
-    const subjectId = requestedSubjectIsAssigned ? requestedSubjectId : (subjectIds[0] ?? '')
+    const selectedSubjectIsAssigned = subjectIds.includes(subjectFilter)
+    const subjectId = selectedSubjectIsAssigned ? subjectFilter : (subjectIds[0] ?? '')
     setForm({ type: requestedType, title: '', class_id: classId, subject_id: subjectId, description: '', external_url: '', content: '' })
     setFormError('')
     setShowAdd(true)
-  }, [assignments, classes, requestedClassId, requestedSubjectId])
+  }, [assignments, classes, classFilter, subjectFilter])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -285,7 +310,7 @@ export default function TeacherResourcesPage() {
 
       const schemeResult = await supabase
         .from('scheme_of_work')
-        .select('id,class_id,subject_id,academic_term_id,topic,sub_strand,strand,week,lesson_number,sequence_number')
+        .select('id,class_id,subject_id,subject,academic_term_id,topic,sub_strand,strand,week,lesson_number,sequence_number')
         .eq('teacher_id', user.id)
         .eq('school_id', resolvedSchoolId)
         .in('class_id', classIds)
@@ -299,7 +324,7 @@ export default function TeacherResourcesPage() {
       const [linkResult, canonicalLinkResult] = await Promise.all([
         supabase.rpc('list_scheme_lesson_resources_batch', { p_scheme_ids: schemeIds }),
         supabase.from('teaching_resource_links')
-          .select('id,scheme_lesson_id,resource_id,usage_role,sequence,page_start,page_end')
+          .select('id,scheme_lesson_id,resource_id,resource_version_id,usage_role,sequence,page_start,page_end')
           .eq('target_type', 'scheme_lesson').in('scheme_lesson_id', schemeIds),
       ])
       if (linkResult.error) throw linkResult.error
@@ -314,6 +339,7 @@ export default function TeacherResourcesPage() {
         id: string
         scheme_lesson_id: string
         resource_id: string
+        resource_version_id: string | null
         usage_role: string
         sequence: number
         page_start: number | null
@@ -322,6 +348,7 @@ export default function TeacherResourcesPage() {
         id: row.id,
         scheme_lesson_id: row.scheme_lesson_id,
         resource_id: row.resource_id,
+        resource_version_id: row.resource_version_id,
         publication_id: '',
         chapter_id: '',
         resource_role: row.usage_role,
@@ -330,7 +357,8 @@ export default function TeacherResourcesPage() {
         page_end: row.page_end,
       }))
       const seenLinks = new Set<string>()
-      const links = [...legacyLinks, ...canonicalLinks].filter(row => {
+      // Prefer generic links because they can pin an immutable version.
+      const links = [...canonicalLinks, ...legacyLinks.map(row => ({ ...row, resource_version_id: null }))].filter(row => {
         const key = row.scheme_lesson_id + ':' + row.resource_id
         if (seenLinks.has(key)) return false
         seenLinks.add(key)
@@ -342,6 +370,25 @@ export default function TeacherResourcesPage() {
         : { data: [], error: null }
       if (learningResult.error) throw learningResult.error
       const learningMap = new Map(((learningResult.data ?? []) as LearningResource[]).map(row => [row.id, row]))
+      const versionResult = resourceIds.length
+        ? await supabase.from('learning_resource_versions')
+          .select('id,resource_id,version,lifecycle_status,certified_at')
+          .in('resource_id', resourceIds).eq('lifecycle_status', 'certified')
+          .not('certified_at', 'is', null).order('version', { ascending: false })
+        : { data: [], error: null }
+      // A link to an active root alone is not proof of publication. Fail
+      // closed if certified versions cannot be verified under the user's RLS.
+      if (versionResult.error) setLinkWarning('Certification could not be verified. Unverified materials are not available to open.')
+      const certifiedVersions = (versionResult.data ?? []) as Array<{ id: string; resource_id: string; version: number }>
+      const byVersionId = new Map(certifiedVersions.map(row => [row.id, row]))
+      const latestByResource = new Map<string, string>()
+      for (const version of certifiedVersions) {
+        if (!latestByResource.has(version.resource_id)) latestByResource.set(version.resource_id, version.id)
+      }
+      const verifiedVersion = (link: LinkedResourceRow) =>
+        link.resource_version_id
+          ? (byVersionId.get(link.resource_version_id)?.resource_id === link.resource_id ? link.resource_version_id : null)
+          : latestByResource.get(link.resource_id) ?? null
       const linkMap = new Map<string, LinkedResourceRow[]>()
       for (const row of links) linkMap.set(row.scheme_lesson_id, [...(linkMap.get(row.scheme_lesson_id) ?? []), row])
       for (const rows of linkMap.values()) rows.sort((a, b) => a.sequence - b.sequence || a.id.localeCompare(b.id))
@@ -351,8 +398,14 @@ export default function TeacherResourcesPage() {
       setPacks(schemes.map(scheme => ({
         scheme,
         classLabel: classMap.get(scheme.class_id) ?? 'Class',
-        subjectLabel: subjectMap.get(scheme.subject_id) ?? 'Subject',
-        resources: (linkMap.get(scheme.id) ?? []).map(link => ({ ...link, resource: learningMap.get(link.resource_id) ?? null })).filter(item => item.resource !== null),
+        subjectLabel: subjectMap.get(scheme.subject_id) ?? scheme.subject ?? 'Subject not recorded',
+        resources: (linkMap.get(scheme.id) ?? [])
+          .map(link => ({
+            ...link,
+            resource: learningMap.get(link.resource_id) ?? null,
+            certifiedVersionId: verifiedVersion(link),
+          }))
+          .filter(item => item.resource !== null),
       })))
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Resources could not be loaded.')
