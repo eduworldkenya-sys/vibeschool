@@ -27,6 +27,29 @@ alter table public.learning_resources
     and school_id is null
   ));
 
+-- A versioned manifest must not silently lose its validated root identity.
+create or replace function public.cla_guard_outcome_package_root_identity()
+returns trigger language plpgsql security invoker set search_path = '' as $
+begin
+  if old.asset_kind = 'outcome_package'
+     and (new.asset_kind is distinct from old.asset_kind
+       or new.curriculum_outcome_id is distinct from old.curriculum_outcome_id
+       or new.canonical_key is distinct from old.canonical_key)
+     and exists (select 1 from public.learning_resource_versions v
+                 where v.resource_id = old.id) then
+    raise exception using errcode='23514', message='CLA_PACKAGE_ROOT_IDENTITY_IMMUTABLE';
+  end if;
+  return new;
+end;
+$;
+revoke all on function public.cla_guard_outcome_package_root_identity()
+  from public,anon,authenticated,service_role;
+drop trigger if exists cla_guard_outcome_package_root_identity on public.learning_resources;
+create trigger cla_guard_outcome_package_root_identity
+  before update of asset_kind,curriculum_outcome_id,canonical_key
+  on public.learning_resources for each row
+  execute function public.cla_guard_outcome_package_root_identity();
+
 create index if not exists learning_resources_outcome_package_lookup_idx
   on public.learning_resources(curriculum_outcome_id)
   where asset_kind = 'outcome_package';
@@ -142,11 +165,12 @@ begin
       end if;
       if not coalesce((
         v_found.curriculum_outcome_id = v_root.curriculum_outcome_id
-        or (v_found.content_block_id is not null and exists (
-          select 1 from public.content_block_outcome_links l
-          where l.content_block_id = v_found.content_block_id
-            and l.outcome_id = v_root.curriculum_outcome_id
-        ))
+        or (v_found.curriculum_outcome_id is null
+          and v_found.content_block_id is not null and exists (
+            select 1 from public.content_block_outcome_links l
+            where l.content_block_id = v_found.content_block_id
+              and l.outcome_id = v_root.curriculum_outcome_id
+          ))
       ),false) then
         v_issues := array_append(v_issues,'ASSET_OUTCOME_UNPROVEN:' || v_role);
       end if;
