@@ -10,7 +10,6 @@ import {
 import type { TeachingLibraryCategoryId } from '@/lib/teaching/libraryStructure'
 
 type SavedResource = { id: string; title: string; type: string }
-
 export type CanonicalTeachingLibraryItem = {
   id: string
   title: string
@@ -23,13 +22,10 @@ export type CanonicalTeachingLibraryItem = {
   schemeHref: string
   classLabel: string
   subjectLabel: string
+  topicLabel: string
 }
 
-/**
- * A read-only view of actual Scheme-linked canonical learning resources plus
- * existing teacher-saved notes/quizzes. Empty optional slots are always usable.
- * Selection changes neither resource identity nor lesson readiness.
- */
+/** Read-only projection; does not own resources, mandatory checklists or certification. */
 export default function TeachingLibraryStructure({
   savedResources,
   linkedResources,
@@ -41,158 +37,119 @@ export default function TeachingLibraryStructure({
 }) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<TeachingLibraryCategoryId | 'all'>('all')
+  const [expandedCategory, setExpandedCategory] = useState<TeachingLibraryCategoryId | null>('teach-explain')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const linkedBySlot = useMemo(() => {
-    const result = new Map<string, CanonicalTeachingLibraryItem[]>()
+    const grouped = new Map<string, CanonicalTeachingLibraryItem[]>()
     const seen = new Set<string>()
     for (const item of linkedResources) {
-      const slotId = teachingLibrarySlotForResource(item)
-      if (!slotId) continue
-      // A canonical resource may be used in several lessons; show one entry
-      // per class/subject context, never a duplicate copy per Scheme week.
-      const identity = [slotId, item.id, item.classLabel, item.subjectLabel].join(':')
+      const slot = teachingLibrarySlotForResource(item)
+      if (!slot || !item.href) continue // only certified, readable version links are selectable
+      const identity = [slot, item.id, item.classLabel, item.subjectLabel].join(':')
       if (seen.has(identity)) continue
       seen.add(identity)
-      result.set(slotId, [...(result.get(slotId) ?? []), item])
+      grouped.set(slot, [...(grouped.get(slot) ?? []), item])
     }
-    return result
+    return grouped
   }, [linkedResources])
 
-  const visible = useMemo(() => {
-    const typed = filterTeachingLibrarySlots('', category)
+  const filtered = useMemo(() => {
+    const allowed = filterTeachingLibrarySlots('', category)
     const search = query.trim().toLocaleLowerCase()
-    if (!search) return typed
-    return typed.filter(slot => {
+    if (!search) return allowed
+    return allowed.filter(slot => {
       const group = TEACHING_LIBRARY_CATEGORIES.find(item => item.id === slot.categoryId)
-      const matchingLabels = [slot.label, slot.purpose, group?.label ?? '']
-      const matchingResources = (linkedBySlot.get(slot.id) ?? []).flatMap(item => [
-        item.title, item.description ?? '', item.classLabel, item.subjectLabel,
-      ])
-      return [...matchingLabels, ...matchingResources]
-        .some(value => value.toLocaleLowerCase().includes(search))
+      const labels = [slot.label, slot.purpose, group?.label ?? '']
+      const resourceLabels = (linkedBySlot.get(slot.id) ?? []).flatMap(item =>
+        [item.title, item.description ?? '', item.topicLabel, item.classLabel, item.subjectLabel])
+      return [...labels, ...resourceLabels].some(label => label.toLocaleLowerCase().includes(search))
     })
-  }, [query, category, linkedBySlot])
+  }, [category, linkedBySlot, query])
 
-  const selected = TEACHING_LIBRARY_SLOTS.find(item => item.id === selectedId)
-  const matchingSaved = selected?.existingPersonalResourceType
-    ? savedResources.filter(item => item.type === selected.existingPersonalResourceType)
-    : []
-  const matchingCanonical = selected ? linkedBySlot.get(selected.id) ?? [] : []
+  const savedFor = (id: string) => {
+    const slot = TEACHING_LIBRARY_SLOTS.find(item => item.id === id)
+    return slot?.existingPersonalResourceType
+      ? savedResources.filter(item => item.type === slot.existingPersonalResourceType) : []
+  }
+  const countFor = (id: string) => (linkedBySlot.get(id)?.length ?? 0) + savedFor(id).length
+  const searching = query.trim().length > 0
 
   return (
-    <section aria-labelledby="teaching-library-title" id="teaching-library" style={{ marginBottom: 26 }}>
-      <div style={{ marginBottom: 14 }}>
-        <h2 id="teaching-library-title" style={{ fontSize: 20, margin: '0 0 5px' }}>Teaching Library</h2>
-        <p style={{ color: '#5d6b68', fontSize: 13, margin: 0 }}>
-          Choose only the resources useful for your lesson. All 15 types are optional:
-          available materials open from their existing links, and missing types stay empty without blocking planning or teaching.
-        </p>
-      </div>
-      <label htmlFor="teaching-library-search" style={{ display: 'block', fontWeight: 700, fontSize: 12, marginBottom: 6 }}>
-        Find teaching materials
-      </label>
+    <section aria-label="Resource types" id="teaching-library" style={{ margin: '16px 0 24px' }}>
+      <p style={{ fontSize: 13, color: '#5e6f66', margin: '0 0 12px' }}>
+        Choose the materials useful for your lesson. Every type is optional; missing materials do not stop teaching.
+      </p>
+      <label htmlFor="teaching-library-search" style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Search materials</label>
       <input
         id="teaching-library-search"
         type="search"
         value={query}
-        onChange={event => { setQuery(event.target.value); setSelectedId(null) }}
-        placeholder="Search by resource type, topic or title"
-        style={{ display: 'block', width: '100%', minHeight: 44, border: '1px solid #cbd5d1', borderRadius: 10, padding: '10px 12px', marginBottom: 12, boxSizing: 'border-box', fontSize: 14, background: '#fff' }}
+        onChange={value => { setQuery(value.target.value); setSelectedId(null) }}
+        placeholder="Topic, resource title or type"
+        style={{ display: 'block', boxSizing: 'border-box', width: '100%', minHeight: 44, padding: '10px 12px', border: '1px solid #cddbd3', borderRadius: 10, background: '#fff', fontSize: 14, marginBottom: 12 }}
       />
-      <div role="group" aria-label="Resource categories" style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 15 }}>
+      <div role="group" aria-label="Resource categories" style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 13 }}>
         {([{ id: 'all' as const, label: 'All categories' }, ...TEACHING_LIBRARY_CATEGORIES]).map(item => (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={category === item.id}
-            onClick={() => { setCategory(item.id); setSelectedId(null) }}
-            style={{ border: '1px solid ' + (category === item.id ? '#1a654b' : '#d1dcd6'), background: category === item.id ? '#e8f6ef' : '#fff', color: '#193b31', borderRadius: 999, padding: '9px 11px', minHeight: 40, fontWeight: 650, fontSize: 12 }}
-          >
+          <button key={item.id} type="button" aria-pressed={category === item.id} onClick={() => { setCategory(item.id); setSelectedId(null); if (item.id !== 'all') setExpandedCategory(item.id) }}
+            style={{ padding: '8px 11px', minHeight: 40, borderRadius: 999, fontSize: 12, background: category === item.id ? '#e8f6ef' : '#fff', border: '1px solid ' + (category === item.id ? '#1a654b' : '#d0dcd4'), color: '#1c4737', cursor: 'pointer' }}>
             {item.label}
           </button>
         ))}
       </div>
-      {visible.length === 0 && (
-        <p role="status" style={{ padding: 16, background: '#fff', borderRadius: 12, border: '1px dashed #cbd5d1' }}>
-          No matching resources or types. Try another keyword or choose All categories.
-        </p>
-      )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 10 }}>
-        {visible.map(slot => {
-          const group = TEACHING_LIBRARY_CATEGORIES.find(item => item.id === slot.categoryId)
-          const savedCount = slot.existingPersonalResourceType
-            ? savedResources.filter(item => item.type === slot.existingPersonalResourceType).length
-            : 0
-          const itemCount = savedCount + (linkedBySlot.get(slot.id)?.length ?? 0)
-          const active = selectedId === slot.id
+
+      {filtered.length === 0 && <p role="status" style={{ padding: 15, border: '1px dashed #cbd5d1', borderRadius: 12 }}>No matching resources. Try a different keyword or category.</p>}
+      <div style={{ display: 'grid', gap: 9 }}>
+        {TEACHING_LIBRARY_CATEGORIES.map(group => {
+          const items = filtered.filter(item => item.categoryId === group.id)
+          if (!items.length) return null
+          const expanded = searching || category === group.id || expandedCategory === group.id
+          const count = items.reduce((sum, item) => sum + countFor(item.id), 0)
           return (
-            <button
-              key={slot.id}
-              type="button"
-              aria-expanded={active}
-              aria-controls="teaching-library-selection"
-              onClick={() => setSelectedId(active ? null : slot.id)}
-              style={{ display: 'block', minHeight: 126, padding: 14, textAlign: 'left', cursor: 'pointer', background: active ? '#edf8f2' : '#fff', border: '1px solid ' + (active ? '#16734f' : '#e1e7e3'), borderRadius: 13, color: '#213b32' }}
-            >
-              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#567165', marginBottom: 6 }}>{group?.label}</span>
-              <strong style={{ display: 'block', marginBottom: 5, fontSize: 14 }}>{slot.label}</strong>
-              <span style={{ display: 'block', fontSize: 12, color: '#63716c', lineHeight: 1.5 }}>{slot.purpose}</span>
-              <span style={{ display: 'block', fontSize: 11, color: itemCount ? '#176748' : '#7b8580', marginTop: 8 }}>
-                {itemCount ? itemCount + ' available ' + (itemCount === 1 ? 'item' : 'items') : 'No linked items · optional'} · {active ? 'Close' : 'View'}
-              </span>
-            </button>
+            <section key={group.id} style={{ border: '1px solid #dfe7e1', borderRadius: 13, background: '#fff', overflow: 'hidden' }}>
+              <button type="button" aria-expanded={expanded} onClick={() => { setExpandedCategory(expanded ? null : group.id); setCategory('all'); setSelectedId(null) }}
+                style={{ width: '100%', border: 0, padding: '14px 16px', background: '#fff', cursor: 'pointer', textAlign: 'left', display: 'flex', gap: 9, justifyContent: 'space-between', alignItems: 'center' }}>
+                <span><strong style={{ color: '#193c2c', display: 'block', fontSize: 14 }}>{group.label}</strong><span style={{ fontSize: 12, color: '#738076' }}>{items.length} resource types · {count ? count + ' linked items' : 'nothing linked yet'}</span></span>
+                <span aria-hidden="true" style={{ color: '#486859' }}>{expanded ? '−' : '+'}</span>
+              </button>
+              {expanded && <div style={{ borderTop: '1px solid #e7ece9', padding: '5px 12px 12px' }}>
+                {items.map(slot => {
+                  const active = selectedId === slot.id
+                  const saved = savedFor(slot.id)
+                  const linked = linkedBySlot.get(slot.id) ?? []
+                  const count = saved.length + linked.length
+                  return (
+                    <div key={slot.id} style={{ borderBottom: '1px solid #eff2ef', padding: '3px 0' }}>
+                      <button type="button" aria-expanded={active} onClick={() => setSelectedId(active ? null : slot.id)}
+                        style={{ width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', textAlign: 'left', justifyContent: 'space-between', gap: 10, border: 0, background: 'transparent', padding: '8px 4px', cursor: 'pointer' }}>
+                        <span style={{ fontSize: 13, color: '#243b30', fontWeight: 650 }}>{slot.label}</span>
+                        <span style={{ fontSize: 12, color: count ? '#146b47' : '#738076', flexShrink: 0 }}>{count ? count + ' available' : 'Not linked · optional'} {active ? '▴' : '▾'}</span>
+                      </button>
+                      {active && <div style={{ padding: '6px 8px 13px', background: '#f7faf8', borderRadius: 9 }}>
+                        {linked.length > 0 && <ul style={{ paddingLeft: 17, margin: '0 0 8px' }}>
+                          {linked.map(item => (
+                            <li key={[item.id, item.classLabel, item.subjectLabel].join(':')} style={{ margin: '9px 0', fontSize: 13 }}>
+                              <strong style={{ color: '#22372d' }}>{item.title}</strong>
+                              <span style={{ display: 'block', color: '#63746a', fontSize: 11 }}>{item.classLabel} · {item.subjectLabel} · {item.topicLabel}</span>
+                              {item.description && <span style={{ display: 'block', color: '#63746a', fontSize: 11 }}>{item.description}</span>}
+                              <a href={item.href ?? item.schemeHref} style={{ display: 'inline-block', color: '#126747', fontWeight: 700, marginTop: 4 }}>Read certified resource</a>
+                            </li>
+                          ))}
+                        </ul>}
+                        {saved.length > 0 && <ul style={{ paddingLeft: 17, margin: '4px 0' }}>
+                          {saved.map(item => <li key={item.id} style={{ margin: '6px 0', fontSize: 13 }}><a href={'#saved-resource-' + item.id} style={{ color: '#126747' }}>{item.title} · My saved materials</a></li>)}
+                        </ul>}
+                        {!count && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#65766b' }}>Nothing is linked to this optional component yet. Continue preparing your lesson normally, or add content later.</p>}
+                        {slot.existingPersonalResourceType && <button type="button" onClick={() => onAddPersonalResource(slot.existingPersonalResourceType!)}
+                          style={{ border: '1px solid #c5d7cc', background: '#fff', color: '#135b40', borderRadius: 8, padding: '8px 11px', fontSize: 12, fontWeight: 650 }}>Add {slot.label.toLowerCase()}</button>}
+                      </div>}
+                    </div>
+                  )
+                })}
+              </div>}
+            </section>
           )
         })}
-      </div>
-      <div id="teaching-library-selection" aria-live="polite">
-        {selected && (
-          <div style={{ background: '#fff', border: '1px solid #cbd5d1', borderRadius: 13, padding: 16, marginTop: 12 }}>
-            <h3 style={{ fontSize: 16, margin: '0 0 5px' }}>{selected.label}</h3>
-            {matchingCanonical.length > 0 && (
-              <>
-                <p style={{ fontSize: 12, color: '#566b61', margin: '0 0 8px' }}>Existing VibeSchool resources linked to your Scheme of Work:</p>
-                <ul style={{ margin: '0 0 12px', paddingLeft: 18 }}>
-                  {matchingCanonical.map(item => (
-                    <li key={item.id + ':' + item.classLabel + ':' + item.subjectLabel} style={{ marginBottom: 9, fontSize: 13 }}>
-                      <strong>{item.title}</strong>
-                      <span style={{ display: 'block', fontSize: 12, color: '#66776e' }}>{item.classLabel} · {item.subjectLabel}</span>
-                      {item.description && <span style={{ display: 'block', color: '#63716c', fontSize: 12 }}>{item.description}</span>}
-                      <a href={item.href ?? item.schemeHref} style={{ color: '#075985', display: 'inline-block', marginTop: 3 }}>
-                        {item.href ? 'Read resource' : 'View linked Scheme'}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            {matchingSaved.length > 0 && (
-              <>
-                <p style={{ fontSize: 12, color: '#566b61', margin: '0 0 8px' }}>Your saved class materials:</p>
-                <ul style={{ margin: '0 0 12px', paddingLeft: 18 }}>
-                  {matchingSaved.map(resource => (
-                    <li key={resource.id} style={{ marginBottom: 5, fontSize: 13 }}>
-                      <a href={'#saved-resource-' + resource.id} style={{ color: '#075985' }}>{resource.title}</a>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            {matchingCanonical.length + matchingSaved.length === 0 && (
-              <p style={{ fontSize: 13, color: '#66776e', margin: '0 0 10px' }}>
-                Nothing is linked to this optional component yet. Continue preparing your lesson normally, or add this kind of content later.
-              </p>
-            )}
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
-              {selected.existingPersonalResourceType && (
-                <button type="button" onClick={() => onAddPersonalResource(selected.existingPersonalResourceType!)} style={{ border: '1px solid #19694b', borderRadius: 9, padding: '9px 12px', background: '#176748', color: '#fff', fontWeight: 700 }}>
-                  Add {selected.label.toLowerCase()}
-                </button>
-              )}
-              <a href="#scheme-linked-resources" style={{ fontSize: 13, color: '#075985' }}>Browse Scheme-linked resources</a>
-            </div>
-          </div>
-        )}
       </div>
     </section>
   )
