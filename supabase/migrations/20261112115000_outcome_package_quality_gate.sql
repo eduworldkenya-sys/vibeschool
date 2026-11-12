@@ -17,6 +17,10 @@ declare
   root public.learning_resources%rowtype;
   outcome public.curriculum_learning_outcomes%rowtype;
   manifest_audit jsonb;
+  source_package_id text;
+  crosswalk_gate jsonb;
+  crosswalk_aliases jsonb;
+  declared_aliases jsonb;
   quality jsonb := p_verification_evidence->'package_quality_v1';
   checks jsonb := quality->'checks';
   blockers text[] := array[]::text[];
@@ -53,6 +57,32 @@ begin
     blockers := array_append(blockers,'CURRICULUM_ROOT_SCOPE_MISMATCH');
   end if;
   manifest_audit := public.cla_audit_outcome_package(p_resource_id,p_payload);
+  source_package_id := nullif(btrim(coalesce(quality->>'source_package_id','')),'');
+  if source_package_id is null then
+    blockers := array_append(blockers,'SOURCE_PACKAGE_ID_REQUIRED');
+  else
+    crosswalk_gate := public.vs_curriculum_package_gate(source_package_id);
+    if crosswalk_gate->>'state' is distinct from 'PASS' then
+      blockers := array_append(blockers,'SOURCE_TO_DATABASE_RECONCILIATION_BLOCKED');
+    end if;
+    select coalesce(jsonb_agg(ao.manuscript_alias order by ao.manuscript_alias),'[]'::jsonb)
+      into crosswalk_aliases
+    from public.vs_curriculum_alias_outcomes ao
+    where ao.package_id=source_package_id
+      and ao.outcome_id=root.curriculum_outcome_id;
+
+    if jsonb_typeof(p_payload->'curriculum_outcome_aliases') = 'array' then
+      select coalesce(jsonb_agg(a.alias order by a.alias),'[]'::jsonb)
+        into declared_aliases
+      from jsonb_array_elements_text(p_payload->'curriculum_outcome_aliases') as a(alias);
+    else
+      declared_aliases := '[]'::jsonb;
+    end if;
+    if crosswalk_aliases = '[]'::jsonb
+       or declared_aliases is distinct from crosswalk_aliases then
+      blockers := array_append(blockers,'CURRICULUM_MANUSCRIPT_ALIASES_NOT_RECONCILED');
+    end if;
+  end if;
   if coalesce(manifest_audit->>'valid','false') <> 'true' then
     blockers := array_append(blockers,'PACKAGE_MANIFEST_OR_CURRICULUM_NOT_READY');
   end if;
