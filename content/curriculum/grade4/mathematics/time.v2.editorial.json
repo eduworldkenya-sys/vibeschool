@@ -1267,7 +1267,8 @@
         "answer": "7:35 a.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Morning is before midday, so use a.m."
       },
       {
         "editorial_id": "time-v2-sup-002",
@@ -1280,7 +1281,8 @@
         "answer": "6:20 p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Evening comes after midday, so use p.m."
       },
       {
         "editorial_id": "time-v2-sup-003",
@@ -1293,7 +1295,8 @@
         "answer": "12:00 p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Noon is 12:00 p.m.; 12:00 a.m. is midnight."
       },
       {
         "editorial_id": "time-v2-sup-004",
@@ -1306,7 +1309,8 @@
         "answer": "35 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Seven five-minute intervals make 7 × 5 = 35 minutes."
       },
       {
         "editorial_id": "time-v2-sup-005",
@@ -1319,7 +1323,8 @@
         "answer": "3:50",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "The long hand gives 10 × 5 = 50 minutes; the hour hand is still between three and four."
       },
       {
         "editorial_id": "time-v2-sup-006",
@@ -1332,7 +1337,8 @@
         "answer": "9:15",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Quarter of 60 minutes is 15, so quarter past nine is 9:15."
       },
       {
         "editorial_id": "time-v2-sup-007",
@@ -1345,7 +1351,8 @@
         "answer": "1:45",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Quarter to two is fifteen minutes before 2:00, so 1:45."
       },
       {
         "editorial_id": "time-v2-sup-008",
@@ -1358,7 +1365,8 @@
         "answer": "Four minutes past eight",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "08:04 has zero tens and four minutes, so read eight oh four."
       },
       {
         "editorial_id": "time-v2-sup-009",
@@ -1371,7 +1379,8 @@
         "answer": "A 12-hour clock repeats the hour numbers in its a.m. and p.m. periods.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "The number 6:00 occurs twice in a day on a 12-hour clock; context or a.m./p.m. distinguishes them."
       },
       {
         "editorial_id": "time-v2-sup-010",
@@ -1383,7 +1392,8 @@
         "answer": "a.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "The given sunrise observation is in the morning, so a.m."
       },
       {
         "editorial_id": "time-v2-sup-011",
@@ -1395,7 +1405,8 @@
         "answer": "p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "The example states lunch is after midday, so p.m."
       },
       {
         "editorial_id": "time-v2-sup-012",
@@ -1407,7 +1418,8 @@
         "answer": "About four o'clock",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "The word 'about' makes the reading approximate."
       },
       {
         "editorial_id": "time-v2-sup-013",
@@ -1419,7 +1431,8 @@
         "answer": "Its length depends on Sun position, season, place and weather.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Shadows vary with location, season, weather and the Sun's position, not only the minute of the day."
       },
       {
         "editorial_id": "time-v2-sup-014",
@@ -1431,7 +1444,8 @@
         "answer": "Familiar daily activities and safe daylight/shadow observation.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Accept two justified observations; no single daily routine is universal."
       },
       {
         "editorial_id": "time-v2-sup-015",
@@ -1443,7 +1457,8 @@
         "answer": "Generally the one nearer midday, under suitable conditions.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "For the same object under suitable conditions, the shorter shadow is commonly nearer midday."
       },
       {
         "editorial_id": "time-v2-sup-016",
@@ -1455,7 +1470,8 @@
         "answer": "5:30 p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Evening is in the p.m. period."
       },
       {
         "editorial_id": "time-v2-sup-017",
@@ -1467,7 +1483,8 @@
         "answer": "12:30 p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "An afternoon reading is a more reasonable daytime-lunch estimate here."
       },
       {
         "editorial_id": "time-v2-sup-018",
@@ -1479,7 +1496,8 @@
         "answer": "To compare the approximate estimate with a specific reading.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Comparing the guess with a clock shows its accuracy and any error."
       },
       {
         "editorial_id": "time-v2-sup-019",
@@ -1492,7 +1510,8 @@
         "answer": "165 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Two full hours are 2 × 60 = 120 minutes; add 45 to get 165."
       },
       {
         "editorial_id": "time-v2-sup-020",
@@ -1505,7 +1524,8 @@
         "answer": "5 hours 17 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Five full hours are 5 × 60 = 300 minutes; 317 − 300 leaves 17."
       },
       {
         "editorial_id": "time-v2-sup-021",
@@ -1518,7 +1538,8 @@
         "answer": "72 hours",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Each day contains 24 hours, so 3 × 24 = 72."
       },
       {
         "editorial_id": "time-v2-sup-022",
@@ -1531,7 +1552,8 @@
         "answer": "1 day 21 hours",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "One day uses 24 of 45 hours, leaving 21 hours."
       },
       {
         "editorial_id": "time-v2-sup-023",
@@ -1544,7 +1566,8 @@
         "answer": "30 days",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Four weeks contain 4 × 7 = 28 days, plus 2 days."
       },
       {
         "editorial_id": "time-v2-sup-024",
@@ -1557,7 +1580,8 @@
         "answer": "12 days",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "One week is seven days; add five more to get 12."
       },
       {
         "editorial_id": "time-v2-sup-025",
@@ -1570,7 +1594,8 @@
         "answer": "55 hours",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Two days are 48 hours; add 7 to get 55."
       },
       {
         "editorial_id": "time-v2-sup-026",
@@ -1583,7 +1608,8 @@
         "answer": "3 hours 30 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Ninety extra minutes contain one complete hour plus 30 minutes."
       },
       {
         "editorial_id": "time-v2-sup-027",
@@ -1596,7 +1622,8 @@
         "answer": "42 hours",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "One day has 24 hours; 24 + 18 = 42."
       },
       {
         "editorial_id": "time-v2-sup-028",
@@ -1608,7 +1635,8 @@
         "answer": "45 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "From 8:35 to 9:00 is 25 minutes and to 9:20 is 20 more."
       },
       {
         "editorial_id": "time-v2-sup-029",
@@ -1620,7 +1648,8 @@
         "answer": "45 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "From 11:35 to 12:00 is 25 minutes, plus 20 minutes after midday."
       },
       {
         "editorial_id": "time-v2-sup-030",
@@ -1632,7 +1661,8 @@
         "answer": "1 hour 15 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Ten minutes to 11:00 p.m., one hour to midnight, five minutes after = 75 minutes."
       },
       {
         "editorial_id": "time-v2-sup-031",
@@ -1644,7 +1674,8 @@
         "answer": "45 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Thirty-five minutes to 4:00 plus ten minutes after = 45."
       },
       {
         "editorial_id": "time-v2-sup-032",
@@ -1656,7 +1687,8 @@
         "answer": "1 hour 35 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Fifty-five minutes to 9:00 plus forty minutes = 95 minutes."
       },
       {
         "editorial_id": "time-v2-sup-033",
@@ -1668,7 +1700,8 @@
         "answer": "1 hour 5 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "A duration is a length such as 1 hour 5 minutes; the other option is a clock reading."
       },
       {
         "editorial_id": "time-v2-sup-034",
@@ -1680,7 +1713,8 @@
         "answer": "Start and finish times",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Duration is determined from the time an activity starts to the time it finishes."
       },
       {
         "editorial_id": "time-v2-sup-035",
@@ -1692,7 +1726,8 @@
         "answer": "40 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Subtract the minute readings within the same hour: 45 − 5 = 40."
       },
       {
         "editorial_id": "time-v2-sup-036",
@@ -1704,7 +1739,8 @@
         "answer": "12 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Ten minutes to 10:00 plus two minutes after = 12."
       },
       {
         "editorial_id": "time-v2-sup-037",
@@ -1717,7 +1753,8 @@
         "answer": "8:20 a.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Fifteen minutes to 8:00, then 20 minutes after = 8:20."
       },
       {
         "editorial_id": "time-v2-sup-038",
@@ -1730,7 +1767,8 @@
         "answer": "12:25 p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Ten minutes to midday, then 25 more gives 12:25 p.m."
       },
       {
         "editorial_id": "time-v2-sup-039",
@@ -1743,7 +1781,8 @@
         "answer": "4:15 p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Add an hour to get 3:40, then 35 minutes to get 4:15."
       },
       {
         "editorial_id": "time-v2-sup-040",
@@ -1756,7 +1795,8 @@
         "answer": "2:05 p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "In 24-hour notation, hour 14 is two hours after noon."
       },
       {
         "editorial_id": "time-v2-sup-041",
@@ -1769,7 +1809,8 @@
         "answer": "1 hour 40 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "10:20 to 11:00 is forty minutes, plus one full hour to midday."
       },
       {
         "editorial_id": "time-v2-sup-042",
@@ -1782,7 +1823,8 @@
         "answer": "1 hour 35 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Twenty minutes to 11 p.m., one hour to midnight, fifteen minutes after = 95."
       },
       {
         "editorial_id": "time-v2-sup-043",
@@ -1795,7 +1837,8 @@
         "answer": "45 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "9:35 to 10:00 is 25 minutes and to 10:20 is 20 more."
       },
       {
         "editorial_id": "time-v2-sup-044",
@@ -1808,7 +1851,8 @@
         "answer": "40 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Ten minutes to four plus thirty more = forty minutes."
       },
       {
         "editorial_id": "time-v2-sup-045",
@@ -1821,7 +1865,8 @@
         "answer": "1:15 p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Two hours after 10:50 a.m. is 12:50 p.m., then 25 more minutes gives 1:15."
       },
       {
         "editorial_id": "time-v2-sup-046",
@@ -1834,7 +1879,8 @@
         "answer": "4 hours 10 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "25 + 45 = 70 minutes, which becomes 1 hour 10 minutes; add the existing three hours."
       },
       {
         "editorial_id": "time-v2-sup-047",
@@ -1847,7 +1893,8 @@
         "answer": "4 hours 35 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "55 + 40 = 95 minutes, which is 1 hour 35 minutes; add the original three hours."
       },
       {
         "editorial_id": "time-v2-sup-048",
@@ -1860,7 +1907,8 @@
         "answer": "3 hours 20 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "50 + 30 = 80 minutes, which is 1 hour 20 minutes; add the two original hours."
       },
       {
         "editorial_id": "time-v2-sup-049",
@@ -1873,7 +1921,8 @@
         "answer": "2 hours 10 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "45 + 50 + 35 = 130 minutes = two complete hours and ten minutes."
       },
       {
         "editorial_id": "time-v2-sup-050",
@@ -1886,7 +1935,8 @@
         "answer": "8 hours 5 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "20 + 45 = 65 minutes, which contributes one extra hour and five minutes."
       },
       {
         "editorial_id": "time-v2-sup-051",
@@ -1899,7 +1949,8 @@
         "answer": "2 hours 25 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "5h10 becomes 4h70; subtract 2h45 to get 2h25."
       },
       {
         "editorial_id": "time-v2-sup-052",
@@ -1912,7 +1963,8 @@
         "answer": "1 hour 40 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "3h00 becomes 2h60; subtract 1h20 to get 1h40."
       },
       {
         "editorial_id": "time-v2-sup-053",
@@ -1925,7 +1977,8 @@
         "answer": "2 hours 45 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "4h02 becomes 3h62; subtract 1h17 to get 2h45."
       },
       {
         "editorial_id": "time-v2-sup-054",
@@ -1938,7 +1991,8 @@
         "answer": "2 hours 35 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "6h30 becomes 5h90; subtract 3h55 to get 2h35."
       },
       {
         "editorial_id": "time-v2-sup-055",
@@ -1950,7 +2004,8 @@
         "answer": "Yes, by 5 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Activity A runs until 3:45 p.m.; B begins at 3:40, creating a five-minute overlap."
       },
       {
         "editorial_id": "time-v2-sup-056",
@@ -1962,7 +2017,8 @@
         "answer": "6 hours; 25 + 35 = 60",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "The minute parts add to exactly sixty, which exchanges for an additional hour; 3 + 2 + 1 = 6."
       },
       {
         "editorial_id": "time-v2-sup-057",
@@ -1974,7 +2030,8 @@
         "answer": "1:55 p.m.",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Travel finishes at 1:35 p.m. and the rest adds twenty minutes."
       },
       {
         "editorial_id": "time-v2-sup-058",
@@ -1986,7 +2043,8 @@
         "answer": "2 weeks 3 days",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Two full weeks contain fourteen days, leaving three of the seventeen."
       },
       {
         "editorial_id": "time-v2-sup-059",
@@ -1998,7 +2056,8 @@
         "answer": "1 hour 10 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "2h05 becomes 1h65; subtract 55 minutes to leave 1h10."
       },
       {
         "editorial_id": "time-v2-sup-060",
@@ -2010,7 +2069,8 @@
         "answer": "2 hours 30 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "95 + 55 = 150 minutes; two full groups of sixty leave thirty."
       },
       {
         "editorial_id": "time-v2-sup-061",
@@ -2022,7 +2082,8 @@
         "answer": "Yes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "Hour 15 in 24-hour notation is three hours after noon."
       },
       {
         "editorial_id": "time-v2-sup-062",
@@ -2034,7 +2095,8 @@
         "answer": "4 × 60 = 240 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "An hour is sixty minutes, not one hundred; four groups of sixty are 240."
       },
       {
         "editorial_id": "time-v2-sup-063",
@@ -2046,7 +2108,8 @@
         "answer": "1 hour 30 minutes",
         "solution_visibility": "exposed_learning_practice",
         "exam_eligibility": "not_approved",
-        "independent_review": "NOT_CHECKED"
+        "independent_review": "NOT_CHECKED",
+        "feedback": "The visit lasts 1 hour 45 minutes; removing the 15-minute rest leaves 1 hour 30 minutes."
       }
     ],
     "sets": [
