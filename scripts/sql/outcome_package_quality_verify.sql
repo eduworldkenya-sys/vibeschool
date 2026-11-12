@@ -114,7 +114,7 @@ begin
      or report::text not like '%SOURCE_TO_DATABASE_RECONCILIATION_BLOCKED%' then
     raise exception 'Unreconciled source package accepted: %',report;
   end if;
-  bad_manifest := jsonb_set(manifest,'{curriculum_package_id}',to_jsonb('wrong-curriculum-source'));
+  bad_manifest := jsonb_set(manifest,'{curriculum_package_id}',to_jsonb('wrong-curriculum-source'::text));
   report := public.cla_outcome_package_quality_gate(
     pkg_id,bad_manifest,encode(extensions.digest(convert_to(bad_manifest::text,'UTF8'),'sha256'),'hex'),'cleared',evidence);
   if report->>'state' <> 'BLOCKED'
