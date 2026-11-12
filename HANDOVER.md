@@ -103,6 +103,30 @@ TBL-013 MIGRATION PROVENANCE CORRECTION — 2026-11-12:
 - No production database writes, attendance changes, or timetable deletions
   were performed during this correction.
 
+TBL-012 PARTIAL LIVE RECONCILIATION — 2026-11-12:
+- The read-only production fingerprint for teaching_occurrences is
+  columns=b6267cbed72bb9835de6d402a11c305b,
+  constraints=f2402925362f1d18e908fe7decabd3c1,
+  indexes=cab1e33e79b43929983e8e49d54f02c0.
+  All THREE are exactly equal to the isolated TBL-011 clean rebuild.
+- The identical 10,199-character production migration statement is
+  already applied under 20261112104242_unscheduled_teaching_occurrence.
+  The checkout's verified exact same SQL was renamed by PR #1459.
+- Update ONLY these three pinned fingerprints, and remove the three
+  misleading 'EXPECTED_FORWARD_MIGRATION_UNDEPLOYED' exceptions.
+  Keep the standalone timetable_slot_period_guard forward-delta
+  declaration for version 20261112101600, still unapplied.
+- The remaining live-to-pinned mismatches are NOT waived:
+  teacher_classes.indexes (live 9ed6ca6a, pinned 0e6acbcc);
+  timetable_slots.triggers (live ecfb8be9, pinned ae2bfdc7);
+  timetable_slots.constraints (live 384d9852, pinned fefe6223);
+  teaching_occurrences.triggers (live ec5d464a, pinned cb533982).
+  The upper-primary school-period guards and ownership checks require
+  a separate controlled migration and structural proof.
+- Status remains TBL-012 BLOCKED FOR PRODUCTION PARITY. Clean rebuild
+  passing its pinned-target comparison is not a live certification.
+- No production writes, schema mutations, or history rewrites.
+
 Previous verified fix
 
 FIX ID: TBL-011

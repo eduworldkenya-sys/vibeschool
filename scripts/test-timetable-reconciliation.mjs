@@ -120,17 +120,20 @@ test('teacher timetable checks outcome readiness', () => {
 })
 
 
-test('planned timetable and unscheduled teaching deltas are explicit, exact and never production parity', () => {
+test('only the timetable period guard is a pending forward delta; live unscheduled teaching is already applied', () => {
   const baseline = JSON.parse(read('supabase/reconciliation/tbl012_production_core_schema_hashes.json'))
   const planned = JSON.parse(read('supabase/reconciliation/tbl012_pending_forward_deltas.json'))
-  assert.equal(planned.deltas.length, 4)
+  assert.equal(planned.deltas.length, 1)
   const keys = planned.deltas.map(delta => delta.table + '.' + delta.section)
   assert.deepEqual(keys, [
     'timetable_slots.triggers',
-    'teaching_occurrences.columns',
-    'teaching_occurrences.constraints',
-    'teaching_occurrences.indexes',
   ])
+  // The actual production ledger stored this unchanged SQL under 20261112104242.
+  // Live catalogue hashes were measured using scripts/sql/tbl012_core_schema_hashes.sql
+  // and matched the clean rebuild for all three unscheduled structural sections.
+  assert.equal(baseline.tables.teaching_occurrences.columns_hash, 'b6267cbed72bb9835de6d402a11c305b')
+  assert.equal(baseline.tables.teaching_occurrences.constraints_hash, 'f2402925362f1d18e908fe7decabd3c1')
+  assert.equal(baseline.tables.teaching_occurrences.indexes_hash, 'cab1e33e79b43929983e8e49d54f02c0')
   for (const delta of planned.deltas) {
     assert.equal(delta.production_hash, baseline.tables[delta.table][delta.section+'_hash'])
     assert.match(delta.rebuilt_hash, /^[a-f0-9]{32}$/)
