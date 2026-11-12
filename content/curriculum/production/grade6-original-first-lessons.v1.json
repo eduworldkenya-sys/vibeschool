@@ -70,7 +70,7 @@
           "id": "G06-MA-1.1-L01-E1",
           "prompt": "Write 3,204,516 in expanded form.",
           "answer": "3,000,000 + 200,000 + 4,000 + 500 + 10 + 6",
-          "reason": "Use each non-zero digit's position; omit zero tens-of-thousands and hundreds? In 3,204,516, 2 is hundred-thousands, 0 ten-thousands, 4 thousands, 5 hundreds, 1 tens, 6 ones."
+          "reason": "The digit 2 represents 200,000; the zero ten-thousands adds no value; the 4 represents 4,000, the 5 represents 500, the 1 represents 10 and the 6 represents 6."
         },
         {
           "id": "G06-MA-1.1-L01-E2",
@@ -95,7 +95,17 @@
       "visual": {
         "kind": "place-value diagram",
         "description": "Seven aligned columns with headings million, hundred-thousand, ten-thousand, thousand, hundred, ten, one; digits 2,7,3,5,4,8,1."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-6-Mathematics-Revised.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     },
     {
       "id": "VS-G06-EN-1.1-T01-L01",
@@ -189,7 +199,17 @@
       "visual": {
         "kind": "main idea and details chart",
         "description": "Central box 'Main idea' with two connecting detail boxes; no real child images."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/ENGLISH-GRADE-6-UPDATED-Revised-Sept.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1 in Theme 1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     },
     {
       "id": "VS-G06-SW-1.1.1-L01",
@@ -278,7 +298,17 @@
       "visual": {
         "kind": "anatomy line drawing",
         "description": "Mchoro usio wa kutisha unaoonesha moyo na mapafu kwa majina ya Kiswahili."
-      }
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/LATEST-6.8.2024-KISWAHILI-GRADE-6-Revised.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
     }
   ]
 }
