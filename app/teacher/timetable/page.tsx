@@ -1496,7 +1496,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </div>
 
-      {!loading && teacherId && totalLessons === 0 && !loadError && !schoolError && (
+      {/* Every signed-in teacher can explore non-authoritative sample periods.
+          This is independent of whether there are existing school lessons,
+          tuition sessions or a temporary failure in the school-context RPC. */}
+      {!loading && teacherId && (
         <div className="no-print" style={{ marginBottom: 14 }}>
           {!activeSchoolId && (
             <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 10px' }}>
