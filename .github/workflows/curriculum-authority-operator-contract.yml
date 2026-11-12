@@ -10,6 +10,8 @@ on:
       - 'supabase/functions/curriculum-authority-intake/**'
       - 'supabase/migrations/*curriculum_authority_operator_intake*'
       - 'scripts/test-curriculum-authority-operator.mjs'
+      - 'content/curriculum/grade9-mathematics-hierarchy-2024-candidate.json'
+      - 'scripts/tests/grade9-mathematics-*.test.mjs'
       - '.github/workflows/curriculum-authority-operator-contract.yml'
 
 permissions:
@@ -26,3 +28,5 @@ jobs:
           node-version: 22
       - name: Certify authority operator boundary
         run: node scripts/test-curriculum-authority-operator.mjs
+      - name: Review Grade 9 Mathematics draft gates (no source promotion)
+        run: node --test scripts/tests/grade9-mathematics-source-summary.test.mjs scripts/tests/grade9-mathematics-outcomes-candidate.test.mjs
