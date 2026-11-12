@@ -1725,6 +1725,34 @@ export default function LessonPlanModal({
               )}
               {workspacePanel === 'Scheme' && (
                 <>
+                  {phase === 'view' && planId && (
+                    <div style={{padding:'10px 0',marginBottom:8}}>
+                      <p><strong>Dated lesson:</strong> {taughtDate} · {slot.subject} · {slot.class}</p>
+                      <p>{planSchemeIdRef.current
+                        ? 'A Scheme item is saved; the exact date and week must validate.'
+                        : 'No Scheme item linked to this date. Choose one explicitly; matching topics alone do not establish a link.'}</p>
+                      {datedSchemeError && <p role="alert" style={{color:'#b91c1c'}}>{datedSchemeError}</p>}
+                      {datedSchemeLoading ? <p>Checking the school instructional week…</p> :
+                        datedSchemeCandidates.length > 0 ? (
+                          <>
+                            <label htmlFor="dated-scheme-choice" style={{fontSize:12,display:'block',marginBottom:4}}>Saved Scheme item for this week</label>
+                            <select id="dated-scheme-choice" value={selectedSchemeId}
+                              disabled={Boolean(planSchemeIdRef.current) || linkingOutcome}
+                              onChange={event => setSelectedSchemeId(event.target.value)}
+                              style={{width:'100%',padding:10,borderRadius:8,border:'1px solid #cbd5e1'}}>
+                              <option value="">Choose an eligible Scheme item</option>
+                              {datedSchemeCandidates.map(candidate => (
+                                <option key={candidate.id} value={candidate.id}>
+                                  {candidate.topic}{candidate.lessonNumber != null ? ` · Lesson ${candidate.lessonNumber}` : ''}{candidate.period != null ? ` · Period ${candidate.period}` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </>
+                        ) : !datedSchemeError && (
+                          <p>No Scheme item is eligible for this date and week. Review the Scheme calendar; entries from other weeks cannot be attached automatically.</p>
+                        )}
+                    </div>
+                  )}
                   {suggestion?.schemeId ? (
                     <>
                       <p><strong>Current Scheme topic:</strong> {suggestion.topic}</p>
@@ -1743,7 +1771,7 @@ export default function LessonPlanModal({
                       </p>
                     )}
                   </>}
-                  {phase === 'view' && planId && suggestion?.schemeId && (
+                  {phase === 'view' && planId && Boolean(planSchemeIdRef.current ?? selectedSchemeId) && (
                     <div style={{padding:'10px 0',marginTop:8}}>
                       <p><strong>Curriculum outcome:</strong> {savedOutcomeId ? 'Confirmed for this dated plan' : 'Not yet confirmed'}</p>
                       {outcomeBindingError && <p role="alert" style={{color:'#b91c1c'}}>{outcomeBindingError}</p>}
@@ -1760,12 +1788,12 @@ export default function LessonPlanModal({
                           </select>
                           <button type="button" className="studio-lesson-modal__action"
                             disabled={!selectedOutcomeId || linkingOutcome ||
-                              (savedOutcomeId === selectedOutcomeId && planSchemeIdRef.current === suggestion.schemeId)}
+                              (savedOutcomeId === selectedOutcomeId && planSchemeIdRef.current === selectedSchemeId)}
                             onClick={() => void saveDatedOutcomeBinding()}>
                             {linkingOutcome ? 'Saving curriculum link…' : 'Confirm Scheme and outcome link'}
                           </button>
                         </>
-                      ) : <p>No active or verified outcome is linked to this Scheme. Complete curriculum reconciliation first.</p>}
+                      ) : <p>No active or verified outcome is linked to the selected Scheme. Complete curriculum reconciliation first.</p>}
                     </div>
                   )}
                   <button type="button" className="studio-lesson-modal__action" onClick={() => router.push('/teacher/scheme?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,date:taughtDate,timetableSlotId:slot.id,lessonPlanId:planId??''}).toString())}>Open full Scheme →</button>
