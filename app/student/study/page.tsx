@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useStudent } from '@/lib/student-context'
 import { supabase } from '@/lib/supabase'
-import { ArrowRight, BookOpen, ClipboardList, CalendarDays, PencilLine, RotateCcw } from 'lucide-react'
+import { ArrowRight, BookOpen, ClipboardList, CalendarDays, PencilLine, RotateCcw, FolderOpen, Users, CheckCircle2 } from 'lucide-react'
 import {
   getVibeLearnWorkstation, getAssignedReading, getExamReadinessBrief, updateExamReadiness,
   getAdaptiveLearningPath, getAdaptiveResourceRecommendations,
@@ -127,6 +127,9 @@ export default function LearnerStudyDesk() {
         <Link href="/student/vibelearn/revision"><RotateCcw size={20}/> Revision</Link>
         <Link href="/student/vibelearn/exams"><CalendarDays size={20}/> Exams</Link>
         <Link href="/student/resources"><BookOpen size={20}/> Shared materials</Link>
+        <Link href={identity.classId ? '/student/projects' : '/student/projects/independent'}><FolderOpen size={20}/> Projects</Link>
+        <Link href="/student/tutoring"><Users size={20}/> My tuition</Link>
+        <Link href="/student/vibelearn/mistakes"><CheckCircle2 size={20}/> Review mistakes</Link>
       </nav>
 
       {error&&<p className={styles.alert} role="alert">{error}</p>}
