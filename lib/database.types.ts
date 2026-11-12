@@ -16256,6 +16256,7 @@ export type Database = {
           page_start: number | null
           project_id: string | null
           resource_id: string
+          resource_version_id: string | null
           scheme_lesson_id: string | null
           section_refs: Json
           sequence: number
@@ -16276,6 +16277,7 @@ export type Database = {
           page_start?: number | null
           project_id?: string | null
           resource_id: string
+          resource_version_id?: string | null
           scheme_lesson_id?: string | null
           section_refs?: Json
           sequence?: number
@@ -16296,6 +16298,7 @@ export type Database = {
           page_start?: number | null
           project_id?: string | null
           resource_id?: string
+          resource_version_id?: string | null
           scheme_lesson_id?: string | null
           section_refs?: Json
           sequence?: number
@@ -16358,6 +16361,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "learning_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teaching_resource_links_resource_version_id_fkey"
+            columns: ["resource_version_id"]
+            isOneToOne: false
+            referencedRelation: "learning_resource_versions"
             referencedColumns: ["id"]
           },
           {

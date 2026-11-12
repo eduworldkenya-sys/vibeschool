@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { nairobiDateStr } from '@/lib/time'
 import { C, Modal } from '@/components/teacher/ui'
 import TeachingLibraryStructure from '@/components/teacher/TeachingLibraryStructure'
 import type { CanonicalTeachingLibraryItem } from '@/components/teacher/TeachingLibraryStructure'
@@ -31,6 +32,7 @@ type SchemeLesson = {
   id: string
   class_id: string
   subject_id: string
+  subject: string | null
   academic_term_id: string | null
   topic: string | null
   sub_strand: string | null
@@ -43,6 +45,7 @@ type LinkedResourceRow = {
   id: string
   scheme_lesson_id: string
   resource_id: string
+  resource_version_id: string | null
   publication_id: string
   chapter_id: string
   resource_role: string
@@ -68,7 +71,7 @@ type ReadyPack = {
   scheme: SchemeLesson
   classLabel: string
   subjectLabel: string
-  resources: Array<LinkedResourceRow & { resource: LearningResource | null }>
+  resources: Array<LinkedResourceRow & { resource: LearningResource | null; certifiedVersionId: string | null }>
 }
 type FormState = {
   type: ResourceType
@@ -98,7 +101,6 @@ const labelStyle: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '.05em',
 }
 
-function todayIso() { return new Date().toISOString().slice(0, 10) }
 function typeMeta(type: string) { return TYPES.find(item => item.value === type) ?? TYPES[TYPES.length - 1] }
 function unique<T>(values: T[]) { return Array.from(new Set(values)) }
 function orderScheme(a: SchemeLesson, b: SchemeLesson) {
@@ -106,10 +108,18 @@ function orderScheme(a: SchemeLesson, b: SchemeLesson) {
     || (a.lesson_number ?? 999999) - (b.lesson_number ?? 999999)
     || a.id.localeCompare(b.id)
 }
-function readerHref(row: LinkedResourceRow & { resource: LearningResource | null }) {
-  const publicationId = row.publication_id || row.resource?.publication_id
-  const chapterId = row.chapter_id || row.resource?.chapter_id
-  return publicationId && chapterId ? `/read/textbook/${publicationId}/${chapterId}` : null
+function readerHref(row: LinkedResourceRow & { resource: LearningResource | null; certifiedVersionId: string | null }) {
+  if (!row.resource || !row.certifiedVersionId) return null
+  const publicationId = row.publication_id || row.resource.publication_id
+  const chapterId = row.chapter_id || row.resource.chapter_id
+  if (publicationId && chapterId) return `/read/textbook/${publicationId}/${chapterId}`
+  return `/teacher/resources/read/${row.resource.id}?versionId=${row.certifiedVersionId}`
+}
+function publishedDescription(description: string | null): string | null {
+  // Historical editorial copy is not certification evidence. Do not repeat
+  // a now-false "review-stage manuscript" label on a certified resource.
+  return description && !/review[- ]stage manuscript|candidate manuscript|draft manuscript/i.test(description)
+    ? description : null
 }
 function timeAgo(iso: string) {
   const value = new Date(iso).getTime()
@@ -134,6 +144,9 @@ export default function TeacherResourcesPage() {
   const [schoolId, setSchoolId] = useState<string | null>(null)
   const [week, setWeek] = useState<number | null>(null)
   const [termId, setTermId] = useState<string | null>(null)
+  const [classFilter, setClassFilter] = useState(requestedClassId)
+  const [subjectFilter, setSubjectFilter] = useState(requestedSubjectId)
+  const [topicFilter, setTopicFilter] = useState('')
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [classes, setClasses] = useState<ClassOption[]>([])
   const [subjects, setSubjects] = useState<SubjectOption[]>([])
@@ -156,14 +169,20 @@ export default function TeacherResourcesPage() {
     const ids = new Set(assignments.filter(row => row.class_id === form.class_id).map(row => row.subject_id))
     return subjects.filter(row => ids.has(row.id))
   }, [assignments, form.class_id, subjects])
+  useEffect(() => { setClassFilter(requestedClassId); setSubjectFilter(requestedSubjectId) }, [requestedClassId, requestedSubjectId])
   const scopedSubjectName = useMemo(
-    () => subjects.find(row => row.id === requestedSubjectId)?.name ?? '',
-    [requestedSubjectId, subjects],
+    () => subjects.find(row => row.id === subjectFilter)?.name ?? '',
+    [subjectFilter, subjects],
   )
+  const subjectOptions = useMemo(() => {
+    if (!classFilter) return subjects
+    const allowed = new Set(assignments.filter(row => row.class_id === classFilter).map(row => row.subject_id))
+    return subjects.filter(row => allowed.has(row.id))
+  }, [assignments, classFilter, subjects])
   const catalogueLibrary = useMemo(() => library.filter(row =>
-    (!requestedClassId || row.class_id === requestedClassId) &&
+    (!classFilter || row.class_id === classFilter) &&
     (!scopedSubjectName || row.subject === scopedSubjectName),
-  ), [library, requestedClassId, scopedSubjectName])
+  ), [library, classFilter, scopedSubjectName])
   const visibleLibrary = useMemo(() =>
     filter === 'all' ? catalogueLibrary : catalogueLibrary.filter(row => row.type === filter),
     [catalogueLibrary, filter],
@@ -173,10 +192,12 @@ export default function TeacherResourcesPage() {
   // Scheme-linked inventory.
   const cataloguePacks = useMemo(
     () => packs.filter(pack =>
-      (!requestedClassId || pack.scheme.class_id === requestedClassId) &&
-      (!requestedSubjectId || pack.scheme.subject_id === requestedSubjectId),
+      (!classFilter || pack.scheme.class_id === classFilter) &&
+      (!subjectFilter || pack.scheme.subject_id === subjectFilter) &&
+      (!topicFilter.trim() || [pack.scheme.topic, pack.scheme.sub_strand, pack.scheme.strand]
+        .some(value => (value ?? '').toLocaleLowerCase().includes(topicFilter.trim().toLocaleLowerCase()))),
     ),
-    [packs, requestedClassId, requestedSubjectId],
+    [packs, classFilter, subjectFilter, topicFilter],
   )
   const visiblePacks = useMemo(
     () => cataloguePacks.filter(pack =>
@@ -188,13 +209,13 @@ export default function TeacherResourcesPage() {
   )
   const canonicalLibraryItems = useMemo<CanonicalTeachingLibraryItem[]>(() =>
     cataloguePacks.flatMap(pack => pack.resources.flatMap(item => {
-      if (!item.resource) return []
+      if (!item.resource || !item.certifiedVersionId) return []
       const resource = item.resource
       const schemeHref = `/teacher/scheme?classId=${encodeURIComponent(pack.scheme.class_id)}&subjectId=${encodeURIComponent(pack.scheme.subject_id)}`
       return [{
         id: resource.id,
         title: resource.title,
-        description: resource.description,
+        description: publishedDescription(resource.description),
         assetKind: resource.asset_kind,
         materialVariant: resource.material_variant,
         purpose: resource.purpose,
@@ -203,22 +224,26 @@ export default function TeacherResourcesPage() {
         schemeHref,
         classLabel: pack.classLabel,
         subjectLabel: pack.subjectLabel,
+        topicLabel: pack.scheme.topic || pack.scheme.sub_strand || pack.scheme.strand || 'Scheme lesson',
       }]
     })),
     [cataloguePacks],
   )
-  const readyCount = useMemo(() => visiblePacks.reduce((sum, pack) => sum + pack.resources.length, 0), [visiblePacks])
+  const certifiedCount = useMemo(
+    () => visiblePacks.reduce((sum, pack) => sum + pack.resources.filter(item => item.certifiedVersionId).length, 0),
+    [visiblePacks],
+  )
 
   const openAdd = useCallback((requestedType: ResourceType = 'notes') => {
-    const requestedClassIsAssigned = classes.some(row => row.id === requestedClassId)
-    const classId = requestedClassIsAssigned ? requestedClassId : (classes[0]?.id ?? '')
+    const selectedClassIsAssigned = classes.some(row => row.id === classFilter)
+    const classId = selectedClassIsAssigned ? classFilter : (classes[0]?.id ?? '')
     const subjectIds = assignments.filter(row => row.class_id === classId).map(row => row.subject_id)
-    const requestedSubjectIsAssigned = subjectIds.includes(requestedSubjectId)
-    const subjectId = requestedSubjectIsAssigned ? requestedSubjectId : (subjectIds[0] ?? '')
+    const selectedSubjectIsAssigned = subjectIds.includes(subjectFilter)
+    const subjectId = selectedSubjectIsAssigned ? subjectFilter : (subjectIds[0] ?? '')
     setForm({ type: requestedType, title: '', class_id: classId, subject_id: subjectId, description: '', external_url: '', content: '' })
     setFormError('')
     setShowAdd(true)
-  }, [assignments, classes, requestedClassId, requestedSubjectId])
+  }, [assignments, classes, classFilter, subjectFilter])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -252,7 +277,7 @@ export default function TeacherResourcesPage() {
       const [classResult, subjectResult, calendar] = await Promise.all([
         classIds.length ? supabase.from('classes').select('id,name,stream').eq('school_id', resolvedSchoolId).in('id', classIds) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from('subjects').select('id,name').in('id', subjectIds).order('name') : Promise.resolve({ data: [], error: null }),
-        supabase.rpc('resolve_instructional_week_for_date', { p_school_id: resolvedSchoolId, p_date: todayIso() }),
+        supabase.rpc('resolve_instructional_week_for_date', { p_school_id: resolvedSchoolId, p_date: nairobiDateStr() }),
       ])
       if (classResult.error) throw classResult.error
       if (subjectResult.error) throw subjectResult.error
@@ -285,7 +310,7 @@ export default function TeacherResourcesPage() {
 
       const schemeResult = await supabase
         .from('scheme_of_work')
-        .select('id,class_id,subject_id,academic_term_id,topic,sub_strand,strand,week,lesson_number,sequence_number')
+        .select('id,class_id,subject_id,subject,academic_term_id,topic,sub_strand,strand,week,lesson_number,sequence_number')
         .eq('teacher_id', user.id)
         .eq('school_id', resolvedSchoolId)
         .in('class_id', classIds)
@@ -299,7 +324,7 @@ export default function TeacherResourcesPage() {
       const [linkResult, canonicalLinkResult] = await Promise.all([
         supabase.rpc('list_scheme_lesson_resources_batch', { p_scheme_ids: schemeIds }),
         supabase.from('teaching_resource_links')
-          .select('id,scheme_lesson_id,resource_id,usage_role,sequence,page_start,page_end')
+          .select('id,scheme_lesson_id,resource_id,resource_version_id,usage_role,sequence,page_start,page_end')
           .eq('target_type', 'scheme_lesson').in('scheme_lesson_id', schemeIds),
       ])
       if (linkResult.error) throw linkResult.error
@@ -314,6 +339,7 @@ export default function TeacherResourcesPage() {
         id: string
         scheme_lesson_id: string
         resource_id: string
+        resource_version_id: string | null
         usage_role: string
         sequence: number
         page_start: number | null
@@ -322,6 +348,7 @@ export default function TeacherResourcesPage() {
         id: row.id,
         scheme_lesson_id: row.scheme_lesson_id,
         resource_id: row.resource_id,
+        resource_version_id: row.resource_version_id,
         publication_id: '',
         chapter_id: '',
         resource_role: row.usage_role,
@@ -330,7 +357,8 @@ export default function TeacherResourcesPage() {
         page_end: row.page_end,
       }))
       const seenLinks = new Set<string>()
-      const links = [...legacyLinks, ...canonicalLinks].filter(row => {
+      // Prefer generic links because they can pin an immutable version.
+      const links = [...canonicalLinks, ...legacyLinks.map(row => ({ ...row, resource_version_id: null }))].filter(row => {
         const key = row.scheme_lesson_id + ':' + row.resource_id
         if (seenLinks.has(key)) return false
         seenLinks.add(key)
@@ -342,6 +370,25 @@ export default function TeacherResourcesPage() {
         : { data: [], error: null }
       if (learningResult.error) throw learningResult.error
       const learningMap = new Map(((learningResult.data ?? []) as LearningResource[]).map(row => [row.id, row]))
+      const versionResult = resourceIds.length
+        ? await supabase.from('learning_resource_versions')
+          .select('id,resource_id,version,lifecycle_status,certified_at')
+          .in('resource_id', resourceIds).eq('lifecycle_status', 'certified')
+          .not('certified_at', 'is', null).order('version', { ascending: false })
+        : { data: [], error: null }
+      // A link to an active root alone is not proof of publication. Fail
+      // closed if certified versions cannot be verified under the user's RLS.
+      if (versionResult.error) setLinkWarning('Certification could not be verified. Unverified materials are not available to open.')
+      const certifiedVersions = (versionResult.data ?? []) as Array<{ id: string; resource_id: string; version: number }>
+      const byVersionId = new Map(certifiedVersions.map(row => [row.id, row]))
+      const latestByResource = new Map<string, string>()
+      for (const version of certifiedVersions) {
+        if (!latestByResource.has(version.resource_id)) latestByResource.set(version.resource_id, version.id)
+      }
+      const verifiedVersion = (link: LinkedResourceRow) =>
+        link.resource_version_id
+          ? (byVersionId.get(link.resource_version_id)?.resource_id === link.resource_id ? link.resource_version_id : null)
+          : latestByResource.get(link.resource_id) ?? null
       const linkMap = new Map<string, LinkedResourceRow[]>()
       for (const row of links) linkMap.set(row.scheme_lesson_id, [...(linkMap.get(row.scheme_lesson_id) ?? []), row])
       for (const rows of linkMap.values()) rows.sort((a, b) => a.sequence - b.sequence || a.id.localeCompare(b.id))
@@ -351,8 +398,14 @@ export default function TeacherResourcesPage() {
       setPacks(schemes.map(scheme => ({
         scheme,
         classLabel: classMap.get(scheme.class_id) ?? 'Class',
-        subjectLabel: subjectMap.get(scheme.subject_id) ?? 'Subject',
-        resources: (linkMap.get(scheme.id) ?? []).map(link => ({ ...link, resource: learningMap.get(link.resource_id) ?? null })).filter(item => item.resource !== null),
+        subjectLabel: subjectMap.get(scheme.subject_id) ?? scheme.subject ?? 'Subject not recorded',
+        resources: (linkMap.get(scheme.id) ?? [])
+          .map(link => ({
+            ...link,
+            resource: learningMap.get(link.resource_id) ?? null,
+            certifiedVersionId: verifiedVersion(link),
+          }))
+          .filter(item => item.resource !== null),
       })))
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Resources could not be loaded.')
@@ -428,62 +481,106 @@ export default function TeacherResourcesPage() {
             </div>
             <button type="button" onClick={() => openAdd()} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: 'var(--teacher-green)', minHeight: 44, fontWeight: 650, whiteSpace: 'nowrap' }}>+ Add resource</button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginTop: 18 }}>
-            {[
-              ['Current week', week ?? '—'],
-              ['Ready resources', readyCount],
-              ['My saved resources', library.length],
-            ].map(([label, value]) => <div key={label} style={{ background: 'var(--teacher-canvas)', borderRadius: 12, padding: 10, textAlign: 'center' }}><div style={{ fontSize: 19, fontWeight: 750 }}>{value}</div><div style={{ fontSize: 11, opacity: .72 }}>{label}</div></div>)}
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 11, fontSize: 12, opacity: .9 }}>
+            <span>Week {week ?? '—'}</span>
+            <span>{certifiedCount} certified {certifiedCount === 1 ? 'material' : 'materials'} this week</span>
+            <span>{library.length} saved by me</span>
           </div>
         </div>
       </header>
 
       <div style={{ maxWidth: 980, margin: '0 auto', padding: 16 }}>
-        <Link href="/learn/grade-4/mathematics/time" style={{ display: 'block', marginBottom: 16, padding: '14px 16px', border: '1px solid #a8cbb6', borderRadius: 12, background: '#f0faf4', color: '#175b43', textDecoration: 'none' }}>
-          <strong style={{ fontSize: 14 }}>Grade 4 Mathematics · Time · Shared learning library</strong>
-          <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Open released Time lessons in the canonical learner reader. Candidate manuscripts stay private.</span>
-        </Link>
-        <Link href="/learn/grade-1/creative-activities" style={{ display: 'block', marginBottom: 16, padding: '14px 16px', border: '1px solid #a8cbb6', borderRadius: 12, background: '#f0faf4', color: '#175b43', textDecoration: 'none' }}>
-          <strong style={{ fontSize: 14 }}>Grade 1 Creative Activities · Learning library</strong>
-          <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Read the shared curriculum activities and approved materials. Draft lesson manuscripts remain private.</span>
-        </Link>
+        <section aria-label="Find lessons" style={{ background: '#fff', border: '1px solid #dce7de', borderRadius: 12, padding: 12, marginBottom: 14 }}>
+          <strong style={{ display: 'block', fontSize: 13, marginBottom: 9 }}>Find resources for</strong>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,190px),1fr))', gap: 9 }}>
+            <label style={{ fontSize: 12, color: '#5f7168' }}>Class
+              <select aria-label="Filter by class" value={classFilter} onChange={event => { setClassFilter(event.target.value); setSubjectFilter(''); setTopicFilter('') }}
+                style={{ ...inputStyle, marginTop: 5, minHeight: 42 }}>
+                <option value="">All my classes</option>
+                {classes.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}
+              </select>
+            </label>
+            <label style={{ fontSize: 12, color: '#5f7168' }}>Subject
+              <select aria-label="Filter by subject" value={subjectFilter} onChange={event => setSubjectFilter(event.target.value)}
+                style={{ ...inputStyle, marginTop: 5, minHeight: 42 }}>
+                <option value="">All subjects</option>
+                {subjectOptions.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}
+              </select>
+            </label>
+            <label style={{ fontSize: 12, color: '#5f7168' }}>Topic
+              <input aria-label="Filter by Scheme topic" type="search" value={topicFilter} onChange={event => setTopicFilter(event.target.value)}
+                placeholder="e.g. Jumping" style={{ ...inputStyle, marginTop: 5, minHeight: 42 }} />
+            </label>
+          </div>
+        </section>
         <TeachingLibraryStructure savedResources={catalogueLibrary} linkedResources={canonicalLibraryItems} onAddPersonalResource={openAdd} />
+        <details style={{ marginBottom: 19, border: '1px solid #e0e7e1', borderRadius: 12, padding: '11px 14px', background: '#fff' }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 650, fontSize: 13 }}>Published subject readers</summary>
+          <div style={{ display: 'grid', gap: 6, marginTop: 12 }}>
+          <Link href="/learn/grade-4/mathematics/time" style={{ display: 'block', marginBottom: 16, padding: '14px 16px', border: '1px solid #a8cbb6', borderRadius: 12, background: '#f0faf4', color: '#175b43', textDecoration: 'none' }}>
+            <strong style={{ fontSize: 14 }}>Grade 4 Mathematics · Time · Shared learning library</strong>
+            <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Open released Time lessons in the canonical learner reader. Candidate manuscripts stay private.</span>
+          </Link>
+          <Link href="/learn/grade-1/creative-activities" style={{ display: 'block', marginBottom: 16, padding: '14px 16px', border: '1px solid #a8cbb6', borderRadius: 12, background: '#f0faf4', color: '#175b43', textDecoration: 'none' }}>
+            <strong style={{ fontSize: 14 }}>Grade 1 Creative Activities · Learning library</strong>
+            <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Read the shared curriculum activities and approved materials. Draft lesson manuscripts remain private.</span>
+          </Link>
+          </div>
+        </details>
         {error && <div role="alert" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 12, padding: 12, marginBottom: 14 }}>{error}</div>}
         {linkWarning && <p role="status" style={{ color: '#8a6300', fontSize: 12 }}>{linkWarning}</p>}
 
-        <section id="scheme-linked-resources" style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 10 }}>
-            <div><h2 style={{ fontSize: 18, margin: 0 }}>Ready this week</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>Exact Scheme-linked VibeSchool resources. These feed the lesson-preparation and Teach Now journey; nothing here is title-matched or guessed.</p></div>
-          </div>
+        <details id="scheme-linked-resources" style={{ marginBottom: 24, border: '1px solid #e1e9e2', borderRadius: 13, padding: '12px 14px', background: '#fff' }}>
+          <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#22392c' }}>
+            Ready this week · Scheme materials
+            <span style={{ fontSize: 12, fontWeight: 400, color: '#61756a', marginLeft: 8 }}>{visiblePacks.length} topics · {certifiedCount} certified resource links</span>
+          </summary>
+          <p style={{ color: '#63746a', fontSize: 12, lineHeight: 1.6 }}>
+            Scheme-linked resources for the selected week. Optional materials never block lesson preparation.
+          </p>
           {visiblePacks.length === 0 ? (
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 15, padding: 18 }}>
-              <strong>No linked lesson pack is available for this instructional week.</strong>
-              <p style={{ margin: '6px 0 0', color: C.textMuted, lineHeight: 1.6 }}>This does not mean VibeSchool has no content. It means no canonical resource is currently linked to this teacher’s Scheme lessons for the resolved week, so Resources fails closed instead of guessing.</p>
-            </div>
-          ) : visiblePacks.map(pack => (
-            <article key={pack.scheme.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 14, marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
-                <div><div style={{ fontSize: 11, fontWeight: 750, color: '#0f4c75' }}>{pack.classLabel} · {pack.subjectLabel} · Lesson {pack.scheme.lesson_number ?? '—'}</div><h3 style={{ margin: '4px 0 3px', fontSize: 15 }}>{pack.scheme.topic || pack.scheme.sub_strand || pack.scheme.strand || 'Scheme lesson'}</h3></div>
-                <span style={{ background: pack.resources.length ? '#ecfdf5' : '#fff7ed', color: pack.resources.length ? '#065f46' : '#9a3412', borderRadius: 999, padding: '5px 8px', fontSize: 11, fontWeight: 750 }}>{pack.resources.length} ready</span>
-              </div>
-              {pack.resources.length === 0 ? <p style={{ margin: '9px 0 0', color: C.textMuted, fontSize: 12 }}>No canonical resource link is attached to this exact Scheme lesson yet.</p> : (
-                <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+            <p style={{ fontSize: 13, color: '#62756a' }}>No Scheme materials are linked for this instructional week. You can still prepare and teach your lesson.</p>
+          ) : visiblePacks.map(pack => {
+            const certified = pack.resources.filter(item => item.certifiedVersionId).length
+            return (
+              <details key={pack.scheme.id} style={{ marginBottom: 8, border: '1px solid #e0e7e2', borderRadius: 11, padding: '11px 12px' }}>
+                <summary style={{ cursor: 'pointer', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                  <span>
+                    <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#1e6150' }}>
+                      {pack.classLabel} · {pack.subjectLabel}
+                      {pack.scheme.lesson_number !== null ? ` · Lesson ${pack.scheme.lesson_number}` : ''}
+                    </span>
+                    <strong style={{ display: 'block', marginTop: 3, fontSize: 13 }}>{pack.scheme.topic || pack.scheme.sub_strand || pack.scheme.strand || 'Scheme topic'}</strong>
+                  </span>
+                  <span style={{ fontSize: 12, color: certified ? '#176448' : '#65766a' }}>
+                    {certified ? `${certified} certified ${certified === 1 ? 'resource' : 'resources'}` : 'No certified materials linked'}
+                  </span>
+                </summary>
+                <div style={{ marginTop: 10, display: 'grid', gap: 7 }}>
+                  {pack.resources.length === 0 && <p style={{ fontSize: 12, color: '#63746a' }}>No resources linked to this Scheme topic. This is optional.</p>}
                   {pack.resources.map(item => {
                     const href = readerHref(item)
-                    return <div key={item.id} style={{ border: '1px solid #eef2f7', background: '#fafcff', borderRadius: 12, padding: 11, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                      <div><div style={{ fontSize: 11, color: '#6366f1', fontWeight: 750, textTransform: 'uppercase' }}>{item.resource_role || item.resource?.purpose || item.resource?.asset_kind || 'Lesson resource'}</div><div style={{ fontSize: 13, fontWeight: 800, marginTop: 2 }}>{item.resource?.title ?? 'Canonical resource'}</div>{item.resource?.description && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{item.resource.description}</div>}</div>
-                      {href ? <Link href={href} style={{ textDecoration: 'none', borderRadius: 9, background: '#0f4c75', color: '#fff', padding: '8px 10px', fontSize: 11, fontWeight: 750 }}>Open</Link> : <span style={{ fontSize: 11, color: C.textMuted }}>Linked</span>}
-                    </div>
+                    return (
+                      <div key={item.id} style={{ padding: '9px 11px', borderRadius: 9, background: '#f8faf9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <div>
+                          <strong style={{ display: 'block', fontSize: 12 }}>{item.resource?.title ?? 'Learning resource'}</strong>
+                          <span style={{ display: 'block', fontSize: 11, color: '#66786e' }}>{item.resource?.asset_kind || item.resource_role || 'Material'} · {href ? 'Certified version' : 'Not released'}</span>
+                        </div>
+                        {href
+                          ? <Link href={href} style={{ color: '#146a49', fontSize: 12, fontWeight: 750, whiteSpace: 'nowrap' }}>Open resource</Link>
+                          : <span style={{ fontSize: 11, color: '#66786e' }}>Unavailable</span>}
+                      </div>
+                    )
                   })}
                 </div>
-              )}
-            </article>
-          ))}
-        </section>
+              </details>
+            )
+          })}
+        </details>
 
         <section id="saved-teaching-resources">
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'end', marginBottom: 10 }}>
-            <div><h2 style={{ fontSize: 18, margin: 0 }}>My teaching library</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>Personal supplementary resources. Teacher-added resources stay class-scoped.</p></div>
+            <div><h2 style={{ fontSize: 18, margin: 0 }}>My saved materials</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>My teaching library. Teacher-added resources stay class-scoped.</p></div>
           </div>
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10 }}>
             {(['all', ...TYPES.map(t => t.value)] as Array<'all' | ResourceType>).map(value => <button type="button" key={value} onClick={() => setFilter(value)} style={{ border: '1px solid #dbe3ea', background: filter === value ? '#e0f2fe' : '#fff', color: filter === value ? '#075985' : C.textMuted, borderRadius: 999, padding: '7px 10px', fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap' }}>{value === 'all' ? 'All' : typeMeta(value).label}</button>)}
