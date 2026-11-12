@@ -1593,13 +1593,13 @@ export default function LessonPlanModal({
     }
     const query = new URLSearchParams({
       lessonPlanId: planId,
-      occurrenceId: teachingOccurrence.occurrenceId,
       classId: slot.class_id,
       subjectId: slot.subject_id,
       timetableSlotId: slot.id,
       date: taughtDate,
       teach: '1',
     })
+    query.set('occurrenceId', teachingOccurrence.occurrenceId)
     router.push(`/teacher/lesson-notes?${query}`)
   }
 
