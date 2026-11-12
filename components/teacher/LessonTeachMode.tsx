@@ -14,6 +14,7 @@ type ClassroomContext = {
   lifecycle: string
   timetableSlotId: string
   occurrenceDate: string
+  unscheduled?: boolean
 }
 
 export type LessonCoverageOutcome = 'covered' | 'partial' | 'not_covered' | 'postponed' | 'reteach'
@@ -238,6 +239,10 @@ export default function LessonTeachMode({
 
   async function finish() {
     if (!onFinishLesson || finishing) return
+    if (context?.unscheduled && (!attendanceUnavailableReason.trim() || !noEvidenceReason.trim())) {
+      setFinishError('Explain the absence of attendance and learner evidence for this unscheduled lesson.')
+      return
+    }
     if (!whatWasTaught.trim()) {
       setFinishError('Record what was actually taught before finishing the lesson.')
       return
@@ -261,8 +266,8 @@ export default function LessonTeachMode({
         coverage: coverageOutcome,
         whatWasTaught: whatWasTaught.trim(),
         reflection: noClassCoverage ? whatWasTaught.trim() : reflection.trim(),
-        attendanceUnavailableReason: noClassCoverage ? 'No current learners in this class.' : completionFacts.attendanceSaved || attendanceResolved ? null : attendanceUnavailableReason.trim(),
-        noEvidenceReason: noClassCoverage ? 'No current learners in this class.' : completionFacts.evidenceSaved || evidenceResolved ? null : noEvidenceReason.trim(),
+        attendanceUnavailableReason: context?.unscheduled ? attendanceUnavailableReason.trim() : noClassCoverage ? 'No current learners in this class.' : completionFacts.attendanceSaved || attendanceResolved ? null : attendanceUnavailableReason.trim(),
+        noEvidenceReason: context?.unscheduled ? noEvidenceReason.trim() : noClassCoverage ? 'No current learners in this class.' : completionFacts.evidenceSaved || evidenceResolved ? null : noEvidenceReason.trim(),
         followUpDecision,
         nextSteps: nextSteps.trim() || null,
       })
@@ -375,7 +380,7 @@ export default function LessonTeachMode({
             {packView === 'homework' && sections.homework.trim() && (
               <>
                 <div>{sections.homework}</div>
-                {context && (
+                {context && !context.unscheduled && (
                   <button type="button" style={{ ...actionStyle, marginTop: 8 }} onClick={() => openAction('/teacher/assessment/new', 'homework')}>
                     Review homework to assign
                   </button>
@@ -404,7 +409,7 @@ export default function LessonTeachMode({
         )}
 
         </details>
-        {context ? (
+        {context && !context.unscheduled ? (
           <section style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:13, marginBottom:12 }}>
             <div style={{ fontSize:11, fontWeight:750, color:'#475569', textTransform:'uppercase', marginBottom:8 }}>Classroom actions · same occurrence</div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:8 }}>
@@ -429,7 +434,7 @@ export default function LessonTeachMode({
           </section>
         ) : (
           <div style={{ padding:12, borderRadius:12, background:'#fff7ed', border:'1px solid #fdba74', fontSize:12, marginBottom:12 }}>
-            Open this lesson from Today/Week to use occurrence-bound classroom actions and resume.
+            {context?.unscheduled ? 'Unscheduled teaching: use these prepared steps. Timetable attendance and class evidence actions are unavailable; document this accurately before completing.' : 'Open this lesson from Today/Week to use occurrence-bound classroom actions and resume.'}
           </div>
         )}
 
@@ -468,11 +473,19 @@ export default function LessonTeachMode({
                 <label style={{ display:'block', fontSize:11, fontWeight:800, marginTop:10 }}>Reflection</label>
                 <textarea value={reflection} onChange={e=>setReflection(e.target.value)} rows={3} placeholder="What worked, what needs attention, and what will you change?" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5, font:'inherit' }} />
                 </>}
-                {completionFacts.attendanceSaved ? <p>Attendance is already complete.</p> : !noClassCoverage && <>
+                {context?.unscheduled ? <>
+                  <p style={{fontSize:12}}>No timetable attendance is recorded for this lesson.</p>
+                  <label style={{display:'block',fontSize:11,fontWeight:800,marginTop:10}}>Why is attendance unavailable?</label>
+                  <input value={attendanceUnavailableReason} onChange={e=>setAttendanceUnavailableReason(e.target.value)} placeholder="Explain attendance not recorded" style={{width:'100%',boxSizing:'border-box',padding:9,marginTop:5}} />
+                </> : completionFacts.attendanceSaved ? <p>Attendance is already complete.</p> : !noClassCoverage && <>
                 <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:10, fontSize:12 }}><input type="checkbox" checked={attendanceResolved} onChange={e=>setAttendanceResolved(e.target.checked)} /> Attendance is complete for this occurrence</label>
                 {!attendanceResolved && <input value={attendanceUnavailableReason} onChange={e=>setAttendanceUnavailableReason(e.target.value)} placeholder="Reason attendance is unavailable" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />}
                 </>}
-                {completionFacts.evidenceSaved ? <p>Learning evidence is already recorded.</p> : !noClassCoverage && <>
+                {context?.unscheduled ? <>
+                  <p style={{fontSize:12}}>No canonical learner evidence has been attached.</p>
+                  <label style={{display:'block',fontSize:11,fontWeight:800,marginTop:10}}>Why is learner evidence unavailable?</label>
+                  <input value={noEvidenceReason} onChange={e=>setNoEvidenceReason(e.target.value)} placeholder="Explain why no learner evidence was recorded" style={{width:'100%',boxSizing:'border-box',padding:9,marginTop:5}} />
+                </> : completionFacts.evidenceSaved ? <p>Learning evidence is already recorded.</p> : !noClassCoverage && <>
                 <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:10, fontSize:12 }}><input type="checkbox" checked={evidenceResolved} onChange={e=>setEvidenceResolved(e.target.checked)} /> Learning evidence has been recorded</label>
                 {!evidenceResolved && <input value={noEvidenceReason} onChange={e=>setNoEvidenceReason(e.target.value)} placeholder="Reason no learning evidence was recorded" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />}
                 </>}
