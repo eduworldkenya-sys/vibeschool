@@ -11,7 +11,7 @@ const D=["","Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
 export default function AdminTimetablePage(){
  const [sid,setSid]=useState(""); const [slots,setSlots]=useState<Slot[]>([]); const [classes,setClasses]=useState<C[]>([]); const [subjects,setSubjects]=useState<Row[]>([]); const [teachers,setTeachers]=useState<T[]>([]); const [periods,setPeriods]=useState<Period[]>([]);
- const [block,setBlock]=useState({scheduleDay:0,periodNumber:1,label:"Period 1",startTime:"08:00",endTime:"08:40",kind:"lesson"});
+ const [block,setBlock]=useState({scheduleDay:0,periodNumber:1,label:"Period 1",startTime:"",endTime:"",kind:"lesson"});
  const [pick,setPick]=useState({classId:"",subjectId:"",teacherId:""}); const [suggestions,setSuggestions]=useState<SuggestedPlacement[]>([]); const [msg,setMsg]=useState(""); const [busy,setBusy]=useState(false);
  useEffect(()=>{void load()},[]);
  async function load(){setBusy(true);try{const a=await getAdminSchoolAuthority();setSid(a.schoolId);const today=new Date().toISOString().slice(0,10);
@@ -28,7 +28,7 @@ export default function AdminTimetablePage(){
  async function suggest(){if(!pick.classId||!pick.subjectId||!pick.teacherId)return;setBusy(true);try{setSuggestions(await suggestSchoolTimetableCandidates({schoolId:sid,...pick}));setMsg("")}catch(e){setMsg(e instanceof Error?e.message:"Could not suggest slots")}finally{setBusy(false)}}
  async function add(x:SuggestedPlacement){setBusy(true);try{const {error}=await supabase.rpc("create_school_timetable_slot",{p_school_id:sid,p_teacher_id:pick.teacherId,p_class_id:pick.classId,p_subject_id:pick.subjectId,p_day_of_week:x.day_of_week,p_start_time:x.start_time,p_end_time:x.end_time,p_room:null,p_effective_from:new Date().toISOString().slice(0,10),p_effective_until:null,p_allocation_units:1,p_period_id:x.period_id});if(error)throw error;setSuggestions([]);await load();setMsg("Lesson added.")}catch(e){setMsg(e instanceof Error?e.message:"Could not add lesson")}finally{setBusy(false)}}
  async function addSchoolBlock(){
-  if(!sid||!block.label.trim()||block.startTime>=block.endTime)return;
+  if(!sid||!block.label.trim()||!block.startTime||!block.endTime||block.startTime>=block.endTime){setMsg("Enter confirmed start and end times before adding a school-day block.");return;}
   setBusy(true);try{
    const {error}=await supabase.from("school_periods").insert({
     school_id:sid,schedule_day:block.scheduleDay,period_number:block.periodNumber,
@@ -48,13 +48,13 @@ export default function AdminTimetablePage(){
   {msg&&<div role="status" style={box}>{msg}</div>}
   <section style={box}>
    <h2 style={{fontSize:16}}>School day & bell schedule</h2>
-   <p style={{color:"#64748b",fontSize:13}}>Define the real teaching day once. Lessons may be any duration; breaks, lunch and assembly are protected from lesson placement.</p>
+   <p style={{color:"#64748b",fontSize:13}}>Enter confirmed school times or use optional editable samples from Teacher OS → Timetable → School day setup. No sample is automatically assigned.</p>
    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
     <select value={block.scheduleDay} onChange={e=>setBlock({...block,scheduleDay:Number(e.target.value)})}><option value={0}>All days</option>{D.slice(1).map((d,i)=><option key={i+1} value={i+1}>{d}</option>)}</select>
     <input type="number" min={1} value={block.periodNumber} onChange={e=>setBlock({...block,periodNumber:Number(e.target.value)||1})} aria-label="Period number"/>
     <input value={block.label} onChange={e=>setBlock({...block,label:e.target.value})} placeholder="Label"/>
-    <input type="time" value={block.startTime} onChange={e=>setBlock({...block,startTime:e.target.value})}/>
-    <input type="time" value={block.endTime} onChange={e=>setBlock({...block,endTime:e.target.value})}/>
+    <input aria-label="Confirmed block start time" type="time" value={block.startTime} onChange={e=>setBlock({...block,startTime:e.target.value})}/>
+    <input aria-label="Confirmed block end time" type="time" value={block.endTime} onChange={e=>setBlock({...block,endTime:e.target.value})}/>
     <select value={block.kind} onChange={e=>setBlock({...block,kind:e.target.value})}>
      {["lesson","break","lunch","assembly","games","club","prep","staff_meeting","guidance","examination","school_event","free","custom"].map(k=><option key={k} value={k}>{k.replaceAll("_"," ")}</option>)}
     </select>
