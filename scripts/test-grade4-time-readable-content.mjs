@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { formatGrade4TimeLessonBody } from '../lib/content/grade4TimePresentation.mjs'
 import { parseGrade4TimeLessonSections, TIME_SECTION_LABELS } from '../lib/content/grade4TimeSections.mjs'
+import { buildTimeQuestionCards, parseTimeAnswerEntries, timeStudyHint } from '../lib/content/grade4TimePractice.mjs'
 
 const read=(path)=>readFileSync(path,'utf8')
 
@@ -134,4 +135,86 @@ test('new learner reader makes exercise feedback optional without making fake pr
   assert.match(reader, /aria-current={current.id === lesson.id \? 'step' : undefined}/)
   assert.match(styles, /@media\(max-width:700px\)/, 'Real lesson body must be responsive')
   assert.doesNotMatch(reader, /supabase\.from\(['"]assessment_questions['"]\)/, 'No second assessment API')
+})
+
+
+test('published formative questions receive only their own released answers', () => {
+  const source = [
+    'LESSON 4 • Changing hours and minutes',
+    'I CAN: Change hours into minutes.',
+    'WORKED EXAMPLE',
+    '1. Each hour has sixty minutes.',
+    '2. Add remaining minutes.',
+    'EXERCISE • TRY YOURSELF',
+    'VS-G04-MA-TIME-L04-E1: Change 2 hours 35 minutes to minutes.',
+    'VS-G04-MA-TIME-L04-E2: Change 5 hours to minutes.',
+    'CHECK YOUR LEARNING',
+    'VS-G04-MA-TIME-L04-Q1: How many minutes are in 1 hour?',
+    'ANSWERS & HELPFUL FEEDBACK',
+    'VS-G04-MA-TIME-L04-E1: Change 2 hours 35 minutes to minutes.',
+    'Answer: 155 minutes.',
+    'Why: Two hours are 120 minutes; add 35.',
+    'VS-G04-MA-TIME-L04-Q1: How many minutes are in 1 hour?',
+    'Answer: 60 minutes.',
+    'Why: A complete hour contains 60 minutes.',
+  ].join('\n')
+  const sections = parseGrade4TimeLessonSections(source).sections
+  const cards = buildTimeQuestionCards(sections)
+  assert.equal(cards.exercise.length, 2)
+  assert.equal(cards.check.length, 1)
+  assert.equal(cards.exercise[0].answer, '155 minutes.')
+  assert.equal(cards.exercise[0].why, 'Two hours are 120 minutes; add 35.')
+  assert.equal(cards.exercise[1].answer, '', 'Never invent a missing checked answer')
+  assert.equal(cards.check[0].answer, '60 minutes.')
+  assert.ok(!cards.exercise[0].prompt.includes('VS-G04-MA'), 'Authoring IDs never appear in question text')
+  assert.ok(!cards.exercise[0].prompt.includes('155 minutes.'), 'Answers stay out of the prompt')
+  assert.match(timeStudyHint(4,2), /60 minutes/)
+  assert.match(timeStudyHint(2,2), /long hand/)
+  assert.match(timeStudyHint(1,1), /worked example/)
+})
+
+test('ambiguous answer IDs and unstructured questions fail closed', () => {
+  const feedback = [
+    'VS-G04-MA-TIME-L01-E1: First entry.',
+    'Answer: a.m.',
+    'VS-G04-MA-TIME-L01-E1: Duplicate entry.',
+    'Answer: p.m.',
+  ].join('\n')
+  assert.equal(parseTimeAnswerEntries(feedback).length, 2)
+  const source = [
+    'EXERCISE • TRY YOURSELF',
+    'VS-G04-MA-TIME-L01-E1: Morning or evening?',
+    'ANSWERS & HELPFUL FEEDBACK',
+    feedback,
+  ].join('\n')
+  assert.equal(buildTimeQuestionCards(parseGrade4TimeLessonSections(source).sections).exercise[0].answer, '')
+  assert.deepEqual(buildTimeQuestionCards([{id:'exercise',body:'A question without a stable published ID'}]).exercise, [])
+})
+
+test('accessible instructional visuals and hints never become exam scoring', () => {
+  const reader = read('components/learn/Grade4TimeContentReader.tsx')
+  const model = read('components/learn/Grade4TimeLearningAid.tsx')
+  const cards = read('components/learn/Grade4TimePracticeCards.tsx')
+  const steps = read('components/learn/Grade4TimeWorkedSteps.tsx')
+  const styles = read('components/learn/Grade4TimeContentReader.module.css')
+  assert.match(reader, /<Grade4TimeLearningAid/)
+  assert.match(reader, /<Grade4TimeWorkedSteps/)
+  assert.match(reader, /<Grade4TimePracticeCards/)
+  assert.match(reader, /rawBody=\{current\.body\}/, 'Matching questions must use original published IDs')
+  assert.match(reader, /formatGrade4TimeLessonBody\(current\.body\)/, 'Display still hides authoring IDs')
+  assert.match(reader, /aria-pressed=\{largeText\}/, 'Reading typography control is accessible')
+  assert.match(cards, /timeStudyHint/)
+  assert.match(cards, /aria-expanded=\{revealed\}/)
+  assert.match(cards, /Show answer/)
+  assert.match(cards, /Your typed answer stays on this page/)
+  assert.match(cards, /VisualRichText body=\{question\.prompt\}/, 'Published visuals inside question text must resolve')
+  assert.match(steps, /Show next step/)
+  assert.match(steps, /example\.steps\.slice\(0,shown\)/)
+  assert.match(model, /viewBox="0 0 240 232"/)
+  assert.match(model, /type="range"/)
+  assert.match(model, /role="img"/)
+  assert.match(model, /aria-live="polite"/)
+  assert.doesNotMatch(model+cards+steps, /supabase|localStorage|service_role|student_outcome_mastery/, 'Presentation components cannot fabricate mastery or bypass admission')
+  assert.match(styles, /prefers-reduced-motion:no-preference/)
+  assert.match(styles, /@media\(max-width:470px\)/)
 })
