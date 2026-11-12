@@ -21,6 +21,7 @@ TIMETABLE_MIGRATIONS = {
     "20261112101600": "20261112101600_timetable_school_period_authority.sql",
     "20261112101700": "20261112101700_timetable_allocation_baseline_and_load.sql",
     "20261112101800": "20261112101800_timetable_dated_scheme_binding.sql",
+    "20261112150000": "20261112150000_unified_school_tuition_schedule.sql",
 }
 APPROVED_TIMETABLE_VERSIONS = frozenset(TIMETABLE_MIGRATIONS)
 # Exact SQL body already applied in production as 20261112104242 (verified
