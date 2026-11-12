@@ -49,6 +49,8 @@ type LiveSchoolPeriods = {
 type LiveOccurrenceFields = {
   actual_teacher_id: string | null
   exception_reason: string | null
+  unscheduled_plan_id: string | null
+  completion_review: Record<string, unknown> | null
 }
 type LiveTimetableSlots = {
   Row: GeneratedTimetableSlots['Row'] & LiveTimetableSlotFields
