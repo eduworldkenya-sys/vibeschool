@@ -144,9 +144,13 @@ export default function VibeLearnPracticePage() {
   const progress = questions.length === 0 ? 0 : Math.round((Math.min(index, questions.length) / questions.length) * 100)
   const scoreLabel = useMemo(() => questions.length ? `${correct}/${questions.length}` : '0/0', [correct, questions.length])
   const practiceTitle = sourceContext?.chapterTitle || requestedTopic || requestedSubject || 'Topic'
-  const practiceSubjects = useMemo(() => Array.from(new Set(practiceAssignments.map(item => {
-    const match = item.title.match(/(?:grade|form)\s*\d+\s+(.+?)\s*[—–-]\s*/i)
-    return match?.[1]?.trim() || 'Other'
+  const practiceSubjects = useMemo(() => Array.from(new Set(practiceAssignments.flatMap(item => {
+    // Derive a label only when a published assessment title has a recognizable
+    // grade/subject pattern. Unknown formats remain available under All subjects,
+    // rather than producing a misleading, nonfunctional "Other" filter.
+    const match = item.title.match(/(?:grade\s*\d+|gredi ya\s*\d+|form\s*\d+)\s+(.+?)\s*[—–-]\s*/i)
+    const subject = match?.[1]?.trim()
+    return subject ? [subject] : []
   }))).sort((a, b) => a.localeCompare(b)), [practiceAssignments])
   const selectedPracticeSubject = practiceSubject || requestedSubject
   const filteredPracticeAssignments = practiceAssignments.filter(item => {

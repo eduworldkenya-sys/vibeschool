@@ -136,8 +136,9 @@ export default function ExactLearningRecoveryPage() {
       <h1 style={{margin:'6px 0'}}>Understand. Practise. Prove it.</h1>
       <p style={muted}>Each missed or skipped answer is connected to its exact curriculum outcome. Reading and opening activities are not counted as completed learning. Only later, independently marked answers provide reassessment evidence.</p>
     </header>
-    {error && <section role="alert" style={card}>{error}</section>}
+    {error && <section role="alert" style={card}><strong>Recovery could not be loaded.</strong><p style={muted}>Your recorded attempts are safe. Please retry to load your learning steps.</p><button style={secondary} onClick={() => { setLoading(true); setError(''); void load().catch(cause => setError(cause instanceof Error ? cause.message : 'Could not load recovery.')).finally(() => setLoading(false)) }}>Retry recovery</button></section>}
     {loading ? <section style={card}>Checking your recorded learning evidence…</section>
+    : error ? null
     : displayed.length === 0 ? <section style={card}>No missed or skipped questions with released results are available for this view.</section>
     : displayed.map(item => {
       const verified = item.identity_state === 'verified'
