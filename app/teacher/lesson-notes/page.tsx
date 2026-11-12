@@ -480,6 +480,7 @@ function LessonNotesInner() {
             <div style={{ fontSize: 13, marginTop: 8 }}>
               <div>Attendance records: {completedRecord.attendanceCount} · Evidence records: {completedRecord.evidenceCount}</div>
               <div>Teaching progress: {completedRecord.progressSaved ? "saved" : "not found"} · Reflection: {completedRecord.reflectionSaved ? "saved" : "not found"}</div>
+              <div>Coverage outcome: {completedRecord.teacherRemarks?.match(/Coverage:\\s*(covered|partial|not_covered|postponed|reteach)\\b/)?.[1] ?? "not verified in saved progress"}</div>
               {completedRecord.teacherRemarks && <p>Teacher remarks: {completedRecord.teacherRemarks}</p>}
               {completedRecord.nextSteps && <p>Next steps: {completedRecord.nextSteps}</p>}
             </div>
