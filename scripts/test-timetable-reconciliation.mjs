@@ -41,6 +41,7 @@ const source = read('lib/teaching/lessonSource.ts')
 const workspace = read('lib/teaching/lessonWorkspace.ts')
 const modal = read('components/teacher/AddSlotModal.tsx')
 const timetable = read('app/teacher/timetable/page.tsx')
+const schoolSetup = read('app/teacher/timetable/setup/page.tsx')
 
 test('class grades have canonical identities', () => {
   assert.match(grades, /grade_code/)
@@ -198,3 +199,14 @@ function makeBaselineFixtures() {
   fs.writeFileSync(`${dir}/live.json`, JSON.stringify(observed))
   return { dir, baseline, observed }
 }
+
+test('school day setup does not present invented times as verified school periods', () => {
+  assert.match(schoolSetup, /const \[startTime, setStartTime\] = useState\(''\)/)
+  assert.match(schoolSetup, /const \[endTime, setEndTime\] = useState\(''\)/)
+  assert.match(schoolSetup, /school-confirmed start and end times/)
+  assert.match(schoolSetup, /Existing test and historical timetable slots are preserved/)
+  assert.doesNotMatch(schoolSetup, /setStartTime\('08:00'\)/)
+  assert.doesNotMatch(schoolSetup, /setEndTime\('08:40'\)/)
+  assert.match(modal, /Open school day setup/)
+  assert.match(modal, /Existing test slots cannot establish these times/)
+})
