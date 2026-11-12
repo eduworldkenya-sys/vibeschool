@@ -21,7 +21,7 @@ type Props = {
   showExisting?: boolean
   onToggleExisting?: () => void
   legacyCount?: number
-  onOpenScheme?: () => void
+  onOpenScheme?: (unitId: string) => void
 }
 
 const ink = '#193b30'
@@ -85,12 +85,15 @@ export default function Grade9MathematicsMap({
             </button>
           </article>)}
         </div>}
+      <p style={{fontSize:12,color:muted,lineHeight:1.55,marginTop:13}}>
+        <a href={reference.registered_source_url} target="_blank" rel="noopener noreferrer" style={{color:'#24634b',fontWeight:700}}>KICD July 2024 revised Mathematics design (official source)</a> · Curriculum authority is registered, but its learning outcomes remain unverified.
+      </p>
       <p style={{fontSize:12,color:muted,lineHeight:1.55,marginTop:13}}>Specific learning outcomes, learning experiences, key inquiry questions and assessments require verified canonical records before lessons can be linked to the Scheme of Work.</p>
       <div style={{display:'flex',flexWrap:'wrap',gap:9,marginTop:12}}>
         {onToggleExisting&&<button type="button" onClick={onToggleExisting} style={{minHeight:44,border:`1px solid ${border}`,borderRadius:9,padding:'9px 12px',fontSize:12,fontWeight:750,background:'#fff',color:ink,cursor:'pointer'}}>
           {showExisting?'Hide earlier stored topics':`Show earlier stored topics (${legacyCount})`}
         </button>}
-        {onOpenScheme&&<button type="button" onClick={onOpenScheme} style={{minHeight:44,border:0,borderRadius:9,padding:'9px 12px',fontSize:12,fontWeight:750,background:'#24634b',color:'#fff',cursor:'pointer'}}>Open Scheme of Work</button>}
+        {onOpenScheme&&<button type="button" onClick={()=>onOpenScheme(selectedUnitId)} style={{minHeight:44,border:0,borderRadius:9,padding:'9px 12px',fontSize:12,fontWeight:750,background:'#24634b',color:'#fff',cursor:'pointer'}}>Plan selected sub-strand in Scheme</button>}
       </div>
     </section>
   )
