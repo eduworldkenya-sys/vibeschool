@@ -786,7 +786,8 @@ export async function getRevisionWorkspace(subject: string | null = null, topic:
   // unknown bank provenance is historical, never current-grade evidence.
   const provenance = new Map<string, { grade: string | null; verified: boolean }>()
   try {
-    const { data: gradeRows, error: gradeError } = await supabase.rpc('student_get_my_mistake_source_grades' as never)
+    const { data: gradeData, error: gradeError } = await supabase.rpc('student_get_my_mistake_source_grades' as never)
+    const gradeRows: unknown = gradeData
     if (!gradeError && Array.isArray(gradeRows)) {
       for (const value of gradeRows) {
         const entry = asRecord(value)
