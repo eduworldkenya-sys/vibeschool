@@ -196,7 +196,7 @@ begin
        or audit #>> '{experiences,core,releasable}' <> 'true' then
       raise exception 'Active P0-gated outcome wrongly blocked: %',audit;
     end if;
-    broken := jsonb_set(gated_manifest,'{curriculum_package_id}',to_jsonb('INVALID-PACKAGE'));
+    broken := jsonb_set(gated_manifest,'{curriculum_package_id}',to_jsonb('INVALID-PACKAGE'::text));
     if public.cla_audit_outcome_package(gated_pkg_id,broken)->>'valid' <> 'false' then
       raise exception 'Invalid P0 reconciliation package ID accepted';
     end if;
