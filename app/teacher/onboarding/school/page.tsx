@@ -4,7 +4,7 @@ import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
 
 export const dynamic = "force-dynamic"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -28,6 +28,12 @@ const LEVELS = [
   ["SENIOR_SECONDARY", "Senior Secondary", "Grade 10–12"],
 ] as const
 
+const SCHOOL_LEVEL_LABELS: Record<string,string> = {
+  PRIMARY: 'Primary',
+  JUNIOR: 'Junior School',
+  SENIOR_SECONDARY: 'Senior Secondary',
+}
+
 export default function SchoolDiscovery() {
   const router = useRouter()
   const { countyNames: COUNTIES } = useKenyaCounties()
@@ -48,6 +54,22 @@ export default function SchoolDiscovery() {
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
   const [retryNonce, setRetryNonce] = useState(0)
+  const [levelAcknowledged, setLevelAcknowledged] = useState(false)
+  const searchGeneration = useRef(0)
+  const pickedNeedsLevelConfirmation = Boolean(picked && level && !picked.levels.includes(level))
+
+  // Retire old search responses immediately when the teacher changes context,
+  // not only when the next effect cleanup runs.
+  function clearSearchSelection() {
+    searchGeneration.current += 1
+    setRows([])
+    setPicked(null)
+    setSearching(false)
+    setLevelAcknowledged(false)
+    setMsg("")
+    setMissingMode(false)
+    setSent(false)
+  }
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -61,14 +83,19 @@ export default function SchoolDiscovery() {
   }, [])
 
   useEffect(() => {
+    const generation = ++searchGeneration.current
+    let cancelled = false
     if (!level || q.trim().length < 2) {
       setRows([])
       setSearching(false)
-      return
+      return () => { cancelled = true }
     }
 
+    // Prevent results from the previous query or county being mistaken for
+    // results from the current selection while the next request is in flight.
+    setRows([])
+    setSearching(true)
     const timer = setTimeout(async () => {
-      setSearching(true)
       const { data, error } = await supabase.rpc("search_school_directory", {
         p_query: q.trim(),
         p_level: level,
@@ -78,16 +105,18 @@ export default function SchoolDiscovery() {
         p_lng: lng,
         p_limit: 40,
       })
+      if (cancelled || generation !== searchGeneration.current) return
       setSearching(false)
       if (error) {
         setMsg("School search is temporarily unavailable. Please try again.")
+        setRows([])
         return
       }
       setMsg("")
       setRows((data || []) as School[])
     }, 180)
 
-    return () => clearTimeout(timer)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [q, level, county, subCounty, lat, lng, retryNonce])
 
   const hasAmbiguousNames = useMemo(() => {
@@ -100,7 +129,11 @@ export default function SchoolDiscovery() {
   }, [rows])
 
   async function connect() {
-    if (!picked || !level) return
+    if (!picked || !level || busy) return
+    if (pickedNeedsLevelConfirmation && !levelAcknowledged) {
+      setMsg('Confirm that this is your actual school. The directory has not verified the selected education level at this campus.')
+      return
+    }
     setBusy(true)
     setMsg("")
     const fn = picked.source === "DIRECTORY" ? "connect_teacher_to_directory_school" : "connect_teacher_to_school"
@@ -172,7 +205,7 @@ export default function SchoolDiscovery() {
           {LEVELS.map(([value, label, hint]) => (
             <button
               key={value}
-              onClick={() => { setLevel(value); setPicked(null); setMsg(""); setMissingMode(false); setSent(false) }}
+              onClick={() => { clearSearchSelection(); setLevel(value) }}
               style={{ padding: 12, borderRadius: 12, border: level === value ? "2px solid #16a34a" : "1px solid #ddd", background: level === value ? "#f0fdf4" : "#fff", color: "#101828", WebkitTextFillColor: "#101828", opacity: 1 }}
             >
               <b>{label}</b>
@@ -187,13 +220,13 @@ export default function SchoolDiscovery() {
           aria-label="School name or code"
           disabled={!level}
           value={q}
-          onChange={(e) => { setQ(e.target.value); setPicked(null); setMissingMode(false); setSent(false) }}
+          onChange={(e) => { clearSearchSelection(); setQ(e.target.value) }}
           placeholder={level ? "e.g. St Marys, Moi, Mangu, school code" : "Choose a level first"}
           style={{ width: "100%", boxSizing: "border-box", padding: 14, borderRadius: 12, border: "1px solid #ccc", fontSize: 16, color: "#101828", background: level ? "#fff" : "#f2f4f7", WebkitTextFillColor: level ? "#101828" : "#667085", opacity: 1 }}
         />
 
         <label htmlFor="school-county" style={{ display: "block", marginTop: 10, marginBottom: 6, fontSize: 13, fontWeight: 700, color: "#344054" }}>County <span style={{ fontWeight: 400, color: "#667085" }}>(optional)</span></label>
-        <SearchableSelect label="County" value={county} onChange={setCounty} options={COUNTIES} placeholder="Any county" style={{padding:14,borderRadius:12,fontSize:16}}/>
+        <SearchableSelect label="County" value={county} onChange={value => { clearSearchSelection(); setCounty(value) }} options={COUNTIES} placeholder="Any county" style={{padding:14,borderRadius:12,fontSize:16}}/>
 
         <div style={{ fontSize: 13, color: "#667085", marginTop: 8 }}>
           {lat != null && lng != null ? "📍 Using your location to rank nearby schools." : "💡 Location is optional. If allowed, it helps distinguish schools with the same name."}
@@ -207,10 +240,32 @@ export default function SchoolDiscovery() {
           </div>
         )}
 
+        {picked && (
+          <section aria-label="Confirm selected school" style={{ position: 'sticky', top: 8, zIndex: 5, background: '#fff', border: '1px solid #d4e9dc', boxShadow: '0 6px 24px #00000012', padding: 13, borderRadius: 12, marginTop: 12 }}>
+            <div style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>Selected school</div>
+            <strong style={{ display: 'block', margin: '3px 0', fontSize: 16 }}>{picked.name}</strong>
+            <div style={{ fontSize: 12, color: '#667085' }}>{[picked.sub_county, picked.county].filter(Boolean).join(' · ') || 'Location not confirmed'} · {picked.levels.map(item => SCHOOL_LEVEL_LABELS[item] || item).join(', ') || 'Level not confirmed'}</div>
+            {pickedNeedsLevelConfirmation && (
+              <div style={{ background: '#fffaeb', border: '1px solid #fedf89', borderRadius: 9, padding: 10, marginTop: 10, fontSize: 12 }}>
+                <strong>Selected level not verified here.</strong>
+                <p style={{ margin: '5px 0' }}>A Primary campus may also host Junior School, but the directory does not confirm that for this entry. Connecting identifies your school; it does not certify a new education level.</p>
+                <label style={{ display: 'flex', gap: 9, alignItems: 'flex-start', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={levelAcknowledged} onChange={event => setLevelAcknowledged(event.target.checked)} style={{ width: 18, height: 18, flexShrink: 0 }}/>
+                  <span>I confirm this is my actual school and understand its {SCHOOL_LEVEL_LABELS[level] || level} provision is not verified here.</span>
+                </label>
+              </div>
+            )}
+            <button type="button" disabled={busy || (pickedNeedsLevelConfirmation && !levelAcknowledged)} onClick={() => void connect()}
+              style={{ width: '100%', minHeight: 46, marginTop: 10, border: 0, borderRadius: 10, background: '#16a34a', color: 'white', fontWeight: 800, cursor: 'pointer', opacity: busy || (pickedNeedsLevelConfirmation && !levelAcknowledged) ? 0.5 : 1 }}>
+              {busy ? 'Connecting…' : 'This is my school →'}
+            </button>
+          </section>
+        )}
+
         {rows.map((school) => (
           <button
             key={`${school.source}-${school.id}`}
-            onClick={() => { setPicked(school); setMsg("") }}
+            onClick={() => { setPicked(school); setLevelAcknowledged(false); setMsg("") }}
             style={{ display: "block", width: "100%", textAlign: "left", padding: 13, marginTop: 8, borderRadius: 12, border: picked?.id === school.id && picked?.source === school.source ? "2px solid #16a34a" : "1px solid #e5e7eb", background: picked?.id === school.id && picked?.source === school.source ? "#f0fdf4" : "#fff" }}
           >
             <b>{school.name}</b>
@@ -218,12 +273,13 @@ export default function SchoolDiscovery() {
               {[school.sub_county, school.county, school.ownership_type, school.gender_type].filter(Boolean).join(" · ") || "Location details being verified"}
             </div>
             <div style={{ fontSize: 11, color: "#667085", marginTop: 3 }}>
-              {school.levels.join(" · ")}
+              {school.levels.map(item => SCHOOL_LEVEL_LABELS[item] || item).join(" · ") || "Level not confirmed"}
               {school.distance_km != null ? ` · ${school.distance_km} km away` : ""}
               {school.knec_code ? ` · KNEC ${school.knec_code}` : ""}
+              {level && !school.levels.includes(level) ? " · Possible host campus — selected level unverified" : ""}
             </div>
             {school.source === "DIRECTORY" && (
-              <div style={{ marginTop: 5, fontSize: 11, color: "#667085" }}>Directory record · identity is verified before a canonical connection is created.</div>
+              <div style={{ marginTop: 5, fontSize: 11, color: "#667085" }}>Directory record · identity review is separate from connecting; the entry is not proof of school levels.</div>
             )}
           </button>
         ))}
@@ -242,13 +298,7 @@ export default function SchoolDiscovery() {
 
         {msg && <div role="alert" style={{ color: "#b42318", fontWeight: 600, marginTop: 12 }}>{msg} {msg.includes("search") && <button type="button" onClick={() => setRetryNonce(n => n + 1)} style={{ marginLeft: 8, minHeight: 40, padding: "0 12px", borderRadius: 9, border: "1px solid #fda29b", background: "#fff", color: "#b42318", fontWeight: 800 }}>Retry search</button>}</div>}
 
-        {picked && (
-          <button disabled={busy} onClick={connect} style={{ width: "100%", marginTop: 12, padding: 14, border: 0, borderRadius: 12, background: "#16a34a", color: "#fff", fontWeight: 700 }}>
-            {busy ? "Connecting…" : "This is my school →"}
-          </button>
-        )}
-
-        {!picked && rows.length > 0 && !missingMode && (
+                {!picked && rows.length > 0 && !missingMode && (
           <button onClick={() => setMissingMode(true)} style={{ width: "100%", marginTop: 8, padding: 13, borderRadius: 10, border: "1px solid #ddd", background: "#fff" }}>
             I still can't find my school
           </button>
