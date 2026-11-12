@@ -38,3 +38,11 @@ test('all other platform manuscript gates and owner certification stay protected
   assert.doesNotMatch(migration,/grant\s+execute\s+on\s+function/i)
   assert.doesNotMatch(migration,/alter table public\.learning_resources/i)
 })
+
+test('Time source diagram accurately shows six groups with exactly ten counters', () => {
+  const svg = readFileSync('content/curriculum/production/grade4-time-expanded-visuals/six-groups-of-ten.svg','utf8')
+  assert.equal((svg.match(/<circle /g)||[]).length,60)
+  assert.equal((svg.match(/10 minutes<\/text>/g)||[]).length,6)
+  assert.match(svg,/6 × 10 minutes = 60 minutes = 1 hour/)
+  assert.match(svg,/<desc id="desc">Six separate boxes, each containing exactly ten dots/)
+})
