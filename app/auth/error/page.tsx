@@ -11,6 +11,7 @@ const COPY: Record<string, { title: string; body: string }> = {
   account_inactive: { title: 'Account is not active', body: 'This account cannot enter VibeSchool until its account status is restored.' },
   account_unregistered: { title: 'No VibeSchool account yet', body: 'This Google account is not registered with a VibeSchool role. Create an account instead of signing in.' },
   role_required: { title: 'Choose the account you want to create', body: 'Start from the appropriate VibeSchool sign-up page.' },
+  signup_role_conflict: { title: 'This email belongs to another account type', body: 'No learner account was created. This email already has a different VibeSchool role. To create a learner, use a different email or choose another Google account. Your existing account and data have not been changed.' },
   role_claim_failed: { title: 'Account setup could not be completed', body: 'VibeSchool stopped before assigning a role because the account state was not safe to change.' },
   role_unresolved: { title: 'Account role needs attention', body: 'VibeSchool could not determine an authoritative role for this account.' },
   onboarding_resolution_failed: { title: 'Account setup state is unavailable', body: 'VibeSchool could not safely determine your next step. No dashboard was guessed. You can retry safely.' },
@@ -36,7 +37,7 @@ export default function AuthErrorPage({ searchParams }: { searchParams?: { reaso
         <p style={{ marginTop: 32, color: '#c8a84b', fontSize: 11, fontWeight: 800, letterSpacing: '.14em' }}>SECURE SIGN-IN</p>
         <h1 style={{ fontSize: 34, lineHeight: 1.1, margin: '8px 0 12px' }}>{copy.title}</h1>
         <p style={{ color: 'rgba(255,255,255,.65)', lineHeight: 1.6 }}>{copy.body}</p>
-        <RecoveryActions />
+        <RecoveryActions signupConflict={reason === 'signup_role_conflict'} />
         <div style={{ marginTop: 16 }}>
           <Link href="/auth/forgot-password" style={{ color: '#fff', minHeight: 44, display: 'inline-flex', alignItems: 'center', fontWeight: 700 }}>Reset password</Link>
         </div>

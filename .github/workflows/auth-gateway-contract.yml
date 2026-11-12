@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'app/auth/**'
+      - 'app/api/create-student-account/**'
       - 'app/login/**'
       - 'app/reset-password/**'
       - 'lib/auth-routing.ts'
@@ -12,6 +13,7 @@ on:
       - 'public/sw.js'
       - 'supabase/migrations/**auth**'
       - 'scripts/test-auth-gateway-contract.mjs'
+      - 'scripts/test-signup-role-integrity.mjs'
       - 'scripts/test-auth-identity-reconciliation-contract.mjs'
       - '*.py'
       - '.github/workflows/auth-gateway-contract.yml'
@@ -31,3 +33,5 @@ jobs:
           node-version: 20
       - run: node scripts/test-auth-gateway-contract.mjs
       - run: node scripts/test-auth-identity-reconciliation-contract.mjs
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node scripts/test-signup-role-integrity.mjs

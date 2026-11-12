@@ -77,7 +77,9 @@ export async function POST(req: NextRequest) {
       email: internalEmail,
       password,
       email_confirm: true,
-      user_metadata: { role: 'student', full_name: studentName },
+      // Display metadata only. The checked finalize_student_provisioning RPC
+      // assigns the canonical learner role after validating the school claim.
+      user_metadata: { full_name: studentName },
     })
 
     if (createError || !created.user) {
