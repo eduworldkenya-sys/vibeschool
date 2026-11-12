@@ -27,8 +27,8 @@ assert.match(hub, />Activities</, "Activities must remain discoverable as upcomi
 assert.match(shared, /\.eq\('status', 'published'\)/, 'Reading must not include unpublished content');
 assert.match(shared, /\.eq\('format', 'vibetextbook'\)/, 'Reading must use canonical textbooks');
 assert.match(shared, /\/read\/textbook\//, 'Reading must use canonical reader');
-assert.match(shared, /\/read\/textbook\//, 'Reading must use canonical reader');
-assert.match(shared, /\/read\/textbook\//, 'Reading must use canonical reader');
+assert.match(shared, /cbc_grade/, 'Reading needs grade selection');
+assert.match(shared, /return \(\) => \{ active = false \}/, 'Reading must cancel stale loads');
 assert.match(reading, /SchoolLearnLibrary/, 'Reading must share the public library component');
 assert.match(catalog, /readersForSubject/, 'Known published readers must be discoverable');
 assert.match(layout, /<LearnActivityHub \/>/, "General grades must receive activity hub");
