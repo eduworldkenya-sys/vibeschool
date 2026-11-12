@@ -70,6 +70,7 @@ declare
   v_questions jsonb;
   v_release jsonb;
   v_asset jsonb;
+  v_alias jsonb;
   v_q jsonb;
   v_role text;
   v_exp text;
@@ -98,6 +99,24 @@ begin
      p_manifest->>'outcome_id' is distinct from v_root.curriculum_outcome_id::text then
     return jsonb_build_object('valid',false,'issues',jsonb_build_array('PACKAGE_SCHEMA_OR_OUTCOME_MISMATCH'));
   end if;
+
+  -- Exact manuscript aliases are separate from the stable outcome ID. The
+  -- upstream curriculum promotion guard verifies their authoritative mapping.
+  if jsonb_typeof(p_manifest->'curriculum_outcome_aliases') is distinct from 'array' then
+    return jsonb_build_object('valid',false,'issues',jsonb_build_array('CURRICULUM_ALIASES_ARRAY_REQUIRED'));
+  end if;
+  v_seen := array[]::text[];
+  for v_alias in select value from jsonb_array_elements(p_manifest->'curriculum_outcome_aliases') loop
+    if jsonb_typeof(v_alias) is distinct from 'string'
+       or nullif(btrim(v_alias #>> '{}'),'') is null
+       or v_alias #>> '{}' <> btrim(v_alias #>> '{}') then
+      v_issues := array_append(v_issues,'INVALID_CURRICULUM_ALIAS');
+    elsif (v_alias #>> '{}') = any(v_seen) then
+      v_issues := array_append(v_issues,'DUPLICATE_CURRICULUM_ALIAS');
+    else
+      v_seen := array_append(v_seen,v_alias #>> '{}');
+    end if;
+  end loop;
 
   v_refs := p_manifest->'assets';
   v_questions := p_manifest->'question_ids';
