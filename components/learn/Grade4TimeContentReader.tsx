@@ -32,7 +32,6 @@ type PublishedOutcome = {
 }
 
 const INK = '#163c2b'
-const GREEN = '#175b43'
 
 function learnerTitle(title: string) {
   return title.replace(/\s*[—–-]\s*Learner Notes$/i, '').trim()
@@ -82,7 +81,7 @@ function Grade4TimeLessonArticle({
             className={largeText ? styles.settingActive : ''} onClick={() => setLargeText(true)}>A+</button>
         </div>
       </div>
-      <h2 className={styles.articleTitle} id="time-lesson-title">
+      <h2 className={styles.articleTitle} id="time-lesson-title" tabIndex={-1}>
         {parsed.title || learnerTitle(lesson.title)}
       </h2>
       {parsed.goal && <div className={styles.goal}>
@@ -92,15 +91,29 @@ function Grade4TimeLessonArticle({
     </header>
 
     {parsed.sections.length > 1 && <nav className={styles.sectionNav} aria-label="Jump to a part of this lesson">
-      {parsed.sections.filter(section => section.id !== 'opening').map(section =>
-        <a key={section.id} href={`#time-section-${section.id}`}>{section.title}</a>,
-      )}
+      {[
+        ['Learn', 'understand', 'opening', 'example'],
+        ['Try', 'explore', 'guided', 'exercise'],
+        ['Check', 'check'],
+      ].map(([label, ...ids]) => {
+        const section = ids.find(id => parsed.sections.some(section => section.id === id))
+        return section && <a key={label} href={`#time-section-${section}`}>{label}</a>
+      })}
     </nav>}
 
     {parsed.sections.map(section => {
       const isFeedback = section.id === 'feedback'
-      const background = isFeedback ? styles.feedbackSection
-        : section.tone === 'example' ? styles.exampleSection
+      if (isFeedback) return <details
+        key={section.id}
+        id="time-section-feedback"
+        className={`${styles.lessonSection} ${styles.answerReveal}`}
+      >
+        <summary>Review all explanations</summary>
+        <div className={styles.answerBody}>
+          <VisualRichText body={section.body} style={{ fontSize: 15, lineHeight: 1.85 }} />
+        </div>
+      </details>
+      const background = section.tone === 'example' ? styles.exampleSection
         : section.tone === 'practice' ? styles.practiceSection
         : section.tone === 'explore' ? styles.exploreSection
         : section.tone === 'support' ? styles.supportSection
@@ -121,12 +134,7 @@ function Grade4TimeLessonArticle({
             {section.hint && <p className={styles.sectionHint}>{section.hint}</p>}
           </div>
         </div>
-        {isFeedback ? <details className={styles.answerReveal}>
-          <summary>Show answers and explanations</summary>
-          <div className={styles.answerBody}>
-            <VisualRichText body={section.body} style={{ fontSize: 15, lineHeight: 1.85 }} />
-          </div>
-        </details> : section.id === 'example'
+        {section.id === 'example'
           ? <Grade4TimeWorkedSteps body={section.body}/>
           : section.id === 'exercise' && cards.exercise.length > 0
           ? <Grade4TimePracticeCards questions={cards.exercise} lessonNumber={lesson.order}/>
@@ -158,6 +166,7 @@ function Grade4TimeLessonArticle({
 /** The same certified Time resources remain visible to school-linked and independent learners. */
 export default function Grade4TimeContentReader() {
   const [lessons, setLessons] = useState<Lesson[]>([])
+  const [chooserOpen, setChooserOpen] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -227,12 +236,17 @@ export default function Grade4TimeContentReader() {
 
   function chooseLesson(lesson: Lesson) {
     setSelected(lesson.id)
+    setChooserOpen(false)
     // Shareable deep link, not a claim that reading progress was saved.
     const url = new URL(window.location.href)
     url.searchParams.set('lesson', String(lesson.order))
+    url.hash = ''
     window.history.replaceState(window.history.state, '', url.toString())
-    const target = document.getElementById('time-lesson-title')
-    target?.scrollIntoView({ behavior: 'auto', block: 'start' })
+    requestAnimationFrame(() => {
+      const target = document.getElementById('time-lesson-title')
+      target?.focus({ preventScroll: true })
+      target?.scrollIntoView({ behavior: 'auto', block: 'start' })
+    })
   }
 
   return <main className={styles.page} style={{ color: INK, background: '#f5f9f6' }}>
@@ -255,9 +269,9 @@ export default function Grade4TimeContentReader() {
       {loading ? <section className={styles.empty} role="status">Loading published Mathematics lessons…</section>
         : loadError ? <section className={styles.error} role="alert">The published lesson library could not load. Please reopen this page.</section>
         : lessons.length === 0 ? <section className={styles.empty} role="status">No certified Time lessons are available in the library right now.</section>
-        : current && <div className={styles.layout}>
-          <aside className={styles.sidebar} aria-label="Time lesson list">
-            <div className={styles.sidebarHead}><strong>Lessons in this topic</strong><span>{lessons.length} available lessons</span></div>
+        : current && <div>
+          <details className={styles.lessonChooser} open={chooserOpen} onToggle={event => setChooserOpen(event.currentTarget.open)}>
+            <summary>Choose a lesson <span>({lessons.length} available)</span></summary>
             <nav className={styles.lessonList} aria-label="Choose a Time lesson">
               {lessons.map(lesson =>
                 <button key={lesson.id} type="button"
@@ -270,15 +284,9 @@ export default function Grade4TimeContentReader() {
                 </button>,
               )}
             </nav>
-            <p className={styles.sidebarNote}>Choose any lesson. Your position in this list is not a score or a completion record.</p>
-          </aside>
+          </details>
 
           <div className={styles.contentArea}>
-            <div className={styles.lessonProgress}>
-              <span className={styles.position}><BookOpen size={17} aria-hidden="true" /> Viewing lesson {currentIndex + 1} of {lessons.length}</span>
-              <span className={styles.positionTrack} aria-hidden="true"><span className={styles.positionFill} style={{ width: `${(currentIndex + 1) / lessons.length * 100}%`, display: 'block' }} /></span>
-              <span className={styles.positionNote}>Lesson position, not completion</span>
-            </div>
             <Grade4TimeLessonArticle
               key={current.id}
               lesson={{ ...current, body: formatGrade4TimeLessonBody(current.body) }}

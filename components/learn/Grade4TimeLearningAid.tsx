@@ -68,6 +68,7 @@ function ClockExplorer() {
       </button>
       <button type="button" onClick={()=>change(5)}>+ 5 minutes</button>
     </div>
+    <p className={styles.modelNote}>Reset to 08:25 and predict where the long hand will point after ten minutes. Tap + 5 minutes twice to check.</p>
     <p className={styles.modelNote}>Each number on the clock represents five minutes for the long hand. Watch how the short hand gradually moves.</p>
   </figure>
 }
