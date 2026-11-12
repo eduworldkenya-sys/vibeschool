@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
-import { readCache, writeCache } from "@/lib/student-cache";
+import { TEACHING_LIBRARY_SLOTS } from "@/lib/teaching/libraryStructure";
+import { componentForPersonalResource } from "@/lib/teaching/personalResourceTypes";
 import Skel from "@/components/student/Skel";
 
 interface Resource {
@@ -13,6 +14,7 @@ interface Resource {
   title:        string;
   description:  string;
   type:         string;
+  component_type: string | null;
   subject:      string;
   external_url: string | null;
   content:      string | null;
@@ -25,6 +27,7 @@ const TYPES = [
   { value: "exercise",   label: "Exercise"   },
   { value: "quiz",       label: "Quiz"       },
   { value: "video",      label: "Video"      },
+  { value: "link",       label: "Links"      },
 ]
 
 function isSafeUrl(url: string | null): boolean {
@@ -121,36 +124,34 @@ export default function StudentResourcesPage() {
   useEffect(() => {
     if (idLoading || !identity) return;
 
-    const cached = readCache<Resource[]>("lessons", identity.studentId);
-    if (cached) { setResources(cached); setLoading(false); }
-
+    let active = true;
     async function load() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("student_accessible_resources")
         .select("*")
         .order("created_at", { ascending: false });
-
-      const result: Resource[] = (data ?? [])
-        .filter(
-          (row): row is typeof row & { id: string } =>
-            row.id !== null
-        )
+      if (!active) return;
+      // Never persist class resources in a device cache: unsharing must not
+      // leave a stale private copy available on a shared phone.
+      const rows: Resource[] = error ? [] : (data ?? [])
+        .filter((row): row is typeof row & { id: string } => row.id !== null)
         .map(row => ({
           id: row.id,
           title: row.title ?? "Untitled resource",
           description: row.description ?? "",
           type: row.type ?? "notes",
+          component_type: row.component_type ?? null,
           subject: row.subject ?? "General",
           external_url: row.external_url,
           content: row.content,
           created_at: row.created_at ?? new Date(0).toISOString(),
         }));
-
-      writeCache("lessons", identity!.studentId, result);
-      setResources(result);
+      setResources(rows);
       setLoading(false);
     }
-    load();
+    void load();
+    window.addEventListener("focus", load);
+    return () => { active = false; window.removeEventListener("focus", load); };
   }, [identity, idLoading]);
 
   const filtered = filter === "all" ? resources : resources.filter(r => r.type === filter);
@@ -276,7 +277,7 @@ export default function StudentResourcesPage() {
                     {r.title}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--vs-muted)" }}>
-                    {r.subject} · {TYPES.find(t => t.value === r.type)?.label ?? r.type}
+                    {r.subject} · {TEACHING_LIBRARY_SLOTS.find(t => t.id === componentForPersonalResource(r))?.label ?? TYPES.find(t => t.value === r.type)?.label ?? r.type}
                   </div>
                 </div>
                 <span style={{ color: "var(--vs-muted)", flexShrink: 0 }}>
