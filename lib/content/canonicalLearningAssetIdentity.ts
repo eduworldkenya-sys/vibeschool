@@ -18,6 +18,7 @@ export type CanonicalLearningAssetKind =
   | 'marking_scheme'
   | 'rubric'
   | 'content_block'
+  | 'visual_aid'
 
 export type CanonicalLearningAssetPurpose =
   | 'teach'

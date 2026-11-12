@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 
 type Lesson = {
   id: string
@@ -98,7 +99,7 @@ export default function Grade4TimeContentReader() {
             </div>
             {current && <article aria-live="polite">
               <h3 style={{ fontSize: 20, margin: '0 0 12px' }}>{current.title}</h3>
-              <div style={{ whiteSpace: 'pre-wrap', fontSize: 16, lineHeight: 1.8, overflowWrap: 'anywhere' }}>{current.body}</div>
+              <VisualRichText body={current.body} style={{ fontSize: 16, lineHeight: 1.8 }} />
               {currentIndex + 1 < lessons.length && (
                 <button type="button" onClick={() => setSelected(lessons[currentIndex+1].id)}
                   style={{ marginTop: 20, border: 0, borderRadius: 10, background: GREEN, color: '#fff', padding: '11px 18px', minHeight: 46, cursor: 'pointer', fontWeight: 800 }}>Next lesson</button>

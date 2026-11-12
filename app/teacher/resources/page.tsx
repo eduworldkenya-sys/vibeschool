@@ -476,7 +476,7 @@ export default function TeacherResourcesPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 750, letterSpacing: '.08em', textTransform: 'uppercase', opacity: .72 }}>Teaching materials</div>
-              <h1 style={{ fontSize: 23, margin: '5px 0 4px', fontWeight: 750 }}>Teaching Library</h1>
+              <h1 style={{ fontSize: 23, margin: '5px 0 4px', fontWeight: 750 }}>Teaching Library</h1><Link href="/learn/visuals" style={{ display: 'inline-block', color: '#175b43', fontSize: 13, fontWeight: 700, padding: '8px 0' }}>Browse diagrams and visual aids →</Link>
               <p style={{ margin: 0, fontSize: 13, maxWidth: 680, opacity: .82 }}>Find teaching resource types, Scheme-linked lesson materials and your saved resources.</p>
             </div>
             <button type="button" onClick={() => openAdd()} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: 'var(--teacher-green)', minHeight: 44, fontWeight: 650, whiteSpace: 'nowrap' }}>+ Add resource</button>
