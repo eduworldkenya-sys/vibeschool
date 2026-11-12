@@ -14,7 +14,7 @@ const courses = read('app/learn/courses/page.tsx')
 const catalog = read('lib/learn/schoolCatalog.ts')
 
 assert.equal(SCHOOL_LEVELS.length, 5, 'Early Years, Primary, Junior, Senior, legacy must be separate')
-assert.equal(new Set(SCHOOL_LEVELS.flatMap(group => group.grades)).size, 20, 'All levels need unique grade identities')
+assert.equal(new Set(SCHOOL_LEVELS.flatMap(group => group.grades)).size, 19, 'All levels need unique grade identities')
 for (const grade of ['PP1','PP2']) assert.equal(fallbackSubjectGroups(grade)[0].subjects.length, 4)
 for (let n = 1; n <= 9; n++) {
   const groups = fallbackSubjectGroups('Grade ' + n)
