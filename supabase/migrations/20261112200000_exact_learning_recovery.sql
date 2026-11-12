@@ -68,7 +68,7 @@ begin
       null::uuid,
       m.outcome_id,
       m.prompt_snapshot,
-      'incorrect'::text,
+      case when m.exam_question_id is not null and m.selected_index is null then 'skipped' else 'incorrect' end,
       m.last_missed_at,
       m.subject||' · '||m.topic
     from public.student_mistake_notebook m
@@ -252,4 +252,96 @@ revoke all on function public.student_get_exact_learning_recovery(uuid,integer)
   from public,anon;
 grant execute on function public.student_get_exact_learning_recovery(uuid,integer)
   to authenticated;
+
+-- Skips from canonical Topic Practice must survive navigation or device reload.
+-- This records no success, revision, or mastery; the key prevents double credit
+-- or duplicate misses after retrying the same HTTP request.
+create unique index if not exists student_practice_skips_idempotent_uidx
+  on public.student_practice_attempts(student_id,session_id,exam_question_id)
+  where source='vibelearn_skip' and session_id is not null;
+
+create or replace function public.student_record_vibelearn_practice_skip(
+  p_exam_question_id uuid,
+  p_session_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $skip$
+declare
+  v_profile uuid := auth.uid();
+  v_student uuid;
+  q record;
+  v_receipt uuid;
+  v_outcome uuid;
+begin
+  if v_profile is null then raise exception 'authentication_required'; end if;
+  if p_session_id is null then raise exception 'session_id_required'; end if;
+  v_student:=public.current_student_id();
+  if v_student is null then raise exception 'learner_identity_not_found'; end if;
+
+  select id,subject::text as subject,topic,difficulty::text as difficulty,
+         question,correct_index,explanation,hint
+    into q
+  from public.exam_question_bank
+  where id=p_exam_question_id and status='active'
+    and provenance_status in ('teacher_verified','publisher_verified','official_verified');
+  if not found then raise exception 'verified_practice_question_not_found'; end if;
+
+  -- Only a single exact, verified outcome link may be attached to this bank
+  -- question. Never infer identity from the subject or topic name.
+  select min(link.outcome_id)
+    into v_outcome
+  from public.assessment_items item
+  join public.assessment_item_outcomes link on link.assessment_item_id=item.id
+  join public.curriculum_learning_outcomes o on o.id=link.outcome_id and o.status='verified'
+  where item.source_exam_question_id=q.id and item.status='approved'
+  having count(distinct link.outcome_id)=1;
+
+  insert into public.student_practice_attempts(
+    student_id,exam_question_id,selected_index,correct_index,is_correct,
+    subject,topic,difficulty,session_id,source
+  ) values (
+    v_student,q.id,null,q.correct_index,false,
+    q.subject,q.topic,q.difficulty,p_session_id,'vibelearn_skip'
+  )
+  on conflict do nothing
+  returning id into v_receipt;
+
+  if v_receipt is null then
+    return jsonb_build_object('ok',true,'already_recorded',true,'skipped',true);
+  end if;
+
+  insert into public.student_mistake_notebook(
+    student_id,exam_question_id,subject,topic,prompt_snapshot,
+    selected_index,correct_index,explanation_snapshot,hint_snapshot,
+    outcome_id,status,first_missed_at,last_missed_at
+  ) values (
+    v_student,q.id,q.subject,q.topic,q.question,
+    null,q.correct_index,q.explanation,q.hint,
+    v_outcome,'open',now(),now()
+  )
+  on conflict(student_id,exam_question_id) do update set
+    selected_index=null,
+    outcome_id=excluded.outcome_id,
+    repeat_count=public.student_mistake_notebook.repeat_count+1,
+    status='open',resolved_at=null,last_missed_at=now();
+
+  insert into public.student_learning_events(
+    student_id,event_type,source_type,source_id,xp_awarded,occurred_at,metadata
+  ) values (
+    v_student,'practice_skipped','exam_question',q.id,0,now(),
+    jsonb_build_object('session_id',p_session_id,'outcome_id',v_outcome)
+  );
+  return jsonb_build_object('ok',true,'skipped',true,'already_recorded',false,
+                            'outcome_id',v_outcome);
+end;
+$skip$;
+
+revoke all on function public.student_record_vibelearn_practice_skip(uuid,uuid)
+  from public,anon;
+grant execute on function public.student_record_vibelearn_practice_skip(uuid,uuid)
+  to authenticated;
+
 commit;
