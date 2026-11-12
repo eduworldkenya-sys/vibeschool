@@ -22,8 +22,39 @@ Active fix
 
 FIX ID: TBL-012
 TITLE: Compare rebuilt schema with target schema
-STATUS: OPEN
+STATUS: BLOCKED (live production fingerprint diverges from the pinned reference)
 PRIORITY: P0
+
+2026-11-12 READ-ONLY PRODUCTION PREFLIGHT (project yauqsxggtuxuykcbrtzf):
+- PR #1437 merged: 950e15f. A later main commit 3bb06fd added an
+  exact forward-delta declaration, not a production parity claim.
+- Four timetable migrations 20261112101500 through 20261112101800 are
+  absent from the production migration ledger. classes.grade_code is
+  absent. Do not declare these changes deployed.
+- The live TBL-012 fingerprint query in scripts/sql/tbl012_core_schema_hashes.sql
+  disagrees with the pinned production snapshot in FOUR places:
+  teacher_classes.indexes (live 9ed6ca6a vs reference 0e6acbcc);
+  timetable_slots.triggers (live ecfb8be9 vs reference ae2bfdc7);
+  timetable_slots.constraints (live 384d9852 vs reference fefe6223);
+  teaching_occurrences.triggers (live ec5d464a vs reference cb533982).
+  All other sampled table sections matched.
+- Gilgil Township has 46 total historical timetable slots, ZERO
+  configured school_periods, and Grade 4 Kilimanjaro Mathematics has
+  TWO active recurring weekly units against FIVE canonical units.
+- Existing teacher setup route is app/teacher/timetable/setup/page.tsx;
+  school period start/end times require authorized local confirmation,
+  not guessed from historical test slots.
+- This TBL-012 code work removes duplicate declarations from the
+  reconciliation test suite and adds --live-observation to the existing
+  structural comparator. It fails closed on stale production fingerprints,
+  and never labels a forward migration as deployed.
+- BLOCKERS: reconcile the four live-versus-pinned sections from audited
+  DDL/history, pass exact-head CI and clean database rebuild, then
+  promote already-versioned migrations via the repository's controlled
+  ledger-preserving process. Do not overwrite the snapshot with invented
+  hashes or use the connector's auto-versioned migration mechanism to
+  claim original file versions were deployed. No production writes made.
+
 
 Previous verified fix
 
