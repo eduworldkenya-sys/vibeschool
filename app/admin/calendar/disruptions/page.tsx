@@ -62,12 +62,16 @@ function parsePreview(value: unknown): Preview {
 }
 
 function parseAffectedCount(value: unknown, key: "affected_occurrences" | "restored_occurrences"): number {
-  if (!value || typeof value!=="object" || !(key in value)
-      || typeof value[key]!=="number" || !Number.isInteger(value[key])
-      || value[key]<0) {
+  if (!value || typeof value !== "object") {
     throw new Error("Invalid school disruption confirmation response.")
   }
-  return value[key]
+  const count = key === "affected_occurrences"
+    ? ("affected_occurrences" in value ? value.affected_occurrences : null)
+    : ("restored_occurrences" in value ? value.restored_occurrences : null)
+  if (typeof count !== "number" || !Number.isInteger(count) || count < 0) {
+    throw new Error("Invalid school disruption confirmation response.")
+  }
+  return count
 }
 
 export default function AdminSchoolDisruptionsPage() {
