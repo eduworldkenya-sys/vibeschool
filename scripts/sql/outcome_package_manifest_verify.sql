@@ -49,6 +49,7 @@ begin
   manifest := jsonb_build_object(
     'schema','vibeschool.outcome-package.v1',
     'outcome_id',o.id,
+    'curriculum_outcome_aliases','[]'::jsonb,
     'requirements',jsonb_build_object('teacher_guidance',false,'visual_assets',false),
     'assets',jsonb_build_object(
       'core',jsonb_build_array(jsonb_build_object('resource_id',core_id,'resource_version_id',core_version)),
