@@ -9,6 +9,9 @@ on:
       - 'scripts/test-outcome-package-quality.mjs'
       - 'docs/curriculum/OUTCOME_PACKAGE_QUALITY_AND_RELEASE.md'
       - 'docs/curriculum/OUTCOME_PACKAGE_ASSEMBLY_CONTRACT.md'
+      - 'docs/curriculum/CONTENT_GENERATION.md'
+      - 'docs/curriculum/CONTENT_OPERATING_MODEL.md'
+      - 'scripts/test-content-hq-optional-contract.mjs'
       - 'package.json'
   push:
     branches: [main]
@@ -33,4 +36,4 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - name: Verify canonical manifest and package-quality static contract
-        run: npm run test:outcome-packages
+        run: npm run check:content-without-hq
