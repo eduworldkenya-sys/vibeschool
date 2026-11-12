@@ -57,6 +57,9 @@ begin
   end if;
 
   maths := lower(coalesce(root.subject,'')) like '%math%';
+  if nullif(btrim(coalesce(root.subject,'')),'') is null and root.subject_id is null then
+    blockers := array_append(blockers,'SUBJECT_SCOPE_UNDECLARED');
+  end if;
   if root.subject_id is not null then
     -- Never treat a missing Mathematics label as a reason to skip worked-step review.
     maths := maths or exists (
@@ -68,7 +71,7 @@ begin
   if jsonb_typeof(quality) is distinct from 'object'
      or quality->>'policy' is distinct from 'outcome-package-quality-v1'
      or quality->>'content_sha256' is distinct from p_content_sha256
-     or quality->>'reviewer_kind' not in ('ai_assisted_operator','automated_and_operator')
+     or coalesce(quality->>'reviewer_kind','') not in ('ai_assisted_operator','automated_and_operator')
      or jsonb_typeof(quality->'independent_human_review') is distinct from 'boolean'
      or quality->>'independent_human_review' is distinct from 'false'
      or jsonb_typeof(checks) is distinct from 'object' then
@@ -256,6 +259,15 @@ begin
   if tg_op='UPDATE' and old.lifecycle_status = 'certified' then return new; end if;
   select asset_kind into kind from public.learning_resources where id=new.resource_id;
   if kind is distinct from 'outcome_package' then return new; end if;
+  if tg_op='INSERT' or old.lifecycle_status is distinct from 'verified'
+     or new.verified_at is null or new.verification_evidence = '{}'::jsonb then
+    raise exception using errcode='23514',
+      message='CLA_OUTCOME_PACKAGE_INDEPENDENT_VERIFICATION_REQUIRED';
+  end if;
+  if new.certification_evidence->>'independent_human_review' = 'true' then
+    raise exception using errcode='23514',
+      message='CLA_OUTCOME_PACKAGE_UNSUPPORTED_HUMAN_APPROVAL_CLAIM';
+  end if;
   report := public.cla_outcome_package_quality_gate(
     new.resource_id,new.payload,new.content_sha256,
     new.rights_status,new.verification_evidence);
