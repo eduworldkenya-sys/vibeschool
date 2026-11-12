@@ -160,7 +160,7 @@ test('teacher timetable checks outcome readiness', () => {
 })
 
 
-test('both audited timetable triggers form one exact forward delta; live unscheduled teaching is already applied', () => {
+test('reviewed period, tuition and Stage 3 publication triggers form one exact cumulative undeployed forward delta', () => {
   const baseline = JSON.parse(read('supabase/reconciliation/tbl012_production_core_schema_hashes.json'))
   const planned = JSON.parse(read('supabase/reconciliation/tbl012_pending_forward_deltas.json'))
   assert.equal(planned.deltas.length, 1)
@@ -180,8 +180,8 @@ test('both audited timetable triggers form one exact forward delta; live unsched
     assert.notEqual(delta.production_hash, delta.rebuilt_hash)
     assert.ok(delta.rationale.length > 35)
   }
-  assert.equal(planned.deltas[0].migration, '20261112150000_unified_school_tuition_schedule.sql')
-  assert.equal(planned.deltas[0].rebuilt_hash, 'a7ac9cc47ec44efe0eef1c1802559dac')
+  assert.equal(planned.deltas[0].migration, '20261112210000_school_timetable_publication_authority.sql')
+  assert.equal(planned.deltas[0].rebuilt_hash, 'd44a6db43f42dd8e71802c8472268c4a')
   const tuition = read('supabase/migrations/20261112150000_unified_school_tuition_schedule.sql')
   assert.match(tuition, /create trigger timetable_guard_tuition_schedule/)
   assert.match(tuition, /create trigger vibetutor_guard_cross_schedule/)
@@ -189,6 +189,16 @@ test('both audited timetable triggers form one exact forward delta; live unsched
   assert.match(tuition, /vibetutor_tutor_no_overlap/)
   assert.match(tuition, /pg_advisory_xact_lock/)
   assert.match(tuition, /school_calendar_exceptions/)
+  const published = read('supabase/migrations/20261112210000_school_timetable_publication_authority.sql')
+  assert.match(published, /create trigger protect_published_timetable_slot/)
+  assert.match(published, /APPROVED_SLOT_LOCKED/)
+  assert.match(published, /PUBLISHED_SLOT_IMMUTABLE/)
+  assert.match(published, /revoke insert,update,delete on table public.timetable_releases/)
+  assert.match(published, /create_school_timetable_release/)
+  assert.match(published, /school_timetable_release_preflight/)
+  assert.match(planned.deltas[0].rationale, /43266376704/)
+  assert.match(planned.deltas[0].rationale, /13966083199/)
+
   assert.match(timetable, /useTuitionTimetable/)
   assert.match(timetable, /scheduleContext/)
   assert.match(read('app/student/timetable/page.tsx'), /dayTuition/)
