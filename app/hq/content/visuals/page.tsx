@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { hqSupabase } from '@/lib/hq/supabase'
 import { VISUAL_PLACEMENTS, VISUAL_TYPES, VISUAL_MAX_BYTES } from '@/lib/visual-library/contract'
 
-type Context = { id: string; title: string; grade: string; subject: string; curriculum_id: string; subject_id: string }
+type Context = { id: string; title: string; grade: string; subject: string }
 type Visual = {
   id: string; title: string; grade: string; subject: string; description: string; type: string;
   caption: string; altText: string; labels: string[]; placements: string[];
@@ -37,7 +37,7 @@ export default function HQVisualLearningLibrary() {
   const [grade, setGrade] = useState('4')
   const [subjectSearch, setSubjectSearch] = useState('')
   const [contexts, setContexts] = useState<Context[]>([])
-  const [sourceResourceId, setSourceResourceId] = useState('')
+  const [sourceStrandId, setSourceResourceId] = useState('')
   const [visuals, setVisuals] = useState<Visual[]>([])
   const [title, setTitle] = useState('')
   const [topicKey, setTopicKey] = useState('')
@@ -75,11 +75,11 @@ export default function HQVisualLearningLibrary() {
     event.preventDefault()
     setError(''); setMessage('')
     if (!file || file.size > VISUAL_MAX_BYTES) { setError('Choose a PNG, JPG, WebP or GIF image up to 5 MB.'); return }
-    if (!sourceResourceId) { setError('Select the curriculum lesson this visual supports.'); return }
+    if (!sourceStrandId) { setError('Select the curriculum lesson this visual supports.'); return }
     setBusy(true)
     try {
       const data = new FormData()
-      const fields = { title, topicKey, description, altText, caption, labels, visualType, placement, sourceResourceId }
+      const fields = { title, topicKey, description, altText, caption, labels, visualType, placement, sourceStrandId }
       Object.entries(fields).forEach(([key,value]) => data.append(key, value))
       data.append('file', file)
       const result = await hqRequest('/api/hq/visual-library', { method: 'POST', body: data })
@@ -110,10 +110,10 @@ export default function HQVisualLearningLibrary() {
             {Array.from({length:9},(_,i)=><option key={i+1} value={String(i+1)}>Grade {i+1}</option>)}
           </select></div>
           <div><label htmlFor="vsubject" style={label}>Find subject</label><input id="vsubject" style={input} placeholder="e.g. Mathematics" value={subjectSearch} onChange={e=>setSubjectSearch(e.target.value)}/></div>
-          <div><label htmlFor="vcontext" style={label}>Curriculum content to support</label><select id="vcontext" required style={input} value={sourceResourceId} onChange={e=>setSourceResourceId(e.target.value)}>
-            <option value="">Choose linked lesson/topic</option>
+          <div><label htmlFor="vcontext" style={label}>Curriculum sub-strand to support</label><select id="vcontext" required style={input} value={sourceStrandId} onChange={e=>setSourceResourceId(e.target.value)}>
+            <option value="">Choose sub-strand</option>
             {contexts.map(row=><option key={row.id} value={row.id}>{row.subject} · {row.title}</option>)}
-          </select>{!contexts.length && <small style={{color:'#d7af70'}}>No mapped resources found. Search a subject or complete curriculum mapping first.</small>}</div>
+          </select>{!contexts.length && <small style={{color:'#d7af70'}}>No curriculum sub-strands found. Search for the subject, or check its curriculum map.</small>}</div>
           <div><label htmlFor="vtitle" style={label}>Visual title</label><input id="vtitle" required maxLength={140} style={input} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Equivalent fractions – shaded bars"/></div>
           <div><label htmlFor="vtopic" style={label}>Topic key</label><input id="vtopic" required maxLength={100} style={input} value={topicKey} onChange={e=>setTopicKey(e.target.value)} placeholder="equivalent-fractions"/></div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
