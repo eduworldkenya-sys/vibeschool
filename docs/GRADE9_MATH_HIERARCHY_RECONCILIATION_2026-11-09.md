@@ -40,3 +40,36 @@ Examples of mismatches:
 7. Create an outcome-based exam blueprint and enforce a distinct curriculum-verified publication gate.
 
 No official learning-outcome text is reproduced in this candidate manifest. Existing 2026 assessment attempts and published papers remain unchanged.
+
+## Read-only live recheck — 12 November 2026
+
+**Mission:** begin VibeSchool Grade 9 Mathematics curriculum development while preserving KICD's factual curriculum structure and intents. The requested close alignment must **not** mean duplicating copyright-protected official text, inventing learning outcomes, or calling a draft KICD-approved.
+
+### Official sources and edition boundary
+
+- KICD Grade Nine designs, Mathematics July 2024 Revised: https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-nine-designs/ ; official embedded file https://drive.google.com/file/d/1HgntYl8nS1zydy8k00KrjEt_zJiMqISL/preview .
+- Accessible earlier official KICD Mathematics Grade 9 April-formatted PDF: https://kicd.ac.ke/wp-content/uploads/2024/06/Mathematics-Grade-9-Design-Formatted-April-2024.pdf .
+- April source locator: printed page **vii** lists five Mathematics lessons per week at 40 minutes each; printed page **x** lists 5 strands, 19 sub-strands and 150 **suggested** lessons. Those are **April source facts**, not verified July allocations.
+- The earlier PDF contains internal lesson-number discrepancies: **1.2 Cubes and Cube Roots** summary 6 versus detail 5 (printed p. 3); **1.3 Indices and Logarithms** summary 8 versus detail 6 (printed p. 5); **1.4 Compound Proportions and Rates of Work** summary 9 versus detail 12 (printed p. 6). Confirm against authoritative July revision and distinguish summary counts from explanatory-page counts; do not silently select a number.
+- The complete **July 2024 official PDF bytes were not accessible for authenticated artifact intake** during this check. No SHA-256, immutable artifact, staged July observations, promoted snapshot, or source-to-outcome certification was manufactured. Access to a third-party OCR mirror is not a substitute for actual official KICD artifact verification.
+
+### Existing production data (read-only, 12 November)
+
+- 20 canonical `public.cbc_strands` rows for Grade 9 Mathematics, with **zero populated** learning-outcome / inquiry / suggested-experience arrays.
+- Exactly matching pairs observed against the April reference hierarchy: `Numbers / Integers` (existing UUID `2c590eb4-c69e-4412-8827-ef44cd300691`) and `Data Handling and Probability / Probability` (UUID `af9de857-3046-4053-9914-0d1c7f500fdf`).
+- 17 of the 19 required April-reference entries lack an exact name pair in the live hierarchy. Name mismatches alone do **not** establish missing mathematical skills (e.g. `Measurement / Area` vs `Measurements / Area`). Legacy headings may reflect other grades or prerequisites, and **must not** be deleted.
+- `public.curriculum_learning_outcomes`: zero records linked to Grade 9 Mathematics canonical sub-strands; zero verified outcomes in that scope.
+- Registered July 2024 Mathematics `curriculum_authority_sources` record exists and is approved, but **zero artifacts, zero snapshots and zero promoted outcomes** were found linked to it. Approval of a source registry row is not approval of its learning outcomes.
+- No Grade 9 rows in `scheme_of_work` were found; do not invent teacher schemes or tie the curriculum to arbitrary school weeks.
+
+### Scoped repository work and non-effects
+
+1. Extend **existing** `content/curriculum/grade9-mathematics-hierarchy-2024-candidate.json` with the complete observed April summary table, lesson guidance, primary publisher URL, access date and discrepancy ledger. Keep its **candidate** status and the registered July source identity unchanged.
+2. Add regression test `scripts/tests/grade9-mathematics-source-summary.test.mjs` requiring exact hierarchy, 19 units, total 150 summary lessons and fail-closed July approval state.
+3. **No new curriculum tables, duplicate import pathways, unapproved source hashes, changed canonical curriculum IDs, teacher-scheme mutation, database write, content publication or learner release.**
+
+### Gate and continuation
+
+**KICD ↔ VibeSchool — Grade 9 Mathematics: 2 of 19 exact April *heading* pairs; 0 independently verified July learning outcomes; BLOCKED_CURRICULUM_RECONCILIATION for content generation and publication.**
+
+Next: obtain July original bytes through the existing authenticated `curriculum_authority_*` intake; independently verify all strands, sub-strands, specific learning outcomes, inquiry, learning experiences, competencies, values, PCIs, assessment rubrics and lesson allocations with section/page locators. Reconcile into existing canonical identities, retaining history, then author VibeSchool-original learner + teacher + assessment + revision packages outcome by outcome under `docs/curriculum/CONTENT_GENERATION.md`. Do not present this candidate as the live curriculum.
