@@ -9,21 +9,12 @@ import { nairobiDateStr } from '@/lib/time'
 import { C, Modal } from '@/components/teacher/ui'
 import TeachingLibraryStructure from '@/components/teacher/TeachingLibraryStructure'
 import type { CanonicalTeachingLibraryItem } from '@/components/teacher/TeachingLibraryStructure'
+import TeacherResourceEditor from '@/components/teacher/TeacherResourceEditor'
+import type { PersonalResourceRow } from '@/components/teacher/TeacherResourceEditor'
+import { componentForPersonalResource, mayShareResource } from '@/lib/teaching/personalResourceTypes'
+import { TEACHING_LIBRARY_SLOTS } from '@/lib/teaching/libraryStructure'
 
-type ResourceType = 'notes' | 'assessment' | 'exercise' | 'quiz' | 'video' | 'other'
-
-type TeacherResource = {
-  id: string
-  title: string
-  description: string
-  type: ResourceType
-  subject: string
-  external_url: string | null
-  content: string | null
-  is_school_wide: boolean
-  class_id: string | null
-  created_at: string
-}
+type TeacherResource = PersonalResourceRow
 
 type Assignment = { class_id: string; subject_id: string }
 type ClassOption = { id: string; name: string; stream: string; label: string }
@@ -73,25 +64,6 @@ type ReadyPack = {
   subjectLabel: string
   resources: Array<LinkedResourceRow & { resource: LearningResource | null; certifiedVersionId: string | null }>
 }
-type FormState = {
-  type: ResourceType
-  title: string
-  class_id: string
-  subject_id: string
-  description: string
-  external_url: string
-  content: string
-}
-
-const TYPES: Array<{ value: ResourceType; label: string; icon: string }> = [
-  { value: 'notes', label: 'Notes', icon: '📄' },
-  { value: 'assessment', label: 'Assessment', icon: '📝' },
-  { value: 'exercise', label: 'Exercise', icon: '✍️' },
-  { value: 'quiz', label: 'Quiz', icon: '🧪' },
-  { value: 'video', label: 'Video', icon: '🎬' },
-  { value: 'other', label: 'Other', icon: '📎' },
-]
-
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '11px 12px', borderRadius: 10, border: '1px solid #dbe3ea',
   fontSize: 14, color: C.textPrimary, background: '#fff', boxSizing: 'border-box', fontFamily: 'inherit',
@@ -101,7 +73,6 @@ const labelStyle: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '.05em',
 }
 
-function typeMeta(type: string) { return TYPES.find(item => item.value === type) ?? TYPES[TYPES.length - 1] }
 function unique<T>(values: T[]) { return Array.from(new Set(values)) }
 function orderScheme(a: SchemeLesson, b: SchemeLesson) {
   return (a.sequence_number ?? 999999) - (b.sequence_number ?? 999999)
@@ -153,22 +124,16 @@ export default function TeacherResourcesPage() {
   const [library, setLibrary] = useState<TeacherResource[]>([])
   const [packs, setPacks] = useState<ReadyPack[]>([])
   const [showAdd, setShowAdd] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [filter, setFilter] = useState<'all' | ResourceType>('all')
+  const [editorComponent, setEditorComponent] = useState('lesson-notes')
+  const [editingResource, setEditingResource] = useState<TeacherResource | null>(null)
+  const [filter, setFilter] = useState<'all' | 'draft' | 'shared'>('all')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [form, setForm] = useState<FormState>({
-    type: 'notes', title: '', class_id: '', subject_id: '', description: '', external_url: '', content: '',
-  })
-
+  const [sharing, setSharing] = useState<string | null>(null)
+  const [savedQuery, setSavedQuery] = useState('')
+  const [notice, setNotice] = useState('')
   const classById = useMemo(() => new Map(classes.map(row => [row.id, row])), [classes])
   const subjectById = useMemo(() => new Map(subjects.map(row => [row.id, row])), [subjects])
-  const allowedSubjects = useMemo(() => {
-    if (!form.class_id) return subjects
-    const ids = new Set(assignments.filter(row => row.class_id === form.class_id).map(row => row.subject_id))
-    return subjects.filter(row => ids.has(row.id))
-  }, [assignments, form.class_id, subjects])
   useEffect(() => { setClassFilter(requestedClassId); setSubjectFilter(requestedSubjectId) }, [requestedClassId, requestedSubjectId])
   const scopedSubjectName = useMemo(
     () => subjects.find(row => row.id === subjectFilter)?.name ?? '',
@@ -184,8 +149,10 @@ export default function TeacherResourcesPage() {
     (!scopedSubjectName || row.subject === scopedSubjectName),
   ), [library, classFilter, scopedSubjectName])
   const visibleLibrary = useMemo(() =>
-    filter === 'all' ? catalogueLibrary : catalogueLibrary.filter(row => row.type === filter),
-    [catalogueLibrary, filter],
+    catalogueLibrary.filter(row => (filter === 'all' || row.publication_status === filter) &&
+      (!savedQuery.trim() || [row.title, row.description ?? '', row.subject ?? '']
+        .some(value => value.toLocaleLowerCase().includes(savedQuery.trim().toLocaleLowerCase())))),
+    [catalogueLibrary, filter, savedQuery],
   )
   // The library is independent of the current week or a timetable. "Ready
   // this week" remains a separate, correctly date-scoped view of the same
@@ -234,16 +201,18 @@ export default function TeacherResourcesPage() {
     [visiblePacks],
   )
 
-  const openAdd = useCallback((requestedType: ResourceType = 'notes') => {
-    const selectedClassIsAssigned = classes.some(row => row.id === classFilter)
-    const classId = selectedClassIsAssigned ? classFilter : (classes[0]?.id ?? '')
-    const subjectIds = assignments.filter(row => row.class_id === classId).map(row => row.subject_id)
-    const selectedSubjectIsAssigned = subjectIds.includes(subjectFilter)
-    const subjectId = selectedSubjectIsAssigned ? subjectFilter : (subjectIds[0] ?? '')
-    setForm({ type: requestedType, title: '', class_id: classId, subject_id: subjectId, description: '', external_url: '', content: '' })
-    setFormError('')
+  const openAdd = useCallback((component: string = 'lesson-notes') => {
+    setEditingResource(null)
+    setEditorComponent(component)
+    setNotice('')
     setShowAdd(true)
-  }, [assignments, classes, classFilter, subjectFilter])
+  }, [])
+
+  const editSaved = (resource: TeacherResource) => {
+    setEditingResource(resource)
+    setEditorComponent(componentForPersonalResource(resource) ?? 'lesson-notes')
+    setShowAdd(true)
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -286,18 +255,7 @@ export default function TeacherResourcesPage() {
       const subjectRows = (subjectResult.data ?? []) as SubjectOption[]
       setClasses(classRows)
       setSubjects(subjectRows)
-      setLibrary((resourceResult.data ?? []).map(row => ({
-        id: row.id,
-        title: row.title,
-        description: row.description ?? '',
-        type: (TYPES.some(t => t.value === row.type) ? row.type : 'other') as ResourceType,
-        subject: row.subject ?? 'General',
-        external_url: row.external_url,
-        content: row.content,
-        is_school_wide: row.is_school_wide ?? false,
-        class_id: row.class_id,
-        created_at: row.created_at ?? new Date(0).toISOString(),
-      })))
+      setLibrary((resourceResult.data ?? []) as TeacherResource[])
 
       const calendarRow = !calendar.error && Array.isArray(calendar.data) && calendar.data.length === 1 ? calendar.data[0] : null
       const resolvedWeek = calendarRow?.week_number ?? null
@@ -416,46 +374,37 @@ export default function TeacherResourcesPage() {
 
   useEffect(() => { void load() }, [load])
 
-  useEffect(() => {
-    if (!form.class_id) return
-    const ids = assignments.filter(row => row.class_id === form.class_id).map(row => row.subject_id)
-    if (!ids.includes(form.subject_id)) setForm(current => ({ ...current, subject_id: ids[0] ?? '' }))
-  }, [assignments, form.class_id, form.subject_id])
-
-  async function saveResource() {
-    setFormError('')
-    if (!teacherId || !schoolId) return setFormError('Teacher identity is not ready.')
-    if (!form.title.trim()) return setFormError('Add a short title.')
-    if (!form.class_id) return setFormError('Choose a class.')
-    if (!form.subject_id) return setFormError('Choose a subject.')
-    if (!form.external_url.trim() && !form.content.trim()) return setFormError('Paste a link or add the resource content.')
-    if (form.external_url.trim() && !isSafeUrl(form.external_url.trim())) return setFormError('Link must start with http:// or https://.')
-    if (!assignments.some(row => row.class_id === form.class_id && row.subject_id === form.subject_id)) return setFormError('That class and subject are not assigned to this teacher.')
-    const subjectName = subjectById.get(form.subject_id)?.name
-    if (!subjectName) return setFormError('Subject could not be resolved.')
-
-    setSaving(true)
-    const inserted = await supabase.from('resources').insert({
-      teacher_id: teacherId,
-      school_id: schoolId,
-      class_id: form.class_id,
-      is_school_wide: false,
-      subject: subjectName,
-      title: form.title.trim(),
-      description: form.description.trim(),
-      type: form.type,
-      external_url: form.external_url.trim() || null,
-      content: form.content.trim() || null,
-    }).select('*').single()
-    setSaving(false)
-    if (inserted.error || !inserted.data) return setFormError(inserted.error?.message ?? 'Resource could not be saved.')
-    const row = inserted.data
-    setLibrary(current => [{
-      id: row.id, title: row.title, description: row.description ?? '', type: row.type as ResourceType,
-      subject: row.subject ?? subjectName, external_url: row.external_url, content: row.content,
-      is_school_wide: row.is_school_wide ?? false, class_id: row.class_id, created_at: row.created_at ?? new Date().toISOString(),
-    }, ...current])
+  const onSavedResource = (resource: TeacherResource) => {
+    setLibrary(current => [resource, ...current.filter(item => item.id !== resource.id)])
     setShowAdd(false)
+    setEditingResource(null)
+    setExpanded(resource.id)
+    setFilter('all')
+    setNotice('Saved privately. Learners cannot read this material until you explicitly share it.')
+  }
+
+  async function setSharingStatus(resource: TeacherResource, next: 'draft' | 'shared') {
+    if (!teacherId || sharing) return
+    setError('')
+    setNotice('')
+    if (next === 'shared') {
+      if (!mayShareResource(resource)) {
+        setError('Add content or a valid external link before sharing.')
+        return
+      }
+      if (!window.confirm(`Share “${resource.title}” with learners in this class? Learners will be able to read it.`)) return
+    }
+    setSharing(resource.id)
+    const result = await supabase.from('resources')
+      .update({ publication_status: next })
+      .eq('id', resource.id).eq('teacher_id', teacherId).select('*').single()
+    setSharing(null)
+    if (result.error || !result.data) {
+      setError(result.error?.message ?? 'Resource visibility could not be changed.')
+      return
+    }
+    setLibrary(current => current.map(item => item.id === resource.id ? result.data as TeacherResource : item))
+    setNotice(next === 'shared' ? 'Shared with the class.' : 'Unshared. Learner access has been withdrawn.')
   }
 
   async function deleteResource(resource: TeacherResource) {
@@ -479,12 +428,12 @@ export default function TeacherResourcesPage() {
               <h1 style={{ fontSize: 23, margin: '5px 0 4px', fontWeight: 750 }}>Teaching Library</h1>
               <p style={{ margin: 0, fontSize: 13, maxWidth: 680, opacity: .82 }}>Find teaching resource types, Scheme-linked lesson materials and your saved resources.</p>
             </div>
-            <button type="button" onClick={() => openAdd()} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: 'var(--teacher-green)', minHeight: 44, fontWeight: 650, whiteSpace: 'nowrap' }}>+ Add resource</button>
+            <button type="button" onClick={() => openAdd()} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: 'var(--teacher-green)', minHeight: 44, fontWeight: 650, whiteSpace: 'nowrap' }}>+ Create resource</button>
           </div>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 11, fontSize: 12, opacity: .9 }}>
             <span>Week {week ?? '—'}</span>
             <span>{certifiedCount} certified {certifiedCount === 1 ? 'material' : 'materials'} this week</span>
-            <span>{library.length} saved by me</span>
+            <span>{library.filter(row => row.publication_status === 'draft').length} private drafts · {library.filter(row => row.publication_status === 'shared').length} shared</span>
           </div>
         </div>
       </header>
@@ -527,6 +476,7 @@ export default function TeacherResourcesPage() {
           </Link>
           </div>
         </details>
+        {notice && <div role="status" style={{ background: '#f0faf3', color: '#176346', padding: 12, marginBottom: 12, borderRadius: 10 }}>{notice}</div>}
         {error && <div role="alert" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 12, padding: 12, marginBottom: 14 }}>{error}</div>}
         {linkWarning && <p role="status" style={{ color: '#8a6300', fontSize: 12 }}>{linkWarning}</p>}
 
