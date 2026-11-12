@@ -136,6 +136,16 @@ export async function GET(req: NextRequest) {
     return authError(req, initialFailure, pendingCookies)
   }
 
+  // A provider may return an existing account even when the user started at
+  // "Create learner account". Existing authority always wins: never treat a
+  // different role as a successful signup or redirect into its dashboard.
+  if (intent === 'signup' && requestedRole && access.role && access.role !== requestedRole) {
+    logStage('signup_role_conflict', flowId)
+    const { error: signOutError } = await supabase.auth.signOut()
+    if (signOutError) logStage('signup_role_conflict_signout_failed', flowId, signOutError.name)
+    return authError(req, 'signup_role_conflict', pendingCookies)
+  }
+
   if (!access.role && intent === 'signup') {
     // A new self-service role may only be claimed from the explicit role-unclaimed state.
     // Missing profiles, authority conflicts, or unknown states never enter role claiming.
