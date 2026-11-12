@@ -320,7 +320,7 @@ TBL-008| P0| VERIFIED| Make postflight executable| Local and remote migration st
 TBL-009| P0| VERIFIED| Align fallback repair path| Primary and fallback repair methods produce identical ledger state
 TBL-010| P0| VERIFIED| Recover required core RLS policies| Clean rebuild preserves intended access rules
 TBL-011| P0| VERIFIED| Run isolated clean rebuild| Full migration chain succeeds from blank state
-TBL-012| P0| OPEN| Compare rebuilt schema with target schema| No unexplained timetable schema difference remains
+TBL-012| P0| BLOCKED| Compare rebuilt schema with target schema| Live schema does not match the pinned reference; require an observed production snapshot and reconcile four structural differences before production certification
 TBL-013| P0| OPEN| Repair live migration history| Approved ledger reconciliation is applied safely
 TBL-014| P0| OPEN| Commit reconciliation checkpoint| Migration recovery is preserved in an isolated clean checkpoint
 
