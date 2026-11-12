@@ -13,6 +13,8 @@ declare
   v_expected integer;
   v_updated integer;
   v_rows integer;
+  v_reference record;
+  v_in_use boolean;
 begin
   select id into v_unit
     from public.cbc_strands
@@ -33,19 +35,29 @@ begin
       where sub_strand_id=v_unit and status='active')<>3
   then raise exception 'GRADE4_SPELLING_LEGACY_STATE_CHANGED'; end if;
 
-  -- Do not rewrite identities with dependent evidence or teacher-owned links.
-  if exists(
-      select 1 from public.curriculum_learning_outcomes o
-       where o.sub_strand_id=v_unit
-       and (exists(select 1 from public.scheme_of_work sw where sw.curriculum_outcome_id=o.id)
-         or exists(select 1 from public.scheme_lesson_outcomes slo where slo.curriculum_outcome_id=o.id)
-         or exists(select 1 from public.lesson_plans lp where lp.curriculum_outcome_id=o.id)
-         or exists(select 1 from public.lesson_plan_drafts d where d.curriculum_outcome_id=o.id)
-         or exists(select 1 from public.assessment_item_outcomes a where a.outcome_id=o.id)
-         or exists(select 1 from public.teaching_occurrence_outcomes t where t.curriculum_outcome_id=o.id)
-         or exists(select 1 from public.learning_resources lr where lr.curriculum_outcome_id=o.id)
-         or exists(select 1 from public.chapter_learning_outcome_links cl where cl.outcome_id=o.id))
-    ) then raise exception 'GRADE4_SPELLING_HISTORY_REQUIRES_AUTHORIZED_REVIEW'; end if;
+  -- Inspect every existing FK to the canonical outcome table, including
+  -- future resource, learner-evidence and authority tables. The reference
+  -- scan fails closed if any legacy outcome is already in use.
+  for v_reference in
+    select c.conrelid::regclass::text as referring_table,
+           att.attname as referring_column
+      from pg_constraint c
+      join pg_attribute att on att.attrelid=c.conrelid
+                           and att.attnum=c.conkey[1]
+     where c.contype='f'
+       and c.confrelid='public.curriculum_learning_outcomes'::regclass
+  loop
+    execute format(
+      'select exists(select 1 from %s t join public.curriculum_learning_outcomes o
+        on o.id=t.%I where o.sub_strand_id=$1 and o.status=''active'')',
+      v_reference.referring_table,
+      v_reference.referring_column
+    ) into v_in_use using v_unit;
+    if v_in_use then
+      raise exception 'GRADE4_SPELLING_HISTORY_REQUIRES_AUTHORIZED_REVIEW: %.%',
+        v_reference.referring_table, v_reference.referring_column;
+    end if;
+  end loop;
 
   update public.curriculum_learning_outcomes
      set status='archived',updated_at=now()
