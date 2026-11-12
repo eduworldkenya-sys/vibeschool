@@ -50,11 +50,50 @@ test('class grades have canonical identities', () => {
   assert.match(grades, /Grade 9/)
 })
 
-test('junior school has verified allocation coverage', () => {
-  assert.match(grades, /junior_school/)
-  assert.match(grades, /v_total <> 40/)
-  assert.match(grades, /lesson_minutes/)
+test('KICD Grades 1–9 baseline contains exactly the verified learning-area matrix', () => {
+  const sourceMatrix = grades.split('with learning_areas(band, subject_label, kicd_learning_area, units) as (')[1]
+  assert.ok(sourceMatrix, 'Official KICD source matrix missing')
+  const rows = sourceMatrix.split('grades(grade, band, source_ref')[0]
+  const matches = [...rows.matchAll(/\\('(lower_primary|upper_primary|junior_school)', '([^']+)', '([^']+)', (\\d+)\\)/g)]
+  const expected = {
+    lower_primary: { count: 7, lessons: 30 },
+    upper_primary: { count: 8, lessons: 34 },
+    junior_school: { count: 9, lessons: 40 },
+  }
+  for (const [band, { count, lessons }] of Object.entries(expected)) {
+    const items = matches.filter(row => row[1] === band)
+    assert.equal(items.length, count, band + ' area count')
+    assert.equal(items.reduce((sum, row) => sum + Number(row[4]), 0), lessons, band + ' weekly lessons')
+    assert.equal(new Set(items.map(row => row[2])).size, count, band + ' unique canonical subjects')
+  }
+  assert.equal(matches.length, 24, '7 lower + 8 upper + 9 junior learning areas')
+
+  // The exact source text and stable VibeSchool identity are both retained.
+  assert.match(rows, /'Mathematics', 'Mathematical Activities', 5/)
+  assert.match(rows, /'Agriculture and Nutrition', 'Agriculture', 4/)
+  assert.match(rows, /'Creative Arts and Sports', 'Creative Arts', 6/)
+  assert.match(grades, /Grade-1-3-English-Activities-Revised-Sept\\.pdf/)
+  assert.match(grades, /AGRICULTURE-Grade-6-30\\.07\\.2024\\.pdf/)
+  assert.match(grades, /Agriculture-Grade-9-Formatted-April-2024\\.pdf/)
+  assert.match(grades, /KICD_ALLOCATION_MISMATCH/)
+  assert.match(grades, /v_expected_count/)
+  assert.match(grades, /v_expected_lessons/)
   assert.match(grades, /global_subject_id/)
+  assert.match(grades, /kicd_learning_area/)
+})
+
+test('PPI is exactly one separate programme period, never an assessed subject', () => {
+  assert.match(grades, /1::integer as ppi_periods/)
+  assert.match(grades, /\\(sum\\(swa\\.lessons_per_week\\) \\+ 1\\)::integer as total_periods/)
+  assert.match(grades, /security_invoker = true/)
+  assert.doesNotMatch(
+    grades.split('with learning_areas(band, subject_label, kicd_learning_area, units) as (')[1]
+      .split('grades(grade, band, source_ref')[0],
+    /\\('(?:lower_primary|upper_primary|junior_school)', 'Pastoral/,
+  )
+  assert.match(grades, /Kenyan Sign Language/)
+  assert.match(grades, /Christian Religious Education/)
+  assert.match(grades, /CONFLICTING_KICD_ALTERNATIVE/)
 })
 
 test('period validation uses real school periods', () => {
