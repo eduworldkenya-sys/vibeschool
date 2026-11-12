@@ -1,5 +1,6 @@
 'use client'
 import { useMemo } from 'react'
+import Link from 'next/link'
 import {
  GRADE4_MATHEMATICS_UNITS,
  GRADE4_MATHEMATICS_SOURCE_URL,
@@ -42,7 +43,13 @@ export default function Grade4MathematicsMap({
     catalogError?<p role="alert" style={{color:'#9f1239'}}>{catalogError}</p>:
     !record?(!compact?<p role="status">Canonical source linkage is not yet available.</p>:null):
     <ol style={{fontSize:13,color:'#345746',lineHeight:1.6,paddingLeft:19,margin:'7px 0 11px'}}>
-     {record.outcomes.map(item=><li key={item.id}>{item.outcome_text}</li>)}
+     {record.outcomes.map(item=><li key={item.id}>
+      <span>{item.outcome_text}</span>
+      {chosen.id==='2.6' && <Link href={`/teacher/outcome-package?outcomeId=${encodeURIComponent(item.id)}`}
+        style={{display:'block',fontSize:12,color:green,fontWeight:750,margin:'5px 0 12px'}}>
+        Open this outcome's published notes, guide and exercises
+      </Link>}
+     </li>)}
     </ol>}
    <p style={{fontSize:12,color:'#466653',margin:'10px 0 7px'}}><strong>Resources:</strong> {chosen.resources}</p>
    <p style={{fontSize:12,color:'#466653',margin:'0 0 11px'}}><strong>Assessment:</strong> {chosen.assessment}</p>
