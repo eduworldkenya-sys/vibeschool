@@ -1,0 +1,143 @@
+name: TBL-013 Timetable Production Preflight (Read Only)
+
+on:
+  pull_request:
+    paths:
+      - "scripts/tbl013-build-timetable-ledger-stage.py"
+      - "scripts/test-tbl013-timetable-ledger-stage.py"
+      - ".github/workflows/tbl013-timetable-production-preflight.yml"
+      - "supabase/migrations/2026111210*.sql"
+      - "supabase/migrations/20261112154500_unscheduled_teaching_occurrence.sql"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/tbl013-build-timetable-ledger-stage.py"
+      - "scripts/test-tbl013-timetable-ledger-stage.py"
+      - ".github/workflows/tbl013-timetable-production-preflight.yml"
+      - "supabase/migrations/2026111210*.sql"
+      - "supabase/migrations/20261112154500_unscheduled_teaching_occurrence.sql"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tbl013-timetable-readonly-preflight
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    name: Verify version-exact timetable staging contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run immutable ledger staging tests
+        run: |
+          set -euo pipefail
+          python3 scripts/test-tbl013-timetable-ledger-stage.py
+          python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
+          python3 scripts/test-tbl013-live-ledger-audit.py
+
+  production-readonly:
+    name: Capture production ledger and exact dry-run without writes
+    if: github.event_name != 'pull_request'
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-migration-repair
+    env:
+      EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+    steps:
+      - name: Only audit exact main ref
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+      - uses: actions/checkout@v4
+      - name: Initialize immutable dry-run evidence
+        run: |
+          set -euo pipefail
+          mkdir -p .tbl013-timetable-readonly
+          {
+            echo "project_ref=$EXPECTED_PROJECT_REF"
+            echo "sha=$(git rev-parse HEAD)"
+            echo "run_id=${{ github.run_id }}"
+            echo "mode=READ_ONLY"
+            echo "production_mutation=false"
+            echo "migration_repair=false"
+          } > .tbl013-timetable-readonly/context.txt
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+      - name: Link only the authorised production project
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+      - name: Capture live migration ledger
+        run: |
+          set -o pipefail
+          supabase migration list --linked 2>&1 |
+            tee .tbl013-timetable-readonly/ledger-before.txt
+      - name: Classify the live ledger without modifying it
+        run: |
+          set -euo pipefail
+          python3 scripts/tbl013-live-ledger-audit.py \
+            --migrations-dir supabase/migrations \
+            --ledger .tbl013-timetable-readonly/ledger-before.txt \
+            --report .tbl013-timetable-readonly/audit.json \
+            --plan .tbl013-timetable-readonly/reconciliation.md \
+            --project-ref "$EXPECTED_PROJECT_REF"
+      - name: Stage approved timetable versions; exclude unrelated repository-only SQL
+        run: |
+          set -euo pipefail
+          python3 scripts/tbl013-build-timetable-ledger-stage.py \
+            --report .tbl013-timetable-readonly/audit.json \
+            --migrations-dir supabase/migrations \
+            --config supabase/config.toml \
+            --stage-dir .tbl013-timetable-stage \
+            --manifest .tbl013-timetable-readonly/manifest.json \
+            --expected-versions .tbl013-timetable-readonly/pending-versions.txt
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('.tbl013-timetable-readonly/manifest.json').read_text())
+          assert m['authorized_repairs']==[]
+          assert m['production_mutation'] is False
+          expected=Path('.tbl013-timetable-readonly/pending-versions.txt').read_text().split()
+          assert set(expected) <= {
+            '20261112101500','20261112101600','20261112101700',
+            '20261112101800','20261112154500'
+          }
+          assert expected
+          print('Timetable-only pending versions:', ', '.join(expected))
+          PY
+      - name: Dry-run exact plan against the linked project (NO APPLY)
+        run: |
+          set -o pipefail
+          cd .tbl013-timetable-stage
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+          supabase db push --linked --dry-run --include-all 2>&1 |
+            tee ../.tbl013-timetable-readonly/dry-run.txt
+      - name: Fail closed on any unapproved or missing version
+        run: |
+          set -euo pipefail
+          python3 scripts/worker-engine-assert-dry-run-plan.py \
+            --expected .tbl013-timetable-readonly/pending-versions.txt \
+            --dry-run-output .tbl013-timetable-readonly/dry-run.txt \
+            --report .tbl013-timetable-readonly/plan-verdict.txt
+          grep -Fxq "status=PASSED" .tbl013-timetable-readonly/plan-verdict.txt
+          echo "TIMETABLE PREFLIGHT ONLY — NO PRODUCTION SQL WAS APPLIED"
+          echo "TBL-012 live schema reconciliation and school periods remain separate release gates."
+          sha256sum .tbl013-timetable-readonly/* > .tbl013-timetable-readonly/evidence.sha256
+      - name: Upload immutable read-only plan evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tbl013-timetable-readonly-${{ github.run_id }}
+          path: .tbl013-timetable-readonly/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 90
