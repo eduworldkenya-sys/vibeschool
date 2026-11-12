@@ -103,6 +103,7 @@ def main() -> int:
     parser.add_argument("--target", required=True)
     parser.add_argument("--report", required=True)
     parser.add_argument("--forward-deltas", default=None)
+    parser.add_argument("--live-observation", default=None)
     args = parser.parse_args()
 
     report_path = Path(args.report)
@@ -119,6 +120,34 @@ def main() -> int:
             load_json(target_path),
             target_path,
         )
+
+        # The checked-in production fingerprint is a claim, not live truth.
+        # A promotion operator must supply a fresh read-only observation.
+        live_verified = False
+        if args.live_observation:
+            live_path = Path(args.live_observation)
+            live = validate_snapshot(load_json(live_path), live_path)
+            baseline_drift = [
+                {"table": table, "section": field.removesuffix("_hash"),
+                 "recorded": target[table][field], "observed": live[table][field]}
+                for table in sorted(EXPECTED_TABLES)
+                for field in sorted(EXPECTED_FIELDS)
+                if live[table][field] != target[table][field]
+            ]
+            if baseline_drift:
+                report_path.parent.mkdir(parents=True, exist_ok=True)
+                report_path.write_text(json.dumps({
+                    "schema_version": 1,
+                    "passed": False,
+                    "production_reference_verified": False,
+                    "error": "STALE_PRODUCTION_REFERENCE",
+                    "baseline_differences": baseline_drift,
+                }, indent=2) + "\\n", encoding="utf-8")
+                print("TBL-012 LIVE PRODUCTION REFERENCE MISMATCH", file=sys.stderr)
+                for delta in baseline_drift:
+                    print(f" - {delta['table']}.{delta['section']}", file=sys.stderr)
+                return 1
+            live_verified = True
 
         # A forward migration may intentionally change a production-owned
         # trigger. This is NOT production parity: require the immutable
@@ -191,7 +220,8 @@ def main() -> int:
             "structural_differences": len(differences),
             "unexplained_differences": len(unexplained),
             "expected_undeployed_forward_differences": len(expected_forward),
-            "production_parity": not differences,
+            "production_parity": live_verified and not differences,
+            "production_reference_verified": live_verified,
             "release_requires_forward_migration": bool(expected_forward),
             "passed": not unexplained,
             "differences": differences,

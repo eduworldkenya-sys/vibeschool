@@ -1,24 +1,9 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import test from 'node:test'
-const read = path => fs.readFileSync(path, 'utf8')
-const migrations = fs.readdirSync('supabase/migrations')
-function migration(suffix) {
-  const matches = migrations.filter(name => name.endsWith(suffix))
-  assert.equal(matches.length, 1, `Expected one migration ending with ${suffix}`)
-  return read(`supabase/migrations/${matches[0]}`)
-}
-const grades = migration('_timetable_canonical_grades_and_allocations.sql')
-const periods = migration('_timetable_school_period_authority.sql')
-const binding = migration('_timetable_dated_scheme_binding.sql')
-const source = read('lib/teaching/lessonSource.ts')
-const workspace = read('lib/teaching/lessonWorkspace.ts')
-const modal = read('components/teacher/AddSlotModal.tsx')
-const timetable = read('app/teacher/timetable/page.tsx')
-
-import assert from 'node:assert/strict'
-import fs from 'node:fs'
-import test from 'node:test'
+import childProcess from 'node:child_process'
+import os from 'node:os'
+import path from 'node:path'
 
 const read = path => fs.readFileSync(path, 'utf8')
 
@@ -147,3 +132,69 @@ test('the planned period-guard delta is explicit, exact and not mislabeled produ
   assert.match(periods, /effective_from, effective_until/)
   assert.match(read('scripts/tbl012-compare-schema-hashes.py'), /release_requires_forward_migration/)
 })
+
+test('TBL-012 rejects an observed production fingerprint that differs from the recorded baseline', () => {
+  const { spawnSync } = requireNodeChildProcess()
+  const { dir, baseline, observed } = makeBaselineFixtures()
+  try {
+    observed.tables.teacher_classes.indexes_hash = '0'.repeat(32)
+    fs.writeFileSync(`${dir}/live.json`, JSON.stringify(observed))
+    const proc = spawnSync('python3', [
+      'scripts/tbl012-compare-schema-hashes.py',
+      '--rebuilt', `${dir}/rebuilt.json`,
+      '--target', `${dir}/target.json`,
+      '--live-observation', `${dir}/live.json`,
+      '--report', `${dir}/report.json`,
+    ], { encoding: 'utf8' })
+    assert.equal(proc.status, 1, proc.stderr)
+    assert.match(proc.stderr, /LIVE PRODUCTION REFERENCE MISMATCH/)
+    const report = JSON.parse(fs.readFileSync(`${dir}/report.json`, 'utf8'))
+    assert.equal(report.passed, false)
+    assert.equal(report.error, 'STALE_PRODUCTION_REFERENCE')
+    assert.ok(report.baseline_differences.some(x =>
+      x.table === 'teacher_classes' && x.section === 'indexes'))
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('TBL-012 permits only the exact declared forward trigger and never calls it deployed', () => {
+  const { spawnSync } = requireNodeChildProcess()
+  const { dir, baseline, observed } = makeBaselineFixtures()
+  try {
+    const planned = JSON.parse(read('supabase/reconciliation/tbl012_pending_forward_deltas.json'))
+    const rebuilt = structuredClone(baseline)
+    rebuilt.tables.timetable_slots.triggers_hash = planned.deltas[0].rebuilt_hash
+    fs.writeFileSync(`${dir}/rebuilt.json`, JSON.stringify(rebuilt))
+    const proc = spawnSync('python3', [
+      'scripts/tbl012-compare-schema-hashes.py',
+      '--rebuilt', `${dir}/rebuilt.json`,
+      '--target', `${dir}/target.json`,
+      '--live-observation', `${dir}/live.json`,
+      '--forward-deltas', 'supabase/reconciliation/tbl012_pending_forward_deltas.json',
+      '--report', `${dir}/report.json`,
+    ], { encoding: 'utf8' })
+    assert.equal(proc.status, 0, proc.stderr)
+    const report = JSON.parse(fs.readFileSync(`${dir}/report.json`, 'utf8'))
+    assert.equal(report.production_reference_verified, true)
+    assert.equal(report.production_parity, false)
+    assert.equal(report.release_requires_forward_migration, true)
+    assert.equal(report.unexplained_differences, 0)
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+function requireNodeChildProcess() {
+  return { spawnSync: childProcess.spawnSync }
+}
+
+function makeBaselineFixtures() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tbl012-'))
+  const baseline = JSON.parse(read('supabase/reconciliation/tbl012_production_core_schema_hashes.json'))
+  const observed = structuredClone(baseline)
+  fs.writeFileSync(`${dir}/target.json`, JSON.stringify(baseline))
+  fs.writeFileSync(`${dir}/rebuilt.json`, JSON.stringify(baseline))
+  fs.writeFileSync(`${dir}/live.json`, JSON.stringify(observed))
+  return { dir, baseline, observed }
+}
