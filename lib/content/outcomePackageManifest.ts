@@ -75,7 +75,8 @@ function questionsFor(role: 'activities' | 'revision', ids: readonly string[] = 
 
 export function buildOutcomePackageManifest(input: OutcomePackageInput): OutcomePackageManifest {
   const outcome_id = normalizedId(input.outcomeId, 'outcome ID')
-  const packageId = input.curriculumPackageId == null ? null : input.curriculumPackageId.trim()
+  const packageId = typeof input.curriculumPackageId === 'string'
+    ? input.curriculumPackageId.trim() : null
   if (input.curriculumPackageId != null && (typeof input.curriculumPackageId !== 'string'
       || !packageId || packageId !== input.curriculumPackageId)) {
     throw new Error('outcomePackage: invalid curriculum package ID')
