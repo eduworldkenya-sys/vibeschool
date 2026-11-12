@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import LessonTeachMode, { type LessonCompletionReview } from '@/components/teacher/LessonTeachMode'
 import { evaluateLessonReadiness } from '@/lib/teaching/lessonReadiness'
 import { parseLessonPlanBody } from '@/lib/teaching/lessonPlanCodec'
+import { nairobiDateStr } from '@/lib/time'
 
 type Draft = {
   id: string; teacher_id: string; school_id: string; class_id: string | null;
@@ -36,6 +37,11 @@ function TeachUnscheduledContent() {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      setLoading(true)
+      setActive(null)
+      setCompleted(false)
+      setDraft(null)
+      setError(null)
       if (!draftId) { setError('Select an actual prepared lesson first.'); setLoading(false); return }
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -57,6 +63,26 @@ function TeachUnscheduledContent() {
           if (cancelled) return
           if (cls.data) setClassName([cls.data.name,cls.data.stream].filter(Boolean).join(' '))
           if (subject.data) setSubjectName(subject.data.name)
+        }
+        // Reopen the real occurrence for this Nairobi date. A refreshed page
+        // must not silently lose an in-progress lesson or invite a second finish.
+        const { data: plans, error: planError } = await supabase.from('lesson_plans')
+          .select('id,title,topic,body,taught_date')
+          .eq('prepared_draft_id', typed.id).eq('teacher_id', user.id)
+          .eq('taught_date', nairobiDateStr()).is('timetable_slot_id', null)
+          .limit(1)
+        if (planError) throw planError
+        const plan = plans?.[0]
+        if (plan) {
+          const { data: occurrence, error: occurrenceError } = await supabase.from('teaching_occurrences')
+            .select('id,unscheduled_plan_id,occurrence_date,school_id,teacher_id,class_id,subject_id,timetable_slot_id,lifecycle')
+            .eq('unscheduled_plan_id', plan.id).eq('teacher_id', user.id).maybeSingle()
+          if (occurrenceError) throw occurrenceError
+          if (!cancelled && occurrence?.lifecycle === 'completed') {
+            setCompleted(true)
+          } else if (!cancelled && occurrence?.lifecycle === 'in_progress') {
+            setActive({ occurrence: occurrence as Occurrence, plan })
+          }
         }
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load lesson preparation.')
@@ -86,8 +112,12 @@ function TeachUnscheduledContent() {
       if (!plan || !parseLessonPlanBody(plan.body ?? '')) {
         throw new Error('The saved plan needs canonical teaching sections before it can be opened.')
       }
-      setCompleted(occurrence.lifecycle === 'completed')
-      setActive({ occurrence: occurrence as Occurrence, plan })
+      if (occurrence.lifecycle === 'completed') {
+        setCompleted(true)
+        setActive(null)
+      } else {
+        setActive({ occurrence: occurrence as Occurrence, plan })
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to start this unscheduled lesson.')
     } finally { setBusy(false) }
@@ -143,10 +173,10 @@ function TeachUnscheduledContent() {
           <p role="status">The plan needs review before teaching:</p>
           <ul>{readiness.reasons.map(reason=><li key={reason} style={{fontSize:13}}>{reason}</li>)}</ul>
         </> : <p style={{fontSize:13,color:'#0f766e'}}>The prepared content passes the lesson readiness checks. The server will verify the Scheme learning outcome and teaching assignment again.</p>}
-      {completed ? <p role="status" style={{fontWeight:750,color:'#047857'}}>This teaching occurrence has been completed.</p> : null}
+      {completed ? <p role="status" style={{fontWeight:750,color:'#047857'}}>This prepared lesson was taught and completed today. No second completion is needed.</p> : null}
       <button type="button" disabled={!draft.class_id || !draft.scheme_id || !readiness.ready || busy || completed}
         onClick={()=>void start()} style={{minHeight:44,padding:'10px 17px',background:'#175b43',color:'#fff',border:0,borderRadius:10,opacity:!readiness.ready||busy||completed?0.55:1,fontWeight:750}}>
-        {busy ? 'Opening lesson…' : 'Start teaching this lesson'}
+        {busy ? 'Opening lesson…' : completed ? 'Lesson completed today' : 'Start teaching this lesson'}
       </button>
     </section>}
   </main>
