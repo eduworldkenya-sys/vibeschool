@@ -21,7 +21,7 @@ assert.equal(mayShareResource({ title: 'Ready', content: 'Structured notes' }), 
 assert.equal(mayShareResource({ title: 'Ready', external_url: 'https://vibeschool.co.ke' }), true)
 assert.equal(mayShareResource({ title: 'Invalid', external_url: 'javascript:alert(1)' }), false)
 
-const sql = fs.readFileSync('supabase/migrations/20261112062000_teacher_resource_draft_share_and_component_link.sql','utf8')
+const sql = fs.readFileSync('supabase/migrations/20261112065326_teacher_resource_draft_share_and_component_link.sql','utf8')
 const editor = fs.readFileSync('components/teacher/TeacherResourceEditor.tsx','utf8')
 const teacher = fs.readFileSync('app/teacher/resources/page.tsx','utf8')
 const student = fs.readFileSync('app/student/resources/page.tsx','utf8')
