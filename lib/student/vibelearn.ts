@@ -414,6 +414,8 @@ function parseMistakes(value: unknown): MistakeNotebookItem[] {
     return [{
       id,
       questionId,
+      sourceGrade: null,
+      sourceVerified: false,
       sourceBlockId,
       reviewUrl: asString(item.review_url),
       subject,
