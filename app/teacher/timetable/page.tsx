@@ -940,6 +940,21 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     setSchoolError(null)
     setVerifiedTeacher(false)
     setLoading(true)
+    // Clear previous school records before resolving a new user/week.
+    // Neither identity changes nor failed reads may expose stale school data.
+    setAllSlots([])
+    setActiveSchoolId(null)
+    setSchools([])
+    setDayBlocks([])
+    setSchoolBlocks({})
+    setCalendarExceptions([])
+    setWeeklyLoadRows([])
+    setWeeklyLoadError(null)
+    setSelected(null)
+    setRecoveryCtx(null)
+    setEditSlot(null)
+    setCopySlot(null)
+    setShowAddSlot(false)
 
     try {
       const { data: { user }, error: authErr } = await supabase.auth.getUser()
