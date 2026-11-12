@@ -167,6 +167,7 @@ function Inner({ curriculumView = false }) {
   const isGrade8Kiswahili = /^grade\s*8$/i.test(classObj?.grade?.trim()||'') && /^kiswahili$/i.test(subjectObj?.label?.trim()||'')
   const isGrade9English = /^grade\s*9$/i.test(classObj?.grade?.trim()||'') && /^english$/i.test(subjectObj?.label?.trim()||'')
   const isGrade9Mathematics = /^grade\s*9$/i.test(classObj?.grade?.trim()||'') && /^mathematics$/i.test(subjectObj?.label?.trim()||'')
+  const grade9DraftUnit = !curriculumView && isGrade9Mathematics ? GRADE9_MATHEMATICS_UNITS.find(unit=>unit.id===draftUnitId) : null
   const isGrade1Creative = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(creative activities|creative arts activities|creative arts and sports)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade1Mathematics = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(mathematics|mathematical activities|mathematics activities)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade1English = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(english|english activities|english language activities)$/i.test(subjectObj?.label?.trim()||'')
@@ -1158,8 +1159,8 @@ function Inner({ curriculumView = false }) {
       selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
       legacyCount={allCurriculumRows.length}
       showExisting={showEnglishLegacy} onToggleExisting={()=>setShowEnglishLegacy(value=>!value)}
-      onOpenScheme={()=>{
-        const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek)})
+      onOpenScheme={unitId=>{
+        const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek),unitId:unitId||mapUnitId})
         router.push('/teacher/scheme?'+p.toString())
       }}
     />}
@@ -1207,7 +1208,18 @@ function Inner({ curriculumView = false }) {
       <details style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:12,padding:12,marginBottom:12}}><summary style={{cursor:'pointer',color:C.text,fontWeight:700,fontSize:13}}>Teaching notes and observations</summary><div style={{marginTop:12}}><LessonPanel teacherId={uid} classId={selectedClass} subjectId={selectedSubject} subjectLabel={subjectObj.label} academicTermId={selectedTermId} schoolId={schoolId} week={selectedWeek}/></div></details>
     </>}
 
-    {mappedDraftUnit && <section aria-label={(isGrade4English||isGrade4Mathematics||isGrade4Indigenous)?'Plan mapped Grade 4 curriculum lesson':(isGrade6Mathematics||isGrade6English)?'Plan mapped Grade 6 curriculum lesson':(isGrade8Mathematics||isGrade8English)?'Plan mapped Grade 8 curriculum lesson':'Plan mapped Grade 1 curriculum lesson'} style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+         {grade9DraftUnit && <section aria-label="Grade 9 Mathematics planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+       <div style={{fontSize:11,fontWeight:800,color:C.teal,letterSpacing:'.04em'}}>CURRICULUM MAP → SCHEME OF WORK · REFERENCE ONLY</div>
+       <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{grade9DraftUnit.id} · {grade9DraftUnit.title}</h2>
+       <p style={{fontSize:13,color:C.text2,margin:'0 0 10px'}}>{grade9DraftUnit.strand} · Selected instructional week {selectedWeek}</p>
+       <p style={{fontSize:12,color:C.text2,margin:'0 0 10px'}}>April 2024 reference: {grade9DraftUnit.lessons} suggested lessons for this sub-strand. The July 2024 revised learning outcomes are not yet verified in the canonical curriculum, so this selection is a planning reference only; no Scheme lesson has been created.</p>
+       <p style={{fontSize:12,color:C.text2,margin:'0 0 12px'}}>Once the revised source is verified and each outcome is linked to an approved sub-strand, use the existing Scheme of Work workflow to allocate lessons to your actual school calendar.</p>
+       <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+         <button type="button" onClick={()=>{const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek),unitId:grade9DraftUnit.id});router.push('/teacher/curriculum?'+p.toString())}} style={{minHeight:44,padding:'10px 14px',border:'1px solid #9fbbaa',borderRadius:9,background:'#fff',color:C.teal,fontWeight:700}}>View curriculum sub-strand</button>
+         <button type="button" onClick={()=>setDraftUnitId('')} style={{minHeight:44,padding:'10px 14px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:700}}>Close reference</button>
+       </div>
+     </section>}
+{mappedDraftUnit && <section aria-label={(isGrade4English||isGrade4Mathematics||isGrade4Indigenous)?'Plan mapped Grade 4 curriculum lesson':(isGrade6Mathematics||isGrade6English)?'Plan mapped Grade 6 curriculum lesson':(isGrade8Mathematics||isGrade8English)?'Plan mapped Grade 8 curriculum lesson':'Plan mapped Grade 1 curriculum lesson'} style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
       <div style={{fontSize:11,fontWeight:800,color:C.teal,letterSpacing:'.04em'}}>CURRICULUM MAP → SCHEME OF WORK</div>
       <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{mappedDraftUnit.title}</h2>
       <p style={{fontSize:13,color:C.text2,margin:'0 0 10px'}}>{mappedDraftStrand} · Sub-strand {mappedDraftUnit.id} · Week {selectedWeek}</p>
