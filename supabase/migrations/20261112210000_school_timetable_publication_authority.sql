@@ -251,8 +251,11 @@ begin
   end if;
 
   if p_target='published' then
-    if v.effective_from < (now() at time zone 'Africa/Nairobi')::date then
-      raise exception 'RELEASE_EFFECTIVE_DATE_IN_PAST';
+    -- Retiring the currently published release is immediate. Therefore
+    -- publication is allowed ONLY on the effective day. A future-approved
+    -- release stays approved until the actual handover day.
+    if v.effective_from <> (now() at time zone 'Africa/Nairobi')::date then
+      raise exception 'RELEASE_ACTIVATION_DATE_REQUIRED';
     end if;
     update public.timetable_releases
     set status='retired'
@@ -328,8 +331,8 @@ begin
       raise exception 'PUBLISHED_SLOT_IMMUTABLE';
     end if;
     if new.effective_until is null
-       or new.effective_until < greatest(old.effective_from,
-          (now() at time zone 'Africa/Nairobi')::date)
+       or new.effective_until < old.effective_from
+       or new.effective_until < ((now() at time zone 'Africa/Nairobi')::date - 1)
        or (old.effective_until is not null
            and new.effective_until>old.effective_until)
     then
