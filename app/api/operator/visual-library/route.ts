@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { saveVisualCandidate } from '@/lib/visual-library/intake'
-import { isSafeVisualStoragePath, isVisualPayload, UUID_RE } from '@/lib/visual-library/contract'
+import { isSafeVisualStoragePath, isVisualPayload, UUID_RE, VISUAL_DRAFT_BUCKET, VISUAL_DRAFT_PREFIX } from '@/lib/visual-library/contract'
 import { requireVisualOperator, visualJson } from '@/lib/visual-library/server'
 
 export const runtime = 'nodejs'
@@ -20,6 +20,34 @@ export async function GET(req: NextRequest) {
     if (sourceStrandId && !UUID_RE.test(sourceStrandId)) return visualJson({ error: 'Invalid curriculum ID.' }, 400)
 
     const db = session.admin
+    const inspectId = (req.nextUrl.searchParams.get('id') || '').trim()
+    if (inspectId) {
+      if (!UUID_RE.test(inspectId)) return visualJson({ error: 'Invalid visual reference.' }, 400)
+      const { data: root, error: rootError } = await db.from('learning_resources')
+        .select('id,canonical_key,title,grade,subject,sub_strand_id,status,visibility')
+        .eq('id', inspectId).eq('asset_kind', 'visual_aid').eq('owner_type', 'platform').maybeSingle()
+      if (rootError || !root) return visualJson({ error: 'Visual not found.' }, 404)
+      const { data: version, error: ve } = await db.from('learning_resource_versions')
+        .select('id,version,lifecycle_status,payload,content_sha256,created_at')
+        .eq('resource_id', root.id).order('version', { ascending: false }).limit(1).maybeSingle()
+      if (ve || !version || !isVisualPayload(version.payload) || !isSafeVisualStoragePath(version.payload.storage.path))
+        return visualJson({ error: 'Visual version unavailable.' }, 404)
+      const payload = version.payload
+      const filename = payload.storage.path.slice(VISUAL_DRAFT_PREFIX.length)
+      const { data: objects, error: storageError } = await db.storage.from(VISUAL_DRAFT_BUCKET)
+        .list('visual-library', { search: filename, limit: 10 })
+      const storageObserved = !storageError && (objects || []).some(object => object.name === filename)
+      const released = root.status === 'active' && root.visibility === 'public'
+        && version.lifecycle_status === 'certified'
+      return visualJson({
+        resourceId: root.id, resourceVersionId: version.id, version: version.version,
+        lifecycle: version.lifecycle_status, storageObserved, title: root.title, grade: root.grade,
+        subject: root.subject, sourceStrandId: root.sub_strand_id, topicKey: payload.topic_key,
+        type: payload.visual_type, altText: payload.alt_text, caption: payload.caption,
+        labels: payload.labels, placements: payload.placements, contentSha256: version.content_sha256,
+        referenceToken: released && storageObserved ? '[visual:' + root.id + '@' + version.id + ']' : null,
+      })
+    }
     let query = db.from('learning_resources')
       .select('id,canonical_key,title,grade,subject,sub_strand_id')
       .eq('asset_kind', 'visual_aid').eq('owner_type', 'platform')
