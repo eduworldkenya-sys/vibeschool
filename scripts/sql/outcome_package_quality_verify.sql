@@ -4,6 +4,8 @@ begin;
 do $test$
 declare
   o public.curriculum_learning_outcomes%rowtype;
+  source_package_id text;
+  manuscript_alias text;
   core_id uuid;
   core_version uuid;
   pkg_id uuid;
@@ -19,13 +21,18 @@ declare
   blocked boolean;
   v_name text;
 begin
-  select * into o from public.curriculum_learning_outcomes
-  where status='verified' and verified_at is not null
-    and source_import_id is not null
-    and nullif(btrim(source_locator),'') is not null
-    and curriculum_id is not null limit 1;
+  select o0.*, ao.package_id, ao.manuscript_alias
+    into o, source_package_id, manuscript_alias
+  from public.curriculum_learning_outcomes o0
+  join public.vs_curriculum_alias_outcomes ao on ao.outcome_id=o0.id
+  where o0.status='verified' and o0.verified_at is not null
+    and o0.source_import_id is not null
+    and nullif(btrim(o0.source_locator),'') is not null
+    and o0.curriculum_id is not null
+    and public.vs_curriculum_package_gate(ao.package_id)->>'state'='PASS'
+  limit 1;
   if o.id is null then
-    raise exception 'P1 fixture requires a reconciled curriculum outcome';
+    raise exception 'P1 fixture requires an exactly reconciled curriculum outcome';
   end if;
 
   insert into public.learning_resources(
@@ -57,7 +64,7 @@ begin
 
   manifest := jsonb_build_object(
     'schema','vibeschool.outcome-package.v1','outcome_id',o.id,
-    'curriculum_outcome_aliases',jsonb_build_array('P1-TEST-ALIAS'),
+    'curriculum_outcome_aliases',jsonb_build_array(manuscript_alias),
     'requirements',jsonb_build_object('teacher_guidance',false,'visual_assets',false),
     'assets',jsonb_build_object(
       'core',jsonb_build_array(jsonb_build_object(
@@ -71,6 +78,7 @@ begin
   evidence := jsonb_build_object('package_quality_v1',jsonb_build_object(
     'policy','outcome-package-quality-v1',
     'content_sha256',digest,
+    'source_package_id',source_package_id,
     'reviewer_kind','ai_assisted_operator',
     'independent_human_review',false,
     'checks',jsonb_build_object(
@@ -92,6 +100,23 @@ begin
     pkg_id,manifest,digest,'cleared',evidence);
   if report->>'state' <> 'PASS' then
     raise exception 'Valid fixture quality audit did not pass: %', report;
+  end if;
+
+
+  bad_evidence := jsonb_set(evidence,
+    '{package_quality_v1,source_package_id}','"missing-source-package"'::jsonb);
+  report := public.cla_outcome_package_quality_gate(
+    pkg_id,manifest,digest,'cleared',bad_evidence);
+  if report->>'state' <> 'BLOCKED'
+     or report::text not like '%SOURCE_TO_DATABASE_RECONCILIATION_BLOCKED%' then
+    raise exception 'Unreconciled source package accepted: %',report;
+  end if;
+  bad_manifest := jsonb_set(manifest,'{curriculum_outcome_aliases}',jsonb_build_array('wrong-manuscript-alias'));
+  report := public.cla_outcome_package_quality_gate(
+    pkg_id,bad_manifest,encode(extensions.digest(convert_to(bad_manifest::text,'UTF8'),'sha256'),'hex'),'cleared',evidence);
+  if report->>'state' <> 'BLOCKED'
+     or report::text not like '%CURRICULUM_MANUSCRIPT_ALIASES_NOT_RECONCILED%' then
+    raise exception 'Wrong manuscript alias accepted: %',report;
   end if;
 
   bad_evidence := '{}'::jsonb;
