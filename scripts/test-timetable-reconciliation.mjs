@@ -120,7 +120,7 @@ test('teacher timetable checks outcome readiness', () => {
 })
 
 
-test('only the timetable period guard is a pending forward delta; live unscheduled teaching is already applied', () => {
+test('both audited timetable triggers form one exact forward delta; live unscheduled teaching is already applied', () => {
   const baseline = JSON.parse(read('supabase/reconciliation/tbl012_production_core_schema_hashes.json'))
   const planned = JSON.parse(read('supabase/reconciliation/tbl012_pending_forward_deltas.json'))
   assert.equal(planned.deltas.length, 1)
@@ -140,7 +140,18 @@ test('only the timetable period guard is a pending forward delta; live unschedul
     assert.notEqual(delta.production_hash, delta.rebuilt_hash)
     assert.ok(delta.rationale.length > 35)
   }
-  assert.equal(planned.deltas[0].migration, '20261112101600_timetable_school_period_authority.sql')
+  assert.equal(planned.deltas[0].migration, '20261112150000_unified_school_tuition_schedule.sql')
+  assert.equal(planned.deltas[0].rebuilt_hash, 'a7ac9cc47ec44efe0eef1c1802559dac')
+  const tuition = read('supabase/migrations/20261112150000_unified_school_tuition_schedule.sql')
+  assert.match(tuition, /create trigger timetable_guard_tuition_schedule/)
+  assert.match(tuition, /create trigger vibetutor_guard_cross_schedule/)
+  assert.match(tuition, /vibetutor_student_no_overlap/)
+  assert.match(tuition, /vibetutor_tutor_no_overlap/)
+  assert.match(tuition, /pg_advisory_xact_lock/)
+  assert.match(tuition, /school_calendar_exceptions/)
+  assert.match(timetable, /useTuitionTimetable/)
+  assert.match(timetable, /scheduleContext/)
+  assert.match(read('app/student/timetable/page.tsx'), /dayTuition/)
   const unscheduled = read('supabase/migrations/20261112104242_unscheduled_teaching_occurrence.sql')
   assert.match(unscheduled, /teaching_occurrences_one_source_check/)
   assert.match(unscheduled, /teaching_occurrences_unscheduled_plan_key/)
