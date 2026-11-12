@@ -24,6 +24,8 @@ This is the standard for all Grades 1–9. The contents of a particular lesson a
 5. Separate **official curriculum facts** from **VibeSchool pedagogical choices** such as teaching sequence, learner examples, proposed exercises and resources.
 6. Preserve uncertainty honestly. An author-generated draft is not an independently verified or released artifact. Do not fabricate KICD endorsement, human sign-off, source verification or learner-tested effectiveness.
 7. Curriculum coverage is **subject-wide**, with a traceable status for every required outcome and its relevant progression. One completed sub-strand must never be reported as a completed subject.
+8. **Mandatory pre-generation comparison:** every ChatGPT content-production task must inspect **both** the applicable current KICD curriculum design and the existing canonical VibeSchool curriculum (including persisted outcomes when available), compare the exact requested scope outcome by outcome, and record page/section-to-stable-ID evidence. Structural/title similarity or prior claims do not count as confirmation.
+9. **Repair-before-content gate:** when VibeSchool misses or distorts a KICD requirement, correct and recheck the canonical curriculum and its Scheme/outcome references **first**. Do not begin learner notes, examples, exercises, question banks or teacher guides until all requirements in the declared content scope match in educational intent, scope, progression and assessment expectations. Preserve VibeSchool-original writing; do not copy the official publisher text wholesale. Record unmatched or unavailable evidence as `BLOCKED_CURRICULUM_RECONCILIATION`, not as verified or content-complete. See the mandatory [Operating Model Step 2A](./CONTENT_OPERATING_MODEL.md#step-2a--mandatory-kicd--vibeschool-curriculum-reconciliation-gate-before-authoring).
 
 ## 3. Distinct learning components
 
@@ -125,6 +127,7 @@ Never force a dated timetable occurrence into a general content lookup, or attac
 ### Stage A — Identify and trace
 
 - Record source authority, grade, subject, design revision, strand, sub-strand, all required learning outcomes, allocations and sequencing constraints.
+- **Before content writing**, compare the official KICD design against the current VibeSchool canonical map and persisted outcome records one requirement at a time, recording KICD page/section, VibeSchool ID, mismatch status and source revision. Repair every `MISSING`, `PARTIAL`, `EXTRA` or `CONFLICT` affecting the requested scope through the existing controlled curriculum authority, then recheck Scheme/outcome links. If the comparison cannot pass, block content generation for that scope and report the evidence gap.
 - Inspect existing VibeSchool canonical curriculum rows, content chapters, links, school-specific records and prior work; **extend**, do not overwrite unrelated teacher or school data.
 - Create an outcome coverage matrix with stable references and statuses: unmapped, mapped, authored, checked, usable/released (only as evidenced).
 - Resolve any material ambiguity by checking the source and existing contracts **without sending routine verification back to the owner**.
