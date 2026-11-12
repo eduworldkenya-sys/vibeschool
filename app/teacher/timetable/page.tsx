@@ -297,6 +297,7 @@ function SlotDrawer({
   onEdit,
   onCopy,
   canCopy,
+  canEdit,
 }: {
   slot:           Slot | null
   curMin:         number
@@ -308,6 +309,7 @@ function SlotDrawer({
   onEdit:           (slot: Slot) => void
   onCopy:           (slot: Slot) => void
   canCopy:          boolean
+  canEdit:          boolean
 }) {
   // FIX [FATAL-03]: removed useRouter() from here — navigation lifted to page via onNavigate prop
 
@@ -705,7 +707,7 @@ function SlotDrawer({
               ⏱ Missed lesson
             </div>
           )}
-          <button
+          {canEdit && <button
             onClick={() => { onEdit(slot); onClose(); }}
             style={{
               width: '100%', padding: '12px', borderRadius: 10,
@@ -715,7 +717,7 @@ function SlotDrawer({
             }}
           >
             Edit Slot
-          </button>
+          </button>}
           {canCopy && (
             <button
               onClick={() => { onCopy(slot); onClose(); }}
@@ -867,6 +869,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [loading,         setLoading]          = useState(true)
   const [loadError,       setLoadError]        = useState<string | null>(null)
   const [schoolError,     setSchoolError]      = useState<string | null>(null)
+  const [verifiedTeacher, setVerifiedTeacher] = useState(false)
   const [selected,        setSelected]         = useState<Slot | null>(null)
   const [view, setView] = useState<'day' | 'week'>('day')
   useEffect(() => {
@@ -935,6 +938,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     if (!isMounted.current) return
     setLoadError(null)
     setSchoolError(null)
+    setVerifiedTeacher(false)
     setLoading(true)
 
     try {
@@ -964,6 +968,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         return
       }
       const identity = resolveTeacherTeachingIdentity(user.id, schoolResponse.data)
+      setVerifiedTeacher(true)
       const schoolId = identity.defaultScope.kind === 'school' ? identity.defaultScope.schoolId : null
       const memberships = identity.availableScopes
         .filter(scope => scope.kind === 'school')
@@ -1335,7 +1340,16 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   )
 
   
-  const canAddSlot = !loading && teacherId !== null && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter) && !schoolError
+  const canAddSlot = !loading && verifiedTeacher && teacherId !== null && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter) && !schoolError
+
+  // A private timetable is never proof that the account belongs to a teacher.
+  // If role or school membership verification fails, fail closed for all modes.
+  if (!loading && !verifiedTeacher) return (
+    <div role="alert" style={{padding:20}}>
+      <p>{schoolError ?? loadError ?? 'Teacher identity could not be verified.'}</p>
+      <button type="button" onClick={() => void load()}>Retry</button>
+    </div>
+  )
 
   return (
     <>
@@ -1397,7 +1411,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         }
       `}</style>
 
-      {loadError  && <ErrorBanner message={loadError} />}
+      {scheduleContext !== 'independent' && loadError && <ErrorBanner message={loadError} />}
       {schoolError && <ErrorBanner message={schoolError} />}
       {scheduleContext !== 'school' && tuitionError && <div role="alert" className="no-print" style={{ marginBottom: 12, fontSize: 12 }}>{tuitionError} <button type="button" onClick={refreshTuition}>Retry tuition</button></div>}
 
@@ -1817,6 +1831,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onEdit={s => setEditSlot(s)}
         onCopy={s => setCopySlot(s)}
         canCopy={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
+        canEdit={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
       />
 
       {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson
@@ -1832,7 +1847,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
       {/* Add / edit slot modal — only when school confirmed */}
-      {scheduleContext === 'school' && (showAddSlot || editSlot || copySlot) && teacherId != null && (
+      {scheduleContext === 'school' && (showAddSlot || editSlot || copySlot) && teacherId != null && verifiedTeacher && (
         <AddSlotModal
           teacherId={teacherId}
           initialPlacement={initialPlacement}
