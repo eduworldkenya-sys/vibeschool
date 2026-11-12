@@ -58,4 +58,4 @@ export function isSafeVisualStoragePath(path: string): boolean {
   return /^visual-library\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/i.test(path)
 }
 /** Legacy root references still work. New published text can pin the exact certified version. */
-export const VISUAL_TOKEN_RE = /\\[visual:([0-9a-f]{8}-[0-9a-f-]{27,}(?:@[0-9a-f]{8}-[0-9a-f-]{27,})?)\\]/gi
+export const VISUAL_TOKEN_RE = /\[visual:([0-9a-f]{8}-[0-9a-f-]{27,}(?:@[0-9a-f]{8}-[0-9a-f-]{27,})?)\]/gi
