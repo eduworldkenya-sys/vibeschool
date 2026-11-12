@@ -886,6 +886,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [recoveryCtx,     setRecoveryCtx]      = useState<RecoverySheetContext | null>(null)
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
   const [weeklyLoadRows,  setWeeklyLoadRows]   = useState<WeeklyLoadRow[]>([])
+  const [weeklyLoadError, setWeeklyLoadError]  = useState<string | null>(null)
+  const [weeklyLoadRetry, setWeeklyLoadRetry]  = useState(0)
   const [showLoadCheck,   setShowLoadCheck]    = useState(false)
 
   // FIX [FATAL-02]: isMounted ref — prevents setState on unmounted component
@@ -1232,9 +1234,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   useEffect(() => {
     if (!teacherId) return
     let cancelled = false
-    supabase.rpc('get_teacher_weekly_timetable_load').then(({ data, error }) => {
+    Promise.resolve(supabase.rpc('get_teacher_weekly_timetable_load')).then(({ data, error }) => {
       if (cancelled) return
-      if (error) { console.error('[Timetable] weekly load RPC failed:', error); return }
+      if (error) {
+        console.error('[Timetable] weekly load RPC failed:', error)
+        setWeeklyLoadRows([])
+        setWeeklyLoadError('Weekly subject allocation could not be verified. The lesson counts below are not a confirmed allocation check.')
+        return
+      }
+      setWeeklyLoadError(null)
       const rows: WeeklyLoadRow[] = (data ?? []).map((r: any) => ({
         classId:        r.class_id,
         subjectId:      r.subject_id,
@@ -1247,9 +1255,14 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         status:         r.status,
       }))
       setWeeklyLoadRows(rows)
+    }).catch(error => {
+      if (cancelled) return
+      console.error('[Timetable] weekly load RPC rejected:', error)
+      setWeeklyLoadRows([])
+      setWeeklyLoadError('Weekly subject allocation could not be verified. The lesson counts below are not a confirmed allocation check.')
     })
     return () => { cancelled = true }
-  }, [teacherId, renderedWeekSlots])
+  }, [teacherId, renderedWeekSlots, weeklyLoadRetry])
 
   // Only non-OK rows are actionable — OK stays silent, same rule as before.
   const loadMismatches = useMemo(
@@ -1257,8 +1270,13 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     [weeklyLoadRows]
   )
 
+  // A slot may be visible in the week's historical schedule but not qualify
+  // as a verified upper-primary lesson. Grade 4-6 requires a real weekday,
+  // a 35-minute duration and a school-confirmed period with identical times.
   const periodIssues = renderedWeekSlots.filter(slot => {
     if (!isUpperPrimary(slot.grade) || slot.isSubstitute) return false
+    if (slot.dayOfWeek < 1 || slot.dayOfWeek > 5 ||
+        timeToMin(slot.endTime) - timeToMin(slot.startTime) !== 35) return true
     return !(schoolBlocks[slot.schoolId] ?? []).some(period =>
       period.id === slot.periodId &&
       period.kind === 'lesson' &&
@@ -1446,6 +1464,20 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </div>
 
+      {weeklyLoadError && (
+        <div role="alert" className="no-print" style={{
+          marginBottom: 14, border: '1px solid #f59e0b',
+          borderRadius: 12, padding: '12px 14px', color: C.textPrimary,
+        }}>
+          <strong>Weekly allocation not verified.</strong> {weeklyLoadError}
+          <button type="button" onClick={() => setWeeklyLoadRetry(value => value + 1)}
+            style={{ marginLeft: 10, border: 'none', background: 'transparent',
+              color: C.accent, fontWeight: 700, cursor: 'pointer' }}>
+            Retry check
+          </button>
+        </div>
+      )}
+
       {/* Weekly Load Check — only visible when a class+subject combo is
           off the KICD allocation target, unscheduled, or missing a target.
           Silent otherwise, same rule as the scheme page's coverage indicators. */}
@@ -1499,10 +1531,26 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
       {periodIssues.length > 0 && (
-        <details className="no-print" style={{ marginBottom: 14 }}>
-          <summary>{periodIssues.length} upper-primary slots without matching configured school periods</summary>
-          <ul>{periodIssues.map(slot => (
-            <li key={slot.id}>{slot.subject} · {slot.className} · {DAYS.find(day => day.dow === slot.dayOfWeek)?.label} · {slot.startTime}–{slot.endTime}</li>
+        <details open className="no-print" style={{
+          marginBottom: 14, border: '1px solid #f59e0b',
+          borderRadius: 12, padding: '12px 14px',
+        }}>
+          <summary style={{ fontWeight: 700, cursor: 'pointer' }}>
+            {periodIssues.length} upper-primary lesson placements need review
+          </summary>
+          <p style={{ margin: '8px 0', fontSize: 12 }}>
+            These slots are visible for historical continuity, but they have no
+            verified 35-minute weekday school period. Weekly allocation totals
+            may include them and must not be treated as fully verified.
+            {' '}<a href="/teacher/timetable/setup">Configure school periods</a>.
+          </p>
+          <ul style={{ marginBottom: 0 }}>{periodIssues.map(slot => (
+            <li key={slot.id}>{slot.subject} · {slot.className} ·
+              {' '}{DAYS.find(day => day.dow === slot.dayOfWeek)?.label} ·
+              {' '}{slot.startTime}–{slot.endTime}
+              {timeToMin(slot.endTime) - timeToMin(slot.startTime) !== 35
+                ? ' · duration is not 35 minutes' : ' · no confirmed school-period match'}
+            </li>
           ))}</ul>
         </details>
       )}

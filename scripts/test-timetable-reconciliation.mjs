@@ -223,3 +223,22 @@ test('school day setup does not present invented times as verified school period
   assert.match(modal, /Open school day setup/)
   assert.match(modal, /Existing test slots cannot establish these times/)
 })
+
+test('weekly allocation failures are visible and can be retried', () => {
+  assert.match(timetable, /setWeeklyLoadError\('Weekly subject allocation could not be verified/)
+  assert.match(timetable, /weeklyLoadRetry/)
+  assert.match(timetable, /role="alert" className="no-print"/)
+  assert.match(timetable, /Weekly allocation not verified/)
+  assert.match(timetable, /Retry check/)
+  assert.match(timetable, /setWeeklyLoadRows\(\[\]\)/)
+})
+
+test('upper-primary invalid legacy lessons are visible but not certified', () => {
+  assert.match(timetable, /slot\.dayOfWeek < 1 \|\| slot\.dayOfWeek > 5/)
+  assert.match(timetable, /timeToMin\(slot\.endTime\) - timeToMin\(slot\.startTime\) !== 35/)
+  assert.match(timetable, /period\.id === slot\.periodId/)
+  assert.match(timetable, /period\.kind === 'lesson'/)
+  assert.match(timetable, /weekly allocation totals/i)
+  assert.match(timetable, /Configure school periods/)
+  assert.match(timetable, /historical continuity/)
+})
