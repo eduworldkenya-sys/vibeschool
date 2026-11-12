@@ -6,7 +6,9 @@ import { useStudent } from '@/lib/student-context'
 import { ArrowRight, BookOpen, ClipboardList, CalendarDays, PencilLine, RotateCcw } from 'lucide-react'
 import {
   getVibeLearnWorkstation, getAssignedReading, getExamReadinessBrief, updateExamReadiness,
+  getAdaptiveLearningPath, getAdaptiveResourceRecommendations,
   type VibeLearnWorkstation, type AssignedReadingItem, type ExamReadinessBrief,
+  type AdaptiveLearningPath, type AdaptiveResourceRecommendations,
 } from '@/lib/student/vibelearn'
 import styles from './study.module.css'
 
@@ -21,6 +23,8 @@ export default function LearnerStudyDesk() {
   const [workspace,setWorkspace]=useState<VibeLearnWorkstation|null>(null)
   const [assigned,setAssigned]=useState<AssignedReadingItem[]>([])
   const [readiness,setReadiness]=useState<ExamReadinessBrief|null>(null)
+  const [learningPath,setLearningPath]=useState<AdaptiveLearningPath|null>(null)
+  const [recommendations,setRecommendations]=useState<AdaptiveResourceRecommendations|null>(null)
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
   const [editing,setEditing]=useState(false)
@@ -31,11 +35,14 @@ export default function LearnerStudyDesk() {
   const isForm4=/\bform\s*4\b/i.test(identity?.className??'')
 
   async function refresh() {
-    const [brief,reading,exam]=await Promise.all([
+    const [brief,reading,exam,path,support]=await Promise.all([
       getVibeLearnWorkstation(),
       getAssignedReading().catch(()=>[]),
       isForm4 ? getExamReadinessBrief().catch(()=>null) : Promise.resolve(null),
+      getAdaptiveLearningPath().catch(()=>null),
+      getAdaptiveResourceRecommendations().catch(()=>null),
     ])
+    setLearningPath(path);setRecommendations(support)
     setWorkspace(brief)
     setAssigned(reading)
     setReadiness(exam)
@@ -53,9 +60,11 @@ export default function LearnerStudyDesk() {
       getVibeLearnWorkstation(),
       getAssignedReading().catch(()=>[]),
       isForm4?getExamReadinessBrief().catch(()=>null):Promise.resolve(null),
-    ]).then(([brief,reading,exam])=>{
+      getAdaptiveLearningPath().catch(()=>null),
+      getAdaptiveResourceRecommendations().catch(()=>null),
+    ]).then(([brief,reading,exam,path,support])=>{
       if(!active) return
-      setWorkspace(brief);setAssigned(reading);setReadiness(exam)
+      setWorkspace(brief);setAssigned(reading);setReadiness(exam);setLearningPath(path);setRecommendations(support)
       if(exam){setExamDate(exam.examDate??'');setDailyMinutes(exam.dailyRevisionMinutes);setConfidence(exam.confidenceCheck)}
     }).catch(reason=>{if(active)setError(reason instanceof Error?reason.message:'Your learning desk could not load.')})
       .finally(()=>{if(active)setLoading(false)})
@@ -125,6 +134,30 @@ export default function LearnerStudyDesk() {
             : <div className={styles.rows}>{workspace!.practiceBySubject.slice(0,8).map(item=>
               <Link key={item.subject} href={safeInternalRoute(item.actionUrl,'/student/vibelearn/topic-practice')} className={styles.item}>
                 <span><strong>{item.subject}</strong><small>{item.questionCount} verified questions</small></span><ArrowRight size={17}/></Link>)}</div>}
+        </section>
+        <section className={styles.card} aria-label="Your learning path">
+          <h2>Your learning path</h2>
+          <p className={styles.muted}>Build foundation first when earlier ideas need more practice. VibeLearn does not invent a weakness when evidence is missing.</p>
+          {!learningPath || learningPath.path.length===0
+            ? <p className={styles.muted}>Your verified learning priorities will appear when there is sufficient evidence.</p>
+            : <div className={styles.rows}>
+              {learningPath.path.slice(0,5).map(item=>
+                <div key={item.outcomeId} className={styles.item}>
+                  <span><strong>{item.outcomeText}</strong>
+                    <small>{item.prerequisitesReady?'Ready for practice':'Build foundation first'} · Based on verified learning evidence</small></span>
+                </div>)}
+            </div>}
+          <Link className={styles.secondary} href="/student/vibelearn/revision">Open revision <ArrowRight size={16}/></Link>
+        </section>
+        <section className={styles.card} aria-label="Recommended support">
+          <h2>Recommended support</h2>
+          {(!recommendations || recommendations.recommendations.length===0)
+            ? <p className={styles.muted}>No approved support resource is available yet. Your current learning evidence is not treated as a weakness.</p>
+            : <div className={styles.rows}>
+              {recommendations.recommendations.filter(item=>item.certified&&item.actionUrl).slice(0,5).map(item=>
+                <Link key={item.resourceId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>
+                  <span><strong>{item.title}</strong><small>{item.outcomeText}</small></span><ArrowRight size={17}/></Link>)}
+            </div>}
         </section>
         {workspace?.twin.now&&<section className={styles.card} aria-label="Suggested next action">
           <h2>Your next helpful action</h2>
