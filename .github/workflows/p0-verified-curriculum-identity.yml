@@ -1,0 +1,36 @@
+name: P0 Verified Curriculum Identity
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p0-verified-curriculum-identity.yml'
+      - 'content/curriculum/grade4/mathematics/time.v1.json'
+      - 'scripts/test-p0-curriculum-reconciliation.mjs'
+      - 'scripts/test-grade4-maths-time.mjs'
+      - 'supabase/migrations/20261112103000_p0_curriculum_identity_grade4_time.sql'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p0-verified-curriculum-identity.yml'
+      - 'content/curriculum/grade4/mathematics/time.v1.json'
+      - 'scripts/test-p0-curriculum-reconciliation.mjs'
+      - 'scripts/test-grade4-maths-time.mjs'
+      - 'supabase/migrations/20261112103000_p0_curriculum_identity_grade4_time.sql'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  curriculum-reconciliation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Time manuscript identities and negative cases
+        run: npm run test:curriculum-identity
