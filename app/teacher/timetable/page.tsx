@@ -1375,7 +1375,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   )
 
   
-  const canAddSlot = !loading && verifiedTeacher && teacherId !== null && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter) && !schoolError
+  const canAddSlot = !loading && verifiedTeacher && teacherId !== null && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter) && !schoolError && !loadError && !blocksError
 
   // A private timetable is never proof that the account belongs to a teacher.
   // If role or school membership verification fails, fail closed for all modes.
