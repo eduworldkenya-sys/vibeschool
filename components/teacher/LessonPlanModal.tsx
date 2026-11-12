@@ -1486,9 +1486,9 @@ export default function LessonPlanModal({
   // RPC and exact (slot, date) identity as the timetable flow.
   async function handleStartLesson() {
     if (!taughtDate || !planIdRef.current || startingLesson) return
-    if (planSchemeIdRef.current && !savedOutcomeId) {
+    if (ctx.schoolId && (!suggestionLinked || !planSchemeIdRef.current || !savedOutcomeId)) {
       setWorkspacePanel('Scheme')
-      setStartLessonError('Select and save an eligible learning outcome before starting this lesson.')
+      setStartLessonError('Link this dated lesson to a saved Scheme item and eligible learning outcome before teaching.')
       return
     }
 
