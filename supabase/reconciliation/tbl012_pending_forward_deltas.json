@@ -5,9 +5,9 @@
       "table": "timetable_slots",
       "section": "triggers",
       "production_hash": "ae2bfdc7c592a5d63b7ba0caafebff6a",
-      "rebuilt_hash": "a7ac9cc47ec44efe0eef1c1802559dac",
-      "migration": "20261112150000_unified_school_tuition_schedule.sql",
-      "rationale": "The clean-rebuild trigger fingerprint now includes both the unapplied 20261112101600 school-period guard change and the 20261112150000 school/tuition collision trigger. This exact rebuilt hash was taken from the isolated TBL-011 clean-rebuild artifact, not from production or an estimated schema."
+      "rebuilt_hash": "d44a6db43f42dd8e71802c8472268c4a",
+      "migration": "20261112210000_school_timetable_publication_authority.sql",
+      "rationale": "Exact SHA-agnostic structural MD5 d44a6db43f42dd8e71802c8472268c4a was measured by the isolated clean rebuild at GitHub run 43266376704, artifact 13966083199, rebuilt-core-schema-hashes.json, against Stage 3 commit 1c57f7cdcde325bed49c696f2a64fa7d11c46865. It includes the prior reviewed school-period and school/tuition collision triggers plus the additional Stage 3 protect_published_timetable_slot trigger. This is a new UNDEPLOYED forward migration delta, not production parity or permission to deploy; the immutable production hash stays ae2bfdc7c592a5d63b7ba0caafebff6a."
     }
   ]
 }

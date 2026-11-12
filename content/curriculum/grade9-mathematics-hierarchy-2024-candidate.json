@@ -117,5 +117,207 @@
         ]
       ]
     }
-  ]
+  ],
+  "april_2024_summary": {
+    "source_url": "https://kicd.ac.ke/wp-content/uploads/2024/06/Mathematics-Grade-9-Design-Formatted-April-2024.pdf",
+    "source_title": "KICD Junior School Mathematics Grade 9 (April-formatted 2024 PDF)",
+    "source_locator": "Printed page x — Summary of Strands and Sub Strands",
+    "accessed_on": "2026-11-12",
+    "weekly_mathematics_lessons": 5,
+    "minutes_per_lesson": 40,
+    "sub_strand_count": 19,
+    "strand_count": 5,
+    "summary_suggested_lessons": 150,
+    "sub_strands": [
+      {
+        "code": "1.1",
+        "strand": "Numbers",
+        "sub_strand": "Integers",
+        "suggested_lessons": 6,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "1.2",
+        "strand": "Numbers",
+        "sub_strand": "Cubes and Cube Roots",
+        "suggested_lessons": 6,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "1.3",
+        "strand": "Numbers",
+        "sub_strand": "Indices and Logarithms",
+        "suggested_lessons": 8,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "1.4",
+        "strand": "Numbers",
+        "sub_strand": "Compound Proportions and Rates of Work",
+        "suggested_lessons": 9,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "2.1",
+        "strand": "Algebra",
+        "sub_strand": "Matrices",
+        "suggested_lessons": 8,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "2.2",
+        "strand": "Algebra",
+        "sub_strand": "Equation of a Straight Line",
+        "suggested_lessons": 15,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "2.3",
+        "strand": "Algebra",
+        "sub_strand": "Linear Inequalities",
+        "suggested_lessons": 6,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "3.1",
+        "strand": "Measurements",
+        "sub_strand": "Area",
+        "suggested_lessons": 8,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "3.2",
+        "strand": "Measurements",
+        "sub_strand": "Volume of Solids",
+        "suggested_lessons": 8,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "3.3",
+        "strand": "Measurements",
+        "sub_strand": "Mass, Volume, Weight and Density",
+        "suggested_lessons": 8,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "3.4",
+        "strand": "Measurements",
+        "sub_strand": "Time, Distance and Speed",
+        "suggested_lessons": 10,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "3.5",
+        "strand": "Measurements",
+        "sub_strand": "Money",
+        "suggested_lessons": 7,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "3.6",
+        "strand": "Measurements",
+        "sub_strand": "Approximations and Errors",
+        "suggested_lessons": 4,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "4.1",
+        "strand": "Geometry",
+        "sub_strand": "Coordinates and Graphs",
+        "suggested_lessons": 6,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "4.2",
+        "strand": "Geometry",
+        "sub_strand": "Scale Drawing",
+        "suggested_lessons": 14,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "4.3",
+        "strand": "Geometry",
+        "sub_strand": "Similarity and Enlargement",
+        "suggested_lessons": 8,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "4.4",
+        "strand": "Geometry",
+        "sub_strand": "Trigonometry",
+        "suggested_lessons": 7,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "5.1",
+        "strand": "Data Handling and Probability",
+        "sub_strand": "Data Interpretation (Grouped Data)",
+        "suggested_lessons": 6,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      },
+      {
+        "code": "5.2",
+        "strand": "Data Handling and Probability",
+        "sub_strand": "Probability",
+        "suggested_lessons": 6,
+        "source_locator": "KICD April 2024 Mathematics Grade 9, printed page x, summary table",
+        "evidence_status": "APRIL_SUMMARY_OBSERVED_JULY_NOT_RECONCILED"
+      }
+    ],
+    "source_internal_discrepancies": [
+      {
+        "code": "1.2",
+        "summary_lessons": 6,
+        "sub_strand_page_lessons": 5,
+        "printed_locator": "Summary p. x vs sub-strand printed p. 3",
+        "disposition": "HOLD_FOR_SOURCE_RECONCILIATION"
+      },
+      {
+        "code": "1.3",
+        "summary_lessons": 8,
+        "sub_strand_page_lessons": 6,
+        "printed_locator": "Summary p. x vs sub-strand printed p. 5",
+        "disposition": "HOLD_FOR_SOURCE_RECONCILIATION"
+      },
+      {
+        "code": "1.4",
+        "summary_lessons": 9,
+        "sub_strand_page_lessons": 12,
+        "printed_locator": "Summary p. x vs sub-strand printed p. 6",
+        "disposition": "HOLD_FOR_SOURCE_RECONCILIATION"
+      }
+    ],
+    "warning": "This is a factual outline of an observed older KICD April design, NOT a July 2024 verified source snapshot, curricular approval, a Scheme of Work, a publication or an import permission."
+  },
+  "live_2026_11_12_reconciliation": {
+    "source": "Read-only production Supabase inventory",
+    "existing_grade9_math_sub_strand_rows": 20,
+    "existing_exact_strand_and_sub_strand_matches": 2,
+    "existing_verified_outcome_records_linked_to_grade9_math": 0,
+    "existing_source_artifacts_for_registered_july": 0,
+    "existing_promoted_snapshots_for_registered_july": 0,
+    "classification": "BLOCKED_CURRICULUM_RECONCILIATION",
+    "preserve_existing_cbc_strands_ids": true,
+    "preserve_teacher_scheme_and_assessment_history": true,
+    "do_not_promote_from_this_candidate": true
+  },
+  "next_gate": "Verify the complete official KICD July 2024 revision at the registered source, record artifact bytes/checksum and source-page observations via curriculum_authority_* workflow; compare line-by-line, reconcile 19 sub-strands and official outcomes; authorize promotion before generating/releasing VibeSchool-original outcome packages."
 }

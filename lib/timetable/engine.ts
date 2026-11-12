@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { isIsoDate, type TimetableRecurrencePattern } from "@/lib/timetable/contracts";
 
-const TIMETABLE_SLOT_SELECT = "id,school_id,teacher_id,class_id,subject_id,day_of_week,start_time,end_time,room,period_id,allocation_units,recurrence_pattern,effective_from,effective_until" as const;
+const TIMETABLE_SLOT_SELECT = "id,school_id,teacher_id,class_id,subject_id,day_of_week,start_time,end_time,room,period_id,allocation_units,recurrence_pattern,effective_from,effective_until,release_id" as const;
 
 
 export interface CanonicalTimetableSlot {
@@ -15,6 +15,8 @@ export interface CanonicalTimetableSlot {
   end_time: string;
   room: string | null;
   period_id: string | null;
+  /** Optional for old caller fixtures; emitted by the canonical database select. */
+  release_id?: string | null;
   allocation_units: number;
   recurrence_pattern: TimetableRecurrencePattern;
   effective_from: string;
@@ -32,6 +34,8 @@ export interface LoadTeacherTimetableRangeOptions {
   schoolId: string;
   rangeStart: string;
   rangeEnd: string;
+  /** Stage 3: exact school-published release, never a draft or review release. */
+  releaseId?: string;
 }
 
 export class TimetableEngineError extends Error {
@@ -112,7 +116,7 @@ export async function loadActiveTeacherTimetable(
 export async function loadTeacherTimetableForRange(
   options: LoadTeacherTimetableRangeOptions
 ): Promise<CanonicalTimetableSlot[]> {
-  const { teacherId, schoolId, rangeStart, rangeEnd } = options;
+  const { teacherId, schoolId, rangeStart, rangeEnd, releaseId } = options;
 
   if (!teacherId) {
     throw new TimetableEngineError(
@@ -144,15 +148,17 @@ export async function loadTeacherTimetableForRange(
     );
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("timetable_slots")
-    .select(
-      TIMETABLE_SLOT_SELECT
-    )
+    .select(TIMETABLE_SLOT_SELECT)
     .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .lte("effective_from", rangeEnd)
-    .or(`effective_until.is.null,effective_until.gte.${rangeStart}`)
+    .or(`effective_until.is.null,effective_until.gte.${rangeStart}`);
+  // Existing consumers may still inspect legacy draft slots explicitly.
+  // Stage 3 Teacher OS ALWAYS passes the authenticated published release ID.
+  if (releaseId) query = query.eq("release_id", releaseId);
+  const { data, error } = await query
     .order("day_of_week", { ascending: true })
     .order("start_time", { ascending: true })
     .order("id", { ascending: true });

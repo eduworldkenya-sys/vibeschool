@@ -11,6 +11,7 @@ import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
+import { effectivePublishedSchoolReleases, belongsToPublishedSchoolSlot, type SchoolPublicationRow } from '@/lib/timetable/schoolPublication'
 import { resolveTeacherTeachingIdentity } from '@/lib/teacher/teachingIdentity'
 import { defaultTeacherScheduleView, mayEditSchoolTimetable, projectTeacherDaySchedule, type TeacherScheduleView } from '@/lib/timetable/teacherScheduleView'
 import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
@@ -885,6 +886,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null)
   const [schools, setSchools] = useState<Array<{id:string;name:string}>>([])
   const [schoolFilter, setSchoolFilter] = useState<string>('all')
+  const [officialReleases, setOfficialReleases] = useState<Record<string,SchoolPublicationRow>>({})
+  const [schoolAdminCanManage, setSchoolAdminCanManage] = useState(false)
+  const [publicationError, setPublicationError] = useState<string | null>(null)
   const [calendarExceptions, setCalendarExceptions] = useState<Array<{id:string;school_id:string;exception_date:string;kind:string;label:string;suppress_ordinary_teaching:boolean}>>([])
   const [lastUndoSnapshotId, setLastUndoSnapshotId] = useState<string | null>(null)
   const [initialPlacement, setInitialPlacement] = useState<{dayOfWeek:number;startTime:string;endTime:string} | undefined>()
@@ -913,6 +917,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       setActiveSchoolId(null)
       setSchools([])
       setAllSlots([])
+      setOfficialReleases({})
+      setSchoolAdminCanManage(false)
+      setPublicationError(null)
       setSchoolBlocks({})
       setDayBlocks([])
       setCalendarExceptions([])
@@ -967,6 +974,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     // Clear previous school records before resolving a new user/week.
     // Neither identity changes nor failed reads may expose stale school data.
     setAllSlots([])
+    setOfficialReleases({})
+    setSchoolAdminCanManage(false)
+    setPublicationError(null)
     setActiveSchoolId(null)
     setSchools([])
     setDayBlocks([])
@@ -1035,6 +1045,31 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         return
       }
 
+      // A school-linked teacher inherits the ONE approved school release.
+      // This is only an RLS/member-filtered read; it never promotes drafts.
+      const schoolIds = memberships.map(s => s.id)
+      const rangeEnd = nairobiDateAdd(weekStart, 6)
+      const [pubRes, manageRes] = await Promise.all([
+        supabase.from('timetable_releases')
+          .select('id,school_id,label,status,effective_from,published_at')
+          .in('school_id',schoolIds).eq('status','published')
+          .lte('effective_from',rangeEnd),
+        supabase.rpc('can_manage_my_school_timetable',{p_school_id:schoolId}),
+      ])
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
+      if (pubRes.error) {
+        setPublicationError('School publication status could not be verified. Your official timetable is unavailable until this check succeeds.')
+        setSchoolError('Official school timetable could not be verified. Please retry.')
+        return
+      }
+      setOfficialReleases(effectivePublishedSchoolReleases(
+        (pubRes.data ?? []) as SchoolPublicationRow[],schoolIds,rangeEnd
+      ))
+      setSchoolAdminCanManage(!manageRes.error && Boolean(manageRes.data))
+      const publishedBySchool = effectivePublishedSchoolReleases(
+        (pubRes.data ?? []) as SchoolPublicationRow[],schoolIds,rangeEnd
+      )
+
       const { data: blockData, error: blockError } = await supabase.rpc('get_my_school_day_blocks')
       if (!isMounted.current || epoch !== loadEpochRef.current) return
       setBlocksError(blockError ? 'School periods could not load. Retry before creating lessons.' : null)
@@ -1046,8 +1081,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       // A teacher may belong to more than one school. Read every authorized
       // timetable and combine them only at the presentation layer. The
       // database's teacher exclusion constraint remains the global clash gate.
-      const schoolIds = memberships.length > 0 ? memberships.map(s => s.id) : [schoolId]
-      const rangeEnd = nairobiDateAdd(weekStart, 6)
       const blockGroups = await Promise.all(
         schoolIds.map(async membershipSchoolId => {
           if (membershipSchoolId === schoolId) {
@@ -1078,12 +1111,12 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       const schoolSlotGroups = await Promise.all(
         schoolIds.map(async membershipSchoolId => ({
           schoolId: membershipSchoolId,
-          slots: await loadTeacherTimetableForRange({
-            teacherId: user.id,
-            schoolId: membershipSchoolId,
-            rangeStart: weekStart,
-            rangeEnd,
-          }),
+          slots: publishedBySchool[membershipSchoolId]
+            ? await loadTeacherTimetableForRange({
+              teacherId: user.id, schoolId: membershipSchoolId,
+              rangeStart: weekStart, rangeEnd,
+              releaseId: publishedBySchool[membershipSchoolId].id,
+            }) : [],
         }))
       )
 
@@ -1101,6 +1134,26 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         }
       }
 
+      // Substitutions are occurrence-specific, but only a released original
+      // slot may appear on the official school timetable. This lookup is
+      // membership/RLS guarded and never grants rights to unrelated classes.
+      const substituteCandidates = (substituteData ?? []) as Array<any>
+      const substituteIds = Array.from(new Set(substituteCandidates
+        .map(row => String(row.timetable_slot_id ?? '')).filter(Boolean)))
+      const publicationIds = Object.values(publishedBySchool).map(v => v.id)
+      const approvedSubstituteIds = new Set<string>()
+      if (substituteIds.length && publicationIds.length) {
+        const {data: originalRows,error: originalError} = await supabase
+          .from('timetable_slots').select('id,school_id,release_id')
+          .in('id',substituteIds).in('release_id',publicationIds)
+        if (originalError) throw originalError
+        for (const row of originalRows ?? []) {
+          if (belongsToPublishedSchoolSlot(row.school_id,row.release_id,publishedBySchool)) {
+            approvedSubstituteIds.add(row.id)
+          }
+        }
+      }
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       const ownedSlots = schoolSlotGroups.flatMap(group =>
         group.slots.map(slot => ({
           ...slot,
@@ -1109,7 +1162,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           __exceptionReason: null as string | null,
         }))
       )
-      const substituteSlots = ((substituteData ?? []) as Array<any>).map(row => ({
+      const substituteSlots = substituteCandidates.filter(row => approvedSubstituteIds.has(row.timetable_slot_id)).map(row => ({
         id: row.timetable_slot_id,
         school_id: row.school_id,
         teacher_id: user.id,
@@ -1313,7 +1366,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // across teacher_classes, classes, subjects, subject_weekly_allocations,
   // and timetable_slots. Replaces client-side grouping (Fix 13).
   useEffect(() => {
-    if (!teacherId || !activeSchoolId || scheduleContext === 'independent') {
+    if (!teacherId || !activeSchoolId || !officialReleases[activeSchoolId] || scheduleContext === 'independent') {
       setWeeklyLoadRows([])
       setWeeklyLoadError(null)
       return
@@ -1347,7 +1400,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       setWeeklyLoadError('Weekly subject allocation could not be verified. The lesson counts below are not a confirmed allocation check.')
     })
     return () => { cancelled = true }
-  }, [teacherId, activeSchoolId, scheduleContext, renderedWeekSlots, weeklyLoadRetry])
+  }, [teacherId, activeSchoolId, officialReleases, scheduleContext, renderedWeekSlots, weeklyLoadRetry])
 
   // Only non-OK rows are actionable — OK stays silent, same rule as before.
   const loadMismatches = useMemo(
@@ -1382,7 +1435,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   )
 
   
-  const canAddSlot = !loading && verifiedTeacher && teacherId !== null && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter) && !schoolError && !loadError && !blocksError
+  const canAddSlot = !loading && verifiedTeacher && teacherId !== null
+    && schoolAdminCanManage && !!activeSchoolId && !officialReleases[activeSchoolId]
+    && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter)
+    && !schoolError && !publicationError && !loadError && !blocksError
 
   // A private timetable is never proof that the account belongs to a teacher.
   // If role or school membership verification fails, fail closed for all modes.
@@ -1455,6 +1511,28 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       {scheduleContext !== 'independent' && loadError && <ErrorBanner message={loadError} />}
       {schoolError && <ErrorBanner message={schoolError} />}
+      {scheduleContext !== 'independent' && publicationError && !schoolError && <ErrorBanner message={publicationError} />}
+      {scheduleContext !== 'independent' && !loading && !schoolError && schools
+        .filter(school => schoolFilter === 'all' || school.id === schoolFilter)
+        .map(school => {
+          const release = officialReleases[school.id]
+          return <div key={school.id} role="status" className="no-print" style={{
+            padding: '10px 14px', borderRadius: 10, marginBottom: 12, fontSize: 12,
+            border: '1px solid ' + (release ? '#bbf7d0' : '#fcd34d'),
+            background: release ? '#f0fdf4' : '#fffbeb',
+            color: release ? '#166534' : '#92400e',
+          }}>
+            <strong>{school.name}:</strong> {release
+              ? 'Official school timetable · ' + release.label + ' · effective ' + release.effective_from
+              : 'School timetable not yet published. Historical slots and samples are not an official timetable.'}
+            {!release && ' You can still prepare and teach unscheduled lessons.'}
+          </div>
+        })}
+      {scheduleContext === 'school' && schoolAdminCanManage && <button type="button"
+        className="no-print" onClick={() => router.push('/admin/timetable')}
+        style={{marginBottom:12,border:'none',background:'transparent',color:C.accent,fontWeight:700,cursor:'pointer'}}>
+        Manage school timetable publication
+      </button>}
       {scheduleContext !== 'school' && tuitionError && <div role="alert" className="no-print" style={{ marginBottom: 12, fontSize: 12 }}>{tuitionError} <button type="button" onClick={refreshTuition}>Retry tuition</button></div>}
 
       {!loading && (
@@ -1885,8 +1963,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onCancelRecovery={ctx => setRecoveryCtx(ctx)}
         onEdit={s => setEditSlot(s)}
         onCopy={s => setCopySlot(s)}
-        canCopy={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
-        canEdit={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
+        canCopy={Boolean(canAddSlot && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
+        canEdit={Boolean(canAddSlot && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
       />}
 
       {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson

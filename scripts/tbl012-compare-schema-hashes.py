@@ -198,6 +198,37 @@ def main() -> int:
                         ))
                     ):
                         raise ComparisonFailure("combined forward trigger fingerprint changed")
+                elif row["migration"] == "20261112210000_school_timetable_publication_authority.sql":
+                    # The isolated rebuild artifact at run 43266376704,
+                    # artifact 13966083199, measured this cumulative trigger
+                    # fingerprint. Keep the original production hash intact.
+                    # Both predecessor guards remain independently verified.
+                    tuition = Path("supabase/migrations/20261112150000_unified_school_tuition_schedule.sql")
+                    publication = Path("supabase/migrations") / row["migration"]
+                    if not tuition.is_file() or not publication.is_file():
+                        raise ComparisonFailure("timetable publication prerequisites are absent")
+                    tuition_sql = tuition.read_text(encoding="utf-8").lower()
+                    publication_sql = publication.read_text(encoding="utf-8").lower()
+                    if (
+                        row["rebuilt_hash"] != "d44a6db43f42dd8e71802c8472268c4a"
+                        or any(required not in tuition_sql for required in (
+                            "create trigger timetable_guard_tuition_schedule",
+                            "public.timetable_school_tuition_overlap(new, l)",
+                            "vibetutor_guard_cross_schedule",
+                        ))
+                        or any(required not in publication_sql for required in (
+                            "create trigger protect_published_timetable_slot",
+                            "on public.timetable_slots",
+                            "public.protect_published_timetable_slot()",
+                            "published_slot_immutable",
+                            "approved_slot_locked",
+                            "revoke insert,update,delete on table public.timetable_releases",
+                            "school_timetable_release_preflight",
+                            "create_school_timetable_release",
+                            "timetable_releases_one_published_school",
+                        ))
+                    ):
+                        raise ComparisonFailure("Stage 3 publication forward fingerprint or security guards changed")
                 else:
                     raise ComparisonFailure("unreviewed forward timetable migration")
                 permitted[key] = row

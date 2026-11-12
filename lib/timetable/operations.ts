@@ -60,17 +60,23 @@ export async function assignOccurrenceSubstitute(occurrenceId: string, substitut
 }
 
 export async function createTimetableRelease(input: { schoolId: string; label: string; effectiveFrom: string }) {
-  const { data, error } = await supabase.from("timetable_releases").insert({
-    school_id: input.schoolId, label: input.label, effective_from: input.effectiveFrom, status: "draft",
-  }).select("id,school_id,status,effective_from,label,created_at").single();
+  // Stage 3: do not insert a draft via client table writes. This RPC checks
+  // actual school admin authority and attaches eligible slots atomically.
+  const { data, error } = await supabase.rpc("create_school_timetable_release", {
+    p_school_id: input.schoolId,
+    p_label: input.label,
+    p_effective_from: input.effectiveFrom,
+  });
   assertNoError(error, "Could not create timetable release.");
-  const attached = await supabase.rpc("attach_active_slots_to_release", { p_release_id: data.id });
-  assertNoError(attached.error, "Could not attach timetable slots to release.");
+  if (!data || data.school_id !== input.schoolId || data.status !== "draft") {
+    throw new Error("School timetable release creation was not verified.");
+  }
   return data;
 }
 
 export async function updateTimetableReleaseStatus(id: string, status: TimetableReleaseStatus) {
-  if (status === "draft") throw new Error("Draft is the creation state; use the governed release transition for later states.");
+  // Draft is also a valid REVIEW → DRAFT correction transition.
+  // Server state machine and school-admin authority remain definitive.
   const { data, error } = await supabase.rpc("transition_timetable_release", { p_release_id: id, p_target: status });
   assertNoError(error, "Could not update timetable release.");
   return data;

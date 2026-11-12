@@ -92,3 +92,16 @@ The baseline table above records original acceptance hypotheses. The evidence be
 ## Teacher context milestone — Stage 2 (2026-11-12)
 
 The Stage 2 feature branch `feat/teacher-dual-context-timetable-stage2-20261112` adds an authorised School / Independent / All selector to the existing teacher timetable page. It no longer requires school membership to show accepted private tuition sessions. The shared read model reuses the canonical school timetable loader and accepted-invitation VibeTutor RPC. No second timetable engine, schedule schema or school identity has been created. School modification controls and occurrence guards remain school-only, and private read failures fail visibly instead of displaying zero scheduled sessions. Stage 4 owns arbitrary independent personal schedule authoring. **This stage is not an approval to publish Gilgil's timetable or advance the eleven integration acceptance gates.** Signed-in acceptance, migration parity and school configuration remain outstanding.
+
+## Teacher context milestone — Stage 3 (2026-11-12)
+
+Stage 3 adds the existing school release state machine to the admin UI and
+makes the Teacher OS default school timetable read ONLY a server-authorised
+published release. A new fail-closed publication migration verifies actual
+school periods, school teacher assignments, and effective weekly class
+allocations; it preserves prior published slot identities and requires an
+explicit administrator confirmation. If there is no published release,
+linked teachers see an awaiting-publication notice rather than a fabricated
+schedule. This is code in a feature branch, **not** a production deployment,
+migration certification or signed-in Gilgil acceptance. The TBL-012/013
+preflight and all eleven integrated acceptance gates remain open.

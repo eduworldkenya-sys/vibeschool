@@ -18,6 +18,14 @@ CURRENT STATE
 
 TIMETABLE
 
+TEACHER DUAL-CONTEXT TIMETABLE — STAGE 3 (2026-11-12 FEATURE PR):
+- Branch `feat/school-timetable-publication-stage3-20261112` targets `integration/intelligent-timetable`, reusing existing `timetable_releases` and published slot identities instead of a new timetable engine or table.
+- The existing admin timetable page exposes release readiness, review/approve/publish/retire, with explicit confirmations.
+- New versioned migration `20261112210000_school_timetable_publication_authority.sql` hardens server transitions with school period/teacher/allocation/release completeness validation; it has NOT been applied to production.
+- Linked teacher view now requires an RLS-authorised published release ID. Draft, review, legacy and sample slots are not silently presented as official; tuition remains separate.
+- No Gilgil period assumptions, no teacher/learner evidence writes; publication is blocked if school periods or allocation evidence are missing. Production TBL-012/013 migration and authenticated acceptance blockers unchanged.
+- Stage 4 owns teacher-controlled independent schedules; Stage 5 owns teacher timetable change requests. See `docs/timetable/TEACHER_DUAL_CONTEXT_STAGE3.md`.
+
 TEACHER DUAL-CONTEXT TIMETABLE — STAGE 2 (2026-11-12 FEATURE BRANCH):
 - Branch `feat/teacher-dual-context-timetable-stage2-20261112` is based on `integration/intelligent-timetable` and adds a shared read-only schedule projection over existing school timetable/authorised tuition lessons.
 - Linked teachers default to the active school, with optional Independent and All views. Teachers with no school see their accepted tuition lessons without an invented school ID.
