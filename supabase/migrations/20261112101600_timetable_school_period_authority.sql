@@ -64,21 +64,25 @@ declare
   v_last time;
   v_valid boolean;
 begin
-  -- Ending an old slot must never be blocked just because
-  -- its historical placement violates current rules.
-  if tg_op = 'UPDATE' and
-     (
-       new.school_id, new.class_id, new.day_of_week,
-       new.start_time, new.end_time,
-       new.period_id, new.allocation_units,
-       new.effective_from, new.effective_until
-     ) is not distinct from
-     (
-       old.school_id, old.class_id, old.day_of_week,
-       old.start_time, old.end_time,
-       old.period_id, old.allocation_units,
-       old.effective_from, old.effective_until
-     )
+  -- A pure expiry/archival change must not retroactively invalidate
+  -- a legacy schedule. Never let an edit expand the old effective window.
+  if tg_op = 'UPDATE'
+    and (
+      new.school_id, new.class_id, new.day_of_week,
+      new.start_time, new.end_time, new.period_id, new.allocation_units,
+      new.effective_from
+    ) is not distinct from (
+      old.school_id, old.class_id, old.day_of_week,
+      old.start_time, old.end_time, old.period_id, old.allocation_units,
+      old.effective_from
+    )
+    and (
+      new.effective_until is not distinct from old.effective_until
+      or (
+        new.effective_until is not null
+        and (old.effective_until is null or new.effective_until <= old.effective_until)
+      )
+    )
   then
     return new;
   end if;
