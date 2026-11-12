@@ -47,7 +47,7 @@ for (const forbiddenRemoval of [
   "source_block_id in (",
 ]) {
   assert.throws(() => validateGuardedMigration(
-    migration.replace(forbiddenRemoval, 'REMOVED_GUARD')
+    migration.replaceAll(forbiddenRemoval, 'REMOVED_GUARD')
   ), /Missing fail-closed guard/)
 }
 assert.match(preflight, /BLOCKED_CURRICULUM_RECONCILIATION/)
