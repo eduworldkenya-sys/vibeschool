@@ -380,6 +380,7 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
   return {
     key,
     occurrenceId: persistedOccurrence?.id ?? null,
+    persistedLifecycle: persistedOccurrence?.lifecycle ?? null,
     schoolId: slot.school_id,
     teacherId: slot.teacher_id,
     classId: slot.class_id,
