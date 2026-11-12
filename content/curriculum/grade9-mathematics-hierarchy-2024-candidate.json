@@ -364,17 +364,22 @@
           }
         ],
         "vibeschool_inquiry_questions": [
-          "How can signed integers represent changes and help us make calculations?"
+          "How can signed integers represent changes and help us make calculations?",
+          "Where do negative values occur in familiar situations?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Use paired number cards, marked number lines and temperature records to model each operation; compare answers and explain combined steps."
+          "Pairs choose signed number cards and justify all four operations before comparing strategies.",
+          "Read thermometer changes that cross zero and write a number sentence explaining the movement.",
+          "Test the order of combined operations with a calculator after producing independent working."
         ],
         "vibeschool_assessment_evidence": [
           "Observe accurate integer operations, justified signs and an explanation of a real situation."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "1.2",
@@ -426,17 +431,22 @@
           }
         ],
         "vibeschool_inquiry_questions": [
-          "How are a number's cube and its cube root related, and when is each useful?"
+          "How are a number's cube and its cube root related, and when is each useful?",
+          "How can we find the edge of a cube from its volume?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Build cubes from unit blocks; compare the number of blocks with repeated multiplication; use factors, tables and calculators to verify."
+          "Construct cubic arrays with identical unit blocks and count the total units.",
+          "Use factor groupings to discover cube roots, explaining why factors occur in groups of three.",
+          "Compare independently found cube and cube-root results with printed tables and calculators."
         ],
         "vibeschool_assessment_evidence": [
           "Check a written cubing method, factorised cube root, table reading and contextual volume result."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "1.3",
@@ -484,14 +494,18 @@
           "Why are powers useful for representing quantities, and how do logarithms relate to powers of ten?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Expand and regroup products of powers to justify index rules; build a base-ten power table; compare values using mathematical tables or devices."
+          "Write a table of powers sharing one base, then infer multiplication and division rules.",
+          "Expand index notation before simplifying a multi-step index problem.",
+          "Match powers of ten with common-logarithm expressions using appropriate tables or technology."
         ],
         "vibeschool_assessment_evidence": [
           "Assess equivalent powers, correctly justified index-law steps and powers-of-ten/logarithm correspondence."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "1.4",
@@ -536,17 +550,22 @@
           }
         ],
         "vibeschool_inquiry_questions": [
-          "How do changes in several quantities affect a proportional share or the time taken to finish a task?"
+          "How do changes in several quantities affect a proportional share or the time taken to finish a task?",
+          "When does adding workers reduce the amount of time needed for the same task?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Split counters or a sample budget in given ratios, then compare work scenarios with different team sizes; use ratio tables and digital practice."
+          "Share paper counters or hypothetical school resources in a given ratio and express each part as a fraction.",
+          "Create a ratio table where two quantities vary together, including compound cases.",
+          "Compare predicted task completion times under clearly stated equal-work-rate assumptions."
         ],
         "vibeschool_assessment_evidence": [
           "Check each proportion and unit, explanations of direct or inverse relationships and reasonableness of work-rate answers."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "2.1",
@@ -601,14 +620,18 @@
           "How does a rectangular arrangement of information help us compare or combine data?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Organise results, shopping quantities or travel schedules into rectangular arrays; label row/column positions and combine equivalent tables."
+          "Translate a simple sports-results table into a matrix and record its order.",
+          "Identify specific entries using their row and column positions.",
+          "Decide whether two matrices can be added or subtracted before combining corresponding entries."
         ],
         "vibeschool_assessment_evidence": [
           "Assess matrix order, item position, matching dimensions and each calculated entry."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "2.2",
@@ -677,14 +700,18 @@
           "How can a straight-line equation describe steepness and position on a graph?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Compare slopes of ramps or stairs; find differences in coordinates; derive equations from selected points and confirm intercepts on a graph."
+          "Compare steepness in safe observations of ramps and stairs, without positioning or climbing an unsecured ladder.",
+          "Calculate gradients from two plotted points, then reconstruct the line equation.",
+          "Find intercepts from both equation and graph, explaining the meaning of each constant."
         ],
         "vibeschool_assessment_evidence": [
           "Assess gradients, equations from both required forms, m/c interpretation and correct x-/y-intercepts."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "2.3",
@@ -729,17 +756,22 @@
           }
         ],
         "vibeschool_inquiry_questions": [
-          "How can a graph show every value that satisfies a restriction?"
+          "How can a graph show every value that satisfies a restriction?",
+          "How can we test whether a plotted point satisfies an inequality?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Translate a spending limit into algebra, test values, graph boundary lines and shade permissible regions using paper or digital graphing."
+          "Describe a lower or upper purchasing limit as a one-variable inequality.",
+          "Represent the inequality on a number line and test a value on each side of its boundary.",
+          "Draw and shade the valid region of a two-variable inequality by checking sample points."
         ],
         "vibeschool_assessment_evidence": [
           "Look for correctly transformed inequalities, open/closed boundaries and correctly shaded feasible regions."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "3.1",
@@ -801,14 +833,18 @@
           "How can flat shapes and nets help calculate areas of complex objects?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Cut regular polygons into simpler shapes, draw prism/pyramid/cone nets and measure circular sectors and balls."
+          "Divide paper pentagons and hexagons into triangles to calculate total area.",
+          "Unfold or draw nets of prism, pyramid and cone models and label the faces.",
+          "Mark sectors and segments on drawn circles and compare their areas; use radius to estimate sphere area."
         ],
         "vibeschool_assessment_evidence": [
           "Assess correct decomposition, units, and surface-area or sector formula selection."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "3.2",
@@ -860,17 +896,22 @@
           }
         ],
         "vibeschool_inquiry_questions": [
-          "How can the shape and dimensions of a solid determine its volume?"
+          "How can the shape and dimensions of a solid determine its volume?",
+          "How can cutting or combining solids help establish a volume?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Measure model containers; compare prism and pyramid capacities; decompose a frustum and verify volumes using appropriate models."
+          "Measure model prism and pyramid dimensions to compare volume formulas.",
+          "Separate a model of a truncated pyramid into a smaller pyramid and frustum to reason about the remaining volume.",
+          "Compare spherical and conical containers by calculating volumes with appropriate units."
         ],
         "vibeschool_assessment_evidence": [
           "Assess diagrams, substitution into correct solid-volume formulas and contextual interpretation."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "3.3",
@@ -918,14 +959,18 @@
           "Why may equal-sized objects have different masses, and how can density help explain this?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Use a weighing instrument and volume measurements to compare objects, convert units, and calculate density with a calculator as appropriate."
+          "Collect masses using a calibrated classroom scale and convert between units.",
+          "Compare mass and weight conceptually with real objects and familiar contexts.",
+          "Use measured mass and volume values to determine and interpret density."
         ],
         "vibeschool_assessment_evidence": [
           "Check unit conversions, density = mass/volume reasoning, and distinction between mass and weight."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "3.4",
@@ -991,17 +1036,22 @@
           }
         ],
         "vibeschool_inquiry_questions": [
-          "How can movement be described mathematically, and why does local time change with longitude?"
+          "How can movement be described mathematically, and why does local time change with longitude?",
+          "How does direction affect the description of a moving object?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Time a safe walking or running distance; compute speed and acceleration; use a globe and maps to investigate longitude and local time."
+          "Record a safe timed walking distance, then find speed and average speed.",
+          "Distinguish directed velocity from scalar speed and infer acceleration from change over time.",
+          "Use a globe and longitudes to work out local time differences and compare with mapped cities."
         ],
         "vibeschool_assessment_evidence": [
           "Check speed, average-speed, velocity and acceleration distinctions, unit conversion and longitude/time arithmetic."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "3.5",
@@ -1060,17 +1110,22 @@
           }
         ],
         "vibeschool_inquiry_questions": [
-          "Why do people exchange currencies, and how are taxes on goods determined?"
+          "Why do people exchange currencies, and how are taxes on goods determined?",
+          "Which values and rates are needed before estimating a tax or import duty?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Study currency examples and dated exchange-rate information; interpret sample invoices, customs values and receipts to calculate duties and VAT."
+          "Compare historical or explicitly dated currency quotations from credible sources.",
+          "Convert a specified Kenyan-shilling amount to another currency and reverse the calculation.",
+          "Use hypothetical customs invoices and receipts to calculate each duty and VAT separately."
         ],
         "vibeschool_assessment_evidence": [
           "Assess correct exchange direction, labelled currency units and separately calculated duty/tax values; do not claim sample rates are current."
         ],
         "core_competency_focus": "financial literacy and digital literacy",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "3.6",
@@ -1111,14 +1166,18 @@
           "How can a measured value help us judge the accuracy of an estimate?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Estimate lengths, masses, areas or capacities and measure them with suitable instruments; compare values and calculate percentage errors."
+          "Estimate a set of lengths or masses before obtaining actual instrument readings.",
+          "Record absolute differences between estimated and measured results.",
+          "Calculate percent error and discuss when rounding or imprecision changes a decision."
         ],
         "vibeschool_assessment_evidence": [
           "Assess the actual/estimated values, absolute-error working, reference denominator and percentage representation."
         ],
         "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "4.1",
@@ -1180,14 +1239,18 @@
           "How do positions and gradients on coordinate axes describe lines and their relationships?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Make tables of values, plot line pairs and compare gradients, discussing vertical/horizontal special cases where relevant."
+          "Plot coordinate pairs from a table of values, then draw the matching straight line.",
+          "Construct line pairs with equal gradients and explain their parallelism.",
+          "Construct perpendicular lines and test their gradient relationships on graph paper."
         ],
         "vibeschool_assessment_evidence": [
           "Assess plotting, graph scales, gradient comparisons and explanation of parallel/perpendicular relationships."
         ],
         "core_competency_focus": "problem solving, communication and spatial reasoning",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "4.2",
@@ -1263,14 +1326,18 @@
           "How can drawings with scale, distance and bearings help locate objects?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Use compass diagrams, map features and three-figure bearings to make a scale plan; sketch sightlines to elevated and depressed objects."
+          "Sketch a compass rose and label the clockwise three-figure bearings of objects.",
+          "Create a scaled map showing locations from a known position using distances and bearings.",
+          "Draw horizontal sightlines for angles of elevation and depression and model a simple survey."
         ],
         "vibeschool_assessment_evidence": [
           "Assess scale consistency, bearings measured clockwise from north, sightline angles and a correctly labelled survey drawing."
         ],
         "core_competency_focus": "problem solving, communication and spatial reasoning",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "4.3",
@@ -1325,14 +1392,18 @@
           "How can two figures have the same shape but different sizes?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Sort shapes by similarity, measure corresponding sides, draw enlarged images and compare digital or grid-based constructions."
+          "Sort diagrams by similarity and compare the ratios of corresponding side lengths.",
+          "Enlarge a figure on squared paper using a stated linear scale factor.",
+          "Repeat enlargement in a digital drawing tool and verify matching angles."
         ],
         "vibeschool_assessment_evidence": [
           "Assess proportional lengths, scale-factor calculations and accurate enlarged figures."
         ],
         "core_competency_focus": "problem solving, communication and spatial reasoning",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "4.4",
@@ -1387,14 +1458,18 @@
           "How do changes in a right-triangle angle affect the ratios of its sides?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Label right-angled triangles, compare measured ratios, read tables and use calculators for missing dimensions."
+          "Mark acute angles, opposite and adjacent sides, and hypotenuse on several right triangles.",
+          "Calculate sine, cosine and tangent ratios from measured sides.",
+          "Use printed tables or a calculator in degree mode to solve missing-side and missing-angle questions."
         ],
         "vibeschool_assessment_evidence": [
           "Assess correct opposite/adjacent/hypotenuse identification, ratio choice and credible side/angle results."
         ],
         "core_competency_focus": "problem solving, communication and spatial reasoning",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "5.1",
@@ -1449,14 +1524,18 @@
           "How can grouping observations help reveal the centre and pattern of data?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Collect and tally travel distances or times, arrange frequency classes, identify the modal class and calculate grouped averages."
+          "Collect non-sensitive numerical observations, select suitable equal class widths and tally the values.",
+          "Identify modal class, grouped mean and the position of the median from a completed frequency table.",
+          "Compare group summaries and explain why a grouped result may be an estimate."
         ],
         "vibeschool_assessment_evidence": [
           "Assess class boundaries, totals, modal class and the choice and interpretation of grouped mean/median."
         ],
         "core_competency_focus": "critical thinking, data literacy and collaboration",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       },
       {
         "code": "5.2",
@@ -1518,14 +1597,18 @@
           "How can experiments and diagrams help us reason about the likelihood of events?"
         ],
         "vibeschool_suggested_learning_experiences": [
-          "Use coins, dice and counters to compare equally likely outcomes, independent trials and mutually exclusive events; draw and check branches."
+          "Run repeated coin, die or counter experiments and compare frequencies with theoretical probabilities.",
+          "List mutually exclusive outcomes for one trial and independently repeated trials for another.",
+          "Draw and label the branches of a probability tree for a simple chance experiment."
         ],
         "vibeschool_assessment_evidence": [
           "Assess probabilities in [0,1], clear event distinctions and correctly labelled probability trees."
         ],
         "core_competency_focus": "critical thinking, data literacy and collaboration",
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
-        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion."
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
       }
     ],
     "total_candidate_learning_targets": 117,
@@ -1535,6 +1618,24 @@
     "publication_state": "NOT_RELEASED",
     "critical_note": "These are VibeSchool ORIGINAL editorial paraphrases, not official KICD exact wording and not verified curriculum_learning_outcomes. No IDs in this manifest should be mistaken for database UUIDs. Do not map, import, publish or promote until the registered July 2024 source artifact, observations, reconciliations and owner approval are completed in existing curriculum_authority workflow.",
     "known_source_ambiguities": [
+      {
+        "code": "1.2",
+        "source_page": 3,
+        "issue": "July design summary suggests 6 lessons, while detailed sub-strand lists 5",
+        "status": "OPEN"
+      },
+      {
+        "code": "1.3",
+        "source_page": 5,
+        "issue": "July design summary suggests 8 lessons, while detailed sub-strand lists 6",
+        "status": "OPEN"
+      },
+      {
+        "code": "1.4",
+        "source_page": 6,
+        "issue": "July design summary suggests 9 lessons, while detailed sub-strand lists 12",
+        "status": "OPEN"
+      },
       {
         "code": "5.2",
         "source_page": 47,
@@ -1547,6 +1648,8 @@
         "issue": "Official title on detailed page varies from summary form (Equations of Straight Lines versus Equation of a Straight Line); retain canonical summary label pending authority match.",
         "status": "OPEN"
       }
-    ]
+    ],
+    "total_original_learning_experiences": 57,
+    "total_original_inquiry_questions": 26
   }
 }
