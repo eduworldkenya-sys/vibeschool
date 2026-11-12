@@ -42,6 +42,14 @@ Duplicate this block for each outcome, or reference its canonical record.
 **Prerequisites / vocabulary:**  
 **Concept explanation / learner notes:**  
 **Worked example / demonstration (where useful):**  
+**For Mathematics: problem and known quantities:**  
+**Method chosen and why:**  
+**Formula (if required by the outcome), when used, meaning, each symbol and its unit:**  
+**Numbered working steps with a plain-language explanation of *why* each step works:**  
+**Values substituted and intermediate working (if formula applies):**  
+**Final answer in context with correct units:**  
+**Independent calculation/check (inverse, estimate, alternate method or substitution):**  
+**Related guided practice and independent exercise with explained answers:**  
 **Activity / investigation / discussion / performance:**  
 **Guided practice / exercise:**  
 **Assessment question(s) or observable performance:**  
@@ -66,13 +74,15 @@ For any non-applicable element, record **why this outcome is better served anoth
 | Improve: feedback, revision, remediation/enrichment | | |
 | Teach: instructions, guide, material and assessment support | | |
 
+**Mathematics example acceptance:** A naked equation, final answer, unexplained formula, skipped meaningful transformation or unverified answer key is **incomplete**. State the formula *only when appropriate for that grade/outcome* and show why it applies; explain every relevant symbol and each critical step in age-appropriate language. The detailed standard and two illustrated examples are in [Mathematics worked examples](./CONTENT_PRODUCTION_STANDARD.md#mathematics-worked-examples--mandatory-explanation-of-the-method).
+
 ## 4. Practice and question integrity
 
 For each reusable assessment item or set, preserve:
 
 - stable **item ID**, associated curriculum outcome(s) and content taught;
 - item type, prompt, language, accessible alternatives, complexity and intended feedback mode;
-- correct answer **with explanation**, sample response or performance rubric and marking points;
+- correct answer **with explanation**, sample response or performance rubric and marking points; for mathematical items that test a method, supply a step-by-step worked solution with reasoning, formula definitions/substitution when applicable, correct units and a valid check;
 - plausible but non-deceptive distractors where multiple-choice;
 - misconception/feedback path for wrong, skipped or incomplete answers;
 - eligibility for **exercise, topic practice, quiz and/or formal exam** without confusing their different rules;
@@ -102,7 +112,7 @@ Use existing Content Engine objects and links; do not assume the schema solely f
 | Check | Result and direct evidence | Required correction / disposition |
 | --- | --- | --- |
 | Official source provenance and coverage | | |
-| Correctness of explanations, examples and answers | | |
+| Correctness of explanations, **every mathematical step, formula use and symbol definition**, units and answers | | |
 | Sufficient teachable depth for outcomes | | |
 | Practical instructions, feasibility and safety | | |
 | Age, accessibility and inclusive Kenyan contexts | | |
