@@ -133,6 +133,41 @@ Follow the [paired example and rules in the canonical playbook](./CONTENT_GENERA
 
 **Question-bank integrity:** The volume target is flexible and must not force filler. Never claim that drafted questions are already bank-linked or protected-exam-eligible; report the five counts separately. Keep revealed examples/practice distinct from approved unseen formal-exam variants.
 
+### Human roles and real-world workability record
+
+Use the role standards in the [canonical playbook](./CONTENT_GENERATION.md#1b-human-roles-learning-differences-and-real-world-workability-standard). Complete this small evidence table for the roles that genuinely use the outcome package, not every possible role. A missing application feature is NOT_CONNECTED, not silently deemed implemented.
+
+| Selected role / realistic setting | What the person needs to accomplish | Actual included resource / appropriate adaptation | Verified route or evidence / NOT_CHECKED / NOT_APPLICABLE (with reason) | Observed defect and remedy |
+| --- | --- | --- | --- | --- |
+| School-linked learner | Understand, attempt, receive correct feedback and improve | | | |
+| Independent / home learner | Learn with no required teacher or timetable link where policy permits | | | |
+| Classroom teacher / independent tutor | Deliver lesson using full notes, questions, materials and marking guidance | | | |
+| Parent or guardian (where relevant) | Offer simple optional assistance with no privileged school data | | | |
+| Reviewer / authorized examiner | Verify outcome, answers, rubrics and secure eligible questions | | | |
+| Other selected audience or accessibility need | Specific safe, inclusive use case | | | |
+
+**Adaptation checks:** Document relevant prior-knowledge bridge, readability/language, diagram alt text, audio transcript or caption where used, keyboard/accessible response, low-cost/no-print alternative, phone legibility, limited-connectivity limitations, large-class usability, safe home use and dignity. Do not mark a functionality PASS from prose alone. Keep outcome/source identities and assessment access controls unchanged.
+
+**Four perspective review:** (1) Learner can learn and repair errors. (2) Teacher/tutor can teach the complete model. (3) Home supporter can follow optional safe directions where relevant. (4) Authorized assessor can evaluate real learning with checked criteria. Record a practical counterexample and fix when any intended person cannot complete their task.
+
+### Production cost and demonstrated effectiveness record
+
+Use the same outcome/version and existing content evidence as the [playbook economic standard](./CONTENT_GENERATION.md#1c-content-production-economics-and-effectiveness-standard). Unknown is NOT_MEASURED, never zero. Do not require a new data store or owner-operated dashboard.
+
+| Measure | Scope and denominator | Observed amount/result | Evidence link/version/date or NOT_MEASURED |
+| --- | --- | --- | --- |
+| Source outcome coverage: required / reconciled / content-complete | | | |
+| Total attributable drafting, tool, asset, reviewer, QA, correction and storage costs | | | |
+| Time to draft / content checked / actually learner or teacher visible | | | |
+| Bank items: drafted / answer-checked / reviewed / bank-linked / exam-eligible | | | |
+| Reused certified resources and duplication avoided | | | |
+| Material defects, corrections and regression results | | | |
+| Practical learner/teacher/parent/reviewer task checks | | | |
+| Real independent understanding, transfer, retention or teacher effectiveness evidence | | | |
+| Accessibility, language, device, connectivity and resource barriers | | | |
+
+**Do not claim production disruption, universal accessibility, improved learning, cost reduction or a 100% completion score from generated item counts, documentation changes or unmeasured assumptions.** Prefer honest scoped outcomes over volume targets.
+
 ### Learning component selection
 
 | Component group | Included? | Canonical reference or outcome-based reason for omission |
