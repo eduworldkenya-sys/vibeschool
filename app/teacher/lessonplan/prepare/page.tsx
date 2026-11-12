@@ -319,7 +319,10 @@ export default function PrepareLessonPage() {
   const selectedScope = scopeOptions.find(option => option.key === scopeKey) ?? null
 
   const selectedScheme = schemeChoices.find(s => s.id === schemeId) ?? null
-  const archivedSchemeDraft = selectedScope?.classId && schemeId
+  const hasActiveSchemeDraft = Boolean(selectedScope?.classId && schemeId && drafts.some(draft =>
+    draft.scheme_id === schemeId && draft.class_id === selectedScope.classId &&
+    draft.subject_id === selectedScope.subjectId))
+  const archivedSchemeDraft = selectedScope?.classId && schemeId && !hasActiveSchemeDraft
     ? archivedDrafts.find(draft =>
         draft.scheme_id === schemeId && draft.class_id === selectedScope.classId &&
         draft.subject_id === selectedScope.subjectId) ?? null
