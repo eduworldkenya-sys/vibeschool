@@ -1772,9 +1772,20 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </div>
       {scheduleContext !== 'independent' && blocksError && <p role="alert">{blocksError} <button type="button" onClick={() => load()}>Retry</button></p>}
-      {view === 'week' && scheduleContext !== 'independent' && schoolFilter === 'all' && schools.length > 1 && !loading && (
-        <div className="no-print" style={{ padding: 12, marginBottom: 12, borderRadius: 12, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
-          Choose one school above for its weekly sheet. Daily view combines all of your schools and still respects the global teacher clash rule.
+      {view === 'week' && scheduleContext !== 'independent' && schoolFilter === 'all' && schools.length > 1 && !loading && !loadError && !schoolError && (
+        <div style={{display:'grid',gap:16,marginBottom:16}}>
+          {schools.map(school => (
+            <section key={school.id} aria-label={school.name + ' weekly timetable'}>
+              <div style={{fontSize:13,fontWeight:750,marginBottom:8,color:C.textPrimary}}>{school.name}</div>
+              <ClassicTimetable
+                slots={visibleSlots.filter(slot => slot.schoolId === school.id)}
+                blocks={schoolBlocks[school.id] ?? []}
+                dateForDow={dateForDow}
+                onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(visibleSlots.find(slot => slot.id === s.id && slot.schoolId === school.id) ?? null) }}
+                onAdd={undefined}
+              />
+            </section>
+          ))}
         </div>
       )}
       {view === 'week' && scheduleContext !== 'independent' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
