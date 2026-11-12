@@ -1,0 +1,36 @@
+name: P1 Canonical Package Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p1-outcome-package-quality.yml'
+      - 'supabase/migrations/20261112115000_outcome_package_quality_gate.sql'
+      - 'scripts/sql/outcome_package_quality_verify.sql'
+      - 'scripts/test-outcome-package-quality.mjs'
+      - 'docs/curriculum/OUTCOME_PACKAGE_QUALITY_AND_RELEASE.md'
+      - 'docs/curriculum/OUTCOME_PACKAGE_ASSEMBLY_CONTRACT.md'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-outcome-package-quality.yml'
+      - 'supabase/migrations/20261112115000_outcome_package_quality_gate.sql'
+      - 'scripts/test-outcome-package-quality.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-quality-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify canonical manifest and package-quality static contract
+        run: npm run test:outcome-packages
