@@ -54,7 +54,7 @@ for(const token of [
  "'VS-G4-EN-11-WR-06'",
  'GRADE4_SPELLING_FINAL_IDENTITY_CHECK_FAILED'
 ]) assert.ok(spellingRepair.includes(token),'Required grade 4 spelling repair guard missing: '+token)
-assert.ok(!/update public\\.(scheme_of_work|lesson_plans|lesson_plan_drafts|timetable_slots|teaching_occurrences)/i.test(spellingRepair),
+assert.ok(!/update public\.(scheme_of_work|lesson_plans|lesson_plan_drafts|timetable_slots|teaching_occurrences)/i.test(spellingRepair),
  'Authoring must not rewrite teacher-owned planning or attendance')
 assert.ok(!/status='verified'|source_type='official'/i.test(spellingRepair),
  'Editorial alignment must not pretend official curriculum authority was promoted')
