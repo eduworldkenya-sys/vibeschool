@@ -903,6 +903,7 @@ export default function PrepareLessonPage() {
                 {draft.body && <p className="lp-prepare__preview">{draft.body}</p>}
                 <div className="lp-prepare__row">
                   <button className="lp-prepare__btn" type="button" disabled={busy} onClick={()=>editDraft(draft)}>Edit</button>
+                  {draft.class_id && draft.scheme_id && <button className="lp-prepare__btn lp-prepare__btn--main" type="button" disabled={busy} onClick={()=>router.push('/teacher/lessonplan/teach-unscheduled?draftId='+encodeURIComponent(draft.id))}>Teach now · no timetable</button>}
                   <button className="lp-prepare__btn" type="button" disabled={busy} onClick={()=>void archive(draft.id)}>Archive</button>
                 </div>
                 <div className="lp-prepare__targets">
