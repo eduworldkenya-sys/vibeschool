@@ -10,6 +10,9 @@ import { supabase } from '@/lib/supabase'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 import { formatGrade4TimeLessonBody } from '@/lib/content/grade4TimePresentation.mjs'
 import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.mjs'
+import { buildTimeQuestionCards } from '@/lib/content/grade4TimePractice.mjs'
+import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
+import Grade4TimePracticeCards from '@/components/learn/Grade4TimePracticeCards'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import styles from './Grade4TimeContentReader.module.css'
 
@@ -46,9 +49,10 @@ function sectionIcon(id: string) {
 }
 
 function Grade4TimeLessonArticle({
-  lesson, total, onPrevious, onNext, previousAvailable, nextAvailable,
+  lesson, rawBody, total, onPrevious, onNext, previousAvailable, nextAvailable,
 }: {
   lesson: Lesson
+  rawBody: string
   total: number
   onPrevious: () => void
   onNext: () => void
@@ -58,14 +62,25 @@ function Grade4TimeLessonArticle({
   // Only the approved, read-only RPC body is passed to this display parser.
   // The formatter hides internal question IDs but preserves all explanations
   // and approved [visual:UUID] placeholders for the certified asset resolver.
-  const parsed = useMemo(
-    () => parseGrade4TimeLessonSections(lesson.body),
-    [lesson.body],
-  )
+  const parsed = useMemo(() => parseGrade4TimeLessonSections(lesson.body), [lesson.body])
+  // Match only question/answer IDs that were already in the published manuscript.
+  // The formatted reader body is still used for all visible text.
+  const cards = useMemo(() =>
+    buildTimeQuestionCards(parseGrade4TimeLessonSections(rawBody).sections), [rawBody])
+  const [largeText, setLargeText] = useState(false)
 
-  return <article className={styles.article} aria-labelledby="time-lesson-title">
+  return <article className={`${styles.article} ${largeText ? styles.largeType : ''}`} aria-labelledby="time-lesson-title">
     <header className={styles.articleHead}>
-      <p className={styles.articleNum}>Lesson {lesson.order} of {total}</p>
+      <div className={styles.readerToolbar}>
+        <p className={styles.articleNum}>Lesson {lesson.order} of {total}</p>
+        <div className={styles.textSettings} role="group" aria-label="Text size">
+          <span>Text size</span>
+          <button type="button" aria-label="Standard text size" aria-pressed={!largeText}
+            className={!largeText ? styles.settingActive : ''} onClick={() => setLargeText(false)}>A</button>
+          <button type="button" aria-label="Large text size" aria-pressed={largeText}
+            className={largeText ? styles.settingActive : ''} onClick={() => setLargeText(true)}>A+</button>
+        </div>
+      </div>
       <h2 className={styles.articleTitle} id="time-lesson-title">
         {parsed.title || learnerTitle(lesson.title)}
       </h2>
@@ -83,9 +98,14 @@ function Grade4TimeLessonArticle({
 
     {parsed.sections.map(section => {
       const isFeedback = section.id === 'feedback'
-      const background = section.tone === 'example' ? styles.exampleSection
+      const background = isFeedback ? styles.feedbackSection
+        : section.tone === 'example' ? styles.exampleSection
         : section.tone === 'practice' ? styles.practiceSection
-        : isFeedback ? styles.feedbackSection : ''
+        : section.tone === 'explore' ? styles.exploreSection
+        : section.tone === 'support' ? styles.supportSection
+        : section.tone === 'challenge' ? styles.challengeSection
+        : section.tone === 'reflect' ? styles.reflectSection
+        : section.tone === 'learn' ? styles.learnSection : ''
 
       return <section
         className={`${styles.lessonSection} ${background}`}
@@ -101,11 +121,18 @@ function Grade4TimeLessonArticle({
           </div>
         </div>
         {isFeedback ? <details className={styles.answerReveal}>
-          <summary>Show answers and explanations</summary>
+          <summary>Show all published answers and explanations</summary>
           <div className={styles.answerBody}>
             <VisualRichText body={section.body} style={{ fontSize: 15, lineHeight: 1.85 }} />
           </div>
-        </details> : <VisualRichText body={section.body} style={{ fontSize: 16, lineHeight: 1.85 }} />}
+        </details> : section.id === 'exercise' && cards.exercise.length > 0
+          ? <Grade4TimePracticeCards questions={cards.exercise} lessonNumber={lesson.order}/>
+          : section.id === 'check' && cards.check.length > 0
+          ? <Grade4TimePracticeCards questions={cards.check} lessonNumber={lesson.order}/>
+          : <div className={styles.readingBody}>
+              <VisualRichText body={section.body} style={{ fontSize: 17, lineHeight: 1.8 }} />
+            </div>}
+        <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>
       </section>
     })}
 
@@ -252,6 +279,7 @@ export default function Grade4TimeContentReader() {
             <Grade4TimeLessonArticle
               key={current.id}
               lesson={{ ...current, body: formatGrade4TimeLessonBody(current.body) }}
+              rawBody={current.body}
               total={lessons.length}
               previousAvailable={currentIndex > 0}
               nextAvailable={currentIndex + 1 < lessons.length}
