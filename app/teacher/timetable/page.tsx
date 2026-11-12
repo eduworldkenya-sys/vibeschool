@@ -1655,7 +1655,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       {scheduleContext === 'independent' && <p className="no-print" style={{fontSize:12,color:C.textMuted,marginBottom:12}}>
         Independent Teaching displays your private tuition sessions. School lessons and attendance stay separate. Personal timetable editing comes in Stage 4.
         {' '}<button type="button" onClick={() => router.push('/teacher/tutoring/students?tool=lessons')} style={{border:0,background:'transparent',color:C.accent,fontWeight:700,cursor:'pointer'}}>Manage tuition lessons</button>
-      </p>
+      </p>}
 
       {/* Day tabs */}
       <div
