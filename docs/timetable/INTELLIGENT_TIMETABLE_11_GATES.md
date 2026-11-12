@@ -73,6 +73,7 @@ The integration branch is intentionally kept separate from `main`; a feature PR 
 ### Repaired code defects
 
 - A persisted `missed` occurrence previously became `ready` if a plan existed; a past-due, unsaved planned lesson likewise could appear `ready`. Preserve missed authority and route to the existing TBL-009A recovery writer rather than starting the original occurrence.
+- A same-day overdue lesson can display as missed before the database sweep changes its persisted lifecycle from planned to missed. The recovery action now checks the persisted lifecycle and explains the wait instead of inviting an RPC that must reject it. Same-day canonical missed-state transition is not introduced by this PR.
 - A scheduled Lesson Notes link with no `occurrenceId` previously discarded the exact saved teaching occurrence. Restore from the teacher-owned plan's timetable-slot/date pair, and reject mismatched identities.
 - Scheduled Teach Mode previously could open with no saved occurrence, running a local timer without a server teaching session. Start only via the existing `start_teaching_occurrence_v2` RPC; never create a parallel lifecycle.
 - The Lesson Plan completion shortcut used `complete_teaching_occurrence` without the attendance, evidence, reflection, progress and Scheme review. Route finish through the existing `finalize_teaching_occurrence_v2` Teach Mode flow instead.
