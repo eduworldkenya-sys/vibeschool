@@ -116,6 +116,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 
 export default function StudentResourcesPage() {
   const { identity, loading: idLoading } = useStudent();
+  const studentId = identity?.studentId;
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [filter,    setFilter]    = useState("all");
@@ -123,7 +124,7 @@ export default function StudentResourcesPage() {
   const [loadedForStudentId, setLoadedForStudentId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (idLoading || !identity?.studentId) {
+    if (idLoading || !studentId) {
       setResources([]);
       setLoadedForStudentId(null);
       setLoading(true);
@@ -135,7 +136,7 @@ export default function StudentResourcesPage() {
     setLoadedForStudentId(null);
     setLoading(true);
     setExpanded(null);
-    const activeStudentId = identity.studentId;
+    const activeStudentId = studentId;
 
     // Purge old cached class resources from earlier app versions on shared devices.
     clearCache("lessons", activeStudentId);
@@ -170,12 +171,12 @@ export default function StudentResourcesPage() {
     void load();
     window.addEventListener("focus", load);
     return () => { active = false; window.removeEventListener("focus", load); };
-  }, [identity?.studentId, idLoading]);
+  }, [studentId, idLoading]);
 
-  const visibleResources = identity?.studentId && loadedForStudentId === identity.studentId ? resources : [];
+  const visibleResources = studentId && loadedForStudentId === studentId ? resources : [];
   const filtered = filter === "all" ? visibleResources : visibleResources.filter(r => r.type === filter);
 
-  if (idLoading || !identity?.studentId || loadedForStudentId !== identity.studentId || loading) return (
+  if (idLoading || !studentId || loadedForStudentId !== studentId || loading) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
       <Skel h={40} radius={12} />
       <Skel h={80} radius={12} />
