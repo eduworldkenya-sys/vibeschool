@@ -124,7 +124,11 @@ assert.ok(fastEntry.includes("'reason_code')='PARENT_CHILD_REQUIRED'"))
 assert.ok(fastEntry.includes("'destination','/parent'"))
 assert.match(fastEntry, /INDEPENDENT_LEARNER_VERIFIED/)
 assert.match(fastEntry, /ROLE_UNCLAIMED/)
-assert.doesNotMatch(fastEntry, /(?:update|insert\\s+into|delete\\s+from)\\s+public\\.(?:profiles|students|school_members|parent_student_links)/i)
+for (const table of ['profiles', 'students', 'school_members', 'parent_student_links']) {
+  for (const verb of ['update', 'insert into', 'delete from']) {
+    assert.ok(!fastEntry.toLowerCase().includes(`${verb} public.${table}`), `fast entry must not modify ${table}`)
+  }
+}
 
 console.log('Auth & onboarding authority contract: PASS')
 
