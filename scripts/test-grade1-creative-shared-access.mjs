@@ -6,6 +6,8 @@ const shared = read('../components/learn/Grade1CreativeContentReader.tsx')
 const teacherMap = read('../components/teacher/curriculum/Grade1CreativeActivitiesMap.tsx')
 const publicRoute = read('../app/learn/grade-1/creative-activities/page.tsx')
 const publicLearn = read('../app/learn/page.tsx')
+const publicCatalogue = read('../lib/learn/schoolCatalog.ts')
+const unifiedLearn = read('../components/learn/SchoolLearnLibrary.tsx')
 const teacherSubject = read('../app/teacher/subjecthub/page.tsx')
 const teacherResources = read('../app/teacher/resources/page.tsx')
 const studentResources = read('../app/student/resources/page.tsx')
@@ -64,8 +66,10 @@ assert.ok(shared.includes("view === 'teach'"))
 assert.ok(shared.includes('Try these activities'))
 
 // Discoverable from teacher/student/public user journeys, without a second content copy.
+assert.ok(publicLearn.includes('SchoolLearnLibrary'), 'Public Learn must mount the common grade-aware school library')
+assert.ok(unifiedLearn.includes('readersForSubject'), 'Subject cards must resolve canonical shared readers')
 for (const [name, source] of [
-  ['public Learn', publicLearn],
+  ['public Learn catalogue', publicCatalogue],
   ['teacher Subjects', teacherSubject],
   ['teacher Resources', teacherResources],
   ['student Study Room', studentResources],
