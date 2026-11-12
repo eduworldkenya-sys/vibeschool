@@ -242,11 +242,11 @@ function deriveLifecycle(
   slotEndTime: string,
   occurrenceDate: string,
 ): Lifecycle {
-  if (persisted && ['in_progress', 'completed', 'cancelled', 'rescheduled'].includes(persisted.lifecycle)) {
+  // An authoritative missed record must never become 'ready' just because
+  // a teacher has prepared a plan after the missed date.
+  if (persisted && ['in_progress', 'completed', 'cancelled', 'rescheduled', 'missed'].includes(persisted.lifecycle)) {
     return persisted.lifecycle
   }
-  if (lessonPlanId) return 'ready'
-
   // Timetable dates/times are Kenya school time. Parse them with an explicit
   // Africa/Nairobi offset so lifecycle truth is independent of the browser or
   // device timezone. Nairobi is UTC+03:00 year-round (no DST).
@@ -254,6 +254,7 @@ function deriveLifecycle(
   if (!Number.isNaN(slotEnd.getTime()) && Date.now() > slotEnd.getTime()) {
     return 'missed'
   }
+  if (lessonPlanId) return 'ready'
   return 'planned'
 }
 
