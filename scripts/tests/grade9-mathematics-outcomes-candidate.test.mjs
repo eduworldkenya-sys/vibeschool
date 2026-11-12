@@ -34,7 +34,10 @@ function validateUnreleasedCrosswalk(candidate) {
     assert.equal(u.editorial_status,'CANDIDATE_ONLY_UNVERIFIED');
     assert.equal(u.manuscript_outcomes.length,targetCounts[u.code],u.code);
     assert.ok(u.vibeschool_inquiry_questions.some(x=>x.length>=20),u.code+' inquiry missing');
-    assert.ok(u.vibeschool_suggested_learning_experiences.some(x=>x.length>=40),u.code+' experience missing');
+    assert.ok(u.vibeschool_suggested_learning_experiences.length>=3,u.code+' experiences incomplete');
+    assert.ok(u.vibeschool_suggested_learning_experiences.every(x=>x.length>=40),u.code+' experience too shallow');
+    assert.equal(u.experience_wording_status,'VIBESCHOOL_ORIGINAL_DRAFT');
+    assert.equal(u.inquiry_wording_status,'VIBESCHOOL_ORIGINAL_DRAFT');
     assert.ok(u.vibeschool_assessment_evidence.some(x=>x.length>=40),u.code+' assessment evidence missing');
     for (const [i,item] of u.manuscript_outcomes.entries()) {
       assert.equal(item.source_outcome_ordinal,i+1);
@@ -48,6 +51,9 @@ function validateUnreleasedCrosswalk(candidate) {
   assert.equal(new Set(aliases).size,aliases.length,'duplicate manuscript aliases');
   assert.equal(aliases.length,117,'source coverage count changed unexpectedly');
   assert.equal(overlay.total_candidate_learning_targets,aliases.length);
+  assert.equal(overlay.total_original_learning_experiences,overlay.units.reduce((n,u)=>n+u.vibeschool_suggested_learning_experiences.length,0));
+  assert.equal(overlay.total_original_inquiry_questions,overlay.units.reduce((n,u)=>n+u.vibeschool_inquiry_questions.length,0));
+  assert.ok(overlay.known_source_ambiguities.length>=5,'source ambiguity ledger incomplete');
   return aliases;
 }
 
