@@ -51,7 +51,7 @@ where grade in ('Grade 4', 'Grade 5', 'Grade 6')
 -- generate IDs only when a missing canonical subject is needed.
 -- Existing production identities are never replaced.
 -- Avoid arbitrary selection when a global subject has duplicate names.
-do $
+do $vs_timetable_seed$
 declare
   v_name text;
   v_count integer;
@@ -72,7 +72,7 @@ begin
       values (v_name,null,null);
     end if;
   end loop;
-end $;
+end $vs_timetable_seed$;
 
 -- Revised junior-school learning-area allocations:
 -- 40 curriculum lessons, plus a separate PPI period.
