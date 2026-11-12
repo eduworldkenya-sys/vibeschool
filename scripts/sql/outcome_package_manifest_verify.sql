@@ -49,7 +49,7 @@ begin
   manifest := jsonb_build_object(
     'schema','vibeschool.outcome-package.v1',
     'outcome_id',o.id,
-    'curriculum_outcome_aliases','[]'::jsonb,
+    'curriculum_outcome_aliases',jsonb_build_array('p0-test-manuscript-alias'),
     'requirements',jsonb_build_object('teacher_guidance',false,'visual_assets',false),
     'assets',jsonb_build_object(
       'core',jsonb_build_array(jsonb_build_object('resource_id',core_id,'resource_version_id',core_version)),
@@ -71,6 +71,16 @@ begin
     resource_id,version,lifecycle_status,payload,content_sha256
   ) values (pkg_id,1,'candidate',manifest,repeat('b',64))
   returning id into pkg_version;
+
+  -- The alias ledger is present, nonempty values are typed, and duplicates fail.
+  broken := jsonb_set(manifest,'{curriculum_outcome_aliases}',jsonb_build_array('duplicate','duplicate'));
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Duplicate curriculum aliases accepted';
+  end if;
+  broken := manifest - 'curriculum_outcome_aliases';
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Missing curriculum alias ledger accepted';
+  end if;
 
   -- No false "ready": revision with zero items must fail.
   broken := jsonb_set(manifest,'{release,revision}','"ready"'::jsonb);
