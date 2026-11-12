@@ -162,6 +162,17 @@ begin
         and b.status='published' and b.is_teacher_only=false
         and b.is_assessable=true and b.block_type='question'
         and b.id is distinct from m.source_block_id
+        -- The server scorer chooses the FIRST verified outcome for a block;
+        -- only offer this block when that exact authoritative identity agrees.
+        and (
+          select l2.outcome_id
+          from public.content_block_outcome_links l2
+          join public.curriculum_learning_outcomes o2
+            on o2.id=l2.outcome_id and o2.status='verified'
+          where l2.content_block_id=b.id
+          order by l2.created_at
+          limit 1
+        )=m.eligible_outcome
         and position('Answer:' in coalesce(b.plain_text,''))>0
         and nullif(btrim(split_part(b.plain_text,'Answer:',1)),'') is not null
         and nullif(btrim(split_part(b.plain_text,'Answer:',2)),'') is not null
@@ -178,7 +189,7 @@ begin
       -- Only server-scored ledger-backed attempts count. Topic-name matches,
       -- reading clicks, answers on the original item, and prior attempts do not.
       select
-        count(*)::integer as attempts,
+        count(distinct e.id)::integer as attempts,
         count(distinct e.source_id) filter (where cel.score=cel.max_score and cel.max_score>0)::integer as correct_questions,
         count(distinct (e.occurred_at at time zone 'Africa/Nairobi')::date)
           filter (where cel.score=cel.max_score and cel.max_score>0)::integer as correct_days
