@@ -120,14 +120,29 @@ export default function StudentResourcesPage() {
   const [loading,   setLoading]   = useState(true);
   const [filter,    setFilter]    = useState("all");
   const [expanded,  setExpanded]  = useState<string | null>(null);
+  const [loadedForStudentId, setLoadedForStudentId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (idLoading || !identity) return;
+    if (idLoading || !identity?.studentId) {
+      setResources([]);
+      setLoadedForStudentId(null);
+      setLoading(true);
+      setExpanded(null);
+      return;
+    }
+    // Prevent a shared device from rendering the previous student's materials.
+    setResources([]);
+    setLoadedForStudentId(null);
+    setLoading(true);
+    setExpanded(null);
+    const activeStudentId = identity.studentId;
 
     // Purge old cached class resources from earlier app versions on shared devices.
-    clearCache("lessons", identity.studentId);
+    clearCache("lessons", activeStudentId);
     let active = true;
     async function load() {
+      setLoadedForStudentId(null);
+      setLoading(true);
       const { data, error } = await supabase
         .from("student_accessible_resources")
         .select("*")
@@ -149,16 +164,18 @@ export default function StudentResourcesPage() {
           created_at: row.created_at ?? new Date(0).toISOString(),
         }));
       setResources(rows);
+      setLoadedForStudentId(activeStudentId);
       setLoading(false);
     }
     void load();
     window.addEventListener("focus", load);
     return () => { active = false; window.removeEventListener("focus", load); };
-  }, [identity, idLoading]);
+  }, [identity?.studentId, idLoading]);
 
-  const filtered = filter === "all" ? resources : resources.filter(r => r.type === filter);
+  const visibleResources = identity?.studentId && loadedForStudentId === identity.studentId ? resources : [];
+  const filtered = filter === "all" ? visibleResources : visibleResources.filter(r => r.type === filter);
 
-  if (idLoading || (loading && resources.length === 0)) return (
+  if (idLoading || !identity?.studentId || loadedForStudentId !== identity.studentId || loading) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
       <Skel h={40} radius={12} />
       <Skel h={80} radius={12} />
@@ -176,7 +193,7 @@ export default function StudentResourcesPage() {
           Study Room
         </h1>
         <p style={{ fontSize: 12, color: "var(--vs-muted)", marginTop: 2 }}>
-          {resources.length} resource{resources.length !== 1 ? "s" : ""} available
+          {visibleResources.length} resource{visibleResources.length !== 1 ? "s" : ""} available
         </p>
       </div>
 
