@@ -9379,18 +9379,24 @@ export type Database = {
       learning_resources: {
         Row: {
           canonical_key: string
+          asset_kind: string | null
           chapter_id: string | null
           content_block_id: string | null
           content_id: string | null
           created_at: string
           created_by: string | null
           curriculum_id: string | null
+          curriculum_outcome_id: string | null
           description: string | null
           grade: string | null
           id: string
+          identity_key_version: number | null
+          language_code: string | null
           learning_outcomes: string[]
+          material_variant: string | null
           owner_type: string
           publication_id: string | null
+          purpose: string | null
           school_id: string | null
           source_type: string
           status: string
@@ -9410,12 +9416,17 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           curriculum_id?: string | null
+          curriculum_outcome_id?: string | null
           description?: string | null
           grade?: string | null
           id?: string
+          identity_key_version?: number | null
+          language_code?: string | null
           learning_outcomes?: string[]
+          material_variant?: string | null
           owner_type?: string
           publication_id?: string | null
+          purpose?: string | null
           school_id?: string | null
           source_type: string
           status?: string
@@ -9429,18 +9440,24 @@ export type Database = {
         }
         Update: {
           canonical_key?: string
+          asset_kind?: string | null
           chapter_id?: string | null
           content_block_id?: string | null
           content_id?: string | null
           created_at?: string
           created_by?: string | null
           curriculum_id?: string | null
+          curriculum_outcome_id?: string | null
           description?: string | null
           grade?: string | null
           id?: string
+          identity_key_version?: number | null
+          language_code?: string | null
           learning_outcomes?: string[]
+          material_variant?: string | null
           owner_type?: string
           publication_id?: string | null
+          purpose?: string | null
           school_id?: string | null
           source_type?: string
           status?: string
@@ -9486,6 +9503,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "vibelearn_leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_resources_curriculum_outcome_id_fkey"
+            columns: ["curriculum_outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
             referencedColumns: ["id"]
           },
           {
