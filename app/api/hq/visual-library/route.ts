@@ -19,18 +19,21 @@ export async function GET(req: NextRequest) {
     const search = (req.nextUrl.searchParams.get('search') || '').trim().slice(0, 60)
     if (req.nextUrl.searchParams.get('contexts') === '1') {
       if (!/^[1-9]$/.test(grade)) return visualJson({ error: 'Choose a grade from 1 to 9.' }, 400)
-      let q = admin.from('learning_resources')
-        .select('id,title,grade,subject,subject_id,curriculum_id,sub_strand_id,learning_outcomes')
-        .eq('status', 'active')
-        .in('owner_type', ['platform','publisher'])
-        .not('curriculum_id', 'is', null)
-        .not('subject_id', 'is', null)
-        .ilike('grade', '%'+grade+'%')
-        .order('updated_at', { ascending: false }).limit(100)
-      if (search) q = q.ilike('subject', '%'+search.replace(/[%_,()]/g, '')+'%')
-      const { data, error } = await q
-      if (error) return visualJson({ error: 'Curriculum contexts unavailable.' }, 503)
-      const contexts = (data || []).filter(row => /^grade[ -]?[1-9]$/i.test(String(row.grade || '')) && String(row.grade).replace(/\D/g, '') === grade)
+      const { data: subjects, error: subjectError } = await admin.from('subjects')
+        .select('id,name').is('school_id', null)
+        .ilike('name', '%' + search.replace(/[%_,()]/g, '') + '%').order('name').limit(100)
+      if (subjectError) return visualJson({ error: 'Subjects unavailable.' }, 503)
+      const names = new Map((subjects || []).map(row => [row.id, row.name]))
+      if (!names.size) return visualJson({ contexts: [] })
+      const { data: strands, error: strandError } = await admin.from('cbc_strands')
+        .select('id,subject_id,grade,name,sub_strand')
+        .eq('grade', 'Grade ' + grade).in('subject_id', Array.from(names.keys()))
+        .order('name').limit(250)
+      if (strandError) return visualJson({ error: 'Curriculum sub-strands unavailable.' }, 503)
+      const contexts = (strands || []).map(row => ({
+        id: row.id, grade: row.grade, subject: names.get(row.subject_id) || '',
+        title: row.name + ' · ' + row.sub_strand,
+      }))
       return visualJson({ contexts })
     }
     let q = admin.from('learning_resources').select('id,canonical_key,title,description,grade,subject,strand,status,visibility,created_at,updated_at')
@@ -44,7 +47,7 @@ export async function GET(req: NextRequest) {
       .select('id,resource_id,version,lifecycle_status,payload,created_at')
       .in('resource_id', ids).order('version', { ascending: false })
     if (versionsError) return visualJson({ error: 'Visual versions unavailable.' }, 503)
-    const versionByRoot = new Map<string, typeof versions extends (infer R)[] | null ? R : never>()
+    const versionByRoot = new Map<string, { resource_id: string; version: number; lifecycle_status: string; payload: unknown }>()
     for (const version of versions || []) if (!versionByRoot.has(version.resource_id)) versionByRoot.set(version.resource_id, version)
     const visuals = await Promise.all((roots || []).map(async root => {
       const version = versionByRoot.get(root.id)
@@ -92,25 +95,27 @@ export async function POST(req: NextRequest) {
     const topicKey = limitedText(form.get('topicKey'), 100)
     const visualType = limitedText(form.get('visualType'), 30)
     const placement = limitedText(form.get('placement'), 30)
-    const sourceResourceId = limitedText(form.get('sourceResourceId'), 36)
+    const sourceStrandId = limitedText(form.get('sourceStrandId'), 36)
     const labels = limitedText(form.get('labels'), 300).split(',').map(x => x.trim()).filter(Boolean).slice(0, 12)
     if (title.length < 3 || title.length > 140 || altText.length < 8 || altText.length > 300
       || description.length > 1000 || caption.length > 300 || topicKey.length < 3 || topicKey.length > 100
-      || !isVisualType(visualType) || !isVisualPlacement(placement) || !UUID_RE.test(sourceResourceId)) {
-      return visualJson({ error: 'Complete the title, visual type, curriculum source, topic, alt text and placement.' }, 400)
+      || !isVisualType(visualType) || !isVisualPlacement(placement) || !UUID_RE.test(sourceStrandId)) {
+      return visualJson({ error: 'Complete the title, visual type, curriculum sub-strand, topic, alt text and placement.' }, 400)
     }
 
-    const { data: source, error: sourceError } = await admin.from('learning_resources')
-      .select('id,curriculum_id,subject_id,sub_strand_id,grade,subject,strand,learning_outcomes')
-      .eq('id', sourceResourceId).eq('status', 'active')
-      .in('owner_type', ['platform','publisher']).maybeSingle()
-    if (sourceError || !source || !source.curriculum_id || !source.subject_id || !source.grade || !source.subject)
-      return visualJson({ error: 'Select a valid existing curriculum resource.' }, 400)
-    if (!/^grade[ -]?[1-9]$/i.test(source.grade)) return visualJson({ error: 'Only Grades 1–9 are supported in this library.' }, 400)
-
+    const { data: source, error: sourceError } = await admin.from('cbc_strands')
+      .select('id,subject_id,grade,name,sub_strand,learning_outcomes')
+      .eq('id', sourceStrandId).maybeSingle()
+    if (sourceError || !source || !source.subject_id || !/^grade[ -]?[1-9]$/i.test(source.grade))
+      return visualJson({ error: 'Choose an existing Grade 1–9 curriculum sub-strand.' }, 400)
+    const { data: subject, error: subjectError } = await admin.from('subjects')
+      .select('id,name').eq('id', source.subject_id).is('school_id', null).maybeSingle()
+    if (subjectError || !subject) return visualJson({ error: 'School-specific content cannot be registered as a global visual.' }, 400)
+    const { data: curriculum } = await admin.from('curriculum').select('id')
+      .eq('grade', source.grade).eq('sub_strand_id', source.id).limit(1).maybeSingle()
     const identity = buildCanonicalLearningAssetIdentity({
-      curriculumId: source.curriculum_id, subjectId: source.subject_id,
-      grade: source.grade, strandId: source.sub_strand_id, topicKey,
+      curriculumId: curriculum?.id || 'cbc-strand-authority', subjectId: subject.id,
+      grade: source.grade, strandId: source.id, topicKey,
       assetKind: 'visual_aid', purpose: 'reference',
       variant: visualType + '-' + normalizeCanonicalAssetDimension(title),
     })
@@ -132,8 +137,8 @@ export async function POST(req: NextRequest) {
       purpose: 'reference', identity_key_version: identity.keyVersion,
       language_code: 'en', material_variant: identity.normalized.variant,
       owner_type: 'platform', visibility: 'private', status: 'inactive',
-      title, description, grade: source.grade, subject: source.subject, strand: source.strand,
-      subject_id: source.subject_id, curriculum_id: source.curriculum_id, sub_strand_id: source.sub_strand_id,
+      title, description, grade: source.grade, subject: subject.name, strand: source.name,
+      subject_id: subject.id, curriculum_id: curriculum?.id || null, sub_strand_id: source.id,
       learning_outcomes: source.learning_outcomes || [], created_by: user.id,
     }).select('id').single()
     if (rootError || !root) return visualJson({ error: rootError?.code === '23505' ? 'This visual already exists.' : 'Could not register the visual.' }, rootError?.code === '23505' ? 409 : 503)
@@ -141,14 +146,14 @@ export async function POST(req: NextRequest) {
     const payload = {
       schema: 'vibeschool.visual.v1', visual_type: visualType, alt_text: altText,
       caption, labels, placements: [placement], topic_key: topicKey,
-      source_resource_id: source.id,
+      source_strand_id: source.id,
       storage: { bucket: VISUAL_DRAFT_BUCKET, path: uploadedPath, mime: detected.mime, bytes: file.size },
     }
     const checksum = createHash('sha256').update(JSON.stringify(payload)).digest('hex')
     const { error: versionError } = await admin.from('learning_resource_versions').insert({
       resource_id: root.id, version: 1, lifecycle_status: 'candidate',
       payload_format: 'json', payload, content_sha256: checksum, rights_status: 'pending',
-      provenance: { origin: 'hq_visual_library', source_resource_id: source.id, uploaded_by: user.id }, created_by: user.id,
+      provenance: { origin: 'hq_visual_library', source_strand_id: source.id, uploaded_by: user.id }, created_by: user.id,
     })
     if (versionError) return visualJson({ error: 'Could not save the visual version.' }, 503)
     committed = true
