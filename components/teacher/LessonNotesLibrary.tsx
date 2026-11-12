@@ -76,6 +76,7 @@ export default function LessonNotesLibrary({
         const result = await supabase.from('resources')
           .select('id,title,subject,type,component_type,publication_status')
           .eq('teacher_id', auth.data.user.id)
+          .or('type.eq.notes,component_type.eq.lesson-notes')
           .order('created_at', { ascending: false }).limit(100)
         if (result.error) throw result.error
         if (alive) setMyNotes(((result.data ?? []) as PersonalNote[]).filter(row =>
