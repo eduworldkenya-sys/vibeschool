@@ -10,6 +10,7 @@ do $repair$
 declare
   v_valid integer;
   v_true integer;
+  v_present integer;
 begin
   -- Avoid racing another author/review while inspecting and applying.
   perform 1
@@ -20,6 +21,31 @@ begin
   )
   order by id
   for update;
+
+  -- Newly reconstructed/blank databases have none of these historical
+  -- editorial records. Do not invent them or make reconstruction fail.
+  -- A partially present target, chapter or publication is NOT a blank
+  -- installation and must still fail closed.
+  select count(*) into v_present from public.content_blocks
+  where id in (
+    '02b9a7e6-87ac-4471-a5ce-549997be9781'::uuid,
+    '2cae20c4-7908-4a56-8134-a3521f1852c1'::uuid
+  );
+  if v_present = 0
+    and not exists (
+      select 1 from public.vibe_chapters
+      where id = 'f95c252a-da2d-477c-b4cb-33b5f8338e10'::uuid
+    )
+    and not exists (
+      select 1 from public.vibe_publications
+      where id = '2745c031-65be-47de-bd75-1e1db74d4123'::uuid
+    ) then
+    raise notice 'Grade 4 Place Value: no legacy publication in clean database; controlled no-op.';
+    return;
+  end if;
+  if v_present <> 2 then
+    raise exception 'Grade 4 Place Value repair blocked: partial historical block set (% of 2)', v_present;
+  end if;
 
   select count(*), count(*) filter (where b.is_assessable)
   into v_valid, v_true
@@ -81,15 +107,31 @@ $repair$;
 -- Postcondition is part of the transaction: rollback if it fails.
 do $verify$
 begin
-  if (
-    select count(*)
-    from public.content_blocks
+  -- The sole permitted empty case is a fully absent legacy chapter
+  -- AND publication. Partial historical material remains an error.
+  if exists (
+    select 1 from public.content_blocks
     where id in (
       '02b9a7e6-87ac-4471-a5ce-549997be9781'::uuid,
       '2cae20c4-7908-4a56-8134-a3521f1852c1'::uuid
-    ) and is_assessable = false
-  ) <> 2 then
-    raise exception 'Grade 4 Place Value repair postcondition failed';
+    )
+  ) or exists (
+    select 1 from public.vibe_chapters
+    where id = 'f95c252a-da2d-477c-b4cb-33b5f8338e10'::uuid
+  ) or exists (
+    select 1 from public.vibe_publications
+    where id = '2745c031-65be-47de-bd75-1e1db74d4123'::uuid
+  ) then
+    if (
+      select count(*)
+      from public.content_blocks
+      where id in (
+        '02b9a7e6-87ac-4471-a5ce-549997be9781'::uuid,
+        '2cae20c4-7908-4a56-8134-a3521f1852c1'::uuid
+      ) and is_assessable = false
+    ) <> 2 then
+      raise exception 'Grade 4 Place Value repair postcondition failed';
+    end if;
   end if;
 end;
 $verify$;
