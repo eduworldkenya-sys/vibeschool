@@ -865,7 +865,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [allSlots,        setAllSlots]         = useState<Slot[]>([])
   const [scheduleContext, setScheduleContext] = useState<TeacherScheduleView>('independent')
   const defaultScopeRef = useRef<{ teacherId: string; hadSchool: boolean } | null>(null)
-  const { lessons: tuitionLessons, error: tuitionError, refresh: refreshTuition } = useTuitionTimetable()
+  const { lessons: tuitionLessons, error: tuitionError, loading: tuitionLoading, refresh: refreshTuition } = useTuitionTimetable()
   const [loading,         setLoading]          = useState(true)
   const [loadError,       setLoadError]        = useState<string | null>(null)
   const [schoolError,     setSchoolError]      = useState<string | null>(null)
@@ -1454,7 +1454,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           My Weekly Schedule
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
-          {loading ? 'Loading…' : scheduleContext === 'school'
+          {loading || (scheduleContext !== 'school' && tuitionLoading) ? 'Loading…' : scheduleContext === 'school'
            ? `${totalLessons} school lessons this week`
            : scheduleContext === 'independent'
            ? `${tuitionWeek.filter(lesson => lesson.status === 'scheduled').length} private tuition lessons this week`
@@ -1749,7 +1749,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       />}
       {view === 'week' && scheduleContext !== 'school' && (
         <Card><SectionLabel>Tuition this week</SectionLabel>
-          {tuitionWeek.length === 0 ? <p style={{ fontSize: 13, color: C.textMuted }}>No private tuition lessons this week.</p> : (
+          {tuitionError ? <p role="alert" style={{fontSize:13}}>Private tuition schedule is unavailable. Retry above.</p> :
+           tuitionLoading ? <p role="status" style={{fontSize:13}}>Loading private tuition lessons…</p> :
+           tuitionWeek.length === 0 ? <p style={{ fontSize: 13, color: C.textMuted }}>No private tuition lessons this week.</p> : (
             <div style={{ display: 'grid', gap: 8 }}>{tuitionWeek.map(lesson => <div key={lesson.id}>
               <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{tuitionLocalDate(lesson.starts_at)}</div>
               <TuitionTimetableCard lesson={lesson} role="teacher" />
@@ -1773,11 +1775,11 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           {DAYS.find(d => d.dow === activeDow)?.label ?? ''}{isToday ? ' — Today' : ''}
         </SectionLabel>
 
-        {loading ? (
+        {loading || (scheduleContext !== 'school' && tuitionLoading) ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[1, 2, 3].map(i => <Skeleton key={i} h={68} />)}
           </div>
-        ) : loadError && scheduleContext !== 'independent' ? null : dayEntries.length === 0 ? (
+        ) : (loadError && scheduleContext !== 'independent') || (tuitionError && scheduleContext !== 'school') ? null : dayEntries.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>
             {scheduleContext === 'independent' ? 'No private tuition lessons scheduled. Create a lesson in My Tutoring.' : 'No school lessons scheduled'}
           </div>
@@ -1795,7 +1797,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       </Card>}
 
       {/* Week summary */}
-      {!loading && (
+      {!loading && (scheduleContext === 'school' || (!tuitionLoading && !tuitionError)) && (
         <Card>
           <SectionLabel>Week Summary</SectionLabel>
           {(scheduleContext === 'independent'
