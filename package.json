@@ -18,9 +18,10 @@
     "test:curriculum-exam-readiness": "node scripts/test-curriculum-exam-readiness.mjs",
     "test:jumping-content": "node --import ./scripts/register-typescript.mjs scripts/test-grade1-jumping-content-integration.mjs && node scripts/test-teacher-canonical-content-access.mjs && node scripts/test-grade1-creative-shared-access.mjs && node scripts/test-grade1-jumping-operator-release.mjs",
     "test:classhub": "node scripts/test-classhub-homework-eligibility.mjs",
-    "test:teaching-library": "node --import ./scripts/register-typescript.mjs scripts/test-teaching-library-structure.mjs && node --import ./scripts/register-typescript.mjs scripts/test-visual-learning-library.mjs && npm run test:resource-authoring",
+    "test:teaching-library": "node --import ./scripts/register-typescript.mjs scripts/test-teaching-library-structure.mjs && node --import ./scripts/register-typescript.mjs scripts/test-visual-learning-library.mjs && npm run test:resource-authoring && npm run test:outcome-packages",
     "test:resource-authoring": "node --import ./scripts/register-typescript.mjs scripts/test-teacher-resource-authoring.mjs",
-    "test:curriculum-identity": "node scripts/test-p0-curriculum-reconciliation.mjs && node scripts/test-grade4-maths-time.mjs"
+    "test:curriculum-identity": "node scripts/test-p0-curriculum-reconciliation.mjs && node scripts/test-grade4-maths-time.mjs",
+    "test:outcome-packages": "node --import ./scripts/register-typescript.mjs scripts/test-outcome-package-manifest.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",

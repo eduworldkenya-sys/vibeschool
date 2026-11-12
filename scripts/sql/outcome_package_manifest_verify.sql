@@ -1,0 +1,171 @@
+-- Run after the outcome package migration in a disposable database.
+-- This test intentionally rolls back every fixture. No learner data is published.
+begin;
+
+do $verify$
+declare
+  o public.curriculum_learning_outcomes%rowtype;
+  core_id uuid;
+  core_version uuid;
+  pkg_id uuid;
+  pkg_version uuid;
+  q_id uuid;
+  other_outcome_id uuid;
+  manifest jsonb;
+  audit jsonb;
+  broken jsonb;
+begin
+  select * into o from public.curriculum_learning_outcomes
+   where status='verified' and verified_at is not null
+     and source_import_id is not null and nullif(btrim(source_locator),'') is not null
+     and curriculum_id is not null limit 1;
+  if o.id is null then
+    raise exception 'P0 TEST FIXTURE REQUIRED: one reconciled outcome';
+  end if;
+
+  insert into public.learning_resources(
+    source_type,title,owner_type,visibility,canonical_key,
+    asset_kind,purpose,curriculum_outcome_id
+  ) values (
+    'platform_generated','P0 test core','platform','public','p0-test-core-'||gen_random_uuid(),
+    'learner_notes','teach',o.id
+  ) returning id into core_id;
+  insert into public.learning_resource_versions(
+    resource_id,version,lifecycle_status,payload,content_sha256,
+    rights_status,certification_policy_version,certification_evidence,certified_at
+  ) values (
+    core_id,1,'certified','{"text":"Core fixture"}'::jsonb,repeat('a',64),
+    'cleared','p0-test','{"fixture":true}'::jsonb,now()
+  ) returning id into core_version;
+
+  insert into public.learning_resources(
+    source_type,title,owner_type,visibility,canonical_key,
+    asset_kind,purpose,curriculum_outcome_id
+  ) values (
+    'platform_authored','P0 test package','platform','public','p0-test-package-'||gen_random_uuid(),
+    'outcome_package','teach',o.id
+  ) returning id into pkg_id;
+
+  manifest := jsonb_build_object(
+    'schema','vibeschool.outcome-package.v1',
+    'outcome_id',o.id,
+    'curriculum_outcome_aliases',jsonb_build_array('p0-test-manuscript-alias'),
+    'requirements',jsonb_build_object('teacher_guidance',false,'visual_assets',false),
+    'assets',jsonb_build_object(
+      'core',jsonb_build_array(jsonb_build_object('resource_id',core_id,'resource_version_id',core_version)),
+      'activities','[]'::jsonb,'revision','[]'::jsonb,
+      'teacher_guidance','[]'::jsonb,'visual_assets','[]'::jsonb),
+    'question_ids',jsonb_build_object('activities','[]'::jsonb,'revision','[]'::jsonb),
+    'release',jsonb_build_object('core','released','activities','draft','revision','draft')
+  );
+  audit := public.cla_audit_outcome_package(pkg_id,manifest);
+  if audit->>'valid' <> 'true'
+     or audit #>> '{experiences,core,completeness}' <> 'complete'
+     or audit #>> '{experiences,core,release}' <> 'released'
+     or audit #>> '{experiences,activities,completeness}' <> 'incomplete'
+     or audit #>> '{experiences,revision,release}' <> 'draft' then
+    raise exception 'P0 partial-release regression: %',audit;
+  end if;
+
+  insert into public.learning_resource_versions(
+    resource_id,version,lifecycle_status,payload,content_sha256
+  ) values (pkg_id,1,'candidate',manifest,repeat('b',64))
+  returning id into pkg_version;
+
+  -- The alias ledger is present, nonempty values are typed, and duplicates fail.
+  broken := jsonb_set(manifest,'{curriculum_outcome_aliases}',jsonb_build_array('duplicate','duplicate'));
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Duplicate curriculum aliases accepted';
+  end if;
+  broken := manifest - 'curriculum_outcome_aliases';
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Missing curriculum alias ledger accepted';
+  end if;
+
+  -- No false "ready": revision with zero items must fail.
+  broken := jsonb_set(manifest,'{release,revision}','"ready"'::jsonb);
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Empty revision incorrectly marked ready';
+  end if;
+  -- Invalid version pins cannot be mistaken for content.
+  broken := jsonb_set(manifest,'{assets,core,0,resource_version_id}',to_jsonb(gen_random_uuid()::text));
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Missing asset reference accepted';
+  end if;
+  -- The same version may not appear twice in a section.
+  broken := jsonb_set(manifest,'{assets,activities}',
+     jsonb_build_array(manifest #> '{assets,core,0}',manifest #> '{assets,core,0}'));
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Duplicate/incorrect asset kind accepted';
+  end if;
+  -- Required visuals and teacher guidance are not assumed to exist.
+  broken := jsonb_set(manifest,'{requirements,visual_assets}','true'::jsonb);
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Missing required visual accepted';
+  end if;
+  -- A proposed release with an unapproved existing question must fail.
+  insert into public.assessment_questions(
+    curriculum_id,question_text,question_type,status,review_status,
+    learning_outcome_id
+  ) values (
+    o.curriculum_id,'P0 test question','written','draft','approved',o.id
+  ) returning id into q_id;
+  broken := jsonb_set(manifest,'{question_ids,activities}',jsonb_build_array(q_id::text));
+  broken := jsonb_set(broken,'{release,activities}','"ready"'::jsonb);
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Draft question promoted to ready content';
+  end if;
+  -- Exact outcome link required even for an approved, confirmed item.
+  update public.assessment_questions set status='confirmed' where id=q_id;
+  broken := jsonb_set(manifest,'{question_ids,activities}',jsonb_build_array(q_id::text));
+  broken := jsonb_set(broken,'{release,activities}','"ready"'::jsonb);
+  audit := public.cla_audit_outcome_package(pkg_id,broken);
+  if audit->>'valid' <> 'true'
+     or audit #>> '{experiences,activities,completeness}' <> 'complete'
+     or audit #>> '{experiences,revision,completeness}' <> 'incomplete' then
+    raise exception 'Independent activity readiness regression: %',audit;
+  end if;
+  broken := jsonb_set(broken,'{question_ids,activities}',jsonb_build_array(gen_random_uuid()::text));
+  if public.cla_audit_outcome_package(pkg_id,broken)->>'valid' <> 'false' then
+    raise exception 'Unmapped question ID accepted';
+  end if;
+
+  -- Explicitly wrong outcome identity must fail even when the version exists.
+  select id into other_outcome_id from public.curriculum_learning_outcomes
+   where id <> o.id limit 1;
+  if other_outcome_id is not null then
+    update public.learning_resources set curriculum_outcome_id=other_outcome_id
+     where id=core_id;
+    if public.cla_audit_outcome_package(pkg_id,manifest)->>'valid' <> 'false' then
+      raise exception 'Cross-outcome pinned resource was accepted';
+    end if;
+    update public.learning_resources set curriculum_outcome_id=o.id where id=core_id;
+  end if;
+
+  -- An existing manifest cannot change the identity of its canonical root.
+  begin
+    update public.learning_resources set asset_kind='content_block' where id=pkg_id;
+    raise exception 'PACKAGE ROOT IDENTITY GUARD DID NOT FIRE';
+  exception when check_violation then
+    if sqlerrm <> 'CLA_PACKAGE_ROOT_IDENTITY_IMMUTABLE' then raise; end if;
+  end;
+
+  -- Version trigger must reject a false release, not merely report it.
+  begin
+    update public.learning_resource_versions
+       set payload=jsonb_set(manifest,'{release,revision}','"ready"'::jsonb)
+       where id=pkg_version;
+    raise exception 'TRIGGER DID NOT REJECT false readiness';
+  exception when check_violation then
+    if sqlerrm <> 'CLA_OUTCOME_PACKAGE_INVALID' then raise; end if;
+  end;
+
+  if has_function_privilege('anon','public.cla_audit_outcome_package(uuid,jsonb)','execute')
+     or has_function_privilege('authenticated','public.cla_audit_outcome_package(uuid,jsonb)','execute') then
+    raise exception 'Browser roles must not invoke raw manifest audit';
+  end if;
+  raise notice 'P0 outcome package manifest verification PASS';
+end;
+$verify$;
+
+rollback;

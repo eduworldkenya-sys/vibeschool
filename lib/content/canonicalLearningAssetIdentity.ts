@@ -19,6 +19,7 @@ export type CanonicalLearningAssetKind =
   | 'rubric'
   | 'content_block'
   | 'visual_aid'
+  | 'outcome_package'
 
 export type CanonicalLearningAssetPurpose =
   | 'teach'
