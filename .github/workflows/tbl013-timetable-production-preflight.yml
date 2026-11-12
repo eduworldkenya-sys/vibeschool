@@ -47,9 +47,9 @@ jobs:
           python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
           python3 scripts/test-tbl013-live-ledger-audit.py
       - name: Prove pinned Supabase CLI supports enforced read-only SQL
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3.2.0
         with:
-          version: 2.114.0
+          version: 3.1.0
       - name: Reject production-query CLI without read-only guard
         run: |
           set -euo pipefail
@@ -84,9 +84,9 @@ jobs:
             echo "production_mutation=false"
             echo "migration_repair=false"
           } > .tbl013-timetable-readonly/context.txt
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3.2.0
         with:
-          version: 2.114.0
+          version: 3.1.0
       - name: Link only the authorised production project
         run: |
           set -euo pipefail
@@ -95,7 +95,7 @@ jobs:
       - name: Capture live migration ledger
         run: |
           set -o pipefail
-          supabase migration list --linked 2>&1 |
+          supabase migration list --remote 2>&1 |
             tee .tbl013-timetable-readonly/ledger-before.txt
       - name: Classify the live ledger without modifying it
         run: |
@@ -116,7 +116,7 @@ jobs:
           query = "\n".join(line for line in source.splitlines() if not line.startswith(chr(92))) + "\n"
           Path('.tbl013-timetable-readonly/live-hashes.sql').write_text(query, encoding='utf-8')
           PY
-          supabase db query --linked --read-only \
+          supabase db query --remote --read-only \
             -f .tbl013-timetable-readonly/live-hashes.sql -o csv \
             > .tbl013-timetable-readonly/live-hashes.csv
           python3 scripts/tbl012-audit-live-timetable-schema.py \
@@ -156,7 +156,7 @@ jobs:
           cd .tbl013-timetable-stage
           supabase link --project-ref "$EXPECTED_PROJECT_REF"
           test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
-          supabase db push --linked --dry-run --include-all 2>&1 |
+          supabase db push --remote --dry-run --include-all 2>&1 |
             tee ../.tbl013-timetable-readonly/dry-run.txt
       - name: Fail closed on any unapproved or missing version
         run: |
