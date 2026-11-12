@@ -6,6 +6,8 @@ Use this template **per subject, term, sub-strand or batch**; declare the exact 
 
 **This is a working manifest, not a form the VibeSchool owner must complete.** Production agents/teams populate it from source evidence, existing canonical records and performed checks. Do not replace missing evidence with signatures, guesses or “verified” labels.
 
+**Operating interface:** Follow [CONTENT_GENERATION.md §0A](./CONTENT_GENERATION.md#0a-six-stage-daily-execution-short-operating-interface): Verify → Map/reuse → Produce → Validate → Integrate → Verify delivery/hand off. This template is the **existing canonical record of content-production progress**, not a second authoring system or a parallel approval ledger. Fill or update it from checked evidence; persist it via the approved repository/content workflow when work is actually performed. A chat draft that has not been persisted must be marked as such.
+
 ## 1. Package identity
 
 | Field | Value |
@@ -39,6 +41,8 @@ Use this template **per subject, term, sub-strand or batch**; declare the exact 
 | Canonical curriculum corrections made **before** authoring; change/evidence reference | |
 | Recheck of corrected curriculum and existing Scheme/outcome bindings | |
 | Final gate: `PASS` (all scope outcomes reconciled) or `BLOCKED_CURRICULUM_RECONCILIATION` | |
+
+**Layered reconciliation evidence:** Record (A) the *whole-subject inventory* and edition differences, (B) the *per-outcome official-to-current-canonical crosswalk* and any safe repair/read-back, and (C) the set of individual outcomes **eligible for authoring**. An inventory does not count as verified outcomes. A truly reconciled sub-strand may proceed as an explicitly narrowed scope; all unresolved outcomes remain blocked. Record affected KICD source revisions/pages, historical ID/alias/teacher Scheme preservation and invalidated dependent checks. Do not treat April/July design editions as interchangeable without verifying their contents.
 
 **If anything is missing or inaccurate, repair VibeSchool's canonical curriculum first, preserve existing IDs and school-owned history, and recheck.** Do not write notes, examples, exercises or teacher guidance for an unresolved scope. The user is not responsible for routine reconciliation. If the authoritative source or canonical map is unavailable, record `NOT_CHECKED` and the exact blocker; never guess, auto-certify or pass the gate. VibeSchool may word outcomes originally, but must preserve KICD's educational requirements without wholesale copying. This gate is separate from eventual content certification and publication.
 
@@ -197,6 +201,22 @@ Follow the [paired example and rules in the canonical playbook](./CONTENT_GENERA
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | | | | | | | | |
 
+**Resource applicability and proof:** For each outcome record `REQUIRED_PRESENT`, `REQUIRED_MISSING`, `NOT_APPLICABLE` with a specific pedagogy reason, or `NOT_CHECKED` for Core, worked method, supplementary, revision, teacher support, required visual/practical aid and assessment. Presence needs true reference and check evidence; a 15-slot Teaching Library fill quota is forbidden.
+
+**Cross-chat durable resume record, kept in this same outcome ledger** (one record per outcome, with versioned evidence):
+
+| Field | Record actual value or NOT_CHECKED |
+| --- | --- |
+| Replay key | Grade, subject, governing official edition and source section/page, canonical outcome ID |
+| Source/canonical freshness | Last inspection date, actual source/artifact ref, last checked current canonical record/version and exact outcome MATCH/blocked evidence |
+| Content/resource state | Learner/teacher chapter or resource ID, version, activity/visual/question IDs, allowed uses, quality status and real links |
+| Applicability | Each required learning function's selected status and evidence or reasoned omission |
+| QA and release | Defect IDs/dispositions, mathematical check input/result if relevant, reviewer/verification evidence, exact authorized/live statuses |
+| Continuation | Last completed phase, earliest incomplete eligible outcome, dependency/blocker, next permitted action, evidence link |
+| Persistence | Existing repository/package record path and commit or canonical content identity; if not saved, NOT_PERSISTED |
+
+**Resume contract:** Next chat reads this record and current VibeSchool source truth; reuses still-fresh evidence and content; invalidates only affected stale checks; resumes at the earliest unfinished **eligible** outcome. Do not restart the whole inventory unless the governing source changed. No automatic job or background agent is implied by a recorded next step.
+
 For each row preserve:
 
 - **Source gate:** KICD and current VibeSchool curriculum source version, `MATCH`/verified correction evidence, correct strand/sub-strand/outcome ID and relevant Scheme references.
@@ -279,6 +299,21 @@ Use existing Content Engine objects and links; do not assume the schema solely f
 | Teacher usability and independent learner readability | | |
 | Canonical links and no duplicate authority | | |
 | Independent evaluator/critic where required | | |
+
+### Editorial rubric — evidence-based and non-certifying
+
+Rate only dimensions actually inspected on a **0–4 evidence scale** (0 absent/incorrect, 1 major defects, 2 partial, 3 sound, 4 strong) with the current outcome/package version and specific check. Weight curriculum fidelity **25%**, subject accuracy **20%**, conceptual understanding **20%**, practice and feedback **15%**, teacher usability **10%**, accessibility and inclusion **10%**. Compute an optional editorial percentage only when all six are checked (`sum(weight × rating / 4)`); never give untested dimensions an invented score. Follow the canonical [rubric and hard-failure precedence](./CONTENT_GENERATION.md#evidence-based-editorial-quality-rubric-diagnosis-not-certification). A critical alignment, correctness, safety, rights, security, indispensable resource or identity/link defect blocks its gate **regardless of score**. Model self-review does not replace required independent quality assurance.
+
+| Dimension | 0–4 or NOT_CHECKED | Evidence/ref and version | Material defect / repair |
+| --- | --- | --- | --- |
+| Curriculum fidelity (25) | | | |
+| Subject accuracy (20) | | | |
+| Conceptual understanding (20) | | | |
+| Practice and feedback (15) | | | |
+| Teacher usability (10) | | | |
+| Accessibility and inclusion (10) | | | |
+
+**Three independent readiness decisions:** Editorial readiness (correct teaching package), delivery readiness (true authorized accessible routes), and learning effectiveness (actual student demonstration/retention). Record each separately; content counts and editorial scores are not learning outcome evidence.
 
 **Result values:** PASS / FAIL / NOT_APPLICABLE (with reason) / NOT_CHECKED. Do not convert NOT_CHECKED into PASS. Attach references, version, time and actual verifier identity/type for substantive checks.
 
