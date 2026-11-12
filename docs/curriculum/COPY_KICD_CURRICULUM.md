@@ -14,6 +14,14 @@
 
 **Concise exceptions only:** If source acquisition, permission scope, transcription, storage or disclosure would actually be blocked by an unresolved condition, state the exact blocked operation and the minimum required evidence briefly once in that scope's status. Do not conceal a material blocker or write `RIGHTS_VERIFIED` without evidence. Never convert the owner's photocopy analogy into a legal determination or circumvent a content-access, authority or release check. Continue available structural mapping, outcome reconciliation and VibeSchool-original content work rather than stopping the entire subject.
 
+**Standing owner declaration — reuse, do not re-request:** The owner has explicitly declared that VibeSchool has permission to copy the KICD curriculum for a private internal reference. Treat that declaration as an existing instruction and an owner assertion, **not** as documentary verification of the permission's exact scope. The owner need not repeat it in every grade/subject chat. Do not put confidential permission documents or copied source text in this public Git repository.
+
+**One-time per-source permission handling (existing authority records only):**
+1. Look up the existing restricted curriculum-authority record for the specific KICD edition and intended private use. Record the owner declaration, source identity, the actual permission-scope/evidence status, and any technical limits there; do not create new tables or a second approval workflow.
+2. If the applicable permission scope has already been verified for exact transcription, private backend storage and necessary service-provider processing, **perform the word-for-word import and source-diff verification**. Do not substitute a paraphrase merely because the task involves copyrighted source text.
+3. If the scope is not evidenced, record `RIGHTS_SCOPE_UNVERIFIED` for the **affected verbatim ingestion**. Do not presume blanket clearance, bypass restrictions, or falsely certify the import; continue source inventory where permitted, curriculum-to-Scheme reconciliation and VibeSchool-original authoring that can lawfully proceed.
+4. When the unresolved rights condition actually blocks the requested import, identify the specific missing scope/evidence **once**, privately where applicable. Do not re-litigate the owner's assertion, demand routine PDF-opening or add a generic copyright refusal to every completion report. Never infer public redistribution rights from permission for private reference use.
+
 **Reporting style:** Lead with concrete changes, validated counts, links, merge/deployment status and remaining production work. Report source-copy completeness accurately; do not repeat generic permissions prose as a default closing paragraph. Never call an incomplete reference a 100% copy.
 
 ## 0. Primary instruction: WORD FOR WORD, NOT PARAPHRASED
