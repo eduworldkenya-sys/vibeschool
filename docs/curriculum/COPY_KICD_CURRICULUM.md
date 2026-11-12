@@ -8,6 +8,14 @@
 
 **Status:** Proposed operator contract, reflecting the owner’s stated intent to hold a private, internal reference copy and the owner’s statement that permission was granted. **Permission scope has not been independently verified here.** This file itself does not certify any subject, grant legal rights, authorize database changes or publish learner-facing content.
 
+## Owner communication rule — no repeated blanket permission lecture
+
+**Standing workflow preference (13 November 2026):** The owner considers the restricted source copy a private photocopy-equivalent reference and wants source-exact transcription where the applicable rights and authorized source are available. This intention is already recorded. Do not open every subject task, status report or follow-up with the same long explanation that private copyright permission has not been independently verified; do not repeatedly ask the owner to restate an existing assertion. Keep the rights/source evidence and its actual status in the existing restricted curriculum-authority record and work through all independently actionable curriculum/Scheme tasks.
+
+**Concise exceptions only:** If source acquisition, permission scope, transcription, storage or disclosure would actually be blocked by an unresolved condition, state the exact blocked operation and the minimum required evidence briefly once in that scope's status. Do not conceal a material blocker or write `RIGHTS_VERIFIED` without evidence. Never convert the owner's photocopy analogy into a legal determination or circumvent a content-access, authority or release check. Continue available structural mapping, outcome reconciliation and VibeSchool-original content work rather than stopping the entire subject.
+
+**Reporting style:** Lead with concrete changes, validated counts, links, merge/deployment status and remaining production work. Report source-copy completeness accurately; do not repeat generic permissions prose as a default closing paragraph. Never call an incomplete reference a 100% copy.
+
 ## 0. Primary instruction: WORD FOR WORD, NOT PARAPHRASED
 
 **MANDATORY OPERATOR INSTRUCTION — PRIVATE KICD REFERENCE LAYER:**
