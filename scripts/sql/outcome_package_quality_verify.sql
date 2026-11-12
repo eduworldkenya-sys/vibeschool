@@ -21,8 +21,7 @@ declare
   blocked boolean;
   v_name text;
 begin
-  select o0.*, ao.package_id, ao.manuscript_alias
-    into o, source_package_id, manuscript_alias
+  select o0.* into o
   from public.curriculum_learning_outcomes o0
   join public.vs_curriculum_alias_outcomes ao on ao.outcome_id=o0.id
   where o0.status='verified' and o0.verified_at is not null
@@ -34,6 +33,11 @@ begin
   if o.id is null then
     raise exception 'P1 fixture requires an exactly reconciled curriculum outcome';
   end if;
+  select ao.package_id,ao.manuscript_alias into source_package_id,manuscript_alias
+  from public.vs_curriculum_alias_outcomes ao
+  where ao.outcome_id=o.id
+    and public.vs_curriculum_package_gate(ao.package_id)->>'state'='PASS'
+  limit 1;
 
   insert into public.learning_resources(
     source_type,title,status,owner_type,visibility,canonical_key,
