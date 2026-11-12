@@ -63,6 +63,9 @@ type OccurrenceRow = {
   timetable_slot_id: string;
   occurrence_date: string;
   lifecycle: string;
+  recovered_from_id: string | null;
+  rescheduled_to_slot_id: string | null;
+  rescheduled_to_date: string | null;
 };
 
 type CompletedLessonRecord = {
@@ -183,7 +186,7 @@ function LessonNotesInner() {
       setRecordError(null);
       if (occurrenceId || (typedPlan.timetable_slot_id && typedPlan.taught_date)) {
         let occurrenceQuery = supabase.from("teaching_occurrences")
-          .select("id,school_id,teacher_id,class_id,subject_id,timetable_slot_id,occurrence_date,lifecycle");
+          .select("id,school_id,teacher_id,class_id,subject_id,timetable_slot_id,occurrence_date,lifecycle,recovered_from_id,rescheduled_to_slot_id,rescheduled_to_date");
         occurrenceQuery = occurrenceId
           ? occurrenceQuery.eq("id", occurrenceId)
           : occurrenceQuery.eq("timetable_slot_id", typedPlan.timetable_slot_id!)
@@ -466,10 +469,12 @@ function LessonNotesInner() {
       )}
       {startError && <p role="alert" style={{ color: "#b91c1c", padding: 10 }}>{startError}</p>}
       {startingLesson && <p role="status">Starting the scheduled lesson…</p>}
+      {occurrence?.lifecycle === "rescheduled" && <p role="status">This lesson was rescheduled to {occurrence.rescheduled_to_date ?? "another date"}. Its original records remain attached to occurrence {occurrence.id}. Open the replacement from the timetable to teach it.</p>}
       {occurrence?.lifecycle === "completed" && (
         <section aria-label="Saved completed lesson history" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 14, padding: 14, marginBottom: 12 }}>
           <strong>Completed lesson · saved occurrence</strong>
           <div style={{ fontSize: 12, marginTop: 6 }}>Lesson date: {occurrence.occurrence_date} · Occurrence ID: {occurrence.id}</div>
+          {occurrence.recovered_from_id && <div style={{ fontSize: 12, marginTop: 4 }}>Recovery of original missed occurrence: {occurrence.recovered_from_id}</div>}
           {recordError && <p role="alert">{recordError}</p>}
           {completedRecord ? (
             <div style={{ fontSize: 13, marginTop: 8 }}>
@@ -682,6 +687,9 @@ function LessonNotesInner() {
               throw new Error("Lesson finalization returned no authoritative completion record.");
             }
             setOccurrence(current => current ? { ...current, id: finalizedRow.occurrence_id, lifecycle: "completed" } : current);
+            // Re-read the saved attendance/evidence/progress after finalization;
+            // do not present locally inferred success as the history snapshot.
+            void load();
 
             const reflectionContext = [
               liveNote.trim(),
