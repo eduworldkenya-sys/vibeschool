@@ -11,6 +11,7 @@ type ReadableResource = {
   subject: string | null
   body: string
   version: number
+  sourceType: string | null
 }
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -18,9 +19,9 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 function readableBody(payload: unknown): string {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return ''
   const value = payload as Record<string, unknown>
-  const content = typeof value.content_text === 'string' ? value.content_text
-    : typeof value.body === 'string' ? value.body : ''
-  return content.trim()
+  const first = typeof value.content_text === 'string' ? value.content_text.trim() : ''
+  const fallback = typeof value.body === 'string' ? value.body.trim() : ''
+  return first || fallback
 }
 
 /**
@@ -48,7 +49,7 @@ export default function TeachingLibraryReaderPage() {
         const auth = await supabase.auth.getUser()
         if (auth.error || !auth.data.user) throw new Error('Sign in to Teacher OS to read this resource.')
         const { data: root, error: rootError } = await supabase.from('learning_resources')
-          .select('id,title,grade,subject,status,visibility')
+          .select('id,title,grade,subject,source_type,status,visibility')
           .eq('id', resourceId).eq('status', 'active').eq('visibility', 'public').maybeSingle()
         if (rootError) throw rootError
         if (!root) throw new Error('This resource is not released or is not available to your account.')
@@ -62,7 +63,7 @@ export default function TeachingLibraryReaderPage() {
 
         const body = readableBody(version.payload)
         if (!body) throw new Error('This certified resource has no readable text. Open its linked Scheme for another activity.')
-        if (alive) setResource({ title: root.title, grade: root.grade, subject: root.subject, body, version: version.version })
+        if (alive) setResource({ title: root.title, grade: root.grade, subject: root.subject, body, version: version.version, sourceType: root.source_type })
       } catch (reason) {
         if (alive) setError(reason instanceof Error ? reason.message : 'Unable to open this resource.')
       } finally {
@@ -81,7 +82,7 @@ export default function TeachingLibraryReaderPage() {
         {!loading && error && <div role="alert" style={{ color: '#991b1b', padding: 16, borderRadius: 10, background: '#fff7f7' }}>{error}</div>}
         {!loading && resource && (
           <>
-            <div style={{ fontSize: 12, color: '#166348', fontWeight: 700 }}>VibeSchool Originals · Certified resource · Version {resource.version}</div>
+            <div style={{ fontSize: 12, color: '#166348', fontWeight: 700 }}>{resource.sourceType === 'platform_authored' ? 'VibeSchool Originals' : 'Certified teaching resource'} · Version {resource.version}</div>
             <h1 style={{ fontSize: 'clamp(22px, 3.5vw, 30px)', lineHeight: 1.25, margin: '10px 0' }}>{resource.title}</h1>
             <p style={{ color: '#64748b', marginBottom: 24, fontSize: 13 }}>{[resource.grade, resource.subject].filter(Boolean).join(' · ')}</p>
             <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.8, fontSize: 16, color: '#24332b' }}>{resource.body}</div>
