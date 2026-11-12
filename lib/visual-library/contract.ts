@@ -15,7 +15,7 @@ export type VisualPayload = {
   labels: string[]
   placements: VisualPlacement[]
   storage: { bucket: typeof VISUAL_DRAFT_BUCKET; path: string; mime: string; bytes: number }
-  source_resource_id: string
+  source_strand_id: string
   topic_key: string
 }
 
@@ -43,7 +43,7 @@ export function isVisualPayload(value: unknown): value is VisualPayload {
     && p.storage.bucket === VISUAL_DRAFT_BUCKET
     && ['image/jpeg','image/png','image/webp','image/gif'].includes(p.storage.mime)
     && typeof p.storage.bytes === 'number' && p.storage.bytes > 0 && p.storage.bytes <= VISUAL_MAX_BYTES
-    && typeof p.source_resource_id === 'string' && UUID_RE.test(p.source_resource_id)
+    && typeof p.source_strand_id === 'string' && UUID_RE.test(p.source_strand_id)
     && typeof p.topic_key === 'string' && p.topic_key.length > 0
 }
 export function imageTypeFromBytes(bytes: Uint8Array): { mime: string; ext: string } | null {
