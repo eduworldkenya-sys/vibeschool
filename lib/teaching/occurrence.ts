@@ -267,8 +267,6 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
 
   if (slotErr) throw slotErr
   if (!slot) return null
-  if (slot.effective_from && key.occurrenceDate < slot.effective_from) return null
-  if (slot.effective_until && key.occurrenceDate > slot.effective_until) return null
 
   const [lessonPlanRes, occurrenceRes, expectedEnrollmentRes] = await Promise.all([
     supabase.from('lesson_plans')
@@ -296,6 +294,12 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
 
   const lessonPlanId = lessonPlanRes.data?.id ?? null
   const persistedOccurrence = occurrenceRes.data as { id: string; lifecycle: Lifecycle } | null
+  // A schedule revision may narrow a slot's effective dates. Existing
+  // occurrences remain historical authority and must still reopen; only
+  // never-created candidate dates are excluded by the current slot window.
+  if (!persistedOccurrence &&
+      ((slot.effective_from && key.occurrenceDate < slot.effective_from)
+        || (slot.effective_until && key.occurrenceDate > slot.effective_until))) return null
   const typedSupabase = getSupabaseClient()
 
   const progressQuery = persistedOccurrence
