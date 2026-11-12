@@ -71,8 +71,30 @@ const assertions = [
   ],
   [
     source.includes("assignment_not_found|academic_term_not_found") &&
-      source.includes("throw progressionError"),
+      /if\s*\([\s\S]*?assignment_not_found\|academic_term_not_found[\s\S]*?\)\s*\{\s*throw error/.test(source),
     'Progression recovery must not bypass authorization failures.',
+  ],
+  [
+    source.includes('listDatedSchemeCandidates') &&
+      source.includes(".eq('teacher_id', input.userId)") &&
+      source.includes(".eq('school_id', input.schoolId)") &&
+      source.includes(".eq('class_id', input.classId)") &&
+      source.includes(".eq('subject_id', input.subjectId)") &&
+      source.includes(".eq('academic_term_id', week.term_id)") &&
+      source.includes(".eq('week', week.week_number)"),
+    'Dated Scheme choices must be scoped to teacher, school, class, subject, term and week.',
+  ],
+  [
+    workspace.includes('if (existingPlan?.scheme_id && !sourceLinked)') &&
+      !workspace.includes('const persistedSource = await restorePersistedLessonSource(existingPlan)'),
+    'An old persisted Scheme identity must not override failed date and week validation.',
+  ],
+  [
+    modal.includes('dated-scheme-choice') &&
+      modal.includes('datedSchemeCandidates.some(candidate => candidate.id === schemeId)') &&
+      modal.includes('attachSchemeToDatedLesson(') &&
+      modal.includes('const refreshed = await loadLessonWorkspace('),
+    'A teacher-selected dated Scheme and outcome must use guarded attachment and exact-identity re-read.',
   ],
 ]
 
