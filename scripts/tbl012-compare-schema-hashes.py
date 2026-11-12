@@ -142,7 +142,7 @@ def main() -> int:
                     "production_reference_verified": False,
                     "error": "STALE_PRODUCTION_REFERENCE",
                     "baseline_differences": baseline_drift,
-                }, indent=2) + "\\n", encoding="utf-8")
+                }, indent=2) + "\n", encoding="utf-8")
                 print("TBL-012 LIVE PRODUCTION REFERENCE MISMATCH", file=sys.stderr)
                 for delta in baseline_drift:
                     print(f" - {delta['table']}.{delta['section']}", file=sys.stderr)

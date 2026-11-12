@@ -37,6 +37,11 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
+      - name: Verify timetable reconciliation contracts
+        # Node's built-in test runner and Python stdlib need no npm install.
+        # This exercises the exact live-baseline and forward-delta guards.
+        run: node --test scripts/test-timetable-reconciliation.mjs
+
       - name: Initialize evidence
         shell: bash
         run: |
