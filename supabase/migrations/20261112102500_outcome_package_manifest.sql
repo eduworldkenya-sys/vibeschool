@@ -57,6 +57,50 @@ create index if not exists learning_resources_outcome_package_lookup_idx
 -- Returned completeness is computed from the actual pinned versions/questions.
 -- Release intent is stored separately for core, activities and revision in the
 -- *immutable* package version. Changing release intent requires a new version.
+-- The reconciled curriculum ledgers deliberately deny direct service-role SELECT.
+-- This narrow, read-only helper evaluates the established P0 gate as the SQL
+-- owner; it never allows browser access or writes reconciliation records.
+create or replace function public.cla_package_reconciled_outcome(
+  p_package_id text,p_outcome_id uuid,p_aliases jsonb
+) returns boolean
+language plpgsql stable security definer set search_path = '' as $reconcile$
+declare
+  expected_aliases jsonb;
+  supplied_aliases jsonb;
+begin
+  if nullif(btrim(coalesce(p_package_id,'')),'') is null
+     or p_outcome_id is null or jsonb_typeof(p_aliases) is distinct from 'array'
+     or pg_catalog.to_regclass('public.vs_curriculum_alias_outcomes') is null
+     or pg_catalog.to_regprocedure('public.vs_curriculum_package_gate(text)') is null then
+    return false;
+  end if;
+  if (public.vs_curriculum_package_gate(p_package_id)->>'state') is distinct from 'PASS' then
+    return false;
+  end if;
+  select coalesce(jsonb_agg(alias order by alias),'[]'::jsonb)
+    into expected_aliases
+  from (
+    select distinct ao.manuscript_alias as alias
+    from public.vs_curriculum_alias_outcomes ao
+    where ao.package_id=p_package_id and ao.outcome_id=p_outcome_id
+  ) aliases;
+  if expected_aliases='[]'::jsonb then return false; end if;
+  if exists (
+    select 1 from jsonb_array_elements(p_aliases) v(value)
+    where jsonb_typeof(v.value) is distinct from 'string'
+  ) then return false; end if;
+  select coalesce(jsonb_agg(alias order by alias),'[]'::jsonb)
+    into supplied_aliases
+  from (select distinct value as alias from jsonb_array_elements_text(p_aliases)) aliases;
+  return expected_aliases=supplied_aliases
+     and jsonb_array_length(p_aliases)=jsonb_array_length(supplied_aliases);
+end;
+$reconcile$;
+revoke all on function public.cla_package_reconciled_outcome(text,uuid,jsonb)
+  from public,anon,authenticated;
+grant execute on function public.cla_package_reconciled_outcome(text,uuid,jsonb)
+  to service_role;
+
 create or replace function public.cla_audit_outcome_package(
   p_resource_id uuid, p_manifest jsonb
 ) returns jsonb
@@ -84,6 +128,7 @@ declare
   v_experiences jsonb := '{}'::jsonb;
   v_complete boolean;
   v_source_ready boolean;
+  v_curriculum_package_id text;
   v_state text;
   v_requires_guidance boolean;
   v_requires_visuals boolean;
@@ -102,6 +147,10 @@ begin
 
   -- Exact manuscript aliases are separate from the stable outcome ID. The
   -- upstream curriculum promotion guard verifies their authoritative mapping.
+  if p_manifest->'curriculum_package_id' is not null
+     and jsonb_typeof(p_manifest->'curriculum_package_id') is distinct from 'string' then
+    return jsonb_build_object('valid',false,'issues',jsonb_build_array('INVALID_CURRICULUM_PACKAGE_ID'));
+  end if;
   if jsonb_typeof(p_manifest->'curriculum_outcome_aliases') is distinct from 'array' then
     return jsonb_build_object('valid',false,'issues',jsonb_build_array('CURRICULUM_ALIASES_ARRAY_REQUIRED'));
   end if;
@@ -137,10 +186,26 @@ begin
 
   select * into v_outcome from public.curriculum_learning_outcomes
     where id = v_root.curriculum_outcome_id;
-  v_source_ready := coalesce(
-    v_outcome.status = 'verified' and v_outcome.verified_at is not null
-    and v_outcome.source_import_id is not null
-    and nullif(btrim(v_outcome.source_locator),'') is not null, false);
+  -- Two legitimate source-authority paths coexist in production:
+  -- imported verified outcomes; and legacy active outcomes explicitly reconciled
+  -- by the newer P0 curriculum scope/alias/source gate (e.g. Grade 4 Time).
+  -- A supplied package ID must match the gated outcome and exact aliases;
+  -- it can never fall back to imported verification.
+  v_curriculum_package_id := nullif(btrim(p_manifest->>'curriculum_package_id'),'');
+  if v_curriculum_package_id is null then
+    v_source_ready := coalesce(
+      v_outcome.status = 'verified' and v_outcome.verified_at is not null
+      and v_outcome.source_import_id is not null
+      and nullif(btrim(v_outcome.source_locator),'') is not null
+      and jsonb_array_length(p_manifest->'curriculum_outcome_aliases') = 0,false);
+  else
+    v_source_ready := coalesce(
+      v_outcome.status in ('active','verified')
+      and nullif(btrim(v_outcome.source_locator),'') is not null
+      and public.cla_package_reconciled_outcome(
+        v_curriculum_package_id,v_root.curriculum_outcome_id,
+        p_manifest->'curriculum_outcome_aliases'), false);
+  end if;
 
   foreach v_role in array array['core','activities','revision','teacher_guidance','visual_assets'] loop
     if jsonb_typeof(v_refs->v_role) is distinct from 'array' then
