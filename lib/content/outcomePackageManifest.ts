@@ -18,6 +18,7 @@ export type PinnedLearningResource = Readonly<{
 export type OutcomePackageManifest = Readonly<{
   schema: typeof OUTCOME_PACKAGE_SCHEMA
   outcome_id: string
+  curriculum_outcome_aliases: readonly string[]
   requirements: Readonly<{ teacher_guidance: boolean; visual_assets: boolean }>
   assets: Readonly<Record<OutcomeAssetRole, readonly PinnedLearningResource[]>>
   question_ids: Readonly<Record<'activities' | 'revision', readonly string[]>>
@@ -26,6 +27,7 @@ export type OutcomePackageManifest = Readonly<{
 
 export type OutcomePackageInput = {
   outcomeId: string
+  outcomeAliases?: readonly string[]
   assets?: Partial<Record<OutcomeAssetRole, readonly PinnedLearningResource[]>>
   questionIds?: Partial<Record<'activities' | 'revision', readonly string[]>>
   requirements?: Partial<{ teacherGuidance: boolean; visualAssets: boolean }>
@@ -71,6 +73,12 @@ function questionsFor(role: 'activities' | 'revision', ids: readonly string[] = 
 
 export function buildOutcomePackageManifest(input: OutcomePackageInput): OutcomePackageManifest {
   const outcome_id = normalizedId(input.outcomeId, 'outcome ID')
+  const aliases = input.outcomeAliases ?? []
+  if (!Array.isArray(aliases) || aliases.some((alias) =>
+    typeof alias !== 'string' || !alias.trim() || alias !== alias.trim()) ||
+    new Set(aliases).size !== aliases.length) {
+    throw new Error('outcomePackage: invalid or duplicate curriculum aliases')
+  }
   const assets = {} as Record<OutcomeAssetRole, PinnedLearningResource[]>
   for (const role of ROLES) assets[role] = pinsFor(role, input.assets?.[role])
   const question_ids = {
@@ -103,6 +111,7 @@ export function buildOutcomePackageManifest(input: OutcomePackageInput): Outcome
   return {
     schema: OUTCOME_PACKAGE_SCHEMA,
     outcome_id,
+    curriculum_outcome_aliases: [...aliases],
     requirements: {
       teacher_guidance: input.requirements?.teacherGuidance ?? false,
       visual_assets: input.requirements?.visualAssets ?? false,
