@@ -1366,7 +1366,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // across teacher_classes, classes, subjects, subject_weekly_allocations,
   // and timetable_slots. Replaces client-side grouping (Fix 13).
   useEffect(() => {
-    if (!teacherId || !activeSchoolId || scheduleContext === 'independent') {
+    if (!teacherId || !activeSchoolId || !officialReleases[activeSchoolId] || scheduleContext === 'independent') {
       setWeeklyLoadRows([])
       setWeeklyLoadError(null)
       return
@@ -1400,7 +1400,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       setWeeklyLoadError('Weekly subject allocation could not be verified. The lesson counts below are not a confirmed allocation check.')
     })
     return () => { cancelled = true }
-  }, [teacherId, activeSchoolId, scheduleContext, renderedWeekSlots, weeklyLoadRetry])
+  }, [teacherId, activeSchoolId, officialReleases, scheduleContext, renderedWeekSlots, weeklyLoadRetry])
 
   // Only non-OK rows are actionable — OK stays silent, same rule as before.
   const loadMismatches = useMemo(
@@ -1435,7 +1435,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   )
 
   
-  const canAddSlot = !loading && verifiedTeacher && teacherId !== null && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter) && !schoolError && !loadError && !blocksError
+  const canAddSlot = !loading && verifiedTeacher && teacherId !== null
+    && schoolAdminCanManage && !!activeSchoolId && !officialReleases[activeSchoolId]
+    && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter)
+    && !schoolError && !publicationError && !loadError && !blocksError
 
   // A private timetable is never proof that the account belongs to a teacher.
   // If role or school membership verification fails, fail closed for all modes.
@@ -1508,6 +1511,28 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       {scheduleContext !== 'independent' && loadError && <ErrorBanner message={loadError} />}
       {schoolError && <ErrorBanner message={schoolError} />}
+      {scheduleContext !== 'independent' && publicationError && !schoolError && <ErrorBanner message={publicationError} />}
+      {scheduleContext !== 'independent' && !loading && !schoolError && schools
+        .filter(school => schoolFilter === 'all' || school.id === schoolFilter)
+        .map(school => {
+          const release = officialReleases[school.id]
+          return <div key={school.id} role="status" className="no-print" style={{
+            padding: '10px 14px', borderRadius: 10, marginBottom: 12, fontSize: 12,
+            border: '1px solid ' + (release ? '#bbf7d0' : '#fcd34d'),
+            background: release ? '#f0fdf4' : '#fffbeb',
+            color: release ? '#166534' : '#92400e',
+          }}>
+            <strong>{school.name}:</strong> {release
+              ? 'Official school timetable · ' + release.label + ' · effective ' + release.effective_from
+              : 'School timetable not yet published. Historical slots and samples are not an official timetable.'}
+            {!release && ' You can still prepare and teach unscheduled lessons.'}
+          </div>
+        })}
+      {scheduleContext === 'school' && schoolAdminCanManage && <button type="button"
+        className="no-print" onClick={() => router.push('/admin/timetable')}
+        style={{marginBottom:12,border:'none',background:'transparent',color:C.accent,fontWeight:700,cursor:'pointer'}}>
+        Manage school timetable publication
+      </button>}
       {scheduleContext !== 'school' && tuitionError && <div role="alert" className="no-print" style={{ marginBottom: 12, fontSize: 12 }}>{tuitionError} <button type="button" onClick={refreshTuition}>Retry tuition</button></div>}
 
       {!loading && (
@@ -1938,8 +1963,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onCancelRecovery={ctx => setRecoveryCtx(ctx)}
         onEdit={s => setEditSlot(s)}
         onCopy={s => setCopySlot(s)}
-        canCopy={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
-        canEdit={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
+        canCopy={Boolean(canAddSlot && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
+        canEdit={Boolean(canAddSlot && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
       />}
 
       {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson
