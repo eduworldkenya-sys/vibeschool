@@ -11,6 +11,13 @@ declare
   pkg_version uuid;
   q_id uuid;
   other_outcome_id uuid;
+  gated_outcome_id uuid;
+  gated_package_id text;
+  gated_alias text;
+  gated_core_id uuid;
+  gated_core_version uuid;
+  gated_pkg_id uuid;
+  gated_manifest jsonb;
   manifest jsonb;
   audit jsonb;
   broken jsonb;
@@ -50,7 +57,7 @@ begin
     'schema','vibeschool.outcome-package.v1',
     'outcome_id',o.id,
     'curriculum_package_id',null,
-    'curriculum_outcome_aliases',jsonb_build_array('p0-test-manuscript-alias'),
+    'curriculum_outcome_aliases','[]'::jsonb,
     'requirements',jsonb_build_object('teacher_guidance',false,'visual_assets',false),
     'assets',jsonb_build_object(
       'core',jsonb_build_array(jsonb_build_object('resource_id',core_id,'resource_version_id',core_version)),
@@ -150,6 +157,54 @@ begin
   exception when check_violation then
     if sqlerrm <> 'CLA_PACKAGE_ROOT_IDENTITY_IMMUTABLE' then raise; end if;
   end;
+
+  -- A fully reconciled legacy-active outcome must pass the established P0
+  -- source/alias gate even without the newer imported verified_at/source_import.
+  select ao.outcome_id,ao.package_id,ao.manuscript_alias
+  into gated_outcome_id,gated_package_id,gated_alias
+  from public.vs_curriculum_alias_outcomes ao
+  join public.curriculum_learning_outcomes go on go.id=ao.outcome_id
+  where go.status='active'
+    and nullif(btrim(go.source_locator),'') is not null
+    and (public.vs_curriculum_package_gate(ao.package_id)->>'state')='PASS'
+  limit 1;
+  if gated_outcome_id is not null then
+    insert into public.learning_resources (
+      source_type,title,owner_type,visibility,canonical_key,asset_kind,purpose,curriculum_outcome_id
+    ) values ('platform_generated','P0 gated core','platform','public',
+              'p0-test-gated-core-'||gen_random_uuid(),'learner_notes','teach',gated_outcome_id)
+      returning id into gated_core_id;
+    insert into public.learning_resource_versions (
+      resource_id,version,lifecycle_status,payload,content_sha256,
+      rights_status,certification_policy_version,certification_evidence,certified_at
+    ) values (gated_core_id,1,'certified','{"text":"Gated fixture"}'::jsonb,
+              repeat('c',64),'cleared','p0-test','{"fixture":true}'::jsonb,now())
+      returning id into gated_core_version;
+    insert into public.learning_resources (
+      source_type,title,owner_type,visibility,canonical_key,asset_kind,purpose,curriculum_outcome_id
+    ) values ('platform_generated','P0 gated package','platform','public',
+              'p0-test-gated-package-'||gen_random_uuid(),'outcome_package','reference',gated_outcome_id)
+      returning id into gated_pkg_id;
+    gated_manifest := jsonb_set(manifest,'{outcome_id}',to_jsonb(gated_outcome_id::text));
+    gated_manifest := jsonb_set(gated_manifest,'{curriculum_package_id}',to_jsonb(gated_package_id));
+    gated_manifest := jsonb_set(gated_manifest,'{curriculum_outcome_aliases}',jsonb_build_array(gated_alias));
+    gated_manifest := jsonb_set(gated_manifest,'{assets,core,0,resource_id}',to_jsonb(gated_core_id::text));
+    gated_manifest := jsonb_set(gated_manifest,'{assets,core,0,resource_version_id}',to_jsonb(gated_core_version::text));
+    audit := public.cla_audit_outcome_package(gated_pkg_id,gated_manifest);
+    if audit->>'valid' <> 'true'
+       or audit->>'curriculum_reconciled' <> 'true'
+       or audit #>> '{experiences,core,releasable}' <> 'true' then
+      raise exception 'Active P0-gated outcome wrongly blocked: %',audit;
+    end if;
+    broken := jsonb_set(gated_manifest,'{curriculum_package_id}',to_jsonb('INVALID-PACKAGE'));
+    if public.cla_audit_outcome_package(gated_pkg_id,broken)->>'valid' <> 'false' then
+      raise exception 'Invalid P0 reconciliation package ID accepted';
+    end if;
+    broken := jsonb_set(gated_manifest,'{curriculum_outcome_aliases}',jsonb_build_array('INVALID-ALIAS'));
+    if public.cla_audit_outcome_package(gated_pkg_id,broken)->>'valid' <> 'false' then
+      raise exception 'Unreconciled P0 alias accepted';
+    end if;
+  end if;
 
   -- Version trigger must reject a false release, not merely report it.
   begin
