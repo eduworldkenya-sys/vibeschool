@@ -92,10 +92,6 @@ def run() -> None:
         rejected(missing, migrations, config, root, "absent from ledger classification")
         unverified = report(approved)
         unverified["counts"]["duplicate_remote_versions"] = 1
-        try:
-            stage.module.load_report_for_test  # never exists; use the public loader below
-        except AttributeError:
-            pass
         import json
         file = root / "bad-report.json"
         file.write_text(json.dumps(unverified), encoding="utf-8")
