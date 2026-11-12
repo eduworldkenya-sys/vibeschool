@@ -87,18 +87,6 @@ function publishedDescription(description: string | null): string | null {
   return description && !/review[- ]stage manuscript|candidate manuscript|draft manuscript/i.test(description)
     ? description : null
 }
-function timeAgo(iso: string) {
-  const value = new Date(iso).getTime()
-  if (!Number.isFinite(value)) return ''
-  const minutes = Math.max(0, Math.floor((Date.now() - value) / 60000))
-  if (minutes < 60) return `${minutes}m ago`
-  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`
-  return `${Math.floor(minutes / 1440)}d ago`
-}
-function isSafeUrl(value: string) {
-  try { return ['http:', 'https:'].includes(new URL(value).protocol) } catch { return false }
-}
-
 export default function TeacherResourcesPage() {
   const searchParams = useSearchParams()
   const requestedClassId = searchParams.get('classId') ?? ''
