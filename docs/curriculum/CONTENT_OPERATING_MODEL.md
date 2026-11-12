@@ -48,7 +48,7 @@ One interactive assistant can perform the **drafting functions in sequence** wit
 
 **Production path:**
 
-`OWNER SELECTS GRADE + SUBJECT → OFFICIAL CURRICULUM MAP → COVERAGE LEDGER → SUBJECT BLUEPRINT → ORIGINAL CONTENT → ACTIVITIES + PRACTICE + ASSESSMENT → TEACHER/LEARNER DERIVATIVES → SELF-AUDIT + TARGETED REPAIR → CANONICAL CONTENT PACKAGE → EXISTING RELEASE PROCESS → REAL READER/JOURNEY CHECK`
+`OWNER SELECTS GRADE + SUBJECT → READ LIVE/CANONICAL VIBESCHOOL CURRICULUM + CURRENT KICD DESIGN → COMPARE AND RECONCILE EACH REQUIRED OUTCOME → RECHECK CORRECTED CURRICULUM AND SCHEME REFERENCES → COVERAGE LEDGER → SUBJECT BLUEPRINT → ORIGINAL CONTENT → ACTIVITIES + PRACTICE + ASSESSMENT → TEACHER/LEARNER DERIVATIVES → SELF-AUDIT + TARGETED REPAIR → CANONICAL CONTENT PACKAGE → EXISTING RELEASE PROCESS → REAL READER/JOURNEY CHECK`
 
 ### Step 1 — Owner picks the subject; no long setup
 
@@ -59,11 +59,24 @@ If the request explicitly covers a term or one topic, respect that scope. Otherw
 ### Step 2 — Find the correct curriculum and list its full scope
 
 - Retrieve the relevant official KICD curriculum design and identify the revision, grade, subject, all strands/sub-strands, outcomes, competencies, learning experiences and assessment expectations, plus lesson allocations if given.
-- Cross-check against existing VibeSchool curriculum mapping to prevent duplicates, wrong-grade links and missing outcomes.
+- Read the current VibeSchool canonical curriculum and complete **Step 2A's mandatory source-by-source comparison**; repair and recheck all mismatches *before* creating learner/teacher content.
 - Construct an **outcome coverage ledger** for the whole declared scope **before** claiming completeness.
 - Identify gaps or uncertainty from the source. Continue preparing what is verifiable; do not invent exact outcomes, allocation counts or source checks.
 
-**Deliverable:** one source-referenced, complete curriculum map/coverage manifest.
+**Deliverable:** one source-referenced curriculum map and **completed KICD ↔ VibeSchool reconciliation ledger with a proven PASS for the exact scope**; a mere index or unfinished comparison is not authorization to write learning content.
+
+### Step 2A — Mandatory KICD ↔ VibeSchool curriculum reconciliation gate (before authoring)
+
+**Every content-generation chat MUST do this first, for the exact grade, subject and content scope requested.** Existing curriculum maps, previous chat claims, a matching topic title, a Scheme of Work and a content package are **not** evidence that the VibeSchool curriculum fully matches KICD.
+
+1. **Read both real sources:** inspect the latest applicable **official KICD curriculum design** (URL, edition/revision, relevant page/section) and the **current VibeSchool canonical curriculum** (repository catalogue AND persisted curriculum/outcome records where available). Never invent an inaccessible source or infer coverage from a filename.
+2. **Compare the requirements side by side:** grade, subject and design version; every strand and sub-strand; **each specific learning outcome's meaning and scope**; key inquiry questions, suggested experiences, competencies, values, pertinent contemporary issues and assessment expectations; progression, suggested lesson allocations and any applicable adaptations. A VibeSchool-original paraphrase may differ in wording, **but it must preserve all KICD requirements**. KICD source text must not be copied wholesale into VibeSchool materials.
+3. **Record the evidence:** give every source requirement an authoritative page/section locator, its matching VibeSchool stable identity and one of `MATCH`, `MISSING`, `PARTIAL`, `EXTRA`, `CONFLICT` or `NOT_CHECKED`. Show source-version and suggested-lesson discrepancies explicitly; do not invent a KICD allocation just to reach a timetable total. Preserve a concise source-to-outcome reconciliation ledger.
+4. **If anything does not match, fix the VibeSchool curriculum *before generating content*.** Correct missing, incomplete, wrong-grade or wrong-scope requirements in the existing canonical curriculum authority, not only in manuscript prose. Preserve stable IDs, existing content versions, teacher-owned schemes and historical evidence wherever possible. Use the existing authorized repository/database migration and test process for technical writes; don't silently overwrite live teacher records. Recheck the affected curriculum, Scheme references and outcome identity after every fix.
+5. **Proceed to learner notes, examples, exercises, assessment and teacher guidance only when every KICD requirement within the declared scope is `MATCH` and the corrected VibeSchool map is confirmed.** If official source or canonical data cannot be accessed, or an unresolved conflict remains, mark that scope **`BLOCKED_CURRICULUM_RECONCILIATION`** and report the exact gap; do not invent an outcome, certify a match, skip ahead to content generation, or ask the owner to manually fix routine discrepancies. A separately reconciled sub-strand can proceed only when the deliverable is explicitly scoped to that sub-strand; never call it a completed subject.
+6. **Keep two different statuses separate:** a source-reconciled curriculum map is not yet a complete, quality-checked, integrated or published lesson. Content still needs its own correctness, rights, accessibility, integration and release checks.
+
+**Required handoff sentence before authoring:** `KICD ↔ VibeSchool curriculum reconciliation: [GRADE/SUBJECT/SCOPE]; [source edition and pages]; [N/N required outcomes MATCH]; [defects corrected or unresolved]; [canonical evidence reference]; PASS/BLOCKED.` Never write `PASS` without actually reading and comparing both sources.
 
 ### Step 3 — Build the subject teaching blueprint
 
