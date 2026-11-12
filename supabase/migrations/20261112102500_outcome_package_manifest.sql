@@ -23,7 +23,7 @@ alter table public.learning_resources
   add constraint learning_resources_outcome_package_scope_check
   check (asset_kind <> 'outcome_package' or (
     curriculum_outcome_id is not null and owner_type = 'platform'
-    and source_type in ('platform_authored','platform_generated')
+    and source_type = 'platform_generated'
     and school_id is null
   ));
 
