@@ -8,8 +8,9 @@ import {
   TEACHING_LIBRARY_SLOTS,
 } from '@/lib/teaching/libraryStructure'
 import type { TeachingLibraryCategoryId } from '@/lib/teaching/libraryStructure'
+import { componentForPersonalResource } from '@/lib/teaching/personalResourceTypes'
 
-type SavedResource = { id: string; title: string; type: string }
+type SavedResource = { id: string; title: string; type: string; component_type?: string | null; publication_status?: string | null }
 export type CanonicalTeachingLibraryItem = {
   id: string
   title: string
@@ -33,7 +34,7 @@ export default function TeachingLibraryStructure({
 }: {
   savedResources: SavedResource[]
   linkedResources: CanonicalTeachingLibraryItem[]
-  onAddPersonalResource: (type: 'notes' | 'quiz') => void
+  onAddPersonalResource: (componentId: string) => void
 }) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<TeachingLibraryCategoryId | 'all'>('all')
@@ -67,11 +68,8 @@ export default function TeachingLibraryStructure({
     })
   }, [category, linkedBySlot, query])
 
-  const savedFor = (id: string) => {
-    const slot = TEACHING_LIBRARY_SLOTS.find(item => item.id === id)
-    return slot?.existingPersonalResourceType
-      ? savedResources.filter(item => item.type === slot.existingPersonalResourceType) : []
-  }
+  const savedFor = (id: string) =>
+    savedResources.filter(item => componentForPersonalResource(item) === id)
   const countFor = (id: string) => (linkedBySlot.get(id)?.length ?? 0) + savedFor(id).length
   const searching = query.trim().length > 0
 
@@ -137,10 +135,10 @@ export default function TeachingLibraryStructure({
                           ))}
                         </ul>}
                         {saved.length > 0 && <ul style={{ paddingLeft: 17, margin: '4px 0' }}>
-                          {saved.map(item => <li key={item.id} style={{ margin: '6px 0', fontSize: 13 }}><a href={'#saved-resource-' + item.id} style={{ color: '#126747' }}>{item.title} · My saved materials</a></li>)}
+                          {saved.map(item => <li key={item.id} style={{ margin: '6px 0', fontSize: 13 }}><a href={'#saved-resource-' + item.id} style={{ color: '#126747' }}>{item.title} · My saved material {item.publication_status === 'shared' ? '(shared)' : '(private draft)'}</a></li>)}
                         </ul>}
                         {!count && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#65766b' }}>Nothing is linked to this optional component yet. Continue preparing your lesson normally, or add content later.</p>}
-                        {slot.existingPersonalResourceType && <button type="button" onClick={() => onAddPersonalResource(slot.existingPersonalResourceType!)}
+                        {<button type="button" onClick={() => onAddPersonalResource(slot.id)}
                           style={{ border: '1px solid #c5d7cc', background: '#fff', color: '#135b40', borderRadius: 8, padding: '8px 11px', fontSize: 12, fontWeight: 650 }}>Add {slot.label.toLowerCase()}</button>}
                       </div>}
                     </div>
