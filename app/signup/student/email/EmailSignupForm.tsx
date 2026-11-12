@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { checkLearnerEmailSession, sendLearnerEmail, signOutLearnerEmail, verifyLearnerEmail, saveIndependentEmailGrade } from './actions'
 import styles from './signup.module.css'
-import { LEARNER_GRADES } from '@/lib/learner/independent-grade'
+import LearnerGradePicker from '@/components/learner/LearnerGradePicker'
 
 export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean }) {
   const [email, setEmail] = useState('')
@@ -99,7 +99,7 @@ export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean })
     {error && <p className={styles.error} role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {checking ? <p role="status">Checking your session…</p> : signedIn ? <>
-      {!gradeSaved && <><label htmlFor="independent-grade">Choose your grade or form</label><select id="independent-grade" value={grade} onChange={e=>setGrade(e.target.value)} style={{display:'block',width:'100%',padding:13,borderRadius:8,margin:'10px 0'}}><option value="">Select grade</option>{LEARNER_GRADES.map(value=><option key={value} value={value}>{value}</option>)}</select><button className={styles.primary} type="button" disabled={!grade || busy} onClick={()=>void saveGrade()}>{busy?'Saving…':'Save grade and continue'}</button></>}
+      {!gradeSaved && <><LearnerGradePicker value={grade} onChange={setGrade} legend="Choose your grade or form" /><button className={styles.primary} type="button" disabled={!grade || busy} onClick={()=>void saveGrade()}>{busy?'Saving…':'Save grade and continue'}</button></>}
       {gradeSaved && <a className={styles.primary} href="/global/read">Open reading library</a>}
       <p>Independent learners can access the reading library. School-only areas are not included in this account yet.</p>
       <button className={styles.secondary} type="button" disabled={busy} onClick={() => void signOut()}>Sign out</button>

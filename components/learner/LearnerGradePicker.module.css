@@ -1,0 +1,57 @@
+.fieldset {
+  border: 0;
+  padding: 0;
+  margin: 16px 0;
+  min-width: 0;
+}
+
+.legend {
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 0;
+  margin-bottom: 10px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.option {
+  min-width: 0;
+  min-height: 46px;
+  border: 1px solid #626278;
+  border-radius: 9px;
+  background: #19192b;
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 8px 2px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.option[aria-pressed="true"] {
+  background: #c8a84b;
+  border-color: #edcb6b;
+  color: #090915;
+  font-weight: 800;
+}
+
+.option:hover:not([aria-pressed="true"]) {
+  background: #28283e;
+  border-color: #e9cc76;
+}
+
+.option:focus-visible {
+  outline: 3px solid #22c55e;
+  outline-offset: 2px;
+}
+
+@media (max-width: 350px) {
+  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
