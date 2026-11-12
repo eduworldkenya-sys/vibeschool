@@ -148,6 +148,8 @@ After the **mandatory KICD ↔ VibeSchool reconciliation has passed** and the ma
 
 **Illustrative example:** Grade 4 Mathematics Time: core model of reading an analogue clock; additional clock-reading practice with accessible alternative and feedback when a learner confuses the hands; later revision across verified taught Time outcomes, with a wrong-answer link to the specific explanation, targeted exercise and a fresh check. Treat that example as pedagogy, not as a verified official KICD allocation.
 
+**Learner-produced work at every suitable stage:** the core reader invites the learner to try a similar task in an exercise book; supplementary practice asks for actual working/drawing before revealing a solution; revision invites independent recall and correction; recovery returns the child to a source and a fresh check. Mathematics includes worked calculations and units, languages original writing, sciences observations/labelled diagrams, and creative/practical subjects authentic demonstration. Provide accessible oral, tactile, typed and low-resource alternatives. The same instructional prompt and observation criteria are available to Teacher Notes/Guide/lesson preparation; it is not a timetable gate, second learner notebook database or an automatically awarded score. Follow the active-learning contract in [Content Generation §4.5A](./CONTENT_GENERATION.md#45a-active-notebook-and-learner-produced-work--one-shared-architecture).
+
 **Deliverables:** a three-experience manifest per included outcome, teacher/learner derivative references, answer checks, any learner-specific evidence actually observed, missing-component dispositions and honest visibility/release states.
 
 ### Step 5B — Atomic outcome loop and cumulative revision assembly
