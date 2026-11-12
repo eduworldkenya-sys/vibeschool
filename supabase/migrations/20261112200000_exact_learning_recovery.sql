@@ -291,7 +291,7 @@ begin
 
   -- Only a single exact, verified outcome link may be attached to this bank
   -- question. Never infer identity from the subject or topic name.
-  select min(link.outcome_id)
+  select (array_agg(distinct link.outcome_id))[1]
     into v_outcome
   from public.assessment_items item
   join public.assessment_item_outcomes link on link.assessment_item_id=item.id
