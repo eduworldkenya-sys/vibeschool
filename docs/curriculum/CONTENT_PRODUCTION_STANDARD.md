@@ -24,6 +24,8 @@ This is the standard for all Grades 1–9. The contents of a particular lesson a
 5. Separate **official curriculum facts** from **VibeSchool pedagogical choices** such as teaching sequence, learner examples, proposed exercises and resources.
 6. Preserve uncertainty honestly. An author-generated draft is not an independently verified or released artifact. Do not fabricate KICD endorsement, human sign-off, source verification or learner-tested effectiveness.
 7. Curriculum coverage is **subject-wide**, with a traceable status for every required outcome and its relevant progression. One completed sub-strand must never be reported as a completed subject.
+8. **Mandatory pre-generation comparison:** every ChatGPT content-production task must inspect **both** the applicable current KICD curriculum design and the existing canonical VibeSchool curriculum (including persisted outcomes when available), compare the exact requested scope outcome by outcome, and record page/section-to-stable-ID evidence. Structural/title similarity or prior claims do not count as confirmation.
+9. **Repair-before-content gate:** when VibeSchool misses or distorts a KICD requirement, correct and recheck the canonical curriculum and its Scheme/outcome references **first**. Do not begin learner notes, examples, exercises, question banks or teacher guides until all requirements in the declared content scope match in educational intent, scope, progression and assessment expectations. Preserve VibeSchool-original writing; do not copy the official publisher text wholesale. Record unmatched or unavailable evidence as `BLOCKED_CURRICULUM_RECONCILIATION`, not as verified or content-complete. See the mandatory [Operating Model Step 2A](./CONTENT_OPERATING_MODEL.md#step-2a--mandatory-kicd--vibeschool-curriculum-reconciliation-gate-before-authoring).
 
 ## 3. Distinct learning components
 
@@ -31,7 +33,7 @@ This is the standard for all Grades 1–9. The contents of a particular lesson a
 | --- | --- | --- |
 | Lesson content / learner notes | Explain the concept in understandable language | Readable lesson with vocabulary and connections |
 | Worked examples | Teach the method or reasoning | Ordered calculations/actions, plain-language reason for **each** meaningful step, formula/symbol meanings where applicable, correct answer and valid check |
-| Images / diagrams / media | Make a concept visible or audible where useful | Captioned/accessible asset with source or rights trace |
+| Images / diagrams / media | Make a concept visible or audible where useful | Real asset (not merely a brief), correct labels, meaningful alt text/caption and canonical visual-library reference where appropriate |
 | Demonstrations | Show how a method or performance is done | Ordered model actions and observable criteria |
 | Activities | Learn by doing, exploring, talking or making | Instructions, materials, participation and evidence |
 | Investigations / experiments | Test an idea or observe a result | Question, procedure, observations, interpretation, safety |
@@ -125,6 +127,7 @@ Never force a dated timetable occurrence into a general content lookup, or attac
 ### Stage A — Identify and trace
 
 - Record source authority, grade, subject, design revision, strand, sub-strand, all required learning outcomes, allocations and sequencing constraints.
+- **Before content writing**, compare the official KICD design against the current VibeSchool canonical map and persisted outcome records one requirement at a time, recording KICD page/section, VibeSchool ID, mismatch status and source revision. Repair every `MISSING`, `PARTIAL`, `EXTRA` or `CONFLICT` affecting the requested scope through the existing controlled curriculum authority, then recheck Scheme/outcome links. If the comparison cannot pass, block content generation for that scope and report the evidence gap.
 - Inspect existing VibeSchool canonical curriculum rows, content chapters, links, school-specific records and prior work; **extend**, do not overwrite unrelated teacher or school data.
 - Create an outcome coverage matrix with stable references and statuses: unmapped, mapped, authored, checked, usable/released (only as evidenced).
 - Resolve any material ambiguity by checking the source and existing contracts **without sending routine verification back to the owner**.
@@ -158,6 +161,14 @@ Never force a dated timetable occurrence into a general content lookup, or attac
 - Verify answers and examples independently of their original generation when possible; check mathematics step by step and subject facts against suitable evidence.
 - Run the applicable Content Factory quality, source-fidelity, assessment, safety and independent-critique processes. Record actual evidence and substantive failures.
 - Fix defects within scope, then recheck changed material. Never treat “AI reviewed it” as proof of independent verification by a person.
+
+### Visual learning aids — plan, create and reuse when educationally needed
+
+- Decide for each outcome whether a visual is needed. If not, omit it without filler. When it is needed, include a specific **visual brief**: type, purpose, exact required content, correct labels, caption/alt text, learner/teacher audience and placement in explanation, worked example, activity, exercise, assessment or Teacher Guide.
+- A brief is a **production requirement**, not the finished image. Create or obtain the actual visual; verify subject accuracy, readability, age-appropriateness and meaningful accessible text.
+- Store each approved reusable diagram/image/illustration in the **[canonical Visual Learning Library](./VISUAL_LEARNING_LIBRARY.md)**, reusing `learning_resources` and its version authority; never hardcode lesson image URLs as the content source.
+- Reference the existing visual by stable canonical resource ID (`[visual:UUID]`) in the intended lesson content. Reuse the same ID across surfaces rather than copying binaries. Drafts must not be displayed to learners until independently released through the actual publication process.
+- Do not introduce a new media asset registry, automatic image generation worker or redundant library merely for content production.
 
 ### Stage F — Bind into the canonical system
 
