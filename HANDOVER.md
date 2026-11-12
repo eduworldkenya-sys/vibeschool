@@ -56,6 +56,34 @@ PRIORITY: P0
   claim original file versions were deployed. No production writes made.
 
 
+TBL-012 OBSERVED LIVE FINGERPRINT SAFETY GATE — 2026-11-12:
+- The original `tbl012_production_core_schema_hashes.json` records an
+  older production state, not verified current production parity. It has
+  NOT been overwritten or relabeled as a reviewer approval.
+- A fresh read-only query against production 2026-11-12 captured all
+  20 table/column/constraint/index/trigger structural fingerprints into
+  `supabase/reconciliation/tbl012_live_observation_20261112.json`.
+- The initial observation differed from the then-pinned historical
+  reference in seven places. Merged PR #1461 correctly reconciled the THREE
+  independently verified already-applied unscheduled teaching sections
+  (teaching_occurrences columns, constraints and indexes, applied as
+  20261112104242). The CURRENT pinned-vs-live observation has FOUR
+  outstanding structural differences: teacher_classes indexes,
+  timetable_slots constraints and triggers, and
+  teaching_occurrences triggers. The gate checks all 20 sections.
+- Production's additional timetable context trigger checks class/school,
+  teacher/school and subject/school; legacy duplicate CHECK constraints
+  also exist. These protections must not be dropped to force parity.
+- New `scripts/tbl012-audit-live-timetable-schema.py` compares EVERY hash
+  with the observed snapshot; any changed or unclassified section BLOCKS
+  the read-only production preflight. An exact observation does not authorize
+  production migration execution, fill school periods, or mark lessons taught.
+- The existing protected TBL-013 production preflight now attempts a live,
+  read-only Supabase SQL fingerprint query before its four-version dry-run.
+  CI and actual protected-run output must confirm CLI compatibility.
+- Four canonical timetable migration versions are still absent; schema
+  promotion remains a separately governed operation. No production writes.
+
 FOLLOW-UP TBL-012 READ-ONLY EVIDENCE — 2026-11-12:
 - Compared production catalogue to exact TBL-011 rebuilt schema artifact.
   The rebuilt schema includes the unique school/teacher/class/subject
