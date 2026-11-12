@@ -214,6 +214,58 @@ async function resolveInstructionalWeekForDate(
   return row as InstructionalWeekRow
 }
 
+/**
+ * Lists only teacher-owned Scheme entries in the exact school instructional
+ * week of a dated lesson. The list is an explicit teacher choice, never an
+ * automatic assignment based on topic similarity or global progression.
+ * The guarded attachment RPC remains the final save authority.
+ */
+export interface DatedSchemeCandidate {
+  id: string
+  topic: string
+  week: number
+  lessonNumber: number | null
+  period: number | null
+}
+
+export async function listDatedSchemeCandidates(input: {
+  userId: string
+  schoolId: string
+  classId: string
+  subjectId: string
+  occurrenceDate: string
+}): Promise<DatedSchemeCandidate[]> {
+  const [term, week] = await Promise.all([
+    getTermForDate(input.schoolId, input.occurrenceDate),
+    resolveInstructionalWeekForDate(input.schoolId, input.occurrenceDate),
+  ])
+  if (!term || term.id !== week.term_id) {
+    throw new Error('Lesson date and instructional calendar do not agree.')
+  }
+
+  const { data, error } = await supabase
+    .from('scheme_of_work')
+    .select('id,topic,week,lesson_number,period,status')
+    .eq('teacher_id', input.userId)
+    .eq('school_id', input.schoolId)
+    .eq('class_id', input.classId)
+    .eq('subject_id', input.subjectId)
+    .eq('academic_term_id', week.term_id)
+    .eq('week', week.week_number)
+    .order('sequence_number', { ascending: true })
+
+  if (error) throw error
+  return (data ?? [])
+    .filter(row => row.status !== 'cancelled')
+    .map(row => ({
+      id: row.id,
+      topic: row.topic,
+      week: row.week,
+      lessonNumber: row.lesson_number ?? null,
+      period: row.period ?? null,
+    }))
+}
+
 async function loadSchemeSourceById({
   schemeId,
   userId,
