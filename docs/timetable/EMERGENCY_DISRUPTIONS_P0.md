@@ -52,6 +52,8 @@ cannot be reopened through this workflow.
 - Alternating Week A/B schedules (current recurrence contract is
   `EVERY_WEEK`)
 - Automatic teacher/parent notifications, source verification and auto closure
+- Remote teaching during a school closure requires a separately approved
+  exception; ordinary start actions intentionally fail closed in P0
 - Automatic scheme reallocation: preserve curriculum outcomes and teacher
   authority; existing recovery remains the path for a missed lesson
 - Independent-teacher calendar UX: this P0 is school-admin only
