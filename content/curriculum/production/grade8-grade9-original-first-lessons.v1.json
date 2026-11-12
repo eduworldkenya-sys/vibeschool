@@ -224,7 +224,7 @@
       "sourceRef": null,
       "sourceIndexCode": "1.1.1",
       "strand": "Kusikiliza na Kuzungumza",
-      "subStrand": "Usafi wa Sehemu za Umma: Kusikiliza na Kujibu — Mahojiano",
+      "subStrand": "Kusikiliza na Kujibu: Mahojiano",
       "focus": "Kusikiliza mahojiano kuhusu usafi wa sehemu za umma",
       "goal": "Kutambua taarifa kuu katika mahojiano na kutunga swali la kufuatilia lenye heshima.",
       "notes": "Mahojiano ni mazungumzo yanayoongozwa na maswali na majibu. Mhoji anapaswa kuandaa maswali yaliyo wazi; mhojiwa anapaswa kujibu kulingana na anachojua. Msikilizaji hubaini ujumbe mkuu na taarifa zinazounga mkono ujumbe huo. Katika mahojiano ya usafi, hatubuni takwimu au kumlaumu mtu binafsi bila ushahidi.",
@@ -315,7 +315,8 @@
         "specificOutcomeCrosswalk": "pending",
         "rights": "KICD source is linked, not copied"
       },
-      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources",
+      "theme": "Usafi wa Sehemu za Umma"
     },
     {
       "id": "VS-G09-EN-1.1.1-L01",
@@ -325,7 +326,7 @@
       "sourceRef": null,
       "sourceIndexCode": "1.1.1",
       "strand": "Listening and Speaking",
-      "subStrand": "Citizenship: Polite language — euphemism",
+      "subStrand": "Polite language: euphemism",
       "focus": "Recognising respectful euphemisms and using them without obscuring important facts",
       "goal": "Explain what a euphemism is, identify one in a short conversation and choose language appropriate to the audience.",
       "notes": "A euphemism is a gentler expression used in place of wording that may sound harsh or upsetting. In a sensitive conversation, 'passed away' can be used instead of 'died'. But polite language must still communicate the truth. In safety instructions, emergency reporting or factual records, clear direct wording is often more appropriate than an unclear euphemism. We choose words by thinking about purpose, audience and clarity.",
@@ -418,7 +419,8 @@
         "specificOutcomeCrosswalk": "pending",
         "rights": "KICD source is linked, not copied"
       },
-      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources",
+      "theme": "Citizenship"
     }
   ]
 }
