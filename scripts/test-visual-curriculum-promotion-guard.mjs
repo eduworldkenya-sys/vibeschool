@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const migration = readFileSync('supabase/migrations/20261112201500_visual_aid_promotion_guard_scoped.sql','utf8')
+const migration = readFileSync('supabase/migrations/20261112195305_visual_aid_promotion_guard_scoped.sql','utf8')
 
 test('visual library verification is narrowly exempted from manuscript package gate', () => {
   const start = migration.indexOf("if r.asset_kind = 'visual_aid' then")
