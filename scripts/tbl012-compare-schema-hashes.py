@@ -102,6 +102,7 @@ def main() -> int:
     parser.add_argument("--rebuilt", required=True)
     parser.add_argument("--target", required=True)
     parser.add_argument("--report", required=True)
+    parser.add_argument("--forward-deltas", default=None)
     args = parser.parse_args()
 
     report_path = Path(args.report)
@@ -119,6 +120,34 @@ def main() -> int:
             target_path,
         )
 
+        # A forward migration may intentionally change a production-owned
+        # trigger. This is NOT production parity: require the immutable
+        # old/new hashes, named migration and explicit acceptance in CI.
+        permitted: dict[tuple[str,str], dict[str,str]] = {}
+        if args.forward_deltas:
+            meta = load_json(Path(args.forward_deltas))
+            if meta.get("schema_version") != 1 or not isinstance(meta.get("deltas"), list):
+                raise ComparisonFailure("invalid forward-delta declaration")
+            for row in meta["deltas"]:
+                if not isinstance(row, dict) or set(row) != {
+                    "table", "section", "production_hash", "rebuilt_hash", "migration", "rationale"
+                }:
+                    raise ComparisonFailure("forward-delta metadata is incomplete")
+                key = (row["table"], row["section"])
+                if key != ("timetable_slots", "triggers") or key in permitted:
+                    raise ComparisonFailure("unexpected or duplicated forward-delta scope")
+                source = Path("supabase/migrations") / row["migration"]
+                if not source.is_file():
+                    raise ComparisonFailure("forward-delta migration is absent")
+                migration_sql = source.read_text(encoding="utf-8").lower()
+                if (
+                    "create trigger timetable_slot_period_guard" not in migration_sql
+                    or "effective_from, effective_until" not in migration_sql
+                    or "public.validate_timetable_slot_period()" not in migration_sql
+                ):
+                    raise ComparisonFailure("declared migration does not define reviewed guard")
+                permitted[key] = row
+
         differences: list[dict[str, str]] = []
 
         for table in sorted(EXPECTED_TABLES):
@@ -127,15 +156,29 @@ def main() -> int:
                 target_value = target[table][field]
 
                 if rebuilt_value != target_value:
-                    differences.append(
-                        {
-                            "table": table,
-                            "section": field.removesuffix("_hash"),
-                            "rebuilt_hash": rebuilt_value,
-                            "target_hash": target_value,
-                            "classification": "UNEXPLAINED",
-                        }
-                    )
+                    key = (table, field.removesuffix("_hash"))
+                    allowed = permitted.get(key)
+                    classification = "UNEXPLAINED"
+                    if allowed and (
+                        allowed["production_hash"] == target_value
+                        and allowed["rebuilt_hash"] == rebuilt_value
+                    ):
+                        classification = "EXPECTED_FORWARD_MIGRATION_UNDEPLOYED"
+                    differences.append({
+                        "table": table,
+                        "section": key[1],
+                        "rebuilt_hash": rebuilt_value,
+                        "target_hash": target_value,
+                        "classification": classification,
+                    })
+
+        expected_forward = [d for d in differences if d["classification"] == "EXPECTED_FORWARD_MIGRATION_UNDEPLOYED"]
+        unexplained = [d for d in differences if d["classification"] == "UNEXPLAINED"]
+        # Avoid retaining an obsolete production-delta exemption after the
+        # authoritative production baseline itself has caught up.
+        stale_exemption = bool(permitted) and not expected_forward
+        if stale_exemption:
+            raise ComparisonFailure("declared forward-delta exception is stale or changed")
 
         report = {
             "schema_version": 1,
@@ -146,8 +189,11 @@ def main() -> int:
                 "production policy convergence is intentionally deferred."
             ),
             "structural_differences": len(differences),
-            "unexplained_differences": len(differences),
-            "passed": not differences,
+            "unexplained_differences": len(unexplained),
+            "expected_undeployed_forward_differences": len(expected_forward),
+            "production_parity": not differences,
+            "release_requires_forward_migration": bool(expected_forward),
+            "passed": not unexplained,
             "differences": differences,
         }
 
@@ -160,10 +206,10 @@ def main() -> int:
             encoding="utf-8",
         )
 
-        if differences:
+        if unexplained:
             print("TBL-012 STRUCTURAL COMPARISON FAILED")
 
-            for difference in differences:
+            for difference in unexplained:
                 print(
                     " -",
                     f"{difference['table']}."
@@ -173,6 +219,8 @@ def main() -> int:
             return 1
 
         print("TBL-012 STRUCTURAL COMPARISON PASSED")
+        if expected_forward:
+            print("EXPECTED FORWARD MIGRATION IS UNDEPLOYED: production parity is NOT certified")
         print("Compared tables:", len(EXPECTED_TABLES))
         print("Compared structural sections:", 20)
         print("Unexplained structural differences: 0")

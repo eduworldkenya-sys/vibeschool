@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "deltas": [
+    {
+      "table": "timetable_slots",
+      "section": "triggers",
+      "production_hash": "ae2bfdc7c592a5d63b7ba0caafebff6a",
+      "rebuilt_hash": "f5ad5e6b6f5dc8fac89fd5f8d20f39dd",
+      "migration": "20261112101600_timetable_school_period_authority.sql",
+      "rationale": "The period guard now validates edits to effective-date windows; production snapshot stays unchanged until migration deployment."
+    }
+  ]
+}

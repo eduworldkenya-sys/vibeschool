@@ -7,6 +7,7 @@ on:
       - "supabase/migrations/**"
       - "supabase/config.toml"
       - "supabase/reconciliation/tbl012_production_core_schema_hashes.json"
+      - "supabase/reconciliation/tbl012_pending_forward_deltas.json"
       - "scripts/sql/tbl011_clean_rebuild_verify.sql"
       - "scripts/sql/verify_worker_engine_authority_plane.sql"
       - "scripts/sql/certify_task12_observability.sql"
@@ -241,6 +242,7 @@ jobs:
           python3 scripts/tbl012-compare-schema-hashes.py \
             --rebuilt .tbl011-artifacts/rebuilt-core-schema-hashes.json \
             --target supabase/reconciliation/tbl012_production_core_schema_hashes.json \
+            --forward-deltas supabase/reconciliation/tbl012_pending_forward_deltas.json \
             --report .tbl011-artifacts/tbl012-schema-comparison-report.json
 
           sha256sum \
