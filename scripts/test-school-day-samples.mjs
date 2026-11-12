@@ -4,7 +4,7 @@ import ts from 'typescript'
 
 const source = fs.readFileSync('lib/timetable/schoolDaySamples.ts', 'utf8')
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ES2022 } }).outputText
-const { SCHOOL_DAY_SAMPLES, isSampleBlock, sampleBlockErrors } = await import('data:text/javascript;base64,' + Buffer.from(compiled).toString('base64'))
+const { SCHOOL_DAY_SAMPLES, isSampleBlock, sampleBlockErrors, personalSchoolDayKey, parsePersonalSchoolDay } = await import('data:text/javascript;base64,' + Buffer.from(compiled).toString('base64'))
 assert.equal(SCHOOL_DAY_SAMPLES.length, 4)
 assert.equal(new Set(SCHOOL_DAY_SAMPLES.map(s => s.id)).size, 4)
 
@@ -40,6 +40,16 @@ assert.ok(sampleBlockErrors([upper.blocks[1], {...upper.blocks[1], schedule_day:
 assert.equal(isSampleBlock({ ...upper.blocks[1], kind: 'break', protected: false }), false)
 assert.equal(isSampleBlock({ ...upper.blocks[1], label: '', start_time: '' }), false)
 
+// Activating a personal plan must never elevate it to a school timetable.
+const activePlan = { name: 'My timetable', blocks: upper.blocks, activatedAt: '2026-11-12T18:30:00.000Z' }
+assert.equal(parsePersonalSchoolDay(JSON.stringify(activePlan))?.blocks.length, upper.blocks.length)
+assert.equal(parsePersonalSchoolDay(JSON.stringify({ ...activePlan, blocks: [upper.blocks[1], upper.blocks[1]] })), null, 'overlaps are rejected')
+assert.equal(parsePersonalSchoolDay(JSON.stringify({ ...activePlan, blocks: [] })), null, 'empty plans are rejected')
+assert.equal(parsePersonalSchoolDay('invalid json'), null, 'corrupt storage cannot make a timetable active')
+assert.equal(parsePersonalSchoolDay(JSON.stringify({ ...activePlan, name: '' })), null, 'unnamed plans are rejected')
+assert.notEqual(personalSchoolDayKey('teacher-a', 'independent'), personalSchoolDayKey('teacher-b', 'independent'), 'plans are teacher scoped')
+assert.notEqual(personalSchoolDayKey('teacher-a', 'school-a'), personalSchoolDayKey('teacher-a', 'school-b'), 'plans are school scoped')
+
 const ui = fs.readFileSync('components/teacher/SchoolDaySampleBuilder.tsx', 'utf8')
 const setup = fs.readFileSync('app/teacher/timetable/setup/page.tsx', 'utf8')
 for (const pattern of [
@@ -66,6 +76,13 @@ assert.ok(ui.includes('if (mode === \'starter\')'), 'starter mode must not displ
 assert.ok(ui.includes('onClick={() => rememberChoice(sample.id)}'), 'starter cards must record explicit selection')
 assert.ok(ui.includes("window.localStorage.setItem('vs.timetable.sample-picked.v1.' + userId"), 'choice must be scoped to the signed-in teacher')
 assert.ok(ui.includes('initialSampleId'), 'Setup must be able to reopen the selected sample')
+assert.ok(ui.includes('useOnMyTimetable'), 'personal plan needs an activation action')
+assert.ok(ui.includes('personalSchoolDayKey(userId, schoolId)'), 'activation must be scoped to teacher and school context')
+assert.ok(ui.includes('Use on my timetable (this device)'), 'teacher must see usable personal timetable action')
+assert.ok(ui.includes('if (!canApply) return'), 'school publishing must remain administrator protected')
+assert.ok(timetable.includes('personalSchoolDayKey(teacherId, activeSchoolId'), 'main timetable must read the scoped personal plan')
+assert.ok(timetable.includes('My personal school-day timetable'), 'active plan must render on the timetable, not just in setup')
+
 assert.ok(ui.includes('setDraft(clone(sample.blocks))'), 'Setup must show editable selected sample')
 assert.ok(setup.includes('!loading && userId && <SchoolDaySampleBuilder'), 'independent teachers must be able to reopen drafts')
 assert.ok(setup.includes("schoolId={selectedSchoolId || 'independent'}"), 'independent templates stay scoped to that user')

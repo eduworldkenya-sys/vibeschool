@@ -407,9 +407,8 @@ export default function TimetableSetupPage() {
           <div style={{ color: C.textMuted, fontSize: 13 }}>Loading school periods…</div>
         ) : periods.length === 0 ? (
           <div role="status" style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.6 }}>
-             <strong>School timetable setup required.</strong> No confirmed teaching periods or breaks exist.
-             A school administrator must enter the real school-day times before new recurring lessons can be scheduled.
-             Existing test and historical timetable slots are preserved but are not accepted as period authority.
+             <strong>School bell times not yet confirmed.</strong> You can use your personal timetable now from the sample editor above.
+             Publishing shared school periods requires an active school administrator. Existing test and historical timetable slots are preserved.
            </div>
         ) : (
           <div style={{ display: 'grid', gap: 12 }}>
@@ -441,7 +440,7 @@ export default function TimetableSetupPage() {
         )}
       </Card>}
 
-      {selectedSchoolId && <Card>
+      {selectedSchoolId && (canManage || durations.length > 0) && <Card>
         <SectionLabel>Lesson length by grade</SectionLabel>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>
           These are your school’s defaults. They guide custom lesson creation when a grade normally uses a different lesson length; configured period times still remain authoritative.

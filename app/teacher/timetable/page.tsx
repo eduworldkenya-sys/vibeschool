@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import ClassicTimetable, { type SchoolDayBlock } from '@/components/teacher/ClassicTimetable'
 import SchoolDaySampleBuilder from '@/components/teacher/SchoolDaySampleBuilder'
+import { personalSchoolDayKey, parsePersonalSchoolDay, type PersonalSchoolDayPlan } from '@/lib/timetable/schoolDaySamples'
 import { isUpperPrimary, type SchoolPeriod } from '@/lib/timetable/periods'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
@@ -891,6 +892,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [recoveryCtx,     setRecoveryCtx]      = useState<RecoverySheetContext | null>(null)
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
   const [showSampleStarter, setShowSampleStarter] = useState(false)
+  const [personalSchoolDay, setPersonalSchoolDay] = useState<PersonalSchoolDayPlan | null>(null)
+  useEffect(() => {
+    if (!teacherId) { setPersonalSchoolDay(null); return }
+    try {
+      setPersonalSchoolDay(parsePersonalSchoolDay(
+        window.localStorage.getItem(personalSchoolDayKey(teacherId, activeSchoolId ?? 'independent'))
+      ))
+    } catch { setPersonalSchoolDay(null) }
+  }, [teacherId, activeSchoolId])
   useEffect(() => {
     if (!teacherId) return
     try {
@@ -1679,6 +1689,35 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           )
         })}
       </div>
+
+      {personalSchoolDay && (
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <SectionLabel>My personal school-day timetable</SectionLabel>
+              <div style={{ fontSize: 13, fontWeight: 750, color: C.textPrimary }}>{personalSchoolDay.name}</div>
+              <p style={{ fontSize: 12, color: C.textMuted, margin: '6px 0 10px' }}>
+                Your chosen bell-time outline for {DAYS.find(d => d.dow === activeDow)?.label ?? 'this day'}.
+                Saved on this device only; these are not assigned subjects, school-approved periods or lessons.
+              </p>
+            </div>
+            <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>Edit personal timetable</Btn>
+          </div>
+          {personalSchoolDay.blocks.filter(b => b.schedule_day === 0 || b.schedule_day === activeDow)
+            .sort((a, b) => a.start_time.localeCompare(b.start_time)).length === 0 ? (
+            <p style={{ color: C.textMuted, fontSize: 12 }}>No personal periods planned for this day.</p>
+          ) : <div style={{ display: 'grid', gap: 6 }}>
+            {personalSchoolDay.blocks.filter(b => b.schedule_day === 0 || b.schedule_day === activeDow)
+              .sort((a, b) => a.start_time.localeCompare(b.start_time)).map((block, index) => (
+              <div key={index} style={{ display: 'flex', gap: 10, alignItems: 'center', borderBottom: '1px solid ' + C.border, padding: '6px 0', fontSize: 12 }}>
+                <strong style={{ minWidth: 100, color: C.textPrimary }}>{block.start_time}–{block.end_time}</strong>
+                <span style={{ color: C.textPrimary }}>{block.label}</span>
+                <span style={{ marginLeft: 'auto', color: C.textMuted }}>{block.kind.replaceAll('_', ' ')}</span>
+              </div>
+            ))}
+          </div>}
+        </Card>
+      )}
 
       {schools.length > 1 && (
         <div className="no-print" style={{ marginBottom: 12 }}>
