@@ -16,6 +16,7 @@
 {
   "schema": "vibeschool.outcome-package.v1",
   "outcome_id": "<existing curriculum_learning_outcomes.id>",
+  "curriculum_outcome_aliases": [],
   "requirements": {
     "teacher_guidance": false,
     "visual_assets": false
@@ -52,6 +53,8 @@ The `<> ` placeholders above are examples only and **must never be submitted to 
 | Revision | At least one certified revision asset **or** approved, confirmed, outcome-linked question is present; required shared assets pass | `draft → ready → released` |
 
 The manifest tracks the **release state independently per experience**. The database `cla_audit_outcome_package(resource_id,manifest)` computes **completeness independently** from real referenced rows. It does not trust a manually supplied `complete` flag.
+
+For platform-authored resources, the independent curriculum promotion guard also requires `learning_resource_versions.provenance.package_id`, a matching curriculum package scope/root `sub_strand_id` and key prefix, and exact approved `curriculum_outcome_aliases`. Obtain these from the existing reconciliation authority; never invent aliases or bypass the guard with a different source type.
 
 The audit checks:
 1. Bound stable outcome ID and reconciled source authority (`status='verified'`, verification timestamp, source import ID and official source locator).
