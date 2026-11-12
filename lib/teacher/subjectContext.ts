@@ -21,6 +21,7 @@ export type SubjectLessonCandidate = {
   endTime: string;
   room: string | null;
   lessonPlanId: string | null;
+  preparedDraftId?: string | null;
   schemeId: string | null;
   lessonPlanStatus: string | null;
   lessonTitle: string | null;
@@ -110,7 +111,7 @@ export async function loadSubjectLessonCandidates(
   const rangeStart = nairobiDateAdd(today, -7);
   const rangeEnd = nairobiDateAdd(today, 14);
 
-  const [slots, occurrenceRes, planRes] = await Promise.all([
+  const [slots, occurrenceRes, planRes, preparedRes] = await Promise.all([
     loadTeacherTimetableForRange({
       teacherId: authority.teacherId,
       schoolId: authority.schoolId,
@@ -135,10 +136,21 @@ export async function loadSubjectLessonCandidates(
       .eq("subject_id", authority.subjectId)
       .order("created_at", { ascending: false })
       .limit(120),
+    supabase
+      .from("lesson_plan_drafts")
+      .select("id,scheme_id,status,title,topic")
+      .eq("teacher_id", authority.teacherId)
+      .eq("school_id", authority.schoolId)
+      .eq("class_id", authority.classId)
+      .eq("subject_id", authority.subjectId)
+      .neq("status", "archived")
+      .order("updated_at", { ascending: false })
+      .limit(120),
   ]);
 
   if (occurrenceRes.error) throw occurrenceRes.error;
   if (planRes.error) throw planRes.error;
+  if (preparedRes.error) throw preparedRes.error;
 
   const relevantSlots = slots.filter(
     (slot) => slot.class_id === authority.classId && slot.subject_id === authority.subjectId,
@@ -200,7 +212,18 @@ export async function loadSubjectLessonCandidates(
       lessonTitle: plan.title ?? plan.topic ?? null,
       relation: "unscheduled" as const,
     }))
-  return [...candidates, ...independent]
+  const prepared = (preparedRes.data ?? [])
+    .filter(draft => Boolean(draft.scheme_id))
+    .filter(draft => !independent.some(plan => plan.schemeId === draft.scheme_id))
+    .map(draft => ({
+      timetableSlotId: "", occurrenceId: null, occurrenceDate: "",
+      lifecycle: null, startTime: "", endTime: "", room: null,
+      lessonPlanId: null, preparedDraftId: draft.id,
+      schemeId: draft.scheme_id,
+      lessonPlanStatus: draft.status, lessonTitle: draft.title ?? draft.topic ?? null,
+      relation: "unscheduled" as const,
+    }))
+  return [...candidates, ...independent, ...prepared]
     .filter((candidate) => candidate.lifecycle !== "cancelled")
     .sort((a, b) => {
       const rank = (value: SubjectLessonCandidate) =>
