@@ -164,3 +164,9 @@
 .allStepsVisible{font-size:12px;color:#3e6288;line-height:1.65;margin:0}
 .largeType .workedStep{font-size:19px}
 @media(max-width:470px){.workedStep{padding:11px;gap:8px}.workedControls button{flex:1;justify-content:center}}
+
+.lessonChooser{background:#fff;border:1px solid #dbe8dd;border-radius:14px;margin-bottom:14px;padding:12px 16px}
+.lessonChooser summary{cursor:pointer;color:#175b43;font-weight:750}
+.lessonChooser summary span{font-weight:500}
+.lessonChooser .lessonList{margin-top:12px}
+@media print{.lessonChooser{display:none}}
