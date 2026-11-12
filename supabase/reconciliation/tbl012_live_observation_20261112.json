@@ -1,0 +1,33 @@
+{
+  "tables": {
+    "school_periods": {
+      "table_hash": "80b6182c4e2c655abf4e9445a230442f",
+      "columns_hash": "5eb9b0bc074bc1309aaa5eff4c77fb69",
+      "indexes_hash": "0fee0235fc3dd0315cd56dfedea6fceb",
+      "triggers_hash": "200cb8428ff7db34ff07cde2604207c3",
+      "constraints_hash": "d1a5525f986d6ac77510fb3a611c75c8"
+    },
+    "teacher_classes": {
+      "table_hash": "80b6182c4e2c655abf4e9445a230442f",
+      "columns_hash": "fd0a0a7bf8cad0222a05314293ef63f5",
+      "indexes_hash": "9ed6ca6aba8038eade1fcd68416ee51b",
+      "triggers_hash": "f466e9dbb57cbb8eca7bbfb316fa24a0",
+      "constraints_hash": "a55f5bd44ca0d83496cf1e07d046ed63"
+    },
+    "timetable_slots": {
+      "table_hash": "80b6182c4e2c655abf4e9445a230442f",
+      "columns_hash": "778a53d23f1f29bcde6be0560a61ca31",
+      "indexes_hash": "5a06f912ba4781d2786a2353e1561b3d",
+      "triggers_hash": "ecfb8be940abca0a1c1d55231047ee05",
+      "constraints_hash": "384d98521086981fe956fd53348b7dda"
+    },
+    "teaching_occurrences": {
+      "table_hash": "80b6182c4e2c655abf4e9445a230442f",
+      "columns_hash": "b6267cbed72bb9835de6d402a11c305b",
+      "indexes_hash": "cab1e33e79b43929983e8e49d54f02c0",
+      "triggers_hash": "ec5d464a84125d10f2b3d7d7be9d6026",
+      "constraints_hash": "f2402925362f1d18e908fe7decabd3c1"
+    }
+  },
+  "schema_version": 1
+}
