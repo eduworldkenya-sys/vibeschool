@@ -18,6 +18,31 @@ CURRENT STATE
 
 TIMETABLE
 
+TEACHER DUAL-CONTEXT IDENTITY — STAGE 1 (2026-11-12; INTEGRATION FEATURE PR):
+- Use one authenticated teacher ID for school and independent teaching, not separate profiles.
+- The existing server-filtered `get_my_teacher_school_context` remains membership authority. The pure `lib/teacher/teachingIdentity.ts` projection lists authorised schools and independent scope; active school is selected by default when linked.
+- Existing Teacher OS shell exposes verified read-only identity through `useTeachingIdentity`; it does not switch operational timetable data, grant permissions, or mutate school preferences.
+- Regression tests cover linked/unlinked/multi-school and malicious/unverified school selections.
+- Feature branch `feat/teacher-dual-context-identity-stage1-20261112` targets `integration/intelligent-timetable` through a reviewed PR; Stage 2 owns timetable routing. No production changes.
+
+OPTIONAL SCHOOL-DAY SAMPLES — 2026-11-12 (SEPARATE FEATURE BRANCH; NOT PRODUCTION CERTIFICATION):
+- Branch `feat/optional-school-day-samples-20261112` adds four explicitly
+  opt-in editable clock-time samples to existing teacher school-day setup:
+  Ministry-style Grades 4–6, illustrative lower-primary, junior-school, and
+  flexible/tuition planning. No school times are silently filled.
+- Teachers can create, validate, store locally and export/import personal
+  templates. Local templates are limited to the current browser/device;
+  they are not school-wide database records.
+- Existing canonical school admin RPCs remain the only server write path;
+  the sample UI refuses to replace non-empty school period configurations
+  and prompts for human confirmation. Failure rollback is best effort,
+  because the existing individual per-period RPCs are not atomic.
+- New timetable regression coverage checks overlap/protected blocks,
+  timetable sample counts, and non-default/permission UI contracts.
+- No DB migration, no Gilgil period write, no teacher slot write,
+  no claims of live certification. TBL-012 production parity and its
+  four pending migration versions remain separately BLOCKED.
+
 Active fix
 
 FIX ID: TBL-012

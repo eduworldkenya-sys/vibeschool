@@ -58,3 +58,9 @@ Legend: **OPEN** = acceptance not established; **CODE MERGED / PROD OPEN** = cha
 - TBL-11 schema preflight: [#1463](https://github.com/eduworldkenya-sys/vibeschool/pull/1463), superseding closed-unmerged [#1462](https://github.com/eduworldkenya-sys/vibeschool/pull/1462).
 
 **Important:** This file is a tracking / acceptance contract, **not** evidence that any implementation has been tested in production.
+
+## Stage 1 — one teacher identity, dual teaching scopes (2026-11-12)
+
+Stage 1 is scoped to canonical identity metadata: one authenticated teacher ID, server-authorised school membership choices, and a separate independent teaching choice. The linked school remains the default. The existing timetable engine, per-school RLS, teacher school preferences, tuition invitations, teaching occurrences and history are unchanged by this stage. Stage 2 must route all timetable data through the selected authorised context before a visible workspace switcher is enabled. See `docs/timetable/TEACHER_DUAL_CONTEXT_STAGE1.md` and the Stage 1 integration PR for exact-head verification.
+
+The integration branch is intentionally kept separate from `main`; a feature PR merges applicable current-main work rather than discarding previously merged school-period or tuition code. No production timetable is commissioned by Stage 1.
