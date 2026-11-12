@@ -44,7 +44,7 @@ for (const label of [
   "Resources",
   "Lesson Plans",
   "Teacher Guide",
-  "Lesson Notes / Teach",
+  "Lesson Notes",
   "Teaching Schedule",
   "Attendance",
   "Homework",

@@ -15,6 +15,7 @@ import TeachingWorkspaceNav from "@/components/teacher/TeachingWorkspaceNav";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 import JumpingSchemeContent from "@/components/teacher/JumpingSchemeContent";
 import CanonicalLessonNotesPanel from "@/components/teacher/CanonicalLessonNotesPanel";
+import LessonNotesLibrary from "@/components/teacher/LessonNotesLibrary";
 
 
 type PlanRow = {
@@ -346,30 +347,8 @@ function LessonNotesInner() {
     );
   }
 
-  if (!lessonPlanId && contextClassId && contextSubjectId) {
-    return (
-      <section style={{ padding: 20, maxWidth: 1100, margin: "0 auto", display: "grid", gap: 12 }}>
-        <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: 0, marginBottom: 6 }}>← Back</button>
-        <section style={{ background: "var(--teacher-ink, #1c2923)", color: "#fff", borderRadius: 18, padding: 18 }}>
-          <div style={{ fontSize: 11, fontWeight: 750, color: "#d0c5e8", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes / Teach</div>
-          <h1 style={{ fontSize: 22, margin: "7px 0 5px" }}>Choose the prepared lesson</h1>
-          <div style={{ fontSize: 12, color: "#d1d5db", lineHeight: 1.5 }}>Your class and subject are preserved. VibeSchool will only open notes from the exact authorised lesson plan.</div>
-        </section>
-        <SubjectLessonHandoff classId={contextClassId} subjectId={contextSubjectId} purpose="notes" />
-      </section>
-    );
-  }
-
-  if (!lessonPlanId && !contextClassId && !contextSubjectId) {
-    return (
-      <section style={{ padding: 20, maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 18, padding: 18 }}>
-          <div style={{ fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>Open Lesson Notes from Subjects or a lesson</div>
-          <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>VibeSchool needs a valid class, subject and prepared lesson before Teach mode can start.</div>
-          <button type="button" onClick={() => router.push("/teacher/subjecthub")} style={{ marginTop: 12, border: 0, borderRadius: 10, padding: "10px 12px", background: "var(--teacher-ink, #1c2923)", color: "#fff", fontWeight: 750 }}>Open Subjects</button>
-        </div>
-      </section>
-    );
+  if (!lessonPlanId) {
+    return <LessonNotesLibrary subjectId={contextSubjectId} preparedLessons={contextClassId && contextSubjectId ? <SubjectLessonHandoff classId={contextClassId} subjectId={contextSubjectId} purpose="notes" /> : null} />;
   }
 
   if (error || !plan) {

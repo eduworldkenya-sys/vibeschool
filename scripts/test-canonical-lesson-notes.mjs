@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { selectCanonicalLessonNotes } from '../lib/teaching/canonicalLessonNotes.ts'
+import { selectCanonicalLessonNotes, selectCertifiedNoteCatalogue } from '../lib/teaching/canonicalLessonNotes.ts'
 
 // Regression: never publish drafts, private roots or uncertified versions
 // while attaching source-correct materials to a teacher's prepared lesson.
@@ -96,3 +96,45 @@ assert.ok(reader.includes(".eq('lifecycle_status', 'certified')"))
 assert.ok(reader.includes(".eq('status', 'active')"))
 assert.ok(reader.includes(".eq('visibility', 'public')"))
 console.log('Canonical Lesson Notes: exact outcome, related-not-exact, private/draft/candidate exclusion, version identity and page contract PASS')
+
+
+// Standalone entry must read the existing versioned authority without requiring
+// lesson-plan, occurrence, Scheme, teacher class, or timetable context.
+const standalone = selectCertifiedNoteCatalogue(
+  roots.map(item => ({ ...item, grade: 'Grade 4', subject: 'Mathematics' })),
+  versions,
+)
+assert.deepEqual(standalone.map(item => item.resourceId), [
+  'exact', 'same-strand-different-outcome', 'same-outcome-wrong-strand',
+  'sub-strand-only', 'other-strand',
+].sort(), 'standalone catalogue may browse different outcomes but never drafts or private content')
+assert.equal(standalone.find(item => item.resourceId === 'exact')?.resourceVersionId, 'exact-new')
+assert.equal(standalone.find(item => item.resourceId === 'sub-strand-only')?.curriculumOutcomeId, null)
+assert.deepEqual(selectCertifiedNoteCatalogue(
+  [{ ...root('candidate'), grade: null, subject: null }],
+  [version('candidate', { lifecycle_status: 'candidate' })],
+), [], 'unreviewed manuscript must never be displayed as published notes')
+assert.deepEqual(selectCertifiedNoteCatalogue(
+  [{ ...root('private'), grade: null, subject: null, visibility: 'private' }],
+  [version('private')],
+), [], 'private root is not a public note')
+const library = readFileSync('components/teacher/LessonNotesLibrary.tsx', 'utf8')
+for (const marker of [
+  "supabase.auth.getUser()", "selectCertifiedNoteCatalogue(",
+  ".from('learning_resources')", ".from('learning_resource_versions')",
+  ".in('asset_kind', ['teacher_notes', 'learner_notes'])",
+  ".eq('status', 'active')", ".eq('visibility', 'public')",
+  ".eq('lifecycle_status', 'certified')", ".not('certified_at', 'is', null)",
+  "type=\"search\"", "All grades", "Filter notes by subject", "My notes",
+  "Prepared lessons", "preparedLessons", "setPage(0)",
+  "/teacher/resources/read/", "/teacher/resources#saved-resource-",
+  "No readable certified notes", "curriculumOutcomeId",
+]) assert.ok(library.includes(marker), 'Standalone notes library missing: ' + marker)
+for (const forbidden of ['.insert(', '.update(', 'service_role', 'dangerouslySetInnerHTML']) {
+  assert.ok(!library.includes(forbidden), 'Standalone read-only catalogue must not mutate canonical data: ' + forbidden)
+}
+assert.ok(notesPage.includes('LessonNotesLibrary'), 'Direct Lesson Notes route must mount the standalone library')
+assert.ok(notesPage.includes('if (!lessonPlanId) {'), 'Lesson-plan ID is optional for browsing')
+assert.ok(notesPage.includes('SubjectLessonHandoff'), 'Prepared lesson handoff remains available')
+assert.ok(!notesPage.includes('Open Lesson Notes from Subjects or a lesson'), 'Old mandatory handoff must be removed')
+console.log('PASS: standalone notes browse, certified versions, personal notes handoff, no timetable requirement')
