@@ -84,6 +84,8 @@ For each unit provide, when relevant:
 7. **Feedback and common-error correction**, plus a brief remedial and enrichment path.
 8. **Summary/revision** where appropriate.
 
+**Visual aids are part of applicable lesson content:** decide whether a diagram, chart, map, picture, number line, labelled illustration, fraction model or demonstration image is needed. Record **type, purpose, exact content to show, labels, caption and alt description, intended audience and placement**. A visual brief is not the asset: create the real visual where needed and register it once in the [Visual Learning Library](./VISUAL_LEARNING_LIBRARY.md), using its canonical ID rather than hardcoded image URLs. Draft assets do not become learner-visible by saving them.
+
 For Creative Arts or physical outcomes, a demonstration, practical performance and observation rubric may take precedence over a long written exercise. **For Mathematics, showing only the final calculation or formula is insufficient:** explain *why* each essential step works, define formula variables and demonstrate substitution when applicable, check answers and units, then follow with guided and independent practice. Do not force formulas or unnecessary algebra on early grades.
 
 **Deliverable:** real readable content, not empty headings, a curriculum listing, one paragraph of notes or a promise of future generation.
@@ -136,6 +138,7 @@ Use the [Content Package Template](./CONTENT_PACKAGE_TEMPLATE.md) as the reusabl
 | Learner title and purpose | Learner knows what they are learning |
 | Explanation and vocabulary | Learner can understand without a separate textbook for the basics |
 | Example or demonstration | Makes the skill or idea concrete; Mathematics examples require ordered working, explanations of **why** every essential step works, and correct formula/variable/units/check where applicable |
+| Visual aids / diagrams / illustrations | For applicable outcomes: exact visual brief, real asset, labels/alt/caption, placement and canonical Visual Learning Library ID once created |
 | Activity/inquiry/experiment/performance | Learner does something meaningful |
 | Practice and exercise | Builds fluency and understanding |
 | Questions and assessment evidence | Reveals what the learner has learned |
