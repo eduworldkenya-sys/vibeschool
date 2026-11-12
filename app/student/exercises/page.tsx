@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useStudent } from "@/lib/student-context";
 import { supabase } from "@/lib/supabase";
 import Skel from "@/components/student/Skel";
+import LearningNotebookPrompt from "@/components/learn/LearningNotebookPrompt";
 
 interface ExItem {
   id: string;
@@ -163,6 +164,7 @@ export default function StudentExercisesPage() {
 
                 {item.instructions && <p style={{ fontSize: 12, color: "var(--vs-muted)", lineHeight: 1.6, margin: "12px 0" }}>{item.instructions}</p>}
 
+                <LearningNotebookPrompt stage="practice" compact />
                 <label htmlFor={`exercise-${item.id}`} style={{ display: "block", fontSize: 11, fontWeight: 800, marginBottom: 6 }}>My response</label>
                 <textarea
                   id={`exercise-${item.id}`}
