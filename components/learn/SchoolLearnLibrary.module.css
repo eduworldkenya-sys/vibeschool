@@ -84,4 +84,4 @@
    and vocational courses; route owners still enforce access to resources. */
 .collectionsFrame{max-width:1260px;min-height:calc(100vh - 75px);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr)}
 .topLinks [aria-current="page"]{background:#236347;color:#fff;border-color:#78b99a}
-@media(max-width:700px){.collectionsFrame{min-height:calc(100vh - 70px)}.topLinks{overflow-x:auto;white-space:nowrap;max-width:100%;flex-wrap:nowrap;padding:2px 0}.topLink{flex:none;min-height:42px;display:inline-flex;align-items:center}}
+@media(max-width:700px){.collectionsFrame{min-height:calc(100vh - 70px)}.topInner{flex-wrap:wrap}.topLinks{width:100%;min-width:0;overflow-x:auto;white-space:nowrap;max-width:100%;flex-wrap:nowrap;padding:2px 0}.topLink{flex:none;min-height:42px;display:inline-flex;align-items:center}}
