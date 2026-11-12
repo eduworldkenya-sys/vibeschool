@@ -64,12 +64,25 @@ export function useTuitionTimetable() {
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision(value => value + 1), []);
   useEffect(() => {
+    const { data: { subscription } } = getSupabaseClient().auth.onAuthStateChange(event => {
+      // Clear previous account's private timetable immediately on a session
+      // change; the accepted-invitation RPC rechecks the new identity.
+      if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') return;
+      setLessons([]);
+      setError(null);
+      setLoading(true);
+      setRevision(value => value + 1);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+  useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       const { data, error: readError } = await getSupabaseClient().rpc("vibetutor_my_lessons");
       if (cancelled) return;
       if (readError) {
+        setLessons([]);
         setError("Private tuition lessons could not be loaded. Retry before relying on your timetable.");
         setLoading(false);
         return; // A failed read is unknown, not a confirmed empty schedule.
