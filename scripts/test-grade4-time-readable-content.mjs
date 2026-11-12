@@ -95,7 +95,7 @@ test('certified Grade 4 Time lesson text becomes a truthful readable sequence', 
     'REFLECT',
     '',
     'Explain what you learnt.',
-  ].join('\\n')
+  ].join('\n')
   const display = formatGrade4TimeLessonBody(text)
   const parsed = parseGrade4TimeLessonSections(display)
   assert.equal(parsed.title, 'Reading analogue and digital clocks')
@@ -111,7 +111,7 @@ test('certified Grade 4 Time lesson text becomes a truthful readable sequence', 
 })
 
 test('unknown or malformed manuscript lines are preserved, not silently deleted', () => {
-  const odd = 'Unexpected heading\\nA formula: 5 × 60 = 300\\nAnother line'
+  const odd = 'Unexpected heading\nA formula: 5 × 60 = 300\nAnother line'
   const parsed = parseGrade4TimeLessonSections(odd)
   assert.equal(parsed.title, '')
   assert.equal(parsed.goal, '')
@@ -132,6 +132,6 @@ test('new learner reader makes exercise feedback optional without making fake pr
   assert.match(reader, /vs_published_grade4_time_outcomes/)
   assert.match(reader, /key={current.id}/, 'Answer reveal state must reset when changing lessons')
   assert.match(reader, /aria-current={current.id === lesson.id \? 'step' : undefined}/)
-  assert.match(styles, /@media\\(max-width:700px\\)/, 'Real lesson body must be responsive')
-  assert.doesNotMatch(reader, /supabase\\.from\\(['"]assessment_questions['"]\\)/, 'No second assessment API')
+  assert.match(styles, /@media\(max-width:700px\)/, 'Real lesson body must be responsive')
+  assert.doesNotMatch(reader, /supabase\.from\(['"]assessment_questions['"]\)/, 'No second assessment API')
 })
