@@ -68,11 +68,6 @@ const inputStyle: React.CSSProperties = {
   width: '100%', padding: '11px 12px', borderRadius: 10, border: '1px solid #dbe3ea',
   fontSize: 14, color: C.textPrimary, background: '#fff', boxSizing: 'border-box', fontFamily: 'inherit',
 }
-const labelStyle: React.CSSProperties = {
-  display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 800, color: C.textMuted,
-  textTransform: 'uppercase', letterSpacing: '.05em',
-}
-
 function unique<T>(values: T[]) { return Array.from(new Set(values)) }
 function orderScheme(a: SchemeLesson, b: SchemeLesson) {
   return (a.sequence_number ?? 999999) - (b.sequence_number ?? 999999)
