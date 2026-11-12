@@ -80,12 +80,23 @@ requireText(resumeMigration, "regexp_replace(lower(p.cbc_grade), '[^a-z0-9]+', '
 requireText(resumeMigration, "coalesce(nullif(item->>'progress_percent','')::numeric,0) < 100", 'unfinished resume promotion')
 requireText(resumeMigration, 'revoke all on function public.student_get_vibelearn_workstation_scoped_base_20260819() from public, anon, authenticated', 'resume base bypass revocation')
 
-requireText(vibeLearnLayout, 'const isForm4 = classKey === "form4"', 'Form 4 exam-mode boundary')
-requireText(vibeLearnLayout, 'return isForm4 ? children : <GeneralLearnerVibeLearn />;', 'non-Form learner workstation boundary')
-requireText(vibeLearnLayout, 'brief.subjects.map(subject => subject.id)', 'canonical workstation subject identity')
-requireText(vibeLearnLayout, '.in("subject_id", subjectIds)', 'canonical class-subject resource scope')
-requireText(vibeLearnLayout, '.eq("status", "live")', 'live-resource-only discovery')
-requireText(vibeLearnLayout, 'Learn by subject', 'non-Form learner-mode UX')
+// Learn has one public grade/subject discovery shell for every learner. The
+// previous layout's Form 4-vs-other-grade UI split is deliberately removed;
+// canonical grade identity, school resources and private exams remain guarded.
+const learnPage = fs.readFileSync('app/learn/page.tsx','utf8')
+const learnLibrary = fs.readFileSync('components/learn/SchoolLearnLibrary.tsx','utf8')
+const legacyEntry = fs.readFileSync('components/learn/StudentLearnLegacyRedirect.tsx','utf8')
+const studyDesk = fs.readFileSync('app/student/study/page.tsx','utf8')
+const nestedExams = fs.readFileSync('app/student/vibelearn/exams/page.tsx','utf8')
+requireText(vibeLearnLayout, 'return <>{children}</>', 'nested learner routes remain active under compatibility layout')
+requireText(learnPage, '<SchoolLearnLibrary mode="public" />', 'common grade/subject discovery landing')
+requireText(learnLibrary, ".eq('status', 'published')", 'published content gating')
+requireText(learnLibrary, ".eq('grade', grade)", 'current-grade subject authority')
+requireText(legacyEntry, 'recogniseLearnerGrade(identity?.className)', 'student identity grade retained during redirect')
+requireText(studyDesk, 'getVibeLearnWorkstation', 'private student workspace still uses canonical workstation')
+requireText(studyDesk, 'getExamReadinessBrief', 'Form 4 exam readiness still available')
+requireText(studyDesk, 'getAssignedReading', 'assigned reading still uses canonical student scope')
+requireText(nestedExams, 'listMyAssessmentAssignments', 'protected existing exam discovery remains authoritative')
 
 requireText(assessmentMigration, "p_source_exercise_ref ? 'source_block_id'", 'assessment source-block grounding input')
 requireText(assessmentMigration, 'source_resource_id,source_exercise_ref,source_block_id,question_type,prompt', 'assessment source-block persistence')

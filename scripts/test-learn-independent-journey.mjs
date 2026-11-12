@@ -18,7 +18,7 @@ for (const title of ["Read", "Topic Practice", "Exams", "Projects", "My Work", "
 }
 assert.match(hub, /from "lucide-react"/, "Learn icons must be SVG");
 assert.doesNotMatch(hub, /[\u{1F300}-\u{1FAFF}]/u, "Learn tiles must not use emoji");
-assert.match(hub, /href: "\/student\/vibelearn\/reading"/);
+assert.match(hub, /href: "\/learn"/, 'Read must open unified Learn');
 assert.match(hub, /href:\s*hasSchoolClass\s*\?\s*"\/student\/projects"\s*:\s*"\/student\/projects\/independent"/);
 assert.match(hub, /hasSchoolClass/, "School and independent project navigation must be differentiated");
 assert.match(hub, /Coming soon/);
@@ -29,11 +29,11 @@ assert.match(shared, /\.eq\('format', 'vibetextbook'\)/, 'Reading must use canon
 assert.match(shared, /\/read\/textbook\//, 'Reading must use canonical reader');
 assert.match(shared, /cbc_grade/, 'Reading needs grade selection');
 assert.match(shared, /return \(\) => \{ active = false \}/, 'Reading must cancel stale loads');
-assert.match(reading, /SchoolLearnLibrary/, 'Reading must share the public library component');
+assert.match(reading, /StudentLearnLegacyRedirect/, 'Old reading URL must converge on Learn');
 assert.match(catalog, /readersForSubject/, 'Known published readers must be discoverable');
-assert.match(layout, /<LearnActivityHub \/>/, "General grades must receive activity hub");
-assert.match(form4, /<LearnActivityHub \/>/, "Form 4 must receive activity hub");
-assert.match(layout, /pathname !== "\/student\/vibelearn"/, "Nested routes must not be replaced");
+assert.match(form4, /StudentLearnLegacyRedirect/, 'Form 4 and other learners enter Learn');
+assert.match(layout, /return <>\{children\}<\/>/, 'Nested exams, practice and revision routes must pass through unchanged');
+assert.match(read('app/student/study/page.tsx'), /getVibeLearnWorkstation/, 'The personal learning workspace retains canonical backend');
 assert.doesNotMatch(layout, /identity\.independent \|\| pathname/, "Independent learners must use the same grade workstation");
 assert.match(projects, /from\("projects"\)/);
 assert.match(exams, /listMyAssessmentAssignments/, "Do not replace exam engine");

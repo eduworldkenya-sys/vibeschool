@@ -79,3 +79,9 @@
 @media(max-width:620px){.topInner{padding:13px 14px}.topLinks{gap:5px}.topLink{font-size:11px;padding:8px}.brandName{font-size:16px}.brandIcon{width:35px;height:35px}.brandSub{font-size:9px}.frame{display:block}.sidebar{padding:13px 12px;border-right:0;border-bottom:1px solid #dfe8e3}.sidebarHeading{margin:0 5px 9px}.levels{display:flex;flex-direction:row;overflow-x:auto;gap:5px;padding-bottom:3px}.levelButton{white-space:nowrap;padding:9px 11px;font-size:11px;min-height:38px}.sidebarFoot{display:none}.main{padding:19px 14px 85px}.intro{display:block}.sectionHead{margin-top:19px}.subjectCard{min-height:130px;padding:14px}.subjectGrid{gap:9px}.subjectName{font-size:12px}.statsRow{grid-template-columns:1fr}.continueCard{padding:14px}.pageTitle{font-size:25px}}
 @media(max-width:345px){.subjectGrid{grid-template-columns:1fr}.topLink{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.subjectCard{transition:none}.subjectCard:hover{transform:none}}
+
+/* Learn is the single discovery shell for school subjects, published reading
+   and vocational courses; route owners still enforce access to resources. */
+.collectionsFrame{max-width:1260px;min-height:calc(100vh - 75px);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr)}
+.topLinks [aria-current="page"]{background:#236347;color:#fff;border-color:#78b99a}
+@media(max-width:700px){.collectionsFrame{min-height:calc(100vh - 70px)}.topInner{flex-wrap:wrap}.topLinks{width:100%;min-width:0;overflow-x:auto;white-space:nowrap;max-width:100%;flex-wrap:nowrap;padding:2px 0}.topLink{flex:none;min-height:42px;display:inline-flex;align-items:center}}

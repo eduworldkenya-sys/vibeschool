@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation"
 
 const TABS = [
   { id: "home",    label: "Home",     href: "/student"           },
-  { id: "learn",   label: "Learn",    href: "/student/vibelearn" },
+  { id: "learn",   label: "Learn",    href: "/learn" },
   { id: "twin",    label: "Twin",     href: "/student/twin"      },
   { id: "tasks",   label: "Tasks",    href: "/student/tasks"     },
   { id: "results", label: "Progress", href: "/student/marks"     },
@@ -15,7 +15,7 @@ type TabId = typeof TABS[number]["id"]
 function activeTab(path: string): TabId {
   if (path === "/student" || path === "/student/") return "home"
   if (path.startsWith("/student/twin")) return "twin"
-  if (path.startsWith("/student/vibelearn") || path.startsWith("/student/lesson") || path.startsWith("/student/resources") || path.startsWith("/student/projects") || path.startsWith("/student/exercises")) return "learn"
+  if (path.startsWith("/learn") || path.startsWith("/student/study") || path.startsWith("/student/vibelearn") || path.startsWith("/student/lesson") || path.startsWith("/student/resources") || path.startsWith("/student/projects") || path.startsWith("/student/exercises")) return "learn"
   if (path.startsWith("/student/tasks") || path.startsWith("/student/learn") || path.startsWith("/student/homework") || path.startsWith("/student/assessment")) return "tasks"
   if (path.startsWith("/student/marks") || path.startsWith("/student/results")) return "results"
   return "home"

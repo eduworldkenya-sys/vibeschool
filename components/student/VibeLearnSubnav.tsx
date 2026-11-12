@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
 
 const TABS = [
-  { label: 'Learn', href: '/student/vibelearn' },
+  { label: 'Learn', href: '/learn' },
   { label: 'KCSE', href: '/student/vibelearn/kcse' },
   { label: 'Practice', href: '/student/vibelearn/practice' },
   { label: 'Exams', href: '/student/vibelearn/exams' },
@@ -13,7 +13,7 @@ const TABS = [
 ] as const
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === '/student/vibelearn') return pathname === href || pathname === `${href}/`
+  if (href === '/learn') return pathname === href || pathname === `${href}/`
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
