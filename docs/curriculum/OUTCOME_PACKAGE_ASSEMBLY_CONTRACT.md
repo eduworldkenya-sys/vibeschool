@@ -83,3 +83,7 @@ The audit checks:
 - `scripts/sql/outcome_package_manifest_verify.sql`: rollback-only fixture proving independent Core release, draft Activities/Revision, missing-version rejection, wrong-kind/duplicate rejection, required-visual blocking, unapproved-question blocking, approved-question readiness and trigger enforcement. It also verifies browser roles cannot call the raw audit function.
 - `npm run test:outcome-packages`: typed builder, optional sections, UUID/duplicate checks, and canonical identity regression.
 - The migration is additive, non-activating and leaves existing records unchanged. Apply through the normal, controlled Supabase migration pipeline **after merge**; verify deployment and the consumer route separately. Do not claim a live package because the migration exists.
+
+## P1 quality and certification gate
+
+Before a new outcome package can be certified, follow [Package Quality and Release](./OUTCOME_PACKAGE_QUALITY_AND_RELEASE.md). Reuse P0 exact source/alias reconciliation, check Mathematics worked steps, answers, rights, visuals, teacher usefulness and reproducible learner/teacher/practice evidence. AI-assisted verification is not human sign-off. The canonical owner-only certification RPC, immutable versions and separate publication authorities are unchanged.
