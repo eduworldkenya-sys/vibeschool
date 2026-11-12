@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - 'lib/content/canonicalLearningAssetIdentity.ts'
+      - 'lib/content/outcomePackageManifest.ts'
+      - 'supabase/migrations/20261112102500_outcome_package_manifest.sql'
+      - 'scripts/sql/outcome_package_manifest_verify.sql'
+      - 'scripts/test-outcome-package-manifest.mjs'
       - 'lib/content/canonicalLearningAssetLookup.ts'
       - 'lib/teaching/canonicalLessonGeneration.ts'
       - 'lib/teaching/lessonSource.ts'
@@ -46,11 +50,14 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Verify canonical identity contract
         run: bash scripts/test-canonical-learning-asset-identity.sh
+      - name: Verify outcome package assembly contract
+        run: npm run test:outcome-packages
       - name: Verify database authority and security contract
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/canonical_learning_resource_versions_verify.sql
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/canonical_learning_resource_promotion_verify.sql
+          PGPASSWORD=postgres psql -v ON_ERROR_STOP=1 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/outcome_package_manifest_verify.sql
       - name: Type-check governed canonical lesson generator
         run: deno check --node-modules-dir=auto supabase/functions/generate-canonical-lesson-plan/index.ts
       - name: Verify authoritative lesson identity path

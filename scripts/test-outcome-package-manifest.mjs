@@ -14,6 +14,7 @@ const p = buildOutcomePackageManifest({
 
 assert.equal(p.schema, OUTCOME_PACKAGE_SCHEMA)
 assert.equal(p.outcome_id, o)
+assert.equal(p.curriculum_package_id, null)
 assert.deepEqual(p.curriculum_outcome_aliases, [])
 assert.deepEqual(p.assets.activities, [])
 assert.deepEqual(p.assets.revision, [])
@@ -26,11 +27,13 @@ assert.equal(p.requirements.visual_assets, false)
 
 const activitiesReady = buildOutcomePackageManifest({
   outcomeId: o,
+  curriculumPackageId: 'VS-G04-MA-2.6-TIME-20261111',
   outcomeAliases: ['manuscript-time-hours-minutes'],
   questionIds: { activities: [q] },
   requirements: { teacherGuidance: false, visualAssets: true },
   release: { activities: 'ready' },
 })
+assert.equal(activitiesReady.curriculum_package_id, 'VS-G04-MA-2.6-TIME-20261111')
 assert.deepEqual(activitiesReady.curriculum_outcome_aliases, ['manuscript-time-hours-minutes'])
 assert.equal(activitiesReady.release.activities, 'ready')
 assert.equal(activitiesReady.release.core, 'draft')
@@ -41,6 +44,7 @@ assert.throws(() => buildOutcomePackageManifest({ outcomeId:o, assets:{core:[
   {resource_id:coreId,resource_version_id:coreVersion},
   {resource_id:coreId,resource_version_id:coreVersion},
 ]} }), /duplicate core version/)
+assert.throws(() => buildOutcomePackageManifest({ outcomeId:o, curriculumPackageId:'  ' }), /invalid curriculum package ID/)
 assert.throws(() => buildOutcomePackageManifest({ outcomeId:o, outcomeAliases:['a','a'] }), /duplicate curriculum aliases/)
 assert.throws(() => buildOutcomePackageManifest({ outcomeId:'not-an-id' }), /invalid outcome ID/)
 assert.throws(() => buildOutcomePackageManifest({ outcomeId:o, assets:{visual_assets:[
