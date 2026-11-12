@@ -2,6 +2,57 @@
 -- Drafts are private to the teacher/school management. Only explicit sharing
 -- makes materials available through the learner-facing resource reader.
 -- Existing rows are deliberately migrated to draft for safe opt-in release.
+-- Production has a legacy public.resources relation that predates repository
+-- migrations. Reconstruct its verified original shape on a clean environment;
+-- CREATE IF NOT EXISTS leaves the production relation and data unchanged.
+create table if not exists public.resources (
+  id uuid primary key default gen_random_uuid(),
+  teacher_id uuid references auth.users(id) on delete cascade,
+  class_id uuid references public.classes(id) on delete cascade,
+  school_id uuid references public.schools(id) on delete set null,
+  title text not null,
+  description text default '',
+  type text not null default 'notes',
+  subject text default '',
+  external_url text,
+  content text,
+  is_school_wide boolean default false,
+  created_at timestamptz default now(),
+  constraint check_resource_type check (type in ('notes','assignment','video','link','quiz'))
+);
+alter table public.resources enable row level security;
+
+do $migration$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'resources'
+      and policyname = 'Teachers manage their resources'
+  ) then
+    create policy "Teachers manage their resources" on public.resources
+      for all to authenticated
+      using (teacher_id = (select auth.uid()) and exists (
+        select 1 from public.teacher_classes tc
+        where tc.teacher_id = (select auth.uid())
+          and tc.class_id = resources.class_id and tc.school_id = resources.school_id
+      ))
+      with check (teacher_id = (select auth.uid()) and exists (
+        select 1 from public.teacher_classes tc
+        where tc.teacher_id = (select auth.uid())
+          and tc.class_id = resources.class_id and tc.school_id = resources.school_id
+      ));
+  end if;
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'resources'
+      and policyname = 'resources_admin'
+  ) then
+    create policy resources_admin on public.resources
+      for all to authenticated
+      using (public.is_school_admin(school_id))
+      with check (public.is_school_admin(school_id));
+  end if;
+end;
+$migration$;
+
 alter table public.resources
   add column if not exists component_type text,
   add column if not exists publication_status text not null default 'draft',
