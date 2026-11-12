@@ -146,8 +146,11 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   useEffect(() => {
     let active = true
     setRegisteredSubjects(null)
-    if (mode !== 'student') return () => { active = false }
     void (async () => {
+      // /learn is public; signed-in learners may see their authorized grade
+      // register without creating a second student-only catalogue.
+      const auth = await supabase.auth.getUser()
+      if (!active || !auth.data.user) return
       const { data, error } = await supabase.from('grade_subject_authority')
         .select('subject_name,pathway,subject_kind,effective_from,effective_to')
         .eq('grade', grade)
@@ -161,7 +164,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
       setRegisteredSubjects(uniqueNames(current))
     })()
     return () => { active = false }
-  }, [grade, mode])
+  }, [grade])
 
   useEffect(() => { setQuery(''); setTab('lessons') }, [grade, selectedSubject])
 
