@@ -31,7 +31,7 @@ mustContain(notes, "parseLessonPlanBody", "Lesson notes workspace");
 mustContain(notes, "list_teaching_resources", "Lesson notes workspace");
 mustContain(notes, "let subStrandId: string | null = null", "Lesson notes workspace");
 mustContain(notes, "typedPlan.curriculum_id ?? null", "Lesson notes workspace");
-mustContain(notes, ".select(\"curriculum_id,sub_strand_id,sub_strand,grade,teacher_id,class_id,subject_id\")", "Lesson notes workspace");
+mustContain(notes, ".select(\"curriculum_id,sub_strand_id,curriculum_outcome_id,sub_strand,grade,teacher_id,class_id,subject_id\")", "Lesson notes workspace");
 mustContain(notes, "schemeData.teacher_id !== authData.user.id", "Lesson notes Scheme ownership");
 mustContain(notes, "schemeData.class_id !== typedPlan.class_id", "Lesson notes Scheme class authority");
 mustContain(notes, "schemeData.subject_id !== typedPlan.subject_id", "Lesson notes Scheme subject authority");
