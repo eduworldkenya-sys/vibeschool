@@ -15,6 +15,7 @@ language plpgsql stable security invoker set search_path = ''
 as $quality$
 declare
   root public.learning_resources%rowtype;
+  outcome public.curriculum_learning_outcomes%rowtype;
   manifest_audit jsonb;
   quality jsonb := p_verification_evidence->'package_quality_v1';
   checks jsonb := quality->'checks';
@@ -44,6 +45,13 @@ begin
       'policy','outcome-package-quality-v1');
   end if;
 
+  select * into outcome from public.curriculum_learning_outcomes
+  where id = root.curriculum_outcome_id;
+  if outcome.id is null
+     or (root.curriculum_id is not null and root.curriculum_id is distinct from outcome.curriculum_id)
+     or (root.sub_strand_id is not null and root.sub_strand_id is distinct from outcome.sub_strand_id) then
+    blockers := array_append(blockers,'CURRICULUM_ROOT_SCOPE_MISMATCH');
+  end if;
   manifest_audit := public.cla_audit_outcome_package(p_resource_id,p_payload);
   if coalesce(manifest_audit->>'valid','false') <> 'true' then
     blockers := array_append(blockers,'PACKAGE_MANIFEST_OR_CURRICULUM_NOT_READY');
@@ -167,9 +175,9 @@ begin
           end if;
           if jsonb_typeof(worked->'worked_examples') = 'array' then
             steps_ok := steps_ok or exists (
-              select 1 from jsonb_array_elements(worked->'worked_examples') e
-              where jsonb_typeof(e->'steps') = 'array'
-                and jsonb_array_length(e->'steps') >= 2
+              select 1 from jsonb_array_elements(worked->'worked_examples') as e(item)
+              where jsonb_typeof(e.item->'steps') = 'array'
+                and jsonb_array_length(e.item->'steps') >= 2
             );
           end if;
         end if;
