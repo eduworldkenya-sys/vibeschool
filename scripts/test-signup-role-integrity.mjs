@@ -87,4 +87,34 @@ const newTeacher = await journey({ intent: 'signup', requestedRole: 'teacher', a
 assert.equal(newTeacher.path, '/teacher/pulse')
 assert.equal(newTeacher.claims, 1)
 
+// The generic sign-in entry must preserve the learner/parent role for protected
+// deep links, rather than silently sending every visitor to the teacher form.
+const compiledRouting = ts.transpileModule(readFileSync('lib/auth-routing.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS },
+}).outputText
+const routing = {}
+runInNewContext(compiledRouting, { exports: routing })
+const compiledLogin = ts.transpileModule(readFileSync('app/login/page.tsx', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS },
+}).outputText
+for (const [target, expected] of [
+  ['/student?tab=learn', '/login/student?redirect=%2Fstudent%3Ftab%3Dlearn'],
+  ['/parent', '/login/parent?redirect=%2Fparent'],
+  ['/teacher/pulse', '/login/teacher?redirect=%2Fteacher%2Fpulse'],
+  [null, '/login/teacher'],
+]) {
+  const loginModule = {}
+  runInNewContext(compiledLogin, {
+    exports: loginModule,
+    require: name => {
+      if (name === 'next/navigation') return { redirect: path => { throw new Error('redirect:' + path) } }
+      if (name === '@/lib/auth-routing') return routing
+      throw new Error('Unexpected import ' + name)
+    },
+  })
+  assert.throws(() => loginModule.default({ searchParams: { redirect: target } }), {
+    message: 'redirect:' + expected,
+  })
+}
+
 console.log('Signup role-authority and redirect regression tests passed.')
