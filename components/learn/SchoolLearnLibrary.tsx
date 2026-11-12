@@ -211,7 +211,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
           <nav className={styles.topLinks} aria-label="Learning navigation">
             {mode === 'student'
               ? <><Link className={styles.topLink} href="/student/vibelearn">Learning desk</Link><Link className={styles.topLink} href="/student/tasks">My tasks</Link></>
-              : <Link className={styles.topLink} href="/learn/courses">College & career courses</Link>}
+              : <><Link className={styles.topLink} href={buildUrl('/student/vibelearn/reading', grade, activeName)}>Continue in VibeLearn</Link><Link className={styles.topLink} href="/learn/courses">College & career courses</Link></>}
           </nav>
         </div>
       </header>
