@@ -69,7 +69,7 @@ For non-mathematical outcomes only, `mathematical_correctness` and `worked_steps
 ## Verification and deployment
 
 - P1 quality gate migration: `supabase/migrations/20261112115000_outcome_package_quality_gate.sql`.
-- Rollback-only SQL: `scripts/sql/outcome_package_quality_verify.sql`, run after both migrations on a database with an outcome tied to a P0 `PASS` reconciliation. This test deliberately rolls back all changes. It covers valid Core readiness plus missing/stale quality evidence, misaligned source IDs/aliases, inaccessible diagrams, missing cross-surface tests, skipped verification and fake human-review claims.
+- Rollback-only SQL: `scripts/sql/outcome_package_quality_verify.sql`, run on a disposable database after the P0 manifest and P1 quality migrations, with an outcome tied to a P0 `PASS` reconciliation. This test deliberately rolls back all changes. It covers valid Core readiness plus missing/stale quality evidence, misaligned source IDs/aliases, inaccessible diagrams, missing cross-surface tests, skipped verification and fake human-review claims.
 - Static contract: `npm run test:package-quality` (also part of `test:outcome-packages`).
 - Before actual production commissioning: run the full migration chain, SQL adversarial fixture and production security/access audit, validate real reading/teaching/practice routes with usable accounts, ensure every evidence reference actually exists, and obtain an explicit owner certification. Merging this code does **not** apply a migration, release a package or validate a production browser session.
 
