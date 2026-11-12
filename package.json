@@ -23,7 +23,8 @@
     "test:curriculum-identity": "node scripts/test-p0-curriculum-reconciliation.mjs && node scripts/test-grade4-maths-time.mjs && node scripts/test-grade4-place-value-integrity.mjs",
     "test:outcome-packages": "node --import ./scripts/register-typescript.mjs scripts/test-outcome-package-manifest.mjs && npm run test:outcome-delivery && npm run test:package-quality",
     "test:outcome-delivery": "node scripts/test-p1-outcome-delivery.mjs && node scripts/test-notebook-learning.mjs",
-    "test:package-quality": "node scripts/test-outcome-package-quality.mjs"
+    "test:package-quality": "node scripts/test-outcome-package-quality.mjs",
+    "check:content-without-hq": "npm run test:curriculum-identity && npm run test:outcome-packages && node --test scripts/test-content-hq-optional-contract.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
