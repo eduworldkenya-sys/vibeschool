@@ -379,7 +379,26 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Learning to learn",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Respect",
+          "Unity"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Environmental education: measuring and interpreting temperature changes"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Use all four signed-number operations correctly",
+          "Follow order of operations in combined calculations",
+          "Interpret negative quantities in a real situation"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "1.2",
@@ -432,12 +451,14 @@
         ],
         "vibeschool_inquiry_questions": [
           "How are a number's cube and its cube root related, and when is each useful?",
-          "How can we find the edge of a cube from its volume?"
+          "How can we find the edge of a cube from its volume?",
+          "Where can cubes and cube roots help us make decisions in everyday situations?"
         ],
         "vibeschool_suggested_learning_experiences": [
           "Construct cubic arrays with identical unit blocks and count the total units.",
           "Use factor groupings to discover cube roots, explaining why factors occur in groups of three.",
-          "Compare independently found cube and cube-root results with printed tables and calculators."
+          "Compare independently found cube and cube-root results with printed tables and calculators.",
+          "Compare several cube-building methods with peers and explain how the side length determines the total unit cubes."
         ],
         "vibeschool_assessment_evidence": [
           "Check a written cubing method, factorised cube root, table reading and contextual volume result."
@@ -446,7 +467,25 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Creativity and imagination"
+        ],
+        "vibeschool_values": [
+          "Respect"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Environmental awareness: interpreting cubic objects in the surroundings"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Find cubes through multiplication",
+          "Use mathematical tables for cubes and cube roots",
+          "Use factors and a calculator to obtain and check cube roots",
+          "Apply cubes to a real volume or measurement problem"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "1.3",
@@ -505,7 +544,25 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Self-efficacy"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Unity"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Self-awareness while reasoning and explaining index notation"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Interpret base and exponent",
+          "Derive and apply laws of indices",
+          "Relate powers of ten to common logarithms"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "1.4",
@@ -565,7 +622,25 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Citizenship",
+          "Critical thinking and problem-solving"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Respect"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Self-esteem through independent proportional reasoning"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Divide a quantity into proportional parts",
+          "Solve a compound proportion with ratios",
+          "Calculate and interpret rates of work"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "2.1",
@@ -631,7 +706,25 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Learning to learn"
+        ],
+        "vibeschool_values": [
+          "Integrity"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Social and economic awareness in tabular data",
+          "Citizenship: interpreting travel schedules"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Identify a matrix and its order",
+          "Locate an element by row and column",
+          "Check compatible orders and calculate matrix sums and differences"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "2.2",
@@ -711,7 +804,24 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Digital literacy",
+          "Learning to learn"
+        ],
+        "vibeschool_values": [
+          "Integrity"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Safety in observing slopes and gradient in the built environment"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Calculate gradient from points",
+          "Find equations from two points or a gradient and point",
+          "Interpret slope/intercept form and axis intercepts"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "2.3",
@@ -771,7 +881,24 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Digital literacy",
+          "Communication and collaboration"
+        ],
+        "vibeschool_values": [
+          "Social justice"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Citizenship in fair and feasible resource allocation"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Solve a linear inequality in one unknown",
+          "Graph solution regions for inequalities in one and two unknowns",
+          "Apply feasible ranges to a practical limit"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "3.1",
@@ -835,7 +962,8 @@
         "vibeschool_suggested_learning_experiences": [
           "Divide paper pentagons and hexagons into triangles to calculate total area.",
           "Unfold or draw nets of prism, pyramid and cone models and label the faces.",
-          "Mark sectors and segments on drawn circles and compare their areas; use radius to estimate sphere area."
+          "Mark sectors and segments on drawn circles and compare their areas; use radius to estimate sphere area.",
+          "Study repeating local fabric or building patterns and connect observed polygon shapes to area calculations."
         ],
         "vibeschool_assessment_evidence": [
           "Assess correct decomposition, units, and surface-area or sector formula selection."
@@ -844,7 +972,24 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Creativity and imagination"
+        ],
+        "vibeschool_values": [
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Patriotism through local mathematical patterns and careful collection of models"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Calculate polygon and circular-part areas",
+          "Calculate surface areas of the specified prisms, pyramids, cones and spheres",
+          "Use correct squared units and well-labelled nets"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "3.2",
@@ -911,7 +1056,26 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Creativity and imagination"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Patriotism"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Environmental education when collecting models",
+          "Safety when handling physical objects"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Calculate volumes of prisms, pyramids, cones, frustums and spheres",
+          "Explain volume relationships through models",
+          "Use correct cubic units and practical contexts"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "3.3",
@@ -970,7 +1134,27 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Creativity and imagination",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Integrity",
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Sustainable careers involving weighing",
+          "Self-awareness in measurement"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Convert mass units",
+          "Distinguish mass and weight",
+          "Calculate and interpret density"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "3.4",
@@ -1051,7 +1235,28 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Self-efficacy",
+          "Digital literacy",
+          "Citizenship"
+        ],
+        "vibeschool_values": [
+          "Integrity",
+          "Respect"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Safety in movement activities",
+          "Sustainable development and sporting careers",
+          "Self-awareness in timed activities"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Calculate speed, average speed, velocity and acceleration",
+          "Convert motion units correctly",
+          "Calculate longitude-related local times"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "3.5",
@@ -1116,7 +1321,8 @@
         "vibeschool_suggested_learning_experiences": [
           "Compare historical or explicitly dated currency quotations from credible sources.",
           "Convert a specified Kenyan-shilling amount to another currency and reverse the calculation.",
-          "Use hypothetical customs invoices and receipts to calculate each duty and VAT separately."
+          "Use hypothetical customs invoices and receipts to calculate each duty and VAT separately.",
+          "Check two independently sourced exchange-rate examples and discuss why the rates must carry a date."
         ],
         "vibeschool_assessment_evidence": [
           "Assess correct exchange direction, labelled currency units and separately calculated duty/tax values; do not claim sample rates are current."
@@ -1125,7 +1331,26 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Global citizenship",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Integrity",
+          "Social cohesion"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Financial literacy in currencies and taxation",
+          "Sustainable careers in import, export and trade"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Identify foreign currencies and convert at supplied rates",
+          "Calculate import, export, excise duty and VAT",
+          "Interpret an invoice or receipt without assuming current rates"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "3.6",
@@ -1177,7 +1402,25 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Creativity and imagination",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Integrity",
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Safety when using measuring instruments"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Approximate quantities",
+          "Compute measurement error and percentage error",
+          "Check reliability and precision of a result"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "4.1",
@@ -1236,12 +1479,14 @@
           }
         ],
         "vibeschool_inquiry_questions": [
-          "How do positions and gradients on coordinate axes describe lines and their relationships?"
+          "How do positions and gradients on coordinate axes describe lines and their relationships?",
+          "What can we learn from interpreting a straight-line graph in a practical situation?"
         ],
         "vibeschool_suggested_learning_experiences": [
           "Plot coordinate pairs from a table of values, then draw the matching straight line.",
           "Construct line pairs with equal gradients and explain their parallelism.",
-          "Construct perpendicular lines and test their gradient relationships on graph paper."
+          "Construct perpendicular lines and test their gradient relationships on graph paper.",
+          "Use a table of values from a simple practical model to interpret intercepts and changes on a plotted straight line."
         ],
         "vibeschool_assessment_evidence": [
           "Assess plotting, graph scales, gradient comparisons and explanation of parallel/perpendicular relationships."
@@ -1250,7 +1495,26 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Critical thinking and problem-solving"
+        ],
+        "vibeschool_values": [
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Sustainable development through interpretation of coordinate graphs",
+          "Safety when handling graphing tools"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Plot points and straight-line graphs",
+          "Relate gradients of parallel lines",
+          "Relate gradients of perpendicular lines",
+          "Interpret the meaning of a graph"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "4.2",
@@ -1337,7 +1601,26 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Creativity and imagination",
+          "Citizenship"
+        ],
+        "vibeschool_values": [
+          "Unity",
+          "Social cohesion"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Career awareness in surveying and scale drawing"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Use compass and true bearings and accurate three-figure bearings",
+          "Locate points from bearing and distance",
+          "Determine angles of elevation and depression",
+          "Use scale drawings in a simple survey"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "4.3",
@@ -1403,7 +1686,25 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Social cohesion"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Environmental education through relevant physical models"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Identify and draw similar figures",
+          "Construct enlargements with correct properties",
+          "Find and apply linear scale factors"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "4.4",
@@ -1469,7 +1770,25 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Safety when using devices and drawing apparatus"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Identify right-triangle sides and angles",
+          "Use sine, cosine and tangent as side ratios",
+          "Find trigonometric ratios from tables or calculators",
+          "Calculate unknown sides and acute angles"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "5.1",
@@ -1535,7 +1854,25 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Learning to learn",
+          "Critical thinking and problem-solving",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Respect"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Citizenship through collecting and interpreting community data"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Choose class widths and construct grouped frequency tables",
+          "Identify modal class",
+          "Calculate grouped mean and median appropriately"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       },
       {
         "code": "5.2",
@@ -1599,7 +1936,8 @@
         "vibeschool_suggested_learning_experiences": [
           "Run repeated coin, die or counter experiments and compare frequencies with theoretical probabilities.",
           "List mutually exclusive outcomes for one trial and independently repeated trials for another.",
-          "Draw and label the branches of a probability tree for a simple chance experiment."
+          "Draw and label the branches of a probability tree for a simple chance experiment.",
+          "Compare independent and mutually exclusive event models using a non-monetary chance experiment."
         ],
         "vibeschool_assessment_evidence": [
           "Assess probabilities in [0,1], clear event distinctions and correctly labelled probability trees."
@@ -1608,7 +1946,27 @@
         "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
         "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
         "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
-        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT"
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Critical thinking and problem-solving",
+          "Self-efficacy"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Social cohesion"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Financial literacy through responsible probability reasoning without gambling"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Model equally likely chance outcomes",
+          "Place valid probabilities between zero and one",
+          "Differentiate mutually exclusive and independent events",
+          "Use a labelled tree diagram"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
       }
     ],
     "total_candidate_learning_targets": 117,
@@ -1649,7 +2007,8 @@
         "status": "OPEN"
       }
     ],
-    "total_original_learning_experiences": 57,
-    "total_original_inquiry_questions": 26
+    "total_original_learning_experiences": 62,
+    "total_original_inquiry_questions": 28,
+    "source_dimensions": "Crosswalk drafted against July 2024 secondary transcription; original KICD Drive PDF not authenticated in live curriculum-authority intake. The skills/values/PCIs/assessment dimensions are VibeSchool-original concise educational paraphrases, not full publisher text or verified claims."
   }
 }
