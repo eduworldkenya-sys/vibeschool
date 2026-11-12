@@ -8,30 +8,6 @@
       "rebuilt_hash": "f5ad5e6b6f5dc8fac89fd5f8d20f39dd",
       "migration": "20261112101600_timetable_school_period_authority.sql",
       "rationale": "The period guard now validates edits to effective-date windows; production snapshot stays unchanged until migration deployment."
-    },
-    {
-      "table": "teaching_occurrences",
-      "section": "columns",
-      "production_hash": "00a41bb099361c7a421074ef9f5cac66",
-      "rebuilt_hash": "b6267cbed72bb9835de6d402a11c305b",
-      "migration": "20261112104242_unscheduled_teaching_occurrence.sql",
-      "rationale": "Canonical teaching occurrence now permits precisely one of a dated timetable slot or an unscheduled lesson plan and records an explicit completion review; production is unchanged until deployment."
-    },
-    {
-      "table": "teaching_occurrences",
-      "section": "constraints",
-      "production_hash": "a5a8d62fc7d5ca48048a144e06f51ba1",
-      "rebuilt_hash": "f2402925362f1d18e908fe7decabd3c1",
-      "migration": "20261112104242_unscheduled_teaching_occurrence.sql",
-      "rationale": "The explicit one-source check rejects occurrences that claim neither or both a scheduled slot and unscheduled plan; existing scheduled identities remain intact."
-    },
-    {
-      "table": "teaching_occurrences",
-      "section": "indexes",
-      "production_hash": "a34ee9aa568c8eda740da19391459458",
-      "rebuilt_hash": "cab1e33e79b43929983e8e49d54f02c0",
-      "migration": "20261112104242_unscheduled_teaching_occurrence.sql",
-      "rationale": "An unscheduled plan gets one canonical occurrence through a partial unique index; scheduled slot/date uniqueness is retained."
     }
   ]
 }
