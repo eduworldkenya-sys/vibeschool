@@ -1,3 +1,5 @@
+-- authorization-test: public.resources
+-- Teacher owner/admin SELECT/INSERT/UPDATE/DELETE; student SELECT only shared + current membership; anon DENY.
 -- Teacher Resource Authoring: extend the existing supplementary resources authority.
 -- Drafts are private to the teacher/school management. Only explicit sharing
 -- makes materials available through the learner-facing resource reader.
