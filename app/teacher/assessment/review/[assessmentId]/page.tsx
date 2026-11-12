@@ -68,7 +68,7 @@ export default function AssessmentReviewPage() {
   useEffect(() => { void load() }, [assessmentId])
 
   async function assignNow() {
-    if (!assessment || !context || busy || assignment || context.recipientCount !== null && context.recipientCount === 0) return
+    if (!assessment || !context || busy || assignment || !context.recipientCount) return
     setBusy(true)
     setError('')
     try {
@@ -105,7 +105,7 @@ export default function AssessmentReviewPage() {
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <button type="button" onClick={() => router.back()} style={secondary}>← Back</button>
         <section style={card}>
-          <div style={eyebrow}>{assignment ? 'Assigned' : 'Ready to assign'}</div>
+          <div style={eyebrow}>{assignment ? 'Assigned' : loading ? 'Loading review' : context?.recipientCount === 0 ? 'No learners to assign to' : context?.recipientCount ? 'Ready to assign' : 'Assignment unavailable'}</div>
           <h1 style={{ margin: '6px 0' }}>{assessment?.title ?? 'Assessment'}</h1>
           <p style={{ margin: 0, color: "var(--teacher-muted, #627168)", lineHeight: 1.5 }}>VibeSchool prepared this from authoritative curriculum outcomes. Check the questions, then assign in one tap. Full Builder controls are optional before release.</p>
         </section>
@@ -124,8 +124,9 @@ export default function AssessmentReviewPage() {
             <section role="status" style={successBox}><strong>✓ Assigned to the class</strong><div style={{ marginTop: 5 }}>Learners can now receive this assessment through the canonical assessment assignment flow.</div></section>
             <button type="button" onClick={() => router.push('/teacher/assessment')} style={{ ...secondary, width: '100%', marginTop: 10 }}>Done · Assessment workspace</button>
           </> : <>
+            {context.recipientCount === null && <p role="alert">The class roster could not be verified. <button type="button" onClick={() => void load()} style={secondary}>Retry roster</button></p>}
             {context.recipientCount !== null && <p role="status">{context.recipientCount === 0 ? 'This class has no current learners to assign to.' : `${context.recipientCount} current learners in this class`}</p>}
-            <button type="button" disabled={busy || items.length === 0 || context.recipientCount === 0} onClick={() => void assignNow()} style={{ ...primary, width: '100%' }}>{busy ? 'Assigning…' : 'Assign now'}</button>
+            <button type="button" disabled={busy || items.length === 0 || !context.recipientCount} onClick={() => void assignNow()} style={{ ...primary, width: '100%' }}>{busy ? 'Assigning…' : 'Assign now'}</button>
             <button type="button" onClick={() => router.push(`/teacher/assessment/builder/${assessmentId}`)} style={{ ...secondary, width: '100%', marginTop: 10 }}>Advanced Edit · Sections · Question Bank</button>
           </>}
         </>}
