@@ -271,3 +271,15 @@ Reconsider automated content workers only when there is evidence of an actual bo
 5. Record a new explicit operating decision before changing any live worker or publishing authority.
 
 **Until then: ChatGPT authors; VibeSchool's existing canonical system stores and delivers; genuine checks and authorized release determine what is live.**
+
+## P0 runtime prerequisite — source-to-database outcome identity (12 November 2026)
+
+The source comparison in Step 2A is now enforced at the canonical resource-version boundary for **platform-authored** learning packages, not merely in the author's checklist. A content manuscript alias (for example `VS-G04-MA-T-C`) is a local content handle, **never** a database identity. The authoritative learning-outcome identity is `curriculum_learning_outcomes.id`, scoped to `cbc_strands.id`.
+
+For each package record: (1) one exact KICD source URL, revision, sub-strand and printed source section; (2) every source learning requirement, code and locator; (3) each manuscript alias to a required source item; (4) all existing stable database outcome UUIDs representing that source requirement, including legitimate one-to-many mappings; (5) each canonical resource to the manuscript aliases it teaches. Check source completeness, missing coverage, inactive/cross-sub-strand IDs, source-locator mismatch, phantom aliases and insufficient resource coverage. If any check fails, emit `BLOCKED_CURRICULUM_RECONCILIATION`, not a completed/published claim.
+
+Database contract: `public.vs_curriculum_package_gate(package_id)` returns `PASS` only with a complete crosswalk; `public.vs_guard_curriculum_version_promotion` blocks candidate→verified and verified→certified when required metadata or identity links are missing. New platform-authored versions must carry `provenance.package_id` and `payload.curriculum_outcome_aliases`; no user-owned or teacher-owned resources inherit this platform authoring gate. Certified historical payloads remain immutable; existing Time lesson identities are backfilled in relational crosswalk tables without rewriting a version or its SHA.
+
+First repaired instance: Grade 4 Mathematics / 2.6 Time, `VS-G04-MA-2.6-TIME-20261111`. Seven source requirements (a–g) resolve to the original seven active database outcomes plus two newly required digital-clock/appreciation outcomes. The one-to-many mappings for Time unit conversion and duration computation are explicitly preserved. The public Time reader also checks `PASS` before exposing certified lessons, so corruption of identity links blocks delivery even if a version was certified earlier. This is source alignment, **not** a KICD endorsement or human educational accreditation.
+
+Machine tests: `npm run test:curriculum-identity` for the manuscript, negative fixtures and SQL contract. The runtime acceptance is a production SQL call returning `PASS` with all seven requirements, all ten resource links and ten certified public reader lessons. Existing packages need a deliberate migration of source requirements and aliases before their next platform-authored promotion, not guessed IDs or duplicate engine routes.
