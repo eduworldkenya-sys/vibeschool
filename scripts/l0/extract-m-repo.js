@@ -306,4 +306,7 @@ console.log(JSON.stringify({
   routine_privileges: dedupe(routinePrivileges),
 }, null, 2));
 
-if (parseErrors.length) process.exitCode = 1;
+if (parseErrors.length) {
+  console.error('M(repo) SQL parsing failed:', JSON.stringify(parseErrors, null, 2));
+  process.exitCode = 1;
+}
