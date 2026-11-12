@@ -11,6 +11,7 @@ import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
+import { effectivePublishedSchoolReleases, belongsToPublishedSchoolSlot, type SchoolPublicationRow } from '@/lib/timetable/schoolPublication'
 import { resolveTeacherTeachingIdentity } from '@/lib/teacher/teachingIdentity'
 import { defaultTeacherScheduleView, mayEditSchoolTimetable, projectTeacherDaySchedule, type TeacherScheduleView } from '@/lib/timetable/teacherScheduleView'
 import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
@@ -885,6 +886,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null)
   const [schools, setSchools] = useState<Array<{id:string;name:string}>>([])
   const [schoolFilter, setSchoolFilter] = useState<string>('all')
+  const [officialReleases, setOfficialReleases] = useState<Record<string,SchoolPublicationRow>>({})
+  const [schoolAdminCanManage, setSchoolAdminCanManage] = useState(false)
+  const [publicationError, setPublicationError] = useState<string | null>(null)
   const [calendarExceptions, setCalendarExceptions] = useState<Array<{id:string;school_id:string;exception_date:string;kind:string;label:string;suppress_ordinary_teaching:boolean}>>([])
   const [lastUndoSnapshotId, setLastUndoSnapshotId] = useState<string | null>(null)
   const [initialPlacement, setInitialPlacement] = useState<{dayOfWeek:number;startTime:string;endTime:string} | undefined>()
@@ -913,6 +917,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       setActiveSchoolId(null)
       setSchools([])
       setAllSlots([])
+      setOfficialReleases({})
+      setSchoolAdminCanManage(false)
+      setPublicationError(null)
       setSchoolBlocks({})
       setDayBlocks([])
       setCalendarExceptions([])
@@ -967,6 +974,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     // Clear previous school records before resolving a new user/week.
     // Neither identity changes nor failed reads may expose stale school data.
     setAllSlots([])
+    setOfficialReleases({})
+    setSchoolAdminCanManage(false)
+    setPublicationError(null)
     setActiveSchoolId(null)
     setSchools([])
     setDayBlocks([])
@@ -1035,6 +1045,31 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         return
       }
 
+      // A school-linked teacher inherits the ONE approved school release.
+      // This is only an RLS/member-filtered read; it never promotes drafts.
+      const schoolIds = memberships.map(s => s.id)
+      const rangeEnd = nairobiDateAdd(weekStart, 6)
+      const [pubRes, manageRes] = await Promise.all([
+        supabase.from('timetable_releases')
+          .select('id,school_id,label,status,effective_from,published_at')
+          .in('school_id',schoolIds).eq('status','published')
+          .lte('effective_from',rangeEnd),
+        supabase.rpc('can_manage_my_school_timetable',{p_school_id:schoolId}),
+      ])
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
+      if (pubRes.error) {
+        setPublicationError('School publication status could not be verified. Your official timetable is unavailable until this check succeeds.')
+        setSchoolError('Official school timetable could not be verified. Please retry.')
+        return
+      }
+      setOfficialReleases(effectivePublishedSchoolReleases(
+        (pubRes.data ?? []) as SchoolPublicationRow[],schoolIds,rangeEnd
+      ))
+      setSchoolAdminCanManage(!manageRes.error && Boolean(manageRes.data))
+      const publishedBySchool = effectivePublishedSchoolReleases(
+        (pubRes.data ?? []) as SchoolPublicationRow[],schoolIds,rangeEnd
+      )
+
       const { data: blockData, error: blockError } = await supabase.rpc('get_my_school_day_blocks')
       if (!isMounted.current || epoch !== loadEpochRef.current) return
       setBlocksError(blockError ? 'School periods could not load. Retry before creating lessons.' : null)
@@ -1046,8 +1081,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       // A teacher may belong to more than one school. Read every authorized
       // timetable and combine them only at the presentation layer. The
       // database's teacher exclusion constraint remains the global clash gate.
-      const schoolIds = memberships.length > 0 ? memberships.map(s => s.id) : [schoolId]
-      const rangeEnd = nairobiDateAdd(weekStart, 6)
       const blockGroups = await Promise.all(
         schoolIds.map(async membershipSchoolId => {
           if (membershipSchoolId === schoolId) {
@@ -1078,12 +1111,12 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       const schoolSlotGroups = await Promise.all(
         schoolIds.map(async membershipSchoolId => ({
           schoolId: membershipSchoolId,
-          slots: await loadTeacherTimetableForRange({
-            teacherId: user.id,
-            schoolId: membershipSchoolId,
-            rangeStart: weekStart,
-            rangeEnd,
-          }),
+          slots: publishedBySchool[membershipSchoolId]
+            ? await loadTeacherTimetableForRange({
+              teacherId: user.id, schoolId: membershipSchoolId,
+              rangeStart: weekStart, rangeEnd,
+              releaseId: publishedBySchool[membershipSchoolId].id,
+            }) : [],
         }))
       )
 
