@@ -112,7 +112,7 @@
 .digitalReadout output{display:block;padding:12px 14px;background:#eef7f0;border:1px solid #cde4d4;color:#1c513a;border-radius:10px;font-size:clamp(24px,3vw,36px);font-weight:850;font-variant-numeric:tabular-nums;text-align:center}
 .digitalReadout small{font-size:12px;line-height:1.6}
 .modelControls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
-.modelControls button{background:#eaf4ee;border:1px solid #bcdcc7;color:#1e6847;font:800 13px inherit;border-radius:9px;min-height:44px;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer}
+.modelControls button{background:#eaf4ee;border:1px solid #bcdcc7;color:#1e6847;font-family:inherit;font-size:13px;font-weight:800;border-radius:9px;min-height:44px;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer}
 .modelControls button:hover{background:#d7eddf}
 .modelControls button:focus-visible{outline:3px solid #63b88e;outline-offset:2px}
 .barSvg{width:100%;height:auto;display:block;max-width:480px;margin:0 auto}
@@ -148,3 +148,19 @@
 @media(prefers-reduced-motion:no-preference){.answerPanel,.hintPanel{animation:learn-reveal .18s ease-out}.modelControls button,.questionActions button{transition:background-color .18s ease, border-color .18s ease}}
 @keyframes learn-reveal{from{opacity:.4;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
 @media print{.sidebar,.lessonProgress,.sectionNav,.textSettings,.modelControls,.questionActions,.answerInput{display:none!important}.article{box-shadow:none}.page{background:white!important}.lessonSection{break-inside:avoid}}
+
+/* Learner-paced worked steps retain every published step, with the final step
+   revealed only when requested. Colour is not the only marker: step numbers
+   and accessible button names carry the same information. */
+.working{display:grid;gap:14px}
+.workingPrompt{color:#244463;font-weight:750}
+.workedStepList{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.workedStep{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:start;background:#fff;border:1px solid #dbe9f7;border-radius:12px;padding:14px;font-size:17px;line-height:1.75;color:#203f60}
+.stepNumber{border-radius:9px;background:#deedff;color:#255b9d;width:32px;height:32px;display:grid;place-items:center;font-weight:850;font-size:14px}
+.workedControls{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.workedControls button{display:inline-flex;align-items:center;gap:6px;border:1px solid #a9c4e4;border-radius:10px;background:#285c9c;color:#fff;padding:11px 15px;min-height:44px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.workedControls button.workReset{background:#fff;color:#285c9c}
+.workedControls button:focus-visible{outline:3px solid #7eafe9;outline-offset:2px}
+.allStepsVisible{font-size:12px;color:#3e6288;line-height:1.65;margin:0}
+.largeType .workedStep{font-size:19px}
+@media(max-width:470px){.workedStep{padding:11px;gap:8px}.workedControls button{flex:1;justify-content:center}}
