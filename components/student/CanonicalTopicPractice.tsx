@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import { saveResponse, startOrResumeAttempt, submitAttempt } from '@/lib/assessment/engine'
 import type { AttemptWorkspace, SubmitAttemptResult } from '@/lib/assessment/types'
 
@@ -181,6 +182,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
       {item ? <>
         <p style={{fontWeight:800,fontSize:14}}>Question {index+1} of 5</p>
         <h2 style={{fontSize:19,lineHeight:1.5,margin:'12px 0 18px'}}>{item.prompt}</h2>
+        <LearningNotebookPrompt subject={workspace.title} stage="practice" compact />
         <div style={{display:'grid',gap:10}}>
           {options.map(option=><button key={option.value} disabled={busy||seen.has(item.id)} style={{...optionStyle,background:currentFeedback?.selected===option.value?'#e0e7ff':'var(--vs-card)'}} onClick={()=>void save(option.value)}><strong>{option.value}.</strong> {option.label}</button>)}
         </div>
