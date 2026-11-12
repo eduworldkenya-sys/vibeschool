@@ -11,6 +11,8 @@ import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
+import { resolveTeacherTeachingIdentity } from '@/lib/teacher/teachingIdentity'
+import { defaultTeacherScheduleView, mayEditSchoolTimetable, projectTeacherDaySchedule, type TeacherScheduleView } from '@/lib/timetable/teacherScheduleView'
 import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
@@ -295,6 +297,7 @@ function SlotDrawer({
   onEdit,
   onCopy,
   canCopy,
+  canEdit,
 }: {
   slot:           Slot | null
   curMin:         number
@@ -306,6 +309,7 @@ function SlotDrawer({
   onEdit:           (slot: Slot) => void
   onCopy:           (slot: Slot) => void
   canCopy:          boolean
+  canEdit:          boolean
 }) {
   // FIX [FATAL-03]: removed useRouter() from here — navigation lifted to page via onNavigate prop
 
@@ -703,7 +707,7 @@ function SlotDrawer({
               ⏱ Missed lesson
             </div>
           )}
-          <button
+          {canEdit && <button
             onClick={() => { onEdit(slot); onClose(); }}
             style={{
               width: '100%', padding: '12px', borderRadius: 10,
@@ -713,7 +717,7 @@ function SlotDrawer({
             }}
           >
             Edit Slot
-          </button>
+          </button>}
           {canCopy && (
             <button
               onClick={() => { onCopy(slot); onClose(); }}
@@ -859,11 +863,13 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     []
   )
   const [allSlots,        setAllSlots]         = useState<Slot[]>([])
-  const [scheduleContext, setScheduleContext] = useState<'all' | 'school' | 'tuition'>('all')
-  const { lessons: tuitionLessons, error: tuitionError, refresh: refreshTuition } = useTuitionTimetable()
+  const [scheduleContext, setScheduleContext] = useState<TeacherScheduleView>('independent')
+  const defaultScopeRef = useRef<{ teacherId: string; hadSchool: boolean } | null>(null)
+  const { lessons: tuitionLessons, error: tuitionError, loading: tuitionLoading, refresh: refreshTuition } = useTuitionTimetable()
   const [loading,         setLoading]          = useState(true)
   const [loadError,       setLoadError]        = useState<string | null>(null)
   const [schoolError,     setSchoolError]      = useState<string | null>(null)
+  const [verifiedTeacher, setVerifiedTeacher] = useState(false)
   const [selected,        setSelected]         = useState<Slot | null>(null)
   const [view, setView] = useState<'day' | 'week'>('day')
   useEffect(() => {
@@ -893,6 +899,29 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [weeklyLoadError, setWeeklyLoadError]  = useState<string | null>(null)
   const [weeklyLoadRetry, setWeeklyLoadRetry]  = useState(0)
   const [showLoadCheck,   setShowLoadCheck]    = useState(false)
+  const loadEpochRef = useRef(0)
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(event => {
+      if (event !== 'SIGNED_OUT') return
+      loadEpochRef.current += 1 // invalidate in-flight school reads
+      setLoading(false)
+      // Auth state is a data-isolation boundary, including for multiple
+      // teachers sharing one device. Clear cached school details immediately.
+      setVerifiedTeacher(false)
+      setTeacherId(null)
+      setActiveSchoolId(null)
+      setSchools([])
+      setAllSlots([])
+      setSchoolBlocks({})
+      setDayBlocks([])
+      setCalendarExceptions([])
+      setSelected(null)
+      setSchoolError('Sign in to open your timetable.')
+      defaultScopeRef.current = null
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   // FIX [FATAL-02]: isMounted ref — prevents setState on unmounted component
   const isMounted = useRef(true)
@@ -930,9 +959,26 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
   const load = useCallback(async (): Promise<void> => {
     if (!isMounted.current) return
+    const epoch = ++loadEpochRef.current
     setLoadError(null)
     setSchoolError(null)
+    setVerifiedTeacher(false)
     setLoading(true)
+    // Clear previous school records before resolving a new user/week.
+    // Neither identity changes nor failed reads may expose stale school data.
+    setAllSlots([])
+    setActiveSchoolId(null)
+    setSchools([])
+    setDayBlocks([])
+    setSchoolBlocks({})
+    setCalendarExceptions([])
+    setWeeklyLoadRows([])
+    setWeeklyLoadError(null)
+    setSelected(null)
+    setRecoveryCtx(null)
+    setEditSlot(null)
+    setCopySlot(null)
+    setShowAddSlot(false)
 
     try {
       const { data: { user }, error: authErr } = await supabase.auth.getUser()
@@ -942,35 +988,55 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         return
       }
 
-      if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
+      if (!isMounted.current || epoch !== loadEpochRef.current) return  // stale session or week
       setTeacherId(user.id)
 
-      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
-
-      if (!isMounted.current) return
-
-      const typedSchoolContext = schoolContext as {
-        active_school_id?: string | null
-        schools?: Array<{id:string;name:string;status?:string|null}>
-      } | null
-      const schoolId = typedSchoolContext?.active_school_id ?? null
-      const memberships = (typedSchoolContext?.schools ?? []).filter(s => s.id && s.name)
-      if (schoolContextError || !schoolId) {
-        console.error('[Timetable] failed to resolve canonical teacher school', schoolContextError)
-        setSchoolError('Connect or select your active school before opening the timetable.')
+      // Keep one authenticated teacher profile. Server-checked membership
+      // determines school choices; an independent teacher needs no school ID.
+      const [schoolResponse, profileResponse] = await Promise.all([
+        supabase.rpc('get_my_teacher_school_context'),
+        supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+      ])
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
+      if (profileResponse.error || profileResponse.data?.role !== 'teacher') {
+        setSchoolError('A verified teacher account is required to open this timetable.')
+        return
+      }
+      if (schoolResponse.error) {
+        setSchoolError('Could not verify your school memberships. Retry to open your timetable.')
+        return
+      }
+      const identity = resolveTeacherTeachingIdentity(user.id, schoolResponse.data)
+      setVerifiedTeacher(true)
+      const schoolId = identity.defaultScope.kind === 'school' ? identity.defaultScope.schoolId : null
+      const memberships = identity.availableScopes
+        .filter(scope => scope.kind === 'school')
+        .map(scope => ({id: scope.schoolId, name: scope.label}))
+      const previous = defaultScopeRef.current
+      if (!previous || previous.teacherId !== user.id || (!previous.hadSchool && !!schoolId)) {
+        setScheduleContext(defaultTeacherScheduleView(identity))
+      } else if (!schoolId) {
+        setScheduleContext('independent')
+      }
+      defaultScopeRef.current = { teacherId: user.id, hadSchool: !!schoolId }
+      setActiveSchoolId(schoolId)
+      setSchools(memberships)
+      setSchoolFilter(current => memberships.some(s => s.id === current) ? current : (schoolId ?? 'all'))
+      if (!schoolId) {
+        // Private tuition is already read through its own accepted-invitation
+        // RPC; do not fabricate a school to load school-owned timetable rows.
+        setAllSlots([])
+        setDayBlocks([])
+        setSchoolBlocks({})
+        setCalendarExceptions([])
+        setWeeklyLoadRows([])
+        setWeeklyLoadError(null)
+        setBlocksError(null)
         return
       }
 
-      setActiveSchoolId(schoolId)
-      setSchools(memberships)
-      setSchoolFilter(current => {
-        if (current === 'all' && memberships.length > 1) return current
-        if (memberships.some(s => s.id === current)) return current
-        return memberships.length > 1 ? 'all' : schoolId
-      })
-
       const { data: blockData, error: blockError } = await supabase.rpc('get_my_school_day_blocks')
-      if (!isMounted.current) return
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       setBlocksError(blockError ? 'School periods could not load. Retry before creating lessons.' : null)
       setDayBlocks(((blockData ?? []) as SchoolPeriod[]).filter(b => b.school_id === schoolId).map(b => ({
         id:b.id,scheduleDay:b.schedule_day,periodNumber:b.period_number,label:b.label,
@@ -997,6 +1063,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           return { schoolId: membershipSchoolId, rows: (data ?? []) as SchoolPeriod[] }
         })
       )
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       const nextSchoolBlocks: Record<string, SchoolDayBlock[]> = {}
       for (const group of blockGroups) {
         nextSchoolBlocks[group.schoolId] = group.rows
@@ -1087,6 +1154,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           .lte('exception_date', rangeEnd)
           .order('exception_date'),
       ])
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       if (plansRes.error) console.error('[Timetable] readiness load failed', plansRes.error)
       if (occurrenceRes.error) console.error('[Timetable] occurrence exception load failed', occurrenceRes.error)
       if (!exceptionsRes.error) {
@@ -1097,7 +1165,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         console.error('[Timetable] calendar exception load failed', exceptionsRes.error)
       }
 
-      if (!isMounted.current) return
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
 
       const subjectIds = Array.from(new Set(slots.map((s: {subject_id: string}) => s.subject_id).filter(Boolean)))
       const classIds   = Array.from(new Set(slots.map((s: {class_id: string}) => s.class_id).filter(Boolean)))
@@ -1111,6 +1179,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           : Promise.resolve({ data: [] }),
       ])
 
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       const subjectMap: Record<string, string> = {}
       ;(subjectsRes.data ?? []).forEach((s: {id: string, name: string}) => { subjectMap[s.id] = s.name })
 
@@ -1175,11 +1244,11 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
 
     } catch (err) {
-      if (isMounted.current) {
+      if (isMounted.current && epoch === loadEpochRef.current) {
         setLoadError('Unexpected error loading timetable. Please refresh.')
       }
     } finally {
-      if (isMounted.current) {
+      if (isMounted.current && epoch === loadEpochRef.current) {
         setLoading(false)  // FIX [FATAL-02]: always runs, but only if still mounted
       }
     }
@@ -1201,12 +1270,11 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
   const tuitionWeek = useMemo(() => tuitionLessonsBetween(tuitionLessons, weekStart, nairobiDateAdd(weekStart, 6)), [tuitionLessons, weekStart])
   const tuitionDay = useMemo(() => tuitionWeek.filter(lesson => tuitionLocalDate(lesson.starts_at) === dateForDow(activeDow)), [tuitionWeek, dateForDow, activeDow])
-  const dayEntries = useMemo(() => {
-    const schoolEntries: Array<{kind: 'school'; start: string; slot: Slot} | {kind: 'tuition'; start: string; lesson: TuitionTimetableLesson}> =
-      scheduleContext === 'tuition' ? [] : daySlots.map(slot => ({kind: 'school' as const, start: slot.startTime, slot}))
-    if (scheduleContext !== 'school') schoolEntries.push(...tuitionDay.map(lesson => ({kind: 'tuition' as const, start: tuitionLocalTime(lesson.starts_at), lesson})))
-    return schoolEntries.sort((a, b) => a.start.localeCompare(b.start))
-  }, [daySlots, tuitionDay, scheduleContext])
+  const dayEntries = useMemo(() => projectTeacherDaySchedule(
+    scheduleContext,
+    daySlots.map(slot => ({kind: 'school' as const, start: slot.startTime, slot})),
+    tuitionDay.map(lesson => ({kind: 'tuition' as const, start: tuitionLocalTime(lesson.starts_at), lesson})),
+  ), [daySlots, tuitionDay, scheduleContext])
 
   const isToday = activeDow === todayDow
 
@@ -1245,7 +1313,11 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // across teacher_classes, classes, subjects, subject_weekly_allocations,
   // and timetable_slots. Replaces client-side grouping (Fix 13).
   useEffect(() => {
-    if (!teacherId) return
+    if (!teacherId || !activeSchoolId || scheduleContext === 'independent') {
+      setWeeklyLoadRows([])
+      setWeeklyLoadError(null)
+      return
+    }
     let cancelled = false
     Promise.resolve(supabase.rpc('get_teacher_weekly_timetable_load')).then(({ data, error }) => {
       if (cancelled) return
@@ -1275,7 +1347,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       setWeeklyLoadError('Weekly subject allocation could not be verified. The lesson counts below are not a confirmed allocation check.')
     })
     return () => { cancelled = true }
-  }, [teacherId, renderedWeekSlots, weeklyLoadRetry])
+  }, [teacherId, activeSchoolId, scheduleContext, renderedWeekSlots, weeklyLoadRetry])
 
   // Only non-OK rows are actionable — OK stays silent, same rule as before.
   const loadMismatches = useMemo(
@@ -1310,7 +1382,16 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   )
 
   
-  const canAddSlot = !loading && teacherId !== null
+  const canAddSlot = !loading && verifiedTeacher && teacherId !== null && mayEditSchoolTimetable(scheduleContext, activeSchoolId, schoolFilter) && !schoolError && !loadError && !blocksError
+
+  // A private timetable is never proof that the account belongs to a teacher.
+  // If role or school membership verification fails, fail closed for all modes.
+  if (!loading && !verifiedTeacher) return (
+    <div role="alert" style={{padding:20}}>
+      <p>{schoolError ?? loadError ?? 'Teacher identity could not be verified.'}</p>
+      <button type="button" onClick={() => void load()}>Retry</button>
+    </div>
+  )
 
   return (
     <>
@@ -1372,9 +1453,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         }
       `}</style>
 
-      {loadError  && <ErrorBanner message={loadError} />}
+      {scheduleContext !== 'independent' && loadError && <ErrorBanner message={loadError} />}
       {schoolError && <ErrorBanner message={schoolError} />}
-      {tuitionError && <div role="alert" className="no-print" style={{ marginBottom: 12, fontSize: 12 }}>{tuitionError} <button type="button" onClick={refreshTuition}>Retry tuition</button></div>}
+      {scheduleContext !== 'school' && tuitionError && <div role="alert" className="no-print" style={{ marginBottom: 12, fontSize: 12 }}>{tuitionError} <button type="button" onClick={refreshTuition}>Retry tuition</button></div>}
 
       {!loading && (
         <div style={{
@@ -1415,10 +1496,14 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           My Weekly Schedule
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
-          {loading ? 'Loading…' : `${totalLessons} school lessons · ${tuitionWeek.filter(lesson => lesson.status === 'scheduled').length} tuition lessons this week`}
+          {loading || (scheduleContext !== 'school' && tuitionLoading) ? 'Loading…' : scheduleContext === 'school'
+           ? `${totalLessons} school lessons this week`
+           : scheduleContext === 'independent'
+           ? `${tuitionWeek.filter(lesson => lesson.status === 'scheduled').length} private tuition lessons this week`
+           : `${totalLessons} school lessons · ${tuitionWeek.filter(lesson => lesson.status === 'scheduled').length} tuition lessons this week`}
         </div>
 
-        <div className="no-print" style={{ marginTop: 14 }}>
+        {scheduleContext === 'school' && <div className="no-print" style={{ marginTop: 14 }}>
           <button
             type="button"
             onClick={() => canAddSlot && setShowAddSlot(true)}
@@ -1434,10 +1519,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           >
             + Add Lesson
           </button>
-        </div>
+        </div>}
 
         {/* FIX [UI-07]: separate NOW and NEXT rows for clarity */}
-        {isToday && !loading && (nowSlot || nextSlot) && (
+        {scheduleContext !== 'independent' && isToday && !loading && (nowSlot || nextSlot) && (
           <div style={{
             marginTop: 14, padding: '10px 14px',
             background: 'rgba(255,255,255,0.12)',
@@ -1478,7 +1563,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </div>
 
-      {weeklyLoadError && (
+      {scheduleContext !== 'independent' && weeklyLoadError && (
         <div role="alert" className="no-print" style={{
           marginBottom: 14, border: '1px solid #f59e0b',
           borderRadius: 12, padding: '12px 14px', color: C.textPrimary,
@@ -1495,7 +1580,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       {/* Weekly Load Check — only visible when a class+subject combo is
           off the KICD allocation target, unscheduled, or missing a target.
           Silent otherwise, same rule as the scheme page's coverage indicators. */}
-      {!loading && loadMismatches.length > 0 && (
+      {scheduleContext !== 'independent' && !loading && loadMismatches.length > 0 && (
         <div
           className="no-print"
           style={{
@@ -1544,7 +1629,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         </div>
       )}
 
-      {periodIssues.length > 0 && (
+      {scheduleContext !== 'independent' && periodIssues.length > 0 && (
         <details open className="no-print" style={{
           marginBottom: 14, border: '1px solid #f59e0b',
           borderRadius: 12, padding: '12px 14px',
@@ -1569,9 +1654,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         </details>
       )}
 
-      <div className="no-print" role="group" aria-label="Schedule context" style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        {(['all', 'school', 'tuition'] as const).map(context => <Btn key={context} variant={scheduleContext === context ? 'primary' : 'ghost'} small onClick={() => setScheduleContext(context)}>{context === 'all' ? 'All' : context === 'school' ? 'School' : 'Tuition'}</Btn>)}
+      <div className="no-print" role="group" aria-label="Teaching context" style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        {activeSchoolId && <Btn variant={scheduleContext === 'school' ? 'primary' : 'ghost'} small onClick={() => { setSelected(null); setSchoolFilter(activeSchoolId); setScheduleContext('school') }}>School</Btn>}
+        <Btn variant={scheduleContext === 'independent' ? 'primary' : 'ghost'} small onClick={() => { setSelected(null); setScheduleContext('independent') }}>Independent</Btn>
+        {activeSchoolId && <Btn variant={scheduleContext === 'all' ? 'primary' : 'ghost'} small onClick={() => { setSelected(null); setSchoolFilter('all'); setScheduleContext('all') }}>All</Btn>}
       </div>
+      {scheduleContext === 'independent' && <p className="no-print" style={{fontSize:12,color:C.textMuted,marginBottom:12}}>
+        Independent Teaching displays your private tuition sessions. School lessons and attendance stay separate. Personal timetable editing comes in Stage 4.
+        {' '}<button type="button" onClick={() => router.push('/teacher/tutoring/students?tool=lessons')} style={{border:0,background:'transparent',color:C.accent,fontWeight:700,cursor:'pointer'}}>Manage tuition lessons</button>
+      </p>}
 
       {/* Day tabs */}
       <div
@@ -1581,7 +1672,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         {DAYS.map(d => {
           const schoolCount = visibleSlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
           const tuitionCount = tuitionWeek.filter(lesson => tuitionLocalDate(lesson.starts_at) === dateForDow(d.dow) && lesson.status === 'scheduled').length
-          const count = (scheduleContext === 'tuition' ? 0 : schoolCount) + (scheduleContext === 'school' ? 0 : tuitionCount)
+          const count = (scheduleContext === 'independent' ? 0 : schoolCount) + (scheduleContext === 'school' ? 0 : tuitionCount)
           const isActive = activeDow === d.dow
           const isTdy    = d.dow === todayDow
           const wknd     = d.weekend
@@ -1622,7 +1713,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         })}
       </div>
 
-      {schools.length > 1 && (
+      {scheduleContext !== 'independent' && schools.length > 1 && (
         <div className="no-print" style={{ marginBottom: 12 }}>
           <label style={{ display: 'grid', gap: 5, fontSize: 11, fontWeight: 800, color: C.textMuted }}>
             Show timetable for
@@ -1642,7 +1733,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Daily view</Btn>
         <Btn variant={view === 'week' ? 'primary' : 'ghost'} small onClick={() => chooseView('week')}>Weekly sheet</Btn>
         <Btn variant="ghost" small onClick={() => window.print()}>Print</Btn>
-        <Btn
+        {scheduleContext === 'school' && canAddSlot && <Btn
           variant="ghost"
           small
           onClick={async () => {
@@ -1664,10 +1755,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           }}
         >
           Repeat from next week
-        </Btn>
+        </Btn>}
         <Btn variant="ghost" small onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare lesson</Btn>
-        <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>School day setup</Btn>
-        {lastUndoSnapshotId && (
+        {scheduleContext === 'school' && <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>School day setup</Btn>}
+        {scheduleContext === 'school' && canAddSlot && lastUndoSnapshotId && (
           <Btn
             variant="ghost"
             small
@@ -1687,20 +1778,33 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           </Btn>
         )}
       </div>
-      {blocksError && <p role="alert">{blocksError} <button type="button" onClick={() => load()}>Retry</button></p>}
-      {view === 'week' && scheduleContext !== 'tuition' && schoolFilter === 'all' && schools.length > 1 && !loading && (
-        <div className="no-print" style={{ padding: 12, marginBottom: 12, borderRadius: 12, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
-          Choose one school above for its weekly sheet. Daily view combines all of your schools and still respects the global teacher clash rule.
+      {scheduleContext !== 'independent' && blocksError && <p role="alert">{blocksError} <button type="button" onClick={() => load()}>Retry</button></p>}
+      {view === 'week' && scheduleContext !== 'independent' && schoolFilter === 'all' && schools.length > 1 && !loading && !loadError && !schoolError && (
+        <div style={{display:'grid',gap:16,marginBottom:16}}>
+          {schools.map(school => (
+            <section key={school.id} aria-label={school.name + ' weekly timetable'}>
+              <div style={{fontSize:13,fontWeight:750,marginBottom:8,color:C.textPrimary}}>{school.name}</div>
+              <ClassicTimetable
+                slots={visibleSlots.filter(slot => slot.schoolId === school.id)}
+                blocks={schoolBlocks[school.id] ?? []}
+                dateForDow={dateForDow}
+                onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(visibleSlots.find(slot => slot.id === s.id && slot.schoolId === school.id) ?? null) }}
+                onAdd={undefined}
+              />
+            </section>
+          ))}
         </div>
       )}
-      {view === 'week' && scheduleContext !== 'tuition' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
+      {view === 'week' && scheduleContext !== 'independent' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
         slots={visibleSlots} blocks={schoolFilter !== 'all' ? (schoolBlocks[schoolFilter] ?? []) : dayBlocks} dateForDow={dateForDow}
         onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(visibleSlots.find(slot => slot.id === s.id) ?? null) }}
         onAdd={canAddSlot && !blocksError && (schoolFilter === 'all' || schoolFilter === activeSchoolId) ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
       />}
       {view === 'week' && scheduleContext !== 'school' && (
         <Card><SectionLabel>Tuition this week</SectionLabel>
-          {tuitionWeek.length === 0 ? <p style={{ fontSize: 13, color: C.textMuted }}>No private tuition lessons this week.</p> : (
+          {tuitionError ? <p role="alert" style={{fontSize:13}}>Private tuition schedule is unavailable. Retry above.</p> :
+           tuitionLoading ? <p role="status" style={{fontSize:13}}>Loading private tuition lessons…</p> :
+           tuitionWeek.length === 0 ? <p style={{ fontSize: 13, color: C.textMuted }}>No private tuition lessons this week.</p> : (
             <div style={{ display: 'grid', gap: 8 }}>{tuitionWeek.map(lesson => <div key={lesson.id}>
               <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{tuitionLocalDate(lesson.starts_at)}</div>
               <TuitionTimetableCard lesson={lesson} role="teacher" />
@@ -1708,7 +1812,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           )}
         </Card>
       )}
-      {calendarExceptions.filter(event =>
+      {scheduleContext !== 'independent' && calendarExceptions.filter(event =>
         event.exception_date === dateForDow(activeDow) &&
         (schoolFilter === 'all' || event.school_id === schoolFilter)
       ).map(event => (
@@ -1724,13 +1828,13 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           {DAYS.find(d => d.dow === activeDow)?.label ?? ''}{isToday ? ' — Today' : ''}
         </SectionLabel>
 
-        {loading ? (
+        {loading || (scheduleContext !== 'school' && tuitionLoading) ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[1, 2, 3].map(i => <Skeleton key={i} h={68} />)}
           </div>
-        ) : loadError && scheduleContext !== 'tuition' ? null : dayEntries.length === 0 ? (
+        ) : (loadError && scheduleContext !== 'independent') || (tuitionError && scheduleContext !== 'school') ? null : dayEntries.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>
-            No lessons scheduled
+            {scheduleContext === 'independent' ? 'No private tuition lessons scheduled. Create a lesson in My Tutoring.' : 'No school lessons scheduled'}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1746,15 +1850,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       </Card>}
 
       {/* Week summary */}
-      {!loading && (
+      {!loading && (scheduleContext === 'school' || (!tuitionLoading && !tuitionError)) && (
         <Card>
           <SectionLabel>Week Summary</SectionLabel>
-          {[
-            { label: 'School Lessons', value: totalLessons },
-            { label: 'Tuition Lessons', value: tuitionWeek.filter(lesson => lesson.status === 'scheduled').length },
-            { label: 'School Classes',       value: uniqueClasses },
-            { label: "Today's School Lessons", value: todayCount },
-          ].map(r => (
+          {(scheduleContext === 'independent'
+            ? [{ label: 'Private Tuition Lessons', value: tuitionWeek.filter(lesson => lesson.status === 'scheduled').length }]
+            : scheduleContext === 'school'
+            ? [{ label: 'School Lessons', value: totalLessons }, { label: 'School Classes', value: uniqueClasses }, { label: "Today's School Lessons", value: todayCount }]
+            : [{ label: 'School Lessons', value: totalLessons }, { label: 'Tuition Lessons', value: tuitionWeek.filter(lesson => lesson.status === 'scheduled').length }, { label: 'School Classes', value: uniqueClasses }, { label: "Today's School Lessons", value: todayCount }]
+          ).map(r => (
             <div
               key={r.label}
               style={{
@@ -1771,7 +1875,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
       {/* Slot detail drawer */}
-      <SlotDrawer
+      {scheduleContext !== 'independent' && activeSchoolId && <SlotDrawer
         slot={selected}
         curMin={curMin}
         occurrenceDate={dateForDow(activeDow)}
@@ -1781,14 +1885,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onCancelRecovery={ctx => setRecoveryCtx(ctx)}
         onEdit={s => setEditSlot(s)}
         onCopy={s => setCopySlot(s)}
-        canCopy={Boolean(selected && activeSchoolId && selected.schoolId === activeSchoolId)}
-      />
+        canCopy={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
+        canEdit={Boolean(scheduleContext === 'school' && selected && activeSchoolId && selected.schoolId === activeSchoolId)}
+      />}
 
       {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson
           or cancel one still in planned/ready. onDone reloads the timetable
           so the one-day recovery slot appears (or disappears) immediately,
           and closes the drawer whose occurrence state is now stale. */}
-      {recoveryCtx && (
+      {scheduleContext === 'school' && recoveryCtx && (
         <RecoverySheet
           ctx={recoveryCtx}
           onClose={() => setRecoveryCtx(null)}
@@ -1797,7 +1902,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
       {/* Add / edit slot modal — only when school confirmed */}
-      {(showAddSlot || editSlot || copySlot) && teacherId != null && (
+      {scheduleContext === 'school' && (showAddSlot || editSlot || copySlot) && teacherId != null && verifiedTeacher && (
         <AddSlotModal
           teacherId={teacherId}
           initialPlacement={initialPlacement}

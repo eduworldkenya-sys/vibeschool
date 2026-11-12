@@ -60,24 +60,45 @@ export function tuitionLessonsBetween(
 export function useTuitionTimetable() {
   const [lessons, setLessons] = useState<TuitionTimetableLesson[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision(value => value + 1), []);
   useEffect(() => {
+    const { data: { subscription } } = getSupabaseClient().auth.onAuthStateChange(event => {
+      // Clear previous account's private timetable immediately on a session
+      // change; the accepted-invitation RPC rechecks the new identity.
+      if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') return;
+      setLessons([]);
+      setError(null);
+      setLoading(true);
+      setRevision(value => value + 1);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+  useEffect(() => {
     let cancelled = false;
     async function load() {
-      const { data, error: readError } = await getSupabaseClient().rpc("vibetutor_my_lessons");
-      if (cancelled) return;
-      if (readError) {
-        setError("Tuition lessons could not be loaded. School timetable is still available.");
-        return; // Never turn a failed private read into an apparently empty schedule.
+      setLoading(true);
+      try {
+        const { data, error: readError } = await getSupabaseClient().rpc("vibetutor_my_lessons");
+        if (cancelled) return;
+        if (readError) throw readError;
+        setLessons((data ?? []) as TuitionTimetableLesson[]);
+        setError(null);
+      } catch {
+        if (cancelled) return;
+        // A failed read (including a rejected network request) is unknown,
+        // never a confirmed empty private timetable.
+        setLessons([]);
+        setError("Private tuition lessons could not be loaded. Retry before relying on your timetable.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLessons((data ?? []) as TuitionTimetableLesson[]);
-      setError(null);
     }
     void load();
     return () => { cancelled = true; };
   }, [revision]);
-  return { lessons, error, refresh };
+  return { lessons, error, loading, refresh };
 }
 
 export function TuitionTimetableCard({
