@@ -6,6 +6,7 @@ import Grade4IndigenousMap from '@/components/teacher/curriculum/Grade4Indigenou
 import Grade8KiswahiliMap from '@/components/teacher/curriculum/Grade8KiswahiliMap'
 import Grade4KiswahiliMap from '@/components/teacher/curriculum/Grade4KiswahiliMap'
 import Grade9EnglishMap from '@/components/teacher/curriculum/Grade9EnglishMap'
+import Grade9MathematicsMap, { GRADE9_MATHEMATICS_UNITS } from '@/components/teacher/curriculum/Grade9MathematicsMap'
 import Grade1CreativeActivitiesMap, { GRADE1_CREATIVE_STRANDS, GRADE1_CREATIVE_UNITS } from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 import Grade1MathematicsMap, { GRADE1_MATHEMATICS_STRANDS, GRADE1_MATHEMATICS_UNITS } from '@/components/teacher/curriculum/Grade1MathematicsMap'
 import Grade1EnglishMap, { GRADE1_ENGLISH_STRANDS, GRADE1_ENGLISH_UNITS } from '@/components/teacher/curriculum/Grade1EnglishMap'
@@ -165,6 +166,7 @@ function Inner({ curriculumView = false }) {
   const isGrade4Kiswahili = /^grade\s*4$/i.test(classObj?.grade?.trim()||'') && /^kiswahili$/i.test(subjectObj?.label?.trim()||'')
   const isGrade8Kiswahili = /^grade\s*8$/i.test(classObj?.grade?.trim()||'') && /^kiswahili$/i.test(subjectObj?.label?.trim()||'')
   const isGrade9English = /^grade\s*9$/i.test(classObj?.grade?.trim()||'') && /^english$/i.test(subjectObj?.label?.trim()||'')
+  const isGrade9Mathematics = /^grade\s*9$/i.test(classObj?.grade?.trim()||'') && /^mathematics$/i.test(subjectObj?.label?.trim()||'')
   const isGrade1Creative = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(creative activities|creative arts activities|creative arts and sports)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade1Mathematics = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(mathematics|mathematical activities|mathematics activities)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade1English = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(english|english activities|english language activities)$/i.test(subjectObj?.label?.trim()||'')
@@ -767,6 +769,7 @@ function Inner({ curriculumView = false }) {
     if(isGrade4Mathematics)return GRADE4_MATHEMATICS_UNITS
     if(isGrade6Mathematics)return GRADE6_MATHEMATICS_UNITS
     if(isGrade8Mathematics)return GRADE8_MATHEMATICS_UNITS
+    if(isGrade9Mathematics)return GRADE9_MATHEMATICS_UNITS
     if(isGrade4English)return GRADE4_ENGLISH_UNITS
     if(isGrade8English)return GRADE8_ENGLISH_UNITS
     if(isGrade6English)return GRADE6_ENGLISH_UNITS
@@ -776,7 +779,7 @@ function Inner({ curriculumView = false }) {
     if(isGrade1English)return GRADE1_ENGLISH_UNITS
     if(isGrade1Creative)return GRADE1_CREATIVE_UNITS
     return []
-  },[isGrade4Mathematics,isGrade6Mathematics,isGrade8Mathematics,isGrade4English,isGrade8English,isGrade6English,isGrade6Kiswahili,isGrade4Indigenous,isGrade1Mathematics,isGrade1English,isGrade1Creative])
+  },[isGrade4Mathematics,isGrade6Mathematics,isGrade8Mathematics,isGrade9Mathematics,isGrade4English,isGrade8English,isGrade6English,isGrade6Kiswahili,isGrade4Indigenous,isGrade1Mathematics,isGrade1English,isGrade1Creative])
   const finderResults=useMemo(()=>{
     const needle=finderQuery.trim().toLocaleLowerCase()
     if(needle.length<2)return []
@@ -896,7 +899,7 @@ function Inner({ curriculumView = false }) {
 
   useEffect(()=>{void boot()},[boot])
   useEffect(()=>{if(selectedClass&&!filteredSubjects.some(x=>x.id===selectedSubject))setSelectedSubject(filteredSubjects[0]?filteredSubjects[0].id:null)},[filteredSubjects,selectedClass,selectedSubject])
-  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));if(curriculumView&&initial.current.curriculumId&&allCurriculumRows.some(x=>x.id===initial.current.curriculumId))p.set('curriculumId',initial.current.curriculumId);if(curriculumView&&(isGrade1Mathematics||isGrade1English||isGrade8Mathematics||isGrade8English||isGrade6Mathematics||isGrade6English||isGrade4Mathematics||isGrade4English||isGrade6Kiswahili||isGrade4Indigenous))p.set('unitId',mapUnitId);else if(curriculumView&&initial.current.unitId)p.set('unitId',initial.current.unitId);if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId);router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView,allCurriculumRows,draftUnitId,mapUnitId,isGrade1Mathematics,isGrade1English,isGrade8Mathematics,isGrade8English,isGrade6Mathematics,isGrade6English,isGrade4Mathematics,isGrade4English,isGrade6Kiswahili,isGrade4Indigenous])
+  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));if(curriculumView&&initial.current.curriculumId&&allCurriculumRows.some(x=>x.id===initial.current.curriculumId))p.set('curriculumId',initial.current.curriculumId);if(curriculumView&&(isGrade1Mathematics||isGrade1English||isGrade8Mathematics||isGrade8English||isGrade9Mathematics||isGrade6Mathematics||isGrade6English||isGrade4Mathematics||isGrade4English||isGrade6Kiswahili||isGrade4Indigenous))p.set('unitId',mapUnitId);else if(curriculumView&&initial.current.unitId)p.set('unitId',initial.current.unitId);if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId);router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView,allCurriculumRows,draftUnitId,mapUnitId,isGrade1Mathematics,isGrade1English,isGrade8Mathematics,isGrade8English,isGrade9Mathematics,isGrade6Mathematics,isGrade6English,isGrade4Mathematics,isGrade4English,isGrade6Kiswahili,isGrade4Indigenous])
 
   useEffect(()=>{let live=true;(async()=>{
     if(!schoolId||!selectedTermId){setTermWeeks([]);return}
@@ -1037,7 +1040,7 @@ function Inner({ curriculumView = false }) {
     <div style={{background:'#173f32',color:'#fff',borderRadius:18,padding:18,marginBottom:12}}>
       <div style={{fontSize:11,letterSpacing:1.5,opacity:.65,fontWeight:800}}>{curriculumView ? "CURRICULUM" : "SCHEME OF WORK"}</div>
       <div style={{fontSize:20,fontWeight:800,marginTop:3}}>{curriculumView ? "Curriculum map" : "Scheme of work"}</div>
-      <div style={{fontSize:13,opacity:.9,marginTop:4}}>{curriculumView&&isGrade4Indigenous ? 'Grade 4 · Indigenous Languages · KICD 2024 framework · native-speaker review required' : curriculumView&&isGrade4English ? 'Grade 4 · English · KICD 2024 theme index · VibeSchool-original outcomes' : curriculumView&&isGrade4Mathematics ? 'Grade 4 · Mathematics · Revised KICD 2024 map · VibeSchool teaching guidance' : curriculumView&&isGrade6Mathematics ? 'Grade 6 · Revised KICD 2024 structure · VibeSchool-authored guidance' : curriculumView&&isGrade8English ? 'Grade 8 · English · KICD-referenced themes · VibeSchool original guidance' : curriculumView&&isGrade6English ? 'Grade 6 · English · KICD 2024 structural reference; VibeSchool-authored outcomes' : curriculumView&&isGrade6Kiswahili ? 'Gredi ya 6 · Kiswahili · KICD 2024 · Maudhui asilia ya VibeSchool' : curriculumView&&isGrade4Kiswahili ? 'Grade 4 · Kiswahili · Revised KICD 2024 reference' : curriculumView&&isGrade8Kiswahili ? 'Grade 8 · Kiswahili · KICD 2024 thematic reference' : curriculumView&&isGrade9English ? 'Grade 9 · Revised KICD 2024 structure · Specific outcomes pending verification' : curriculumView&&(isGrade1Mathematics||isGrade1English) ? 'Grade 1 · Annual learning-area reference · VibeSchool-authored' : termObj?`${termLabel(termObj)} · Selected Week ${selectedWeek}${currentWeek ? ` · Current Week ${currentWeek}` : ''}`:'Select term'}</div>
+      <div style={{fontSize:13,opacity:.9,marginTop:4}}>{curriculumView&&isGrade4Indigenous ? 'Grade 4 · Indigenous Languages · KICD 2024 framework · native-speaker review required' : curriculumView&&isGrade4English ? 'Grade 4 · English · KICD 2024 theme index · VibeSchool-original outcomes' : curriculumView&&isGrade4Mathematics ? 'Grade 4 · Mathematics · Revised KICD 2024 map · VibeSchool teaching guidance' : curriculumView&&isGrade6Mathematics ? 'Grade 6 · Revised KICD 2024 structure · VibeSchool-authored guidance' : curriculumView&&isGrade8English ? 'Grade 8 · English · KICD-referenced themes · VibeSchool original guidance' : curriculumView&&isGrade6English ? 'Grade 6 · English · KICD 2024 structural reference; VibeSchool-authored outcomes' : curriculumView&&isGrade6Kiswahili ? 'Gredi ya 6 · Kiswahili · KICD 2024 · Maudhui asilia ya VibeSchool' : curriculumView&&isGrade4Kiswahili ? 'Grade 4 · Kiswahili · Revised KICD 2024 reference' : curriculumView&&isGrade8Kiswahili ? 'Grade 8 · Kiswahili · KICD 2024 thematic reference' : curriculumView&&isGrade9Mathematics ? 'Grade 9 · Mathematics · 2024 reference outline · Revised outcomes pending verification' : curriculumView&&isGrade9English ? 'Grade 9 · Revised KICD 2024 structure · Specific outcomes pending verification' : curriculumView&&(isGrade1Mathematics||isGrade1English) ? 'Grade 1 · Annual learning-area reference · VibeSchool-authored' : termObj?`${termLabel(termObj)} · Selected Week ${selectedWeek}${currentWeek ? ` · Current Week ${currentWeek}` : ''}`:'Select term'}</div>
     </div>
     {error&&<div role="alert" style={{background:C.redLight,color:C.red,padding:10,borderRadius:9,fontSize:12,fontWeight:700,marginBottom:10}}>{error}</div>}
     {selectedClass && selectedSubject && <section aria-label="Search curriculum and scheme" style={{background:'#fff',border:`1px solid ${C.border}`,padding:12,borderRadius:12,marginBottom:12}}>
@@ -1058,7 +1061,7 @@ function Inner({ curriculumView = false }) {
       {curriculumView&&isGrade4Kiswahili?null:!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
     </div>
 
-    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English || isGrade8Mathematics || isGrade8English || isGrade9English || isGrade8Kiswahili || isGrade4Kiswahili || isGrade6Mathematics || isGrade6English || isGrade6Kiswahili || isGrade4Mathematics || isGrade4Indigenous)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isAutoScheme?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
+    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English || isGrade8Mathematics || isGrade8English || isGrade9English || isGrade9Mathematics || isGrade8Kiswahili || isGrade4Kiswahili || isGrade6Mathematics || isGrade6English || isGrade6Kiswahili || isGrade4Mathematics || isGrade4Indigenous)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isAutoScheme?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
     {!curriculumView && isAutoScheme && <AutoCreativeScheme
       draft={annualDraft} termId={selectedTermId} week={selectedWeek}
       savedLessons={ordered} catalog={isGrade4Indigenous?grade4IndigenousCatalog:isGrade4English?grade4EnglishCatalog:isGrade4Mathematics?grade4Catalog:isGrade6English?grade6EnglishCatalog:isGrade6Mathematics?grade6Catalog:isGrade6Kiswahili?grade6KiswahiliCatalog:isGrade8English?grade8EnglishCatalog:isGrade8Mathematics?grade8Catalog:isGrade1Creative?creativeCatalog:grade1ReaderCatalog}
@@ -1151,6 +1154,15 @@ function Inner({ curriculumView = false }) {
       const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek)})
       router.push('/teacher/scheme?'+p.toString())
     }} />}
+    {curriculumView && isGrade9Mathematics && <Grade9MathematicsMap
+      selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
+      legacyCount={allCurriculumRows.length}
+      showExisting={showEnglishLegacy} onToggleExisting={()=>setShowEnglishLegacy(value=>!value)}
+      onOpenScheme={()=>{
+        const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek)})
+        router.push('/teacher/scheme?'+p.toString())
+      }}
+    />}
     {curriculumView && isGrade4Indigenous && <Grade4IndigenousMap
        selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
        mappedUnits={grade4IndigenousCatalog} catalogLoading={grade4IndigenousCatalogLoading}
@@ -1176,7 +1188,7 @@ function Inner({ curriculumView = false }) {
       verifiedOutcomeCount={Object.values(curriculumOutcomes).flat().filter(outcome=>outcome.status==='verified').length}
       onOpenScheme={()=>router.push(`/teacher/scheme?classId=${encodeURIComponent(selectedClass)}&subjectId=${encodeURIComponent(selectedSubject)}&termId=${encodeURIComponent(selectedTermId)}&week=${selectedWeek}`)}
     />}
-    {curriculumView ? <section className="studio-canonical-map" style={{display:isGrade1Creative||isGrade8Mathematics||isGrade8English||isGrade6Mathematics||isGrade6English||isGrade4Mathematics||((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)||(isGrade4English&&!showEnglishLegacy)||(isGrade4Indigenous&&!showEnglishLegacy)||(isGrade8Kiswahili&&!showEnglishLegacy)||(isGrade4Kiswahili&&!showEnglishLegacy)||isGrade6Kiswahili||isGrade9English?'none':undefined}}>
+    {curriculumView ? <section className="studio-canonical-map" style={{display:isGrade1Creative||isGrade8Mathematics||isGrade8English||isGrade6Mathematics||isGrade6English||isGrade4Mathematics||((isGrade1Mathematics||isGrade1English)&&!allCurriculumRows.length)||(isGrade4English&&!showEnglishLegacy)||(isGrade4Indigenous&&!showEnglishLegacy)||(isGrade8Kiswahili&&!showEnglishLegacy)||(isGrade4Kiswahili&&!showEnglishLegacy)||isGrade6Kiswahili||isGrade9English||(isGrade9Mathematics&&!showEnglishLegacy)?'none':undefined}}>
       <p className="studio-map-source">Stored curriculum · {classObj?.label} · {subjectObj?.label} · {termObj ? termLabel(termObj) : 'Select term'}</p>
       {fetching ? <p role="status">Loading curriculum…</p> : !allCurriculumRows.length ? <Empty title="No curriculum records for this context" desc="Select a class, subject and term. Missing curriculum is not treated as completed coverage."/> : <>
       <div className="studio-curriculum-grid">{unique(allCurriculumRows.map(row => row.strand || 'Unspecified strand')).map((strand,index) => <button type="button" key={strand} className="studio-curriculum-tile" aria-pressed={(selectedStrand || allCurriculumRows[0]?.strand || 'Unspecified strand') === strand} onClick={() => setSelectedStrand(strand)}><div className="studio-strand-cover" aria-hidden="true">{String(index+1).padStart(2,'0')}</div><h2>{strand}</h2><span>{allCurriculumRows.filter(row => (row.strand || 'Unspecified strand') === strand).length} curriculum items</span><span aria-hidden="true">↗</span></button>)}</div>
