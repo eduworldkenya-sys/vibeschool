@@ -55,7 +55,11 @@ export function selectCanonicalLessonNotes(
     seen.add(root.id)
     if (root.status !== 'active' || root.visibility !== 'public') return []
     if (root.asset_kind !== 'learner_notes' && root.asset_kind !== 'teacher_notes') return []
-    const exact = Boolean(outcomeId && root.curriculum_outcome_id === outcomeId)
+    const exact = Boolean(
+      outcomeId &&
+      root.curriculum_outcome_id === outcomeId &&
+      (!subStrandId || !root.sub_strand_id || root.sub_strand_id === subStrandId),
+    )
     const related = Boolean(
       subStrandId &&
       root.sub_strand_id === subStrandId &&
