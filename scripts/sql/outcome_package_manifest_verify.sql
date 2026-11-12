@@ -32,13 +32,14 @@ begin
   if o.id is null then
     -- Blank database rebuilds may have no imported-verified outcome. P0 Grade 4
     -- Time still seeds a fully reconciled active outcome through the source gate.
-    select go.*,ao.package_id,ao.manuscript_alias
-      into o,primary_package_id,primary_alias
+    select ao.outcome_id,ao.package_id,ao.manuscript_alias
+      into other_outcome_id,primary_package_id,primary_alias
     from public.vs_curriculum_alias_outcomes ao
     join public.curriculum_learning_outcomes go on go.id=ao.outcome_id
     where go.status='active' and nullif(btrim(go.source_locator),'') is not null
       and (public.vs_curriculum_package_gate(ao.package_id)->>'state')='PASS'
     limit 1;
+    select * into o from public.curriculum_learning_outcomes where id=other_outcome_id;
   end if;
   if o.id is null then
     raise exception 'P0 TEST FIXTURE REQUIRED: a verified-import or P0-gated outcome';
