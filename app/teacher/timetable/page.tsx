@@ -899,10 +899,13 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [weeklyLoadError, setWeeklyLoadError]  = useState<string | null>(null)
   const [weeklyLoadRetry, setWeeklyLoadRetry]  = useState(0)
   const [showLoadCheck,   setShowLoadCheck]    = useState(false)
+  const loadEpochRef = useRef(0)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(event => {
       if (event !== 'SIGNED_OUT') return
+      loadEpochRef.current += 1 // invalidate in-flight school reads
+      setLoading(false)
       // Auth state is a data-isolation boundary, including for multiple
       // teachers sharing one device. Clear cached school details immediately.
       setVerifiedTeacher(false)
@@ -956,6 +959,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
   const load = useCallback(async (): Promise<void> => {
     if (!isMounted.current) return
+    const epoch = ++loadEpochRef.current
     setLoadError(null)
     setSchoolError(null)
     setVerifiedTeacher(false)
@@ -984,7 +988,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         return
       }
 
-      if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
+      if (!isMounted.current || epoch !== loadEpochRef.current) return  // stale session or week
       setTeacherId(user.id)
 
       // Keep one authenticated teacher profile. Server-checked membership
@@ -993,7 +997,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         supabase.rpc('get_my_teacher_school_context'),
         supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
       ])
-      if (!isMounted.current) return
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       if (profileResponse.error || profileResponse.data?.role !== 'teacher') {
         setSchoolError('A verified teacher account is required to open this timetable.')
         return
@@ -1032,7 +1036,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       }
 
       const { data: blockData, error: blockError } = await supabase.rpc('get_my_school_day_blocks')
-      if (!isMounted.current) return
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       setBlocksError(blockError ? 'School periods could not load. Retry before creating lessons.' : null)
       setDayBlocks(((blockData ?? []) as SchoolPeriod[]).filter(b => b.school_id === schoolId).map(b => ({
         id:b.id,scheduleDay:b.schedule_day,periodNumber:b.period_number,label:b.label,
@@ -1059,6 +1063,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           return { schoolId: membershipSchoolId, rows: (data ?? []) as SchoolPeriod[] }
         })
       )
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       const nextSchoolBlocks: Record<string, SchoolDayBlock[]> = {}
       for (const group of blockGroups) {
         nextSchoolBlocks[group.schoolId] = group.rows
@@ -1149,6 +1154,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           .lte('exception_date', rangeEnd)
           .order('exception_date'),
       ])
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       if (plansRes.error) console.error('[Timetable] readiness load failed', plansRes.error)
       if (occurrenceRes.error) console.error('[Timetable] occurrence exception load failed', occurrenceRes.error)
       if (!exceptionsRes.error) {
@@ -1159,7 +1165,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         console.error('[Timetable] calendar exception load failed', exceptionsRes.error)
       }
 
-      if (!isMounted.current) return
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
 
       const subjectIds = Array.from(new Set(slots.map((s: {subject_id: string}) => s.subject_id).filter(Boolean)))
       const classIds   = Array.from(new Set(slots.map((s: {class_id: string}) => s.class_id).filter(Boolean)))
@@ -1173,6 +1179,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           : Promise.resolve({ data: [] }),
       ])
 
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       const subjectMap: Record<string, string> = {}
       ;(subjectsRes.data ?? []).forEach((s: {id: string, name: string}) => { subjectMap[s.id] = s.name })
 
@@ -1237,11 +1244,11 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
 
     } catch (err) {
-      if (isMounted.current) {
+      if (isMounted.current && epoch === loadEpochRef.current) {
         setLoadError('Unexpected error loading timetable. Please refresh.')
       }
     } finally {
-      if (isMounted.current) {
+      if (isMounted.current && epoch === loadEpochRef.current) {
         setLoading(false)  // FIX [FATAL-02]: always runs, but only if still mounted
       }
     }
