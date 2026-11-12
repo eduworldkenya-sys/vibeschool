@@ -90,6 +90,21 @@ Do not add six arbitrary questions, a fixed word count, a compulsory video, or a
 
 **Authoring acceptance check per outcome:** Can a learner encounter an intelligible explanation or experience; see a sound model when useful; try meaningful practice; demonstrate the intended outcome; receive constructive feedback or performance criteria; obtain appropriate support/extension; and can a teacher deliver and adapt the experience with the provided guidance? Record an outcome-based reason for any inapplicable component. Do not force a fixed question quantity, videos, artificial reading level or identical lesson template across subjects.
 
+## 4A.1 Learner-produced work and exercise-book routine
+
+VibeSchool should help learners **think and demonstrate their own work**, rather than only read and select answers. Where it serves the outcome, place a short, accessible invitation to attempt work in an ordinary exercise book, on scrap paper or through another appropriate response mode: **Learn → Try → Write/draw/do → Check → Correct → Retry**. This is a flexible teaching pattern, not another engine, required form or mastery trigger.
+
+- **Mathematics:** show intermediate working and explain the method, formula when appropriate, units and independent check; never award evidence just for copying a model.
+- **Languages:** compose, edit and explain original sentences or passages; match the literacy goal rather than force an arbitrary writing quantity.
+- **Science/environment:** draw, label, observe, classify or explain with evidence; follow safety guidance.
+- **Arts, movement and practical competencies:** prefer authentic making, showing or performing; a sketch or written reflection is optional when useful.
+- **Revision and recovery:** attempt retrieval or an improved example before solution reveal, correct a misconception and take a *fresh*, eligible check.
+- **Teachers:** include a brief activity/board or exercise-book prompt, observable success criteria, low-resource materials and adaptation in Lesson Notes/Guide where applicable. Preparation does not require a timetable.
+- **Inclusion:** offer oral, typed, drawing, tactile, supported or practical alternatives; do not require a smartphone, scanner, printer or uploaded photo to learn.
+- **Assessment separation:** prompts, page views and any voluntary “I wrote it” acknowledgement are **not** proof of task submission, learning completion or mastery. Only actual responses, valid teacher observations and existing authorised assessment evidence can support those claims. Protected exam answers remain protected.
+
+Render the shared learner invitation through `LearningNotebookPrompt` and `notebookGuidance` where relevant. It is an instructional affordance over existing resource/question identities, not a second notebook, exam, learner-event or content-generation system.
+
 ## 4B. Canonical assessment lineage and secure reuse
 
 **One outcome-linked content authority; interoperable assessment consumers; no new question engine.** The canonical published Content Engine supplies learner content and content blocks; existing assessment-question and assessment-item structures supply the assessment contexts. Preserve links and stable identity across these existing models; do not assert that a Markdown policy itself connects every live lesson block to the bank.
@@ -183,6 +198,7 @@ For a declared outcome or appropriate completed topic, verify these **distinct f
 | **Curriculum first** | KICD ↔ VibeSchool reconciliation PASS for every included outcome, with source revision and stable IDs | Repair the canonical curriculum and links before any of the three experiences are authored for affected scope |
 | **Teachability** | Age/ability-sensitive coherent explanation, correct model, learner check and real teacher guidance | Repair weak core content before multiplying activity/revision derivatives |
 | **Purposeful practice** | Outcome-linked items/activities, graduated support, correct answer/rubric and feedback on likely errors | Replace padding or broken questions; retain version lineage |
+| **Active learner work** | A suitable opportunity to write, sketch, calculate, explain or demonstrate before answer reveal, with subject-specific instructions and accessible alternatives | Repair the learning task or provide an appropriate alternative; never turn a notebook click into marks |
 | **Authentic revision** | Already-taught outcome map, retrieval/application variety, correct answer authority and links back to precise core/remedial content | Repair mappings or diagnostic recommendations; do not fabricate mastery |
 | **Assessment integrity** | Appropriate eligible-use flags, separate unseen variants, protected correct answers and release rules | Remove exposed/leaking items from controlled examinations; recheck negative paths |
 | **Usability and inclusion** | Actual learner and teacher routes where in scope, language/accessibility/low-resource alternatives and suitable pacing | Correct the canonical consumer or material, then re-test |

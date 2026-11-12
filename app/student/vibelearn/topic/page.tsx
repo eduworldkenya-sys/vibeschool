@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getRevisionWorkspace, saveTopicNote, type TopicWorkspace } from '@/lib/student/vibelearn'
+import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 
 export default function TopicWorkspacePage() {
   const router = useRouter()
@@ -72,6 +73,7 @@ export default function TopicWorkspacePage() {
 
         <section style={card}>
           <div style={eyebrowDark}>My notebook</div><h2 style={title}>What I need to remember</h2>
+          <LearningNotebookPrompt subject={subject} stage="revision" compact />
           <textarea value={note} onChange={event => setNote(event.target.value)} placeholder="Write a formula, concept, mistake pattern or explanation in your own words…" style={textarea} maxLength={5000} />
           <button style={{ ...primaryButton, marginTop: 10, opacity: !note.trim() || saving ? 0.5 : 1 }} disabled={!note.trim() || saving} onClick={() => void saveNote()}>{saving ? 'Saving…' : 'Save note'}</button>
         </section>

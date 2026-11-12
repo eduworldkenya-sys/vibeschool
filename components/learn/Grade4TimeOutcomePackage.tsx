@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 
 type Outcome = {
   outcome_id: string
@@ -224,6 +225,7 @@ export default function Grade4TimeOutcomePackage({
       {selected && tab === 'core' && <article style={PANEL}>
         <h3 style={{ fontSize: 20 }}>{selected.title}</h3>
         <VisualRichText body={selected.body} style={{ fontSize: 16, lineHeight: 1.8 }} />
+        <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
         {audience === 'teacher' && <p style={{ fontSize: 12, color: '#64748b' }}>
           This is the released core explanation. Teaching preparation can be drafted separately without scheduling an occurrence.
         </p>}
@@ -231,6 +233,7 @@ export default function Grade4TimeOutcomePackage({
 
       {tab === 'guide' && <section style={PANEL}>
         <h3 style={{ marginTop: 0 }}>{audience === 'teacher' ? 'Certified teacher guidance' : 'How to strengthen understanding'}</h3>
+        <LearningNotebookPrompt subject="Mathematics" stage={audience === 'teacher' ? 'teacher' : 'learn'} compact />
         {audience === 'learner'
           ? <p>Read the explanation first, try the guided questions, then attempt the exercises. Review each checked answer after trying.</p>
           : guides.filter(row => row.id === selected?.resource_version_id).length === 0
@@ -246,6 +249,7 @@ export default function Grade4TimeOutcomePackage({
       {tab === 'exercise' && <section style={PANEL}>
         <h3 style={{ marginTop: 0 }}>Guided, independent and formative self-check</h3>
         <p style={{ fontSize: 13, color: '#566e60' }}>Attempt each question before revealing the checked answer. These are published learning questions, not protected exam items. Revealing an answer does not record completion, marks or mastery.</p>
+        <LearningNotebookPrompt subject="Mathematics" stage="practice" />
         {selectedItems.length === 0 ? <p role="status">No released formative questions are eligible for this lesson.</p>
           : <div style={{ display: 'grid', gap: 12 }}>{selectedItems.map((q, index) => {
             const show = revealed.includes(q.question_id)

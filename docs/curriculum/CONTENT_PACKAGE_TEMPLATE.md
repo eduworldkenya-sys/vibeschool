@@ -139,6 +139,7 @@ Follow the [paired example and rules in the canonical playbook](./CONTENT_GENERA
 **Original explanation/exploration, vocabulary and real-life context:**  
 **Worked example or demonstration: ordered steps and reasons, visual where useful:**  
 **Guided attempt → independent application → check of understanding:**  
+**Optional exercise-book / draw / show-your-working invitation and expected observable response:**  
 **Likely misconceptions, feedback and scaffold/extension:**  
 **Teacher preparation, materials, pacing, prompts, sample responses and intervention:**  
 **Canonical chapter/block IDs, version, rights/accessibility check, reader status:**  
@@ -150,6 +151,7 @@ Follow the [paired example and rules in the canonical playbook](./CONTENT_GENERA
 **Guided, independent and/or remedial progression (no arbitrary fixed question count):**  
 **Answer authority / performance rubric, error feedback and supported retry:**  
 **Accessible, low-resource and parent-friendly alternatives as relevant:**  
+**Try-before-reveal written, drawn, oral or practical learner action; optional correction prompt:**  
 **Stable activity/question IDs, outcome and approved eligible uses, version/exposure:**  
 **Teacher exercise/assignment or learner practice surface and actual linkage status:**  
 
@@ -157,12 +159,15 @@ Follow the [paired example and rules in the canonical playbook](./CONTENT_GENERA
 
 **Verified taught outcomes/topic/term scope and learner-specific known/unknown learning state:**  
 **Short retrieval prompts before explanations are shown; concise correct recall aids:**  
+**Independent recall / working / sketch before answer reveal, error correction and accessible alternative:**  
 **Purposeful mixed, application and transfer tasks/performance:**  
 **Answers, model reasoning/rubric, error diagnosis and marking authority:**  
 **Exact weak-outcome → core explanation → supplementary activity → fresh reassessment references:**  
 **Teacher revision guidance and independent/home learner directions:**  
 **Revision item IDs, exposure/answer release, formal-exam exclusion/variant rules:**  
 **Actual revision/practice surface, evidence and publication status (or NOT_CONNECTED):**  
+
+**Notebook evidence rule:** A learner invitation to write is not an upload, submitted answer, score or proof of mastery. Reuse the shared learning-notebook guidance on appropriate learner and teacher surfaces, without new resource identities or a compulsory handwriting requirement.
 
 **Completeness rules:** Core source and age/ability-sensitive teacher guidance are indispensable to a teachable outcome. Practice and revision depth follow the actual instructional purpose; document a specific reason for an inapplicable experience rather than inventing filler. A revision manuscript may exist before a student studies the topic but **must not falsely claim that student's completion or mastery**. Formal exams remain distinct controlled assessments, not the same protected questions as revealed guided examples.
 

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
+import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import { supabase } from '@/lib/supabase'
 import { recordGroundedPracticeAnswer } from '@/lib/student/vibelearn'
 
@@ -159,6 +160,7 @@ export default function ExactLearningRecoveryPage() {
           <strong>Curriculum verification required</strong>
           <p style={{margin:'5px 0 0'}}>This question does not yet have a verified learning-outcome link. VibeSchool will not guess from its subject or topic, or recommend unrelated content.</p>
         </div> : <>
+          <LearningNotebookPrompt stage="recovery" compact />
           <div style={steps}>
             <section style={step}>
               <strong>1 · Relearn the explanation</strong>

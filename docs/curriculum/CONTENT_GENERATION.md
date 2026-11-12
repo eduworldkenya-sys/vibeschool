@@ -76,6 +76,7 @@ For each verified outcome, inspect what already exists in the **real canonical s
 - Include a complete worked example, demonstration, experiment, sample text, oral model or performance criteria where relevant. In Mathematics, **explain WHY every important step works**, choose formulas only when appropriate, define symbols, substitute values, show intermediate work, units, final answer and a valid independent check.
 - Plan and create a real visual aid when it makes the concept easier or the outcome depends on it. Show correct labels and accessible text; a visual brief is not the image itself.
 - Supply guided attempts, an independent/application check, precise likely misconceptions, correction and feedback.
+- Where writing adds learning value, include a short child-friendly **write / draw / show your working** invitation before revealing the model or solution. For Mathematics, ask for intermediate steps, units and checking; allow accessible oral, tactile or typed alternatives.
 - Prepare support/core/extension pathways based on actual learner prerequisites and needs, without hard-coding stereotypes by age, grade or a single wrong response.
 - Produce practical teacher notes and guidance from **the same source**: purpose, prior knowledge, prompts, preparation, materials, classroom management, realistic timing, board/visual guidance, sample responses, differentiation, safety and observation/marking rules.
 
@@ -86,6 +87,7 @@ For each verified outcome, inspect what already exists in the **real canonical s
 - Target the precise verified outcome or prerequisite, specify educational purpose: guided, independent, reinforcement, remedial, enrichment, project, worksheet, home activity or performance.
 - Prefer activities that strengthen the skill: concrete objects, diagrams, discussion, writing, oral practice, calculations, investigations, games or practical demonstration. Do not default to MCQs for every subject.
 - Sequence from accessible support toward independent application, then appropriate challenge. Select a **meaningful** number of questions, not a fixed artificial quota.
+- Encourage learners to attempt, sketch or show their process in an ordinary exercise book before checking answers when educationally appropriate; do not require a printer, notebook upload or button attesting that writing is finished.
 - Record correct answers with reasoning, sample responses/rubrics, error-specific feedback, retry hints and the teacher's next intervention; validate answers independently where feasible.
 - Include short, clear home-use directions and low-cost/safe alternatives if suitable. Treat activities and exercises as useful instructional experiences, not mandatory separate apps.
 - Preserve a stable activity/question source ID, version, outcome mapping, difficulty/cognitive demand, visibility/exposure and eligible reuse (lesson, worksheet, homework, topic practice, quiz or other permitted context).
@@ -95,6 +97,7 @@ For each verified outcome, inspect what already exists in the **real canonical s
 ### 4.3 Revision and Consolidation — equivalent to a revision book
 
 - Draft revision **readiness** for the same verified outcome in the same pass: a concise accurate reminder, retrieval prompts BEFORE displaying explanations, a fresh or varied application/transfer question, correct answer or rubric, and a diagnostic next step.
+- Ask for independent written/illustrated retrieval when suitable, followed by comparison, error correction and a fresh check; keep spoken, practical and accessible response modes valid.
 - Distinguish **drafted for later revision** from **a specific learner has studied it**; never credit learner mastery or completion without real evidence. Revision can be voluntarily available according to access policy.
 - Map each wrong or skipped response to an exact misconception/outcome, the core explanation or worked model, a suitable supplementary remedial activity, and a **fresh reassessment item**. Where actual UI routing is not verified, document the intended IDs and mark NOT_CONNECTED.
 - At topic completion, assemble mixed and cumulative retrieval/application across the **verified included outcomes**. At term and declared-subject completion, assemble appropriate broader review, spaced/mixed practice and assessment blueprint with teacher revision guidance.
@@ -106,7 +109,7 @@ For each verified outcome, inspect what already exists in the **real canonical s
 
 Provide the actual aids selected for the outcome: **teacher Lesson Notes (distinct from full learner content; see §4.5)**, Teacher Guide, demonstration instructions, examples, visuals, discussions, assessments/observation, worksheets and assignments, differentiation, remedies and extension, with true outcome/resource IDs. Do not make every Teaching Library slot compulsory. Do not require a timetable for independent content, a scheme or unscheduled lesson preparation; a dated scheduled occurrence remains relevant to actual scheduled teaching/attendance.
 
-**Teacher acceptance:** teachers can see, understand and use the applicable materials without rebuilding the lesson and without links to the wrong class, week, subject or outcome.
+**Teacher acceptance:** teachers can see, understand and use the applicable materials without rebuilding the lesson and without links to the wrong class, week, subject or outcome. Teacher guidance should identify when to invite learner working in an exercise book, what to observe or correct, and an accessible alternative.
 
 
 ## 4.5 Learner Content vs Lesson Notes — two views of one verified outcome
@@ -119,6 +122,19 @@ Provide the actual aids selected for the outcome: **teacher Lesson Notes (distin
 - **Canonical lineage:** retain the verified curriculum outcome and actual canonical Content Engine/publication and `learning_resources` / `learning_resource_versions` identities. If both resource types exist, each has its true resource/version ID and links back to the same outcome. Use existing `teaching_resource_links` and Scheme bridges where relevant. Never invent IDs or create a second content engine, assessment authority, or curriculum identity.
 - **Delivery:** independent learners use released learner content in Learn; authorized teachers discover/read applicable version-checked Lesson Notes and follow links to the full content from Curriculum Map, Scheme, Teaching Library or Lesson Plan where supported. **Preparing and browsing notes never requires a timetable**; scheduled Teach Mode uses the actual occurrence.
 - **Selection:** a dedicated teacher-notes resource is useful for many outcomes but is not a compulsory fifteenth-slot filling exercise. Provide substantive teacher guidance under §4.4, document instructional reasons for omissions and distinguish manuscript, stored, certified, linked and actually visible states.
+
+### 4.5A Active notebook and learner-produced work — one shared architecture
+
+**Teach → Try → Write/draw/do → Check → Correct → Retry** is an adaptable invitation, **not** a compulsory linear workflow, progress event, new database, assignment or marking engine. Choose the modality required by the curriculum outcome; a spoken explanation, manipulation, drawing or practical demonstration can be more appropriate than handwriting. Do not make handwriting a barrier for early grades or learners with disabilities.
+
+- **Core reader / worked examples:** after a clear model, invite one similar attempt in an ordinary exercise book or on paper; for Mathematics ask for meaningful steps, method and units. Do not ask learners merely to copy the completed example.
+- **Supplementary activities / exercises / Topic Practice:** before answer reveal or a low-stakes response, encourage a reasoned attempt or sketch, including support and corrections. Existing scored inputs remain the sole scored evidence; the optional notebook work is offline unless assessed through an existing authorised submission/observation route.
+- **Revision / mistake recovery:** ask the learner to recall or solve independently first; compare with the explanation, correct the mistake, then attempt an appropriate fresh check. Opening, writing or clicking a confirmation alone earns no marks or mastery.
+- **Teacher Lesson Notes, Teacher Guide, Scheme / Lesson Plan:** derive a concise board/exercise-book invitation and observable success criteria from the same outcome and resource version; no timetable dependency for preparation.
+- **Subject adaptation:** Mathematics = method, steps and units; languages = original sentences/meaning/spelling; sciences = observation, labelled drawing and reasoning; arts/sports = practical creation/performance first, optional sketch/reflection. Offer oral, typed, tactile or other accessible alternatives.
+- **Implementation authority:** use the shared `lib/learning/notebookGuidance.ts` + `components/learn/LearningNotebookPrompt.tsx` for VibeSchool learner surfaces. They display guidance only; do not create a second notebook table, duplicate question authority, self-reported completion control, grading RPC or unsupported resource link. Apply them only where a learner action is appropriate, not to formal-exam security screens.
+
+**Outcome handoff evidence:** record the proposed active-work instruction, expected written/observable reasoning, misconception correction and accessible alternative in the existing canonical teaching package. Treat actual learner work/teacher observations separately from publisher prompts and preserve assessment release policies.
 
 ### Paired illustrative example — Grade 4 Mathematics: hours into minutes
 
