@@ -1,0 +1,40 @@
+name: Eleven Original Learning Packets
+
+on:
+  pull_request:
+    paths:
+      - 'content/curriculum/production/grade4-original-first-lessons.v1.json'
+      - 'content/curriculum/production/grade6-original-first-lessons.v1.json'
+      - 'content/curriculum/production/grade8-grade9-original-first-lessons.v1.json'
+      - 'content/curriculum/kicd-remaining-maps-audit.json'
+      - 'scripts/test-eleven-original-editorial-packets.mjs'
+      - '.github/workflows/eleven-original-learning-packets.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/curriculum/production/grade4-original-first-lessons.v1.json'
+      - 'content/curriculum/production/grade6-original-first-lessons.v1.json'
+      - 'content/curriculum/production/grade8-grade9-original-first-lessons.v1.json'
+      - 'scripts/test-eleven-original-editorial-packets.mjs'
+      - '.github/workflows/eleven-original-learning-packets.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  original-learning-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout reviewed commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Verify eleven source-linked lesson manuscripts
+        run: node scripts/test-eleven-original-editorial-packets.mjs
+      - name: Prevent curriculum-index drift
+        run: node scripts/test-kicd-remaining-source-alignment.mjs

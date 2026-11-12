@@ -1,0 +1,314 @@
+{
+  "schema": "vibeschool.originals.editorial-learning-packets.v1",
+  "scope": "One substantive demonstration lesson for each of three Grade 6 subject maps; not the complete grade, strand or sub-strand.",
+  "status": "editorial_draft_not_published",
+  "publisher": "VibeSchool (independent original teaching materials)",
+  "authority": "KICD revised 2024 (curriculum scope only, not endorsement)",
+  "sourceRevisions": "2024",
+  "createdAt": "2026-11-12",
+  "packets": [
+    {
+      "id": "VS-G06-MA-1.1-L01",
+      "grade": "Grade 6",
+      "subject": "Mathematics",
+      "unit": "1.1",
+      "sourceRef": "VS-CUR-G06-MA-2026#1.1",
+      "sourceIndexCode": "1.1",
+      "strand": "Numbers",
+      "subStrand": "Whole Numbers",
+      "focus": "Place value and total value through millions",
+      "goal": "Read a seven-digit whole number and explain the value of a selected digit using its place.",
+      "notes": "Large numbers become easier to read when they are grouped in threes from the right. The number 2,735,481 has two million, seven hundred and thirty-five thousand, and four hundred and eighty-one. Each place is ten times the value of the place to its right. In this number, 7 represents 700,000 because it occupies the hundred-thousands place. You can confirm a digit's value by writing the number in expanded form.",
+      "vocabulary": [
+        "millions",
+        "hundred-thousands",
+        "ten-thousands",
+        "place value",
+        "expanded form"
+      ],
+      "model": {
+        "prompt": "A warehouse record shows 2,735,481 packets. What total value does the digit 7 represent?",
+        "steps": [
+          {
+            "action": "Group 2,735,481 into 2 | 735 | 481.",
+            "why": "Groups of three identify millions, thousands and ones."
+          },
+          {
+            "action": "Count place names from the right: ones, tens, hundreds, thousands, ten-thousands, hundred-thousands, millions.",
+            "why": "This prevents guessing the digit's value from its appearance."
+          },
+          {
+            "action": "The digit 7 is in the hundred-thousands place; write 7 × 100,000 = 700,000.",
+            "why": "A digit's total value is digit × value of its place."
+          }
+        ],
+        "answer": "700,000 packets.",
+        "check": "2,000,000 + 700,000 + 30,000 + 5,000 + 400 + 80 + 1 = 2,735,481."
+      },
+      "activity": {
+        "materials": [
+          "Seven-column place-value chart",
+          "Number cards or paper strips"
+        ],
+        "steps": [
+          "In groups, form 2,735,481 with seven number cards.",
+          "Ask another group to move the 7 one place to the right and explain the new value.",
+          "Return the cards to the original order and read the original number aloud."
+        ],
+        "evidence": "Correct reading of the number, position of the digit and an explanation using multiplication."
+      },
+      "guided": [
+        {
+          "id": "G06-MA-1.1-L01-G1",
+          "prompt": "What is the total value of 5 in 4,562,103?",
+          "answer": "500,000",
+          "reason": "5 is in the hundred-thousands place: 5 × 100,000."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G06-MA-1.1-L01-E1",
+          "prompt": "Write 3,204,516 in expanded form.",
+          "answer": "3,000,000 + 200,000 + 4,000 + 500 + 10 + 6",
+          "reason": "The digit 2 represents 200,000; the zero ten-thousands adds no value; the 4 represents 4,000, the 5 represents 500, the 1 represents 10 and the 6 represents 6."
+        },
+        {
+          "id": "G06-MA-1.1-L01-E2",
+          "prompt": "How much more is the 6 worth in 6,200,000 than the 6 in 620,000?",
+          "answer": "5,400,000",
+          "reason": "6,000,000 − 600,000 = 5,400,000. Moving one place left multiplies the value by ten."
+        }
+      ],
+      "check": [
+        {
+          "id": "G06-MA-1.1-L01-Q1",
+          "prompt": "A learner says the 3 in 3,405,210 is worth 3,000. Identify and correct the mistake.",
+          "answer": "The 3 is worth 3,000,000.",
+          "reason": "It stands in the millions column."
+        }
+      ],
+      "misconception": "Treating comma groups as digits. Rebuild the number on a labelled place-value chart.",
+      "remedial": "First read four-digit numbers, then add a labelled thousands group and finally the millions column.",
+      "enrichment": "Create a seven-digit number with a 9 in the ten-thousands place and prove the 9's value without reading the full number.",
+      "teacher": "Ask learners to explain how they know the value rather than merely pronounce the number. Use local counting contexts, but distinguish example data from real statistics. Verify every expanded form term.",
+      "accessibility": "Offer large-print comma groups, a tactile chart, or a spoken position-counting technique.",
+      "visual": {
+        "kind": "place-value diagram",
+        "description": "Seven aligned columns with headings million, hundred-thousand, ten-thousand, thousand, hundred, ten, one; digits 2,7,3,5,4,8,1."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-6-Mathematics-Revised.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+    },
+    {
+      "id": "VS-G06-EN-1.1-T01-L01",
+      "grade": "Grade 6",
+      "subject": "English",
+      "unit": "1.1",
+      "sourceRef": "VS-CUR-G06-EN-2026#1.1",
+      "sourceIndexCode": "1.1 in Theme 1",
+      "strand": "Listening and Speaking",
+      "subStrand": "Pronunciation and Vocabulary",
+      "focus": "Theme 1: Child Labour — listening for the main idea and details",
+      "goal": "Listen to an original short narrative, state its main idea, identify two details and respond respectfully.",
+      "notes": "The main idea tells us what a spoken text is mostly about. Details help us see how the speaker supports that idea. Listen for what happened, why it matters and what a safe next step could be. Children should have time to learn, rest and play. A learner discussing a concerning work situation should speak to a trusted adult rather than attempt to confront anyone alone.",
+      "vocabulary": [
+        "chores",
+        "wages",
+        "exhausted",
+        "education",
+        "trusted adult"
+      ],
+      "model": {
+        "prompt": "Listening text (teacher reads): 'Every evening, Wanjiru helps wash cups for ten minutes. She still has time to do homework and rest. Her friend Sam, however, has been asked to work late at a stall on school nights. Sam feels tired and misses lessons. Wanjiru advises him to tell a trusted teacher.'",
+        "steps": [
+          {
+            "action": "Hear the whole passage without writing.",
+            "why": "The first listen gives a complete understanding of the message."
+          },
+          {
+            "action": "Identify the contrast: a short safe home chore versus late work that interferes with school.",
+            "why": "The contrast reveals the main concern."
+          },
+          {
+            "action": "Give the main idea: children need time for school and rest, and should seek adult help when work harms learning or safety.",
+            "why": "A main idea is bigger than one example."
+          },
+          {
+            "action": "Name two supporting details: Sam works late and misses lessons.",
+            "why": "Details must come from the actual text, not from guesses."
+          }
+        ],
+        "answer": "Main idea: excessive work can harm a child's education and well-being. Details: Sam works late and misses lessons.",
+        "check": "Return to the text and confirm both details are explicitly stated."
+      },
+      "activity": {
+        "materials": [
+          "Teacher's original 70-word narrative",
+          "Optional two-column detail chart"
+        ],
+        "steps": [
+          "Teacher reads the passage twice, with a pause between readings.",
+          "Pairs record the main idea and two supporting details.",
+          "Learners practise asking, 'Could you repeat the part about Sam?' then correct an inaccurate retell."
+        ],
+        "evidence": "One plausible main idea, two accurate text details and a respectful clarification question."
+      },
+      "guided": [
+        {
+          "id": "G06-EN-1.1-T01-G1",
+          "prompt": "Who advises Sam to talk to a trusted teacher?",
+          "answer": "Wanjiru",
+          "reason": "The final sentence states this directly."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G06-EN-1.1-T01-E1",
+          "prompt": "State one way Sam's late work affects him.",
+          "answer": "He feels tired or misses lessons.",
+          "reason": "Both facts are in the listening text."
+        },
+        {
+          "id": "G06-EN-1.1-T01-E2",
+          "prompt": "Write a polite question you could ask if you missed a detail.",
+          "answer": "Example: 'Could you please repeat what happened to Sam?'",
+          "reason": "Polite clarification asks for information without interrupting rudely."
+        }
+      ],
+      "check": [
+        {
+          "id": "G06-EN-1.1-T01-Q1",
+          "prompt": "Is 'Wanjiru washes cups' the main idea or a supporting detail?",
+          "answer": "Supporting detail",
+          "reason": "It is one example, not the central message about harmful work and education."
+        }
+      ],
+      "misconception": "Confusing the first event in a story with its central message. Ask what most of the story is trying to communicate.",
+      "remedial": "Offer two candidate main ideas and ask the learner to choose the one that covers the whole passage.",
+      "enrichment": "Compare Sam's situation with a brief safe chore and explain two differences without blaming either child.",
+      "teacher": "Keep examples fictional and non-graphic. Do not ask learners to disclose family circumstances. Assess listening for meaning, not assumptions about household work. Follow normal school safeguarding procedures if a learner requests help.",
+      "accessibility": "Provide a second or third reading, captioned transcript or signed interpretation; accept spoken or written responses.",
+      "visual": {
+        "kind": "main idea and details chart",
+        "description": "Central box 'Main idea' with two connecting detail boxes; no real child images."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/ENGLISH-GRADE-6-UPDATED-Revised-Sept.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1 in Theme 1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+    },
+    {
+      "id": "VS-G06-SW-1.1.1-L01",
+      "grade": "Grade 6",
+      "subject": "Kiswahili",
+      "unit": "1.1.1",
+      "sourceRef": "VS-CUR-G06-SW-2026#1.1.1",
+      "sourceIndexCode": "1.1.1",
+      "strand": "Kusikiliza na Kuzungumza",
+      "subStrand": "Matamshi Bora",
+      "focus": "Viungo vya mwili vya ndani: kusikiliza, kutamka na kueleza",
+      "goal": "Kutumia msamiati unaofahamika wa viungo vya mwili vya ndani katika mazungumzo mafupi yanayoeleweka.",
+      "notes": "Mazungumzo yenye matamshi yanayoeleweka husaidia msikilizaji kufahamu jambo linalozungumziwa. Kwa mfano, moyo husukuma damu mwilini, na mapafu hutusaidia kupumua. Tunapotamka 'moyo' na 'mapafu', tuzingatie uwazi wa sauti na mpangilio wa sentensi. Huu ni mfano wa mawasiliano kuhusu afya, si ushauri wa matibabu.",
+      "vocabulary": [
+        "moyo",
+        "mapafu",
+        "kupumua",
+        "damu",
+        "matamshi"
+      ],
+      "model": {
+        "prompt": "Eleza kazi moja ya mapafu katika sentensi fupi.",
+        "steps": [
+          {
+            "action": "Tambua kiungo kinachoulizwa: mapafu.",
+            "why": "Kwanza tunaelewa mada ya swali."
+          },
+          {
+            "action": "Chagua wazo moja sahihi: mapafu hutusaidia kupumua.",
+            "why": "Maelezo mafupi yenye maana ni bora kuliko kutumia maneno mengi yasiyo wazi."
+          },
+          {
+            "action": "Tamka sentensi nzima: 'Mapafu hutusaidia kupumua.'",
+            "why": "Kutumia neno katika sentensi husaidia kufikisha ujumbe."
+          }
+        ],
+        "answer": "Mapafu hutusaidia kupumua.",
+        "check": "Msikilizaji anaweza kutaja kiungo na kazi yake baada ya kusikia sentensi."
+      },
+      "activity": {
+        "materials": [
+          "Mchoro rahisi wa moyo na mapafu uliotayarishwa na mwalimu"
+        ],
+        "steps": [
+          "Mwalimu aseme sentensi mbili kuhusu moyo na mapafu.",
+          "Wanafunzi wajibu swali la kusikiliza kuhusu kiungo kimoja.",
+          "Wawili wawili wabadilishane nafasi za mzungumzaji na msikilizaji; kila mmoja aseme sentensi moja yenye maana."
+        ],
+        "evidence": "Mwanafunzi ataje kiungo na kazi moja kwa uwazi na asikilize bila kumkatiza mwenzake."
+      },
+      "guided": [
+        {
+          "id": "G06-SW-1.1.1-G1",
+          "prompt": "Ni kiungo gani kinachotusaidia kupumua?",
+          "answer": "Mapafu.",
+          "reason": "Mfano wa somo unaunganisha mapafu na kupumua."
+        }
+      ],
+      "independent": [
+        {
+          "id": "G06-SW-1.1.1-E1",
+          "prompt": "Kamilisha sentensi: '_____ husukuma damu mwilini.'",
+          "answer": "Moyo",
+          "reason": "Moyo ndicho kiungo kinachohusika na kusukuma damu."
+        },
+        {
+          "id": "G06-SW-1.1.1-E2",
+          "prompt": "Andika sentensi moja kuhusu mapafu.",
+          "answer": "Mfano: 'Mapafu hutusaidia kupumua.'",
+          "reason": "Kubali sentensi nyingine fupi yenye habari sahihi."
+        }
+      ],
+      "check": [
+        {
+          "id": "G06-SW-1.1.1-Q1",
+          "prompt": "Mwambie mwenzako kazi ya moyo katika sentensi moja.",
+          "answer": "Moyo husukuma damu mwilini.",
+          "reason": "Tathmini usahihi wa ujumbe na uwazi wa matamshi."
+        }
+      ],
+      "misconception": "Kuchanganya kazi za moyo na mapafu. Tumia picha mbili na sentensi tofauti kabla ya kufanya mazoezi ya kuzungumza.",
+      "remedial": "Tumia chaguo mbili za majibu na mazoezi ya kurudia sentensi moja kwa utulivu.",
+      "enrichment": "Andaa swali moja la heshima kuhusu kiungo kimoja na umwulize mwenzako.",
+      "teacher": "Heshimu tofauti za lafudhi; pima iwapo ujumbe unaeleweka. Vipindi vya marudio vya VibeSchool vinapaswa kubaki vimetenganishwa na vipindi vya KICD katika Scheme.",
+      "accessibility": "Toa maandishi makubwa, vielelezo vya viungo na nafasi ya kujibu kwa kuandika au kwa ishara.",
+      "visual": {
+        "kind": "anatomy line drawing",
+        "description": "Mchoro usio wa kutisha unaoonesha moyo na mapafu kwa majina ya Kiswahili."
+      },
+      "provenance": {
+        "kicdAuthorityUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/LATEST-6.8.2024-KISWAHILI-GRADE-6-Revised.pdf",
+        "edition": "Revised 2024",
+        "sourceUnit": "1.1.1",
+        "authorityScope": "curriculum structure and learning expectations; not a KICD publication or endorsement",
+        "author": "VibeSchool-original",
+        "specificOutcomeCrosswalk": "pending",
+        "rights": "KICD source is linked, not copied"
+      },
+      "releaseStatus": "editorial_draft_not_imported_into_canonical_learning_resources"
+    }
+  ]
+}
