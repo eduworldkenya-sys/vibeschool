@@ -130,6 +130,11 @@ export default function StudentResultDetailPage() {
             )}
             {item.explanation && <p style={{ color: '#374151', lineHeight: 1.5 }}><strong>Explanation:</strong> {item.explanation}</p>}
             {item.workedSolution && <p style={{ color: '#374151', lineHeight: 1.5 }}><strong>Worked solution:</strong> {item.workedSolution}</p>}
+            {(isSkipped(item.responseValue, item.responseText) || item.finalScore < item.maxScore) &&
+              <button type="button" style={{...secondaryButton,marginTop:10}}
+                onClick={() => router.push(`/student/vibelearn/recovery?attempt=${encodeURIComponent(params.attemptId)}&item=${encodeURIComponent(item.assessmentItemId)}`)}>
+                Recover this exact question
+              </button>}
           </section>
         ))}
 
