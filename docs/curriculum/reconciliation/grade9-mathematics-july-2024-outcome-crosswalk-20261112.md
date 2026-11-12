@@ -79,3 +79,26 @@ The reproducible SQL is `scripts/sql/grade9_mathematics_curriculum_authority_pre
 - **`BLOCKED_OFFICIAL_ARTIFACT_MISSING`**.
 
 This diagnostic deliberately never returns `CERTIFIED`: even when future evidence becomes complete, it returns `EVIDENCE_PRESENT_REQUIRES_INDEPENDENT_CURRICULUM_AND_QUALITY_REVIEW`. The only way forward is the existing authorized official artifact intake and owner review; editing registry text or writing directly via SQL would not solve it.
+
+## Follow-up KICD design comparison — 12 November 2026
+
+**Scope and evidence levels.** The official KICD Grade Nine designs listing still embeds `Mathematics Grade 9 - July 2024 - Revised.pdf` (official KICD page and Drive preview linked above). The Drive preview does not provide an authenticated PDF artifact to the current tool session. An unverified July 2024 Markdown transcription was inspected as supporting evidence only. Accordingly, this section records **editorial-source comparison, not authenticated PDF verification or VibeSchool certification**.
+
+- **Outline:** five named strands, nineteen named sub-strands, 150 suggested lesson allocations in the July summary. Draft unit ordering matches.
+- **Source outcome coverage:** the draft preserves 117 separately enumerated learning-target slots (a, b, etc.). This is a structural and editorial coverage match against the accessible July transcription; it is not a claim of publisher-authenticated, word-for-word or independent final-semantic matching.
+- **Inquiry reconciliation:** the draft previously contained 26 original questions. Sub-strand **1.2** did not separately ask about real-world applications of cubes and cube roots; **4.1** did not separately ask about interpreting straight-line graphs. These are now separately represented in two additional original questions (28 total).
+- **Learning experiences:** draft examples were expanded from 57 to **62** to cover interpretation, modelling, mathematical discussions and real-life application. The KICD source lists further specific experiences, including digital and collaborative work; this compressed VibeSchool original set is **not certified as an exhaustive one-to-one mapping of all suggested experiences**.
+- **Curriculum dimensions:** each of the 19 original VibeSchool draft units now explicitly carries sub-strand-specific competencies, values, pertinent/contemporary issues and assessment dimensions; previously these dimensions were broad or absent. These remain educational paraphrases and must be compared with the authoritative official source page-by-page.
+- **Source contradictions remain:** 1.2/1.3/1.4 detailed-vs-summary lesson counts, 2.2 singular/plural title and 5.2 exclusive/inclusive event wording. They are not silently resolved or overridden.
+- **Canonical status:** the last read-only production recheck still returns zero Grade 9 Mathematics official artifacts, zero authority snapshots, zero verified linked outcomes and twenty legacy headings. The source intake and owner-promotion boundary must not be bypassed.
+
+**Verified editorial acceptance:** draft structure and fields internally consistent, and original KICD source locators identified. **Not achieved:** authenticated original KICD PDF bytes and checksum, independent complete outcome/experience/inquiry semantic reconciliation, source-to-canonical UUID binding, owner promotion, and published teaching content verification.
+
+### Follow-up actions required before release
+
+1. Use the existing signed-in HQ owner `/hq/curriculum-authority` to ingest the **registered** official July PDF under its existing source UUID. The current model connection cannot invoke the authenticated operator's session or obtain an authoritative source checksum.
+2. Stage all 117 exact source-outcome observations from the official file through the existing service workflow, with page locators; reconcile source experiences and inquiries, core competencies, values, PCIs and assessment indicators.
+3. Reconcile the nineteen official sub-strands with twenty existing production heading identities, preserving old IDs and teacher/exam history; record canonical outcome UUIDs and check the existing `vs_curriculum_package_gate`.
+4. Submit the completed proof to authorized review, then promote the official source through the canonical owner-only approval process. Only then consider VibeSchool curriculum certification and release.
+
+No paper, website or unverified transcription is treated as an approval or a claim of KICD endorsement.
