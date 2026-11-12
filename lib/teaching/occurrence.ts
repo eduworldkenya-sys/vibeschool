@@ -57,6 +57,7 @@ export interface TeachingOccurrenceRow {
   completed_at: string | null
   cancelled_at: string | null
   cancelled_reason: string | null
+  recovered_from_id: string | null
   rescheduled_to_slot_id: string | null
   rescheduled_to_date: string | null
   created_at: string
