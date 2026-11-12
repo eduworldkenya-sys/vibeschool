@@ -119,16 +119,29 @@ test('teacher timetable checks outcome readiness', () => {
 })
 
 
-test('the planned period-guard delta is explicit, exact and not mislabeled production parity', () => {
+test('planned timetable and unscheduled teaching deltas are explicit, exact and never production parity', () => {
   const baseline = JSON.parse(read('supabase/reconciliation/tbl012_production_core_schema_hashes.json'))
   const planned = JSON.parse(read('supabase/reconciliation/tbl012_pending_forward_deltas.json'))
-  assert.equal(planned.deltas.length, 1)
-  const delta = planned.deltas[0]
-  assert.equal(delta.table, 'timetable_slots')
-  assert.equal(delta.section, 'triggers')
-  assert.equal(delta.production_hash, baseline.tables.timetable_slots.triggers_hash)
-  assert.match(delta.rebuilt_hash, /^[a-f0-9]{32}$/)
-  assert.notEqual(delta.production_hash, delta.rebuilt_hash)
+  assert.equal(planned.deltas.length, 4)
+  const keys = planned.deltas.map(delta => delta.table + '.' + delta.section)
+  assert.deepEqual(keys, [
+    'timetable_slots.triggers',
+    'teaching_occurrences.columns',
+    'teaching_occurrences.constraints',
+    'teaching_occurrences.indexes',
+  ])
+  for (const delta of planned.deltas) {
+    assert.equal(delta.production_hash, baseline.tables[delta.table][delta.section+'_hash'])
+    assert.match(delta.rebuilt_hash, /^[a-f0-9]{32}$/)
+    assert.notEqual(delta.production_hash, delta.rebuilt_hash)
+    assert.ok(delta.rationale.length > 35)
+  }
+  assert.equal(planned.deltas[0].migration, '20261112101600_timetable_school_period_authority.sql')
+  const unscheduled = read('supabase/migrations/20261112154500_unscheduled_teaching_occurrence.sql')
+  assert.match(unscheduled, /teaching_occurrences_one_source_check/)
+  assert.match(unscheduled, /teaching_occurrences_unscheduled_plan_key/)
+  assert.match(unscheduled, /start_unscheduled_teaching/)
+  assert.match(unscheduled, /complete_unscheduled_teaching/)
   assert.match(periods, /effective_from, effective_until/)
   assert.match(read('scripts/tbl012-compare-schema-hashes.py'), /release_requires_forward_migration/)
 })
