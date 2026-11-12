@@ -45,6 +45,14 @@
 6. **Repair the canonical curriculum first:** resolve every MISSING, PARTIAL, EXTRA or CONFLICT affecting the intended scope through the existing authorized source-of-truth/migration process. Preserve stable IDs, school-owned schemes, historic evidence and unrelated records. Recheck the corrected canonical map, scheme links and affected consumers.
 7. **Pass only with evidence:** every required source outcome in the declared content scope must be MATCH, with source and VibeSchool refs actually inspected. If source, data or authority cannot be accessed, report BLOCKED_CURRICULUM_RECONCILIATION for that scope; investigate normal mismatches without asking the solo owner to do routine checking. A separately reconciled smaller scope may proceed **only** with its explicitly narrower claim.
 
+### Repair routine gaps before reporting a blocker
+
+Work on the exact requested outcome or dated lesson. If a source, mapping, Scheme link or supported application function is missing, trace the dependency to its canonical record and use the authorized repair workflow. Check alternate official KICD source locations when a link fails. Reuse existing verified outcomes, register source evidence through the approved workflow, and repair a Scheme link only when the curriculum and teacher's intended allocation are supported by evidence. Preserve teacher-owned entries and historical links.
+
+For scheduled work, confirm the exact occurrence, school term and instructional week. Check the live availability of the guarded attachment workflow. If a required migration is absent, verify its deployment prerequisites and use the approved migration path when authorized. Re-read the live records after each repair and rerun Gate Zero. When it passes, continue directly to authoring, verification and saving the draft.
+
+Escalate only the specific gap that remains after authorized repair attempts, with the evidence checked, changes made, and the decision or access still required. A topic suggested by a textbook or a same-week Scheme entry alone cannot establish an official outcome or a dated assignment. Keep verified supplementary material clearly scoped to its supported outcome.
+
 **Mandatory gate declaration:** “KICD ↔ VibeSchool: [grade/subject/scope], [official edition and pages], [matched N of N], [repairs and canonical IDs], PASS or BLOCKED.” Never write PASS from inference. **A curriculum PASS is not content quality approval or publication.**
 
 ## 3. Inspect all existing libraries BEFORE creating assets or questions
