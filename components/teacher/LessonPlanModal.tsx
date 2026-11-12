@@ -1525,53 +1525,17 @@ export default function LessonPlanModal({
     }
   }
 
-  // TOS-006B: completion availability is derived from the shared
-  // TeachingWorkspace. The RPC remains the sole mutation authority and
-  // performs the final transition validation.
-  //
-  // Product rule: completing a lesson occurrence is a teaching-workflow
-  // event only. It never writes to scheme_of_work or curriculum progress —
-  // that update path is separate and explicit. Do not extend this handler
-  // to touch it. Reflection/evidence stay pending after this call; only
-  // lifecycle + completed_at change.
-  async function handleCompleteLesson() {
-    if (!taughtDate || completing) return
-
-    setCompleting(true)
-    setCompleteError(null)
-
-    try {
-      const row = await completeLessonOccurrence({
-        timetableSlotId: slot.id,
-        occurrenceDate: taughtDate,
-      })
-      await refreshTeachingWorkspace()
-      showToast('Lesson marked complete ✓')
-      // Fix 18E-D: use the RPC-returned occurrence's own id — never a slot
-      // id or plan id — so the coverage prompt always targets the exact
-      // occurrence that was just completed. Rendered only once the
-      // reflection sheet (if any) has closed — see render below.
-      // Gated on planSchemeIdRef (the persisted plan's own scheme_id), never
-      // on suggestion?.schemeId. Lessons with no scheme link (custom/manual
-      // plans, scheme_id null) must never trigger this prompt.
-      if (planSchemeIdRef.current) {
-        setCoverageError(null)
-        setCoveragePromptOccurrenceId(row.id)
-      } else {
-        setCoveragePromptOccurrenceId(null)
-      }
-      // Only offer reflection if a plan is actually persisted — otherwise
-      // ReflectionSheet would render with lessonId={null} and silently fail.
-      if (planIdRef.current) {
-        setShowReflection(true)
-      }
-    } catch (err) {
-      const code = err instanceof CompleteOccurrenceError ? err.code : 'unknown'
-      console.error('[LessonPlanModal] completeLesson', err)
-      setCompleteError(completeErrorMessage(code))
-    } finally {
-      setCompleting(false)
+  // The lesson planner must not bypass the canonical atomic finalization
+  // review. Finishing now opens the exact persisted occurrence in Teach Mode,
+  // where finalize_teaching_occurrence_v2 saves completion, coverage, reflection
+  // and progress together; no legacy complete-only mutation is issued here.
+  function handleCompleteLesson() {
+    if (!planIdRef.current || !teachingOccurrence?.occurrenceId) {
+      setCompleteError('The exact teaching occurrence is not available. Reopen this lesson before finishing.');
+      return;
     }
+    setCompleteError(null);
+    openPreparedTeachMode();
   }
 
   // Fix 18E-D: guarded occurrence-based path for marking the linked scheme
@@ -1617,8 +1581,25 @@ export default function LessonPlanModal({
 
   function openPreparedTeachMode() {
     if (!planId) return
-    const query = new URLSearchParams({ lessonPlanId: planId, classId: slot.class_id, subjectId: slot.subject_id, teach: '1' })
-    if (teachingOccurrence?.occurrenceId) query.set('occurrenceId', teachingOccurrence.occurrenceId)
+    if (workspace?.lifecycle === 'missed' || workspace?.lifecycle === 'rescheduled' || workspace?.lifecycle === 'cancelled') {
+      setStartLessonError('This occurrence cannot start. Recover the missed lesson from its timetable entry or review its history.')
+      return
+    }
+    if (!teachingOccurrence?.occurrenceId || (workspace?.lifecycle !== 'in_progress' && workspace?.lifecycle !== 'completed')) {
+      // A prepared plan is not a started lesson. Start through the existing
+      // guarded RPC first and navigate with its returned occurrence UUID.
+      void handleStartLesson()
+      return
+    }
+    const query = new URLSearchParams({
+      lessonPlanId: planId,
+      occurrenceId: teachingOccurrence.occurrenceId,
+      classId: slot.class_id,
+      subjectId: slot.subject_id,
+      timetableSlotId: slot.id,
+      date: taughtDate,
+      teach: '1',
+    })
     router.push(`/teacher/lesson-notes?${query}`)
   }
 
@@ -2625,7 +2606,7 @@ export default function LessonPlanModal({
                     background: "var(--teacher-green, #087451)", color: '#fff', fontSize: 13, fontWeight: 800,
                     cursor: completing ? 'not-allowed' : 'pointer', opacity: completing ? 0.7 : 1, fontFamily: 'inherit',
                   }}>
-                    {completing ? 'Completing lesson…' : '✅ Complete Lesson'}
+                    {completing ? 'Opening lesson…' : 'Review & Finish in Teach Mode'}
                   </button>
                 )}
                 {workspace?.lifecycle === 'completed' && (
