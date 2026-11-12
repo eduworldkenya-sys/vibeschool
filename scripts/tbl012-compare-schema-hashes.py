@@ -185,7 +185,7 @@ def main() -> int:
                     ):
                         raise ComparisonFailure("declared migration does not define reviewed guard")
                 else:
-                    if row["migration"] != "20261112154500_unscheduled_teaching_occurrence.sql":
+                    if row["migration"] != "20261112104242_unscheduled_teaching_occurrence.sql":
                         raise ComparisonFailure("unscheduled forward delta has wrong migration identity")
                     required = {
                         "columns": (
