@@ -27,7 +27,9 @@ def main() -> None:
     good = gate.assess(observed, pinned, copy.deepcopy(observed))
     assert good["passed"], good
     assert good["schema_sections_checked"] == 20
-    assert len(good["classified_historic_differences"]) == 7
+    assert len(good["classified_historic_differences"]) == 4
+    assert good["already_applied_unscheduled_sections_checked"] == 3
+    assert not good["already_applied_unscheduled_mismatches"]
     assert not good["historic_reference_is_production_parity"]
     assert not good["production_migration_authorized"]
     assert not good["school_schedule_verified"]
@@ -50,6 +52,12 @@ def main() -> None:
     result = gate.assess(observed, unexpected, copy.deepcopy(observed))
     assert not result["passed"]
     assert result["unrecognized_baseline_differences"]
+
+    unscheduled = copy.deepcopy(pinned)
+    unscheduled["tables"]["teaching_occurrences"]["columns_hash"] = "0" * 32
+    result = gate.assess(observed, unscheduled, observed)
+    assert not result["passed"]
+    assert "teaching_occurrences.columns" in result["already_applied_unscheduled_mismatches"]
 
     missing = copy.deepcopy(pinned)
     missing["tables"]["teacher_classes"]["indexes_hash"] = observed["tables"]["teacher_classes"]["indexes_hash"]
