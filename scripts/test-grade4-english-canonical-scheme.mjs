@@ -29,7 +29,37 @@ for(const t of GRADE4_ENGLISH_THEMES){
 }
 const snapshot=sql.match(/jsonb_array_elements\(\$vs_g4_en\$([\s\S]*?)\$vs_g4_en\$::jsonb\) unit;/)
 assert.ok(snapshot,'Migration must contain an exact immutable catalog snapshot')
-assert.deepEqual(JSON.parse(snapshot[1]),units,'Database and app learning units must match')
+const seedUnits=JSON.parse(snapshot[1])
+assert.equal(seedUnits.length,units.length,'The original migration snapshot remains immutable')
+for(const unit of units){
+ if(unit.id==='11-WR') continue
+ assert.deepEqual(seedUnits.find(row=>row.id===unit.id),unit,'Other KICD-linked units must remain unchanged')
+}
+const spelling=units.find(unit=>unit.id==='11-WR')
+assert.ok(spelling)
+assert.equal(spelling.lessons,3,'Annual VibeSchool proposal retains an optional local consolidation lesson')
+assert.equal(seedUnits.find(unit=>unit.id==='11-WR').lessons,3,'Original snapshot is immutable')
+assert.match(spelling.outcomes[0],/commonly misspelt words/)
+assert.match(spelling.outcomes[1],/dictation/)
+assert.match(spelling.outcomes[2],/corrections make the message/)
+const spellingRepair=read('../supabase/migrations/20261112161000_grade4_english_spelling_editorial_alignment.sql')
+for(const token of [
+ 'VS-CUR-G04-EN-2026#11-WR',
+ 'GRADE4_SPELLING_HISTORY_REQUIRES_AUTHORIZED_REVIEW',
+ "status='archived'",
+ "suggested_lessons=2",
+ "'creator_claimed'",
+ "'VS-G4-EN-11-WR-04'",
+ "'VS-G4-EN-11-WR-05'",
+ "'VS-G4-EN-11-WR-06'",
+ 'GRADE4_SPELLING_FINAL_IDENTITY_CHECK_FAILED'
+]) assert.ok(spellingRepair.includes(token),'Required grade 4 spelling repair guard missing: '+token)
+assert.ok(!/update public\.(scheme_of_work|lesson_plans|lesson_plan_drafts|timetable_slots|teaching_occurrences)/i.test(spellingRepair),
+ 'Authoring must not rewrite teacher-owned planning or attendance')
+assert.ok(!/status='verified'|source_type='official'/i.test(spellingRepair),
+ 'Editorial alignment must not pretend official curriculum authority was promoted')
+assert.ok(map.includes('KICD 2024, Writing 11.4.1, printed page 74, recommends 2 lessons'),
+ 'Official two-lesson spelling allocation must be visible, not mislabelled as 3 KICD lessons')
 const terms=[1,2,3].map(n=>({id:'t'+n,term:n}))
 const weeks=terms.flatMap(t=>Array.from({length:10},(_,i)=>({term_id:t.id,week_number:i+1,week_type:'normal',school_id:null})))
 const options={units,terms,termWeeks:weeks,weeklyAllocation:5,expectedUnitCount:52,gradeLabel:'Grade 4'}

@@ -150,6 +150,11 @@ export default function Grade4EnglishMap({
             {catalogError && <p role="alert" style={{fontSize:12,color:'#a11b36'}}>{catalogError}</p>}
             {linked?.outcomes?.length ? <div style={{borderTop:'1px solid #e1ebe4',marginTop:10,paddingTop:10}}>
               <p style={{fontSize:12,fontWeight:800,color:'#175b43'}}>VibeSchool learning guidance · {unit.lessons} proposed lessons</p>
+              {unit.id==='11-WR' && <p role="note" style={{fontSize:12,lineHeight:1.6,color:'#83531b',background:'#fff8e8',padding:9,borderRadius:8}}>
+                KICD 2024, Writing 11.4.1, printed page 74, recommends 2 lessons for spelling commonly misspelt words.
+                This VibeSchool annual planner proposes 1 additional optional practice lesson; the third lesson is not a KICD requirement.
+                Choose the exact dated Scheme lesson before attaching a teaching plan.
+              </p>}
               <ul style={{fontSize:13,lineHeight:1.65,paddingLeft:19}}>{linked.outcomes.map(outcome=><li key={outcome.id}>{outcome.outcome_text}</li>)}</ul>
               <p style={{fontSize:12,lineHeight:1.6}}><strong>Teaching activity:</strong> {unit.experiences[0]}</p>
               <p style={{fontSize:12,lineHeight:1.6}}><strong>Assessment:</strong> {unit.assessment}</p>
