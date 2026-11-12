@@ -110,6 +110,29 @@ Follow the [paired example and rules in the canonical playbook](./CONTENT_GENERA
 | Consistent canonical lineage | Verified outcome plus real learner/teacher resource and version references |
 | Reader and Lesson Plan/Teaching Library links | Actual tested status or NOT_CONNECTED; no invented publication |
 
+### Complete notes, English aids, revision and question-bank expansion — evidence per outcome
+
+**Fill this during authoring. These are editorial records for the existing outcome package, not another store, a mandatory owner form or an authorization shortcut.** Follow the canonical playbook sections 1A, 4.6–4.9 and 7A.
+
+| Component | Real content and verification to record |
+| --- | --- |
+| Friendly learner/teacher title | Clear displayed subject/topic/lesson name; confirm no internal IDs, KICD or developer language in actual content, visuals, prompts or printable versions |
+| Structured teacher notes | Actual teaching explanation, prior-knowledge probe, materials, board model/script, numbered teacher steps, guided and independent tasks, expected answers, misconception remedies, formative check, differentiated support and close |
+| English aids where appropriate | Full original passage, dialogue/listening script, model composition/sentences, word/picture/grammar cards, reading organizer, writing checklist, oral activity; include correct comprehension answers and speaking/writing rubrics |
+| Supplementary packet | Real scaffold, graded activities, stimulus assets, guided → independent → context/challenge questions, checked answers, feedback, teacher/home/accessible instructions |
+| Revision packet | Actual recall, mixed/transfer and spaced/fresh prompts, answers, corrections, exact core/practice/reteach/fresh-check references and real link status |
+| Diagram/image | Actual relevant visual, ordinary friendly labels and caption, correct units, alt text, canonical registered asset ID/version, permissions, render proof, or explicit not-delivered state |
+| Bank candidate blueprint | Appropriate question formats and cognitive ranges, distinct variants, justified candidate pool target (normally 15–25 for a substantial assessable outcome where meaningful), full stimuli, checked answer/rubric, duplication/exposure assessment |
+| Bank item evidence | Candidate drafted count; answer-checked count; reviewed count; actual canonical bank-linked count; formal-exam-eligible count; truthful connection and exposure status |
+| Plain-language presentation check | Inspect displayed learner text, teacher notes, print/export, visual pixels, alt text and feedback for raw IDs, source authority mentions, developer phrases, placeholders and internal links |
+| Release and integrity | Actual quality evidence, authorizations, bank-security checks and real user-journey status; distinguish written manuscript from live availability |
+
+**Friendly labels, not renamed IDs:** Example visible label “Grade 4 English — Reading a Short Story”; the real outcome code stays privately linked in the existing curriculum system. Do not copy audit or source metadata into instructional passages or artwork. Preserve legally required attribution in an appropriate separate notice.
+
+**Complete lesson-note delivery test:** Another teacher can follow the note and teach without inventing missing explanations, questions, board examples, responses, passages or material. An independent learner can use the appropriate learner-facing version without developer terminology.
+
+**Question-bank integrity:** The volume target is flexible and must not force filler. Never claim that drafted questions are already bank-linked or protected-exam-eligible; report the five counts separately. Keep revealed examples/practice distinct from approved unseen formal-exam variants.
+
 ### Learning component selection
 
 | Component group | Included? | Canonical reference or outcome-based reason for omission |

@@ -1,6 +1,6 @@
 # VibeSchool Originals — Single Canonical Content Generation Playbook
 
-**Version:** 1.0 — 12 November 2026
+**Version:** 1.1 — 12 November 2026
 **Owner-approved educational direction:** Top-class, VibeSchool-original, KICD-aligned learning that demonstrates learner understanding and genuinely helps teachers teach.
 **Applies to:** ChatGPT-led generation and material revision for Grades 1–9, all subjects, outcomes, terms, teacher resources, learner materials, exercises and revision. Other grades require their own applicable official curriculum authority.
 **Role:** ONE required start-here operating document for all VibeSchool educational content-generation chats. Use it in full. Do not choose competing instructions from several independent checklists.
@@ -33,6 +33,18 @@
 5. A page count, an exercise count, a bank item count, views, a generated file, a GitHub merge and a learner's unverified clicks are **not** proofs of understanding, teacher effectiveness or live publication.
 
 **Two distinct content layers (never conflate them):** The **private KICD authority reference**, where the intended digitisation is covered by verified applicable permission, must preserve the source **word for word** and retain the original order, punctuation, numbering, tables, captions, footnotes and appendices; follow [COPY_KICD_CURRICULUM.md](./COPY_KICD_CURRICULUM.md). The **VibeSchool learner/teacher content layer** must contain original explanations, examples, activities, graphics, instructions, questions, feedback and teacher guides, **not a public clone of KICD or textbook passages**. Restricted storage does not independently confer copying rights; keep the scope of confidential permission recorded and checked in the authorized workflow. Do not claim formal KICD approval unless independently established.
+
+## 1A. Plain, friendly language in ALL educational materials
+
+**Separation is mandatory:** official source names, codes, version numbers, source URLs and verification evidence belong in restricted administrative metadata and governance reports, **not** in the learner or teacher's educational material. Keep internal curriculum outcome IDs and question IDs unchanged so lessons and exams continue to link correctly; change only their visible labels. Do not remove legally required attribution: where required, place it in a separate suitable credits/legal notice rather than inside an explanation or diagram.
+
+**Never print these inside educational experiences:** the name KICD, raw codes such as VS-G4-MA-1.1-01, UUIDs, database keys, backend status strings, asset placeholders, source file paths, software/development terminology, AI prompt notes or curriculum verification discussion. This rule applies equally to learner notes, teacher notes, practice, worksheets, question stems, answer review, teacher preview, diagrams, image labels and alt text, downloaded or printed content and instructional slide visuals. **It does not remove KICD from private source records, authoring governance, audit evidence or legally necessary notices.**
+
+**Use natural titles:** “Grade 4 Mathematics — Place Value”, “Lesson: Reading a Story”, “Our learning goal”, “Example 1”, “Activity 2”, “Revision: Time”, “Question 4”. A teacher may see ordinary strand/topic labels when relevant, but not a source code. Choose the learning language suited to the subject, explain real subject terminology and avoid childish oversimplification. Derive labels from the verified learning idea, never invent a second database identity.
+
+**Child-friendly example:** “Look carefully: In 24,315, the digit 4 means 4,000 because it is in the thousands place. Try it: What does the digit 3 mean? Answer: 300, because it is in the hundreds place.” In artwork use labels such as “Thousands | Hundreds | Tens | Ones”, not an internal curriculum identifier. This example illustrates wording; it is not proof of a verified curriculum record.
+
+**Presentation evidence:** review actual rendered teacher and learner screens, printable/exported materials, accessible descriptions, question feedback and images. If a raw code or source label currently appears, log and fix the application display defect separately; a Markdown instruction is not a live interface fix.
 
 ## 2. Mandatory gate ZERO — KICD ⇄ VibeSchool curriculum reconciliation
 
@@ -185,6 +197,78 @@ A certified and accurate clock illustration may support this explanation when it
 
 **Acceptance:** learner content should *teach the why* and guide practice; teacher notes should make the same learning teachable, assessable and correctable. Both share verified source lineage and checked mathematical answers, while serving different audiences.
 
+## 4.6. Structured, classroom-ready Teacher Lesson Notes
+
+Lesson Notes must be **finished teaching material**: ordered, easy to scan, instructional, accurate and directly usable. Do not pass a generic summary, curriculum outline, transcript of content blocks, empty headings, software labels or copied learner chapter as notes.
+
+Prepare these elements in every relevant notes package; combine sections only when doing so improves the teaching:
+
+1. **Friendly title and lesson focus:** grade, subject, topic and intended scope; duration/term/week only when actually known.
+2. **Learning goal and success signs:** what a learner should be able to explain, read, write, solve or demonstrate.
+3. **Prior knowledge:** short diagnostic question, likely learner starting points, key vocabulary.
+4. **Materials and aids:** actual low-cost objects, linked illustrations, word cards, visual or texts; alternatives if equipment/printing is unavailable.
+5. **Clear teacher explanation:** correct concept, why it works and what should be emphasized.
+6. **Teaching sequence:** warm-up, modelling/exploration, guided practice, learner attempt, formative check and close, with realistic optional timing.
+7. **Complete board model:** ready-to-write worked steps, diagram labels, explanatory sentences, reading passage, spoken script or demonstration instructions; maths needs meaningful intermediate steps, units and checking.
+8. **Questions and expected answers:** actual opening, probing and application questions, model responses and useful follow-up prompts.
+9. **Learner participation:** exact linked task, exercise-book writing or oral/practical alternative, and what the teacher observes.
+10. **Quick check and marking guidance:** brief assessable check, accurate answer or performance rubric, and observable evidence of understanding.
+11. **Misconceptions and remedies:** concrete likely mistakes, how to notice them, corrective model, appropriate supplementary activity and fresh check.
+12. **Support and extension:** adjustments for prerequisite knowledge, ability, language, pace and accessibility, and a genuine higher-level challenge.
+13. **Follow-through:** useful short assignment or revision prompt where relevant, what to revisit, and references to the same outcome and resources (IDs internal only).
+
+A teacher must be able to teach from the notes without inventing a missing passage, example, answers, worksheet or visual. Teacher Notes are distinct from the fuller Teacher Guide and from complete learner Core content, but all must use the same checked knowledge and examples.
+
+### Example layout — English: Describing words
+
+**Learning goal:** Add suitable words that describe people and things.
+
+**Explain:** “A describing word tells us something about a noun. Compare ‘a bag’ with ‘a heavy bag’.”
+
+**Board model:** Write “The bird flew.” Then “The small bird flew.” Point to **small** and explain it tells the size of the bird.
+
+**Ask:** “Which word describes the bird?” **Expected answer:** “small”. “What new idea does it give?” **Expected answer:** “The bird is small.”
+
+**Learner try:** Write two original sentences using suitable describing words; accept a spoken or dictated response when appropriate.
+
+**Quick check:** “The bright lamp shone.” Which word describes the lamp? **Answer:** “bright”.
+
+**Correction:** If a learner chooses “shone”, ask which word tells what the lamp *did* and which tells what it is *like*. Practise with another familiar object.
+
+This is a friendly example of how notes should look, not a verified claim about a specific lesson allocation.
+
+## 4.7. Excellent English learning aids
+
+English materials must be **complete learning experiences**, not vocabulary lists, isolated grammar questions or references to absent textbooks. Select the relevant components for the verified goal:
+
+- **Reading:** original age-appropriate short stories, poems, factual passages, notices or dialogues, complete text, vocabulary in context, literal/inferential/critical questions, evidence-based answered examples and accessible reading support.
+- **Listening and speaking:** complete read-aloud script or verified audio, listening instructions, pronunciation/intonation demonstration where relevant, dialogue and role-play cards, speaking prompts, observation criteria and useful oral feedback.
+- **Writing:** demonstrated model sentences/paragraphs, authentic writing tasks, planning organizer, drafting and editing process, success checklist, sample responses and feedback/rubrics for open-ended responses.
+- **Grammar, language use and punctuation:** clear explanation in context, worked correct/incorrect comparisons, original sentence transformation and editing, guided and independent practice, fully checked answers.
+- **Vocabulary and spelling:** meaningful word banks, usage models, contextual examples, word-pattern cards, practical dictation and varied retrieval.
+- **Visual teaching aids:** actual word/picture cards, story map, sequence organizer, labelled pictures, sentence strips, dialogue bubbles, punctuation chart, word web or reading organizer as useful; clear print and caption, no raw codes.
+- **Extra practice:** support tasks, core tasks, richer extension, and relevant remedial/revision exercises tied to observed errors.
+
+Do not force every English lesson to contain every strand. Where a passage, script, image or rubric is referred to, include that actual asset/content or a real verified link to it. Comprehension answers must match the authored text; composition/speaking require criteria and acceptable examples rather than pretending there is only one machine-gradable answer.
+
+## 4.8. Complete Supplementary and Revision collections
+
+**Supplementary practice:** build a purposeful packet for the exact skill: a short reminder/scaffold, model where necessary, guided tasks, independent exercises, contextual application, challenge where suitable, answer explanations or rubrics, hints, common-error correction, and a practical teacher/home-use option. Include real stimulus materials (tables, passages, images and objects instructions); never leave “refer to the picture” without a picture. Use varied written, spoken, drawn, manipulated and other accessible response modes rather than defaulting to MCQ.
+
+**Revision:** prepare concise recall aids, fresh unaided retrieval questions before showing an answer, mixed applications across already verified outcomes, transfer questions, mistakes with explained corrections, fresh reassessment, spaced retrieval when supported and topic/term/subject collections. A revision packet is not learner mastery evidence. Keep a correct path from each weak skill to the specific core explanation, a suitable supplementary activity and a new check; mark a missing runtime link NOT_CONNECTED rather than implying it works.
+
+**Acceptance:** learner and teacher should be able to complete the material without authoring missing instructions or answers. Reject duplicated filler, irrelevant exercises, copied revealed solutions as unseen questions and inaccurate answer keys.
+
+## 4.9. Useful, real diagrams and illustrations
+
+Create the actual diagram or other aid when instructional need justifies it: place-value charts, number lines, fraction models, clocks, measurements, shapes, labelled science observations, maps, sequences, story diagrams, writing organizers and picture cards. Prefer correct original reusable assets from the existing Visual Learning Library. The brief is not the image.
+
+- Every visible label, arrow, caption and alt description must teach something; use simple ordinary subject words, accurate mathematical scales/units, high contrast, readable sizing and coherent mobile/print rendering.
+- Use appropriate learner labels such as “Ones”, “Tens”, “Hundreds”, “Beginning”, “Middle”, “End”, “Character”, “Setting”, “Hour hand” and “Minute hand”.
+- Do not place source names, development strings, visual resource UUIDs, hidden object tags, curriculum codes or generation instructions on artwork, caption or alt text.
+- Do not leak answers into diagrams intended for an independent test. Separate worked-example pictures from unseen assessment stimuli.
+- Verify the image actually exists, is accurate, is licensed, has its real canonical version/link and renders for the intended authorized audience. Do not mark a planned diagram as delivered.
+
 ## 5. The 15 Teaching Library slots — OPTIONAL, not content quotas
 
 VibeSchool's actual taxonomy is in lib/teaching/libraryStructure.ts. This table provides a readable production reminder. These are navigation/linked-resource **roles**, not fifteen required components or fifteen new storage tables.
@@ -225,6 +309,23 @@ Visual aids include diagrams, number lines, fraction models, clocks, maps, photo
 - Prevent answer leaks to learner-facing payloads and unearned mastery from repeated known questions. Do not silently auto-mark reflection questions without a checked answer or rubric.
 - Test real or safe controlled paths for correct, incorrect, skipped, retried, resume/submission where applicable, feedback, teacher preview and protected exam answers. **A Markdown item ledger does not prove bank registration.** Record BANK_LINKED only when a valid actual link is read back and usable.
 
+## 7A. Deep, reusable Question Bank contribution — plentiful but genuinely valuable
+
+VibeSchool needs a **substantial pool of original questions**, not merely the five or ten questions shown in the learner lesson. Generate an intentionally diverse candidate pool per verified outcome so it can supply supplementary exercises, topic practice, revision, quizzes and **separately authorized, genuinely unseen formal exam variants**.
+
+1. Inspect existing question bank items, exposure, versions, duplication and approved eligibility before creating new questions. Keep one canonical bank authority.
+2. Draft an outcome-level coverage blueprint first: prerequisite recall, conceptual understanding, routine application, multi-step reasoning, inference/interpretation, real-life transfer and plausible misconception checks as appropriate.
+3. **Volume guidance:** For a substantial assessable outcome, aim for **15–25 genuinely distinct candidate items** where meaningful; record a justified smaller or larger target for short, practical, performance-only or particularly broad outcomes. This is a production-planning target **not a forced quota, a certification threshold or an assertion they are already bank-linked**. A smaller set of excellent items beats many clones. Combine outcomes into topic/term/subject pools gradually.
+4. Build different question formats as appropriate: well-designed MCQs with plausible distractors, short answers, matching, ordering, fill-in, calculations with written steps, novel word problems, comprehension, editing, structured responses and rubric-scored writing/speaking/practical tasks.
+5. For English, use **more than one original stimulus/passsage** as appropriate and cover complete reading passages, grammar in context, language editing, vocabulary, writing with marking criteria and listening/speaking scripts and observation rubrics. Do not treat previously revealed reading passages as unseen exam material.
+6. Each candidate needs a clear friendly prompt and complete stimulus, verified answer or marking rubric, worked reasoning as appropriate, marks/partial credit rules where applicable, feedback, hints where permitted, common wrong-answer diagnosis, grade/language/outcome mapping, differentiation/accessibility, and uniqueness/variant review.
+7. Maintain separate revealed educational items and protected unseen exam items with actual exposure policy; **never automatically convert a known worked example, practice question, revision solution or teacher demonstration into a secure formal examination item**.
+8. Keep bank IDs, internal codes, approval states and protection metadata out of the question screen, image and answer review. Use ordinary “Question 1”, “Choose the best answer”, “Show your working” and “Explain your answer”.
+9. Validate answers, item variation, actual stored ID/version, bank eligibility, legal safety and the existing approval workflow. A generated manuscript is **not** a bank registration.
+10. Report the distinct counts: **candidates drafted / fact-and-answer checked / reviewed / actually bank-linked / eligible for protected exams**. Never use a raw count as proof of educational value or live availability.
+
+**Exam-building requirement:** draw from a verified blueprint covering the correct outcomes, mark balance, cognitive demand, time suitability and genuinely fresh protected variants. Existing formal-exam review, authorization and answer-security policies always win.
+
 ## 8. Canonical integration — no parallel products
 
 Use the existing relationships, inspecting current implementations rather than treating a diagram as an executable schema:
@@ -254,6 +355,23 @@ Use the existing relationships, inspecting current implementations rather than t
 | **J. Release & learn** | Use existing authority and quality/release gates; verify version and real visibility; record feedback/repair | Released/published/learner-visible only if independently evidenced |
 
 **Recovery loop:** FIND gap → diagnose earliest canonical cause → repair → reverify dependent content or IDs → resume the original outcome and remaining requested scope. Do not silently skip a failed visual, question answer, required curricular outcome or broken resource reader. Avoid needless owner questions: the owner chooses the grade/subject, not each example, image or item. Escalate only a genuine missing capability, consequential rights/safety issue or existing authorization boundary.
+
+## 9A. Extra content-quality and presentation acceptance tests
+
+Use the **existing** content quality/evidence mechanisms. These are editorial review expectations, not new runtime enums or a claim that automation already exists.
+
+| What is checked | Acceptance evidence | If weak or absent |
+| --- | --- | --- |
+| Teacher Lesson Notes | Actual structured sections, board model, prompts **with expected answers**, misconception remedies, short assessment and usable materials | Repair before claiming notes complete |
+| English aids | Complete original passage/script/word or writing aid as relevant, exercises and correct answers/rubrics | Repair English content |
+| Supplementary | Useful graduated exercises, correct stimuli, answers, hints, accessibility and real practice scope | Repair practice |
+| Revision | Fresh retrieval, mixed application and correct response → targeted help → fresh check path | Repair revision / mark NOT_CONNECTED |
+| Question-bank contribution | Blueprint, justified candidate target, item diversity, actual answer checks and distinct drafted/reviewed/bank-linked/eligible counts | Report incomplete pool; do not invent bank links |
+| Diagrams | Actual registered suitable aid where required; correct clear labels, caption, alt text and actual display check | Repair asset / mark not delivered |
+| Friendly presentation | No internal curriculum codes, source attribution jargon, dev terms, placeholder tokens or raw IDs anywhere in actual instructional/print/visual/accessibility surfaces | Record and repair display defect |
+| Formal exam safety | Protected answer access, original unseen variants, approved scoring and authorization | Block affected exam release |
+
+**A documentation change cannot silently install a display filter, register a real question bank item, produce an image or publish content.** Verify the real systems separately and report exact states.
 
 ## 10. Stop rules and quality acceptance — the product is the teaching
 
@@ -332,5 +450,7 @@ Use one record per outcome. The chat assembles it as part of the actual work; it
 **Final release report:** matched N/N required outcomes; outcome packages authored/check states; reused/new library assets and verified IDs; optional teaching resources selected; question/exam-bank eligibility and connection; topic/term/subject revision coverage; teacher and independent reader results; actual release/visibility status; open defects and the exact blockers/next authorized actions.
 
 ---
+
+**Presentation law:** Teachers and learners see educational lesson titles, understandable diagrams, complete notes, useful aids, worked examples, practice, revision and ordinary question numbers — not codes, source-authority names or development terminology. Keep verification and internal identities private and intact.
 
 **Canonical content production law:** **One curriculum truth. One content source. One outcome package. Three integrated learning experiences. One teacher-supported learning journey. One approved assessment authority. Evidence before quality, integration or publication claims.**
