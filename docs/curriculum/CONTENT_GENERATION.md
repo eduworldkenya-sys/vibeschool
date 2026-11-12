@@ -24,6 +24,16 @@
 
 **Conflict rule:** Official curriculum and factual evidence govern learning scope; current verified canonical repository/database contracts govern identity and integration; applicable legal/rights/safety/release rules always apply. Within *content-generation workflow* use this one playbook; if a supporting document diverges, record the contradiction and update the related documentation rather than silently choosing the easier version. Do not rewrite or weaken a technical, security or release contract from editorial prose. Keep the supporting files for detailed specifications; no one must search several files just to learn the normal production sequence.
 
+## 0A. HQ-optional editorial work does not bypass source or approval authority
+
+**HQ is NOT a prerequisite for the non-mutating research, drafting or checking** of VibeSchool-original educational material during the solo-owner content phase. The normal chat operator can examine the **KICD design and its edition/page locators**, compare them with the **current GitHub curriculum map and existing canonical Supabase outcomes**, prepare learning content, inspect libraries and record checks with actually available authorized read-only tools. HQ remains an optional management interface, not an obligatory editorial checkpoint.
+
+**Editorial evidence states are not certification:** `EDITORIAL_CHECKED` means the named drafting or educational quality checks actually occurred and were recorded; `NOT_CHECKED` means the evidence has not been inspected. Neither state is a canonical curriculum match, independent review, protected mutation, release authorization or public visibility. The only basis for a source-alignment PASS is the **actual KICD source and canonical VibeSchool records** for the exact declared outcome scope.
+
+**Keep protected mutations protected.** Source registration, database writes, certification, protected review and publication still require the currently authenticated authorized actor and applicable independent gates; **authorization is not optional**. If proper access is absent, report `BLOCKED_AUTHORITY` rather than passing or claiming live publication. In particular, **do not use service-role powers to impersonate the owner** or use HQ optionality to circumvent protected curriculum or content-certification procedures.
+
+These instructions preserve the existing source-intake and approved release architecture. They do not grant a new write capability, make the app automatically generate visual files or turn static editorial verification into a production approval.
+
 ## 1. The non-negotiable mission
 
 1. A learner must be able to **understand, explain, demonstrate, apply and progressively retain** the relevant outcome, at an appropriate level of support.
