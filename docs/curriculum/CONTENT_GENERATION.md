@@ -1,6 +1,6 @@
 # VibeSchool Originals — Single Canonical Content Generation Playbook
 
-**Version:** 1.1 — 12 November 2026
+**Version:** 1.2 — 12 November 2026
 **Owner-approved educational direction:** Top-class, VibeSchool-original, KICD-aligned learning that demonstrates learner understanding and genuinely helps teachers teach.
 **Applies to:** ChatGPT-led generation and material revision for Grades 1–9, all subjects, outcomes, terms, teacher resources, learner materials, exercises and revision. Other grades require their own applicable official curriculum authority.
 **Role:** ONE required start-here operating document for all VibeSchool educational content-generation chats. Use it in full. Do not choose competing instructions from several independent checklists.
@@ -45,6 +45,84 @@
 **Child-friendly example:** “Look carefully: In 24,315, the digit 4 means 4,000 because it is in the thousands place. Try it: What does the digit 3 mean? Answer: 300, because it is in the hundreds place.” In artwork use labels such as “Thousands | Hundreds | Tens | Ones”, not an internal curriculum identifier. This example illustrates wording; it is not proof of a verified curriculum record.
 
 **Presentation evidence:** review actual rendered teacher and learner screens, printable/exported materials, accessible descriptions, question feedback and images. If a raw code or source label currently appears, log and fix the application display defect separately; a Markdown instruction is not a live interface fix.
+
+## 1B. Human Roles, Learning Differences and Real-World Workability Standard
+
+**The human acceptance law:** A lesson is not complete solely because facts and curriculum coverage are correct. For its intended audience it must be understandable, teachable, usable with realistic resources, accessible, assessable and repairable. This is a **single verified outcome package with role-appropriate views**, not a separate curriculum, content engine, question bank or duplicate lesson for every role.
+
+**Select all relevant audiences for the declared content, explain genuine exclusions, and test representative actual use.** Content authoring should not assume every learner is the same age, speaks the same language, owns a device, has attended school continuously, can write by hand or has a trained adult present. Do not assign rigid learning-style categories or infer a disability from performance.
+
+| Role or person | What the relevant VibeSchool material must make possible | Minimum evidence for a claim of workability |
+| --- | --- | --- |
+| **School-linked learner** | Independently read or experience an accurate explanation, try an appropriate task, get meaningful feedback and understand what comes next without needing a teacher to reconstruct missing content | Actual learner route, age-appropriate clear instructions and correct activity/feedback |
+| **Independent or home learner** | Learn without class, teacher approval, timetable or scheme dependency where access policy permits; receive self-explanatory examples, answers and hints at the right time | Independent-reader and practice flow tested, not inferred from teacher preview |
+| **Learner catching up or returning after interrupted schooling** | Diagnose relevant prerequisites without shame; access earlier foundational explanations and graduated support while preserving their current enrolment/grade identity | Real prerequisite task, suitable remedial path and fresh check; no forced grade reassignment |
+| **Learner needing accessibility adaptations** | Access equivalent learning through readable text, descriptions, appropriately keyboard/screen-reader-compatible materials, captioned/transcribed audio when used, and suitable written, oral, tactile or practical alternatives | Relevant actual accessible format and interaction checked; do not claim universal accessibility without testing |
+| **Learner ready for greater challenge** | Apply knowledge in fresh, deeper or open-ended tasks without busywork or prematurely advancing to unverified learning objectives | Meaningful extension task and valid assessment criterion |
+| **Classroom teacher** | Prepare and deliver an accurate lesson with complete notes, teaching aids, questions, expected responses, misconceptions, differentiated tasks and realistic timing/materials | Teacher can use complete actual content with ordinary class constraints and no required reconstruction |
+| **Independent tutor or tuition teacher** | Use the same authoritative content for individual or small-group teaching, adapt pacing, practise, assess and follow up without pretending tuition is a separate curriculum | Correct authorized tutor/teacher resource access and appropriate reuse, without invented student links |
+| **Parent or guardian** | Follow simple optional home-support directions, understand what skill a child is practising, offer encouragement, check safely released answers and know when a teacher or specialist is needed | Clear, short, jargon-free home instructions and appropriate answer/help access; never require an adult to be a qualified teacher |
+| **Headteacher, school administrator or academic leader** | Understand outcomes, scope, gaps, delivery readiness and class-level resource needs where the existing role and permissions permit | Role-appropriate aggregated/authorized evidence; do not disclose protected learner records or exam solutions |
+| **Examiner, assessor or marking reviewer** | Access a correct blueprint, question origin/eligibility, answer key, marking guidance, scoring criteria, difficulty and misconception information under controlled authorization | Actual protected reviewer route, verified scoring and no answer disclosure to learners |
+| **Content author, editor or subject reviewer** | Inspect official source coverage, educational correctness, originality, version history, visual/answer accuracy, defects and the exact source-to-content evidence | Recorded original source/outcome lineage, review findings and corrected version |
+| **Support or safeguarding personnel** | Locate only the approved accessibility/safety guidance needed for their authorized duty, with no new role access or privacy assumption | Existing scoped permissions and applicable child-safety/privacy policy; mark untested |
+
+### Four mandatory human acceptance questions
+
+1. **Learner:** Can the intended learner actually understand, attempt, check and improve, including independently and with suitable support?
+2. **Teacher or tutor:** Can the educator deliver this accurately using the supplied materials, realistic time and ordinary resources?
+3. **Home supporter:** Where home support is relevant, can an untrained adult follow brief helpful guidance without seeing privileged school data or becoming the sole teacher?
+4. **Assessor or quality reviewer:** Can authorized reviewers accurately judge learning from real performance, with a valid rubric/answer authority and preserved exam integrity?
+
+These are **perspectives**, not four compulsory interfaces or four newly created user roles. Test the relevant roles with existing authorized experiences and record NOT_CHECKED, NOT_CONNECTED or NOT_APPLICABLE with reasons where evidence is absent.
+
+### Practical conditions that every relevant package must consider
+
+- **Prior knowledge and pace:** Provide a simple diagnostic, at least one meaningful scaffold and suitably challenging next step when warranted. Do not equate age, class or a single wrong answer with ability. Keep the learner's existing grade identity intact.
+- **Language and comprehension:** Use the correct teaching language; for English, Kiswahili and other languages, ensure explanations and examples are linguistically accurate and culturally respectful. Provide short vocabulary help and a meaningful language-support option where needed. Do not invent a translation or imply it has been checked.
+- **Accessibility and inclusive response:** Consider sight, hearing, mobility, neurodiversity, literacy and other needs without stereotyping. Use real labelled visuals with alt text, readable typography, supported captions/transcripts for actual audiovisual content, clear instructions and oral/typed/tactile/practical response options when consistent with the outcome. Accessibility claims need practical testing.
+- **Limited resources:** Prefer affordable local objects and alternatives to specialized apparatus, printers, textbooks, paid media and constant supervision. State safety precautions for tools, science and physical activities. Do not create a required external purchase.
+- **Mobile and shared-device use:** Confirm instructions, diagrams, answer entry and feedback remain understandable on a small phone. Where supported, respect privacy when devices are shared; never expose another learner's record or protected answer. A private in-app view is not an offline feature.
+- **Connectivity and data cost:** Keep assets efficient and provide meaningful text alternatives when practical. Mark offline, download, low-bandwidth, audio streaming and resumability as UNVERIFIED unless the actual product route is tested. Do not promise offline access merely because a worksheet is printable.
+- **Real school conditions:** Teachers may handle large or mixed-ability classes, brief or altered periods, material shortages, interruptions and school-specific timetables. Offer realistic group-work/individual adaptations without forcing a timetable for curriculum browsing or unscheduled preparation.
+- **Home and tuition contexts:** Offer optional brief parent/tutor guidance and low-cost activities; honor independent learner access and school/tutor permissions. No automatic sharing of a child's results or notes with adults.
+- **Dignity, motivation and safety:** Use encouraging non-shaming language, honest progress feedback, inclusive examples and developmentally appropriate themes. Avoid pressuring students with false rank, fabricated mastery or punitive repetition.
+- **Evidence and privacy:** Learning improvement requires real appropriate observations or responses, not clicks, generated worksheets or self-reported notebook completion. Collect only authorized necessary evidence; retain existing child privacy, school isolation and exam answer protections.
+
+**Presentation rule:** All role-specific educational material remains VibeSchool-original and uses clear titles and everyday educational language. Source authority names, internal outcome codes, developer terms, private bank status and system diagnostics remain in restricted production records or legally necessary separate credits, never embedded in the lesson explanation or picture (§1A). A parent/supporter view may explain the skill in plainer language without altering its verified meaning.
+
+**Usability acceptance:** For every authored outcome, record the relevant audiences, at least one realistic use scenario for each selected role, actual content available, needed adaptation, tested route where tools permit, and an explicit defect or untested limitation. Do not claim that all human roles are served merely because this table exists.
+
+## 1C. Content Production Economics and Effectiveness Standard
+
+**Disruption must be demonstrated, not declared.** The goal is to deliver a complete, correct, useful and reusable learning package for each verified outcome with less avoidable work and cost, while preserving human usability, rights, security and educational quality. No arbitrary 95%/100% readiness scores and no quality claims based only on volume.
+
+### Measure the work honestly
+
+| Measure | What to record or calculate | Interpret carefully |
+| --- | --- | --- |
+| **Full outcome cost** | Actual attributable authoring, model/tool, visual production, subject review, QA, correction, integration/storage and release costs where known; mark unknown costs explicitly | Do not report a low AI generation fee as the total cost when review or correction cost is unmeasured |
+| **Time to usable content** | Elapsed time from verified source/outcome readiness to a complete checked and relevant-asset-ready package; separately to actual learner/teacher-visible release | First-draft speed is not end-to-end delivery speed |
+| **Verified scope coverage** | Required outcome count versus reconciled and substantively content-complete outcome count, scoped to grade/subject/edition | Generated headings, topics or pages are not outcomes completed |
+| **Question-bank yield** | Distinct items drafted → answer-checked → reviewed → actually bank-linked → permitted in protected exam, using the appropriate denominator at each stage | Question volume alone is not useful bank depth |
+| **Rework and defect rate** | Meaningful content/answer/visual/label errors found, correction effort, regressions and rechecks per version | More defects found may initially reflect better checking rather than worse content |
+| **Reusable-resource benefit** | Real certified resources reused across appropriate lessons, aids and approved contexts without duplicate identities or answer leakage | Count only genuine eligible reuse, not repeated links to unusable or protected material |
+| **User workability** | Representative teacher/learner/parent/assessor tasks attempted, task success, meaningful barriers, time/effort observations, device/accessibility context | Role-specific user testing is different from code review or author self-assessment |
+| **Learning effectiveness** | Appropriate evidence of independent explanation, transfer, retained knowledge, corrected errors and teacher observations when legitimately available | A quiz score, click or completion count alone does not prove causal improvement |
+| **Equity and access** | Relevant barriers due to device, connectivity, language, disabilities, resources and independent status; proportion actually tested and fixed | Do not infer population-wide accessibility or coverage from one test user |
+
+**Measurement discipline:**
+
+1. Use **one canonical outcome package and existing evidence/analytics infrastructure**; capture fields in the current content ledger where available. Do not create a duplicate analytics, question or curriculum authority just for these metrics.
+2. State source, timestamp, version, scope, denominators and missing data for every claimed metric. If cost, time, access or learning results are unavailable, state NOT_MEASURED rather than inventing amounts or scores.
+3. Distinguish **draft → checked → independently reviewed where required → bank/resource linked → authorized → user visible → observed educational benefit**. The same distinction applies to costs, productivity and impact.
+4. Compare production methods only with relevant equivalent scopes and accounting boundaries; record review and repair labor rather than claiming AI has eliminated it.
+5. Prefer fixing a wrong explanation, broken aid, misleading answer or inaccessible lesson over hitting an output quantity or production-speed target. Neither content count nor bank count is a substitute for genuine learning.
+6. Run small, representative end-to-end checks before scaling a subject; correct recurring weaknesses in the existing canonical playbook, materials and code. Use the existing authorized release and security gates for all publication.
+7. Record reasonable user feedback and repair outcomes with proper privacy/consent handling. Do not claim causal learning gains without an appropriate comparison or enough real evidence to support the statement.
+8. At topic, term and subject milestones, summarize verified coverage, accepted materials, question-bank yield, cost/time where known, role-tested workability, outcomes/feedback and blockers. Do not force the solo owner to manage a new dashboard or perform routine evidence entry.
+
+**A content production pass succeeds educationally** when the verified scoped content is accurate and useful to its intended people, the relevant materials and links genuinely work, required release gates are met, and claims about cost, speed, reach or learner improvement are limited to measured evidence. **Productivity is an objective, not a reason to bypass instructional quality.**
 
 ## 2. Mandatory gate ZERO — KICD ⇄ VibeSchool curriculum reconciliation
 
@@ -404,6 +482,8 @@ Use one record per outcome. The chat assembles it as part of the actual work; it
 | **Library** | Existing assets reused, new assets created, real visual and teaching resource IDs/versions, optional teaching slots, exact visibility |
 | **Assessment** | Existing or new question IDs, verified outcome mappings, exposure, answer authority, eligible contexts, protected exam variants |
 | **QA** | Fact and answer checks, age/accessibility checks, visual integrity, safety/originality/rights, defect repair and independent checks if required |
+| **Human workability** | Relevant intended audiences and roles, actual learner/teacher/home-support/assessor usability where applicable, prerequisite bridge, language, accessibility, phone/low-resource adaptations and tested route or NOT_CHECKED |
+| **Economics and impact** | Measured or NOT_MEASURED outcome cost, draft-to-usable/release time, required/reconciled/completed outcome counts, question-bank yield, reuse, rework, representative user-task success and real learning evidence |
 | **Status/evidence** | What was authored, stored, bank-linked, quality-reviewed, release-authorized, published and actually learner/teacher-visible; explicit missing pieces and links |
 
 **At topic completion:** mix only its verified outcomes into integrated application and revision; record existing refs. **At term completion:** add a real term-scope summary, varied retrieval and teacher revision guidance. **At full-subject completion:** verify every strand, sub-strand and learning outcome in the declared official scope plus cumulative revision and real route/link status.
@@ -445,9 +525,9 @@ Use one record per outcome. The chat assembles it as part of the actual work; it
 
 **Use this instruction verbatim or simply name the grade and subject while this playbook is available in the repository:**
 
-> Produce complete VibeSchool-original educational content for [GRADE] [SUBJECT] across [DECLARED SCOPE]. Follow docs/curriculum/CONTENT_GENERATION.md as the single mandatory workflow. Where private source transcription is needed and authorized, also follow docs/curriculum/COPY_KICD_CURRICULUM.md: preserve the KICD reference word for word, verify every page and field against source and persisted readback, and never expose source text in learner/teacher materials. First read the applicable official KICD curriculum and the *actual current* VibeSchool curriculum; compare every required outcome, repair mismatches canonically and proceed only after reconciliation PASS for the stated scope. For each outcome, inspect/reuse existing content, teaching resources, visuals and question-bank items; in the same pass produce Core Learning, appropriate Supplementary Practice, Revision readiness/content and Teacher Support. Explain worked methods, create real necessary visuals, provide checked answers/rubrics, age/ability adaptations and error feedback. Record stable IDs, versions and reuse permissions, distinguish exposed practice from protected exams, and assemble topic/term/subject revision incrementally. Run the relevant quality and real user-journey checks; repair defects; preserve existing security/release controls and honestly report any NOT_CONNECTED or BLOCKED state. Do not stop after an outline or falsely claim publication. Continue sequentially through the requested scope without routine owner approvals.
+> Produce complete VibeSchool-original educational content for [GRADE] [SUBJECT] across [DECLARED SCOPE]. Follow docs/curriculum/CONTENT_GENERATION.md as the single mandatory workflow. Where private source transcription is needed and authorized, also follow docs/curriculum/COPY_KICD_CURRICULUM.md: preserve the KICD reference word for word, verify every page and field against source and persisted readback, and never expose source text in learner/teacher materials. First read the applicable official KICD curriculum and the *actual current* VibeSchool curriculum; compare every required outcome, repair mismatches canonically and proceed only after reconciliation PASS for the stated scope. For each outcome, inspect/reuse existing content, teaching resources, visuals and question-bank items; in the same pass produce Core Learning, appropriate Supplementary Practice, Revision readiness/content and Teacher Support. Explain worked methods, create real necessary visuals, provide checked answers/rubrics, age/ability adaptations and error feedback. Record stable IDs, versions and reuse permissions, distinguish exposed practice from protected exams, and assemble topic/term/subject revision incrementally. For every intended human role, check practical understanding, teachability, accessibility and home/independent workability where relevant; include realistic low-resource/mobile support without claiming untested offline functionality. Record full production cost and time, coverage, question-bank quality yield, reuse, corrections and observed learning benefit only when measured (otherwise NOT_MEASURED). Run the relevant quality and real user-journey checks; repair defects; preserve existing security/release controls and honestly report any NOT_CONNECTED or BLOCKED state. Do not stop after an outline or falsely claim publication. Continue sequentially through the requested scope without routine owner approvals.
 
-**Final release report:** matched N/N required outcomes; outcome packages authored/check states; reused/new library assets and verified IDs; optional teaching resources selected; question/exam-bank eligibility and connection; topic/term/subject revision coverage; teacher and independent reader results; actual release/visibility status; open defects and the exact blockers/next authorized actions.
+**Final release report:** matched N/N required outcomes; outcome packages authored/check states; reused/new library assets and verified IDs; optional teaching resources selected; question/exam-bank eligibility and connection; topic/term/subject revision coverage; teacher and independent reader results; selected human-role workability checks and accessibility constraints; full-cost/time and effectiveness metrics actually measured or explicitly NOT_MEASURED; actual release/visibility status; open defects and exact blockers/next authorized actions.
 
 ---
 
