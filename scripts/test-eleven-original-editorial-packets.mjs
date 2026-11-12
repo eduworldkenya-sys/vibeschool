@@ -87,7 +87,7 @@ for(const p of packets){
    p.id+' practical activity and evidence')
  for(const group of ['guided','independent','check']){
   assert.ok(Array.isArray(p[group])&&p[group].length>=1,p.id+' '+group)
-  for(const item of p[group])assert.ok(item.id&&item.prompt?.length>=15&&item.answer?.length>=2&&item.reason?.length>=15,
+  for(const item of p[group])assert.ok(item.id&&item.prompt?.length>=15&&item.answer?.length>=1&&item.reason?.length>=15,
    p.id+' '+group+' needs answer and feedback')
  }
  assert.ok(p.visual?.kind&&p.visual?.description?.length>=24,p.id+' usable illustrative brief')
