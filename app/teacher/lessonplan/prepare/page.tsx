@@ -17,6 +17,7 @@ import {
   archiveLessonPlanDraft,
   attachLessonPlanDraftToOccurrence,
   loadLessonPlanDrafts,
+  restoreLessonPlanDraft,
   saveLessonPlanDraft,
   type LessonPlanDraft,
 } from '@/lib/teaching/lessonDrafts'
@@ -116,6 +117,11 @@ export default function PrepareLessonPage() {
   const [assignments, setAssignments] = useState<OperatingClass[]>([])
   const [slots, setSlots] = useState<CanonicalTimetableSlot[]>([])
   const [drafts, setDrafts] = useState<LessonPlanDraft[]>([])
+  const [archivedDrafts, setArchivedDrafts] = useState<LessonPlanDraft[]>([])
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const [archiveLoading, setArchiveLoading] = useState(false)
+  const [archiveError, setArchiveError] = useState<string | null>(null)
+  const [draftSearch, setDraftSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -140,6 +146,43 @@ export default function PrepareLessonPage() {
   const [saveNotice, setSaveNotice] = useState<string | null>(null)
   const [schemeWeekRanges, setSchemeWeekRanges] = useState<Record<string, SchemeWeekRange>>({})
   const [schemeWeekError, setSchemeWeekError] = useState<string | null>(null)
+
+  const matchesDraftSearch = (draft: LessonPlanDraft) => {
+    const query = draftSearch.trim().toLocaleLowerCase()
+    if (!query) return true
+    const match = assignments.find(row => row.class_id === draft.class_id && row.subject_id === draft.subject_id)
+    return [draft.title, draft.topic, draft.body, draft.scheme_id, match?.subject_name, match?.class_name]
+      .some(value => String(value ?? '').toLocaleLowerCase().includes(query))
+  }
+  const visibleDrafts = drafts.filter(matchesDraftSearch)
+  const visibleArchivedDrafts = archivedDrafts.filter(matchesDraftSearch)
+
+  async function refreshArchived(uid: string, sid: string) {
+    setArchiveLoading(true)
+    setArchiveError(null)
+    try { setArchivedDrafts(await loadLessonPlanDrafts(uid, sid, 'archived')) }
+    catch (cause) { setArchiveError(friendlyError(cause, 'Could not load archived preparations.')) }
+    finally { setArchiveLoading(false) }
+  }
+
+  async function toggleArchived() {
+    const next = !archiveOpen
+    setArchiveOpen(next)
+    if (next && teacherId && schoolId) await refreshArchived(teacherId, schoolId)
+  }
+
+  async function restoreArchived(id: string) {
+    if (!teacherId || !schoolId || busy) return
+    setBusy(true)
+    setArchiveError(null)
+    try {
+      await restoreLessonPlanDraft(id, teacherId, schoolId)
+      await Promise.all([refreshDrafts(teacherId, schoolId), refreshArchived(teacherId, schoolId)])
+      setSaveNotice('Archived preparation restored to Prepared lessons without creating another lesson.')
+    } catch (cause) {
+      setArchiveError(friendlyError(cause, 'Could not restore this archived preparation.'))
+    } finally { setBusy(false) }
+  }
 
   async function refreshDrafts(uid: string, sid: string) {
     setDrafts(await loadLessonPlanDrafts(uid, sid))
@@ -667,6 +710,7 @@ export default function PrepareLessonPage() {
     try {
       await archiveLessonPlanDraft(draftId, teacherId)
       await refreshDrafts(teacherId, schoolId)
+      if (archiveOpen) await refreshArchived(teacherId, schoolId)
     } catch (e) {
       setError(friendlyError(e, 'Could not archive prepared lesson.'))
     } finally {
@@ -840,14 +884,17 @@ export default function PrepareLessonPage() {
         </section>
         <section className="lp-prepare__panel" id="prepared-lessons" aria-label="Prepared lessons">
           <div className="lp-prepare__paneltop"><h2>Prepared lessons</h2><span className="lp-prepare__count">{drafts.length} saved</span></div>
+          <label className="lp-prepare__label" htmlFor="prepared-search">Find a prepared or archived lesson</label>
+          <input className="lp-prepare__field" id="prepared-search" type="search" placeholder="Search topic, subject, class or notes" value={draftSearch} onChange={event => setDraftSearch(event.target.value)}/>
+          <button className="lp-prepare__btn" type="button" aria-expanded={archiveOpen} onClick={()=>void toggleArchived()}>{archiveOpen ? 'Hide archived lessons' : 'Find archived lessons'}</button>
           {saveNotice && <div className="lp-prepare__notice lp-prepare__notice--subtle" role="status">{saveNotice}</div>}
           {schemeWeekError && <div className="lp-prepare__notice" role="status">{schemeWeekError}</div>}
           {draftError && <div className="lp-prepare__notice lp-prepare__notice--red" role="alert">{draftError}</div>}
           {scheduleError && <div className="lp-prepare__notice" role="status">{scheduleError}</div>}
           {loading ? <div className="lp-prepare__empty" role="status">Loading saved lessons…</div> :
-            drafts.length === 0 ? (
-              <div className="lp-prepare__empty"><strong>No prepared lessons yet</strong>Save your first draft on this page. Your lesson can be linked to a timetable slot later.</div>
-            ) : drafts.map(draft=>{
+            visibleDrafts.length === 0 ? (
+              <div className="lp-prepare__empty"><strong>{draftSearch.trim() ? 'No matching prepared lessons' : 'No prepared lessons yet'}</strong>{draftSearch.trim() ? 'Try another topic or search archived preparations.' : 'Save your first draft on this page. Your lesson can be linked to a timetable slot later.'}</div>
+            ) : visibleDrafts.map(draft=>{
               const assignment=assignments.find(row=>row.subject_id===draft.subject_id && (!draft.class_id || row.class_id===draft.class_id))
               const targets=targetMap.get(draft.id) ?? []
               return <article className="lp-prepare__item" key={draft.id}>
@@ -856,6 +903,7 @@ export default function PrepareLessonPage() {
                 {draft.body && <p className="lp-prepare__preview">{draft.body}</p>}
                 <div className="lp-prepare__row">
                   <button className="lp-prepare__btn" type="button" disabled={busy} onClick={()=>editDraft(draft)}>Edit</button>
+                  {draft.class_id && draft.scheme_id && <button className="lp-prepare__btn lp-prepare__btn--main" type="button" disabled={busy} onClick={()=>router.push('/teacher/lessonplan/teach-unscheduled?draftId='+encodeURIComponent(draft.id))}>Teach now · no timetable</button>}
                   <button className="lp-prepare__btn" type="button" disabled={busy} onClick={()=>void archive(draft.id)}>Archive</button>
                 </div>
                 <div className="lp-prepare__targets">
@@ -867,6 +915,21 @@ export default function PrepareLessonPage() {
                 </div>
               </article>
             })}
+          {archiveOpen && <section aria-label="Archived prepared lessons" style={{borderTop:'1px solid #dee8e1',marginTop:20,paddingTop:15}}>
+            <h3 style={{fontSize:17,margin:'0 0 10px'}}>Archived preparations</h3>
+            {archiveError && <p role="alert" className="lp-prepare__notice lp-prepare__notice--red">{archiveError}</p>}
+            {archiveLoading ? <p role="status">Loading archived lessons…</p> : visibleArchivedDrafts.length === 0 ?
+              <p className="lp-prepare__hint">{draftSearch.trim() ? 'No archived lessons match this search.' : 'No archived preparations found.'}</p> :
+              visibleArchivedDrafts.map(draft => {
+                const assignment = assignments.find(row=>row.subject_id===draft.subject_id && row.class_id===draft.class_id)
+                return <article className="lp-prepare__item" key={draft.id}>
+                  <div className="lp-prepare__itemtitle">{draft.title || draft.topic || 'Prepared lesson'}</div>
+                  <div className="lp-prepare__meta">{assignment?.subject_name || 'Subject'} · {assignment?.class_name || 'Saved class'} · Archived</div>
+                  {draft.body && <details><summary>Preview archived teaching notes</summary><p className="lp-prepare__preview">{draft.body}</p></details>}
+                  <button type="button" className="lp-prepare__btn" disabled={busy || archiveLoading} onClick={()=>void restoreArchived(draft.id)}>Restore preparation</button>
+                </article>
+              })}
+          </section>}
         </section>
       </div>
       <div className="lp-prepare__print" aria-label="Printable prepared lesson">
