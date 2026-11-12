@@ -160,13 +160,17 @@ test('teacher timetable checks outcome readiness', () => {
 })
 
 
-test('both audited timetable triggers form one exact forward delta; live unscheduled teaching is already applied', () => {
+test('audited pending timetable and disruption structural deltas remain undeployed', () => {
   const baseline = JSON.parse(read('supabase/reconciliation/tbl012_production_core_schema_hashes.json'))
   const planned = JSON.parse(read('supabase/reconciliation/tbl012_pending_forward_deltas.json'))
-  assert.equal(planned.deltas.length, 1)
+  assert.equal(planned.deltas.length, 5)
   const keys = planned.deltas.map(delta => delta.table + '.' + delta.section)
   assert.deepEqual(keys, [
     'timetable_slots.triggers',
+    'teaching_occurrences.columns',
+    'teaching_occurrences.constraints',
+    'teaching_occurrences.indexes',
+    'teaching_occurrences.triggers',
   ])
   // The actual production ledger stored this unchanged SQL under 20261112104242.
   // Live catalogue hashes were measured using scripts/sql/tbl012_core_schema_hashes.sql
@@ -182,6 +186,11 @@ test('both audited timetable triggers form one exact forward delta; live unsched
   }
   assert.equal(planned.deltas[0].migration, '20261112150000_unified_school_tuition_schedule.sql')
   assert.equal(planned.deltas[0].rebuilt_hash, 'a7ac9cc47ec44efe0eef1c1802559dac')
+  const disruption = read('supabase/migrations/20261112194500_school_disruption_occurrences_p0.sql')
+  assert.match(disruption, /disruption_previous_lifecycle/)
+  assert.match(disruption, /teaching_occurrences_disruption_exception_idx/)
+  assert.match(disruption, /guard_school_disruption_teaching/)
+  assert.ok(planned.deltas.slice(1).every(delta => delta.migration === '20261112194500_school_disruption_occurrences_p0.sql'))
   const tuition = read('supabase/migrations/20261112150000_unified_school_tuition_schedule.sql')
   assert.match(tuition, /create trigger timetable_guard_tuition_schedule/)
   assert.match(tuition, /create trigger vibetutor_guard_cross_schedule/)
@@ -232,7 +241,9 @@ test('TBL-012 permits only the exact declared forward trigger and never calls it
   try {
     const planned = JSON.parse(read('supabase/reconciliation/tbl012_pending_forward_deltas.json'))
     const rebuilt = structuredClone(baseline)
-    rebuilt.tables.timetable_slots.triggers_hash = planned.deltas[0].rebuilt_hash
+    for (const delta of planned.deltas) {
+      rebuilt.tables[delta.table][delta.section + '_hash'] = delta.rebuilt_hash
+    }
     fs.writeFileSync(`${dir}/rebuilt.json`, JSON.stringify(rebuilt))
     const proc = spawnSync('python3', [
       'scripts/tbl012-compare-schema-hashes.py',
@@ -248,6 +259,20 @@ test('TBL-012 permits only the exact declared forward trigger and never calls it
     assert.equal(report.production_parity, false)
     assert.equal(report.release_requires_forward_migration, true)
     assert.equal(report.unexplained_differences, 0)
+    assert.equal(report.expected_undeployed_forward_differences, 5)
+    // A stale partial fingerprint may never be waved through because the
+    // timetable trigger was correctly declared.
+    rebuilt.tables.teaching_occurrences.columns_hash = baseline.tables.teaching_occurrences.columns_hash
+    fs.writeFileSync(`${dir}/rebuilt.json`, JSON.stringify(rebuilt))
+    const stale = spawnSync('python3', [
+      'scripts/tbl012-compare-schema-hashes.py',
+      '--rebuilt', `${dir}/rebuilt.json`,
+      '--target', `${dir}/target.json`,
+      '--forward-deltas', 'supabase/reconciliation/tbl012_pending_forward_deltas.json',
+      '--report', `${dir}/stale-report.json`,
+    ], { encoding: 'utf8' })
+    assert.equal(stale.status, 1)
+    assert.match(stale.stderr, /stale or changed/)
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })
   }
