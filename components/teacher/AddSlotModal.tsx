@@ -440,9 +440,6 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
     setError(null)
     const onceSchedule = !isEdit && recurrence === 'once' ? singleDateSchedule(effectiveFrom) : null
     if (!isEdit && recurrence === 'once' && !onceSchedule) {setError('Choose a valid date for this one-time lesson.');return}
-    const changedPlacement = !editSlot || Number(dayOfWeek) !== editSlot.dayOfWeek
-      || startTime.slice(0, 5) !== editSlot.startTime.slice(0, 5)
-      || endTime.slice(0, 5) !== editSlot.endTime.slice(0, 5)
     // Never submit a fabricated or out-of-sync period for a recurring slot.
     // Existing edited slots retain their historical period identity until reviewed.
     if (!isEdit && upperPrimary) {
