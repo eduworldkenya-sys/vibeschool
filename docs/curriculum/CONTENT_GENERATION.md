@@ -1,6 +1,6 @@
 # VibeSchool Originals — Single Canonical Content Generation Playbook
 
-**Version:** 1.0 — 12 November 2026
+**Version:** 1.1 — 12 November 2026
 **Owner-approved educational direction:** Top-class, VibeSchool-original, KICD-aligned learning that demonstrates learner understanding and genuinely helps teachers teach.
 **Applies to:** ChatGPT-led generation and material revision for Grades 1–9, all subjects, outcomes, terms, teacher resources, learner materials, exercises and revision. Other grades require their own applicable official curriculum authority.
 **Role:** ONE required start-here operating document for all VibeSchool educational content-generation chats. Use it in full. Do not choose competing instructions from several independent checklists.
@@ -22,6 +22,21 @@
 - Root AGENTS.md, Cyborg executor and control-plane policy: **higher-priority authority for repository mutation, PRs, CI, security, release, independent assurance and production changes**. Educational authoring is ChatGPT-led; code or database writes still follow engineering governance.
 
 **Conflict rule:** Official curriculum and factual evidence govern learning scope; current verified canonical repository/database contracts govern identity and integration; applicable legal/rights/safety/release rules always apply. Within *content-generation workflow* use this one playbook; if a supporting document diverges, record the contradiction and update the related documentation rather than silently choosing the easier version. Do not rewrite or weaken a technical, security or release contract from editorial prose. Keep the supporting files for detailed specifications; no one must search several files just to learn the normal production sequence.
+
+## 0A. Six-stage daily execution (short operating interface)
+
+This is the **compact execution path for every content-generation chat**, not a second workflow, new certification authority, new runtime, or replacement for the detailed gates in §§2–12. A request for investigation or audit **does not authorize authoring, repository changes or publication**; honor the owner's stated scope.
+
+| Stage | Do this | Evidence needed to advance |
+| --- | --- | --- |
+| **1. Verify** | Read the applicable official curriculum **edition** and current canonical VibeSchool records; inventory the full requested scope; reconcile exact required outcomes | Source pages and version, recorded outcome-by-outcome PASS for the production scope, or a typed blocker |
+| **2. Map and reuse** | Inspect the existing content, teaching, visual and question libraries; select outcome-appropriate resource functions and prerequisites | Stable outcome identity, resource applicability decisions, existing version/IDs or explicit NOT_CHECKED |
+| **3. Produce** | Complete **one** verified outcome at a time: substantive Core + meaningful Supplementary + Revision readiness + usable Teacher Support | Checked instructional material, right-sized practice, genuine needed assets or accurately reported asset gap |
+| **4. Validate** | Independently check feasible calculations; verify answers, pedagogy, rights, accessibility, assessment exposure and source provenance | Evidence-linked defects resolved; editorial rubric completed **only where assessed** |
+| **5. Integrate** | Save through existing canonical authorities and reuse resource/question IDs, versions and scheme/lesson links | Read-back of stored references; report NOT_CONNECTED rather than simulating integration |
+| **6. Verify delivery and hand off** | Test relevant teacher and independent-learner consumers where accessible; distinguish draft, checked, authorized, published and visible | Real route/access evidence or NOT_CHECKED, updated existing outcome ledger and exact next action |
+
+**Lean execution law:** Avoid rereading unchanged verified evidence, rewriting accepted work, producing whole-subject filler, making the owner operate HQ for routine preparation, or stopping at an ordinary resolvable error. Revalidate evidence when its source edition, target record, version, permissions or dependent implementation changes. Continue automatically through **verified** outcomes in manageable batches; never skip an unresolved requirement or infer a PASS.
 
 ## 1. The non-negotiable mission
 
@@ -55,6 +70,16 @@ Escalate only the specific gap that remains after authorized repair attempts, wi
 
 **Mandatory gate declaration:** “KICD ↔ VibeSchool: [grade/subject/scope], [official edition and pages], [matched N of N], [repairs and canonical IDs], PASS or BLOCKED.” Never write PASS from inference. **A curriculum PASS is not content quality approval or publication.**
 
+### Reconciliation layers, repair and source-version deltas
+
+1. **Full-subject inventory (scope awareness):** Identify every official strand, sub-strand and specific outcome in the requested subject and the governing edition. This inventory is *not* an outcome-by-outcome PASS and does not authorize writing content for unresolved items.
+2. **Exact-outcome crosswalk (eligibility):** For each production outcome, match the governing official locator and required learning intent, experiences, inquiry, competencies, values/PCIs, relevant allocation and assessment expectations to a **current** canonical outcome ID. Record source version, checked date, MATCH evidence, and the existing Scheme/resource references affected. A matching topic heading is insufficient.
+3. **Production scope (bounded release):** Mark only fully reconciled outcomes **ELIGIBLE_FOR_AUTHORING**. The rest remain BLOCKED_CURRICULUM_RECONCILIATION. A verified sub-strand may proceed even while unrelated outcomes remain blocked, **provided scope is explicitly narrowed and neither a whole-subject reconciliation PASS nor a full-subject completion is claimed**.
+
+**Required recovery before escalating:** Verify an alternate official KICD access route; read the present canonical authority, ID and existing links; identify the earliest mismatch; choose REUSE → safe REPAIR through existing authorized governance → re-read evidence. Preserve original IDs, aliases, teacher-owned scheme allocations, attempts, certified versions and history. When permissions or source evidence truly prevent repair, record the *exact* blocker, affected outcomes, completed checks and next authorized dependency; do not re-investigate unaffected verified outcomes.
+
+**Curriculum edition changes:** Record the governing official title, publication/revision date, pages/sections and authoritative artifact/reference. Where a registered July edition differs from an available April edition, do not silently select or merge them. Record a version-difference ledger, verify the governing revision's actual content, and invalidate only the affected source/outcome matches and dependent package checks. Reconcile again before further affected authoring or release; retain previous historical mappings and published versions. Do not fabricate source hashes, approvals, official outcomes or lesson allocations.
+
 ## 3. Inspect all existing libraries BEFORE creating assets or questions
 
 For each verified outcome, inspect what already exists in the **real canonical system** for the correct grade, subject, sub-strand, outcome, variant, language and version:
@@ -71,6 +96,23 @@ For each verified outcome, inspect what already exists in the **real canonical s
 **Decision order:** REUSE a correct existing item → UPDATE/REPAIR the authoritative existing resource/version through approved workflow if defective → CREATE a new original item only where the gap is genuine. Do not silently mutate an immutable certified version or a teacher-private item. Do not attach a wrong-grade, wrong-outcome, wrong-week, unpublished or uncertified resource simply because its title resembles the topic.
 
 **Inspection is evidence-driven:** if a chat lacks authenticated access to current live libraries, record NOT_CHECKED or NOT_CONNECTED, describe the missing capability, and continue safe original manuscript preparation where the mandatory KICD reconciliation gate has passed. Never pretend inspection or storage took place.
+
+### Outcome-to-resource applicability (one decision per learning function)
+
+Record one decision for **each function** in the existing outcome ledger: `REQUIRED_PRESENT` (actual asset/reference plus check evidence), `REQUIRED_MISSING` (defect/next repair), `NOT_APPLICABLE` (specific instructional reason), or `NOT_CHECKED` (missing source or actual access). A text placeholder, invented ID, absent diagram or unchecked answer is never `REQUIRED_PRESENT`.
+
+| Function | Default expectation / when mandatory |
+| --- | --- |
+| Learner Core | **Always:** full accessible learner explanation, investigation or equivalent instruction and a way to check understanding |
+| Worked method / demonstration | Required when a mathematical/procedural concept needs modelling; give reasoning, defined symbols, intermediate work, units where relevant, final answer and appropriate check |
+| Supplementary practice | Meaningful guided-to-independent application of the exact skill; choose modality and quantity for diagnostic value, not fixed quotas |
+| Revision readiness | Retrieval before reveal, transfer, correct solution/rubric and route to exact reteach → targeted practice → fresh check where applicable |
+| Teacher Support | Purposeful teaching notes/guide, prompts, materials and checks sufficient for teachers to prepare, teach and intervene; dedicated notes asset optional where other support is adequate |
+| Visual / practical resources | **Required when concept or outcome depends on them**; real readable accessible asset/demonstration, properly sourced and linked |
+| Questions / assessment | Verified answer authority, misconception feedback, outcome and allowed context; performance rubrics instead of artificial MCQ where appropriate |
+| Teaching Library slots | All 15 are **optional navigation roles**; never fill irrelevant slots just to increase a count |
+
+**No hidden omissions:** `NOT_APPLICABLE` must explain the learning design, not hide work. Library presence/coverage is a separate dimension from **certified, linked and visible**. A manuscript may be complete while its delivery is NOT_CONNECTED; it must not be described as available in VibeSchool.
 
 ## 4. The smallest production unit: ONE outcome, FOUR coordinated deliverables
 
@@ -89,6 +131,8 @@ For each verified outcome, inspect what already exists in the **real canonical s
 - Produce practical teacher notes and guidance from **the same source**: purpose, prior knowledge, prompts, preparation, materials, classroom management, realistic timing, board/visual guidance, sample responses, differentiation, safety and observation/marking rules.
 
 **Core acceptance:** a learner can encounter a complete explanation or equivalent accessible experience; a teacher can deliver it with the included guidance. A short paragraph plus ten questions is NOT a finished lesson.
+
+**Mathematics verification contract:** For every relevant worked calculation, confirm the question and given quantities, justify the chosen method, define any formula and symbols, explain every meaningful transformation, substitute values, carry correct units/rounding, give a contextual answer and check by inverse, substitution, alternative method or estimation as suitable. For independently answerable numerical questions, use a separate calculation or suitable executable check where tools permit; then inspect the *reasoning* separately (a correct number cannot excuse an invalid method). Test at least an ordinary case and a misconception/edge case when relevant. Record the checker, input, expected/actual result and outcome/item version, or NOT_CHECKED—not a self-issued certification. Ask learners to show working in an exercise book where useful, with oral/typed/tactile alternatives.
 
 ### 4.2 Supplementary Practice — equivalent to a purposeful activity book
 
@@ -240,6 +284,16 @@ Use the existing relationships, inspecting current implementations rather than t
 | **I. Synthesis** | At topic, term and subject boundaries assemble accurate mixed revision and teacher support from completed outcomes | All contributing outcome IDs and source coverage verified |
 | **J. Release & learn** | Use existing authority and quality/release gates; verify version and real visibility; record feedback/repair | Released/published/learner-visible only if independently evidenced |
 
+### Resumable subject production and compact cross-chat handoff
+
+**Persistent truth, not chat memory:** Use the existing [Content Package Template](./CONTENT_PACKAGE_TEMPLATE.md#3b-atomic-outcome-production-ledger-and-consolidation-gates) as the one outcome/subject progress ledger and persist its actual version through the already approved repository/content workflow. Do **not** introduce a second database, certificate, scheduler or chat-only tracker. Update it at each completed outcome and material blocker. A prepared template or chat summary is not proof that it was stored or approved.
+
+**Per-outcome minimum replay key:** Grade + subject + governing KICD edition/source locator + canonical outcome ID + checked source/record version + package/resource/item IDs and versions + exact state/evidence links. Persist the applicability decisions, coverage, QA defects, current block, next authorized action and date of the last checked evidence. Maintain full-subject inventory separately from the number actually matched, drafted, checked, linked and delivered. Counts are useful for coverage, **not** proof of learner understanding.
+
+**Resume procedure:** (1) Read the existing ledger and current repository/library state. (2) Verify that prior evidence still matches its source, outcome and version; retain fresh evidence and invalidate stale dependencies. (3) Select the earliest incomplete **eligible** outcome; finish its four coordinated functions. (4) Update the same ledger and continue until the requested scope is complete or an evidenced typed blocker remains. Do not restart at outcome 1 or re-create prior assets merely because a new chat started.
+
+**Batching:** Produce one outcome package atomically. Combine several *already verified* outcomes in a manageable sub-strand batch only when quality checks and the persistent ledger can remain exact per outcome. Do not impose arbitrary deadlines, item quotas or make a whole-subject claim from a batch. On interruption, leave an explicit re-entry record; no promise of unattended background work without an actually commissioned scheduler.
+
 **Recovery loop:** FIND gap → diagnose earliest canonical cause → repair → reverify dependent content or IDs → resume the original outcome and remaining requested scope. Do not silently skip a failed visual, question answer, required curricular outcome or broken resource reader. Avoid needless owner questions: the owner chooses the grade/subject, not each example, image or item. Escalate only a genuine missing capability, consequential rights/safety issue or existing authorization boundary.
 
 ## 10. Stop rules and quality acceptance — the product is the teaching
@@ -258,6 +312,23 @@ Use the existing relationships, inspecting current implementations rather than t
 - **Publication honesty:** content drafted ≠ checked ≠ independently quality-assured ≠ authorized ≠ published ≠ learner-visible.
 
 **No arbitrary scores or 100/100 certification by author self-review.** Fix problems within authorized scope and report independent verification gaps where release policy requires it. Unavailable/inapplicable content types are never a reason to pad a lesson with irrelevant media or activities.
+
+### Evidence-based editorial quality rubric (diagnosis, not certification)
+
+Score each **assessed** dimension from **0–4**, using actual checked material: **0** absent/wrong, **1** materially defective, **2** partial, **3** sound and usable, **4** especially strong with explicit evidence. If a dimension was not tested, record **NOT_CHECKED**, not a fictitious score. A weighted editorial score may be calculated as `Σ(weight × dimension_score / 4)` **only when all six dimensions were assessed**:
+
+| Editorial dimension | Weight | Evidence to review |
+| --- | ---: | --- |
+| Curriculum fidelity | 25% | Exact governing KICD source/outcome crosswalk, intended progression and scope |
+| Subject accuracy | 20% | Correct reasoning, symbols, calculations, answers and rubrics |
+| Conceptual understanding | 20% | Explanation of why, guided-to-independent transfer and observable understanding |
+| Practice and feedback | 15% | Purposeful progression, misconception response, valid fresh check |
+| Teacher usability | 10% | Real notes/prompts/board models, materials, differentiation and checks |
+| Accessibility and inclusion | 10% | Readable/mobile-compatible resources, low-cost alternatives and accessible response routes |
+
+**Hard failures always outrank the score:** Any unresolved official-outcome mismatch, incorrect answer/reasoning, unsafe content, rights breach, exposed protected exam answer, missing indispensable resource or invalid canonical link **fails its affected gate regardless of the calculated score**. Neither a high score nor a model self-review constitutes independent assurance, release authorization or proven learner outcomes. Record a defect and repair/recheck it; reviewers may use the rubric to prioritize work, not to downgrade mandatory gates.
+
+**Three separate proofs:** (1) **Editorial readiness** = complete, accurately checked outcome package. (2) **Delivery readiness** = version-correct, authorized, actually usable teacher/learner routes. (3) **Learning effectiveness** = actual learner explanations, performance, fresh application and appropriate later retention, evaluated without crediting mere clicks, written prompts or page views. Never infer (3) from (1) or (2).
 
 ## 11. One outcome record — required compact handoff, no extra owner form
 
@@ -299,6 +370,10 @@ Use one record per outcome. The chat assembles it as part of the actual work; it
 
 **Status combinations:** A package can be MANUSCRIPT_DRAFTED with VISUAL_PLANNED and NOT_CONNECTED. It can be CONTENT_COMPLETE without being PUBLISHED. A GitHub merged Markdown policy, a proposed schema link, a teacher-library slot or a saved PDF does not by itself establish live educational content.
 
+### Source-change impact and regression closure
+
+For an official curriculum revision, correction to a worked answer, retirement of a protected question, replacement of a certified visual or identity/link repair: identify the exact changed source and canonical version, enumerate affected outcome packets/consumers, invalidate stale *dependent* checks, keep unaffected verified outcomes and historical learner/teacher evidence, run the relevant regression/reconciliation checks, and then update the **existing** outcome ledger. Publishing, replacement of certified versions, migrations and other consequential actions still require their separate governed authority. Record the effect on editorial readiness, delivery readiness and real learning evidence individually.
+
 ## 13. Example of one pass — Grade 4 Mathematics: hours and minutes
 
 **Illustrative pedagogy only:** first verify the applicable KICD outcome, exact curriculum scope and VibeSchool record; this paragraph is NOT itself proof of official outcome wording, topic allocation or live content.
@@ -314,7 +389,7 @@ Use one record per outcome. The chat assembles it as part of the actual work; it
 
 **Use this instruction verbatim or simply name the grade and subject while this playbook is available in the repository:**
 
-> Produce complete VibeSchool-original educational content for [GRADE] [SUBJECT] across [DECLARED SCOPE]. Follow docs/curriculum/CONTENT_GENERATION.md as the single mandatory workflow. First read the applicable official KICD curriculum and the *actual current* VibeSchool curriculum; compare every required outcome, repair mismatches canonically and proceed only after reconciliation PASS for the stated scope. For each outcome, inspect/reuse existing content, teaching resources, visuals and question-bank items; in the same pass produce Core Learning, appropriate Supplementary Practice, Revision readiness/content and Teacher Support. Explain worked methods, create real necessary visuals, provide checked answers/rubrics, age/ability adaptations and error feedback. Record stable IDs, versions and reuse permissions, distinguish exposed practice from protected exams, and assemble topic/term/subject revision incrementally. Run the relevant quality and real user-journey checks; repair defects; preserve existing security/release controls and honestly report any NOT_CONNECTED or BLOCKED state. Do not stop after an outline or falsely claim publication. Continue sequentially through the requested scope without routine owner approvals.
+> Produce complete VibeSchool-original educational content for [GRADE] [SUBJECT] across [DECLARED SCOPE]. Follow docs/curriculum/CONTENT_GENERATION.md as the single mandatory workflow. First read the applicable official KICD curriculum and the *actual current* VibeSchool curriculum; compare every required outcome, repair mismatches canonically and proceed only after reconciliation PASS for the stated scope. For each outcome, inspect/reuse existing content, teaching resources, visuals and question-bank items; in the same pass produce Core Learning, appropriate Supplementary Practice, Revision readiness/content and Teacher Support. Explain worked methods, create real necessary visuals, provide checked answers/rubrics, age/ability adaptations and error feedback. Record stable IDs, versions and reuse permissions, distinguish exposed practice from protected exams, and assemble topic/term/subject revision incrementally. Run the relevant quality and real user-journey checks; repair defects; preserve existing security/release controls and honestly report any NOT_CONNECTED or BLOCKED state. Do not stop after an outline or falsely claim publication. Resume from the persisted outcome ledger rather than restarting investigations, use the six-stage quickstart and resource applicability decisions, check suitable calculations independently and record the evidence-based editorial rubric without turning a score into certification. Continue sequentially through verified outcomes in the requested scope without routine owner approvals.
 
 **Final release report:** matched N/N required outcomes; outcome packages authored/check states; reused/new library assets and verified IDs; optional teaching resources selected; question/exam-bank eligibility and connection; topic/term/subject revision coverage; teacher and independent reader results; actual release/visibility status; open defects and the exact blockers/next authorized actions.
 
