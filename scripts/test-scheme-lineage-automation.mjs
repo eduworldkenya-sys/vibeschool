@@ -25,6 +25,7 @@ test('new teaching starts require a resolved outcome, but historical completion 
   assert.match(migration, /new\.status in \('teaching','done'\)/)
   assert.match(migration, /old\.status is distinct from 'teaching'/)
   assert.match(migration, /SCHEME_OUTCOME_REQUIRED_BEFORE_TEACHING/)
+  assert.match(migration, /SCHEME_TEACHING_LINEAGE_IMMUTABLE/)
   assert.match(migration, /new\.curriculum_outcome_id is null/)
   assert.match(migration, /from public\.scheme_lesson_outcomes slo/)
 })
