@@ -1134,6 +1134,26 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         }
       }
 
+      // Substitutions are occurrence-specific, but only a released original
+      // slot may appear on the official school timetable. This lookup is
+      // membership/RLS guarded and never grants rights to unrelated classes.
+      const substituteCandidates = (substituteData ?? []) as Array<any>
+      const substituteIds = Array.from(new Set(substituteCandidates
+        .map(row => String(row.timetable_slot_id ?? '')).filter(Boolean)))
+      const publicationIds = Object.values(publishedBySchool).map(v => v.id)
+      const approvedSubstituteIds = new Set<string>()
+      if (substituteIds.length && publicationIds.length) {
+        const {data: originalRows,error: originalError} = await supabase
+          .from('timetable_slots').select('id,school_id,release_id')
+          .in('id',substituteIds).in('release_id',publicationIds)
+        if (originalError) throw originalError
+        for (const row of originalRows ?? []) {
+          if (belongsToPublishedSchoolSlot(row.school_id,row.release_id,publishedBySchool)) {
+            approvedSubstituteIds.add(row.id)
+          }
+        }
+      }
+      if (!isMounted.current || epoch !== loadEpochRef.current) return
       const ownedSlots = schoolSlotGroups.flatMap(group =>
         group.slots.map(slot => ({
           ...slot,
@@ -1142,7 +1162,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           __exceptionReason: null as string | null,
         }))
       )
-      const substituteSlots = ((substituteData ?? []) as Array<any>).map(row => ({
+      const substituteSlots = substituteCandidates.filter(row => approvedSubstituteIds.has(row.timetable_slot_id)).map(row => ({
         id: row.timetable_slot_id,
         school_id: row.school_id,
         teacher_id: user.id,
