@@ -12,52 +12,110 @@
     "authority": "Kenya Institute of Curriculum Development",
     "design_revision": "Revised 2024",
     "section": "Measurement 2.6 Time, printed pages 32–33",
-    "checked_on": "2026-11-11",
+    "checked_on": "2026-11-12",
     "lesson_allocation": 10,
-    "notes": "Regular Grade 4 design; aligned in educational scope, not endorsed or certified by KICD."
+    "notes": "Regular Grade 4 design; aligned in educational scope, not endorsed or certified by KICD.",
+    "identity_basis": "Regular KICD revised 2024 design, Measurement 2.6 Time, printed pp. 32-33, not adaptations for special needs"
   },
   "canonical": {
     "curriculum_source_ref": "VS-CUR-G04-MA-2026#2.6",
     "sub_strand_id": "e975dcc6-32a9-4274-a2a3-3d19e409cf5c",
     "subject_catalog": "lib/teaching/grade4MathematicsCatalog.mjs",
     "resource_key_prefix": "vs:g4:mathematics:time:learner:lesson:",
-    "release_note": "Must use existing resource-version certification and reader policy; repository merge alone does not publish."
+    "release_note": "Promotion is blocked unless KICD source requirements, manuscript aliases and stable database curriculum IDs reconcile; resource certification and reader filters remain separate requirements.",
+    "reconciliation_gate": "public.vs_curriculum_package_gate",
+    "reconciliation_migration": "20261112103000_p0_curriculum_identity_grade4_time.sql",
+    "manuscript_alias_to_stable_outcome_ids": {
+      "VS-G04-MA-T-A": [
+        "e98a2b3e-937c-4c7e-810b-185ebe760198"
+      ],
+      "VS-G04-MA-T-B": [
+        "908e90f3-95f3-4947-9f11-1e60a3e1e9ee"
+      ],
+      "VS-G04-MA-T-C": [
+        "1ae5195f-517a-4aa9-ac41-23591cc409f9",
+        "ea07b06d-2a19-4c92-b40d-69837d2db6f7"
+      ],
+      "VS-G04-MA-T-D": [
+        "1731d589-7878-4754-8312-2be9ef773c4d"
+      ],
+      "VS-G04-MA-T-E": [
+        "e85f5ad8-5e30-4bf8-9b58-66587436b553",
+        "12417afc-b4a3-44ab-a597-70daa7a4fbcd"
+      ],
+      "VS-G04-MA-T-F": [
+        "89d44daf-65c7-5e1f-bb80-1ab8ee83bf42"
+      ],
+      "VS-G04-MA-T-G": [
+        "925db8c1-6448-522e-af72-4f147783d2de"
+      ]
+    }
   },
   "outcomes": [
     {
       "id": "VS-G04-MA-T-A",
       "text": "Tell the time in a.m. and p.m. from everyday analogue and digital clock readings.",
-      "kicd": "a"
+      "kicd": "a",
+      "source_locator": "2.6 Time; p.32; outcome a",
+      "stable_outcome_ids": [
+        "e98a2b3e-937c-4c7e-810b-185ebe760198"
+      ]
     },
     {
       "id": "VS-G04-MA-T-B",
       "text": "Estimate likely a.m. or p.m. times using daily events and observations.",
-      "kicd": "b"
+      "kicd": "b",
+      "source_locator": "2.6 Time; p.32; outcome b",
+      "stable_outcome_ids": [
+        "908e90f3-95f3-4947-9f11-1e60a3e1e9ee"
+      ]
     },
     {
       "id": "VS-G04-MA-T-C",
       "text": "Change units between minutes and hours, hours and days, and days and weeks.",
-      "kicd": "c"
+      "kicd": "c",
+      "source_locator": "2.6 Time; p.32; outcome c",
+      "stable_outcome_ids": [
+        "1ae5195f-517a-4aa9-ac41-23591cc409f9",
+        "ea07b06d-2a19-4c92-b40d-69837d2db6f7"
+      ]
     },
     {
       "id": "VS-G04-MA-T-D",
       "text": "Measure and record how long an event takes in hours and minutes.",
-      "kicd": "d"
+      "kicd": "d",
+      "source_locator": "2.6 Time; p.32; outcome d",
+      "stable_outcome_ids": [
+        "1731d589-7878-4754-8312-2be9ef773c4d"
+      ]
     },
     {
       "id": "VS-G04-MA-T-E",
       "text": "Calculate time duration in meaningful daily situations, including adding and subtracting time.",
-      "kicd": "e"
+      "kicd": "e",
+      "source_locator": "2.6 Time; p.32; outcome e",
+      "stable_outcome_ids": [
+        "e85f5ad8-5e30-4bf8-9b58-66587436b553",
+        "12417afc-b4a3-44ab-a597-70daa7a4fbcd"
+      ]
     },
     {
       "id": "VS-G04-MA-T-F",
       "text": "Read, record and explain time on a digital clock for everyday activities.",
-      "kicd": "f"
+      "kicd": "f",
+      "source_locator": "2.6 Time; pp.32-33; outcome f",
+      "stable_outcome_ids": [
+        "89d44daf-65c7-5e1f-bb80-1ab8ee83bf42"
+      ]
     },
     {
       "id": "VS-G04-MA-T-G",
       "text": "Show why accurate timekeeping matters for planning, punctuality and safety.",
-      "kicd": "g"
+      "kicd": "g",
+      "source_locator": "2.6 Time; p.33; outcome g",
+      "stable_outcome_ids": [
+        "925db8c1-6448-522e-af72-4f147783d2de"
+      ]
     }
   ],
   "learning_sequence": "Ten VibeSchool learning units suggested for the official ten-lesson sub-strand. Classroom pacing belongs in a school's scheme of work.",
@@ -161,7 +219,11 @@
       "enrichment": "Explain why 6:00 alone is not enough to tell a person when to meet.",
       "teacher": "Begin with the pupils' own arrival, lunch and home times. Ask learners to explain their labels, not just say letters. Allow spoken, pointed or written answers. Approximate lesson share: one of ten lessons.",
       "order": 1,
-      "id": "VS-G04-MA-TIME-L01"
+      "id": "VS-G04-MA-TIME-L01",
+      "canonical_outcome_ids": [
+        "e98a2b3e-937c-4c7e-810b-185ebe760198",
+        "925db8c1-6448-522e-af72-4f147783d2de"
+      ]
     },
     {
       "title": "Reading analogue and digital clocks",
@@ -254,7 +316,11 @@
       "enrichment": "Compare 3:40 p.m. with a 24-hour display of 15:40; explain why they mean the same moment.",
       "teacher": "Use a large clock that clearly shows both hands. Invite learners to move hands and explain. Use written/text alternatives for learners who cannot turn the hands. Approximate lesson share: one of ten lessons.",
       "order": 2,
-      "id": "VS-G04-MA-TIME-L02"
+      "id": "VS-G04-MA-TIME-L02",
+      "canonical_outcome_ids": [
+        "e98a2b3e-937c-4c7e-810b-185ebe760198",
+        "89d44daf-65c7-5e1f-bb80-1ab8ee83bf42"
+      ]
     },
     {
       "title": "Estimating time during the day",
@@ -347,7 +413,11 @@
       "enrichment": "Explain why two schools may have lunch at different times yet both call it lunchtime.",
       "teacher": "Accept different sensible local routines when explained. Supervise any outdoor activity; allow a teacher-provided shadow description if outdoors is unavailable. Approximate lesson share: one of ten lessons.",
       "order": 3,
-      "id": "VS-G04-MA-TIME-L03"
+      "id": "VS-G04-MA-TIME-L03",
+      "canonical_outcome_ids": [
+        "908e90f3-95f3-4947-9f11-1e60a3e1e9ee",
+        "925db8c1-6448-522e-af72-4f147783d2de"
+      ]
     },
     {
       "title": "Changing hours and minutes",
@@ -439,7 +509,11 @@
       "enrichment": "A bus trip lasts 245 minutes. Express this as hours and minutes and explain the remainder (4 hours 5 minutes).",
       "teacher": "Check 60-minute grouping before algorithmic conversion. Show at least one answer in each direction, and use a paper number strip if no clock is available. Approximate lesson share: one of ten lessons.",
       "order": 4,
-      "id": "VS-G04-MA-TIME-L04"
+      "id": "VS-G04-MA-TIME-L04",
+      "canonical_outcome_ids": [
+        "1ae5195f-517a-4aa9-ac41-23591cc409f9",
+        "ea07b06d-2a19-4c92-b40d-69837d2db6f7"
+      ]
     },
     {
       "title": "Hours, days and weeks",
@@ -531,7 +605,11 @@
       "enrichment": "Express 17 days as weeks and days (2 weeks 3 days).",
       "teacher": "Connect to the learner's calendar without assuming all learners follow the same weekly routine. Compare units on the board. Approximate lesson share: one of ten lessons.",
       "order": 5,
-      "id": "VS-G04-MA-TIME-L05"
+      "id": "VS-G04-MA-TIME-L05",
+      "canonical_outcome_ids": [
+        "1ae5195f-517a-4aa9-ac41-23591cc409f9",
+        "ea07b06d-2a19-4c92-b40d-69837d2db6f7"
+      ]
     },
     {
       "title": "Measuring and recording duration",
@@ -625,7 +703,12 @@
       "enrichment": "Plan a 45-minute activity that starts at 3:35 p.m. and find its end (4:20 p.m.).",
       "teacher": "Make the difference between clock time and elapsed time explicit. Use a safe ordinary classroom activity without pressuring learners to race. Approximate lesson share: one of ten lessons.",
       "order": 6,
-      "id": "VS-G04-MA-TIME-L06"
+      "id": "VS-G04-MA-TIME-L06",
+      "canonical_outcome_ids": [
+        "1731d589-7878-4754-8312-2be9ef773c4d",
+        "89d44daf-65c7-5e1f-bb80-1ab8ee83bf42",
+        "925db8c1-6448-522e-af72-4f147783d2de"
+      ]
     },
     {
       "title": "Finding elapsed time across an hour",
@@ -719,7 +802,12 @@
       "enrichment": "A sports event lasts 2 hours 20 minutes and ends at 5:05 p.m. Find its start (2:45 p.m.).",
       "teacher": "Model an actual time line and ask learners to label each jump. Check both arithmetic and unit labels. Approximate lesson share: one of ten lessons.",
       "order": 7,
-      "id": "VS-G04-MA-TIME-L07"
+      "id": "VS-G04-MA-TIME-L07",
+      "canonical_outcome_ids": [
+        "1731d589-7878-4754-8312-2be9ef773c4d",
+        "e85f5ad8-5e30-4bf8-9b58-66587436b553",
+        "12417afc-b4a3-44ab-a597-70daa7a4fbcd"
+      ]
     },
     {
       "title": "Adding hours and minutes",
@@ -812,7 +900,13 @@
       "enrichment": "A journey has three legs of 50 minutes, 1 hour 35 minutes and 45 minutes. Total 3 hours 10 minutes.",
       "teacher": "Ask for units on every line and verify by converting both addends to minutes as an alternative method. Approximate lesson share: one of ten lessons.",
       "order": 8,
-      "id": "VS-G04-MA-TIME-L08"
+      "id": "VS-G04-MA-TIME-L08",
+      "canonical_outcome_ids": [
+        "e85f5ad8-5e30-4bf8-9b58-66587436b553",
+        "12417afc-b4a3-44ab-a597-70daa7a4fbcd",
+        "1ae5195f-517a-4aa9-ac41-23591cc409f9",
+        "ea07b06d-2a19-4c92-b40d-69837d2db6f7"
+      ]
     },
     {
       "title": "Subtracting time durations",
@@ -906,7 +1000,12 @@
       "enrichment": "A community hall is booked for 6 h 15 min; cleaning needs 1 h 50 min. Find available activity time (4 h 25 min).",
       "teacher": "Emphasise the reason for exchange, then check by addition. Use a number line for pupils who prefer counting on. Approximate lesson share: one of ten lessons.",
       "order": 9,
-      "id": "VS-G04-MA-TIME-L09"
+      "id": "VS-G04-MA-TIME-L09",
+      "canonical_outcome_ids": [
+        "e85f5ad8-5e30-4bf8-9b58-66587436b553",
+        "12417afc-b4a3-44ab-a597-70daa7a4fbcd",
+        "925db8c1-6448-522e-af72-4f147783d2de"
+      ]
     },
     {
       "title": "Digital schedules, revision and time responsibility",
@@ -1019,7 +1118,18 @@
       "enrichment": "Design a safe half-day study plan with at least four activities, no overlaps and a total of 3 hours 30 minutes. Show the arithmetic.",
       "teacher": "Use this as a formative check of all seven Time outcomes; sample each child at least once. Let learners explain reasoning orally or in writing. Record actual observed evidence only; no automatic mastery. Approximate lesson share: one of ten lessons.",
       "order": 10,
-      "id": "VS-G04-MA-TIME-L10"
+      "id": "VS-G04-MA-TIME-L10",
+      "canonical_outcome_ids": [
+        "e98a2b3e-937c-4c7e-810b-185ebe760198",
+        "908e90f3-95f3-4947-9f11-1e60a3e1e9ee",
+        "1ae5195f-517a-4aa9-ac41-23591cc409f9",
+        "ea07b06d-2a19-4c92-b40d-69837d2db6f7",
+        "1731d589-7878-4754-8312-2be9ef773c4d",
+        "e85f5ad8-5e30-4bf8-9b58-66587436b553",
+        "12417afc-b4a3-44ab-a597-70daa7a4fbcd",
+        "89d44daf-65c7-5e1f-bb80-1ab8ee83bf42",
+        "925db8c1-6448-522e-af72-4f147783d2de"
+      ]
     }
   ],
   "revision": {
