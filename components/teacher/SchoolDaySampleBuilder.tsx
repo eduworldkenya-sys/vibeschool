@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { C, Card, Btn, SectionLabel } from '@/components/teacher/ui'
-import { SCHOOL_DAY_SAMPLES, isSampleBlock, sampleBlockErrors, type SampleBlock } from '@/lib/timetable/schoolDaySamples'
+import { SCHOOL_DAY_SAMPLES, isSampleBlock, sampleBlockErrors, personalSchoolDayKey, parsePersonalSchoolDay, type PersonalSchoolDayPlan, type SampleBlock } from '@/lib/timetable/schoolDaySamples'
 
 type SavedSample = { id: string; name: string; blocks: SampleBlock[] }
 type Props = {
@@ -18,19 +18,26 @@ const input: React.CSSProperties = { border: '1px solid #cbd5e1', borderRadius: 
 const clone = (blocks: readonly SampleBlock[]) => blocks.map(block => ({ ...block }))
 
 /**
- * Local drafts only; authoritative school blocks are created through the
- * existing admin-checked school period RPCs. Never auto-apply a sample.
+ * Personal plans stay browser-local, separate from scheduled lessons.
+ * Authoritative school blocks still require the existing admin-checked RPCs.
+ * Never auto-apply a sample.
  */
 export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, canManage, periodCount, onReload, mode = 'editor', initialSampleId, onSampleChosen }: Props) {
   const [choice, setChoice] = useState('')
   const [draft, setDraft] = useState<SampleBlock[]>([])
   const [draftName, setDraftName] = useState('')
   const [saved, setSaved] = useState<SavedSample[]>([])
+  const [activePersonal, setActivePersonal] = useState<PersonalSchoolDayPlan | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
   const key = 'vs.school-day-drafts.v1.' + userId + '.' + schoolId
+  useEffect(() => {
+    try {
+      setActivePersonal(parsePersonalSchoolDay(window.localStorage.getItem(personalSchoolDayKey(userId, schoolId))))
+    } catch { setActivePersonal(null) }
+  }, [userId, schoolId])
   useEffect(() => {
     setChoice('')
     setDraft([])
@@ -102,6 +109,30 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
       setSaved(next)
       setMessage('Saved on this device only. Export the file to use it on another device or share it.')
     } catch { setError('Browser storage is unavailable. Export the template file instead.') }
+  }
+
+  function useOnMyTimetable() {
+    setError(''); setMessage('')
+    if (problems.length) { setError(problems[0]); return }
+    if (!draftName.trim() || draftName.trim().length > 100) { setError('Name your timetable before using it.'); return }
+    const plan: PersonalSchoolDayPlan = {
+      name: draftName.trim(), blocks: clone(draft), activatedAt: new Date().toISOString(),
+    }
+    try {
+      window.localStorage.setItem(personalSchoolDayKey(userId, schoolId), JSON.stringify(plan))
+      setActivePersonal(plan)
+      rememberChoice(choice || 'personal')
+      setMessage('Your personal school-day outline is now active in Timetable on this device. No school-wide periods or lesson assignments were changed.')
+    } catch { setError('Browser storage is unavailable. Export your timetable file instead.') }
+  }
+
+  function stopPersonalTimetable() {
+    try {
+      window.localStorage.removeItem(personalSchoolDayKey(userId, schoolId))
+      setActivePersonal(null)
+      setMessage('Your personal school-day outline is no longer active. Saved templates and school lessons are unchanged.')
+      setError('')
+    } catch { setError('Browser storage is unavailable. Your personal plan could not be cleared.') }
   }
 
   function exportFile() {
@@ -305,12 +336,19 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
         {periodCount > 0 && <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>
           This school already has periods. Samples cannot overwrite them. You can still save and share this draft, or edit existing blocks individually below.
         </p>}
-        {!canManage && <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>
-          You may create and share personal templates. A school administrator must approve school-wide bell times.
-        </p>}
-        <Btn onClick={() => void applyToSchool()} disabled={!canApply}>
+        <Btn onClick={useOnMyTimetable} disabled={busy || problems.length > 0}>Use on my timetable (this device)</Btn>
+        {activePersonal && <div role="status" style={{ display: 'grid', gap: 6, fontSize: 12, color: C.textPrimary }}>
+          <span><strong>Personal timetable active:</strong> {activePersonal.name} · Visible on this device only.</span>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <a href="/teacher/timetable" style={{ color: C.accent, fontWeight: 700 }}>View my timetable</a>
+            <button type="button" onClick={stopPersonalTimetable} style={{ border: 0, background: 'transparent', color: C.textMuted, cursor: 'pointer' }}>Stop using personal plan</button>
+          </div>
+        </div>}
+        {!canManage ? <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>
+          School-wide publishing is unavailable for {schoolName}. An active school administrator must confirm the school bell times. Your personal timetable can be used without that approval.
+        </p> : <Btn onClick={() => void applyToSchool()} disabled={!canApply}>
           {busy ? 'Applying…' : 'Confirm and use for this school'}
-        </Btn>
+        </Btn>}
       </>}
     </div>}
     {error && <div role="alert" style={{ marginTop: 10, fontSize: 12, color: '#991b1b' }}>{error}</div>}
