@@ -75,7 +75,8 @@ export async function createTimetableRelease(input: { schoolId: string; label: s
 }
 
 export async function updateTimetableReleaseStatus(id: string, status: TimetableReleaseStatus) {
-  if (status === "draft") throw new Error("Draft is the creation state; use the governed release transition for later states.");
+  // Draft is also a valid REVIEW → DRAFT correction transition.
+  // Server state machine and school-admin authority remain definitive.
   const { data, error } = await supabase.rpc("transition_timetable_release", { p_release_id: id, p_target: status });
   assertNoError(error, "Could not update timetable release.");
   return data;
