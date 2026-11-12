@@ -1,7 +1,7 @@
 'use client'
 import { useMemo, useState } from 'react'
 import {
-  GRADE6_MATHEMATICS_UNITS, GRADE6_MATHEMATICS_SOURCE_URL, GRADE6_MATHEMATICS_LESSONS
+  GRADE6_MATHEMATICS_UNITS, GRADE6_MATHEMATICS_OFFICIAL_CATALOG_URL, GRADE6_MATHEMATICS_LESSONS
 } from '@/lib/teaching/grade6MathematicsCatalog.mjs'
 
 const green = '#175b43'
@@ -36,7 +36,7 @@ export default function Grade6MathematicsMap({
     <h2 style={{fontSize:22,color:'#163d2d',margin:'6px 0'}}>What learners should achieve</h2>
     <p style={{...line,margin:'0 0 8px'}}>4 strands · 16 sub-strands · {GRADE6_MATHEMATICS_LESSONS} suggested lessons · 5 lessons per week.</p>
     <p style={{...line,fontSize:12,margin:'0 0 8px'}}>Structure and lesson allocation reference the revised KICD 2024 design. Outcomes, activities, inquiry prompts and assessments are original VibeSchool teaching guidance; full KICD outcome-by-outcome certification is pending.</p>
-    <a href={GRADE6_MATHEMATICS_SOURCE_URL} target="_blank" rel="noreferrer" style={{display:'inline-block',fontWeight:700,fontSize:13,color:green,marginBottom:14}}>Read the original KICD curriculum</a>
+    <a href={GRADE6_MATHEMATICS_OFFICIAL_CATALOG_URL} target="_blank" rel="noreferrer" style={{display:'inline-block',fontWeight:700,fontSize:13,color:green,marginBottom:14}}>Open KICD Grade 6 designs (choose Mathematics)</a>
     <nav aria-label="Grade 6 Mathematics strands" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(135px,1fr))',gap:8,marginBottom:13}}>
       {strands.map(strand=><button key={strand} type="button" onClick={()=>choose(GRADE6_MATHEMATICS_UNITS.find(u=>u.strand===strand).id)}
       aria-pressed={chosen.strand===strand} style={{minHeight:50,border:'1px solid #b8d2c0',borderRadius:9,padding:'8px 10px',fontWeight:700,color:green,background:chosen.strand===strand?'#e7f4eb':'#fff',cursor:'pointer'}}>{strand}</button>)}

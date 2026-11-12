@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { GRADE6_MATHEMATICS_UNITS, GRADE6_MATHEMATICS_LESSONS, GRADE6_MATHEMATICS_PREFIX, GRADE6_MATHEMATICS_SOURCE_URL } from '../lib/teaching/grade6MathematicsCatalog.mjs'
+import { GRADE6_MATHEMATICS_UNITS, GRADE6_MATHEMATICS_LESSONS, GRADE6_MATHEMATICS_PREFIX, GRADE6_MATHEMATICS_SOURCE_URL, GRADE6_MATHEMATICS_OFFICIAL_CATALOG_URL } from '../lib/teaching/grade6MathematicsCatalog.mjs'
 import { buildGrade1AnnualSchemeDraft } from '../lib/teaching/creativeSchemeDraft.mjs'
 
 const read = file => readFileSync(new URL(file,import.meta.url),'utf8')
@@ -20,6 +20,7 @@ assert.equal(new Set(u.map(x=>x.strand)).size,4)
 assert.equal(u.reduce((n,x)=>n+x.outcomes.length,0),97)
 assert.equal(GRADE6_MATHEMATICS_PREFIX,'VS-CUR-G06-MA-2026')
 assert.ok(GRADE6_MATHEMATICS_SOURCE_URL.startsWith('https://kicd.ac.ke/'))
+assert.equal(GRADE6_MATHEMATICS_OFFICIAL_CATALOG_URL,'https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-six-designs/')
 assert.ok(u.every(x=>x.outcomes.length>=3&&x.experiences.length>=2&&x.inquiry.length>=1&&x.resources&&x.assessment))
 for(const x of u){
   const ref=json.units.find(z=>z.id===x.id)
@@ -47,7 +48,8 @@ for(const value of ['isGrade6Mathematics','grade6_mathematics_reader_bindings','
   "p_outcome_ids:item.outcomeIds",'grade6CatalogError','GRADE6_MATHEMATICS_UNITS'])
   assert.ok(page.includes(value),'Scheme missing '+value)
 assert.ok(subject.includes('grade6MathematicsClass')&&subject.includes('<Grade6MathematicsMap compact'))
-assert.ok(reader.includes('GRADE6_MATHEMATICS_SOURCE_URL')&&reader.includes('All 16 topics'))
+assert.ok(reader.includes('href={GRADE6_MATHEMATICS_OFFICIAL_CATALOG_URL}')&&reader.includes('All 16 topics'))
+assert.ok(!reader.includes('href={GRADE6_MATHEMATICS_SOURCE_URL}'),'Do not send teachers to the inaccessible archived PDF path')
 for(const guard of ['security invoker',"s.grade='Grade 6'","s.grade='Grade 8'",
   'grade6_mathematics_reader_bindings','grade8_mathematics_reader_bindings',
   'grade1_curriculum_reader_bindings','SCHEME_CURRICULUM_IDENTITY_MISMATCH',
