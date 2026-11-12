@@ -293,10 +293,15 @@ grant execute on function public.get_published_teacher_timetable(uuid,date) to a
 create or replace function public.protect_published_timetable_slot()
 returns trigger language plpgsql security definer set search_path=''
 as $body$
-declare v_published boolean := false;
+declare v_published boolean := false; v_approved boolean := false;
 begin
-  select (r.published_at is not null) into v_published
+  select (r.published_at is not null),(r.status='approved')
+    into v_published,v_approved
   from public.timetable_releases r where r.id=old.release_id;
+  -- An approved release must be returned to review before edits. A publish
+  -- transition revalidates all blockers but cannot silently alter the signed
+  -- off rows between approval and publication.
+  if coalesce(v_approved,false) then raise exception 'APPROVED_SLOT_LOCKED'; end if;
   if coalesce(v_published,false) then
     if tg_op='DELETE' then raise exception 'PUBLISHED_SLOT_IMMUTABLE'; end if;
     if not public.is_school_admin(old.school_id) then
@@ -324,7 +329,8 @@ begin
       raise exception 'PUBLISHED_SLOT_IMMUTABLE';
     end if;
   end if;
-  return case when tg_op='DELETE' then old else new end;
+  if tg_op='DELETE' then return old; end if;
+  return new;
 end;
 $body$;
 revoke all on function public.protect_published_timetable_slot() from public,anon,authenticated;
