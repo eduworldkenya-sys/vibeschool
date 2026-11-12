@@ -1,5 +1,7 @@
 # Teaching Library — Optional Canonical Resource Links
 
+**Start-here educational workflow:** [Single Canonical Content Generation Playbook](./CONTENT_GENERATION.md) governs when to inspect, reuse, author and link teaching resources in the same outcome pass. **This document and lib/teaching/libraryStructure.ts remain the technical authority** for the 15 optional slot types, explicit resource metadata, certified versions, access and real Scheme/lesson links; no slot becomes compulsory.
+
 **Status:** Teacher OS presentation contract. No new canonical data authority, compulsory lesson checklist, database table, worker, or publication path.
 
 ## Educational rule
