@@ -43,3 +43,24 @@ export async function requireVisualOperator(req: Request): Promise<VisualIntakeS
   return { admin: visualAdminClient(), userId: null, actor: 'scoped_operator' }
 }
 export const visualJson = (data: unknown, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' } })
+
+/**
+ * Separately delegated publication lane for verified visual aids only.
+ * Never reuse the candidate-intake secret, and never accept a browser/HQ
+ * session or unscoped service-role invocation as publication authorization.
+ * The SQL RPC independently enforces visual-only scope, verified QA, rights,
+ * exact version hash, private file existence and immutable audit evidence.
+ */
+export type VisualReleaseSession = { admin: SupabaseClient; actor: 'scoped_visual_release_operator' }
+export async function requireVisualReleaseOperator(req: Request): Promise<VisualReleaseSession | null> {
+  const secret = process.env.VIBESCHOOL_VISUAL_RELEASE_TOKEN
+  const intakeSecret = process.env.VIBESCHOOL_VISUAL_INTAKE_TOKEN
+  const bearer = req.headers.get('authorization') || ''
+  if (!secret || secret.length < 32 || secret === intakeSecret || !bearer.startsWith('Bearer ')) return null
+  const supplied = bearer.slice(7).trim()
+  if (!supplied || supplied.length < 32 || supplied.length > 256) return null
+  const actual = createHash('sha256').update(supplied).digest()
+  const expected = createHash('sha256').update(secret).digest()
+  if (!timingSafeEqual(actual, expected)) return null
+  return { admin: visualAdminClient(), actor: 'scoped_visual_release_operator' }
+}
