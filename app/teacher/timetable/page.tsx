@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import ClassicTimetable, { type SchoolDayBlock } from '@/components/teacher/ClassicTimetable'
-import { isUpperPrimary, isUpperPrimaryPeriod, type SchoolPeriod } from '@/lib/timetable/periods'
+import { isUpperPrimary, type SchoolPeriod } from '@/lib/timetable/periods'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
@@ -37,6 +37,13 @@ function startErrorMessage(code: StartOccurrenceErrorCode): string {
       return 'This lesson was cancelled.'
     case 'occurrence_rescheduled':
       return 'This lesson was rescheduled.'
+    case 'lesson_plan_outcome_required':
+    case 'scheme_outcome_required':
+      return 'Link a verified curriculum outcome before teaching.'
+    case 'lesson_plan_outcome_mismatch':
+      return 'The outcome does not match the saved Scheme lesson.'
+    case 'occurrence_outcome_immutable':
+      return 'This teaching occurrence has a confirmed outcome and cannot be reassigned.'
     case 'lesson_plan_required':
       // Handled by redirect before this ever renders — kept for completeness.
       return 'A lesson plan is required before starting this lesson.'
@@ -61,6 +68,7 @@ interface Slot {
   startTime: string
   endTime:   string
   dayOfWeek: number
+  periodId: string | null
   // TBL-009C: effective range carried onto the view model so day filtering
   // can be DATE-aware, not merely weekday-aware — a one-day recovery slot
   // must appear only on its own date.
@@ -75,6 +83,8 @@ interface TimetablePlanReadinessRow {
   timetable_slot_id: string
   taught_date: string
   body: string | null
+  scheme_id: string | null
+  curriculum_outcome_id: string | null
 }
 
 interface TimetableOccurrenceExceptionRow {
@@ -1051,7 +1061,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       const [plansRes, occurrenceRes, exceptionsRes] = await Promise.all([
         supabase
           .from('lesson_plans')
-          .select('timetable_slot_id,taught_date,body')
+          .select('timetable_slot_id,taught_date,body,scheme_id,curriculum_outcome_id')
           .eq('teacher_id', user.id)
           .gte('taught_date', weekStart)
           .lte('taught_date', rangeEnd),
@@ -1091,7 +1101,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           ? supabase.from('subjects').select('id, name').in('id', subjectIds)
           : Promise.resolve({ data: [] }),
         classIds.length > 0
-          ? supabase.from('classes').select('id, name, stream').in('id', classIds)
+          ? supabase.from('classes').select('id, name, stream, grade_code').in('id', classIds)
           : Promise.resolve({ data: [] }),
       ])
 
@@ -1100,9 +1110,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       const classMap: Record<string, string> = {}
       const gradeMap: Record<string, string> = {}
-      ;(classesRes.data ?? []).forEach((classRow: {id: string, name: string, stream: string|null}) => {
+      ;(classesRes.data ?? []).forEach((classRow: {id: string, name: string, stream: string|null, grade_code: string|null}) => {
         classMap[classRow.id] = classRow.name + (classRow.stream ? ` ${classRow.stream}` : '')
-        gradeMap[classRow.id] = classRow.name
+        gradeMap[classRow.id] = classRow.grade_code ?? ''
       })
 
       const schoolNameMap = new Map(memberships.map(s => [s.id, s.name]))
@@ -1130,7 +1140,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         const readiness: TimetableReadiness = slot.__isSubstitute
           ? 'needs_review'
           : plan
-            ? (isLessonPlanReadyToTeach(plan.body ?? '') ? 'ready' : 'needs_review')
+            ? (plan.curriculum_outcome_id && isLessonPlanReadyToTeach(plan.body ?? '') ? 'ready' : 'needs_review')
             : 'no_plan'
 
         return {
@@ -1146,6 +1156,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           startTime: slot.start_time,
           endTime:   slot.end_time,
           dayOfWeek: slot.day_of_week,
+          periodId: slot.period_id ?? null,
           effectiveFrom:  slot.effective_from,
           effectiveUntil: slot.effective_until,
           readiness,
@@ -1246,10 +1257,16 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     [weeklyLoadRows]
   )
 
-  const periodIssues = renderedWeekSlots.filter(slot =>
-    isUpperPrimary(slot.grade) &&
-    !isUpperPrimaryPeriod(slot.dayOfWeek, slot.startTime, slot.endTime)
-  )
+  const periodIssues = renderedWeekSlots.filter(slot => {
+    if (!isUpperPrimary(slot.grade) || slot.isSubstitute) return false
+    return !(schoolBlocks[slot.schoolId] ?? []).some(period =>
+      period.id === slot.periodId &&
+      period.kind === 'lesson' &&
+      (period.scheduleDay === 0 || period.scheduleDay === slot.dayOfWeek) &&
+      period.startTime.slice(0,5) === slot.startTime.slice(0,5) &&
+      period.endTime.slice(0,5) === slot.endTime.slice(0,5)
+    )
+  })
 
   // FIX [LOGIC-06]: on weekends show Monday count, not 0
   const todayCount = useMemo(
@@ -1483,7 +1500,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       {periodIssues.length > 0 && (
         <details className="no-print" style={{ marginBottom: 14 }}>
-          <summary>{periodIssues.length} upper-primary slots outside the 35-minute timetable</summary>
+          <summary>{periodIssues.length} upper-primary slots without matching configured school periods</summary>
           <ul>{periodIssues.map(slot => (
             <li key={slot.id}>{slot.subject} · {slot.className} · {DAYS.find(day => day.dow === slot.dayOfWeek)?.label} · {slot.startTime}–{slot.endTime}</li>
           ))}</ul>

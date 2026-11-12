@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase'
-import { nairobiDateAdd, nairobiDayOfWeek } from '@/lib/time'
 import {
   getActiveTerm,
   getTermForDate,
@@ -55,14 +54,6 @@ interface SchemeSourceRow {
   lesson_number: number | null
   period: number | null
   sequence_number: number | null
-}
-
-interface TimetableSourceRow {
-  id: string
-  day_of_week: number
-  start_time: string
-  effective_from: string | null
-  effective_until: string | null
 }
 
 interface InstructionalWeekRow {
@@ -290,75 +281,6 @@ async function loadCurrentSchemeProgression({
   })
 }
 
-async function loadSchemeSourceForOccurrenceFallback({
-  timetableSlotId,
-  occurrenceDate,
-  instructionalWeek,
-  userId,
-  schoolId,
-  classId,
-  subjectId,
-  academicTerm,
-}: {
-  timetableSlotId: string
-  occurrenceDate: string
-  instructionalWeek: InstructionalWeekRow
-  userId: string
-  schoolId: string
-  classId: string
-  subjectId: string
-  academicTerm: ActiveTerm
-}): Promise<SchemeSourceRow | null> {
-  const { data: slotRows, error: slotError } = await supabase
-    .from('timetable_slots')
-    .select('id, day_of_week, start_time, effective_from, effective_until')
-    .eq('school_id', schoolId)
-    .eq('teacher_id', userId)
-    .eq('class_id', classId)
-    .eq('subject_id', subjectId)
-
-  if (slotError) throw slotError
-
-  const firstDay = nairobiDayOfWeek(new Date(`${instructionalWeek.week_start}T12:00:00+03:00`))
-  const activeSlots = ((slotRows ?? []) as TimetableSourceRow[])
-    .map(slot => ({
-      slot,
-      date: nairobiDateAdd(instructionalWeek.week_start, (slot.day_of_week - firstDay + 7) % 7),
-    }))
-    .filter(({ slot, date }) =>
-      date <= instructionalWeek.week_end &&
-      (!slot.effective_from || slot.effective_from <= date) &&
-      (!slot.effective_until || slot.effective_until >= date),
-    )
-    .sort((left, right) =>
-      left.date.localeCompare(right.date) ||
-      left.slot.start_time.localeCompare(right.slot.start_time) ||
-      left.slot.id.localeCompare(right.slot.id),
-    )
-
-  const weeklyPeriodIndex = activeSlots.findIndex(({ slot, date }) => slot.id === timetableSlotId && date === occurrenceDate)
-  if (weeklyPeriodIndex < 0) return null
-
-  const { data: exactScheme, error: exactSchemeError } = await supabase
-    .from('scheme_of_work')
-    .select(SCHEME_SOURCE_COLUMNS)
-    .eq('teacher_id', userId)
-    .eq('school_id', schoolId)
-    .eq('class_id', classId)
-    .eq('subject_id', subjectId)
-    .eq('academic_term_id', academicTerm.id)
-    .eq('week', instructionalWeek.week_number)
-    .eq('period', weeklyPeriodIndex + 1)
-    .maybeSingle()
-
-  if (exactSchemeError) throw exactSchemeError
-  if (!exactScheme) return null
-  if (!isSchemeSourceRow(exactScheme)) {
-    throw new Error('lessonSource: fallback occurrence Scheme source is missing required fields.')
-  }
-  return exactScheme
-}
-
 async function enrichedSchemeSuggestion(
   row: SchemeSourceRow,
   termNumber: number,
@@ -371,10 +293,9 @@ async function enrichedSchemeSuggestion(
  * Authority order:
  * 1. occurrence date -> academic term
  * 2. explicit/persisted Scheme item
- * 3. exact dated timetable ordinal for scheduled lessons
- * 4. completed-teaching Scheme progression for undated lessons
- * 5. curriculum fallback
- * 6. custom teacher topic
+ * 3. saved dated plan identity (never inferred from timetable position)
+ * 4. progression suggestions for undated preparation only
+ * 5. curriculum fallback remains an unconfirmed suggestion
  */
 export async function resolveLessonSource({
   userId,
@@ -392,55 +313,96 @@ export async function resolveLessonSource({
     : await getActiveTerm(schoolId)
 
   if (!term) return null
-
-  if (requestedSchemeId) {
-    const requestedScheme = await loadSchemeSourceById({
-      schemeId: requestedSchemeId,
-      userId,
-      schoolId,
-      classId,
-      subjectId,
-      academicTermId: term.id,
-    })
-    if (!requestedScheme) {
-      throw new Error('The selected Scheme item does not belong to this lesson.')
-    }
-    return enrichedSchemeSuggestion(requestedScheme, term.term)
-  }
+  const termId = term.id
+  const termNumber = term.term
 
   const instructionalWeek = occurrenceDate
-    ? await resolveInstructionalWeekForDate(schoolId, occurrenceDate)
+    ? await resolveInstructionalWeekForDate(
+        schoolId,
+        occurrenceDate,
+      )
     : null
-  if (instructionalWeek) {
-    if (instructionalWeek.term_id !== term.id) {
-      throw new Error('lessonSource: term and instructional-week authorities disagree.')
-    }
+
+  if (
+    instructionalWeek &&
+    instructionalWeek.term_id !== term.id
+  ) {
+    throw new Error(
+      'lessonSource: academic term and week disagree.',
+    )
   }
 
-  if (timetableSlotId && occurrenceDate && instructionalWeek) {
-    const occurrenceScheme = await loadSchemeSourceForOccurrenceFallback({
-      timetableSlotId,
-      occurrenceDate,
-      instructionalWeek,
+  async function loadCheckedScheme(
+    schemeId: string,
+  ): Promise<LessonSourceSuggestion> {
+    const row = await loadSchemeSourceById({
+      schemeId,
       userId,
       schoolId,
       classId,
       subjectId,
-      academicTerm: term,
+      academicTermId: termId,
     })
-    if (occurrenceScheme) {
-      return enrichedSchemeSuggestion(occurrenceScheme, term.term)
+
+    if (!row) {
+      throw new Error(
+        'The selected Scheme item does not belong to this lesson.',
+      )
+    }
+
+    if (
+      instructionalWeek &&
+      row.week !== instructionalWeek.week_number
+    ) {
+      throw new Error(
+        'The Scheme item belongs to another instructional week.',
+      )
+    }
+
+    return enrichedSchemeSuggestion(row, termNumber)
+  }
+
+  // First authority: an explicitly saved Scheme relationship
+  // on this exact timetable slot and occurrence date.
+  if (timetableSlotId && occurrenceDate) {
+    const { data: plan, error } = await supabase
+      .from('lesson_plans')
+      .select('id,scheme_id')
+      .eq('teacher_id', userId)
+      .eq('school_id', schoolId)
+      .eq('class_id', classId)
+      .eq('subject_id', subjectId)
+      .eq('timetable_slot_id', timetableSlotId)
+      .eq('taught_date', occurrenceDate)
+      .maybeSingle()
+
+    if (error) throw error
+
+    if (plan?.scheme_id) {
+      if (
+        requestedSchemeId &&
+        requestedSchemeId !== plan.scheme_id
+      ) {
+        throw new Error(
+          'This lesson already has a different saved Scheme item.',
+        )
+      }
+
+      return loadCheckedScheme(plan.scheme_id)
     }
   }
 
-  // A dated occurrence must never inherit the next unfinished Scheme item.
-  // Only an explicit scheme selection (above) or the exact occurrence/week
-  // lookup may supply its Scheme topic. Preserve progression for undated flows.
+  // Explicit teacher selection: a proposed source until
+  // attach_scheme_to_dated_lesson persists the relationship.
+  if (requestedSchemeId) {
+    return loadCheckedScheme(requestedSchemeId)
+  }
+
+  // Undated preparation may suggest the next Scheme item.
+  // Never apply this progression to a dated occurrence.
   if (!occurrenceDate) {
-    // Progression is a convenience lookup, not the sole authority for a dated
-    // lesson. If it is unavailable, try the timetable/week and curriculum sources.
-    // Authorization failures remain fatal: never turn them into a fallback.
     let progressionScheme: SchemeSourceRow | null = null
+
     try {
       progressionScheme = await loadCurrentSchemeProgression({
         userId,
@@ -449,34 +411,52 @@ export async function resolveLessonSource({
         subjectId,
         academicTerm: term,
       })
-    } catch (progressionError) {
+    } catch (error) {
       const detail = String(
-        progressionError instanceof Error
-          ? progressionError.message
-          : (progressionError as { message?: string } | null)?.message ?? progressionError,
+        error instanceof Error
+          ? error.message
+          : error,
       )
-      if (/auth|permission|access|assignment_not_found|academic_term_not_found|jwt|403|401/i.test(detail)) {
-        throw progressionError
+
+      if (
+        /auth|permission|access|assignment_not_found|academic_term_not_found|jwt|403|401/i
+          .test(detail)
+      ) {
+        throw error
       }
-      console.error('[lessonSource] progression unavailable; trying dated sources', progressionError)
-    }
-    if (progressionScheme) {
-      return enrichedSchemeSuggestion(progressionScheme, term.term)
+
+      console.error(
+        '[lessonSource] progression unavailable; trying dated sources',
+        error,
+      )
     }
 
+    if (progressionScheme) {
+      return enrichedSchemeSuggestion(
+        progressionScheme,
+        term.term,
+      )
+    }
   }
 
-  const curriculumWeek = instructionalWeek?.week_number ?? currentWeekOf(term)
-  const { data: curriculumRows, error: curriculumError } = await supabase
-    .from('curriculum')
-    .select('id, strand, sub_strand, topic, sub_strand_id, reference')
-    .eq('grade', grade)
-    .eq('subject', subjectName)
-    .eq('term', term.term)
-    .eq('week', curriculumWeek)
-    .limit(1)
+  // Curriculum is a suggestion, not a saved Scheme link.
+  const curriculumWeek =
+    instructionalWeek?.week_number ?? currentWeekOf(term)
+
+  const { data: curriculumRows, error: curriculumError } =
+    await supabase
+      .from('curriculum')
+      .select(
+        'id,strand,sub_strand,topic,sub_strand_id,reference',
+      )
+      .eq('grade', grade)
+      .eq('subject', subjectName)
+      .eq('term', term.term)
+      .eq('week', curriculumWeek)
+      .limit(1)
 
   if (curriculumError) throw curriculumError
+
   const curriculumRow = curriculumRows?.[0]
   if (!curriculumRow) return null
 

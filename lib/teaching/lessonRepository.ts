@@ -292,3 +292,52 @@ export async function updateLessonPlanStatus({
   if (error) throw error
   if (!data) throw new Error('lessonRepository: lesson plan was not found for this teacher.')
 }
+
+
+/** Persist the exact Scheme and outcome for an existing dated plan. */
+export interface DatedLessonSchemeBinding {
+  plan_id: string
+  scheme_id: string
+  curriculum_outcome_id: string
+}
+
+export async function attachSchemeToDatedLesson(input: {
+  planId: string
+  schemeId: string
+  outcomeId: string
+}): Promise<DatedLessonSchemeBinding> {
+  const { data: { user }, error: authError } =
+    await supabase.auth.getUser()
+
+  if (authError) throw authError
+  if (!user) {
+    throw new Error('You must sign in to link a lesson.')
+  }
+
+  const { data, error } = await supabase.rpc(
+    'attach_scheme_to_dated_lesson',
+    {
+      p_plan_id: input.planId,
+      p_scheme_id: input.schemeId,
+      p_outcome_id: input.outcomeId,
+    },
+  )
+
+  if (error) throw error
+
+  const rows = data as DatedLessonSchemeBinding[] | null
+  const saved = rows?.[0]
+
+  if (
+    !saved ||
+    saved.plan_id !== input.planId ||
+    saved.scheme_id !== input.schemeId ||
+    saved.curriculum_outcome_id !== input.outcomeId
+  ) {
+    throw new Error(
+      'The saved Scheme relationship could not be verified.',
+    )
+  }
+
+  return saved
+}

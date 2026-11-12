@@ -16,6 +16,7 @@ import type {
 import {
   saveGeneratedLessonPlan,
   updateLessonPlanBody,
+  attachSchemeToDatedLesson,
 } from '@/lib/teaching/lessonRepository'
 import {
   generateLessonPlan,
@@ -86,6 +87,13 @@ function startLessonErrorMessage(code: StartOccurrenceErrorCode): string {
       return 'This lesson belongs to a different teacher.'
     case 'invalid_occurrence_date':
       return 'This date no longer matches the lesson schedule.'
+    case 'lesson_plan_outcome_required':
+    case 'scheme_outcome_required':
+      return 'Link a verified curriculum outcome before teaching.'
+    case 'lesson_plan_outcome_mismatch':
+      return 'The outcome does not match the saved Scheme lesson.'
+    case 'occurrence_outcome_immutable':
+      return 'This teaching occurrence has a confirmed outcome and cannot be reassigned.'
     case 'lesson_plan_required':
       return 'Save the lesson plan before starting the lesson.'
     case 'occurrence_completed':
@@ -248,6 +256,11 @@ export default function LessonPlanModal({
   const [focus,    setFocus]    = useState('')
   const [suggestion,      setSuggestion]      = useState<LessonSourceSuggestion | null>(null)
   const [suggestionLinked,  setSuggestionLinked]  = useState(false)
+  const [outcomeOptions, setOutcomeOptions] = useState<Array<{id: string; text: string}>>([])
+  const [selectedOutcomeId, setSelectedOutcomeId] = useState('')
+  const [savedOutcomeId, setSavedOutcomeId] = useState<string | null>(null)
+  const [outcomeBindingError, setOutcomeBindingError] = useState<string | null>(null)
+  const [linkingOutcome, setLinkingOutcome] = useState(false)
   const [canonicalIdentity, setCanonicalIdentity] = useState<LessonCanonicalSourceIdentity | null>(null)
   const [jumpingDraft, setJumpingDraft] = useState<JumpingContentSelection | null>(null)
   const [ctx,      setCtx]      = useState<Ctx>({
@@ -273,6 +286,100 @@ export default function LessonPlanModal({
   // ReflectionSheet.tsx), and boot()'s auth.getUser() result isn't otherwise
   // exposed outside its own closure.
   const [teacherId,      setTeacherId]      = useState<string | null>(null)
+
+  // Read the current canonical outcome and authorized Scheme choices.
+  // These are identities from persisted tables, not topic-derived guesses.
+  useEffect(() => {
+    if (phase !== 'view' || !planId || !teacherId) return
+    const schemeId = planSchemeIdRef.current ?? suggestion?.schemeId
+    let cancelled = false
+    async function loadOutcomeAuthority() {
+      setOutcomeBindingError(null)
+      setOutcomeOptions([])
+      setSelectedOutcomeId('')
+      try {
+        const { data: plan, error: planError } = await supabase.from('lesson_plans')
+          .select('scheme_id,curriculum_outcome_id')
+          .eq('id', planId!).eq('teacher_id', teacherId!).single()
+        if (planError) throw planError
+        if (cancelled) return
+        setSavedOutcomeId(plan.curriculum_outcome_id ?? null)
+        if (!schemeId) return
+        if (plan.scheme_id && plan.scheme_id !== schemeId) {
+          throw new Error('The saved Scheme identity differs from this lesson.')
+        }
+        const { data: scheme, error: schemeError } = await supabase
+          .from('scheme_of_work')
+          .select('id,curriculum_outcome_id')
+          .eq('id', schemeId).eq('teacher_id', teacherId!).single()
+        if (schemeError) throw schemeError
+        const { data: links, error: linkError } = await supabase
+          .from('scheme_lesson_outcomes')
+          .select('curriculum_outcome_id')
+          .eq('scheme_lesson_id', schemeId)
+        if (linkError) throw linkError
+        const ids = Array.from(new Set([
+          scheme.curriculum_outcome_id,
+          ...(links ?? []).map(row => row.curriculum_outcome_id),
+        ].filter((id): id is string => Boolean(id))))
+        if (ids.length === 0) return
+        const { data: outcomes, error: outcomeError } = await supabase
+          .from('curriculum_learning_outcomes')
+          .select('id,outcome_text,status')
+          .in('id', ids)
+          .in('status', ['active','verified'])
+        if (outcomeError) throw outcomeError
+        if (cancelled) return
+        const choices = (outcomes ?? []).map(row => ({id:row.id,text:row.outcome_text}))
+        setOutcomeOptions(choices)
+        setSelectedOutcomeId(
+          choices.some(choice => choice.id === plan.curriculum_outcome_id)
+            ? plan.curriculum_outcome_id!
+            : choices.length === 1 ? choices[0].id : '',
+        )
+      } catch (cause) {
+        if (!cancelled) setOutcomeBindingError(
+          cause instanceof Error ? cause.message : 'Unable to load verified learning outcomes.',
+        )
+      }
+    }
+    void loadOutcomeAuthority()
+    return () => { cancelled = true }
+  }, [phase, planId, teacherId, suggestion?.schemeId])
+
+  async function saveDatedOutcomeBinding() {
+    if (!planId || !suggestion?.schemeId || !selectedOutcomeId || linkingOutcome) return
+    setLinkingOutcome(true)
+    setOutcomeBindingError(null)
+    try {
+      const verified = await attachSchemeToDatedLesson({
+        planId,
+        schemeId: suggestion.schemeId,
+        outcomeId: selectedOutcomeId,
+      })
+      const { data: savedPlan, error: reloadError } = await supabase
+        .from('lesson_plans')
+        .select('scheme_id,curriculum_outcome_id')
+        .eq('id', planId)
+        .eq('teacher_id', teacherId!)
+        .single()
+      if (reloadError) throw reloadError
+      if (savedPlan.scheme_id !== verified.scheme_id ||
+          savedPlan.curriculum_outcome_id !== verified.curriculum_outcome_id) {
+        throw new Error('Saved curriculum identity could not be verified.')
+      }
+      planSchemeIdRef.current = savedPlan.scheme_id
+      setSavedOutcomeId(savedPlan.curriculum_outcome_id)
+      setSuggestionLinked(true)
+      showToast('Curriculum outcome linked to dated lesson')
+    } catch (cause) {
+      setOutcomeBindingError(cause instanceof Error ? cause.message : 'Could not link the outcome.')
+    } finally {
+      setLinkingOutcome(false)
+    }
+  }
+
+
   // TOS-006B: retain the complete authoritative occurrence rather than
   // maintaining a second lifecycle-only interpretation in this component.
   const [teachingOccurrence, setTeachingOccurrence] =
@@ -1328,6 +1435,11 @@ export default function LessonPlanModal({
   // RPC and exact (slot, date) identity as the timetable flow.
   async function handleStartLesson() {
     if (!taughtDate || !planIdRef.current || startingLesson) return
+    if (planSchemeIdRef.current && !savedOutcomeId) {
+      setWorkspacePanel('Scheme')
+      setStartLessonError('Select and save an eligible learning outcome before starting this lesson.')
+      return
+    }
 
     setStartingLesson(true)
     setStartLessonError(null)
@@ -1580,6 +1692,31 @@ export default function LessonPlanModal({
                       </p>
                     )}
                   </>}
+                  {phase === 'view' && planId && suggestion?.schemeId && (
+                    <div style={{padding:'10px 0',marginTop:8}}>
+                      <p><strong>Curriculum outcome:</strong> {savedOutcomeId ? 'Confirmed for this dated plan' : 'Not yet confirmed'}</p>
+                      {outcomeBindingError && <p role="alert" style={{color:'#b91c1c'}}>{outcomeBindingError}</p>}
+                      {outcomeOptions.length > 0 ? (
+                        <>
+                          <label htmlFor="dated-outcome-choice" style={{fontSize:12,display:'block',marginBottom:4}}>Learning outcome</label>
+                          <select id="dated-outcome-choice" value={selectedOutcomeId}
+                            onChange={event => setSelectedOutcomeId(event.target.value)}
+                            style={{width:'100%',padding:10,borderRadius:8,border:'1px solid #cbd5e1'}}>
+                            <option value="">Choose an eligible outcome</option>
+                            {outcomeOptions.map(option => (
+                              <option key={option.id} value={option.id}>{option.text}</option>
+                            ))}
+                          </select>
+                          <button type="button" className="studio-lesson-modal__action"
+                            disabled={!selectedOutcomeId || linkingOutcome ||
+                              (savedOutcomeId === selectedOutcomeId && planSchemeIdRef.current === suggestion.schemeId)}
+                            onClick={() => void saveDatedOutcomeBinding()}>
+                            {linkingOutcome ? 'Saving curriculum link…' : 'Confirm Scheme and outcome link'}
+                          </button>
+                        </>
+                      ) : <p>No active or verified outcome is linked to this Scheme. Complete curriculum reconciliation first.</p>}
+                    </div>
+                  )}
                   <button type="button" className="studio-lesson-modal__action" onClick={() => router.push('/teacher/scheme?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,date:taughtDate,timetableSlotId:slot.id,lessonPlanId:planId??''}).toString())}>Open full Scheme →</button>
                 </>
               )}

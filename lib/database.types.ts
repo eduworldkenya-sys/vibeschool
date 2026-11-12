@@ -4301,6 +4301,7 @@ export type Database = {
       classes: {
         Row: {
           created_at: string | null
+          grade_code: string | null
           id: string
           name: string
           school_id: string | null
@@ -4310,6 +4311,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          grade_code?: string | null
           id?: string
           name: string
           school_id?: string | null
@@ -4319,6 +4321,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          grade_code?: string | null
           id?: string
           name?: string
           school_id?: string | null
@@ -13316,6 +13319,39 @@ export type Database = {
         }
         Relationships: []
       }
+      scheme_lesson_outcomes: {
+        Row: {
+          scheme_lesson_id: string
+          curriculum_outcome_id: string
+          created_at: string
+        }
+        Insert: {
+          scheme_lesson_id: string
+          curriculum_outcome_id: string
+          created_at?: string
+        }
+        Update: {
+          scheme_lesson_id?: string
+          curriculum_outcome_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheme_lesson_outcomes_scheme_lesson_id_fkey"
+            columns: ["scheme_lesson_id"]
+            isOneToOne: false
+            referencedRelation: "scheme_of_work"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheme_lesson_outcomes_curriculum_outcome_id_fkey"
+            columns: ["curriculum_outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheme_lesson_resource_links: {
         Row: {
           chapter_id: string
@@ -15460,27 +15496,39 @@ export type Database = {
           band: string
           created_at: string
           grade: string
+          global_subject_id: string | null
           id: string
+          lesson_minutes: number | null
           lessons_per_week: number
           source: string
+          source_ref: string | null
+          source_revision: string | null
           subject_label: string
         }
         Insert: {
           band: string
           created_at?: string
           grade: string
+          global_subject_id?: string | null
           id?: string
+          lesson_minutes?: number | null
           lessons_per_week: number
           source?: string
+          source_ref?: string | null
+          source_revision?: string | null
           subject_label: string
         }
         Update: {
           band?: string
           created_at?: string
           grade?: string
+          global_subject_id?: string | null
           id?: string
+          lesson_minutes?: number | null
           lessons_per_week?: number
           source?: string
+          source_ref?: string | null
+          source_revision?: string | null
           subject_label?: string
         }
         Relationships: []
@@ -20256,6 +20304,24 @@ export type Database = {
           term_number: number
           week_number: number
           week_type: string
+        }[]
+      }
+      attach_scheme_to_dated_lesson: {
+        Args: { p_plan_id: string; p_scheme_id: string; p_outcome_id: string }
+        Returns: { plan_id: string; scheme_id: string; curriculum_outcome_id: string }[]
+      }
+      preview_timetable_slot_inventory: {
+        Args: { p_school_id: string }
+        Returns: {
+          slot_id: string
+          effective_from: string
+          effective_until: string | null
+          linked_plans: number
+          linked_occurrences: number
+          completed_lessons: number
+          linked_evidence: number
+          linked_tasks: number
+          review_status: string
         }[]
       }
       get_teacher_weekly_timetable_load: {

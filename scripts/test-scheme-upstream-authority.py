@@ -23,18 +23,20 @@ assert "'get_next_scheme_item'" in lesson_source, (
 progression = lesson_source.index(
     'progressionScheme = await loadCurrentSchemeProgression'
 )
-occurrence_fallback = lesson_source.index(
-    'const occurrenceScheme = await loadSchemeSourceForOccurrenceFallback'
-)
+saved_lookup = lesson_source.index("if (timetableSlotId && occurrenceDate) {")
 undated_guard = lesson_source.index('if (!occurrenceDate) {')
-assert occurrence_fallback < undated_guard < progression, (
-    'Dated lessons must resolve their instructional period, while progression applies only to undated lessons'
+assert saved_lookup < undated_guard < progression, (
+    'A dated lesson must resolve saved Scheme identity before undated progression'
 )
-assert "date === occurrenceDate" in lesson_source, (
-    'the matching slot must occur on the requested date'
+assert "plan?.scheme_id" in lesson_source, (
+    'Dated source must use the explicitly persisted Scheme relationship'
 )
-assert "slot.effective_until >= date" in lesson_source, (
-    'period ordinals must account for one-date slots on their own teaching dates'
+assert ".eq('timetable_slot_id', timetableSlotId)" in lesson_source
+assert ".eq('taught_date', occurrenceDate)" in lesson_source
+assert ".eq('teacher_id', userId)" in lesson_source
+assert "loadCheckedScheme(plan.scheme_id)" in lesson_source
+assert "loadSchemeSourceForOccurrenceFallback" not in lesson_source, (
+    'Slot position cannot be used as curriculum identity'
 )
 
 assert 'label: "Scheme of Work"' in teaching_desk

@@ -1,7 +1,7 @@
 "use client";
 
 import { nairobiDayOfWeek } from '@/lib/time'
-import { periodsForDay, teachingBlock, protectedBlockConflict, singleDateSchedule, isUpperPrimary, upperPrimaryPeriods, isUpperPrimaryPeriod, type SchoolPeriod } from '@/lib/timetable/periods'
+import { periodsForDay, teachingBlock, protectedBlockConflict, singleDateSchedule, isUpperPrimary, type SchoolPeriod } from '@/lib/timetable/periods'
 import type { SuggestedPlacement } from '@/lib/timetable/operations'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -85,6 +85,16 @@ function toFriendlyError(err: { message?: string }): string {
       return 'This class already has a lesson at this time.'
     case 'ROOM_CONFLICT':
       return 'This room is already occupied.'
+    case 'GRADE_IDENTITY_REQUIRED':
+      return 'This class needs a verified grade identity.'
+    case 'SCHOOL_PERIOD_REQUIRED':
+      return 'Select a configured school teaching period.'
+    case 'SCHOOL_DAY_REQUIRED':
+      return 'Choose a regular school teaching day.'
+    case 'LESSON_DURATION_MISMATCH':
+      return 'The lesson duration does not match its grade allocation.'
+    case 'INVALID_LESSON_UNITS':
+      return 'Choose a supported single or double lesson allocation.'
     case 'UPPER_PRIMARY_PERIOD_REQUIRED':
       return 'Choose a 35-minute weekday teaching period for Grades 4–6.'
     case 'PROTECTED_SCHOOL_BLOCK':
@@ -137,6 +147,16 @@ function nairobiTodayISO(): string {
 // contract than create_timetable_slot — never reuse toFriendlyError for them.
 function toFriendlyEditError(err: { message?: string }): string {
   switch ((err.message ?? '').trim()) {
+    case 'GRADE_IDENTITY_REQUIRED':
+      return 'This class needs a verified grade identity.'
+    case 'SCHOOL_PERIOD_REQUIRED':
+      return 'Select a configured school teaching period.'
+    case 'SCHOOL_DAY_REQUIRED':
+      return 'Choose a regular school teaching day.'
+    case 'LESSON_DURATION_MISMATCH':
+      return 'The lesson duration does not match its grade allocation.'
+    case 'INVALID_LESSON_UNITS':
+      return 'Choose a supported single or double lesson allocation.'
     case 'UPPER_PRIMARY_PERIOD_REQUIRED':
       return 'Choose a 35-minute weekday teaching period for Grades 4–6.'
     case 'TEACHER_CONFLICT':
@@ -256,6 +276,17 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
         return
       }
 
+      const classIds = Array.from(new Set((context?.classes ?? []).map(row => row.class_id).filter(Boolean)))
+      const { data: classGrades, error: classGradeError } = classIds.length
+        ? await supabase.from('classes').select('id,grade_code').eq('school_id',activeSchoolId).in('id',classIds)
+        : { data: [] as Array<{id:string;grade_code:string|null}>, error: null }
+      if (classGradeError) {
+        setError('Could not verify class grade identities. Check the school class configuration.')
+        setAssignmentsLoading(false)
+        return
+      }
+      const gradeByClass = new Map((classGrades ?? []).map(row => [row.id, row.grade_code]))
+
       const options: AssignmentOption[] = (context?.classes ?? [])
         .filter(r => r.assignment_id && r.class_id && r.subject_id && r.class_name && r.subject_name)
         .map(r => ({
@@ -265,7 +296,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
           subjectId:      r.subject_id,
           className:      r.stream ? `${r.class_name} ${r.stream}` : r.class_name,
           subjectName:    r.subject_name,
-          gradeLabel:     r.class_name,
+          gradeLabel:     gradeByClass.get(r.class_id) ?? '',
         }))
         .sort((a, b) => a.className.localeCompare(b.className) || a.subjectName.localeCompare(b.subjectName))
 
@@ -305,10 +336,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
   const units = upperPrimary ? 1 : Number(allocationUnits)
   const schoolId = selectedAssignment?.schoolId ?? editSlot?.schoolId ?? ''
   const configuredPeriods = periodsForDay(periods, schoolId, Number(dayOfWeek))
-  const dayPeriods = upperPrimary
-    ? upperPrimaryPeriods(schoolId, Number(dayOfWeek)).filter(period =>
-        !protectedBlockConflict(configuredPeriods, period.start_time, period.end_time))
-    : configuredPeriods
+  const dayPeriods = configuredPeriods
   const hasTeachingPeriods = dayPeriods.some(p => p.kind === 'lesson')
   const selectedBlock = teachingBlock(dayPeriods, periodId, units)
   const selectedStart = selectedBlock?.[0].start_time.slice(0, 5)
@@ -342,10 +370,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
     try {
       const candidates = (recurrence === 'once' ? [Number(dayOfWeek)] : [1,2,3,4,5]).flatMap(day => {
         const schoolBlocks = periodsForDay(periods, selectedAssignment.schoolId, day)
-        const dayBlocks = upperPrimary
-          ? upperPrimaryPeriods(selectedAssignment.schoolId, day).filter(period =>
-              !protectedBlockConflict(schoolBlocks, period.start_time, period.end_time))
-          : schoolBlocks
+        const dayBlocks = schoolBlocks
         return dayBlocks.filter(p => p.kind === 'lesson').flatMap(p => {
           const block = teachingBlock(dayBlocks,p.id,units)
           if (!block) return []
@@ -415,13 +440,15 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
     setError(null)
     const onceSchedule = !isEdit && recurrence === 'once' ? singleDateSchedule(effectiveFrom) : null
     if (!isEdit && recurrence === 'once' && !onceSchedule) {setError('Choose a valid date for this one-time lesson.');return}
-    const changedPlacement = !editSlot || Number(dayOfWeek) !== editSlot.dayOfWeek
-      || startTime.slice(0, 5) !== editSlot.startTime.slice(0, 5)
-      || endTime.slice(0, 5) !== editSlot.endTime.slice(0, 5)
-    if (upperPrimary && changedPlacement &&
-        !isUpperPrimaryPeriod(onceSchedule?.dayOfWeek ?? Number(dayOfWeek), startTime, endTime)) {
-      setError('Choose a 35-minute weekday teaching period for Grades 4–6.')
-      return
+    // Never submit a fabricated or out-of-sync period for a recurring slot.
+    // Existing edited slots retain their historical period identity until reviewed.
+    if (!isEdit && upperPrimary) {
+      if (!hasTeachingPeriods || !selectedBlock || selectedBlock.length !== 1 ||
+          Number(dayOfWeek) < 1 || Number(dayOfWeek) > 5 ||
+          durationBetween(startTime, endTime) !== 35) {
+        setError('Select one configured 35-minute school teaching period.')
+        return
+      }
     }
     if (!isEdit) {
       if (periodsLoading || periodsError) {setError('Load school periods before saving.');return}
@@ -491,7 +518,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
       p_effective_from:  onceSchedule?.effectiveFrom ?? (effectiveFrom || undefined),
       p_effective_until: onceSchedule?.effectiveUntil ?? (effectiveUntil || undefined),
       p_allocation_units: units || 1,
-      p_period_id: undefined,
+      p_period_id: selectedBlock?.[0]?.id ?? null,
     })
 
     setSaving(false)
