@@ -18,6 +18,14 @@ CURRENT STATE
 
 TIMETABLE
 
+TIMETABLE INTEGRATION RECONCILIATION — 2026-11-12, FOLLOW-UP READ-ONLY AUDIT:
+- Integrated PR #1469 into integration/intelligent-timetable (merge 2539755413aa963c1f0835c0fec5cbb0dabf89f6); this improves all-term Scheme search and same-session unscheduled Teach resume, but is not signed-in production certification.
+- Fresh live 20-section TBL-012 schema observation exactly matches reviewed observed JSON; the FOUR historic pinned-vs-live differences remain classified, not resolved. No SQL applied.
+- Production currently reports 57 timetable slots, zero configured school_periods, 46 national allocation rows, no classes.grade_code, no school/tuition cross-context trigger. Four canonical versioned timetable migrations (20261112101500–20261112101800) plus 20261112150000 remain absent from the live ledger; 20261112104242 unscheduled teaching is present.
+- PR #1472 emergency closures remains draft: TBL-011 clean rebuild failed TBL-012 on teaching_occurrences columns/constraints/indexes/triggers. Keep integration-to-main and all production schema promotion gated.
+- Full current 11-gate scorecard and release order: docs/timetable/INTELLIGENT_TIMETABLE_11_GATES.md. No data mutation or teacher acceptance evidence fabricated.
+
+
 TEACHER DUAL-CONTEXT IDENTITY — STAGE 1 (2026-11-12; INTEGRATION FEATURE PR):
 - Use one authenticated teacher ID for school and independent teaching, not separate profiles.
 - The existing server-filtered `get_my_teacher_school_context` remains membership authority. The pure `lib/teacher/teachingIdentity.ts` projection lists authorised schools and independent scope; active school is selected by default when linked.
