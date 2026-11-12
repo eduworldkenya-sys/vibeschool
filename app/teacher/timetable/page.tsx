@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import ClassicTimetable, { type SchoolDayBlock } from '@/components/teacher/ClassicTimetable'
+import SchoolDaySampleBuilder from '@/components/teacher/SchoolDaySampleBuilder'
 import { isUpperPrimary, type SchoolPeriod } from '@/lib/timetable/periods'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
@@ -953,11 +954,28 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         active_school_id?: string | null
         schools?: Array<{id:string;name:string;status?:string|null}>
       } | null
-      const schoolId = typedSchoolContext?.active_school_id ?? null
       const memberships = (typedSchoolContext?.schools ?? []).filter(s => s.id && s.name)
-      if (schoolContextError || !schoolId) {
+      const schoolId = typedSchoolContext?.active_school_id ?? memberships[0]?.id ?? null
+      if (schoolContextError) {
         console.error('[Timetable] failed to resolve canonical teacher school', schoolContextError)
-        setSchoolError('Connect or select your active school before opening the timetable.')
+        setActiveSchoolId(null)
+        setSchools([])
+        setAllSlots([])
+        setDayBlocks([])
+        setSchoolBlocks({})
+        setSchoolError('School information could not load. Retry before scheduling school lessons.')
+        return
+      }
+      if (!schoolId || !memberships.some(s => s.id === schoolId)) {
+        // Independent teachers can explore local sample drafts without school
+        // credentials. Do not fabricate a school timetable or student lessons.
+        setActiveSchoolId(null)
+        setSchools([])
+        setAllSlots([])
+        setDayBlocks([])
+        setSchoolBlocks({})
+        setCalendarExceptions([])
+        setWeeklyLoadRows([])
         return
       }
 
@@ -1310,7 +1328,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   )
 
   
-  const canAddSlot = !loading && teacherId !== null
+  const canAddSlot = !loading && teacherId !== null && activeSchoolId !== null && !schoolError
 
   return (
     <>
@@ -1477,6 +1495,32 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           </div>
         )}
       </div>
+
+      {!loading && teacherId && totalLessons === 0 && !loadError && !schoolError && (
+        <div className="no-print" style={{ marginBottom: 14 }}>
+          {!activeSchoolId && (
+            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 10px' }}>
+              No school timetable connected. Explore sample school days, edit and save a personal
+              template on this device. Only a school administrator can publish school periods.
+            </p>
+          )}
+          <SchoolDaySampleBuilder
+            key={teacherId + ':' + (activeSchoolId ?? 'independent')}
+            userId={teacherId}
+            schoolId={activeSchoolId ?? 'independent'}
+            schoolName={schools.find(s => s.id === activeSchoolId)?.name ?? 'Independent planning'}
+            canManage={false}
+            periodCount={0}
+            onReload={load}
+          />
+          {activeSchoolId && (
+            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 8 }}>
+              A school administrator can confirm and apply periods in{' '}
+              <a href="/teacher/timetable/setup">School day setup</a>. Samples never create subject lessons.
+            </p>
+          )}
+        </div>
+      )}
 
       {weeklyLoadError && (
         <div role="alert" className="no-print" style={{
@@ -1666,7 +1710,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           Repeat from next week
         </Btn>
         <Btn variant="ghost" small onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare lesson</Btn>
-        <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>School day setup</Btn>
+{activeSchoolId && <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>School day setup</Btn>}
         {lastUndoSnapshotId && (
           <Btn
             variant="ghost"
