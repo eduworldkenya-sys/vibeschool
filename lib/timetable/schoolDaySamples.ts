@@ -125,3 +125,32 @@ export function sampleBlockErrors(blocks: readonly unknown[]): string[] {
   }
   return errors;
 }
+
+/**
+ * A teacher-owned bell-time outline for this browser and school context.
+ * It is never a canonical school timetable, subject assignment or attendance record.
+ */
+export type PersonalSchoolDayPlan = {
+  name: string;
+  blocks: SampleBlock[];
+  activatedAt: string;
+};
+
+export function personalSchoolDayKey(userId: string, schoolId: string): string {
+  return 'vs.timetable.personal-active.v1.' + userId + '.' + schoolId;
+}
+
+export function parsePersonalSchoolDay(raw: string | null): PersonalSchoolDayPlan | null {
+  if (!raw) return null;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!value || typeof value !== 'object') return null;
+    const plan = value as Partial<PersonalSchoolDayPlan>;
+    if (typeof plan.name !== 'string' || !plan.name.trim() || plan.name.length > 100
+      || !Array.isArray(plan.blocks) || sampleBlockErrors(plan.blocks).length > 0
+      || typeof plan.activatedAt !== 'string' || !Number.isFinite(Date.parse(plan.activatedAt))) return null;
+    return { name: plan.name, blocks: plan.blocks.filter(isSampleBlock), activatedAt: plan.activatedAt };
+  } catch {
+    return null;
+  }
+}
