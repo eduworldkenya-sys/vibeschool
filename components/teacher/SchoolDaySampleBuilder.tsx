@@ -164,6 +164,32 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
     <p style={{ color: C.textMuted, fontSize: 12, lineHeight: 1.6, margin: '0 0 12px' }}>
       Examples are never activated automatically. Choose one, edit the clock times and confirm the school's real schedule. Weekly KICD subject allocations, PPI and actual lesson placements remain separate.
     </p>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 10, marginBottom: 14 }}>
+      {SCHOOL_DAY_SAMPLES.map(sample => <button
+        key={sample.id}
+        type="button"
+        disabled={busy}
+        aria-label={'Preview and edit ' + sample.name}
+        aria-pressed={choice === sample.id && draft.length > 0}
+        onClick={() => {
+          setChoice(sample.id)
+          setDraft(clone(sample.blocks))
+          setDraftName(sample.name)
+          setError('')
+          setMessage('Sample opened as an editable draft. No school timetable was changed.')
+        }}
+        style={{
+          textAlign: 'left', display: 'grid', alignContent: 'start', gap: 6,
+          border: '1px solid ' + (choice === sample.id && draft.length > 0 ? C.accent : C.border),
+          borderRadius: 12, background: C.surface, padding: 12,
+          cursor: busy ? 'not-allowed' : 'pointer', color: C.textPrimary, fontFamily: 'inherit',
+        }}
+      >
+        <strong style={{ fontSize: 13 }}>{sample.name}</strong>
+        <span style={{ fontSize: 12, color: C.textMuted }}>{sample.description}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>Preview & edit</span>
+      </button>)}
+    </div>
     <div style={{ display: 'grid', gap: 8 }}>
       <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700 }}>
         Starting point
