@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { GRADE4_ENGLISH_UNITS } from '@/lib/teaching/grade4EnglishCatalog.mjs'
+import { GRADE4_ENGLISH_SPELLING_PACKAGE } from '@/lib/teaching/grade4EnglishSpellingPackage.mjs'
 import {
   GRADE4_ENGLISH_SOURCE,
   GRADE4_ENGLISH_STRANDS,
@@ -20,7 +21,7 @@ type Props = {
   selectedUnitId?: string
   onSelectUnit?: (unitId: string) => void
   onPlanUnit?: (unitId: string) => void
-  mappedUnits?: Record<string,{id: string,outcomes: {id: string,outcome_text: string}[]}>
+  mappedUnits?: Record<string,{id: string,outcomes: {id: string,outcome_text: string,outcome_code?: string}[]}>
   catalogLoading?: boolean
   catalogError?: string
 }
@@ -150,9 +151,56 @@ export default function Grade4EnglishMap({
             {catalogError && <p role="alert" style={{fontSize:12,color:'#a11b36'}}>{catalogError}</p>}
             {linked?.outcomes?.length ? <div style={{borderTop:'1px solid #e1ebe4',marginTop:10,paddingTop:10}}>
               <p style={{fontSize:12,fontWeight:800,color:'#175b43'}}>VibeSchool learning guidance · {unit.lessons} proposed lessons</p>
+              {unit.id==='11-WR' && <p role="note" style={{fontSize:12,lineHeight:1.6,color:'#83531b',background:'#fff8e8',padding:9,borderRadius:8}}>
+                KICD 2024, Writing 11.4.1, printed page 74, recommends 2 lessons for spelling commonly misspelt words.
+                This VibeSchool annual planner proposes 1 additional optional practice lesson; the third lesson is not a KICD requirement.
+                Choose the exact dated Scheme lesson before attaching a teaching plan.
+              </p>}
               <ul style={{fontSize:13,lineHeight:1.65,paddingLeft:19}}>{linked.outcomes.map(outcome=><li key={outcome.id}>{outcome.outcome_text}</li>)}</ul>
               <p style={{fontSize:12,lineHeight:1.6}}><strong>Teaching activity:</strong> {unit.experiences[0]}</p>
               <p style={{fontSize:12,lineHeight:1.6}}><strong>Assessment:</strong> {unit.assessment}</p>
+              {unit.id==='11-WR' && <details style={{margin:'11px 0',border:'1px solid #cbded1',borderRadius:10,padding:'10px 12px',background:'#f9fbfa'}}>
+                <summary style={{fontSize:13,fontWeight:800,cursor:'pointer',color:'#175b43'}}>
+                  Preview VibeSchool-original spelling lesson · 30 minutes
+                </summary>
+                <p role="note" style={{fontSize:12,lineHeight:1.65,color:'#6b521d'}}>
+                  This is original teacher preparation, not a saved or certified scheduled lesson.
+                  The KICD spelling sub-strand has 2 suggested lessons; this preview is one possible 30-minute lesson.
+                  {GRADE4_ENGLISH_SPELLING_PACKAGE.outcomeCodes.every(code=>linked.outcomes.some(o=>o.outcome_code===code))
+                    ? ' Its three draft VibeSchool outcome identities are present in the Curriculum Map; actual Scheme and dated-plan links must still be checked.'
+                    : ' Current canonical outcomes do not yet match this spelling package. Review the proposed content only; do not mark curriculum reconciliation complete.'}
+                </p>
+                <div style={{display:'grid',gap:10,fontSize:13,lineHeight:1.6}}>
+                  <div>
+                    <strong>What learners should demonstrate</strong>
+                    <ul style={{paddingLeft:19,margin:'5px 0'}}>{GRADE4_ENGLISH_SPELLING_PACKAGE.objectives.map(objective=><li key={objective}>{objective}</li>)}</ul>
+                  </div>
+                  <div><strong>Teacher materials</strong><p style={{margin:'5px 0'}}>{GRADE4_ENGLISH_SPELLING_PACKAGE.resources}</p></div>
+                  <div>
+                    <strong>30-minute teaching sequence</strong>
+                    <ol style={{paddingLeft:19,margin:'5px 0'}}>{GRADE4_ENGLISH_SPELLING_PACKAGE.lessonSteps.map(step=><li key={step.title} style={{marginBottom:7}}>
+                      <strong>{step.title} · {step.minutes} min</strong>
+                      <p style={{margin:'3px 0'}}>{step.directions}</p>
+                    </li>)}</ol>
+                  </div>
+                  {([
+                    ['Teacher guide',GRADE4_ENGLISH_SPELLING_PACKAGE.teacherGuide],
+                    ['Learner notes',GRADE4_ENGLISH_SPELLING_PACKAGE.learnerNotes],
+                    ['Guided oral practice',GRADE4_ENGLISH_SPELLING_PACKAGE.guidedPractice],
+                    ['Independent exercise-book practice',GRADE4_ENGLISH_SPELLING_PACKAGE.independentPractice],
+                    ['Marking guide and answers',GRADE4_ENGLISH_SPELLING_PACKAGE.answerKey],
+                    ['Feedback for mistakes',GRADE4_ENGLISH_SPELLING_PACKAGE.errorFeedback],
+                    ['Support and extension',GRADE4_ENGLISH_SPELLING_PACKAGE.differentiation],
+                    ['Revision and fresh check',GRADE4_ENGLISH_SPELLING_PACKAGE.revision],
+                  ] as const).map(([heading,content])=><div key={heading}>
+                    <strong>{heading}</strong>
+                    <ul style={{paddingLeft:19,margin:'5px 0'}}>{content.map((item:string)=><li key={item} style={{marginBottom:5}}>{item}</li>)}</ul>
+                  </div>)}
+                  <p><strong>Individual understanding evidence:</strong> {GRADE4_ENGLISH_SPELLING_PACKAGE.assessment.evidence}</p>
+                  <p><strong>Exit check:</strong> {GRADE4_ENGLISH_SPELLING_PACKAGE.assessment.exitMax} marks. {GRADE4_ENGLISH_SPELLING_PACKAGE.assessment.criterion}</p>
+                </div>
+              </details>}
+
               {onPlanUnit && !catalogError && <button type="button" onClick={()=>onPlanUnit(unit.id)} style={{minHeight:44,border:0,borderRadius:9,padding:'10px 13px',background:'#175b43',color:'#fff',fontWeight:800,cursor:'pointer'}}>Plan in Scheme of Work</button>}
             </div> : <p style={{fontSize:12,color:'#68796f',marginTop:7}}>VibeSchool teaching outcomes are not yet linked for this skill.</p>}
           </section>})}

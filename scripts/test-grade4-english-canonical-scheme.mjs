@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import { GRADE4_ENGLISH_UNITS as units, GRADE4_ENGLISH_THEMES, GRADE4_ENGLISH_PREFIX, GRADE4_ENGLISH_SOURCE_URL, GRADE4_ENGLISH_LESSONS, GRADE4_ENGLISH_OUTCOMES, GRADE4_ENGLISH_WEEKLY_ALLOCATION } from '../lib/teaching/grade4EnglishCatalog.mjs'
 import { buildGrade1AnnualSchemeDraft } from '../lib/teaching/creativeSchemeDraft.mjs'
+import { GRADE4_ENGLISH_SPELLING_PACKAGE as spellingPackage } from '../lib/teaching/grade4EnglishSpellingPackage.mjs'
 
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8')
 const map=read('../components/teacher/curriculum/Grade4EnglishMap.tsx')
@@ -18,6 +19,30 @@ assert.equal(new Set(units.map(u=>u.strand)).size,4)
 assert.equal(GRADE4_ENGLISH_LESSONS,150)
 assert.equal(GRADE4_ENGLISH_OUTCOMES,156)
 assert.equal(GRADE4_ENGLISH_WEEKLY_ALLOCATION,5)
+assert.equal(spellingPackage.durationMinutes,30)
+assert.equal(spellingPackage.lessonSteps.reduce((total,step)=>total+step.minutes,0),30,'Scheduled teaching stages must fit 30 minutes')
+assert.equal(spellingPackage.unitRef,'VS-CUR-G04-EN-2026#11-WR')
+assert.deepEqual(spellingPackage.outcomeCodes,['VS-G4-EN-11-WR-04','VS-G4-EN-11-WR-05','VS-G4-EN-11-WR-06'])
+assert.equal(spellingPackage.objectives.length,3)
+assert.equal(spellingPackage.assessment.exitMax,3)
+assert.equal(spellingPackage.assessment.independentMax,8)
+for(const key of ['teacherGuide','learnerNotes','guidedPractice','independentPractice','answerKey','errorFeedback','differentiation','revision'])
+  assert.ok(spellingPackage[key].length>=3,'VibeSchool teaching package missing '+key)
+assert.ok(spellingPackage.lessonSteps.some(step=>/exercise.book/i.test(step.directions)),'Individual writing evidence required')
+assert.ok(spellingPackage.lessonSteps.some(step=>/independent/i.test(step.title)),'Must assess independently')
+assert.ok(spellingPackage.lessonSteps.some(step=>/Exit check/i.test(step.title)),'Exit feedback required')
+assert.ok(spellingPackage.answerKey.some(text=>text.includes('We will play tomorrow.')),'Exit answer missing')
+assert.ok(spellingPackage.errorFeedback.some(text=>text.includes('freind')),'Incorrect-spelling feedback missing')
+assert.ok(spellingPackage.errorFeedback.some(text=>text.includes('tomorow')),'Revision feedback missing')
+for(const token of [
+ 'GRADE4_ENGLISH_SPELLING_PACKAGE',
+ 'Preview VibeSchool-original spelling lesson',
+ 'Current canonical outcomes do not yet match this spelling package',
+ 'actual Scheme and dated-plan links must still be checked',
+ 'Teacher guide','Learner notes','Marking guide and answers',
+]) assert.ok(map.includes(token),'Safe read-only teacher preview missing '+token)
+assert.ok(!map.includes("supabase.from('lesson_plans').insert({"),'Curriculum preview must never auto-save a dated lesson')
+
 assert.equal(GRADE4_ENGLISH_PREFIX,'VS-CUR-G04-EN-2026')
 assert.ok(GRADE4_ENGLISH_SOURCE_URL.startsWith('https://kicd.ac.ke/'))
 assert.ok(units.every(u=>u.outcomes.length===3&&u.experiences.length>=2&&u.inquiry.length>=1&&u.resources&&u.assessment))
@@ -29,7 +54,37 @@ for(const t of GRADE4_ENGLISH_THEMES){
 }
 const snapshot=sql.match(/jsonb_array_elements\(\$vs_g4_en\$([\s\S]*?)\$vs_g4_en\$::jsonb\) unit;/)
 assert.ok(snapshot,'Migration must contain an exact immutable catalog snapshot')
-assert.deepEqual(JSON.parse(snapshot[1]),units,'Database and app learning units must match')
+const seedUnits=JSON.parse(snapshot[1])
+assert.equal(seedUnits.length,units.length,'The original migration snapshot remains immutable')
+for(const unit of units){
+ if(unit.id==='11-WR') continue
+ assert.deepEqual(seedUnits.find(row=>row.id===unit.id),unit,'Other KICD-linked units must remain unchanged')
+}
+const spelling=units.find(unit=>unit.id==='11-WR')
+assert.ok(spelling)
+assert.equal(spelling.lessons,3,'Annual VibeSchool proposal retains an optional local consolidation lesson')
+assert.equal(seedUnits.find(unit=>unit.id==='11-WR').lessons,3,'Original snapshot is immutable')
+assert.match(spelling.outcomes[0],/commonly misspelt words/)
+assert.match(spelling.outcomes[1],/dictation/)
+assert.match(spelling.outcomes[2],/corrections make the message/)
+const spellingRepair=read('../supabase/migrations/20261112161000_grade4_english_spelling_editorial_alignment.sql')
+for(const token of [
+ 'VS-CUR-G04-EN-2026#11-WR',
+ 'GRADE4_SPELLING_HISTORY_REQUIRES_AUTHORIZED_REVIEW',
+ "status='archived'",
+ "suggested_lessons=2",
+ "'creator_claimed'",
+ "'VS-G4-EN-11-WR-04'",
+ "'VS-G4-EN-11-WR-05'",
+ "'VS-G4-EN-11-WR-06'",
+ 'GRADE4_SPELLING_FINAL_IDENTITY_CHECK_FAILED'
+]) assert.ok(spellingRepair.includes(token),'Required grade 4 spelling repair guard missing: '+token)
+assert.ok(!/update public\.(scheme_of_work|lesson_plans|lesson_plan_drafts|timetable_slots|teaching_occurrences)/i.test(spellingRepair),
+ 'Authoring must not rewrite teacher-owned planning or attendance')
+assert.ok(!/status='verified'|source_type='official'/i.test(spellingRepair),
+ 'Editorial alignment must not pretend official curriculum authority was promoted')
+assert.ok(map.includes('KICD 2024, Writing 11.4.1, printed page 74, recommends 2 lessons'),
+ 'Official two-lesson spelling allocation must be visible, not mislabelled as 3 KICD lessons')
 const terms=[1,2,3].map(n=>({id:'t'+n,term:n}))
 const weeks=terms.flatMap(t=>Array.from({length:10},(_,i)=>({term_id:t.id,week_number:i+1,week_type:'normal',school_id:null})))
 const options={units,terms,termWeeks:weeks,weeklyAllocation:5,expectedUnitCount:52,gradeLabel:'Grade 4'}
