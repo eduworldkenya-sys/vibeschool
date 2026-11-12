@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, Btn, C, SectionLabel } from '@/components/teacher/ui'
+import SchoolDaySampleBuilder from '@/components/teacher/SchoolDaySampleBuilder'
 
 interface SchoolChoice {
   id: string
@@ -79,6 +80,7 @@ function formatTime(value: string) {
 
 export default function TimetableSetupPage() {
   const router = useRouter()
+  const [userId, setUserId] = useState('')
   const [schools, setSchools] = useState<SchoolChoice[]>([])
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const [periods, setPeriods] = useState<SchoolPeriodRow[]>([])
@@ -153,6 +155,7 @@ export default function TimetableSetupPage() {
         if (!active) throw new Error('Connect a school before setting up the school day.')
 
         if (cancelled) return
+        setUserId(user.id)
         setSchools(choices)
         setSelectedSchoolId(active)
         await loadSchool(active)
@@ -336,6 +339,16 @@ export default function TimetableSetupPage() {
           You can view {selectedSchool?.name ?? 'this school'}’s timetable rules. Only a school administrator can change school-wide periods and grade durations.
         </div>
       )}
+
+      {!loading && selectedSchoolId && userId && <SchoolDaySampleBuilder
+        key={userId + ':' + selectedSchoolId}
+        schoolId={selectedSchoolId}
+        userId={userId}
+        schoolName={selectedSchool?.name ?? 'this school'}
+        canManage={canManage}
+        periodCount={periods.length}
+        onReload={() => loadSchool(selectedSchoolId)}
+      />}
 
       {canManage && (
         <Card>
