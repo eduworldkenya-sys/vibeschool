@@ -126,6 +126,28 @@ Apply [Content Production Standard §4A and §4B](./CONTENT_PRODUCTION_STANDARD.
 
 **Deliverable:** one canonical source with well-defined views/derivatives; no duplicate parallel libraries.
 
+### Step 5A — Produce three connected learning experiences, never three disconnected books
+
+After the **mandatory KICD ↔ VibeSchool reconciliation has passed** and the master teaching unit is properly authored, organize the content by **educational purpose** as required by [Content Production Standard §4C](./CONTENT_PRODUCTION_STANDARD.md#4c-three-complementary-learning-experiences-core-learning-supplementary-practice-and-revision). These are *three linked experiences* from one master, not three independent manuscript copies or content stores.
+
+| Stage | Authoring obligation | Consumer and verification |
+| --- | --- | --- |
+| **Core learning (textbook-equivalent)** | Write complete explanation/exploration, age-appropriate visuals/demonstrations, fully reasoned worked examples, guided-to-independent attempt, misconception recovery, real teacher notes | Teacher Plan/Guide/Notes + independent learner content; verify comprehensible lesson and actual outcome link |
+| **Supplementary practice (activity-book-equivalent)** | Author targeted, varied, accessible and gradually independent activities, worksheets or performance tasks with correct solutions/rubrics; offer remedial and enrichment variants | Teacher assignment/exercise, learner Topic Practice/worksheet/home activity where appropriate; check answer, feedback, and question identity/eligible uses |
+| **Revision (revision-book-equivalent)** | Author retrieval and mixed-transfer checks for **already taught and source-verified** outcomes, concise accurate reminders and a wrong-answer → exact lesson → supported practice → fresh check pathway | Existing revision/Topic Practice/assessment surfaces where available; verify mappings, honest completion state, feedback, fresh items and safe exam separation |
+
+**Delivery order:** author and quality-check the **core** teaching source first; design outcome-appropriate supplementary activities second; derive revision plans/items and links third. Do not rush into hundreds of generic exam questions to make an incomplete core lesson appear complete. The three experiences may be packaged as one release candidate, but each function, eligibility and status must remain separately inspectable.
+
+**Pedagogical acceptance:** (a) learners can understand a new idea from core content; (b) learners with different prerequisites can practise it with useful feedback and support; (c) learners who have studied it can later retrieve/apply it and identify what to relearn; (d) teachers can prepare, deliver, differentiate and respond from the same source. This is an editorial acceptance target until demonstrated in actual teacher/learner tests.
+
+**Revision-policy detail:** revision is not a protected exam by default; use mixed, spaced and application questions when suitable and show answers according to the formative policy. Do not automatically score old worked examples as independent mastery, expose formal exam answers, copy legacy KCPE revision questions into current CBC/CBE content, or claim a new revision interface has been deployed merely because a manuscript exists.
+
+**Traceability:** store or reference core publication/chapter/resource ID, supplementary activity or question IDs, revision coverage/item IDs, linked outcome and Scheme/teacher contexts, question exposure/version/eligibility, learner feedback and observed evidence. If a consumer is not connected, mark it **NOT_CONNECTED** with an exact repair target; if no learner has studied the outcome, mark learner-specific revision status **NOT_YET_TAUGHT**, not 'complete'. Do not create a duplicate bank or make teacher timetables compulsory for authoring.
+
+**Illustrative example:** Grade 4 Mathematics Time: core model of reading an analogue clock; additional clock-reading practice with accessible alternative and feedback when a learner confuses the hands; later revision across verified taught Time outcomes, with a wrong-answer link to the specific explanation, targeted exercise and a fresh check. Treat that example as pedagogy, not as a verified official KICD allocation.
+
+**Deliverables:** a three-experience manifest per included outcome, teacher/learner derivative references, answer checks, any learner-specific evidence actually observed, missing-component dispositions and honest visibility/release states.
+
 ### Step 6 — Check, repair and package
 
 ChatGPT performs a **clearly labelled self-check** for:
