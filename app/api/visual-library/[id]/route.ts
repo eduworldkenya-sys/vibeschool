@@ -6,8 +6,8 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /** Public read is fail-closed: only an active public platform root with an actually certified version. */
-export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params
+export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
+  const { id } = ctx.params
   if (!UUID_RE.test(id)) return visualJson({ error: 'Invalid visual reference.' }, 400)
   try {
     const db = visualAdminClient()
