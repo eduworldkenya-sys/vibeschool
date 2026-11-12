@@ -206,6 +206,12 @@ export default function StudentsPage() {
     activeSchool =
       context?.schools.find((s) => s.id === context.school_id)?.name ??
       "School";
+  const addLearner = () => {
+    const params = new URLSearchParams()
+    if (context?.school_id) params.set("school_id", context.school_id)
+    if (classFilter !== "all" && groups.some(group => group.id === classFilter)) params.set("class_id", classFilter)
+    router.push(`/teacher/onboarding/students?${params.toString()}`)
+  }
   return (
     <section className={styles.listPage} aria-labelledby="teacher-learners-title">
       <header className={styles.listHeader}>
@@ -217,7 +223,7 @@ export default function StudentsPage() {
         </div>
         <button
           className={styles.addButton}
-          onClick={() => router.push("/teacher/onboarding/students")}
+          onClick={addLearner}
           aria-label="Add learner"
         >
           <Plus size={19} />
@@ -318,7 +324,7 @@ export default function StudentsPage() {
           icon={<UsersRound />}
           title="No learners yet"
           action="Add learner"
-          onAction={() => router.push("/teacher/onboarding/students")}
+          onAction={addLearner}
         />
       ) : !filtered.length ? (
         <EmptyState
