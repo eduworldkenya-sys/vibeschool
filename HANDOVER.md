@@ -18,6 +18,14 @@ CURRENT STATE
 
 TIMETABLE
 
+TEACHER DUAL-CONTEXT TIMETABLE — STAGE 2 (2026-11-12 FEATURE BRANCH):
+- Branch `feat/teacher-dual-context-timetable-stage2-20261112` is based on `integration/intelligent-timetable` and adds a shared read-only schedule projection over existing school timetable/authorised tuition lessons.
+- Linked teachers default to the active school, with optional Independent and All views. Teachers with no school see their accepted tuition lessons without an invented school ID.
+- School editing, period checks and occurrence guard are not mounted in private mode. All/Independent cannot edit recurring school patterns. All selections remain subject to canonical server identity/role/membership and existing RLS.
+- Tuition private reader distinguishes loading/error/empty, clears previous private records at sign-in/sign-out and on failed reads. School page clears prior records on reload/sign-out.
+- New behavioral tests in `scripts/test-teacher-dual-context-schedule.mjs`; this stage has no schema, no production database writes, and no arbitrary teacher-owned personal schedule editor (Stage 4).
+- No claim of production acceptance, TBL-012 parity repair, or overall 11-gate readiness. See `docs/timetable/TEACHER_DUAL_CONTEXT_STAGE2.md`.
+
 TIMETABLE INTEGRATION RECONCILIATION — 2026-11-12, FOLLOW-UP READ-ONLY AUDIT:
 - Integrated PR #1469 into integration/intelligent-timetable (merge 2539755413aa963c1f0835c0fec5cbb0dabf89f6); this improves all-term Scheme search and same-session unscheduled Teach resume, but is not signed-in production certification.
 - Fresh live 20-section TBL-012 schema observation exactly matches reviewed observed JSON; the FOUR historic pinned-vs-live differences remain classified, not resolved. No SQL applied.
