@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { nairobiDateStr } from '@/lib/time'
 import { C, Modal } from '@/components/teacher/ui'
 import TeachingLibraryStructure from '@/components/teacher/TeachingLibraryStructure'
 import type { CanonicalTeachingLibraryItem } from '@/components/teacher/TeachingLibraryStructure'
@@ -100,7 +101,6 @@ const labelStyle: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '.05em',
 }
 
-function todayIso() { return new Date().toISOString().slice(0, 10) }
 function typeMeta(type: string) { return TYPES.find(item => item.value === type) ?? TYPES[TYPES.length - 1] }
 function unique<T>(values: T[]) { return Array.from(new Set(values)) }
 function orderScheme(a: SchemeLesson, b: SchemeLesson) {
@@ -277,7 +277,7 @@ export default function TeacherResourcesPage() {
       const [classResult, subjectResult, calendar] = await Promise.all([
         classIds.length ? supabase.from('classes').select('id,name,stream').eq('school_id', resolvedSchoolId).in('id', classIds) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from('subjects').select('id,name').in('id', subjectIds).order('name') : Promise.resolve({ data: [], error: null }),
-        supabase.rpc('resolve_instructional_week_for_date', { p_school_id: resolvedSchoolId, p_date: todayIso() }),
+        supabase.rpc('resolve_instructional_week_for_date', { p_school_id: resolvedSchoolId, p_date: nairobiDateStr() }),
       ])
       if (classResult.error) throw classResult.error
       if (subjectResult.error) throw subjectResult.error
