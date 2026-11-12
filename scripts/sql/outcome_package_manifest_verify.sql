@@ -5,6 +5,10 @@ begin;
 do $verify$
 declare
   o public.curriculum_learning_outcomes%rowtype;
+  fixture_user_id uuid;
+  fixture_subject_id uuid;
+  fixture_curriculum_id uuid;
+  fixture_import_id uuid;
   primary_package_id text;
   primary_alias text;
   question_curriculum_id uuid;
@@ -42,7 +46,34 @@ begin
     select * into o from public.curriculum_learning_outcomes where id=other_outcome_id;
   end if;
   if o.id is null then
-    raise exception 'P0 TEST FIXTURE REQUIRED: a verified-import or P0-gated outcome';
+    -- A *clean* local database has no verified outcome. Create a transaction-
+    -- scoped, fully linked fixture rather than depending on production seed.
+    -- All inserts, including the auth user, are rolled back below.
+    insert into auth.users(id,aud,role,email,raw_user_meta_data)
+    values (gen_random_uuid(),'authenticated','authenticated',
+      'p0-outcome-test-'||replace(gen_random_uuid()::text,'-','')||'@example.test',
+      '{"full_name":"P0 rollback fixture"}'::jsonb)
+    returning id into fixture_user_id;
+    insert into public.subjects(name)
+    values ('P0 outcome fixture '||gen_random_uuid()::text)
+    returning id into fixture_subject_id;
+    insert into public.curriculum(
+      curriculum,grade,subject,term,week,strand,sub_strand,topic,global_subject_id
+    ) values ('P0 Fixture','Grade 4','Mathematics',1,1,'Measurement','Time',
+              'P0 test only',fixture_subject_id)
+    returning id into fixture_curriculum_id;
+    insert into public.curriculum_imports(
+      created_by,source_type,authority_name,curriculum_name,grade,subject,
+      status,verified_by,verified_at
+    ) values (fixture_user_id,'official','P0 TEST ONLY','Fixture',
+              'Grade 4','Mathematics','verified',fixture_user_id,now())
+    returning id into fixture_import_id;
+    insert into public.curriculum_learning_outcomes(
+      curriculum_id,outcome_text,source_type,status,verified_by,verified_at,
+      source_import_id,source_locator
+    ) values (fixture_curriculum_id,'P0 rollback outcome','official','verified',
+              fixture_user_id,now(),fixture_import_id,'TEST #1.0')
+    returning * into o;
   end if;
   question_curriculum_id := coalesce(o.curriculum_id,(select c.id from public.curriculum c limit 1));
   if question_curriculum_id is null then
