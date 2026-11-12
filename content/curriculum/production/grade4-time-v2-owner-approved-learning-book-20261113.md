@@ -631,15 +631,15 @@ Begin with a prerequisite check, give a concrete demonstration, lead guided prac
 9. Explain why 6:00 may mean two different times in one day.
 
 ### Answers and feedback
-- **A learner arrives at a reading club at 7:35 in the morning. Write the time using a.m. or p.m.** 7:35 a.m.
-- **A community meeting begins at 6:20 in the evening. Write the time correctly.** 6:20 p.m.
-- **Which represents midday: 12:00 a.m. or 12:00 p.m.?** 12:00 p.m.
-- **The minute hand points to 7. How many minutes past the hour?** 35 minutes
-- **Minute hand at 10; hour hand almost at four but not yet. Read the time.** 3:50
-- **Write quarter past nine digitally.** 9:15
-- **Write quarter to two digitally.** 1:45
-- **A digital clock reads 08:04. Write the time in words.** Four minutes past eight
-- **Explain why 6:00 may mean two different times in one day.** A 12-hour clock repeats the hour numbers in its a.m. and p.m. periods.
+- **A learner arrives at a reading club at 7:35 in the morning. Write the time using a.m. or p.m.** 7:35 a.m. — **Why:** Morning is before midday, so use a.m.
+- **A community meeting begins at 6:20 in the evening. Write the time correctly.** 6:20 p.m. — **Why:** Evening comes after midday, so use p.m.
+- **Which represents midday: 12:00 a.m. or 12:00 p.m.?** 12:00 p.m. — **Why:** Noon is 12:00 p.m.; 12:00 a.m. is midnight.
+- **The minute hand points to 7. How many minutes past the hour?** 35 minutes — **Why:** Seven five-minute intervals make 7 × 5 = 35 minutes.
+- **Minute hand at 10; hour hand almost at four but not yet. Read the time.** 3:50 — **Why:** The long hand gives 10 × 5 = 50 minutes; the hour hand is still between three and four.
+- **Write quarter past nine digitally.** 9:15 — **Why:** Quarter of 60 minutes is 15, so quarter past nine is 9:15.
+- **Write quarter to two digitally.** 1:45 — **Why:** Quarter to two is fifteen minutes before 2:00, so 1:45.
+- **A digital clock reads 08:04. Write the time in words.** Four minutes past eight — **Why:** 08:04 has zero tens and four minutes, so read eight oh four.
+- **Explain why 6:00 may mean two different times in one day.** A 12-hour clock repeats the hour numbers in its a.m. and p.m. periods. — **Why:** The number 6:00 occurs twice in a day on a 12-hour clock; context or a.m./p.m. distinguishes them.
 
 ## Estimating time
 
@@ -654,15 +654,15 @@ Begin with a prerequisite check, give a concrete demonstration, lead guided prac
 18. Why check a time estimate against a clock?
 
 ### Answers and feedback
-- **Sunrise is observed at approximately 6:30 in the morning. a.m. or p.m.?** a.m.
-- **School lunch is around 12:45 in the afternoon. Which label?** p.m.
-- **Which is an estimate: 'about four o'clock' or 'the clock reads 4:07'?** About four o'clock
-- **Why can a tree shadow not determine an exact minute?** Its length depends on Sun position, season, place and weather.
-- **Give two clues that help estimate time without a clock.** Familiar daily activities and safe daylight/shadow observation.
-- **Which shadow is generally shorter, the same tree at 9 a.m. or nearer midday?** Generally the one nearer midday, under suitable conditions.
-- **Football is at 5:30 in the evening. a.m. or p.m.?** 5:30 p.m.
-- **A reasonable lunch estimate: 1:00 a.m. or 12:30 p.m.?** 12:30 p.m.
-- **Why check a time estimate against a clock?** To compare the approximate estimate with a specific reading.
+- **Sunrise is observed at approximately 6:30 in the morning. a.m. or p.m.?** a.m. — **Why:** The given sunrise observation is in the morning, so a.m.
+- **School lunch is around 12:45 in the afternoon. Which label?** p.m. — **Why:** The example states lunch is after midday, so p.m.
+- **Which is an estimate: 'about four o'clock' or 'the clock reads 4:07'?** About four o'clock — **Why:** The word 'about' makes the reading approximate.
+- **Why can a tree shadow not determine an exact minute?** Its length depends on Sun position, season, place and weather. — **Why:** Shadows vary with location, season, weather and the Sun's position, not only the minute of the day.
+- **Give two clues that help estimate time without a clock.** Familiar daily activities and safe daylight/shadow observation. — **Why:** Accept two justified observations; no single daily routine is universal.
+- **Which shadow is generally shorter, the same tree at 9 a.m. or nearer midday?** Generally the one nearer midday, under suitable conditions. — **Why:** For the same object under suitable conditions, the shorter shadow is commonly nearer midday.
+- **Football is at 5:30 in the evening. a.m. or p.m.?** 5:30 p.m. — **Why:** Evening is in the p.m. period.
+- **A reasonable lunch estimate: 1:00 a.m. or 12:30 p.m.?** 12:30 p.m. — **Why:** An afternoon reading is a more reasonable daytime-lunch estimate here.
+- **Why check a time estimate against a clock?** To compare the approximate estimate with a specific reading. — **Why:** Comparing the guess with a clock shows its accuracy and any error.
 
 ## Changing time units
 
@@ -677,15 +677,15 @@ Begin with a prerequisite check, give a concrete demonstration, lead guided prac
 27. Change 1 day 18 hours into hours.
 
 ### Answers and feedback
-- **Change 2 hours 45 minutes into minutes.** 165 minutes
-- **Change 317 minutes into hours and minutes.** 5 hours 17 minutes
-- **How many hours are in three complete days?** 72 hours
-- **Change 45 hours into days and hours.** 1 day 21 hours
-- **Change 4 weeks 2 days into days.** 30 days
-- **Change 1 week 5 days into days.** 12 days
-- **Change 2 days 7 hours into hours.** 55 hours
-- **Rewrite 2 hours 90 minutes in ordinary hours-and-minutes form.** 3 hours 30 minutes
-- **Change 1 day 18 hours into hours.** 42 hours
+- **Change 2 hours 45 minutes into minutes.** 165 minutes — **Why:** Two full hours are 2 × 60 = 120 minutes; add 45 to get 165.
+- **Change 317 minutes into hours and minutes.** 5 hours 17 minutes — **Why:** Five full hours are 5 × 60 = 300 minutes; 317 − 300 leaves 17.
+- **How many hours are in three complete days?** 72 hours — **Why:** Each day contains 24 hours, so 3 × 24 = 72.
+- **Change 45 hours into days and hours.** 1 day 21 hours — **Why:** One day uses 24 of 45 hours, leaving 21 hours.
+- **Change 4 weeks 2 days into days.** 30 days — **Why:** Four weeks contain 4 × 7 = 28 days, plus 2 days.
+- **Change 1 week 5 days into days.** 12 days — **Why:** One week is seven days; add five more to get 12.
+- **Change 2 days 7 hours into hours.** 55 hours — **Why:** Two days are 48 hours; add 7 to get 55.
+- **Rewrite 2 hours 90 minutes in ordinary hours-and-minutes form.** 3 hours 30 minutes — **Why:** Ninety extra minutes contain one complete hour plus 30 minutes.
+- **Change 1 day 18 hours into hours.** 42 hours — **Why:** One day has 24 hours; 24 + 18 = 42.
 
 ## Measuring duration
 
@@ -700,15 +700,15 @@ Begin with a prerequisite check, give a concrete demonstration, lead guided prac
 36. Writing from 9:50 to 10:02. Find duration.
 
 ### Answers and feedback
-- **Reading 8:35 a.m. to 9:20 a.m. Find duration.** 45 minutes
-- **Activity 11:35 a.m. to 12:20 p.m. Find duration.** 45 minutes
-- **Late journey 10:50 p.m. to 12:05 a.m. next day. Find duration.** 1 hour 15 minutes
-- **Drawing 3:25 p.m. to 4:10 p.m. Find duration.** 45 minutes
-- **Club 8:05 a.m. to 9:40 a.m. Find duration.** 1 hour 35 minutes
-- **Which is a duration: 1 hour 5 minutes or 1:05 p.m.?** 1 hour 5 minutes
-- **Which readings do we normally need to calculate duration?** Start and finish times
-- **Activity 4:05 p.m. to 4:45 p.m. Find duration.** 40 minutes
-- **Writing from 9:50 to 10:02. Find duration.** 12 minutes
+- **Reading 8:35 a.m. to 9:20 a.m. Find duration.** 45 minutes — **Why:** From 8:35 to 9:00 is 25 minutes and to 9:20 is 20 more.
+- **Activity 11:35 a.m. to 12:20 p.m. Find duration.** 45 minutes — **Why:** From 11:35 to 12:00 is 25 minutes, plus 20 minutes after midday.
+- **Late journey 10:50 p.m. to 12:05 a.m. next day. Find duration.** 1 hour 15 minutes — **Why:** Ten minutes to 11:00 p.m., one hour to midnight, five minutes after = 75 minutes.
+- **Drawing 3:25 p.m. to 4:10 p.m. Find duration.** 45 minutes — **Why:** Thirty-five minutes to 4:00 plus ten minutes after = 45.
+- **Club 8:05 a.m. to 9:40 a.m. Find duration.** 1 hour 35 minutes — **Why:** Fifty-five minutes to 9:00 plus forty minutes = 95 minutes.
+- **Which is a duration: 1 hour 5 minutes or 1:05 p.m.?** 1 hour 5 minutes — **Why:** A duration is a length such as 1 hour 5 minutes; the other option is a clock reading.
+- **Which readings do we normally need to calculate duration?** Start and finish times — **Why:** Duration is determined from the time an activity starts to the time it finishes.
+- **Activity 4:05 p.m. to 4:45 p.m. Find duration.** 40 minutes — **Why:** Subtract the minute readings within the same hour: 45 − 5 = 40.
+- **Writing from 9:50 to 10:02. Find duration.** 12 minutes — **Why:** Ten minutes to 10:00 plus two minutes after = 12.
 
 ## Elapsed time and finishing times
 
@@ -723,15 +723,15 @@ Begin with a prerequisite check, give a concrete demonstration, lead guided prac
 45. Journey 10:50 a.m. plus 2 hours 25 minutes. Finish?
 
 ### Answers and feedback
-- **Task starts 7:45 a.m. and lasts 35 minutes. Finish?** 8:20 a.m.
-- **Lesson starts 11:50 a.m. and lasts 35 minutes. Finish?** 12:25 p.m.
-- **Journey starts 2:40 p.m. and lasts 1 hour 35 minutes. Finish?** 4:15 p.m.
-- **24-hour digital time 14:05. Give the 12-hour equivalent.** 2:05 p.m.
-- **Duration from 10:20 a.m. to midday?** 1 hour 40 minutes
-- **Duration from 10:40 p.m. to 12:15 a.m. next day?** 1 hour 35 minutes
-- **Duration from 9:35 to 10:20?** 45 minutes
-- **Visit 3:50 p.m. to 4:30 p.m. Find duration.** 40 minutes
-- **Journey 10:50 a.m. plus 2 hours 25 minutes. Finish?** 1:15 p.m.
+- **Task starts 7:45 a.m. and lasts 35 minutes. Finish?** 8:20 a.m. — **Why:** Fifteen minutes to 8:00, then 20 minutes after = 8:20.
+- **Lesson starts 11:50 a.m. and lasts 35 minutes. Finish?** 12:25 p.m. — **Why:** Ten minutes to midday, then 25 more gives 12:25 p.m.
+- **Journey starts 2:40 p.m. and lasts 1 hour 35 minutes. Finish?** 4:15 p.m. — **Why:** Add an hour to get 3:40, then 35 minutes to get 4:15.
+- **24-hour digital time 14:05. Give the 12-hour equivalent.** 2:05 p.m. — **Why:** In 24-hour notation, hour 14 is two hours after noon.
+- **Duration from 10:20 a.m. to midday?** 1 hour 40 minutes — **Why:** 10:20 to 11:00 is forty minutes, plus one full hour to midday.
+- **Duration from 10:40 p.m. to 12:15 a.m. next day?** 1 hour 35 minutes — **Why:** Twenty minutes to 11 p.m., one hour to midnight, fifteen minutes after = 95.
+- **Duration from 9:35 to 10:20?** 45 minutes — **Why:** 9:35 to 10:00 is 25 minutes and to 10:20 is 20 more.
+- **Visit 3:50 p.m. to 4:30 p.m. Find duration.** 40 minutes — **Why:** Ten minutes to four plus thirty more = forty minutes.
+- **Journey 10:50 a.m. plus 2 hours 25 minutes. Finish?** 1:15 p.m. — **Why:** Two hours after 10:50 a.m. is 12:50 p.m., then 25 more minutes gives 1:15.
 
 ## Adding and subtracting durations
 
@@ -746,15 +746,15 @@ Begin with a prerequisite check, give a concrete demonstration, lead guided prac
 54. Subtract 3 h 55 min from 6 h 30 min.
 
 ### Answers and feedback
-- **Add 2 h 25 min and 1 h 45 min.** 4 hours 10 minutes
-- **Add 3 h 55 min and 40 min.** 4 hours 35 minutes
-- **Add 1 h 50 min and 1 h 30 min.** 3 hours 20 minutes
-- **Add 45, 50 and 35 minutes. Give hours and minutes.** 2 hours 10 minutes
-- **Add 5 h 20 min and 2 h 45 min.** 8 hours 5 minutes
-- **Subtract 2 h 45 min from 5 h 10 min.** 2 hours 25 minutes
-- **Subtract 1 h 20 min from 3 hours.** 1 hour 40 minutes
-- **Subtract 1 h 17 min from 4 h 2 min.** 2 hours 45 minutes
-- **Subtract 3 h 55 min from 6 h 30 min.** 2 hours 35 minutes
+- **Add 2 h 25 min and 1 h 45 min.** 4 hours 10 minutes — **Why:** 25 + 45 = 70 minutes, which becomes 1 hour 10 minutes; add the existing three hours.
+- **Add 3 h 55 min and 40 min.** 4 hours 35 minutes — **Why:** 55 + 40 = 95 minutes, which is 1 hour 35 minutes; add the original three hours.
+- **Add 1 h 50 min and 1 h 30 min.** 3 hours 20 minutes — **Why:** 50 + 30 = 80 minutes, which is 1 hour 20 minutes; add the two original hours.
+- **Add 45, 50 and 35 minutes. Give hours and minutes.** 2 hours 10 minutes — **Why:** 45 + 50 + 35 = 130 minutes = two complete hours and ten minutes.
+- **Add 5 h 20 min and 2 h 45 min.** 8 hours 5 minutes — **Why:** 20 + 45 = 65 minutes, which contributes one extra hour and five minutes.
+- **Subtract 2 h 45 min from 5 h 10 min.** 2 hours 25 minutes — **Why:** 5h10 becomes 4h70; subtract 2h45 to get 2h25.
+- **Subtract 1 h 20 min from 3 hours.** 1 hour 40 minutes — **Why:** 3h00 becomes 2h60; subtract 1h20 to get 1h40.
+- **Subtract 1 h 17 min from 4 h 2 min.** 2 hours 45 minutes — **Why:** 4h02 becomes 3h62; subtract 1h17 to get 2h45.
+- **Subtract 3 h 55 min from 6 h 30 min.** 2 hours 35 minutes — **Why:** 6h30 becomes 5h90; subtract 3h55 to get 2h35.
 
 ## Application and reasoning
 
@@ -769,15 +769,15 @@ Begin with a prerequisite check, give a concrete demonstration, lead guided prac
 63. Visit 1:10 p.m. to 2:55 p.m., including 15 min rest. Time on other activities?
 
 ### Answers and feedback
-- **Activity A 3:00 p.m. for 45 minutes; activity B 3:40 p.m. for 20 minutes. Overlap?** Yes, by 5 minutes
-- **Add 3 h 25 min to 2 h 35 min; explain why there are no extra minutes.** 6 hours; 25 + 35 = 60
-- **Trip 11:20 a.m. plus 2 h 15 min travel and 20 min rest. Finish?** 1:55 p.m.
-- **Project lasts 17 days. Express as weeks and days.** 2 weeks 3 days
-- **Subtract 55 minutes from 2 h 5 min.** 1 hour 10 minutes
-- **Add 95 and 55 minutes; express in hours and minutes.** 2 hours 30 minutes
-- **Is 15:20 equivalent to 3:20 p.m.?** Yes
-- **Explain and correct: 4 hours = 400 minutes.** 4 × 60 = 240 minutes
-- **Visit 1:10 p.m. to 2:55 p.m., including 15 min rest. Time on other activities?** 1 hour 30 minutes
+- **Activity A 3:00 p.m. for 45 minutes; activity B 3:40 p.m. for 20 minutes. Overlap?** Yes, by 5 minutes — **Why:** Activity A runs until 3:45 p.m.; B begins at 3:40, creating a five-minute overlap.
+- **Add 3 h 25 min to 2 h 35 min; explain why there are no extra minutes.** 6 hours; 25 + 35 = 60 — **Why:** The minute parts add to exactly sixty, which exchanges for an additional hour; 3 + 2 + 1 = 6.
+- **Trip 11:20 a.m. plus 2 h 15 min travel and 20 min rest. Finish?** 1:55 p.m. — **Why:** Travel finishes at 1:35 p.m. and the rest adds twenty minutes.
+- **Project lasts 17 days. Express as weeks and days.** 2 weeks 3 days — **Why:** Two full weeks contain fourteen days, leaving three of the seventeen.
+- **Subtract 55 minutes from 2 h 5 min.** 1 hour 10 minutes — **Why:** 2h05 becomes 1h65; subtract 55 minutes to leave 1h10.
+- **Add 95 and 55 minutes; express in hours and minutes.** 2 hours 30 minutes — **Why:** 95 + 55 = 150 minutes; two full groups of sixty leave thirty.
+- **Is 15:20 equivalent to 3:20 p.m.?** Yes — **Why:** Hour 15 in 24-hour notation is three hours after noon.
+- **Explain and correct: 4 hours = 400 minutes.** 4 × 60 = 240 minutes — **Why:** An hour is sixty minutes, not one hundred; four groups of sixty are 240.
+- **Visit 1:10 p.m. to 2:55 p.m., including 15 min rest. Time on other activities?** 1 hour 30 minutes — **Why:** The visit lasts 1 hour 45 minutes; removing the 15-minute rest leaves 1 hour 30 minutes.
 
 # Revision plan
 
