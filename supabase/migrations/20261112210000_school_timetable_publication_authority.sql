@@ -11,6 +11,13 @@ begin;
 revoke insert,update,delete on table public.timetable_releases from authenticated;
 grant select on table public.timetable_releases to authenticated;
 
+-- Independent database constraint: one school may never have two current
+-- published releases, including during concurrent or service-side changes.
+-- If old production contains duplicate published releases the migration
+-- intentionally fails instead of quietly selecting one.
+create unique index if not exists timetable_releases_one_published_school
+on public.timetable_releases(school_id) where status='published';
+
 -- Create a DRAFT and associate eligible active, previously unassigned slots
 -- in ONE transaction. Failure cannot strand a partially-created draft.
 create or replace function public.create_school_timetable_release(
