@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useStudent } from '@/lib/student-context'
+import { supabase } from '@/lib/supabase'
 import { ArrowRight, BookOpen, ClipboardList, CalendarDays, PencilLine, RotateCcw } from 'lucide-react'
 import {
   getVibeLearnWorkstation, getAssignedReading, getExamReadinessBrief, updateExamReadiness,
@@ -11,6 +12,29 @@ import {
   type AdaptiveLearningPath, type AdaptiveResourceRecommendations,
 } from '@/lib/student/vibelearn'
 import styles from './study.module.css'
+
+type ClassResource = {id:string,title:string,description:string|null,type:string,url:string|null,subject_id:string|null}
+
+async function getLiveClassResources(brief:VibeLearnWorkstation):Promise<ClassResource[]> {
+  const subjectIds=brief.subjects.map(subject=>subject.id).filter(Boolean)
+  if(subjectIds.length===0) return []
+  const {data,error}=await supabase.from('vibelearn_content')
+    .select('id,title,description,type,url,subject_id')
+    .in('subject_id',subjectIds)
+    .eq('status','live')
+    .not('url','is',null)
+    .order('view_count',{ascending:false})
+    .limit(30)
+  if(error) throw error
+  return (data??[]) as ClassResource[]
+}
+
+function safeResourceHref(url:string|null|undefined) {
+  if(!url) return null
+  if(url.startsWith('/')&&!url.startsWith('//')&&!url.includes('\\')) return url
+  try{const result=new URL(url);return result.protocol==='https:'||result.protocol==='http:'?result.toString():null}
+  catch{return null}
+}
 
 function safeInternalRoute(url:string|null|undefined,fallback='/learn') {
   return url && url.startsWith('/') && !url.startsWith('//') && !url.includes('\\')
@@ -22,6 +46,7 @@ export default function LearnerStudyDesk() {
   const {identity,loading:identityLoading,error:identityError} = useStudent()
   const [workspace,setWorkspace]=useState<VibeLearnWorkstation|null>(null)
   const [assigned,setAssigned]=useState<AssignedReadingItem[]>([])
+  const [classResources,setClassResources]=useState<ClassResource[]>([])
   const [readiness,setReadiness]=useState<ExamReadinessBrief|null>(null)
   const [learningPath,setLearningPath]=useState<AdaptiveLearningPath|null>(null)
   const [recommendations,setRecommendations]=useState<AdaptiveResourceRecommendations|null>(null)
@@ -45,6 +70,7 @@ export default function LearnerStudyDesk() {
     setLearningPath(path);setRecommendations(support)
     setWorkspace(brief)
     setAssigned(reading)
+    setClassResources(await getLiveClassResources(brief).catch(()=>[]))
     setReadiness(exam)
     if (exam) {
       setExamDate(exam.examDate??'')
@@ -65,6 +91,7 @@ export default function LearnerStudyDesk() {
     ]).then(([brief,reading,exam,path,support])=>{
       if(!active) return
       setWorkspace(brief);setAssigned(reading);setReadiness(exam);setLearningPath(path);setRecommendations(support)
+      void getLiveClassResources(brief).then(resources=>{if(active)setClassResources(resources)}).catch(()=>{if(active)setClassResources([])})
       if(exam){setExamDate(exam.examDate??'');setDailyMinutes(exam.dailyRevisionMinutes);setConfidence(exam.confidenceCheck)}
     }).catch(reason=>{if(active)setError(reason instanceof Error?reason.message:'Your learning desk could not load.')})
       .finally(()=>{if(active)setLoading(false)})
@@ -126,6 +153,25 @@ export default function LearnerStudyDesk() {
                 <Link key={item.assignmentId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>
                   <span><strong>{item.title}</strong><small>{item.subjectName??'Assessment'} · {item.assessmentType.replaceAll('_',' ')}</small></span><ArrowRight size={17}/></Link>)}
             </div>}
+        </section>
+        <section className={styles.card} aria-label="Live class learning resources">
+          <h2>Learn by subject</h2>
+          <p className={styles.muted}>Live class resources that are linked to your current subject enrolments. Private and unpublished items are not shown.</p>
+          {classResources.length===0
+            ? <p className={styles.muted}>No class resource is live yet. Your tasks and published lessons remain available.</p>
+            : <div className={styles.rows}>
+                {classResources.map(item=>{
+                  const href=safeResourceHref(item.url)
+                  if(!href) return <div className={styles.item} key={item.id}><span><strong>{item.title}</strong>
+                    <small>The link for this resource could not be verified.</small></span></div>
+                  const subject=workspace?.subjects.find(s=>s.id===item.subject_id)?.name??'Class resource'
+                  return <a key={item.id} className={styles.item} href={href}
+                    target={href.startsWith('/')?undefined:'_blank'}
+                    rel={href.startsWith('/')?undefined:'noopener noreferrer'}>
+                    <span><strong>{item.title}</strong><small>{subject}{item.description?' · '+item.description:''}</small></span><ArrowRight size={17}/>
+                  </a>
+                })}
+              </div>}
         </section>
         <section className={styles.card} aria-label="Available practice">
           <h2>Practise a subject</h2>
