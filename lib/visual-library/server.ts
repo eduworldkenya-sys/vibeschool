@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
 
 /** Browser bearer tokens are validated on every HQ operation; the service key never reaches the browser. */
@@ -24,5 +25,21 @@ export async function requireVisualHQ(req: Request): Promise<VisualHQAuth | null
   if (member.access_expires_at && Date.parse(member.access_expires_at) <= Date.now()) return null
   if (member.role !== 'founder' && !(Array.isArray(member.permissions) && member.permissions.includes('content.approve'))) return null
   return { admin, user }
+}
+/** Scope is intake and certified reference lookup only; never certification or publication. 
+ * VIBESCHOOL_VISUAL_INTAKE_TOKEN must be a dedicated >=32-character server-only secret.
+ * A missing secret disables machine intake rather than opening an anonymous fallback.
+ */
+export type VisualIntakeSession = { admin: SupabaseClient; userId: string | null; actor: 'hq_human' | 'scoped_operator' }
+export async function requireVisualOperator(req: Request): Promise<VisualIntakeSession | null> {
+  const secret = process.env.VIBESCHOOL_VISUAL_INTAKE_TOKEN
+  const bearer = req.headers.get('authorization') || ''
+  if (!secret || secret.length < 32 || !bearer.startsWith('Bearer ')) return null
+  const supplied = bearer.slice(7).trim()
+  if (!supplied || supplied.length > 4096) return null
+  const actual = createHash('sha256').update(supplied).digest()
+  const expected = createHash('sha256').update(secret).digest()
+  if (!timingSafeEqual(actual, expected)) return null
+  return { admin: visualAdminClient(), userId: null, actor: 'scoped_operator' }
 }
 export const visualJson = (data: unknown, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' } })

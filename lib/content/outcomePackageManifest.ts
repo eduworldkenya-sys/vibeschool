@@ -18,6 +18,7 @@ export type PinnedLearningResource = Readonly<{
 export type OutcomePackageManifest = Readonly<{
   schema: typeof OUTCOME_PACKAGE_SCHEMA
   outcome_id: string
+  curriculum_package_id: string | null
   curriculum_outcome_aliases: readonly string[]
   requirements: Readonly<{ teacher_guidance: boolean; visual_assets: boolean }>
   assets: Readonly<Record<OutcomeAssetRole, readonly PinnedLearningResource[]>>
@@ -27,6 +28,7 @@ export type OutcomePackageManifest = Readonly<{
 
 export type OutcomePackageInput = {
   outcomeId: string
+  curriculumPackageId?: string | null
   outcomeAliases?: readonly string[]
   assets?: Partial<Record<OutcomeAssetRole, readonly PinnedLearningResource[]>>
   questionIds?: Partial<Record<'activities' | 'revision', readonly string[]>>
@@ -73,6 +75,12 @@ function questionsFor(role: 'activities' | 'revision', ids: readonly string[] = 
 
 export function buildOutcomePackageManifest(input: OutcomePackageInput): OutcomePackageManifest {
   const outcome_id = normalizedId(input.outcomeId, 'outcome ID')
+  const packageId = typeof input.curriculumPackageId === 'string'
+    ? input.curriculumPackageId.trim() : null
+  if (input.curriculumPackageId != null && (typeof input.curriculumPackageId !== 'string'
+      || !packageId || packageId !== input.curriculumPackageId)) {
+    throw new Error('outcomePackage: invalid curriculum package ID')
+  }
   const aliases = input.outcomeAliases ?? []
   if (!Array.isArray(aliases) || aliases.some((alias) =>
     typeof alias !== 'string' || !alias.trim() || alias !== alias.trim()) ||
@@ -111,6 +119,7 @@ export function buildOutcomePackageManifest(input: OutcomePackageInput): Outcome
   return {
     schema: OUTCOME_PACKAGE_SCHEMA,
     outcome_id,
+    curriculum_package_id: packageId,
     curriculum_outcome_aliases: [...aliases],
     requirements: {
       teacher_guidance: input.requirements?.teacherGuidance ?? false,

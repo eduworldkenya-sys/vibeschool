@@ -1,0 +1,39 @@
+name: P1 Published Outcome Delivery
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p1-published-outcome-delivery.yml'
+      - 'components/learn/Grade4TimeOutcomePackage.tsx'
+      - 'components/learn/Grade4TimeContentReader.tsx'
+      - 'components/teacher/curriculum/Grade4MathematicsMap.jsx'
+      - 'app/learn/grade-4/mathematics/time/outcome/**'
+      - 'app/teacher/outcome-package/**'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'app/teacher/lesson-notes/page.tsx'
+      - 'app/teacher/teacher-guide/page.tsx'
+      - 'supabase/migrations/20261112114500_p1_published_outcome_delivery.sql'
+      - 'scripts/test-p1-outcome-delivery.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p1-published-outcome-delivery.yml'
+      - 'components/learn/Grade4TimeOutcomePackage.tsx'
+      - 'supabase/migrations/20261112114500_p1_published_outcome_delivery.sql'
+      - 'scripts/test-p1-outcome-delivery.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify published outcomes, teacher delivery, formative-only access
+        run: npm run test:outcome-delivery
