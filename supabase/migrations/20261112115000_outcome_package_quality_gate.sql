@@ -267,7 +267,11 @@ begin
   if tg_op='UPDATE' and old.lifecycle_status = 'certified' then return new; end if;
   select asset_kind into kind from public.learning_resources where id=new.resource_id;
   if kind is distinct from 'outcome_package' then return new; end if;
-  if tg_op='INSERT' or old.lifecycle_status is distinct from 'verified'
+  if tg_op='INSERT' then
+    raise exception using errcode='23514',
+      message='CLA_OUTCOME_PACKAGE_INDEPENDENT_VERIFICATION_REQUIRED';
+  end if;
+  if old.lifecycle_status is distinct from 'verified'
      or new.verified_at is null or new.verification_evidence = '{}'::jsonb then
     raise exception using errcode='23514',
       message='CLA_OUTCOME_PACKAGE_INDEPENDENT_VERIFICATION_REQUIRED';
