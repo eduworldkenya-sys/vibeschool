@@ -248,7 +248,7 @@ These are model explanations of **how to author content**, not claims that these
 **Outcome (illustrative VibeSchool formulation; not a quotation from KICD):** Learner adds two whole numbers correctly and explains the method.
 
 - **Learn:** explain combining quantities and place-value reasoning.
-- **Worked example:** Show how `12 + 8 = 20` by making the next ten: `12 + 8 = (12 + 3) + 5 = 15 + 5 = 20`. Explain that we split `8` into `3 + 5` because `12 + 3 = 15` is easy to continue from; use counters or a number line if better suited to the learner. Check `20 - 8 = 12`. No formula is necessary.
+- **Worked example:** Show how `12 + 8 = 20` by regrouping place values: `12 = 10 + 2`; `2 + 8 = 10` (the ones make another ten); therefore `10 + 10 = 20`. Explain **why** the tens and ones can be regrouped without changing the total; use counters or a number line if better suited to the learner. Check `20 - 8 = 12`. No formula is necessary.
 - **Activity:** combine 12 and 8 bottle tops and explain the total.
 - **Exercise:** several progressive addition tasks with answer checks.
 - **Question:** “A learner has 12 pencils and receives 8. How many now?” Answer: 20; explain why.
