@@ -7,7 +7,6 @@ on:
       - "scripts/test-tbl013-timetable-ledger-stage.py"
       - ".github/workflows/tbl013-timetable-production-preflight.yml"
       - "supabase/migrations/2026111210*.sql"
-      - "supabase/migrations/20261112154500_unscheduled_teaching_occurrence.sql"
   push:
     branches: [main]
     paths:
@@ -15,7 +14,6 @@ on:
       - "scripts/test-tbl013-timetable-ledger-stage.py"
       - ".github/workflows/tbl013-timetable-production-preflight.yml"
       - "supabase/migrations/2026111210*.sql"
-      - "supabase/migrations/20261112154500_unscheduled_teaching_occurrence.sql"
   workflow_dispatch:
 
 permissions:
@@ -108,7 +106,7 @@ jobs:
           expected=Path('.tbl013-timetable-readonly/pending-versions.txt').read_text().split()
           assert set(expected) <= {
             '20261112101500','20261112101600','20261112101700',
-            '20261112101800','20261112154500'
+            '20261112101800'
           }
           assert expected
           print('Timetable-only pending versions:', ', '.join(expected))
