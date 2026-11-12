@@ -13,6 +13,7 @@ import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.
 import { buildTimeQuestionCards } from '@/lib/content/grade4TimePractice.mjs'
 import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
 import Grade4TimePracticeCards from '@/components/learn/Grade4TimePracticeCards'
+import Grade4TimeWorkedSteps from '@/components/learn/Grade4TimeWorkedSteps'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import styles from './Grade4TimeContentReader.module.css'
 
@@ -121,11 +122,13 @@ function Grade4TimeLessonArticle({
           </div>
         </div>
         {isFeedback ? <details className={styles.answerReveal}>
-          <summary>Show all published answers and explanations</summary>
+          <summary>Show answers and explanations</summary>
           <div className={styles.answerBody}>
             <VisualRichText body={section.body} style={{ fontSize: 15, lineHeight: 1.85 }} />
           </div>
-        </details> : section.id === 'exercise' && cards.exercise.length > 0
+        </details> : section.id === 'example'
+          ? <Grade4TimeWorkedSteps body={section.body}/>
+          : section.id === 'exercise' && cards.exercise.length > 0
           ? <Grade4TimePracticeCards questions={cards.exercise} lessonNumber={lesson.order}/>
           : section.id === 'check' && cards.check.length > 0
           ? <Grade4TimePracticeCards questions={cards.check} lessonNumber={lesson.order}/>
