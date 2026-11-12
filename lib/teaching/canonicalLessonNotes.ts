@@ -82,3 +82,59 @@ export function selectCanonicalLessonNotes(
     return a.title.localeCompare(b.title)
   })
 }
+
+
+/**
+ * Standalone Lesson Notes is another read-only projection of the same
+ * learning_resources + certified learning_resource_versions authority.
+ * It must never infer outcomes from titles or expose draft/private content.
+ */
+export type CatalogueNoteRoot = CanonicalNoteRoot & {
+  grade: string | null
+  subject: string | null
+}
+
+export type CertifiedCatalogueNote = {
+  resourceId: string
+  resourceVersionId: string
+  title: string
+  grade: string | null
+  subject: string | null
+  kind: 'teacher_notes' | 'learner_notes'
+  version: number
+  curriculumOutcomeId: string | null
+  subStrandId: string | null
+}
+
+export function selectCertifiedNoteCatalogue(
+  roots: CatalogueNoteRoot[],
+  versions: CanonicalNoteVersion[],
+): CertifiedCatalogueNote[] {
+  const latest = new Map<string, CanonicalNoteVersion>()
+  for (const item of versions) {
+    if (item.lifecycle_status !== 'certified' || !item.certified_at ||
+        !Number.isSafeInteger(item.version) || item.version < 1) continue
+    const previous = latest.get(item.resource_id)
+    if (!previous || item.version > previous.version) latest.set(item.resource_id, item)
+  }
+  const seen = new Set<string>()
+  return roots.flatMap(root => {
+    if (seen.has(root.id)) return []
+    seen.add(root.id)
+    if (root.status !== 'active' || root.visibility !== 'public') return []
+    if (root.asset_kind !== 'teacher_notes' && root.asset_kind !== 'learner_notes') return []
+    const version = latest.get(root.id)
+    if (!version) return []
+    return [{
+      resourceId: root.id,
+      resourceVersionId: version.id,
+      title: root.title,
+      grade: root.grade,
+      subject: root.subject,
+      kind: root.asset_kind as 'teacher_notes' | 'learner_notes',
+      version: version.version,
+      curriculumOutcomeId: root.curriculum_outcome_id,
+      subStrandId: root.sub_strand_id,
+    }]
+  }).sort((a, b) => a.title.localeCompare(b.title))
+}
