@@ -13319,6 +13319,39 @@ export type Database = {
         }
         Relationships: []
       }
+      scheme_lesson_outcomes: {
+        Row: {
+          scheme_lesson_id: string
+          curriculum_outcome_id: string
+          created_at: string
+        }
+        Insert: {
+          scheme_lesson_id: string
+          curriculum_outcome_id: string
+          created_at?: string
+        }
+        Update: {
+          scheme_lesson_id?: string
+          curriculum_outcome_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheme_lesson_outcomes_scheme_lesson_id_fkey"
+            columns: ["scheme_lesson_id"]
+            isOneToOne: false
+            referencedRelation: "scheme_of_work"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheme_lesson_outcomes_curriculum_outcome_id_fkey"
+            columns: ["curriculum_outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheme_lesson_resource_links: {
         Row: {
           chapter_id: string
