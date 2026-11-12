@@ -261,6 +261,17 @@ create trigger vs_guard_curriculum_version_promotion
 before insert or update of lifecycle_status on public.learning_resource_versions
 for each row execute function public.vs_guard_curriculum_version_promotion();
 
+-- The scope/IDs below are a production data reconciliation, not a seed for a
+-- blank database. A clean rebuild must install the generic authority and fail
+-- closed rather than inventing the seven historical curriculum identities.
+do $grade4_backfill$
+begin
+  if not exists (
+    select 1 from public.cbc_strands
+    where id='e975dcc6-32a9-4274-a2a3-3d19e409cf5c'::uuid
+  ) then
+    raise notice 'Grade 4 Time historical sub-strand absent: backfill skipped; curriculum gate remains blocked';
+  else
 -- Grade 4 Time: use the seven actual previously created UUIDs. Never rewrite them.
 insert into public.vs_curriculum_package_scopes (
   package_id,sub_strand_id,source_url,source_edition,source_section,source_checked_on,
@@ -388,6 +399,10 @@ join public.learning_resources r
     lpad(l.lesson_order::text,2,'0')
 on conflict (package_id,resource_id,manuscript_alias) do nothing;
 
+  end if;
+end
+$grade4_backfill$;
+
 -- Retain the existing reader response and permission contract, adding one
 -- canonical reconciliation check to fail closed if the package becomes invalid.
 create or replace function public.vs_public_grade4_math_time_learner_lessons()
@@ -444,12 +459,24 @@ grant execute on function public.vs_public_grade4_math_time_learner_lessons()
 do $audit$
 declare g jsonb;
 begin
-  g := public.vs_curriculum_package_gate('VS-G04-MA-2.6-TIME-20261111');
-  if g->>'state' <> 'PASS' then
-    raise exception 'P0_GRADE4_TIME_RECONCILIATION_FAILED: %',g;
-  end if;
-  if (select count(*) from public.vs_public_grade4_math_time_learner_lessons())<>10 then
-    raise exception 'P0_GRADE4_TIME_READER_NOT_TEN_AFTER_GATE';
+  if exists (
+    select 1 from public.cbc_strands
+    where id='e975dcc6-32a9-4274-a2a3-3d19e409cf5c'::uuid
+  ) then
+    -- Production population: reconciliation and reader must both pass.
+    g := public.vs_curriculum_package_gate('VS-G04-MA-2.6-TIME-20261111');
+    if g->>'state' <> 'PASS' then
+      raise exception 'P0_GRADE4_TIME_RECONCILIATION_FAILED: %',g;
+    end if;
+    if (select count(*) from public.vs_public_grade4_math_time_learner_lessons())<>10 then
+      raise exception 'P0_GRADE4_TIME_READER_NOT_TEN_AFTER_GATE';
+    end if;
+  elsif exists (
+    select 1 from public.vs_curriculum_package_scopes
+    where package_id='VS-G04-MA-2.6-TIME-20261111'
+  ) then
+    -- No dangling partial scope in a fresh environment.
+    raise exception 'P0_GRADE4_TIME_SCOPE_WITHOUT_HISTORICAL_STRAND';
   end if;
 end
 $audit$;
