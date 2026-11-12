@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Eye, Lightbulb, RotateCcw } from 'lucide-react'
 import { timeStudyHint } from '@/lib/content/grade4TimePractice.mjs'
+import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 import styles from './Grade4TimeContentReader.module.css'
 
 export type TimeQuestionCard = {
@@ -25,7 +26,7 @@ function QuestionCard({question,index,lessonNumber}:{
 
   return <div className={styles.questionCard}>
     <p className={styles.questionNumber}>Question {index + 1}</p>
-    <div className={styles.questionPrompt}>{question.prompt}</div>
+    <div className={styles.questionPrompt}><VisualRichText body={question.prompt} style={{fontSize:17,lineHeight:1.7}}/></div>
     <label className={styles.answerLabel} htmlFor={'answer-' + question.id}>
       Your working or answer <span>(optional)</span>
     </label>
