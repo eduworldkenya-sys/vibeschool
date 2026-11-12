@@ -66,3 +66,16 @@ For every target, the registered source PDF and exact page must be compared agai
 ## De-duplication and rollback
 
 The only changed curriculum asset is the already-existing Grade 9 candidate JSON. No new curriculum table, authority RPC, content engine, teacher scheme, learner assignment, publishing route or examination table is introduced. Reverting this editorial commit does not mutate the live database.
+
+## Live certification preflight (executed read-only)
+
+The reproducible SQL is `scripts/sql/grade9_mathematics_curriculum_authority_preflight.sql`. The 12 November 2026 execution on production returned:
+
+- registered official sources: **1**, approved registry rows: **1**
+- official artifact records: **0**; source snapshots: **0**; official observations: **0**
+- promoted source observations: **0**
+- existing Grade 9 Mathematics hierarchy rows: **20**
+- canonical linked outcome records: **0**; dated verified: **0**; source located: **0**
+- **`BLOCKED_OFFICIAL_ARTIFACT_MISSING`**.
+
+This diagnostic deliberately never returns `CERTIFIED`: even when future evidence becomes complete, it returns `EVIDENCE_PRESENT_REQUIRES_INDEPENDENT_CURRICULUM_AND_QUALITY_REVIEW`. The only way forward is the existing authorized official artifact intake and owner review; editing registry text or writing directly via SQL would not solve it.
