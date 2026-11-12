@@ -1,5 +1,7 @@
 # VibeSchool Visual Learning Library — Canonical Asset Contract
 
+**Start-here educational workflow:** [Single Canonical Content Generation Playbook](./CONTENT_GENERATION.md) governs when to inspect, reuse, create and verify a visual during one outcome-production pass. **This document remains the technical authority** for actual visual identity, private storage, versioning, access, release and certified reader references; the playbook does not grant upload, publishing or certification capabilities.
+
 **Purpose:** Create and reuse diagrams, images, illustrations, charts, maps, fraction models, number lines and instructional visuals across the same canonical content and lesson tools. Avoid hardcoded lesson-specific image URLs or competing media registries.
 
 ## Architecture

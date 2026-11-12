@@ -1,5 +1,7 @@
 # VibeSchool Curriculum Content Production Standard — Grades 1–9
 
+**START HERE FOR ALL CONTENT GENERATION:** [Single Canonical Content Generation Playbook](./CONTENT_GENERATION.md) is the sole day-to-day work sequence. This file remains the deeper educational and subject-quality reference; it does not define an independent second production process. Preserve its detailed outcome standards and mathematics/visual contracts. Repository governance and authoritative curriculum evidence still outrank editorial instructions.
+
 **Policy version:** 1.3
 **Learning-first and assessment-lineage revision:** 12 November 2026  
 **Decision:** Approved by the VibeSchool owner, 11 November 2026  
