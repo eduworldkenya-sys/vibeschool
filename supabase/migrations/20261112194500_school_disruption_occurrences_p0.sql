@@ -53,7 +53,7 @@ grant select on public.school_disruption_audit to authenticated;
 grant all on public.school_disruption_audit to service_role;
 create policy school_disruption_audit_member_read
   on public.school_disruption_audit for select to authenticated
-  using (public.is_active_school_member(school_id));
+  using (public.is_active_school_member(school_id) or public.is_school_admin(school_id));
 
 -- A preview is read-only and school-scoped. It counts actual dated slots,
 -- not arbitrary weekday totals; the caller must confirm the current preview.
@@ -286,29 +286,53 @@ end;
 $function$;
 
 -- Guard every teaching writer, including direct use of the legacy start RPC,
--- so an approved full-day closure cannot silently count as teaching.
+-- and close the race between daily generation and an administrator's closure.
 create or replace function public.guard_school_disruption_teaching()
 returns trigger language plpgsql security definer set search_path = ''
 as $function$
-declare v_is_start boolean;
+declare
+  v_close public.school_calendar_exceptions;
+  v_check boolean;
 begin
   if tg_op='INSERT' then
-    v_is_start := new.lifecycle in ('in_progress','completed');
+    v_check := new.lifecycle in ('planned','ready','in_progress','completed')
+      or new.recovered_from_id is not null;
   else
-    v_is_start := new.lifecycle in ('in_progress','completed')
-      and old.lifecycle not in ('in_progress','completed');
+    v_check := new.lifecycle is distinct from old.lifecycle
+      and new.lifecycle in ('planned','ready','in_progress','completed');
   end if;
-  if v_is_start then
-    perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended(
-        'school-disruption:'||new.school_id::text||':'||new.occurrence_date::text,0
-      )
-    );
-    if exists (
-      select 1 from public.school_calendar_exceptions ce
-      where ce.school_id=new.school_id and ce.exception_date=new.occurrence_date
-        and ce.suppress_ordinary_teaching
-    ) then raise exception 'SCHOOL_DAY_CLOSED'; end if;
+  if not v_check then return new; end if;
+
+  -- Same advisory key as admin_record and admin_reopen. The closure decision
+  -- and lesson lifecycle transition cannot pass each other concurrently.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(
+      'school-disruption:'||new.school_id::text||':'||new.occurrence_date::text,0
+    )
+  );
+  select * into v_close from public.school_calendar_exceptions ce
+  where ce.school_id=new.school_id and ce.exception_date=new.occurrence_date
+    and ce.suppress_ordinary_teaching
+  order by case when ce.kind='closure' then 0 else 1 end
+  limit 1;
+  if v_close.id is null then return new; end if;
+
+  if new.recovered_from_id is not null then
+    raise exception 'RECOVERY_DATE_CLOSED';
+  end if;
+  if new.lifecycle in ('planned','ready') then
+    -- A concurrent or stale generator must not introduce a normal planned
+    -- lesson on a confirmed closure; preserve its original state for reopen.
+    new.disruption_previous_lifecycle := new.lifecycle;
+    new.disruption_previous_reason := new.exception_reason;
+    new.lifecycle := 'missed';
+    new.exception_reason := 'School disruption: '||
+      coalesce(v_close.disruption_reason_code,v_close.label);
+    new.disruption_exception_id := v_close.id;
+  elsif tg_op='INSERT' then
+    raise exception 'SCHOOL_DAY_CLOSED';
+  elsif old.lifecycle not in ('in_progress','completed') then
+    raise exception 'SCHOOL_DAY_CLOSED';
   end if;
   return new;
 end;
