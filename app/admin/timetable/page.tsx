@@ -1,6 +1,8 @@
 "use client";
 import { useEffect,useMemo,useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { nairobiDateStr } from "@/lib/time";
+import SchoolTimetablePublicationPanel from "@/components/admin/SchoolTimetablePublicationPanel";
 import { getAdminSchoolAuthority } from "@/lib/admin/authority";
 import { createTimetableRelease, updateTimetableReleaseStatus, suggestSchoolTimetableCandidates, type SuggestedPlacement } from "@/lib/timetable/operations";
 
@@ -12,9 +14,10 @@ const D=["","Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 export default function AdminTimetablePage(){
  const [sid,setSid]=useState(""); const [slots,setSlots]=useState<Slot[]>([]); const [classes,setClasses]=useState<C[]>([]); const [subjects,setSubjects]=useState<Row[]>([]); const [teachers,setTeachers]=useState<T[]>([]); const [periods,setPeriods]=useState<Period[]>([]);
  const [block,setBlock]=useState({scheduleDay:0,periodNumber:1,label:"Period 1",startTime:"",endTime:"",kind:"lesson"});
+ const [releaseFrom,setReleaseFrom]=useState(()=>nairobiDateStr());
  const [pick,setPick]=useState({classId:"",subjectId:"",teacherId:""}); const [suggestions,setSuggestions]=useState<SuggestedPlacement[]>([]); const [msg,setMsg]=useState(""); const [busy,setBusy]=useState(false);
  useEffect(()=>{void load()},[]);
- async function load(){setBusy(true);try{const a=await getAdminSchoolAuthority();setSid(a.schoolId);const today=new Date().toISOString().slice(0,10);
+ async function load(){setBusy(true);try{const a=await getAdminSchoolAuthority();setSid(a.schoolId);const today=nairobiDateStr();
   const [s,c,u,m,sp]=await Promise.all([
    supabase.from("timetable_slots").select("id,teacher_id,class_id,subject_id,day_of_week,start_time,end_time,room,allocation_units").eq("school_id",a.schoolId).lte("effective_from",today).or(`effective_until.is.null,effective_until.gte.${today}`),
    supabase.from("classes").select("id,name,stream").eq("school_id",a.schoolId),
@@ -26,7 +29,7 @@ export default function AdminTimetablePage(){
   if(p.error)throw p.error; setSlots((s.data??[]) as Slot[]);setClasses((c.data??[]) as C[]);setSubjects((u.data??[]) as Row[]);setTeachers((p.data??[]) as T[]);setPeriods((sp.data??[]) as Period[]);
  }catch(e){setMsg(e instanceof Error?e.message:"Could not load timetable")}finally{setBusy(false)}}
  async function suggest(){if(!pick.classId||!pick.subjectId||!pick.teacherId)return;setBusy(true);try{setSuggestions(await suggestSchoolTimetableCandidates({schoolId:sid,...pick}));setMsg("")}catch(e){setMsg(e instanceof Error?e.message:"Could not suggest slots")}finally{setBusy(false)}}
- async function add(x:SuggestedPlacement){setBusy(true);try{const {error}=await supabase.rpc("create_school_timetable_slot",{p_school_id:sid,p_teacher_id:pick.teacherId,p_class_id:pick.classId,p_subject_id:pick.subjectId,p_day_of_week:x.day_of_week,p_start_time:x.start_time,p_end_time:x.end_time,p_room:null,p_effective_from:new Date().toISOString().slice(0,10),p_effective_until:null,p_allocation_units:1,p_period_id:x.period_id});if(error)throw error;setSuggestions([]);await load();setMsg("Lesson added.")}catch(e){setMsg(e instanceof Error?e.message:"Could not add lesson")}finally{setBusy(false)}}
+ async function add(x:SuggestedPlacement){setBusy(true);try{const {error}=await supabase.rpc("create_school_timetable_slot",{p_school_id:sid,p_teacher_id:pick.teacherId,p_class_id:pick.classId,p_subject_id:pick.subjectId,p_day_of_week:x.day_of_week,p_start_time:x.start_time,p_end_time:x.end_time,p_room:null,p_effective_from:nairobiDateStr(),p_effective_until:null,p_allocation_units:1,p_period_id:x.period_id});if(error)throw error;setSuggestions([]);await load();setMsg("Lesson added.")}catch(e){setMsg(e instanceof Error?e.message:"Could not add lesson")}finally{setBusy(false)}}
  async function addSchoolBlock(){
   if(!sid||!block.label.trim()||!block.startTime||!block.endTime||block.startTime>=block.endTime){setMsg("Enter confirmed start and end times before adding a school-day block.");return;}
   setBusy(true);try{
@@ -40,7 +43,18 @@ export default function AdminTimetablePage(){
  async function removeSchoolBlock(id:string){
   setBusy(true);try{const {error}=await supabase.from("school_periods").delete().eq("id",id).eq("school_id",sid);if(error)throw error;await load();setMsg("School-day block removed.");}catch(e){setMsg(e instanceof Error?e.message:"Could not remove block")}finally{setBusy(false)}
  }
- async function startRelease(){setBusy(true);try{const label=`Timetable ${new Date().toLocaleDateString()}`;const r=await createTimetableRelease({schoolId:sid,label,effectiveFrom:new Date().toISOString().slice(0,10)});await updateTimetableReleaseStatus(r.id,"review");setMsg("Draft created and submitted for review.")}catch(e){setMsg(e instanceof Error?e.message:"Could not create release")}finally{setBusy(false)}}
+ async function startRelease(){
+  if(!sid||!periods.some(p=>p.kind==="lesson")||!slots.length){setMsg("Configure the real school teaching periods and assigned lessons before creating a release.");return}
+  if(releaseFrom<nairobiDateStr()){setMsg("Choose today or a future school timetable effective date.");return}
+  if(!window.confirm(`Create a new school timetable review release effective ${releaseFrom}? This is not automatic publication.`))return;
+  setBusy(true);try{
+   const label=`School timetable ${releaseFrom}`;
+   const r=await createTimetableRelease({schoolId:sid,label,effectiveFrom:releaseFrom});
+   await updateTimetableReleaseStatus(r.id,"review");
+   await load();
+   setMsg("Draft created and submitted for review. Check its linked slots and allocations before approving.")
+  }catch(e){setMsg(e instanceof Error?e.message:"Could not create release")}finally{setBusy(false)}
+ }
  const cm=useMemo(()=>new Map(classes.map(x=>[x.id,x.name+(x.stream?` ${x.stream}`:"")])),[classes]), sm=useMemo(()=>new Map(subjects.map(x=>[x.id,x.name])),[subjects]),tm=useMemo(()=>new Map(teachers.map(x=>[x.id,x.full_name])),[teachers]);
  const box={padding:12,border:"1px solid #e2e8f0",borderRadius:12,background:"white"} as const;
  return <main style={{maxWidth:1050,margin:"0 auto",display:"grid",gap:16}}>
@@ -72,7 +86,8 @@ export default function AdminTimetablePage(){
    <select value={pick.teacherId} onChange={e=>setPick({...pick,teacherId:e.target.value})}><option value="">Teacher</option>{teachers.map(x=><option key={x.id} value={x.id}>{x.full_name}</option>)}</select>
    <button disabled={busy} onClick={()=>void suggest()}>Suggest best slots</button>
   </div>{suggestions.slice(0,6).map(x=><button key={x.period_id+"-"+x.day_of_week} onClick={()=>void add(x)} style={{display:"block",width:"100%",textAlign:"left",marginTop:8,padding:10}}><strong>{D[x.day_of_week]} {x.start_time.slice(0,5)}–{x.end_time.slice(0,5)}</strong> · {x.explanation}</button>)}</section>
-  <section style={box}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><h2 style={{fontSize:16}}>Master timetable</h2><button disabled={busy||!slots.length} onClick={()=>void startRelease()}>Create review release</button></div>
+  {sid && <SchoolTimetablePublicationPanel schoolId={sid} schoolName="this school" onChanged={load}/>}
+ <section style={box}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}><h2 style={{fontSize:16}}>Master timetable</h2><label style={{fontSize:12}}>Release effective date <input type="date" value={releaseFrom} min={nairobiDateStr()} onChange={e=>setReleaseFrom(e.target.value)}/></label><button disabled={busy||!slots.length||!periods.some(p=>p.kind==="lesson")} onClick={()=>void startRelease()}>Create review release</button></div>
    {!slots.length?<p>No active timetable slots.</p>:slots.sort((a,b)=>a.day_of_week-b.day_of_week||a.start_time.localeCompare(b.start_time)).map(x=><article key={x.id} style={{padding:"9px 0",borderBottom:"1px solid #eee",display:"grid",gridTemplateColumns:"120px 1fr auto",gap:8}}><strong>{D[x.day_of_week]} {x.start_time.slice(0,5)}</strong><span>{cm.get(x.class_id)} · {sm.get(x.subject_id)} · {tm.get(x.teacher_id)}</span><span>{x.allocation_units>1?`${x.allocation_units} units`:x.room||""}</span></article>)}
   </section>
  </main>
