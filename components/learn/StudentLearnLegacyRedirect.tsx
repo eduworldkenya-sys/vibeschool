@@ -18,7 +18,7 @@ export default function StudentLearnLegacyRedirect() {
     const prior = new URLSearchParams(window.location.search)
     const requested = prior.get('grade')
     const recognised = recogniseLearnerGrade(identity?.className)
-    const allowed = new Set(SCHOOL_LEVELS.flatMap(level => [...level.grades]))
+    const allowed: ReadonlySet<string> = new Set<string>(SCHOOL_LEVELS.flatMap(level => [...level.grades]))
     const grade = requested && allowed.has(requested) ? requested : recognised
     const next = new URLSearchParams()
     if (grade) next.set('grade', grade)
