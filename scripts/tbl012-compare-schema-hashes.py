@@ -163,47 +163,24 @@ def main() -> int:
                 }:
                     raise ComparisonFailure("forward-delta metadata is incomplete")
                 key = (row["table"], row["section"])
-                permitted_scopes = {
-                    ("timetable_slots", "triggers"),
-                    ("teaching_occurrences", "columns"),
-                    ("teaching_occurrences", "constraints"),
-                    ("teaching_occurrences", "indexes"),
-                }
-                if key not in permitted_scopes or key in permitted:
+                # The only declared forward difference is the still-unapplied
+                # timetable period guard. Unscheduled teaching is present in
+                # live production under its verified ledger version 20261112104242.
+                if key != ("timetable_slots", "triggers") or key in permitted:
                     raise ComparisonFailure("unexpected or duplicated forward-delta scope")
                 source = Path("supabase/migrations") / row["migration"]
                 if not source.is_file():
                     raise ComparisonFailure("forward-delta migration is absent")
                 migration_sql = source.read_text(encoding="utf-8").lower()
-                if key == ("timetable_slots", "triggers"):
-                    if row["migration"] != "20261112101600_timetable_school_period_authority.sql" or any(
-                        requirement not in migration_sql for requirement in (
-                            "create trigger timetable_slot_period_guard",
-                            "effective_from, effective_until",
-                            "public.validate_timetable_slot_period()",
-                        )
-                    ):
-                        raise ComparisonFailure("declared migration does not define reviewed guard")
-                else:
-                    if row["migration"] != "20261112104242_unscheduled_teaching_occurrence.sql":
-                        raise ComparisonFailure("unscheduled forward delta has wrong migration identity")
-                    required = {
-                        "columns": (
-                            "alter column timetable_slot_id drop not null",
-                            "add column if not exists unscheduled_plan_id",
-                            "add column if not exists completion_review",
-                        ),
-                        "constraints": (
-                            "teaching_occurrences_one_source_check",
-                            "check ((timetable_slot_id is null) = (unscheduled_plan_id is not null))",
-                        ),
-                        "indexes": (
-                            "teaching_occurrences_unscheduled_plan_key",
-                            "where unscheduled_plan_id is not null",
-                        ),
-                    }[key[1]]
-                    if any(requirement not in migration_sql for requirement in required):
-                        raise ComparisonFailure("declared unscheduled migration contract is incomplete")
+                if (
+                    row["migration"] != "20261112101600_timetable_school_period_authority.sql"
+                    or any(requirement not in migration_sql for requirement in (
+                        "create trigger timetable_slot_period_guard",
+                        "effective_from, effective_until",
+                        "public.validate_timetable_slot_period()",
+                    ))
+                ):
+                    raise ComparisonFailure("declared migration does not define reviewed guard")
                 permitted[key] = row
 
         differences: list[dict[str, str]] = []
