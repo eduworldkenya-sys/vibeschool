@@ -14,6 +14,13 @@ required_page_markers = [
     'school_identity_review_required',
     'My school is new or missing',
     'There are schools with the same name.',
+    'searchGeneration.current',
+    'generation !== searchGeneration.current',
+    'setRows([])',
+    'pickedNeedsLevelConfirmation',
+    'levelAcknowledged',
+    'Confirm selected school',
+    'Directory record · identity review is separate from connecting',
 ]
 for marker in required_page_markers:
     assert marker in page, f"missing onboarding contract marker: {marker}"
