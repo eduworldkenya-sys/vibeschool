@@ -74,6 +74,12 @@ export default function SubjectLessonHandoff({
 
   function openCandidate(candidate: SubjectLessonCandidate) {
     if (!authority) return;
+    if (candidate.preparedDraftId) {
+      const q = new URLSearchParams({ classId: authority.classId, subjectId: authority.subjectId });
+      if (candidate.schemeId) q.set("schemeId", candidate.schemeId);
+      router.push(`/teacher/lessonplan/prepare?${q.toString()}`);
+      return;
+    }
     if (purpose === "notes") {
       const notesHref = buildLessonNotesHref(authority, candidate);
       if (notesHref) {
@@ -173,9 +179,10 @@ export default function SubjectLessonHandoff({
               <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>
                 {candidate.relation === "unscheduled" ? "Scheme-based preparation · no timetable needed" : `${timeLabel(candidate.startTime)}–${timeLabel(candidate.endTime)}`}
                 {candidate.room ? ` · ${candidate.room}` : ""}
-                {candidate.lessonPlanId ? " · Plan ready" : " · No lesson plan yet"}
+                {candidate.preparedDraftId ? " · Prepared draft saved" : candidate.lessonPlanId ? " · Plan ready" : " · No lesson plan yet"}
               </div>
-              {needsPlan && <div style={{ color: "#92400e", fontSize: 11, fontWeight: 800, marginTop: 5 }}>Prepare this lesson before opening notes →</div>}
+              {candidate.preparedDraftId && <div style={{ color: "#0369a1", fontSize: 11, fontWeight: 800, marginTop: 5 }}>Open the saved preparation · attach to a timetable lesson if required</div>}
+              {needsPlan && !candidate.preparedDraftId && <div style={{ color: "#92400e", fontSize: 11, fontWeight: 800, marginTop: 5 }}>Prepare this lesson before opening notes →</div>}
             </button>
           );
         })}

@@ -96,6 +96,7 @@ function Inner({ curriculumView = false }) {
   const [selectedTermId,setSelectedTermId] = useState(null)
   const [selectedWeek,setSelectedWeek] = useState(1)
   const [schemeItems,setSchemeItems] = useState([])
+  const [finderQuery,setFinderQuery] = useState('')
   const [curriculumRows,setCurriculumRows] = useState([])
   const [allCurriculumRows,setAllCurriculumRows] = useState([])
   const [curriculumOutcomes,setCurriculumOutcomes] = useState({})
@@ -111,6 +112,7 @@ function Inner({ curriculumView = false }) {
   const [showPrint,setShowPrint] = useState(false)
   const [pendingStatusChange,setPendingStatusChange] = useState(null)
   useEffect(() => setSelectedStrand(''), [selectedClass,selectedSubject,selectedTermId])
+  useEffect(() => setFinderQuery(''), [selectedClass, selectedSubject])
   useEffect(() => setShowEnglishLegacy(false), [selectedClass,selectedSubject,selectedTermId])
   // A curriculum-map selection is a planning draft, not a saved or KICD-verified lesson.
   const [draftUnitId,setDraftUnitId] = useState(initial.current.unitId||'')
@@ -759,6 +761,58 @@ function Inner({ curriculumView = false }) {
 
   const ordered = useMemo(()=>schemeItems.slice().sort((a,b)=>(a.sequence_number||999999)-(b.sequence_number||999999)||(a.lesson_number||999999)-(b.lesson_number||999999)||a.id.localeCompare(b.id)),[schemeItems])
   const selectedWeekItems = useMemo(()=>ordered.filter(x=>x.week===selectedWeek),[ordered,selectedWeek])
+  // Search the already-authorised Curriculum and Scheme state. Do not
+  // add a second search index or bypass the class/subject authority.
+  const searchableUnits = useMemo(()=>{
+    if(isGrade4Mathematics)return GRADE4_MATHEMATICS_UNITS
+    if(isGrade6Mathematics)return GRADE6_MATHEMATICS_UNITS
+    if(isGrade8Mathematics)return GRADE8_MATHEMATICS_UNITS
+    if(isGrade4English)return GRADE4_ENGLISH_UNITS
+    if(isGrade8English)return GRADE8_ENGLISH_UNITS
+    if(isGrade6English)return GRADE6_ENGLISH_UNITS
+    if(isGrade6Kiswahili)return GRADE6_KISWAHILI_UNITS
+    if(isGrade4Indigenous)return GRADE4_INDIGENOUS_UNITS
+    if(isGrade1Mathematics)return GRADE1_MATHEMATICS_UNITS
+    if(isGrade1English)return GRADE1_ENGLISH_UNITS
+    if(isGrade1Creative)return GRADE1_CREATIVE_UNITS
+    return []
+  },[isGrade4Mathematics,isGrade6Mathematics,isGrade8Mathematics,isGrade4English,isGrade8English,isGrade6English,isGrade6Kiswahili,isGrade4Indigenous,isGrade1Mathematics,isGrade1English,isGrade1Creative])
+  const finderResults=useMemo(()=>{
+    const needle=finderQuery.trim().toLocaleLowerCase()
+    if(needle.length<2)return []
+    const matches=(...fields)=>fields.some(field=>String(field??'').toLocaleLowerCase().includes(needle))
+    const units=searchableUnits.filter(unit=>matches(unit.id,unit.title,unit.strand,unit.subStrand,unit.sub_strand,unit.theme,unit.outcomes?.join?.(' ')))
+      .map(unit=>({kind:'unit',id:unit.id,title:unit.title||unit.name||unit.id,detail:unit.strand||'Curriculum sub-strand',unit}))
+    const rows=allCurriculumRows.filter(row=>matches(row.topic,row.strand,row.sub_strand,row.id,...(curriculumOutcomes[row.id]||[]).map(x=>x.outcome_text)))
+      .map(row=>({kind:'curriculum',id:row.id,title:row.topic||row.sub_strand||'Curriculum item',detail:row.strand||'Curriculum',row}))
+    const scheme=ordered.filter(item=>matches(item.topic,item.strand,item.sub_strand,item.objectives,item.key_inquiry_question,item.learning_experiences,item.reference,item.week))
+      .map(item=>({kind:'scheme',id:item.id,title:item.topic||'Scheme lesson',detail:'Scheme · Week '+item.week,item}))
+    return [...units,...rows,...scheme].slice(0,30)
+  },[finderQuery,searchableUnits,allCurriculumRows,curriculumOutcomes,ordered])
+  function chooseFinderResult(result){
+    setFinderQuery('')
+    if(result.kind==='scheme'){
+      setSelectedWeek(result.item.week)
+      if(curriculumView){
+        const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(result.item.week)})
+        router.push('/teacher/scheme?'+p.toString())
+      }
+      return
+    }
+    if(result.kind==='unit'){
+      setMapUnitId(result.id)
+      if(!curriculumView){
+        const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId:result.id})
+        router.push('/teacher/curriculum?'+p.toString())
+      }
+      return
+    }
+    setSelectedStrand(result.row.strand||'Unspecified strand')
+    if(!curriculumView){
+      const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,curriculumId:result.id})
+      router.push('/teacher/curriculum?'+p.toString())
+    }
+  }
   const canonicalRowIds = useMemo(()=>new Set(allCurriculumRows.map(x=>x.id)),[allCurriculumRows])
 
   function prepareSchemeLesson(item) {
@@ -986,6 +1040,16 @@ function Inner({ curriculumView = false }) {
       <div style={{fontSize:13,opacity:.9,marginTop:4}}>{curriculumView&&isGrade4Indigenous ? 'Grade 4 · Indigenous Languages · KICD 2024 framework · native-speaker review required' : curriculumView&&isGrade4English ? 'Grade 4 · English · KICD 2024 theme index · VibeSchool-original outcomes' : curriculumView&&isGrade4Mathematics ? 'Grade 4 · Mathematics · Revised KICD 2024 map · VibeSchool teaching guidance' : curriculumView&&isGrade6Mathematics ? 'Grade 6 · Revised KICD 2024 structure · VibeSchool-authored guidance' : curriculumView&&isGrade8English ? 'Grade 8 · English · KICD-referenced themes · VibeSchool original guidance' : curriculumView&&isGrade6English ? 'Grade 6 · English · KICD 2024 structural reference; VibeSchool-authored outcomes' : curriculumView&&isGrade6Kiswahili ? 'Gredi ya 6 · Kiswahili · KICD 2024 · Maudhui asilia ya VibeSchool' : curriculumView&&isGrade4Kiswahili ? 'Grade 4 · Kiswahili · Revised KICD 2024 reference' : curriculumView&&isGrade8Kiswahili ? 'Grade 8 · Kiswahili · KICD 2024 thematic reference' : curriculumView&&isGrade9English ? 'Grade 9 · Revised KICD 2024 structure · Specific outcomes pending verification' : curriculumView&&(isGrade1Mathematics||isGrade1English) ? 'Grade 1 · Annual learning-area reference · VibeSchool-authored' : termObj?`${termLabel(termObj)} · Selected Week ${selectedWeek}${currentWeek ? ` · Current Week ${currentWeek}` : ''}`:'Select term'}</div>
     </div>
     {error&&<div role="alert" style={{background:C.redLight,color:C.red,padding:10,borderRadius:9,fontSize:12,fontWeight:700,marginBottom:10}}>{error}</div>}
+    {selectedClass && selectedSubject && <section aria-label="Search curriculum and scheme" style={{background:'#fff',border:`1px solid ${C.border}`,padding:12,borderRadius:12,marginBottom:12}}>
+      <label htmlFor="curriculum-scheme-search" style={{display:'block',fontSize:12,fontWeight:800,marginBottom:5}}>Find a curriculum outcome or Scheme lesson</label>
+      <input id="curriculum-scheme-search" type="search" value={finderQuery} onChange={e=>setFinderQuery(e.target.value)} placeholder="Topic, sub-strand, outcome or week" style={{width:'100%',boxSizing:'border-box',border:`1px solid ${C.border2}`,borderRadius:9,minHeight:44,padding:'10px 12px',fontSize:14}} />
+      {finderQuery.trim().length>1 && <div role="region" aria-label="Curriculum and Scheme search results" style={{marginTop:8,maxHeight:360,overflowY:'auto'}}>
+        {finderResults.length===0?<p style={{fontSize:12,color:C.text3}}>No matching records in this class and subject. Try a different term or keyword.</p>:
+          finderResults.map(result=><button key={result.kind+':'+result.id} type="button" onClick={()=>chooseFinderResult(result)} style={{display:'block',width:'100%',textAlign:'left',padding:10,border:`1px solid ${C.border}`,borderRadius:9,background:'#fff',color:C.text,marginBottom:5,cursor:'pointer'}}>
+            <strong style={{display:'block',fontSize:13}}>{result.title}</strong><span style={{fontSize:11,color:C.text3}}>{result.detail} · {result.kind==='scheme'?'Open Scheme lesson':'Open Curriculum Map'}</span>
+          </button>)}
+      </div>}
+    </section>}
     <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:14,padding:14,marginBottom:12}}>
       <div className="studio-context-selectors"><div style={{fontSize:11,color:C.text3,fontWeight:800,marginBottom:6}}>CLASS</div><div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>{classes.map(x=><Chip key={x.id} label={x.label} active={x.id===selectedClass} onClick={()=>{setSelectedClass(x.id);setMapUnitId('1.1')}}/>)}</div>
       <div style={{fontSize:11,color:C.text3,fontWeight:800,marginBottom:6}}>SUBJECT</div><div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>{filteredSubjects.map(x=><Chip key={x.id} label={x.label} active={x.id===selectedSubject} onClick={()=>{setSelectedSubject(x.id);setMapUnitId('1.1')}}/>)}</div>

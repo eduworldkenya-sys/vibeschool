@@ -92,6 +92,8 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   draft:             { label: 'Draft',             bg: '#f3f4f6', color: '#6b7280' },
   published:         { label: 'Published',         bg: '#d1fae5', color: '#065f46' },
   shared_to_parents: { label: 'Shared to Parents', bg: '#dbeafe', color: '#1e40af' },
+  in_progress:      { label: 'Teaching', bg: '#dbeafe', color: '#1d4ed8' },
+  completed:        { label: 'Taught · completed', bg: '#d1fae5', color: '#065f46' },
 }
 
 const READINESS_BADGE: Record<ReadinessState, { label: string; bg: string; color: string }> = {
@@ -480,6 +482,24 @@ function LessonPlanInner() {
         setHistLoading(false)
         return
       }
+      // A lesson-plan draft status is not a teaching lifecycle. Only the
+      // canonical unscheduled occurrence can assert an independent lesson was taught.
+      const historyIds = (data ?? []).map(plan => plan.id)
+      let unscheduledStatuses = new Map<string, string>()
+      if (historyIds.length > 0) {
+        const { data: sessionRows, error: sessionError } = await supabase
+          .from('teaching_occurrences')
+          .select('unscheduled_plan_id,lifecycle')
+          .eq('teacher_id', user.id)
+          .in('unscheduled_plan_id', historyIds)
+        if (!sessionError) {
+          unscheduledStatuses = new Map((sessionRows ?? [])
+            .filter(row=>Boolean(row.unscheduled_plan_id))
+            .map(row=>[row.unscheduled_plan_id as string,row.lifecycle]))
+        } else {
+          console.error('[LessonPlan] unscheduled teaching lifecycle unavailable:', sessionError)
+        }
+      }
       setHistory(((data ?? []) as HistoryQueryRow[]).map(h => {
         const curr = firstJoin(h.curriculum)
         const classRow = firstJoin(h.classes)
@@ -488,7 +508,8 @@ function LessonPlanInner() {
           title: h.title ?? '',
           topic: h.topic ?? '',
           created_at: h.created_at,
-          status: historyStatus(h.status),
+          status: unscheduledStatuses.get(h.id) === 'completed' ? 'completed' :
+            unscheduledStatuses.get(h.id) === 'in_progress' ? 'in_progress' : historyStatus(h.status),
           class_name: classRow ? classRow.name + (classRow.stream ? ' ' + classRow.stream : '') : '',
           curriculumId: h.curriculum_id ?? null,
           strandId: h.strand_id ?? null,

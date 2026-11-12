@@ -49,6 +49,8 @@ type LiveSchoolPeriods = {
 type LiveOccurrenceFields = {
   actual_teacher_id: string | null
   exception_reason: string | null
+  unscheduled_plan_id: string | null
+  completion_review: Record<string, unknown> | null
 }
 type LiveTimetableSlots = {
   Row: GeneratedTimetableSlots['Row'] & LiveTimetableSlotFields
@@ -143,6 +145,8 @@ type LiveDatabase = Omit<Database, 'public'> & {
       get_my_school_day_blocks: { Args: Record<never, never>; Returns: { id: string; school_id: string; schedule_day: number; period_number: number; label: string; start_time: string; end_time: string; kind: string; protected: boolean }[] }
       suggest_school_timetable_candidates: { Args: { p_school_id: string; p_class_id: string; p_subject_id: string; p_teacher_id: string; p_effective_on?: string | null }; Returns: { day_of_week: number; period_id: string; start_time: string; end_time: string; score: number; explanation: string }[] }
       finalize_teaching_occurrence: { Args: { p_timetable_slot_id: string; p_occurrence_date: string; p_outcome: string; p_what_was_taught: string; p_challenges?: string | null; p_teacher_remarks?: string | null; p_next_steps?: string | null }; Returns: { occurrence_id: string; progress_record_id: string; scheme_id: string | null; scheme_status: string | null }[] }
+      start_unscheduled_teaching: { Args: { p_draft_id: string }; Returns: { id: string; unscheduled_plan_id: string; occurrence_date: string; school_id: string; teacher_id: string; class_id: string; subject_id: string; timetable_slot_id: null; lifecycle: string } }
+      complete_unscheduled_teaching: { Args: { p_occurrence_id: string; p_coverage: string; p_what_taught: string; p_reflection: string; p_attendance_reason: string; p_evidence_reason: string; p_next_steps?: string | null }; Returns: { id: string; lifecycle: string; completed_at: string | null } }
     }
     Tables: Omit<Database['public']['Tables'], 'homework' | 'timetable_slots' | 'teaching_occurrences' | 'school_periods'> & {
       homework: LiveHomeworkTable

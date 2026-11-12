@@ -56,6 +56,32 @@ PRIORITY: P0
   claim original file versions were deployed. No production writes made.
 
 
+FOLLOW-UP TBL-012 READ-ONLY EVIDENCE — 2026-11-12:
+- Compared production catalogue to exact TBL-011 rebuilt schema artifact.
+  The rebuilt schema includes the unique school/teacher/class/subject
+  assignment index, but production does not; production has no duplicate
+  teacher-assignment groups. Do not create an index outside a tracked
+  controlled promotion.
+- Live timetable_slots has three additional legacy CHECK constraints,
+  and the additional trg_enforce_timetable_context trigger. Its function
+  checks class/school, teacher membership and school-local subject identity.
+  Removing it without an equivalent authorized protection is unsafe.
+- Production teaching_occurrences lacks
+  trg_bind_lesson_homework_on_occurrence_start and its function; the
+  repository rebuild contains both. No claim that this is harmless.
+- Gilgil Grade 4 Kilimanjaro Mathematics has eight historical slot
+  identities; the long-running Monday placement at 07:06–07:15 is
+  nine minutes and cannot be used as a real Grade 4 35-minute period.
+  A November 12 Thursday placement is a one-date 35-minute exception,
+  NOT a regular second weekly period. No fabricated five-period schedule.
+- School day setup now requires entered school-confirmed start/end times
+  rather than prefilled 08:00–08:40; new Grade 4–6 scheduling directs
+  the operator to that setup if the day has no teaching period.
+- Outstanding: controlled production migration promotion with exact ledger
+  versions, four audited schema drifts, school-confirmed periods and breaks,
+  legacy-slot review, and signed-in teacher Teach-to-Completed certification.
+  No production records were changed by this follow-up.
+
 Previous verified fix
 
 FIX ID: TBL-011
