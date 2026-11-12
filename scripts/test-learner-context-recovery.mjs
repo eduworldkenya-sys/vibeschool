@@ -12,7 +12,7 @@ const lib = read('lib/student/vibelearn.ts')
 const sql = read('supabase/migrations/20261112105000_student_mistake_source_context.sql')
 
 assert.match(topic,/CanonicalTopicPractice grade=\{grade\}/,'grade routes reuse canonical EXQ')
-assert.match(topic,/\[1-9\]\|1\[0-2\]/,'Grade 4 must route through canonical practice')
+assert.match(topic,/\(\?:4\|9\)/,'Grade 4 and Grade 9 use canonical practice without changing other grades')
 assert.match(canonical,/listMyAssessmentAssignments\(\)/,'fallback uses learner-scoped canonical discovery')
 assert.match(canonical,/question counts/,'12-item assessments cannot be called five-question drills')
 assert.match(canonical,/otherPractice\.map/,'learner must have an alternative to empty topics')
