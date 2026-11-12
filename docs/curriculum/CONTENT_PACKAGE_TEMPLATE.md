@@ -23,6 +23,23 @@ Use this template **per subject, term, sub-strand or batch**; declare the exact 
 
 **What is excluded?** Explicitly list exclusions. Do not claim a full subject if this package covers only one term or sub-strand.
 
+## 1A. Required KICD ↔ VibeSchool reconciliation gate — BEFORE any new content
+
+**Stop-and-repair rule:** A content-generation chat must **first** read the applicable official KICD source and the current VibeSchool canonical curriculum for the exact grade/subject/scope; compare every required outcome and its strand/sub-strand, source revision, inquiry, experience, competencies, values, relevant PCIs, assessment scope and suggested lesson allocation. Do not use a prior claim of alignment or a matching heading as evidence.
+
+| Required evidence | Recorded result |
+| --- | --- |
+| KICD official URL, revision, pages/sections and inspection date | |
+| Current VibeSchool canonical catalogue and persisted curriculum source/IDs inspected | |
+| Required KICD outcome inventory in the declared scope | |
+| Requirement-by-requirement KICD locator → VibeSchool stable ID / semantic match | |
+| Missing, partial, extra, conflicting or unverifiable requirements | |
+| Canonical curriculum corrections made **before** authoring; change/evidence reference | |
+| Recheck of corrected curriculum and existing Scheme/outcome bindings | |
+| Final gate: `PASS` (all scope outcomes reconciled) or `BLOCKED_CURRICULUM_RECONCILIATION` | |
+
+**If anything is missing or inaccurate, repair VibeSchool's canonical curriculum first, preserve existing IDs and school-owned history, and recheck.** Do not write notes, examples, exercises or teacher guidance for an unresolved scope. The user is not responsible for routine reconciliation. If the authoritative source or canonical map is unavailable, record `NOT_CHECKED` and the exact blocker; never guess, auto-certify or pass the gate. VibeSchool may word outcomes originally, but must preserve KICD's educational requirements without wholesale copying. This gate is separate from eventual content certification and publication.
+
 ## 2. Source-to-outcome coverage ledger
 
 Add one row for **every required curriculum outcome**, not just the easiest ones.
