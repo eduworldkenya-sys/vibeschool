@@ -18,6 +18,24 @@ CURRENT STATE
 
 TIMETABLE
 
+OPTIONAL SCHOOL-DAY SAMPLES — 2026-11-12 (SEPARATE FEATURE BRANCH; NOT PRODUCTION CERTIFICATION):
+- Branch `feat/optional-school-day-samples-20261112` adds four explicitly
+  opt-in editable clock-time samples to existing teacher school-day setup:
+  Ministry-style Grades 4–6, illustrative lower-primary, junior-school, and
+  flexible/tuition planning. No school times are silently filled.
+- Teachers can create, validate, store locally and export/import personal
+  templates. Local templates are limited to the current browser/device;
+  they are not school-wide database records.
+- Existing canonical school admin RPCs remain the only server write path;
+  the sample UI refuses to replace non-empty school period configurations
+  and prompts for human confirmation. Failure rollback is best effort,
+  because the existing individual per-period RPCs are not atomic.
+- New timetable regression coverage checks overlap/protected blocks,
+  timetable sample counts, and non-default/permission UI contracts.
+- No DB migration, no Gilgil period write, no teacher slot write,
+  no claims of live certification. TBL-012 production parity and its
+  four pending migration versions remain separately BLOCKED.
+
 Active fix
 
 FIX ID: TBL-012
