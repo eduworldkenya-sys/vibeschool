@@ -26,7 +26,6 @@ begin
   join public.vs_curriculum_alias_outcomes ao on ao.outcome_id=o0.id
   where o0.status='active'
     and nullif(btrim(o0.source_locator),'') is not null
-    and o0.curriculum_id is not null
     and public.vs_curriculum_package_gate(ao.package_id)->>'state'='PASS'
   limit 1;
   if o.id is null then
