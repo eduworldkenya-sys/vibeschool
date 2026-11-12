@@ -42,6 +42,9 @@ for (const item of [
   "revoke all on function public.cla_outcome_package_quality_gate",
   "to service_role;"
 ]) must(sql,item)
+must(sourceAlignment,'public.vs_curriculum_package_gate','P0 reconciliation authority')
+must(sourceAlignment,'v_source_ready := exists','canonical source readiness')
+assert.doesNotMatch(sourceAlignment,/update\s+public\.curriculum_learning_outcomes\b/i,'Never fake outcome verification')
 assert.doesNotMatch(sql,/create\s+table\s+/i,'No second publishing/QA table is allowed')
 assert.doesNotMatch(sql,/\binsert\s+into\s+public\.publication_release_approvals\b/i)
 assert.doesNotMatch(sql,/\bupdate\s+public\.assessment_questions\b/i)
