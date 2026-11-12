@@ -4,7 +4,7 @@
 
 ## Identity and storage
 
-- One stable `learning_resources` root per canonical outcome/package identity, with `asset_kind='outcome_package'`, `owner_type='platform'`, `source_type='platform_authored' | 'platform_generated'`, and non-null `curriculum_outcome_id` FK.
+- One stable `learning_resources` root per canonical outcome/package identity, with `asset_kind='outcome_package'`, `owner_type='platform'`, `source_type='platform_generated'` (the manifest is assembled programmatically), and non-null `curriculum_outcome_id` FK.
 - Generate its existing `canonical_key` via `buildCanonicalLearningAssetIdentity`: use the actual curriculum, subject, grade and stable outcome ID, `assetKind:'outcome_package'`, `purpose:'reference'`. Never use KICD heading text or a manuscript alias as an ID.
 - Each `learning_resource_versions.payload` is a **complete immutable manifest snapshot**. Use the existing candidate → verified → certified authority and SHA-256/version lineage. Do not edit a certified manifest in place; retire/supersede it under existing governance.
 - Every asset entry pins **both** its `learning_resources.id` and exact `learning_resource_versions.id`. No display names, mutable latest-version pointers or generated placeholder UUIDs.
@@ -16,6 +16,7 @@
 {
   "schema": "vibeschool.outcome-package.v1",
   "outcome_id": "<existing curriculum_learning_outcomes.id>",
+  "curriculum_package_id": null,
   "curriculum_outcome_aliases": [],
   "requirements": {
     "teacher_guidance": false,
@@ -54,10 +55,12 @@ The `<> ` placeholders above are examples only and **must never be submitted to 
 
 The manifest tracks the **release state independently per experience**. The database `cla_audit_outcome_package(resource_id,manifest)` computes **completeness independently** from real referenced rows. It does not trust a manually supplied `complete` flag.
 
-For platform-authored resources, the independent curriculum promotion guard also requires `learning_resource_versions.provenance.package_id`, a matching curriculum package scope/root `sub_strand_id` and key prefix, and exact approved `curriculum_outcome_aliases`. Obtain these from the existing reconciliation authority; never invent aliases or bypass the guard with a different source type.
+For platform-authored component resources, the independent curriculum promotion guard also requires `learning_resource_versions.provenance.package_id`, a matching curriculum package scope/root `sub_strand_id` and key prefix, and exact approved `curriculum_outcome_aliases`. Obtain these from the existing reconciliation authority; never invent aliases or bypass the guard with a different source type.
+
+For legacy `active` outcomes that have been explicitly reconciled through `vs_curriculum_package_gate`, set `curriculum_package_id` to the real package ID and supply exactly the alias(es) mapped to that outcome in `vs_curriculum_alias_outcomes`. This trusted, read-only gated check is separate from the direct `verified`-import path and avoids incorrectly blocking Grade 4 Time. An arbitrary package name or alias cannot establish readiness. Only the assembled manifest root uses `source_type='platform_generated'`; do not relabel authored teaching content to bypass the pre-existing curriculum promotion guard.
 
 The audit checks:
-1. Bound stable outcome ID and reconciled source authority (`status='verified'`, verification timestamp, source import ID and official source locator).
+1. Bound stable outcome ID and reconciled source authority: either verified import with timestamp/import ID/source locator and no package aliases; or matching package ID, exact outcome aliases, a nonempty locator and an authoritative `vs_curriculum_package_gate=PASS`.
 2. Correct shape, typed UUIDs, role-specific asset kinds, exact version→root pairing, absence of duplicate pins, and provable outcome linkage via `curriculum_outcome_id` or the existing `content_block_outcome_links` relation.
 3. Assets are `certified`, `active`, `public`, platform-owned when an experience claims ready/released. Drafts may pin candidates but stay incomplete.
 4. Every question ID exists in the **existing** `assessment_questions` bank, is platform-scoped, matches this exact learning outcome, and is `status='confirmed'` with `review_status='approved'` before it counts as complete.
