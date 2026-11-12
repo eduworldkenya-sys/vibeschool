@@ -68,10 +68,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   let uploadedPath: string | null = null
   let newRootId: string | null = null
+  let committed = false
+  let cleanupAdmin: ReturnType<typeof import('@/lib/visual-library/server').visualAdminClient> | null = null
   try {
     const session = await requireVisualHQ(req)
     if (!session) return visualJson({ error: 'Forbidden' }, 403)
     const { admin, user } = session
+    cleanupAdmin = admin
     const bytesHeader = Number(req.headers.get('content-length') || 0)
     if (bytesHeader > VISUAL_MAX_BYTES + 25000) return visualJson({ error: 'Image is too large.' }, 413)
     const form = await req.formData()
@@ -148,11 +151,15 @@ export async function POST(req: NextRequest) {
       provenance: { origin: 'hq_visual_library', source_resource_id: source.id, uploaded_by: user.id }, created_by: user.id,
     })
     if (versionError) return visualJson({ error: 'Could not save the visual version.' }, 503)
+    committed = true
     return visualJson({ id: root.id, status: 'candidate', message: 'Saved as a private draft. Not published.' }, 201)
   } catch {
     return visualJson({ error: 'Visual upload failed.' }, 503)
   } finally {
-    // Compensation runs only when an incomplete write is detected below; completed writes are retained.
-    // See the guarded cleanup route at POST finalization.
+    if (!committed && cleanupAdmin) {
+      // An upload that cannot be registered must not leave an orphan object or root.
+      if (newRootId) await cleanupAdmin.from('learning_resources').delete().eq('id', newRootId)
+      if (uploadedPath) await cleanupAdmin.storage.from(VISUAL_DRAFT_BUCKET).remove([uploadedPath])
+    }
   }
 }
