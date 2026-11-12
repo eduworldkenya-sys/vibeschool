@@ -115,6 +115,15 @@ assert.match(logout, /Cache-Control/)
 assert.match(sw, /url\.pathname\.startsWith\('\/auth\/'\)/)
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/)
 
+// Independent adult onboarding cannot make school/child membership a signup gate.
+const fastEntry = read('supabase/migrations/20261113021000_independent_adult_fast_entry.sql')
+assert.match(fastEntry, /get_my_auth_journey_state/)
+assert.match(fastEntry, /TEACHER_SCHOOL_REQUIRED[\\s\\S]*?state','ready'[\\s\\S]*?destination','\\/teacher\\/pulse'/)
+assert.match(fastEntry, /PARENT_CHILD_REQUIRED[\\s\\S]*?state','ready'[\\s\\S]*?destination','\\/parent'/)
+assert.match(fastEntry, /INDEPENDENT_LEARNER_VERIFIED/)
+assert.match(fastEntry, /ROLE_UNCLAIMED/)
+assert.doesNotMatch(fastEntry, /(?:update|insert\\s+into|delete\\s+from)\\s+public\\.(?:profiles|students|school_members|parent_student_links)/i)
+
 console.log('Auth & onboarding authority contract: PASS')
 
 
