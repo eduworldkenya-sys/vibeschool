@@ -1496,7 +1496,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
            : `${totalLessons} school lessons · ${tuitionWeek.filter(lesson => lesson.status === 'scheduled').length} tuition lessons this week`}
         </div>
 
-        <div className="no-print" style={{ marginTop: 14 }}>
+        {scheduleContext === 'school' && <div className="no-print" style={{ marginTop: 14 }}>
           <button
             type="button"
             onClick={() => canAddSlot && setShowAddSlot(true)}
@@ -1512,7 +1512,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           >
             + Add Lesson
           </button>
-        </div>
+        </div>}
 
         {/* FIX [UI-07]: separate NOW and NEXT rows for clarity */}
         {scheduleContext !== 'independent' && isToday && !loading && (nowSlot || nextSlot) && (
@@ -1726,7 +1726,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Daily view</Btn>
         <Btn variant={view === 'week' ? 'primary' : 'ghost'} small onClick={() => chooseView('week')}>Weekly sheet</Btn>
         <Btn variant="ghost" small onClick={() => window.print()}>Print</Btn>
-        {scheduleContext === 'school' && <Btn
+        {scheduleContext === 'school' && canAddSlot && <Btn
           variant="ghost"
           small
           onClick={async () => {
@@ -1751,7 +1751,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         </Btn>}
         <Btn variant="ghost" small onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare lesson</Btn>
         {scheduleContext === 'school' && <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>School day setup</Btn>}
-        {scheduleContext === 'school' && lastUndoSnapshotId && (
+        {scheduleContext === 'school' && canAddSlot && lastUndoSnapshotId && (
           <Btn
             variant="ghost"
             small
