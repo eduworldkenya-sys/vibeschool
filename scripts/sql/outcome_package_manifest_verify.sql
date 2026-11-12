@@ -27,7 +27,7 @@ begin
     source_type,title,owner_type,visibility,canonical_key,
     asset_kind,purpose,curriculum_outcome_id
   ) values (
-    'platform_authored','P0 test core','platform','public','p0-test-core-'||gen_random_uuid(),
+    'platform_generated','P0 test core','platform','public','p0-test-core-'||gen_random_uuid(),
     'learner_notes','teach',o.id
   ) returning id into core_id;
   insert into public.learning_resource_versions(
