@@ -82,4 +82,29 @@ comment on function public.vs_published_grade4_time_practice(uuid) is
 -- Public execution rights are limited to the two allowlisted reader responses.
 -- The underlying alias, outcome, manifest and version tables retain their existing
 -- owner-only/write and RLS boundaries.
+
+-- Catalogue only outcomes with at least one currently released, eligible unit.
+create or replace function public.vs_published_grade4_time_outcomes()
+returns table(outcome_id uuid, outcome_code text, outcome_text text, source_locator text, lesson_count bigint)
+language sql stable security definer set search_path = ''
+as $catalogue$
+  select o.id, o.outcome_code::text, o.outcome_text::text,
+    o.source_locator::text, count(distinct released.resource_version_id)
+  from public.vs_public_grade4_math_time_learner_lessons() released
+  join public.learning_resource_versions v on v.id = released.resource_version_id
+  join public.vs_curriculum_resource_aliases ra
+    on ra.resource_id = v.resource_id and ra.package_id = 'VS-G04-MA-2.6-TIME-20261111'
+  join public.vs_curriculum_alias_outcomes ao
+    on ao.package_id = ra.package_id and ao.manuscript_alias = ra.manuscript_alias
+  join public.curriculum_learning_outcomes o on o.id = ao.outcome_id
+  where o.status = 'active'
+    and o.sub_strand_id = 'e975dcc6-32a9-4274-a2a3-3d19e409cf5c'::uuid
+  group by o.id, o.outcome_code, o.outcome_text, o.source_locator
+  order by o.outcome_code;
+$catalogue$;
+revoke all on function public.vs_published_grade4_time_outcomes() from public, anon, authenticated;
+grant execute on function public.vs_published_grade4_time_outcomes() to anon, authenticated;
+comment on function public.vs_published_grade4_time_outcomes() is
+  'Canonical released Time outcomes for public learner and teacher navigation; never claims whole-grade publication.';
+
 commit;
