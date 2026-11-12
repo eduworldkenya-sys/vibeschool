@@ -136,7 +136,7 @@ begin
   get diagnostics v_upserted = row_count;
   return jsonb_build_object('school_id', p_school_id, 'academic_term_id', p_academic_term_id, 'reconciled', v_upserted);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_class_subject_allocation(p_class_id uuid, p_subject_id uuid, p_academic_term_id uuid, p_effective_units_per_week numeric DEFAULT NULL::numeric, p_override_reason text DEFAULT NULL::text)
@@ -205,7 +205,7 @@ begin
   returning * into v_row;
   return v_row;
 end;
-$function$
+$function$;
 
 
 create or replace function
