@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import { formatGrade4TimeLessonBody } from '@/lib/content/grade4TimePresentation.mjs'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 
 type Outcome = {
@@ -39,9 +40,17 @@ type Guide = { id: string; title: string; guidance: Record<string, unknown> }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const PANEL = { border: '1px solid #d7e5db', background: '#fff', borderRadius: 14, padding: 16 } as const
 const LINK = { display: 'inline-block', border: '1px solid #b4d5c2', borderRadius: 10, padding: '9px 12px', color: '#155e46', textDecoration: 'none', fontWeight: 700 as const }
-const safeString = (v: unknown): string =>
-  typeof v === 'string' ? v : typeof v === 'number' ? String(v) :
-  Array.isArray(v) ? v.map(safeString).filter(Boolean).join('\n') : ''
+const safeString = (v: unknown): string => {
+  if (typeof v === 'string' || typeof v === 'number') return String(v)
+  if (Array.isArray(v)) return v.map(safeString).filter(Boolean).join('\n')
+  if (v && typeof v === 'object') {
+    return Object.entries(v).map(([key, value]) => {
+      const text = safeString(value)
+      return text ? `${key.replaceAll('_', ' ')}: ${text}` : ''
+    }).filter(Boolean).join('\n')
+  }
+  return ''
+}
 
 /**
  * Published version is the single source for learner/teacher reading.
@@ -173,16 +182,16 @@ export default function Grade4TimeOutcomePackage({
 
   return <main style={{ maxWidth: 960, margin: '0 auto', padding: '18px 14px 80px', background: '#f5f9f6', minHeight: '100vh', color: '#193e2d' }}>
     <p style={{ color: '#176147', fontSize: 12, fontWeight: 800 }}>VIBESCHOOL ORIGINALS · GRADE 4 MATHEMATICS · TIME</p>
-    <h1 style={{ margin: '4px 0 10px', fontSize: 28 }}>{audience === 'teacher' ? 'Outcome teaching package' : 'Learn one outcome'}</h1>
+    <h1 style={{ margin: '4px 0 10px', fontSize: 28 }}>{audience === 'teacher' ? 'Time teaching materials' : 'Learn about time'}</h1>
     <p style={{ fontSize: 14, color: '#486554', lineHeight: 1.7 }}>
-      All content is read from certified versions of the same Time resource library.
+      Learn and practise time using the lessons and activities below.
       {audience === 'teacher'
-        ? ' Choose a verified outcome before preparing notes, guidance or exercises. No timetable is needed.'
+        ? ' Choose a learning goal before preparing notes, guidance or exercises. No timetable is needed.'
         : ' Choose what you want to learn. No class code or teacher assignment is needed.'}
     </p>
 
     <section style={{ ...PANEL, marginTop: 18 }}>
-      <h2 style={{ marginTop: 0, fontSize: 18 }}>Curriculum outcomes</h2>
+      <h2 style={{ marginTop: 0, fontSize: 18 }}>What you will learn</h2>
       {catalogue.length === 0 && !error ? <p role="status">Loading published outcomes…</p> : null}
       <div style={{ display: 'grid', gap: 9 }}>
         {catalogue.map(row => <Link key={row.outcome_id} href={hrefFor(row.outcome_id)}
@@ -202,7 +211,7 @@ export default function Grade4TimeOutcomePackage({
     {lessons.length > 0 && !error && <section style={{ marginTop: 18 }}>
       <div style={PANEL}>
         <h2 style={{ margin: '0 0 8px', fontSize: 19 }}>{outcome?.outcome_text}</h2>
-        <p style={{ color: '#61766b', fontSize: 12, margin: 0 }}>{outcome?.source_locator} · VibeSchool certified teaching content</p>
+        <p style={{ color: '#61766b', fontSize: 12, margin: 0 }}>Grade 4 Mathematics · Time</p>
       </div>
       <nav aria-label="Outcome package tools" style={{ display: 'flex', flexWrap: 'wrap', gap: 9, margin: '12px 0' }}>
         {(['core', 'guide', 'exercise'] as const).map(key => <button key={key} type="button"
@@ -224,7 +233,7 @@ export default function Grade4TimeOutcomePackage({
 
       {selected && tab === 'core' && <article style={PANEL}>
         <h3 style={{ fontSize: 20 }}>{selected.title}</h3>
-        <VisualRichText body={selected.body} style={{ fontSize: 16, lineHeight: 1.8 }} />
+        <VisualRichText body={formatGrade4TimeLessonBody(selected.body)} style={{ fontSize: 16, lineHeight: 1.8 }} />
         <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
         {audience === 'teacher' && <p style={{ fontSize: 12, color: '#64748b' }}>
           This is the released core explanation. Teaching preparation can be drafted separately without scheduling an occurrence.

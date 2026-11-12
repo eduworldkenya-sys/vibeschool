@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import { formatGrade4TimeLessonBody } from '@/lib/content/grade4TimePresentation.mjs'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 
 type Lesson = {
@@ -114,7 +115,7 @@ export default function Grade4TimeContentReader() {
             </div>
             {current && <article aria-live="polite">
               <h3 style={{ fontSize: 20, margin: '0 0 12px' }}>{current.title}</h3>
-              <VisualRichText body={current.body} style={{ fontSize: 16, lineHeight: 1.8 }} />
+              <VisualRichText body={formatGrade4TimeLessonBody(current.body)} style={{ fontSize: 16, lineHeight: 1.8 }} />
               <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
               {currentIndex + 1 < lessons.length && (
                 <button type="button" onClick={() => setSelected(lessons[currentIndex+1].id)}
@@ -137,8 +138,8 @@ export default function Grade4TimeContentReader() {
         </div>
       </section>}
       <p style={{ fontSize: 12, color: '#66786d', lineHeight: 1.6, marginTop: 14 }}>
-        VibeSchool-original content aligned to the KICD Grade 4 Mathematics Time learning scope.
-        Only certified learning-resource versions appear in this reader.
+        VibeSchool Mathematics lessons help you learn, practise and check your understanding.
+        Choose a lesson to begin, or practise one learning goal at a time.
       </p>
     </main>
   )
