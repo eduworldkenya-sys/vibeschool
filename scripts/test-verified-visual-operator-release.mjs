@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const migration = readFileSync('supabase/migrations/20261113010000_verified_visual_operator_release.sql','utf8')
+const migration = readFileSync('supabase/migrations/20261112230130_verified_visual_operator_release.sql','utf8')
 const route = readFileSync('app/api/operator/visual-library/release/route.ts','utf8')
 const server = readFileSync('lib/visual-library/server.ts','utf8')
 const original = readFileSync('supabase/migrations/20260818142200_canonical_learning_resource_promotion_authority.sql','utf8')
