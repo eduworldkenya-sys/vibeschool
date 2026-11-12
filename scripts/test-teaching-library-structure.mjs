@@ -122,3 +122,16 @@ assert.ok(!libraryUi.includes('No linked items yet · View'), 'Heavy 15-card cat
 console.log('Teaching Library senior readiness contract: PASS — scoped navigation, exact-version certification, protected reader and optional resources.')
 
 assert.ok(!resourcePage.includes('new Date().toISOString().slice(0, 10)'), 'Nairobi instructional week must not use UTC calendar date')
+
+
+const trackedTypes = fs.readFileSync('lib/database.types.ts', 'utf8')
+const typedLinkStart = trackedTypes.indexOf('      teaching_resource_links: {')
+const typedLinkEnd = trackedTypes.indexOf('      term_weeks: {', typedLinkStart)
+assert.ok(typedLinkStart >= 0 && typedLinkEnd > typedLinkStart, 'canonical teaching link table must remain typed')
+const typedLinks = trackedTypes.slice(typedLinkStart, typedLinkEnd)
+for (const contract of [
+  'resource_version_id: string | null',
+  'resource_version_id?: string | null',
+  'teaching_resource_links_resource_version_id_fkey',
+  'referencedRelation: "learning_resource_versions"',
+]) assert.ok(typedLinks.includes(contract), 'Supabase generated link/version contract drift: ' + contract)
