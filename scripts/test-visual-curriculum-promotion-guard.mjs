@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const migration = readFileSync('supabase/migrations/20261112201500_visual_aid_promotion_guard_scoped.sql','utf8')
+const migration = readFileSync('supabase/migrations/20261112195305_visual_aid_promotion_guard_scoped.sql','utf8')
 
 test('visual library verification is narrowly exempted from manuscript package gate', () => {
   const start = migration.indexOf("if r.asset_kind = 'visual_aid' then")
@@ -37,4 +37,12 @@ test('all other platform manuscript gates and owner certification stay protected
   assert.doesNotMatch(migration,/create or replace function public\.cla_certify_learning_resource_version/i)
   assert.doesNotMatch(migration,/grant\s+execute\s+on\s+function/i)
   assert.doesNotMatch(migration,/alter table public\.learning_resources/i)
+})
+
+test('Time source diagram accurately shows six groups with exactly ten counters', () => {
+  const svg = readFileSync('content/curriculum/production/grade4-time-expanded-visuals/six-groups-of-ten.svg','utf8')
+  assert.equal((svg.match(/<circle /g)||[]).length,60)
+  assert.equal((svg.match(/10 minutes<\/text>/g)||[]).length,6)
+  assert.match(svg,/6 × 10 minutes = 60 minutes = 1 hour/)
+  assert.match(svg,/<desc id="desc">Six separate boxes, each containing exactly ten dots/)
 })
