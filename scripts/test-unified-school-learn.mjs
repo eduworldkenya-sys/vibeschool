@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import {
-  SCHOOL_LEVELS, fallbackSubjectGroups, groupsForAvailableSubjects,
-  levelForGrade, readersForSubject, recogniseLearnerGrade, subjectKey,
-} from '../lib/learn/schoolCatalog.ts'
+import ts from 'typescript'
+const source = readFileSync(new URL('../lib/learn/schoolCatalog.ts', import.meta.url), 'utf8')
+const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText
+const { SCHOOL_LEVELS, fallbackSubjectGroups, groupsForAvailableSubjects,
+  levelForGrade, readersForSubject, recogniseLearnerGrade, subjectKey } =
+  await import('data:text/javascript;base64,' + Buffer.from(compiled).toString('base64'))
 
 const read = name => readFileSync(new URL('../' + name, import.meta.url), 'utf8')
 const ui = read('components/learn/SchoolLearnLibrary.tsx')
