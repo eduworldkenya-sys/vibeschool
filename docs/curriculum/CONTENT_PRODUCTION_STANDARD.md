@@ -1,6 +1,6 @@
 # VibeSchool Curriculum Content Production Standard — Grades 1–9
 
-**Policy version:** 1.2
+**Policy version:** 1.3
 **Learning-first and assessment-lineage revision:** 12 November 2026  
 **Decision:** Approved by the VibeSchool owner, 11 November 2026  
 **Scope:** All new and materially revised VibeSchool-original competency-based content for Grades 1–9, across subjects, terms and learner/teacher surfaces  
@@ -187,6 +187,37 @@ For a declared outcome or appropriate completed topic, verify these **distinct f
 | **Learning evidence** | Actual response/performance or observed study results and honest gap reporting; no invented progress | Record not tested, run suitable checks or narrow the claim |
 
 **Required outcome record:** core learning reference; supplementary activities linked or justified as not applicable; revision eligibility and reference (or **not yet taught / not applicable / not produced**); teacher support; item/variant references; verified curriculum gate; answer/rubric checks; real quality status; actual integration and publication status. A full subject can have draft revision resources for as-yet-untaught topics, but those drafts cannot masquerade as completed learner revision or measured mastery.
+
+## 4D. Atomic three-experience production — generate together, release by purpose
+
+**Mandatory production unit:** Once the requested curriculum scope has passed the official KICD ↔ canonical VibeSchool reconciliation gate, the smallest normal unit of content production is **one complete learning-outcome package**. In one connected authoring pass, create the outcome's **Core Learning + Supplementary Practice + Revision readiness/content + Teacher Support**, with shared source/outcome lineage and correct answer authority. **Do not write an entire core textbook for a subject and postpone all supplementary and revision authoring to a separate later project.** Equally, do not create three isolated books, three copies of an explanation, separate question banks or speculative UI flows.
+
+**Order within each outcome** (a production dependency, not three independent phases for the entire subject):
+
+1. **Verify:** read the current authoritative KICD design and VibeSchool canonical curriculum, reconcile the exact outcome and dependencies, and correct mismatches before writing any component. Preserve stable outcome IDs and existing Scheme/teacher links.
+2. **Design once:** record what the learner should understand or perform; prerequisites, grade/ability considerations, pedagogical approach, teaching aids, common misconceptions and observable evidence. Determine which modalities genuinely fit (calculation, oral work, inquiry, physical demonstration, writing, imagery, assessment rubric).
+3. **Write core:** deliver the age-sensitive explanation/exploration, logically ordered worked model/demonstration with all relevant reasons, guided attempt, independent understanding check and teacher instructions. Check the educational substance *before* deriving questions from it.
+4. **Write supplementary:** in the same outcome package, design meaningful supported, independent, remedial and extension activities **where applicable**, with checked solutions/performance rubrics, misconceptions, feedback and accessible/low-resource alternatives. The count and format depend on skill complexity; no arbitrary quota.
+5. **Write revision readiness:** in the same package, create concise original retrieval prompts, varied application/transfer or performance items, explained answers and a planned **wrong answer → precise core explanation → targeted supplementary practice → fresh check** route. **Authoring revision before study is allowed; using it or claiming individual mastery is governed by evidence that the learner actually studied/attempted the relevant outcome.**
+6. **Link, inspect and repair:** preserve stable canonical content, activity and question identities, answer authority, intended visibility/exposure, eligible use and version. Use the existing Content Engine, reader, teaching and assessment consumers. Protect formal-exam item pools from worked examples and revealed practice answers; do not duplicate the question engine.
+7. **Gate the package:** verify subject accuracy and mathematics steps/units/formulas where applicable; age/ability appropriateness; teaching and learner usability; credible answers/rubrics and feedback; originality/media rights; accessible alternatives; no padding; and legitimate scope/version/release status. Fix defects and re-evaluate. **Only then advance to the next outcome** within the requested scope.
+
+**Deliver one outcome record:** the official source page/section and reconciled VibeSchool stable outcome ID; the *one* master explanation and teaching assets; core, supplementary and revision content/reference IDs and checked answers; teacher notes/guide; supported/core/extension choices; linked assessment eligibility; exact canonical consumer links or `NOT_CONNECTED`; and authoring, quality and release evidence. A valid `NOT_APPLICABLE` for a component requires an outcome-specific instructional reason, never an empty placeholder. For a topic with several outcomes, each package must have its own identity; related packages should reuse relevant concepts and visuals rather than duplicating them.
+
+### Topic, term and subject consolidation — assembled incrementally
+
+| Completion boundary | What is authored in addition to outcome packages | Scope and release safeguard |
+| --- | --- | --- |
+| **Outcome finished** | Core + suitable supplementary + suitable revision prompts/answers + teacher support and traceable question identities | Marks **content authored/checked** only as demonstrated, not learner mastery or published access |
+| **Sub-strand/topic finished** | Short synthesis, integrated multi-outcome tasks, varied practice, mixed retrieval/application revision, targeted misconception/reteach paths | Every included outcome must be KICD-reconciled and linked; no random unrelated questions |
+| **Term finished** | Term summary and appropriate mixed/spaced practice or performance revision, teacher revision guidance and eligible assessment blueprint | Include only verified term scope; distinguish intended curriculum sequence from a particular learner's completed lessons |
+| **Declared subject finished** | Cross-topic cumulative revision/transfer, complete source coverage ledger, integration audit, teacher/independent learner navigation and remaining gap register | Do not call one term/strand a full subject or count unvisited/draft exercises as released |
+
+**One-pass versus one-shot:** generate all three pedagogical purposes **within an outcome package**, then progress in sensible sub-strand batches. It is not a requirement to generate the whole subject in one model message, and it never authorizes unfinished chapters, invented source checks, automatic publication, fake progress or bypass of independent quality/release requirements.
+
+**Illustrative Grade 4 Mathematics Time outcome (not a claim of a checked official curriculum allocation):** core explains why 1 hour equals 60 minutes and models 3 hours = 180 minutes step by step; supplementary activity guides 2-hour conversion, checks 5 hours independently, provides concrete groups of 60 and an appropriate extension; revision contains an appropriately fresh application question with answers revealed under formative policy, plus a precise remedial link and a later fresh check. The question and feedback relationships are authored in one package, but the learner's revision status and actual automatic navigation require observed learning evidence and verified product integration.
+
+**Quality contract:** The product is learner understanding and genuine teacher support, not production volume. If the core is shallow, the practice repetitive, the revision only recycled visible answers, a visual wrong, the assessment key unchecked, or the teacher guide unusable, **the outcome package fails** regardless of how many items it contains. Reinforce missing content before multiplying it across the subject.
 
 ## 5. Curriculum identity and planning separation
 
@@ -394,6 +425,7 @@ These are model explanations of **how to author content**, not claims that these
 | Subject correctness | Explanations, facts, methods and answer keys independently checked | Correct material and reverify affected items |
 | Pedagogical depth | Understand → example → experience/practise → check → feedback, where applicable | Author the missing function; not filler |
 | Three complementary experiences | Core teaching, purposeful supplementary activity and meaningful revision have distinct purposes, canonical outcome IDs and relevant links | Add or repair missing applicable experience; do not duplicate books or question-bank authority |
+| Atomic outcome-package production | Core, supplementary and revision readiness with teacher guidance are authored, checked and linked in the same outcome pass; topic/term consolidation is incrementally assembled | Do not defer an entire content category until after the textbook or mark a partially authored package complete |
 | Ability-sensitive learning and teacher readiness | Prerequisites, scaffold/core/extension where useful; teacher can teach, assess and intervene using the guide | Revise explanations, pacing, materials, prompts or adaptation; validate with users when feasible |
 | Assessment exposure and lineage | Stable item/outcome references; worked examples are not treated as secure exam items; protected answers and fresh variants respected | Repair eligibility/lineage, retire leaked items, recheck security and feedback |
 | Authenticity and originality | VibeSchool-authored material with traceable external rights/source usage | Rewrite, license or remove unsupported material |
