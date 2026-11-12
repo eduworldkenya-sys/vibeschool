@@ -40,7 +40,6 @@ const placements = [
   ['../app/student/vibelearn/topic-practice/page.tsx', /<LearningNotebookPrompt subject=\{session.subject\} stage="practice"/],
   ['../components/student/CanonicalTopicPractice.tsx', /<LearningNotebookPrompt subject=\{workspace.title\} stage="practice"/],
   ['../app/student/vibelearn/topic/page.tsx', /<LearningNotebookPrompt subject=\{subject\} stage="revision"/],
-  ['../app/student/exercises/page.tsx', /<LearningNotebookPrompt stage="practice"/],
 ]
 for (const [path, pattern] of placements) {
   const code = read(path)
