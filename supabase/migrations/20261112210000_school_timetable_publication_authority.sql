@@ -82,6 +82,7 @@ declare
   v_missing_allocations integer;
   v_bad_allocations integer;
   v_unallocated integer;
+  v_uncovered_classes integer;
 begin
   select * into v from public.timetable_releases where id = p_release_id;
   if not found then raise exception 'RELEASE_NOT_FOUND'; end if;
@@ -171,6 +172,21 @@ begin
   where a.effective_units_per_week is null
      or coalesce(x.units,0) is distinct from a.effective_units_per_week;
 
+  -- School-wide publication must cover every class with an effective
+  -- class-subject allocation, including classes with zero scheduled slots.
+  -- Checking only classes in the candidate release could certify a partial
+  -- timetable as the entire school's shared timetable.
+  select count(distinct a.class_id) into v_uncovered_classes
+  from public.class_subject_allocations a
+  where a.school_id=v.school_id and a.effective_from<=v.effective_from
+    and (a.effective_until is null or a.effective_until>=v.effective_from)
+    and not exists (
+      select 1 from public.timetable_slots ts
+      where ts.school_id=v.school_id and ts.release_id=v.id
+        and ts.class_id=a.class_id and ts.effective_from<=v.effective_from
+        and (ts.effective_until is null or ts.effective_until>=v.effective_from)
+    );
+
   -- Never approve a release with a subject that lacks any active assignment
   -- target, or one with duplicate/ambiguous targets for the same date.
   select count(*) into v_unallocated from (
@@ -192,10 +208,12 @@ begin
     'missing_allocation_count',v_missing_allocations,
     'allocation_mismatch_count',v_bad_allocations,
     'ambiguous_allocation_count',v_unallocated,
+    'uncovered_school_class_count',v_uncovered_classes,
     'ready',v_periods>0 and v_slots>0 and v_invalid_periods=0
        and v_invalid_assignments=0 and v_unreleased=0
        and v_missing_allocations=0 and v_bad_allocations=0
        and v_unallocated=0
+       and v_uncovered_classes=0
   );
 end;
 $body$;
