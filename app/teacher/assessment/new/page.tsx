@@ -21,10 +21,10 @@ async function rpc<T>(name: string, args: Record<string, unknown>): Promise<RpcR
 }
 
 const LABEL: Record<StudioType, string> = { exercise: 'Class Exercise', quiz: 'Quick Quiz', homework: 'Homework', test: 'CAT' }
-const SPEC: Record<StudioType, { minutes: number; purpose: string }> = {
+const SPEC: Record<StudioType, { minutes: number | null; purpose: string }> = {
   exercise: { minutes: 25, purpose: 'Guided practice on today’s taught outcomes.' },
   quiz: { minutes: 15, purpose: 'A short independent mastery check.' },
-  homework: { minutes: 35, purpose: 'Independent reinforcement using a certified homework task.' },
+  homework: { minutes: null, purpose: 'Independent reinforcement using a certified homework task.' },
   test: { minutes: 40, purpose: 'Formal cumulative assessment across completed teaching.' },
 }
 
@@ -38,7 +38,7 @@ function questionsFor(type: StudioType, body: string, outcomeRefs: LessonOutcome
   if (type === 'quiz') return outcomes.slice(0, 3).map((outcome, index) => question(outcome, index === 0 ? 2 : 3, index === 0 ? 'remember' : 'understand', index === 0 ? 'easy' : 'medium', [outcome]))
   const homework = section(body, 'homework')
   if (!homework || /no certified homework task|do not invent/i.test(homework)) return []
-  return [question(homework, 10, 'apply', 'medium', outcomes), question(`Apply this taught outcome in a new context: ${outcomes[0]}`, 5, 'create', 'hard', [outcomes[0]])]
+  return [question(homework, 10, 'apply', 'medium', outcomes)]
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -141,7 +141,7 @@ function Studio() {
       </p>
     </section>
     <section style={card}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>{(Object.keys(LABEL) as StudioType[]).map(materialType => <button key={materialType} type="button" onClick={() => setType(materialType)} style={{ padding: 14, borderRadius: 12, border: type === materialType ? '2px solid #4338ca' : '1px solid #d1d5db', background: type === materialType ? '#eef2ff' : '#fff', fontWeight: 800 }}>{LABEL[materialType]}</button>)}</div></section>
-    <section style={card}><div style={eyebrow}>{LABEL[type]}</div><h2>{SPEC[type].purpose}</h2>{loading ? <p>Loading authoritative lesson…</p> : questions.length === 0 ? <div style={notice}>{blocked}</div> : <><div>{questions.length} questions · {totalMarks} marks · about {SPEC[type].minutes} minutes</div><ol>{questions.map((item, index) => <li key={`${item.prompt}-${index}`} style={{ marginBottom: 10 }}>{item.prompt} <strong>({item.marks})</strong></li>)}</ol></>}</section>
+    <section style={card}><div style={eyebrow}>{LABEL[type]}</div><h2>{SPEC[type].purpose}</h2>{loading ? <p>Loading authoritative lesson…</p> : questions.length === 0 ? <div style={notice}>{blocked}</div> : <><div>{questions.length} {questions.length === 1 ? 'task' : 'questions'} · {totalMarks} marks{SPEC[type].minutes ? ` · about ${SPEC[type].minutes} minutes` : ''}</div><ol>{questions.map((item, index) => <li key={`${item.prompt}-${index}`} style={{ marginBottom: 10 }}>{item.prompt} <strong>({item.marks})</strong></li>)}</ol></>}</section>
     {error && <div style={errorBox}>{error}</div>}
     {type === 'test' ? <button type="button" onClick={() => router.push(`/teacher/assessment/cat/new?lessonPlanId=${encodeURIComponent(lessonPlanId)}`)} style={{ ...primary, width: '100%' }}>Open cumulative CAT workspace</button> : questions.length > 0 ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}><button type="button" disabled={saving} onClick={() => void prepare(false)} style={primary}>{saving ? 'Preparing…' : 'Review & assign'}</button><button type="button" disabled={saving} onClick={() => void prepare(true)} style={secondary}>Advanced Edit</button></div> : null}
   </div></section>

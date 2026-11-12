@@ -121,10 +121,10 @@ export default function LessonTeachMode({
   const step = available[safeIndex]
 
   useEffect(() => {
-    if (total === null || !teachingStarted) return undefined
+    if (total === null || !teachingStarted || context?.lifecycle === 'completed') return undefined
     const timer = window.setInterval(() => setElapsedSeconds(value => value + 1), 1000)
     return () => window.clearInterval(timer)
-  }, [total, teachingStarted])
+  }, [total, teachingStarted, context?.lifecycle])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -324,12 +324,12 @@ export default function LessonTeachMode({
           <div style={{ background:"var(--teacher-ink, #1c2923)", color:'#fff', borderRadius:14, padding:12, marginBottom:12 }}>
             <div style={{ fontSize:11, opacity:.75, textTransform:'uppercase', fontWeight:800 }}>Lesson remaining · Total lesson time: {total} min</div>
             <div style={{ fontSize:24, fontWeight:750, marginTop:3 }}>{remainingMinutes}:{remainingRemainder}</div>
-            {!teachingStarted && (
+            {!teachingStarted && context?.lifecycle !== 'completed' && (
               <button type="button" onClick={() => { setTeachingStarted(true); persist(safeIndex, scratchpad, true) }} style={{ ...actionStyle, marginTop:10, background:'#fff', color:'var(--teacher-ink, #1c2923)' }}>
                 Start teaching
               </button>
             )}
-            {teachingStarted && <div style={{ fontSize:11, marginTop:5, opacity:.8 }}>Timer running · progress is saved on this device</div>}
+            {teachingStarted && context?.lifecycle !== 'completed' && <div style={{ fontSize:11, marginTop:5, opacity:.8 }}>Timer running · progress is saved on this device</div>}
           </div>
         )}
 
@@ -344,6 +344,9 @@ export default function LessonTeachMode({
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
+          {step.key === 'assessmentHook' && context && (
+            <button type="button" style={{ ...actionStyle, marginTop: 12, marginRight: 8 }} onClick={() => openAction('/teacher/assessment')}>Record learner observations</button>
+          )}
           {step.key === 'assessmentHook' && onCaptureEvidence && (
             <button type="button" style={{ ...actionStyle, marginTop: 12 }} onClick={onCaptureEvidence}>Record observation or evidence</button>
           )}
