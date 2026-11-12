@@ -59,7 +59,7 @@ function Grade4TimeLessonArticle({
   // The formatter hides internal question IDs but preserves all explanations
   // and approved [visual:UUID] placeholders for the certified asset resolver.
   const parsed = useMemo(
-    () => parseGrade4TimeLessonSections(formatGrade4TimeLessonBody(lesson.body)),
+    () => parseGrade4TimeLessonSections(lesson.body),
     [lesson.body],
   )
 
@@ -251,7 +251,7 @@ export default function Grade4TimeContentReader() {
             </div>
             <Grade4TimeLessonArticle
               key={current.id}
-              lesson={current}
+              lesson={{ ...current, body: formatGrade4TimeLessonBody(current.body) }}
               total={lessons.length}
               previousAvailable={currentIndex > 0}
               nextAvailable={currentIndex + 1 < lessons.length}
