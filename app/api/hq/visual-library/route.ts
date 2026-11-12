@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       .select('id,resource_id,version,lifecycle_status,payload,created_at')
       .in('resource_id', ids).order('version', { ascending: false })
     if (versionsError) return visualJson({ error: 'Visual versions unavailable.' }, 503)
-    const versionByRoot = new Map<string, { resource_id: string; version: number; lifecycle_status: string; payload: unknown }>()
+    const versionByRoot = new Map<string, { id: string; resource_id: string; version: number; lifecycle_status: string; payload: unknown }>()
     for (const version of versions || []) if (!versionByRoot.has(version.resource_id)) versionByRoot.set(version.resource_id, version)
     const visuals = await Promise.all((roots || []).map(async root => {
       const version = versionByRoot.get(root.id)
@@ -54,7 +54,9 @@ export async function GET(req: NextRequest) {
         type: payload.visual_type, caption: payload.caption, altText: payload.alt_text,
         labels: payload.labels, placements: payload.placements, createdAt: root.created_at,
         version: version?.version, lifecycle: version?.lifecycle_status, previewUrl: signed?.signedUrl || null,
-        referenceToken: '[visual:' + root.id + ']',
+        referenceToken: version?.lifecycle_status === 'certified' && root.status === 'active' && root.visibility === 'public'
+          ? '[visual:' + root.id + '@' + version.id + ']' : null,
+        resourceVersionId: version?.id || null,
       }
     }))
     return visualJson({ visuals: visuals.filter(Boolean) })
