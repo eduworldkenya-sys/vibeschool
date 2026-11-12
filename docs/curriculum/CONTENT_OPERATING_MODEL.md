@@ -1,5 +1,7 @@
 # VibeSchool Content Production Operating Model — ChatGPT-Led Phase
 
+**START HERE FOR ALL CONTENT GENERATION:** [Single Canonical Content Generation Playbook](./CONTENT_GENERATION.md) is the required unified workflow for ChatGPT-led production, library reuse, the one-outcome Core + Supplementary + Revision + Teacher Support pass, quality and evidence. This document explains the operating model and specialist handoff; if the sequence appears different, use the master playbook and reconcile the discrepancy rather than starting a separate process.
+
 **Decision date:** 11 November 2026  
 **Operating mode:** `CHATGPT_LED_MANUAL_CONTENT_PRODUCTION` (documentation/operating decision, **not** a new runtime flag)  
 **Current scope:** KICD-aligned, VibeSchool-original learning content for Grades 1–9; adaptable to other grades with their own curriculum authority  
