@@ -9,6 +9,14 @@
 **Status:** Repository policy; **not** itself a production deployment, worker commissioning or publishing authorization
 **Current production method (11 November 2026):** **ChatGPT-led manual content production**; follow [Content Production Operating Model](./CONTENT_OPERATING_MODEL.md). New Cyborg content-authoring automation is deferred; current engineering governance and release controls remain unchanged.
 
+## Canonical rich-materials and plain-language addendum (12 November 2026)
+
+The single required playbook remains [CONTENT_GENERATION.md](./CONTENT_GENERATION.md). Its sections **1A, 4.6–4.9, 7A and 9A** additionally require **substantive, structured Teacher Lesson Notes; complete English teaching aids; developed supplementary and revision packets; real, accurately labelled instructional visuals; and a broad, varied, answer-checked question-bank candidate pool** with honest bank/exam eligibility. These educational requirements complement, rather than replace, the deeper subject-specific standards below. Use the [existing outcome package template](./CONTENT_PACKAGE_TEMPLATE.md) to record actual evidence.
+
+**Presentation rule for all subjects:** Learner/teacher lesson prose, examples, questions, feedback, visuals, labels, alt text and print/export must display ordinary learning titles and terminology — **never KICD or other authority names within instructional copy, internal codes such as VS-G4-MA-1.1-01, UUIDs, backend status flags, model/developer jargon or placeholder tokens**. Official evidence and real source IDs remain in internal records and legally required attribution remains in a separate appropriate notice. This paragraph does not claim live UI enforcement.
+
+**Capacity and quality:** For a substantial assessable outcome, plan approximately **15–25 genuinely distinct draft candidate questions where educationally meaningful**, with flexible justified exceptions; do not treat this as a certification quota. Independently check needed answers, rubrics, variations and rights. Separate drafted, verified, bank-linked and protected-exam-eligible items. Existing quality, source reconciliation, approval, security and publication gates remain unchanged.
+
 ## 1. Purpose and operating principle
 
 VibeSchool produces **usable education**, not just a curriculum outline, a list of lesson titles, a PDF, or a set of exam questions. Each required curriculum outcome must be made **teachable, learnable, practicable and assessable**, with appropriate support for both an independent learner and a teacher.
