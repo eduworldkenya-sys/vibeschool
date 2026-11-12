@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation'
-import { safeInternalPath } from '@/lib/auth-routing'
+import { requiredRoleForPath, safeInternalPath } from '@/lib/auth-routing'
 
-// The canonical sign-in form lives at /login/teacher. The generic login URL
-// should open that existing form rather than showing an extra role chooser.
-// Preserve a validated destination for links into protected workspaces.
+// An unauthenticated learner deep link must open learner login, never the
+// teacher form. The generic entry still defaults to teacher when no protected
+// destination provides a more specific role.
 export default function LoginPage({ searchParams }: { searchParams: { redirect?: string; next?: string } }) {
   const destination = safeInternalPath(searchParams.redirect ?? searchParams.next)
-  redirect(destination ? `/login/teacher?redirect=${encodeURIComponent(destination)}` : '/login/teacher')
+  const requiredRole = destination ? requiredRoleForPath(destination) : null
+  const role = requiredRole === 'student' || requiredRole === 'parent' ? requiredRole : 'teacher'
+  redirect(destination ? `/login/${role}?redirect=${encodeURIComponent(destination)}` : `/login/${role}`)
 }
