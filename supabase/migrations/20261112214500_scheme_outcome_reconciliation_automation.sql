@@ -123,6 +123,29 @@ before insert or update of curriculum_outcome_id,scheme_lesson_id
 on public.scheme_lesson_outcomes
 for each row execute function public.scheme_lesson_outcome_identity_guard();
 
+-- If an authorised editor selects one explicit outcome for a planned Scheme
+-- that had no primary identity, fill the primary without choosing between
+-- competing outcomes. Existing mapped writers already supply this directly.
+create or replace function public.scheme_pin_single_linked_outcome()
+returns trigger language plpgsql security invoker set search_path = ''
+as $function$
+begin
+  update public.scheme_of_work s
+  set curriculum_outcome_id=new.curriculum_outcome_id
+  where s.id=new.scheme_lesson_id
+    and s.curriculum_outcome_id is null
+    and s.status='planned'
+    and (select count(*) from public.scheme_lesson_outcomes slo
+         where slo.scheme_lesson_id=new.scheme_lesson_id)=1;
+  return new;
+end;
+$function$;
+
+drop trigger if exists scheme_pin_single_linked_outcome on public.scheme_lesson_outcomes;
+create trigger scheme_pin_single_linked_outcome
+after insert on public.scheme_lesson_outcomes
+for each row execute function public.scheme_pin_single_linked_outcome();
+
 -- Recover an exact saved identity from a SINGLE existing junction link only.
 -- Does not write to teaching/done records or select among multiple outcomes.
 with singles as (
