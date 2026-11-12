@@ -9,6 +9,8 @@ type SavedSample = { id: string; name: string; blocks: SampleBlock[] }
 type Props = {
   schoolId: string; userId: string; schoolName: string;
   canManage: boolean; periodCount: number; onReload: () => Promise<void>;
+  mode?: 'starter' | 'editor'; initialSampleId?: string | null;
+  onSampleChosen?: (sampleId: string) => void;
 }
 const DAYS = ['Every school day','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 const TYPES = ['lesson','break','lunch','assembly','games','club','prep','staff_meeting','guidance','examination','school_event','free','custom']
@@ -19,7 +21,7 @@ const clone = (blocks: readonly SampleBlock[]) => blocks.map(block => ({ ...bloc
  * Local drafts only; authoritative school blocks are created through the
  * existing admin-checked school period RPCs. Never auto-apply a sample.
  */
-export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, canManage, periodCount, onReload }: Props) {
+export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, canManage, periodCount, onReload, mode = 'editor', initialSampleId, onSampleChosen }: Props) {
   const [choice, setChoice] = useState('')
   const [draft, setDraft] = useState<SampleBlock[]>([])
   const [draftName, setDraftName] = useState('')
@@ -49,6 +51,22 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
     } catch { setSaved([]) }
   }, [key])
 
+  useEffect(() => {
+    if (mode !== 'editor' || !initialSampleId) return
+    const sample = SCHOOL_DAY_SAMPLES.find(item => item.id === initialSampleId)
+    if (!sample) return
+    setChoice(sample.id)
+    setDraft(clone(sample.blocks))
+    setDraftName(sample.name)
+    setMessage('Sample opened for editing. No lessons or school periods have changed.')
+  }, [initialSampleId, mode, key])
+
+  function rememberChoice(sampleId: string) {
+    // A browser-local, user-scoped display preference, not a school setting.
+    try { window.localStorage.setItem('vs.timetable.sample-picked.v1.' + userId, sampleId) } catch { /* samples remain usable without storage */ }
+    onSampleChosen?.(sampleId)
+  }
+
   const problems = sampleBlockErrors(draft)
   const canApply = canManage && periodCount === 0 && draft.length > 0 && problems.length === 0 && !busy
 
@@ -60,6 +78,7 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
     if (!existing && !builtin) { setError('Choose a sample first.'); return }
     setDraft(clone((existing ?? builtin)!.blocks))
     setDraftName(existing?.name ?? builtin!.name)
+    rememberChoice(choice)
     setMessage('Sample loaded as an editable draft. Nothing has been changed in the school timetable.')
   }
 
@@ -159,8 +178,30 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
     }
   }
 
+  if (mode === 'starter') return <Card>
+    <SectionLabel>Choose a timetable sample</SectionLabel>
+    <p style={{ color: C.textMuted, fontSize: 12, lineHeight: 1.6, margin: '0 0 12px' }}>
+      Choose a sample to open it in Timetable setup. You can edit it before saving; this will not create or change any scheduled lessons.
+    </p>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 10 }}>
+      {SCHOOL_DAY_SAMPLES.map(sample => <button
+        key={sample.id}
+        type="button"
+        aria-label={'Choose ' + sample.name}
+        onClick={() => rememberChoice(sample.id)}
+        style={{ textAlign: 'left', display: 'grid', alignContent: 'start', gap: 6,
+          border: '1px solid ' + C.border, borderRadius: 12, background: C.surface,
+          padding: 12, cursor: 'pointer', color: C.textPrimary, fontFamily: 'inherit' }}
+      >
+        <strong style={{ fontSize: 13 }}>{sample.name}</strong>
+        <span style={{ fontSize: 12, color: C.textMuted }}>{sample.description}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>Choose & edit in Setup</span>
+      </button>)}
+    </div>
+  </Card>
+
   return <Card>
-    <SectionLabel>Optional timetable samples</SectionLabel>
+    <SectionLabel>Timetable samples and saved templates</SectionLabel>
     <p style={{ color: C.textMuted, fontSize: 12, lineHeight: 1.6, margin: '0 0 12px' }}>
       Examples are never activated automatically. Choose one, edit the clock times and confirm the school's real schedule. Weekly KICD subject allocations, PPI and actual lesson placements remain separate.
     </p>
@@ -175,6 +216,7 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
           setChoice(sample.id)
           setDraft(clone(sample.blocks))
           setDraftName(sample.name)
+          rememberChoice(sample.id)
           setError('')
           setMessage('Sample opened as an editable draft. No school timetable was changed.')
         }}

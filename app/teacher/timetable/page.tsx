@@ -890,6 +890,13 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // occurrence/class/subject identity so it survives sheet navigation.
   const [recoveryCtx,     setRecoveryCtx]      = useState<RecoverySheetContext | null>(null)
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
+  const [showSampleStarter, setShowSampleStarter] = useState(false)
+  useEffect(() => {
+    if (!teacherId) return
+    try {
+      setShowSampleStarter(!window.localStorage.getItem('vs.timetable.sample-picked.v1.' + teacherId))
+    } catch { setShowSampleStarter(true) }
+  }, [teacherId])
   const [weeklyLoadRows,  setWeeklyLoadRows]   = useState<WeeklyLoadRow[]>([])
   const [weeklyLoadError, setWeeklyLoadError]  = useState<string | null>(null)
   const [weeklyLoadRetry, setWeeklyLoadRetry]  = useState(0)
@@ -1496,30 +1503,34 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </div>
 
-      {/* Every signed-in teacher can explore non-authoritative sample periods.
-          This is independent of whether there are existing school lessons,
-          tuition sessions or a temporary failure in the school-context RPC. */}
-      {!loading && teacherId && (
+      {/* Only an unselected teacher sees the starter. Full editing and retrieval
+          remain in Timetable setup, including for teachers with no school. */}
+      {!loading && teacherId && showSampleStarter && (
         <div className="no-print" style={{ marginBottom: 14 }}>
           {!activeSchoolId && (
             <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 10px' }}>
-              No school timetable connected. Explore sample school days, edit and save a personal
-              template on this device. Only a school administrator can publish school periods.
+              No school timetable connected. Choose a sample to edit and save a personal
+              template in Setup. Only a school administrator can publish school periods.
             </p>
           )}
           <SchoolDaySampleBuilder
             key={teacherId + ':' + (activeSchoolId ?? 'independent')}
+            mode="starter"
             userId={teacherId}
             schoolId={activeSchoolId ?? 'independent'}
             schoolName={schools.find(s => s.id === activeSchoolId)?.name ?? 'Independent planning'}
             canManage={false}
             periodCount={0}
             onReload={load}
+            onSampleChosen={sampleId => {
+              setShowSampleStarter(false)
+              router.push('/teacher/timetable/setup?sample=' + encodeURIComponent(sampleId))
+            }}
           />
           {activeSchoolId && (
             <p style={{ fontSize: 12, color: C.textMuted, marginTop: 8 }}>
-              A school administrator can confirm and apply periods in{' '}
-              <a href="/teacher/timetable/setup">School day setup</a>. Samples never create subject lessons.
+              Retrieve or change samples from{' '}
+              <a href="/teacher/timetable/setup">Timetable setup</a>. School periods require administrator confirmation.
             </p>
           )}
         </div>
@@ -1713,7 +1724,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           Repeat from next week
         </Btn>
         <Btn variant="ghost" small onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare lesson</Btn>
-{activeSchoolId && <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>School day setup</Btn>}
+        <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>Timetable setup</Btn>
         {lastUndoSnapshotId && (
           <Btn
             variant="ghost"
