@@ -580,7 +580,7 @@ export default function TeacherResourcesPage() {
 
         <section id="saved-teaching-resources">
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'end', marginBottom: 10 }}>
-            <div><h2 style={{ fontSize: 18, margin: 0 }}>My saved materials</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>My teaching library: personal supplementary materials stay class-scoped.</p></div>
+            <div><h2 style={{ fontSize: 18, margin: 0 }}>My saved materials</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>My teaching library. Teacher-added resources stay class-scoped.</p></div>
           </div>
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10 }}>
             {(['all', ...TYPES.map(t => t.value)] as Array<'all' | ResourceType>).map(value => <button type="button" key={value} onClick={() => setFilter(value)} style={{ border: '1px solid #dbe3ea', background: filter === value ? '#e0f2fe' : '#fff', color: filter === value ? '#075985' : C.textMuted, borderRadius: 999, padding: '7px 10px', fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap' }}>{value === 'all' ? 'All' : typeMeta(value).label}</button>)}
