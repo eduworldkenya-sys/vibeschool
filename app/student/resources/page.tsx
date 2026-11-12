@@ -22,12 +22,11 @@ interface Resource {
 }
 
 const TYPES = [
-  { value: "notes",      label: "Notes"      },
-  { value: "assessment", label: "Assessment" },
-  { value: "exercise",   label: "Exercise"   },
-  { value: "quiz",       label: "Quiz"       },
-  { value: "video",      label: "Video"      },
-  { value: "link",       label: "Links"      },
+  { value: "notes", label: "Notes" },
+  { value: "assignment", label: "Assignments" },
+  { value: "quiz", label: "Quiz resources" },
+  { value: "video", label: "Videos" },
+  { value: "link", label: "Links & other materials" },
 ]
 
 function isSafeUrl(url: string | null): boolean {
@@ -107,11 +106,11 @@ function IconChevron({ open }: { open: boolean }) {
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
-  notes:      <IconNotes />,
-  assessment: <IconAssessment />,
-  exercise:   <IconExercise />,
-  quiz:       <IconQuiz />,
-  video:      <IconVideo />,
+  notes: <IconNotes />,
+  assignment: <IconExercise />,
+  quiz: <IconQuiz />,
+  video: <IconVideo />,
+  link: <IconLink />,
 }
 
 export default function StudentResourcesPage() {
