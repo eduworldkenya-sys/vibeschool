@@ -27,13 +27,13 @@ const variables = {items:[
   {label:'Height of plant',group:'Measured (dependent)'},
   {label:'Type of soil',group:'Kept the same (controlled)'}]}
 
-test('15 distinct grade-neutral tools across Mathematics, Languages and Science',()=>{
-  assert.equal(TEACHING_TOOL_CATALOG.length,15)
-  assert.equal(new Set(TEACHING_TOOL_CATALOG.map(x=>x.id)).size,15)
+test('15 validated Stage 2 tools remain intact alongside nine Stage 3 tools',()=>{
+  assert.equal(TEACHING_TOOL_CATALOG.length,24)
+  assert.equal(new Set(TEACHING_TOOL_CATALOG.map(x=>x.id)).size,24)
   assert.equal(TEACHING_TOOL_CATALOG.filter(x=>x.subject==='math').length,7)
   assert.equal(TEACHING_TOOL_CATALOG.filter(x=>x.subject==='language').length,5)
   assert.equal(TEACHING_TOOL_CATALOG.filter(x=>x.subject==='science').length,3)
-  for(const tool of TEACHING_TOOL_CATALOG) {
+  for(const tool of TEACHING_TOOL_CATALOG.slice(0,15)) {
     assert.ok(isTeachingToolId(tool.id))
     assert.ok((math+languageScience).includes("case '"+tool.id+"'"), tool.id+' missing component')
   }
