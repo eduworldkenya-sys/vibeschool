@@ -148,7 +148,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
       window.setTimeout(()=>{scrollRestoringRef.current=false},150)
     },100)
     return()=>window.clearTimeout(timer)
-  },[mode,loading,active,readableKey(isReadable),saved])
+  },[mode,loading,active,isReadable,saved])
 
   // Keep the latest paragraph and a within-paragraph offset; debounce writes while scrolling.
   useEffect(()=>{
