@@ -67,7 +67,14 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
           .eq('publication_id',id).in('status',['published','locked'])
           .order('number',{ascending:true})
         if(ce)throw ce
-        const available=(chaps||[]) as StoryChapter[]
+        const available=(chaps||[]).map(ch=>({
+          ...ch,
+          blocks:Array.isArray(ch.blocks)?(ch.blocks as unknown[]).filter((b):b is ContentBlock=>{
+            if(!b||typeof b!=='object'||Array.isArray(b))return false
+            const row=b as Record<string,unknown>
+            return typeof row.id==='string' && typeof row.type==='string' && typeof row.content==='string'
+          }):[],
+        })) as StoryChapter[]
         const {data:{user}}=await supabase.auth.getUser()
         let records:SavedProgress[]=[]
         if(user){
@@ -89,7 +96,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
         setSaved(records)
         setSignedIn(Boolean(user))
         const explicit=initialRequest.current.id===id?initialRequest.current.chapter:null
-        const requested=explicit&&available.find(c=>c.id===explicit)
+        const requested=explicit?available.find(c=>c.id===explicit):undefined
         const resumed=initialRequest.current.id===id&&initialRequest.current.resume&&records.length?available.find(c=>c.id===records[0].chapter_id):null
         setActiveId(requested?.id||resumed?.id||available[0]?.id||'')
       }catch{
@@ -172,8 +179,8 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
       const pct=final?100:Math.min(89,clamp(((idx+part/100)/blocks.length)*100))
       const snapshot={chapterId:active!.id,blockId:chosen.dataset.storyBlockId||'',percent:pct,blockOffset:part}
       positionRef.current=snapshot
-      if(writeTimer.current)window.clearTimeout(writeTimer.current)
-      writeTimer.current=window.setTimeout(()=>void persist(snapshot),1600)
+      if(writeTimer.current)clearTimeout(writeTimer.current)
+      writeTimer.current=setTimeout(()=>void persist(snapshot),1600)
     }
     function onScroll(){if(!scheduled){scheduled=true;window.requestAnimationFrame(measure)}}
     function onHidden(){if(document.visibilityState==='hidden'&&positionRef.current)void persist(positionRef.current)}
@@ -184,7 +191,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
       window.clearTimeout(starter)
       window.removeEventListener('scroll',onScroll)
       document.removeEventListener('visibilitychange',onHidden)
-      if(writeTimer.current)window.clearTimeout(writeTimer.current)
+      if(writeTimer.current)clearTimeout(writeTimer.current)
       if(positionRef.current?.chapterId===active.id)void persist(positionRef.current)
     }
   },[mode,active,isReadable,persist])
