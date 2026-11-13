@@ -389,10 +389,10 @@ export default function SpinStudio() {
         </aside>}
         <section className={styles.previewSection} aria-label="Wheel preview">
           {!recording && <div className={styles.previewTop}><span>LIVE PREVIEW</span><span>{format==='portrait'?'9:16':format==='landscape'?'16:9':'1:1'} · Ready to record</span></div>}
-          <div ref={stageRef} className={[styles.stage,styles[format],styles[wheel.theme]].join(' ')}>
+          <div ref={stageRef} className={[styles.stage,styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
             <div className={styles.stageGlow} aria-hidden="true"/>
             <div className={styles.stageContent}>
-              <div className={styles.brand}><span className={styles.brandMark}>V</span><span>VIBESCHOOL <b>SPIN STUDIO</b></span></div>
+              <div className={styles.brand}><span className={styles.brandMark}>V</span><span>VIBESCHOOL <b>SPIN STUDIO</b></span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ SPIN THE CHALLENGE ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
               <div className={styles.wheelArea}>
                 <div className={styles.wheelHalo}/>
@@ -411,8 +411,16 @@ export default function SpinStudio() {
                   <path d="M182 2 L218 2 L200 42 Z" fill="#fff" stroke="#0e1832" strokeWidth="4"/>
                   <circle cx="200" cy="200" r="195" fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="5" strokeDasharray="2 13"/>
                 </svg>
-                {verdict==='correct' && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
+                {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
+              {showOverlay&&selected && <div className={[styles.challengePopup,showPhase==='reveal'?styles.popupReveal:''].join(' ')} role="status" aria-live="polite">
+                <div className={styles.popupEyebrow}>{showPhase==='reveal'?'ANSWER REVEALED':showPhase==='question'?'THE WHEEL HAS CHOSEN':'YOUR CHALLENGE'}</div>
+                <strong className={styles.popupLabel}>{showPhase==='reveal'?(selected.answer||selected.label):selected.label}</strong>
+                {showPhase!=='reveal'&&<p className={styles.popupQuestion}>{selected.question||'What do you know about this?'}</p>}
+                {showPhase==='countdown'&&<div className={styles.popupTimer}>{seconds===0?'TIME!':seconds}</div>}
+                {showPhase==='reveal'&&<p className={styles.popupFact}>{selected.question}</p>}
+                {showPhase==='reveal'&&wheel.celebration==='glow'&&<div className={styles.popupGlow} aria-hidden="true"/>}
+              </div>}
               <div className={styles.questionArea} aria-live="polite">
                 {selected ? <>
                   <span className={styles.resultKicker}>{spinning?'THE WHEEL IS SPINNING':'THE WHEEL CHOSE'}</span>
@@ -426,17 +434,21 @@ export default function SpinStudio() {
             </div>
           </div>
           <div className={styles.playBar}>
-            <div className={styles.playStatus}><span>SPINS <b>{spinCount}{remaining!==null?' / '+wheel.maxSpins:''}</b></span><span>{wheel.noRepeat?'UNIQUE LEFT '+available.length:'RANDOM MODE'}</span></div>
+            <div className={styles.playStatus}><span>{wheel.automatic??true?'AUTO SHOW':'MANUAL SHOW'} · {batchMode?'BATCH ON':'SINGLE'}</span><span>SPINS <b>{spinCount}{remaining!==null?' / '+wheel.maxSpins:''}</b></span><span>{wheel.noRepeat?'UNIQUE LEFT '+available.length:'RANDOM MODE'}</span></div>
             <div className={styles.playButtons}>
               <button className={styles.spinButton} disabled={locked} onClick={spin}>{spinning?'SPINNING…':available.length===0?'ALL SEGMENTS USED':remaining===0?'SPIN LIMIT REACHED':'✦ SPIN NOW'}</button>
-              <button disabled={spinning || result===null} onClick={()=>{setReveal(v=>!v);setVerdict(null)}}>{reveal?'Hide answer':'Reveal answer'}</button>
+              <button disabled={spinning || result===null} onClick={()=>{if(reveal){setReveal(false);setShowPhase('question');setSeconds(null)}else revealNow();setVerdict(null)}}>{reveal?'Hide answer':'Reveal answer'}</button>
               <button disabled={spinning || result===null} onClick={()=>doVerdict('correct')}>✓ Correct</button>
               <button disabled={spinning || result===null} onClick={()=>doVerdict('wrong')}>✕ Wrong</button>
-              <button onClick={resetRun} disabled={spinning}>Reset</button>
+              <button onClick={nextChallenge} disabled={spinning || result===null}>Next</button><button onClick={resetRun} disabled={spinning}>Reset</button>
             </div>
           </div>
-          {recording && <div className={styles.recordBar}><span>Recording view · Use your device screen recorder</span><div><button onClick={()=>{void toggleFull()}}>{fullScreen?'Exit fullscreen':'Fullscreen stage'}</button><button onClick={()=>setRecording(false)}>← Back to editor</button></div></div>}
-          {!recording && <p className={styles.note}>Your saved wheels stay in this browser only. Direct URL access is not private. To record, open Recording Mode and capture the stage using your screen recorder; no camera or account needed.</p>}
+          {recording && <div className={styles.recordBar}><span>Recording view · Space spin · R reveal · N next</span><div>
+              <button onClick={()=>{void toggleFull()}}>{fullScreen?'Exit fullscreen':'Fullscreen stage'}</button>
+              <button onClick={()=>{if(capturing)stopCapture();else void startCapture()}}>{capturing?'■ Stop & download recording':'● Record video'}</button>
+              <button onClick={()=>setRecording(false)}>← Back to editor</button>
+            </div></div>}
+          {!recording && <p className={styles.note}>Your wheels are saved in this browser only. Use Launch Show, then Record video and select the current tab in the browser prompt. Fullscreen mode uses keyboard controls. Direct URL access is not private.</p>}
           {feedback && <p role="status" className={styles.feedback}>{feedback}</p>}
         </section>
       </div>
