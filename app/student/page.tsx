@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { BookOpen, ClipboardCheck, ChartNoAxesColumn, Sparkles, ArrowUpRight } from 'lucide-react'
 import './student-home.css'
 import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
@@ -12,10 +13,13 @@ import { useStudent } from '@/lib/student-context'
 import Skel from '@/components/student/Skel'
 import { acknowledgeStudentHomeChanges, getStudentHomeOsBrief, markStudentHomeOpened, resolveTaskLaunch, updateStudentHomePreferences, type PreferredStudyTime, type StudentHomeOsBrief, type StudentTask } from '@/lib/student/tasks'
 import { getLearnerTwinState, type LearnerTwinState } from '@/lib/student/twin'
+import { getVibeLearnWorkstation } from '@/lib/student/vibelearn'
 import { supabase } from '@/lib/supabase'
 
 type TodaySlot = { id: string; subject: string; start: string; end: string; room: string }
 type HomeData = { brief: StudentHomeOsBrief; twin: LearnerTwinState; todaySlots: TodaySlot[]; attendancePct: number | null }
+type ResumeReading = { title: string; chapterTitle?: string | null; actionUrl: string; progressPercent: number }
+function safeLearningRoute(value: string): string | null { return value.startsWith('/') && !value.startsWith('//') && !value.includes('\\') ? value : null }
 const TYPE_LABEL: Record<string, string> = { homework: 'Homework', exercise: 'Exercise', quiz: 'Quiz', cat: 'CAT', exam: 'Exam', project: 'Project', remedial: 'Practice' }
 const GRADES = ['', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E']
 const STUDY_TIMES: PreferredStudyTime[] = ['morning', 'afternoon', 'evening', 'flexible']
@@ -32,6 +36,7 @@ export default function StudentHomePage() {
   const [data, setData] = useState<HomeData | null>(null)
   const [loading, setLoading] = useState(true)
   const [launchingTaskId, setLaunchingTaskId] = useState<string | null>(null)
+  const [continueReading, setContinueReading] = useState<ResumeReading | null>(null)
   const [error, setError] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -60,6 +65,17 @@ export default function StudentHomePage() {
   }
 
   useEffect(() => { if (!identityLoading && identity) void load() }, [identityLoading, identity])
+  // Retrieve the existing account-scoped reading position after Home loads.
+  useEffect(() => {
+    if (!identity?.studentId || !data) return
+    let active = true
+    setContinueReading(null)
+    void getVibeLearnWorkstation()
+      .then(desk => { if (active) setContinueReading(desk.continueLearning.find(item => safeLearningRoute(item.actionUrl)) ?? null) })
+      .catch(() => { if (active) setContinueReading(null) })
+    return () => { active = false }
+  }, [identity?.studentId, data?.brief])
+
 
   async function openTask(task: StudentTask) { if (launchingTaskId) return; setLaunchingTaskId(task.taskId); setError(''); try { const launch = await resolveTaskLaunch(task.taskId); router.push(launch.actionUrl) } catch (cause) { setError(cause instanceof Error ? cause.message : 'This task could not be opened.'); await load() } finally { setLaunchingTaskId(null) } }
   async function acknowledgeChanges() { setSaving(true); try { await acknowledgeStudentHomeChanges(); await load() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Updates could not be acknowledged.') } finally { setSaving(false) } }
@@ -85,7 +101,7 @@ export default function StudentHomePage() {
   }, [brief?.recentChanges])
   const goal = progress?.dailyGoal; const goalRate = goal ? Math.min(100, Math.round((goal.completed / Math.max(1, goal.target)) * 100)) : 0
   const nowMinutes = nairobiNowMinutes(); const firstUpcomingId = data?.todaySlots.find(slot => minutes(slot.start) > nowMinutes)?.id ?? null
-  const isKcseLearner = /^form\\s*4$/i.test(identity?.className.trim() ?? '')
+  const isKcseLearner = /^form\s*4$/i.test(identity?.className.trim() ?? '')
   const hasSchoolEnrollment = Boolean(identity?.schoolId && identity?.classId)
   const hasLearningEvidence = Boolean(
     (data?.twin.evidence.learningEventCount ?? 0) > 0 ||
@@ -101,9 +117,18 @@ export default function StudentHomePage() {
   return <div className="student-home" style={{ animation: 'slideIn .22s ease' }}>
     <section className="student-home-hero" style={hero} aria-label="Your learning overview">
       <div className="student-home-hero-row" style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}><div style={{minWidth:0, flex:'1 1 210px'}}><div style={eyebrow}>My learning · {new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' })}</div><h1 className="student-home-title" style={{ margin: '8px 0 5px', fontSize: 28 }}>{greeting()}, {identity.firstName}</h1><p style={heroSub}>{identity.className}{identity.schoolName ? ` · ${identity.schoolName}` : ''}</p></div><div className="student-home-xp"><strong>{progress?.totalXp ?? 0}</strong><span>Verified XP</span></div></div>
-      <div style={heroPanel}><div style={eyebrow}>YOUR NEXT STEP</div><h2 style={{ margin: '5px 0', fontSize: 19 }}>{nextTask?.title ?? data?.twin.decision.now?.title ?? (hasLearningEvidence ? 'Choose your next learning activity' : 'Ready to start learning?')}</h2><p style={{ ...heroSub, lineHeight: 1.5 }}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · Assigned subject: ${nextTask.subject} · ${taskMeta(nextTask)}` : (data?.twin.decision.now?.reason ?? (hasLearningEvidence ? 'Explore learning activities and build on your progress.' : 'Start with reading, practice or an available exam. Your progress will appear as you learn.'))}</p>{nextTask ? <button disabled={launchingTaskId === nextTask.taskId} onClick={() => void openTask(nextTask)} style={heroButton}>{launchingTaskId === nextTask.taskId ? 'Opening…' : nextTask.actionLabel}</button> : <button onClick={() => router.push(data?.twin.decision.now?.actionUrl ?? '/student/study')} style={heroButton}>Open Learn</button>}</div>
+      <div style={heroPanel}><div style={eyebrow}>YOUR NEXT STEP</div><h2 style={{ margin: '5px 0', fontSize: 19 }}>{nextTask?.title ?? (continueReading ? `Continue reading ${continueReading.title}` : data?.twin.decision.now?.title) ?? (hasLearningEvidence ? 'Choose your next learning activity' : 'Ready to start learning?')}</h2><p style={{ ...heroSub, lineHeight: 1.5 }}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · Assigned subject: ${nextTask.subject} · ${taskMeta(nextTask)}` : (data?.twin.decision.now?.reason ?? (hasLearningEvidence ? 'Explore learning activities and build on your progress.' : 'Start with reading, practice or an available exam. Your progress will appear as you learn.'))}</p>{nextTask ? <button disabled={launchingTaskId === nextTask.taskId} onClick={() => void openTask(nextTask)} style={heroButton}>{launchingTaskId === nextTask.taskId ? 'Opening…' : nextTask.actionLabel}</button> : <button onClick={() => router.push((continueReading && safeLearningRoute(continueReading.actionUrl)) || (data?.twin.decision.now?.actionUrl && safeLearningRoute(data.twin.decision.now.actionUrl)) || '/student/study')} style={heroButton}>{continueReading ? 'Continue reading' : 'Open Learn'}</button>}</div>
       <div style={{ marginTop: 14 }}><div style={{ ...splitSmall, fontSize: 13, fontWeight: 700 }}><span>{goal && goal.completed >= goal.target ? 'Daily goal reached' : 'Daily learning goal'}</span><strong>{goal && goal.completed >= goal.target ? `${goal.completed} activities completed` : `${goal?.completed ?? 0} of ${goal?.target ?? 1} activities`}</strong></div><div style={heroTrack}><div style={{ width: `${goalRate}%`, height: '100%', background: '#168153', borderRadius: 999 }} /></div></div>
     </section>
+
+    {continueReading && <section className="student-home-resume" aria-label="Resume your learning">
+      <div>
+        <span className="student-home-resume-kicker">Your saved place</span>
+        <strong>{continueReading.title}</strong>
+        <span>{continueReading.chapterTitle || 'Continue reading'} · {Math.max(0, Math.min(100, Math.round(continueReading.progressPercent)))}% read</span>
+      </div>
+      <Link href={safeLearningRoute(continueReading.actionUrl) || '/student/study'}>Resume chapter <ArrowUpRight size={17} aria-hidden="true" /></Link>
+    </section>}
 
     <section className="student-home-pulse" style={pulseGrid}><Metric label="To do" value={feed?.counts.toDo ?? 0} /><Metric label="In progress" value={feed?.counts.inProgress ?? 0} /><Metric label="Streak" value={data?.twin.streak.current ?? progress?.streak.current ?? 0} />{hasSchoolEnrollment && <Metric label="Attendance" value={data?.attendancePct == null ? '—' : `${data.attendancePct}%`} />}</section>
 
@@ -123,7 +148,7 @@ export default function StudentHomePage() {
 
 
 
-    <section style={card}><SectionHeader title="How am I progressing?" action="Results" onClick={() => router.push('/student/marks')} />{(data?.twin.mastery.subjects.length ?? 0) === 0 ? <Empty title="Progress is building" body="Subject mastery appears after marked and verified work." /> : <div style={{ display: 'grid', gap: 11 }}>{data?.twin.mastery.subjects.slice(0, 5).map(subject => { const mastery = subject.masteryPercentage ?? subject.averageScore ?? 0; return <div key={subject.subjectId}><div style={splitSmall}><strong>{subject.subjectName}</strong><span>{Math.round(mastery)}% · {Math.round(subject.confidence * 100)}% confidence</span></div><div style={track}><div style={{ width: `${Math.min(100, Math.max(0, mastery))}%`, height: '100%', background: 'var(--vs-accent)' }} /></div></div> })}</div>}</section>
+
 
     {hasSchoolEnrollment && <section style={card}><SectionHeader title="What is happening today?" action="Full timetable" onClick={() => router.push('/student/timetable')} />{(data?.todaySlots.length ?? 0) === 0 ? <Empty title="No lessons scheduled today" body="Use the time for your study session or learning queue." /> : <div style={{ display: 'grid', gap: 8 }}>{data?.todaySlots.map(slot => { const start = minutes(slot.start); const end = minutes(slot.end); const labelText = nowMinutes >= start && nowMinutes < end ? 'NOW' : slot.id === firstUpcomingId ? 'NEXT' : ''; return <div key={slot.id} style={{ ...slotRow, opacity: end <= nowMinutes ? .55 : 1 }}><strong>{slot.start}</strong><span><strong style={{ fontSize: 12 }}>{slot.subject}</strong><div style={muted}>{slot.end}{slot.room ? ` · ${slot.room}` : ''}</div></span>{labelText && <span style={badge}>{labelText}</span>}</div> })}</div>}</section>}
 
