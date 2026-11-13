@@ -25,3 +25,5 @@
 .learning-feedback__notice[data-kind="retry"],.learning-feedback__notice[data-kind="skip"]{border-left-color:var(--vs-warning,#a45a11)}
 .learning-feedback__notice[data-kind="error"]{border-left-color:var(--vs-error,#b93434)}
 @media(prefers-reduced-motion:reduce){.learning-feedback__notice{animation:none}}
+
+.learning-feedback__guidance{padding:10px 12px;border-radius:10px;background:var(--vs-soft,#f9fcf9);border:1px solid var(--vs-border,#dce9de);color:var(--vs-text,#1b4030);font-size:13px;line-height:1.55}

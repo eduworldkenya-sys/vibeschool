@@ -118,13 +118,14 @@ export default function ExactLearningRecoveryPage() {
       setFeedback(previous => ({
         ...previous,
         [key]: correct
-          ? 'Correct. Your answer has been recorded as evidence. One answer alone does not prove mastery.'
-          : 'Not correct yet. Review the explanation and activity before trying a different question.',
+          ? 'Correct and recorded as evidence. Read the explanation and practise again later; one answer does not prove mastery.'
+          : 'This answer needs another look. Reopen the exact explanation, try the related activity, then answer a fresh question.',
       }))
       setAnswers(previous => ({ ...previous, [key]: '' }))
       startedAt.current[key] = Date.now()
       await load()
     } catch (cause) {
+      play('error')
       setFeedback(previous => ({
         ...previous,
         [key]: cause instanceof Error ? cause.message : 'The answer was not recorded. Try again.',
@@ -132,12 +133,12 @@ export default function ExactLearningRecoveryPage() {
     } finally { setWorking(null) }
   }
 
-  return <main style={shell}><div style={{maxWidth:860,margin:'0 auto'}}>
+  return <section style={shell} aria-labelledby="recovery-heading"><div style={{maxWidth:860,margin:'0 auto'}}>
     <VibeLearnSubnav />
     <button style={link} onClick={() => router.push(attemptId ? `/student/results/${encodeURIComponent(attemptId)}` : '/student/vibelearn/mistakes')}>← Back</button>
     <header style={hero}>
       <div style={kicker}>Exact learning recovery</div>
-      <h1 style={{margin:'6px 0'}}>Understand. Practise. Prove it.</h1>
+      <h1 id="recovery-heading" style={{margin:'6px 0'}}>Understand. Practise. Prove it.</h1>
       <p style={muted}>Each missed or skipped answer is connected to its exact curriculum outcome. Reading and opening activities are not counted as completed learning. Only later, independently marked answers provide reassessment evidence.</p>
     </header>
     {error && <section role="alert" style={card}><strong>Recovery could not be loaded.</strong><p style={muted}>Your recorded attempts are safe. Please retry to load your learning steps.</p><button style={secondary} onClick={() => { setLoading(true); setError(''); void load().catch(cause => setError(cause instanceof Error ? cause.message : 'Could not load recovery.')).finally(() => setLoading(false)) }}>Retry recovery</button></section>}
@@ -186,7 +187,10 @@ export default function ExactLearningRecoveryPage() {
                 <button style={primary} disabled={working!==null || !(answers[item.recovery_key] ?? '').trim()}
                   onClick={() => void reassess(item)}>{working===item.recovery_key?'Checking…':'Check answer'}</button>
               </> : <p style={muted}>No unused, server-markable question for this exact outcome is available. Nothing has been marked complete.</p>}
-              {feedback[item.recovery_key] && <p role="status" style={{...muted,marginTop:12}}>{feedback[item.recovery_key]}</p>}
+              {feedback[item.recovery_key] && <div role="status" aria-live="polite" style={{...outcome,marginTop:12}}>
+                <p style={{...muted,margin:'0 0 8px'}}>{feedback[item.recovery_key]}</p>
+                {item.core && <button type="button" style={secondary} onClick={() => router.push(item.core!.url)}>Review the explanation</button>}
+              </div>}
             </section>
           </div>
           <div style={{...outcome,marginTop:14}}>
@@ -201,19 +205,19 @@ export default function ExactLearningRecoveryPage() {
         </>}
       </article>
     })}
-  </div></main>
+  </div></section>
 }
-const shell:React.CSSProperties={minHeight:'100vh',background:'var(--vs-soft)',padding:'18px 14px 90px',color:'var(--vs-text)',fontFamily:"'Plus Jakarta Sans', sans-serif"}
-const hero:React.CSSProperties={background:'#fff',border:'1px solid var(--vs-border)',borderRadius:18,padding:22,marginBottom:14}
-const card:React.CSSProperties={background:'#fff',border:'1px solid var(--vs-border)',borderRadius:16,padding:18,marginBottom:14}
+const shell:React.CSSProperties={minHeight:'65vh',background:'transparent',padding:'14px 0 40px',color:'var(--vs-text)',fontFamily:"'Plus Jakarta Sans', sans-serif"}
+const hero:React.CSSProperties={background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:18,padding:'clamp(15px,3vw,22px)',marginBottom:14}
+const card:React.CSSProperties={background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:16,padding:'clamp(14px,3vw,18px)',marginBottom:14}
 const kicker:React.CSSProperties={color:'var(--vs-accent)',fontSize:12,fontWeight:800,letterSpacing:.4}
 const muted:React.CSSProperties={color:'var(--vs-muted)',fontSize:13,lineHeight:1.6}
-const tag:React.CSSProperties={background:'#fff7ed',borderRadius:30,padding:'4px 9px',fontSize:11,fontWeight:700}
+const tag:React.CSSProperties={background:'var(--vs-soft)',borderRadius:30,padding:'4px 9px',fontSize:11,fontWeight:700}
 const outcome:React.CSSProperties={background:'var(--vs-soft)',padding:12,borderRadius:10,fontSize:14,lineHeight:1.5}
-const notice:React.CSSProperties={background:'#fffbeb',border:'1px solid #fcd34d',borderRadius:10,padding:12,marginTop:12,fontSize:13,lineHeight:1.5}
+const notice:React.CSSProperties={background:'var(--vs-soft)',border:'1px solid var(--vs-warning)',borderRadius:10,padding:12,marginTop:12,fontSize:13,lineHeight:1.5}
 const steps:React.CSSProperties={display:'grid',gap:10,marginTop:14}
-const step:React.CSSProperties={border:'1px solid var(--vs-border)',borderRadius:12,padding:14}
-const input:React.CSSProperties={border:'1px solid var(--vs-border)',borderRadius:9,padding:11,width:'100%',boxSizing:'border-box',margin:'8px 0 12px',fontSize:16}
-const primary:React.CSSProperties={background:'var(--vs-accent)',color:'#fff',border:0,borderRadius:9,padding:'10px 15px',fontWeight:700,cursor:'pointer'}
-const secondary:React.CSSProperties={background:'var(--vs-accent-soft)',color:'var(--vs-accent)',border:'1px solid var(--vs-border)',borderRadius:9,padding:'8px 12px',fontWeight:700,cursor:'pointer'}
+const step:React.CSSProperties={border:'1px solid var(--vs-border)',background:'var(--vs-soft)',borderRadius:12,padding:14}
+const input:React.CSSProperties={border:'1px solid var(--vs-border)',background:'var(--vs-card)',color:'var(--vs-text)',borderRadius:9,padding:11,width:'100%',boxSizing:'border-box',margin:'8px 0 12px',fontSize:16}
+const primary:React.CSSProperties={background:'var(--vs-accent)',color:'var(--vs-on-accent)',border:0,borderRadius:9,minHeight:44,padding:'10px 15px',fontWeight:700,cursor:'pointer'}
+const secondary:React.CSSProperties={background:'var(--vs-accent-soft)',color:'var(--vs-text)',border:'1px solid var(--vs-border)',borderRadius:9,minHeight:44,padding:'8px 12px',fontWeight:700,cursor:'pointer'}
 const link:React.CSSProperties={...secondary,marginBottom:12}
