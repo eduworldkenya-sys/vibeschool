@@ -1,0 +1,32 @@
+name: Grade 6 Fractions Content Contract
+on:
+  pull_request:
+    paths:
+      - 'content/curriculum/grade6/mathematics/fractions-addition.v1.editorial.json'
+      - 'content/curriculum/grade6/mathematics/fractions-addition.v1.reader-candidate.json'
+      - 'content/curriculum/production/grade6-fractions-addition-20261113.md'
+      - 'content/curriculum/production/grade6-fractions-addition-assets/**'
+      - 'scripts/test-grade6-fractions-addition.mjs'
+      - '.github/workflows/grade6-fractions-content-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/curriculum/grade6/mathematics/fractions-addition.v1.editorial.json'
+      - 'content/curriculum/grade6/mathematics/fractions-addition.v1.reader-candidate.json'
+      - 'content/curriculum/production/grade6-fractions-addition-20261113.md'
+      - 'content/curriculum/production/grade6-fractions-addition-assets/**'
+      - 'scripts/test-grade6-fractions-addition.mjs'
+      - '.github/workflows/grade6-fractions-content-contract.yml'
+permissions:
+  contents: read
+jobs:
+  editorial-integrity:
+    name: Grade 6 Fractions editorial integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/test-grade6-fractions-addition.mjs
