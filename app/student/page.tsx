@@ -121,7 +121,7 @@ export default function StudentHomePage() {
       <div style={{ marginTop: 14 }}><div style={{ ...splitSmall, fontSize: 13, fontWeight: 700 }}><span>{goal && goal.completed >= goal.target ? 'Daily goal reached' : 'Daily learning goal'}</span><strong>{goal && goal.completed >= goal.target ? `${goal.completed} activities completed` : `${goal?.completed ?? 0} of ${goal?.target ?? 1} activities`}</strong></div><div style={heroTrack}><div style={{ width: `${goalRate}%`, height: '100%', background: '#168153', borderRadius: 999 }} /></div></div>
     </section>
 
-    {continueReading && <section className="student-home-resume" aria-label="Resume your learning">
+    {continueReading && nextTask && <section className="student-home-resume" aria-label="Resume your learning">
       <div>
         <span className="student-home-resume-kicker">Your saved place</span>
         <strong>{continueReading.title}</strong>
