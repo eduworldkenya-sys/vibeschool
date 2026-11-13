@@ -129,7 +129,7 @@ export default function SpinStudio() {
   const batchMode=wheel?.batchMode??false
   const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>!wheel?.noRepeat || !used.includes(entry.id))
   const remaining=wheel?.maxSpins ? Math.max(0,wheel.maxSpins-spinCount) : null
-  const locked=spinning || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
+  const locked=spinning || showPhase==='question' || showPhase==='countdown' || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
 
   useEffect(()=>{
     try {
@@ -217,6 +217,7 @@ export default function SpinStudio() {
   }
   const spin=()=>{
     if(locked || !wheel || pendingSpin.current)return
+    if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}
     const chosen=available[Math.floor(Math.random()*available.length)]
     if(!chosen)return
     pendingSpin.current=true
@@ -251,7 +252,7 @@ export default function SpinStudio() {
     setReveal(true);setShowPhase('reveal');setSeconds(null)
     soundEffect('win',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)
   }
-  const nextChallenge=()=>{if(spinning)return;setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
+  const nextChallenge=()=>{if(spinning)return;if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
   spinRef.current=spin
   revealActionRef.current=revealNow
   nextRef.current=()=>{if(!spinning && available.length>0 && remaining!==0)spinRef.current()}
