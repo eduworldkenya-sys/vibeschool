@@ -247,6 +247,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
     <div className={css.bookDetail}>
       <div className={css.detailCover}>{image?<img src={image} alt={'Cover of '+bookTitle}/>:<div className={css.coverFallback}><BookOpen size={70}/> VibeSchool Originals</div>}</div>
       <div className={css.detailInfo}>
+        <nav className={css.bookBreadcrumb} aria-label="Book location"><Link href="/learn/stories">Stories &amp; Series</Link><ChevronRight size={15}/><span aria-current="page">{bookTitle}</span></nav>
         <span className={css.eyebrow}>{publication.series_name||'VIBESCHOOL ORIGINALS'} {publication.series_number?' · BOOK '+publication.series_number:''}</span>
         <h1 className={css.detailTitle}>{bookTitle}</h1>
         {publication.subtitle&&<p className={css.detailSubtitle}>{publication.subtitle}</p>}
