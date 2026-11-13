@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
 type Entry = { id: string; label: string; question: string; answer: string }
-type Wheel = { batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type Wheel = { musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
@@ -44,7 +44,7 @@ const starter = (): Wheel => ({
   id: uid(), name:'Capital City Challenge', headline:'CAN YOU BEAT THE WHEEL?',
   cta:'Comment your answer • Follow VibeSchool',
   entries: sample.map(item=>({...item,id:uid()})), maxSpins:0, noRepeat:false,
-  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1,batchMode:false
+  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1,batchMode:false,musicEnabled:false,musicStyle:'ambient',musicVolume:18
 })
 function validEntry(x: unknown): x is Entry {
   if (!x || typeof x !== 'object') return false
@@ -95,6 +95,7 @@ export default function SpinStudio() {
   const [showPhase,setShowPhase]=useState<'idle'|'spinning'|'question'|'countdown'|'reveal'>('idle')
   const [showOverlay,setShowOverlay]=useState(false)
   const [capturing,setCapturing]=useState(false)
+  const [musicPlaying,setMusicPlaying]=useState(false)
   const [episodeLog,setEpisodeLog]=useState<string[]>([])
   const [reducedMotion,setReducedMotion]=useState(false)
   const [undoCount,setUndoCount]=useState(0)
@@ -113,6 +114,7 @@ export default function SpinStudio() {
   const [feedback,setFeedback]=useState('')
   const [fullScreen,setFullScreen]=useState(false)
   const stageRef=useRef<HTMLDivElement>(null)
+  const musicRef=useRef<{ctx:AudioContext; gain:GainNode; oscillators:OscillatorNode[]} | null>(null)
   const spinTimer=useRef<number|null>(null)
   const pastRef=useRef<Wheel[]>([])
   const futureRef=useRef<Wheel[]>([])
@@ -125,6 +127,34 @@ export default function SpinStudio() {
   const revealActionRef=useRef<()=>void>(()=>{})
   const nextRef=useRef<()=>void>(()=>{})
   const wheel=wheels.find(w=>w.id===selectedId) || wheels[0]
+  const stopMusic=()=>{
+    const audio=musicRef.current
+    if(!audio)return
+    musicRef.current=null
+    audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}})
+    void audio.ctx.close().catch(()=>{})
+    setMusicPlaying(false)
+  }
+  const playMusic=()=>{
+    if(musicRef.current || !wheel?.musicEnabled)return
+    try{
+      const ctx=new AudioContext(),gain=ctx.createGain()
+      gain.gain.value=Math.min(0.12,Math.max(0,(wheel.musicVolume??18)/100)*0.12)
+      gain.connect(ctx.destination)
+      const frequencies=wheel.musicStyle==='pulse'?[130.81,196,261.63]:[130.81,164.81,196]
+      const oscillators=frequencies.map((hz,index)=>{
+        const osc=ctx.createOscillator(),voice=ctx.createGain()
+        osc.type=wheel.musicStyle==='pulse'?'triangle':'sine'
+        osc.frequency.value=hz
+        voice.gain.value=index===0?0.42:0.25
+        osc.connect(voice);voice.connect(gain);osc.start()
+        return osc
+      })
+      musicRef.current={ctx,gain,oscillators}
+      void ctx.resume()
+      setMusicPlaying(true)
+    }catch{setFeedback('Background audio is unavailable in this browser.')}
+  }
   const entries=wheel?.entries || []
   const batchMode=wheel?.batchMode??false
   const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>!wheel?.noRepeat || !used.includes(entry.id))
@@ -172,7 +202,7 @@ export default function SpinStudio() {
     },Math.max(1,wheel.revealHold??3)*1000)
     return ()=>clearTimeout(timer)
   },[showPhase,wheel,batchMode])
-  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop())},[])
+  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop());const audio=musicRef.current;if(audio){audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}});void audio.ctx.close().catch(()=>{})}},[])
   useEffect(()=>{
     const media=window.matchMedia('(prefers-reduced-motion: reduce)')
     setReducedMotion(media.matches)
@@ -253,6 +283,12 @@ export default function SpinStudio() {
     soundEffect('win',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)
   }
   const nextChallenge=()=>{if(spinning)return;if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
+  const advanceStage=()=>{
+    if(!recording || spinning)return
+    if(showPhase==='question'||showPhase==='countdown'){revealNow();return}
+    if(showPhase==='reveal'){nextChallenge();return}
+    if(showPhase==='idle')spin()
+  }
   spinRef.current=spin
   revealActionRef.current=revealNow
   nextRef.current=()=>{if(!spinning && available.length>0 && remaining!==0)spinRef.current()}
@@ -357,7 +393,7 @@ export default function SpinStudio() {
     <div className={styles.shell}>
       {!recording && <header className={styles.header}>
         <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>Spin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
-        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={()=>{setRecording(true);setFeedback('')}}>Launch Show ↗</button></div>
+        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={()=>{setRecording(true);setFeedback('');playMusic()}}>Launch Show ↗</button></div>
       </header>}
       <div className={recording?styles.recordLayout:styles.layout}>
         {!recording && <aside className={styles.controls}>
@@ -404,6 +440,10 @@ export default function SpinStudio() {
           </div>}
           {setupTab==='effects' && <div className={styles.panel}>
             <h2>Effects & show director</h2>
+            <label className={styles.check}><input type="checkbox" checked={wheel.musicEnabled??false} onChange={e=>{update({musicEnabled:e.target.checked});if(!e.target.checked)stopMusic()}}/> Background music (original synthesised soundtrack)</label>
+            <label>Music style<select value={wheel.musicStyle??'ambient'} onChange={e=>{update({musicStyle:e.target.value as Wheel['musicStyle']});stopMusic()}}><option value="ambient">Soft ambient suspense</option><option value="pulse">Bright game-show pulse</option></select></label>
+            <label>Music volume: {wheel.musicVolume??18}%<input type="range" min="0" max="100" value={wheel.musicVolume??18} onChange={e=>{const volume=Number(e.target.value);update({musicVolume:volume});if(musicRef.current)musicRef.current.gain.gain.value=Math.min(0.12,volume/100*0.12)}}/></label>
+            <div className={styles.row}><button onClick={()=>{if(musicPlaying)stopMusic();else playMusic()}}>{musicPlaying?'Stop background music':'Preview music'}</button></div>
             <label className={styles.check}><input type="checkbox" checked={wheel.automatic??true} onChange={e=>update({automatic:e.target.checked})}/> Automatic countdown and answer reveal</label>
             <label>Answer display: {wheel.revealHold??3} seconds<input type="range" min="1" max="10" value={wheel.revealHold??3} onChange={e=>update({revealHold:Number(e.target.value)})}/></label>
             <label>Celebration<select value={wheel.celebration??'confetti'} onChange={e=>update({celebration:e.target.value as Wheel['celebration']})}><option value="confetti">Confetti</option><option value="glow">Soft glow</option><option value="none">No celebration</option></select></label>
@@ -427,7 +467,7 @@ export default function SpinStudio() {
         </aside>}
         <section className={styles.previewSection} aria-label="Wheel preview">
           {!recording && <div className={styles.previewTop}><span>LIVE PREVIEW</span><span>{format==='portrait'?'9:16':format==='landscape'?'16:9':'1:1'} · Ready to record</span></div>}
-          <div ref={stageRef} className={[styles.stage,styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
+          <div ref={stageRef} role={recording?'button':undefined} tabIndex={recording?0:undefined} aria-label={recording?'Tap to advance the show':undefined} onClick={advanceStage} onKeyDown={event=>{if(recording && event.key==='Enter'){event.preventDefault();advanceStage()}}} className={[styles.stage,recording?styles.tapStage:'',styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
             <div className={styles.stageGlow} aria-hidden="true"/>
             <div className={styles.stageContent}>
               <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span>VIBESCHOOL <b>SPIN STUDIO</b></span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
@@ -481,10 +521,10 @@ export default function SpinStudio() {
               <button onClick={nextChallenge} disabled={spinning || result===null}>Next</button><button onClick={resetRun} disabled={spinning}>Reset</button>
             </div>
           </div>
-          {recording && <div className={styles.recordBar}><span>Recording view · Space spin · R reveal · N next</span><div>
+          {recording && <div className={styles.recordBar}><span>Recording view · Tap stage: spin → reveal → next · Space / R / N</span><div>
               <button onClick={()=>{void toggleFull()}}>{fullScreen?'Exit fullscreen':'Fullscreen stage'}</button>
               <button onClick={()=>{if(capturing)stopCapture();else void startCapture()}}>{capturing?'■ Stop & download recording':'● Record video'}</button>
-              <button onClick={()=>setRecording(false)}>← Back to editor</button>
+              <button onClick={()=>{setRecording(false);stopMusic()}}>← Back to editor</button>
             </div></div>}
           {!recording && <p className={styles.note}>Your wheels are saved in this browser only. Use Launch Show, then Record video and select the current tab in the browser prompt. Fullscreen mode uses keyboard controls. Direct URL access is not private.</p>}
           {feedback && <p role="status" className={styles.feedback}>{feedback}</p>}
