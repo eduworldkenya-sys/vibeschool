@@ -1,0 +1,33 @@
+name: Grade 6 Fractions Certified Reader Contract
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261113090000_grade6_fractions_certified_reader.sql'
+      - 'app/learn/grade-6/mathematics/fractions/**'
+      - 'components/learn/Grade6FractionsContentReader.*'
+      - 'content/curriculum/grade6/mathematics/fractions-addition.v1.release-candidate.json'
+      - 'lib/learn/schoolCatalog.ts'
+      - 'scripts/test-grade6-fractions-reader.mjs'
+      - '.github/workflows/grade6-fractions-certified-reader-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261113090000_grade6_fractions_certified_reader.sql'
+      - 'app/learn/grade-6/mathematics/fractions/**'
+      - 'components/learn/Grade6FractionsContentReader.*'
+      - 'content/curriculum/grade6/mathematics/fractions-addition.v1.release-candidate.json'
+      - 'lib/learn/schoolCatalog.ts'
+      - 'scripts/test-grade6-fractions-reader.mjs'
+      - '.github/workflows/grade6-fractions-certified-reader-contract.yml'
+permissions:
+  contents: read
+jobs:
+  reader-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/test-grade6-fractions-reader.mjs

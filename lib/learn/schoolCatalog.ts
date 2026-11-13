@@ -108,6 +108,7 @@ export function groupsForAvailableSubjects(grade: string, names: string[]): Subj
 /** These routes exist in main; their readers independently enforce release status. */
 export const EXISTING_LESSON_READERS = [
   { grade: 'Grade 4', subject: 'Mathematics', title: 'Time', subtitle: 'Clocks, a.m. and p.m., conversions and duration', href: '/learn/grade-4/mathematics/time' },
+  { grade: 'Grade 6', subject: 'Mathematics', title: 'Adding Fractions', subtitle: 'Equivalent fractions, worked examples and 63 practice questions', href: '/learn/grade-6/mathematics/fractions' },
   { grade: 'Grade 1', subject: 'Creative Activities', title: 'Creative Activities', subtitle: 'Drawing, movement, music and guided exploration', href: '/learn/grade-1/creative-activities' },
 ] as const
 
