@@ -113,8 +113,11 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
       reading_position:{block_id:position.blockId,block_offset_percent:position.blockOffset,scroll_percent:position.percent},
       last_read_at:new Date().toISOString(),
     }
+    const markSaved=()=>setSaved(previous=>[
+      record,...previous.filter(item=>item.chapter_id!==record.chapter_id)
+    ])
     if(!signedIn){
-      try{window.localStorage.setItem(GUEST_KEY+id,JSON.stringify(record));setSync('Saved on this device')}
+      try{window.localStorage.setItem(GUEST_KEY+id,JSON.stringify(record));markSaved();setSync('Saved on this device')}
       catch{setSync('Reading position cannot be saved in this browser')}
       return
     }
@@ -124,6 +127,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
     })
     const result=data as {ok?:boolean}|null
     if(writeError||!result?.ok) {setSync('Unable to sync position. Check your connection.');return}
+    markSaved()
     setSync('Saved to your account')
   },[id,signedIn])
 
