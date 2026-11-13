@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import reference from '@/content/curriculum/grade9-mathematics-hierarchy-2024-candidate.json'
+import crosswalk from '@/content/curriculum/grade9-mathematics-scheme-crosswalk-20261113.json'
 
 /**
  * Reference-only curriculum outline. The observed April 2024 summary is NOT
@@ -13,6 +14,7 @@ export const GRADE9_MATHEMATICS_UNITS = reference.april_2024_summary.sub_strands
   title: unit.sub_strand,
   strand: unit.strand,
   lessons: unit.suggested_lessons,
+  headingStatus: crosswalk.rows.find(row => row.code === unit.code)?.mapping_status ?? 'NO_EXACT_CANONICAL_PAIR',
 }))
 
 type Props = {
@@ -53,7 +55,7 @@ export default function Grade9MathematicsMap({
       <h2 style={{fontSize:23,margin:'5px 0 8px'}}>Mathematics learning areas</h2>
       <p style={{fontSize:13,color:muted,lineHeight:1.6,margin:'0 0 12px'}}>Explore the strands and sub-strands in the available 2024 curriculum outline. The revised July source and specific learning outcomes have not yet been verified in VibeSchool.</p>
       <div role="status" style={{padding:'10px 12px',background:'#fff7e8',border:'1px solid #eed8ad',borderRadius:9,fontSize:12,lineHeight:1.55,marginBottom:12}}>
-        <strong>Reference outline — not yet certified.</strong> Suggested lesson counts are from the April 2024 summary and are not allocated school weeks. No outcome or Scheme link has been created from this draft.
+        <strong>Reference outline — not yet certified.</strong> Suggested lesson counts are from the April 2024 summary and are not allocated school weeks. No outcome or Scheme link has been created from this draft. The current reconciliation identifies 2 exact heading matches out of 19; a heading match is not a verified learning outcome.
       </div>
       <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:14}}>
         {['5 strands','19 sub-strands','150 suggested lessons · April reference','5 Mathematics lessons per week · April reference'].map(label=>
@@ -81,6 +83,7 @@ export default function Grade9MathematicsMap({
               <span style={{flex:1}}>
                 <strong style={{display:'block',fontSize:14}}>{unit.title}</strong>
                 <span style={{fontSize:12,color:muted,marginTop:4,display:'block'}}>{unit.strand} · {unit.lessons} suggested lessons</span>
+                <span style={{fontSize:11,fontWeight:700,marginTop:6,display:'block',color:'#784b0c'}}>{unit.headingStatus === 'LEGACY_HEADING_PAIR_MATCH_ONLY' ? 'Existing heading matches · outcomes not connected' : unit.headingStatus === 'REVIEW_STRAND_ALIAS_NOT_BOUND' ? 'Possible earlier topic match · review needed' : 'Curriculum mapping pending'}</span>
               </span>
             </button>
           </article>)}
@@ -93,7 +96,7 @@ export default function Grade9MathematicsMap({
         {onToggleExisting&&<button type="button" onClick={onToggleExisting} style={{minHeight:44,border:`1px solid ${border}`,borderRadius:9,padding:'9px 12px',fontSize:12,fontWeight:750,background:'#fff',color:ink,cursor:'pointer'}}>
           {showExisting?'Hide earlier stored topics':`Show earlier stored topics (${legacyCount})`}
         </button>}
-        {onOpenScheme&&<button type="button" onClick={()=>onOpenScheme(selectedUnitId)} style={{minHeight:44,border:0,borderRadius:9,padding:'9px 12px',fontSize:12,fontWeight:750,background:'#24634b',color:'#fff',cursor:'pointer'}}>Plan selected sub-strand in Scheme</button>}
+        {onOpenScheme&&<button type="button" onClick={()=>onOpenScheme(selectedUnitId)} style={{minHeight:44,border:0,borderRadius:9,padding:'9px 12px',fontSize:12,fontWeight:750,background:'#24634b',color:'#fff',cursor:'pointer'}}>View selected sub-strand in Scheme</button>}
       </div>
     </section>
   )

@@ -38,4 +38,14 @@ assert.ok(route.includes('July 2024 revised learning outcomes are not yet verifi
 assert.ok(reader.includes('onOpenScheme(selectedUnitId)'),'Do not lose the selected Mathematics sub-strand on navigation')
 assert.ok(reader.includes('reference.registered_source_url'),'Provide the official revised source alongside the April-only reference')
 assert.ok(route.includes('curriculumOutcomes[row.id]'),'Preserve canonical outcome access')
+
+// A map-to-Scheme navigation is not a saved Scheme lesson; show exact reconciliation state.
+assert.ok(reader.includes('grade9-mathematics-scheme-crosswalk-20261113.json'),'Map must use the audited crosswalk, not guess by title')
+assert.ok(reader.includes('Existing heading matches · outcomes not connected'),'Show accurate matched-heading status')
+assert.ok(reader.includes('Possible earlier topic match · review needed'),'Keep alias candidates out of automatic Scheme links')
+assert.ok(reader.includes('Curriculum mapping pending'),'Missing mappings must be visible, not silently hidden')
+assert.ok(reader.includes('View selected sub-strand in Scheme'),'Navigation must not imply a saved Scheme lesson')
+assert.ok(route.includes('A Scheme lesson cannot yet be saved from this reference'),'Scheme must explain why source-only selection cannot commit')
+assert.ok(route.includes('no exact canonical sub-strand mapping'),'Scheme must not auto-link missing source units')
+
 console.log('Grade 9 Mathematics read-only Curriculum Map and authority boundary: PASS')
