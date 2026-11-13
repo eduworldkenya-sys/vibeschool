@@ -222,10 +222,10 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
           <Link className={css.primaryButton} href={storyReaderHref(id,savedLatest?.chapter_id||null,Boolean(savedLatest))}>
             <BookOpen size={18}/>{savedLatest?'Continue Reading':'Start Reading'} <ArrowRight size={17}/>
           </Link>
-        :<Link className={css.primaryButton} href={'/global/read/publication/'+encodeURIComponent(id)}>Open original publication <ArrowRight size={17}/></Link>}
+        :<Link className={css.primaryButton} href={'/global/read/publication/'+encodeURIComponent(id)+'?classic=1'}>Open original publication <ArrowRight size={17}/></Link>}
         {publication.series_name&&<Link className={css.smallLink} href={'/learn/stories?series='+encodeURIComponent(publication.series_name)}>Explore this series <ArrowRight size={15}/></Link>}
         <section className={css.contents}><h2>Chapters</h2><div className={css.chapterList}>{chapters.map(ch=><Link key={ch.id} className={css.chapterEntry}
-          href={isFree?storyReaderHref(id,ch.id):'/global/read/publication/'+encodeURIComponent(id)}>
+          href={isFree?storyReaderHref(id,ch.id):'/global/read/publication/'+encodeURIComponent(id)+'?classic=1'}>
           <span className={css.chapterNumber}>{String(ch.number).padStart(2,'0')}</span><span><strong>{ch.title||'Chapter '+ch.number}</strong><small>{ch.reading_time_min||1} min read {saved.some(p=>p.chapter_id===ch.id)?' · Started':''}</small></span><ChevronRight size={18}/>
         </Link>)}</div></section>
       </div>
