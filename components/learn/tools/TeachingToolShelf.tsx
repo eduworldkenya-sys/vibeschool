@@ -11,7 +11,7 @@ import MathTeachingTool from './MathTeachingTools'
 import LanguageScienceTeachingTool from './LanguageScienceTeachingTools'
 import EarlyYearsPracticalTool from './EarlyYearsPracticalTools'
 import styles from './TeachingTools.module.css'
-import { FeedbackSoundToggle } from '@/components/learn/LearningFeedback'
+import { FeedbackSoundToggle, useLearningFeedback } from '@/components/learn/LearningFeedback'
 
 /**
  * Read-only, optional interaction layer below a released lesson.
@@ -26,6 +26,7 @@ export default function TeachingToolShelf({
   tools?: readonly TeachingToolSpec[]
 }) {
   const headingId = useId()
+  const { play } = useLearningFeedback()
   const available = resolveTeachingTools(subject, topic, tools)
   const [active, setActive] = useState<TeachingToolId | null>(null)
   if (!available.length) return null
@@ -43,7 +44,7 @@ export default function TeachingToolShelf({
     <div role="group" aria-label="Choose a learning tool" className={styles.menu}>
       {available.map(spec => {
         const tool = TEACHING_TOOL_CATALOG.find(item => item.id === spec.id)!
-        return <button type="button" key={spec.id} aria-pressed={current.id === spec.id} onClick={() => setActive(spec.id)}>{tool.title}</button>
+        return <button type="button" key={spec.id} aria-pressed={current.id === spec.id} onClick={() => { if (current.id !== spec.id) play('select'); setActive(spec.id) }}>{tool.title}</button>
       })}
     </div>
     <div className={styles.tool} aria-live="off">
