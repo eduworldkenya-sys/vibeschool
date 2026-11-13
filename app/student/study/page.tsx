@@ -121,6 +121,17 @@ export default function LearnerStudyDesk() {
         <Link className={styles.primary} href="/learn"><BookOpen size={18}/> Browse lessons</Link>
       </header>
 
+      {!loading && (workspace?.continueLearning.length??0)>0 && <section className={styles.continuePanel} aria-label="Continue reading from your saved position">
+        <div className={styles.split}>
+          <div><span className={styles.kicker}>Saved to your account</span><h2>Pick up where you stopped</h2></div>
+          <Link className={styles.secondary} href="/student/marks">View progress <ArrowRight size={16}/></Link>
+        </div>
+        <div className={styles.rows}>
+          {workspace!.continueLearning.slice(0,3).map(item=><Link key={item.publicationId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>
+            <span><strong>{item.title}</strong><small>{item.chapterTitle??'Continue reading'} · {item.progressPercent}% read</small></span><ArrowRight size={17}/>
+          </Link>)}
+        </div>
+      </section>}
       <nav className={styles.shortcuts} aria-label="My learning tools">
         <Link href="/student/tasks"><ClipboardList size={20}/> My tasks</Link>
         <Link href="/student/vibelearn/topic-practice"><PencilLine size={20}/> Topic Practice</Link>
@@ -135,16 +146,7 @@ export default function LearnerStudyDesk() {
       {error&&<p className={styles.alert} role="alert">{error}</p>}
       {loading?<p className={styles.card} role="status">Loading your current learning activities…</p>:
       <div className={styles.layout}>
-        <section className={styles.card} aria-label="Continue reading">
-          <h2>Continue reading</h2>
-          {(workspace?.continueLearning.length??0)===0
-            ? <p className={styles.muted}>Your saved reading will appear here after you open a textbook.</p>
-            : <div className={styles.rows}>{workspace!.continueLearning.slice(0,6).map(item=>
-              <Link key={item.publicationId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>
-                <span><strong>{item.title}</strong><small>{item.chapterTitle??'Continue textbook'} · {item.progressPercent}% read</small></span>
-                <ArrowRight size={17}/>
-              </Link>)}</div>}
-        </section>
+
         <section className={styles.card} aria-label="Assigned learning">
           <h2>Assigned learning</h2>
           {assigned.length===0&&(workspace?.assignedAssessments.length??0)===0

@@ -124,17 +124,17 @@ export default function TasksPage() {
   if(identityLoading||!identity) return <p style={{padding:20}}>Loading your learner workspace…</p>
   return <div className="planner" style={{display:'grid',gap:16,color:'var(--vs-text)'}}>
     <header className="planner-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-      <div><h1 style={{fontSize:26,margin:0}}>My Tasks</h1><p style={{fontSize:13,color:'var(--vs-muted)',margin:'4px 0 0'}}>Teacher assignments and your personal study plan</p></div>
+      <div><h1 style={{fontSize:26,margin:0}}>My Tasks</h1><p style={{fontSize:13,color:'var(--vs-muted)',margin:'4px 0 0'}}>Homework, classwork, exercises, projects and your personal study plan</p></div>
       <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> Add task</button>
     </header>
     <nav aria-label="Learning priorities" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
       {([['Homework','/student/homework'],['Classwork','/student/assessment'],['Exercises','/student/exercises'],['Projects',identity?.classId?'/student/projects':'/student/projects/independent'],['Practice','/student/vibelearn/topic-practice'],['Exams','/student/vibelearn/exams'],['Revision','/student/vibelearn/revision']] as const).map(([label,href])=><Link key={href} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
     </nav>
     <section aria-labelledby="assigned-work-heading" style={{background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:14,padding:14,display:'grid',gap:10}}>
-      <div><h2 id="assigned-work-heading" style={{fontSize:18,margin:'0 0 4px'}}>Assigned work {actionable.length>0&&`(${actionable.length})`}</h2><p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>Homework, classwork and assessments from your teachers. Open a task here to complete it in its original workspace.</p></div>
+      <div><h2 id="assigned-work-heading" style={{fontSize:18,margin:'0 0 4px'}}>Assigned work {actionable.length>0&&`(${actionable.length})`}</h2><p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>All assigned work stays together here, including homework, classwork, exercises, assessments and projects. Open it in its original workspace.</p></div>
       {assignedError ? <p role="status" style={{fontSize:13,margin:0}}>Assigned work is unavailable right now. <Link href="/student/homework">Check homework</Link> or retry by reloading this page. Your personal plan is still available.</p>
        : loading ? <p role="status" style={{fontSize:13,margin:0}}>Loading assigned work…</p>
-       : actionable.length===0 ? <p style={{fontSize:13,margin:0,color:'var(--vs-muted)'}}>Nothing assigned for action right now. <Link href="/learn">Continue learning</Link>.</p>
+       : actionable.length===0 ? <p style={{fontSize:13,margin:0,color:'var(--vs-muted)'}}>Nothing assigned for action right now. <Link href="/student/study">Continue learning</Link>.</p>
        : <>{actionable.slice(0,3).map(task=><AssignedTaskRow key={task.taskId} task={task} opening={opening} onOpen={()=>void openAssigned(task)}/>)}
           {actionable.length>3&&<details><summary style={{minHeight:44,cursor:'pointer',padding:8,fontSize:13,fontWeight:650}}>Show {actionable.length-3} more assigned tasks</summary><div style={{display:'grid',gap:9}}>{actionable.slice(3).map(task=><AssignedTaskRow key={task.taskId} task={task} opening={opening} onOpen={()=>void openAssigned(task)}/>)}</div></details>}
         </>}
@@ -199,8 +199,9 @@ function Activity({item,onEdit,onDelete,onComplete}:{item:PlannerItem;onEdit:()=
 
 function AssignedTaskRow({task,opening,onOpen}:{task:StudentTask;opening:string|null;onOpen:()=>void}){
   const future=task.status==='upcoming'
+  const statusText=task.status==='returned'?'Needs revision':task.status==='overdue'?'Past due':task.status==='in_progress'?'In progress':task.status==='awaiting_marking'?'Awaiting marking':task.status==='released'?'Result ready':task.status==='ready'?'Ready to start':'Opens later'
   return <article style={{border:'1px solid var(--vs-border)',borderRadius:11,padding:12,display:'flex',gap:10,alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}>
-    <div style={{flex:'1 1 220px',minWidth:0}}><strong style={{overflowWrap:'anywhere'}}>{task.title}</strong><p style={{fontSize:12,color:'var(--vs-muted)',margin:'4px 0'}}>{task.subject} · {task.taskType.replaceAll('_',' ')} · {task.status.replaceAll('_',' ')}{task.dueAt?' · Due '+new Date(task.dueAt).toLocaleDateString('en-KE',{timeZone:'Africa/Nairobi',day:'numeric',month:'short'}):''}</p></div>
+    <div style={{flex:'1 1 220px',minWidth:0}}><strong style={{overflowWrap:'anywhere'}}>{task.title}</strong><p style={{fontSize:12,color:'var(--vs-muted)',margin:'4px 0'}}>{task.subject} · {task.taskType.replaceAll('_',' ')} · {statusText}{task.dueAt?' · Due '+new Date(task.dueAt).toLocaleDateString('en-KE',{timeZone:'Africa/Nairobi',day:'numeric',month:'short'}):''}</p></div>
     <button type="button" disabled={opening!==null||future} onClick={onOpen} style={{...button,opacity:future?.55:1}}>{opening===task.taskId?'Opening…':future?'Not open yet':task.actionLabel}</button>
   </article>
 }

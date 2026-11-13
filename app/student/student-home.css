@@ -22,3 +22,14 @@
 @media(max-width:500px){.student-home-title{font-size:25px!important}.student-home-xp{min-width:86px;min-height:60px;padding:8px}.student-home-xp strong{font-size:19px}.student-home-quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.student-home-quick-grid button{padding:10px;gap:8px;min-height:88px}.student-home-quick-icon{width:32px;height:32px}.student-home-quick-arrow{display:none}}
 @media(max-width:355px){.student-home-quick-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.student-home-quick-grid button{transition:none}}
+
+
+/* Resume belongs to the authenticated learner, not to the public catalogue. */
+.student-home-resume{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:15px;border:1px solid var(--vs-border);border-radius:16px;background:var(--vs-card);padding:17px 21px}
+.student-home-resume>div{display:grid;gap:5px;min-width:0;flex:1}
+.student-home-resume-kicker{font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--vs-accent)}
+.student-home-resume strong{font-size:16px;font-weight:800;line-height:1.4;color:var(--vs-text)}
+.student-home-resume>div>span:last-child{font-size:12px;color:var(--vs-muted)}
+.student-home-resume>a{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:10px 14px;border-radius:10px;background:var(--vs-accent-soft);color:var(--vs-accent);text-decoration:none;font-size:13px;font-weight:800}
+.student-home-resume>a:hover{outline:1px solid var(--vs-accent)}
+@media(max-width:500px){.student-home-resume{padding:15px}.student-home-resume>a{width:100%}}

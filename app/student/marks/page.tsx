@@ -219,8 +219,19 @@ export default function MarksPage() {
     <div style={{ animation: "slideIn 0.22s ease" }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--vs-text)", fontFamily: "'Bricolage Grotesque', sans-serif" }}>My Progress</h1>
-        <p style={{ fontSize: 12, color: "var(--vs-muted)", marginTop: 2 }}>Your results and assessments</p>
+        <p style={{ fontSize: 12, color: "var(--vs-muted)", marginTop: 2 }}>Your released results and assessments. A score is not a complete measure of subject mastery.</p>
       </div>
+
+      <section aria-label="What to do after receiving results" style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:15,marginBottom:16}}>
+        <h2 style={{fontSize:16,fontWeight:800,margin:"0 0 6px",fontFamily:"'Bricolage Grotesque',sans-serif"}}>What next?</h2>
+        <p style={{fontSize:12,color:"var(--vs-muted)",lineHeight:1.6,margin:"0 0 12px"}}>Read explanations, review missed questions and practise again at your pace.</p>
+        <nav aria-label="Continue learning from results" style={{display:"flex",flexWrap:"wrap",gap:9}}>
+          <Link href="/student/vibelearn/mistakes" style={progressAction}>Review mistakes</Link>
+          <Link href="/student/vibelearn/revision" style={progressAction}>Revision</Link>
+          <Link href="/student/vibelearn/topic-practice" style={progressAction}>Topic Practice</Link>
+          <Link href="/student/study" style={progressAction}>Back to Learn</Link>
+        </nav>
+      </section>
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -243,7 +254,7 @@ export default function MarksPage() {
       {tab === "exams" && (
         exams.length === 0 ? (
           <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "40px 24px", textAlign: "center" }}>
-            <div style={{ fontSize: 13, color: "var(--vs-muted)" }}>No exam results yet</div>
+            <div style={{ fontSize: 13, color: "var(--vs-muted)" }}>No released exam results yet. Try a practice activity or check again after marking.</div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -329,3 +340,5 @@ export default function MarksPage() {
     </div>
   );
 }
+
+const progressAction: React.CSSProperties = {display:"inline-flex",alignItems:"center",justifyContent:"center",minHeight:44,padding:"10px 13px",borderRadius:10,border:"1px solid var(--vs-border)",background:"var(--vs-accent-soft)",color:"var(--vs-accent)",textDecoration:"none",fontWeight:800,fontSize:12}
