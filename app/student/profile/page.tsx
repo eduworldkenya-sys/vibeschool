@@ -4,7 +4,6 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { useTheme } from '@/components/student/StudentUiContext'
 import { useStudent } from '@/lib/student-context'
 import { getLearnerTwinState, type LearnerTwinState } from '@/lib/student/twin'
 import {
@@ -66,7 +65,6 @@ function formatDate(value: string) {
 export default function StudentProfilePage() {
   const router = useRouter()
   const { identity, loading: identityLoading, error: identityError } = useStudent()
-  const { theme, setTheme } = useTheme()
   const [data, setData] = useState<Learner360Data | null>(null)
   const [loading, setLoading] = useState(true)
   const [pageError, setPageError] = useState<string | null>(null)
@@ -176,6 +174,15 @@ export default function StudentProfilePage() {
       <p style={{ margin: '14px 0 0', fontSize: 11, opacity: .72, lineHeight: 1.55 }}>One learner record: school identity, progress, achievements, journey and Twin evidence. Your parent and teachers see role-appropriate views of the same learner.</p>
     </section>
 
+    <nav aria-label="Learner profile and account controls" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:10,marginBottom:14}}>
+      <button type="button" onClick={()=>router.push('/student/settings')} style={{padding:16,minHeight:76,border:'1px solid var(--vs-border)',borderRadius:15,background:'var(--vs-card)',color:'var(--vs-text)',textAlign:'left',cursor:'pointer'}}>
+        <strong style={{display:'block',fontSize:14}}>Appearance & Settings</strong><span style={{display:'block',fontSize:11,marginTop:5,color:'var(--vs-muted)'}}>Themes, fonts, italics and Workspace background</span>
+      </button>
+      <button type="button" onClick={()=>router.push('/student/settings?section=permissions')} style={{padding:16,minHeight:76,border:'1px solid var(--vs-border)',borderRadius:15,background:'var(--vs-card)',color:'var(--vs-text)',textAlign:'left',cursor:'pointer'}}>
+        <strong style={{display:'block',fontSize:14}}>Permissions & Privacy</strong><span style={{display:'block',fontSize:11,marginTop:5,color:'var(--vs-muted)'}}>Notifications, camera, microphone and safety</span>
+      </button>
+    </nav>
+
     {(pageError || identityError) && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, color: '#991b1b', padding: 12, fontSize: 12, marginBottom: 12 }}>{pageError || identityError}</div>}
 
     {data && <div style={{ display: 'grid', gap: 12 }}>
@@ -199,7 +206,7 @@ export default function StudentProfilePage() {
 
       <Card><SectionHead title="My support network" />{data.guardian ? <div style={{ padding: 12, borderRadius: 13, background: '#ecfdf5' }}><strong style={{ fontSize: 12 }}>{data.guardian.full_name}</strong><div style={{ color: '#047857', fontSize: 10, marginTop: 2 }}>{data.guardian.relationship}</div></div> : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>No guardian is connected to your learner profile yet.</p>}</Card>
 
-      <Card><SectionHead title="Display" /><div style={{ display: 'flex', gap: 8 }}>{(['light', 'dark', 'auto'] as const).map(option => <button key={option} onClick={() => setTheme(option)} style={{ flex: 1, padding: '10px 4px', borderRadius: 12, border: `1px solid ${theme === option ? C.accent : C.border}`, background: theme === option ? C.accent : '#fff', color: theme === option ? '#fff' : C.textMuted, fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>{option === 'light' ? '☀️ Light' : option === 'dark' ? '🌙 Dark' : '⚙️ Auto'}</button>)}</div></Card>
+      <Card><SectionHead title="Display & accessibility" sub="All learner appearance choices live in one settings centre." /><button type="button" onClick={() => router.push('/student/settings')} style={{minHeight:44,padding:'11px 14px',border:'1px solid var(--vs-border)',borderRadius:11,background:'var(--vs-accent-soft)',color:'var(--vs-accent)',fontWeight:800,width:'100%',textAlign:'left'}}>Customise my learning space →</button></Card>
 
       <button onClick={() => router.push('/student/workspace')} style={{ width: '100%', padding: 14, borderRadius: 14, border: `1px solid ${C.border}`, background: 'var(--vs-card)', color: C.textPrimary, fontSize: 13, fontWeight: 850, cursor: 'pointer' }}>📚 My Study Workspace</button>
       <button disabled={signingOut} onClick={() => void signOut()} style={{ width: '100%', padding: 13, borderRadius: 14, border: `1.5px solid ${C.error}`, background: 'transparent', color: C.error, fontSize: 13, fontWeight: 800, cursor: signingOut ? 'wait' : 'pointer', opacity: signingOut ? .65 : 1 }}>{signingOut ? 'Signing out…' : 'Sign Out'}</button>
