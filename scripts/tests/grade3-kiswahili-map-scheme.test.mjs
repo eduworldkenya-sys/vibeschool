@@ -19,6 +19,7 @@ const rows = [
 test('Grade 3 Kiswahili projects canonical identifiers without inventing official wording',()=>{
   assert.equal(GRADE3_KISWAHILI_WEEKLY_PERIODS,4);
   assert.equal(GRADE3_KISWAHILI_SOURCE_CATALOGUE,'https://kicd.ac.ke/cbc-materials/lower-primary/');
+  assert.match(read('lib/curriculum/grade3KiswahiliMap.mjs'), /Grade-1-3-Kiswahili-Revised\.pdf/);
   const result = projectGrade3KiswahiliRows(rows, [], 'global-kiswahili');
   assert.equal(result.length,2);
   assert.deepEqual(new Set(result.map(item => item.id)),new Set(['id-a','id-b']));
