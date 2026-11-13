@@ -27,7 +27,7 @@ assert.ok(all.every(unit => !('outcomes' in unit) && !('experiences' in unit)))
 assert.ok(map.includes('grade9-english-theme') && map.includes('grade9-english-search'))
 assert.ok(map.includes('View original KICD source'))
 assert.ok(map.includes('onOpenScheme') && map.includes('learning outcomes'))
-assert.ok(teacher.includes("import Grade9EnglishMap from '@/components/teacher/curriculum/Grade9EnglishMap'"))
+assert.match(teacher,/import Grade9EnglishMap(?:,\s*\{\s*GRADE9_ENGLISH_UNITS\s*\})? from ['"]@\/components\/teacher\/curriculum\/Grade9EnglishMap['"]/,'Grade 9 English map must remain imported on canonical teacher curriculum route')
 assert.ok(teacher.includes('isGrade9English') && teacher.includes('curriculumView && isGrade9English && <Grade9EnglishMap'))
 const legacyMapVisibility = teacher.match(/<section className="studio-canonical-map" style=\{\{display:([\s\S]*?)\}\}>/)?.[1]
 assert.ok(legacyMapVisibility, 'Canonical curriculum map visibility must remain defined')
