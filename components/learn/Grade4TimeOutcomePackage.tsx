@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { ArrowRight, ChevronLeft, ChevronRight, Clock3 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
@@ -9,6 +10,9 @@ import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/l
 import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.mjs'
 import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
 import Grade4TimeWorkedSteps from '@/components/learn/Grade4TimeWorkedSteps'
+import Grade4TimePracticeCards from '@/components/learn/Grade4TimePracticeCards'
+import { buildTimeQuestionCards } from '@/lib/content/grade4TimePractice.mjs'
+import readerStyles from './Grade4TimeContentReader.module.css'
 import { formatGrade4TimeLessonBody } from '@/lib/content/grade4TimePresentation.mjs'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 
@@ -77,6 +81,7 @@ export default function Grade4TimeOutcomePackage({
   const [items, setItems] = useState<Item[]>([])
   const [guides, setGuides] = useState<Guide[]>([])
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null)
+  const [chooserOpen, setChooserOpen] = useState(false)
   const [revealed, setRevealed] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -198,6 +203,26 @@ export default function Grade4TimeOutcomePackage({
   const selectedItems = useMemo(() => items.filter(row =>
     !selected || row.resource_version_id === selected.resource_version_id), [items, selected])
   const outcome = lessons[0] ?? catalogue.find(row => row.outcome_id === outcomeId) ?? null
+  // Both entry points share the same section reader and interactive question cards.
+  // Practice content remains bound to the selected certified resource version.
+  const questionCards = useMemo(() => {
+    const empty = { exercise: [], check: [] } as {
+      exercise: { id: string; kind: string; prompt: string; answer: string; why: string }[]
+      check: { id: string; kind: string; prompt: string; answer: string; why: string }[]
+    }
+    if (!selected) return empty
+    const manuscriptCards = buildTimeQuestionCards(parseGrade4TimeLessonSections(selected.body).sections)
+    const published = (kind: 'exercise' | 'formative_check') => selectedItems
+      .filter(item => item.question_kind === kind)
+      .map(item => ({
+        id: item.question_id, kind: item.question_kind,
+        prompt: item.prompt, answer: item.answer, why: item.explanation,
+      }))
+    return {
+      exercise: published('exercise').length ? published('exercise') : manuscriptCards.exercise,
+      check: published('formative_check').length ? published('formative_check') : manuscriptCards.check,
+    }
+  }, [selected, selectedItems])
 
   function chooseLesson(order: number) {
     if (!lessons.some(row => row.lesson_order === order)) return
@@ -232,6 +257,152 @@ export default function Grade4TimeOutcomePackage({
   const hrefFor = (id: string) => audience === 'teacher'
     ? `/teacher/outcome-package?outcomeId=${encodeURIComponent(id)}`
     : `/learn/grade-4/mathematics/time/outcome/${encodeURIComponent(id)}`
+
+
+  // Learners land directly on the modern Time reader. The teacher-specific
+  // package below keeps its existing guidance and preparation controls.
+  if (audience === 'learner') return <main className={readerStyles.page}
+    style={{ background: '#f5f9f6', color: '#163c2b' }}>
+    <div className={readerStyles.wrap}>
+      <nav className={readerStyles.breadcrumbs} aria-label="Breadcrumb">
+        <Link href="/learn">Learn</Link><ChevronRight size={15} aria-hidden="true" />
+        <Link href="/learn?grade=Grade+4&subject=Mathematics">Grade 4 Mathematics</Link>
+        <ChevronRight size={15} aria-hidden="true" />
+        <Link href="/learn/grade-4/mathematics/time">Time</Link>
+        <ChevronRight size={15} aria-hidden="true" /><span aria-current="page">Learning goal</span>
+      </nav>
+
+      <header className={readerStyles.hero}>
+        <div>
+          <p className={readerStyles.kicker}>Grade 4 Mathematics · Measurement</p>
+          <h1 className={readerStyles.heroTitle}>Time</h1>
+          <p className={readerStyles.heroDescription}>
+            {outcome?.outcome_text ?? 'Choose a learning goal and study its published lessons.'}
+          </p>
+        </div>
+        <div className={readerStyles.subjectTag}>
+          <Clock3 size={20} aria-hidden="true" /> Learn at your own pace
+        </div>
+      </header>
+
+      {loading && <section className={readerStyles.empty} role="status">Loading published Time lessons…</section>}
+      {!loading && error && <section className={readerStyles.error} role="alert">{error}</section>}
+      {!loading && !error && lessons.length === 0 &&
+        <section className={readerStyles.empty} role="status">
+          No eligible certified lessons are currently available for this learning goal.
+        </section>}
+
+      {!loading && !error && selected && <div>
+        <details className={readerStyles.lessonChooser} open={chooserOpen}
+          onToggle={event => setChooserOpen(event.currentTarget.open)}>
+          <summary>Choose a lesson <span>({lessons.length} available)</span></summary>
+          <nav className={readerStyles.lessonList} aria-label="Choose a Time lesson">
+            {lessons.map(row => <button key={row.resource_version_id} type="button"
+              className={[readerStyles.lessonButton,
+                selected.resource_version_id === row.resource_version_id ? readerStyles.lessonButtonActive : ''].join(' ')}
+              aria-current={selected.resource_version_id === row.resource_version_id ? 'step' : undefined}
+              onClick={() => { chooseLesson(row.lesson_order); setChooserOpen(false) }}>
+              <span className={readerStyles.lessonNumber}>{row.lesson_order}</span>
+              <span><span className={readerStyles.lessonTitle}>{parseGrade4TimeLessonSections(row.body).title || row.title}</span>
+                <span className={readerStyles.lessonSmall}>
+                  {selected.resource_version_id === row.resource_version_id ? 'Reading now' : 'Open lesson'}
+                </span></span>
+            </button>)}
+          </nav>
+        </details>
+
+        <article key={selected.resource_version_id} className={readerStyles.article}
+          aria-labelledby="outcome-time-title">
+          <header className={readerStyles.articleHead}>
+            <p className={readerStyles.articleNum}>
+              Lesson {selectedIndex + 1} of {lessons.length}
+            </p>
+            <h2 id="outcome-time-title" tabIndex={-1} className={readerStyles.articleTitle}>
+              {parsedSelected?.title || selected.title}
+            </h2>
+            <div className={readerStyles.goal}>
+              <p className={readerStyles.goalLabel}>What you will learn</p>
+              <p className={readerStyles.goalText}>{parsedSelected?.goal || outcome?.outcome_text}</p>
+            </div>
+          </header>
+
+          <UniversalLearnReader
+            subject="Mathematics"
+            topic="time"
+            sections={adaptCanonicalLearnSections(parsedSelected?.sections ?? [])}
+            anchorPrefix="outcome-time"
+            renderBody={section => section.id === 'example'
+              ? <Grade4TimeWorkedSteps body={section.body} />
+              : section.id === 'exercise' && questionCards.exercise.length
+              ? <Grade4TimePracticeCards questions={questionCards.exercise} lessonNumber={selected.lesson_order} />
+              : section.id === 'check' && questionCards.check.length
+              ? <Grade4TimePracticeCards questions={questionCards.check} lessonNumber={selected.lesson_order} />
+              : undefined}
+            toolContext={toolContext ?? undefined}
+            visualContext={selected.lesson_order === 4 && !!toolContext ? {
+              grade: 'Grade 4', subject: 'Mathematics',
+              topicKey: 'time-hours-minutes',
+              sourceStrandId: 'e975dcc6-32a9-4274-a2a3-3d19e409cf5c',
+            } : undefined}
+            afterSection={(section, index) => toolContext &&
+              getLearningToolSectionBinding(toolContext, section, index)
+              ? <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />
+              : null}
+          />
+          {selectedItems.length > 0 &&
+            !parsedSelected?.sections.some(section => section.id === 'exercise' || section.id === 'check') &&
+            <section className={readerStyles.outcomePanel} aria-label="Published practice">
+              <h3>Check your understanding</h3>
+              <Grade4TimePracticeCards lessonNumber={selected.lesson_order}
+                questions={selectedItems.map(item => ({
+                  id: item.question_id, kind: item.question_kind,
+                  prompt: item.prompt, answer: item.answer, why: item.explanation,
+                }))} />
+            </section>}
+          <div className={readerStyles.articleBottom}>
+            <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
+            <nav aria-label="Move between outcome lessons" className={readerStyles.lessonPager}>
+              {selectedIndex > 0
+                ? <button type="button" className={readerStyles.pagerButton}
+                  onClick={() => chooseLesson(lessons[selectedIndex - 1].lesson_order)}>
+                  <ChevronLeft size={17} aria-hidden="true" /> Previous lesson
+                </button>
+                : <Link className={readerStyles.pagerButton} href="/learn/grade-4/mathematics/time">
+                  <ChevronLeft size={17} aria-hidden="true" /> Back to Time
+                </Link>}
+              {selectedIndex < lessons.length - 1
+                ? <button type="button"
+                  className={[readerStyles.pagerButton, readerStyles.pagerPrimary].join(' ')}
+                  onClick={() => chooseLesson(lessons[selectedIndex + 1].lesson_order)}>
+                  Next lesson <ArrowRight size={17} aria-hidden="true" />
+                </button>
+                : <Link className={[readerStyles.pagerButton, readerStyles.pagerPrimary].join(' ')}
+                  href="/learn/grade-4/mathematics/time">
+                  Back to Time <ArrowRight size={17} aria-hidden="true" />
+                </Link>}
+            </nav>
+          </div>
+        </article>
+      </div>}
+
+      <section className={readerStyles.outcomePanel} aria-label="Time learning outcomes">
+        <h2>Practise another learning goal</h2>
+        <p>Choose a published goal to study with the same lesson reader.</p>
+        {catalogueLoading && <p role="status">Loading learning goals…</p>}
+        {!catalogueLoading && catalogueError &&
+          <p role="status">The learning-goal list is temporarily unavailable.</p>}
+        {!catalogueLoading && !catalogueError && catalogue.length === 0 &&
+          <p role="status">No published learning goals are currently available.</p>}
+        <nav className={readerStyles.outcomeList} aria-label="Choose another learning goal">
+          {catalogue.map(row => <Link className={readerStyles.outcomeLink}
+            key={row.outcome_id} href={hrefFor(row.outcome_id)}
+            aria-current={row.outcome_id === outcomeId ? 'page' : undefined}>
+            <span>{row.outcome_text}</span><ChevronRight size={18} aria-hidden="true" />
+          </Link>)}
+        </nav>
+      </section>
+    </div>
+  </main>
 
   return <main style={{ maxWidth: 960, margin: '0 auto', padding: '18px 14px 80px', background: '#f5f9f6', minHeight: '100vh', color: '#193e2d' }}>
     <p style={{ color: '#176147', fontSize: 12, fontWeight: 800 }}>VIBESCHOOL ORIGINALS · GRADE 4 MATHEMATICS · TIME</p>
