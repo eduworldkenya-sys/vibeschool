@@ -13,6 +13,7 @@ import SubjectCompanion from '@/components/teacher/SubjectCompanion'
 import Grade1CreativeActivitiesMap from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 import Grade1MathematicsMap from '@/components/teacher/curriculum/Grade1MathematicsMap'
 import Grade6MathematicsMap from '@/components/teacher/curriculum/Grade6MathematicsMap'
+import Grade3MathematicsMap from '@/components/teacher/curriculum/Grade3MathematicsMap'
 import Grade4MathematicsMap from '@/components/teacher/curriculum/Grade4MathematicsMap'
 import Grade1EnglishMap from '@/components/teacher/curriculum/Grade1EnglishMap'
 import Grade3EnglishMap from '@/components/teacher/curriculum/Grade3EnglishMap'
@@ -92,6 +93,7 @@ export default function SubjectHubPage() {
   const [activeIdx,      setActiveIdx]      = useState(0)
   const [grade1MathematicsUnitId, setGrade1MathematicsUnitId] = useState('1.1')
   const [grade6MathematicsUnitId, setGrade6MathematicsUnitId] = useState('1.1')
+  const [grade3MathematicsUnitId, setGrade3MathematicsUnitId] = useState('1.1')
   const [grade4MathematicsUnitId, setGrade4MathematicsUnitId] = useState('1.1')
   const [grade1EnglishUnitId, setGrade1EnglishUnitId] = useState('1.1')
   const [grade3EnglishUnitId, setGrade3EnglishUnitId] = useState('1.1')
@@ -909,6 +911,10 @@ export default function SubjectHubPage() {
     /^(english|english language)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
       : null
+  const grade3MathematicsClass =
+    /^(mathematics|mathematical activities|mathematics activities)$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\\b(?:grade|class)\\s*3\\b/i.test(item.name)) ?? null
+      : null
   const grade4MathematicsClass =
     /^(mathematics|mathematical activities|mathematics activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
@@ -1260,6 +1266,19 @@ export default function SubjectHubPage() {
             </button>
           </div>
           <Grade3EnglishMap compact selectedUnitId={grade3EnglishUnitId} onSelectUnit={setGrade3EnglishUnitId} />
+        </div>
+      )}
+
+      {/* Grade 3 Mathematics source-linked curriculum: no timetable prerequisite. */}
+      {!loading && !classLoading && activeSubject && grade3MathematicsClass && (
+        <div style={{margin:'14px 16px 0'}}>
+          <div style={{display:'flex',justifyContent:'flex-end',marginBottom:9}}>
+            <button type="button" onClick={()=>router.push('/teacher/curriculum?classId='+encodeURIComponent(grade3MathematicsClass.id)+'&subjectId='+encodeURIComponent(activeSubject.id)+'&unitId='+encodeURIComponent(grade3MathematicsUnitId))}
+              style={{background:'#175b43',color:'#fff',minHeight:44,border:0,padding:'10px 14px',borderRadius:10,cursor:'pointer',fontWeight:800}}>
+              Open full Grade 3 Mathematics curriculum map
+            </button>
+          </div>
+          <Grade3MathematicsMap compact selectedUnitId={grade3MathematicsUnitId} onSelectUnit={setGrade3MathematicsUnitId} />
         </div>
       )}
 
