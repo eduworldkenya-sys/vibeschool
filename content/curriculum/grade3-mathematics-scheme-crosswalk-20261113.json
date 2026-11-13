@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "created_on": "2026-11-13",
+  "kind": "grade3_mathematical_activities_private_source_to_legacy_scheme_crosswalk",
+  "official_catalogue": "https://kicd.ac.ke/cbc-materials/lower-primary/",
+  "source_pdf": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.3.MATHEMATICS.ACTIVITIES.pdf",
+  "edition": "2024",
+  "source_artifact_status": "OFFICIAL_URL_IDENTIFIED_NOT_ACQUIRED_IN_AUTHENTICATED_PRIVATE_INTAKE",
+  "source_text_status": "PRIVATE_VERBATIM_TRANSCRIPTION_NOT_PERFORMED",
+  "rights_scope_status": "OWNER_ASSERTS_PERMISSION_SCOPE_NOT_INDEPENDENTLY_VERIFIED",
+  "source_summary": {
+    "strands": 3,
+    "sub_strands": 14,
+    "suggested_lessons": 150,
+    "lessons_per_week": 5
+  },
+  "production_readback_at": "2026-11-13",
+  "production_state": {
+    "legacy_math_units": 14,
+    "linked_atomic_outcomes": 0,
+    "verified_outcomes": 0,
+    "saved_scheme_rows": 0,
+    "registered_grade3_sources": 0
+  },
+  "canonical_tables": [
+    "curriculum_authority_sources",
+    "curriculum_authority_artifacts",
+    "curriculum_authority_snapshots",
+    "cbc_strands",
+    "curriculum_learning_outcomes",
+    "curriculum_unit_guidance",
+    "scheme_of_work",
+    "scheme_lesson_outcomes"
+  ],
+  "scheme_rpc": "public.commit_mapped_scheme_lesson(uuid,uuid,uuid,integer,uuid,uuid[])",
+  "safe_handling": "Legacy title matches are not verified official outcomes. Never create synthetic teacher schemes, bypass the authorized curriculum-intake workflow, substitute the physical-impairment edition, or expose private verbatim text to the public reader.",
+  "rows": [
+    {
+      "code": "1.1",
+      "strand": "Numbers",
+      "sub_strand": "Number Concept",
+      "suggested_lessons": 8,
+      "legacy_heading_pair_id": null,
+      "mapping_status": "NO_EXACT_LEGACY_HEADING_PAIR",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "1.2",
+      "strand": "Numbers",
+      "sub_strand": "Whole Numbers",
+      "suggested_lessons": 20,
+      "legacy_heading_pair_id": "40bb1bae-af31-4d50-9e2b-7866ce5a2002",
+      "mapping_status": "LEGACY_HEADING_PAIR_MATCH_ONLY",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "1.3",
+      "strand": "Numbers",
+      "sub_strand": "Addition",
+      "suggested_lessons": 25,
+      "legacy_heading_pair_id": null,
+      "mapping_status": "NO_EXACT_LEGACY_HEADING_PAIR",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "1.4",
+      "strand": "Numbers",
+      "sub_strand": "Subtraction",
+      "suggested_lessons": 20,
+      "legacy_heading_pair_id": null,
+      "mapping_status": "NO_EXACT_LEGACY_HEADING_PAIR",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "1.5",
+      "strand": "Numbers",
+      "sub_strand": "Multiplication",
+      "suggested_lessons": 10,
+      "legacy_heading_pair_id": null,
+      "mapping_status": "NO_EXACT_LEGACY_HEADING_PAIR",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "1.6",
+      "strand": "Numbers",
+      "sub_strand": "Division",
+      "suggested_lessons": 8,
+      "legacy_heading_pair_id": null,
+      "mapping_status": "NO_EXACT_LEGACY_HEADING_PAIR",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "1.7",
+      "strand": "Numbers",
+      "sub_strand": "Fractions",
+      "suggested_lessons": 10,
+      "legacy_heading_pair_id": "2a04b719-180e-4b7c-8275-2ab192df4093",
+      "mapping_status": "LEGACY_HEADING_PAIR_MATCH_ONLY",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "2.1",
+      "strand": "Measurement",
+      "sub_strand": "Length",
+      "suggested_lessons": 6,
+      "legacy_heading_pair_id": "5036306b-5dbc-41a5-ae13-3a6e43e36be1",
+      "mapping_status": "LEGACY_HEADING_PAIR_MATCH_ONLY",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "2.2",
+      "strand": "Measurement",
+      "sub_strand": "Mass",
+      "suggested_lessons": 6,
+      "legacy_heading_pair_id": "43fc18dc-8a19-4357-b331-af9fcf7fdaaa",
+      "mapping_status": "LEGACY_HEADING_PAIR_MATCH_ONLY",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "2.3",
+      "strand": "Measurement",
+      "sub_strand": "Capacity",
+      "suggested_lessons": 8,
+      "legacy_heading_pair_id": "37319f4b-aef0-4aa9-8210-4302bada1588",
+      "mapping_status": "LEGACY_HEADING_PAIR_MATCH_ONLY",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "2.4",
+      "strand": "Measurement",
+      "sub_strand": "Time",
+      "suggested_lessons": 10,
+      "legacy_heading_pair_id": "d842ca69-a72d-4563-a231-b29e6d4a7410",
+      "mapping_status": "LEGACY_HEADING_PAIR_MATCH_ONLY",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "2.5",
+      "strand": "Measurement",
+      "sub_strand": "Money",
+      "suggested_lessons": 10,
+      "legacy_heading_pair_id": null,
+      "mapping_status": "NO_EXACT_LEGACY_HEADING_PAIR",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "3.1",
+      "strand": "Geometry",
+      "sub_strand": "Position and Direction",
+      "suggested_lessons": 5,
+      "legacy_heading_pair_id": null,
+      "mapping_status": "NO_EXACT_LEGACY_HEADING_PAIR",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    },
+    {
+      "code": "3.2",
+      "strand": "Geometry",
+      "sub_strand": "Shapes",
+      "suggested_lessons": 4,
+      "legacy_heading_pair_id": null,
+      "mapping_status": "NO_EXACT_LEGACY_HEADING_PAIR",
+      "linked_atomic_outcomes": 0,
+      "scheme_connection": "PENDING_MIGRATION_AND_AUTHENTICATED_TEACHER_SAVE"
+    }
+  ],
+  "production_state_scope": "Read-only pre-migration snapshot (13 Nov 2026). Does not represent the installed migration.",
+  "planned_integration": {
+    "binding_table": "grade3_mathematics_reader_bindings",
+    "source_prefix": "VS-CUR-G03-MA-2026",
+    "original_outcomes": 28,
+    "source_exact_outcomes_verified": 0,
+    "units": 14,
+    "suggested_lessons": 150,
+    "teacher_scheme_rows_auto_created": 0,
+    "teacher_save_rpc": "public.commit_mapped_scheme_lesson(uuid,uuid,uuid,integer,uuid,uuid[])"
+  }
+}
