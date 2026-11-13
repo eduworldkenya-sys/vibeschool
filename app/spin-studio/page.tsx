@@ -3,8 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
-type Entry = { id: string; label: string; question: string; answer: string }
-type Wheel = { musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type Entry = { id: string; label: string; question: string; answer: string; image?: string; symbol?: string }
+type ShowFormat = 'challenge' | 'lucky' | 'trending' | 'learn'
+type SegmentStyle = 'text' | 'photo' | 'both'
+type ProductionStatus = 'idea' | 'recorded' | 'edited' | 'scheduled' | 'published' | 'reviewed'
+type ProductionItem = { id:string; wheelId:string; title:string; platform:string; status:ProductionStatus; plannedDate:string; url:string; views:number; likes:number; shares:number; comments:number; followers:number; notes:string }
+const PRODUCTION_STORAGE='vibeschool.vibespin.production.v1'
+const formatNames:Record<ShowFormat,string>={challenge:'VibeSpin Challenge',lucky:'VibeSpin Lucky Draw',trending:'VibeSpin Trending',learn:'VibeSpin Learn'}
+const socialPlatforms=['YouTube Shorts','TikTok','Facebook Reels','Instagram Reels','WhatsApp Status','Other']
+const initialProduction=():ProductionItem=>({id:uid(),wheelId:'',title:'',platform:'YouTube Shorts',status:'idea',plannedDate:'',url:'',views:0,likes:0,shares:0,comments:0,followers:0,notes:''})
+type Wheel = { showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
@@ -15,10 +23,12 @@ const stageThemes: Record<string,string> = {
   midnight:'radial-gradient(ellipse at 50% 25%, #49339d 0%, #09152f 70%, #040716 100%)',
   clean:'linear-gradient(145deg,#1c4968 0%,#08172c 100%)'
 }
-const templates: {name:string; entries:[string,string,string][]}[] = [
+const templates: {name:string; entries:[string,string,string][]; format?:ShowFormat}[] = [
   {name:'African Capitals',entries:[['Kenya','What is the capital of Kenya?','Nairobi'],['Uganda','What is the capital of Uganda?','Kampala'],['Tanzania','What is the capital of Tanzania?','Dodoma'],['Rwanda','What is the capital of Rwanda?','Kigali'],['Ghana','What is the capital of Ghana?','Accra'],['Nigeria','What is the capital of Nigeria?','Abuja']]},
   {name:'Mental Maths',entries:[['12 × 8','What is 12 multiplied by 8?','96'],['15 + 27','What is 15 plus 27?','42'],['3/4','What is 3/4 of 20?','15'],['25%','What is 25% of 200?','50']]},
-  {name:'Science Quiz',entries:[['Mars','Which planet is called the Red Planet?','Mars'],['Plants','How do green plants make food?','Photosynthesis'],['Water','What is the chemical formula for water?','H₂O'],['Gravity','Which force attracts objects towards Earth?','Gravity']]}
+  {name:'Science Quiz',entries:[['Mars','Which planet is called the Red Planet?','Mars'],['Plants','How do green plants make food?','Photosynthesis'],['Water','What is the chemical formula for water?','H₂O'],['Gravity','Which force attracts objects towards Earth?','Gravity']],format:'learn'},
+  {name:'Trending topic · Add names',entries:[],format:'trending'},
+  {name:'Lucky draw · Add entries',entries:[],format:'lucky'}
 ]
 const colors = {
   electric: ['#1ac6c2','#ffbd37','#fe577e','#6d6dfc','#4cdb91','#ff8552','#aa6df3','#349dee'],
@@ -44,12 +54,13 @@ const starter = (): Wheel => ({
   id: uid(), name:'Capital City Challenge', headline:'CAN YOU BEAT THE WHEEL?',
   cta:'Comment your answer • Follow VibeSchool',
   entries: sample.map(item=>({...item,id:uid()})), maxSpins:0, noRepeat:false,
-  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1,batchMode:false,musicEnabled:false,musicStyle:'ambient',musicVolume:18
+  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1,batchMode:false,musicEnabled:false,musicStyle:'ambient',musicVolume:18,showFormat:'challenge',segmentStyle:'both',introEnabled:true,outroEnabled:true,introDuration:2,outroDuration:3
 })
 function validEntry(x: unknown): x is Entry {
   if (!x || typeof x !== 'object') return false
   const e=x as Record<string,unknown>
   return typeof e.id==='string' && typeof e.label==='string' && typeof e.question==='string' && typeof e.answer==='string'
+    && (e.image===undefined || (typeof e.image==='string' && (e.image==='' || (e.image.startsWith('data:image/') && e.image.length<220000)))) && (e.symbol===undefined || (typeof e.symbol==='string' && e.symbol.length<=12))
 }
 function validWheel(x: unknown): x is Wheel {
   if (!x || typeof x!=='object') return false
@@ -91,8 +102,12 @@ export default function SpinStudio() {
   const [selectedId,setSelectedId]=useState('')
   const [loaded,setLoaded]=useState(false)
   const [recording,setRecording]=useState(false)
-  const [setupTab,setSetupTab]=useState<'wheels'|'content'|'appearance'|'effects'|'settings'>('wheels')
-  const [showPhase,setShowPhase]=useState<'idle'|'spinning'|'question'|'countdown'|'reveal'>('idle')
+  const [production,setProduction]=useState<ProductionItem[]>([])
+  const [productionLoaded,setProductionLoaded]=useState(false)
+  const [captionCopied,setCaptionCopied]=useState(false)
+  const [safeZone,setSafeZone]=useState(true)
+  const [setupTab,setSetupTab]=useState<'wheels'|'content'|'appearance'|'effects'|'settings'|'production'>('wheels')
+  const [showPhase,setShowPhase]=useState<'idle'|'intro'|'spinning'|'question'|'countdown'|'reveal'|'outro'>('idle')
   const [showOverlay,setShowOverlay]=useState(false)
   const [capturing,setCapturing]=useState(false)
   const [musicPlaying,setMusicPlaying]=useState(false)
@@ -120,6 +135,7 @@ export default function SpinStudio() {
   const futureRef=useRef<Wheel[]>([])
   const pendingSpin=useRef(false)
   const countdownRef=useRef<number|null>(null)
+  const sceneRef=useRef<number|null>(null)
   const recorderRef=useRef<MediaRecorder|null>(null)
   const captureStreamRef=useRef<MediaStream|null>(null)
   const chunksRef=useRef<Blob[]>([])
@@ -141,7 +157,7 @@ export default function SpinStudio() {
       const ctx=new AudioContext(),gain=ctx.createGain()
       gain.gain.value=Math.min(0.12,Math.max(0,(wheel.musicVolume??18)/100)*0.12)
       gain.connect(ctx.destination)
-      const frequencies=wheel.musicStyle==='pulse'?[130.81,196,261.63]:[130.81,164.81,196]
+      const frequencies=wheel.musicStyle==='pulse'?[130.81,196,261.63]:wheel.musicStyle==='suspense'?[110,146.83,164.81]:wheel.musicStyle==='comedy'?[196,246.94,293.66]:wheel.musicStyle==='calm'?[174.61,220,261.63]:[130.81,164.81,196]
       const oscillators=frequencies.map((hz,index)=>{
         const osc=ctx.createOscillator(),voice=ctx.createGain()
         osc.type=wheel.musicStyle==='pulse'?'triangle':'sine'
@@ -165,6 +181,21 @@ export default function SpinStudio() {
   const locked=spinning || showPhase==='question' || showPhase==='countdown' || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
 
   useEffect(()=>{
+    try{
+      const raw=localStorage.getItem(PRODUCTION_STORAGE)
+      const parsed:unknown=raw?JSON.parse(raw):[]
+      if(Array.isArray(parsed)){
+        setProduction(parsed.filter(item=>item&&typeof item==='object'&&typeof item.id==='string'&&typeof item.title==='string'&&typeof item.wheelId==='string').slice(0,100))
+      }
+    }catch{/* Browser storage may be unavailable. */}
+    setProductionLoaded(true)
+  },[])
+  useEffect(()=>{
+    if(!productionLoaded)return
+    try{localStorage.setItem(PRODUCTION_STORAGE,JSON.stringify(production))}
+    catch{setFeedback('Production tracker storage is full; export or remove older records.')}
+  },[production,productionLoaded])
+  useEffect(()=>{
     try {
       const raw=localStorage.getItem(STORAGE)
       const data=raw?JSON.parse(raw) as Partial<Saved>:null
@@ -184,6 +215,7 @@ export default function SpinStudio() {
     pastRef.current=[];futureRef.current=[];setUndoCount(0);setRedoCount(0)
     if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)
     if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
+    if(sceneRef.current!==null)window.clearTimeout(sceneRef.current)
     pendingSpin.current=false
     setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
   },[selectedId])
@@ -205,7 +237,7 @@ export default function SpinStudio() {
     },Math.max(1,wheel.revealHold??3)*1000)
     return ()=>clearTimeout(timer)
   },[showPhase,wheel,batchMode])
-  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop());const audio=musicRef.current;if(audio){audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}});void audio.ctx.close().catch(()=>{})}},[])
+  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);if(sceneRef.current!==null)window.clearTimeout(sceneRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop());const audio=musicRef.current;if(audio){audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}});void audio.ctx.close().catch(()=>{})}},[])
   useEffect(()=>{
     const media=window.matchMedia('(prefers-reduced-motion: reduce)')
     setReducedMotion(media.matches)
@@ -288,6 +320,7 @@ export default function SpinStudio() {
   const nextChallenge=()=>{if(spinning)return;if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
   const advanceStage=()=>{
     if(!recording || spinning)return
+    if(showPhase==='intro'||showPhase==='outro'){if(sceneRef.current!==null)clearTimeout(sceneRef.current);setShowPhase('idle');return}
     if(showPhase==='question'||showPhase==='countdown'){revealNow();return}
     if(showPhase==='reveal'){nextChallenge();if(available.length>0 && remaining!==0)spinRef.current();return}
     if(showPhase==='idle')spin()
@@ -326,9 +359,66 @@ export default function SpinStudio() {
     }catch(error){setCapturing(false);setFeedback(error instanceof Error?error.message:'Screen recording could not start.')}
   }
   const stopCapture=()=>{const recorder=recorderRef.current;if(recorder&&recorder.state!=='inactive')recorder.stop()}
+  const imageForEntry=(id:string,file:File|undefined)=>{
+    if(!file)return
+    if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>140000){setFeedback('Please use a JPG, PNG or WebP photo smaller than 140 KB.');return}
+    const reader=new FileReader()
+    reader.onload=()=>{if(typeof reader.result==='string')editEntry(id,{image:reader.result})}
+    reader.readAsDataURL(file)
+  }
+  const setShowFormat=(kind:ShowFormat)=>{
+    if(!wheel)return
+    const patch:Partial<Wheel>={showFormat:kind}
+    if(kind==='lucky'){patch.countdown=0;patch.celebration='confetti';patch.cta='VibeSpin by VibeSchool • See published giveaway rules'}
+    else if(kind==='trending'){patch.countdown=3;patch.cta='Random selection for entertainment • Not a poll or prediction'}
+    else if(kind==='learn'){patch.countdown=5;patch.cta='How did you do? Learn more with VibeSchool'}
+    else{patch.countdown=5;patch.cta='Comment your answer • Follow VibeSchool'}
+    update(patch)
+  }
+  const launchShow=()=>{
+    if(spinning)return
+    if(sceneRef.current!==null)clearTimeout(sceneRef.current)
+    setRecording(true);setFeedback('');playMusic()
+    if(wheel?.introEnabled!==false){
+      setShowOverlay(false);setShowPhase('intro')
+      sceneRef.current=window.setTimeout(()=>setShowPhase('idle'),Math.max(1,wheel?.introDuration??2)*1000)
+    }
+  }
+  const showOutro=()=>{
+    if(spinning)return
+    if(countdownRef.current!==null)clearTimeout(countdownRef.current)
+    if(sceneRef.current!==null)clearTimeout(sceneRef.current)
+    setShowOverlay(false);setShowPhase('outro')
+    sceneRef.current=window.setTimeout(()=>setShowPhase('idle'),Math.max(1,wheel?.outroDuration??3)*1000)
+  }
+  const updateProduction=(id:string,patch:Partial<ProductionItem>)=>setProduction(old=>old.map(item=>item.id===id?{...item,...patch}:item))
+  const createProduction=()=>{
+    if(!wheel)return
+    const item={...initialProduction(),wheelId:wheel.id,title:wheel.name}
+    setProduction(old=>[item,...old].slice(0,100));setSetupTab('production')
+  }
+  const suggestedCaption=()=>{
+    if(!wheel)return ''
+    const episode=String(wheel.episode??1).padStart(2,'0')
+    const title=wheel.name.trim()||formatNames[wheel.showFormat??'challenge']
+    const note=wheel.showFormat==='trending'?'This is a random entertainment spin, not a poll, endorsement or prediction.\n':wheel.showFormat==='lucky'?'Check the official giveaway rules and eligibility before participating.\n':''
+    return `VibeSpin by VibeSchool | Episode ${episode}\n${title}\n${wheel.headline}\n${note}${wheel.cta}\n#VibeSpin #VibeSchool`
+  }
+  const copyCaption=async()=>{
+    try{await navigator.clipboard.writeText(suggestedCaption());setCaptionCopied(true);setTimeout(()=>setCaptionCopied(false),2000)}
+    catch{setFeedback('Copy is unavailable. Select the caption text and copy it manually.')}
+  }
+  const exportTracker=()=>{
+    const quote=(value:string|number)=>'"'+String(value).replaceAll('"','""')+'"'
+    const headers=['title','platform','status','plannedDate','url','views','likes','shares','comments','followers','notes']
+    const rows=production.map(item=>headers.map(key=>quote(item[key as keyof ProductionItem] as string|number)).join(','))
+    const blob=new Blob([[headers.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8'})
+    const url=URL.createObjectURL(blob),a=document.createElement('a')
+    a.href=url;a.download='vibespin-production-tracker.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }
   const loadTemplate=(index:number)=>{
     const t=templates[index];if(!t)return
-    const fresh:Wheel={...starter(),id:uid(),name:t.name,entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
+    const fresh:Wheel={...starter(),id:uid(),name:t.name,showFormat:t.format??'challenge',cta:t.format==='trending'?'Random selection for entertainment • Not a poll or prediction':t.format==='lucky'?'See the official giveaway rules': 'How did you do? Follow VibeSchool',entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
     setWheels(all=>[...all,fresh]);setSelectedId(fresh.id);setSetupTab('content')
   }
   const uploadBackground=(file:File|undefined,kind:'background'|'logo'='background')=>{
@@ -390,24 +480,33 @@ export default function SpinStudio() {
     }catch{setFeedback('Fullscreen is not supported here. Recording mode still works.')}
   }
   const selected=result===null?null:entries[result]
+  const showFormat=wheel?.showFormat??'challenge'
+  const selectedIsReward=showFormat==='lucky'||showFormat==='trending'
   const segmented=useMemo(()=>entries.map((entry,index)=>({entry,index,path:wedge(index,entries.length),degree:(index+.5)*360/entries.length})),[entries])
   if(!loaded || !wheel)return <main className={styles.page}><p>Loading Spin Studio…</p></main>
   return <main className={styles.page}>
     <div className={styles.shell}>
       {!recording && <header className={styles.header}>
-        <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>Spin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
-        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={()=>{setRecording(true);setFeedback('');playMusic()}}>Launch Show ↗</button></div>
+        <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>VibeSpin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
+        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={launchShow}>Launch Show ↗</button></div>
       </header>}
       <div className={recording?styles.recordLayout:styles.layout}>
         {!recording && <aside className={styles.controls}>
           <div className={styles.historyControls}><button disabled={!undoCount} onClick={undoEdit}>↶ Undo</button><button disabled={!redoCount} onClick={redoEdit}>↷ Redo</button><span>Changes saved locally</span></div>
           <nav className={styles.setupTabs} aria-label="Spin Studio setup">
-            {(['wheels','content','appearance','effects','settings'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':'Settings'}</button>)}
+            {(['wheels','content','appearance','effects','settings','production'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':tab==='production'?'Production':'Settings'}</button>)}
           </nav>
           {setupTab==='wheels' && <div className={styles.panel}>
             <div className={styles.panelTitle}><h2>My wheels</h2><button onClick={addWheel} className={styles.smallButton}>+ New</button></div>
             <select aria-label="Select a saved wheel" value={selectedId} onChange={e=>setSelectedId(e.target.value)}>{wheels.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select>
             <div className={styles.row}><button onClick={duplicateWheel}>Duplicate</button><button disabled={wheels.length<=1} onClick={removeWheel}>Delete wheel</button></div>
+            <label>Show format<select value={showFormat} onChange={e=>setShowFormat(e.target.value as ShowFormat)}>
+              <option value="challenge">VibeSpin Challenge · questions and guesses</option>
+              <option value="lucky">VibeSpin Lucky Draw · prizes and entries</option>
+              <option value="trending">VibeSpin Trending · entertainment topics</option>
+              <option value="learn">VibeSpin Learn · curriculum challenges</option>
+            </select></label>
+            <p className={styles.hint}>{showFormat==='trending'?'A random result is not a forecast, poll, or endorsement. Keep candidate lists fact-checked and neutral.':showFormat==='lucky'?'Check eligibility, transparency and any applicable promotion rules before announcing prizes.':'One reusable wheel for different topics and episodes.'}</p>
             <label>Wheel name<input value={wheel.name} maxLength={90} onChange={e=>update({name:e.target.value})}/></label>
             <label>Video hook / headline<input value={wheel.headline} maxLength={100} onChange={e=>update({headline:e.target.value})}/></label>
             <label>Closing call to action<input value={wheel.cta} maxLength={120} onChange={e=>update({cta:e.target.value})}/></label>
@@ -423,12 +522,20 @@ export default function SpinStudio() {
               <input aria-label={'Label '+(i+1)} placeholder="Segment label" maxLength={70} value={entry.label} onChange={e=>editEntry(entry.id,{label:e.target.value})}/>
               <input aria-label={'Question '+(i+1)} placeholder="Question (optional)" maxLength={250} value={entry.question} onChange={e=>editEntry(entry.id,{question:e.target.value})}/>
               <input aria-label={'Answer '+(i+1)} placeholder="Answer (optional)" maxLength={250} value={entry.answer} onChange={e=>editEntry(entry.id,{answer:e.target.value})}/>
+              <label>Segment icon / emoji (optional)<input maxLength={12} placeholder="⭐ or 🎓" value={entry.symbol??''} onChange={e=>editEntry(entry.id,{symbol:e.target.value})}/></label>
+              <label className={styles.photoUpload}>Segment image (JPG, PNG or WebP, max 140 KB)
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{imageForEntry(entry.id,e.target.files?.[0]);e.target.value=''}}/>
+              </label>
+              {entry.image && <div className={styles.photoPreview}><img src={entry.image} alt={'Segment '+entry.label}/><button onClick={()=>editEntry(entry.id,{image:''})}>Remove photo</button></div>}
             </div>)}</div>
             <button onClick={()=>setShowBulk(v=>!v)}>{showBulk?'Close bulk editor':'+ Paste multiple entries'}</button>
             {showBulk && <div className={styles.bulk}><p className={styles.hint}>One line per segment: Label | Question | Answer</p><textarea rows={5} value={paste} onChange={e=>setPaste(e.target.value)} placeholder={'Brazil | What is its capital? | Brasília\nFractions | What is 1/2 + 1/4? | 3/4'}/><button onClick={importRows} disabled={!paste.trim()}>Add entries</button></div>}
           </div>}
           {setupTab==='appearance' && <div className={styles.panel}>
             <h2>Appearance & backgrounds</h2>
+            <label>Wheel segment display<select value={wheel.segmentStyle??'both'} onChange={e=>update({segmentStyle:e.target.value as SegmentStyle})}>
+              <option value="text">Text only</option><option value="photo">Photo or emoji only when provided</option><option value="both">Photo and name</option>
+            </select></label>
             <label>Stage theme<select value={wheel.stageBackground??'game'} onChange={e=>update({stageBackground:e.target.value,backgroundImage:''})}>
               <option value="game">Game Show Blue</option><option value="gold">Gold Challenge</option><option value="pop">Pop Challenge</option><option value="midnight">Neon Night</option><option value="clean">Clean Studio</option>
             </select></label>
@@ -443,8 +550,12 @@ export default function SpinStudio() {
           </div>}
           {setupTab==='effects' && <div className={styles.panel}>
             <h2>Effects & show director</h2>
+            <label className={styles.check}><input type="checkbox" checked={wheel.introEnabled??true} onChange={e=>update({introEnabled:e.target.checked})}/> Branded opening scene</label>
+            <label>Opening duration: {wheel.introDuration??2} seconds<input type="range" min="1" max="5" value={wheel.introDuration??2} onChange={e=>update({introDuration:Number(e.target.value)})}/></label>
+            <label className={styles.check}><input type="checkbox" checked={wheel.outroEnabled??true} onChange={e=>update({outroEnabled:e.target.checked})}/> Branded closing scene</label>
+            <label>Closing duration: {wheel.outroDuration??3} seconds<input type="range" min="1" max="8" value={wheel.outroDuration??3} onChange={e=>update({outroDuration:Number(e.target.value)})}/></label>
             <label className={styles.check}><input type="checkbox" checked={wheel.musicEnabled??false} onChange={e=>{update({musicEnabled:e.target.checked});if(!e.target.checked)stopMusic()}}/> Background music (original synthesised soundtrack)</label>
-            <label>Music style<select value={wheel.musicStyle??'ambient'} onChange={e=>{update({musicStyle:e.target.value as Wheel['musicStyle']});stopMusic()}}><option value="ambient">Soft ambient suspense</option><option value="pulse">Bright game-show pulse</option></select></label>
+            <label>Music style<select value={wheel.musicStyle??'ambient'} onChange={e=>{update({musicStyle:e.target.value as Wheel['musicStyle']});stopMusic()}}><option value="ambient">Soft ambient</option><option value="pulse">Energetic game-show pulse</option><option value="suspense">Dramatic suspense</option><option value="comedy">Playful comedy</option><option value="calm">Calm background</option></select></label>
             <label>Music volume: {wheel.musicVolume??18}%<input type="range" min="0" max="100" value={wheel.musicVolume??18} onChange={e=>{const volume=Number(e.target.value);update({musicVolume:volume});if(musicRef.current)musicRef.current.gain.gain.value=Math.min(0.12,volume/100*0.12)}}/></label>
             <div className={styles.row}><button onClick={()=>{if(musicPlaying)stopMusic();else playMusic()}}>{musicPlaying?'Stop background music':'Preview music'}</button></div>
             <label className={styles.check}><input type="checkbox" checked={wheel.automatic??true} onChange={e=>update({automatic:e.target.checked})}/> Automatic countdown and answer reveal</label>
@@ -457,6 +568,7 @@ export default function SpinStudio() {
           </div>}
           {setupTab==='settings' && <div className={styles.panel}>
             <h2>Show controls</h2>
+            <label className={styles.check}><input type="checkbox" checked={safeZone} onChange={e=>setSafeZone(e.target.checked)}/> Show portrait safe-area guide in editing preview</label>
             <label>Video shape<select value={format} onChange={e=>setFormat(e.target.value as Format)}><option value="portrait">9:16 · Shorts & TikTok</option><option value="landscape">16:9 · YouTube</option><option value="square">1:1 · Square</option></select></label>
             <label>Spin duration: {wheel.duration} seconds<input aria-label="Spin duration" type="range" min="3" max="10" value={wheel.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
             <label>Answer countdown: {wheel.countdown} seconds<input aria-label="Answer countdown" type="range" min="0" max="15" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/></label>
@@ -467,14 +579,39 @@ export default function SpinStudio() {
             <div className={styles.row}><button onClick={download}>Export wheel</button><label className={styles.fileButton}>Import JSON<input type="file" accept=".json,application/json" onChange={e=>{void upload(e.target.files?.[0]);e.target.value=''}}/></label></div>
             <p className={styles.hint}>Session history: {episodeLog.length} spins</p><button onClick={exportSession} disabled={!episodeLog.length}>Export session log (CSV)</button>
           </div>}
+          {setupTab==='production' && <div className={styles.panel}>
+            <div className={styles.panelTitle}><h2>Video production</h2><button className={styles.smallButton} onClick={createProduction}>+ Track episode</button></div>
+            <p className={styles.hint}>Plan and track videos here. Publishing still happens in your social-media apps; all records stay in this browser.</p>
+            <label>Copy-ready title, caption and hashtags
+              <textarea rows={7} readOnly value={suggestedCaption()}/>
+            </label>
+            <button onClick={()=>{void copyCaption()}}>{captionCopied?'Copied!':'Copy video caption'}</button>
+            <div className={styles.row}><button onClick={exportTracker} disabled={production.length===0}>Export production CSV</button><button onClick={createProduction}>Save this episode to tracker</button></div>
+            <p className={styles.hint}>{production.length} tracked videos · {production.filter(item=>item.status==='published'||item.status==='reviewed').length} published</p>
+            <div className={styles.productionList}>{production.map(item=><div className={styles.productionItem} key={item.id}>
+              <label>Video title<input maxLength={120} value={item.title} onChange={e=>updateProduction(item.id,{title:e.target.value})}/></label>
+              <div className={styles.productionTwo}>
+                <label>Platform<select value={item.platform} onChange={e=>updateProduction(item.id,{platform:e.target.value})}>{socialPlatforms.map(platform=><option key={platform} value={platform}>{platform}</option>)}</select></label>
+                <label>Status<select value={item.status} onChange={e=>updateProduction(item.id,{status:e.target.value as ProductionStatus})}>
+                  {(['idea','recorded','edited','scheduled','published','reviewed'] as const).map(status=><option key={status} value={status}>{status}</option>)}
+                </select></label>
+              </div>
+              <label>Planned publishing date<input type="date" value={item.plannedDate} onChange={e=>updateProduction(item.id,{plannedDate:e.target.value})}/></label>
+              <label>Published link<input placeholder="Paste the published video URL" maxLength={500} value={item.url} onChange={e=>updateProduction(item.id,{url:e.target.value})}/></label>
+              <div className={styles.productionMetrics}>{(['views','likes','shares','comments','followers'] as const).map(metric=><label key={metric}>{metric}<input type="number" min="0" max="999999999" value={item[metric]} onChange={e=>updateProduction(item.id,{[metric]:Math.max(0,Number(e.target.value)||0)})}/></label>)}</div>
+              <label>Notes<textarea rows={2} maxLength={500} value={item.notes} onChange={e=>updateProduction(item.id,{notes:e.target.value})}/></label>
+              <button onClick={()=>setProduction(old=>old.filter(row=>row.id!==item.id))}>Delete this record</button>
+            </div>)}</div>
+          </div>}
         </aside>}
         <section className={styles.previewSection} aria-label="Wheel preview">
           {!recording && <div className={styles.previewTop}><span>LIVE PREVIEW</span><span>{format==='portrait'?'9:16':format==='landscape'?'16:9':'1:1'} · Ready to record</span></div>}
           <div ref={stageRef} role={recording?'button':undefined} tabIndex={recording?0:undefined} aria-label={recording?'Tap to advance the show':undefined} onClick={advanceStage} onKeyDown={event=>{if(recording && event.key==='Enter'){event.preventDefault();advanceStage()}}} className={[styles.stage,recording?styles.tapStage:'',styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
             <div className={styles.stageGlow} aria-hidden="true"/>
+            {!recording&&safeZone&&<div className={styles.safeZone} aria-hidden="true"/>}
             <div className={styles.stageContent}>
-              <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span>VIBESCHOOL <b>SPIN STUDIO</b></span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
-              <div className={styles.titleBlock}><div className={styles.livePill}>✦ SPIN THE CHALLENGE ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
+              <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span><b>VIBESPIN</b> by VIBESCHOOL</span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
+              <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
               <div className={styles.wheelArea}>
                 <div className={styles.wheelHalo}/>
                 <svg role="img" aria-label="Wheel with editable segments" className={styles.wheelSvg} viewBox="0 0 400 400">
@@ -482,24 +619,36 @@ export default function SpinStudio() {
                   {segmented.length>0 && <g style={{transform:'rotate('+rotation+'deg)',transformOrigin:'200px 200px',transition:spinning?'transform '+wheel.duration+'s cubic-bezier(.12,.78,.08,1)':'none'}}>
                     {segmented.map(({entry,index,path,degree})=><g key={entry.id}>
                       <path d={path} fill={colors[wheel.theme][index%8]} stroke="#121836" strokeWidth="1.8"/>
-                      <text x="200" y="73" textAnchor="middle" transform={'rotate('+degree+' 200 200)'} fill="#10162b" fontSize={entries.length>16?8:entries.length>10?10:13} fontWeight="900">{entry.label.length>15?entry.label.slice(0,14)+'…':entry.label||'Item'}</text>
+                      {entry.image && wheel.segmentStyle!=='text' && entries.length<=24 && <>
+                        <defs><clipPath id={'vibespin-clip-'+index}><path d={path}/></clipPath></defs>
+                        <image href={entry.image} x="180" y="70" width="40" height="43" preserveAspectRatio="xMidYMid slice" transform={'rotate('+degree+' 200 200)'} clipPath={'url(#vibespin-clip-'+index+')'}/>
+                      </>}
+                      {entry.symbol && !entry.image && wheel.segmentStyle!=='text' && entries.length<=24 && <text x="200" y="98" fontSize="32" textAnchor="middle" transform={'rotate('+degree+' 200 200)'}>{entry.symbol}</text>}
+                      {(wheel.segmentStyle!=='photo'||(!entry.image&&!entry.symbol)) && <text x="200" y={(entry.image||entry.symbol)&&wheel.segmentStyle==='both'?'132':'73'} textAnchor="middle" transform={'rotate('+degree+' 200 200)'} fill="#10162b" fontSize={entries.length>16?8:entries.length>10?10:13} fontWeight="900">{entry.label.length>15?entry.label.slice(0,14)+'…':entry.label||'Item'}</text>}
                     </g>)}
                   </g>}
                   <circle cx="200" cy="200" r="48" fill="#0d1831" stroke="#ffffff" strokeWidth="5"/>
                   <circle cx="200" cy="200" r="41" fill="#0e2442"/>
                   <text x="200" y="197" fill="white" textAnchor="middle" fontSize="27" fontWeight="900">VIBE</text>
-                  <text x="200" y="217" fill="#40e4cd" textAnchor="middle" fontSize="17" fontWeight="900">SCHOOL</text>
+                  <text x="200" y="217" fill="#40e4cd" textAnchor="middle" fontSize="17" fontWeight="900">SPIN</text>
                   <path d="M182 2 L218 2 L200 42 Z" fill="#fff" stroke="#0e1832" strokeWidth="4"/>
                   <circle cx="200" cy="200" r="195" fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="5" strokeDasharray="2 13"/>
                 </svg>
                 {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
+              {(showPhase==='intro'||showPhase==='outro')&&<div className={styles.brandScene} role="status" aria-live="polite">
+                <div className={styles.brandSceneMark}>VibeSpin</div>
+                <div className={styles.brandSceneBy}>by VibeSchool</div>
+                <p>{showPhase==='intro'?formatNames[showFormat]:'Spin with VibeSchool!'}</p>
+                {showPhase==='outro'&&<strong>{wheel.cta}</strong>}
+              </div>}
               {showOverlay&&selected && <div className={[styles.challengePopup,showPhase==='reveal'?styles.popupReveal:''].join(' ')} role="status" aria-live="polite">
-                <div className={styles.popupEyebrow}>{showPhase==='reveal'?'ANSWER REVEALED':showPhase==='question'?'THE WHEEL HAS CHOSEN':'YOUR CHALLENGE'}</div>
-                <strong className={styles.popupLabel}>{showPhase==='reveal'?(selected.answer||selected.label):selected.label}</strong>
+                <div className={styles.popupEyebrow}>{showPhase==='reveal'?(selectedIsReward?'RANDOM RESULT':'ANSWER REVEALED'):showPhase==='question'?'THE WHEEL HAS CHOSEN':(selectedIsReward?'RANDOM SELECTION':'YOUR CHALLENGE')}</div>
+                {selected.image && <img className={styles.popupPortrait} src={selected.image} alt={'Selected '+selected.label}/>}
+                <strong className={styles.popupLabel}>{showPhase==='reveal'?(selectedIsReward?selected.label:(selected.answer||selected.label)):selected.label}</strong>
                 {showPhase!=='reveal'&&<p className={styles.popupQuestion}>{selected.question||'What do you know about this?'}</p>}
                 {showPhase==='countdown'&&<div className={styles.popupTimer}>{seconds===0?'TIME!':seconds}</div>}
-                {showPhase==='reveal'&&<p className={styles.popupFact}>{selected.question}</p>}
+                {showPhase==='reveal'&&<p className={styles.popupFact}>{selectedIsReward?'A random selection for entertainment, not a forecast or endorsement.':selected.question}</p>}
                 {showPhase==='reveal'&&wheel.celebration==='glow'&&<div className={styles.popupGlow} aria-hidden="true"/>}
               </div>}
               <div className={styles.questionArea} aria-live="polite">
@@ -508,7 +657,7 @@ export default function SpinStudio() {
                   <strong className={styles.resultLabel}>{selected.label}</strong>
                   <p className={styles.question}>{selected.question||'Your challenge starts now!'}</p>
                   {!reveal && seconds!==null && <div className={styles.countdown}>{seconds===0?'TIME!':seconds}</div>}
-                  {reveal && <div className={styles.answer}><span>{verdict==='correct'?'★ CORRECT ANSWER':verdict==='wrong'?'✦ THE ANSWER':'✦ ANSWER REVEAL'}</span><strong>{selected.answer||selected.label}</strong></div>}
+                  {reveal && <div className={styles.answer}><span>{selectedIsReward?'RANDOM SELECTION':verdict==='correct'?'★ CORRECT ANSWER':verdict==='wrong'?'✦ THE ANSWER':'✦ ANSWER REVEAL'}</span><strong>{selectedIsReward?selected.label:(selected.answer||selected.label)}</strong></div>}
                 </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>One spin. One question. Can you get it right?</p></>}
               </div>
               <p className={styles.cta}>{wheel.cta}</p>
@@ -524,8 +673,9 @@ export default function SpinStudio() {
               <button onClick={nextChallenge} disabled={spinning || result===null}>Next</button><button onClick={resetRun} disabled={spinning}>Reset</button>
             </div>
           </div>
-          {recording && <div className={styles.recordBar}><span>Recording view · Tap stage: spin → reveal → next · Space / R / N</span><div>
+          {recording && <div className={styles.recordBar}><span>VibeSpin · Tap to spin / reveal / next · Press N for next · 9:16 safe-zone ready</span><div>
               <button onClick={()=>{void toggleFull()}}>{fullScreen?'Exit fullscreen':'Fullscreen stage'}</button>
+              {wheel.outroEnabled!==false&&<button onClick={showOutro} disabled={spinning}>Show branded outro</button>}
               <button onClick={()=>{if(capturing)stopCapture();else void startCapture()}}>{capturing?'■ Stop & download recording':'● Record video'}</button>
               <button onClick={()=>{setRecording(false);stopMusic()}}>← Back to editor</button>
             </div></div>}
