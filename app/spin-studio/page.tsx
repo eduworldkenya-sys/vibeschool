@@ -58,6 +58,7 @@ function validEntry(x: unknown): x is Entry {
   if (!x || typeof x !== 'object') return false
   const e=x as Record<string,unknown>
   return typeof e.id==='string' && typeof e.label==='string' && typeof e.question==='string' && typeof e.answer==='string'
+    && (e.image===undefined || (typeof e.image==='string' && (e.image==='' || (e.image.startsWith('data:image/') && e.image.length<220000))))
 }
 function validWheel(x: unknown): x is Wheel {
   if (!x || typeof x!=='object') return false
@@ -317,6 +318,7 @@ export default function SpinStudio() {
   const nextChallenge=()=>{if(spinning)return;if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
   const advanceStage=()=>{
     if(!recording || spinning)return
+    if(showPhase==='intro'||showPhase==='outro'){if(sceneRef.current!==null)clearTimeout(sceneRef.current);setShowPhase('idle');return}
     if(showPhase==='question'||showPhase==='countdown'){revealNow();return}
     if(showPhase==='reveal'){nextChallenge();if(available.length>0 && remaining!==0)spinRef.current();return}
     if(showPhase==='idle')spin()
@@ -355,6 +357,62 @@ export default function SpinStudio() {
     }catch(error){setCapturing(false);setFeedback(error instanceof Error?error.message:'Screen recording could not start.')}
   }
   const stopCapture=()=>{const recorder=recorderRef.current;if(recorder&&recorder.state!=='inactive')recorder.stop()}
+  const imageForEntry=(id:string,file:File|undefined)=>{
+    if(!file)return
+    if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>140000){setFeedback('Please use a JPG, PNG or WebP photo smaller than 140 KB.');return}
+    const reader=new FileReader()
+    reader.onload=()=>{if(typeof reader.result==='string')editEntry(id,{image:reader.result})}
+    reader.readAsDataURL(file)
+  }
+  const setShowFormat=(kind:ShowFormat)=>{
+    if(!wheel)return
+    const patch:Partial<Wheel>={showFormat:kind}
+    if(kind==='lucky'){patch.countdown=0;patch.celebration='confetti';patch.cta='VibeSpin by VibeSchool • See published giveaway rules'}
+    else if(kind==='trending'){patch.countdown=3;patch.cta='Random selection for entertainment • Not a poll or prediction'}
+    else if(kind==='learn'){patch.countdown=5;patch.cta='How did you do? Learn more with VibeSchool'}
+    else{patch.countdown=5;patch.cta='Comment your answer • Follow VibeSchool'}
+    update(patch)
+  }
+  const launchShow=()=>{
+    if(sceneRef.current!==null)clearTimeout(sceneRef.current)
+    setRecording(true);setFeedback('');playMusic()
+    if(wheel?.introEnabled!==false){
+      setShowOverlay(false);setShowPhase('intro')
+      sceneRef.current=window.setTimeout(()=>setShowPhase('idle'),Math.max(1,wheel?.introDuration??2)*1000)
+    }
+  }
+  const showOutro=()=>{
+    if(spinning)return
+    if(countdownRef.current!==null)clearTimeout(countdownRef.current)
+    if(sceneRef.current!==null)clearTimeout(sceneRef.current)
+    setShowOverlay(false);setShowPhase('outro')
+    sceneRef.current=window.setTimeout(()=>setShowPhase('idle'),Math.max(1,wheel?.outroDuration??3)*1000)
+  }
+  const updateProduction=(id:string,patch:Partial<ProductionItem>)=>setProduction(old=>old.map(item=>item.id===id?{...item,...patch}:item))
+  const createProduction=()=>{
+    if(!wheel)return
+    const item={...initialProduction(),wheelId:wheel.id,title:wheel.name}
+    setProduction(old=>[item,...old].slice(0,100));setSetupTab('production')
+  }
+  const suggestedCaption=()=>{
+    if(!wheel)return ''
+    const episode=String(wheel.episode??1).padStart(2,'0')
+    const title=wheel.name.trim()||formatNames[wheel.showFormat??'challenge']
+    const note=wheel.showFormat==='trending'?'This is a random entertainment spin, not a poll, endorsement or prediction.\n':wheel.showFormat==='lucky'?'Check the official giveaway rules and eligibility before participating.\n':''
+    return `VibeSpin by VibeSchool | Episode ${episode}\n${title}\n${wheel.headline}\n${note}${wheel.cta}\n#VibeSpin #VibeSchool`
+  }
+  const copyCaption=async()=>{
+    try{await navigator.clipboard.writeText(suggestedCaption());setCaptionCopied(true);setTimeout(()=>setCaptionCopied(false),2000)}
+    catch{setFeedback('Copy is unavailable. Select the caption text and copy it manually.')}
+  }
+  const exportTracker=()=>{
+    const quote=(value:string|number)=>'"'+String(value).replaceAll('"','""')+'"'
+    const headers=['title','platform','status','plannedDate','url','views','likes','shares','comments','followers','notes']
+    const rows=production.map(item=>headers.map(key=>quote(item[key as keyof ProductionItem] as string|number)).join(','))
+    const blob=new Blob([[headers.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8'})
+    const url=URL.createObjectURL(blob),a=document.createElement('a')
+    a.href=url;a.download='vibespin-production-tracker.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }
   const loadTemplate=(index:number)=>{
     const t=templates[index];if(!t)return
     const fresh:Wheel={...starter(),id:uid(),name:t.name,entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
@@ -419,13 +477,15 @@ export default function SpinStudio() {
     }catch{setFeedback('Fullscreen is not supported here. Recording mode still works.')}
   }
   const selected=result===null?null:entries[result]
+  const showFormat=wheel?.showFormat??'challenge'
+  const selectedIsReward=showFormat==='lucky'||showFormat==='trending'
   const segmented=useMemo(()=>entries.map((entry,index)=>({entry,index,path:wedge(index,entries.length),degree:(index+.5)*360/entries.length})),[entries])
   if(!loaded || !wheel)return <main className={styles.page}><p>Loading Spin Studio…</p></main>
   return <main className={styles.page}>
     <div className={styles.shell}>
       {!recording && <header className={styles.header}>
-        <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>Spin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
-        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={()=>{setRecording(true);setFeedback('');playMusic()}}>Launch Show ↗</button></div>
+        <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>VibeSpin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
+        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={launchShow}>Launch Show ↗</button></div>
       </header>}
       <div className={recording?styles.recordLayout:styles.layout}>
         {!recording && <aside className={styles.controls}>
@@ -502,8 +562,8 @@ export default function SpinStudio() {
           <div ref={stageRef} role={recording?'button':undefined} tabIndex={recording?0:undefined} aria-label={recording?'Tap to advance the show':undefined} onClick={advanceStage} onKeyDown={event=>{if(recording && event.key==='Enter'){event.preventDefault();advanceStage()}}} className={[styles.stage,recording?styles.tapStage:'',styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
             <div className={styles.stageGlow} aria-hidden="true"/>
             <div className={styles.stageContent}>
-              <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span>VIBESCHOOL <b>SPIN STUDIO</b></span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
-              <div className={styles.titleBlock}><div className={styles.livePill}>✦ SPIN THE CHALLENGE ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
+              <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span><b>VIBESPIN</b> by VIBESCHOOL</span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
+              <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
               <div className={styles.wheelArea}>
                 <div className={styles.wheelHalo}/>
                 <svg role="img" aria-label="Wheel with editable segments" className={styles.wheelSvg} viewBox="0 0 400 400">
@@ -517,18 +577,18 @@ export default function SpinStudio() {
                   <circle cx="200" cy="200" r="48" fill="#0d1831" stroke="#ffffff" strokeWidth="5"/>
                   <circle cx="200" cy="200" r="41" fill="#0e2442"/>
                   <text x="200" y="197" fill="white" textAnchor="middle" fontSize="27" fontWeight="900">VIBE</text>
-                  <text x="200" y="217" fill="#40e4cd" textAnchor="middle" fontSize="17" fontWeight="900">SCHOOL</text>
+                  <text x="200" y="217" fill="#40e4cd" textAnchor="middle" fontSize="17" fontWeight="900">SPIN</text>
                   <path d="M182 2 L218 2 L200 42 Z" fill="#fff" stroke="#0e1832" strokeWidth="4"/>
                   <circle cx="200" cy="200" r="195" fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="5" strokeDasharray="2 13"/>
                 </svg>
                 {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
               {showOverlay&&selected && <div className={[styles.challengePopup,showPhase==='reveal'?styles.popupReveal:''].join(' ')} role="status" aria-live="polite">
-                <div className={styles.popupEyebrow}>{showPhase==='reveal'?'ANSWER REVEALED':showPhase==='question'?'THE WHEEL HAS CHOSEN':'YOUR CHALLENGE'}</div>
+                <div className={styles.popupEyebrow}>{showPhase==='reveal'?(selectedIsReward?'RANDOM RESULT':'ANSWER REVEALED'):showPhase==='question'?'THE WHEEL HAS CHOSEN':(selectedIsReward?'RANDOM SELECTION':'YOUR CHALLENGE')}</div>
                 <strong className={styles.popupLabel}>{showPhase==='reveal'?(selected.answer||selected.label):selected.label}</strong>
                 {showPhase!=='reveal'&&<p className={styles.popupQuestion}>{selected.question||'What do you know about this?'}</p>}
                 {showPhase==='countdown'&&<div className={styles.popupTimer}>{seconds===0?'TIME!':seconds}</div>}
-                {showPhase==='reveal'&&<p className={styles.popupFact}>{selected.question}</p>}
+                {showPhase==='reveal'&&<p className={styles.popupFact}>{selectedIsReward?'A random selection for entertainment, not a forecast or endorsement.':selected.question}</p>}
                 {showPhase==='reveal'&&wheel.celebration==='glow'&&<div className={styles.popupGlow} aria-hidden="true"/>}
               </div>}
               <div className={styles.questionArea} aria-live="polite">
