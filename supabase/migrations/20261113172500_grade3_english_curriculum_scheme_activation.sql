@@ -3,6 +3,8 @@
 -- Outcomes and guidance are VibeSchool-original (creator_claimed), NOT a verbatim KICD copy.
 -- No school terms/weeks, teacher schemes, or existing legacy rows are altered.
 begin;
+-- authorization-test: public.grade3_english_reader_bindings
+-- anon: no access. authenticated: SELECT active bindings only. No client writes.
 create table if not exists public.grade3_english_reader_bindings (
   source_ref text primary key check(source_ref like 'VS-CUR-G03-EN-2026#%'),
   sub_strand_id uuid not null unique references public.cbc_strands(id) on delete restrict,
