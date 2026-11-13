@@ -26,16 +26,21 @@ export async function GET(req: NextRequest) {
     const eligible = (roots||[]).filter(r => !grade || String(r.grade||'').replace(/\D/g,'')===grade)
     if (!eligible.length) return visualJson({ visuals: [] })
     const { data: versions, error: ve } = await db.from('learning_resource_versions')
-      .select('id,resource_id,payload').in('resource_id',eligible.map(r=>r.id)).eq('lifecycle_status','certified')
+      .select('id,resource_id,payload,version,certified_at,rights_status').in('resource_id',eligible.map(r=>r.id))
+      .eq('lifecycle_status','certified').in('rights_status',['cleared','not_applicable'])
+      .not('certified_at','is',null).order('version',{ascending:false})
     if (ve) return visualJson({error:'Visual versions unavailable.'},503)
-    const versionById = new Map((versions||[]).map(v=>[v.resource_id,v]))
+    const versionById = new Map<string, NonNullable<typeof versions>[number]>()
+    for (const version of versions || []) {
+      if (!versionById.has(version.resource_id)) versionById.set(version.resource_id, version)
+    }
     const visuals = eligible.flatMap(root=>{
       const version = versionById.get(root.id)
       const p = version?.payload
       if (!version || !isVisualPayload(p) || !isSafeVisualStoragePath(p.storage.path)) return []
       if (topicKey && p.topic_key.toLowerCase() !== topicKey) return []
       if (search && ![root.title,root.subject,p.caption,p.alt_text,...p.labels].join(' ').toLowerCase().includes(search)) return []
-      return [{ id:root.id,resourceVersionId:version.id,title:root.title,grade:root.grade,subject:root.subject,type:p.visual_type,caption:p.caption,altText:p.alt_text }]
+      return [{ id:root.id,resourceVersionId:version.id,title:root.title,grade:root.grade,subject:root.subject,type:p.visual_type,caption:p.caption,altText:p.alt_text,placements:p.placements,sourceStrandId:p.source_strand_id }]
     })
     return visualJson({visuals})
   } catch {

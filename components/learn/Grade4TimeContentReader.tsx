@@ -13,6 +13,7 @@ import Grade4TimePracticeCards from '@/components/learn/Grade4TimePracticeCards'
 import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import Grade4TimeWorkedSteps from '@/components/learn/Grade4TimeWorkedSteps'
 import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
+import { adaptCanonicalLearnSections } from '@/lib/learn/learningBlockContract'
 import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import styles from './Grade4TimeContentReader.module.css'
@@ -88,7 +89,7 @@ function Grade4TimeLessonArticle({
     <UniversalLearnReader
       subject="Mathematics"
       topic="time"
-      sections={parsed.sections}
+      sections={adaptCanonicalLearnSections(parsed.sections)}
       anchorPrefix="time-section"
       renderBody={(section) => section.id === 'example'
         ? <Grade4TimeWorkedSteps body={section.body}/>
@@ -99,10 +100,12 @@ function Grade4TimeLessonArticle({
         : <VisualRichText body={section.body} style={{ fontSize: 17, lineHeight: 1.8 }} />}
       toolContext={toolContext}
       afterSection={(section, index) => getLearningToolSectionBinding(toolContext, section, index)
-        ? <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/> : null}
+        ? <>
+          <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>
+          {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
+            lessonOrder={lesson.order} sectionId={section.id} inlineVisualPresent={/\[visual:/.test(rawBody)} />}
+        </> : null}
     />
-
-    <Grade4TimeVisualModels lessonOrder={lesson.order} inlineVisualPresent={/\[visual:/.test(lesson.body)} />
 
     <div className={styles.articleBottom}>
       <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />

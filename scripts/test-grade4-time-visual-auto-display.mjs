@@ -25,6 +25,8 @@ test('only published Grade 4 Time lesson displays source-linked diagrams',()=>{
  const component=read('components/learn/Grade4TimeVisualModels.tsx')
  assert.match(component,/lessonOrder !== 4 \|\| inlineVisualPresent/)
  assert.match(component,/cache: 'no-store'/)
+ assert.match(component,/row.placements.includes\(placement\)/)
+ assert.match(component,/row.sourceStrandId === GRADE4_TIME_SUBSTRAND_ID/)
  assert.match(component,/subject: 'Mathematics', topicKey: 'time-hours-minutes'/)
  assert.match(component,/<VisualLearningAsset id=\{visual.id\} resourceVersionId=\{visual.resourceVersionId\}/)
  assert.match(component,/UUID_RE.test\(row.id\)/)
@@ -40,7 +42,10 @@ test('both learner and teacher readers use one shared panel and suppress duplica
  ]){
    const s=read(path)
    assert.match(s,/import Grade4TimeVisualModels from/)
-   assert.match(s,/<Grade4TimeVisualModels lessonOrder=/)
+   assert.match(s,/<Grade4TimeVisualModels\s+lessonOrder=/)
+   assert.match(s,/sectionId=\{section.id\}/)
+   assert.match(s,/afterSection=\{\(section, index\)/)
    assert.match(s,/inlineVisualPresent=\{/)
+   assert.equal((s.match(/<Grade4TimeVisualModels/g)||[]).length,1, 'No duplicate visual panel after sections')
  }
 })
