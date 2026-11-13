@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef } from "react";
+import { useLearningFeedback } from "@/components/learn/LearningFeedback";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
@@ -18,6 +19,7 @@ function IconCamera() {
 }
 
 export default function ProjectDetailPage() {
+  const { play } = useLearningFeedback();
   const { id }   = useParams<{ id: string }>();
   const router   = useRouter();
   const { identity, loading: idLoading } = useStudent();
@@ -106,6 +108,7 @@ export default function ProjectDetailPage() {
       if (err) { setError("Could not save. Try again."); setSaving(false); return; }
       setSubmission(newSub as Submission);
     }
+    play('submitted');
     setSaving(false);
   }
 
