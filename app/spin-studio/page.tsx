@@ -150,6 +150,9 @@ export default function SpinStudio() {
         osc.connect(voice);voice.connect(gain);osc.start()
         return osc
       })
+      // Quiet, original synthesized bed; a slow fade adds motion without obscuring speech.
+      gain.gain.setValueAtTime(0.0001,ctx.currentTime)
+      gain.gain.linearRampToValueAtTime(Math.min(0.12,Math.max(0,(wheel.musicVolume??18)/100)*0.12),ctx.currentTime+0.5)
       musicRef.current={ctx,gain,oscillators}
       void ctx.resume()
       setMusicPlaying(true)
@@ -286,7 +289,7 @@ export default function SpinStudio() {
   const advanceStage=()=>{
     if(!recording || spinning)return
     if(showPhase==='question'||showPhase==='countdown'){revealNow();return}
-    if(showPhase==='reveal'){nextChallenge();return}
+    if(showPhase==='reveal'){nextChallenge();if(available.length>0 && remaining!==0)spinRef.current();return}
     if(showPhase==='idle')spin()
   }
   spinRef.current=spin
