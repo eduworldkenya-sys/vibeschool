@@ -21,6 +21,15 @@ export const TEACHING_TOOL_CATALOG = [
   { id: 'classification', title: 'Classification sorter', subject: 'science', description: 'Classify authored examples into groups.' },
   { id: 'experiment-variables', title: 'Fair-test planner', subject: 'science', description: 'Recognise independent, dependent and controlled variables.' },
   { id: 'food-chain', title: 'Food-chain builder', subject: 'science', description: 'Put living things in the order of energy transfer.' },
+  { id: 'visual-explorer', title: 'Explore an illustration', subject: 'interactive', description: 'Study an approved illustration with authored labels.' },
+  { id: 'audio-learning', title: 'Listen and learn', subject: 'interactive', description: 'Listen to the authored lesson text using device speech.' },
+  { id: 'observation-journal', title: 'Observation journal', subject: 'interactive', description: 'Record actual observations using lesson questions.' },
+  { id: 'drawing-pad', title: 'Drawing and tracing', subject: 'interactive', description: 'Draw on screen or explain a paper drawing.' },
+  { id: 'practical-steps', title: 'Practical activity guide', subject: 'interactive', description: 'Review stepwise practical instructions.' },
+  { id: 'sorting-groups', title: 'Sorting and matching', subject: 'interactive', description: 'Classify authored examples using the shared sorter.' },
+  { id: 'map-explorer', title: 'Map explorer', subject: 'interactive', description: 'Explore labelled places and schematic locations.' },
+  { id: 'timeline-explorer', title: 'Timeline explorer', subject: 'interactive', description: 'Explore dated events in authored sequence.' },
+  { id: 'evidence-notes', title: 'Learning evidence notes', subject: 'interactive', description: 'Record reflections for an existing assignment.' },
 ] as const
 
 export type TeachingToolId = (typeof TEACHING_TOOL_CATALOG)[number]['id']
@@ -44,6 +53,16 @@ export type TeachingToolSpec = {
   passage?: string
   question?: string
   sampleAnswer?: string
+  visualId?: string
+  resourceVersionId?: string
+  visualNotes?: readonly { label: string; detail: string }[]
+  spokenText?: string
+  language?: string
+  observationQuestions?: readonly string[]
+  steps?: readonly string[]
+  materials?: readonly string[]
+  places?: readonly { label: string; description: string; x?: number; y?: number }[]
+  events?: readonly { date: string; label: string; description?: string }[]
 }
 
 const toolMap = new Map<string, (typeof TEACHING_TOOL_CATALOG)[number]>(TEACHING_TOOL_CATALOG.map(tool => [tool.id, tool]))
@@ -54,7 +73,7 @@ export function isTeachingToolSubject(subject: string, id: TeachingToolId): bool
   const mode = learnSubjectMode(subject)
   const meta = toolMap.get(id)
   // The same data representation serves Mathematics and Science outcomes.
-  return !!meta && (meta.subject === mode || (id === 'data-chart' && mode === 'science'))
+  return !!meta && (meta.subject === mode || meta.subject === 'interactive' || (id === 'data-chart' && mode === 'science'))
 }
 const goodText = (v: unknown, min = 1, max = 200) =>
   typeof v === 'string' && v.trim().length >= min && v.trim().length <= max
@@ -70,6 +89,15 @@ function goodItems(items: unknown, groups: readonly string[]): boolean {
   return Array.isArray(items) && items.length >= 2 && items.length <= 12 &&
     items.every(item => item && goodText(item.label,1,80) && groups.includes(item.group))
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const authoredQuestions = (x: unknown, min: number, max: number) =>
+  Array.isArray(x) && x.length >= min && x.length <= max && x.every(v=>goodText(v,1,250))
+const validVisual = (x: unknown) => typeof x === 'string' && UUID.test(x)
+const optionalVisual = (t: Record<string,unknown>) =>
+  (t.visualId === undefined || validVisual(t.visualId)) &&
+  (t.resourceVersionId === undefined || validVisual(t.resourceVersionId))
+
 const finiteInteger = (x: unknown) => typeof x === 'number' && Number.isSafeInteger(x)
 
 /** Reject malformed lesson-authored configuration instead of inventing generic material. */
@@ -108,6 +136,33 @@ export function isUsableTeachingToolSpec(value: unknown, subject: string): value
     case 'reading-comprehension':
       return goodText(tool.passage,30,1800) && goodText(tool.question,5,220) && goodText(tool.sampleAnswer,2,500)
     case 'writing-planner': return goodText(tool.prompt,5,240)
+
+    case 'visual-explorer':
+      return validVisual(tool.visualId) && optionalVisual(tool) &&
+        (tool.visualNotes === undefined || (Array.isArray(tool.visualNotes) && tool.visualNotes.length <= 12 &&
+          tool.visualNotes.every(n=>n && goodText(n.label,1,80) && goodText(n.detail,1,500))))
+    case 'audio-learning':
+      return goodText(tool.spokenText,2,1500) &&
+        (tool.language === undefined || (typeof tool.language === 'string' && /^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(tool.language)))
+    case 'observation-journal': return authoredQuestions(tool.observationQuestions,1,8)
+    case 'drawing-pad': return true
+    case 'practical-steps':
+      return authoredQuestions(tool.steps,1,15) &&
+        (tool.materials === undefined || authoredQuestions(tool.materials,1,20))
+    case 'sorting-groups':
+      return goodLabels(tool.groups,2,8) && goodItems(tool.items,tool.groups as string[])
+    case 'map-explorer':
+      return optionalVisual(tool) && Array.isArray(tool.places) && tool.places.length >= 1 &&
+        tool.places.length <= 12 && tool.places.every(p=>p && goodText(p.label,1,100) &&
+          goodText(p.description,1,500) &&
+          (p.x === undefined || (typeof p.x === 'number' && Number.isFinite(p.x) && p.x >= 0 && p.x <= 100)) &&
+          (p.y === undefined || (typeof p.y === 'number' && Number.isFinite(p.y) && p.y >= 0 && p.y <= 100)))
+    case 'timeline-explorer':
+      return Array.isArray(tool.events) && tool.events.length >= 1 && tool.events.length <= 15 &&
+        tool.events.every(e=>e && goodText(e.date,1,70) && goodText(e.label,1,150) &&
+          (e.description === undefined || goodText(e.description,1,700)))
+    case 'evidence-notes':
+      return tool.observationQuestions === undefined || authoredQuestions(tool.observationQuestions,1,8)
     default: return true
   }
 }
