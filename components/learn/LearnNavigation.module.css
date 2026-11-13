@@ -63,16 +63,14 @@
 }
 .sections a:hover,.sections a:focus-visible { background: #263e5b; }
 .sections a[aria-current="page"] { background: #e0f0eb; color: #152d3a; }
-.studentNavTheme {
-  --vs-nav-bg: #ffffff;
-  --vs-nav-border: #dce9de;
-  --vs-border: #dce9de;
-  --vs-accent: #166d49;
-  --vs-accent-soft: #eef7f0;
-  --vs-muted: #597563;
-  --vs-text: #1b4030;
-  --vs-on-accent: #ffffff;
-}
+.studentNavTheme { color:var(--vs-text); }
+.studentLearnRoot {min-height:100dvh;color:var(--vs-text);background:var(--vs-bg)}
+.studentLearnRoot .header{color:var(--vs-text);background:var(--vs-surface);border-color:var(--vs-border)}
+.studentLearnRoot .learnHome{color:var(--vs-accent);border-color:var(--vs-border)}
+.studentLearnRoot .sections a{color:var(--vs-text)}
+.studentLearnRoot .sections a:hover,.studentLearnRoot .sections a:focus-visible{color:var(--vs-accent);background:var(--vs-accent-soft)}
+.studentLearnRoot .sections a[aria-current="page"]{background:var(--vs-accent-soft);color:var(--vs-accent)}
+.studentLearnRoot .studentLearnMain{background:var(--vs-bg);color:var(--vs-text)}
 .studentLearnMain { min-width:0; }
 @media(min-width:1024px) {
   .studentLearnMain { margin-left:208px; width:calc(100% - 208px); }
