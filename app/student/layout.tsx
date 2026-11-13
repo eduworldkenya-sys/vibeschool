@@ -34,16 +34,13 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {!isRoot && (
-          <div
-            onClick={() => router.back()}
-            style={{ cursor: "pointer", fontSize: 22, color: "var(--vs-accent)", lineHeight: 1, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
+          <button type="button" aria-label="Go back" onClick={() => router.back()}
+            style={{ cursor: "pointer", fontSize: 22, color: "var(--vs-accent)", lineHeight: 1, minWidth: 44, minHeight: 44, border: "none", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
             ‹
-          </div>
+          </button>
         )}
-        <div
-          onClick={() => router.push("/student")}
-          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+        <button type="button" aria-label="Open Student Home" onClick={() => router.push("/student")}
+          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", border: "none", background: "transparent", color: "inherit", padding: 0 }}
         >
           <div style={{
             width: 30, height: 30, borderRadius: 9,
@@ -59,24 +56,23 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
               {schoolName || className || "Student"}
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          onClick={() => router.push("/student/notifications")}
-          style={{ cursor: "pointer", color: "var(--vs-accent)", display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center" }}
+        <button type="button" aria-label="Open notifications" onClick={() => router.push("/student/notifications")}
+          style={{ cursor: "pointer", color: "var(--vs-accent)", border: "none", background: "transparent", display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center" }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
-        </div>
+        </button>
 
-        <div
-          onClick={() => router.push("/student/profile")}
+        <button type="button" aria-label="Open learner profile"
+          onClick={() => router.push("/student/profile")
           style={{
-            width: 34, height: 34, borderRadius: "50%",
+            width: 44, height: 44, borderRadius: "50%", border: "none",
             background: "var(--vs-accent)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
@@ -84,7 +80,7 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
           }}
         >
           {initials}
-        </div>
+        </button>
       </div>
     </div>
   );
@@ -92,7 +88,7 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
 
 function Toast({ msg }: { msg: string }) {
   return (
-    <div style={{
+    <div role="status" aria-live="polite" style={{
       position:   "fixed",
       bottom:     140,
       left:       "50%",
