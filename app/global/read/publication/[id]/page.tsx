@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { VibePublication, VibeChapter, FORMAT_META } from '@/lib/publishTypes'
 import { ContentBlockEditor } from '@/components/global/publish/ContentBlockEditor'
 import { LearningTransformPanel } from '@/components/read/LearningTransformPanel'
+import { isStoryPublication, storyLandingHref } from '@/lib/learn/storyPublications'
 
 const BG     = '#090D16'
 const SURF   = '#111827'
@@ -54,6 +55,8 @@ export default function ReadPublicationPage() {
       setIsLoggedIn(!!user)
       const { data: pub, error: pe } = await sb.from('vibe_publications').select('*').eq('id', id).eq('status', 'published').single()
       if (pe || !pub) { setNotFound(true); setLoading(false); return }
+      // Existing public story links remain valid and now open the dedicated Originals book view.
+      if (isStoryPublication(pub as VibePublication) && !new URLSearchParams(window.location.search).has('classic')) { router.replace(storyLandingHref(id)); return }
       setPublication(pub as VibePublication)
       const key = 'read_' + id
       if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(key)) {
@@ -76,7 +79,7 @@ export default function ReadPublicationPage() {
       setLoading(false)
     }
     void load()
-  }, [id])
+  }, [id, router])
 
   if (loading) return <div style={{ minHeight: '100dvh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid ' + ACCENT, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} /><style dangerouslySetInnerHTML={{ __html: '@keyframes spin{to{transform:rotate(360deg)}}' }} /></div>
   if (notFound || !publication) return <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '0 24px', textAlign: 'center' }}><div style={{ fontSize: 48 }}>📖</div><h2 style={{ fontSize: 20, fontWeight: 800, color: TEXT, margin: 0 }}>Not found</h2><button onClick={() => router.push('/global')} style={{ background: ACCENT, color: '#090D16', border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Go Home</button></div>
