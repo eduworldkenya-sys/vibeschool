@@ -173,7 +173,7 @@ begin
     if position(gate_old in v)=0 or position(reader_old in v)=0
        or (position(completeness_old in v)=0 and position(completeness_new in v)=0)
        or position(alias_old in v)=0
-    then raise exception 'GRADE3_MATH_SCHEME_RPC_DRIFT'; end if;
+    then raise exception 'GRADE3_MATH_SCHEME_RPC_DRIFT gate=% reader=% completeness_old=% completeness_new=% alias=%', position(gate_old in v), position(reader_old in v), position(completeness_old in v), position(completeness_new in v), position(alias_old in v); end if;
     v:=replace(v,gate_old,gate_new);
     v:=replace(v,reader_old,reader_new);
     if position(completeness_old in v)>0 then
