@@ -1018,21 +1018,13 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       // database's teacher exclusion constraint remains the global clash gate.
       const schoolIds = memberships.length > 0 ? memberships.map(s => s.id) : [schoolId]
       const rangeEnd = nairobiDateAdd(weekStart, 6)
-      const blockGroups = await Promise.all(
-        schoolIds.map(async membershipSchoolId => {
-          if (membershipSchoolId === schoolId) {
-            return { schoolId: membershipSchoolId, rows: ((blockData ?? []) as SchoolPeriod[]) }
-          }
-          const { data, error } = await supabase.rpc('get_school_day_blocks_for_member', {
-            p_school_id: membershipSchoolId,
-          })
-          if (error) {
-            console.error('[Timetable] school period load failed', membershipSchoolId, error)
-            return { schoolId: membershipSchoolId, rows: [] as SchoolPeriod[] }
-          }
-          return { schoolId: membershipSchoolId, rows: (data ?? []) as SchoolPeriod[] }
-        })
-      )
+      // The authenticated member reader returns every authorised school.
+      // Use that one snapshot in both Setup and the teacher sheet so different
+      // school roles never produce inconsistent bell-time visibility.
+      const blockGroups = schoolIds.map(membershipSchoolId => ({
+        schoolId: membershipSchoolId,
+        rows: ((blockData ?? []) as SchoolPeriod[]).filter(block => block.school_id === membershipSchoolId),
+      }))
       const nextSchoolBlocks: Record<string, SchoolDayBlock[]> = {}
       for (const group of blockGroups) {
         nextSchoolBlocks[group.schoolId] = group.rows
