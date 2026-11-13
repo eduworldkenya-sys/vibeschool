@@ -77,9 +77,9 @@ function VisualLibraryContent() {
   const subjects = useMemo(() => grade
     ? Array.from(new Set(fallbackSubjectGroups(grade).flatMap(group => group.subjects)))
     : [], [grade])
-  const subjectHref = (visual: Visual) => '/learn?' + new URLSearchParams({
-    grade: visual.grade || 'Grade 4', subject: visual.subject || 'Mathematics',
-  }).toString()
+  const subjectHref = (visual: Visual) => visual.grade && visual.subject
+    ? '/learn?' + new URLSearchParams({grade: visual.grade, subject: visual.subject}).toString()
+    : '/learn'
 
   function changeGrade(next: string) {
     setGrade(next)
