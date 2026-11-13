@@ -27,7 +27,7 @@
     "test:package-quality": "node scripts/test-outcome-package-quality.mjs",
     "check:content-without-hq": "npm run test:curriculum-identity && npm run test:outcome-packages && node --test scripts/test-content-hq-optional-contract.mjs",
     "test:student-theme": "node --test scripts/test-student-unified-theme.mjs",
-    "test:student-journey": "node --test scripts/test-student-learning-journey.mjs scripts/test-student-learn-practice-roles.mjs"
+    "test:student-journey": "node --test scripts/test-student-learning-journey.mjs scripts/test-student-learn-practice-roles.mjs && node --test scripts/test-learner-2-design-contract.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
