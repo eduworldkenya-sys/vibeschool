@@ -7,6 +7,8 @@ import { formatGrade4TimeLessonBody } from '../lib/content/grade4TimePresentatio
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8')
 const universal = read('../components/learn/UniversalLearnReader.tsx')
 const universalCss = read('../components/learn/UniversalLearnReader.module.css')
+const teachingToolHost = read('../components/learn/TeachingToolHost.tsx')
+const teachingToolRegistry = read('../lib/learn/teachingToolRegistry.ts')
 const full = read('../components/learn/Grade4TimeContentReader.tsx')
 const outcome = read('../components/learn/Grade4TimeOutcomePackage.tsx')
 
@@ -30,6 +32,8 @@ test('section navigation is content-driven, accessible, and scoped', () => {
   assert.match(outcome, /\.sort\(\(a, b\) => a\.lesson_order - b\.lesson_order\)/)
   assert.match(universal, /scroll-margin-top:20px|anchorPrefix/)
   assert.match(universal, /<VisualRichText body=\{section\.body\}/)
+  assert.match(universal, /<TeachingToolHost subject=\{subject\} section=\{section\}/)
+  assert.match(universal, /<TeachingToolShelf/)
   assert.match(universal, /Review all explanations/)
   assert.match(universalCss, /@media\(max-width:600px\)/)
   assert.match(universalCss, /@media print/)
@@ -37,12 +41,12 @@ test('section navigation is content-driven, accessible, and scoped', () => {
 
 test('maths working and all five subject modes reuse canonical visual resolver', () => {
   for (const category of ['math', 'language', 'science', 'creative', 'general']) {
-    assert.ok(universal.includes(category))
+    assert.ok(teachingToolRegistry.includes(category))
   }
-  assert.match(universal, /function MathsWorking/)
-  assert.match(universal, /Show next step/)
-  assert.match(universal, /Show all steps/)
-  assert.match(universal, /VisualLearningAsset/)
+  assert.match(teachingToolHost, /function MathsWorking/)
+  assert.match(teachingToolHost, /Show next step/)
+  assert.match(teachingToolHost, /Show all steps/)
+  assert.match(teachingToolHost, /VisualLearningAsset/)
   assert.match(full, /<Grade4TimeWorkedSteps/)
   assert.match(full, /<Grade4TimePracticeCards/)
   assert.match(full, /<Grade4TimeLearningAid/)
@@ -75,7 +79,7 @@ test('published grade four Time sections survive full and outcome view without e
 
 test('presentation stays read-only and cannot invent scores or access private assets', () => {
   for (const risky of ['supabase.from(', 'supabase.rpc(', 'student_outcome_mastery', 'service_role', 'localStorage', 'document.cookie']) {
-    assert.ok(!universal.includes(risky), 'unexpected reader side effect: ' + risky)
+    assert.ok(![universal, teachingToolHost, teachingToolRegistry].some(source => source.includes(risky)), 'unexpected reader side effect: ' + risky)
   }
   assert.match(outcome, /Revealing an answer does not record completion, marks or mastery/)
   assert.match(outcome, /lifecycle_status', 'certified'/)
