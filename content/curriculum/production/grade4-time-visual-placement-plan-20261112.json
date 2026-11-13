@@ -1,0 +1,61 @@
+{
+  "schema": "vibeschool.editorial-visual-placement-plan.v1",
+  "purpose": "Evidence-only connection plan for the existing canonical Visual Learning Library. NOT a replacement resource registry or publication mechanism.",
+  "status": "VISUALS_VERIFIED_NOT_CERTIFIED_OR_LEARNER_VISIBLE",
+  "grade": "Grade 4",
+  "subject": "Mathematics",
+  "strand": "Measurement",
+  "sub_strand": "Time",
+  "curriculum_sub_strand_id": "e975dcc6-32a9-4274-a2a3-3d19e409cf5c",
+  "parent_curriculum_package_id": "VS-G04-MA-2.6-TIME-20261111",
+  "source_manuscript_path": "content/curriculum/production/grade4-time-changing-hours-minutes-expanded-20261112.md",
+  "target_resource": {
+    "id": "cd9b783c-b69b-4378-a0a6-1fda4d502011",
+    "canonical_key": "vs:g4:mathematics:time:learner:lesson:04",
+    "current_certified_version_id": "6652550e-dcde-4248-9cd6-c58363bc4347",
+    "replace_certified_version_in_place": false,
+    "new_certified_version_required": true
+  },
+  "visuals": [
+    {
+      "title": "Two hours and 35 minutes — bar model",
+      "resource_id": "80105423-2661-40c8-8fd0-8179992e50b9",
+      "resource_version_id": "c1c167e6-2e54-46b6-86ad-f849ed0cdf2c",
+      "lifecycle": "verified",
+      "root_status": "inactive",
+      "root_visibility": "private",
+      "storage_observed": true,
+      "reference_token_when_certified": "[visual:80105423-2661-40c8-8fd0-8179992e50b9@c1c167e6-2e54-46b6-86ad-f849ed0cdf2c]",
+      "manuscript_placement": "PART B — Example 2: Changing Hours and Extra Minutes",
+      "image_sha256": "b5aba690112b552cc6fd3b6f2e4d901e42366c8ec55e36f1a650e319b201b8c3"
+    },
+    {
+      "title": "Six groups of ten minutes — one hour",
+      "resource_id": "9c6b5131-0ed9-4306-985d-8d372bd2b915",
+      "resource_version_id": "12e7717f-f3ee-47b3-924c-0b7852c58b89",
+      "lifecycle": "verified",
+      "root_status": "inactive",
+      "root_visibility": "private",
+      "storage_observed": true,
+      "reference_token_when_certified": "[visual:9c6b5131-0ed9-4306-985d-8d372bd2b915@12e7717f-f3ee-47b3-924c-0b7852c58b89]",
+      "manuscript_placement": "PART A — 3.3 Why do we use multiplication?",
+      "image_sha256": "9834ecb17c1c804479a27fc9a3142d139957ef895ee274669459acf8a24705ae"
+    }
+  ],
+  "publication_blocker": "CLA_PLATFORM_OWNER_REQUIRED. Existing RPC rejects the SQL connector because auth.uid() is null; no impersonation or direct lifecycle updates are allowed.",
+  "required_next_steps": [
+    "Authenticated platform owner calls existing owner-only certification RPC for each independently verified visual.",
+    "Existing authorized release process activates corresponding roots as active/public after certification; never expose private draft storage paths.",
+    "Author a new immutable Lesson 4 version linked to the exact certified visual versions; do not mutate certified v1.",
+    "Certify replacement only through approved owner workflow, preserving original content and separate answer keys.",
+    "Verify public image API 200 and both diagrams rendered to learner and teacher after release."
+  ],
+  "evidence": {
+    "operator_intake": "two successful HTTP 201 candidate uploads",
+    "db_storage": "two objects physically present in private Supabase bucket with matching file sizes, MIME and SHA",
+    "service_verification": "two successful cla_verify_learning_resource_candidate operations on 2026-11-12",
+    "public_negative": "both public visual API endpoints returned 404 before certification",
+    "owner_certification_attempt": "rejected with CLA_PLATFORM_OWNER_REQUIRED"
+  },
+  "learner_exposure": "NONE"
+}
