@@ -8,7 +8,7 @@ import {
 
 const green='#175b43'
 export default function Grade8MathematicsMap({
- selectedUnitId='1.1',onSelectUnit,onPlanUnit,mappedUnits={},catalogLoading=false,catalogError=''
+ selectedUnitId='1.1',onSelectUnit,onPlanUnit,termSelected=false,mappedUnits={},catalogLoading=false,catalogError=''
 }){
  const strands=[...new Set(GRADE8_MATHEMATICS_UNITS.map(unit=>unit.strand))]
  const chosen=GRADE8_MATHEMATICS_UNITS.find(unit=>unit.id===selectedUnitId)||GRADE8_MATHEMATICS_UNITS[0]
@@ -44,8 +44,12 @@ export default function Grade8MathematicsMap({
     <ol style={{fontSize:13,color:'#345746',lineHeight:1.6,paddingLeft:19,margin:'7px 0 11px'}}>
      {record.outcomes.map(item=><li key={item.id}>{item.outcome_text}</li>)}
     </ol>}
+   {record && <p style={{fontSize:12,color:'#456252',lineHeight:1.5,margin:'8px 0'}}>
+     {record.outcomes.length} VibeSchool-authored learning outcomes are linked by canonical identity for Scheme planning. Source-exact KICD outcome verification is separate and remains pending.
+   </p>}
    {onPlanUnit&&record?<button type="button" onClick={()=>onPlanUnit(chosen.id)}
     style={{border:0,background:green,color:'#fff',fontWeight:800,borderRadius:10,padding:'11px 14px',minHeight:44,width:'100%',cursor:'pointer'}}>Open this sub-strand in Scheme of Work</button>:null}
+   {record&&onPlanUnit&&!termSelected&&<p style={{fontSize:12,color:'#456252',margin:'8px 0 0'}}>You can open the Scheme now. Select a term before saving a lesson.</p>}
   </div>
  </section>
 }
