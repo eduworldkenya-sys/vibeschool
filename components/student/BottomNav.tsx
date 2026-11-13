@@ -1,6 +1,8 @@
 "use client"
 
 import { useRouter, usePathname } from "next/navigation"
+import { BookOpenCheck, CalendarDays, GraduationCap, Settings, UserRound } from "lucide-react"
+import styles from "./BottomNav.module.css"
 
 const TABS = [
   { id: "home",    label: "Home",     href: "/student"           },
@@ -34,13 +36,44 @@ function IconResults({ active }: { active: boolean }) { return <svg width={activ
 
 const ICONS: Record<TabId, ({ active }: { active: boolean }) => React.ReactNode> = { home: IconHome, learn: IconLearn, practise: IconPractise, tasks: IconTasks, results: IconResults }
 
+const QUICK_LINKS = [
+  { href: "/student/vibelearn/exams", label: "Exams", Icon: GraduationCap },
+  { href: "/student/workspace", label: "Workspace", Icon: BookOpenCheck },
+  { href: "/learn/stories", label: "Stories", Icon: BookOpenCheck },
+  { href: "/student/timetable", label: "My Day", Icon: CalendarDays },
+] as const
+
 export default function BottomNav() {
-  const router = useRouter(); const pathname = usePathname(); const current = activeTab(pathname)
+  const router = useRouter()
+  const pathname = usePathname()
+  const current = activeTab(pathname)
   const tabs = TABS
-  return <nav aria-label="Student primary navigation" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, display: "flex", minHeight: 66, height: "calc(66px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--vs-nav-border)", background: "var(--vs-nav-bg)", paddingBottom: "env(safe-area-inset-bottom, 0px)", paddingLeft: "env(safe-area-inset-left, 0px)", paddingRight: "env(safe-area-inset-right, 0px)" }}>
-    {tabs.map(tab => { const isActive = tab.id === current; const Icon = ICONS[tab.id]; return <button key={tab.id} aria-current={isActive ? "page" : undefined} onClick={() => router.push(tab.href)} style={{ position: "relative", flex: "1 1 0", padding: "6px 2px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, border: "none", background: "transparent", cursor: "pointer", color: isActive ? "var(--vs-accent)" : "var(--vs-muted)", transition: "color .15s, transform .15s", minWidth: 44, minHeight: 44 }}>
-      {isActive && <span style={{ position: "absolute", top: 0, width: 24, height: 2, borderRadius: "0 0 4px 4px", background: "var(--vs-accent)" }} />}
-      <Icon active={isActive} /><span style={{ fontSize: 9.5, lineHeight: 1, fontWeight: isActive ? 800 : 500, fontFamily: "inherit" }}>{tab.label}</span>
-    </button> })}
-  </nav>
+  return (
+    <nav className={styles.nav} aria-label="Student primary navigation">
+      <div className={styles.heading}>My learning</div>
+      {tabs.map(tab => {
+        const isActive = tab.id === current
+        const Icon = ICONS[tab.id]
+        return <button type="button" key={tab.id}
+          className={styles.tab + (isActive ? " " + styles.tabActive : "")}
+          aria-current={isActive ? "page" : undefined}
+          onClick={() => router.push(tab.href)}>
+          <Icon active={isActive} />
+          <span className={styles.label}>{tab.label}</span>
+        </button>
+      })}
+      <div className={styles.secondary}>
+        <div className={styles.heading}>Quick access</div>
+        {QUICK_LINKS.map(({href,label,Icon})=>
+          <button type="button" key={href} className={pathname.startsWith(href)?styles.quickActive:""} onClick={()=>router.push(href)}>
+            <Icon aria-hidden="true" size={19}/><span>{label}</span>
+          </button>
+        )}
+      </div>
+      <div className={styles.footer}>
+        <button type="button" onClick={()=>router.push("/student/profile")}><UserRound size={19} aria-hidden="true"/>Profile</button>
+        <button type="button" onClick={()=>router.push("/student/settings")}><Settings size={19} aria-hidden="true"/>Settings</button>
+      </div>
+    </nav>
+  )
 }
