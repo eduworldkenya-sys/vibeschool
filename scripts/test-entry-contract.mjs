@@ -31,6 +31,9 @@ const checks = [
   [join.includes('claim_my_initial_role') && join.includes('get_my_auth_access_state') && join.includes('get_my_onboarding_state'), 'adult join uses canonical server role and journey verification'],
   [!join.includes('profile.role =') && !join.includes(".from('profiles').update") && join.includes('access.role !== role'), 'adult join cannot spoof or mutate an already established account role'],
   [!join.includes('school_id') && !join.includes('school code') && !join.includes('password'), 'adult join requires no school, code or password'],
+  [!join.includes('I am joining as') && !join.includes('type="radio"') && !join.includes('setRole('), 'adult join does not show or mutate a role selector'],
+  [join.includes('const role = initialRole') && join.includes("url.searchParams.set('role', role)"), 'adult role context survives without a role choice on the join screen'],
+  [join.includes('href="/signup/student"') && join.includes('Create learner account'), 'learner entry says Create learner account and preserves learner signup route'],
 
   [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the server-side account creation boundary'],
   [studentAccountRoute.includes("rpc('lookup_student_claim'") && studentAccountRoute.includes("status !== 'ready'") && studentAccountRoute.includes("rpc('finalize_student_provisioning'"), 'learner claim is validated through the canonical server-side provisioning boundary'],
