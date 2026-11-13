@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { C, Card, Btn, SectionLabel } from '@/components/teacher/ui'
+import { periodAppearance } from '@/lib/timetable/periodAppearance'
 import { SCHOOL_DAY_SAMPLES, isSampleBlock, sampleBlockErrors, personalSchoolDayKey, parsePersonalSchoolDay, type PersonalSchoolDayPlan, type SampleBlock } from '@/lib/timetable/schoolDaySamples'
 
 type SavedSample = { id: string; name: string; blocks: SampleBlock[] }
@@ -290,7 +291,7 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
         <input aria-label="Template name" value={draftName} maxLength={100} onChange={e => setDraftName(e.target.value)} style={input} />
       </label>
       <p style={{ margin: 0, color: C.textMuted, fontSize: 12 }}>Edit each period below. Non-teaching blocks are always protected.</p>
-      {draft.map((block, i) => <div key={i} style={{ border: '1px solid ' + C.border, padding: 10, borderRadius: 10, display: 'grid', gap: 8 }}>
+      {draft.map((block, i) => <div key={i} style={{ border: '1px solid ' + C.border, borderLeft: '3px solid ' + periodAppearance(block.kind).border, background: periodAppearance(block.kind).background, padding: 10, borderRadius: 10, display: 'grid', gap: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
           <strong style={{ fontSize: 12 }}>Block {i + 1}</strong>
           <button type="button" disabled={busy} onClick={() => setDraft(rows => rows.filter((_, n) => n !== i))}
