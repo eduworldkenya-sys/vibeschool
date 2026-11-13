@@ -48,7 +48,7 @@ Example accepted shape:
 Do not fabricate KICD learning outcomes, source approval, student responses, map locations or assessments. Publishing teams must associate the released content with its real curriculum, sub-strand, scheme lesson and approved assets. Grade 4 Time custom visuals and existing Stage 2 Maths, Language and Science interactions remain unchanged.
 
 ## Acceptance gates
-1. Test the catalogue and Stage 3 component selection. Preserve all 12 Stage 2 tools.
+1. Test the catalogue and Stage 3 component selection. Preserve all 15 Stage 2 tools.
 2. Run typecheck, outcome-delivery tests, visual-library tests and production build.
 3. Check fallback for unknown tools, unsupported media, unavailable speech, missing prompts and inaccessible or private resources.
 4. Test Grade 4 Time lesson and outcome routes, Early Years touch/drawing/keyboard alternative, Creative Arts, Social Studies schematic maps and Agriculture observations.
