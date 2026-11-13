@@ -35,6 +35,7 @@ test('Focus and Reading are visible, reversible and quiet',()=>{
   const settings=source('app/student/settings/page.tsx')
   const layout=source('app/student/layout.tsx')
   const reminders=source('components/student/StudentPlannerReminders.tsx')
+  const audio=source('components/student/LearningFeedback.tsx')
   assert.match(settings,/\['focus','Do Not Disturb'/)
   assert.match(settings,/\['reading','Reading Mode'/)
   assert.match(settings,/value\.pauseSocialLinks/)
@@ -46,6 +47,7 @@ test('Focus and Reading are visible, reversible and quiet',()=>{
   assert.match(layout,/<StudentPlannerReminders quiet=/)
   assert.match(reminders,/if \(!owner \|\| quiet\)/)
   assert.match(reminders,/if \(!owner \|\| quiet \|\| examFocused\) return null/)
+  assert.match(audio,/document\.querySelector\('\.student-app\[data-study-mode=/)
 })
 
 test('no claims or changes of exam marking, score, or user permissions',()=>{
