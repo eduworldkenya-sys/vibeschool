@@ -1,0 +1,83 @@
+/* Shared, responsive VibeSchool Originals surfaces. No hard-coded publication identity. */
+.page{min-height:100dvh;background:#f6f4ef;color:#202c33;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.header{background:#111c2e;color:#f9f4e8;border-bottom:1px solid #2a394c}
+.headerInner{max-width:1220px;margin:auto;padding:18px 23px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.backLink,.wordmark,.headerExtra{display:inline-flex;align-items:center;gap:7px;color:#e7e7e9;text-decoration:none;font-weight:670;font-size:13px}
+.wordmark{font-size:16px;letter-spacing:-.3px}.wordmark strong{color:#ecc781}.headerExtra{color:#c4cede}
+.library{max-width:1220px;margin:0 auto;padding:42px 24px 100px}
+.eyebrow{font-size:11px;letter-spacing:.16em;font-weight:850;color:#a57b40;text-transform:uppercase}
+.heroTitle{font:800 clamp(30px,4.1vw,49px)/1.12 Georgia,serif;color:#1e2735;letter-spacing:-.035em;margin:14px 0 12px}
+.heroSubtitle{color:#606c76;line-height:1.7;max-width:740px;font-size:15px;margin:0 0 20px}
+.sectionHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:29px 0 16px}
+.sectionHead h2{font-size:22px;letter-spacing:-.02em;font-weight:760;margin:0;color:#1e2936}
+.sectionHead span{font-size:12px;color:#69727d}
+.smallLink{display:inline-flex;align-items:center;gap:7px;color:#866037;font-size:13px;font-weight:700;text-decoration:none;margin:12px 0}.smallLink:hover{text-decoration:underline}
+.continueSection{margin:26px 0 30px}.resumeList{display:grid;gap:12px}
+.resumeCard{display:flex;align-items:center;gap:18px;background:#162237;border:1px solid #2a3a4f;border-radius:18px;padding:15px;color:#fff;min-height:116px}
+.resumeCover{width:74px;flex:none}.resumeCover .cover{aspect-ratio:3/4;min-height:90px}
+.resumeInfo{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}
+.resumeInfo strong{font-size:16px;line-height:1.32}.resumeInfo>span:not(.goldLabel){font-size:12px;color:#c9d1dc}
+.goldLabel{font-size:10px;letter-spacing:.09em;color:#efc885;font-weight:800}
+.progressTrack{height:6px;border-radius:99px;background:#526073;overflow:hidden;width:100%;margin-top:7px}
+.progressTrack>div{height:100%;background:#e9bc70;border-radius:99px;transition:width .25s}
+.resumeButton{display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;min-height:43px;border-radius:999px;background:#f3eee5;color:#1b2838;text-decoration:none;font-weight:800;font-size:12px;padding:0 17px}
+.resumeButton:hover{background:#e8c98a}
+.searchBox{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #dadfdc;border-radius:13px;padding:0 17px;height:49px;color:#74808c;margin:20px 0 14px}
+.searchBox:focus-within{border-color:#a57b40;outline:2px solid #eadfc9}
+.searchBox input{border:0;outline:0;background:transparent;min-width:0;width:100%;font:inherit;font-size:14px;color:#243143}
+.pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:22px}.pill,.pillActive{cursor:pointer;padding:9px 14px;border-radius:999px;font:700 12px system-ui;background:white;border:1px solid #d9dedb;color:#5c6874;text-transform:capitalize}
+.pillActive{background:#17253a;color:#fff;border-color:#17253a}
+.bookGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.bookCard{overflow:hidden;border-radius:16px;background:#fff;border:1px solid #e5e7e3;box-shadow:0 7px 24px #1624370a;color:inherit;text-decoration:none;display:flex;flex-direction:column;transition:transform .15s ease,box-shadow .15s ease}
+.bookCard:hover,.bookCard:focus-visible{transform:translateY(-2px);box-shadow:0 12px 27px #16243720}
+.cover{display:block;width:100%;aspect-ratio:3/4;background:linear-gradient(145deg,#0b182b,#364f67);overflow:hidden}
+.cover img,.detailCover img{display:block;width:100%;height:100%;object-fit:cover}
+.coverFallback{height:100%;width:100%;min-height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:15px;box-sizing:border-box;color:#eac589;text-align:center;font-family:Georgia,serif}
+.bookBody{display:flex;flex-direction:column;gap:8px;padding:15px;flex:1}
+.bookBody strong{font-family:Georgia,serif;font-size:17px;line-height:1.34;color:#243040}
+.bookBody>span{font-size:11px;color:#8c6a44}.bookBody p{font-size:12px;line-height:1.6;color:#687783;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.openLabel{display:flex;align-items:center;gap:3px;color:#956d35!important;font-weight:800;margin-top:auto;padding-top:7px}
+.seriesSection{margin-top:44px}.seriesGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.seriesCard{background:#ece6dc;border:1px solid #ddd1be;border-radius:15px;padding:18px;display:flex;gap:14px;align-items:center;color:#263143;text-decoration:none}
+.seriesCard>div{display:flex;flex:1;flex-direction:column;gap:5px}.seriesCard strong{font-family:Georgia,serif;font-size:16px}.seriesCard span{color:#706d69;font-size:12px}
+.seriesCard:hover{background:#e9ddca}
+.message{padding:20px;background:#f1ece3;border:1px solid #ded6c9;border-radius:13px;color:#5d5960;margin:25px}
+.subtle{font-size:12px;color:#71808c;margin:28px 0;line-height:1.7}
+.bookDetail{max-width:1120px;margin:0 auto;padding:44px 24px 110px;display:grid;grid-template-columns:minmax(220px,340px) minmax(0,1fr);gap:clamp(25px,5vw,65px);align-items:start}
+.detailCover{width:100%;aspect-ratio:3/4;background:#17283d;overflow:hidden;border-radius:13px;box-shadow:0 20px 45px #1324362a}
+.detailInfo{min-width:0}.detailTitle{font:700 clamp(34px,4.5vw,54px)/1.13 Georgia,serif;letter-spacing:-.03em;color:#1c2737;margin:14px 0 12px}
+.detailSubtitle{font:italic 19px Georgia,serif;color:#8e724e;margin:0 0 20px}.detailDescription{font-size:15px;color:#54616c;line-height:1.82;margin:18px 0}.detailMeta{font-size:12px;color:#68757f;margin:12px 0 23px;text-transform:capitalize}
+.primaryButton{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:#162438;color:#fff;padding:13px 22px;min-height:48px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:750}
+.primaryButton:hover{background:#2b405e}
+.contents{margin-top:36px;border-top:1px solid #d6dbd8;padding-top:24px}.contents h2{font:700 23px Georgia,serif;color:#203044;margin:0 0 14px}
+.chapterList{display:grid;gap:5px}.chapterEntry{display:flex;align-items:center;gap:14px;padding:13px 8px;border-bottom:1px solid #dde0df;text-decoration:none;color:#263143}
+.chapterEntry:hover{background:#ebe7e0}.chapterEntry>span:nth-child(2){display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.chapterEntry strong{font-size:14px;line-height:1.35}.chapterEntry small{font-size:11px;color:#8c948f}
+.chapterNumber{color:#a47b48;font:700 14px Georgia,serif}
+.readerHeader{position:sticky;top:0;z-index:20;background:#17263a;color:#f7f2e9;border-bottom:1px solid #3b4c62;box-shadow:0 4px 12px #0d152521}
+.readerTop{max-width:1260px;margin:auto;display:flex;align-items:center;gap:18px;justify-content:space-between;padding:12px 20px;min-height:50px}
+.readerBack,.readerControls button{display:inline-flex;align-items:center;gap:6px;border:1px solid #536278;border-radius:9px;background:transparent;color:#f7f2e9;cursor:pointer;font:600 12px system-ui;padding:9px 11px;min-height:37px}
+.readerBack:hover,.readerControls button:hover{background:#2c3e57}.readerBookTitle{font-family:Georgia,serif;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-align:center}
+.readerControls{display:flex;gap:5px;flex:none}
+.readerGrid{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,800px);gap:clamp(16px,3vw,46px);padding:35px 20px 100px;align-items:start;justify-content:center}
+.readerSidebar{position:sticky;top:100px;display:flex;flex-direction:column;gap:5px;max-height:calc(100dvh - 125px);overflow:auto;padding:17px 12px;background:#ebe7de;border:1px solid #e1dace;border-radius:13px}
+.readerSidebar>strong{font:700 15px Georgia,serif;color:#3b4550;padding:5px 10px 12px}
+.contentsButton,.contentsActive{text-align:left;display:flex;align-items:center;justify-content:space-between;gap:5px;background:none;border:0;border-radius:8px;min-height:38px;padding:8px 10px;color:#5b6671;cursor:pointer;font-size:12px;line-height:1.4}
+.contentsActive{background:#dcd1bd;color:#29364a;font-weight:760}.contentsButton:hover{background:#ddd7cb}
+.readingPaper{background:#fffaf1;color:#2b2926;border:1px solid #e3d8c4;border-radius:11px;padding:clamp(25px,5.8vw,65px);box-shadow:0 8px 42px #2530440c;min-height:75vh}
+.chapterIntro{text-align:center;margin:12px auto 45px}.chapterIntro span{font-size:11px;color:#9c784c;letter-spacing:.15em;font-weight:800}
+.chapterIntro h1{font:700 clamp(28px,3.4vw,40px)/1.24 Georgia,"Times New Roman",serif;margin:15px 0 0;color:inherit;letter-spacing:-.02em}
+.storyProse{font-family:Georgia,"Times New Roman",serif;line-height:1.85;font-size:1em}
+.storyBlock{scroll-margin-top:110px}.prose{white-space:pre-line;font-size:1.08em;line-height:1.85;margin:0 0 1.05em;letter-spacing:.003em}
+.storySubhead{font:700 1.3em/1.5 Georgia,serif;margin:1.6em 0 .65em}
+.storyQuote{font:italic 1.12em/1.8 Georgia,serif;border-left:3px solid #c0a477;padding-left:18px;margin:1.6em 0}
+.illustration{margin:30px 0;text-align:center}.illustration img{width:100%;height:auto;max-height:580px;object-fit:contain;border-radius:9px}.illustration figcaption{font:italic 12px/1.5 Georgia,serif;color:#77706a;margin-top:8px}
+.storyDivider{border:0;border-top:1px solid #d8cbb7;margin:28px auto;width:40%}
+.chapterFooter{margin-top:55px;border-top:1px solid #e1d7c6;padding-top:19px}.chapterFooter p{font-size:12px;color:#857d70;line-height:1.5}
+.chapterNav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.chapterNav button,.chapterNav a{display:flex;align-items:center;gap:6px;border:1px solid #d4c6b2;background:#f8eedf;color:#484039;padding:10px 14px;border-radius:9px;font:700 12px system-ui;text-decoration:none;cursor:pointer;min-height:42px}
+.chapterNav button:disabled{opacity:.35;cursor:not-allowed}
+.night{background:#0f1724;color:#f8f3e9}.night .readingPaper{background:#1b2737;color:#f0eadd;border-color:#354257}.night .readerSidebar{background:#1b2737;border-color:#354257}.night .readerSidebar strong{color:#f4e9d2}.night .contentsButton{color:#bac4d0}.night .contentsActive{background:#3b4c64;color:#fff}.night .contentsButton:hover{background:#2c3d52}.night .chapterFooter{border-color:#354257}.night .chapterFooter p{color:#c9beac}.night .chapterNav button,.night .chapterNav a{background:#29394e;border-color:#43536a;color:#f1e9db}.night .illustration figcaption{color:#c5bcb1}
+@media(max-width:980px){.bookGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.readerGrid{grid-template-columns:175px minmax(0,1fr);gap:14px;padding:20px 14px 70px}.readingPaper{padding:35px}}
+@media(max-width:720px){.headerInner{padding:14px 15px}.headerExtra{display:none}.wordmark{font-size:14px}.library{padding:26px 15px 70px}.bookGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.bookBody{padding:12px}.bookBody strong{font-size:15px}.resumeCard{flex-wrap:wrap;gap:12px}.resumeButton{flex:1}.resumeCover{width:65px}.seriesGrid{grid-template-columns:1fr}.bookDetail{display:block;padding:25px 16px 80px}.detailCover{max-width:250px;margin:0 auto 29px}.readerGrid{display:block;padding:0 0 70px}.readerSidebar{position:static;display:flex;flex-direction:row;gap:6px;overflow:auto;max-height:none;border-radius:0;border-left:0;border-right:0;white-space:nowrap;padding:7px 12px}.readerSidebar>strong{display:none}.contentsButton,.contentsActive{flex:none;max-width:210px;min-height:44px;white-space:normal;text-align:left}.readingPaper{border-radius:0;border-left:0;border-right:0;box-shadow:none;padding:32px clamp(18px,5vw,35px);min-height:80vh}.readerTop{padding:9px 11px;gap:8px}.readerBookTitle{font-size:12px}.readerBack{font-size:0;gap:0}.readerBack svg{width:19px;height:19px}.readerControls button{padding:8px;font-size:11px}.chapterIntro{margin:15px auto 36px}}
+@media(max-width:390px){.bookGrid{gap:9px}.bookBody p{display:none}.resumeInfo strong{font-size:14px}.resumeInfo>span:not(.goldLabel){font-size:11px}.resumeButton{width:100%}.heroTitle{font-size:30px}}
+@media(prefers-reduced-motion:reduce){.bookCard,.progressTrack>div{transition:none}.bookCard:hover{transform:none}}
