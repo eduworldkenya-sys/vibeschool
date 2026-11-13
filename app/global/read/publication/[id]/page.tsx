@@ -62,8 +62,17 @@ export default function ReadPublicationPage() {
       }
       const { data: chaps } = await sb.from('vibe_chapters').select('*').eq('publication_id', id).in('status', ['published', 'locked']).order('number', { ascending: true })
       setChapters((chaps || []) as VibeChapter[])
-      const { data: prof } = await sb.from('profiles').select('full_name').eq('id', pub.author_id).single()
-      setAuthorName(prof?.full_name || 'Anonymous')
+      // Public readers may not have permission to read author profiles.
+      // Use an explicitly supplied eBook imprint before falling back to the author profile.
+      const imprint = pub.format === 'ebook' && typeof pub.publication_name === 'string'
+        ? pub.publication_name.trim()
+        : ''
+      if (imprint) {
+        setAuthorName(imprint)
+      } else {
+        const { data: prof } = await sb.from('profiles').select('full_name').eq('id', pub.author_id).single()
+        setAuthorName(prof?.full_name || 'Anonymous')
+      }
       setLoading(false)
     }
     void load()
