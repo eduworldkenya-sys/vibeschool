@@ -18,7 +18,7 @@ const audiences = [
   {
     title: 'Learners',
     description: 'Find material to study, practise questions and work on topics that need more attention.',
-    href: '/global',
+    href: '/learn',
     link: 'Explore learning',
   },
   {
