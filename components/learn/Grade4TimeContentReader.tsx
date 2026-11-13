@@ -96,7 +96,7 @@ function Grade4TimeLessonArticle({
       afterSection={(section) => <>
         <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>
         {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
-          lessonOrder={lesson.order} sectionId={section.id} inlineVisualPresent={/\\[visual:/.test(rawBody)} />}
+          lessonOrder={lesson.order} sectionId={section.id} inlineVisualPresent={/\[visual:/.test(rawBody)} />}
       </>}
     />
 
