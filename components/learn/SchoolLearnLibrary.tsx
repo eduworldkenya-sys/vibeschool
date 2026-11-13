@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowRight, BookOpen, BookText, Calculator, ChevronRight, Clock3,
   FlaskConical, Globe2, GraduationCap, Languages, Layers3, LibraryBig,
-  Music2, Palette, PencilLine, RefreshCw, School, Search, Sprout,
+  Music2, Palette, School, Search, Sprout,
   Wrench, type LucideIcon,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -100,7 +100,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const selectedSubject = params.get('subject')
   const activeLevel: SchoolLevelId = levelForGrade(grade)
   const [query, setQuery] = useState('')
-  const [tab, setTab] = useState<'lessons' | 'practice' | 'revision' | 'resources'>('lessons')
+  const [tab, setTab] = useState<'lessons' | 'resources'>('lessons')
   const [books, setBooks] = useState<PublishedBook[]>([])
   const [booksLoading, setBooksLoading] = useState(true)
   const [booksError, setBooksError] = useState(false)
@@ -237,15 +237,13 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
               <h1 className={styles.pageTitle}>{activeName}</h1>
               <p className={styles.description}>{subjectDescription(activeName)}. Choose a published lesson or textbook below.</p>
               <div className={styles.statsRow}>
-                <div className={styles.stat}><strong>Study</strong><span>Explanations, worked examples and visual learning</span></div>
-                <div className={styles.stat}><strong>Practise</strong><span>Guided questions and checking understanding</span></div>
-                <div className={styles.stat}><strong>Revise</strong><span>Revisit concepts and review mistakes</span></div>
+                <div className={styles.stat}><strong>Read</strong><span>Published explanations and books</span></div>
+                <div className={styles.stat}><strong>Explore</strong><span>Worked examples and visual learning aids</span></div>
+                <div className={styles.stat}><strong>Understand</strong><span>Guided demonstrations and short checks inside lessons</span></div>
               </div>
               <div className={styles.gradeTabs} role="tablist" aria-label="Subject learning activities">
                 {([
                   ['lessons', 'Learn', BookOpen],
-                  ['practice', 'Practice', PencilLine],
-                  ['revision', 'Revision', RefreshCw],
                   ['resources', 'Resources', LibraryBig],
                 ] as const).map(([id, label, Icon]) =>
                   <button key={id} type="button" role="tab" aria-selected={tab === id}
@@ -281,25 +279,9 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                       ? 'No additional published textbooks are listed for this subject. Use the available topic reader above.'
                       : 'No published lessons or textbooks are listed for this subject yet. You can choose another subject or check again after new material is released.'}
                   </div>}
-              </section>}
-              {tab === 'practice' && <section role="tabpanel" className={styles.detailPanel} aria-label="Practice options">
-                <h2>Build confidence through practice</h2>
-                <p className={styles.description}>Study the topic first, then answer verified questions and review explanations. Practice sets appear only when they are available in the existing question bank.</p>
-                <div className={styles.linksRow}>
-                  <Link className={styles.buttonPrimary} href="/student/vibelearn/topic-practice">Topic Practice <ArrowRight size={16} /></Link>
-                  <Link className={styles.buttonSecondary} href="/student/vibelearn/exams">Exams</Link>
+                <div className={styles.linksRow} style={{marginTop:16}}>
+                  <Link className={styles.buttonSecondary} href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:activeName}).toString()}>Finished learning? Practise this subject <ArrowRight size={16}/></Link>
                 </div>
-                <p className={styles.notice}>Learner sign-in is required for attempts and results. Practice uses the existing verified question bank.</p>
-                <p className={styles.tinyNote}>The practice hub is not yet filtered to this subject. It will only show its own verified available practice sets.</p>
-              </section>}
-              {tab === 'revision' && <section role="tabpanel" className={styles.detailPanel} aria-label="Revision options">
-                <h2>Revise what you have learned</h2>
-                <p className={styles.description}>Reopen explanations and practise difficult ideas. Your results and mistakes stay connected to your learner account.</p>
-                <div className={styles.linksRow}>
-                  <Link className={styles.buttonPrimary} href="/student/vibelearn/revision">Open Revision <ArrowRight size={16} /></Link>
-                  <Link className={styles.buttonSecondary} href="/student/vibelearn/mistakes">Review mistakes</Link>
-                </div>
-                <p className={styles.notice}>Learner sign-in is required to open private revision history and mistakes.</p>
               </section>}
               {tab === 'resources' && <section role="tabpanel" className={styles.detailPanel} aria-label="Supporting resources">
                 <h2>Learning resources</h2>
@@ -328,11 +310,8 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
               <div className={styles.continueText}><strong>{grade} learning library</strong><span>Find approved lessons by subject, revisit textbooks and learn at your own pace.</span></div>
               <Link className={styles.buttonPrimary} href="/student/study">My learning <ArrowRight size={16} /></Link>
             </section>
-            <nav className={styles.linksRow} aria-label="More learning destinations">
-              <Link className={styles.buttonSecondary} href="/student/vibelearn/topic-practice">Topic Practice <ArrowRight size={15}/></Link>
-              <Link className={styles.buttonSecondary} href="/student/vibelearn/revision">Revision <ArrowRight size={15}/></Link>
-              <Link className={styles.buttonSecondary} href="/student/vibelearn/exams">Exams <ArrowRight size={15}/></Link>
-              <Link className={styles.buttonSecondary} href="/student/tasks">My tasks <ArrowRight size={15}/></Link>
+            <nav className={styles.linksRow} aria-label="Continue to Practice">
+              <Link className={styles.buttonSecondary} href="/student/vibelearn/topic-practice">Already learned a topic? Open Practice <ArrowRight size={15}/></Link>
             </nav>
             <div className={styles.sectionHead}><h2>Subjects for {grade}</h2><span>{subjectNames.length} catalogue choices</span></div>
             <label className={styles.searchbox}><Search size={19} aria-hidden="true" />
@@ -364,8 +343,8 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
             {catalogueTruncated && <p className={styles.alert}>The published textbook catalogue is very large; not every result could be displayed in this view.</p>}
             <div className={styles.statsRow}>
               <div className={styles.stat}><strong>Learn</strong><span>Clear notes, worked examples and diagrams</span></div>
-              <div className={styles.stat}><strong>Practice</strong><span>Questions, activities and explanations</span></div>
-              <div className={styles.stat}><strong>Revise</strong><span>Review previous work and strengthen understanding</span></div>
+              <div className={styles.stat}><strong>Explore</strong><span>Interactive demonstrations and visual aids</span></div>
+              <div className={styles.stat}><strong>Read</strong><span>Published books, stories and reading support</span></div>
             </div>
           </>}
         </main>

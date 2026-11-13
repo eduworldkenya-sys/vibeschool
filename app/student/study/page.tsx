@@ -12,6 +12,7 @@ import {
   type AdaptiveLearningPath, type AdaptiveResourceRecommendations,
 } from '@/lib/student/vibelearn'
 import styles from './study.module.css'
+import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
 
 type ClassResource = {id:string,title:string,description:string|null,type:string,url:string|null,subject_id:string|null}
 
@@ -116,7 +117,7 @@ export default function LearnerStudyDesk() {
       <header className={styles.hero}>
         <div><div className={styles.kicker}>My learning · {identity.className}</div>
           <h1>Continue where you left off</h1>
-          <p>Your learning tasks, assigned reading, exam plan and verified practice stay connected to your learner account.</p>
+          <p>Read published lessons, follow worked examples and pick up your saved reading. Practice and assessments have their own workspaces.</p>
         </div>
         <Link className={styles.primary} href="/learn"><BookOpen size={18}/> Browse lessons</Link>
       </header>
@@ -132,15 +133,10 @@ export default function LearnerStudyDesk() {
           </Link>)}
         </div>
       </section>}
-      <nav className={styles.shortcuts} aria-label="My learning tools">
+      <StudentLearningFeatureLinks mode="learn" grade={identity.className}/>
+      <nav className={styles.shortcuts} aria-label="Assigned work and exams">
         <Link href="/student/tasks"><ClipboardList size={20}/> My tasks</Link>
-        <Link href="/student/vibelearn/topic-practice"><PencilLine size={20}/> Topic Practice</Link>
-        <Link href="/student/vibelearn/revision"><RotateCcw size={20}/> Revision</Link>
         <Link href="/student/vibelearn/exams"><CalendarDays size={20}/> Exams</Link>
-        <Link href="/student/resources"><BookOpen size={20}/> Shared materials</Link>
-        <Link href={identity.classId ? '/student/projects' : '/student/projects/independent'}><FolderOpen size={20}/> Projects</Link>
-        <Link href="/student/tutoring"><Users size={20}/> My tuition</Link>
-        <Link href="/student/vibelearn/mistakes"><CheckCircle2 size={20}/> Review mistakes</Link>
       </nav>
 
       {error&&<p className={styles.alert} role="alert">{error}</p>}
@@ -148,15 +144,13 @@ export default function LearnerStudyDesk() {
       <div className={styles.layout}>
 
         <section className={styles.card} aria-label="Assigned learning">
-          <h2>Assigned learning</h2>
-          {assigned.length===0&&(workspace?.assignedAssessments.length??0)===0
-            ? <p className={styles.muted}>No reading or assessments are currently assigned to your learner account.</p>
+          <h2>Assigned reading</h2>
+          {assigned.length===0
+            ? <p className={styles.muted}>No assigned reading right now. Any exercises or homework remain in My Tasks.</p>
             : <div className={styles.rows}>
               {assigned.slice(0,5).map(item=><Link key={item.assignmentId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>
                 <span><strong>{item.title}</strong><small>{item.subjectName??'Reading'} · {item.chapterTitle}</small></span><ArrowRight size={17}/></Link>)}
-              {(workspace?.assignedAssessments??[]).slice(0,5).map(item=>
-                <Link key={item.assignmentId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>
-                  <span><strong>{item.title}</strong><small>{item.subjectName??'Assessment'} · {item.assessmentType.replaceAll('_',' ')}</small></span><ArrowRight size={17}/></Link>)}
+
             </div>}
         </section>
         <section className={styles.card} aria-label="Live class learning resources">
@@ -177,14 +171,6 @@ export default function LearnerStudyDesk() {
                   </a>
                 })}
               </div>}
-        </section>
-        <section className={styles.card} aria-label="Available practice">
-          <h2>Practise a subject</h2>
-          {(workspace?.practiceBySubject.length??0)===0
-            ? <p className={styles.muted}>Verified practice will appear when questions are available for your subjects.</p>
-            : <div className={styles.rows}>{workspace!.practiceBySubject.slice(0,8).map(item=>
-              <Link key={item.subject} href={safeInternalRoute(item.actionUrl,'/student/vibelearn/topic-practice')} className={styles.item}>
-                <span><strong>{item.subject}</strong><small>{item.questionCount} verified questions</small></span><ArrowRight size={17}/></Link>)}</div>}
         </section>
         <section className={styles.card} aria-label="Your learning path">
           <h2>Your learning path</h2>
