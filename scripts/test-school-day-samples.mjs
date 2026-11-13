@@ -53,7 +53,7 @@ assert.notEqual(personalSchoolDayKey('teacher-a', 'school-a'), personalSchoolDay
 const ui = fs.readFileSync('components/teacher/SchoolDaySampleBuilder.tsx', 'utf8')
 const setup = fs.readFileSync('app/teacher/timetable/setup/page.tsx', 'utf8')
 for (const pattern of [
-  "periodCount === 0", "get_school_day_blocks_for_member", "can_manage_my_school_timetable",
+  "periodCount === 0", "get_my_school_day_blocks", "can_manage_my_school_timetable",
   "save_school_period_block", "delete_school_period_block",
   "window.confirm(", "sampleBlockErrors(draft)", "localStorage.setItem",
   "Export template", "Import shared template",
@@ -95,3 +95,19 @@ assert.ok(!ui.includes('onClick={() => void applyToSchool()} disabled={canApply}
 assert.ok(!setup.includes("useState('08:00')"), 'school day must not be auto-filled from a sample')
 assert.ok(!ui.includes("setDraft(clone(SCHOOL_DAY_SAMPLES[0]")), 'samples may not auto-activate')
 console.log('PASS: optional school-day samples, validation, protected blocks and guarded application')
+
+const classic = fs.readFileSync('components/teacher/ClassicTimetable.tsx', 'utf8')
+const colorSource = fs.readFileSync('lib/timetable/periodAppearance.ts', 'utf8')
+assert.ok(classic.includes('periodAppearance(block.kind)'), 'weekly grid must show activity kinds using the shared palette')
+assert.ok(setup.includes('periodAppearance(period.kind)'), 'setup must show the same period types')
+assert.ok(ui.includes('periodAppearance(block.kind)'), 'sample editor must show the same period types')
+assert.ok(timetable.includes('periodAppearance(block.kind)'), 'personal plans must show the same period types')
+assert.ok(timetable.includes('dayActivityBlocks.map('), 'daily view must expose configured activities')
+assert.ok(setup.includes('.filter(block => block.school_id === schoolId)'), 'setup must isolate the selected school')
+assert.ok(ui.includes('row.school_id === schoolId'), 'sample publisher must check only the selected school')
+assert.ok(timetable.includes("supabase.rpc('get_my_school_day_blocks')"), 'weekly sheet must use canonical member reader')
+assert.ok(!timetable.includes('get_school_day_blocks_for_member'), 'all schools must use the same authorized member read')
+for (const kind of ['break','lunch','assembly','games','examination','lesson']) {
+  assert.ok(colorSource.includes("case '" + kind + "'"), kind + ' needs a stable colour')
+}
+console.log('Timetable activity palettes and setup-reader alignment: PASS')
