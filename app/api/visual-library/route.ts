@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       .eq('lifecycle_status','certified').in('rights_status',['cleared','not_applicable'])
       .not('certified_at','is',null).order('version',{ascending:false})
     if (ve) return visualJson({error:'Visual versions unavailable.'},503)
-    const versionById = new Map<string, (typeof versions)[number]>()
+    const versionById = new Map<string, NonNullable<typeof versions>[number]>()
     for (const version of versions || []) {
       if (!versionById.has(version.resource_id)) versionById.set(version.resource_id, version)
     }
