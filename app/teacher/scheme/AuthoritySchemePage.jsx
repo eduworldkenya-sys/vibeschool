@@ -230,6 +230,12 @@ function Inner({ curriculumView = false }) {
   const mappedDraftUnit = (grade3EnglishDraftRecord ? grade3EnglishDraftUnit : null) || creativeDraftUnit || grade1DraftUnit || grade8DraftUnit || grade8EnglishDraftUnit || grade6DraftUnit || grade6EnglishDraftUnit || grade4DraftUnit || grade6KiswahiliDraftUnit || grade4EnglishDraftUnit || grade4IndigenousDraftUnit || (grade9EnglishDraftRecord ? grade9EnglishDraftUnit : null)
   const mappedDraftStrand = grade3EnglishDraftRecord?.name || creativeDraftStrand || grade1DraftStrand || grade8DraftUnit?.strand || grade8EnglishDraftUnit?.strand || grade6DraftUnit?.strand || grade6EnglishDraftUnit?.strand || grade4DraftUnit?.strand || grade6KiswahiliDraftUnit?.strand || grade4EnglishDraftUnit?.strand || grade4IndigenousDraftUnit?.strand || (grade9EnglishDraftRecord ? grade9EnglishDraftUnit?.strand : null)
   const mappedDraftRecord = grade3EnglishDraftRecord || creativeDraftRecord || grade1DraftRecord || grade8DraftRecord || grade8EnglishDraftRecord || grade6DraftRecord || grade6EnglishDraftRecord || grade4DraftRecord || grade6KiswahiliDraftRecord || grade4EnglishDraftRecord || grade4IndigenousDraftRecord || grade9EnglishDraftRecord
+  const grade3KiswahiliDraftRecord = useMemo(() => grade3KiswahiliDraftUnit?.schemeReady ? {
+    id:grade3KiswahiliDraftUnit.id,
+    outcomes:grade3KiswahiliDraftUnit.outcomes.map(outcome=>({id:outcome.id,outcome_text:outcome.text}))
+  } : null,[grade3KiswahiliDraftUnit])
+  const activeMappedDraftRecord = mappedDraftRecord || grade3KiswahiliDraftRecord
+  const activeMappedDraftStrand = mappedDraftStrand || grade3KiswahiliDraftUnit?.strand
   const mappedCatalogLoading = isGrade3English ? grade3EnglishCatalogLoading : isGrade9English ? grade9EnglishCatalogLoading : isGrade4Indigenous ? grade4IndigenousCatalogLoading : isGrade4English ? grade4EnglishCatalogLoading : isGrade4Mathematics ? grade4CatalogLoading : isGrade6Kiswahili ? grade6KiswahiliCatalogLoading : isGrade6English ? grade6EnglishCatalogLoading : isGrade6Mathematics ? grade6CatalogLoading : isGrade8English ? grade8EnglishCatalogLoading : isGrade8Mathematics ? grade8CatalogLoading : isGrade1Creative ? creativeCatalogLoading : grade1ReaderCatalogLoading
   const mappedCatalogError = isGrade3English ? grade3EnglishCatalogError : isGrade9English ? grade9EnglishCatalogError : isGrade4Indigenous ? grade4IndigenousCatalogError : isGrade4English ? grade4EnglishCatalogError : isGrade4Mathematics ? grade4CatalogError : isGrade6Kiswahili ? grade6KiswahiliCatalogError : isGrade6English ? grade6EnglishCatalogError : isGrade6Mathematics ? grade6CatalogError : isGrade8English ? grade8EnglishCatalogError : isGrade8Mathematics ? grade8CatalogError : isGrade1Creative ? creativeCatalogError : grade1ReaderCatalogError
   const autoUnits = useMemo(()=>
@@ -882,17 +888,25 @@ function Inner({ curriculumView = false }) {
         const globalId=await resolveGlobalSubjectId(selectedSubject)
         if(!globalId)throw new Error('Canonical Kiswahili subject identity is unavailable.')
         const rows=await supabase.from('cbc_strands')
-          .select('id,subject_id,grade,name,sub_strand,source_ref')
+          .select('id,subject_id,grade,name,sub_strand,source_ref,key_inquiry_questions,suggested_experiences')
           .eq('subject_id',globalId).eq('grade','Grade 3')
         if(rows.error)throw rows.error
         const ids=(rows.data||[]).map(row=>row.id)
-        const outcomes=ids.length
-          ? await supabase.from('curriculum_learning_outcomes')
-            .select('id,sub_strand_id,outcome_text,outcome_code,source_ref,source_type,status')
-            .in('sub_strand_id',ids).eq('status','active').eq('source_type','creator_claimed')
-          : {data:[],error:null}
+        const [outcomes,guidance]=await Promise.all([
+          ids.length
+            ? supabase.from('curriculum_learning_outcomes')
+              .select('id,sub_strand_id,outcome_text,outcome_code,source_ref,source_type,status')
+              .in('sub_strand_id',ids).eq('status','active').eq('source_type','creator_claimed')
+            : Promise.resolve({data:[],error:null}),
+          ids.length
+            ? supabase.from('curriculum_unit_guidance')
+              .select('sub_strand_id,content_status,learning_resources,assessment_methods')
+              .in('sub_strand_id',ids).eq('content_status','active')
+            : Promise.resolve({data:[],error:null})
+        ])
         if(outcomes.error)throw outcomes.error
-        const projected=projectGrade3KiswahiliRows(rows.data||[],outcomes.data||[],globalId)
+        if(guidance.error)throw guidance.error
+        const projected=projectGrade3KiswahiliRows(rows.data||[],outcomes.data||[],globalId,guidance.data||[])
         if(projected.length!==(rows.data||[]).length)throw new Error('Grade 3 Kiswahili contains conflicting or duplicate canonical sub-strand identities.')
         if(live)setGrade3KiswahiliCatalog(projected)
       }catch(err){
@@ -902,8 +916,8 @@ function Inner({ curriculumView = false }) {
     return()=>{live=false}
   },[isGrade3Kiswahili,selectedSubject])
   useEffect(()=>{
-    setDraftOutcomeIds(mappedDraftRecord?.outcomes?.[0]?.id?[mappedDraftRecord.outcomes[0].id]:[])
-  },[mappedDraftRecord,selectedClass,selectedSubject,selectedTermId])
+    setDraftOutcomeIds(activeMappedDraftRecord?.outcomes?.[0]?.id?[activeMappedDraftRecord.outcomes[0].id]:[])
+  },[activeMappedDraftRecord,selectedClass,selectedSubject,selectedTermId])
   const filteredSubjects = useMemo(()=>{
     const ids = new Set(pairs.filter(x=>x.class_id===selectedClass).map(x=>x.subject_id))
     return subjects.filter(x=>ids.has(x.id))
@@ -1165,11 +1179,11 @@ function Inner({ curriculumView = false }) {
   async function commitScheme(){if(!selectedClass||!selectedSubject||!selectedTermId||!curriculumRows.length)return;setCommitting(true);setError(null);const r=await supabase.rpc('commit_curriculum_scheme',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_curriculum_ids:curriculumRows.map(x=>x.id)});if(r.error)setError(commitError(r.error.message));else await loadScheme();setCommitting(false)}
   async function addCustom(){if(!selectedClass||!selectedSubject||!selectedTermId||!newTopic.trim())return;setAdding(true);setError(null);const r=await supabase.rpc('commit_custom_scheme_item',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_week:selectedWeek,p_topic:newTopic.trim(),p_strand:newStrand.trim()||null,p_resource_id:null,p_resource_role:null});if(r.error)setError(commitError(r.error.message));else{setNewTopic('');setNewStrand('');await loadScheme()}setAdding(false)}
   async function addMappedCreativeLesson(){
-    if (!mappedDraftRecord || !mappedDraftStrand || !selectedClass || !selectedSubject || !selectedTermId || !weeks.some(w=>w.week_number===selectedWeek)) {
+    if (!activeMappedDraftRecord || !activeMappedDraftStrand || !selectedClass || !selectedSubject || !selectedTermId || !weeks.some(w=>w.week_number===selectedWeek)) {
       setError('Select a connected curriculum sub-strand, class, subject, term and instructional week.')
       return
     }
-    const allowed=new Set(mappedDraftRecord.outcomes.map(x=>x.id))
+    const allowed=new Set(activeMappedDraftRecord.outcomes.map(x=>x.id))
     const selected=draftOutcomeIds.filter(id=>allowed.has(id))
     if(!selected.length){setError('Select at least one learning outcome.');return}
     setAdding(true);setError(null)
@@ -1179,7 +1193,7 @@ function Inner({ curriculumView = false }) {
       const saved=await supabase.rpc('commit_mapped_scheme_lesson',{
         p_class_id:selectedClass,p_subject_id:selectedSubject,
         p_academic_term_id:selectedTermId,p_week:selectedWeek,
-        p_sub_strand_id:mappedDraftRecord.id,p_outcome_ids:selected
+        p_sub_strand_id:activeMappedDraftRecord.id,p_outcome_ids:selected
       })
       if(saved.error)throw new Error(commitError(saved.error.message))
       await loadScheme()
@@ -1436,17 +1450,32 @@ function Inner({ curriculumView = false }) {
         router.push('/teacher/curriculum?'+p.toString())
       }} style={{minHeight:44,padding:'10px 14px',border:'1px solid #9fbbaa',borderRadius:9,background:'#fff',color:C.teal,fontWeight:750}}>View curriculum map</button>
     </section>}
-         {grade3KiswahiliDraftUnit && <section aria-label="Grade 3 Kiswahili Scheme planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
-       <div style={{fontSize:11,fontWeight:800,color:C.teal}}>RAMANI YA MTAALA → SCHEME · REFERENCE ONLY</div>
+         {grade3KiswahiliDraftUnit && <section aria-label="Grade 3 Kiswahili Scheme planning" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+       <div style={{fontSize:11,fontWeight:800,color:C.teal}}>RAMANI YA MTAALA → SCHEME OF WORK</div>
        <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{grade3KiswahiliDraftUnit.subStrand}</h2>
-       <p style={{fontSize:13,color:C.text2}}>{grade3KiswahiliDraftUnit.strand} · Wiki {selectedWeek}</p>
-       <p role="status" style={{fontSize:13,color:'#825b25'}}>Rekodi hii ni kichwa cha mada ya zamani. Uhakiki wa matokeo ya KICD na uunganishaji wa Scheme haujakamilika. Kufungua mada hapa hakuundi somo.</p>
-       <button type="button" onClick={()=>{
+       <p style={{fontSize:13,color:C.text2}}>{grade3KiswahiliDraftUnit.strand} · Wiki {selectedWeek} · Vipindi 4 kwa wiki</p>
+       {!grade3KiswahiliDraftUnit.schemeReady ? <p role="status" style={{fontSize:13,color:'#825b25'}}>
+         Mada hii bado inahitaji matokeo ya kujifunza ya VibeSchool, marejeo yake na mwongozo wa kufundisha uliokamilika. Huwezi kuihifadhi kama somo la Scheme.
+       </p> : <>
+         <p style={{fontSize:13,color:C.text2}}>Chagua matokeo ya somo hili. Kuhifadhi kutatumia mfumo wa Scheme na ruhusa za mwalimu.</p>
+         <fieldset style={{border:0,padding:0,margin:'10px 0'}}>
+           <legend style={{fontSize:13,fontWeight:800}}>Matokeo ya kujifunza</legend>
+           {grade3KiswahiliDraftRecord?.outcomes.map(outcome=><label key={outcome.id} style={{display:'flex',alignItems:'flex-start',gap:9,padding:'7px 0',fontSize:13}}>
+             <input type="checkbox" checked={draftOutcomeIds.includes(outcome.id)} onChange={event=>setDraftOutcomeIds(old=>event.target.checked?[...new Set([...old,outcome.id])]:old.filter(id=>id!==outcome.id))} style={{minWidth:18,minHeight:18,marginTop:3}}/>
+             <span>{outcome.outcome_text}</span>
+           </label>)}
+         </fieldset>
+         <button type="button" disabled={adding||!draftOutcomeIds.length||!selectedTermId||!weeks.some(w=>w.week_number===selectedWeek)} onClick={()=>void addMappedCreativeLesson()}
+           style={{minHeight:44,padding:'10px 14px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:800,marginBottom:10}}>
+           {adding?'Inahifadhi…':`Ongeza kwenye Scheme ya Wiki ${selectedWeek}`}
+         </button>
+       </>}
+       <div><button type="button" onClick={()=>{
          const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek),unitId:grade3KiswahiliDraftUnit.id})
          router.push('/teacher/curriculum?'+p.toString())
        }} style={{minHeight:44,padding:'10px 14px',border:'1px solid #9fbbaa',borderRadius:9,background:'#fff',color:C.teal,fontWeight:700}}>
          Rudi kwenye ramani ya mtaala
-       </button>
+       </button></div>
      </section>}
          {grade9EnglishDraftUnit && !grade9EnglishDraftRecord && <section aria-label="Grade 9 English planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
       <div style={{fontSize:11,fontWeight:800,color:C.teal}}>CURRICULUM MAP → SCHEME OF WORK · REFERENCE ONLY</div>
@@ -1500,7 +1529,11 @@ function Inner({ curriculumView = false }) {
           style={{fontSize:12,padding:'9px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:'#ecf8f0',color:C.teal,fontWeight:700}}>
           Notes · Guide · Exercises
         </button>}
-      {mappedUnitId&&<button type="button" onClick={()=>{
+      {isGrade3Kiswahili && grade3KiswahiliCatalog.some(unit=>unit.id===item.sub_strand_id) && <button type="button" onClick={()=>{
+         const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(item.week),unitId:item.sub_strand_id})
+         router.push('/teacher/curriculum?'+p.toString())
+       }} style={{fontSize:12,padding:'9px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:'#fff',color:C.teal,fontWeight:700}}>Rudi kwenye ramani ya mtaala</button>}
+       {mappedUnitId&&<button type="button" onClick={()=>{
         const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(item.week),unitId:mappedUnitId})
         router.push('/teacher/curriculum?'+p.toString())
       }} style={{fontSize:12,padding:'9px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:'#fff',color:C.teal,fontWeight:700}}>View curriculum map</button>}
