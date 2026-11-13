@@ -59,7 +59,7 @@ function wedge(i:number,count:number) {
 function soundEffect(kind:'tick'|'win'|'fail',enabled:boolean) {
   if (!enabled || typeof window==='undefined') return
   try {
-    const ctx=new (window.AudioContext || (window as unknown as {webkitAudioContext:typeof AudioContext}).webkitAudioContext)()
+    const ctx=new AudioContext()
     const notes=kind==='win'?[523,659,784]:kind==='fail'?[270,220]:[420]
     notes.forEach((hz,index)=>{
       const osc=ctx.createOscillator(),gain=ctx.createGain()
