@@ -145,14 +145,14 @@ export default function SpinStudio() {
   useEffect(()=>{
     if(!loaded)return
     try{localStorage.setItem(STORAGE,JSON.stringify({wheels,selectedId}))}
-    catch{ /* Storage quota or private browsing can prevent saving. */ }
+    catch{setFeedback('Browser storage is full or blocked. Export your wheel to back up changes.')}
   },[wheels,selectedId,loaded])
   useEffect(()=>{
     pastRef.current=[];futureRef.current=[];setUndoCount(0);setRedoCount(0)
     if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)
     if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
     pendingSpin.current=false
-    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
+    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
   },[selectedId])
   useEffect(()=>{
     if(seconds===null || seconds<=0 || spinning || showPhase!=='countdown')return
@@ -213,7 +213,7 @@ export default function SpinStudio() {
   const resetRun=()=>{
     if(spinning)return
     if(countdownRef.current!==null)clearTimeout(countdownRef.current)
-    setUsed([]);setSpinCount(0);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
+    setUsed([]);setSpinCount(0);setEpisodeLog([]);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
   }
   const spin=()=>{
     if(locked || !wheel || pendingSpin.current)return
