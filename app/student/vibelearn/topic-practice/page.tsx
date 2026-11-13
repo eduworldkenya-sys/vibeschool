@@ -3,9 +3,10 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
 import CanonicalTopicPractice from '@/components/student/CanonicalTopicPractice'
+import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import LearningFeedback, { playLearningSound } from '@/components/student/LearningFeedback'
 import { supabase } from '@/lib/supabase'
@@ -38,6 +39,9 @@ function readSession(key:string):Session|null {
 }
 export default function TopicPracticePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const requestedSubject = searchParams.get('subject')?.trim().toLowerCase() ?? ''
+  const requestedTopic = searchParams.get('topic')?.trim().toLowerCase() ?? ''
   const { identity, loading: identityLoading } = useStudent()
   const [grade, setGrade] = useState('')
   const [questions, setQuestions] = useState<Question[]>([])
@@ -97,6 +101,9 @@ export default function TopicPracticePage() {
     if (!storageKey) return
     try { if (next) window.localStorage.setItem(storageKey,JSON.stringify(next)); else window.localStorage.removeItem(storageKey) } catch { /* browser persistence unavailable */ }
   }
+  const visibleTopics = topics.filter(item =>
+    (!requestedSubject || item.subject.toLowerCase() === requestedSubject) &&
+    (!requestedTopic || item.topic.toLowerCase() === requestedTopic))
   const currentQuestion = session && !session.finished ? questions.find(q => q.id === session.questionIds[session.index]) : null
   const currentAnswer = currentQuestion ? session?.answers.find(a => a.questionId === currentQuestion.id) : null
   const completed = session?.answers.length ?? 0
@@ -200,11 +207,12 @@ export default function TopicPracticePage() {
     if (identity?.studentId) try { window.localStorage.setItem(STORAGE + identity.studentId + ':grade',value) } catch {}
   }
   if (identityLoading || !identity) return <main style={shell}>Opening practice…</main>
-  if (/^grade\s*(?:4|9)$/i.test(grade)) return <CanonicalTopicPractice grade={grade} />
+  if (/^grade\s*(?:4|9)$/i.test(grade)) return <CanonicalTopicPractice grade={grade} subject={requestedSubject} topic={requestedTopic} />
   return <main style={shell}>
     <button style={plain} onClick={() => router.push('/student/study')}>← Learn</button>
     <h1 style={{margin:'12px 0 6px',fontSize:26}}>Topic Practice</h1>
-    <p style={muted}>Five questions. No timer or class code.</p>
+    <p style={muted}>Five questions. No timer or class code. Answers, review and progress use your existing learner account.</p>
+    {!session && <StudentLearningFeatureLinks mode="practice" grade={grade} subject={requestedSubject}/>}
     {!grade && <section style={card}><h2 style={heading}>Choose your grade once</h2><div style={grid}>{[4,5,6,7,8,9].map(n => <button key={n} style={button} onClick={() => void selectGrade('Grade '+n)}>Grade {n}</button>)}</div></section>}
     {grade && <p style={{...muted,marginTop:12}}>{grade} <button style={plain} onClick={() => void selectGrade('')}>Change</button></p>}
     {error && <p role="alert" style={{color:'#b91c1c'}}>{error}</p>}
@@ -242,7 +250,7 @@ export default function TopicPracticePage() {
     </section>}
     {grade && !loading && !session && <section style={card}>
       <h2 style={heading}>Choose a topic</h2>
-      {topics.length === 0 ? <p style={muted}>No five-question topics are ready for {grade} yet. Only approved practice material will appear here.</p> : <div style={{display:'grid',gap:10}}>{topics.map(item => <button key={item.subject+'::'+item.topic} disabled={busy} style={optionButton} onClick={() => void start(item)}><strong>{item.topic}</strong><span style={{display:'block',fontSize:12,color:'var(--vs-muted)'}}>{item.subject} · {TARGET} questions · {'Start practice'}</span></button>)}</div>}
+      {visibleTopics.length === 0 ? <><p style={muted}>{requestedSubject || requestedTopic ? 'No ready practice matches that subject or topic. Choose another available topic.' : `No five-question topics are ready for ${grade} yet. Only approved practice material will appear here.`}</p>{(requestedSubject || requestedTopic) && <button style={secondary} onClick={() => router.push('/student/vibelearn/topic-practice')}>See all topics</button>}</> : <div style={{display:'grid',gap:10}}>{visibleTopics.map(item => <button key={item.subject+'::'+item.topic} disabled={busy} style={optionButton} onClick={() => void start(item)}><strong>{item.topic}</strong><span style={{display:'block',fontSize:12,color:'var(--vs-muted)'}}>{item.subject} · {TARGET} questions · {'Start practice'}</span></button>)}</div>}
     </section>}
   </main>
 }

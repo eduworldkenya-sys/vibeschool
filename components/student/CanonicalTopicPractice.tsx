@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
+import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
 import LearningFeedback, { playLearningSound } from '@/components/student/LearningFeedback'
 import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@/lib/assessment/discovery'
 import { saveResponse, startOrResumeAttempt, submitAttempt } from '@/lib/assessment/engine'
@@ -61,7 +62,7 @@ const secondary:React.CSSProperties={...button,color:'var(--vs-text)',background
 const muted:React.CSSProperties={fontSize:13,lineHeight:1.55,color:'var(--vs-muted)'}
 const optionStyle:React.CSSProperties={...secondary,textAlign:'left',width:'100%',minHeight:54}
 
-export default function CanonicalTopicPractice({grade}:{grade:string}) {
+export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grade:string;subject?:string;topic?:string}) {
   const router=useRouter()
   const [topics,setTopics]=useState<Topic[]>([])
   const [otherPractice,setOtherPractice]=useState<LearnerAssessmentAssignment[]>([])
@@ -82,8 +83,10 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
         ??sets[0]
       const remaining=sets.filter(item=>item.in_progress||item.completed_attempts<item.max_attempts).length
       return {key,title:key.split('::')[1],preferred,count:sets.length,remaining}
-    }).sort((a,b)=>a.title.localeCompare(b.title))
-  },[topics])
+    }).sort((a,b)=>a.title.localeCompare(b.title)).filter(card =>
+      (!subject || card.preferred.subject.toLowerCase() === subject.toLowerCase()) &&
+      (!topic || card.title.toLowerCase() === topic.toLowerCase()))
+  },[topics,subject,topic])
   const [feedback,setFeedback]=useState<Feedback[]>([])
   const [index,setIndex]=useState(0)
   const [finished,setFinished]=useState<SubmitAttemptResult|null>(null)
@@ -196,10 +199,11 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
     <h1 style={{fontSize:26,margin:'16px 0 6px'}}>Topic Practice</h1>
     <p style={muted}>{grade} · {topics.length>0?'Five questions · No timer or class code':'Choose approved practice while five-question topics are prepared'}</p>
     {error && <div role='alert' style={{...card,borderColor:'#fda4af',color:'#be123c'}}>{error}</div>}
+    {!workspace && <StudentLearningFeatureLinks mode="practice" grade={grade} subject={subject}/>}
     {loading && <div style={card}>Loading available topics…</div>}
     {!loading && !workspace && <section style={card}>
       <h2 style={{fontSize:18,margin:'0 0 12px'}}>Choose a topic</h2>
-      {topics.length===0?<p style={muted}>No certified five-question topics are published for {grade} yet. Other available practice sets are listed below without changing their question counts.</p>:<div style={{display:'grid',gap:10}}>
+      {topicCards.length===0?<><p style={muted}>{subject || topic ? 'No certified topic practice matches this subject or topic yet.' : `No certified five-question topics are published for ${grade} yet. Other available practice sets are listed below without changing their question counts.`}</p>{(subject || topic) && <button style={secondary} onClick={()=>router.push('/student/vibelearn/topic-practice')}>See all topics</button>}</>:<div style={{display:'grid',gap:10}}>
         {topicCards.map(card=><button key={card.key} disabled={busy||card.remaining===0} onClick={()=>void open(card.preferred)} style={{...optionStyle,display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
           <span><strong style={{display:'block'}}>{card.title}</strong><span style={muted}>{card.count} sets available · 5 questions per session</span></span>
           <strong style={{color:'var(--vs-accent)'}}>{card.preferred.in_progress?'Continue':card.remaining===0?'Completed':card.preferred.completed_attempts>0?'Practise again':'Start'}</strong>
@@ -235,6 +239,10 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
         <p style={{fontWeight:800,fontSize:14}}>Question {index+1} of 5</p>
         <h2 style={{fontSize:19,lineHeight:1.5,margin:'12px 0 18px'}}>{item.prompt}</h2>
         <LearningNotebookPrompt subject={workspace.title} stage="practice" compact />
+        {item.hint && !seen.has(item.id) && <details style={{padding:'10px 12px',border:'1px solid var(--vs-border)',borderRadius:10,marginBottom:14}}>
+          <summary style={{cursor:'pointer',color:'var(--vs-accent)',fontWeight:700}}>Need a hint?</summary>
+          <p style={muted}>{item.hint}</p>
+        </details>}
         <div style={{display:'grid',gap:10}}>
           {options.map(option=><button key={option.value} disabled={busy||seen.has(item.id)} style={{...optionStyle,background:currentFeedback?.selected===option.value?'var(--vs-accent-soft)':'var(--vs-card)'}} onClick={()=>void save(option.value)}><strong>{option.value}.</strong> {option.label}</button>)}
         </div>
