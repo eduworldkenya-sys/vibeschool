@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { PublicBottomNav } from '@/components/public/PublicBottomNav'
 import StudentBottomNav from '@/components/student/BottomNav'
 import styles from './LearnNavigation.module.css'
+import {DEFAULT_LEARNER_APPEARANCE,LEARNER_APPEARANCE_EVENT,readLearnerAppearance,learnerAppearanceStyle,type LearnerAppearance} from '@/lib/student-appearance'
 
 /**
  * Use one existing public or student navigation on Learn discovery surfaces.
@@ -109,8 +110,30 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
   const showHeader = isLearnDiscoveryPath(pathname)
   const showBottom = usesLearnBottomNav(pathname) && !isStoryReadingPath(pathname)
   const student = useStudentNavigation(showBottom)
+  const [appearance,setAppearance]=useState<LearnerAppearance>(DEFAULT_LEARNER_APPEARANCE)
+  const [systemDark,setSystemDark]=useState(false)
+  useEffect(()=>{
+    if(!student)return
+    let active=true
+    let studentId:string|null=null
+    const media=window.matchMedia('(prefers-color-scheme: dark)')
+    const updateMedia=()=>setSystemDark(media.matches)
+    updateMedia();media.addEventListener('change',updateMedia)
+    const update=()=>{if(active&&studentId)setAppearance(readLearnerAppearance(studentId))}
+    void (async()=>{
+      const {data:{user}}=await supabase.auth.getUser()
+      if(!user||!active)return
+      const {data}=await supabase.from('students').select('id')
+        .eq('profile_id',user.id).is('deleted_at',null).limit(1).maybeSingle()
+      studentId=data?.id??null
+      update()
+    })()
+    window.addEventListener(LEARNER_APPEARANCE_EVENT,update)
+    return()=>{active=false;window.removeEventListener(LEARNER_APPEARANCE_EVENT,update);media.removeEventListener('change',updateMedia)}
+  },[student])
 
-  return <>
+  return <div className={student?styles.studentLearnRoot:undefined}
+    style={student?learnerAppearanceStyle(appearance,systemDark):undefined}>
     {showHeader && <Suspense fallback={null}><LearnHeader/></Suspense>}
     {showBottom ? <div className={student ? styles.studentLearnMain : undefined}>{children}</div> : children}
     {showBottom && (student === null
@@ -118,5 +141,5 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
       : student
         ? <div className={styles.studentNavTheme}><StudentBottomNav/><div className={styles.navReserve} aria-hidden="true"/></div>
         : <Suspense fallback={<div className={styles.navReserve} aria-hidden="true"/>}><LearnPublicBottomNav/></Suspense>)}
-  </>
-}
+  </div>
+}}
