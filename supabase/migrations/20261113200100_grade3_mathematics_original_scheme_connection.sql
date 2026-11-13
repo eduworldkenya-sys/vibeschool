@@ -135,9 +135,11 @@ $gate_old$;
   end if;
   -- SCHEME_GRADE9_ENGLISH_READER_ACTIVE: only existing exact-heading source identities.
 $gate_new$;
+  -- Only replace the final fallback, not earlier source-type readers.
   reader_old text := $reader_old$
   if v_reader_ref is null then
     v_reader_ref:=v_unit.source_ref;
+    v_reader_inquiry:=v_unit.key_inquiry_questions;
 $reader_old$;
   reader_new text := $reader_new$
   if v_reader_ref is null then
@@ -148,6 +150,7 @@ $reader_old$;
   end if;
   if v_reader_ref is null then
     v_reader_ref:=v_unit.source_ref;
+    v_reader_inquiry:=v_unit.key_inquiry_questions;
 $reader_new$;
   completeness_old text := 'if v_unit.grade=''Grade 9'' and (';
   completeness_new text := 'if v_unit.grade in (''Grade 9'',''Grade 3'') and (';
@@ -164,6 +167,19 @@ $alias_old$;
   end if;
   if (v_global_subject is distinct from v_unit.subject_id
 $alias_new$;
+  alias_old_plain text := $alias_plain$
+  if v_global_subject is distinct from v_unit.subject_id
+$alias_plain$;
+  alias_new_plain text := $alias_new_plain$
+  -- SCHEME_GRADE3_MATH_SUBJECT_ALIAS: Grade 3 Mathematical Activities taxonomy only.
+  if v_unit.grade='Grade 3'
+     and v_global_subject=(select id from public.subjects where name='Mathematical Activities' and school_id is null and global_subject_id is null)
+     and v_unit.subject_id=(select id from public.subjects where name='Mathematics' and school_id is null and global_subject_id is null)
+  then
+    v_global_subject:=v_unit.subject_id;
+  end if;
+  if v_global_subject is distinct from v_unit.subject_id
+$alias_new_plain$;
 begin
   select pg_get_functiondef('public.commit_mapped_scheme_lesson(uuid,uuid,uuid,integer,uuid,uuid[])'::regprocedure)
     into v;
@@ -172,14 +188,18 @@ begin
   if position('SCHEME_GRADE3_MATH_READER_ACTIVE' in v)=0 then
     if position(gate_old in v)=0 or position(reader_old in v)=0
        or (position(completeness_old in v)=0 and position(completeness_new in v)=0)
-       or position(alias_old in v)=0
+       or (position(alias_old in v)=0 and position(alias_old_plain in v)=0)
     then raise exception 'GRADE3_MATH_SCHEME_RPC_DRIFT gate=% reader=% completeness_old=% completeness_new=% alias=%', position(gate_old in v), position(reader_old in v), position(completeness_old in v), position(completeness_new in v), position(alias_old in v); end if;
     v:=replace(v,gate_old,gate_new);
     v:=replace(v,reader_old,reader_new);
     if position(completeness_old in v)>0 then
       v:=replace(v,completeness_old,completeness_new);
     end if;
-    v:=replace(v,alias_old,alias_new);
+    if position(alias_old in v)>0 then
+      v:=replace(v,alias_old,alias_new);
+    else
+      v:=replace(v,alias_old_plain,alias_new_plain);
+    end if;
     execute v;
   end if;
 end;$g3_scheme_patch$;
