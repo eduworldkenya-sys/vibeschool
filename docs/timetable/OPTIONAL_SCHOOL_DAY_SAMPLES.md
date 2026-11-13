@@ -58,3 +58,19 @@ Never advertise a sample as Gilgil's confirmed schedule.
 - Production timetable schema has separate pending versioned migrations (see
   `HANDOVER.md`, TBL-012). A merged UI change alone is not deployment or
   production certification. Do not mutate Gilgil's timetable from a sample.
+
+## Activity colours and canonical reading
+
+Timetable lesson slots remain neutral. Break uses a pale blue, lunch pale
+orange, assembly lavender, games and clubs pale green, examinations pale rose,
+and other activities subdued grey. The UI uses the shared
+`lib/timetable/periodAppearance.ts` palette in the weekly sheet, daily
+activity strip, personal drafts and school-day editor. Labels always accompany
+colour, including when printing or for readers who cannot distinguish colours.
+
+Timetable setup and all school-specific timetable views read the member-authorised
+`get_my_school_day_blocks` snapshot, filtering by school ID. School-wide
+editing continues through admin-checked block RPCs. These colours are
+presentation-only: they do not create school periods, change protected
+statuses, alter lesson allocation or turn a sample into a real timetable.
+A school without confirmed bell periods still shows no official breaks/lunch.

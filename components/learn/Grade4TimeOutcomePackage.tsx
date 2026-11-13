@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
 import { adaptCanonicalLearnSections } from '@/lib/learn/learningBlockContract'
-import { grade4TimeToolsForReleasedLesson } from '@/lib/learn/grade4TimeToolBindings'
+import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.mjs'
 import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
@@ -147,7 +147,6 @@ export default function Grade4TimeOutcomePackage({
         if (!active) return
         const ordered = [...checked].sort((a, b) => a.lesson_order - b.lesson_order)
         setLessons(ordered)
-        // Shareable lesson deep link, preserving outcome identity and audience path.
         const requestedParam = new URLSearchParams(window.location.search).get('lesson')
         const requestedOrder = requestedParam && /^\d+$/.test(requestedParam) ? Number(requestedParam) : null
         setSelectedLesson(ordered.some(row => row.lesson_order === requestedOrder) ? requestedOrder : null)
@@ -190,6 +189,12 @@ export default function Grade4TimeOutcomePackage({
     [lessons, selectedLesson])
   const parsedSelected = useMemo(() => selected
     ? parseGrade4TimeLessonSections(formatGrade4TimeLessonBody(selected.body)) : null, [selected])
+  const toolContext = useMemo(() => selected ? buildLearningToolContext({
+    sourceKind: 'published_outcome', audience,
+    subject: 'Mathematics', grade: 'Grade 4',
+    resourceId: selected.resource_id, resourceVersionId: selected.resource_version_id,
+    outcomeId: selected.outcome_id, sections: parsedSelected?.sections ?? [],
+  }) : null, [selected, parsedSelected, audience])
   const selectedIndex = selected ? lessons.findIndex(row => row.resource_version_id === selected.resource_version_id) : -1
   const selectedItems = useMemo(() => items.filter(row =>
     !selected || row.resource_version_id === selected.resource_version_id), [items, selected])
@@ -291,18 +296,19 @@ export default function Grade4TimeOutcomePackage({
           subject="Mathematics"
           topic="time"
           sections={adaptCanonicalLearnSections(parsedSelected?.sections ?? [])}
-          tools={grade4TimeToolsForReleasedLesson(selected.lesson_order)}
           title={parsedSelected?.title || selected.title}
           goal={parsedSelected?.goal}
           anchorPrefix="outcome-time"
           renderBody={(section) => section.id === 'example'
             ? <Grade4TimeWorkedSteps body={section.body} />
             : undefined}
-          afterSection={(section) => <>
-            <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />
-            {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
-              lessonOrder={selected.lesson_order} sectionId={section.id} inlineVisualPresent={/\[visual:/.test(selected.body)} />}
-          </>}
+          toolContext={toolContext ?? undefined}
+          afterSection={(section, index) => toolContext && getLearningToolSectionBinding(toolContext, section, index)
+            ? <>
+              <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />
+              {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
+                lessonOrder={selected.lesson_order} sectionId={section.id} inlineVisualPresent={/\[visual:/.test(selected.body)} />}
+            </> : null}
         />
         <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
         <nav aria-label="Move between outcome lessons"

@@ -14,7 +14,7 @@ import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import Grade4TimeWorkedSteps from '@/components/learn/Grade4TimeWorkedSteps'
 import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
 import { adaptCanonicalLearnSections } from '@/lib/learn/learningBlockContract'
-import { grade4TimeToolsForReleasedLesson } from '@/lib/learn/grade4TimeToolBindings'
+import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import styles from './Grade4TimeContentReader.module.css'
 
@@ -33,6 +33,7 @@ type PublishedOutcome = {
 }
 
 const INK = '#163c2b'
+const RESOURCE_VERSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function learnerTitle(title: string) {
   return title.replace(/\s*[—–-]\s*Learner Notes$/i, '').trim()
@@ -57,6 +58,11 @@ function Grade4TimeLessonArticle({
   // The formatted reader body is still used for all visible text.
   const cards = useMemo(() =>
     buildTimeQuestionCards(parseGrade4TimeLessonSections(rawBody).sections), [rawBody])
+  const toolContext = useMemo(() => buildLearningToolContext({
+    sourceKind: 'published_lesson', audience: 'learner',
+    subject: 'Mathematics', grade: 'Grade 4',
+    resourceVersionId: lesson.id, sections: parsed.sections,
+  }), [lesson.id, parsed])
   const [largeText, setLargeText] = useState(false)
 
   return <article className={`${styles.article} ${largeText ? styles.largeType : ''}`} aria-labelledby="time-lesson-title">
@@ -84,7 +90,6 @@ function Grade4TimeLessonArticle({
       subject="Mathematics"
       topic="time"
       sections={adaptCanonicalLearnSections(parsed.sections)}
-      tools={grade4TimeToolsForReleasedLesson(lesson.order)}
       anchorPrefix="time-section"
       renderBody={(section) => section.id === 'example'
         ? <Grade4TimeWorkedSteps body={section.body}/>
@@ -93,11 +98,13 @@ function Grade4TimeLessonArticle({
         : section.id === 'check' && cards.check.length > 0
         ? <Grade4TimePracticeCards questions={cards.check} lessonNumber={lesson.order}/>
         : <VisualRichText body={section.body} style={{ fontSize: 17, lineHeight: 1.8 }} />}
-      afterSection={(section) => <>
-        <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>
-        {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
-          lessonOrder={lesson.order} sectionId={section.id} inlineVisualPresent={/\[visual:/.test(rawBody)} />}
-      </>}
+      toolContext={toolContext}
+      afterSection={(section, index) => getLearningToolSectionBinding(toolContext, section, index)
+        ? <>
+          <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>
+          {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
+            lessonOrder={lesson.order} sectionId={section.id} inlineVisualPresent={/\[visual:/.test(rawBody)} />}
+        </> : null}
     />
 
     <div className={styles.articleBottom}>
@@ -135,7 +142,7 @@ export default function Grade4TimeContentReader() {
         for (const item of Array.isArray(data) ? data : []) {
           if (!item || typeof item !== 'object') continue
           const row = item as Record<string, unknown>
-          if (typeof row.resource_version_id !== 'string'
+          if (typeof row.resource_version_id !== 'string' || !RESOURCE_VERSION_ID.test(row.resource_version_id)
             || typeof row.title !== 'string'
             || row.unit_id !== '2.6'
             || typeof row.body !== 'string'

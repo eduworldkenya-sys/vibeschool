@@ -2,7 +2,6 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { adaptCanonicalLearnSections } from '../lib/learn/learningBlockContract.ts'
-import { grade4TimeToolsForReleasedLesson } from '../lib/learn/grade4TimeToolBindings.ts'
 
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8')
 const reader = read('../components/learn/UniversalLearnReader.tsx')
@@ -49,15 +48,14 @@ test('reader accepts content blocks and never chooses generic suggestion tools i
   assert.match(blocks, /VisualLearningAsset/)
 })
 
-test('released Time lesson order selects only relevant exploratory tools',()=>{
-  assert.deepEqual(grade4TimeToolsForReleasedLesson(2).map(t=>t.id),['clock'])
-  assert.deepEqual(grade4TimeToolsForReleasedLesson(4).map(t=>t.id),['unit-converter'])
-  assert.deepEqual(grade4TimeToolsForReleasedLesson(1),[])
-  assert.deepEqual(grade4TimeToolsForReleasedLesson(999),[])
-  assert.ok(!grade4TimeToolsForReleasedLesson(4).some(t=>t.id==='number-line'))
+test('content-bound learning tools keep the released source authority',()=>{
+  assert.match(reader, /getLearningToolSectionBinding/)
+  assert.match(reader, /sourceValid && \\(tools !== undefined \\|\\| sectionTools\\.length > 0\\)/)
   for(const source of [time,outcome]) {
-    assert.match(source,/tools=\{grade4TimeToolsForReleasedLesson/)
-    assert.match(source,/sections=\{adaptCanonicalLearnSections/)
+    assert.match(source,/buildLearningToolContext/)
+    assert.match(source,/toolContext=\\{toolContext/)
+    assert.match(source,/sections=\\{adaptCanonicalLearnSections/)
+    assert.match(source,/getLearningToolSectionBinding/)
   }
 })
 
