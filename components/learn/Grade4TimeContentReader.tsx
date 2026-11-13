@@ -80,6 +80,7 @@ function Grade4TimeLessonArticle({
 
     <UniversalLearnReader
       subject="Mathematics"
+      topic="time"
       sections={parsed.sections}
       anchorPrefix="time-section"
       renderBody={(section) => section.id === 'example'
