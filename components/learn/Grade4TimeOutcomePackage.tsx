@@ -302,7 +302,7 @@ export default function Grade4TimeOutcomePackage({
             ? <Grade4TimeWorkedSteps body={section.body} />
             : undefined}
           toolContext={toolContext ?? undefined}
-          visualContext={selected.lesson_order === 4 ? {
+          visualContext={selected.lesson_order === 4 && !!toolContext ? {
             grade: 'Grade 4', subject: 'Mathematics',
             topicKey: 'time-hours-minutes',
             sourceStrandId: 'e975dcc6-32a9-4274-a2a3-3d19e409cf5c',
