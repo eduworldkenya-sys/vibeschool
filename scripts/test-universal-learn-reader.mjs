@@ -22,7 +22,7 @@ test('one renderer serves both certified lesson and outcome route', () => {
 })
 
 test('section navigation is content-driven, accessible, and scoped', () => {
-  assert.match(universal, /sections\.map\(\(section, index\)/)
+  assert.match(universal, /validSections\.map\(\(section, index\)/)
   assert.match(universal, /aria-label="Lesson sections"/)
   assert.match(universal, /section\.id\.replace/)
   assert.match(universal, /section\.title/)
