@@ -70,7 +70,7 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
         </button>
 
         <button type="button" aria-label="Open learner profile"
-          onClick={() => router.push("/student/profile")
+          onClick={() => router.push("/student/profile")}
           style={{
             width: 44, height: 44, borderRadius: "50%", border: "none",
             background: "var(--vs-accent)",
