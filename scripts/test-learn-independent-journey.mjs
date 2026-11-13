@@ -13,6 +13,23 @@ const exams = read("app/student/vibelearn/exams/page.tsx");
 const practice = read("app/student/vibelearn/practice/page.tsx");
 const nav = read("components/student/BottomNav.tsx");
 
+const classTools = read("app/teacher/classhub/[id]/page.tsx");
+const taskPlanner = read("app/student/tasks/page.tsx");
+for (const label of ["Homework", "Classwork", "Exercises", "Projects", "Assessment"]) {
+  assert.match(classTools, new RegExp("id: '" + label.toLowerCase() + "', label: '" + label + "'"), "Class tools need an equal entry for " + label);
+}
+for (const [label, route] of [
+  ["Homework", "/student/homework"],
+  ["Classwork", "/student/assessment"],
+  ["Exercises", "/student/exercises"],
+]) {
+  assert.match(hub, new RegExp('title: "' + label + '"'), "Learn must expose " + label);
+  assert.ok(hub.includes('href: "' + route + '"'), "Reuse existing learner destination: " + route);
+  assert.ok(taskPlanner.includes("'" + label + "','" + route + "'"), "My Tasks should expose " + label);
+}
+assert.equal((hub.match(/title: "Homework"/g) ?? []).length, 1, "Homework should have one equal activity tile, not a duplicated feature");
+assert.match(classTools, /if \(a\.id === 'projects'\) route = `\/teacher\/classhub\/\$\{classId\}\/projects`/, "Class projects retain the existing workspace");
+assert.match(classTools, /if \(a\.id === 'exercises'\) route = `\/teacher\/classhub\/\$\{classId\}\/exercises`/, "Class exercises retain the existing workspace");
 for (const title of ["Read", "Topic Practice", "Exams", "Projects", "My Work", "Revision", "My Tuition"]) {
   assert.match(hub, new RegExp('title:\\s*["\\\']' + title + '["\\\']'), 'Learn destination missing: ' + title);
 }
