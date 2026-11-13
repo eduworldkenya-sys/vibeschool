@@ -52,9 +52,13 @@ export function adaptCanonicalLearnSections(input: unknown): CanonicalLearnSecti
         blocks.push({kind:'table',columns:b.columns,rows:b.rows as string[][],caption:text(b.caption)?b.caption:undefined})
       else if (b.kind === 'activity' && text(b.instructions))
         blocks.push({kind:'activity',instructions:b.instructions,materials:strings(b.materials)?b.materials:undefined})
-      else if (b.kind === 'visual' && text(b.id) && uuid.test(b.id)
-        && (b.resourceVersionId === undefined || (text(b.resourceVersionId) && uuid.test(b.resourceVersionId))))
-        blocks.push({kind:'visual',id:b.id,resourceVersionId:b.resourceVersionId as string|undefined})
+      else if (b.kind === 'visual') {
+        // Normalize the exact UUIDs before passing them to the certified resolver.
+        const visualId = typeof b.id === 'string' ? b.id.trim() : ''
+        const versionId = typeof b.resourceVersionId === 'string' ? b.resourceVersionId.trim() : undefined
+        if (uuid.test(visualId) && (b.resourceVersionId === undefined || (versionId !== undefined && uuid.test(versionId))))
+          blocks.push({kind:'visual',id:visualId,resourceVersionId:versionId})
+      }
     }
     const body = text(row.body) ? row.body : ''
     if (!body && blocks.length === 0) continue
