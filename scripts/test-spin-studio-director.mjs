@@ -27,3 +27,20 @@ test('accessibility, asset and mobile guardrails remain',()=>{
   assert.match(page,/220000/)
   assert.match(page,/aria-label="Spin Studio setup"/)
 })
+
+test('recording mode advances by tapping and keeps wheel visible',()=>{
+  assert.match(page,/onClick=\{advanceStage\}/)
+  assert.match(page,/role=\{recording\?'button':undefined\}/)
+  assert.match(page,/if\(spinning\)return/)
+  assert.match(page,/if\(showPhase==='reveal'\)/)
+  assert.match(css,/\.stage \.challengePopup\{/)
+  assert.match(css,/max-height:33%/)
+})
+test('background audio is opt-in and configurable',()=>{
+  assert.match(page,/musicEnabled\?: boolean/)
+  assert.match(page,/musicVolume\?: number/)
+  assert.match(page,/const playMusic=/)
+  assert.match(page,/const stopMusic=/)
+  assert.match(page,/new AudioContext\(\)/)
+  assert.match(page,/stopMusic\(\).*Back to editor/)
+})
