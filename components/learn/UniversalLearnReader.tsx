@@ -4,6 +4,8 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { ArrowRight, RotateCcw } from 'lucide-react'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 import styles from './UniversalLearnReader.module.css'
+import TeachingToolShelf from '@/components/learn/tools/TeachingToolShelf'
+import type { TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 
 /** Presentation-only contract. Canonical release/RLS checks stay with the caller. */
 export type UniversalLearnSection = {
@@ -12,6 +14,8 @@ export type UniversalLearnSection = {
   hint?: string
   tone?: string
   body: string
+  /** Optional per-section learner activities, supplied by a released lesson. */
+  tools?: readonly TeachingToolSpec[]
 }
 
 type Props = {
@@ -20,6 +24,9 @@ type Props = {
   title?: string
   goal?: string
   anchorPrefix?: string
+  topic?: string
+  tools?: readonly TeachingToolSpec[]
+  showTeachingTools?: boolean
   renderBody?: (section: UniversalLearnSection, index: number) => ReactNode
   afterSection?: (section: UniversalLearnSection, index: number) => ReactNode
 }
@@ -62,6 +69,10 @@ function MathsWorking({ body }: { body: string }) {
         <RotateCcw size={15} aria-hidden="true" /> {visible === 1 ? 'Show all steps' : 'Start again'}
       </button>
     </div>
+    {showTeachingTools && <TeachingToolShelf
+      subject={subject} topic={topic || title || ''}
+      tools={tools ?? (sectionTools.length ? sectionTools : undefined)}
+    />}
   </div>
 }
 
@@ -72,12 +83,14 @@ function MathsWorking({ body }: { body: string }) {
  */
 export default function UniversalLearnReader({
   subject, sections, title, goal, anchorPrefix = 'learn',
+  topic = '', tools, showTeachingTools = true,
   renderBody, afterSection,
 }: Props) {
   const mode = learnSubjectMode(subject)
   const anchor = (section: UniversalLearnSection, index: number) =>
     `${anchorPrefix}-${index}-${section.id.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`
   const validSections = sections.filter(section => typeof section.body === 'string' && !!section.body.trim())
+  const sectionTools = validSections.flatMap(section => section.tools ?? [])
   if (!validSections.length) return <p role="status">No released lesson sections are available.</p>
 
   return <div className={styles.reader} data-subject-mode={mode}>
