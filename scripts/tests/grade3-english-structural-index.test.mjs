@@ -19,7 +19,7 @@ test('Grade 3 English map hands off to existing Scheme without fabricating publi
   const map=read('components/teacher/curriculum/Grade3EnglishMap.tsx')
   const subjecthub=read('app/teacher/subjecthub/page.tsx')
   const scheme=read('app/teacher/scheme/AuthoritySchemePage.jsx')
-  assert.match(map,/not the full KICD transcription or verified outcomes/i)
+  assert.match(map,/not certified KICD transcriptions/i)
   assert.match(subjecthub,/<Grade3EnglishMap /)
   assert.match(scheme,/curriculumView && isGrade3English && <Grade3EnglishMap/)
   assert.match(scheme,/grade3EnglishDraftUnit &&/)
