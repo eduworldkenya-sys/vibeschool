@@ -1,11 +1,11 @@
 .experience {
-  --ink: #1d2d3d;
+  --ink: #172033;
   --muted: #596b7a;
   --line: #dce3e6;
-  --paper: #f7f6f2;
-  --navy: #132d45;
-  --forest: #236a53;
-  --gold: #b89355;
+  --paper: #f7f7fb;
+  --navy: #172033;
+  --forest: #176d4a;
+  --gold: #d0b154;
   min-height: 100vh;
   background: var(--paper);
   color: var(--ink);
@@ -19,28 +19,7 @@
 .experience button { font: inherit; cursor: pointer; }
 .experience button:focus-visible,
 .experience a:focus-visible { outline: 3px solid #147d62; outline-offset: 3px; }
-.skipLink {
-  position: absolute; top: -100px; left: 16px; z-index: 20;
-  background: #fff; color: var(--navy); padding: 12px 18px; border-radius: 8px;
-}
-.skipLink:focus { top: 10px; }
-.topbar {
-  background: var(--navy); color: #fff;
-  padding: 0 max(20px, calc((100vw - 1160px)/2));
-  height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
-}
-.brand { display: inline-flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 800; color: #fff; text-decoration: none; letter-spacing: -.025em; }
-.brandMark { background: #d1b278; color: #152b3e; width: 31px; height: 31px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; font-size: 20px; font-weight: 900; }
-.topbarRight { display: flex; align-items: center; gap: 28px; }
-.productLabel { color: #c2d0db; font-weight: 650; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
-.topAction, .bottomAction {
-  display: inline-flex; justify-content: center; align-items: center; gap: 10px;
-  text-decoration: none; background: #d0b078; color: #172c3e;
-  min-height: 42px; padding: 10px 17px; border-radius: 7px;
-  font-weight: 800; font-size: 13px; white-space: nowrap;
-}
-.topAction:hover, .bottomAction:hover { background: #e0c28e; }
-.main { width: min(1160px, 100%); margin: 0 auto; padding: 32px 20px 28px; }
+.main { width: min(1120px, 100%); margin: 0 auto; padding: 32px 20px 28px; }
 .introduction { display: flex; justify-content: space-between; align-items: flex-end; gap: 22px; margin-bottom: 22px; }
 .introductionText { min-width: 0; }
 .eyebrow { color: #5b746f; font-size: 11px; font-weight: 820; letter-spacing: .15em; margin: 0 0 8px; }
@@ -102,8 +81,8 @@
 .after { margin: 17px 0 0; display: flex; gap: 18px; justify-content: space-between; align-items: center; }
 .after strong { display: block; color: var(--navy); font-size: 15px; }
 .after p { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 4px 0 0; }
-.bottomAction { background: var(--navy); color: #fff; min-height: 44px; }
-.bottomAction:hover { background: #254d68; }
+.continueAction { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 46px; padding: 11px 16px; border-radius: 10px; background: #176d4a; color: #fff; text-decoration: none; font-weight: 800; font-size: 13px; flex: none; }
+.continueAction:hover, .continueAction:focus-visible { background: #10583c; color: #fff; }
 .disclosure { color: #687985; border-top: 1px solid #dce3e2; padding-top: 16px; margin-top: 24px; font-size: 11px; line-height: 1.55; }
 .disclosure strong { color: #4c6270; }
 @media (max-width: 900px) {
@@ -113,12 +92,6 @@
   .result { min-height: 0; }
 }
 @media (max-width: 600px) {
-  .topbar { padding: 0 16px; height: 60px; }
-  .brand { font-size: 16px; }
-  .brandMark { width: 28px; height: 28px; }
-  .productLabel { display: none; }
-  .topbarRight { gap: 8px; }
-  .topAction { padding: 9px 11px; min-height: 38px; }
   .main { padding: 23px 12px 20px; }
   .introduction { margin: 0 6px 16px; align-items: flex-start; flex-direction: column; gap: 11px; }
   .introduction h1 { font-size: clamp(26px, 8vw, 35px); line-height: 1.12; }
@@ -135,7 +108,7 @@
   .practice h3 { font-size: 16px; }
   .roleButtons { gap: 6px; }
   .after { padding: 0 4px; align-items: stretch; flex-direction: column; }
-  .bottomAction { align-self: flex-start; }
+  .continueAction { width: 100%; white-space: normal; text-align: center; }
 }
 @media (max-width: 350px) {
   .exampleNumbers { grid-template-columns: minmax(0,1fr) 36px minmax(0,1fr); gap: 4px; }
