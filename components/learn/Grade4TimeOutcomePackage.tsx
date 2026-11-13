@@ -149,7 +149,7 @@ export default function Grade4TimeOutcomePackage({
         setLessons(ordered)
         // Shareable lesson deep link, preserving outcome identity and audience path.
         const requestedParam = new URLSearchParams(window.location.search).get('lesson')
-        const requestedOrder = requestedParam && /^\\d+$/.test(requestedParam) ? Number(requestedParam) : null
+        const requestedOrder = requestedParam && /^\d+$/.test(requestedParam) ? Number(requestedParam) : null
         setSelectedLesson(ordered.some(row => row.lesson_order === requestedOrder) ? requestedOrder : null)
         setItems(checkedItems)
 
