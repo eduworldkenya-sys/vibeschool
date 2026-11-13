@@ -29,6 +29,15 @@ Current v1 section presentation tools: `rich-text` (all subjects), `math-worked-
 
 For future tool families, extend the versioned allowlist and host, validate any new tool-specific data separately, author a real accessible fallback, and add cross-grade and unauthorized-content regression tests. Never infer answers, skills, experiments, source rights or visual approval from arbitrary prose.
 
+## Stage 4 — Specialist Senior School roadmap
+
+Six future tool families (business records, advanced mathematics, coding, technical
+simulations, advanced science and performance) are now listed in the **inactive**
+`SPECIALIST_TOOL_ROADMAP` in the existing interactive catalogue. Planned family
+IDs are not executable `TeachingToolId` values and cannot appear in a learner
+lesson. See [Stage 4 admission and rollout plan](../learn/STAGE4_SPECIALIST_SENIOR_TOOLS.md).
+No new reader, persistence, assessment engine or permission path is authorized.
+
 ## Integration sequence
 
 1. Obtain a previously authorized release using the established reader/RPC.
