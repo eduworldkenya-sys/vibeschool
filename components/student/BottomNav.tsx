@@ -12,11 +12,15 @@ const TABS = [
 
 type TabId = typeof TABS[number]["id"]
 
-function activeTab(path: string): TabId {
+function activeTab(path: string): TabId | null {
   if (path === "/student" || path === "/student/") return "home"
   if (path.startsWith("/student/vibelearn/topic-practice")) return "practise"
+  if (path.startsWith("/student/vibelearn/practice") || path.startsWith("/student/vibelearn/revision") || path.startsWith("/student/vibelearn/mistakes") || path.startsWith("/student/vibelearn/recovery") || path.startsWith("/student/vibelearn/topic")) return "practise"
+  // Formal exams have their own owner and do not impersonate Learn or Practice.
+  if (path.startsWith("/student/vibelearn/exams") || path.startsWith("/student/vibelearn/kcse")) return null
+  if (path.startsWith("/student/exercises") || path.startsWith("/student/projects")) return "tasks"
   if (path.startsWith("/student/twin")) return "learn"
-  if (path.startsWith("/learn") || path.startsWith("/student/study") || path.startsWith("/student/vibelearn") || path.startsWith("/student/learn") || path.startsWith("/student/lesson") || path.startsWith("/student/resources") || path.startsWith("/student/projects") || path.startsWith("/student/exercises")) return "learn"
+  if (path.startsWith("/learn") || path.startsWith("/student/study") || path.startsWith("/student/vibelearn") || path.startsWith("/student/learn") || path.startsWith("/student/lesson") || path.startsWith("/student/resources")) return "learn"
   if (path.startsWith("/student/tasks") || path.startsWith("/student/homework") || path.startsWith("/student/assessment")) return "tasks"
   if (path.startsWith("/student/marks") || path.startsWith("/student/results")) return "results"
   return "home"
