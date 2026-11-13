@@ -4,48 +4,58 @@ import test from 'node:test'
 
 const read = path => readFileSync(path,'utf8')
 
-test('public visual catalogue remains certified-only and filters subject/topic',()=>{
- const s=read('app/api/visual-library/route.ts')
- for(const marker of [
-   ".eq('asset_kind','visual_aid')",
-   ".eq('owner_type','platform')",
-   ".eq('status','active')",
-   ".eq('visibility','public')",
-   ".eq('lifecycle_status','certified')",
-   "isVisualPayload(p)",
-   "isSafeVisualStoragePath(p.storage.path)",
-   "if (subject) q = q.eq('subject',subject)",
-   "p.topic_key.toLowerCase() !== topicKey",
-   "resourceVersionId:version.id",
- ]) assert.ok(s.includes(marker),'Missing visibility guard: '+marker)
- assert.doesNotMatch(s,/vibe-publication-drafts/)
+test('public visual catalogue stays certified-only and searches the complete catalogue',()=>{
+  const source = read('app/api/visual-library/route.ts')
+  for (const marker of [
+    ".eq('asset_kind','visual_aid')", ".eq('owner_type','platform')",
+    ".eq('status','active')", ".eq('visibility','public')",
+    ".eq('lifecycle_status','certified')", "isVisualPayload(p)",
+    "isSafeVisualStoragePath(p.storage.path)", "sourceStrandId",
+    "p.source_strand_id !== sourceStrandId",
+    "p.topic_key.toLowerCase() !== topicKey", "resourceVersionId:version.id",
+    "PAGE_SIZE = 24", "scanOffset", "hasMore",
+  ]) assert.ok(source.includes(marker),'Missing catalogue boundary: '+marker)
+  assert.doesNotMatch(source,/vibe-publication-drafts/)
 })
 
-test('only published Grade 4 Time lesson displays source-linked diagrams',()=>{
- const component=read('components/learn/Grade4TimeVisualModels.tsx')
- assert.match(component,/lessonOrder !== 4 \|\| inlineVisualPresent/)
- assert.match(component,/cache: 'no-store'/)
- assert.match(component,/row.placements.includes\(placement\)/)
- assert.match(component,/row.sourceStrandId === GRADE4_TIME_SUBSTRAND_ID/)
- assert.match(component,/subject: 'Mathematics', topicKey: 'time-hours-minutes'/)
- assert.match(component,/<VisualLearningAsset id=\{visual.id\} resourceVersionId=\{visual.resourceVersionId\}/)
- assert.match(component,/UUID_RE.test\(row.id\)/)
- assert.match(component,/UUID_RE.test\(row.resourceVersionId\)/)
- assert.doesNotMatch(component,/visual-library\/[0-9a-f-]+[.]png/)
- assert.doesNotMatch(component,/80105423-2661-40c8|9c6b5131-0ed9/)
+test('shared visual renderer requires an exact source, topic and certified version',()=>{
+  const component=read('components/learn/SectionVisualModels.tsx')
+  for (const marker of [
+    "UUID_RE.test(sourceStrandId)", "UUID_RE.test(row.id)",
+    "UUID_RE.test(row.resourceVersionId)",
+    "row.sourceStrandId === sourceStrandId",
+    "row.topicKey === topicKey", "row.placements.includes(placement)",
+    "cache:'no-store'", "resourceVersionId={visual.resourceVersionId}",
+  ]) assert.ok(component.includes(marker),'Missing visual guard: '+marker)
+  assert.doesNotMatch(component,/visual-library\/[0-9a-f-]+[.]png/)
+  assert.doesNotMatch(component,/80105423-2661-40c8|9c6b5131-0ed9/)
 })
 
-test('both learner and teacher readers use one shared panel and suppress duplicate inline visuals',()=>{
- for(const path of [
-   'components/learn/Grade4TimeContentReader.tsx',
-   'components/learn/Grade4TimeOutcomePackage.tsx'
- ]){
-   const s=read(path)
-   assert.match(s,/import Grade4TimeVisualModels from/)
-   assert.match(s,/<Grade4TimeVisualModels\s+lessonOrder=/)
-   assert.match(s,/sectionId=\{section.id\}/)
-   assert.match(s,/afterSection=\{\(section, index\)/)
-   assert.match(s,/inlineVisualPresent=\{/)
-   assert.equal((s.match(/<Grade4TimeVisualModels/g)||[]).length,1, 'No duplicate visual panel after sections')
- }
+test('both Time readers use the shared placement once and only for linked Lesson 4',()=>{
+  const universal=read('components/learn/UniversalLearnReader.tsx')
+  assert.match(universal,/SectionVisualModels/)
+  assert.match(universal,/!toolContext \|\| !!sourceBinding/)
+  assert.match(universal,/visualContext/)
+  for(const path of [
+    'components/learn/Grade4TimeContentReader.tsx',
+    'components/learn/Grade4TimeOutcomePackage.tsx',
+  ]){
+    const source=read(path)
+    assert.match(source,/<UniversalLearnReader/)
+    assert.match(source,/visualContext=\{/)
+    assert.match(source,/time-hours-minutes/)
+    assert.match(source,/e975dcc6-32a9-4274-a2a3-3d19e409cf5c/)
+    assert.match(source,/\.order === 4|\.lesson_order === 4/)
+    assert.doesNotMatch(source,/Grade4TimeVisualModels/)
+  }
+})
+
+test('gallery uses Learn shell, pinned images, lesson context and retry',()=>{
+  const page=read('app/learn/visuals/page.tsx')
+  for(const marker of [
+    'SchoolLearnLibrary.module.css','SCHOOL_LEVELS','resourceVersionId={visual.resourceVersionId}',
+    'topicKey','hasMore','setRetry','relatedLesson','subjectHref',
+  ]) assert.ok(page.includes(marker),'Missing gallery functionality: '+marker)
+  const detail=read('app/api/visual-library/[id]/route.ts')
+  assert.match(detail,/.order\('version', \{ ascending: false \}\).limit\(1\).maybeSingle\(\)/)
 })
