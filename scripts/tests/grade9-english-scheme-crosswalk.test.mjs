@@ -43,7 +43,7 @@ test('Grade 9 English: selected sub-strand travels from Map to existing Scheme a
  assert.ok(scheme.includes('unitId:unitId||mapUnitId'))
  assert.ok(scheme.includes('grade9EnglishDraftUnit'))
  assert.ok(scheme.includes('Grade 9 English planning reference'))
- assert.ok(scheme.includes('Outcome-backed Scheme save unavailable'))
+ assert.ok(scheme.includes('This unit does not yet have all required active VibeSchool-authored outcomes'))
  assert.ok(scheme.includes('Back to selected English sub-strand'))
  assert.ok(scheme.includes('curriculumOutcomes[row.id]'))
 })
