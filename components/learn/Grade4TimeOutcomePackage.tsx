@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
+import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.mjs'
 import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import { formatGrade4TimeLessonBody } from '@/lib/content/grade4TimePresentation.mjs'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
@@ -106,6 +107,7 @@ export default function Grade4TimeOutcomePackage({
     if (!outcomeId) return () => { active = false }
     if (!UUID.test(outcomeId)) {
       setError('The outcome link is invalid.')
+      setLoading(false)
       return () => { active = false }
     }
     setLoading(true)
@@ -174,6 +176,9 @@ export default function Grade4TimeOutcomePackage({
   const selected = useMemo(() =>
     lessons.find(row => row.lesson_order === selectedLesson) ?? lessons[0] ?? null,
     [lessons, selectedLesson])
+  const parsedSelected = useMemo(() => selected
+    ? parseGrade4TimeLessonSections(formatGrade4TimeLessonBody(selected.body)) : null, [selected])
+  const selectedIndex = selected ? lessons.findIndex(row => row.resource_version_id === selected.resource_version_id) : -1
   const selectedItems = useMemo(() => items.filter(row =>
     !selected || row.resource_version_id === selected.resource_version_id), [items, selected])
   const outcome = lessons[0] ?? catalogue.find(row => row.outcome_id === outcomeId) ?? null
@@ -233,10 +238,27 @@ export default function Grade4TimeOutcomePackage({
       </div>
 
       {selected && tab === 'core' && <article style={PANEL}>
-        <h3 style={{ fontSize: 20 }}>{selected.title}</h3>
-        <VisualRichText body={formatGrade4TimeLessonBody(selected.body)} style={{ fontSize: 16, lineHeight: 1.8 }} />
+        <UniversalLearnReader
+          key={selected.resource_version_id}
+          subject="Mathematics"
+          sections={parsedSelected?.sections ?? []}
+          title={parsedSelected?.title || selected.title}
+          goal={parsedSelected?.goal}
+          anchorPrefix="outcome-time"
+        />
         <Grade4TimeVisualModels lessonOrder={selected.lesson_order} inlineVisualPresent={/\[visual:/.test(selected.body)} />
         <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
+        <nav aria-label="Move between outcome lessons"
+          style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+          {selectedIndex > 0 ? <button type="button" style={LINK}
+            onClick={() => { setSelectedLesson(lessons[selectedIndex - 1].lesson_order); setRevealed([]) }}>
+            Previous lesson
+          </button> : <span />}
+          {selectedIndex >= 0 && selectedIndex < lessons.length - 1 && <button type="button" style={LINK}
+            onClick={() => { setSelectedLesson(lessons[selectedIndex + 1].lesson_order); setRevealed([]) }}>
+            Next lesson
+          </button>}
+        </nav>
         {audience === 'teacher' && <p style={{ fontSize: 12, color: '#64748b' }}>
           This is the released core explanation. Teaching preparation can be drafted separately without scheduling an occurrence.
         </p>}
