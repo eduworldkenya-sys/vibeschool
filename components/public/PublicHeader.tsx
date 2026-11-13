@@ -10,7 +10,7 @@ const navItems = [
   ['/product', 'Product'],
   ['/teacher', 'Teachers'],
   ['/sandbox', 'Experience'],
-  ['/global', 'Learn'],
+  ['/learn', 'Learn'],
   ['/success-wishes', 'Success Wishes'],
   ['/vibetutor', 'VibeTutor'],
   ['/blog', 'News & Guides'],
