@@ -9,6 +9,7 @@ import ClassicTimetable, { type SchoolDayBlock } from '@/components/teacher/Clas
 import SchoolDaySampleBuilder from '@/components/teacher/SchoolDaySampleBuilder'
 import { personalSchoolDayKey, parsePersonalSchoolDay, type PersonalSchoolDayPlan } from '@/lib/timetable/schoolDaySamples'
 import { isUpperPrimary, type SchoolPeriod } from '@/lib/timetable/periods'
+import { periodAppearance } from '@/lib/timetable/periodAppearance'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
@@ -1345,6 +1346,14 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   )
 
   
+  // Display-only activity blocks from the same canonical school periods used
+  // by setup and by the weekly sheet; never turn them into teaching slots.
+  const dayActivityBlocks = (schoolFilter !== 'all'
+    ? (schoolBlocks[schoolFilter] ?? [])
+    : schools.length === 1 ? dayBlocks : [])
+    .filter(block => block.kind !== 'lesson' && (block.scheduleDay === 0 || block.scheduleDay === activeDow))
+    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+
   const canAddSlot = !loading && teacherId !== null && activeSchoolId !== null && !schoolError
 
   return (
@@ -1709,9 +1718,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           ) : <div style={{ display: 'grid', gap: 6 }}>
             {personalSchoolDay.blocks.filter(b => b.schedule_day === 0 || b.schedule_day === activeDow)
               .sort((a, b) => a.start_time.localeCompare(b.start_time)).map((block, index) => (
-              <div key={index} style={{ display: 'flex', gap: 10, alignItems: 'center', borderBottom: '1px solid ' + C.border, padding: '6px 0', fontSize: 12 }}>
+              <div key={index} style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid ' + C.border, borderLeft: '3px solid ' + periodAppearance(block.kind).border, background: periodAppearance(block.kind).background, borderRadius: 8, padding: '8px 10px', fontSize: 12 }}>
                 <strong style={{ minWidth: 100, color: C.textPrimary }}>{block.start_time}–{block.end_time}</strong>
-                <span style={{ color: C.textPrimary }}>{block.label}</span>
+                <span style={{ color: periodAppearance(block.kind).text }}>{block.label}</span>
                 <span style={{ marginLeft: 'auto', color: C.textMuted }}>{block.kind.replaceAll('_', ' ')}</span>
               </div>
             ))}
@@ -1838,6 +1847,18 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
                   isNext={isToday && entry.slot.id === nextSlot?.id && !nowSlot}
                   curMin={curMin} onTap={setSelected} />
             )}
+          </div>
+        )}
+        {view === 'day' && scheduleContext !== 'tuition' && dayActivityBlocks.length > 0 && (
+          <div style={{ marginTop: 16, display: 'grid', gap: 6 }} aria-label="School day activities">
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted }}>Breaks and school activities</div>
+            {dayActivityBlocks.map(block => {
+              const tone = periodAppearance(block.kind)
+              return <div key={block.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 8, borderLeft: `3px solid ${tone.border}`, background: tone.background, fontSize: 12 }}>
+                <span style={{ minWidth: 92, color: tone.text, fontWeight: 750 }}>{block.startTime.slice(0,5)}–{block.endTime.slice(0,5)}</span>
+                <span style={{ color: tone.text }}>{block.label}</span>
+              </div>
+            })}
           </div>
         )}
       </Card>}
