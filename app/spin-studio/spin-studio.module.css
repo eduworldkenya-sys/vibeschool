@@ -59,3 +59,29 @@
  .stage .popupQuestion{font-size:clamp(12px,3.5vw,18px)}
  .stage .popupTimer{width:40px;font-size:22px}
 }
+
+
+/* VibeSpin content production — six compact setup destinations. */
+.setupTabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.photoUpload{font-size:11px!important;color:#a7c7e1}
+.photoPreview{display:flex;align-items:center;gap:10px}
+.photoPreview img{width:48px;height:48px;object-fit:cover;border-radius:9px;border:1px solid #64758e}
+.productionList{display:grid;gap:12px;max-height:650px;overflow-y:auto;overscroll-behavior:contain}
+.productionItem{display:grid;gap:10px;border:1px solid #374f6b;background:#0b1a31;border-radius:13px;padding:13px}
+.productionTwo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.productionMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.productionMetrics label{text-transform:capitalize}
+.productionItem textarea,.productionItem input{min-width:0}
+.popupPortrait{width:clamp(36px,7vw,70px);height:clamp(36px,7vw,70px);object-fit:cover;border-radius:100%;border:2px solid #ffffffad;box-shadow:0 5px 15px #0005;flex-shrink:0}
+.safeZone{pointer-events:none;z-index:6;position:absolute;inset:10% 7% 17%;border:2px dashed #8bffe76b;border-radius:11px;box-shadow:0 0 0 100vmax transparent}
+.safeZone::after{content:'9:16 safe zone (preview only)';position:absolute;bottom:5px;left:7px;font-size:9px;font-weight:800;color:#b7ffeecc;background:#08172b99;padding:4px 7px;border-radius:5px}
+.landscape .safeZone{inset:10% 6% 14%}
+.square .safeZone{inset:8% 7% 13%}
+.brandScene{position:absolute;z-index:12;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;background:radial-gradient(ellipse at center,#166e85 0%,#0c2353 48%,#070f26 100%);animation:vibespinScene .6s cubic-bezier(.18,.78,.2,1) both}
+.brandSceneMark{font-weight:1000;font-size:clamp(42px,9vw,94px);letter-spacing:-.075em;line-height:1.05;color:#eafff8;text-shadow:0 6px 40px #03a8a8bb}
+.brandSceneBy{font-size:clamp(12px,2.3vw,22px);font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#61ffde}
+.brandScene p{font-size:clamp(14px,2.6vw,27px);font-weight:900;overflow-wrap:anywhere}
+.brandScene strong{font-size:clamp(10px,1.8vw,17px);color:#fff7cd;overflow-wrap:anywhere}
+@keyframes vibespinScene{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:scale(1)}}
+@media(max-width:640px){.productionMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.popupPortrait{width:40px;height:40px}.brandScene{gap:7px}.brandSceneMark{font-size:clamp(36px,11vw,54px)}}
+@media(prefers-reduced-motion:reduce){.brandScene{animation:none}}
