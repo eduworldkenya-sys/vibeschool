@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
 import { adaptCanonicalLearnSections } from '@/lib/learn/learningBlockContract'
@@ -71,6 +71,8 @@ export default function Grade4TimeOutcomePackage({
   audience?: 'learner' | 'teacher'
 }) {
   const [catalogue, setCatalogue] = useState<Outcome[]>([])
+  const [catalogueLoading, setCatalogueLoading] = useState(true)
+  const [catalogueError, setCatalogueError] = useState(false)
   const [outcomeId] = useState(initialOutcomeId ?? '')
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -80,6 +82,7 @@ export default function Grade4TimeOutcomePackage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState<'core' | 'guide' | 'exercise'>('core')
+  const pendingFocus = useRef(false)
 
   useEffect(() => {
     let active = true
@@ -87,15 +90,15 @@ export default function Grade4TimeOutcomePackage({
       const { data, error: catalogueError } = await supabase.rpc('vs_published_grade4_time_outcomes')
       if (!active) return
       if (catalogueError || !Array.isArray(data)) {
-        setError('Published outcome catalogue is unavailable.')
-        setLoading(false)
+        setCatalogueError(true)
+        setCatalogueLoading(false)
         return
       }
       const clean = (data as Outcome[]).filter(row =>
         UUID.test(row.outcome_id) && typeof row.outcome_text === 'string'
         && Number(row.lesson_count) > 0)
       setCatalogue(clean)
-      if (!initialOutcomeId) setLoading(false)
+      setCatalogueLoading(false)
     })()
     return () => { active = false }
   }, [])
@@ -108,7 +111,7 @@ export default function Grade4TimeOutcomePackage({
     setSelectedLesson(null)
     setRevealed([])
     setError('')
-    if (!outcomeId) return () => { active = false }
+    if (!outcomeId) { setLoading(false); return () => { active = false } }
     if (!UUID.test(outcomeId)) {
       setError('The outcome link is invalid.')
       setLoading(false)
@@ -142,7 +145,12 @@ export default function Grade4TimeOutcomePackage({
           throw new Error('An invalid formative item was returned.')
         }
         if (!active) return
-        setLessons([...checked].sort((a, b) => a.lesson_order - b.lesson_order))
+        const ordered = [...checked].sort((a, b) => a.lesson_order - b.lesson_order)
+        setLessons(ordered)
+        // Shareable lesson deep link, preserving outcome identity and audience path.
+        const requestedParam = new URLSearchParams(window.location.search).get('lesson')
+        const requestedOrder = requestedParam && /^\\d+$/.test(requestedParam) ? Number(requestedParam) : null
+        setSelectedLesson(ordered.some(row => row.lesson_order === requestedOrder) ? requestedOrder : null)
         setItems(checkedItems)
 
         if (audience === 'teacher' && checked.length > 0) {
@@ -186,6 +194,37 @@ export default function Grade4TimeOutcomePackage({
   const selectedItems = useMemo(() => items.filter(row =>
     !selected || row.resource_version_id === selected.resource_version_id), [items, selected])
   const outcome = lessons[0] ?? catalogue.find(row => row.outcome_id === outcomeId) ?? null
+
+  function chooseLesson(order: number) {
+    if (!lessons.some(row => row.lesson_order === order)) return
+    pendingFocus.current = true
+    setSelectedLesson(order)
+    setRevealed([])
+    setTab('core')
+    const url = new URL(window.location.href)
+    url.searchParams.set('lesson', String(order))
+    url.hash = ''
+    window.history.replaceState(window.history.state, '', url.toString())
+    if (selectedLesson === order) {
+      requestAnimationFrame(() => {
+        const heading = document.getElementById('outcome-time-title')
+        heading?.focus({ preventScroll: true })
+        heading?.scrollIntoView({ behavior: 'auto', block: 'start' })
+        pendingFocus.current = false
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!pendingFocus.current || selectedLesson === null) return
+    const frame = requestAnimationFrame(() => {
+      const heading = document.getElementById('outcome-time-title')
+      heading?.focus({ preventScroll: true })
+      heading?.scrollIntoView({ behavior: 'auto', block: 'start' })
+      pendingFocus.current = false
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [selectedLesson])
   const hrefFor = (id: string) => audience === 'teacher'
     ? `/teacher/outcome-package?outcomeId=${encodeURIComponent(id)}`
     : `/learn/grade-4/mathematics/time/outcome/${encodeURIComponent(id)}`
@@ -202,7 +241,12 @@ export default function Grade4TimeOutcomePackage({
 
     <section style={{ ...PANEL, marginTop: 18 }}>
       <h2 style={{ marginTop: 0, fontSize: 18 }}>What you will learn</h2>
-      {catalogue.length === 0 && !error ? <p role="status">Loading published outcomes…</p> : null}
+      {catalogueLoading && <p role="status">Loading published outcomes…</p>}
+      {!catalogueLoading && catalogueError && <p role="status">
+        The outcome list is temporarily unavailable. You can still read the lesson opened from this link.
+      </p>}
+      {!catalogueLoading && !catalogueError && catalogue.length === 0 &&
+        <p role="status">No published outcomes are available in the catalogue.</p>}
       <div style={{ display: 'grid', gap: 9 }}>
         {catalogue.map(row => <Link key={row.outcome_id} href={hrefFor(row.outcome_id)}
           aria-current={row.outcome_id === outcomeId ? 'page' : undefined}
@@ -234,7 +278,7 @@ export default function Grade4TimeOutcomePackage({
       <div role="group" aria-label="Choose an associated lesson" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         {lessons.map(row => <button type="button" key={row.resource_version_id}
           aria-pressed={selected?.resource_version_id === row.resource_version_id}
-          onClick={() => { setSelectedLesson(row.lesson_order); setRevealed([]) }}
+          onClick={() => chooseLesson(row.lesson_order)}
           style={{ border: '1px solid #a9c8b3', borderRadius: 9, minHeight: 44, padding: '8px 12px',
             background: selected?.resource_version_id === row.resource_version_id ? '#e3f2e8' : '#fff', color: '#244a36' }}>
           Lesson {row.lesson_order}
@@ -264,11 +308,11 @@ export default function Grade4TimeOutcomePackage({
         <nav aria-label="Move between outcome lessons"
           style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
           {selectedIndex > 0 ? <button type="button" style={LINK}
-            onClick={() => { setSelectedLesson(lessons[selectedIndex - 1].lesson_order); setRevealed([]) }}>
+            onClick={() => chooseLesson(lessons[selectedIndex - 1].lesson_order)}>
             Previous lesson
           </button> : <span />}
           {selectedIndex >= 0 && selectedIndex < lessons.length - 1 && <button type="button" style={LINK}
-            onClick={() => { setSelectedLesson(lessons[selectedIndex + 1].lesson_order); setRevealed([]) }}>
+            onClick={() => chooseLesson(lessons[selectedIndex + 1].lesson_order)}>
             Next lesson
           </button>}
         </nav>
