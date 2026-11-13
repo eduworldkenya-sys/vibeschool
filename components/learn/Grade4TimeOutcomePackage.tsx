@@ -7,7 +7,6 @@ import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
 import { adaptCanonicalLearnSections } from '@/lib/learn/learningBlockContract'
 import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.mjs'
-import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
 import Grade4TimeWorkedSteps from '@/components/learn/Grade4TimeWorkedSteps'
 import { formatGrade4TimeLessonBody } from '@/lib/content/grade4TimePresentation.mjs'
@@ -303,12 +302,14 @@ export default function Grade4TimeOutcomePackage({
             ? <Grade4TimeWorkedSteps body={section.body} />
             : undefined}
           toolContext={toolContext ?? undefined}
+          visualContext={selected.lesson_order === 4 ? {
+            grade: 'Grade 4', subject: 'Mathematics',
+            topicKey: 'time-hours-minutes',
+            sourceStrandId: 'e975dcc6-32a9-4274-a2a3-3d19e409cf5c',
+          } : undefined}
           afterSection={(section, index) => toolContext && getLearningToolSectionBinding(toolContext, section, index)
-            ? <>
-              <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />
-              {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
-                lessonOrder={selected.lesson_order} sectionId={section.id} inlineVisualPresent={/\[visual:/.test(selected.body)} />}
-            </> : null}
+            ? <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />
+            : null}
         />
         <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
         <nav aria-label="Move between outcome lessons"
