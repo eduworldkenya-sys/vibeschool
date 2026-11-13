@@ -154,10 +154,14 @@ $reader_old$;
 $reader_new$;
   completeness_old text := 'if v_unit.grade=''Grade 9'' and (';
   completeness_new text := 'if v_unit.grade in (''Grade 9'',''Grade 3'') and (';
+  -- Grade-matched subject normalization is inserted after the actual class grade
+  -- lookup, rather than patching either of the two historical mismatch-check
+  -- expressions. Both expressions must remain in force unchanged.
   alias_old text := $alias_old$
-  if (v_global_subject is distinct from v_unit.subject_id
+  select c.name into v_grade from public.classes c where c.id=p_class_id;
 $alias_old$;
   alias_new text := $alias_new$
+  select c.name into v_grade from public.classes c where c.id=p_class_id;
   -- Only Grade 3 Mathematical Activities is an accepted alias of global Mathematics.
   if v_unit.grade='Grade 3'
      and v_global_subject=(select id from public.subjects where name='Mathematical Activities' and school_id is null and global_subject_id is null)
@@ -165,7 +169,6 @@ $alias_old$;
   then
     v_global_subject:=v_unit.subject_id;
   end if;
-  if (v_global_subject is distinct from v_unit.subject_id
 $alias_new$;
   alias_old_plain text := $alias_plain$
   if v_global_subject is distinct from v_unit.subject_id
