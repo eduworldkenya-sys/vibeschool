@@ -56,7 +56,7 @@ export default function LearnActivityHub() {
   </Link>;
   return <section className="vs-activity-hub" aria-labelledby="learn-activity-heading">
     <h2 id="learn-activity-heading">Choose an activity</h2>
-    {hasPendingTopicPractice && <Link href="/student/vibelearn/topic-practice" className="vs-activity-card" style={{marginBottom:12,borderColor:"#6366f1"}}><span className="vs-activity-card-icon"><PlayCircle size={22} aria-hidden="true"/></span><span style={{flex:1}}><strong>Continue practice</strong><span className="vs-activity-card-detail">Resume your last unanswered question</span></span><ArrowUpRight size={16} aria-hidden="true"/></Link>}
+    {hasPendingTopicPractice && <Link href="/student/vibelearn/topic-practice" className="vs-activity-card" style={{marginBottom:12,borderColor:"var(--vs-accent)"}}><span className="vs-activity-card-icon"><PlayCircle size={22} aria-hidden="true"/></span><span style={{flex:1}}><strong>Continue practice</strong><span className="vs-activity-card-detail">Resume your last unanswered question</span></span><ArrowUpRight size={16} aria-hidden="true"/></Link>}
     <p>Pick one to get started.</p>
     <nav aria-label="Learning activities" className="vs-activity-grid">
       {primary.map(activity)}
