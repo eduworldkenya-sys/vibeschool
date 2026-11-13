@@ -19,30 +19,31 @@ type Props = {
   catalogError?: string
 }
 
-export default function Grade3EnglishMap({ compact = false, selectedUnitId = '1.1', onSelectUnit, onOpenScheme, mappedUnits = {}, catalogLoading = false, catalogError = '' }: Props) {
+export default function Grade3EnglishMap({ compact = false, selectedUnitId = '1.1', onSelectUnit, onOpenScheme, mappedUnits, catalogLoading = false, catalogError = '' }: Props) {
   const selected = GRADE3_ENGLISH_UNITS.find(unit => unit.id === selectedUnitId) ?? GRADE3_ENGLISH_UNITS[0]
-  const selectedRecord = mappedUnits[selected.id]
+  const catalog = mappedUnits ?? {}
+  const selectedRecord = catalog[selected.id]
   const ready = !!selectedRecord && selectedRecord.outcomes.length === 3
-  const readyCount = GRADE3_ENGLISH_UNITS.filter(unit=>!!mappedUnits[unit.id] && mappedUnits[unit.id].outcomes.length===3).length
+  const readyCount = GRADE3_ENGLISH_UNITS.filter(unit=>!!catalog[unit.id] && catalog[unit.id].outcomes.length===3).length
   return <section aria-label="Grade 3 English curriculum map" style={{ color:'#183e30', border:'1px solid #d4e5da', borderRadius:16, background:'#fff', padding:compact?14:18, marginBottom:14 }}>
     <p style={{fontSize:11,letterSpacing:'.07em',fontWeight:800,color:'#27694e',margin:'0 0 5px'}}>GRADE 3 · ENGLISH LANGUAGE ACTIVITIES</p>
     <h2 style={{fontSize:compact?19:23,margin:'0 0 6px'}}>Curriculum Map</h2>
     <p style={{fontSize:13,color:'#50685c',lineHeight:1.5,margin:'0 0 12px'}}>KICD 2024 source index · {GRADE3_ENGLISH_STRANDS.length} strands · {GRADE3_ENGLISH_UNITS.length} summary sub-strands · {GRADE3_ENGLISH_SUGGESTED_LESSONS} suggested lessons · {GRADE3_ENGLISH_LESSONS_PER_WEEK} per week.</p>
     <p style={{fontSize:12,color:'#526a5c',margin:'0 0 14px'}}>Source summary headings come from KICD. Curriculum outcomes and activities attached for Scheme planning are VibeSchool-authored and are not certified KICD transcriptions. Suggested counts are not school timetable allocations; teach grammar implicitly at this grade.</p>
-    <p role="status" style={{fontSize:12,color:'#28654d',margin:'0 0 12px'}}>{catalogLoading?'Checking curriculum records…':catalogError?`Curriculum connection unavailable: ${catalogError}`:`${readyCount} of ${GRADE3_ENGLISH_UNITS.length} curriculum units ready for Scheme planning`}</p>
+    {(mappedUnits !== undefined || catalogLoading || catalogError) && <p role="status" style={{fontSize:12,color:'#28654d',margin:'0 0 12px'}}>{catalogLoading?'Checking curriculum records…':catalogError?`Curriculum connection unavailable: ${catalogError}`:`${readyCount} of ${GRADE3_ENGLISH_UNITS.length} curriculum units ready for Scheme planning`}</p>}
     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
       {GRADE3_ENGLISH_STRANDS.map(strand=><div key={strand.id} style={{border:'1px solid #e0eae3',borderRadius:12,padding:10}}>
         <strong style={{display:'block',fontSize:13,marginBottom:7}}>{strand.title} · {strand.lessons} lessons</strong>
         {GRADE3_ENGLISH_UNITS.filter(unit=>unit.strand===strand.title).map(unit=><button key={unit.id} type="button" aria-pressed={selected.id===unit.id}
           onClick={()=>onSelectUnit?.(unit.id)}
           style={{display:'block',textAlign:'left',cursor:'pointer',width:'100%',minHeight:42,marginTop:5,padding:'9px 11px',borderRadius:8,border:'1px solid '+(selected.id===unit.id?'#27724c':'#d7e4da'),background:selected.id===unit.id?'#eaf5ee':'#fff',color:'#1a4531'}}>
-          {unit.title} <span style={{float:'right',color:'#567463',fontSize:12}}>{unit.lessons}{mappedUnits[unit.id]?.outcomes.length===3?' · Linked':''}</span>
+          {unit.title} <span style={{float:'right',color:'#567463',fontSize:12}}>{unit.lessons}{catalog[unit.id]?.outcomes.length===3?' · Linked':''}</span>
         </button>)}
       </div>)}
     </div>
     <div style={{marginTop:13,padding:12,borderRadius:11,background:'#f3f8f4',border:'1px solid #d8e9dc'}}>
       <strong style={{display:'block',fontSize:14}}>{selected.strand} · {selected.title}</strong>
-      <p style={{fontSize:12,color:'#51695b',lineHeight:1.5,margin:'6px 0 10px'}}>{selected.lessons} suggested lessons. {ready?'Three VibeSchool-authored outcomes are connected to the canonical Scheme planner. Select the teaching week and save under your teacher account.':'A live curriculum-to-Scheme outcome connection is not yet available for this item.'}</p>
+      <p style={{fontSize:12,color:'#51695b',lineHeight:1.5,margin:'6px 0 10px'}}>{selected.lessons} suggested lessons. {ready?'Three VibeSchool-authored outcomes are connected to the canonical Scheme planner. Select the teaching week and save under your teacher account.':mappedUnits===undefined?'Open Scheme of Work to load the linked curriculum outcomes and choose a teaching week.':'A live curriculum-to-Scheme outcome connection is not yet available for this item.'}</p>
       {ready && <ul style={{fontSize:12,color:'#466253',lineHeight:1.55,paddingLeft:20,margin:'0 0 10px'}}>{selectedRecord.outcomes.map(outcome=><li key={outcome.id}>{outcome.outcome_text}</li>)}</ul>}
       {onOpenScheme && <button type="button" onClick={()=>onOpenScheme(selected.id)} style={{border:0,borderRadius:9,background:'#176546',color:'#fff',fontWeight:750,minHeight:44,padding:'9px 13px',cursor:'pointer'}}>Open Scheme of Work</button>}
     </div>
