@@ -44,6 +44,23 @@ assert.ok(buildGrade1AnnualSchemeDraft({...opts,terms:terms.slice(1)}).error,'al
 assert.ok(buildGrade1AnnualSchemeDraft({...opts,weeklyAllocation:4}).error,'over-allocation fails closed')
 
 assert.ok(page.includes('isGrade8English && <Grade8EnglishMap'), 'Grade8 English map rendered')
+const englishMapEntry = page.slice(
+ page.indexOf('curriculumView && isGrade8English && <Grade8EnglishMap'),
+ page.indexOf('curriculumView && isGrade4Kiswahili && <Grade4KiswahiliMap')
+)
+assert.ok(englishMapEntry.includes('onPlanUnit={selectedClass&&selectedSubject ? unitId=>'),
+ 'Grade 8 English Curriculum Map must open Scheme without a preselected term')
+assert.ok(englishMapEntry.includes("if(selectedTermId)p.set('termId',selectedTermId)"),
+ 'Only include an actual term; do not send an empty term ID to Scheme')
+assert.ok(englishMapEntry.includes('termSelected={!!selectedTermId}'),
+ 'English Curriculum Map must communicate selected term status')
+assert.ok(page.includes('English Curriculum Map is available without a term or timetable.'),
+ 'English curriculum browsing must not be incorrectly blocked by calendar selection')
+assert.ok(map.includes('choose a term before saving the lesson.'),
+ 'English Scheme save must still require term authority')
+assert.ok(map.includes('not a verified copy of official KICD outcomes.'),
+ 'Original authored guidance is not an official source transcription')
+
 assert.ok(page.includes('isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics || isGrade8English'), 'Grade8 uses existing teacher-safe auto scheme')
 assert.ok(page.includes("from('grade8_english_reader_bindings')"), 'read persisted binding')
 assert.ok(page.includes("p_sub_strand_id:item.subStrandId,p_outcome_ids:item.outcomeIds"))
