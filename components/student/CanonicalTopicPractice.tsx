@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
-import LearningFeedback, { playLearningSound } from '@/components/student/LearningFeedback'
+import LearningFeedback, { playLearningSound, useLearningFeedback } from '@/components/student/LearningFeedback'
 import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@/lib/assessment/discovery'
 import { saveResponse, startOrResumeAttempt, submitAttempt } from '@/lib/assessment/engine'
 import type { AttemptWorkspace, SubmitAttemptResult } from '@/lib/assessment/types'
@@ -64,6 +64,7 @@ const optionStyle:React.CSSProperties={...secondary,textAlign:'left',width:'100%
 
 export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grade:string;subject?:string;topic?:string}) {
   const router=useRouter()
+  const {play}=useLearningFeedback()
   const [topics,setTopics]=useState<Topic[]>([])
   const [otherPractice,setOtherPractice]=useState<LearnerAssessmentAssignment[]>([])
   const [otherLoading,setOtherLoading]=useState(true)
@@ -135,8 +136,11 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
     try {
       const attempt=await startOrResumeAttempt(topic.assignment_id)
       if(attempt.items.length!==5 || attempt.timeLimitMinutes!==null) throw new Error('This practice set does not meet the five-question, untimed contract.')
-      const marks=await fetchFeedback(attempt.attemptId)
-      const first=attempt.items.findIndex(item=>!attempt.responses.some(response=>response.assessmentItemId===item.id))
+      // The assessment engine owns the attempt. A temporarily unavailable
+      // feedback RPC must not lock a learner out of an already saved attempt.
+      const marks=await fetchFeedback(attempt.attemptId).catch(() => [] as Feedback[])
+      const answered=new Set([...attempt.responses.map(response=>response.assessmentItemId),...marks.map(mark=>mark.item_id)])
+      const first=attempt.items.findIndex(item=>!answered.has(item.id))
       setWorkspace(attempt);setFeedback(marks)
       setIndex(first<0?5:first)
       setFinished(null);setReviewing(false);setRetryChoices({})
@@ -147,6 +151,8 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
   const currentFeedback=item?feedback.find(row=>row.item_id===item.id):null
   const options=item?optionsOf(item.options):[]
   const seen=new Set([...feedback.map(entry=>entry.item_id),...(workspace?.responses??[]).map(response=>response.assessmentItemId)])
+  const everyAnswerSaved=workspace?.items.length===5 && workspace.items.every(question=>seen.has(question.id))
+  const feedbackReady=feedback.length===5
   const incorrect=feedback.filter(entry=>entry.correct===false).length
   const correct=feedback.filter(entry=>entry.correct===true).length
   const skipped=feedback.filter(entry=>entry.skipped).length
@@ -170,18 +176,26 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
     }catch(cause){setError(cause instanceof Error?cause.message:'Your response could not be saved.')}
     finally{setBusy(false)}
   }
+  async function retryFeedback() {
+    if(!workspace || busy)return
+    setBusy(true);setError('')
+    try { setFeedback(await fetchFeedback(workspace.attemptId)) }
+    catch { setError('Your answers remain saved. Feedback is temporarily unavailable; you can still finish once all five answers are saved.') }
+    finally { setBusy(false) }
+  }
   function next() {
     if(!workspace || !item || !seen.has(item.id))return
     setIndex(index+1)
   }
   async function finish() {
-    if(!workspace || busy || feedback.length!==5)return
+    if(!workspace || busy || !everyAnswerSaved)return
     setBusy(true);setError('')
     try{
       // Canonical submission is the authority for marks and completion. Never
       // report a successful submission as failed because a follow-up read failed.
       const result=await submitAttempt(workspace.attemptId)
       setFinished(result)
+      play('complete')
       setReviewing(false)
       const [updatedFeedback,updatedTopics]=await Promise.allSettled([
         fetchFeedback(workspace.attemptId),
@@ -246,7 +260,11 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
         <div style={{display:'grid',gap:10}}>
           {options.map(option=><button key={option.value} disabled={busy||seen.has(item.id)} style={{...optionStyle,background:currentFeedback?.selected===option.value?'var(--vs-accent-soft)':'var(--vs-card)'}} onClick={()=>void save(option.value)}><strong>{option.value}.</strong> {option.label}</button>)}
         </div>
-        {seen.has(item.id) && !currentFeedback && <div role="status" style={{...card,background:'var(--vs-bg)'}}>Answer saved. Feedback could not load. Choose topic and Continue to restore your attempt.</div>}
+        {seen.has(item.id) && !currentFeedback && <div role="status" style={{...card,background:'var(--vs-soft)'}}>
+          <p style={muted}>Answer saved to your attempt. Feedback has not loaded yet; this does not change your recorded answer.</p>
+          <button type="button" disabled={busy} style={secondary} onClick={()=>void retryFeedback()}>{busy?'Loading…':'Retry feedback'}</button>
+          <button type="button" disabled={busy} style={{...secondary,marginLeft:8}} onClick={next}>{index===4?'Review & finish':'Next question'}</button>
+        </div>}
         {currentFeedback?<LearningFeedback
           status={currentFeedback.skipped?'skipped':currentFeedback.correct?'correct':'incorrect'}
           answer={currentFeedback.correct_answer ? currentFeedback.correct_answer + '. ' + (options.find(option=>option.value===currentFeedback.correct_answer)?.label??'') : null}
@@ -256,7 +274,8 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
       </>:<>
         <h2 style={{fontSize:18}}>All five questions completed</h2>
         <p style={muted}>Check the summary and finish to save your official result.</p>
-        <button disabled={busy||feedback.length!==5} style={button} onClick={()=>void finish()}>{busy?'Submitting…':'Finish practice'}</button>
+        <p style={muted} role="status">{everyAnswerSaved ? 'All five answers are recorded. You can finish even if review feedback is temporarily unavailable.' : 'Finish is available after all five answers have been recorded.'}</p>
+        <button disabled={busy||!everyAnswerSaved} style={button} onClick={()=>void finish()}>{busy?'Submitting…':'Finish practice'}</button>
       </>}
     </section>}
     {workspace && finished && <section style={card}>
@@ -264,9 +283,12 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
       {finished.scoreReleased && finished.score!==null && finished.maxScore!==null
         ? <p style={{fontSize:23,fontWeight:800,margin:'10px 0'}}>{finished.score} / {finished.maxScore} marks{finished.percentage!==null ? ` · ${Math.round(finished.percentage)}%` : ''}</p>
         : <p role="status" style={muted}>Your attempt is saved. The result is not yet released.</p>}
-      <p style={{fontSize:17,fontWeight:800}}>{correct} correct · {incorrect} incorrect · {skipped} skipped</p>
+      {feedbackReady
+        ? <p style={{fontSize:17,fontWeight:800}}>{correct} correct · {incorrect} incorrect · {skipped} skipped</p>
+        : <p role="status" style={muted}>Your attempt is saved. Detailed review is temporarily unavailable. Your recorded score is not being estimated from missing feedback.</p>}
       {finished.scoreReleased && <button style={{...secondary,marginRight:8,marginBottom:8}} onClick={()=>router.push('/student/results/'+encodeURIComponent(finished.attemptId))}>View saved result</button>}
-      <button style={button} onClick={()=>setReviewing(true)}>{incorrect+skipped>0?'Review mistakes':'Review answers'}</button>
+      {feedbackReady && <button style={button} onClick={()=>setReviewing(true)}>{incorrect+skipped>0?'Review mistakes':'Review answers'}</button>}
+      {!feedbackReady && <button style={secondary} onClick={()=>void retryFeedback()} disabled={busy}>Reload review feedback</button>}
       <button style={{...secondary,marginLeft:8}} onClick={()=>{setWorkspace(null);setFinished(null);setFeedback([]);setReviewing(false)}}>Choose another topic</button>
       <button style={{...secondary,marginLeft:8}} onClick={()=>router.push('/student/study')}>Back to Learn</button>
       {reviewing && <div style={{display:'grid',gap:10,marginTop:16}}>
