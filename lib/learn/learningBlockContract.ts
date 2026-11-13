@@ -48,6 +48,10 @@ function authorTools(raw: unknown): TeachingToolSpec[] {
         ...(typeof p.x==='number' && Number.isFinite(p.x) && p.x>=0 && p.x<=100 ? {x:p.x}:{}),
         ...(typeof p.y==='number' && Number.isFinite(p.y) && p.y>=0 && p.y<=100 ? {y:p.y}:{}),
       })) : undefined
+  const points = (v: unknown) => Array.isArray(v) && v.length <= 8
+    ? v.filter(p=>p && short(p.label,40) && typeof p.value === 'number' &&
+      Number.isFinite(p.value) && p.value >= 0 && p.value <= 10000)
+      .map(p=>({label:p.label,value:p.value})) : undefined
   const events = (v: unknown) => Array.isArray(v) && v.length <= 15
     ? v.filter(p => p && short(p.date, 70) && short(p.label, 150)).map(p => ({
         date:p.date,label:p.label,...(short(p.description, 700)?{description:p.description}:{})
@@ -60,6 +64,11 @@ function authorTools(raw: unknown): TeachingToolSpec[] {
     return [{
       id: t.id as TeachingToolId, version: t.version as 1 | undefined, prompt: short(t.prompt, 240),
       word: short(t.word, 100), sentence: short(t.sentence, 250),
+      passage: short(t.passage, 1800), question: short(t.question, 220),
+      sampleAnswer: short(t.sampleAnswer, 500), points: points(t.points),
+      min: typeof t.min === 'number' && Number.isFinite(t.min) ? t.min : undefined,
+      max: typeof t.max === 'number' && Number.isFinite(t.max) ? t.max : undefined,
+      step: typeof t.step === 'number' && Number.isFinite(t.step) ? t.step : undefined,
       spokenText: short(t.spokenText, 1500), language: short(t.language, 10),
       visualId: typeof t.visualId === 'string' && uuid.test(t.visualId) ? t.visualId : undefined,
       resourceVersionId: typeof t.resourceVersionId === 'string' && uuid.test(t.resourceVersionId) ? t.resourceVersionId : undefined,
