@@ -6,14 +6,14 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, ArrowRight, BookOpen, BookmarkCheck, ChevronLeft, ChevronRight, Moon, Sun, Type } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { ContentBlock, VibeChapter, VibePublication } from '@/lib/publishTypes'
-import { isStoryPublication, safeStoryImage, storyReaderHref, storyText } from '@/lib/learn/storyPublications'
+import { isStoryPublication, safeStoryImage, storyReaderHref, storyLandingHref, STORY_GUEST_KEY, storyText } from '@/lib/learn/storyPublications'
 import css from './Originals.module.css'
 
 type StoryChapter=Pick<VibeChapter,'id'|'number'|'title'|'blocks'|'status'|'word_count'|'reading_time_min'>
 type SavedProgress={ chapter_id:string; progress_percent:number; last_read_at:string; reading_position:{block_id?:string;block_offset_percent?:number;scroll_percent?:number}|null }
 type Position={ chapterId:string; blockId:string; percent:number; blockOffset:number }
 const clamp=(v:number)=>Math.max(0,Math.min(100,Math.round(v)))
-const GUEST_KEY='vibeschool.originals.guest.'
+const GUEST_KEY=STORY_GUEST_KEY
 
 function StoryBlock({block}:{block:ContentBlock}) {
   if(block.type==='image'||block.type==='diagram') {
@@ -41,6 +41,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
   const [saved,setSaved]=useState<SavedProgress[]>([])
   const [activeId,setActiveId]=useState('')
   const [signedIn,setSignedIn]=useState(false)
+  const [nextStory,setNextStory]=useState<{id:string;title:string}|null>(null)
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
   const [theme,setTheme]=useState<'paper'|'night'>('paper')
@@ -49,6 +50,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
   const positionRef=useRef<Position|null>(null)
   const writeTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
   const restoredChapterRef=useRef('')
+  const startAtChapterTopRef=useRef<string|null>(null)
   const scrollRestoringRef=useRef(false)
 
   useEffect(()=>{
@@ -103,6 +105,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
         setSignedIn(Boolean(user))
         const explicit=initialRequest.current.id===id?initialRequest.current.chapter:null
         const requested=explicit?available.find(c=>c.id===explicit):undefined
+        if(requested && !initialRequest.current.resume) startAtChapterTopRef.current=requested.id
         const resumed=initialRequest.current.id===id&&initialRequest.current.resume&&records.length?available.find(c=>c.id===records[0].chapter_id):null
         setActiveId(requested?.id||resumed?.id||available[0]?.id||'')
       }catch{
@@ -115,8 +118,23 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
   const activeIndex=useMemo(()=>chapters.findIndex(c=>c.id===activeId),[chapters,activeId])
   const active=activeIndex>=0?chapters[activeIndex]:null
   const savedLatest=saved[0]||null
-  const isFree=publication?.pricing.type==='free'
+  const isFree=publication?.pricing?.type==='free'
   const isReadable=Boolean(active && isFree && active.status==='published' && Array.isArray(active.blocks) && active.blocks.length)
+
+  useEffect(()=>{
+    if(!publication?.series_name?.trim() || !publication.series_number)return
+    let mounted=true
+    void (async()=>{
+      const {data}=await supabase.from('vibe_publications')
+        .select('id,title').eq('status','published')
+        .eq('series_name',publication.series_name)
+        .gt('series_number',publication.series_number)
+        .in('format',['ebook','vibechronicles'])
+        .order('series_number',{ascending:true}).limit(1).maybeSingle()
+      if(mounted)setNextStory(data?{id:data.id,title:data.title||'Next book'}:null)
+    })()
+    return()=>{mounted=false}
+  },[publication])
 
   const persist=useCallback(async (position:Position)=>{
     if(!position.chapterId||!position.blockId) return
@@ -151,7 +169,8 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
     restoredChapterRef.current=active.id
     scrollRestoringRef.current=true
     const timer=window.setTimeout(()=>{
-      const record=saved.find(r=>r.chapter_id===active.id)
+      const record=startAtChapterTopRef.current===active.id?null:saved.find(r=>r.chapter_id===active.id)
+      startAtChapterTopRef.current=null
       const idToRestore=record?.reading_position?.block_id
       const blocks=Array.from(document.querySelectorAll<HTMLElement>('[data-story-block-id]'))
       const target=blocks.find(el=>el.dataset.storyBlockId===idToRestore)
@@ -207,6 +226,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
     if(positionRef.current)void persist(positionRef.current)
     positionRef.current=null
     restoredChapterRef.current=''
+    startAtChapterTopRef.current=next
     setActiveId(next)
     setSync('')
     router.replace(storyReaderHref(id,next),{scroll:false})
@@ -248,7 +268,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
   return <main className={css.page+' '+(theme==='night'?css.night:'')}>
     <header className={css.readerHeader}><div className={css.readerTop}>
       <button type="button" onClick={exitReader} className={css.readerBack}><ArrowLeft size={17}/> Save & Exit</button>
-      <span className={css.readerBookTitle}>{bookTitle}</span>
+      <span className={css.readerBookTitle}>{bookTitle}{active?' · '+(activeIndex+1)+' / '+chapters.length:''}</span>
       <div className={css.readerControls}>
         <button type="button" aria-label="Change text size" onClick={()=>setFontScale(v=>v>=1.3?1:v+.15)}><Type size={18}/> A{fontScale>1?' +':''}</button>
         <button type="button" aria-label="Switch reading theme" onClick={()=>setTheme(t=>t==='paper'?'night':'paper')}>{theme==='paper'?<Moon size={18}/>:<Sun size={18}/>}</button>
@@ -272,6 +292,8 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
           <div className={css.chapterNav}>
             <button type="button" disabled={activeIndex<=0} onClick={()=>changeChapter(chapters[activeIndex-1].id)}><ChevronLeft size={16}/> Previous</button>
             {activeIndex<chapters.length-1?<button type="button" onClick={()=>changeChapter(chapters[activeIndex+1].id)}>Next Chapter <ChevronRight size={16}/></button>:
+              nextStory?<Link href={storyLandingHref(nextStory.id)}>Next Book: {nextStory.title} <ArrowRight size={16}/></Link>:
+              publication.series_name?<Link href={'/learn/stories?series='+encodeURIComponent(publication.series_name)}>Explore this Series <ArrowRight size={16}/></Link>:
               <Link href="/learn/stories">Discover More Stories <ArrowRight size={16}/></Link>}
           </div></div></>:<div className={css.message}>No published chapters are available yet.</div>}
       </article>
@@ -279,4 +301,3 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
   </main>
 }
 
-function readableKey(value:boolean){return value}
