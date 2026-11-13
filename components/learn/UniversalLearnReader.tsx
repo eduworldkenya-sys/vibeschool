@@ -2,6 +2,7 @@
 
 import { type ReactNode } from 'react'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import TeachingToolHost from '@/components/learn/TeachingToolHost'
 import { learnSubjectMode, type TeachingToolSection } from '@/lib/learn/teachingToolRegistry'
 import styles from './UniversalLearnReader.module.css'
@@ -22,6 +23,8 @@ type Props = {
   anchorPrefix?: string
   renderBody?: (section: UniversalLearnSection, index: number) => ReactNode
   afterSection?: (section: UniversalLearnSection, index: number) => ReactNode
+  /** Read-only tool inputs from the existing published/certified source. */
+  toolContext?: ReturnType<typeof buildLearningToolContext>
 }
 
 /**
@@ -31,7 +34,7 @@ type Props = {
  */
 export default function UniversalLearnReader({
   subject, sections, title, goal, anchorPrefix = 'learn',
-  renderBody, afterSection,
+  renderBody, afterSection, toolContext,
 }: Props) {
   const mode = learnSubjectMode(subject)
   // Full-reader pages have an h2 lesson title; outcome pages supply an h3 title.
@@ -53,6 +56,7 @@ export default function UniversalLearnReader({
     <div className={styles.sections}>
       {validSections.map((section, index) => {
         const id = anchor(section, index)
+        const toolBinding = toolContext ? getLearningToolSectionBinding(toolContext, section, index) : null
         const tone = ['learn', 'example', 'explore', 'practice', 'feedback', 'support', 'challenge', 'reflect'].includes(section.tone ?? '')
           ? section.tone : 'learn'
         if (section.id === 'feedback') return <details id={id} key={id} className={styles.feedback}>
@@ -68,7 +72,9 @@ export default function UniversalLearnReader({
           </header>
           <div className={styles.body}>
             {renderBody?.(section, index)
-              ?? <TeachingToolHost subject={subject} section={section} />}
+              ?? (toolContext && !toolBinding
+                ? <VisualRichText body={section.body} />
+                : <TeachingToolHost subject={subject} section={section} sourceBinding={toolBinding} />)}
           </div>
           {afterSection?.(section, index)}
         </section>
