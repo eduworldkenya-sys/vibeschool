@@ -913,7 +913,7 @@ export default function SubjectHubPage() {
       : null
   const grade3MathematicsClass =
     /^(mathematics|mathematical activities|mathematics activities)$/i.test(activeSubject?.name?.trim() ?? '')
-      ? classes.find(item => /\\b(?:grade|class)\\s*3\\b/i.test(item.name)) ?? null
+      ? classes.find(item => /\b(?:grade|class)\s*3\b/i.test(item.name)) ?? null
       : null
   const grade4MathematicsClass =
     /^(mathematics|mathematical activities|mathematics activities)$/i.test(activeSubject?.name?.trim() ?? '')
