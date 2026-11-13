@@ -7,6 +7,7 @@ import TeachingToolShelf from '@/components/learn/tools/TeachingToolShelf'
 import type { TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 import TeachingToolHost from '@/components/learn/TeachingToolHost'
 import LearningBlockRenderer from '@/components/learn/LearningBlockRenderer'
+import SectionVisualModels, { type LessonVisualContext } from '@/components/learn/SectionVisualModels'
 import type { LearningBlock } from '@/lib/learn/learningBlockContract'
 import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import { learnSubjectMode, type TeachingToolSection } from '@/lib/learn/teachingToolRegistry'
@@ -34,6 +35,8 @@ type Props = {
   afterSection?: (section: UniversalLearnSection, index: number) => ReactNode
   /** Immutable source context from the existing authorised released read. */
   toolContext?: ReturnType<typeof buildLearningToolContext>
+  /** Explicit outcome-approved visual scope; omitted for lessons without verified linkage. */
+  visualContext?: LessonVisualContext
 }
 
 /**
@@ -44,7 +47,7 @@ type Props = {
 export default function UniversalLearnReader({
   subject, sections, title, goal, anchorPrefix = 'learn',
   topic = '', tools, showTeachingTools = true,
-  renderBody, afterSection, toolContext,
+  renderBody, afterSection, toolContext, visualContext,
 }: Props) {
   const mode = learnSubjectMode(subject)
   // Full-reader pages have an h2 lesson title; outcome pages supply an h3 title.
@@ -99,6 +102,12 @@ export default function UniversalLearnReader({
                   ? <VisualRichText body={section.body} />
                   : <TeachingToolHost subject={subject} section={section} sourceBinding={sourceBinding} />))}
           </div>
+          {visualContext && (!toolContext || !!sourceBinding)
+            && !/\[visual:/i.test(section.body)
+            && !JSON.stringify(section.blocks ?? []).includes('[visual:')
+            && !section.blocks?.some(block => block.kind === 'visual')
+            && <SectionVisualModels context={visualContext}
+              sectionId={section.id} sectionTone={section.tone} />}
           {afterSection?.(section, index)}
         </section>
       })}

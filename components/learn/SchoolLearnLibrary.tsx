@@ -321,7 +321,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                 <div className={styles.linksRow}>
                   {activeReaders.map(reader => <Link className={styles.buttonSecondary} key={reader.href} href={reader.href}>Open {reader.title} <ArrowRight size={15} /></Link>)}
                   <Link className={styles.buttonSecondary} href="/student/resources">My shared learning materials <ArrowRight size={15} /></Link>
-                  <Link className={styles.buttonSecondary} href="/learn/visuals">Visual learning library</Link>
+                  <Link className={styles.buttonSecondary} href={'/learn/visuals?' + new URLSearchParams({grade, subject:activeName}).toString()}>Visual learning library <ArrowRight size={15}/></Link>
                 </div>
               </section>}
             </>

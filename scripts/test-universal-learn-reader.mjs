@@ -50,8 +50,10 @@ test('maths working and all five subject modes reuse canonical visual resolver',
   assert.match(full, /<Grade4TimeWorkedSteps/)
   assert.match(full, /<Grade4TimePracticeCards/)
   assert.match(full, /<Grade4TimeLearningAid/)
-  assert.match(outcome, /<Grade4TimeVisualModels/)
-  assert.match(outcome, /inlineVisualPresent=\{\/\\\[visual:/)
+  assert.match(outcome, /visualContext=\{/)
+  assert.match(full, /visualContext=\{/)
+  assert.match(universal, /SectionVisualModels/)
+  assert.match(universal, /!\/\\\[visual:/)
 })
 
 test('published grade four Time sections survive full and outcome view without exposing author IDs', () => {
