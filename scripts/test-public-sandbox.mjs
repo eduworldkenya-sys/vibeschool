@@ -27,7 +27,10 @@ try {
   const initial = await page.evaluate(() => ({
     h1: document.querySelector('h1')?.textContent?.trim(),
     h1Count: document.querySelectorAll('h1').length,
-    main: Boolean(document.getElementById('experience-main')),
+    main: Boolean(document.getElementById('main-content')),
+    officialLogo: Boolean(document.querySelector('header img[alt="VibeSchool"]')),
+    focusedFooter: Boolean(document.querySelector('footer a[href="/trust"]')),
+    mobileNavigationVisible: [...document.querySelectorAll('nav[aria-label="Public bottom navigation"]')].some(nav => getComputedStyle(nav).display !== 'none'),
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     body: document.body.innerText,
     links: [...document.querySelectorAll('main a, header a')].map((link) => link.getAttribute('href')),
@@ -35,10 +38,15 @@ try {
 
   if (initial.h1 !== 'One lesson. Everything connected.') fail('unexpected h1: ' + initial.h1)
   if (initial.h1Count !== 1) fail('expected one h1, got ' + initial.h1Count)
-  if (!initial.main) fail('missing #experience-main')
+  if (!initial.main) fail('missing #main-content')
+  if (!initial.officialLogo) fail('sandbox does not use canonical VibeSchool header logo')
+  if (!initial.focusedFooter) fail('sandbox missing public trust/footer navigation')
+  if (!initial.mobileNavigationVisible) fail('sandbox missing public mobile bottom navigation')
   if (initial.overflow > 2) fail('mobile horizontal overflow: ' + initial.overflow + 'px')
-  if (initial.links.length !== 2) fail('expected two public navigation links, got ' + initial.links.length)
-  if (!initial.links.includes('/') || !initial.links.includes('/global/signup')) fail('navigation must include Home and Get started only')
+  for (const href of ['/', '/sandbox', '/learn', '/product', '/evidence', '/login/global', '/learn?grade=Grade+8&subject=Mathematics']) {
+    if (!initial.links.includes(href)) fail('sandbox shared navigation missing: ' + href)
+  }
+  if (initial.links.includes('/global/signup')) fail('sandbox reintroduced legacy global signup entry')
   for (const phrase of ['No production learner data', 'Client-only demo state', 'Interactive sample']) {
     if (!initial.body.includes(phrase)) fail('missing demonstration truth phrase: ' + phrase)
   }
@@ -101,4 +109,4 @@ if (failures.length) {
 }
 
 console.log('PUBLIC SANDBOX CERTIFICATION: PASS')
-console.log('One-screen, mobile, response-derived feedback, role views, reset, two-link navigation, telemetry and demo isolation passed.')
+console.log('One-screen, mobile, canonical public navigation/footer, Grade 8 Learn continuation, response-derived feedback, role views, reset, telemetry and demo isolation passed.')

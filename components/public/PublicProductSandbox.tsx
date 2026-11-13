@@ -4,12 +4,22 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ArrowRight, BookOpenText, Check, RotateCcw } from 'lucide-react'
 import { trackPublicEvent } from '@/lib/publicTelemetry'
+import { PublicHeader } from './PublicHeader'
+import { PublicFooter } from './PublicFooter'
 import styles from './PublicProductSandbox.module.css'
 
 type Role = 'teacher' | 'learner' | 'family' | 'leader'
 type Answer = '6' | '8' | '10'
 
 const options: Answer[] = ['6', '8', '10']
+
+// A focused subset of the canonical public navigation, not a second sandbox shell.
+const sandboxNavigation: ReadonlyArray<readonly [string, string]> = [
+  ['/sandbox', 'Experience'],
+  ['/learn', 'Learn'],
+  ['/product', 'Product'],
+  ['/evidence', 'Learning evidence'],
+]
 
 const roleLabels: Record<Role, string> = {
   teacher: 'Teacher',
@@ -79,20 +89,10 @@ export function PublicProductSandbox() {
   }
 
   return (
-    <section className={styles.experience} aria-labelledby="experience-heading">
-      <a className={styles.skipLink} href="#experience-main">Skip to lesson</a>
-      <header className={styles.topbar}>
-        <Link className={styles.brand} href="/" aria-label="VibeSchool home">
-          <span className={styles.brandMark} aria-hidden="true">V</span>
-          <span>VibeSchool</span>
-        </Link>
-        <div className={styles.topbarRight}>
-          <span className={styles.productLabel}>Experience</span>
-          <Link href="/global/signup" className={styles.topAction}>Get started <ArrowRight size={15} aria-hidden="true" /></Link>
-        </div>
-      </header>
+    <div className={styles.experience}>
+      <PublicHeader product="Experience" navigation={sandboxNavigation} />
 
-      <main id="experience-main" className={styles.main}>
+      <main id="main-content" className={styles.main}>
         <div className={styles.introduction}>
           <div className={styles.introductionText}>
             <p className={styles.eyebrow}>VIBESCHOOL EXPERIENCE <span aria-hidden="true">/</span> GRADE 8 MATHEMATICS</p>
@@ -194,10 +194,13 @@ export function PublicProductSandbox() {
             <strong>Teaching that stays connected.</strong>
             <p>One example of how content, practice and evidence can inform the next action.</p>
           </div>
-          
+          <Link className={styles.continueAction} href="/learn?grade=Grade+8&subject=Mathematics">
+            Explore Grade 8 Mathematics <ArrowRight size={17} aria-hidden="true" />
+          </Link>
         </div>
         <p className={styles.disclosure}><strong>Demonstration boundary.</strong> Client-only demo state. No production learner data. This is VibeSchool-authored example content, not a verbatim KICD curriculum extract. One answer is not a mastery judgement. No real learner or school records are accessed.</p>
       </main>
-    </section>
+      <PublicFooter focused />
+    </div>
   )
 }

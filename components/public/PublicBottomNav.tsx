@@ -45,7 +45,7 @@ function NavIcon({ name }: { name: NavIconName }) {
   }
 }
 
-const PUBLIC_ROOTS = new Set(['/', '/teacher', '/schools', '/product', '/about', '/about/founder-note', '/contact', '/institutions', '/trust'])
+const PUBLIC_ROOTS = new Set(['/', '/teacher', '/schools', '/product', '/sandbox', '/about', '/about/founder-note', '/contact', '/institutions', '/trust'])
 
 export function PublicBottomNav({ forceVisible = false, mode = 'site', activeView = null }: { forceVisible?: boolean; mode?: 'site' | 'learn'; activeView?: string | null } = {}) {
   const pathname = usePathname()
@@ -68,7 +68,7 @@ export function PublicBottomNav({ forceVisible = false, mode = 'site', activeVie
                 : item.href === '/learn?view=courses' ? pathname === '/learn' && activeView === 'courses'
                 : item.href === '/learn/stories' ? pathname.startsWith('/learn/stories')
                 : pathname === item.href
-              : pathname === item.href || (item.href === '/learn' && pathname.startsWith('/learn/'))
+              : pathname === item.href || (item.href === '/learn' && pathname.startsWith('/learn/')) || (item.href === '/product' && pathname === '/sandbox')
             return (
               <Link key={item.label} href={item.href} aria-label={item.label} aria-current={isActive ? 'page' : undefined}
                 style={{ minWidth: 0, minHeight: 44, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
