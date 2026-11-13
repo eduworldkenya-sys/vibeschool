@@ -39,8 +39,8 @@ function Reorder({ values, instruction }: { values: string[]; instruction: strin
 }
 
 function WordBuilder({ spec }: { spec: TeachingToolSpec }) {
-  const word = safeText(spec.word, 'planet').replace(/[^\p{L}]/gu, '').slice(0, 12)
-  const letters = Array.from(word || 'planet')
+  const word = safeText(spec.word, 'planet').replace(/[^A-Za-zÀ-ÿ]/g, '').slice(0, 12) || 'planet'
+  const letters = Array.from(word)
   const [chosen, setChosen] = useState<number[]>([])
   const [checked, setChecked] = useState(false)
   const order = letters.map((_, i) => i).reverse()
