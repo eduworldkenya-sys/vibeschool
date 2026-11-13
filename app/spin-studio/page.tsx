@@ -93,7 +93,7 @@ export default function SpinStudio() {
   const [feedback,setFeedback]=useState('')
   const [fullScreen,setFullScreen]=useState(false)
   const stageRef=useRef<HTMLDivElement>(null)
-  const spinTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
+  const spinTimer=useRef<number|null>(null)
   const pendingSpin=useRef(false)
   const wheel=wheels.find(w=>w.id===selectedId) || wheels[0]
   const entries=wheel?.entries || []
@@ -123,7 +123,7 @@ export default function SpinStudio() {
     const timer=window.setTimeout(()=>setSeconds(value=>value===null?null:Math.max(0,value-1)),1000)
     return ()=>window.clearTimeout(timer)
   },[seconds,spinning])
-  useEffect(()=>()=>{if(spinTimer.current)clearTimeout(spinTimer.current)},[])
+  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)},[])
   useEffect(()=>{
     const change=()=>setFullScreen(Boolean(document.fullscreenElement))
     document.addEventListener('fullscreenchange',change)
