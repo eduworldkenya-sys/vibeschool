@@ -3,8 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
-type Entry = { id: string; label: string; question: string; answer: string }
-type Wheel = { musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type Entry = { id: string; label: string; question: string; answer: string; image?: string }
+type ShowFormat = 'challenge' | 'lucky' | 'trending' | 'learn'
+type SegmentStyle = 'text' | 'photo' | 'both'
+type ProductionStatus = 'idea' | 'recorded' | 'edited' | 'scheduled' | 'published' | 'reviewed'
+type ProductionItem = { id:string; wheelId:string; title:string; platform:string; status:ProductionStatus; plannedDate:string; url:string; views:number; likes:number; shares:number; comments:number; followers:number; notes:string }
+const PRODUCTION_STORAGE='vibeschool.vibespin.production.v1'
+const formatNames:Record<ShowFormat,string>={challenge:'VibeSpin Challenge',lucky:'VibeSpin Lucky Draw',trending:'VibeSpin Trending',learn:'VibeSpin Learn'}
+const socialPlatforms=['YouTube Shorts','TikTok','Facebook Reels','Instagram Reels','WhatsApp Status','Other']
+const initialProduction=():ProductionItem=>({id:uid(),wheelId:'',title:'',platform:'YouTube Shorts',status:'idea',plannedDate:'',url:'',views:0,likes:0,shares:0,comments:0,followers:0,notes:''})
+type Wheel = { showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
@@ -44,7 +52,7 @@ const starter = (): Wheel => ({
   id: uid(), name:'Capital City Challenge', headline:'CAN YOU BEAT THE WHEEL?',
   cta:'Comment your answer • Follow VibeSchool',
   entries: sample.map(item=>({...item,id:uid()})), maxSpins:0, noRepeat:false,
-  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1,batchMode:false,musicEnabled:false,musicStyle:'ambient',musicVolume:18
+  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1,batchMode:false,musicEnabled:false,musicStyle:'ambient',musicVolume:18,showFormat:'challenge',segmentStyle:'both',introEnabled:true,outroEnabled:true,introDuration:2,outroDuration:3
 })
 function validEntry(x: unknown): x is Entry {
   if (!x || typeof x !== 'object') return false
@@ -91,8 +99,12 @@ export default function SpinStudio() {
   const [selectedId,setSelectedId]=useState('')
   const [loaded,setLoaded]=useState(false)
   const [recording,setRecording]=useState(false)
-  const [setupTab,setSetupTab]=useState<'wheels'|'content'|'appearance'|'effects'|'settings'>('wheels')
-  const [showPhase,setShowPhase]=useState<'idle'|'spinning'|'question'|'countdown'|'reveal'>('idle')
+  const [production,setProduction]=useState<ProductionItem[]>([])
+  const [productionLoaded,setProductionLoaded]=useState(false)
+  const [captionCopied,setCaptionCopied]=useState(false)
+  const [safeZone,setSafeZone]=useState(true)
+  const [setupTab,setSetupTab]=useState<'wheels'|'content'|'appearance'|'effects'|'settings'|'production'>('wheels')
+  const [showPhase,setShowPhase]=useState<'idle'|'intro'|'spinning'|'question'|'countdown'|'reveal'|'outro'>('idle')
   const [showOverlay,setShowOverlay]=useState(false)
   const [capturing,setCapturing]=useState(false)
   const [musicPlaying,setMusicPlaying]=useState(false)
@@ -120,6 +132,7 @@ export default function SpinStudio() {
   const futureRef=useRef<Wheel[]>([])
   const pendingSpin=useRef(false)
   const countdownRef=useRef<number|null>(null)
+  const sceneRef=useRef<number|null>(null)
   const recorderRef=useRef<MediaRecorder|null>(null)
   const captureStreamRef=useRef<MediaStream|null>(null)
   const chunksRef=useRef<Blob[]>([])
@@ -141,7 +154,7 @@ export default function SpinStudio() {
       const ctx=new AudioContext(),gain=ctx.createGain()
       gain.gain.value=Math.min(0.12,Math.max(0,(wheel.musicVolume??18)/100)*0.12)
       gain.connect(ctx.destination)
-      const frequencies=wheel.musicStyle==='pulse'?[130.81,196,261.63]:[130.81,164.81,196]
+      const frequencies=wheel.musicStyle==='pulse'?[130.81,196,261.63]:wheel.musicStyle==='suspense'?[110,146.83,164.81]:wheel.musicStyle==='comedy'?[196,246.94,293.66]:wheel.musicStyle==='calm'?[174.61,220,261.63]:[130.81,164.81,196]
       const oscillators=frequencies.map((hz,index)=>{
         const osc=ctx.createOscillator(),voice=ctx.createGain()
         osc.type=wheel.musicStyle==='pulse'?'triangle':'sine'
@@ -165,6 +178,21 @@ export default function SpinStudio() {
   const locked=spinning || showPhase==='question' || showPhase==='countdown' || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
 
   useEffect(()=>{
+    try{
+      const raw=localStorage.getItem(PRODUCTION_STORAGE)
+      const parsed:unknown=raw?JSON.parse(raw):[]
+      if(Array.isArray(parsed)){
+        setProduction(parsed.filter(item=>item&&typeof item==='object'&&typeof item.id==='string'&&typeof item.title==='string'&&typeof item.wheelId==='string').slice(0,100))
+      }
+    }catch{/* Browser storage may be unavailable. */}
+    setProductionLoaded(true)
+  },[])
+  useEffect(()=>{
+    if(!productionLoaded)return
+    try{localStorage.setItem(PRODUCTION_STORAGE,JSON.stringify(production))}
+    catch{setFeedback('Production tracker storage is full; export or remove older records.')}
+  },[production,productionLoaded])
+  useEffect(()=>{
     try {
       const raw=localStorage.getItem(STORAGE)
       const data=raw?JSON.parse(raw) as Partial<Saved>:null
@@ -184,6 +212,7 @@ export default function SpinStudio() {
     pastRef.current=[];futureRef.current=[];setUndoCount(0);setRedoCount(0)
     if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)
     if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
+    if(sceneRef.current!==null)window.clearTimeout(sceneRef.current)
     pendingSpin.current=false
     setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
   },[selectedId])
@@ -205,7 +234,7 @@ export default function SpinStudio() {
     },Math.max(1,wheel.revealHold??3)*1000)
     return ()=>clearTimeout(timer)
   },[showPhase,wheel,batchMode])
-  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop());const audio=musicRef.current;if(audio){audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}});void audio.ctx.close().catch(()=>{})}},[])
+  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);if(sceneRef.current!==null)window.clearTimeout(sceneRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop());const audio=musicRef.current;if(audio){audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}});void audio.ctx.close().catch(()=>{})}},[])
   useEffect(()=>{
     const media=window.matchMedia('(prefers-reduced-motion: reduce)')
     setReducedMotion(media.matches)
