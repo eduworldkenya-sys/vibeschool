@@ -128,7 +128,7 @@ export default function TasksPage() {
       <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> Add task</button>
     </header>
     <nav aria-label="Learning priorities" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-      {([['Homework','/student/homework'],['Practice','/student/vibelearn/topic-practice'],['Exams','/student/vibelearn/exams'],['Revision','/student/vibelearn/revision']] as const).map(([label,href])=><Link key={href} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
+      {([['Homework','/student/homework'],['Classwork','/student/assessment'],['Exercises','/student/exercises'],['Projects',identity?.classId?'/student/projects':'/student/projects/independent'],['Practice','/student/vibelearn/topic-practice'],['Exams','/student/vibelearn/exams'],['Revision','/student/vibelearn/revision']] as const).map(([label,href])=><Link key={href} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
     </nav>
     <section aria-labelledby="assigned-work-heading" style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:14,padding:14,display:'grid',gap:10}}>
       <div><h2 id="assigned-work-heading" style={{fontSize:18,margin:'0 0 4px'}}>Assigned work {actionable.length>0&&`(${actionable.length})`}</h2><p style={{fontSize:12,color:'#64748b',margin:0}}>Homework, classwork and assessments from your teachers. Open a task here to complete it in its original workspace.</p></div>
