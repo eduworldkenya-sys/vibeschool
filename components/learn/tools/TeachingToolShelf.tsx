@@ -11,6 +11,7 @@ import MathTeachingTool from './MathTeachingTools'
 import LanguageScienceTeachingTool from './LanguageScienceTeachingTools'
 import EarlyYearsPracticalTool from './EarlyYearsPracticalTools'
 import styles from './TeachingTools.module.css'
+import { FeedbackSoundToggle } from '@/components/learn/LearningFeedback'
 
 /**
  * Read-only, optional interaction layer below a released lesson.
@@ -37,6 +38,7 @@ export default function TeachingToolShelf({
         <h4 id={headingId}>Explore with a learning tool</h4>
         <p>Try an example and change the values. This practice is not graded or saved.</p>
       </div>
+      <FeedbackSoundToggle />
     </div>
     <div role="group" aria-label="Choose a learning tool" className={styles.menu}>
       {available.map(spec => {
