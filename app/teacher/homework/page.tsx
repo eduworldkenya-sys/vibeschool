@@ -25,6 +25,7 @@ type HomeworkItem = {
   class_name: string;
   class_stream: string;
   submitted: number;
+  awaitingReview: number;
 };
 
 type HomeworkRow = {
@@ -37,7 +38,7 @@ type HomeworkRow = {
   homework_submissions: Array<{ id: string; student_id: string; status: string }> | null;
 };
 
-type Filter = "all" | "active" | "overdue";
+type Filter = "all" | "active" | "overdue" | "review";
 
 function formatDate(value: string | null) {
   if (!value) return "No due date";
@@ -96,6 +97,7 @@ export default function TeacherHomeworkPage() {
         class_name: cls?.name ?? "Class",
         class_stream: cls?.stream ?? "",
         submitted: new Set((row.homework_submissions ?? []).filter(sub => typeof sub.student_id === 'string' && ['submitted', 'received', 'under_review', 'marked'].includes(sub.status)).map(sub => sub.student_id)).size,
+        awaitingReview: new Set((row.homework_submissions ?? []).filter(sub => typeof sub.student_id === 'string' && ['submitted', 'received', 'under_review'].includes(sub.status)).map(sub => sub.student_id)).size,
       } satisfies HomeworkItem;
     }));
   }, []);
@@ -145,31 +147,41 @@ export default function TeacherHomeworkPage() {
   const shown = useMemo(() => items.filter(item =>
     (!classFilter || item.class_id === classFilter) &&
     `${item.title} ${item.subject} ${item.class_name}`.toLowerCase().includes(query.toLowerCase()) &&
-    (filter === 'all' || (filter === 'overdue' ? Boolean(item.due_date && item.due_date.slice(0, 10) < today) : !item.due_date || item.due_date.slice(0, 10) >= today))
+    (filter === 'all' || (filter === 'review' ? item.awaitingReview > 0 : filter === 'overdue' ? Boolean(item.due_date && item.due_date.slice(0, 10) < today) : !item.due_date || item.due_date.slice(0, 10) >= today))
   ), [items, classFilter, query, filter, today]);
   const classes = Array.from(new Map((context?.classes ?? []).map(c => [c.class_id, c])).values());
+  const needingReview = items.reduce((count, item) => count + item.awaitingReview, 0);
+  const pastDue = items.filter(item => item.due_date && item.due_date.slice(0, 10) < today).length;
+  const upcoming = items.filter(item => !item.due_date || item.due_date.slice(0, 10) >= today).length;
   const control = { minHeight: 44, border: '1px solid #cbd5cf', borderRadius: 6, padding: '8px 12px', background: '#fff', color: '#24352b', font: 'inherit' };
   return (
     <section className="vs-teacher-workspace" style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px 80px' }}>
       <header style={{ borderBottom: '1px solid #dfe5de', paddingBottom: 18, marginBottom: 20 }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: 28 }}>Homework</h1>
-        <p style={{ margin: 0, color: '#627168', lineHeight: 1.5 }}>Set take-home assignments and review submissions. For classwork, exercises and CATs, open <a href="/teacher/assessment">Assessments</a>.</p>
+        <h1 style={{ margin: '0 0 6px', fontSize: 28 }}>Class tasks</h1>
+        <p style={{ margin: 0, color: '#627168', lineHeight: 1.5 }}>Assign homework, see who has submitted and review work. Classwork, exercises and CATs use the existing <a href="/teacher/assessment">assessment workspace</a>.</p>
         {context && context.schools.length > 1 && <label style={{ display: 'block', marginTop: 12 }}>School <select aria-label="Active school" disabled={loading} value={context.school_id ?? ''} onChange={e => void changeSchool(e.target.value)} style={control}>{context.schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
       </header>
       {error && <p role="alert">{error} <button style={control} onClick={() => void load()}>Retry</button></p>}
       {loading ? <p role="status">Loading homework…</p> : error ? null : context?.state === 'needs_school' ? <p>Connect a school before setting homework. <a href="/teacher/onboarding/school">Connect school</a></p> : context?.state === 'needs_class' ? <p>Add your teaching class first. <a href="/teacher/onboarding/class">Set up class</a></p> : (
         <>
+          <section aria-label="Homework overview" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 9, marginBottom: 18 }}>
+            {([['To review', needingReview], ['Upcoming', upcoming], ['Past due', pastDue]] as const).map(([label, value]) => <div key={label} style={{ border: '1px solid #dfe5de', borderRadius: 11, padding: '12px 10px', background: '#fff' }}><strong style={{ display: 'block', fontSize: 22 }}>{value}</strong><span style={{ fontSize: 12, color: '#627168' }}>{label}</span></div>)}
+          </section>
+          <section aria-labelledby="assign-homework-heading" style={{ background: '#f8faf8', border: '1px solid #dfe5de', borderRadius: 12, padding: 14, marginBottom: 18 }}>
+            <h2 id="assign-homework-heading" style={{ margin: '0 0 5px', fontSize: 17 }}>Set homework</h2>
+            <p style={{ color: '#627168', fontSize: 13, margin: '0 0 12px' }}>Choose the class. Your assignment will appear in the linked learners’ tasks.</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{classes.map(c => <a key={c.class_id} style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, border: '1px solid #cbd5cf', borderRadius: 8, padding: '8px 12px', color: '#24352b', background: '#fff' }} href={`/teacher/classhub/${c.class_id}/homework`}>{c.class_name} {c.stream}</a>)}</div>
+          </section>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
             <input aria-label="Search homework" placeholder="Find an assignment" value={query} onChange={e => setQuery(e.target.value)} style={{ ...control, flex: '1 1 200px', minWidth: 0 }} />
             <select aria-label="Filter by class" value={classFilter} onChange={e => setClassFilter(e.target.value)} style={{ ...control, maxWidth: '100%' }}><option value="">All classes</option>{classes.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name} {c.stream}</option>)}</select>
-            <select aria-label="Filter by due date" value={filter} onChange={e => setFilter(e.target.value as Filter)} style={control}><option value="all">Any due date</option><option value="active">Upcoming / undated</option><option value="overdue">Past due date</option></select>
+            <select aria-label="Filter by due date" value={filter} onChange={e => setFilter(e.target.value as Filter)} style={control}><option value="all">Any due date</option><option value="active">Upcoming / undated</option><option value="overdue">Past due date</option><option value="review">Needs marking</option></select>
           </div>
-          <details style={{ borderBottom: '1px solid #dfe5de', paddingBottom: 12, marginBottom: 16 }}><summary style={{ minHeight: 44, cursor: 'pointer', fontWeight: 650 }}>Set homework for a class</summary><div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>{classes.map(c => <a key={c.class_id} style={{ ...control, display: 'inline-flex', alignItems: 'center' }} href={`/teacher/classhub/${c.class_id}/homework`}>{c.class_name} {c.stream}</a>)}</div></details>
           <p style={{ color: '#627168', fontSize: 13 }}>{shown.length} assignment{shown.length === 1 ? '' : 's'}</p>
           {!shown.length ? <p>No assignments match this view. Change the filters or choose a class above.</p> : <ul style={{ listStyle: 'none', padding: 0, margin: 0, borderTop: '1px solid #dfe5de' }}>{shown.map(item => <li key={item.id} style={{ borderBottom: '1px solid #dfe5de' }}>
             <a href={`/teacher/classhub/${item.class_id}/homework/${item.id}`} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', padding: '18px 4px', color: '#24352b', textDecoration: 'none' }}>
               <div style={{ flex: '1 1 230px', minWidth: 0 }}><strong style={{ display: 'block', fontSize: 16, overflowWrap: 'anywhere' }}>{item.title}</strong><span style={{ display: 'block', marginTop: 6, fontSize: 13, color: '#627168' }}>{item.class_name} {item.class_stream}{item.subject ? ` · ${item.subject}` : ''}</span></div>
-              <div style={{ fontSize: 13, lineHeight: 1.7 }}><div>{item.due_date ? `Due ${formatDate(item.due_date)}` : 'No due date'}</div><div>{item.submitted} learner{item.submitted === 1 ? '' : 's'} submitted</div></div><span aria-hidden="true">→</span>
+              <div style={{ fontSize: 13, lineHeight: 1.7 }}><div>{item.due_date ? `Due ${formatDate(item.due_date)}` : 'No due date'}</div><div>{item.submitted} learner{item.submitted === 1 ? '' : 's'} submitted</div>{item.awaitingReview > 0 && <div style={{ fontWeight: 650 }}>{item.awaitingReview} to review</div>}</div><span aria-hidden="true">→</span>
             </a>
           </li>)}</ul>}
         </>
