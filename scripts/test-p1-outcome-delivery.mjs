@@ -55,6 +55,18 @@ assert.ok(shared.includes("supabase.rpc('vs_published_grade4_time_outcome'"))
 assert.ok(shared.includes("supabase.rpc('vs_published_grade4_time_practice'"))
 assert.ok(shared.includes('Revealing an answer does not record completion, marks or mastery.'))
 assert.ok(shared.includes("audience === 'teacher'"))
+assert.match(shared, /if \(audience === 'learner'\) return <main className=\{readerStyles\.page\}/,
+  'Learner outcome routes must use the modern Grade 4 Time shell')
+assert.match(shared, /<UniversalLearnReader[\s\S]*?<Grade4TimePracticeCards/,
+  'Learner lessons must retain the universal sections and interactive published practice')
+assert.match(shared, /aria-label="Choose another learning goal"/,
+  'All learning goal links should stay inside the same reader experience')
+assert.match(shared, /aria-label="Move between outcome lessons"/,
+  'Previous and next lesson navigation must remain within the outcome')
+assert.match(shared, /resource_version_id === row\.resource_version_id/,
+  'A lesson chooser must use certified resource-version identity')
+assert.match(shared, /audience === 'teacher'[\s\S]*?Certified teacher guidance/,
+  'Do not remove the teacher preparation view')
 assert.ok(learner.includes('audience="learner"'))
 assert.ok(teacher.includes('audience="teacher"'))
 assert.ok(map.includes('/teacher/outcome-package?outcomeId='))
