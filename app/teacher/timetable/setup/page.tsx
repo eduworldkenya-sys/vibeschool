@@ -57,6 +57,7 @@ const KINDS = [
   ['games', 'Games'],
   ['club', 'Club'],
   ['prep', 'Prep'],
+  ['staff_meeting', 'Staff meeting'],
   ['guidance', 'Guidance'],
   ['examination', 'Examination'],
   ['school_event', 'School event'],
