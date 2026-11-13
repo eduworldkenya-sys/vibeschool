@@ -6,6 +6,8 @@ import styles from './UniversalLearnReader.module.css'
 import TeachingToolShelf from '@/components/learn/tools/TeachingToolShelf'
 import type { TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 import TeachingToolHost from '@/components/learn/TeachingToolHost'
+import LearningBlockRenderer from '@/components/learn/LearningBlockRenderer'
+import type { LearningBlock } from '@/lib/learn/learningBlockContract'
 import { learnSubjectMode, type TeachingToolSection } from '@/lib/learn/teachingToolRegistry'
 
 /** Presentation-only contract. Canonical release/RLS checks stay with the caller. */
@@ -13,6 +15,7 @@ export type UniversalLearnSection = TeachingToolSection & {
   title: string
   hint?: string
   tools?: readonly TeachingToolSpec[]
+  blocks?: readonly LearningBlock[]
 }
 
 export { learnSubjectMode } from '@/lib/learn/teachingToolRegistry'
@@ -45,13 +48,14 @@ export default function UniversalLearnReader({
   const SectionHeading = title ? 'h4' : 'h3'
   const anchor = (section: UniversalLearnSection, index: number) =>
     `${anchorPrefix}-${index}-${section.id.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`
-  const validSections = sections.filter(section => typeof section.body === 'string' && !!section.body.trim())
+  const validSections = sections.filter(section =>
+    (typeof section.body === 'string' && !!section.body.trim()) || !!section.blocks?.length)
   const sectionTools = validSections.flatMap(section => section.tools ?? [])
   if (!validSections.length) return <p role="status">No released lesson sections are available.</p>
 
   return <div className={styles.reader} data-subject-mode={mode}>
     {(title || goal) && <header className={styles.heading}>
-      {title && <h3>{title}</h3>}
+      {title && <h3 id={`${anchorPrefix}-title`} tabIndex={-1}>{title}</h3>}
       {goal && <p><strong>What you will learn:</strong> {goal}</p>}
     </header>}
     {validSections.length > 1 && <nav className={styles.navigation} aria-label="Lesson sections">
@@ -66,7 +70,8 @@ export default function UniversalLearnReader({
         if (section.id === 'feedback') return <details id={id} key={id} className={styles.feedback}>
           <summary>Review all explanations</summary>
           <div className={styles.feedbackBody}>
-            {renderBody?.(section, index) ?? <VisualRichText body={section.body} />}
+            {renderBody?.(section, index) ?? (section.blocks?.length
+              ? <LearningBlockRenderer blocks={section.blocks} /> : <VisualRichText body={section.body} />)}
           </div>
         </details>
         return <section id={id} key={id} data-tone={tone} className={styles.section} aria-labelledby={`${id}-heading`}>
@@ -76,13 +81,14 @@ export default function UniversalLearnReader({
           </header>
           <div className={styles.body}>
             {renderBody?.(section, index)
-              ?? <TeachingToolHost subject={subject} section={section} />}
+              ?? (section.blocks?.length ? <LearningBlockRenderer blocks={section.blocks} />
+                : <TeachingToolHost subject={subject} section={section} />)}
           </div>
           {afterSection?.(section, index)}
         </section>
       })}
     </div>
-    {showTeachingTools && <TeachingToolShelf subject={subject} topic={topic || title || ''}
+    {showTeachingTools && (tools !== undefined || sectionTools.length > 0) && <TeachingToolShelf subject={subject} topic={topic || title || ''}
       tools={tools ?? (sectionTools.length ? sectionTools : undefined)} />}
   </div>
 }
