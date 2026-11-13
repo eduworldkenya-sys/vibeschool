@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
 import CanonicalTopicPractice from '@/components/student/CanonicalTopicPractice'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
+import LearningFeedback, { playLearningSound } from '@/components/student/LearningFeedback'
 import { supabase } from '@/lib/supabase'
 import { recordVibeLearnPracticeAnswer } from '@/lib/student/vibelearn'
 
@@ -131,6 +132,7 @@ export default function TopicPracticePage() {
         }
       } catch { /* The attempt remains scored even if review data is temporarily unavailable. */ }
       remember({...session,answers:[...session.answers,{questionId:currentQuestion.id,choice:index,correct:row.correct,correctIndex,explanation:typeof row.explanation === 'string' ? row.explanation : null}]})
+      playLearningSound(row.correct?'correct':'incorrect')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not mark this answer.') }
     finally { setBusy(false) }
   }
@@ -147,6 +149,7 @@ export default function TopicPracticePage() {
       if (skipError) throw skipError
       if (!(data as { ok?: boolean } | null)?.ok) throw new Error('The skip was not recorded.')
       remember({...session,answers:[...session.answers,{questionId:currentQuestion.id,choice:null,correct:null,correctIndex:null,explanation:null}]})
+      playLearningSound('skipped')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save skipped question.')
     } finally { setBusy(false) }
@@ -172,6 +175,7 @@ export default function TopicPracticePage() {
         if (typeof item.correct_index === 'number') correctIndex = item.correct_index
       }
       setReviewResult({correct:row.correct,correctIndex,explanation:typeof row.explanation === 'string' ? row.explanation : null})
+      playLearningSound(row.correct?'correct':'incorrect')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not retry this question.') }
     finally { setBusy(false) }
   }
@@ -198,7 +202,7 @@ export default function TopicPracticePage() {
   if (identityLoading || !identity) return <main style={shell}>Opening practice…</main>
   if (/^grade\s*(?:4|9)$/i.test(grade)) return <CanonicalTopicPractice grade={grade} />
   return <main style={shell}>
-    <button style={plain} onClick={() => router.push('/student/vibelearn')}>← Learn</button>
+    <button style={plain} onClick={() => router.push('/student/study')}>← Learn</button>
     <h1 style={{margin:'12px 0 6px',fontSize:26}}>Topic Practice</h1>
     <p style={muted}>Five questions. No timer or class code.</p>
     {!grade && <section style={card}><h2 style={heading}>Choose your grade once</h2><div style={grid}>{[4,5,6,7,8,9].map(n => <button key={n} style={button} onClick={() => void selectGrade('Grade '+n)}>Grade {n}</button>)}</div></section>}
@@ -210,6 +214,7 @@ export default function TopicPracticePage() {
       <p style={{fontSize:18,fontWeight:800}}>{results.correct} correct · {results.incorrect} incorrect · {results.skipped} skipped</p>
       <button style={button} onClick={() => { setReviewQuestionId('all'); setReviewResult(null) }}>Review mistakes</button>
       <button style={secondary} onClick={() => remember(null)}>Choose another topic</button>
+      <button style={secondary} onClick={() => router.push('/student/study')}>Return to Learn</button>
       {results.incorrect + results.skipped > 0 && <button style={secondary} onClick={() => router.push('/student/vibelearn/recovery')}>Recover missed and skipped questions</button>}
       {reviewQuestionId && <div style={{marginTop:20,display:'grid',gap:12}}>{session.answers.filter(a => a.correct !== true).length === 0 ? <p style={muted}>No missed or skipped questions.</p> : session.answers.filter(a => a.correct !== true).map(a => {
         const q = questions.find(item => item.id === a.questionId)
@@ -227,7 +232,12 @@ export default function TopicPracticePage() {
         <div style={{display:'grid',gap:10}}>
           {currentQuestion.options.map((option,i)=><button key={i} disabled={busy || Boolean(currentAnswer)} onClick={() => void answer(i)} style={{...optionButton,background:currentAnswer?.choice === i ? 'var(--vs-accent-soft)':'#fff'}}>{String.fromCharCode(65+i)}. {option}</button>)}
         </div>
-        {currentAnswer ? <div role="status" style={{marginTop:16,padding:13,borderRadius:12,background:'var(--vs-soft)'}}><strong>{currentAnswer.correct === null ? 'Skipped' : currentAnswer.correct ? 'Correct' : 'Not correct'}</strong>{currentAnswer.correctIndex !== null && <p>Correct answer: {String.fromCharCode(65+currentAnswer.correctIndex)}. {currentQuestion.options[currentAnswer.correctIndex]}</p>}{currentAnswer.explanation && <p>{currentAnswer.explanation}</p>}<button style={{...button,marginTop:12}} onClick={next}>{session.index === TARGET-1 ? 'See results' : 'Next'}</button></div> : <button disabled={busy} style={{...secondary,marginTop:14}} onClick={() => void skip()}>{busy ? 'Saving skip…' : 'Skip question'}</button>}
+        {currentAnswer ? <LearningFeedback
+          status={currentAnswer.correct === null ? 'skipped' : currentAnswer.correct ? 'correct' : 'incorrect'}
+          answer={currentAnswer.correctIndex !== null ? String.fromCharCode(65+currentAnswer.correctIndex) + '. ' + currentQuestion.options[currentAnswer.correctIndex] : null}
+          explanation={currentAnswer.explanation}>
+          <button style={button} onClick={next}>{session.index === TARGET-1 ? 'See results' : 'Next'}</button>
+        </LearningFeedback> : <button disabled={busy} style={{...secondary,marginTop:14}} onClick={() => void skip()}>{busy ? 'Saving skip…' : 'Skip question'}</button>}
       </> : <p>This question is no longer available. Choose a new topic.</p>}
     </section>}
     {grade && !loading && !session && <section style={card}>

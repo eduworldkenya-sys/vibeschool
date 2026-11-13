@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
+import LearningFeedback, { playLearningSound } from '@/components/student/LearningFeedback'
 import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@/lib/assessment/discovery'
 import { saveResponse, startOrResumeAttempt, submitAttempt } from '@/lib/assessment/engine'
 import type { AttemptWorkspace, SubmitAttemptResult } from '@/lib/assessment/types'
@@ -158,6 +159,8 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
       try {
         const marks=await fetchFeedback(workspace.attemptId)
         setFeedback(marks)
+        const mark=marks.find(entry=>entry.item_id===item.id)
+        if(mark)playLearningSound(mark.skipped?'skipped':mark.correct?'correct':'incorrect')
       } catch {
         setError('Your answer was saved, but feedback could not load. Choose topic, then Continue to restore your progress.')
       }
@@ -189,7 +192,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
     finally{setBusy(false)}
   }
   return <main style={shell}>
-    <button style={secondary} onClick={()=>workspace?setWorkspace(null):router.push('/student/vibelearn')}>{workspace?'Choose topic':'← Learn'}</button>
+    <button style={secondary} onClick={()=>workspace?setWorkspace(null):router.push('/student/study')}>{workspace?'Choose topic':'← Learn'}</button>
     <h1 style={{fontSize:26,margin:'16px 0 6px'}}>Topic Practice</h1>
     <p style={muted}>{grade} · {topics.length>0?'Five questions · No timer or class code':'Choose approved practice while five-question topics are prepared'}</p>
     {error && <div role='alert' style={{...card,borderColor:'#fda4af',color:'#be123c'}}>{error}</div>}
@@ -236,12 +239,12 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
           {options.map(option=><button key={option.value} disabled={busy||seen.has(item.id)} style={{...optionStyle,background:currentFeedback?.selected===option.value?'var(--vs-accent-soft)':'var(--vs-card)'}} onClick={()=>void save(option.value)}><strong>{option.value}.</strong> {option.label}</button>)}
         </div>
         {seen.has(item.id) && !currentFeedback && <div role="status" style={{...card,background:'var(--vs-bg)'}}>Answer saved. Feedback could not load. Choose topic and Continue to restore your attempt.</div>}
-        {currentFeedback?<div role='status' style={{...card,background:'var(--vs-bg)'}}>
-          <strong>{currentFeedback.skipped?'Skipped':currentFeedback.correct?'Correct':'Not correct'}</strong>
-          {currentFeedback.correct_answer && <p>Correct answer: {currentFeedback.correct_answer}. {options.find(option=>option.value===currentFeedback.correct_answer)?.label}</p>}
-          {currentFeedback.explanation && <p style={muted}>{currentFeedback.explanation}</p>}
+        {currentFeedback?<LearningFeedback
+          status={currentFeedback.skipped?'skipped':currentFeedback.correct?'correct':'incorrect'}
+          answer={currentFeedback.correct_answer ? currentFeedback.correct_answer + '. ' + (options.find(option=>option.value===currentFeedback.correct_answer)?.label??'') : null}
+          explanation={currentFeedback.explanation}>
           <button style={button} onClick={next}>{index===4?'Finish':'Next'}</button>
-        </div>:<button disabled={busy} style={{...secondary,marginTop:14}} onClick={()=>void save(null)}>Skip</button>}
+        </LearningFeedback>:<button disabled={busy} style={{...secondary,marginTop:14}} onClick={()=>void save(null)}>Skip</button>}
       </>:<>
         <h2 style={{fontSize:18}}>All five questions completed</h2>
         <p style={muted}>Check the summary and finish to save your official result.</p>
@@ -257,6 +260,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
       {finished.scoreReleased && <button style={{...secondary,marginRight:8,marginBottom:8}} onClick={()=>router.push('/student/results/'+encodeURIComponent(finished.attemptId))}>View saved result</button>}
       <button style={button} onClick={()=>setReviewing(true)}>{incorrect+skipped>0?'Review mistakes':'Review answers'}</button>
       <button style={{...secondary,marginLeft:8}} onClick={()=>{setWorkspace(null);setFinished(null);setFeedback([]);setReviewing(false)}}>Choose another topic</button>
+      <button style={{...secondary,marginLeft:8}} onClick={()=>router.push('/student/study')}>Back to Learn</button>
       {reviewing && <div style={{display:'grid',gap:10,marginTop:16}}>
         {incorrect+skipped===0 ? <p style={muted}>All five answers were correct. Choose another topic to continue learning.</p>
           : <p style={muted}>Retry missed or skipped questions for learning. These retries do not change your recorded score.</p>}
