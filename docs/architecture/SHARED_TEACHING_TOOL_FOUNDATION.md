@@ -31,8 +31,9 @@ For future tool families, extend the versioned allowlist and host, validate any 
 
 ## Stage 4 — Specialist Senior School roadmap
 
-Six future tool families (business records, advanced mathematics, coding, technical
-simulations, advanced science and performance) are now listed in the **inactive**
+Fourteen future tool families (the original six plus spreadsheet/data, geography/GIS,
+agriculture, technical drawing, home science, media production, language/debate and
+community project portfolios) are listed in the **inactive**
 `SPECIALIST_TOOL_ROADMAP` in the existing interactive catalogue. Planned family
 IDs are not executable `TeachingToolId` values and cannot appear in a learner
 lesson. See [Stage 4 admission and rollout plan](../learn/STAGE4_SPECIALIST_SENIOR_TOOLS.md).
