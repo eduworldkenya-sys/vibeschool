@@ -109,7 +109,7 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const showHeader = isLearnDiscoveryPath(pathname)
   const showBottom = usesLearnBottomNav(pathname) && !isStoryReadingPath(pathname)
-  const student = useStudentNavigation(showBottom)
+  const student = useStudentNavigation(showBottom || isStoryReadingPath(pathname))
   const [appearance,setAppearance]=useState<LearnerAppearance>(DEFAULT_LEARNER_APPEARANCE)
   const [systemDark,setSystemDark]=useState(false)
   useEffect(()=>{
@@ -133,6 +133,7 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
   },[student])
 
   return <div className={student?styles.studentLearnRoot:undefined}
+    data-study-mode={student?appearance.studyMode:undefined}
     style={student?learnerAppearanceStyle(appearance,systemDark):undefined}>
     {showHeader && <Suspense fallback={null}><LearnHeader/></Suspense>}
     {showBottom ? <div className={student ? styles.studentLearnMain : undefined}>{children}</div> : children}
