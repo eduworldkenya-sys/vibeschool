@@ -145,6 +145,7 @@ export default function LanguageScienceTeachingTool({ spec }: { spec: TeachingTo
     case 'reading-comprehension': return <ReadingComprehension spec={spec} />
     case 'writing-planner': return <WritingPlanner spec={spec} />
     case 'classification': return <Classification spec={spec} />
+    case 'sorting-groups': return <Classification spec={spec} />
     case 'experiment-variables': return <Classification spec={spec} variables />
     case 'food-chain': return <FoodChain spec={spec} />
     default: return null
