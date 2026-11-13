@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const page = Number(pageText)
 
   if (grade && !allowedGrades.has(grade)) return visualJson({ error: 'Invalid grade.' }, 400)
-  if (subject && (subject.length > 80 || !/^[\p{L}\d &().,'–-]{2,80}$/u.test(subject)))
+  if (subject && (subject.length > 80 || !/^[a-zA-Z0-9 &().,'–-]{2,80}$/.test(subject)))
     return visualJson({ error: 'Invalid subject.' }, 400)
   if (topicKey && !/^[a-z0-9-]{3,100}$/.test(topicKey))
     return visualJson({ error: 'Invalid topic.' }, 400)
