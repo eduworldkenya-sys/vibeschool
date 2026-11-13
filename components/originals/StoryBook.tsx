@@ -67,14 +67,20 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
           .eq('publication_id',id).in('status',['published','locked'])
           .order('number',{ascending:true})
         if(ce)throw ce
-        const available=(chaps||[]).map(ch=>({
-          ...ch,
-          blocks:Array.isArray(ch.blocks)?(ch.blocks as unknown[]).filter((b):b is ContentBlock=>{
-            if(!b||typeof b!=='object'||Array.isArray(b))return false
-            const row=b as Record<string,unknown>
-            return typeof row.id==='string' && typeof row.type==='string' && typeof row.content==='string'
-          }):[],
-        })) as StoryChapter[]
+        const available:StoryChapter[]=(chaps||[]).map(ch=>{
+          const blocks:ContentBlock[]=Array.isArray(ch.blocks)?ch.blocks.flatMap(entry=>{
+            if(!entry||typeof entry!=='object'||Array.isArray(entry)
+                ||typeof entry.id!=='string'||typeof entry.type!=='string'
+                ||typeof entry.content!=='string')return []
+            const metadata:Record<string,string>={}
+            if(entry.meta&&typeof entry.meta==='object'&&!Array.isArray(entry.meta)){
+              if(typeof entry.meta.alt==='string')metadata.alt=entry.meta.alt
+              if(typeof entry.meta.caption==='string')metadata.caption=entry.meta.caption
+            }
+            return [{id:entry.id,type:entry.type as ContentBlock['type'],content:entry.content,meta:metadata}]
+          }):[]
+          return {id:ch.id,number:ch.number,title:ch.title,blocks,status:ch.status as StoryChapter['status'],word_count:ch.word_count,reading_time_min:ch.reading_time_min}
+        })
         const {data:{user}}=await supabase.auth.getUser()
         let records:SavedProgress[]=[]
         if(user){
