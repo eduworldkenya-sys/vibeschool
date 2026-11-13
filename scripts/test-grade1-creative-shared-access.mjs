@@ -45,6 +45,15 @@ assert.ok(teacherVibeLearn.includes('/learn/grade-1/creative-activities?unit='))
 assert.ok(shared.includes('new URLSearchParams(window.location.search).get("unit")'))
 assert.ok(!teacherVibeLearn.includes('insert({ source_type: "platform_authored"'))
 
+// Both the certified lesson body and the existing curriculum activities now
+// use the same subject-aware frontend, without inventing certified tool payloads.
+assert.ok(shared.includes("import UniversalLearnReader from '@/components/learn/UniversalLearnReader'"))
+assert.equal((shared.match(/<UniversalLearnReader/g) ?? []).length, 2)
+assert.ok(shared.includes("showTeachingTools={false}"))
+assert.ok(shared.includes("title={activeLesson.title}"))
+assert.ok(shared.includes("body: activeLesson.body"))
+assert.ok(shared.includes("body: unit.experiences.map"))
+assert.ok(!shared.includes('<VisualRichText'), 'Do not retain the legacy Grade 1 lesson renderer')
 assert.ok(shared.includes('Next lesson'))
 for (const fragment of [
   "security definer", "set search_path = ''",
