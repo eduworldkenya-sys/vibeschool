@@ -56,7 +56,7 @@ export default function ReadPublicationPage() {
       const { data: pub, error: pe } = await sb.from('vibe_publications').select('*').eq('id', id).eq('status', 'published').single()
       if (pe || !pub) { setNotFound(true); setLoading(false); return }
       // Existing public story links remain valid and now open the dedicated Originals book view.
-      if (isStoryPublication(pub as VibePublication)) { router.replace(storyLandingHref(id)); return }
+      if (isStoryPublication(pub as VibePublication) && !new URLSearchParams(window.location.search).has('classic')) { router.replace(storyLandingHref(id)); return }
       setPublication(pub as VibePublication)
       const key = 'read_' + id
       if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(key)) {
