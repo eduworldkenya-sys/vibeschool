@@ -42,7 +42,9 @@ assert.match(display,/var\(--vs-accent/)
 assert.match(shell,/focusedAssessment/)
 assert.match(shell,/!focusedAssessment && <BottomNav/)
 assert.match(shell,/!focusedAssessment && <StudentPlannerReminders/)
-assert.match(shell,/\{!focused && <button type="button" aria-label="Open notifications"/)
+assert.match(shell,/\{!focused && studyMode==='normal' && <button type="button" aria-label="Open notifications"/)
+assert.match(shell,/<StudentPlannerReminders quiet=\{studyMode!=='normal'\|\|!appearance\.remindersEnabled\}/)
+assert.match(shell,/onModeToggle=\{toggleFocus\}/)
 
 // Mathematical models give neutral interaction cues, never pretend graded correctness.
 for (const name of ['NumberLine','PlaceValue','FractionBars','MultiplicationArray','Clock','UnitConverter','DataChart']) {
