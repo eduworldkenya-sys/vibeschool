@@ -14,7 +14,7 @@ function safeSequence(values: readonly string[] | undefined, fallback: string[])
   return [...values]
 }
 
-function Reorder({ values, instruction }: { values: string[]; instruction: string }) {
+function Reorder({ values, instruction, separator = ' → ' }: { values: string[]; instruction: string; separator?: string }) {
   const [picked, setPicked] = useState<number[]>([])
   const [checked, setChecked] = useState(false)
   const options = values.map((_, index) => index).reverse()
@@ -23,7 +23,7 @@ function Reorder({ values, instruction }: { values: string[]; instruction: strin
   return <div className={styles.stack}>
     <p>{instruction}</p>
     <div className={styles.resultBox} role="status" aria-live="polite">
-      {picked.length ? picked.map(index => values[index]).join(' → ') : 'Choose an item to start.'}
+      {picked.length ? picked.map(index => values[index]).join(separator) : 'Choose an item to start.'}
     </div>
     <div className={styles.tokenRow}>
       {options.filter(index => !picked.includes(index)).map(index =>
@@ -61,7 +61,7 @@ function WordBuilder({ spec }: { spec: TeachingToolSpec }) {
 
 function SentenceOrder({ spec }: { spec: TeachingToolSpec }) {
   const sentence = safeText(spec.sentence, 'Plants need sunlight to grow.')
-  return <Reorder key={sentence} values={safeSequence(sentence.split(/\s+/), ['Plants', 'need', 'sunlight', 'to', 'grow.'])} instruction="Put the words into a sentence." />
+  return <Reorder key={sentence} values={safeSequence(sentence.split(/\s+/), ['Plants', 'need', 'sunlight', 'to', 'grow.'])} instruction="Put the words into a sentence." separator=" " />
 }
 
 const defaultPairs = [
@@ -110,13 +110,13 @@ const variableItems = [
 function Classification({ spec, variables = false }: { spec: TeachingToolSpec; variables?: boolean }) {
   const candidateGroups = variables ? variableGroups : spec.groups
   const groups = safeSequence(candidateGroups, variables ? variableGroups : defaultGroups)
-  const items = !variables && Array.isArray(spec.items) && spec.items.length >= 2 && spec.items.length <= 12
+  const items = Array.isArray(spec.items) && spec.items.length >= 2 && spec.items.length <= 12
     && spec.items.every(item => item && typeof item.label === 'string' && item.label.length < 80 && groups.includes(item.group))
       ? spec.items : variables ? variableItems : defaultItems
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [checked, setChecked] = useState(false)
   return <div className={styles.stack}>
-    {variables && <p>Plan a fair plant-growth test. Change one factor, measure the outcome and keep the other conditions the same.</p>}
+    {variables && <p>In a fair test, change one factor, measure the outcome and keep other relevant conditions constant.</p>}
     {items.map((item, i) => <label className={styles.promptLine} key={i}>
       <strong>{item.label}</strong>
       <select aria-label={`Classify ${item.label}`} value={answers[i] ?? ''} onChange={e => { setAnswers(old => ({ ...old, [i]: e.target.value })); setChecked(false) }}>
