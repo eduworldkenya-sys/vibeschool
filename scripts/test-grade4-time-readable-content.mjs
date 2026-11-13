@@ -123,10 +123,13 @@ test('unknown or malformed manuscript lines are preserved, not silently deleted'
 
 test('new learner reader makes exercise feedback optional without making fake progress claims', () => {
   const reader = read('components/learn/Grade4TimeContentReader.tsx')
+  const outcome = read('components/learn/Grade4TimeOutcomePackage.tsx')
   const styles = read('components/learn/Grade4TimeContentReader.module.css')
   assert.match(reader, /parseGrade4TimeLessonSections/)
   assert.match(reader, /<details className={styles.lessonChooser} open={chooserOpen}/)
-  assert.match(reader, /Review all explanations/)
+  assert.match(read('components/learn/UniversalLearnReader.tsx'), /Review all explanations/)
+  assert.match(reader, /<UniversalLearnReader/)
+  assert.match(outcome, /<UniversalLearnReader/)
   assert.doesNotMatch(reader, /styles.positionTrack/)
   assert.match(reader, /VisualRichText body={section.body}/)
   assert.match(reader, /vs_public_grade4_math_time_learner_lessons/)

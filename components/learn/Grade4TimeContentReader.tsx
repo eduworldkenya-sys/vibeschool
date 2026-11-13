@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import {
-  ArrowRight, BookOpen, CheckCircle2, ChevronLeft, ChevronRight,
-  CircleHelp, Clock3, Compass, Lightbulb, PenLine, Sparkles, Target,
-} from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, Clock3 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 import { formatGrade4TimeLessonBody } from '@/lib/content/grade4TimePresentation.mjs'
@@ -15,6 +12,7 @@ import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
 import Grade4TimePracticeCards from '@/components/learn/Grade4TimePracticeCards'
 import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import Grade4TimeWorkedSteps from '@/components/learn/Grade4TimeWorkedSteps'
+import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import styles from './Grade4TimeContentReader.module.css'
 
@@ -36,17 +34,6 @@ const INK = '#163c2b'
 
 function learnerTitle(title: string) {
   return title.replace(/\s*[—–-]\s*Learner Notes$/i, '').trim()
-}
-
-function sectionIcon(id: string) {
-  if (id === 'understand') return <BookOpen size={20} aria-hidden="true" />
-  if (id === 'example') return <Lightbulb size={20} aria-hidden="true" />
-  if (id === 'explore') return <Compass size={20} aria-hidden="true" />
-  if (id === 'guided' || id === 'exercise') return <PenLine size={20} aria-hidden="true" />
-  if (id === 'check' || id === 'feedback') return <CheckCircle2 size={20} aria-hidden="true" />
-  if (id === 'support') return <CircleHelp size={20} aria-hidden="true" />
-  if (id === 'challenge') return <Sparkles size={20} aria-hidden="true" />
-  return <Target size={20} aria-hidden="true" />
 }
 
 function Grade4TimeLessonArticle({
@@ -91,62 +78,19 @@ function Grade4TimeLessonArticle({
       </div>}
     </header>
 
-    {parsed.sections.length > 1 && <nav className={styles.sectionNav} aria-label="Jump to a part of this lesson">
-      {[
-        ['Learn', 'understand', 'opening', 'example'],
-        ['Try', 'explore', 'guided', 'exercise'],
-        ['Check', 'check'],
-      ].map(([label, ...ids]) => {
-        const section = ids.find(id => parsed.sections.some(section => section.id === id))
-        return section && <a key={label} href={`#time-section-${section}`}>{label}</a>
-      })}
-    </nav>}
-
-    {parsed.sections.map(section => {
-      const isFeedback = section.id === 'feedback'
-      if (isFeedback) return <details
-        key={section.id}
-        id="time-section-feedback"
-        className={`${styles.lessonSection} ${styles.answerReveal}`}
-      >
-        <summary>Review all explanations</summary>
-        <div className={styles.answerBody}>
-          <VisualRichText body={section.body} style={{ fontSize: 15, lineHeight: 1.85 }} />
-        </div>
-      </details>
-      const background = section.tone === 'example' ? styles.exampleSection
-        : section.tone === 'practice' ? styles.practiceSection
-        : section.tone === 'explore' ? styles.exploreSection
-        : section.tone === 'support' ? styles.supportSection
-        : section.tone === 'challenge' ? styles.challengeSection
-        : section.tone === 'reflect' ? styles.reflectSection
-        : section.tone === 'learn' ? styles.learnSection : ''
-
-      return <section
-        className={`${styles.lessonSection} ${background}`}
-        id={`time-section-${section.id}`}
-        aria-labelledby={`time-heading-${section.id}`}
-        key={section.id}
-      >
-        <div className={styles.sectionTop}>
-          <span className={`${styles.sectionIcon} ${styles[section.tone] || ''}`}>{sectionIcon(section.id)}</span>
-          <div>
-            <h3 className={styles.sectionHeader} id={`time-heading-${section.id}`}>{section.title}</h3>
-            {section.hint && <p className={styles.sectionHint}>{section.hint}</p>}
-          </div>
-        </div>
-        {section.id === 'example'
-          ? <Grade4TimeWorkedSteps body={section.body}/>
-          : section.id === 'exercise' && cards.exercise.length > 0
-          ? <Grade4TimePracticeCards questions={cards.exercise} lessonNumber={lesson.order}/>
-          : section.id === 'check' && cards.check.length > 0
-          ? <Grade4TimePracticeCards questions={cards.check} lessonNumber={lesson.order}/>
-          : <div className={styles.readingBody}>
-              <VisualRichText body={section.body} style={{ fontSize: 17, lineHeight: 1.8 }} />
-            </div>}
-        <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>
-      </section>
-    })}
+    <UniversalLearnReader
+      subject="Mathematics"
+      sections={parsed.sections}
+      anchorPrefix="time-section"
+      renderBody={(section) => section.id === 'example'
+        ? <Grade4TimeWorkedSteps body={section.body}/>
+        : section.id === 'exercise' && cards.exercise.length > 0
+        ? <Grade4TimePracticeCards questions={cards.exercise} lessonNumber={lesson.order}/>
+        : section.id === 'check' && cards.check.length > 0
+        ? <Grade4TimePracticeCards questions={cards.check} lessonNumber={lesson.order}/>
+        : <VisualRichText body={section.body} style={{ fontSize: 17, lineHeight: 1.8 }} />}
+      afterSection={(section) => <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>}
+    />
 
     <Grade4TimeVisualModels lessonOrder={lesson.order} inlineVisualPresent={/\[visual:/.test(lesson.body)} />
 
