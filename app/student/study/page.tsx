@@ -112,7 +112,7 @@ export default function LearnerStudyDesk() {
   if(identityLoading||!identity) return <main className={styles.page} role="status">{identityError||'Opening your learning desk…'}</main>
   return <main className={styles.page}>
     <div className={styles.wrap}>
-      <Link href="/learn" className={styles.back}>← Back to Learn</Link>
+      <Link href="/learn" className={styles.back}>← Browse lesson library</Link>
       <header className={styles.hero}>
         <div><div className={styles.kicker}>My learning · {identity.className}</div>
           <h1>Continue where you left off</h1>

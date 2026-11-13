@@ -15,7 +15,7 @@ const reading = read('app/student/vibelearn/reading/page.tsx')
 const shared = read('components/learn/SchoolLearnLibrary.tsx')
 
 assert.doesNotMatch(page, /if \(identity\.independent\) return <IndependentLearnHome/, 'no separate independent learning product')
-assert.match(page, /StudentLearnLegacyRedirect/, 'both learner types enter the same public Learn catalogue')
+assert.match(page, /redirect\('\/student\/study'\)/, 'Both school-linked and independent learners enter the same protected desk')
 assert.match(read('app/student/study/page.tsx'), /getVibeLearnWorkstation/, 'personal learner tools remain available in the new study desk')
 assert.doesNotMatch(layout, /identity\.independent \|\| pathname/, 'no grade-based independent exclusion')
 assert.doesNotMatch(middleware, /independentReadingRoute/, 'no reading-only independent route restriction')

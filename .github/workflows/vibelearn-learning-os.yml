@@ -76,4 +76,6 @@ jobs:
       - name: Verify independent projects access and navigation contracts
         run: node scripts/test-independent-projects.mjs
       - name: Type-check affected application contracts
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: npm run typecheck

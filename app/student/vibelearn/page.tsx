@@ -1,4 +1,4 @@
-import StudentLearnLegacyRedirect from '@/components/learn/StudentLearnLegacyRedirect'
+import { redirect } from 'next/navigation'
 
-/** Legacy VibeLearn landing: one canonical public/signed-in Learn destination. */
-export default function StudentVibeLearnPage() { return <StudentLearnLegacyRedirect /> }
+/** Legacy VibeLearn home returns to the protected learner workspace. Deep readers, exams and practice keep their own routes. */
+export default function StudentVibeLearnPage() { redirect('/student/study') }
