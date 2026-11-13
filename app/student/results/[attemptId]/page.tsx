@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { getMyResult, type LearnerResultDetail } from '@/lib/assessment/results'
+import styles from './result-feedback.module.css'
 
 function isSkipped(responseValue: unknown, responseText: string | null): boolean {
   return (responseValue === null || responseValue === undefined) && !responseText?.trim()
@@ -62,9 +63,14 @@ export default function StudentResultDetailPage() {
         <section style={card}>
           <div style={eyebrow}>{result.assessmentType.replaceAll('_', ' ')}</div>
           <h1 style={{ margin: '6px 0' }}>{result.title}</h1>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'baseline', marginTop: 12 }}>
-            <strong style={{ fontSize: 32, color: '#065f46' }}>{result.percentage.toFixed(1)}%</strong>
-            <span style={{ color: '#6b7280' }}>{result.score}/{result.maxScore}</span>
+          <div className={styles.scoreBlock} aria-label={`Your score is ${result.percentage.toFixed(1)} percent`}>
+            <div className={styles.scoreTop}>
+              <strong className={styles.scoreNumber}>{result.percentage.toFixed(1)}%</strong>
+              <span className={styles.scoreFraction}>{result.score}/{result.maxScore} marks</span>
+            </div>
+            <div className={styles.scoreProgress} aria-hidden="true">
+              <div className={styles.scoreFill} style={{ width: `${Math.max(0, Math.min(100, result.percentage))}%` }} />
+            </div>
           </div>
           <div style={muted}>Attempt {result.attemptNumber} of {result.maxAttempts}</div>
           <div style={{ ...muted, color: '#92400e', fontWeight: 700 }}>{skipped.length} skipped / unanswered · 0 marks for each skipped question</div>
@@ -98,7 +104,7 @@ export default function StudentResultDetailPage() {
             {(['all', 'mistakes', 'skipped'] as const).map(filter => (
               <button key={filter} type="button" aria-pressed={reviewFilter === filter}
                 onClick={() => setReviewFilter(filter)}
-                style={{ ...secondaryButton, background: reviewFilter === filter ? '#eef2ff' : '#fff' }}>
+                style={{ ...secondaryButton, background: reviewFilter === filter ? 'var(--vs-accent-soft)' : 'var(--vs-card)', borderColor: reviewFilter === filter ? 'var(--vs-accent)' : 'var(--vs-border)' }}>
                 {filter === 'all' ? 'All questions' : filter === 'mistakes' ? 'Mistakes and skips' : 'Skipped only'}
               </button>
             ))}
@@ -151,11 +157,11 @@ export default function StudentResultDetailPage() {
   )
 }
 
-const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, marginBottom: 12 }
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
-const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
-const answerBox: React.CSSProperties = { background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap' }
-const label: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 5 }
-const primaryButton: React.CSSProperties = { width: '100%', border: 'none', borderRadius: 12, padding: '12px 16px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
-const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
+const shell: React.CSSProperties = { minHeight: '60vh', background: 'transparent', padding: '0 0 24px', color: 'var(--vs-text)' }
+const card: React.CSSProperties = { background: 'var(--vs-card)', color: 'var(--vs-text)', border: '1px solid var(--vs-border)', borderRadius: 16, padding: 16, marginBottom: 12 }
+const eyebrow: React.CSSProperties = { fontSize: 11, fontWeight: 800, color: 'var(--vs-accent)', textTransform: 'uppercase', letterSpacing: 1 }
+const muted: React.CSSProperties = { fontSize: 13, color: 'var(--vs-muted)', marginTop: 4 }
+const answerBox: React.CSSProperties = { background: 'var(--vs-soft)', color: 'var(--vs-text)', border: '1px solid var(--vs-border)', borderRadius: 10, padding: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap' }
+const label: React.CSSProperties = { fontSize: 11, fontWeight: 800, color: 'var(--vs-muted)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 5 }
+const primaryButton: React.CSSProperties = { width: '100%', minHeight: 48, border: 'none', borderRadius: 12, padding: '12px 16px', background: 'var(--vs-accent)', color: 'var(--vs-on-accent)', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
+const secondaryButton: React.CSSProperties = { minHeight: 44, border: '1px solid var(--vs-border)', borderRadius: 10, padding: '10px 14px', background: 'var(--vs-card)', color: 'var(--vs-text)', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
