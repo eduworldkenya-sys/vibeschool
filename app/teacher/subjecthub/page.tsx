@@ -1259,7 +1259,9 @@ export default function SubjectHubPage() {
               Open full curriculum map
             </button>
           </div>
-          <Grade3EnglishMap compact selectedUnitId={grade3EnglishUnitId} onSelectUnit={setGrade3EnglishUnitId} />
+          <Grade3EnglishMap compact selectedUnitId={grade3EnglishUnitId}
+            onSelectUnit={setGrade3EnglishUnitId}
+            onOpenScheme={unitId=>router.push('/teacher/scheme?classId='+encodeURIComponent(grade3EnglishClass.id)+'&subjectId='+encodeURIComponent(activeSubject.id)+'&unitId='+encodeURIComponent(unitId))} />
         </div>
       )}
 
