@@ -19,8 +19,9 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
 
   return (
     <div style={{
-      background:     "#1C1A2E",
-      color:          "#fff",
+      background:     "var(--vs-surface)",
+      color:          "var(--vs-text)",
+      borderBottom:   "1px solid var(--vs-border)",
       padding:        "0 20px",
       height:         56,
       display:        "flex",
@@ -29,13 +30,13 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
       position:       "sticky",
       top:            0,
       zIndex:         600,
-      boxShadow:      "0 2px 12px rgba(0,0,0,0.18)",
+      boxShadow:      "0 3px 14px rgba(22,109,73,0.05)",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {!isRoot && (
           <div
             onClick={() => router.back()}
-            style={{ cursor: "pointer", fontSize: 22, color: "#fff", lineHeight: 1, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ cursor: "pointer", fontSize: 22, color: "var(--vs-accent)", lineHeight: 1, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
           >
             ‹
           </div>
@@ -46,7 +47,7 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
         >
           <div style={{
             width: 30, height: 30, borderRadius: 9,
-            background: "#7C6EF8",
+            background: "var(--vs-accent)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 15, fontWeight: 900, color: "#fff",
           }}>
@@ -54,7 +55,7 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
           </div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>
+            <div style={{ fontSize: 10, color: "var(--vs-muted)", marginTop: -1 }}>
               {schoolName || className || "Student"}
             </div>
           </div>
@@ -64,9 +65,9 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div
           onClick={() => router.push("/student/notifications")}
-          style={{ cursor: "pointer", display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center" }}
+          style={{ cursor: "pointer", color: "var(--vs-accent)", display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center" }}
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
@@ -76,7 +77,7 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
           onClick={() => router.push("/student/profile")}
           style={{
             width: 34, height: 34, borderRadius: "50%",
-            background: "#7C6EF8",
+            background: "var(--vs-accent)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
             flexShrink: 0,
@@ -116,12 +117,11 @@ function Toast({ msg }: { msg: string }) {
 function StudentShell({ children }: { children: React.ReactNode }) {
   const { identity, loading, error, retry } = useStudent();
   const pathname = usePathname();
-  const isExamWorkspace = pathname.startsWith("/student/vibelearn/exams");
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100dvh", background: "#0F0F1A", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 36, height: 36, border: "3px solid rgba(255,255,255,0.1)", borderTop: "3px solid #7C6EF8", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+      <div style={{ minHeight: "100dvh", background: "var(--vs-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 36, height: 36, border: "3px solid var(--vs-border)", borderTop: "3px solid var(--vs-accent)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
@@ -129,11 +129,11 @@ function StudentShell({ children }: { children: React.ReactNode }) {
 
   if (error) {
     return (
-      <div style={{ minHeight: "100dvh", background: "#0F0F1A", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24 }}>
-        <div style={{ fontSize: 14, color: "#F87171", textAlign: "center" }}>{error}</div>
+      <div style={{ minHeight: "100dvh", background: "var(--vs-bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24 }}>
+        <div style={{ fontSize: 14, color: "var(--vs-error)", textAlign: "center" }}>{error}</div>
         <button
           onClick={retry}
-          style={{ padding: "10px 24px", background: "#7C6EF8", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+          style={{ padding: "10px 24px", background: "var(--vs-accent)", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
         >
           Try Again
         </button>
@@ -142,17 +142,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="student-app" style={identity?.independent ? {
-      minHeight: '100dvh', background: '#f6f7fb', color: '#17213b',
-      ['--vs-bg' as string]: '#f6f7fb',
-      ['--vs-card' as string]: '#ffffff',
-      ['--vs-border' as string]: '#e1e5ef',
-      ['--vs-text' as string]: '#17213b',
-      ['--vs-muted' as string]: '#64748b',
-      ['--vs-nav-bg' as string]: '#ffffff',
-      ['--vs-nav-border' as string]: '#e1e5ef',
-      ['--vs-accent' as string]: '#5145e8',
-    } as React.CSSProperties : undefined}>
+    <div className="student-app" style={{ minHeight: '100dvh', background: 'var(--vs-bg)', color: 'var(--vs-text)' }}>
       <TopBar
         name={identity?.name ?? ""}
         className={identity?.className ?? ""}
@@ -162,7 +152,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       <main className="student-content" style={{
         width: "100%",
         minWidth: 0,
-        maxWidth:      isExamWorkspace ? 1120 : 768,
+        maxWidth:      1120,
         margin:        "0 auto",
         padding:       "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
         paddingBottom: 160,
@@ -178,8 +168,8 @@ function StudentShell({ children }: { children: React.ReactNode }) {
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<string | null>(null);
-  const [theme, setThemeState] = useState<StudentTheme>("auto");
-  const [resolved, setResolved] = useState<"light" | "dark">("dark");
+  const [theme, setThemeState] = useState<StudentTheme>("light");
+  const [resolved, setResolved] = useState<"light" | "dark">("light");
 
   useEffect(() => {
     const storedTheme = readTheme();
@@ -207,24 +197,27 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-overflow-scrolling: touch; }
 
           :root {
-            --vs-bg:          ${resolved === "dark" ? "#0F0F1A" : "#F7F5FF"};
-            --vs-surface:     ${resolved === "dark" ? "#1A1A2E" : "#FFFFFF"};
-            --vs-border:      ${resolved === "dark" ? "#2D2D4E" : "#E5E3F5"};
-            --vs-text:        ${resolved === "dark" ? "#F0EFFF" : "#1C1A2E"};
-            --vs-muted:       ${resolved === "dark" ? "#9090B0" : "#6B6880"};
-            --vs-accent:      ${resolved === "dark" ? "#7C6EF8" : "#5B4EE8"};
-            --vs-accent-soft: ${resolved === "dark" ? "#1E1A3E" : "#EDE9FE"};
-            --vs-success:     ${resolved === "dark" ? "#34D399" : "#059669"};
-            --vs-warning:     ${resolved === "dark" ? "#FBBF24" : "#D97706"};
-            --vs-error:       ${resolved === "dark" ? "#F87171" : "#DC2626"};
-            --vs-card:        ${resolved === "dark" ? "#1A1A2E" : "#FFFFFF"};
-            --vs-nav-bg:      ${resolved === "dark" ? "#0F0F1A" : "#FFFFFF"};
-            --vs-nav-border:  ${resolved === "dark" ? "#2D2D4E" : "#E5E3F5"};
+            --vs-bg:          ${resolved === "dark" ? "#101d16" : "#f5f8f6"};
+            --vs-surface:     ${resolved === "dark" ? "#1b2c21" : "#ffffff"};
+            --vs-border:      ${resolved === "dark" ? "#355542" : "#dce9de"};
+            --vs-text:        ${resolved === "dark" ? "#ebf6ee" : "#1b4030"};
+            --vs-muted:       ${resolved === "dark" ? "#b1cfba" : "#597563"};
+            --vs-accent:      ${resolved === "dark" ? "#79dbaa" : "#166d49"};
+            --vs-accent-soft: ${resolved === "dark" ? "#254332" : "#eef7f0"};
+            --vs-success:     ${resolved === "dark" ? "#79dbaa" : "#168153"};
+            --vs-warning:     ${resolved === "dark" ? "#fbbf74" : "#a45a11"};
+            --vs-error:       ${resolved === "dark" ? "#ff9c9c" : "#b93434"};
+            --vs-card:        ${resolved === "dark" ? "#1b2c21" : "#ffffff"};
+            --vs-soft:        ${resolved === "dark" ? "#213629" : "#f9fcf9"};
+            --vs-nav-bg:      ${resolved === "dark" ? "#1b2c21" : "#ffffff"};
+            --vs-nav-border:  ${resolved === "dark" ? "#355542" : "#dce9de"};
           }
 
           body { background: var(--vs-bg); color: var(--vs-text); }
           .student-app { width:100%; min-width:0; overflow-x:clip; }
           .student-content { min-width:0; }
+          .student-app :where(button,a,input,select,textarea):focus-visible { outline:3px solid var(--vs-accent);outline-offset:3px; }
+          .student-app :where(button,input,select,textarea) { font-family:inherit; }
           .student-content img, .student-content video, .student-content iframe { max-width:100%; height:auto; }
           .student-content :where(h1,h2,h3,p,span,strong) { overflow-wrap:break-word; }
           .student-home { min-width:0; }
