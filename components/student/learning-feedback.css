@@ -14,3 +14,14 @@
 .learning-feedback button:focus-visible{outline:3px solid var(--vs-accent);outline-offset:2px}
 @keyframes learning-feedback-enter{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.learning-feedback{animation:none}}
+
+/* Shared Learn/player overlay and sound settings honour the current student theme. */
+.learning-feedback--correct{background:var(--vs-accent-soft,#eef9f1);border-color:var(--vs-success,#a6d8b8)}
+.learning-feedback--incorrect{background:var(--vs-soft,#fff8ed);border-color:var(--vs-warning,#efcfb0)}
+.learning-feedback p{color:var(--vs-text,#294736)}
+.learning-feedback__global-sound{min-width:40px;width:40px;height:40px;padding:0}
+.learning-feedback__notice{position:fixed;left:50%;bottom:max(92px,calc(env(safe-area-inset-bottom,0px) + 82px));transform:translateX(-50%);z-index:8500;min-width:min(250px,calc(100vw - 28px));max-width:min(460px,calc(100vw - 28px));padding:12px 17px;border:1px solid var(--vs-border,#dce9de);border-left:4px solid var(--vs-accent,#4f46e5);border-radius:12px;background:var(--vs-card,#fff);color:var(--vs-text,#1b4030);font-size:14px;font-weight:650;line-height:1.45;text-align:center;overflow-wrap:anywhere;pointer-events:none;box-shadow:0 7px 24px rgba(10,20,30,.16);animation:learning-feedback-enter .18s ease-out}
+.learning-feedback__notice[data-kind="correct"],.learning-feedback__notice[data-kind="saved"],.learning-feedback__notice[data-kind="complete"],.learning-feedback__notice[data-kind="submitted"]{border-left-color:var(--vs-success,#168153)}
+.learning-feedback__notice[data-kind="retry"],.learning-feedback__notice[data-kind="skip"]{border-left-color:var(--vs-warning,#a45a11)}
+.learning-feedback__notice[data-kind="error"]{border-left-color:var(--vs-error,#b93434)}
+@media(prefers-reduced-motion:reduce){.learning-feedback__notice{animation:none}}
