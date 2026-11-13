@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { BookOpen, ArrowLeft, ArrowRight, BookmarkCheck, LibraryBig, Search, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { isStoryPublication, safeStoryImage, storyLandingHref, storyReaderHref, type StoryPublication } from '@/lib/learn/storyPublications'
+import { isStoryPublication, safeStoryImage, storyLandingHref, storyReaderHref, orderSeriesBooks, STORY_GUEST_KEY, type StoryPublication } from '@/lib/learn/storyPublications'
 import css from './Originals.module.css'
 
 type Progress = { publication_id:string; chapter_id:string; progress_percent:number; last_read_at:string }
@@ -50,18 +50,36 @@ export function StoriesHub() {
         const {data:{user}}=await supabase.auth.getUser()
         if(!mounted) return
         setSignedIn(Boolean(user))
-        if(!user || !published.length) return
-        const ids=published.map(s=>s.id)
-        const {data:progressRows,error:progressError}=await supabase.from('vibe_reading_progress')
-          .select('publication_id,chapter_id,progress_percent,last_read_at')
-          .eq('viewer_id',user.id).in('publication_id',ids)
-          .order('last_read_at',{ascending:false}).limit(200)
-        if(progressError) return
+        if(!published.length) return
+        let progress:Progress[]=[]
+        if(user){
+          const ids=published.map(s=>s.id)
+          const {data:progressRows,error:progressError}=await supabase.from('vibe_reading_progress')
+            .select('publication_id,chapter_id,progress_percent,last_read_at')
+            .eq('viewer_id',user.id).in('publication_id',ids)
+            .order('last_read_at',{ascending:false}).limit(200)
+          if(progressError) return
+          progress=(progressRows||[]) as Progress[]
+        }else{
+          // A visitor should see the same Continue Reading shelf without an account.
+          for(const story of published){
+            try{
+              const raw=window.localStorage.getItem(STORY_GUEST_KEY+story.id)
+              if(!raw)continue
+              const item=JSON.parse(raw)
+              if(typeof item?.chapter_id==='string' && typeof item?.progress_percent==='number' && typeof item?.last_read_at==='string'){
+                progress.push({publication_id:story.id,chapter_id:item.chapter_id,
+                  progress_percent:Math.max(0,Math.min(100,item.progress_percent)),last_read_at:item.last_read_at})
+              }
+            }catch{/* Local storage may be disabled or a guest entry may be invalid. */}
+          }
+          progress.sort((a,b)=>b.last_read_at.localeCompare(a.last_read_at))
+        }
         const found=new Set<string>()
-        const recent=(progressRows||[] as Progress[]).filter((row:Progress)=>{
+        const recent=progress.filter(row=>{
           if(found.has(row.publication_id)) return false
           found.add(row.publication_id);return true
-        }) as Progress[]
+        })
         const {data:chaps}=recent.length
           ? await supabase.from('vibe_chapters').select('id,number,title').in('id',recent.map(p=>p.chapter_id))
           : {data:[] as ChapterLite[]}
@@ -80,11 +98,12 @@ export function StoriesHub() {
   const series=useMemo(()=>Array.from(new Set(stories.map(s=>s.series_name?.trim()).filter((s):s is string=>Boolean(s)))).sort(),[stories])
   const genres=useMemo(()=>Array.from(new Set(stories.map(s=>String(s.genre||'other')))).sort(),[stories])
   const visible=useMemo(()=>stories.filter(story=>{
-    if(selectedSeries && story.series_name!==selectedSeries) return false
+    if(selectedSeries && story.series_name?.trim()!==selectedSeries) return false
     if(genre!=='all' && story.genre!==genre) return false
     const q=search.toLowerCase().trim()
     return !q || [story.title,story.subtitle,story.description,story.series_name,story.genre].some(x=>String(x||'').toLowerCase().includes(q))
   }),[stories,selectedSeries,search,genre])
+  const displayed=useMemo(()=>selectedSeries ? orderSeriesBooks(visible) : visible,[visible,selectedSeries])
 
   return <main className={css.page}>
     <header className={css.header}><div className={css.headerInner}>
@@ -98,7 +117,7 @@ export function StoriesHub() {
       <p className={css.heroSubtitle}>{selectedSeries ? 'Explore every published book in this series.' : 'Discover original fiction, follow your favourite characters and continue right where you left off.'}</p>
       {selectedSeries && <Link href="/learn/stories" className={css.smallLink}><ArrowLeft size={15}/> All stories and series</Link>}
       {resume.length>0 && <section aria-labelledby="continue-title" className={css.continueSection}>
-        <div className={css.sectionHead}><h2 id="continue-title">Continue Reading</h2><span>Saved to your account</span></div>
+        <div className={css.sectionHead}><h2 id="continue-title">Continue Reading</h2><span>{signedIn?'Saved to your account':'Saved on this device'}</span></div>
         <div className={css.resumeList}>{resume.slice(0,6).map(item=><div className={css.resumeCard} key={item.publication_id}>
           <Link href={storyLandingHref(item.story.id)} className={css.resumeCover}><Cover story={item.story}/></Link>
           <div className={css.resumeInfo}><span className={css.goldLabel}>PICK UP WHERE YOU LEFT OFF</span>
@@ -120,7 +139,7 @@ export function StoriesHub() {
       {error && <div role="alert" className={css.message}>{error}</div>}
       {loading ? <div role="status" className={css.message}>Opening the story library…</div>
       : !error && visible.length===0 ? <div className={css.message}>No published stories match this selection.</div>
-      : !error && <div className={css.bookGrid}>{visible.map(story=><Link href={storyLandingHref(story.id)} className={css.bookCard} key={story.id}>
+      : !error && <div className={css.bookGrid}>{displayed.map(story=><Link href={storyLandingHref(story.id)} className={css.bookCard} key={story.id}>
         <Cover story={story}/><div className={css.bookBody}>
           <strong>{story.title||'Untitled story'}</strong>
           <span>{story.series_name ? story.series_name + (story.series_number?' · Book '+story.series_number:'') : String(story.genre||'Story')}</span>
@@ -131,7 +150,7 @@ export function StoriesHub() {
       {!selectedSeries && series.length>0 && <section className={css.seriesSection} aria-labelledby="series-title">
         <div className={css.sectionHead}><h2 id="series-title">Explore Series</h2><span>{series.length} collections</span></div>
         <div className={css.seriesGrid}>{series.map(name=><Link key={name} href={'/learn/stories?series='+encodeURIComponent(name)} className={css.seriesCard}>
-          <LibraryBig size={23}/><div><strong>{name}</strong><span>{stories.filter(s=>s.series_name===name).length} published book(s)</span></div><ArrowRight size={18}/>
+          <LibraryBig size={23}/><div><strong>{name}</strong><span>{stories.filter(s=>s.series_name?.trim()===name).length} published book(s)</span></div><ArrowRight size={18}/>
         </Link>)}</div>
       </section>}
       {!signedIn && !loading && <p className={css.subtle}>Stories can be explored without signing in. Sign in to save and sync your reading position across devices.</p>}
