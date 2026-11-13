@@ -5,7 +5,7 @@ import Grade4EnglishMap from '@/components/teacher/curriculum/Grade4EnglishMap'
 import Grade4IndigenousMap from '@/components/teacher/curriculum/Grade4IndigenousMap'
 import Grade8KiswahiliMap from '@/components/teacher/curriculum/Grade8KiswahiliMap'
 import Grade4KiswahiliMap from '@/components/teacher/curriculum/Grade4KiswahiliMap'
-import Grade9EnglishMap from '@/components/teacher/curriculum/Grade9EnglishMap'
+import Grade9EnglishMap, { GRADE9_ENGLISH_UNITS } from '@/components/teacher/curriculum/Grade9EnglishMap'
 import Grade9MathematicsMap, { GRADE9_MATHEMATICS_UNITS } from '@/components/teacher/curriculum/Grade9MathematicsMap'
 import Grade1CreativeActivitiesMap, { GRADE1_CREATIVE_STRANDS, GRADE1_CREATIVE_UNITS } from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 import Grade1MathematicsMap, { GRADE1_MATHEMATICS_STRANDS, GRADE1_MATHEMATICS_UNITS } from '@/components/teacher/curriculum/Grade1MathematicsMap'
@@ -166,6 +166,7 @@ function Inner({ curriculumView = false }) {
   const isGrade4Kiswahili = /^grade\s*4$/i.test(classObj?.grade?.trim()||'') && /^kiswahili$/i.test(subjectObj?.label?.trim()||'')
   const isGrade8Kiswahili = /^grade\s*8$/i.test(classObj?.grade?.trim()||'') && /^kiswahili$/i.test(subjectObj?.label?.trim()||'')
   const isGrade9English = /^grade\s*9$/i.test(classObj?.grade?.trim()||'') && /^english$/i.test(subjectObj?.label?.trim()||'')
+  const grade9EnglishDraftUnit = !curriculumView && isGrade9English ? GRADE9_ENGLISH_UNITS.find(unit=>unit.code===draftUnitId) : null
   const isGrade9Mathematics = /^grade\s*9$/i.test(classObj?.grade?.trim()||'') && /^mathematics$/i.test(subjectObj?.label?.trim()||'')
   const grade9DraftUnit = !curriculumView && isGrade9Mathematics ? GRADE9_MATHEMATICS_UNITS.find(unit=>unit.id===draftUnitId) : null
   const isGrade1Creative = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(creative activities|creative arts activities|creative arts and sports)$/i.test(subjectObj?.label?.trim()||'')
@@ -1151,10 +1152,12 @@ function Inner({ curriculumView = false }) {
         const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek)})
         router.push('/teacher/scheme?'+p.toString())
       }} />}
-    {curriculumView && isGrade9English && <Grade9EnglishMap onOpenScheme={()=>{
-      const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek)})
-      router.push('/teacher/scheme?'+p.toString())
-    }} />}
+    {curriculumView && isGrade9English && <Grade9EnglishMap
+      selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
+      onOpenScheme={unitId=>{
+        const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek),unitId:unitId||mapUnitId})
+        router.push('/teacher/scheme?'+p.toString())
+      }} />}
     {curriculumView && isGrade9Mathematics && <Grade9MathematicsMap
       selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
       legacyCount={allCurriculumRows.length}
@@ -1208,7 +1211,19 @@ function Inner({ curriculumView = false }) {
       <details style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:12,padding:12,marginBottom:12}}><summary style={{cursor:'pointer',color:C.text,fontWeight:700,fontSize:13}}>Teaching notes and observations</summary><div style={{marginTop:12}}><LessonPanel teacherId={uid} classId={selectedClass} subjectId={selectedSubject} subjectLabel={subjectObj.label} academicTermId={selectedTermId} schoolId={schoolId} week={selectedWeek}/></div></details>
     </>}
 
-         {grade9DraftUnit && <section aria-label="Grade 9 Mathematics planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+         {grade9EnglishDraftUnit && <section aria-label="Grade 9 English planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+      <div style={{fontSize:11,fontWeight:800,color:C.teal}}>CURRICULUM MAP → SCHEME OF WORK · REFERENCE ONLY</div>
+      <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{grade9EnglishDraftUnit.code} · {grade9EnglishDraftUnit.title}</h2>
+      <p style={{fontSize:13,color:C.text2,margin:'0 0 8px'}}>{grade9EnglishDraftUnit.themeName} · {grade9EnglishDraftUnit.strand} · Week {selectedWeek}</p>
+      <p style={{fontSize:12,color:C.text2,margin:'0 0 12px'}}>This Grade 9 English curriculum heading is stored and its source reference is indexed, but verified learning outcomes, teaching guidance and lesson-to-outcome Scheme connections are not yet populated. The 2 suggested lessons are a source allocation, not saved lessons or assigned school weeks.</p>
+      <p role="status" style={{fontSize:12,color:'#784b0c',background:'#fff8e8',border:'1px solid #eadbb3',padding:10,borderRadius:8,margin:'0 0 12px'}}>Outcome-backed Scheme save unavailable for this reference unit. No Scheme lesson has been created. Existing teacher-owned Scheme tools remain available for other eligible content.</p>
+      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+        <button type="button" onClick={()=>{const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek),unitId:grade9EnglishDraftUnit.code});router.push('/teacher/curriculum?'+p.toString())}} style={{minHeight:44,padding:'10px 14px',border:'1px solid #9fbbaa',borderRadius:9,background:'#fff',color:C.teal,fontWeight:700}}>Back to selected English sub-strand</button>
+        <button type="button" onClick={()=>setDraftUnitId('')} style={{minHeight:44,padding:'10px 14px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:700}}>Close reference</button>
+      </div>
+    </section>}
+
+    {grade9DraftUnit && <section aria-label="Grade 9 Mathematics planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
        <div style={{fontSize:11,fontWeight:800,color:C.teal,letterSpacing:'.04em'}}>CURRICULUM MAP → SCHEME OF WORK · REFERENCE ONLY</div>
        <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{grade9DraftUnit.id} · {grade9DraftUnit.title}</h2>
        <p style={{fontSize:13,color:C.text2,margin:'0 0 10px'}}>{grade9DraftUnit.strand} · Selected instructional week {selectedWeek}</p>

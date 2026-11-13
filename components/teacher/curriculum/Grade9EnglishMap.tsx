@@ -2,10 +2,15 @@
 
 import { useMemo, useState } from 'react'
 import curriculum from '@/content/curriculum/grade9-english-2024-index.json'
+import crosswalk from '@/content/curriculum/grade9-english-scheme-crosswalk-20261113.json'
+
+export const GRADE9_ENGLISH_UNITS = curriculum.themes.flatMap(theme => theme.units.map(unit => ({...unit, themeNumber: theme.number, themeName: theme.title})))
 
 type Props = {
   compact?: boolean
-  onOpenScheme?: () => void
+  selectedUnitId?: string
+  onSelectUnit?: (unitId: string) => void
+  onOpenScheme?: (unitId: string) => void
 }
 
 const ink = '#193b30'
@@ -18,11 +23,12 @@ const muted = '#536b5f'
  * This component is NOT an official transcript, verified outcome inventory,
  * automatic weekly scheme, or permission to reproduce the KICD publication.
  */
-export default function Grade9EnglishMap({ compact = false, onOpenScheme }: Props) {
+export default function Grade9EnglishMap({ compact = false, selectedUnitId = '1.1.1', onSelectUnit, onOpenScheme }: Props) {
   const [selectedTheme, setSelectedTheme] = useState(1)
   const [search, setSearch] = useState('')
   const query = search.trim().toLowerCase()
   const selected = curriculum.themes.find(theme => theme.number === selectedTheme) ?? curriculum.themes[0]
+  const activeUnit = GRADE9_ENGLISH_UNITS.find(unit => unit.code === selectedUnitId) ?? GRADE9_ENGLISH_UNITS[0]
   const visible = useMemo(() => {
     if (!query) return [selected]
     return curriculum.themes
@@ -52,7 +58,7 @@ export default function Grade9EnglishMap({ compact = false, onOpenScheme }: Prop
       <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', marginBottom: 14 }}>
         <label style={{ fontSize: 12, fontWeight: 800 }}>
           Theme
-          <select id="grade9-english-theme" value={selectedTheme} onChange={event => { setSelectedTheme(Number(event.target.value)); setSearch('') }}
+          <select id="grade9-english-theme" value={selectedTheme} onChange={event => { const theme = curriculum.themes.find(item => item.number === Number(event.target.value)); setSelectedTheme(Number(event.target.value)); setSearch(''); if (theme) onSelectUnit?.(theme.units[0].code) }}
             style={{ display: 'block', width: '100%', minHeight: 44, marginTop: 5, borderRadius: 9, border: `1px solid ${border}`, padding: '9px 10px', background: '#fff', color: ink, fontSize: 14 }}>
             {curriculum.themes.map(theme => <option key={theme.number} value={theme.number}>{theme.number}. {theme.title}</option>)}
           </select>
@@ -64,6 +70,7 @@ export default function Grade9EnglishMap({ compact = false, onOpenScheme }: Prop
             style={{ display: 'block', width: '100%', minHeight: 44, marginTop: 5, borderRadius: 9, border: `1px solid ${border}`, padding: '9px 10px', color: ink, fontSize: 14 }} />
         </label>
       </div>
+      <p role="status" data-registered-headings={crosswalk.source_indexed_rows} style={{ fontSize: 12, color: '#784b0c', background: '#fff7e8', border: '1px solid #eed8ad', borderRadius: 9, padding: 10, margin: '0 0 12px' }}>All 75 curriculum headings have a persisted identity. Specific learning outcomes and outcome-backed Scheme lessons are not yet linked. Select a sub-strand to review its Scheme status.</p>
       {visible.length === 0 ? <p role="status" style={{ color: muted, fontSize: 13 }}>No matching topics. Try another search.</p> : visible.map(theme => (
         <article key={theme.number} style={{ border: `1px solid ${border}`, borderRadius: 12, marginBottom: 10, overflow: 'hidden' }}>
           <header style={{ background: '#f4f8f5', padding: '13px 14px' }}>
@@ -72,11 +79,13 @@ export default function Grade9EnglishMap({ compact = false, onOpenScheme }: Prop
           </header>
           <div style={{ padding: '5px 14px 12px' }}>
             {theme.units.map(unit => (
-              <div key={unit.code} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: `1px solid ${border}` }}>
+              <div key={unit.code} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: `1px solid ${border}`, background: unit.code === selectedUnitId ? '#f4f9f5' : '#fff' }}>
                 <span style={{ minWidth: 52, fontSize: 11, fontWeight: 800, color: '#317258', paddingTop: 2 }}>{unit.code}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 750, fontSize: 13 }}>{unit.title}</div>
+                  <button type="button" onClick={() => { setSelectedTheme(theme.number); onSelectUnit?.(unit.code) }} aria-pressed={unit.code === selectedUnitId} style={{ textAlign: 'left', fontWeight: 750, fontSize: 13, cursor: 'pointer', color: ink, padding: 0, border: 0, background: 'transparent' }}>{unit.title}</button>
                   <div style={{ fontSize: 12, color: muted, marginTop: 4 }}>{unit.focus === 'Literature' ? 'Reading · Literature' : unit.strand} · {unit.suggestedLessons} suggested lessons</div>
+                  <div style={{ fontSize: 11, color: '#784b0c', marginTop: 4 }}>Heading registered · learning outcomes not yet linked</div>
+                  {onOpenScheme && <button type="button" onClick={() => onOpenScheme(unit.code)} style={{ marginTop: 7, color: '#24634b', cursor: 'pointer', padding: '5px 0', border: 0, background: 'transparent', fontSize: 12, fontWeight: 800 }}>Review in Scheme</button>}
                 </div>
               </div>
             ))}
@@ -87,8 +96,8 @@ export default function Grade9EnglishMap({ compact = false, onOpenScheme }: Prop
         Lesson counts are suggested allocations, not assigned teaching weeks. Source headings have been cross-checked; source-to-outcome certification and teacher-specific Scheme links are separate checks.
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
-        {onOpenScheme && <button type="button" onClick={onOpenScheme}
-          style={{ minHeight: 44, border: 0, borderRadius: 9, background: '#24634b', color: '#fff', fontSize: 13, fontWeight: 800, padding: '10px 15px', cursor: 'pointer' }}>Open Scheme of Work</button>}
+        {onOpenScheme && <button type="button" onClick={() => onOpenScheme(activeUnit.code)}
+          style={{ minHeight: 44, border: 0, borderRadius: 9, background: '#24634b', color: '#fff', fontSize: 13, fontWeight: 800, padding: '10px 15px', cursor: 'pointer' }}>View selected unit in Scheme</button>}
         <a href={curriculum.officialIndexUrl} target="_blank" rel="noopener noreferrer" style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center', padding: '10px 15px', boxSizing: 'border-box', borderRadius: 9, border: `1px solid ${border}`, color: ink, background: '#fff', fontWeight: 750, fontSize: 13 }}>
           View original KICD source
         </a>
