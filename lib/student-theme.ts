@@ -1,6 +1,6 @@
 // lib/student-theme.ts
 // Student theme management — light / dark / auto
-// Eye-doctor standard: true AMOLED dark, soft light, no harsh whites
+// Learner-wide green palette shared with Student Learn; preserve explicit light/dark choice
 
 export type StudentTheme = "light" | "dark" | "auto"
 
@@ -8,34 +8,18 @@ const THEME_KEY = "vs_student_theme_v1"
 
 export const STUDENT_THEMES = {
   light: {
-    bg:          "#F7F5FF",
-    surface:     "#FFFFFF",
-    border:      "#E5E3F5",
-    textPrimary: "#1C1A2E",
-    textMuted:   "#6B6880",
-    accent:      "#5B4EE8",
-    accentSoft:  "#EDE9FE",
-    success:     "#059669",
-    warning:     "#D97706",
-    error:       "#DC2626",
-    card:        "#FFFFFF",
-    navBg:       "#FFFFFF",
-    navBorder:   "#E5E3F5",
+    bg: "#f5f8f6", surface: "#ffffff", border: "#dce9de",
+    textPrimary: "#1b4030", textMuted: "#597563",
+    accent: "#166d49", accentSoft: "#eef7f0",
+    success: "#168153", warning: "#a45a11", error: "#b93434",
+    card: "#ffffff", navBg: "#ffffff", navBorder: "#dce9de",
   },
   dark: {
-    bg:          "#0F0F1A",
-    surface:     "#1A1A2E",
-    border:      "#2D2D4E",
-    textPrimary: "#F0EFFF",
-    textMuted:   "#9090B0",
-    accent:      "#7C6EF8",
-    accentSoft:  "#1E1A3E",
-    success:     "#34D399",
-    warning:     "#FBBF24",
-    error:       "#F87171",
-    card:        "#1A1A2E",
-    navBg:       "#0F0F1A",
-    navBorder:   "#2D2D4E",
+    bg: "#101d16", surface: "#1b2c21", border: "#355542",
+    textPrimary: "#ebf6ee", textMuted: "#b1cfba",
+    accent: "#79dbaa", accentSoft: "#254332",
+    success: "#79dbaa", warning: "#fbbf74", error: "#ff9c9c",
+    card: "#1b2c21", navBg: "#1b2c21", navBorder: "#355542",
   },
 } as const
 
@@ -44,7 +28,7 @@ export function readTheme(): StudentTheme {
     const stored = localStorage.getItem(THEME_KEY)
     if (stored === "light" || stored === "dark" || stored === "auto") return stored
   } catch {}
-  return "auto"
+  return "light"
 }
 
 export function writeTheme(theme: StudentTheme): void {
@@ -55,7 +39,7 @@ export function writeTheme(theme: StudentTheme): void {
 
 export function resolveTheme(theme: StudentTheme): "light" | "dark" {
   if (theme === "auto") {
-    if (typeof window === "undefined") return "dark"
+    if (typeof window === "undefined") return "light"
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
   }
   return theme

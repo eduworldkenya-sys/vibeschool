@@ -76,10 +76,10 @@ export default function StudentPlannerReminders() {
     pathname?.startsWith('/student/assessment/') || pathname?.startsWith('/student/results/')
   if (!owner || examFocused) return null
   return <>
-    {active && <aside role="status" aria-live="polite" style={{position:'fixed',right:12,bottom:'calc(84px + env(safe-area-inset-bottom, 0px))',width:'min(360px,calc(100vw - 24px))',zIndex:900,padding:15,borderRadius:14,background:'#fff',color:'#17213b',border:'1px solid #c7d2fe',boxShadow:'0 14px 42px rgba(15,23,42,.22)',display:'grid',gap:9}}>
-      <div style={{display:'flex',alignItems:'center',gap:8}}><Bell size={19} color="#5145e8"/><strong style={{flex:1}}>Study reminder</strong><button type="button" aria-label="Dismiss reminder" onClick={()=>void acknowledge(active,false)} style={{border:0,background:'transparent',padding:8,cursor:'pointer'}}><X size={18}/></button></div>
+    {active && <aside role="status" aria-live="polite" style={{position:'fixed',right:12,bottom:'calc(84px + env(safe-area-inset-bottom, 0px))',width:'min(360px,calc(100vw - 24px))',zIndex:900,padding:15,borderRadius:14,background:'#fff',color:'var(--vs-text)',border:'1px solid var(--vs-border)',boxShadow:'0 14px 42px rgba(15,23,42,.22)',display:'grid',gap:9}}>
+      <div style={{display:'flex',alignItems:'center',gap:8}}><Bell size={19} color="var(--vs-accent)"/><strong style={{flex:1}}>Study reminder</strong><button type="button" aria-label="Dismiss reminder" onClick={()=>void acknowledge(active,false)} style={{border:0,background:'transparent',padding:8,cursor:'pointer'}}><X size={18}/></button></div>
       <p style={{margin:0,fontSize:14,overflowWrap:'anywhere'}}>{active.item.title}</p>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}><span style={{fontSize:12,color:'#64748b'}}>{due.length>1?due.length+' pending reminders':'Scheduled activity'}</span><button type="button" onClick={()=>void acknowledge(active,true)} style={{border:0,padding:'10px 14px',borderRadius:9,color:'#fff',background:'#5145e8',cursor:'pointer',minHeight:44}}>Open planner</button></div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}><span style={{fontSize:12,color:'var(--vs-muted)'}}>{due.length>1?due.length+' pending reminders':'Scheduled activity'}</span><button type="button" onClick={()=>void acknowledge(active,true)} style={{border:0,padding:'10px 14px',borderRadius:9,color:'#fff',background:'var(--vs-accent)',cursor:'pointer',minHeight:44}}>Open planner</button></div>
       {error && <p role="alert" style={{fontSize:12,color:'#b91c1c',margin:0}}>{error}</p>}
     </aside>}
     {/* Permission is requested only from a deliberate user action on the Tasks screen. */}

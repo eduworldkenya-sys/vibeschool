@@ -55,7 +55,7 @@ async function fetchFeedback(attemptId:string):Promise<Feedback[]> {
 }
 const shell:React.CSSProperties={maxWidth:760,margin:'0 auto',padding:'20px 14px 120px',color:'var(--vs-text)'}
 const card:React.CSSProperties={padding:18,background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:16,marginTop:14}
-const button:React.CSSProperties={border:0,borderRadius:11,minHeight:46,padding:'11px 16px',color:'#fff',background:'#4f46e5',fontFamily:'inherit',fontSize:14,fontWeight:800,cursor:'pointer'}
+const button:React.CSSProperties={border:0,borderRadius:11,minHeight:46,padding:'11px 16px',color:'#fff',background:'var(--vs-accent)',fontFamily:'inherit',fontSize:14,fontWeight:800,cursor:'pointer'}
 const secondary:React.CSSProperties={...button,color:'var(--vs-text)',background:'var(--vs-card)',border:'1px solid var(--vs-border)'}
 const muted:React.CSSProperties={fontSize:13,lineHeight:1.55,color:'var(--vs-muted)'}
 const optionStyle:React.CSSProperties={...secondary,textAlign:'left',width:'100%',minHeight:54}
@@ -199,7 +199,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
       {topics.length===0?<p style={muted}>No certified five-question topics are published for {grade} yet. Other available practice sets are listed below without changing their question counts.</p>:<div style={{display:'grid',gap:10}}>
         {topicCards.map(card=><button key={card.key} disabled={busy||card.remaining===0} onClick={()=>void open(card.preferred)} style={{...optionStyle,display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
           <span><strong style={{display:'block'}}>{card.title}</strong><span style={muted}>{card.count} sets available · 5 questions per session</span></span>
-          <strong style={{color:'#4f46e5'}}>{card.preferred.in_progress?'Continue':card.remaining===0?'Completed':card.preferred.completed_attempts>0?'Practise again':'Start'}</strong>
+          <strong style={{color:'var(--vs-accent)'}}>{card.preferred.in_progress?'Continue':card.remaining===0?'Completed':card.preferred.completed_attempts>0?'Practise again':'Start'}</strong>
         </button>)}
       </div>}
     </section>}
@@ -233,7 +233,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
         <h2 style={{fontSize:19,lineHeight:1.5,margin:'12px 0 18px'}}>{item.prompt}</h2>
         <LearningNotebookPrompt subject={workspace.title} stage="practice" compact />
         <div style={{display:'grid',gap:10}}>
-          {options.map(option=><button key={option.value} disabled={busy||seen.has(item.id)} style={{...optionStyle,background:currentFeedback?.selected===option.value?'#e0e7ff':'var(--vs-card)'}} onClick={()=>void save(option.value)}><strong>{option.value}.</strong> {option.label}</button>)}
+          {options.map(option=><button key={option.value} disabled={busy||seen.has(item.id)} style={{...optionStyle,background:currentFeedback?.selected===option.value?'var(--vs-accent-soft)':'var(--vs-card)'}} onClick={()=>void save(option.value)}><strong>{option.value}.</strong> {option.label}</button>)}
         </div>
         {seen.has(item.id) && !currentFeedback && <div role="status" style={{...card,background:'var(--vs-bg)'}}>Answer saved. Feedback could not load. Choose topic and Continue to restore your attempt.</div>}
         {currentFeedback?<div role='status' style={{...card,background:'var(--vs-bg)'}}>
@@ -268,7 +268,7 @@ export default function CanonicalTopicPractice({grade}:{grade:string}) {
           <strong>{question.prompt}</strong>
           <p style={muted}>{mark?.skipped?'Skipped question':'Question to revise'}</p>
           <div style={{display:'grid',gap:8,marginTop:10}}>
-            {options.map(option=><button key={option.value} style={{...optionStyle,background:retryChoice===option.value?'#e0e7ff':'var(--vs-card)'}} disabled={retryChoice!==null} onClick={()=>setRetryChoices(prev=>({...prev,[question.id]:option.value}))}>{option.value}. {option.label}</button>)}
+            {options.map(option=><button key={option.value} style={{...optionStyle,background:retryChoice===option.value?'var(--vs-accent-soft)':'var(--vs-card)'}} disabled={retryChoice!==null} onClick={()=>setRetryChoices(prev=>({...prev,[question.id]:option.value}))}>{option.value}. {option.label}</button>)}
           </div>
           {retryChoice!==null && <div role="status" style={{marginTop:12}}>
             <strong>{retryChoice===mark?.correct_answer?'Correct on retry':'Not correct yet'}</strong>

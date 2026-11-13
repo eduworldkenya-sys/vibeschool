@@ -200,17 +200,17 @@ export default function ExactLearningRecoveryPage() {
     })}
   </div></main>
 }
-const shell:React.CSSProperties={minHeight:'100vh',background:'#f8fafc',padding:'18px 14px 90px',color:'#0f172a',fontFamily:"'Plus Jakarta Sans', sans-serif"}
-const hero:React.CSSProperties={background:'#fff',border:'1px solid #e2e8f0',borderRadius:18,padding:22,marginBottom:14}
-const card:React.CSSProperties={background:'#fff',border:'1px solid #e2e8f0',borderRadius:16,padding:18,marginBottom:14}
-const kicker:React.CSSProperties={color:'#4f46e5',fontSize:12,fontWeight:800,letterSpacing:.4}
-const muted:React.CSSProperties={color:'#64748b',fontSize:13,lineHeight:1.6}
+const shell:React.CSSProperties={minHeight:'100vh',background:'var(--vs-soft)',padding:'18px 14px 90px',color:'var(--vs-text)',fontFamily:"'Plus Jakarta Sans', sans-serif"}
+const hero:React.CSSProperties={background:'#fff',border:'1px solid var(--vs-border)',borderRadius:18,padding:22,marginBottom:14}
+const card:React.CSSProperties={background:'#fff',border:'1px solid var(--vs-border)',borderRadius:16,padding:18,marginBottom:14}
+const kicker:React.CSSProperties={color:'var(--vs-accent)',fontSize:12,fontWeight:800,letterSpacing:.4}
+const muted:React.CSSProperties={color:'var(--vs-muted)',fontSize:13,lineHeight:1.6}
 const tag:React.CSSProperties={background:'#fff7ed',borderRadius:30,padding:'4px 9px',fontSize:11,fontWeight:700}
-const outcome:React.CSSProperties={background:'#f1f5f9',padding:12,borderRadius:10,fontSize:14,lineHeight:1.5}
+const outcome:React.CSSProperties={background:'var(--vs-soft)',padding:12,borderRadius:10,fontSize:14,lineHeight:1.5}
 const notice:React.CSSProperties={background:'#fffbeb',border:'1px solid #fcd34d',borderRadius:10,padding:12,marginTop:12,fontSize:13,lineHeight:1.5}
 const steps:React.CSSProperties={display:'grid',gap:10,marginTop:14}
-const step:React.CSSProperties={border:'1px solid #e2e8f0',borderRadius:12,padding:14}
-const input:React.CSSProperties={border:'1px solid #cbd5e1',borderRadius:9,padding:11,width:'100%',boxSizing:'border-box',margin:'8px 0 12px',fontSize:16}
-const primary:React.CSSProperties={background:'#4f46e5',color:'#fff',border:0,borderRadius:9,padding:'10px 15px',fontWeight:700,cursor:'pointer'}
-const secondary:React.CSSProperties={background:'#eef2ff',color:'#4338ca',border:'1px solid #c7d2fe',borderRadius:9,padding:'8px 12px',fontWeight:700,cursor:'pointer'}
+const step:React.CSSProperties={border:'1px solid var(--vs-border)',borderRadius:12,padding:14}
+const input:React.CSSProperties={border:'1px solid var(--vs-border)',borderRadius:9,padding:11,width:'100%',boxSizing:'border-box',margin:'8px 0 12px',fontSize:16}
+const primary:React.CSSProperties={background:'var(--vs-accent)',color:'#fff',border:0,borderRadius:9,padding:'10px 15px',fontWeight:700,cursor:'pointer'}
+const secondary:React.CSSProperties={background:'var(--vs-accent-soft)',color:'var(--vs-accent)',border:'1px solid var(--vs-border)',borderRadius:9,padding:'8px 12px',fontWeight:700,cursor:'pointer'}
 const link:React.CSSProperties={...secondary,marginBottom:12}
