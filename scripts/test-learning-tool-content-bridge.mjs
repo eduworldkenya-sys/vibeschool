@@ -69,6 +69,8 @@ test('teacher-side Scheme and curriculum sources reuse certified canonical paylo
  assert.equal(linked.length,1)
  assert.equal(linked[0].sourceKind,'certified_scheme')
  assert.equal(linked[0].schemeLessonId,C)
+ assert.equal(linked[0].curriculumId,'actual-curriculum-id')
+ assert.equal(linked[0].bindings[0].subStrandId,'actual-substrand-id')
  assert.equal(linked[0].bindings.length,1)
  assert.equal(linked[0].bindings[0].body,'Watch the same water in a glass.')
  assert.ok(!JSON.stringify(linked).includes('Teacher-only response'))
