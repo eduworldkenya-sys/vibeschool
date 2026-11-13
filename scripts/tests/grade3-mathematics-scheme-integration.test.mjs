@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs'
 import {GRADE3_MATHEMATICS_UNITS,GRADE3_MATHEMATICS_PREFIX} from '../../lib/teaching/grade3MathematicsCatalog.mjs'
 import {buildGrade1AnnualSchemeDraft} from '../../lib/teaching/creativeSchemeDraft.mjs'
 const read=name=>readFileSync(new URL(name,import.meta.url),'utf8')
-const sql=read('../../supabase/migrations/20261113172000_grade3_mathematics_original_scheme_connection.sql')
+const sql=read('../../supabase/migrations/20261113173000_grade3_mathematics_original_scheme_connection.sql')
 const canonical=read('../../supabase/migrations/20261111131700_grade6_mathematics_kicd_reference_scheme.sql')
 const page=read('../../app/teacher/scheme/AuthoritySchemePage.jsx')
 const map=read('../../components/teacher/curriculum/Grade3MathematicsMap.jsx')
