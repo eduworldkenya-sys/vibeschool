@@ -4,10 +4,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
 type Entry = { id: string; label: string; question: string; answer: string }
-type Wheel = { id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type Wheel = { automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
+const stageThemes: Record<string,string> = {
+  game:'radial-gradient(ellipse at 50% 28%, #134d8b 0%, #08152d 67%, #030816 100%)',
+  gold:'radial-gradient(ellipse at 50% 28%, #795b2b 0%, #241b1c 60%, #070a12 100%)',
+  pop:'linear-gradient(145deg, #e46d75 0%, #7033b8 50%, #20275c 100%)',
+  midnight:'radial-gradient(ellipse at 50% 25%, #49339d 0%, #09152f 70%, #040716 100%)',
+  clean:'linear-gradient(145deg,#1c4968 0%,#08172c 100%)'
+}
+const templates: {name:string; entries:[string,string,string][]}[] = [
+  {name:'African Capitals',entries:[['Kenya','What is the capital of Kenya?','Nairobi'],['Uganda','What is the capital of Uganda?','Kampala'],['Tanzania','What is the capital of Tanzania?','Dodoma'],['Rwanda','What is the capital of Rwanda?','Kigali'],['Ghana','What is the capital of Ghana?','Accra'],['Nigeria','What is the capital of Nigeria?','Abuja']]},
+  {name:'Mental Maths',entries:[['12 × 8','What is 12 multiplied by 8?','96'],['15 + 27','What is 15 plus 27?','42'],['3/4','What is 3/4 of 20?','15'],['25%','What is 25% of 200?','50']]},
+  {name:'Science Quiz',entries:[['Mars','Which planet is called the Red Planet?','Mars'],['Plants','How do green plants make food?','Photosynthesis'],['Water','What is the chemical formula for water?','H₂O'],['Gravity','Which force attracts objects towards Earth?','Gravity']]}
+]
 const colors = {
   electric: ['#1ac6c2','#ffbd37','#fe577e','#6d6dfc','#4cdb91','#ff8552','#aa6df3','#349dee'],
   sunset: ['#e85540','#ffc34a','#fd7391','#904ee0','#fb9242','#eebc65','#e35693','#bc5a47'],
@@ -32,7 +44,7 @@ const starter = (): Wheel => ({
   id: uid(), name:'Capital City Challenge', headline:'CAN YOU BEAT THE WHEEL?',
   cta:'Comment your answer • Follow VibeSchool',
   entries: sample.map(item=>({...item,id:uid()})), maxSpins:0, noRepeat:false,
-  duration:6, countdown:5, sound:true, theme:'electric'
+  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1
 })
 function validEntry(x: unknown): x is Entry {
   if (!x || typeof x !== 'object') return false
@@ -56,7 +68,7 @@ function wedge(i:number,count:number) {
   const a=pos(200,200,187,start), b=pos(200,200,187,end)
   return 'M 200 200 L '+a.x+' '+a.y+' A 187 187 0 '+(step>180?1:0)+' 1 '+b.x+' '+b.y+' Z'
 }
-function soundEffect(kind:'tick'|'win'|'fail',enabled:boolean) {
+function soundEffect(kind:'tick'|'win'|'fail',enabled:boolean,volume=70) {
   if (!enabled || typeof window==='undefined') return
   try {
     const ctx=new AudioContext()
@@ -67,7 +79,7 @@ function soundEffect(kind:'tick'|'win'|'fail',enabled:boolean) {
       osc.type=kind==='tick'?'triangle':'sine'
       osc.frequency.setValueAtTime(hz,start)
       gain.gain.setValueAtTime(.0001,start)
-      gain.gain.exponentialRampToValueAtTime(kind==='tick'?.018:.1,start+.01)
+      gain.gain.exponentialRampToValueAtTime((kind==='tick'?.018:.1)*(Math.max(0,Math.min(100,volume))/100),start+.01)
       gain.gain.exponentialRampToValueAtTime(.0001,start+.13)
       osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+.14)
     })
@@ -79,6 +91,13 @@ export default function SpinStudio() {
   const [selectedId,setSelectedId]=useState('')
   const [loaded,setLoaded]=useState(false)
   const [recording,setRecording]=useState(false)
+  const [setupTab,setSetupTab]=useState<'wheels'|'content'|'appearance'|'effects'|'settings'>('wheels')
+  const [showPhase,setShowPhase]=useState<'idle'|'spinning'|'question'|'countdown'|'reveal'>('idle')
+  const [showOverlay,setShowOverlay]=useState(false)
+  const [capturing,setCapturing]=useState(false)
+  const [episodeLog,setEpisodeLog]=useState<string[]>([])
+  const [batchMode,setBatchMode]=useState(false)
+  const [reducedMotion,setReducedMotion]=useState(false)
   const [format,setFormat]=useState<Format>('portrait')
   const [rotation,setRotation]=useState(0)
   const [spinning,setSpinning]=useState(false)
@@ -95,6 +114,13 @@ export default function SpinStudio() {
   const stageRef=useRef<HTMLDivElement>(null)
   const spinTimer=useRef<number|null>(null)
   const pendingSpin=useRef(false)
+  const countdownRef=useRef<number|null>(null)
+  const recorderRef=useRef<MediaRecorder|null>(null)
+  const captureStreamRef=useRef<MediaStream|null>(null)
+  const chunksRef=useRef<Blob[]>([])
+  const spinRef=useRef<()=>void>(()=>{})
+  const revealActionRef=useRef<()=>void>(()=>{})
+  const nextRef=useRef<()=>void>(()=>{})
   const wheel=wheels.find(w=>w.id===selectedId) || wheels[0]
   const entries=wheel?.entries || []
   const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>!wheel?.noRepeat || !used.includes(entry.id))
@@ -117,13 +143,38 @@ export default function SpinStudio() {
     try{localStorage.setItem(STORAGE,JSON.stringify({wheels,selectedId}))}
     catch{ /* Storage quota or private browsing can prevent saving. */ }
   },[wheels,selectedId,loaded])
-  useEffect(()=>{setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setSeconds(null);setVerdict(null)},[selectedId])
   useEffect(()=>{
-    if(seconds===null || seconds<=0 || spinning)return
+    if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)
+    if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
+    pendingSpin.current=false
+    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
+  },[selectedId])
+  useEffect(()=>{
+    if(seconds===null || seconds<=0 || spinning || showPhase!=='countdown')return
     const timer=window.setTimeout(()=>setSeconds(value=>value===null?null:Math.max(0,value-1)),1000)
     return ()=>window.clearTimeout(timer)
-  },[seconds,spinning])
-  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)},[])
+  },[seconds,spinning,showPhase])
+  useEffect(()=>{
+    if(showPhase!=='countdown'||seconds!==0||!wheel?.automatic)return
+    setReveal(true);setShowPhase('reveal')
+    soundEffect('win',wheel.sound,wheel.volumes?.reveal??75)
+  },[seconds,showPhase,wheel])
+  useEffect(()=>{
+    if(showPhase!=='reveal'||!wheel?.automatic||!batchMode)return
+    const timer=window.setTimeout(()=>{
+      setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false)
+      nextRef.current()
+    },Math.max(1,wheel.revealHold??3)*1000)
+    return ()=>clearTimeout(timer)
+  },[showPhase,wheel,batchMode])
+  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop())},[])
+  useEffect(()=>{
+    const media=window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReducedMotion(media.matches)
+    const change=()=>setReducedMotion(media.matches)
+    media.addEventListener('change',change)
+    return ()=>media.removeEventListener('change',change)
+  },[])
   useEffect(()=>{
     const change=()=>setFullScreen(Boolean(document.fullscreenElement))
     document.addEventListener('fullscreenchange',change)
