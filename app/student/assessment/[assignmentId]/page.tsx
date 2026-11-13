@@ -602,7 +602,7 @@ export default function LearnerAssessmentPage() {
     [answers],
   )
   useEffect(() => {
-    if (workspace) questionHeadingRef.current?.focus({ preventScroll: true })
+    if (workspace) questionHeadingRef.current?.focus()
   }, [currentIndex, workspace?.attemptId])
 
   const unansweredIndexes = useMemo(
@@ -614,18 +614,18 @@ export default function LearnerAssessmentPage() {
     [workspace, answers],
   )
 
-  if (loading) return <main className={styles.runner} style={shell}>Loading assessment…</main>
+  if (loading) return <div className={styles.runner} style={shell}>Loading assessment…</div>
   if (error && !workspace) {
-    return <main className={styles.runner} style={shell}><section style={card}>
+    return <div className={styles.runner} style={shell}><section style={card}>
       <h1 style={{ marginTop: 0 }}>Assessment unavailable</h1>
       <p style={{ color: '#b91c1c' }}>{error}</p>
       <button type="button" onClick={() => router.push('/student/vibelearn/exams')} style={secondaryButton}>Back to Exams</button>
-    </section></main>
+    </section></div>
   }
   if (!workspace) return null
 
   if (result) {
-    return <main className={styles.runner} style={shell}><section style={{ ...card, maxWidth: 620, margin: '0 auto', borderColor: '#6ee7b7' }}>
+    return <div className={styles.runner} style={shell}><section style={{ ...card, maxWidth: 620, margin: '0 auto', borderColor: '#6ee7b7' }}>
       <h1 style={{ marginTop: 0, color: '#065f46' }}>Assessment submitted ✓</h1>
       {result.scoreReleased && result.score !== null && result.maxScore !== null && result.percentage !== null
         ? <><p style={{ fontSize: 30, fontWeight: 800, margin: '12px 0' }}>{result.score}/{result.maxScore}</p><p>{result.percentage.toFixed(1)}%</p></>
@@ -641,7 +641,7 @@ export default function LearnerAssessmentPage() {
         : skippedAtSubmission.length === 0 ? 'All questions answered.' : `${skippedAtSubmission.length} skipped question${skippedAtSubmission.length === 1 ? '' : 's'}: ${skippedAtSubmission.join(', ')}. Skipped questions receive 0 marks.`}</p>
       {result.scoreReleased && <button onClick={() => router.push(`/student/results/${workspace.attemptId}`)} style={{ ...primaryButton, marginBottom: 10 }}>Review answers and skipped questions</button>}
       <button onClick={() => router.push('/student/assessment')} style={secondaryButton}>Done</button>
-    </section></main>
+    </section></div>
   }
 
   const locked = secondsLeft === 0 || submitting || activeElsewhere
@@ -649,7 +649,7 @@ export default function LearnerAssessmentPage() {
   const answer = item ? answers[item.id] : undefined
 
 
-  return <main className={styles.runner} style={shell}>
+  return <div className={styles.runner} style={shell}>
     <section className={styles.intro} aria-label="Assessment progress">
       <div className={styles.introTop}>
         <span className={styles.kicker}>{workspace.assessmentType.replaceAll('_', ' ')} · Attempt {workspace.attemptNumber}</span>
@@ -781,14 +781,12 @@ export default function LearnerAssessmentPage() {
       <div style={compareBox}><strong>This device</strong><p>{conflict.localAnswer.text || JSON.stringify(conflict.localAnswer.value)}</p></div>
       <div style={{ display: 'flex', gap: 10 }}><button onClick={keepServerConflict} style={{ ...secondaryButton, flex: 1 }}>Keep server</button><button onClick={() => void keepLocalConflict()} style={{ ...primaryButton, flex: 1 }}>Keep this device</button></div>
     </section></div>}
-  </main>
+  </div>
 }
 
 const shell: React.CSSProperties = { minHeight: '50vh', background: 'transparent', padding: '0', color: 'var(--vs-text)' }
 const card: React.CSSProperties = { background: 'var(--vs-card)', color: 'var(--vs-text)', border: '1px solid var(--vs-border)', borderRadius: 16, padding: 16, marginBottom: 12 }
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
 const notice: React.CSSProperties = { marginTop: 12, padding: '9px 11px', borderRadius: 10, background: '#fffbeb', color: '#92400e', fontSize: 12, fontWeight: 700 }
-const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '11px 12px', font: 'inherit', resize: 'vertical' }
 const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 12, padding: '13px 16px', minHeight: 48, background: 'var(--vs-accent)', color: 'var(--vs-on-accent)', fontWeight: 800, fontSize: 14, fontFamily: 'inherit', cursor: 'pointer' }
 const secondaryButton: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 10, padding: '11px 14px', minHeight: 44, background: 'var(--vs-card)', color: 'var(--vs-text)', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', cursor: 'pointer' }
 const questionButton: React.CSSProperties = { minWidth: 44, minHeight: 44, border: '1px solid var(--vs-border)', borderRadius: 10, background: 'var(--vs-card)', color: 'var(--vs-text)', fontWeight: 800, cursor: 'pointer' }
