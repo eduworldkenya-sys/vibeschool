@@ -122,13 +122,15 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
   const isReadable=Boolean(active && isFree && active.status==='published' && Array.isArray(active.blocks) && active.blocks.length)
 
   useEffect(()=>{
-    if(!publication?.series_name?.trim() || !publication.series_number)return
+    const seriesName=publication?.series_name?.trim()
+    const seriesNumber=publication?.series_number
+    if(!seriesName || !seriesNumber)return
     let mounted=true
     void (async()=>{
       const {data}=await supabase.from('vibe_publications')
         .select('id,title').eq('status','published')
-        .eq('series_name',publication.series_name)
-        .gt('series_number',publication.series_number)
+        .eq('series_name',seriesName)
+        .gt('series_number',seriesNumber)
         .in('format',['ebook','vibechronicles'])
         .order('series_number',{ascending:true}).limit(1).maybeSingle()
       if(mounted)setNextStory(data?{id:data.id,title:data.title||'Next book'}:null)
