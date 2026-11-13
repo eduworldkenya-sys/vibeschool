@@ -120,8 +120,12 @@ begin
       left join public.curriculum_unit_guidance g on g.sub_strand_id=s.id
       where b.sub_strand_id is null or s.subject_id<>v_global or s.grade<>'Grade 3'
         or s.name<>t.unit->>'strand' or s.sub_strand<>t.unit->>'canonical_title'
-        or g.content_status<>'active' or g.suggested_lessons<>(t.unit->>'lessons')::integer
+        or g.sub_strand_id is null or g.content_status<>'active' or g.suggested_lessons<>(t.unit->>'lessons')::integer
         or btrim(coalesce(g.learning_resources,''))='' or btrim(coalesce(g.assessment_methods,''))=''
+        or (select count(*) from public.curriculum_learning_outcomes o
+            where o.sub_strand_id=b.sub_strand_id
+              and o.source_ref like t.source_ref||'/%'
+              and o.status='active' and o.source_type='creator_claimed')<>3
     )
  then raise exception 'GRADE3_ENGLISH_PERSISTED_BINDINGS_INCOMPLETE'; end if;
 end;
@@ -174,7 +178,7 @@ begin
    execute v_definition;
  else
    if position('public.grade3_english_reader_bindings' in v_definition)=0
-      or position('Grade 9'',''Grade 3' in v_definition)=0
+      or position('SCHEME_CANONICAL_CONTENT_INCOMPLETE' in v_definition)=0
    then raise exception 'GRADE3_ENGLISH_SCHEME_RPC_PARTIAL_PATCH'; end if;
  end if;
 end;
