@@ -15,6 +15,7 @@ import Grade1MathematicsMap from '@/components/teacher/curriculum/Grade1Mathemat
 import Grade6MathematicsMap from '@/components/teacher/curriculum/Grade6MathematicsMap'
 import Grade4MathematicsMap from '@/components/teacher/curriculum/Grade4MathematicsMap'
 import Grade1EnglishMap from '@/components/teacher/curriculum/Grade1EnglishMap'
+import Grade3EnglishMap from '@/components/teacher/curriculum/Grade3EnglishMap'
 import Grade6EnglishMap from '@/components/teacher/curriculum/Grade6EnglishMap'
 import Grade6KiswahiliMap from '@/components/teacher/curriculum/Grade6KiswahiliMap'
 
@@ -93,6 +94,7 @@ export default function SubjectHubPage() {
   const [grade6MathematicsUnitId, setGrade6MathematicsUnitId] = useState('1.1')
   const [grade4MathematicsUnitId, setGrade4MathematicsUnitId] = useState('1.1')
   const [grade1EnglishUnitId, setGrade1EnglishUnitId] = useState('1.1')
+  const [grade3EnglishUnitId, setGrade3EnglishUnitId] = useState('1.1')
   const [grade6EnglishUnitId, setGrade6EnglishUnitId] = useState('1.1')
   const [grade6KiswahiliUnitId, setGrade6KiswahiliUnitId] = useState('1.1.1')
   const [classes,        setClasses]        = useState<ClassForSubject[]>([])
@@ -895,6 +897,10 @@ export default function SubjectHubPage() {
     /^(english|english activities|english language activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*1\b/i.test(item.name)) ?? null
       : null
+  const grade3EnglishClass =
+    /^(english|english activities|english language activities|english language)$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\b(?:grade|class)\s*3\b/i.test(item.name)) ?? null
+      : null
   const grade4IndigenousClass =
     /^indigenous languages?$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
@@ -1240,6 +1246,20 @@ export default function SubjectHubPage() {
             >Open full curriculum map →</button>
           </div>
           <Grade1EnglishMap compact selectedUnitId={grade1EnglishUnitId} onSelectUnit={setGrade1EnglishUnitId} />
+        </div>
+      )}
+
+      {/* Grade 3 English structural source index: never masquerade as verified outcomes. */}
+      {!loading && !classLoading && activeSubject && grade3EnglishClass && (
+        <div style={{ margin: '14px 16px 0' }}>
+          <div style={{ display:'flex',justifyContent:'flex-end',marginBottom:9 }}>
+            <button type="button"
+              onClick={()=>router.push('/teacher/curriculum?classId='+encodeURIComponent(grade3EnglishClass.id)+'&subjectId='+encodeURIComponent(activeSubject.id)+'&unitId='+encodeURIComponent(grade3EnglishUnitId))}
+              style={{background:'#175b43',color:'#fff',minHeight:44,border:0,padding:'10px 14px',borderRadius:10,cursor:'pointer',fontWeight:800}}>
+              Open full curriculum map
+            </button>
+          </div>
+          <Grade3EnglishMap compact selectedUnitId={grade3EnglishUnitId} onSelectUnit={setGrade3EnglishUnitId} />
         </div>
       )}
 

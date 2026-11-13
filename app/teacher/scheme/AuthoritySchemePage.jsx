@@ -10,6 +10,8 @@ import Grade9MathematicsMap, { GRADE9_MATHEMATICS_UNITS } from '@/components/tea
 import Grade1CreativeActivitiesMap, { GRADE1_CREATIVE_STRANDS, GRADE1_CREATIVE_UNITS } from '@/components/teacher/curriculum/Grade1CreativeActivitiesMap'
 import Grade1MathematicsMap, { GRADE1_MATHEMATICS_STRANDS, GRADE1_MATHEMATICS_UNITS } from '@/components/teacher/curriculum/Grade1MathematicsMap'
 import Grade1EnglishMap, { GRADE1_ENGLISH_STRANDS, GRADE1_ENGLISH_UNITS } from '@/components/teacher/curriculum/Grade1EnglishMap'
+import Grade3EnglishMap from '@/components/teacher/curriculum/Grade3EnglishMap'
+import { GRADE3_ENGLISH_UNITS } from '@/lib/teaching/grade3EnglishCatalog.mjs'
 import Grade8MathematicsMap from '@/components/teacher/curriculum/Grade8MathematicsMap'
 import Grade6MathematicsMap from '@/components/teacher/curriculum/Grade6MathematicsMap'
 import Grade4MathematicsMap from '@/components/teacher/curriculum/Grade4MathematicsMap'
@@ -176,12 +178,14 @@ function Inner({ curriculumView = false }) {
   const isGrade1Creative = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(creative activities|creative arts activities|creative arts and sports)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade1Mathematics = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(mathematics|mathematical activities|mathematics activities)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade1English = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(english|english activities|english language activities)$/i.test(subjectObj?.label?.trim()||'')
+  const isGrade3English = /^grade\s*3$/i.test(classObj?.grade?.trim()||'') && /^(english|english language|english activities|english language activities)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade8Mathematics = /^grade\s*8$/i.test(classObj?.grade?.trim()||'') && /^mathematics$/i.test(subjectObj?.label?.trim()||'')
   const isGrade6Mathematics = /^grade\s*6$/i.test(classObj?.grade?.trim()||'') && /^mathematics$/i.test(subjectObj?.label?.trim()||'')
   const isGrade4Mathematics = /^grade\s*4$/i.test(classObj?.grade?.trim()||'') && /^(mathematics|mathematics activities)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade8English = /^grade\s*8$/i.test(classObj?.grade?.trim()||'') && /^(english|english language)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade6English = /^grade\s*6$/i.test(classObj?.grade?.trim()||'') && /^(english|english language)$/i.test(subjectObj?.label?.trim()||'')
   const isGrade6Kiswahili = /^grade\s*6$/i.test(classObj?.grade?.trim()||'') && /^kiswahili$/i.test(subjectObj?.label?.trim()||'')
+  const grade3EnglishDraftUnit = !curriculumView && isGrade3English ? GRADE3_ENGLISH_UNITS.find(unit=>unit.id===draftUnitId) : null
   const creativeDraftUnit = !curriculumView && isGrade1Creative ? GRADE1_CREATIVE_UNITS.find(unit=>unit.id===draftUnitId) : null
   const creativeDraftStrand = creativeDraftUnit ? GRADE1_CREATIVE_STRANDS.find(strand=>strand.id===creativeDraftUnit.strand)?.title : null
   const creativeDraftRecord = creativeDraftUnit ? creativeCatalog[creativeDraftUnit.id] : null
@@ -835,9 +839,10 @@ function Inner({ curriculumView = false }) {
     if(isGrade4Indigenous)return GRADE4_INDIGENOUS_UNITS
     if(isGrade1Mathematics)return GRADE1_MATHEMATICS_UNITS
     if(isGrade1English)return GRADE1_ENGLISH_UNITS
+    if(isGrade3English)return GRADE3_ENGLISH_UNITS
     if(isGrade1Creative)return GRADE1_CREATIVE_UNITS
     return []
-  },[isGrade4Mathematics,isGrade6Mathematics,isGrade8Mathematics,isGrade9Mathematics,isGrade4English,isGrade8English,isGrade6English,isGrade6Kiswahili,isGrade4Indigenous,isGrade1Mathematics,isGrade1English,isGrade1Creative])
+  },[isGrade4Mathematics,isGrade6Mathematics,isGrade8Mathematics,isGrade9Mathematics,isGrade4English,isGrade8English,isGrade6English,isGrade6Kiswahili,isGrade4Indigenous,isGrade1Mathematics,isGrade1English,isGrade3English,isGrade1Creative])
   const finderResults=useMemo(()=>{
     const needle=finderQuery.trim().toLocaleLowerCase()
     if(needle.length<2)return []
@@ -957,7 +962,7 @@ function Inner({ curriculumView = false }) {
 
   useEffect(()=>{void boot()},[boot])
   useEffect(()=>{if(selectedClass&&!filteredSubjects.some(x=>x.id===selectedSubject))setSelectedSubject(filteredSubjects[0]?filteredSubjects[0].id:null)},[filteredSubjects,selectedClass,selectedSubject])
-  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));if(curriculumView&&initial.current.curriculumId&&allCurriculumRows.some(x=>x.id===initial.current.curriculumId))p.set('curriculumId',initial.current.curriculumId);if(curriculumView&&(isGrade1Mathematics||isGrade1English||isGrade8Mathematics||isGrade8English||isGrade9Mathematics||isGrade6Mathematics||isGrade6English||isGrade4Mathematics||isGrade4English||isGrade6Kiswahili||isGrade4Indigenous))p.set('unitId',mapUnitId);else if(curriculumView&&initial.current.unitId)p.set('unitId',initial.current.unitId);if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId);router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView,allCurriculumRows,draftUnitId,mapUnitId,isGrade1Mathematics,isGrade1English,isGrade8Mathematics,isGrade8English,isGrade9Mathematics,isGrade6Mathematics,isGrade6English,isGrade4Mathematics,isGrade4English,isGrade6Kiswahili,isGrade4Indigenous])
+  useEffect(()=>{if(loading)return;const p=new URLSearchParams();if(selectedClass)p.set('classId',selectedClass);if(selectedSubject)p.set('subjectId',selectedSubject);if(selectedTermId)p.set('termId',selectedTermId);p.set('week',String(selectedWeek));if(curriculumView&&initial.current.curriculumId&&allCurriculumRows.some(x=>x.id===initial.current.curriculumId))p.set('curriculumId',initial.current.curriculumId);if(curriculumView&&(isGrade1Mathematics||isGrade1English||isGrade3English||isGrade8Mathematics||isGrade8English||isGrade9Mathematics||isGrade6Mathematics||isGrade6English||isGrade4Mathematics||isGrade4English||isGrade6Kiswahili||isGrade4Indigenous))p.set('unitId',mapUnitId);else if(curriculumView&&initial.current.unitId)p.set('unitId',initial.current.unitId);if(!curriculumView&&draftUnitId)p.set('unitId',draftUnitId);router.replace(`${curriculumView ? '/teacher/curriculum' : '/teacher/scheme'}?${p}`)},[loading,router,selectedClass,selectedSubject,selectedTermId,selectedWeek,curriculumView,allCurriculumRows,draftUnitId,mapUnitId,isGrade1Mathematics,isGrade1English,isGrade3English,isGrade8Mathematics,isGrade8English,isGrade9Mathematics,isGrade6Mathematics,isGrade6English,isGrade4Mathematics,isGrade4English,isGrade6Kiswahili,isGrade4Indigenous])
 
   useEffect(()=>{let live=true;(async()=>{
     if(!schoolId||!selectedTermId){setTermWeeks([]);return}
@@ -1121,7 +1126,7 @@ function Inner({ curriculumView = false }) {
         :curriculumView&&isGrade4Kiswahili?null:!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
     </div>
 
-    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English || isGrade8Mathematics || isGrade8English || isGrade9English || isGrade9Mathematics || isGrade8Kiswahili || isGrade4Kiswahili || isGrade6Mathematics || isGrade6English || isGrade6Kiswahili || isGrade4Mathematics || isGrade4Indigenous)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isAutoScheme?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
+    {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English || isGrade3English || isGrade8Mathematics || isGrade8English || isGrade9English || isGrade9Mathematics || isGrade8Kiswahili || isGrade4Kiswahili || isGrade6Mathematics || isGrade6English || isGrade6Kiswahili || isGrade4Mathematics || isGrade4Indigenous)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isAutoScheme?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
     {!curriculumView && isAutoScheme && <AutoCreativeScheme
       draft={annualDraft} termId={selectedTermId} week={selectedWeek}
       savedLessons={ordered} catalog={isGrade4Indigenous?grade4IndigenousCatalog:isGrade4English?grade4EnglishCatalog:isGrade4Mathematics?grade4Catalog:isGrade6English?grade6EnglishCatalog:isGrade6Mathematics?grade6Catalog:isGrade6Kiswahili?grade6KiswahiliCatalog:isGrade8English?grade8EnglishCatalog:isGrade8Mathematics?grade8Catalog:isGrade1Creative?creativeCatalog:grade1ReaderCatalog}
@@ -1146,6 +1151,12 @@ function Inner({ curriculumView = false }) {
         const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId})
         router.push('/teacher/scheme?'+p.toString())
       }:undefined} />}
+    {curriculumView && isGrade3English && <Grade3EnglishMap
+      selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
+      onOpenScheme={unitId=>{
+        const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek),unitId:unitId||mapUnitId})
+        router.push('/teacher/scheme?'+p.toString())
+      }} />}
     {curriculumView && isGrade1English && <Grade1EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
       mappedUnits={grade1ReaderCatalog} catalogLoading={grade1ReaderCatalogLoading} catalogError={grade1ReaderCatalogError}
       onPlanUnit={selectedClass&&selectedSubject&&selectedTermId ? unitId=>{
@@ -1271,6 +1282,16 @@ function Inner({ curriculumView = false }) {
       <details style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:12,padding:12,marginBottom:12}}><summary style={{cursor:'pointer',color:C.text,fontWeight:700,fontSize:13}}>Teaching notes and observations</summary><div style={{marginTop:12}}><LessonPanel teacherId={uid} classId={selectedClass} subjectId={selectedSubject} subjectLabel={subjectObj.label} academicTermId={selectedTermId} schoolId={schoolId} week={selectedWeek}/></div></details>
     </>}
 
+         {grade3EnglishDraftUnit && <section aria-label="Grade 3 English Scheme planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+      <div style={{fontSize:11,fontWeight:800,color:C.teal}}>GRADE 3 ENGLISH · CURRICULUM MAP → SCHEME OF WORK</div>
+      <h2 style={{margin:'7px 0',fontSize:18,color:C.text}}>{grade3EnglishDraftUnit.strand} · {grade3EnglishDraftUnit.title}</h2>
+      <p style={{fontSize:13,color:C.text2,margin:'0 0 8px'}}>Source summary: {grade3EnglishDraftUnit.lessons} suggested lessons. Selected school Week {selectedWeek} is a planning choice, not a KICD term allocation.</p>
+      <p style={{fontSize:13,color:C.text2,margin:'0 0 12px'}}>No verified curriculum outcome is linked to this Grade 3 English reference. This is a selection only; it has not created a Scheme lesson. The existing teacher-authorised Scheme and outcome-linking workflow must be used after the canonical source and teaching guidance are reconciled.</p>
+      <button type="button" onClick={()=>{
+        const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek),unitId:grade3EnglishDraftUnit.id})
+        router.push('/teacher/curriculum?'+p.toString())
+      }} style={{minHeight:44,padding:'10px 14px',border:'1px solid #9fbbaa',borderRadius:9,background:'#fff',color:C.teal,fontWeight:750}}>View curriculum map</button>
+    </section>}
          {grade9EnglishDraftUnit && !grade9EnglishDraftRecord && <section aria-label="Grade 9 English planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
       <div style={{fontSize:11,fontWeight:800,color:C.teal}}>CURRICULUM MAP → SCHEME OF WORK · REFERENCE ONLY</div>
       <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{grade9EnglishDraftUnit.code} · {grade9EnglishDraftUnit.title}</h2>
