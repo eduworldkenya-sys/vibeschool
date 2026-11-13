@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { C, Card, Btn, SectionLabel } from '@/components/teacher/ui'
+import { periodAppearance } from '@/lib/timetable/periodAppearance'
 import { SCHOOL_DAY_SAMPLES, isSampleBlock, sampleBlockErrors, personalSchoolDayKey, parsePersonalSchoolDay, type PersonalSchoolDayPlan, type SampleBlock } from '@/lib/timetable/schoolDaySamples'
 
 type SavedSample = { id: string; name: string; blocks: SampleBlock[] }
@@ -174,13 +175,13 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
       // Fail closed against an existing school day, including periods added by
       // another administrator after the draft was opened.
       const [existing, permission] = await Promise.all([
-        supabase.rpc('get_school_day_blocks_for_member', { p_school_id: schoolId }),
+        supabase.rpc('get_my_school_day_blocks'),
         supabase.rpc('can_manage_my_school_timetable', { p_school_id: schoolId }),
       ])
       if (existing.error) throw existing.error
       if (permission.error) throw permission.error
       if (!permission.data) throw new Error('Only a school administrator may apply school-wide periods.')
-      if ((existing.data ?? []).length > 0) throw new Error('This school already has configured periods. Review them individually; no sample can replace or overwrite them.')
+      if ((existing.data ?? []).some((row: { school_id: string }) => row.school_id === schoolId)) throw new Error('This school already has configured periods. Review them individually; no sample can replace or overwrite them.')
 
       for (const block of draft) {
         const { data, error: rpcError } = await supabase.rpc('save_school_period_block', {
@@ -290,7 +291,7 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
         <input aria-label="Template name" value={draftName} maxLength={100} onChange={e => setDraftName(e.target.value)} style={input} />
       </label>
       <p style={{ margin: 0, color: C.textMuted, fontSize: 12 }}>Edit each period below. Non-teaching blocks are always protected.</p>
-      {draft.map((block, i) => <div key={i} style={{ border: '1px solid ' + C.border, padding: 10, borderRadius: 10, display: 'grid', gap: 8 }}>
+      {draft.map((block, i) => <div key={i} style={{ border: '1px solid ' + C.border, borderLeft: '3px solid ' + periodAppearance(block.kind).border, background: periodAppearance(block.kind).background, padding: 10, borderRadius: 10, display: 'grid', gap: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
           <strong style={{ fontSize: 12 }}>Block {i + 1}</strong>
           <button type="button" disabled={busy} onClick={() => setDraft(rows => rows.filter((_, n) => n !== i))}

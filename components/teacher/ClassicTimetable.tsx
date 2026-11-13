@@ -2,6 +2,7 @@
 
 import React from "react";
 import { C } from "@/components/teacher/ui";
+import { periodAppearance } from "@/lib/timetable/periodAppearance";
 
 export type ClassicSlot = {
   id:string; subject:string; className:string; room:string;
@@ -61,7 +62,13 @@ export default function ClassicTimetable({
             <span style={{fontSize:11,color:C.textMuted}}>{s.className}{s.room?` · ${s.room}`:""}</span>
             <span style={{fontSize:11,color:C.textMuted}}>{fmt(s.startTime)}–{fmt(s.endTime)}</span>
           </button>)}</td>;
-          if(block && block.kind!=="lesson") return <td key={day.d} style={{...cell,textAlign:"center",background:"var(--surface-raised, #f9fafb)"}}><strong>{block.label}</strong></td>;
+          if(block && block.kind!=="lesson") {
+            const tone=periodAppearance(block.kind);
+            return <td key={day.d} aria-label={`${tone.label}: ${block.label}, ${row.start} to ${row.end}`}
+              style={{...cell,textAlign:"center",background:tone.background,borderLeft:`3px solid ${tone.border}`}}>
+              <strong style={{color:tone.text}}>{block.label}</strong>
+            </td>;
+          }
           return <td key={day.d} style={cell}>{onAdd && (!blocks.length || (block?.kind==='lesson' && !activeSlots.some(s => s.dayOfWeek===day.d && fmt(s.startTime)<fmt(block.endTime) && fmt(s.endTime)>fmt(block.startTime)))) && <button type="button" aria-label={`Add lesson ${day.l} ${row.start}`} onClick={()=>onAdd({dayOfWeek:day.d,startTime:block?fmt(block.startTime):row.start,endTime:block?fmt(block.endTime):row.end})} style={slotButton}>+ Add lesson</button>}</td>;
         })}
       </tr>)}</tbody>
