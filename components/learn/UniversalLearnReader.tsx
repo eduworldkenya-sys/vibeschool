@@ -6,6 +6,8 @@ import styles from './UniversalLearnReader.module.css'
 import TeachingToolShelf from '@/components/learn/tools/TeachingToolShelf'
 import type { TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 import TeachingToolHost from '@/components/learn/TeachingToolHost'
+import LearningBlockRenderer from '@/components/learn/LearningBlockRenderer'
+import type { LearningBlock } from '@/lib/learn/learningBlockContract'
 import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import { learnSubjectMode, type TeachingToolSection } from '@/lib/learn/teachingToolRegistry'
 
@@ -14,6 +16,7 @@ export type UniversalLearnSection = TeachingToolSection & {
   title: string
   hint?: string
   tools?: readonly TeachingToolSpec[]
+  blocks?: readonly LearningBlock[]
 }
 
 export { learnSubjectMode } from '@/lib/learn/teachingToolRegistry'
@@ -48,7 +51,8 @@ export default function UniversalLearnReader({
   const SectionHeading = title ? 'h4' : 'h3'
   const anchor = (section: UniversalLearnSection, index: number) =>
     `${anchorPrefix}-${index}-${section.id.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`
-  const validSections = sections.filter(section => typeof section.body === 'string' && !!section.body.trim())
+  const validSections = sections.filter(section =>
+    (typeof section.body === 'string' && !!section.body.trim()) || !!section.blocks?.length)
   const sectionTools = validSections.flatMap((section, index) =>
     section.id === 'feedback' || (toolContext && !getLearningToolSectionBinding(toolContext, section, index))
       ? [] : section.tools ?? [])
@@ -58,7 +62,7 @@ export default function UniversalLearnReader({
 
   return <div className={styles.reader} data-subject-mode={mode}>
     {(title || goal) && <header className={styles.heading}>
-      {title && <h3>{title}</h3>}
+      {title && <h3 id={`${anchorPrefix}-title`} tabIndex={-1}>{title}</h3>}
       {goal && <p><strong>What you will learn:</strong> {goal}</p>}
     </header>}
     {validSections.length > 1 && <nav className={styles.navigation} aria-label="Lesson sections">
@@ -74,7 +78,8 @@ export default function UniversalLearnReader({
         if (section.id === 'feedback') return <details id={id} key={id} className={styles.feedback}>
           <summary>Review all explanations</summary>
           <div className={styles.feedbackBody}>
-            {renderBody?.(section, index) ?? <VisualRichText body={section.body} />}
+            {renderBody?.(section, index) ?? (section.blocks?.length
+              ? <LearningBlockRenderer blocks={section.blocks} /> : <VisualRichText body={section.body} />)}
           </div>
         </details>
         return <section id={id} key={id} data-tone={tone} className={styles.section} aria-labelledby={`${id}-heading`}>
@@ -84,15 +89,17 @@ export default function UniversalLearnReader({
           </header>
           <div className={styles.body}>
             {renderBody?.(section, index)
-              ?? (toolContext && !sourceBinding
-                ? <VisualRichText body={section.body} />
-                : <TeachingToolHost subject={subject} section={section} sourceBinding={sourceBinding} />)}
+              ?? (section.blocks?.length
+                ? <LearningBlockRenderer blocks={section.blocks} />
+                : (toolContext && !sourceBinding
+                  ? <VisualRichText body={section.body} />
+                  : <TeachingToolHost subject={subject} section={section} sourceBinding={sourceBinding} />))}
           </div>
           {afterSection?.(section, index)}
         </section>
       })}
     </div>
-    {showTeachingTools && sourceValid && <TeachingToolShelf
+    {showTeachingTools && sourceValid && (tools !== undefined || sectionTools.length > 0) && <TeachingToolShelf
       key={toolContext?.resourceVersionId ?? subject + ':' + (topic || title || '')}
       subject={subject} topic={topic || title || ''}
       tools={tools ?? (sectionTools.length ? sectionTools : undefined)} />}
