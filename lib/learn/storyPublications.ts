@@ -7,7 +7,7 @@ export type StoryPublication = Pick<VibePublication,
 const FICTION_GENRES = new Set(['fiction','children','romance','thriller','fantasy','mystery','adventure'])
 
 /** Story identity belongs to the publication, never to a hard-coded route or book ID. */
-export function isStoryPublication(p: Pick<VibePublication,'format'|'genre'|'series_name'>) {
+export function isStoryPublication(p: {format:string;genre:string|null;series_name:string|null}) {
   return p.format === 'vibechronicles'
     || (p.format === 'ebook' && (Boolean(p.series_name?.trim()) || FICTION_GENRES.has(String(p.genre).toLowerCase())))
 }
