@@ -142,16 +142,26 @@ test('tools are ephemeral, use native controls, and cannot bypass the canonical 
 })
 
 test('Stage 4 families are registered but cannot be offered as tools before certification',()=> {
-  const planned=['business-records','advanced-mathematics','coding-workspace','technical-simulations','advanced-science','performance-interfaces']
+  const planned=[
+    'business-records','advanced-mathematics','coding-workspace','technical-simulations',
+    'advanced-science','performance-interfaces',
+    'spreadsheet-data-lab','geography-gis-explorer','agriculture-virtual-farm','technical-drawing-studio','home-science-lab','media-production-studio','language-debate-studio','community-project-portfolio',
+  ]
   assert.deepEqual(SPECIALIST_TOOL_ROADMAP.map(x=>x.id),planned)
   assert.ok(SPECIALIST_TOOL_ROADMAP.every(x=>x.status==='planned'))
-  assert.deepEqual(SPECIALIST_TOOL_ROADMAP.filter(x=>x.priority==='first').map(x=>x.id),planned.slice(0,2))
-  assert.equal(new Set(planned).size,6)
+  assert.deepEqual(SPECIALIST_TOOL_ROADMAP.filter(x=>x.priority==='first').map(x=>x.id),[
+    'business-records','advanced-mathematics','spreadsheet-data-lab',
+    'geography-gis-explorer','agriculture-virtual-farm','community-project-portfolio',
+  ])
+  assert.equal(new Set(planned).size,14)
+  assert.equal(SPECIALIST_TOOL_ROADMAP.length,14)
+  assert.equal(SPECIALIST_TOOL_ROADMAP.slice(6).length,8)
   const active=new Set(TEACHING_TOOL_CATALOG.map(x=>x.id))
   for (const family of SPECIALIST_TOOL_ROADMAP) {
     assert.equal(active.has(family.id),false, family.id+' must not be active')
     assert.equal(isTeachingToolId(family.id),false)
-    assert.ok(family.reuse.every(id=>active.has(id)),family.id+' must reuse real components')
+    assert.ok(family.reuse.length>=2 && family.reuse.every(id=>active.has(id)),
+      family.id+' must reuse real components')
     for (const subject of ['Mathematics','Business Studies','Computer Science','Physics','Creative Arts']) {
       assert.deepEqual(resolveTeachingTools(subject,'',[{id:family.id,version:1,prompt:'unreviewed data'}]),[],
         family.id+' must fail closed for '+subject)
@@ -161,4 +171,7 @@ test('Stage 4 families are registered but cannot be offered as tools before cert
   const doc=read('../docs/learn/STAGE4_SPECIALIST_SENIOR_TOOLS.md')
   assert.match(doc,/Activation criteria/)
   assert.match(doc,/existing `TeachingToolShelf`/)
+  assert.match(doc,/Shared practical-learning components/)
+  for (const id of planned) assert.ok(doc.includes('`'+id+'`'),id+' missing from rollout documentation')
+  assert.equal(SPECIALIST_TOOL_ROADMAP.filter(x=>x.status==='planned').length,14)
 })
