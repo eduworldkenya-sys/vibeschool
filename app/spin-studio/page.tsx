@@ -182,29 +182,93 @@ export default function SpinStudio() {
   },[])
   const update=useCallback((patch:Partial<Wheel>)=>setWheels(all=>all.map(w=>w.id===selectedId?{...w,...patch}:w)),[selectedId])
   const editEntry=(id:string,patch:Partial<Entry>)=>update({entries:entries.map(e=>e.id===id?{...e,...patch}:e)})
-  const resetRun=()=>{if(spinning)return;setUsed([]);setSpinCount(0);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setFeedback('Spin session reset.')}
+  const resetRun=()=>{
+    if(spinning)return
+    if(countdownRef.current!==null)clearTimeout(countdownRef.current)
+    setUsed([]);setSpinCount(0);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
+  }
   const spin=()=>{
     if(locked || !wheel || pendingSpin.current)return
     const chosen=available[Math.floor(Math.random()*available.length)]
     if(!chosen)return
     pendingSpin.current=true
-    setSpinning(true);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setFeedback('')
+    setSpinning(true);setShowPhase('spinning');setShowOverlay(false);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setFeedback('')
     const step=360/entries.length, target=(360-(chosen.index+.5)*step)%360
     const current=((rotation%360)+360)%360
     const delta=((target-current+360)%360)
     const next=rotation+360*(5+Math.floor(wheel.duration/2))+delta
     setRotation(next)
-    soundEffect('tick',wheel.sound)
+    soundEffect('tick',wheel.sound,wheel.volumes?.spin??55)
     spinTimer.current=window.setTimeout(()=>{
       setSpinning(false);setResult(chosen.index);setUsed(old=>[...old,chosen.entry.id])
-      setSpinCount(n=>n+1);setSeconds(wheel.countdown);pendingSpin.current=false
-      soundEffect('tick',wheel.sound)
+      setSpinCount(n=>n+1);pendingSpin.current=false
+      setShowOverlay(true);setShowPhase('question')
+      setEpisodeLog(old=>[...old,chosen.entry.label].slice(-150))
+      soundEffect('tick',wheel.sound,wheel.volumes?.spin??55)
+      countdownRef.current=window.setTimeout(()=>{
+        if(wheel.countdown===0){
+          setShowPhase(wheel.automatic?'reveal':'countdown');setSeconds(0)
+          if(wheel.automatic){setReveal(true);soundEffect('win',wheel.sound,wheel.volumes?.reveal??75)}
+        }else{setShowPhase('countdown');setSeconds(wheel.countdown)}
+      },750)
     },wheel.duration*1000)
   }
   const doVerdict=(v:'correct'|'wrong')=>{
     if(result===null || spinning)return
-    setVerdict(v);setReveal(true);setSeconds(null)
-    soundEffect(v==='correct'?'win':'fail',Boolean(wheel?.sound))
+    setVerdict(v);setReveal(true);setShowPhase('reveal');setSeconds(null)
+    soundEffect(v==='correct'?'win':'fail',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)
+  }
+  const revealNow=()=>{
+    if(result===null || spinning)return
+    setReveal(true);setShowPhase('reveal');setSeconds(null)
+    soundEffect('win',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)
+  }
+  const nextChallenge=()=>{if(spinning)return;setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
+  spinRef.current=spin
+  revealActionRef.current=revealNow
+  nextRef.current=()=>{if(!spinning && available.length>0 && remaining!==0)spinRef.current()}
+  useEffect(()=>{
+    function keys(event:KeyboardEvent){
+      const target=event.target
+      if(target instanceof HTMLElement && (target.isContentEditable || ['INPUT','SELECT','TEXTAREA'].includes(target.tagName)))return
+      if(event.code==='Space'){event.preventDefault();spinRef.current()}
+      if(event.key.toLowerCase()==='r')revealActionRef.current()
+      if(event.key.toLowerCase()==='n')nextRef.current()
+    }
+    window.addEventListener('keydown',keys)
+    return ()=>window.removeEventListener('keydown',keys)
+  },[])
+  const startCapture=async()=>{
+    if(capturing)return
+    try{
+      if(!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder==='undefined')throw Error('Screen recording is not supported in this browser.')
+      const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true})
+      captureStreamRef.current=stream
+      const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(type=>MediaRecorder.isTypeSupported(type))
+      const recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined)
+      recorderRef.current=recorder;chunksRef.current=[]
+      recorder.ondataavailable=e=>{if(e.data.size)chunksRef.current.push(e.data)}
+      recorder.onstop=()=>{
+        const blob=new Blob(chunksRef.current,{type:recorder.mimeType||'video/webm'})
+        if(blob.size){const url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download='vibeschool-spin-'+Date.now()+'.webm';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
+        stream.getTracks().forEach(t=>t.stop());captureStreamRef.current=null;recorderRef.current=null;setCapturing(false)
+      }
+      stream.getVideoTracks().forEach(t=>t.addEventListener('ended',()=>{if(recorder.state!=='inactive')recorder.stop()},{once:true}))
+      recorder.start(500);setCapturing(true);setFeedback('Recording started. Select this tab when asked. To record audio, enable Share tab audio.')
+    }catch(error){setCapturing(false);setFeedback(error instanceof Error?error.message:'Screen recording could not start.')}
+  }
+  const stopCapture=()=>{const recorder=recorderRef.current;if(recorder&&recorder.state!=='inactive')recorder.stop()}
+  const loadTemplate=(index:number)=>{
+    const t=templates[index];if(!t)return
+    const fresh:Wheel={...starter(),id:uid(),name:t.name,entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
+    setWheels(all=>[...all,fresh]);setSelectedId(fresh.id);setSetupTab('content')
+  }
+  const uploadBackground=(file:File|undefined)=>{
+    if(!file)return
+    if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>220000){setFeedback('Use a JPG, PNG or WebP under 220 KB to keep browser saving reliable.');return}
+    const reader=new FileReader()
+    reader.onload=()=>{if(typeof reader.result==='string')update({backgroundImage:reader.result})}
+    reader.readAsDataURL(file)
   }
   const addWheel=()=>{
     const w=starter();w.name='Untitled Wheel';w.headline='SPIN & TAKE THE CHALLENGE';w.entries=[]
