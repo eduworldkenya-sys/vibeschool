@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import type { TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 import styles from './TeachingTools.module.css'
 
 function Reorder({ values, instruction, separator = ' → ' }: { values: string[]; instruction: string; separator?: string }) {
+  const { play } = useLearningFeedback()
   const [picked, setPicked] = useState<number[]>([])
   const [checked, setChecked] = useState(false)
   const options = values.map((_, index) => index).reverse()
@@ -20,7 +22,7 @@ function Reorder({ values, instruction, separator = ' → ' }: { values: string[
         <button type="button" className={styles.token} key={index} onClick={() => { setPicked(previous => [...previous, index]); setChecked(false) }}>{values[index]}</button>)}
     </div>
     <div className={styles.actions}>
-      <button type="button" onClick={() => setChecked(true)} disabled={!complete}>Check order</button>
+      <button type="button" onClick={() => { setChecked(true); play(correct ? 'correct' : 'retry') }} disabled={!complete}>Check order</button>
       <button type="button" className={styles.secondary} onClick={() => { setPicked([]); setChecked(false) }}>Try again</button>
       {picked.length > 0 && !checked && <button type="button" className={styles.secondary} onClick={() => setPicked(previous => previous.slice(0, -1))}>Undo last</button>}
     </div>
@@ -29,6 +31,7 @@ function Reorder({ values, instruction, separator = ' → ' }: { values: string[
 }
 
 function WordBuilder({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const word = spec.word ?? ''
   const letters = Array.from(word)
   const [chosen, setChosen] = useState<number[]>([])
@@ -42,7 +45,7 @@ function WordBuilder({ spec }: { spec: TeachingToolSpec }) {
       <button type="button" className={styles.token} aria-label={'Add letter '+letters[index]} key={index}
         onClick={() => { setChosen(old => [...old, index]); setChecked(false) }}>{letters[index]}</button>)}</div>
     <div className={styles.actions}>
-      <button type="button" disabled={chosen.length !== letters.length} onClick={() => setChecked(true)}>Check word</button>
+      <button type="button" disabled={chosen.length !== letters.length} onClick={() => { setChecked(true); play(answer.toLocaleLowerCase() === word.toLocaleLowerCase() ? 'correct' : 'retry') }}>Check word</button>
       <button type="button" className={styles.secondary} onClick={() => { setChosen([]); setChecked(false) }}>Start again</button>
       {chosen.length > 0 && !checked && <button type="button" className={styles.secondary}
         onClick={() => setChosen(old => old.slice(0, -1))}>Undo</button>}
@@ -59,6 +62,7 @@ function SentenceOrder({ spec }: { spec: TeachingToolSpec }) {
 }
 
 function VocabularyMatch({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const pairs=spec.pairs ?? []
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [checked, setChecked] = useState(false)
@@ -73,7 +77,7 @@ function VocabularyMatch({ spec }: { spec: TeachingToolSpec }) {
       </select>
     </label>)}
     <div className={styles.actions}>
-      <button type="button" disabled={pairs.some((_, i) => !answers[i])} onClick={() => setChecked(true)}>Check matches</button>
+      <button type="button" disabled={pairs.some((_, i) => !answers[i])} onClick={() => { setChecked(true); play(pairs.every((_, i) => answers[i] === String(i)) ? 'correct' : 'retry') }}>Check matches</button>
       <button type="button" className={styles.secondary} onClick={() => { setAnswers({}); setChecked(false) }}>Reset</button>
     </div>
     {checked && <p role="status" className={styles.explain}>{pairs.filter((_, i) => answers[i] === String(i)).length} of {pairs.length} matches correct. {pairs.every((_, i) => answers[i] === String(i)) ? 'All matched.' : 'Change a match and check again.'}</p>}
@@ -83,6 +87,7 @@ function VocabularyMatch({ spec }: { spec: TeachingToolSpec }) {
 const variableGroups = ['Changed (independent)', 'Measured (dependent)', 'Kept the same (controlled)']
 
 function Classification({ spec, variables = false }: { spec: TeachingToolSpec; variables?: boolean }) {
+  const { play } = useLearningFeedback()
   const groups = variables ? variableGroups : spec.groups ?? []
   const items = spec.items ?? []
   const [answers, setAnswers] = useState<Record<number, string>>({})
@@ -99,7 +104,7 @@ function Classification({ spec, variables = false }: { spec: TeachingToolSpec; v
       </select>
     </label>)}
     <div className={styles.actions}>
-      <button type="button" disabled={items.some((_, i) => !answers[i])} onClick={() => setChecked(true)}>Check groups</button>
+      <button type="button" disabled={items.some((_, i) => !answers[i])} onClick={() => { setChecked(true); play(items.every((item, i) => answers[i] === item.group) ? 'correct' : 'retry') }}>Check groups</button>
       <button type="button" className={styles.secondary} onClick={() => { setAnswers({}); setChecked(false) }}>Reset</button>
     </div>
     {checked && <p role="status" className={styles.explain}>{items.filter((item, i) => answers[i] === item.group).length} of {items.length} correctly grouped. {items.every((item, i) => answers[i] === item.group) ? 'All correct.' : 'Review the groups and try again.'}</p>}

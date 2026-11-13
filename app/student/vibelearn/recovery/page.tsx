@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import { useRouter, useSearchParams } from 'next/navigation'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
@@ -49,6 +50,7 @@ function parsePayload(value: unknown): Payload {
 }
 
 export default function ExactLearningRecoveryPage() {
+  const { play } = useLearningFeedback()
   const router = useRouter()
   const search = useSearchParams()
   const attemptId = search.get('attempt')
@@ -112,6 +114,7 @@ export default function ExactLearningRecoveryPage() {
         throw new Error('The marked question did not confirm the required outcome. No recovery credit was claimed.')
       }
       const correct = response.correct === true
+      play(correct ? 'correct' : 'retry')
       setFeedback(previous => ({
         ...previous,
         [key]: correct

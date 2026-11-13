@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLearningFeedback } from '@/components/student/LearningFeedback'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, ListTodo, Plus, Trash2, Pencil, X } from 'lucide-react'
@@ -34,6 +35,7 @@ const button: React.CSSProperties = { minHeight:44, border:'none',borderRadius:1
 const secondary: React.CSSProperties = { ...button, background:'var(--vs-accent-soft)',color:'var(--vs-text)',border:'1px solid var(--vs-border)' }
 
 export default function TasksPage() {
+  const { play } = useLearningFeedback()
   const router=useRouter()
   const {identity,loading:identityLoading}=useStudent()
   const [items,setItems]=useState<PlannerItem[]>([])
@@ -87,7 +89,7 @@ export default function TasksPage() {
       ? await supabase.from('student_personal_planner').update(payload).eq('id',editing).eq('owner_user_id',owner).select('id').single()
       : await supabase.from('student_personal_planner').insert({...payload,owner_user_id:owner}).select('id').single()
     if(result.error) setError(result.error.message)
-    else {setShowForm(false);setEditing(null);setDraft(blank);await refresh()}
+    else {setShowForm(false);setEditing(null);setDraft(blank);await refresh();play('saved')}
     setSaving(false)
   }
   async function complete(item:PlannerItem) {
@@ -96,6 +98,7 @@ export default function TasksPage() {
     const {data,error:saveError}=await supabase.from('student_personal_planner').update({completed_at}).eq('id',item.id).eq('owner_user_id',owner).select('id').single()
     if(saveError||!data){setError(saveError?.message??'Could not update this task.');return}
     setItems(previous=>previous.map(row=>row.id===item.id?{...row,completed_at}:row))
+    play(completed_at?'complete':'select')
   }
   async function remove(item:PlannerItem) {
     if(!owner||!window.confirm('Delete this personal activity?')) return

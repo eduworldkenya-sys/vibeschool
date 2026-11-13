@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import { useParams, useRouter } from 'next/navigation'
 import {
   claimAttemptClient,
@@ -72,6 +73,7 @@ function clientId(): string {
 }
 
 export default function LearnerAssessmentPage() {
+  const { play } = useLearningFeedback()
   const params = useParams<{ assignmentId: string }>()
   const router = useRouter()
   const assignmentId = params.assignmentId
@@ -348,7 +350,10 @@ export default function LearnerAssessmentPage() {
           } }
           answersRef.current = next
           setAnswers(next)
-          if (sameSnapshot) return true
+          if (sameSnapshot) {
+            if (item.questionType === 'multiple_choice' || item.questionType === 'true_false') play('saved')
+            return true
+          }
           // A newer edit arrived during the save. Persist it using the freshly
           // acknowledged revision before treating this item as clean.
         } catch (saveError) {
@@ -362,6 +367,7 @@ export default function LearnerAssessmentPage() {
           answersRef.current = next
           setAnswers(next)
           setError(message || 'Answer could not be saved.')
+          play('error')
           return false
         }
       }
@@ -373,7 +379,7 @@ export default function LearnerAssessmentPage() {
     } finally {
       delete inFlightSaves.current[item.id]
     }
-  }, [workspace, secondsLeft, activeElsewhere])
+  }, [workspace, secondsLeft, activeElsewhere, play])
 
   function scheduleSave(
     item: LearnerAssessmentItem,
@@ -547,6 +553,7 @@ export default function LearnerAssessmentPage() {
       setShowConfirm(false)
       setShowReview(false)
       setResult(submitted)
+      if (!deadlineReached) play('submitted', 'Assessment submitted successfully')
       // The submission is already committed. Lease release/local draft cleanup
       // are best effort and must never turn the receipt into an error.
       try {
@@ -561,6 +568,7 @@ export default function LearnerAssessmentPage() {
       }
     } catch (submitError) {
       console.error('[LearnerAssessment] submit attempt', submitError)
+      play('error')
       setError(
         submitError instanceof Error
           ? submitError.message
@@ -570,7 +578,7 @@ export default function LearnerAssessmentPage() {
       submissionInFlightRef.current = false
       setSubmitting(false)
     }
-  }, [workspace, result, activeElsewhere, persistAnswer])
+  }, [workspace, result, activeElsewhere, persistAnswer, play])
 
   useEffect(() => {
     if (!workspace?.expiresAt || result) return
@@ -707,7 +715,7 @@ export default function LearnerAssessmentPage() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
         <button type="button" disabled={currentIndex === 0} onClick={() => setCurrentIndex(index => Math.max(0, index - 1))} style={{ ...secondaryButton, flex: 1, opacity: currentIndex === 0 ? 0.5 : 1 }}>Previous</button>
         {currentIndex < workspace.items.length - 1
-          ? <button type="button" onClick={() => setCurrentIndex(index => Math.min(workspace.items.length - 1, index + 1))} style={{ ...primaryButton, flex: 1 }}>{hasAnswer(answer) ? 'Next' : 'Skip for now'}</button>
+          ? <button type="button" onClick={() => { if (!hasAnswer(answer)) play('skip'); setCurrentIndex(index => Math.min(workspace.items.length - 1, index + 1)) }} style={{ ...primaryButton, flex: 1 }}>{hasAnswer(answer) ? 'Next' : 'Skip for now'}</button>
           : <button type="button" disabled={activeElsewhere} onClick={() => setShowReview(true)} style={{ ...primaryButton, flex: 1, opacity: activeElsewhere ? 0.5 : 1 }}>Review answers</button>}
       </div>
 

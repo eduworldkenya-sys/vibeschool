@@ -8,6 +8,7 @@ import StudentPlannerReminders from "@/components/student/StudentPlannerReminder
 import OfflineBar from "@/components/student/OfflineBar";
 import TwinWorkspaceProvider from "@/components/student/VibeTwin/TwinWorkspaceProvider";
 import { ToastContext, ThemeContext } from "@/components/student/StudentUiContext";
+import { FeedbackSoundToggle } from "@/components/student/LearningFeedback";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student-theme";
 
@@ -59,7 +60,8 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
         </button>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <FeedbackSoundToggle />
         <button type="button" aria-label="Open notifications" onClick={() => router.push("/student/notifications")}
           style={{ cursor: "pointer", color: "var(--vs-accent)", border: "none", background: "transparent", display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center" }}
         >

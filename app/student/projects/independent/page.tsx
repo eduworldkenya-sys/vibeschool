@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLearningFeedback } from "@/components/learn/LearningFeedback";
 import Link from "next/link";
 import { ArrowLeft, BookOpenCheck, CheckCircle2, ClipboardList, Plus, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ const field: React.CSSProperties = { boxSizing: "border-box", width: "100%", min
 const button: React.CSSProperties = { minHeight: 44, border: 0, background: "var(--vs-accent, #4338ca)", color: "#fff", borderRadius: 11, padding: "10px 15px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
 
 export default function IndependentProjects() {
+  const { play } = useLearningFeedback();
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [projects, setProjects] = useState<IndependentProject[]>([]);
@@ -42,7 +44,15 @@ export default function IndependentProjects() {
       .order("created_at", { ascending: false })
       .limit(100);
     if (loadError) throw loadError;
-    const rows = (data ?? []) as unknown as IndependentProject[];
+    const rows: IndependentProject[] = (data ?? []).map(row => ({
+      id: row.id,
+      title: row.title,
+      description: row.description ?? null,
+      status: row.status,
+      independent_notes: row.independent_notes ?? null,
+      independent_completed_at: row.independent_completed_at ?? null,
+      created_at: row.created_at ?? null,
+    }));
     setProjects(rows);
     setNotes(Object.fromEntries(rows.map(row => [row.id, row.independent_notes ?? ""])));
   }, []);
@@ -85,6 +95,7 @@ export default function IndependentProjects() {
       if (writeError) throw writeError;
       setTitle(""); setDescription("");
       await load(userId);
+      play("saved");
     } catch {
       setError("Could not create the project. Please try again.");
     } finally { setWorking(false); }
@@ -103,6 +114,7 @@ export default function IndependentProjects() {
       }).eq("id", project.id).eq("independent_owner_profile_id", userId);
       if (writeError) throw writeError;
       await load(userId);
+      play(complete ? "submitted" : "saved");
     } catch {
       setError("Could not save your project. Please try again.");
     } finally { setWorking(false); }

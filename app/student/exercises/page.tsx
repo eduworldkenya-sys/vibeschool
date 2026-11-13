@@ -1,7 +1,8 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useLearningFeedback } from "@/components/learn/LearningFeedback";
 import { useStudent } from "@/lib/student-context";
 import { supabase } from "@/lib/supabase";
 import Skel from "@/components/student/Skel";
@@ -23,14 +24,21 @@ type RpcClient = {
 };
 
 export default function StudentExercisesPage() {
+  const { play } = useLearningFeedback();
   const { identity, loading: idLoading } = useStudent();
   const [list, setList] = useState<ExItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const client = supabase as unknown as RpcClient;
+  // Keep the legacy RPCs behind an explicit allowlist; they are not generated in the DB TS bindings yet.
+  const client: RpcClient = { rpc: async (fn, args) => {
+    if (!["student_save_exercise_draft", "student_submit_exercise", "student_sync_task_execution_receipt"].includes(fn))
+      return { data: null, error: { message: "Unsupported exercise operation." } };
+    const response = await supabase.rpc(fn as never, args as never);
+    return { data: response.data, error: response.error };
+  } };
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!identity?.classId) { setLoading(false); return; }
     setError(null);
     const [exRes, subRes] = await Promise.all([
@@ -68,14 +76,12 @@ export default function StudentExercisesPage() {
       };
     }));
     setLoading(false);
-  }
+  }, [identity?.classId, identity?.studentId]);
 
   useEffect(() => {
     if (idLoading || !identity) return;
     void load();
-    // identity is stable after canonical resolution; load is intentionally scoped to it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [identity, idLoading]);
+  }, [identity, idLoading, load]);
 
   function updateNotes(id: string, notes: string) {
     setList(current => current.map(item => item.id === id ? { ...item, notes } : item));
@@ -92,6 +98,7 @@ export default function StudentExercisesPage() {
       });
       if (rpcError) throw new Error(rpcError.message || "Exercise draft could not be saved.");
       await load();
+      play("saved");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Exercise draft could not be saved.");
     } finally {
@@ -119,6 +126,7 @@ export default function StudentExercisesPage() {
       });
       if (receiptError) throw new Error(receiptError.message || "Exercise was submitted, but progress could not be synchronized.");
       await load();
+      play("submitted");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Exercise could not be submitted.");
     } finally {

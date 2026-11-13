@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState } from "react";
+import { useLearningFeedback } from "@/components/learn/LearningFeedback";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
@@ -58,6 +59,7 @@ function formatReceipt(value: string | null): string {
 }
 
 export default function HomeworkDetailPage() {
+  const { play } = useLearningFeedback();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { identity, loading: identityLoading } = useStudent();
@@ -176,6 +178,7 @@ export default function HomeworkDetailPage() {
       setPhotoPreview(photoUrl);
       setPhotoFile(null);
       setMessage("Draft saved. You can continue later.");
+      play("saved");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not save draft.");
     } finally {
@@ -212,6 +215,7 @@ export default function HomeworkDetailPage() {
       setPhotoPreview(photoUrl);
       setPhotoFile(null);
       setMessage("Submitted successfully. Vibeschool has received your work.");
+      play("submitted");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not submit homework.");
     } finally {
