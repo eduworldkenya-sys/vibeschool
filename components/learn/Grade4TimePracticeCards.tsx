@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import { Eye, Lightbulb, RotateCcw } from 'lucide-react'
 import { timeStudyHint } from '@/lib/content/grade4TimePractice.mjs'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
@@ -35,6 +36,7 @@ function QuestionCard({question,index,lessonNumber}:{
   index:number
   lessonNumber:number
 }) {
+  const { play } = useLearningFeedback()
   const check = quickChecks[question.prompt]
   const [choice, setChoice] = useState('')
   const [written,setWritten] = useState('')
@@ -46,7 +48,7 @@ function QuestionCard({question,index,lessonNumber}:{
     <div className={styles.questionPrompt}><VisualRichText body={question.prompt} style={{fontSize:17,lineHeight:1.7}}/></div>
     {check ? <div className={styles.questionActions} role="group" aria-label={check.prompt}>
       {check.choices.map(option => <button key={option} type="button" className={styles.answerButton}
-        aria-pressed={choice === option} onClick={() => setChoice(option)}>{option}</button>)}
+        aria-pressed={choice === option} onClick={() => { setChoice(option); play(option === check.correct ? 'correct' : 'retry') }}>{option}</button>)}
     </div> : <>
     <label className={styles.answerLabel} htmlFor={'answer-' + question.id}>
       Your working or answer <span>(optional)</span>
