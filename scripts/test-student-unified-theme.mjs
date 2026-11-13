@@ -64,3 +64,22 @@ test('shared study, tasks, exams, revision surfaces consume tokens without malfo
   assert.match(exams,/\.vs-exam-button\{[^\n]*background:var\(--vs-accent\)/)
   assert.match(exams,/\.vs-exam-status--in-progress\{background:#fff2d9/)
 })
+
+
+test('Practise replaces visible Twin navigation and reuses existing Topic Practice', () => {
+  const home = read('app/student/page.tsx')
+  const nav = read('components/student/BottomNav.tsx')
+  const provider = read('components/student/VibeTwin/TwinWorkspaceProvider.tsx')
+  const study = read('app/student/study/page.tsx')
+  const topic = read('app/student/vibelearn/topic-practice/page.tsx')
+  assert.match(home, /<Quick title="Practise" note="Questions and exercises" onClick=\{\(\) => router\.push\('\/student\/vibelearn\/topic-practice'\)\}/)
+  assert.equal((home.match(/<Quick title="Practise"/g) ?? []).length, 1, 'One homepage practice shortcut')
+  assert.doesNotMatch(home, /<Quick title="VibeTwin"/)
+  assert.match(nav, /id: "practise",\s*label: "Practise",\s*href: "\/student\/vibelearn\/topic-practice"/)
+  assert.match(nav, /if \(path\.startsWith\("\/student\/vibelearn\/topic-practice"\)\) return "practise"/)
+  assert.doesNotMatch(nav, /id: "twin"/)
+  assert.doesNotMatch(provider, /<button/, 'No global floating Twin overlay')
+  assert.match(provider, /<TwinWorkspaceContext\.Provider value=\{value\}>/, 'Twin state provider is retained')
+  assert.match(study, /href="\/student\/vibelearn\/topic-practice"/, 'Learn retains the canonical topic practice link')
+  assert.match(topic, /<CanonicalTopicPractice grade=\{grade\} \/>/, 'Existing canonical grade practice is reused')
+})
