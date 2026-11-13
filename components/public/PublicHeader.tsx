@@ -10,6 +10,7 @@ const primaryNav = [
   ['/learn', 'Learn'],
   ['/teacher', 'Teachers'],
   ['/vibetutor', 'VibeTutor'],
+  ['/schools', 'Find Schools'],
   ['/pathways', 'Pathways'],
 ] as const
 
@@ -19,7 +20,6 @@ const otherNav = [
   ['/sandbox', 'Experience'],
   ['/success-wishes', 'Success Wishes'],
   ['/blog', 'News & Guides'],
-  ['/schools', 'Find Schools'],
   ['/institutions', 'For Schools'],
   ['/about', 'About'],
   ['/contact', 'Contact'],
@@ -59,7 +59,7 @@ export function PublicHeader({ product, compact = false, navigation }: PublicHea
               <span className={styles.mobileSection}>Others</span>
               {otherNav.map(([href,label]) => <Link key={href} href={href} aria-current={product === label ? 'page' : undefined}>{label}</Link>)}
             </>}
-            {!compact && <TrackedLink href="/login/global" event="public_auth_signin" className={styles.mobileSignin}>Sign in</TrackedLink>}
+            <TrackedLink href="/login/global" event="public_auth_signin" className={styles.mobileSignin}>Sign in</TrackedLink>
           </nav>
         </details>
       </div>
