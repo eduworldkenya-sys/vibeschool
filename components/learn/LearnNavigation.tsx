@@ -142,4 +142,4 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
         ? <div className={styles.studentNavTheme}><StudentBottomNav/><div className={styles.navReserve} aria-hidden="true"/></div>
         : <Suspense fallback={<div className={styles.navReserve} aria-hidden="true"/>}><LearnPublicBottomNav/></Suspense>)}
   </div>
-}}
+}
