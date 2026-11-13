@@ -114,7 +114,7 @@ export default function TimetableSetupPage() {
     setDurations([])
     try {
       const [blocksRes, durationRes, manageRes] = await Promise.all([
-        supabase.rpc('get_school_day_blocks_for_member', { p_school_id: schoolId }),
+        supabase.rpc('get_my_school_day_blocks'),
         supabase
           .from('school_lesson_duration_defaults')
           .select('id,school_id,grade_label,duration_minutes')
@@ -129,7 +129,7 @@ export default function TimetableSetupPage() {
       }
       if (manageRes.error) throw manageRes.error
 
-      setPeriods((blocksRes.data ?? []) as SchoolPeriodRow[])
+      setPeriods(((blocksRes.data ?? []) as SchoolPeriodRow[]).filter(block => block.school_id === schoolId))
       setDurations((durationRes.data ?? []) as DurationRow[])
       setCanManage(Boolean(manageRes.data))
     } catch (e) {
