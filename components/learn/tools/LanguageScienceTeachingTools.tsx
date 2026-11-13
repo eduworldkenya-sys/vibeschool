@@ -26,7 +26,7 @@ function Reorder({ values, instruction, separator = ' → ' }: { values: string[
       <button type="button" className={styles.secondary} onClick={() => { setPicked([]); setChecked(false) }}>Try again</button>
       {picked.length > 0 && !checked && <button type="button" className={styles.secondary} onClick={() => setPicked(previous => previous.slice(0, -1))}>Undo last</button>}
     </div>
-    {checked && <p role="status" className={styles.explain}>{correct ? 'Correct order. Well done.' : 'Not quite. Change the order and try again.'}</p>}
+    {checked && <p role="status" className={correct ? styles.feedbackCorrect : styles.feedbackRetry}>{correct ? 'Correct order. Well done.' : 'Not quite. Change the order and try again.'}</p>}
   </div>
 }
 
@@ -50,7 +50,7 @@ function WordBuilder({ spec }: { spec: TeachingToolSpec }) {
       {chosen.length > 0 && !checked && <button type="button" className={styles.secondary}
         onClick={() => setChosen(old => old.slice(0, -1))}>Undo</button>}
     </div>
-    {checked && <p role="status" className={styles.explain}>
+    {checked && <p role="status" className={answer.toLocaleLowerCase() === word.toLocaleLowerCase() ? styles.feedbackCorrect : styles.feedbackRetry}>
       {answer.toLocaleLowerCase() === word.toLocaleLowerCase() ? 'Correct spelling.' : 'Try another letter order.'}</p>}
   </div>
 }
@@ -80,7 +80,7 @@ function VocabularyMatch({ spec }: { spec: TeachingToolSpec }) {
       <button type="button" disabled={pairs.some((_, i) => !answers[i])} onClick={() => { setChecked(true); play(pairs.every((_, i) => answers[i] === String(i)) ? 'correct' : 'retry') }}>Check matches</button>
       <button type="button" className={styles.secondary} onClick={() => { setAnswers({}); setChecked(false) }}>Reset</button>
     </div>
-    {checked && <p role="status" className={styles.explain}>{pairs.filter((_, i) => answers[i] === String(i)).length} of {pairs.length} matches correct. {pairs.every((_, i) => answers[i] === String(i)) ? 'All matched.' : 'Change a match and check again.'}</p>}
+    {checked && <p role="status" className={pairs.every((_, i) => answers[i] === String(i)) ? styles.feedbackCorrect : styles.feedbackRetry}>{pairs.filter((_, i) => answers[i] === String(i)).length} of {pairs.length} matches correct. {pairs.every((_, i) => answers[i] === String(i)) ? 'All matched.' : 'Change a match and check again.'}</p>}
   </div>
 }
 
@@ -107,7 +107,7 @@ function Classification({ spec, variables = false }: { spec: TeachingToolSpec; v
       <button type="button" disabled={items.some((_, i) => !answers[i])} onClick={() => { setChecked(true); play(items.every((item, i) => answers[i] === item.group) ? 'correct' : 'retry') }}>Check groups</button>
       <button type="button" className={styles.secondary} onClick={() => { setAnswers({}); setChecked(false) }}>Reset</button>
     </div>
-    {checked && <p role="status" className={styles.explain}>{items.filter((item, i) => answers[i] === item.group).length} of {items.length} correctly grouped. {items.every((item, i) => answers[i] === item.group) ? 'All correct.' : 'Review the groups and try again.'}</p>}
+    {checked && <p role="status" className={items.every((item, i) => answers[i] === item.group) ? styles.feedbackCorrect : styles.feedbackRetry}>{items.filter((item, i) => answers[i] === item.group).length} of {items.length} correctly grouped. {items.every((item, i) => answers[i] === item.group) ? 'All correct.' : 'Review the groups and try again.'}</p>}
   </div>
 }
 
@@ -118,12 +118,13 @@ function FoodChain({ spec }: { spec: TeachingToolSpec }) {
 }
 
 function ReadingComprehension({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const [revealed, setRevealed] = useState(false)
   return <div className={styles.stack}>
     <div className={styles.reading} aria-label="Reading passage">{spec.passage}</div>
     <p><strong>Think:</strong> {spec.question}</p>
     <p>Write or say your response before reading the example answer.</p>
-    <button type="button" aria-expanded={revealed} onClick={() => setRevealed(v => !v)}>
+    <button type="button" aria-expanded={revealed} onClick={() => { setRevealed(v => !v); play("select") }}>
       {revealed ? 'Hide example response' : 'Compare with an example response'}
     </button>
     {revealed && <p role="status" className={styles.explain}><strong>Example response:</strong> {spec.sampleAnswer}</p>}
@@ -131,6 +132,7 @@ function ReadingComprehension({ spec }: { spec: TeachingToolSpec }) {
 }
 
 function WritingPlanner({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const [start, setStart] = useState(''), [middle, setMiddle] = useState(''), [end, setEnd] = useState('')
   return <div className={styles.stack}>
     <p>Plan your writing: {spec.prompt}</p>
@@ -138,7 +140,7 @@ function WritingPlanner({ spec }: { spec: TeachingToolSpec }) {
     <label>Middle <textarea rows={3} value={middle} onChange={e=>setMiddle(e.target.value)} placeholder="Explain or describe it." /></label>
     <label>Ending <textarea rows={3} value={end} onChange={e=>setEnd(e.target.value)} placeholder="Conclude clearly." /></label>
     <p className={styles.explain}>Your writing stays on this page and is not submitted or marked.</p>
-    <button type="button" className={styles.secondary} onClick={()=>{setStart('');setMiddle('');setEnd('')}}>Clear plan</button>
+    <button type="button" className={styles.secondary} onClick={()=>{setStart('');setMiddle('');setEnd('');play('select')}}>Clear plan</button>
   </div>
 }
 
