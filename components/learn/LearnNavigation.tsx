@@ -13,9 +13,10 @@ import styles from './LearnNavigation.module.css'
  * Use one existing public or student navigation on Learn discovery surfaces.
  * Auth role is only a display hint. Protected destinations keep their own checks.
  */
-function useStudentNavigation(): boolean | null {
+function useStudentNavigation(enabled: boolean): boolean | null {
   const [student, setStudent] = useState<boolean | null>(null)
   useEffect(() => {
+    if (!enabled) return
     let mounted = true
     void (async () => {
       try {
@@ -29,7 +30,7 @@ function useStudentNavigation(): boolean | null {
       }
     })()
     return () => { mounted = false }
-  }, [])
+  }, [enabled])
   return student
 }
 
@@ -86,7 +87,7 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const showHeader = isLearnDiscoveryPath(pathname)
   const showBottom = usesLearnBottomNav(pathname) && !isStoryReadingPath(pathname)
-  const student = useStudentNavigation()
+  const student = useStudentNavigation(showBottom)
 
   return <>
     {showHeader && <Suspense fallback={null}><LearnHeader/></Suspense>}
