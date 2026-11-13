@@ -5,6 +5,8 @@ import test from 'node:test'
 const read = path => readFileSync(path, 'utf8')
 const chrome = read('components/learn/LearnNavigation.tsx')
 const publicNav = read('components/public/PublicBottomNav.tsx')
+const publicNavCss = read('components/public/PublicBottomNav.module.css')
+const learnNavCss = read('components/learn/LearnNavigation.module.css')
 const library = read('components/learn/SchoolLearnLibrary.tsx')
 const stories = read('components/originals/StoriesHub.tsx')
 const book = read('components/originals/StoryBook.tsx')
@@ -15,6 +17,7 @@ test('Learn discovery routes have one shared VibeSchool header and first-class r
   assert.match(read('app/learn/layout.tsx'), /<LearnRouteShell>\{children\}<\/LearnRouteShell>/)
   assert.match(chrome, /vibeschool-wordmark\.svg/)
   assert.match(chrome, /href="\/" aria-label="VibeSchool website home"/)
+  assert.doesNotMatch(chrome, />Website home<\/Link>/, 'Website Home text belongs in bottom navigation, not the far-right header')
   assert.match(chrome, /href="\/learn\?view=reading"/)
   assert.match(chrome, /href="\/learn\/stories"/)
   assert.match(chrome, /href="\/learn\?view=courses"/)
@@ -28,7 +31,8 @@ test('One bottom nav per Learn surface, using existing public or student navigat
   assert.match(chrome, /supabase\.rpc\('get_my_role'\)/)
   assert.match(chrome, /data === 'student'/)
   assert.match(chrome, /<StudentBottomNav\/>/)
-  assert.match(chrome, /<PublicBottomNav forceVisible\/>/)
+  assert.match(chrome, /<LearnPublicBottomNav\/>/)
+  assert.match(chrome, /<PublicBottomNav forceVisible mode="learn" activeView=\{search\.get\('view'\)\}\/>/)
   assert.match(publicNav, /if \(!forceVisible && !PUBLIC_ROOTS\.has\(pathname\)\) return null/)
   assert.doesNotMatch(publicNav.split('const PUBLIC_ROOTS = ')[1].split('\n')[0], /'\/learn'/)
   assert.match(publicNav, /item\.href === '\/learn' && pathname\.startsWith\('\/learn\/'\)/)
@@ -45,4 +49,21 @@ test('Chapter reading keeps its own focused controls and exits to this book', ()
   assert.match(book, /data-story-block-id/)
   assert.match(book, /startAtChapterTopRef/)
   assert.doesNotMatch(book, /ContentBlockEditor|dangerouslySetInnerHTML/)
+})
+
+
+test('Learn gets a visible bottom bar on mobile and desktop without changing website pages', () => {
+  assert.match(publicNav, /const learnItems = \[/)
+  for (const label of ['Home', 'Subjects', 'Reading', 'Stories', 'Courses']) {
+    assert.match(publicNav, new RegExp("label: '" + label + "'"))
+  }
+  for (const route of ['/learn?view=reading', '/learn/stories', '/learn?view=courses']) {
+    assert.ok(publicNav.includes("href: '" + route + "'"), 'Learn destination absent: ' + route)
+  }
+  assert.match(publicNavCss, /\.learnNav\s*\{\s*display:\s*block;/)
+  assert.match(publicNavCss, /\.learnSpacer\s*\{\s*display:\s*block;/)
+  assert.match(publicNavCss, /@media\s*\(max-width:\s*767px\)/, 'Website nav must remain mobile-only')
+  assert.doesNotMatch(learnNavCss, /\.studentNavTheme nav\[aria-label="Student primary navigation"\].*display:\s*none/, 'Student Learn nav must not disappear on desktop')
+  assert.match(learnNavCss, /\.navReserve\s*\{\s*height:/)
+  assert.match(chrome, /!isStoryReadingPath\(pathname\)/, 'Chapter reader must not get a fixed bottom bar')
 })

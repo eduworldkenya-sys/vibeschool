@@ -35,8 +35,7 @@
   font-size: 16px;
   font-weight: 800;
 }
-.websiteHome { margin-left: auto; color: #d8e0ed; text-decoration: none; font-size: 12px; font-weight: 700; padding: 11px 8px; }
-.websiteHome:hover,.learnHome:hover { color: #fff; text-decoration: underline; }
+.learnHome:hover { color: #fff; text-decoration: underline; }
 .sections {
   max-width: 1260px;
   margin: 0 auto;
@@ -71,15 +70,10 @@
   --vs-muted: #64748b;
 }
 .navReserve { height: calc(76px + env(safe-area-inset-bottom, 0px)); }
-@media(min-width:768px) {
-  .navReserve { display: none; }
-  .studentNavTheme nav[aria-label="Student primary navigation"] { display: none !important; }
-}
 @media(max-width:620px) {
   .top { padding: 8px 14px 5px; gap: 9px; }
   .logo img { width: 124px; max-height: 34px; }
   .learnHome { font-size: 14px; padding-left: 9px; }
-  .websiteHome { font-size: 11px; }
   .sections { padding: 4px 10px 8px; }
   .sections a { font-size: 11px; padding: 8px 10px; }
 }

@@ -71,7 +71,6 @@ function LearnHeader() {
         <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={620} height={160} priority/>
       </Link>
       <Link href="/learn" className={styles.learnHome} aria-label="VibeSchool Learn home">Learn</Link>
-      <Link href="/" className={styles.websiteHome}>Website home</Link>
     </div>
     <nav className={styles.sections} aria-label="VibeSchool Learn sections">
       <Link href="/learn" aria-current={subjects ? 'page' : undefined}>School subjects</Link>
@@ -81,6 +80,11 @@ function LearnHeader() {
       <Link href="/student/study">My learning</Link>
     </nav>
   </header>
+}
+
+function LearnPublicBottomNav() {
+  const search = useSearchParams()
+  return <PublicBottomNav forceVisible mode="learn" activeView={search.get('view')}/>
 }
 
 export function LearnRouteShell({ children }: { children: ReactNode }) {
@@ -96,6 +100,6 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
       ? <div className={styles.navReserve} aria-hidden="true"/>
       : student
         ? <div className={styles.studentNavTheme}><StudentBottomNav/><div className={styles.navReserve} aria-hidden="true"/></div>
-        : <PublicBottomNav forceVisible/>)}
+        : <Suspense fallback={<div className={styles.navReserve} aria-hidden="true"/>}><LearnPublicBottomNav/></Suspense>)}
   </>
 }
