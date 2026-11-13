@@ -13,6 +13,9 @@ const FeedbackContext = createContext<Context>({ play: () => undefined, soundEna
 let audioContext: AudioContext | null = null
 
 function readPreference(): boolean {
+  // Do Not Disturb and Reading Mode silence all in-app feedback, not just the
+  // visible sound toggle. Preserve the user's sound preference for later.
+  if (typeof document !== 'undefined' && document.querySelector('.student-app[data-study-mode="focus"], .student-app[data-study-mode="reading"]')) return false
   try { return typeof window !== 'undefined' && window.localStorage.getItem(SOUND_KEY) === 'on' }
   catch { return false }
 }
