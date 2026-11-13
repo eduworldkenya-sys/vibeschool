@@ -64,3 +64,16 @@ assert.ok(!isUpperPrimary('Grade 7'))
 assert.ok(!modal.includes('upperPrimaryPeriods('))
 assert.ok(modal.includes('p_period_id: selectedBlock?.[0]?.id ?? null'))
 console.log('Configured school-period authority regressions: PASS');
+
+const { periodAppearance } = await import('../lib/timetable/periodAppearance.ts');
+assert.notEqual(periodAppearance('break').background, periodAppearance('lunch').background);
+assert.equal(periodAppearance('lesson').background, '#ffffff', 'lessons must remain visually neutral');
+assert.equal(periodAppearance('school_event').text, '#475569', 'unknown activities use subdued neutral');
+markup=render([], [
+  {id:'br',scheduleDay:0,periodNumber:1,label:'Morning break',startTime:'09:30',endTime:'09:50',kind:'break',protected:true},
+  {id:'ln',scheduleDay:0,periodNumber:2,label:'Lunch',startTime:'12:30',endTime:'13:00',kind:'lunch',protected:true},
+]);
+assert.ok(markup.includes('#eff6ff') && markup.includes('#fff7ed'), 'activity colours appear in the weekly grid');
+assert.ok(markup.includes('Break: Morning break') && markup.includes('Lunch: Lunch'), 'activity identity remains readable without colour');
+assert.ok(!markup.includes('Add lesson'), 'protected break and lunch cannot be converted to lesson add buttons');
+console.log('Subtle timetable colour and protected-block regressions: PASS');
