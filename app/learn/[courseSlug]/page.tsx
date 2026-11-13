@@ -4,7 +4,6 @@ export const dynamic = "force-dynamic"
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { LearnBottomNav } from '@/components/learn/LearnBottomNav'
 
 const BLUE = '#1A1AFF'
 const INK = '#0A0A0F'
@@ -332,7 +331,6 @@ export default function CourseRoadmapPage() {
         )}
       </div>
 
-      <LearnBottomNav />
     </div>
   )
 }

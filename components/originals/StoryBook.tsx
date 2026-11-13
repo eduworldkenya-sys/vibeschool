@@ -235,7 +235,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
   }
   function exitReader(){
     if(positionRef.current)void persist(positionRef.current)
-    router.push('/learn/stories')
+    router.push(storyLandingHref(id))
   }
 
   if(loading)return <main className={css.page}><div role="status" className={css.message}>Opening your story…</div></main>
@@ -243,11 +243,11 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
   const bookTitle=publication.title||'Untitled story'
   const image=safeStoryImage(publication.cover_url)
 
-  if(mode==='detail')return <main className={css.page}>
-    <header className={css.header}><div className={css.headerInner}><Link className={css.backLink} href="/learn/stories"><ArrowLeft size={17}/> Stories & Series</Link><Link className={css.wordmark} href="/learn/stories"><BookOpen size={19}/> VibeSchool <strong>Originals</strong></Link></div></header>
+  if(mode==='detail')return <main className={css.page} id="main-content">
     <div className={css.bookDetail}>
       <div className={css.detailCover}>{image?<img src={image} alt={'Cover of '+bookTitle}/>:<div className={css.coverFallback}><BookOpen size={70}/> VibeSchool Originals</div>}</div>
       <div className={css.detailInfo}>
+        <nav className={css.bookBreadcrumb} aria-label="Book location"><Link href="/learn/stories">Stories &amp; Series</Link><ChevronRight size={15}/><span aria-current="page">{bookTitle}</span></nav>
         <span className={css.eyebrow}>{publication.series_name||'VIBESCHOOL ORIGINALS'} {publication.series_number?' · BOOK '+publication.series_number:''}</span>
         <h1 className={css.detailTitle}>{bookTitle}</h1>
         {publication.subtitle&&<p className={css.detailSubtitle}>{publication.subtitle}</p>}

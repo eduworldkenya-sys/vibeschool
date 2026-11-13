@@ -207,21 +207,6 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
 
   return (
     <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <div className={styles.topInner}>
-          <Link className={styles.brand} href={basePath} aria-label="VibeSchool Learn home">
-            <span className={styles.brandIcon} aria-hidden="true">V</span>
-            <span><span className={styles.brandName}>VibeSchool <strong>Learn</strong></span><span className={styles.brandSub}>Your digital learning library</span></span>
-          </Link>
-          <nav className={styles.topLinks} aria-label="Learning navigation">
-            <Link className={styles.topLink} href="/learn" aria-current={!collectionView ? 'page' : undefined}>School subjects</Link>
-            <Link className={styles.topLink} href="/learn?view=reading" aria-current={collectionView === 'reading' ? 'page' : undefined}>All reading</Link>
-            <Link className={styles.topLink} href="/learn/stories">Stories &amp; Series</Link>
-            <Link className={styles.topLink} href="/learn?view=courses" aria-current={collectionView === 'courses' ? 'page' : undefined}>College & courses</Link>
-            <Link className={styles.topLink} href="/student/study">My learning</Link>
-          </nav>
-        </div>
-      </header>
       <div className={collectionView ? styles.collectionsFrame : styles.frame}>
         {!collectionView && <aside className={styles.sidebar} aria-label="School level navigation">
           <div className={styles.sidebarHeading}>Choose school level</div>

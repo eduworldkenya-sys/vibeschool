@@ -105,12 +105,7 @@ export function StoriesHub() {
   }),[stories,selectedSeries,search,genre])
   const displayed=useMemo(()=>selectedSeries ? orderSeriesBooks(visible) : visible,[visible,selectedSeries])
 
-  return <main className={css.page}>
-    <header className={css.header}><div className={css.headerInner}>
-      <Link href="/learn" className={css.backLink}><ArrowLeft size={17}/> VibeLearn</Link>
-      <Link href="/learn/stories" className={css.wordmark}><BookOpen size={19}/> VibeSchool <strong>Originals</strong></Link>
-      <Link href="/learn?view=reading" className={css.headerExtra}>All reading</Link>
-    </div></header>
+  return <main className={css.page} id="main-content">
     <div className={css.library}>
       <div className={css.eyebrow}>STORIES & SERIES</div>
       <h1 className={css.heroTitle}>{selectedSeries || 'Stories worth getting lost in.'}</h1>

@@ -45,7 +45,7 @@
 .subtle{font-size:12px;color:#71808c;margin:28px 0;line-height:1.7}
 .bookDetail{max-width:1120px;margin:0 auto;padding:44px 24px 110px;display:grid;grid-template-columns:minmax(220px,340px) minmax(0,1fr);gap:clamp(25px,5vw,65px);align-items:start}
 .detailCover{width:100%;aspect-ratio:3/4;background:#17283d;overflow:hidden;border-radius:13px;box-shadow:0 20px 45px #1324362a}
-.detailInfo{min-width:0}.detailTitle{font:700 clamp(34px,4.5vw,54px)/1.13 Georgia,serif;letter-spacing:-.03em;color:#1c2737;margin:14px 0 12px}
+.detailInfo{min-width:0}.bookBreadcrumb{display:flex;align-items:center;gap:7px;font-size:12px;color:#6a7581;margin-bottom:18px;min-width:0}.bookBreadcrumb a{color:#455f7a;font-weight:750;text-decoration:none}.bookBreadcrumb a:hover{text-decoration:underline}.bookBreadcrumb span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.detailTitle{font:700 clamp(34px,4.5vw,54px)/1.13 Georgia,serif;letter-spacing:-.03em;color:#1c2737;margin:14px 0 12px}
 .detailSubtitle{font:italic 19px Georgia,serif;color:#8e724e;margin:0 0 20px}.detailDescription{font-size:15px;color:#54616c;line-height:1.82;margin:18px 0}.detailMeta{font-size:12px;color:#68757f;margin:12px 0 23px;text-transform:capitalize}
 .primaryButton{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:#162438;color:#fff;padding:13px 22px;min-height:48px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:750}
 .primaryButton:hover{background:#2b405e}

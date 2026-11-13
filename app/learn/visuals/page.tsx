@@ -94,21 +94,6 @@ function VisualLibraryContent() {
   }
 
   return <div className={learnStyles.shell}>
-    <header className={learnStyles.topbar}>
-      <div className={learnStyles.topInner}>
-        <Link className={learnStyles.brand} href="/learn" aria-label="VibeSchool Learn home">
-          <span className={learnStyles.brandIcon} aria-hidden="true">V</span>
-          <span><span className={learnStyles.brandName}>VibeSchool <strong>Learn</strong></span>
-            <span className={learnStyles.brandSub}>Your digital learning library</span></span>
-        </Link>
-        <nav className={learnStyles.topLinks} aria-label="Learning navigation">
-          <Link className={learnStyles.topLink} href="/learn">School subjects</Link>
-          <Link className={learnStyles.topLink} href="/learn?view=reading">All reading</Link>
-          <Link className={learnStyles.topLink} href="/student/study">My learning</Link>
-          <span className={learnStyles.topLink} aria-current="page">Visual aids</span>
-        </nav>
-      </div>
-    </header>
 
     <main className={styles.main} id="main-content">
       <nav className={learnStyles.breadcrumbs} aria-label="Breadcrumb">
