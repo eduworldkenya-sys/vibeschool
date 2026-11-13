@@ -16,6 +16,15 @@ export const TEACHING_TOOL_CATALOG = [
   { id: 'classification', title: 'Classification sorter', subject: 'science', description: 'Classify examples into scientific groups.' },
   { id: 'experiment-variables', title: 'Fair-test planner', subject: 'science', description: 'Distinguish what changes, what is measured and what stays constant.' },
   { id: 'food-chain', title: 'Food-chain builder', subject: 'science', description: 'Put living things in the order of energy transfer.' },
+  { id: 'visual-explorer', title: 'Explore an illustration', subject: 'interactive', description: 'Study an admitted visual and reveal author-provided labels.' },
+  { id: 'audio-learning', title: 'Listen and learn', subject: 'interactive', description: 'Listen to lesson text with optional device speech support.' },
+  { id: 'observation-journal', title: 'Observation journal', subject: 'interactive', description: 'Record real observations against guiding questions.' },
+  { id: 'drawing-pad', title: 'Drawing and tracing', subject: 'interactive', description: 'Draw on screen or describe a drawing made on paper.' },
+  { id: 'practical-steps', title: 'Practical activity guide', subject: 'interactive', description: 'Follow approved activity steps one at a time.' },
+  { id: 'sorting-groups', title: 'Sorting and matching', subject: 'interactive', description: 'Sort author-supplied examples into categories.' },
+  { id: 'map-explorer', title: 'Map explorer', subject: 'interactive', description: 'Explore labelled places and an optional schematic location diagram.' },
+  { id: 'timeline-explorer', title: 'Timeline explorer', subject: 'interactive', description: 'Explore author-supplied events and their sequence.' },
+  { id: 'evidence-notes', title: 'Learning evidence notes', subject: 'interactive', description: 'Describe work and copy notes to an existing assignment.' },
 ] as const
 
 export type TeachingToolId = (typeof TEACHING_TOOL_CATALOG)[number]['id']
@@ -31,6 +40,17 @@ export type TeachingToolSpec = {
   pairs?: readonly { term: string; definition: string }[]
   groups?: readonly string[]
   items?: readonly { label: string; group: string }[]
+  /** Stage 3: all material is author supplied from an already authorised lesson. */
+  visualId?: string
+  resourceVersionId?: string
+  visualNotes?: readonly { label: string; detail: string }[]
+  spokenText?: string
+  language?: string
+  observationQuestions?: readonly string[]
+  steps?: readonly string[]
+  materials?: readonly string[]
+  places?: readonly { label: string; description: string; x?: number; y?: number }[]
+  events?: readonly { date: string; label: string; description?: string }[]
 }
 const validToolIds = new Set<string>(TEACHING_TOOL_CATALOG.map(tool => tool.id))
 
@@ -72,5 +92,5 @@ export function resolveTeachingTools(
   const seen = new Set<TeachingToolId>()
   return selected.filter((tool): tool is TeachingToolSpec =>
     !!tool && typeof tool.id === 'string' && isTeachingToolId(tool.id)
-      && !seen.has(tool.id) && (seen.add(tool.id), true)).slice(0, 12)
+      && !seen.has(tool.id) && (seen.add(tool.id), true)).slice(0, 21)
 }
