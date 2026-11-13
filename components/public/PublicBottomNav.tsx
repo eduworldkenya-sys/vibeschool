@@ -7,7 +7,7 @@ import styles from './PublicBottomNav.module.css'
 // Public destinations only. Learning, exams and signed-in workspaces own their navigation.
 const items = [
   { label: 'Home', href: '/', icon: 'home' },
-  { label: 'Explore', href: '/product', icon: 'explore' },
+  { label: 'Learn', href: '/learn', icon: 'explore' },
   { label: 'Schools', href: '/schools', icon: 'schools' },
   { label: 'Teachers', href: '/teacher', icon: 'teachers' },
   { label: 'Contact', href: '/contact', icon: 'contact' },
