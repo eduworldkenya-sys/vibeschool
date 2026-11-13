@@ -11,7 +11,7 @@ const ink = '#173f31'
 const info = {fontSize:13,lineHeight:1.6,color:'#345746'}
 
 export default function Grade3MathematicsMap({
-  selectedUnitId='1.1',onSelectUnit=()=>{},onOpenScheme=undefined,
+  selectedUnitId='1.1',onSelectUnit=(_unitId)=>{},onOpenScheme=undefined,
   onPlanUnit=undefined,mappedUnits={},catalogLoading=false,catalogError=''
 }){
   const [search,setSearch]=useState('')
