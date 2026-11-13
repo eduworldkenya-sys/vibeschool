@@ -47,7 +47,7 @@ try {
     if (!initial.links.includes(href)) fail('sandbox shared navigation missing: ' + href)
   }
   if (initial.links.includes('/global/signup')) fail('sandbox reintroduced legacy global signup entry')
-  for (const phrase of ['No production learner data', 'Client-only demo state', 'Interactive sample']) {
+  for (const phrase of ['No production learner data', 'Client-only demo state', 'Interactive learning sample']) {
     if (!initial.body.includes(phrase)) fail('missing demonstration truth phrase: ' + phrase)
   }
 
