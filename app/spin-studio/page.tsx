@@ -4,10 +4,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
 type Entry = { id: string; label: string; question: string; answer: string }
-type Wheel = { id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type Wheel = { batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
+const stageThemes: Record<string,string> = {
+  game:'radial-gradient(ellipse at 50% 28%, #134d8b 0%, #08152d 67%, #030816 100%)',
+  gold:'radial-gradient(ellipse at 50% 28%, #795b2b 0%, #241b1c 60%, #070a12 100%)',
+  pop:'linear-gradient(145deg, #e46d75 0%, #7033b8 50%, #20275c 100%)',
+  midnight:'radial-gradient(ellipse at 50% 25%, #49339d 0%, #09152f 70%, #040716 100%)',
+  clean:'linear-gradient(145deg,#1c4968 0%,#08172c 100%)'
+}
+const templates: {name:string; entries:[string,string,string][]}[] = [
+  {name:'African Capitals',entries:[['Kenya','What is the capital of Kenya?','Nairobi'],['Uganda','What is the capital of Uganda?','Kampala'],['Tanzania','What is the capital of Tanzania?','Dodoma'],['Rwanda','What is the capital of Rwanda?','Kigali'],['Ghana','What is the capital of Ghana?','Accra'],['Nigeria','What is the capital of Nigeria?','Abuja']]},
+  {name:'Mental Maths',entries:[['12 × 8','What is 12 multiplied by 8?','96'],['15 + 27','What is 15 plus 27?','42'],['3/4','What is 3/4 of 20?','15'],['25%','What is 25% of 200?','50']]},
+  {name:'Science Quiz',entries:[['Mars','Which planet is called the Red Planet?','Mars'],['Plants','How do green plants make food?','Photosynthesis'],['Water','What is the chemical formula for water?','H₂O'],['Gravity','Which force attracts objects towards Earth?','Gravity']]}
+]
 const colors = {
   electric: ['#1ac6c2','#ffbd37','#fe577e','#6d6dfc','#4cdb91','#ff8552','#aa6df3','#349dee'],
   sunset: ['#e85540','#ffc34a','#fd7391','#904ee0','#fb9242','#eebc65','#e35693','#bc5a47'],
@@ -32,7 +44,7 @@ const starter = (): Wheel => ({
   id: uid(), name:'Capital City Challenge', headline:'CAN YOU BEAT THE WHEEL?',
   cta:'Comment your answer • Follow VibeSchool',
   entries: sample.map(item=>({...item,id:uid()})), maxSpins:0, noRepeat:false,
-  duration:6, countdown:5, sound:true, theme:'electric'
+  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1,batchMode:false
 })
 function validEntry(x: unknown): x is Entry {
   if (!x || typeof x !== 'object') return false
@@ -56,7 +68,7 @@ function wedge(i:number,count:number) {
   const a=pos(200,200,187,start), b=pos(200,200,187,end)
   return 'M 200 200 L '+a.x+' '+a.y+' A 187 187 0 '+(step>180?1:0)+' 1 '+b.x+' '+b.y+' Z'
 }
-function soundEffect(kind:'tick'|'win'|'fail',enabled:boolean) {
+function soundEffect(kind:'tick'|'win'|'fail',enabled:boolean,volume=70) {
   if (!enabled || typeof window==='undefined') return
   try {
     const ctx=new AudioContext()
@@ -67,7 +79,7 @@ function soundEffect(kind:'tick'|'win'|'fail',enabled:boolean) {
       osc.type=kind==='tick'?'triangle':'sine'
       osc.frequency.setValueAtTime(hz,start)
       gain.gain.setValueAtTime(.0001,start)
-      gain.gain.exponentialRampToValueAtTime(kind==='tick'?.018:.1,start+.01)
+      gain.gain.exponentialRampToValueAtTime((kind==='tick'?.018:.1)*(Math.max(0,Math.min(100,volume))/100),start+.01)
       gain.gain.exponentialRampToValueAtTime(.0001,start+.13)
       osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+.14)
     })
@@ -79,6 +91,14 @@ export default function SpinStudio() {
   const [selectedId,setSelectedId]=useState('')
   const [loaded,setLoaded]=useState(false)
   const [recording,setRecording]=useState(false)
+  const [setupTab,setSetupTab]=useState<'wheels'|'content'|'appearance'|'effects'|'settings'>('wheels')
+  const [showPhase,setShowPhase]=useState<'idle'|'spinning'|'question'|'countdown'|'reveal'>('idle')
+  const [showOverlay,setShowOverlay]=useState(false)
+  const [capturing,setCapturing]=useState(false)
+  const [episodeLog,setEpisodeLog]=useState<string[]>([])
+  const [reducedMotion,setReducedMotion]=useState(false)
+  const [undoCount,setUndoCount]=useState(0)
+  const [redoCount,setRedoCount]=useState(0)
   const [format,setFormat]=useState<Format>('portrait')
   const [rotation,setRotation]=useState(0)
   const [spinning,setSpinning]=useState(false)
@@ -94,12 +114,22 @@ export default function SpinStudio() {
   const [fullScreen,setFullScreen]=useState(false)
   const stageRef=useRef<HTMLDivElement>(null)
   const spinTimer=useRef<number|null>(null)
+  const pastRef=useRef<Wheel[]>([])
+  const futureRef=useRef<Wheel[]>([])
   const pendingSpin=useRef(false)
+  const countdownRef=useRef<number|null>(null)
+  const recorderRef=useRef<MediaRecorder|null>(null)
+  const captureStreamRef=useRef<MediaStream|null>(null)
+  const chunksRef=useRef<Blob[]>([])
+  const spinRef=useRef<()=>void>(()=>{})
+  const revealActionRef=useRef<()=>void>(()=>{})
+  const nextRef=useRef<()=>void>(()=>{})
   const wheel=wheels.find(w=>w.id===selectedId) || wheels[0]
   const entries=wheel?.entries || []
+  const batchMode=wheel?.batchMode??false
   const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>!wheel?.noRepeat || !used.includes(entry.id))
   const remaining=wheel?.maxSpins ? Math.max(0,wheel.maxSpins-spinCount) : null
-  const locked=spinning || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
+  const locked=spinning || showPhase==='question' || showPhase==='countdown' || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
 
   useEffect(()=>{
     try {
@@ -115,45 +145,159 @@ export default function SpinStudio() {
   useEffect(()=>{
     if(!loaded)return
     try{localStorage.setItem(STORAGE,JSON.stringify({wheels,selectedId}))}
-    catch{ /* Storage quota or private browsing can prevent saving. */ }
+    catch{setFeedback('Browser storage is full or blocked. Export your wheel to back up changes.')}
   },[wheels,selectedId,loaded])
-  useEffect(()=>{setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setSeconds(null);setVerdict(null)},[selectedId])
   useEffect(()=>{
-    if(seconds===null || seconds<=0 || spinning)return
-    const timer=window.setTimeout(()=>setSeconds(value=>value===null?null:Math.max(0,value-1)),1000)
+    pastRef.current=[];futureRef.current=[];setUndoCount(0);setRedoCount(0)
+    if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)
+    if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
+    pendingSpin.current=false
+    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
+  },[selectedId])
+  useEffect(()=>{
+    if(seconds===null || seconds<=0 || spinning || showPhase!=='countdown')return
+    const timer=window.setTimeout(()=>{setSeconds(value=>value===null?null:Math.max(0,value-1));soundEffect('tick',Boolean(wheel?.sound),Math.round((wheel?.volumes?.spin??55)*.5))},1000)
     return ()=>window.clearTimeout(timer)
-  },[seconds,spinning])
-  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)},[])
+  },[seconds,spinning,showPhase,wheel])
+  useEffect(()=>{
+    if(showPhase!=='countdown'||seconds!==0||!wheel?.automatic)return
+    setReveal(true);setShowPhase('reveal')
+    soundEffect('win',wheel.sound,wheel.volumes?.reveal??75)
+  },[seconds,showPhase,wheel])
+  useEffect(()=>{
+    if(showPhase!=='reveal'||!wheel?.automatic||!batchMode)return
+    const timer=window.setTimeout(()=>{
+      setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false)
+      nextRef.current()
+    },Math.max(1,wheel.revealHold??3)*1000)
+    return ()=>clearTimeout(timer)
+  },[showPhase,wheel,batchMode])
+  useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop())},[])
+  useEffect(()=>{
+    const media=window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReducedMotion(media.matches)
+    const change=()=>setReducedMotion(media.matches)
+    media.addEventListener('change',change)
+    return ()=>media.removeEventListener('change',change)
+  },[])
   useEffect(()=>{
     const change=()=>setFullScreen(Boolean(document.fullscreenElement))
     document.addEventListener('fullscreenchange',change)
     return ()=>document.removeEventListener('fullscreenchange',change)
   },[])
-  const update=useCallback((patch:Partial<Wheel>)=>setWheels(all=>all.map(w=>w.id===selectedId?{...w,...patch}:w)),[selectedId])
+  const update=useCallback((patch:Partial<Wheel>)=>{
+    const current=wheels.find(w=>w.id===selectedId)
+    if(!current)return
+    pastRef.current=[...pastRef.current.slice(-29),{...current,entries:current.entries.map(e=>({...e}))}]
+    futureRef.current=[]
+    setUndoCount(pastRef.current.length);setRedoCount(0)
+    setWheels(all=>all.map(w=>w.id===selectedId?{...w,...patch}:w))
+  },[selectedId,wheels])
+  const undoEdit=()=>{
+    const previous=pastRef.current.pop()
+    if(!previous||previous.id!==selectedId)return
+    const current=wheels.find(w=>w.id===selectedId)
+    if(current)futureRef.current.push(current)
+    setWheels(all=>all.map(w=>w.id===selectedId?previous:w))
+    setUndoCount(pastRef.current.length);setRedoCount(futureRef.current.length)
+  }
+  const redoEdit=()=>{
+    const next=futureRef.current.pop()
+    if(!next||next.id!==selectedId)return
+    const current=wheels.find(w=>w.id===selectedId)
+    if(current)pastRef.current.push(current)
+    setWheels(all=>all.map(w=>w.id===selectedId?next:w))
+    setUndoCount(pastRef.current.length);setRedoCount(futureRef.current.length)
+  }
   const editEntry=(id:string,patch:Partial<Entry>)=>update({entries:entries.map(e=>e.id===id?{...e,...patch}:e)})
-  const resetRun=()=>{if(spinning)return;setUsed([]);setSpinCount(0);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setFeedback('Spin session reset.')}
+  const resetRun=()=>{
+    if(spinning)return
+    if(countdownRef.current!==null)clearTimeout(countdownRef.current)
+    setUsed([]);setSpinCount(0);setEpisodeLog([]);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
+  }
   const spin=()=>{
     if(locked || !wheel || pendingSpin.current)return
+    if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}
     const chosen=available[Math.floor(Math.random()*available.length)]
     if(!chosen)return
     pendingSpin.current=true
-    setSpinning(true);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setFeedback('')
+    setSpinning(true);setShowPhase('spinning');setShowOverlay(false);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setFeedback('')
     const step=360/entries.length, target=(360-(chosen.index+.5)*step)%360
     const current=((rotation%360)+360)%360
     const delta=((target-current+360)%360)
     const next=rotation+360*(5+Math.floor(wheel.duration/2))+delta
     setRotation(next)
-    soundEffect('tick',wheel.sound)
+    soundEffect('tick',wheel.sound,wheel.volumes?.spin??55)
     spinTimer.current=window.setTimeout(()=>{
       setSpinning(false);setResult(chosen.index);setUsed(old=>[...old,chosen.entry.id])
-      setSpinCount(n=>n+1);setSeconds(wheel.countdown);pendingSpin.current=false
-      soundEffect('tick',wheel.sound)
+      setSpinCount(n=>n+1);pendingSpin.current=false
+      setShowOverlay(true);setShowPhase('question')
+      setEpisodeLog(old=>[...old,chosen.entry.label].slice(-150))
+      soundEffect('tick',wheel.sound,wheel.volumes?.spin??55)
+      countdownRef.current=window.setTimeout(()=>{
+        if(wheel.countdown===0){
+          setShowPhase(wheel.automatic?'reveal':'countdown');setSeconds(0)
+          if(wheel.automatic){setReveal(true);soundEffect('win',wheel.sound,wheel.volumes?.reveal??75)}
+        }else{setShowPhase('countdown');setSeconds(wheel.countdown)}
+      },750)
     },wheel.duration*1000)
   }
   const doVerdict=(v:'correct'|'wrong')=>{
     if(result===null || spinning)return
-    setVerdict(v);setReveal(true);setSeconds(null)
-    soundEffect(v==='correct'?'win':'fail',Boolean(wheel?.sound))
+    setVerdict(v);setReveal(true);setShowPhase('reveal');setSeconds(null)
+    soundEffect(v==='correct'?'win':'fail',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)
+  }
+  const revealNow=()=>{
+    if(result===null || spinning)return
+    setReveal(true);setShowPhase('reveal');setSeconds(null)
+    soundEffect('win',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)
+  }
+  const nextChallenge=()=>{if(spinning)return;if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
+  spinRef.current=spin
+  revealActionRef.current=revealNow
+  nextRef.current=()=>{if(!spinning && available.length>0 && remaining!==0)spinRef.current()}
+  useEffect(()=>{
+    function keys(event:KeyboardEvent){
+      const target=event.target
+      if(target instanceof HTMLElement && (target.isContentEditable || ['INPUT','SELECT','TEXTAREA'].includes(target.tagName)))return
+      if(event.code==='Space'){event.preventDefault();spinRef.current()}
+      if(event.key.toLowerCase()==='r')revealActionRef.current()
+      if(event.key.toLowerCase()==='n')nextRef.current()
+    }
+    window.addEventListener('keydown',keys)
+    return ()=>window.removeEventListener('keydown',keys)
+  },[])
+  const startCapture=async()=>{
+    if(capturing)return
+    try{
+      if(!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder==='undefined')throw Error('Screen recording is not supported in this browser.')
+      const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true})
+      captureStreamRef.current=stream
+      const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(type=>MediaRecorder.isTypeSupported(type))
+      const recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined)
+      recorderRef.current=recorder;chunksRef.current=[]
+      recorder.ondataavailable=e=>{if(e.data.size)chunksRef.current.push(e.data)}
+      recorder.onstop=()=>{
+        const blob=new Blob(chunksRef.current,{type:recorder.mimeType||'video/webm'})
+        if(blob.size){const url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download='vibeschool-spin-'+Date.now()+'.webm';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
+        stream.getTracks().forEach(t=>t.stop());captureStreamRef.current=null;recorderRef.current=null;setCapturing(false)
+      }
+      stream.getVideoTracks().forEach(t=>t.addEventListener('ended',()=>{if(recorder.state!=='inactive')recorder.stop()},{once:true}))
+      recorder.start(500);setCapturing(true);setFeedback('Recording started. Select this tab when asked. To record audio, enable Share tab audio.')
+    }catch(error){setCapturing(false);setFeedback(error instanceof Error?error.message:'Screen recording could not start.')}
+  }
+  const stopCapture=()=>{const recorder=recorderRef.current;if(recorder&&recorder.state!=='inactive')recorder.stop()}
+  const loadTemplate=(index:number)=>{
+    const t=templates[index];if(!t)return
+    const fresh:Wheel={...starter(),id:uid(),name:t.name,entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
+    setWheels(all=>[...all,fresh]);setSelectedId(fresh.id);setSetupTab('content')
+  }
+  const uploadBackground=(file:File|undefined,kind:'background'|'logo'='background')=>{
+    if(!file)return
+    if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>220000){setFeedback('Use a JPG, PNG or WebP under 220 KB to keep browser saving reliable.');return}
+    const reader=new FileReader()
+    reader.onload=()=>{if(typeof reader.result==='string')update(kind==='logo'?{logoImage:reader.result}:{backgroundImage:reader.result})}
+    reader.readAsDataURL(file)
   }
   const addWheel=()=>{
     const w=starter();w.name='Untitled Wheel';w.headline='SPIN & TAKE THE CHALLENGE';w.entries=[]
@@ -175,6 +319,12 @@ export default function SpinStudio() {
     const next=rows.map(([label,question,answer])=>({id:uid(),label:label.slice(0,70),question:(question||'').slice(0,250),answer:(answer||'').slice(0,250)}))
     update({entries:[...entries,...next].slice(0,100)})
     setPaste('');setShowBulk(false);setFeedback('Entries added. Maximum 100 per wheel.')
+  }
+  const exportSession=()=>{
+    const rows=['spin,label',...episodeLog.map((label,i)=>[i+1,'"'+label.replaceAll('"','""')+'"'].join(','))]
+    const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'})
+    const url=URL.createObjectURL(blob),anchor=document.createElement('a')
+    anchor.href=url;anchor.download='spin-session-'+Date.now()+'.csv';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
   }
   const download=()=>{
     if(!wheel)return
@@ -207,19 +357,26 @@ export default function SpinStudio() {
     <div className={styles.shell}>
       {!recording && <header className={styles.header}>
         <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>Spin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
-        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={()=>{setRecording(true);setFeedback('')}}>Enter recording mode ↗</button></div>
+        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={()=>{setRecording(true);setFeedback('')}}>Launch Show ↗</button></div>
       </header>}
       <div className={recording?styles.recordLayout:styles.layout}>
         {!recording && <aside className={styles.controls}>
-          <div className={styles.panel}>
+          <div className={styles.historyControls}><button disabled={!undoCount} onClick={undoEdit}>↶ Undo</button><button disabled={!redoCount} onClick={redoEdit}>↷ Redo</button><span>Changes saved locally</span></div>
+          <nav className={styles.setupTabs} aria-label="Spin Studio setup">
+            {(['wheels','content','appearance','effects','settings'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':'Settings'}</button>)}
+          </nav>
+          {setupTab==='wheels' && <div className={styles.panel}>
             <div className={styles.panelTitle}><h2>My wheels</h2><button onClick={addWheel} className={styles.smallButton}>+ New</button></div>
             <select aria-label="Select a saved wheel" value={selectedId} onChange={e=>setSelectedId(e.target.value)}>{wheels.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select>
             <div className={styles.row}><button onClick={duplicateWheel}>Duplicate</button><button disabled={wheels.length<=1} onClick={removeWheel}>Delete wheel</button></div>
             <label>Wheel name<input value={wheel.name} maxLength={90} onChange={e=>update({name:e.target.value})}/></label>
             <label>Video hook / headline<input value={wheel.headline} maxLength={100} onChange={e=>update({headline:e.target.value})}/></label>
             <label>Closing call to action<input value={wheel.cta} maxLength={120} onChange={e=>update({cta:e.target.value})}/></label>
-          </div>
-          <div className={styles.panel}>
+            <label>Episode number<input type="number" min="1" max="9999" value={wheel.episode??1} onChange={e=>update({episode:Math.max(1,Math.min(9999,Number(e.target.value)||1))})}/></label>
+            <p className={styles.hint}>Ready-made content templates</p>
+            <div className={styles.templateGrid}>{templates.map((t,i)=><button key={t.name} onClick={()=>loadTemplate(i)}>{t.name}</button>)}</div>
+          </div>}
+          {setupTab==='content' && <div className={styles.panel}>
             <div className={styles.panelTitle}><h2>Wheel entries <span className={styles.muted}>{entries.length}/100</span></h2><button className={styles.smallButton} disabled={entries.length>=100} onClick={()=>update({entries:[...entries,{id:uid(),label:'New item',question:'',answer:''}]})}>+ Add</button></div>
             <p className={styles.hint}>Every segment can have its own question and answer. Both are optional.</p>
             <div className={styles.entries}>{entries.map((entry,i)=><div className={styles.entry} key={entry.id}>
@@ -230,25 +387,50 @@ export default function SpinStudio() {
             </div>)}</div>
             <button onClick={()=>setShowBulk(v=>!v)}>{showBulk?'Close bulk editor':'+ Paste multiple entries'}</button>
             {showBulk && <div className={styles.bulk}><p className={styles.hint}>One line per segment: Label | Question | Answer</p><textarea rows={5} value={paste} onChange={e=>setPaste(e.target.value)} placeholder={'Brazil | What is its capital? | Brasília\nFractions | What is 1/2 + 1/4? | 3/4'}/><button onClick={importRows} disabled={!paste.trim()}>Add entries</button></div>}
-          </div>
-          <div className={styles.panel}>
+          </div>}
+          {setupTab==='appearance' && <div className={styles.panel}>
+            <h2>Appearance & backgrounds</h2>
+            <label>Stage theme<select value={wheel.stageBackground??'game'} onChange={e=>update({stageBackground:e.target.value,backgroundImage:''})}>
+              <option value="game">Game Show Blue</option><option value="gold">Gold Challenge</option><option value="pop">Pop Challenge</option><option value="midnight">Neon Night</option><option value="clean">Clean Studio</option>
+            </select></label>
+            <div className={styles.themeGrid}>{Object.entries(stageThemes).map(([name,background])=><button key={name} aria-label={'Choose '+name+' background'} className={wheel.stageBackground===name?styles.activeTheme:''} style={{background}} onClick={()=>update({stageBackground:name,backgroundImage:''})}>{name}</button>)}</div>
+            <label>Wheel palette<select value={wheel.theme} onChange={e=>update({theme:e.target.value as Wheel['theme']})}><option value="electric">Electric Vibe</option><option value="sunset">Sunset Pop</option><option value="neon">Neon Night</option></select></label>
+            <label>Typography<select value={wheel.fontStyle??'modern'} onChange={e=>update({fontStyle:e.target.value as Wheel['fontStyle']})}><option value="modern">Modern Bold</option><option value="classic">Classic Serif</option><option value="playful">Playful Round</option></select></label>
+            <label>Upload your background (JPG / PNG / WebP, max 220 KB)<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{uploadBackground(e.target.files?.[0]);e.target.value=''}}/></label>
+            {wheel.backgroundImage && <button onClick={()=>update({backgroundImage:''})}>Remove uploaded background</button>}
+            <label>Custom logo (JPG / PNG / WebP, max 220 KB)<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{uploadBackground(e.target.files?.[0],'logo');e.target.value=''}}/></label>
+            {wheel.logoImage && <button onClick={()=>update({logoImage:''})}>Remove custom logo</button>}
+            <p className={styles.hint}>Backgrounds are saved locally in this browser with your wheel. Large images are intentionally limited to protect storage.</p>
+          </div>}
+          {setupTab==='effects' && <div className={styles.panel}>
+            <h2>Effects & show director</h2>
+            <label className={styles.check}><input type="checkbox" checked={wheel.automatic??true} onChange={e=>update({automatic:e.target.checked})}/> Automatic countdown and answer reveal</label>
+            <label>Answer display: {wheel.revealHold??3} seconds<input type="range" min="1" max="10" value={wheel.revealHold??3} onChange={e=>update({revealHold:Number(e.target.value)})}/></label>
+            <label>Celebration<select value={wheel.celebration??'confetti'} onChange={e=>update({celebration:e.target.value as Wheel['celebration']})}><option value="confetti">Confetti</option><option value="glow">Soft glow</option><option value="none">No celebration</option></select></label>
+            <label className={styles.check}><input type="checkbox" checked={wheel.sound} onChange={e=>update({sound:e.target.checked})}/> Sound effects on</label>
+            <label>Spin / ticking volume: {wheel.volumes?.spin??55}%<input type="range" min="0" max="100" value={wheel.volumes?.spin??55} onChange={e=>update({volumes:{spin:Number(e.target.value),reveal:wheel.volumes?.reveal??75}})}/></label>
+            <label>Reveal / success volume: {wheel.volumes?.reveal??75}%<input type="range" min="0" max="100" value={wheel.volumes?.reveal??75} onChange={e=>update({volumes:{spin:wheel.volumes?.spin??55,reveal:Number(e.target.value)}})}/></label>
+            <p className={styles.hint}>Audio is generated locally. To include sound in a recording, select the browser tab and enable Share tab audio.</p>
+          </div>}
+          {setupTab==='settings' && <div className={styles.panel}>
             <h2>Show controls</h2>
             <label>Video shape<select value={format} onChange={e=>setFormat(e.target.value as Format)}><option value="portrait">9:16 · Shorts & TikTok</option><option value="landscape">16:9 · YouTube</option><option value="square">1:1 · Square</option></select></label>
-            <label>Wheel colour<select value={wheel.theme} onChange={e=>update({theme:e.target.value as Wheel['theme']})}><option value="electric">Electric Vibe</option><option value="sunset">Sunset Pop</option><option value="neon">Neon Night</option></select></label>
             <label>Spin duration: {wheel.duration} seconds<input aria-label="Spin duration" type="range" min="3" max="10" value={wheel.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
             <label>Answer countdown: {wheel.countdown} seconds<input aria-label="Answer countdown" type="range" min="0" max="15" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/></label>
             <label>Maximum spins (0 = unlimited)<input type="number" min="0" max="9999" value={wheel.maxSpins} onChange={e=>update({maxSpins:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>
             <label className={styles.check}><input type="checkbox" checked={wheel.noRepeat} onChange={e=>update({noRepeat:e.target.checked})}/> Do not repeat a segment in this session</label>
-            <label className={styles.check}><input type="checkbox" checked={wheel.sound} onChange={e=>update({sound:e.target.checked})}/> Sound effects (device audio must be recorded)</label>
+            <label className={styles.check}><input type="checkbox" checked={batchMode} onChange={e=>update({batchMode:e.target.checked})}/> Batch production: spin again after answer reveal</label>
+            <p className={styles.hint}>Space = Spin · R = Reveal · N = Next spin. You can also use the visible buttons below the stage.</p>
             <div className={styles.row}><button onClick={download}>Export wheel</button><label className={styles.fileButton}>Import JSON<input type="file" accept=".json,application/json" onChange={e=>{void upload(e.target.files?.[0]);e.target.value=''}}/></label></div>
-          </div>
+            <p className={styles.hint}>Session history: {episodeLog.length} spins</p><button onClick={exportSession} disabled={!episodeLog.length}>Export session log (CSV)</button>
+          </div>}
         </aside>}
         <section className={styles.previewSection} aria-label="Wheel preview">
           {!recording && <div className={styles.previewTop}><span>LIVE PREVIEW</span><span>{format==='portrait'?'9:16':format==='landscape'?'16:9':'1:1'} · Ready to record</span></div>}
-          <div ref={stageRef} className={[styles.stage,styles[format],styles[wheel.theme]].join(' ')}>
+          <div ref={stageRef} className={[styles.stage,styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
             <div className={styles.stageGlow} aria-hidden="true"/>
             <div className={styles.stageContent}>
-              <div className={styles.brand}><span className={styles.brandMark}>V</span><span>VIBESCHOOL <b>SPIN STUDIO</b></span></div>
+              <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span>VIBESCHOOL <b>SPIN STUDIO</b></span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ SPIN THE CHALLENGE ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
               <div className={styles.wheelArea}>
                 <div className={styles.wheelHalo}/>
@@ -267,8 +449,16 @@ export default function SpinStudio() {
                   <path d="M182 2 L218 2 L200 42 Z" fill="#fff" stroke="#0e1832" strokeWidth="4"/>
                   <circle cx="200" cy="200" r="195" fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="5" strokeDasharray="2 13"/>
                 </svg>
-                {verdict==='correct' && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
+                {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
+              {showOverlay&&selected && <div className={[styles.challengePopup,showPhase==='reveal'?styles.popupReveal:''].join(' ')} role="status" aria-live="polite">
+                <div className={styles.popupEyebrow}>{showPhase==='reveal'?'ANSWER REVEALED':showPhase==='question'?'THE WHEEL HAS CHOSEN':'YOUR CHALLENGE'}</div>
+                <strong className={styles.popupLabel}>{showPhase==='reveal'?(selected.answer||selected.label):selected.label}</strong>
+                {showPhase!=='reveal'&&<p className={styles.popupQuestion}>{selected.question||'What do you know about this?'}</p>}
+                {showPhase==='countdown'&&<div className={styles.popupTimer}>{seconds===0?'TIME!':seconds}</div>}
+                {showPhase==='reveal'&&<p className={styles.popupFact}>{selected.question}</p>}
+                {showPhase==='reveal'&&wheel.celebration==='glow'&&<div className={styles.popupGlow} aria-hidden="true"/>}
+              </div>}
               <div className={styles.questionArea} aria-live="polite">
                 {selected ? <>
                   <span className={styles.resultKicker}>{spinning?'THE WHEEL IS SPINNING':'THE WHEEL CHOSE'}</span>
@@ -282,17 +472,21 @@ export default function SpinStudio() {
             </div>
           </div>
           <div className={styles.playBar}>
-            <div className={styles.playStatus}><span>SPINS <b>{spinCount}{remaining!==null?' / '+wheel.maxSpins:''}</b></span><span>{wheel.noRepeat?'UNIQUE LEFT '+available.length:'RANDOM MODE'}</span></div>
+            <div className={styles.playStatus}><span>{wheel.automatic??true?'AUTO SHOW':'MANUAL SHOW'} · {batchMode?'BATCH ON':'SINGLE'}</span><span>SPINS <b>{spinCount}{remaining!==null?' / '+wheel.maxSpins:''}</b></span><span>{wheel.noRepeat?'UNIQUE LEFT '+available.length:'RANDOM MODE'}</span></div>
             <div className={styles.playButtons}>
               <button className={styles.spinButton} disabled={locked} onClick={spin}>{spinning?'SPINNING…':available.length===0?'ALL SEGMENTS USED':remaining===0?'SPIN LIMIT REACHED':'✦ SPIN NOW'}</button>
-              <button disabled={spinning || result===null} onClick={()=>{setReveal(v=>!v);setVerdict(null)}}>{reveal?'Hide answer':'Reveal answer'}</button>
+              <button disabled={spinning || result===null} onClick={()=>{if(reveal){setReveal(false);setShowPhase('question');setSeconds(null)}else revealNow();setVerdict(null)}}>{reveal?'Hide answer':'Reveal answer'}</button>
               <button disabled={spinning || result===null} onClick={()=>doVerdict('correct')}>✓ Correct</button>
               <button disabled={spinning || result===null} onClick={()=>doVerdict('wrong')}>✕ Wrong</button>
-              <button onClick={resetRun} disabled={spinning}>Reset</button>
+              <button onClick={nextChallenge} disabled={spinning || result===null}>Next</button><button onClick={resetRun} disabled={spinning}>Reset</button>
             </div>
           </div>
-          {recording && <div className={styles.recordBar}><span>Recording view · Use your device screen recorder</span><div><button onClick={()=>{void toggleFull()}}>{fullScreen?'Exit fullscreen':'Fullscreen stage'}</button><button onClick={()=>setRecording(false)}>← Back to editor</button></div></div>}
-          {!recording && <p className={styles.note}>Your saved wheels stay in this browser only. Direct URL access is not private. To record, open Recording Mode and capture the stage using your screen recorder; no camera or account needed.</p>}
+          {recording && <div className={styles.recordBar}><span>Recording view · Space spin · R reveal · N next</span><div>
+              <button onClick={()=>{void toggleFull()}}>{fullScreen?'Exit fullscreen':'Fullscreen stage'}</button>
+              <button onClick={()=>{if(capturing)stopCapture();else void startCapture()}}>{capturing?'■ Stop & download recording':'● Record video'}</button>
+              <button onClick={()=>setRecording(false)}>← Back to editor</button>
+            </div></div>}
+          {!recording && <p className={styles.note}>Your wheels are saved in this browser only. Use Launch Show, then Record video and select the current tab in the browser prompt. Fullscreen mode uses keyboard controls. Direct URL access is not private.</p>}
           {feedback && <p role="status" className={styles.feedback}>{feedback}</p>}
         </section>
       </div>
