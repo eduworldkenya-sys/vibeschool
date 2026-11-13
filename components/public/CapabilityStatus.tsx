@@ -10,7 +10,7 @@ type Status = 'Available'|'Validation'|'Planned'
 type Capability = {title:string;status:Status;body:string;href?:string}
 
 const capabilities: Capability[] = [
-  {title:'Public learning exploration',status:'Available',body:'Learners and families can explore curriculum-organised public learning without entering a private school workspace.',href:'/global'},
+  {title:'Public learning exploration',status:'Available',body:'Learners and families can explore curriculum-organised public learning without entering a private school workspace.',href:'/learn'},
   {title:'Senior School Pathways exploration',status:'Available',body:'Public Pathways, tracks, subject choices, careers and school-discovery experiences are available. Evidence and national coverage continue to be strengthened.',href:'/pathways'},
   {title:'Teacher instructional continuity',status:'Validation',body:'Curriculum, schemes, lesson planning and classroom workflow foundations exist; live-school end-to-end operational proof is still being completed.',href:'/teachers'},
   {title:'Evidence → assessment → learner understanding',status:'Validation',body:'The data and product model exist, but production activity is still too limited to present this as mature school-scale proof.'},
