@@ -1,0 +1,68 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+import { GRADE3_ENGLISH_UNITS, GRADE3_ENGLISH_STRANDS, GRADE3_ENGLISH_PREFIX } from '../../lib/teaching/grade3EnglishCatalog.mjs'
+const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8')
+const sql=read('supabase/migrations/20261113172500_grade3_english_curriculum_scheme_activation.sql')
+const scheme=read('app/teacher/scheme/AuthoritySchemePage.jsx')
+const map=read('components/teacher/curriculum/Grade3EnglishMap.tsx')
+const hub=read('app/teacher/subjecthub/page.tsx')
+const prefix='VS-CUR-G03-EN-2026'
+
+test('Grade 3 English 2024 index has exact 150-lesson structural allocation',()=>{
+ assert.equal(GRADE3_ENGLISH_STRANDS.length,4)
+ assert.equal(GRADE3_ENGLISH_UNITS.length,10)
+ assert.equal(GRADE3_ENGLISH_PREFIX,prefix)
+ assert.equal(GRADE3_ENGLISH_UNITS.reduce((n,x)=>n+x.lessons,0),150)
+ assert.equal(new Set(GRADE3_ENGLISH_UNITS.map(x=>x.id)).size,10)
+})
+test('30 original learning outcomes, inquiry, experiences and guidance map 1:1 to ten sub-strands',()=>{
+ const match=sql.match(/\$grade3_original\$(\[[\s\S]*?\])\$grade3_original\$/)
+ assert.ok(match,'transient source-independent catalog missing')
+ const items=JSON.parse(match[1])
+ assert.equal(items.length,10)
+ assert.equal(items.reduce((n,x)=>n+x.lessons,0),150)
+ assert.equal(items.reduce((n,x)=>n+x.outcomes.length,0),30)
+ assert.deepEqual(items.map(x=>x.id),GRADE3_ENGLISH_UNITS.map(x=>x.id))
+ assert.equal(new Set(items.map(x=>x.source_ref)).size,10)
+ for(const item of items){
+   const unit=GRADE3_ENGLISH_UNITS.find(x=>x.id===item.id)
+   assert.equal(item.source_ref,prefix+'#'+item.id)
+   assert.equal(item.strand,unit.strand)
+   assert.equal(item.title,unit.title)
+   assert.equal(item.lessons,unit.lessons)
+   assert.equal(item.outcomes.length,3)
+   assert.ok(item.outcomes.every(x=>x.trim().length>25))
+   assert.ok(item.inquiry.every(x=>x.trim()))
+   assert.ok(item.experiences.every(x=>x.trim()))
+   assert.ok(item.resources.trim()&&item.assessment.trim())
+ }
+})
+test('migration preserves existing Scheme infrastructure and teacher isolation',()=>{
+ assert.match(sql,/enable row level security/i)
+ assert.match(sql,/revoke all on public\.grade3_english_reader_bindings from public,anon,authenticated/i)
+ assert.match(sql,/to authenticated using\(status='active'\)/i)
+ assert.match(sql,/SCHEME_GRADE3_ENGLISH_CANONICAL_BINDING/)
+ assert.match(sql,/pg_get_functiondef\('public\.commit_mapped_scheme_lesson/)
+ assert.match(sql,/SCHEME_INVOKER_AUTHORITY_REQUIRED/)
+ assert.match(sql,/SCHEME_GRADE3_ENGLISH_CANONICAL_BINDING/)
+ assert.match(sql,/has_function_privilege\('anon'/)
+ assert.match(sql,/source_type='creator_claimed'/)
+ assert.match(sql,/GRADE3_ENGLISH_PERSISTED_BINDINGS_INCOMPLETE/)
+ assert.doesNotMatch(sql,/insert into public\.scheme_of_work|delete from public\.scheme_of_work|update public\.scheme_of_work/i)
+ assert.doesNotMatch(sql,/security definer/i)
+})
+test('Grade 3 English map loads mapped outcome UUIDs and offers true Scheme save path',()=>{
+ assert.match(hub,/onOpenScheme=\{unitId=>router\.push\('\/teacher\/scheme\?classId='/)
+ assert.match(map,/mappedUnits/)
+ assert.match(map,/selectedRecord\.outcomes\.map/)
+ assert.match(scheme,/isGrade3English \|\| isGrade1AutoScheme/)
+ assert.match(scheme,/grade3_english_reader_bindings/)
+ assert.match(scheme,/grade3EnglishCatalog\[unit\.id\]/)
+ assert.match(scheme,/\.eq\('source_type','creator_claimed'\)/)
+ assert.match(scheme,/grade3EnglishDraftRecord \? grade3EnglishDraftUnit/)
+ assert.match(scheme,/curriculumView && isGrade3English && <Grade3EnglishMap/)
+ assert.match(scheme,/catalog=\{isGrade3English\?grade3EnglishCatalog:/)
+ assert.match(scheme,/supabase\.rpc\('commit_mapped_scheme_lesson'/)
+ assert.match(scheme,/prepareSchemeLesson\(saved\)/)
+})
