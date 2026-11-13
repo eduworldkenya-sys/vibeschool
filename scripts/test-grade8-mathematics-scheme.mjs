@@ -36,6 +36,17 @@ assert.equal(terms.reduce((n,t)=>n+termCreativeSchemeRows(draft,t.id).length,0),
 assert.ok(buildGrade1AnnualSchemeDraft({...opts,terms:terms.slice(0,2)}).error,'missing school term must fail closed')
 assert.ok(buildGrade1AnnualSchemeDraft({...opts,weeklyAllocation:4}).error,'cannot exceed school weekly allocation')
 assert.ok(page.includes('isGrade8Mathematics && <Grade8MathematicsMap'))
+const grade8MapEntry=page.slice(
+ page.indexOf('curriculumView && isGrade8Mathematics && <Grade8MathematicsMap'),
+ page.indexOf('curriculumView && isGrade8English && <Grade8EnglishMap')
+)
+assert.ok(grade8MapEntry.includes('onPlanUnit={selectedClass&&selectedSubject ? unitId=>'),'Grade 8 Maths may open Scheme without preselected term')
+assert.ok(grade8MapEntry.includes("if(selectedTermId)p.set('termId',selectedTermId)"),'Only pass selected term')
+assert.ok(grade8MapEntry.includes('termSelected={!!selectedTermId}'),'Report actual term state')
+assert.ok(page.includes('Curriculum browsing does not require a term or timetable.'),'Maths curriculum browsing does not require calendar')
+assert.ok(map.includes('Select a term before saving a lesson.'),'Scheme save requires term')
+assert.ok(map.includes('Source-exact KICD outcome verification is separate and remains pending.'),'Do not claim official source certification')
+
 assert.ok(page.includes('isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics'))
 assert.ok(page.includes("from('grade8_mathematics_reader_bindings')"))
 assert.ok(page.includes("p_outcome_ids:item.outcomeIds"))
