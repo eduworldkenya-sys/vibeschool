@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
 type Entry = { id: string; label: string; question: string; answer: string }
-type Wheel = { automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type Wheel = { batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
@@ -44,7 +44,7 @@ const starter = (): Wheel => ({
   id: uid(), name:'Capital City Challenge', headline:'CAN YOU BEAT THE WHEEL?',
   cta:'Comment your answer • Follow VibeSchool',
   entries: sample.map(item=>({...item,id:uid()})), maxSpins:0, noRepeat:false,
-  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1
+  duration:6, countdown:5, sound:true, theme:'electric',automatic:true,revealHold:3,stageBackground:'game',fontStyle:'modern',celebration:'confetti',volumes:{spin:55,reveal:75},episode:1,batchMode:false
 })
 function validEntry(x: unknown): x is Entry {
   if (!x || typeof x !== 'object') return false
@@ -96,8 +96,9 @@ export default function SpinStudio() {
   const [showOverlay,setShowOverlay]=useState(false)
   const [capturing,setCapturing]=useState(false)
   const [episodeLog,setEpisodeLog]=useState<string[]>([])
-  const [batchMode,setBatchMode]=useState(false)
   const [reducedMotion,setReducedMotion]=useState(false)
+  const [undoCount,setUndoCount]=useState(0)
+  const [redoCount,setRedoCount]=useState(0)
   const [format,setFormat]=useState<Format>('portrait')
   const [rotation,setRotation]=useState(0)
   const [spinning,setSpinning]=useState(false)
@@ -113,6 +114,8 @@ export default function SpinStudio() {
   const [fullScreen,setFullScreen]=useState(false)
   const stageRef=useRef<HTMLDivElement>(null)
   const spinTimer=useRef<number|null>(null)
+  const pastRef=useRef<Wheel[]>([])
+  const futureRef=useRef<Wheel[]>([])
   const pendingSpin=useRef(false)
   const countdownRef=useRef<number|null>(null)
   const recorderRef=useRef<MediaRecorder|null>(null)
@@ -123,6 +126,7 @@ export default function SpinStudio() {
   const nextRef=useRef<()=>void>(()=>{})
   const wheel=wheels.find(w=>w.id===selectedId) || wheels[0]
   const entries=wheel?.entries || []
+  const batchMode=wheel?.batchMode??false
   const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>!wheel?.noRepeat || !used.includes(entry.id))
   const remaining=wheel?.maxSpins ? Math.max(0,wheel.maxSpins-spinCount) : null
   const locked=spinning || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
@@ -144,6 +148,7 @@ export default function SpinStudio() {
     catch{ /* Storage quota or private browsing can prevent saving. */ }
   },[wheels,selectedId,loaded])
   useEffect(()=>{
+    pastRef.current=[];futureRef.current=[];setUndoCount(0);setRedoCount(0)
     if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)
     if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
     pendingSpin.current=false
@@ -151,9 +156,9 @@ export default function SpinStudio() {
   },[selectedId])
   useEffect(()=>{
     if(seconds===null || seconds<=0 || spinning || showPhase!=='countdown')return
-    const timer=window.setTimeout(()=>setSeconds(value=>value===null?null:Math.max(0,value-1)),1000)
+    const timer=window.setTimeout(()=>{setSeconds(value=>value===null?null:Math.max(0,value-1));soundEffect('tick',Boolean(wheel?.sound),Math.round((wheel?.volumes?.spin??55)*.5))},1000)
     return ()=>window.clearTimeout(timer)
-  },[seconds,spinning,showPhase])
+  },[seconds,spinning,showPhase,wheel])
   useEffect(()=>{
     if(showPhase!=='countdown'||seconds!==0||!wheel?.automatic)return
     setReveal(true);setShowPhase('reveal')
@@ -180,7 +185,29 @@ export default function SpinStudio() {
     document.addEventListener('fullscreenchange',change)
     return ()=>document.removeEventListener('fullscreenchange',change)
   },[])
-  const update=useCallback((patch:Partial<Wheel>)=>setWheels(all=>all.map(w=>w.id===selectedId?{...w,...patch}:w)),[selectedId])
+  const update=useCallback((patch:Partial<Wheel>)=>setWheels(all=>all.map(w=>{
+    if(w.id!==selectedId)return w
+    pastRef.current=[...pastRef.current.slice(-29),{...w,entries:w.entries.map(e=>({...e}))}]
+    futureRef.current=[]
+    setUndoCount(pastRef.current.length);setRedoCount(0)
+    return {...w,...patch}
+  })),[selectedId])
+  const undoEdit=()=>{
+    const previous=pastRef.current.pop()
+    if(!previous||previous.id!==selectedId)return
+    const current=wheels.find(w=>w.id===selectedId)
+    if(current)futureRef.current.push(current)
+    setWheels(all=>all.map(w=>w.id===selectedId?previous:w))
+    setUndoCount(pastRef.current.length);setRedoCount(futureRef.current.length)
+  }
+  const redoEdit=()=>{
+    const next=futureRef.current.pop()
+    if(!next||next.id!==selectedId)return
+    const current=wheels.find(w=>w.id===selectedId)
+    if(current)pastRef.current.push(current)
+    setWheels(all=>all.map(w=>w.id===selectedId?next:w))
+    setUndoCount(pastRef.current.length);setRedoCount(futureRef.current.length)
+  }
   const editEntry=(id:string,patch:Partial<Entry>)=>update({entries:entries.map(e=>e.id===id?{...e,...patch}:e)})
   const resetRun=()=>{
     if(spinning)return
@@ -263,11 +290,11 @@ export default function SpinStudio() {
     const fresh:Wheel={...starter(),id:uid(),name:t.name,entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
     setWheels(all=>[...all,fresh]);setSelectedId(fresh.id);setSetupTab('content')
   }
-  const uploadBackground=(file:File|undefined)=>{
+  const uploadBackground=(file:File|undefined,kind:'background'|'logo'='background')=>{
     if(!file)return
     if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>220000){setFeedback('Use a JPG, PNG or WebP under 220 KB to keep browser saving reliable.');return}
     const reader=new FileReader()
-    reader.onload=()=>{if(typeof reader.result==='string')update({backgroundImage:reader.result})}
+    reader.onload=()=>{if(typeof reader.result==='string')update(kind==='logo'?{logoImage:reader.result}:{backgroundImage:reader.result})}
     reader.readAsDataURL(file)
   }
   const addWheel=()=>{
@@ -290,6 +317,12 @@ export default function SpinStudio() {
     const next=rows.map(([label,question,answer])=>({id:uid(),label:label.slice(0,70),question:(question||'').slice(0,250),answer:(answer||'').slice(0,250)}))
     update({entries:[...entries,...next].slice(0,100)})
     setPaste('');setShowBulk(false);setFeedback('Entries added. Maximum 100 per wheel.')
+  }
+  const exportSession=()=>{
+    const rows=['spin,label',...episodeLog.map((label,i)=>[i+1,'"'+label.replaceAll('"','""')+'"'].join(','))]
+    const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'})
+    const url=URL.createObjectURL(blob),anchor=document.createElement('a')
+    anchor.href=url;anchor.download='spin-session-'+Date.now()+'.csv';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
   }
   const download=()=>{
     if(!wheel)return
@@ -326,6 +359,7 @@ export default function SpinStudio() {
       </header>}
       <div className={recording?styles.recordLayout:styles.layout}>
         {!recording && <aside className={styles.controls}>
+          <div className={styles.historyControls}><button disabled={!undoCount} onClick={undoEdit}>↶ Undo</button><button disabled={!redoCount} onClick={redoEdit}>↷ Redo</button><span>Changes saved locally</span></div>
           <nav className={styles.setupTabs} aria-label="Spin Studio setup">
             {(['wheels','content','appearance','effects','settings'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':'Settings'}</button>)}
           </nav>
@@ -362,6 +396,8 @@ export default function SpinStudio() {
             <label>Typography<select value={wheel.fontStyle??'modern'} onChange={e=>update({fontStyle:e.target.value as Wheel['fontStyle']})}><option value="modern">Modern Bold</option><option value="classic">Classic Serif</option><option value="playful">Playful Round</option></select></label>
             <label>Upload your background (JPG / PNG / WebP, max 220 KB)<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{uploadBackground(e.target.files?.[0]);e.target.value=''}}/></label>
             {wheel.backgroundImage && <button onClick={()=>update({backgroundImage:''})}>Remove uploaded background</button>}
+            <label>Custom logo (JPG / PNG / WebP, max 220 KB)<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{uploadBackground(e.target.files?.[0],'logo');e.target.value=''}}/></label>
+            {wheel.logoImage && <button onClick={()=>update({logoImage:''})}>Remove custom logo</button>}
             <p className={styles.hint}>Backgrounds are saved locally in this browser with your wheel. Large images are intentionally limited to protect storage.</p>
           </div>}
           {setupTab==='effects' && <div className={styles.panel}>
@@ -381,10 +417,10 @@ export default function SpinStudio() {
             <label>Answer countdown: {wheel.countdown} seconds<input aria-label="Answer countdown" type="range" min="0" max="15" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/></label>
             <label>Maximum spins (0 = unlimited)<input type="number" min="0" max="9999" value={wheel.maxSpins} onChange={e=>update({maxSpins:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>
             <label className={styles.check}><input type="checkbox" checked={wheel.noRepeat} onChange={e=>update({noRepeat:e.target.checked})}/> Do not repeat a segment in this session</label>
-            <label className={styles.check}><input type="checkbox" checked={batchMode} onChange={e=>setBatchMode(e.target.checked)}/> Batch production: spin again after answer reveal</label>
+            <label className={styles.check}><input type="checkbox" checked={batchMode} onChange={e=>update({batchMode:e.target.checked})}/> Batch production: spin again after answer reveal</label>
             <p className={styles.hint}>Space = Spin · R = Reveal · N = Next spin. You can also use the visible buttons below the stage.</p>
             <div className={styles.row}><button onClick={download}>Export wheel</button><label className={styles.fileButton}>Import JSON<input type="file" accept=".json,application/json" onChange={e=>{void upload(e.target.files?.[0]);e.target.value=''}}/></label></div>
-            <p className={styles.hint}>Session history: {episodeLog.length} spins</p>
+            <p className={styles.hint}>Session history: {episodeLog.length} spins</p><button onClick={exportSession} disabled={!episodeLog.length}>Export session log (CSV)</button>
           </div>}
         </aside>}
         <section className={styles.previewSection} aria-label="Wheel preview">
@@ -392,7 +428,7 @@ export default function SpinStudio() {
           <div ref={stageRef} className={[styles.stage,styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
             <div className={styles.stageGlow} aria-hidden="true"/>
             <div className={styles.stageContent}>
-              <div className={styles.brand}><span className={styles.brandMark}>V</span><span>VIBESCHOOL <b>SPIN STUDIO</b></span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
+              <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span>VIBESCHOOL <b>SPIN STUDIO</b></span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ SPIN THE CHALLENGE ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
               <div className={styles.wheelArea}>
                 <div className={styles.wheelHalo}/>
