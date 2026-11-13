@@ -32,6 +32,23 @@ export const TEACHING_TOOL_CATALOG = [
   { id: 'evidence-notes', title: 'Learning evidence notes', subject: 'interactive', description: 'Record reflections for an existing assignment.' },
 ] as const
 
+/**
+ * Stage 4 future families are planning metadata, NOT executable teaching tools.
+ * Keep these out of TEACHING_TOOL_CATALOG and TeachingToolId until a family has
+ * independently validated content, a safe renderer, and negative-path tests.
+ * This is the same catalogue module, not a second admission mechanism.
+ */
+export const SPECIALIST_TOOL_ROADMAP = [
+  { id: 'business-records', title: 'Business records and ledgers', priority: 'first', status: 'planned', reuse: ['data-chart', 'writing-planner'] },
+  { id: 'advanced-mathematics', title: 'Advanced mathematics and graphing', priority: 'first', status: 'planned', reuse: ['number-line', 'data-chart', 'unit-converter'] },
+  { id: 'coding-workspace', title: 'Coding workspace', priority: 'later', status: 'planned', reuse: ['practical-steps', 'evidence-notes'] },
+  { id: 'technical-simulations', title: 'Technical design simulations', priority: 'later', status: 'planned', reuse: ['visual-explorer', 'practical-steps'] },
+  { id: 'advanced-science', title: 'Advanced science investigations', priority: 'later', status: 'planned', reuse: ['experiment-variables', 'data-chart', 'observation-journal'] },
+  { id: 'performance-interfaces', title: 'Creative and physical performance', priority: 'later', status: 'planned', reuse: ['audio-learning', 'drawing-pad', 'evidence-notes'] },
+] as const
+
+export type SpecialistToolFamilyId = (typeof SPECIALIST_TOOL_ROADMAP)[number]['id']
+
 export type TeachingToolId = (typeof TEACHING_TOOL_CATALOG)[number]['id']
 export type TeachingToolSubject = (typeof TEACHING_TOOL_CATALOG)[number]['subject']
 export type TeachingToolSpec = {

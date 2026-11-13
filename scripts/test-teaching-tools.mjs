@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import {
-  TEACHING_TOOL_CATALOG, isTeachingToolId, isTeachingToolSubject,
+  TEACHING_TOOL_CATALOG, SPECIALIST_TOOL_ROADMAP, isTeachingToolId, isTeachingToolSubject,
   isUsableTeachingToolSpec, resolveTeachingTools, suggestTeachingTools,
 } from '../lib/learn/teachingToolCatalog.ts'
 import { learnSubjectMode } from '../lib/learn/toolSubject.mjs'
@@ -139,4 +139,26 @@ test('tools are ephemeral, use native controls, and cannot bypass the canonical 
   assert.match(languageScience,/Check groups/)
   assert.match(math,/type="range"/)
   assert.match(math,/role="img"/)
+})
+
+test('Stage 4 families are registered but cannot be offered as tools before certification',()=> {
+  const planned=['business-records','advanced-mathematics','coding-workspace','technical-simulations','advanced-science','performance-interfaces']
+  assert.deepEqual(SPECIALIST_TOOL_ROADMAP.map(x=>x.id),planned)
+  assert.ok(SPECIALIST_TOOL_ROADMAP.every(x=>x.status==='planned'))
+  assert.deepEqual(SPECIALIST_TOOL_ROADMAP.filter(x=>x.priority==='first').map(x=>x.id),planned.slice(0,2))
+  assert.equal(new Set(planned).size,6)
+  const active=new Set(TEACHING_TOOL_CATALOG.map(x=>x.id))
+  for (const family of SPECIALIST_TOOL_ROADMAP) {
+    assert.equal(active.has(family.id),false, family.id+' must not be active')
+    assert.equal(isTeachingToolId(family.id),false)
+    assert.ok(family.reuse.every(id=>active.has(id)),family.id+' must reuse real components')
+    for (const subject of ['Mathematics','Business Studies','Computer Science','Physics','Creative Arts']) {
+      assert.deepEqual(resolveTeachingTools(subject,'',[{id:family.id,version:1,prompt:'unreviewed data'}]),[],
+        family.id+' must fail closed for '+subject)
+    }
+  }
+  assert.equal(TEACHING_TOOL_CATALOG.length,24,'Stage 4 must not alter existing active tools')
+  const doc=read('../docs/learn/STAGE4_SPECIALIST_SENIOR_TOOLS.md')
+  assert.match(doc,/Activation criteria/)
+  assert.match(doc,/existing `TeachingToolShelf`/)
 })
