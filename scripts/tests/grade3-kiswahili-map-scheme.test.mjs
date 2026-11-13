@@ -94,7 +94,7 @@ test('Canonical database RPC keeps authentication, existing subjects and fails c
   assert.match(migration,/s\.grade='Grade 3'/);
   assert.match(migration,/global_subject\.name='Kiswahili'/);
   assert.match(migration,/global_subject\.school_id is null/);
-  assert.match(migration,/v_unit\.source_ref ~ /);
+  assert.match(migration,/s\.source_ref ~ /);
   assert.match(migration,/SCHEME_CANONICAL_CONTENT_INCOMPLETE/);
   assert.match(migration,/SCHEME_INVOKER_AUTHORITY_REQUIRED/);
   assert.match(migration,/SCHEME_GRADE9_ENGLISH_READER_ACTIVE/);
