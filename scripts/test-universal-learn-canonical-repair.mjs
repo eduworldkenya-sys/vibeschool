@@ -69,7 +69,7 @@ test('published visual catalogue exposes only certified metadata at matching sec
   assert.match(visuals, /row\.sourceStrandId === GRADE4_TIME_SUBSTRAND_ID/)
   assert.match(visuals, /row\.placements\.includes\(placement\)/)
   for(const source of [time,outcome]) {
-    assert.match(source, /afterSection=\{\(section\)/)
+    assert.match(source, /afterSection=\{\(section, index\)/)
     assert.match(source, /<Grade4TimeVisualModels\s+lessonOrder=/)
     assert.match(source, /sectionId=\{section\.id\}/)
     assert.equal((source.match(/<Grade4TimeVisualModels/g)||[]).length,1)
