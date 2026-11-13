@@ -29,13 +29,8 @@ export const TEACHING_TOOL_REGISTRY: Readonly<Record<TeachingToolId, ToolDefinit
   'science-observation': { id: 'science-observation', version: 1, modes: ['science'], label: 'Observation' },
 }
 
-export function learnSubjectMode(subject: string): LearnSubjectMode {
-  if (/math|mathematics/i.test(subject)) return 'math'
-  if (/english|kiswahili|language|literature|french|arabic|german|spanish|sign language|mother tongue|indigenous/i.test(subject)) return 'language'
-  if (/science|agriculture|health|biology|chemistry|physics|environment/i.test(subject)) return 'science'
-  if (/creative|art|music|performing|design/i.test(subject)) return 'creative'
-  return 'general'
-}
+import { learnSubjectMode } from './toolSubject.mjs'
+export { learnSubjectMode } from './toolSubject.mjs'
 
 export type ToolSelection = {
   id: TeachingToolId

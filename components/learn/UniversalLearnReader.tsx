@@ -53,9 +53,13 @@ export default function UniversalLearnReader({
     `${anchorPrefix}-${index}-${section.id.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`
   const validSections = sections.filter(section =>
     (typeof section.body === 'string' && !!section.body.trim()) || !!section.blocks?.length)
-  const sectionTools = validSections.flatMap((section, index) =>
-    section.id === 'feedback' || (toolContext && !getLearningToolSectionBinding(toolContext, section, index))
-      ? [] : section.tools ?? [])
+  const sectionTools = validSections
+    .map((section, index) => ({ section, index }))
+    .filter(({ section, index }) =>
+      !['feedback', 'answer', 'answers', 'solution', 'solutions', 'teacher_guidance', 'marking_scheme'].includes(section.id.toLowerCase()) &&
+      section.tone !== 'feedback' &&
+      (!toolContext || !!getLearningToolSectionBinding(toolContext, section, index)))
+    .flatMap(({ section }) => section.tools ?? [])
   const sourceValid = !toolContext || validSections.some((section, index) =>
     getLearningToolSectionBinding(toolContext, section, index))
   if (!validSections.length) return <p role="status">No released lesson sections are available.</p>
@@ -102,6 +106,6 @@ export default function UniversalLearnReader({
     {showTeachingTools && sourceValid && (tools !== undefined || sectionTools.length > 0) && <TeachingToolShelf
       key={toolContext?.resourceVersionId ?? subject + ':' + (topic || title || '')}
       subject={subject} topic={topic || title || ''}
-      tools={tools ?? (sectionTools.length ? sectionTools : undefined)} />}
+      tools={toolContext ? sectionTools : (tools ?? (sectionTools.length ? sectionTools : undefined))} />}
   </div>
 }

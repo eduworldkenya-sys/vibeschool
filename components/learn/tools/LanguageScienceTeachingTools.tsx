@@ -4,22 +4,12 @@ import { useState } from 'react'
 import type { TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 import styles from './TeachingTools.module.css'
 
-function safeText(value: unknown, fallback: string) {
-  return typeof value === 'string' && value.trim().length > 0 && value.length < 200 ? value.trim() : fallback
-}
-function safeSequence(values: readonly string[] | undefined, fallback: string[]) {
-  if (!Array.isArray(values) || values.length < 2 || values.length > 12 || !values.every(x => typeof x === 'string' && x.trim() && x.length < 80)) {
-    return fallback
-  }
-  return [...values]
-}
-
 function Reorder({ values, instruction, separator = ' → ' }: { values: string[]; instruction: string; separator?: string }) {
   const [picked, setPicked] = useState<number[]>([])
   const [checked, setChecked] = useState(false)
   const options = values.map((_, index) => index).reverse()
   const complete = picked.length === values.length
-  const correct = complete && picked.every((index, i) => index === i)
+  const correct = complete && picked.every((index, i) => values[index] === values[i])
   return <div className={styles.stack}>
     <p>{instruction}</p>
     <div className={styles.resultBox} role="status" aria-live="polite">
@@ -39,87 +29,71 @@ function Reorder({ values, instruction, separator = ' → ' }: { values: string[
 }
 
 function WordBuilder({ spec }: { spec: TeachingToolSpec }) {
-  const word = safeText(spec.word, 'planet').replace(/[^A-Za-zÀ-ÿ]/g, '').slice(0, 12) || 'planet'
+  const word = spec.word ?? ''
   const letters = Array.from(word)
   const [chosen, setChosen] = useState<number[]>([])
   const [checked, setChecked] = useState(false)
   const order = letters.map((_, i) => i).reverse()
   const answer = chosen.map(i => letters[i]).join('')
   return <div className={styles.stack}>
-    <p>Build this word: <strong>{word || 'planet'}</strong></p>
+    <p>Use the letters to build the word. Read the clue above, then check your spelling.</p>
     <div className={styles.resultBox} aria-live="polite">{answer || 'Choose a letter to start.'}</div>
     <div className={styles.tokenRow}>{order.filter(index => !chosen.includes(index)).map(index =>
-      <button type="button" className={styles.token} key={index} onClick={() => { setChosen(old => [...old, index]); setChecked(false) }}>{letters[index]}</button>)}</div>
+      <button type="button" className={styles.token} aria-label={'Add letter '+letters[index]} key={index}
+        onClick={() => { setChosen(old => [...old, index]); setChecked(false) }}>{letters[index]}</button>)}</div>
     <div className={styles.actions}>
       <button type="button" disabled={chosen.length !== letters.length} onClick={() => setChecked(true)}>Check word</button>
       <button type="button" className={styles.secondary} onClick={() => { setChosen([]); setChecked(false) }}>Start again</button>
-      {chosen.length > 0 && !checked && <button type="button" className={styles.secondary} onClick={() => setChosen(old => old.slice(0, -1))}>Undo</button>}
+      {chosen.length > 0 && !checked && <button type="button" className={styles.secondary}
+        onClick={() => setChosen(old => old.slice(0, -1))}>Undo</button>}
     </div>
-    {checked && <p role="status" className={styles.explain}>{answer.toLocaleLowerCase() === word.toLocaleLowerCase() ? 'Correct spelling.' : 'Try another letter order.'}</p>}
+    {checked && <p role="status" className={styles.explain}>
+      {answer.toLocaleLowerCase() === word.toLocaleLowerCase() ? 'Correct spelling.' : 'Try another letter order.'}</p>}
   </div>
 }
 
 function SentenceOrder({ spec }: { spec: TeachingToolSpec }) {
-  const sentence = safeText(spec.sentence, 'Plants need sunlight to grow.')
-  return <Reorder key={sentence} values={safeSequence(sentence.split(/\s+/), ['Plants', 'need', 'sunlight', 'to', 'grow.'])} instruction="Put the words into a sentence." separator=" " />
+  const sentence = spec.sentence ?? ''
+  return <Reorder key={sentence} values={sentence.trim().split(/\s+/)}
+    instruction="Put the words into a sentence." separator=" " />
 }
 
-const defaultPairs = [
-  { term: 'Observe', definition: 'To look carefully and notice details' },
-  { term: 'Predict', definition: 'To say what you think may happen' },
-  { term: 'Compare', definition: 'To notice what is alike or different' },
-]
-
 function VocabularyMatch({ spec }: { spec: TeachingToolSpec }) {
-  const pairs = Array.isArray(spec.pairs) && spec.pairs.length >= 2 && spec.pairs.length <= 8
-    && spec.pairs.every(p => p && safeText(p.term, '') && safeText(p.definition, ''))
-      ? spec.pairs : defaultPairs
+  const pairs=spec.pairs ?? []
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [checked, setChecked] = useState(false)
   return <div className={styles.stack}>
     {pairs.map((item, i) => <label key={i} className={styles.promptLine}>
       <span>{item.definition}</span>
-      <select aria-label={`Match meaning ${i + 1}`} value={answers[i] ?? ''} onChange={e => { setAnswers(old => ({ ...old, [i]: e.target.value })); setChecked(false) }}>
+      <select aria-label={'Match meaning '+(i+1)} value={answers[i] ?? ''} onChange={e => {
+        setAnswers(old => ({ ...old, [i]: e.target.value })); setChecked(false)
+      }}>
         <option value="">Choose a word</option>
         {pairs.map((other, j) => <option key={j} value={String(j)}>{other.term}</option>)}
       </select>
     </label>)}
     <div className={styles.actions}>
-      <button type="button" disabled={pairs.some((_, i) => answers[i] === undefined || answers[i] === '')} onClick={() => setChecked(true)}>Check matches</button>
+      <button type="button" disabled={pairs.some((_, i) => !answers[i])} onClick={() => setChecked(true)}>Check matches</button>
       <button type="button" className={styles.secondary} onClick={() => { setAnswers({}); setChecked(false) }}>Reset</button>
     </div>
     {checked && <p role="status" className={styles.explain}>{pairs.filter((_, i) => answers[i] === String(i)).length} of {pairs.length} matches correct. {pairs.every((_, i) => answers[i] === String(i)) ? 'All matched.' : 'Change a match and check again.'}</p>}
   </div>
 }
 
-const defaultGroups = ['Living things', 'Non-living things']
-const defaultItems = [
-  { label: 'Butterfly', group: 'Living things' },
-  { label: 'Stone', group: 'Non-living things' },
-  { label: 'Grass', group: 'Living things' },
-  { label: 'Glass cup', group: 'Non-living things' },
-]
 const variableGroups = ['Changed (independent)', 'Measured (dependent)', 'Kept the same (controlled)']
-const variableItems = [
-  { label: 'Hours of sunlight', group: 'Changed (independent)' },
-  { label: 'Height of the plant', group: 'Measured (dependent)' },
-  { label: 'Type of soil', group: 'Kept the same (controlled)' },
-  { label: 'Amount of water', group: 'Kept the same (controlled)' },
-]
 
 function Classification({ spec, variables = false }: { spec: TeachingToolSpec; variables?: boolean }) {
-  const candidateGroups = variables ? variableGroups : spec.groups
-  const groups = safeSequence(candidateGroups, variables ? variableGroups : defaultGroups)
-  const items = Array.isArray(spec.items) && spec.items.length >= 2 && spec.items.length <= 12
-    && spec.items.every(item => item && typeof item.label === 'string' && item.label.length < 80 && groups.includes(item.group))
-      ? spec.items : variables ? variableItems : defaultItems
+  const groups = variables ? variableGroups : spec.groups ?? []
+  const items = spec.items ?? []
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [checked, setChecked] = useState(false)
   return <div className={styles.stack}>
-    {variables && <p>In a fair test, change one factor, measure the outcome and keep other relevant conditions constant.</p>}
+    {variables && <p>In a fair test, change one factor, measure the outcome and keep other conditions constant.</p>}
     {items.map((item, i) => <label className={styles.promptLine} key={i}>
       <strong>{item.label}</strong>
-      <select aria-label={`Classify ${item.label}`} value={answers[i] ?? ''} onChange={e => { setAnswers(old => ({ ...old, [i]: e.target.value })); setChecked(false) }}>
+      <select aria-label={'Classify '+item.label} value={answers[i] ?? ''} onChange={e => {
+        setAnswers(old => ({ ...old, [i]: e.target.value })); setChecked(false)
+      }}>
         <option value="">Choose a group</option>
         {groups.map(group => <option value={group} key={group}>{group}</option>)}
       </select>
@@ -133,8 +107,34 @@ function Classification({ spec, variables = false }: { spec: TeachingToolSpec; v
 }
 
 function FoodChain({ spec }: { spec: TeachingToolSpec }) {
-  const sequence = safeSequence(spec.sequence, ['Grass', 'Grasshopper', 'Frog', 'Snake'])
-  return <Reorder key={sequence.join('|')} values={sequence} instruction="Build a food chain. Start with the producer and follow where the energy goes." />
+  const sequence = [...(spec.sequence ?? [])]
+  return <Reorder key={sequence.join('|')} values={sequence}
+    instruction="Build a food chain. Start with the producer and follow where the energy goes." />
+}
+
+function ReadingComprehension({ spec }: { spec: TeachingToolSpec }) {
+  const [revealed, setRevealed] = useState(false)
+  return <div className={styles.stack}>
+    <div className={styles.reading} aria-label="Reading passage">{spec.passage}</div>
+    <p><strong>Think:</strong> {spec.question}</p>
+    <p>Write or say your response before reading the example answer.</p>
+    <button type="button" aria-expanded={revealed} onClick={() => setRevealed(v => !v)}>
+      {revealed ? 'Hide example response' : 'Compare with an example response'}
+    </button>
+    {revealed && <p role="status" className={styles.explain}><strong>Example response:</strong> {spec.sampleAnswer}</p>}
+  </div>
+}
+
+function WritingPlanner({ spec }: { spec: TeachingToolSpec }) {
+  const [start, setStart] = useState(''), [middle, setMiddle] = useState(''), [end, setEnd] = useState('')
+  return <div className={styles.stack}>
+    <p>Plan your writing: {spec.prompt}</p>
+    <label>Beginning <textarea rows={3} value={start} onChange={e=>setStart(e.target.value)} placeholder="Introduce the idea." /></label>
+    <label>Middle <textarea rows={3} value={middle} onChange={e=>setMiddle(e.target.value)} placeholder="Explain or describe it." /></label>
+    <label>Ending <textarea rows={3} value={end} onChange={e=>setEnd(e.target.value)} placeholder="Conclude clearly." /></label>
+    <p className={styles.explain}>Your writing stays on this page and is not submitted or marked.</p>
+    <button type="button" className={styles.secondary} onClick={()=>{setStart('');setMiddle('');setEnd('')}}>Clear plan</button>
+  </div>
 }
 
 export default function LanguageScienceTeachingTool({ spec }: { spec: TeachingToolSpec }) {
@@ -142,6 +142,8 @@ export default function LanguageScienceTeachingTool({ spec }: { spec: TeachingTo
     case 'word-builder': return <WordBuilder spec={spec} />
     case 'sentence-order': return <SentenceOrder spec={spec} />
     case 'vocabulary-match': return <VocabularyMatch spec={spec} />
+    case 'reading-comprehension': return <ReadingComprehension spec={spec} />
+    case 'writing-planner': return <WritingPlanner spec={spec} />
     case 'classification': return <Classification spec={spec} />
     case 'experiment-variables': return <Classification spec={spec} variables />
     case 'food-chain': return <FoodChain spec={spec} />

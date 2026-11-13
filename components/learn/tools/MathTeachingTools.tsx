@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { TeachingToolId, TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 import styles from './TeachingTools.module.css'
 
@@ -8,56 +8,71 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const fmt = (value: number) => Number(value.toPrecision(8)).toLocaleString('en-KE')
 
 function NumberLine({ spec }: { spec: TeachingToolSpec }) {
-  const [position, setPosition] = useState(clamp(spec.number ?? 0, -10, 10))
+  const inputId = useId()
+  const lower = spec.min ?? -10, upper = spec.max ?? 10
+  const min = lower < upper && lower >= -1000 && upper <= 1000 ? lower : -10
+  const max = lower < upper && lower >= -1000 && upper <= 1000 ? upper : 10
+  const step = spec.step ?? 1
+  const [position, setPosition] = useState(clamp(spec.number ?? 0, min, max))
+  const ticks = Array.from({ length: 11 }, (_, i) => min + (max - min) * i / 10)
   return <div className={styles.stack}>
-    <label htmlFor="tool-number-line">Move the marker: <strong>{position}</strong></label>
-    <input id="tool-number-line" aria-label="Number line position" type="range" min="-10" max="10" step="1" value={position} onChange={e => setPosition(Number(e.target.value))} />
-    <div className={styles.numberLine} role="img" aria-label={`Number line from negative ten to ten, marker at ${position}`}>
-      {Array.from({ length: 21 }, (_, i) => <span key={i} className={i - 10 === position ? styles.activeTick : ''} title={String(i - 10)}>
-        <span aria-hidden="true">{i - 10 === position ? '●' : '·'}</span>
-        {i % 5 === 0 ? <small>{i - 10}</small> : null}
-      </span>)}
+    <label htmlFor={inputId}>Move the marker: <strong>{fmt(position)}</strong></label>
+    <input id={inputId} aria-label="Number line position" type="range" min={min} max={max} step={step}
+      value={position} onChange={e => setPosition(Number(e.target.value))} />
+    <div className={styles.numberLine} role="img" aria-label={'Number line from '+min+' to '+max+', marker at '+position}>
+      {ticks.map((tick, i) => <span key={i} aria-hidden="true"><small>{fmt(tick)}</small></span>)}
     </div>
-    <p className={styles.explain}>{position < 0 ? `${Math.abs(position)} steps left of zero.` : position > 0 ? `${position} steps right of zero.` : 'At zero.'}</p>
-    <button type="button" className={styles.secondary} onClick={() => setPosition(0)}>Back to zero</button>
+    <p className={styles.explain}>The marker is at <strong>{fmt(position)}</strong>.
+      {position < 0 ? ' It is left of zero.' : position > 0 ? ' It is right of zero.' : ' It is at zero.'}</p>
+    <button type="button" className={styles.secondary} onClick={() => setPosition(clamp(0,min,max))}>Back towards zero</button>
   </div>
 }
 
 function PlaceValue({ spec }: { spec: TeachingToolSpec }) {
-  const [number, setNumber] = useState(String(Math.floor(clamp(spec.number ?? 20458, 0, 999999))))
-  const valid = /^\d{1,6}$/.test(number)
-  const digits = valid ? Number(number).toString().split('') : []
-  const places = ['hundred thousands', 'ten thousands', 'thousands', 'hundreds', 'tens', 'ones']
+  const inputId = useId()
+  const [number, setNumber] = useState(String(Math.floor(clamp(spec.number ?? 20458, 0, 999999999999))))
+  const valid = /^\d{1,12}$/.test(number) && Number(number) <= 999999999999
+  const digits = valid ? String(Number(number)).split('') : []
+  const places = ['hundred billions', 'ten billions', 'billions', 'hundred millions', 'ten millions',
+    'millions', 'hundred thousands', 'ten thousands', 'thousands', 'hundreds', 'tens', 'ones']
   return <div className={styles.stack}>
-    <label htmlFor="tool-place-number">Choose a whole number (0–999999)</label>
-    <input id="tool-place-number" type="number" min="0" max="999999" step="1" value={number} onChange={e => setNumber(e.target.value)} />
-    {!valid ? <p role="alert">Enter a whole number from 0 to 999999.</p>
-      : <><div className={styles.digitGrid}>{digits.map((digit, index) => {
-        const power = digits.length - index - 1
-        return <div key={index}><strong>{digit}</strong><small>{places[5 - power]}</small></div>
+    <label htmlFor={inputId}>Choose a whole number (0 to 999,999,999,999)</label>
+    <input id={inputId} type="number" min="0" max="999999999999" step="1" value={number} onChange={e => setNumber(e.target.value)} />
+    {!valid ? <p role="alert">Enter a whole number of up to twelve digits.</p>
+      : <><div className={styles.digitGrid}>{digits.map((digit,index) => {
+        const power=digits.length-index-1
+        return <div key={index}><strong>{digit}</strong><small>{places[11-power]}</small></div>
       })}</div>
-      <p className={styles.explain}>Expanded form: {digits.map((digit, index) => Number(digit) * 10 ** (digits.length - index - 1)).filter(Boolean).map(fmt).join(' + ') || '0'}</p></>}
+      <p className={styles.explain}>Expanded form: {digits.map((digit,index) =>
+        Number(digit) ? digit + '0'.repeat(digits.length-index-1) : '')
+        .filter(Boolean).join(' + ') || '0'}</p></>}
   </div>
 }
 
 function FractionBars() {
-  const [a, setA] = useState(1), [b, setB] = useState(2)
-  const [c, setC] = useState(2), [d, setD] = useState(3)
-  const fraction = (n: number, den: number, name: string, onN: (n: number) => void, onD: (n: number) => void) =>
+  const [a,setA]=useState(3), [b,setB]=useState(2)
+  const [c,setC]=useState(2), [d,setD]=useState(3)
+  const fraction=(n:number,den:number,name:string,onN:(n:number)=>void,onD:(n:number)=>void)=>
     <div className={styles.stack}>
       <div className={styles.controlRow}>
-        <label>{name} numerator <input type="number" min="0" max={den} value={n} onChange={e => onN(clamp(Math.floor(Number(e.target.value)), 0, den))} /></label>
-        <label>denominator <input type="number" min="1" max="12" value={den} onChange={e => { const next = clamp(Math.floor(Number(e.target.value)), 1, 12); onD(next); onN(Math.min(next, n)) }} /></label>
+        <label>{name} numerator <input type="number" min="0" max={den*3} value={n}
+          onChange={e=>onN(clamp(Math.floor(Number(e.target.value)),0,den*3))}/></label>
+        <label>denominator <input type="number" min="1" max="12" value={den}
+          onChange={e=>{const next=clamp(Math.floor(Number(e.target.value)),1,12);onD(next);onN(Math.min(next*3,n))}}/></label>
       </div>
-      <div className={styles.fractionBar} role="img" aria-label={`${n} of ${den} equal parts shaded`}>
-        {Array.from({ length: den }, (_, i) => <span key={i} className={i < n ? styles.filled : ''} />)}
+      <div className={styles.fractionSet} role="img" aria-label={n+' of '+den+' equal parts shaded; '+Math.floor(n/den)+' wholes and '+(n%den)+' extra parts'}>
+        {Array.from({length:Math.max(1,Math.ceil(n/den))},(_,barIndex)=>
+          <div className={styles.fractionBar} key={barIndex}>
+            {Array.from({length:den},(_,index)=>
+              <span aria-hidden="true" key={index} className={barIndex*den+index<n?styles.filled:''}/>)}
+          </div>)}
       </div>
       <strong>{n}/{den}</strong>
     </div>
   return <div className={styles.stack}>
-    {fraction(a, b, 'First fraction', setA, setB)}
-    {fraction(c, d, 'Second fraction', setC, setD)}
-    <p className={styles.explain}>{a * d === c * b ? 'The fractions are equal.' : a * d > c * b ? 'The first fraction is greater.' : 'The second fraction is greater.'}</p>
+    {fraction(a,b,'First fraction',setA,setB)}
+    {fraction(c,d,'Second fraction',setC,setD)}
+    <p className={styles.explain}>{a*d===c*b?'The fractions are equal.':a*d>c*b?'The first fraction is greater.':'The second fraction is greater.'}</p>
   </div>
 }
 
@@ -105,6 +120,7 @@ const units = {
   time: { second: 1, minute: 60, hour: 3600 },
   length: { millimetre: 0.001, centimetre: 0.01, metre: 1, kilometre: 1000 },
   mass: { gram: 1, kilogram: 1000 },
+  capacity: { millilitre: 1, litre: 1000 },
 } as const
 
 function UnitConverter() {
@@ -122,13 +138,29 @@ function UnitConverter() {
         const selected = e.target.value as keyof typeof units
         const names = Object.keys(units[selected])
         setFamily(selected); setFrom(names[0]); setTo(names[1] ?? names[0])
-      }}><option value="time">Time</option><option value="length">Length</option><option value="mass">Mass</option></select></label>
+      }}><option value="time">Time</option><option value="length">Length</option><option value="mass">Mass</option><option value="capacity">Capacity</option></select></label>
       <label>Amount <input type="number" min="0" max="1000000000" step="any" value={amount} onChange={e => setAmount(e.target.value)} /></label>
       <label>From <select value={from} onChange={e => setFrom(e.target.value)}>{options.map(x => <option key={x}>{x}</option>)}</select></label>
       <label>To <select value={to} onChange={e => setTo(e.target.value)}>{options.map(x => <option key={x}>{x}</option>)}</select></label>
     </div>
     {result === null ? <p role="alert">Enter an amount between 0 and 1,000,000,000.</p>
       : <p className={styles.explain} role="status"><strong>{fmt(Number(amount))} {from} = {fmt(result)} {to}</strong></p>}
+  </div>
+}
+
+function DataChart({spec}:{spec:TeachingToolSpec}) {
+  const points=spec.points ?? []
+  const max=Math.max(1,...points.map(x=>x.value))
+  const highest=points.reduce((best,next)=>next.value>best.value?next:best,points[0])
+  return <div className={styles.stack}>
+    <div className={styles.dataChart} role="img" aria-label={'Bar chart of '+points.map(p=>p.label+': '+fmt(p.value)).join(', ')}>
+      {points.map((point,index)=><div key={index} className={styles.dataRow}>
+        <span>{point.label}</span>
+        <div className={styles.dataTrack}><div style={{width:(point.value/max*100)+'%'}}/></div>
+        <strong>{fmt(point.value)}</strong>
+      </div>)}
+    </div>
+    <p className={styles.explain}>Largest value: {highest?.label} ({fmt(highest?.value ?? 0)}). Compare the bars to describe the data.</p>
   </div>
 }
 
@@ -141,6 +173,7 @@ export default function MathTeachingTool({ spec }: { spec: TeachingToolSpec }) {
     case 'multiplication-array': return <MultiplicationArray />
     case 'clock': return <Clock />
     case 'unit-converter': return <UnitConverter />
+    case 'data-chart': return <DataChart spec={spec} />
     default: return null
   }
 }
