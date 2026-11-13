@@ -68,7 +68,7 @@ export default function HomePage() {
         </div>
         <div className={styles.demoGrid}>
           <Link href="/sandbox" className={styles.demoCard}><span className={styles.demoLabel}>LIVE SANDBOX</span><h3>Run one lesson from plan to next action.</h3><p>Use safe demo data to plan, teach, capture evidence, assess what the evidence supports and see the next step.</p><strong>Explore the sandbox →</strong></Link>
-          <TrackedLink href="/global" event="public_home_start_learning" className={styles.demoCard}><span className={styles.demoLabel}>LEARNING</span><h3>Learning that continues beyond one resource.</h3><p>Explore curriculum-organised learning and how resources, practice and progress fit into the wider learner journey.</p><strong>Explore learning →</strong></TrackedLink>
+          <TrackedLink href="/learn" event="public_home_start_learning" className={styles.demoCard}><span className={styles.demoLabel}>LEARNING</span><h3>Learning that continues beyond one resource.</h3><p>Explore curriculum-organised learning and how resources, practice and progress fit into the wider learner journey.</p><strong>Explore learning →</strong></TrackedLink>
           <TrackedLink href="/pathways" event="public_home_pathways" className={styles.demoCard}><span className={styles.demoLabel}>SENIOR SCHOOL PATHWAYS</span><h3>Make future choices with clearer information.</h3><p>Explore subjects, careers and schools while distinguishing verified information from guidance and uncertainty.</p><strong>Explore Pathways →</strong></TrackedLink>
         </div>
       </section>
