@@ -362,6 +362,8 @@ export async function buildCanonicalLessonSourceBundle({
       subject: subjectName,
       grade: context.grade,
       schemeLessonId: source?.schemeId ?? null,
+      curriculumId: source?.id ?? null,
+      subStrandId: source?.strandId ?? null,
       assets: certifiedContent,
     }) : [],
     provenance: {
