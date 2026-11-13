@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { SCHOOL_LEVELS } from '@/lib/learn/schoolCatalog'
-import { isSafeVisualStoragePath, isVisualPayload } from '@/lib/visual-library/contract'
+import { UUID_RE, VISUAL_PLACEMENTS, isSafeVisualStoragePath, isVisualPayload } from '@/lib/visual-library/contract'
 import { visualAdminClient, visualJson } from '@/lib/visual-library/server'
 
 export const runtime = 'nodejs'
@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
   const search = (req.nextUrl.searchParams.get('search') || '').trim().slice(0, 70).toLowerCase()
   const subject = (req.nextUrl.searchParams.get('subject') || '').trim()
   const topicKey = (req.nextUrl.searchParams.get('topicKey') || '').trim().toLowerCase()
+  const sourceStrandId = (req.nextUrl.searchParams.get('sourceStrandId') || '').trim()
+  const placement = (req.nextUrl.searchParams.get('placement') || '').trim()
   const pageText = req.nextUrl.searchParams.get('page') || '1'
   const page = Number(pageText)
 
@@ -26,6 +28,10 @@ export async function GET(req: NextRequest) {
     return visualJson({ error: 'Invalid subject.' }, 400)
   if (topicKey && !/^[a-z0-9-]{3,100}$/.test(topicKey))
     return visualJson({ error: 'Invalid topic.' }, 400)
+  if (sourceStrandId && !UUID_RE.test(sourceStrandId))
+    return visualJson({ error: 'Invalid curriculum reference.' }, 400)
+  if (placement && !(VISUAL_PLACEMENTS as readonly string[]).includes(placement))
+    return visualJson({ error: 'Invalid placement.' }, 400)
   if (!/^[1-9]\d{0,2}$/.test(pageText) || page > 100)
     return visualJson({ error: 'Invalid page.' }, 400)
 
@@ -73,6 +79,8 @@ export async function GET(req: NextRequest) {
         const p = version?.payload
         if (!version || !isVisualPayload(p) || !isSafeVisualStoragePath(p.storage.path)) continue
         if (topicKey && p.topic_key.toLowerCase() !== topicKey) continue
+        if (sourceStrandId && p.source_strand_id !== sourceStrandId) continue
+        if (placement && !p.placements.includes(placement as typeof p.placements[number])) continue
         if (search && ![root.title,root.subject,p.caption,p.alt_text,p.topic_key,...p.labels]
           .join(' ').toLowerCase().includes(search)) continue
         found.push({
