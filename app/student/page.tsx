@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, ClipboardCheck, ChartNoAxesColumn, Sparkles, ArrowUpRight } from 'lucide-react'
+import { BookOpen, ClipboardCheck, ChartNoAxesColumn, PencilLine, ArrowUpRight } from 'lucide-react'
 import './student-home.css'
 import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
 import { loadActiveClassTimetable, timetableSlotsForDay } from '@/lib/timetable/engine'
@@ -139,7 +139,7 @@ export default function StudentHomePage() {
       {nextQueue.length === 0 ? <p style={body}>No other tasks need attention right now.</p> : <div style={{ display: 'grid', gap: 9 }}>{nextQueue.map(task => <button key={task.taskId} disabled={launchingTaskId !== null} onClick={() => void openTask(task)} style={recoveryRow}><span style={rank}>{TYPE_LABEL[task.taskType]?.slice(0, 1) ?? 'T'}</span><span style={{ textAlign: 'left', minWidth: 0 }}><strong style={{ display: 'block', fontSize: 13 }}>{task.title}</strong><span style={{ ...muted, fontSize: 11 }}>{task.subject} · {taskMeta(task)}</span></span><span aria-hidden="true">›</span></button>)}</div>}
     </section>
 
-    <section style={card} aria-label="Learning destinations"><SectionHeader title="Explore learning" /><div className="student-home-quick-grid"><Quick title="Learn" note="Lessons and reading" onClick={() => router.push('/student/study')} /><Quick title="Exams" note="Tests and assessments" onClick={() => router.push('/student/vibelearn/exams')} /><Quick title="Results" note="Marks and feedback" onClick={() => router.push('/student/marks')} /><Quick title="VibeTwin" note="Personal learning insights" onClick={() => router.push('/student/twin')} /></div></section>
+    <section style={card} aria-label="Learning destinations"><SectionHeader title="Explore learning" /><div className="student-home-quick-grid"><Quick title="Learn" note="Lessons and reading" onClick={() => router.push('/student/study')} /><Quick title="Practise" note="Questions and exercises" onClick={() => router.push('/student/vibelearn/topic-practice')} /><Quick title="Exams" note="Tests and assessments" onClick={() => router.push('/student/vibelearn/exams')} /><Quick title="Results" note="Marks and feedback" onClick={() => router.push('/student/marks')} /></div></section>
     </div>
 
     <section style={card}><SectionHeader title="My academic target" action={settingsOpen ? 'Close' : 'Set goals'} onClick={() => setSettingsOpen(value => !value)} /><div className="student-home-goals" style={goalGrid}>{isKcseLearner ? <Metric label="KCSE target" value={progress?.targets.kcseTargetGrade ?? 'Not set'} /> : <Metric label="Learning level" value={identity.className || 'Not set'} />}<Metric label="Weekly study" value={`${progress?.targets.weeklyStudyMinutes ?? 300} min`} /><Metric label="Focus session" value={`${progress?.targets.preferredSessionMinutes ?? 25} min`} /></div>{settingsOpen && <div style={formGrid}>{isKcseLearner && <label style={field}>KCSE target<select value={targetGrade} onChange={event => setTargetGrade(event.target.value)} style={input}>{GRADES.map(grade => <option key={grade || 'none'} value={grade}>{grade || 'Not set'}</option>)}</select></label>}<label style={field}>Weekly minutes<input type="number" min={30} max={4200} value={weeklyMinutes} onChange={event => setWeeklyMinutes(Number(event.target.value))} style={input} /></label><label style={field}>Session minutes<input type="number" min={10} max={180} value={sessionMinutes} onChange={event => setSessionMinutes(Number(event.target.value))} style={input} /></label><label style={field}>Preferred time<select value={studyTime} onChange={event => setStudyTime(event.target.value as PreferredStudyTime)} style={input}>{STUDY_TIMES.map(item => <option key={item} value={item}>{item}</option>)}</select></label><button disabled={saving} onClick={() => void savePreferences()} style={primaryButton}>{saving ? 'Saving…' : 'Save my goals'}</button></div>}</section>
@@ -160,7 +160,7 @@ function SectionHeader({ title, action, onClick }: { title: string; action?: str
 function Metric({ label: text, value }: { label: string; value: string | number }) { return <div style={metric}><span style={muted}>{text}</span><strong style={{ display: 'block', marginTop: 4, fontSize: 17 }}>{value}</strong></div> }
 function Empty({ title, body: text }: { title: string; body: string }) { return <div style={{ padding: 14, textAlign: 'center' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={body}>{text}</p></div> }
 function Quick({ title, note, onClick }: { title: string; note: string; onClick: () => void }) {
-  const Icon = title === 'Learn' ? BookOpen : title === 'Exams' ? ClipboardCheck : title === 'Results' ? ChartNoAxesColumn : Sparkles
+  const Icon = title === 'Learn' ? BookOpen : title === 'Exams' ? ClipboardCheck : title === 'Results' ? ChartNoAxesColumn : PencilLine
   return <button onClick={onClick} style={{ ...quick, display: 'flex' }} aria-label={title + ': ' + note}>
     <span className="student-home-quick-icon"><Icon size={20} aria-hidden="true" /></span>
     <span className="student-home-quick-copy"><strong>{title}</strong><small>{note}</small></span>
