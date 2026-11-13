@@ -14,6 +14,8 @@
 
 **Concise exceptions only:** If source acquisition, permission scope, transcription, storage or disclosure would actually be blocked by an unresolved condition, state the exact blocked operation and the minimum required evidence briefly once in that scope's status. Do not conceal a material blocker or write `RIGHTS_VERIFIED` without evidence. Never convert the owner's photocopy analogy into a legal determination or circumvent a content-access, authority or release check. Continue available structural mapping, outcome reconciliation and VibeSchool-original content work rather than stopping the entire subject.
 
+**Standing owner declaration (existing authority only):** Record `OWNER_ATTESTED_PRIVATE_COPY` once for the relevant source and intended restricted private use. Do not repeatedly request the same owner assertion. Reuse existing curriculum-authority records rather than introducing new approval systems or storing private source text or confidential permission documentation in public Git. Independently uncorroborated licence scope remains `RIGHTS_SCOPE_UNVERIFIED`; the two states can coexist. This evidence qualifier does not block unrelated curriculum mapping, Scheme preparation or VibeSchool-original educational authoring. Specific restrictions on transcription, storage, third-party processing or publication must still be respected, and no clearance should be invented.
+
 **Reporting style:** Lead with concrete changes, validated counts, links, merge/deployment status and remaining production work. Report source-copy completeness accurately; do not repeat generic permissions prose as a default closing paragraph. Never call an incomplete reference a 100% copy.
 
 ## 0. Primary instruction: WORD FOR WORD, NOT PARAPHRASED
@@ -38,6 +40,7 @@ This is an **internal reference transcription**, not a public VibeSchool curricu
 | Mode | Scope | Required handling |
 |---|---|---|
 | `PRIVATE_VERBATIM_REFERENCE` | Authorised internal KICD PDF-to-structured-data transcription | Copy word for word; preserve exact page/section links; restrict all access; verify full textual equality |
+| `OWNER_ATTESTED_PRIVATE_COPY` | Owner's standing declaration for restricted private source reference | Retain as an attestation, not independent licence verification or public redistribution permission |
 | `RIGHTS_SCOPE_UNVERIFIED` | Owner assertion exists, relevant permission scope or conditions not independently established | Preserve the claim privately; do not label the import legally cleared or disclose confidential details |
 | `VIBESCHOOL_ORIGINAL_PUBLIC_CONTENT` | Learner/teacher-facing teaching and assessment materials | Independently authored; KICD-aligned; separately reviewed and released |
 | `BLOCKED_SOURCE_ACCESS` | Required official edition/pages cannot be inspected | Do not guess, replace with an older edition or certify completeness |
