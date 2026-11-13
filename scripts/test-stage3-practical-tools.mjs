@@ -90,3 +90,22 @@ test('privacy, accessibility and certified visual admission are preserved',()=>{
   // The tools must not create another progress, publication or assessment authority.
   assert.doesNotMatch(tool,/student_outcome_mastery|assessment_attempts|content_blocks|insert\(/)
 })
+
+
+test('Stage 2 charts, reading and numeric controls survive the same canonical adapter',()=>{
+  const adapted=adaptCanonicalLearnSections([{
+    id:'learn',title:'Shared author tools',body:'Source-bound lesson text.',
+    tools:[
+      {id:'data-chart',points:[{label:'Monday',value:5},{label:'Tuesday',value:7}]},
+      {id:'reading-comprehension',passage:'A farmer took care of maize every day, watching the plants grow.',question:'What did the farmer observe?',sampleAnswer:'The farmer observed the maize.'},
+      {id:'number-line',min:-500,max:500,step:10,number:300},
+      {id:'drawing-pad',prompt:'Draw what you see.'}
+    ],
+  }])
+  assert.equal(adapted[0].tools?.[0].points?.length,2)
+  assert.equal(adapted[0].tools?.[1].sampleAnswer,'The farmer observed the maize.')
+  assert.equal(adapted[0].tools?.[2].min,-500)
+  assert.equal(adapted[0].tools?.[2].step,10)
+  assert.equal(resolveTeachingTools('Mathematics','',adapted[0].tools).length,2)
+  assert.equal(resolveTeachingTools('English','',adapted[0].tools).length,2)
+})
