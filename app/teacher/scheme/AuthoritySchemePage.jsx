@@ -134,6 +134,9 @@ function Inner({ curriculumView = false }) {
   const [grade4Catalog,setGrade4Catalog] = useState({})
   const [grade4CatalogLoading,setGrade4CatalogLoading] = useState(false)
   const [grade4CatalogError,setGrade4CatalogError] = useState('')
+  const [grade9EnglishCatalog,setGrade9EnglishCatalog] = useState({})
+  const [grade9EnglishCatalogLoading,setGrade9EnglishCatalogLoading] = useState(false)
+  const [grade9EnglishCatalogError,setGrade9EnglishCatalogError] = useState('')
   const [grade8EnglishCatalog,setGrade8EnglishCatalog] = useState({})
   const [grade8EnglishCatalogLoading,setGrade8EnglishCatalogLoading] = useState(false)
   const [grade8EnglishCatalogError,setGrade8EnglishCatalogError] = useState('')
@@ -167,6 +170,7 @@ function Inner({ curriculumView = false }) {
   const isGrade8Kiswahili = /^grade\s*8$/i.test(classObj?.grade?.trim()||'') && /^kiswahili$/i.test(subjectObj?.label?.trim()||'')
   const isGrade9English = /^grade\s*9$/i.test(classObj?.grade?.trim()||'') && /^english$/i.test(subjectObj?.label?.trim()||'')
   const grade9EnglishDraftUnit = !curriculumView && isGrade9English ? GRADE9_ENGLISH_UNITS.find(unit=>unit.code===draftUnitId) : null
+  const grade9EnglishDraftRecord = grade9EnglishDraftUnit ? grade9EnglishCatalog[grade9EnglishDraftUnit.code] : null
   const isGrade9Mathematics = /^grade\s*9$/i.test(classObj?.grade?.trim()||'') && /^mathematics$/i.test(subjectObj?.label?.trim()||'')
   const grade9DraftUnit = !curriculumView && isGrade9Mathematics ? GRADE9_MATHEMATICS_UNITS.find(unit=>unit.id===draftUnitId) : null
   const isGrade1Creative = /^grade\s*1$/i.test(classObj?.grade?.trim()||'') && /^(creative activities|creative arts activities|creative arts and sports)$/i.test(subjectObj?.label?.trim()||'')
@@ -207,11 +211,11 @@ function Inner({ curriculumView = false }) {
   const grade6EnglishDraftRecord = grade6EnglishDraftUnit ? grade6EnglishCatalog[grade6EnglishDraftUnit.id] : null
   const grade6KiswahiliDraftUnit = !curriculumView && isGrade6Kiswahili ? GRADE6_KISWAHILI_UNITS.find(unit=>unit.id===draftUnitId) : null
   const grade6KiswahiliDraftRecord = grade6KiswahiliDraftUnit ? grade6KiswahiliCatalog[grade6KiswahiliDraftUnit.id] : null
-  const mappedDraftUnit = creativeDraftUnit || grade1DraftUnit || grade8DraftUnit || grade8EnglishDraftUnit || grade6DraftUnit || grade6EnglishDraftUnit || grade4DraftUnit || grade6KiswahiliDraftUnit || grade4EnglishDraftUnit || grade4IndigenousDraftUnit
-  const mappedDraftStrand = creativeDraftStrand || grade1DraftStrand || grade8DraftUnit?.strand || grade8EnglishDraftUnit?.strand || grade6DraftUnit?.strand || grade6EnglishDraftUnit?.strand || grade4DraftUnit?.strand || grade6KiswahiliDraftUnit?.strand || grade4EnglishDraftUnit?.strand || grade4IndigenousDraftUnit?.strand
-  const mappedDraftRecord = creativeDraftRecord || grade1DraftRecord || grade8DraftRecord || grade8EnglishDraftRecord || grade6DraftRecord || grade6EnglishDraftRecord || grade4DraftRecord || grade6KiswahiliDraftRecord || grade4EnglishDraftRecord || grade4IndigenousDraftRecord
-  const mappedCatalogLoading = isGrade4Indigenous ? grade4IndigenousCatalogLoading : isGrade4English ? grade4EnglishCatalogLoading : isGrade4Mathematics ? grade4CatalogLoading : isGrade6Kiswahili ? grade6KiswahiliCatalogLoading : isGrade6English ? grade6EnglishCatalogLoading : isGrade6Mathematics ? grade6CatalogLoading : isGrade8English ? grade8EnglishCatalogLoading : isGrade8Mathematics ? grade8CatalogLoading : isGrade1Creative ? creativeCatalogLoading : grade1ReaderCatalogLoading
-  const mappedCatalogError = isGrade4Indigenous ? grade4IndigenousCatalogError : isGrade4English ? grade4EnglishCatalogError : isGrade4Mathematics ? grade4CatalogError : isGrade6Kiswahili ? grade6KiswahiliCatalogError : isGrade6English ? grade6EnglishCatalogError : isGrade6Mathematics ? grade6CatalogError : isGrade8English ? grade8EnglishCatalogError : isGrade8Mathematics ? grade8CatalogError : isGrade1Creative ? creativeCatalogError : grade1ReaderCatalogError
+  const mappedDraftUnit = creativeDraftUnit || grade1DraftUnit || grade8DraftUnit || grade8EnglishDraftUnit || grade6DraftUnit || grade6EnglishDraftUnit || grade4DraftUnit || grade6KiswahiliDraftUnit || grade4EnglishDraftUnit || grade4IndigenousDraftUnit || (grade9EnglishDraftRecord ? grade9EnglishDraftUnit : null)
+  const mappedDraftStrand = creativeDraftStrand || grade1DraftStrand || grade8DraftUnit?.strand || grade8EnglishDraftUnit?.strand || grade6DraftUnit?.strand || grade6EnglishDraftUnit?.strand || grade4DraftUnit?.strand || grade6KiswahiliDraftUnit?.strand || grade4EnglishDraftUnit?.strand || grade4IndigenousDraftUnit?.strand || (grade9EnglishDraftRecord ? grade9EnglishDraftUnit?.strand : null)
+  const mappedDraftRecord = creativeDraftRecord || grade1DraftRecord || grade8DraftRecord || grade8EnglishDraftRecord || grade6DraftRecord || grade6EnglishDraftRecord || grade4DraftRecord || grade6KiswahiliDraftRecord || grade4EnglishDraftRecord || grade4IndigenousDraftRecord || grade9EnglishDraftRecord
+  const mappedCatalogLoading = isGrade9English ? grade9EnglishCatalogLoading : isGrade4Indigenous ? grade4IndigenousCatalogLoading : isGrade4English ? grade4EnglishCatalogLoading : isGrade4Mathematics ? grade4CatalogLoading : isGrade6Kiswahili ? grade6KiswahiliCatalogLoading : isGrade6English ? grade6EnglishCatalogLoading : isGrade6Mathematics ? grade6CatalogLoading : isGrade8English ? grade8EnglishCatalogLoading : isGrade8Mathematics ? grade8CatalogLoading : isGrade1Creative ? creativeCatalogLoading : grade1ReaderCatalogLoading
+  const mappedCatalogError = isGrade9English ? grade9EnglishCatalogError : isGrade4Indigenous ? grade4IndigenousCatalogError : isGrade4English ? grade4EnglishCatalogError : isGrade4Mathematics ? grade4CatalogError : isGrade6Kiswahili ? grade6KiswahiliCatalogError : isGrade6English ? grade6EnglishCatalogError : isGrade6Mathematics ? grade6CatalogError : isGrade8English ? grade8EnglishCatalogError : isGrade8Mathematics ? grade8CatalogError : isGrade1Creative ? creativeCatalogError : grade1ReaderCatalogError
   const autoUnits = isGrade8English ? GRADE8_ENGLISH_UNITS : readerUnits
   const annualTerms = useMemo(()=>terms.filter(term=>Number(term.academic_year)===Number(termObj?.academic_year)),[terms,termObj?.academic_year])
   const annualDraft = useMemo(()=>{
@@ -476,6 +480,58 @@ function Inner({ curriculumView = false }) {
     })()
     return()=>{live=false}
   },[isGrade4Mathematics,selectedSubject])
+
+  // Grade 9 English reuses the persisted 75-unit heading identity and canonical
+  // curriculum tables. This loader never creates outcomes or makes an official
+  // KICD verification claim; a teacher may save only eligible original content.
+  useEffect(()=>{
+    let live=true
+    if(!isGrade9English||curriculumView||!selectedSubject||!grade9EnglishDraftUnit){
+      setGrade9EnglishCatalog({});setGrade9EnglishCatalogError('');setGrade9EnglishCatalogLoading(false)
+      return
+    }
+    ;(async()=>{
+      setGrade9EnglishCatalogLoading(true);setGrade9EnglishCatalogError('');setGrade9EnglishCatalog({})
+      try{
+        const unit=grade9EnglishDraftUnit
+        if(!unit.canonicalSubStrandId)throw new Error('Grade 9 English canonical heading identity is missing.')
+        const globalId=await resolveGlobalSubjectId(selectedSubject)
+        if(!globalId)throw new Error('Canonical English subject identity is unavailable.')
+        const reference='VS-REF-G09-EN-2024#'+unit.code
+        const [heading,guidance,outcomes]=await Promise.all([
+          supabase.from('cbc_strands')
+            .select('id,subject_id,grade,name,sub_strand,source_ref,key_inquiry_questions,suggested_experiences')
+            .eq('id',unit.canonicalSubStrandId).eq('subject_id',globalId).eq('grade','Grade 9').maybeSingle(),
+          supabase.from('curriculum_unit_guidance')
+            .select('sub_strand_id,content_status,learning_resources,assessment_methods')
+            .eq('sub_strand_id',unit.canonicalSubStrandId).eq('content_status','active').maybeSingle(),
+          supabase.from('curriculum_learning_outcomes')
+            .select('id,sub_strand_id,outcome_text,source_ref,outcome_code,status,source_type')
+            .eq('sub_strand_id',unit.canonicalSubStrandId)
+            .eq('status','active').eq('source_type','creator_claimed')
+            .like('source_ref',reference+'/%')
+            .order('outcome_code',{ascending:true})
+        ])
+        for(const response of [heading,guidance,outcomes])if(response.error)throw response.error
+        const row=heading.data
+        if(!row||row.source_ref!==reference||row.name!==unit.strand||row.sub_strand!==unit.code+' · '+unit.title)
+          throw new Error('Grade 9 English heading identity does not match the canonical curriculum.')
+        const hasText=entries=>Array.isArray(entries)&&entries.some(value=>typeof value==='string'&&!!value.trim())
+        const complete=hasText(row.key_inquiry_questions)&&hasText(row.suggested_experiences)
+          &&!!guidance.data?.learning_resources?.trim()&&!!guidance.data?.assessment_methods?.trim()
+        const eligible=(outcomes.data||[]).filter(outcome=>outcome.sub_strand_id===row.id
+          &&outcome.source_ref?.startsWith(reference+'/')&&!!outcome.outcome_text?.trim())
+        if(complete&&eligible.length&&live){
+          setGrade9EnglishCatalog({[unit.code]:{
+            id:row.id,name:row.name,sub_strand:row.sub_strand,outcomes:eligible
+          }})
+        }
+      }catch(err){
+        if(live)setGrade9EnglishCatalogError(err instanceof Error?err.message:'Grade 9 English canonical learning outcomes could not be loaded.')
+      }finally{if(live)setGrade9EnglishCatalogLoading(false)}
+    })()
+    return()=>{live=false}
+  },[isGrade9English,curriculumView,selectedSubject,grade9EnglishDraftUnit?.code])
 
   useEffect(()=>{
     let live=true
@@ -1215,12 +1271,12 @@ function Inner({ curriculumView = false }) {
       <details style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:12,padding:12,marginBottom:12}}><summary style={{cursor:'pointer',color:C.text,fontWeight:700,fontSize:13}}>Teaching notes and observations</summary><div style={{marginTop:12}}><LessonPanel teacherId={uid} classId={selectedClass} subjectId={selectedSubject} subjectLabel={subjectObj.label} academicTermId={selectedTermId} schoolId={schoolId} week={selectedWeek}/></div></details>
     </>}
 
-         {grade9EnglishDraftUnit && <section aria-label="Grade 9 English planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+         {grade9EnglishDraftUnit && !grade9EnglishDraftRecord && <section aria-label="Grade 9 English planning reference" style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
       <div style={{fontSize:11,fontWeight:800,color:C.teal}}>CURRICULUM MAP → SCHEME OF WORK · REFERENCE ONLY</div>
       <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{grade9EnglishDraftUnit.code} · {grade9EnglishDraftUnit.title}</h2>
       <p style={{fontSize:13,color:C.text2,margin:'0 0 8px'}}>{grade9EnglishDraftUnit.themeName} · {grade9EnglishDraftUnit.strand} · Week {selectedWeek}</p>
       <p style={{fontSize:12,color:C.text2,margin:'0 0 12px'}}>This Grade 9 English curriculum heading is stored and its source reference is indexed, but verified learning outcomes, teaching guidance and lesson-to-outcome Scheme connections are not yet populated. The 2 suggested lessons are a source allocation, not saved lessons or assigned school weeks.</p>
-      <p role="status" style={{fontSize:12,color:'#784b0c',background:'#fff8e8',border:'1px solid #eadbb3',padding:10,borderRadius:8,margin:'0 0 12px'}}>Outcome-backed Scheme save unavailable for this reference unit. No Scheme lesson has been created. Existing teacher-owned Scheme tools remain available for other eligible content.</p>
+      {grade9EnglishCatalogLoading ? <p role="status" style={{fontSize:12,color:C.text2}}>Checking the canonical outcome and teaching-guidance records…</p> : grade9EnglishCatalogError ? <p role="alert" style={{fontSize:12,color:C.red}}>{grade9EnglishCatalogError}</p> : <p role="status" style={{fontSize:12,color:'#784b0c',background:'#fff8e8',border:'1px solid #eadbb3',padding:10,borderRadius:8,margin:'0 0 12px'}}>This unit does not yet have all required active VibeSchool-authored outcomes, inquiry questions, experiences and teaching guidance. No Scheme lesson has been created.</p>}
       <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
         <button type="button" onClick={()=>{const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',termId:selectedTermId||'',week:String(selectedWeek),unitId:grade9EnglishDraftUnit.code});router.push('/teacher/curriculum?'+p.toString())}} style={{minHeight:44,padding:'10px 14px',border:'1px solid #9fbbaa',borderRadius:9,background:'#fff',color:C.teal,fontWeight:700}}>Back to selected English sub-strand</button>
         <button type="button" onClick={()=>setDraftUnitId('')} style={{minHeight:44,padding:'10px 14px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:700}}>Close reference</button>
@@ -1239,10 +1295,10 @@ function Inner({ curriculumView = false }) {
          <button type="button" onClick={()=>setDraftUnitId('')} style={{minHeight:44,padding:'10px 14px',border:0,borderRadius:9,background:C.teal,color:'#fff',fontWeight:700}}>Close reference</button>
        </div>
      </section>}
-{mappedDraftUnit && <section aria-label={(isGrade4English||isGrade4Mathematics||isGrade4Indigenous)?'Plan mapped Grade 4 curriculum lesson':(isGrade6Mathematics||isGrade6English)?'Plan mapped Grade 6 curriculum lesson':(isGrade8Mathematics||isGrade8English)?'Plan mapped Grade 8 curriculum lesson':'Plan mapped Grade 1 curriculum lesson'} style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
+{mappedDraftUnit && <section aria-label={(isGrade4English||isGrade4Mathematics||isGrade4Indigenous)?'Plan mapped Grade 4 curriculum lesson':(isGrade6Mathematics||isGrade6English)?'Plan mapped Grade 6 curriculum lesson':(isGrade8Mathematics||isGrade8English)?'Plan mapped Grade 8 curriculum lesson':isGrade9English?'Plan mapped Grade 9 English curriculum lesson':'Plan mapped Grade 1 curriculum lesson'} style={{background:'#f1f8f3',border:'1px solid #9fbbaa',borderRadius:14,padding:16,marginBottom:12}}>
       <div style={{fontSize:11,fontWeight:800,color:C.teal,letterSpacing:'.04em'}}>CURRICULUM MAP → SCHEME OF WORK</div>
       <h2 style={{margin:'6px 0',fontSize:18,color:C.text}}>{mappedDraftUnit.title}</h2>
-      <p style={{fontSize:13,color:C.text2,margin:'0 0 10px'}}>{mappedDraftStrand} · Sub-strand {mappedDraftUnit.id} · Week {selectedWeek}</p>
+      <p style={{fontSize:13,color:C.text2,margin:'0 0 10px'}}>{mappedDraftStrand} · Sub-strand {mappedDraftUnit.id || mappedDraftUnit.code} · Week {selectedWeek}</p>
       <p style={{fontSize:12,color:C.text2,margin:'0 0 12px'}}>Select the outcomes for one lesson. The draft uses VibeSchool-authored guidance and will not be recorded as officially KICD-verified.</p>
       {mappedCatalogLoading&&<p role="status" style={{fontSize:12}}>Loading linked curriculum outcomes…</p>}
       {mappedCatalogError&&<p role="alert" style={{fontSize:12,color:C.red}}>{mappedCatalogError}</p>}
