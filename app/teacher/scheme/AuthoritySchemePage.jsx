@@ -203,7 +203,7 @@ function Inner({ curriculumView = false }) {
   const creativeDraftRecord = creativeDraftUnit ? creativeCatalog[creativeDraftUnit.id] : null
   const isGrade1Reader = isGrade1Mathematics || isGrade1English
   const isGrade1AutoScheme = isGrade1Creative || isGrade1Reader
-  const isAutoScheme = isGrade3English || isGrade1AutoScheme || isGrade8Mathematics || isGrade8English || isGrade6Mathematics || isGrade6English || isGrade4Mathematics || isGrade4English || isGrade6Kiswahili || isGrade4Indigenous
+  const isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics || isGrade8English || isGrade6Mathematics || isGrade6English || isGrade4Mathematics || isGrade4English || isGrade6Kiswahili || isGrade4Indigenous
   const autoLearningArea = isGrade1Creative ? 'Creative Activities' : (isGrade1Mathematics || isGrade8Mathematics || isGrade6Mathematics || isGrade4Mathematics) ? 'Mathematics' : isGrade6Kiswahili ? 'Kiswahili' : isGrade4Indigenous ? 'Indigenous Languages' : 'English'
   const readerUnits = isGrade3English ? GRADE3_ENGLISH_UNITS : isGrade4Indigenous ? GRADE4_INDIGENOUS_UNITS : isGrade4English ? GRADE4_ENGLISH_UNITS : isGrade4Mathematics ? GRADE4_MATHEMATICS_UNITS : isGrade6Kiswahili ? GRADE6_KISWAHILI_UNITS : isGrade6English ? GRADE6_ENGLISH_UNITS : isGrade6Mathematics ? GRADE6_MATHEMATICS_UNITS : isGrade8Mathematics ? GRADE8_MATHEMATICS_UNITS : isGrade1Mathematics ? GRADE1_MATHEMATICS_UNITS : GRADE1_ENGLISH_UNITS
   const readerStrands = isGrade1Mathematics ? GRADE1_MATHEMATICS_STRANDS : GRADE1_ENGLISH_STRANDS
@@ -242,7 +242,7 @@ function Inner({ curriculumView = false }) {
     [isGrade3English,isGrade8English,grade3EnglishCatalog,readerUnits])
   const annualTerms = useMemo(()=>terms.filter(term=>Number(term.academic_year)===Number(termObj?.academic_year)),[terms,termObj?.academic_year])
   const annualDraft = useMemo(()=>{
-    if(!isAutoScheme||curriculumView||annualCalendarYear!==termObj?.academic_year)return null
+    if((!isAutoScheme&&!isGrade3English)||curriculumView||annualCalendarYear!==termObj?.academic_year)return null
     const shared = {terms:annualTerms,termWeeks:annualTermWeeks,weeklyAllocation:weeklyTarget}
     // The same teacher-safe, read-only preview engine serves all three Grade 1 areas.
     // Do not create a second scheme engine or write any draft rows on page open.
@@ -1248,10 +1248,24 @@ function Inner({ curriculumView = false }) {
     </div>
 
     {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English || isGrade3English || isGrade8Mathematics || isGrade8English || isGrade9English || isGrade9Mathematics || isGrade8Kiswahili || isGrade4Kiswahili || isGrade6Mathematics || isGrade6English || isGrade6Kiswahili || isGrade3Kiswahili || isGrade4Mathematics || isGrade4Indigenous)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isAutoScheme?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
+    {!curriculumView && isGrade3English && <AutoCreativeScheme
+      draft={annualDraft} termId={selectedTermId} week={selectedWeek}
+      savedLessons={ordered} catalog={grade3EnglishCatalog}
+      learningArea="English" gradeLabel="Grade 3"
+      onWeekChange={setSelectedWeek}
+      onSaveAndPrepare={item=>void saveAndPrepareAutoDraft(item)}
+      onViewUnit={unitId=>{
+        const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId})
+        router.push('/teacher/curriculum?'+p.toString())
+      }}
+      savingKey={autoSavingKey}
+      loading={annualCalendarLoading||grade3EnglishCatalogLoading}
+      error={annualCalendarError||grade3EnglishCatalogError}
+    />}
     {!curriculumView && isAutoScheme && <AutoCreativeScheme
       draft={annualDraft} termId={selectedTermId} week={selectedWeek}
-      savedLessons={ordered} catalog={isGrade3English?grade3EnglishCatalog:isGrade4Indigenous?grade4IndigenousCatalog:isGrade4English?grade4EnglishCatalog:isGrade4Mathematics?grade4Catalog:isGrade6English?grade6EnglishCatalog:isGrade6Mathematics?grade6Catalog:isGrade6Kiswahili?grade6KiswahiliCatalog:isGrade8English?grade8EnglishCatalog:isGrade8Mathematics?grade8Catalog:isGrade1Creative?creativeCatalog:grade1ReaderCatalog}
-      learningArea={autoLearningArea} gradeLabel={isGrade3English?'Grade 3':(isGrade4English||isGrade4Mathematics||isGrade4Indigenous)?'Grade 4':(isGrade6Mathematics||isGrade6English)?'Grade 6':isGrade6Kiswahili?'Grade 6':(isGrade8Mathematics||isGrade8English)?'Grade 8':'Grade 1'}
+      savedLessons={ordered} catalog={isGrade4Indigenous?grade4IndigenousCatalog:isGrade4English?grade4EnglishCatalog:isGrade4Mathematics?grade4Catalog:isGrade6English?grade6EnglishCatalog:isGrade6Mathematics?grade6Catalog:isGrade6Kiswahili?grade6KiswahiliCatalog:isGrade8English?grade8EnglishCatalog:isGrade8Mathematics?grade8Catalog:isGrade1Creative?creativeCatalog:grade1ReaderCatalog}
+      learningArea={autoLearningArea} gradeLabel={(isGrade4English||isGrade4Mathematics||isGrade4Indigenous)?'Grade 4':(isGrade6Mathematics||isGrade6English)?'Grade 6':isGrade6Kiswahili?'Grade 6':(isGrade8Mathematics||isGrade8English)?'Grade 8':'Grade 1'}
       onWeekChange={setSelectedWeek}
       onSaveAndPrepare={item=>void saveAndPrepareAutoDraft(item)}
       onViewUnit={unitId=>{
