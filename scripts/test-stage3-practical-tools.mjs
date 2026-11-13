@@ -16,10 +16,22 @@ test('Stage 3 adds nine distinct activities to the original shared catalogue', (
     'visual-explorer', 'audio-learning', 'observation-journal', 'drawing-pad',
     'practical-steps', 'sorting-groups', 'map-explorer', 'timeline-explorer', 'evidence-notes',
   ]
-  assert.equal(TEACHING_TOOL_CATALOG.length, 21)
-  assert.deepEqual(TEACHING_TOOL_CATALOG.slice(12).map(x => x.id), ids)
+  assert.equal(TEACHING_TOOL_CATALOG.length, 24)
+  assert.deepEqual(TEACHING_TOOL_CATALOG.slice(15).map(x => x.id), ids)
+  const examples = {
+    'visual-explorer': {visualId:'123e4567-e89b-42d3-a456-426614174000'},
+    'audio-learning': {spokenText:'Listen carefully to this example.'},
+    'observation-journal': {observationQuestions:['What do you notice?']},
+    'drawing-pad': {prompt:'Draw a pattern.'},
+    'practical-steps': {steps:['Prepare the materials.','Follow the instructions.']},
+    'sorting-groups': {groups:['Shapes','Colours'],items:[
+      {label:'Circle',group:'Shapes'},{label:'Red',group:'Colours'}]},
+    'map-explorer': {places:[{label:'School',description:'A place for learning.',x:30,y:50}]},
+    'timeline-explorer': {events:[{date:'Day 1',label:'Plant a seed'}]},
+    'evidence-notes': {observationQuestions:['What did you learn?']},
+  }
   for (const id of ids) {
-    assert.deepEqual(resolveTeachingTools('Creative Arts','',[{id}]).map(x => x.id), [id])
+    assert.deepEqual(resolveTeachingTools('Creative Arts','',[{id,...examples[id]}]).map(x => x.id), [id])
     assert.ok((tool + read('../components/learn/tools/LanguageScienceTeachingTools.tsx'))
       .includes("case '" + id + "'"), 'missing functional UI for ' + id)
   }
