@@ -68,3 +68,18 @@
 .timeline button{text-align:left;max-width:100%;width:100%;background:#f7fbf8;color:#254732;border-color:#bfd8c7}
 @media(prefers-reduced-motion:reduce){.drawingBoard{scroll-behavior:auto}}
 @media print{.drawingBoard,.schematicMap{border:1px solid #777}.stack textarea{border:1px solid #aaa;min-height:80px}}
+
+/* VibeSchool Learn + student shell: share light/dark tokens instead of a competing tool palette. */
+.shelf{background:var(--vs-accent-soft,#f7fbf8);border-color:var(--vs-border,#cfe1d4);color:var(--vs-text,#1b4030)}
+.heading h4,.tool h5{color:var(--vs-text,#174a34)}
+.heading p,.description,.note{color:var(--vs-muted,#526a5a)}
+.menu button,.tool,.stack button.secondary,.promptLine,.reading,.timeline button{background:var(--vs-card,#fff);color:var(--vs-text,#1b4030);border-color:var(--vs-border,#dce7df)}
+.menu button[aria-pressed=true],.stack button:not(.secondary):not(.token):not(.mapPin),.stack button[aria-pressed=true]{background:var(--vs-accent,#176244);color:var(--vs-on-accent,#fff);border-color:var(--vs-accent,#176244)}
+.explain,.resultBox{background:var(--vs-accent-soft,#edf7f0);color:var(--vs-text,#1c5237)}
+.stack label{color:var(--vs-text,#254732)}
+.stack input:not([type=range]),.stack select,.stack textarea{background:var(--vs-card,#fff);color:var(--vs-text,#1d3829);border-color:var(--vs-border,#9fbcaa)}
+.stack button.token{background:var(--vs-accent-soft,#f3f8fb);color:var(--vs-text,#224e73);border-color:var(--vs-border,#b7cfdf)}
+.stack input[type=range]{accent-color:var(--vs-accent,#176244)}
+.menu button,.stack button{transition:transform .14s ease,background-color .14s ease}
+.menu button:active,.stack button:not(:disabled):active{transform:scale(.985)}
+@media(prefers-reduced-motion:reduce){.menu button,.stack button{transition:none}.menu button:active,.stack button:not(:disabled):active{transform:none}}
