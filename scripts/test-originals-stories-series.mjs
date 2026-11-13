@@ -8,7 +8,7 @@ test('Stories and Series is a first-class route within canonical Learn',()=>{
   assert.ok(existsSync('app/learn/stories/page.tsx'))
   assert.ok(existsSync('app/learn/stories/[id]/page.tsx'))
   assert.ok(existsSync('app/learn/stories/[id]/read/page.tsx'))
-  assert.match(read('components/learn/SchoolLearnLibrary.tsx'),/href="\/learn\/stories"/)
+  assert.match(read('components/learn/LearnNavigation.tsx'),/href="\/learn\/stories"/, 'Stories link belongs to the unified Learn navigation')
   assert.match(read('components/learn/UnifiedLearnCollections.tsx'),/storyLandingHref\(publication\.id\)/)
   assert.match(read('app/global/read/publication/[id]/page.tsx'),/router\.replace\(storyLandingHref\(id\)\)/)
 })
