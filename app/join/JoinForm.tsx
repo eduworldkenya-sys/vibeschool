@@ -9,7 +9,7 @@ type AccessState = { role?: unknown; account_status?: unknown; is_anonymized?: u
 type OnboardingState = { state?: unknown; destination?: unknown }
 
 export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
-  const [role, setRole] = useState<AdultRole>(initialRole)
+  const role = initialRole
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [sent, setSent] = useState(false)
@@ -122,18 +122,6 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
         <h1>One account. Start right away.</h1>
         <p className="muted">Use your email or Google account. You can connect a school later.</p>
 
-        <fieldset disabled={busy || sent} className="roles">
-          <legend>I am joining as</legend>
-          <label className={role === 'teacher' ? 'selected' : ''}>
-            <input type="radio" name="role" value="teacher" checked={role === 'teacher'}
-              onChange={() => setRole('teacher')} /> Teacher
-          </label>
-          <label className={role === 'parent' ? 'selected' : ''}>
-            <input type="radio" name="role" value="parent" checked={role === 'parent'}
-              onChange={() => setRole('parent')} /> Parent
-          </label>
-        </fieldset>
-
         {!sent && <button className="google" type="button" disabled={busy} onClick={() => void withGoogle()}>
           Continue with Google
         </button>}
@@ -156,7 +144,7 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
         {existingRole && <a className="alternate" href={existingRole === 'teacher' ? '/teacher/pulse' :
           existingRole === 'parent' ? '/parent' : '/login'}>Open your existing account</a>}
         <div className="divider" />
-        <a href="/signup/student" className="learner">Joining as a learner? Start learning</a>
+        <a href="/signup/student" className="learner">Create learner account</a>
         <p className="foot">Already registered? <a href="/login">Sign in</a></p>
         <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
       </section>
@@ -166,11 +154,6 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
         .eyebrow{font-size:11px;color:#c8a84b;letter-spacing:.17em;font-weight:800;margin:26px 0 8px}
         h1{font-size:33px;line-height:1.12;margin:0;font-weight:850}
         .muted{color:#b9bbc8;font-size:14px;line-height:1.6}
-        .roles{display:flex;gap:10px;border:0;padding:0;margin:26px 0 17px}
-        legend{color:#bbb;font-size:12px;margin-bottom:10px;font-weight:600}
-        .roles label{flex:1;border:1px solid #363644;border-radius:11px;padding:13px;cursor:pointer;font-weight:700}
-        .roles label.selected{border-color:#c8a84b;background:rgba(200,168,75,.1)}
-        input[type=radio]{accent-color:#c8a84b;margin-right:8px}
         .google,.primary{width:100%;padding:15px;border-radius:10px;min-height:48px;font-weight:800;font-size:14px;cursor:pointer}
         .google{border:0;background:#fff;color:#20212c}
         form{margin-top:20px}form label{font-size:12px;display:block;margin-bottom:8px;color:#d0d0d9}
