@@ -64,6 +64,11 @@ export default function Grade3KiswahiliMap({
             {selected.sourceLinked ? 'Rekodi ina kiungo cha chanzo; uhakiki wa matini yote bado unahitajika.' :
               'Mada hii haijaunganishwa na marejeo ya chanzo cha KICD.'}
           </p>
+          <p role="status" style={{fontSize:12,color:selected.schemeReady?'#246c49':'#825b25',fontWeight:700}}>
+            {selected.schemeReady
+              ? 'Matokeo na mwongozo wa VibeSchool vimeunganishwa. Chagua wiki na matokeo kwenye Scheme.'
+              : 'Bado kuna maudhui au marejeo yanayohitajika kabla ya kuhifadhi somo la Scheme.'}
+          </p>
           <h4 style={{fontSize:13,margin:'0 0 6px'}}>Matokeo ya kujifunza yaliyohifadhiwa</h4>
           {selected.outcomes.length ?
             <ol style={{fontSize:13,lineHeight:1.7,paddingLeft:20}}>
@@ -74,7 +79,7 @@ export default function Grade3KiswahiliMap({
             </p>}
           {onOpenScheme && <button type="button" onClick={() => onOpenScheme(selected.id)}
             style={{minHeight:44,border:0,borderRadius:9,padding:'10px 14px',background:ink,color:'#fff',fontWeight:800}}>
-            Fungua Scheme of Work
+            {selected.schemeReady ? 'Tengeneza somo kwenye Scheme' : 'Fungua Scheme of Work'}
           </button>}
           <p style={{fontSize:12,lineHeight:1.5,color:'#50675b',margin:'10px 0 0'}}>
             Kufungua Scheme hakuundi somo. Kuhifadhi kunahitaji mwalimu aliyeidhinishwa, wiki halisi na matokeo yaliyothibitishwa.
