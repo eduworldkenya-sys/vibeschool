@@ -75,7 +75,7 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 const CLASS_ACTIONS = [
   { id: 'students', label: 'Learners', route: '' },
   { id: 'attendance', label: 'Register', route: '/teacher/attendance' },
-  { id: 'homework', label: 'Classwork', route: '' },
+  { id: 'homework', label: 'Homework', route: '' },
   { id: 'assessment', label: 'Assessment', route: '/teacher/assessment' },
   { id: 'timetable', label: 'Timetable', route: '/teacher/timetable' },
   { id: 'progress', label: 'Progress', route: '' },
