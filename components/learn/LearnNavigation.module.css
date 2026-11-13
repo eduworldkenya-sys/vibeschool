@@ -65,9 +65,18 @@
 .sections a[aria-current="page"] { background: #e0f0eb; color: #152d3a; }
 .studentNavTheme {
   --vs-nav-bg: #ffffff;
-  --vs-nav-border: #dbe4ee;
-  --vs-accent: #5145e8;
-  --vs-muted: #64748b;
+  --vs-nav-border: #dce9de;
+  --vs-border: #dce9de;
+  --vs-accent: #166d49;
+  --vs-accent-soft: #eef7f0;
+  --vs-muted: #597563;
+  --vs-text: #1b4030;
+  --vs-on-accent: #ffffff;
+}
+.studentLearnMain { min-width:0; }
+@media(min-width:1024px) {
+  .studentLearnMain { margin-left:208px; width:calc(100% - 208px); }
+  .studentNavTheme .navReserve, .navReserve { display:none; }
 }
 .navReserve { height: calc(76px + env(safe-area-inset-bottom, 0px)); }
 @media(max-width:620px) {

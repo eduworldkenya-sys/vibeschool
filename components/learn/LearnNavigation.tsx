@@ -23,6 +23,23 @@ function useStudentNavigation(enabled: boolean): boolean | null {
         const { data: { user } } = await supabase.auth.getUser()
         if (!mounted) return
         if (!user) { setStudent(false); return }
+        // One email may hold learner, teacher and guardian relationships.
+        // The old single profiles.role hint must not hide learner navigation.
+        const { data: learner } = await supabase.from('students')
+          .select('id').eq('profile_id',user.id).is('deleted_at',null).limit(1).maybeSingle()
+        if (learner?.id) { if(mounted)setStudent(true); return }
+        const { data: { session } } = await supabase.auth.getSession()
+        if(session){
+          try{
+            const response=await fetch('/api/learner/independent/home',{
+              headers:{Authorization:'Bearer '+session.access_token}
+            })
+            if(response.ok){
+              const payload=await response.json() as {kind?:string}
+              if(payload.kind==='independent'){if(mounted)setStudent(true);return}
+            }
+          }catch{/* The role hint below is still safe for display. */}
+        }
         const { data, error } = await supabase.rpc('get_my_role')
         if (mounted) setStudent(!error && data === 'student')
       } catch {
@@ -95,7 +112,7 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
 
   return <>
     {showHeader && <Suspense fallback={null}><LearnHeader/></Suspense>}
-    {children}
+    {showBottom ? <div className={student ? styles.studentLearnMain : undefined}>{children}</div> : children}
     {showBottom && (student === null
       ? <div className={styles.navReserve} aria-hidden="true"/>
       : student

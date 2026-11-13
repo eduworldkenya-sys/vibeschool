@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
 import LearningFeedback, { playLearningSound, useLearningFeedback } from '@/components/student/LearningFeedback'
-import { listMyAssessmentAssignments, type LearnerAssessmentAssignment } from '@/lib/assessment/discovery'
 import { saveResponse, startOrResumeAttempt, submitAttempt } from '@/lib/assessment/engine'
 import type { AttemptWorkspace, SubmitAttemptResult } from '@/lib/assessment/types'
 
@@ -66,9 +65,6 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
   const router=useRouter()
   const {play}=useLearningFeedback()
   const [topics,setTopics]=useState<Topic[]>([])
-  const [otherPractice,setOtherPractice]=useState<LearnerAssessmentAssignment[]>([])
-  const [otherLoading,setOtherLoading]=useState(true)
-  const [otherError,setOtherError]=useState('')
   const [workspace,setWorkspace]=useState<AttemptWorkspace|null>(null)
   const topicCards=useMemo(()=>{
     const groups=new Map<string,Topic[]>()
@@ -108,28 +104,6 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
       .finally(()=>{if(!cancelled)setLoading(false)})
     return ()=>{cancelled=true}
   },[grade])
-  // Preserve the five-question certification gate. If no certified topic
-  // sets exist, offer existing learner-authorized practice assignments instead
-  // of an empty dead end; never re-label longer assessments as five questions.
-  useEffect(()=>{
-    let cancelled=false
-    setOtherLoading(true)
-    setOtherError('')
-    const number=grade.match(/^Grade\s*(\d+)$/i)?.[1] ?? ''
-    const gradePattern=number
-      ? new RegExp('\\bgrade\\s*'+number+'\\b|gredi ya\\s*'+number+'\\b','i')
-      : null
-    void listMyAssessmentAssignments()
-      .then(items=>{
-        if(!cancelled)setOtherPractice(gradePattern
-          ? items.filter(entry=>entry.assessmentType==='practice' && gradePattern.test(entry.title))
-          : [])
-      })
-      .catch(cause=>{if(!cancelled)setOtherError(cause instanceof Error?cause.message:'Additional practice could not be loaded.')})
-      .finally(()=>{if(!cancelled)setOtherLoading(false)})
-    return()=>{cancelled=true}
-  },[grade])
-
   async function open(topic:Topic) {
     if(busy)return
     setBusy(true);setError('')
@@ -217,7 +191,7 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
     {loading && <div style={card}>Loading available topics…</div>}
     {!loading && !workspace && <section style={card}>
       <h2 style={{fontSize:18,margin:'0 0 12px'}}>Choose a topic</h2>
-      {topicCards.length===0?<><p style={muted}>{subject || topic ? 'No certified topic practice matches this subject or topic yet.' : `No certified five-question topics are published for ${grade} yet. Other available practice sets are listed below without changing their question counts.`}</p>{(subject || topic) && <button style={secondary} onClick={()=>router.push('/student/vibelearn/topic-practice')}>See all topics</button>}</>:<div style={{display:'grid',gap:10}}>
+      {topicCards.length===0?<><p style={muted}>{subject || topic ? 'No certified topic practice matches this subject or topic yet.' : `No certified five-question topics are published for ${grade} yet. Longer or timed assessments stay in Exams.`}</p>{(subject || topic) && <button style={secondary} onClick={()=>router.push('/student/vibelearn/topic-practice')}>See all topics</button>}</>:<div style={{display:'grid',gap:10}}>
         {topicCards.map(card=><button key={card.key} disabled={busy||card.remaining===0} onClick={()=>void open(card.preferred)} style={{...optionStyle,display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
           <span><strong style={{display:'block'}}>{card.title}</strong><span style={muted}>{card.count} sets available · 5 questions per session</span></span>
           <strong style={{color:'var(--vs-accent)'}}>{card.preferred.in_progress?'Continue':card.remaining===0?'Completed':card.preferred.completed_attempts>0?'Practise again':'Start'}</strong>
@@ -225,27 +199,12 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
       </div>}
     </section>}
     {!loading && !workspace && topics.length===0 && <section style={card}>
-      <h2 style={{fontSize:18,margin:'0 0 10px'}}>Other available {grade} practice</h2>
-      <p style={muted}>These use the existing assessment engine and recorded attempts. They are not certified five-question topic drills.</p>
-      {otherLoading ? <p role="status" style={muted}>Checking your approved practice…</p>
-        : otherError ? <p role="alert" style={muted}>{otherError}</p>
-        : otherPractice.length===0 ? <p style={muted}>No alternative practice sets are currently eligible for this learner. Read a published lesson or return to Learn.</p>
-        : <div style={{display:'grid',gap:10,marginTop:12}}>{otherPractice.map(entry=>{
-          const active=entry.attemptStatus==='in_progress' &&
-            (!entry.attemptExpiresAt || Date.parse(entry.attemptExpiresAt)>Date.now())
-          const canOpen=entry.canStart || active
-          const released=Boolean(entry.attemptId && (entry.resultStatus==='released' ||
-            (entry.resultStatus==='marked' && entry.showScorePolicy==='immediate')))
-          return <article key={entry.assignmentId} style={{border:'1px solid var(--vs-border)',borderRadius:12,padding:12}}>
-            <strong>{entry.title}</strong>
-            <p style={muted}>{active?'In progress':canOpen?'Available practice':entry.availability.replaceAll('_',' ')} · {entry.timeLimitMinutes?entry.timeLimitMinutes+' minute limit':'Untimed when started'}</p>
-            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:10}}>
-              <button disabled={!canOpen} style={{...button,opacity:canOpen?1:0.5}} onClick={()=>router.push('/student/assessment/'+encodeURIComponent(entry.assignmentId))}>{active?'Continue practice':'Start practice'}</button>
-              {released && entry.attemptId && <button style={secondary} onClick={()=>router.push('/student/results/'+encodeURIComponent(entry.attemptId!))}>View result</button>}
-            </div>
-          </article>
-        })}</div>}
-      <button style={{...secondary,marginTop:12}} onClick={()=>router.push('/student/vibelearn/reading')}>Read learning content</button>
+      <h2 style={{fontSize:18,margin:'0 0 10px'}}>Looking for an assessment?</h2>
+      <p style={muted}>Topic Practice only shows certified five-question untimed sessions. Timed and longer practice assessments are available in Exams, without changing their saved attempts or results.</p>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
+        <button style={button} onClick={()=>router.push('/student/vibelearn/exams')}>Browse Exams</button>
+        <button style={secondary} onClick={()=>router.push('/student/study')}>Return to Learn</button>
+      </div>
     </section>}
     {workspace && !finished && <section style={card}>
       <p style={muted}>{workspace.title}</p>

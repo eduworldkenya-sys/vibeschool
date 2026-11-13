@@ -11,6 +11,7 @@ import { ToastContext, ThemeContext } from "@/components/student/StudentUiContex
 import { FeedbackSoundToggle } from "@/components/student/LearningFeedback";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student-theme";
+import { DEFAULT_LEARNER_APPEARANCE, LEARNER_APPEARANCE_EVENT, readLearnerAppearance, learnerAppearanceStyle } from "@/lib/student-appearance";
 
 function TopBar({ name, className, schoolName, focused = false }: { name: string; className: string; schoolName: string; focused?: boolean }) {
   const router   = useRouter();
@@ -116,6 +117,16 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   const { identity, loading, error, retry } = useStudent();
   const pathname = usePathname();
   const focusedAssessment = /^\/student\/assessment\/[^/]+\/?$/.test(pathname);
+  const [appearance,setAppearance] = useState(DEFAULT_LEARNER_APPEARANCE);
+  useEffect(()=>{
+    const studentId=identity?.studentId;
+    if (!studentId) return;
+    const refresh=()=>setAppearance(readLearnerAppearance(studentId));
+    refresh();
+    window.addEventListener(LEARNER_APPEARANCE_EVENT,refresh);
+    return ()=>window.removeEventListener(LEARNER_APPEARANCE_EVENT,refresh);
+  },[identity?.studentId]);
+
 
   if (loading) {
     return (
@@ -141,7 +152,12 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="student-app" style={{ minHeight: '100dvh', background: 'var(--vs-bg)', color: 'var(--vs-text)' }}>
+    <div className="student-app"
+      data-learner-font={appearance.font}
+      data-learner-italics={appearance.italicHeadings ? "true" : "false"}
+      data-learner-compact={appearance.compact ? "true" : "false"}
+      data-reduce-motion={appearance.reduceMotion ? "true" : "false"}
+      style={{ minHeight: '100dvh', background: 'var(--vs-bg)', color: 'var(--vs-text)', ...learnerAppearanceStyle(appearance) }}>
       <TopBar
         name={identity?.name ?? ""}
         className={identity?.className ?? ""}
@@ -192,7 +208,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     <ToastContext.Provider value={{ showToast }}>
       <ThemeContext.Provider value={{ theme, setTheme }}>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Nunito+Sans:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
           body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-overflow-scrolling: touch; }
 
@@ -223,6 +239,20 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           .student-content :where(h1,h2,h3,p,span,strong) { overflow-wrap:break-word; }
           .student-home { min-width:0; }
           .student-home button, .student-app nav button { touch-action:manipulation; }
+          .student-app[data-learner-font="editorial"] :where(h1,h2,h3) { font-family:Georgia,Cambria,serif !important; }
+          .student-app[data-learner-font="rounded"] :where(h1,h2,h3) { font-family:'Nunito Sans','Trebuchet MS',sans-serif !important; }
+          .student-app[data-learner-italics="true"] .student-home-hero h2 { font-style:italic; }
+          .student-app[data-learner-compact="true"] .student-home-quick-grid button { min-height:68px; }
+          .student-app[data-reduce-motion="true"] *, .student-app[data-reduce-motion="true"] *::before { animation:none !important; transition:none !important; }
+          @media(min-width:1024px) {
+            .student-app .student-content:not(.assessment-focus) {
+              margin:0 0 0 208px !important;
+              width:calc(100% - 208px) !important;
+              max-width:none !important;
+              padding:24px clamp(20px,3.2vw,42px) 65px !important;
+            }
+          }
+
           @media(max-width:480px) {
             .student-home .student-home-hero-row { flex-wrap:wrap; }
             .student-home .student-home-goals { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }

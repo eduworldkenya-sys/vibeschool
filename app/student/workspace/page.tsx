@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useStudent } from "@/lib/student-context";
+import { DEFAULT_LEARNER_APPEARANCE, LEARNER_APPEARANCE_EVENT, readLearnerAppearance, readLearnerWallpaperPhoto } from "@/lib/student-appearance";
 
 const C = {
   bg: "var(--vs-bg)",
@@ -171,6 +173,19 @@ const tabToType: Partial<Record<Tab, StudyType>> = {
 
 export default function StudyWorkspacePage() {
   const router = useRouter();
+  const {identity} = useStudent();
+  const [appearance,setAppearance] = useState(DEFAULT_LEARNER_APPEARANCE);
+  const [wallpaperPhoto,setWallpaperPhoto] = useState<string|null>(null);
+  useEffect(()=>{
+    if(!identity?.studentId)return;
+    const refresh=()=>{
+      setAppearance(readLearnerAppearance(identity.studentId));
+      setWallpaperPhoto(readLearnerWallpaperPhoto(identity.studentId));
+    };
+    refresh();
+    window.addEventListener(LEARNER_APPEARANCE_EVENT,refresh);
+    return ()=>window.removeEventListener(LEARNER_APPEARANCE_EVENT,refresh);
+  },[identity?.studentId]);
   const [activeTab, setActiveTab] = useState<Tab>("assigned");
   const [assignedItems, setAssignedItems] = useState<AssignedReadingItem[]>([]);
   const [saved, setSaved] = useState<SavedPublication[]>([]);
@@ -367,7 +382,7 @@ export default function StudyWorkspacePage() {
         boxSizing: "border-box",
       }}
     >
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ maxWidth: 950, margin: "0 auto" }}>
         <button
           type="button"
           onClick={() => router.back()}
@@ -384,18 +399,33 @@ export default function StudyWorkspacePage() {
           ← Back
         </button>
 
-        <h1 style={{ color: C.text, fontSize: 25, margin: "18px 0 4px" }}>
+        <section aria-label="Personal study background" style={{
+          minHeight:150,margin:"16px 0",borderRadius:20,overflow:"hidden",padding:18,
+          background:appearance.wallpaper==="photo"&&wallpaperPhoto
+            ? 'center / cover no-repeat url("'+wallpaperPhoto+'")'
+            :appearance.wallpaper==="paper"?"linear-gradient(135deg,#f6e9d9,#e9ddd0)"
+            :appearance.wallpaper==="sky"?"linear-gradient(145deg,#d0e9ff,#a2bbec)"
+            :appearance.wallpaper==="pattern"?"radial-gradient(#7db69b 1px,transparent 1px) 0 0 / 18px 18px #cfe9dc"
+            :"linear-gradient(135deg,#dcefe5,#c7e9dd)",
+          display:"flex",alignItems:"flex-end"
+        }}>
+          <div style={{background:"rgba(255,255,255,.94)",color:"#183d2c",padding:15,borderRadius:14,width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+            <div><span style={{fontSize:10,fontWeight:800,letterSpacing:1,textTransform:"uppercase"}}>My study corner</span><h1 style={{fontFamily:"Georgia,serif",fontStyle:appearance.italicHeadings?"italic":"normal",fontSize:22,margin:"5px 0 0",letterSpacing:"-.03em"}}>A place to focus.</h1></div>
+            <button type="button" onClick={()=>router.push("/student/settings")} style={{border:"1px solid #b9d3c3",background:"#fff",color:"#176d49",padding:"10px 13px",borderRadius:11,minHeight:44,fontWeight:800,cursor:"pointer"}}>Customise</button>
+          </div>
+        </section>
+        <h2 style={{ color: C.text, fontSize: 23, margin: "18px 0 4px" }}>
           My Study Workspace
-        </h1>
+        </h2>
         <p style={{ color: C.muted, fontSize: 13, margin: "0 0 18px" }}>
           Open assigned chapters, continue reading and keep your study material together.
         </p>
 
         <div
           style={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit,minmax(135px,1fr))",
             gap: 8,
-            overflowX: "auto",
             paddingBottom: 10,
             marginBottom: 14,
           }}
@@ -406,12 +436,12 @@ export default function StudyWorkspacePage() {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               style={{
-                flexShrink: 0,
-                border: "none",
-                borderRadius: 999,
-                padding: "9px 13px",
-                background: activeTab === tab.id ? C.accent : C.surface,
-                color: activeTab === tab.id ? "#ffffff" : C.muted,
+                border: "1px solid var(--vs-border)",
+                borderRadius: 12,
+                minHeight: 48,
+                padding: "10px 12px",
+                background: activeTab === tab.id ? C.accentLight : C.surface,
+                color: activeTab === tab.id ? C.accent : C.muted,
                 fontSize: 12,
                 fontWeight: 800,
                 cursor: "pointer",

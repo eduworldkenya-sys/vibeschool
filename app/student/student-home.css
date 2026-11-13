@@ -33,3 +33,16 @@
 .student-home-resume>a{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:10px 14px;border-radius:10px;background:var(--vs-accent-soft);color:var(--vs-accent);text-decoration:none;font-size:13px;font-weight:800}
 .student-home-resume>a:hover{outline:1px solid var(--vs-accent)}
 @media(max-width:500px){.student-home-resume{padding:15px}.student-home-resume>a{width:100%}}
+
+/* Learner 2.0: visible secondary destinations and responsive, calmer hierarchy. */
+.student-home-secondary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.student-home-secondary-grid button{display:flex;align-items:center;gap:10px;text-align:left;min-width:0;min-height:81px;padding:13px;border:1px solid var(--vs-border);border-radius:14px;background:var(--vs-soft);color:var(--vs-text);cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+.student-home-secondary-grid button:hover{border-color:var(--vs-accent);transform:translateY(-1px)}
+.student-home-hero{position:relative;isolation:isolate;overflow:hidden}
+.student-home-hero:before{content:"";position:absolute;width:210px;height:210px;right:-100px;top:-100px;border-radius:100%;background:var(--vs-accent);opacity:.045;z-index:-1;pointer-events:none}
+.student-home-hero .student-home-title{font-size:clamp(24px,3vw,30px)!important}
+.student-home-quick-grid button{border-radius:14px;background:var(--vs-card)}
+.student-home :where(button,a):focus-visible{outline:3px solid var(--vs-accent);outline-offset:3px}
+@media(max-width:820px){.student-home-secondary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){.student-home-secondary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.student-home-secondary-grid button:last-child{grid-column:span 2}.student-home-secondary-grid button{min-height:76px}.student-home-hero:before{width:130px;height:130px;right:-65px;top:-65px}}
+@media(prefers-reduced-motion:reduce){.student-home-secondary-grid button{transition:none;transform:none!important}}
