@@ -1,0 +1,8 @@
+.scoreBlock{display:grid;gap:8px;margin:14px 0 8px}
+.scoreTop{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px}
+.scoreNumber{font-size:clamp(30px,6vw,40px);line-height:1.1;color:var(--vs-accent,#166d49);font-weight:850;letter-spacing:-.035em;animation:result-reveal .24s ease-out}
+.scoreFraction{color:var(--vs-muted,#597563);font-size:15px;font-weight:700}
+.scoreProgress{height:9px;border-radius:999px;background:var(--vs-border,#dce9de);overflow:hidden}
+.scoreFill{height:100%;border-radius:999px;background:var(--vs-accent,#166d49);transition:width .3s ease}
+@keyframes result-reveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.scoreNumber{animation:none}.scoreFill{transition:none}}
