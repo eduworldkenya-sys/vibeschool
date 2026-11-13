@@ -604,6 +604,7 @@ export default function SpinStudio() {
           {!recording && <div className={styles.previewTop}><span>LIVE PREVIEW</span><span>{format==='portrait'?'9:16':format==='landscape'?'16:9':'1:1'} · Ready to record</span></div>}
           <div ref={stageRef} role={recording?'button':undefined} tabIndex={recording?0:undefined} aria-label={recording?'Tap to advance the show':undefined} onClick={advanceStage} onKeyDown={event=>{if(recording && event.key==='Enter'){event.preventDefault();advanceStage()}}} className={[styles.stage,recording?styles.tapStage:'',styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
             <div className={styles.stageGlow} aria-hidden="true"/>
+            {!recording&&safeZone&&<div className={styles.safeZone} aria-hidden="true"/>}
             <div className={styles.stageContent}>
               <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span><b>VIBESPIN</b> by VIBESCHOOL</span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
@@ -614,7 +615,11 @@ export default function SpinStudio() {
                   {segmented.length>0 && <g style={{transform:'rotate('+rotation+'deg)',transformOrigin:'200px 200px',transition:spinning?'transform '+wheel.duration+'s cubic-bezier(.12,.78,.08,1)':'none'}}>
                     {segmented.map(({entry,index,path,degree})=><g key={entry.id}>
                       <path d={path} fill={colors[wheel.theme][index%8]} stroke="#121836" strokeWidth="1.8"/>
-                      <text x="200" y="73" textAnchor="middle" transform={'rotate('+degree+' 200 200)'} fill="#10162b" fontSize={entries.length>16?8:entries.length>10?10:13} fontWeight="900">{entry.label.length>15?entry.label.slice(0,14)+'…':entry.label||'Item'}</text>
+                      {entry.image && wheel.segmentStyle!=='text' && entries.length<=24 && <>
+                        <defs><clipPath id={'vibespin-clip-'+index}><path d={path}/></clipPath></defs>
+                        <image href={entry.image} x="180" y="70" width="40" height="43" preserveAspectRatio="xMidYMid slice" transform={'rotate('+degree+' 200 200)'} clipPath={'url(#vibespin-clip-'+index+')'}/>
+                      </>}
+                      {(wheel.segmentStyle!=='photo'||!entry.image) && <text x="200" y={entry.image&&wheel.segmentStyle==='both'?'126':'73'} textAnchor="middle" transform={'rotate('+degree+' 200 200)'} fill="#10162b" fontSize={entries.length>16?8:entries.length>10?10:13} fontWeight="900">{entry.label.length>15?entry.label.slice(0,14)+'…':entry.label||'Item'}</text>}
                     </g>)}
                   </g>}
                   <circle cx="200" cy="200" r="48" fill="#0d1831" stroke="#ffffff" strokeWidth="5"/>
@@ -626,9 +631,16 @@ export default function SpinStudio() {
                 </svg>
                 {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
+              {(showPhase==='intro'||showPhase==='outro')&&<div className={styles.brandScene} role="status" aria-live="polite">
+                <div className={styles.brandSceneMark}>VibeSpin</div>
+                <div className={styles.brandSceneBy}>by VibeSchool</div>
+                <p>{showPhase==='intro'?formatNames[showFormat]:'Spin with VibeSchool!'}</p>
+                {showPhase==='outro'&&<strong>{wheel.cta}</strong>}
+              </div>}
               {showOverlay&&selected && <div className={[styles.challengePopup,showPhase==='reveal'?styles.popupReveal:''].join(' ')} role="status" aria-live="polite">
                 <div className={styles.popupEyebrow}>{showPhase==='reveal'?(selectedIsReward?'RANDOM RESULT':'ANSWER REVEALED'):showPhase==='question'?'THE WHEEL HAS CHOSEN':(selectedIsReward?'RANDOM SELECTION':'YOUR CHALLENGE')}</div>
-                <strong className={styles.popupLabel}>{showPhase==='reveal'?(selected.answer||selected.label):selected.label}</strong>
+                {selected.image && <img className={styles.popupPortrait} src={selected.image} alt={'Selected '+selected.label}/>}
+                <strong className={styles.popupLabel}>{showPhase==='reveal'?(selectedIsReward?selected.label:(selected.answer||selected.label)):selected.label}</strong>
                 {showPhase!=='reveal'&&<p className={styles.popupQuestion}>{selected.question||'What do you know about this?'}</p>}
                 {showPhase==='countdown'&&<div className={styles.popupTimer}>{seconds===0?'TIME!':seconds}</div>}
                 {showPhase==='reveal'&&<p className={styles.popupFact}>{selectedIsReward?'A random selection for entertainment, not a forecast or endorsement.':selected.question}</p>}
@@ -640,7 +652,7 @@ export default function SpinStudio() {
                   <strong className={styles.resultLabel}>{selected.label}</strong>
                   <p className={styles.question}>{selected.question||'Your challenge starts now!'}</p>
                   {!reveal && seconds!==null && <div className={styles.countdown}>{seconds===0?'TIME!':seconds}</div>}
-                  {reveal && <div className={styles.answer}><span>{verdict==='correct'?'★ CORRECT ANSWER':verdict==='wrong'?'✦ THE ANSWER':'✦ ANSWER REVEAL'}</span><strong>{selected.answer||selected.label}</strong></div>}
+                  {reveal && <div className={styles.answer}><span>{selectedIsReward?'RANDOM SELECTION':verdict==='correct'?'★ CORRECT ANSWER':verdict==='wrong'?'✦ THE ANSWER':'✦ ANSWER REVEAL'}</span><strong>{selectedIsReward?selected.label:(selected.answer||selected.label)}</strong></div>}
                 </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>One spin. One question. Can you get it right?</p></>}
               </div>
               <p className={styles.cta}>{wheel.cta}</p>
@@ -656,8 +668,9 @@ export default function SpinStudio() {
               <button onClick={nextChallenge} disabled={spinning || result===null}>Next</button><button onClick={resetRun} disabled={spinning}>Reset</button>
             </div>
           </div>
-          {recording && <div className={styles.recordBar}><span>Recording view · Tap stage: spin → reveal → next · Space / R / N</span><div>
+          {recording && <div className={styles.recordBar}><span>VibeSpin · Tap to spin / reveal / next · Press N for next · 9:16 safe-zone ready</span><div>
               <button onClick={()=>{void toggleFull()}}>{fullScreen?'Exit fullscreen':'Fullscreen stage'}</button>
+              {wheel.outroEnabled!==false&&<button onClick={showOutro} disabled={spinning}>Show branded outro</button>}
               <button onClick={()=>{if(capturing)stopCapture();else void startCapture()}}>{capturing?'■ Stop & download recording':'● Record video'}</button>
               <button onClick={()=>{setRecording(false);stopMusic()}}>← Back to editor</button>
             </div></div>}
