@@ -175,13 +175,13 @@ export default function SchoolDaySampleBuilder({ schoolId, userId, schoolName, c
       // Fail closed against an existing school day, including periods added by
       // another administrator after the draft was opened.
       const [existing, permission] = await Promise.all([
-        supabase.rpc('get_school_day_blocks_for_member', { p_school_id: schoolId }),
+        supabase.rpc('get_my_school_day_blocks'),
         supabase.rpc('can_manage_my_school_timetable', { p_school_id: schoolId }),
       ])
       if (existing.error) throw existing.error
       if (permission.error) throw permission.error
       if (!permission.data) throw new Error('Only a school administrator may apply school-wide periods.')
-      if ((existing.data ?? []).length > 0) throw new Error('This school already has configured periods. Review them individually; no sample can replace or overwrite them.')
+      if ((existing.data ?? []).some((row: { school_id: string }) => row.school_id === schoolId)) throw new Error('This school already has configured periods. Review them individually; no sample can replace or overwrite them.')
 
       for (const block of draft) {
         const { data, error: rpcError } = await supabase.rpc('save_school_period_block', {
