@@ -23,10 +23,12 @@ const stageThemes: Record<string,string> = {
   midnight:'radial-gradient(ellipse at 50% 25%, #49339d 0%, #09152f 70%, #040716 100%)',
   clean:'linear-gradient(145deg,#1c4968 0%,#08172c 100%)'
 }
-const templates: {name:string; entries:[string,string,string][]}[] = [
+const templates: {name:string; entries:[string,string,string][]; format?:ShowFormat}[] = [
   {name:'African Capitals',entries:[['Kenya','What is the capital of Kenya?','Nairobi'],['Uganda','What is the capital of Uganda?','Kampala'],['Tanzania','What is the capital of Tanzania?','Dodoma'],['Rwanda','What is the capital of Rwanda?','Kigali'],['Ghana','What is the capital of Ghana?','Accra'],['Nigeria','What is the capital of Nigeria?','Abuja']]},
   {name:'Mental Maths',entries:[['12 × 8','What is 12 multiplied by 8?','96'],['15 + 27','What is 15 plus 27?','42'],['3/4','What is 3/4 of 20?','15'],['25%','What is 25% of 200?','50']]},
-  {name:'Science Quiz',entries:[['Mars','Which planet is called the Red Planet?','Mars'],['Plants','How do green plants make food?','Photosynthesis'],['Water','What is the chemical formula for water?','H₂O'],['Gravity','Which force attracts objects towards Earth?','Gravity']]}
+  {name:'Science Quiz',entries:[['Mars','Which planet is called the Red Planet?','Mars'],['Plants','How do green plants make food?','Photosynthesis'],['Water','What is the chemical formula for water?','H₂O'],['Gravity','Which force attracts objects towards Earth?','Gravity']],format:'learn'},
+  {name:'Trending topic · Add names',entries:[],format:'trending'},
+  {name:'Lucky draw · Add entries',entries:[],format:'lucky'}
 ]
 const colors = {
   electric: ['#1ac6c2','#ffbd37','#fe577e','#6d6dfc','#4cdb91','#ff8552','#aa6df3','#349dee'],
@@ -374,6 +376,7 @@ export default function SpinStudio() {
     update(patch)
   }
   const launchShow=()=>{
+    if(spinning)return
     if(sceneRef.current!==null)clearTimeout(sceneRef.current)
     setRecording(true);setFeedback('');playMusic()
     if(wheel?.introEnabled!==false){
@@ -415,7 +418,7 @@ export default function SpinStudio() {
   }
   const loadTemplate=(index:number)=>{
     const t=templates[index];if(!t)return
-    const fresh:Wheel={...starter(),id:uid(),name:t.name,entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
+    const fresh:Wheel={...starter(),id:uid(),name:t.name,showFormat:t.format??'challenge',cta:t.format==='trending'?'Random selection for entertainment • Not a poll or prediction':t.format==='lucky'?'See the official giveaway rules': 'How did you do? Follow VibeSchool',entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
     setWheels(all=>[...all,fresh]);setSelectedId(fresh.id);setSetupTab('content')
   }
   const uploadBackground=(file:File|undefined,kind:'background'|'logo'='background')=>{
