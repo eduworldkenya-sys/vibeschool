@@ -1,0 +1,773 @@
+{
+  "schema_version": 1,
+  "created_on": "2026-11-13",
+  "grade": "Grade 9",
+  "subject": "English",
+  "source_edition": "2024 revised October",
+  "source_preview_url": "https://drive.google.com/file/d/1ehe01q4q8G-ft1PsA0r7skcz6grZfiNQ/preview",
+  "scope": "Live Grade 9 English heading identity crosswalk only; not a complete KICD transcript or verified outcome import.",
+  "legacy_rows_preserved": 12,
+  "source_indexed_rows": 75,
+  "total_suggested_lessons": 150,
+  "verified_atomic_outcomes": 0,
+  "scheme_records": 0,
+  "teacher_save_state": "NO_OUTCOME_BACKED_SCHEME_LINK",
+  "canonical_tables": [
+    "cbc_strands",
+    "curriculum_learning_outcomes",
+    "scheme_of_work",
+    "scheme_lesson_outcomes"
+  ],
+  "rows": [
+    {
+      "code": "1.1.1",
+      "theme": "Citizenship",
+      "strand": "Listening and Speaking",
+      "title": "Polite language: euphemism",
+      "lessons": 2,
+      "canonical_sub_strand_id": "92358239-0b01-41d8-a1da-cc2c270a68ee",
+      "reference_source_ref": "VS-REF-G09-EN-2024#1.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "1.2.1",
+      "theme": "Citizenship",
+      "strand": "Reading",
+      "title": "Independent reading: appropriate texts",
+      "lessons": 2,
+      "canonical_sub_strand_id": "8c9bc2c0-a4f5-441a-b87c-6ed71ab0deff",
+      "reference_source_ref": "VS-REF-G09-EN-2024#1.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "1.3.1",
+      "theme": "Citizenship",
+      "strand": "Grammar in Use",
+      "title": "Gender-neutral language",
+      "lessons": 2,
+      "canonical_sub_strand_id": "5f68f4c7-cd18-4e00-8948-505a117fa501",
+      "reference_source_ref": "VS-REF-G09-EN-2024#1.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "1.4.1",
+      "theme": "Citizenship",
+      "strand": "Reading",
+      "title": "Class reader: structure and setting",
+      "lessons": 2,
+      "canonical_sub_strand_id": "7c90b403-a515-4a9e-95c3-b192e4f4bcd6",
+      "reference_source_ref": "VS-REF-G09-EN-2024#1.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "1.5.1",
+      "theme": "Citizenship",
+      "strand": "Writing",
+      "title": "Legibility and neatness",
+      "lessons": 2,
+      "canonical_sub_strand_id": "dbfd2ca4-eb8e-4296-ad4f-0b61ed6a51a8",
+      "reference_source_ref": "VS-REF-G09-EN-2024#1.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "2.1.1",
+      "theme": "Science: Fiction",
+      "strand": "Listening and Speaking",
+      "title": "Oral literature: short forms",
+      "lessons": 2,
+      "canonical_sub_strand_id": "78ba916d-ad5e-4fe9-8b8d-63fb393948b7",
+      "reference_source_ref": "VS-REF-G09-EN-2024#2.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "2.2.1",
+      "theme": "Science: Fiction",
+      "strand": "Reading",
+      "title": "Intensive reading: simple poems",
+      "lessons": 2,
+      "canonical_sub_strand_id": "74c6b96a-5e03-4173-9c62-55e1c9197da3",
+      "reference_source_ref": "VS-REF-G09-EN-2024#2.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "2.3.1",
+      "theme": "Science: Fiction",
+      "strand": "Grammar in Use",
+      "title": "Nouns and quantifiers",
+      "lessons": 2,
+      "canonical_sub_strand_id": "41177b24-071d-465e-a3d1-61d87d1423e3",
+      "reference_source_ref": "VS-REF-G09-EN-2024#2.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "2.4.1",
+      "theme": "Science: Fiction",
+      "strand": "Reading",
+      "title": "Class reader: plot",
+      "lessons": 2,
+      "canonical_sub_strand_id": "999ef1f6-059a-46bc-934c-95875c0da9bd",
+      "reference_source_ref": "VS-REF-G09-EN-2024#2.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "2.5.1",
+      "theme": "Science: Fiction",
+      "strand": "Writing",
+      "title": "Punctuation marks",
+      "lessons": 2,
+      "canonical_sub_strand_id": "77e88d86-88d2-405b-b47d-f8c984613cf9",
+      "reference_source_ref": "VS-REF-G09-EN-2024#2.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "3.1.1",
+      "theme": "Environmental Conservation",
+      "strand": "Listening and Speaking",
+      "title": "Listening comprehension: main ideas and details",
+      "lessons": 2,
+      "canonical_sub_strand_id": "a648fc24-5779-49ee-b990-78269b481f31",
+      "reference_source_ref": "VS-REF-G09-EN-2024#3.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "3.2.1",
+      "theme": "Environmental Conservation",
+      "strand": "Reading",
+      "title": "Reading for information and meaning",
+      "lessons": 2,
+      "canonical_sub_strand_id": "0ddc09a0-09bf-4330-b9b7-60fef9a79228",
+      "reference_source_ref": "VS-REF-G09-EN-2024#3.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "3.3.1",
+      "theme": "Environmental Conservation",
+      "strand": "Grammar in Use",
+      "title": "Modal auxiliaries",
+      "lessons": 2,
+      "canonical_sub_strand_id": "18ce1946-f54b-4991-9e52-58b6cc435bd5",
+      "reference_source_ref": "VS-REF-G09-EN-2024#3.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "3.4.1",
+      "theme": "Environmental Conservation",
+      "strand": "Reading",
+      "title": "Poems: structure",
+      "lessons": 2,
+      "canonical_sub_strand_id": "3e1bef44-6cfb-4c42-9269-08594e21f412",
+      "reference_source_ref": "VS-REF-G09-EN-2024#3.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "3.5.1",
+      "theme": "Environmental Conservation",
+      "strand": "Writing",
+      "title": "Paragraph structure",
+      "lessons": 2,
+      "canonical_sub_strand_id": "61e150b0-cd3c-459e-8768-acb89e30b48b",
+      "reference_source_ref": "VS-REF-G09-EN-2024#3.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "4.1.1",
+      "theme": "Consumer Protection: Consumer Laws and Policies",
+      "strand": "Listening and Speaking",
+      "title": "Selective listening",
+      "lessons": 2,
+      "canonical_sub_strand_id": "2271c880-05e0-40cc-a3d1-965dd4fcad45",
+      "reference_source_ref": "VS-REF-G09-EN-2024#4.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "4.2.1",
+      "theme": "Consumer Protection: Consumer Laws and Policies",
+      "strand": "Reading",
+      "title": "Intensive reading: key events",
+      "lessons": 2,
+      "canonical_sub_strand_id": "6a51922b-fcbf-407d-8328-d6dc3684b80a",
+      "reference_source_ref": "VS-REF-G09-EN-2024#4.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "4.3.1",
+      "theme": "Consumer Protection: Consumer Laws and Policies",
+      "strand": "Grammar in Use",
+      "title": "Present and past perfect aspect",
+      "lessons": 2,
+      "canonical_sub_strand_id": "ade5dc1c-6d65-42d6-a4a5-d4ec966d9710",
+      "reference_source_ref": "VS-REF-G09-EN-2024#4.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "4.4.1",
+      "theme": "Consumer Protection: Consumer Laws and Policies",
+      "strand": "Reading",
+      "title": "Class reader: characters",
+      "lessons": 2,
+      "canonical_sub_strand_id": "3d5dee14-5202-4a33-9504-5435eaaaa235",
+      "reference_source_ref": "VS-REF-G09-EN-2024#4.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "4.5.1",
+      "theme": "Consumer Protection: Consumer Laws and Policies",
+      "strand": "Writing",
+      "title": "Narrative and descriptive paragraphs",
+      "lessons": 2,
+      "canonical_sub_strand_id": "12959f9a-621b-41c1-aaec-d7a1411465b1",
+      "reference_source_ref": "VS-REF-G09-EN-2024#4.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "5.1.1",
+      "theme": "Relationships: Community",
+      "strand": "Listening and Speaking",
+      "title": "Pronunciation",
+      "lessons": 2,
+      "canonical_sub_strand_id": "dd971706-e861-487f-beaf-63ed64e6c840",
+      "reference_source_ref": "VS-REF-G09-EN-2024#5.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "5.2.1",
+      "theme": "Relationships: Community",
+      "strand": "Reading",
+      "title": "Reference materials",
+      "lessons": 2,
+      "canonical_sub_strand_id": "98effe5b-aa28-4dbc-a221-fbf0454db3b9",
+      "reference_source_ref": "VS-REF-G09-EN-2024#5.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "5.3.1",
+      "theme": "Relationships: Community",
+      "strand": "Grammar in Use",
+      "title": "Order of adjectives",
+      "lessons": 2,
+      "canonical_sub_strand_id": "d6c7817f-5791-4046-805d-6a3e19766eda",
+      "reference_source_ref": "VS-REF-G09-EN-2024#5.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "5.4.1",
+      "theme": "Relationships: Community",
+      "strand": "Reading",
+      "title": "Class reader: style",
+      "lessons": 2,
+      "canonical_sub_strand_id": "02d10eee-9b18-4e75-a6ed-4e5378bcddc8",
+      "reference_source_ref": "VS-REF-G09-EN-2024#5.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "5.5.1",
+      "theme": "Relationships: Community",
+      "strand": "Writing",
+      "title": "Letter of application",
+      "lessons": 2,
+      "canonical_sub_strand_id": "5f6c2aff-9f9f-40f2-8cd7-18bb320b3af8",
+      "reference_source_ref": "VS-REF-G09-EN-2024#5.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "6.1.1",
+      "theme": "Leisure Time",
+      "strand": "Listening and Speaking",
+      "title": "Conversational skills: negotiation",
+      "lessons": 2,
+      "canonical_sub_strand_id": "4881f81d-6f47-42e2-8f15-037c45c437ab",
+      "reference_source_ref": "VS-REF-G09-EN-2024#6.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "6.2.1",
+      "theme": "Leisure Time",
+      "strand": "Reading",
+      "title": "Reading fluency",
+      "lessons": 2,
+      "canonical_sub_strand_id": "275d814f-9601-4db0-a39b-4f05c1eff1d5",
+      "reference_source_ref": "VS-REF-G09-EN-2024#6.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "6.3.1",
+      "theme": "Leisure Time",
+      "strand": "Grammar in Use",
+      "title": "Comparison of adverbs",
+      "lessons": 2,
+      "canonical_sub_strand_id": "f40e9758-3877-4eaa-b3fd-0334492fa6af",
+      "reference_source_ref": "VS-REF-G09-EN-2024#6.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "6.4.1",
+      "theme": "Leisure Time",
+      "strand": "Reading",
+      "title": "Class reader: themes",
+      "lessons": 2,
+      "canonical_sub_strand_id": "bec3ed5d-d838-478e-ac74-5409f9a805ca",
+      "reference_source_ref": "VS-REF-G09-EN-2024#6.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "6.5.1",
+      "theme": "Leisure Time",
+      "strand": "Writing",
+      "title": "Spelling",
+      "lessons": 2,
+      "canonical_sub_strand_id": "f9d8e62d-831f-4216-916e-ca587d48b772",
+      "reference_source_ref": "VS-REF-G09-EN-2024#6.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "7.1.1",
+      "theme": "Natural Resources: Marine Life",
+      "strand": "Listening and Speaking",
+      "title": "Listening for details",
+      "lessons": 2,
+      "canonical_sub_strand_id": "9fcd0c01-832a-4404-9691-f614cdbecc30",
+      "reference_source_ref": "VS-REF-G09-EN-2024#7.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "7.2.1",
+      "theme": "Natural Resources: Marine Life",
+      "strand": "Reading",
+      "title": "Interpretation and evaluation",
+      "lessons": 2,
+      "canonical_sub_strand_id": "8f7c8750-35a4-476e-8728-c9c0efa39683",
+      "reference_source_ref": "VS-REF-G09-EN-2024#7.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "7.3.1",
+      "theme": "Natural Resources: Marine Life",
+      "strand": "Grammar in Use",
+      "title": "Relative and interrogative pronouns",
+      "lessons": 2,
+      "canonical_sub_strand_id": "7c395522-fbb2-4716-bd6f-b50d7eca901a",
+      "reference_source_ref": "VS-REF-G09-EN-2024#7.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "7.4.1",
+      "theme": "Natural Resources: Marine Life",
+      "strand": "Reading",
+      "title": "Class reader: character study",
+      "lessons": 2,
+      "canonical_sub_strand_id": "a542b369-2fd7-4228-b153-1edbf2ff79a5",
+      "reference_source_ref": "VS-REF-G09-EN-2024#7.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "7.5.1",
+      "theme": "Natural Resources: Marine Life",
+      "strand": "Writing",
+      "title": "Writing process: steps",
+      "lessons": 2,
+      "canonical_sub_strand_id": "a86a9fd8-d30b-4051-b3b8-beac6b747113",
+      "reference_source_ref": "VS-REF-G09-EN-2024#7.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "8.1.1",
+      "theme": "Tourism: International",
+      "strand": "Listening and Speaking",
+      "title": "Oral poetry",
+      "lessons": 2,
+      "canonical_sub_strand_id": "7d3b9567-d80b-4d4f-8cb1-c97ab4d2a02b",
+      "reference_source_ref": "VS-REF-G09-EN-2024#8.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "8.2.1",
+      "theme": "Tourism: International",
+      "strand": "Reading",
+      "title": "Reading for interpretation",
+      "lessons": 2,
+      "canonical_sub_strand_id": "663185fb-140e-4545-bb1d-1e5a5c496869",
+      "reference_source_ref": "VS-REF-G09-EN-2024#8.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "8.3.1",
+      "theme": "Tourism: International",
+      "strand": "Grammar in Use",
+      "title": "Complex prepositions",
+      "lessons": 2,
+      "canonical_sub_strand_id": "7107330f-dc62-48d3-af65-a03037ff5bd6",
+      "reference_source_ref": "VS-REF-G09-EN-2024#8.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "8.4.1",
+      "theme": "Tourism: International",
+      "strand": "Reading",
+      "title": "Poetry: characters",
+      "lessons": 2,
+      "canonical_sub_strand_id": "b7b8c0dd-aedb-4b91-8053-219ea4a40424",
+      "reference_source_ref": "VS-REF-G09-EN-2024#8.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "8.5.1",
+      "theme": "Tourism: International",
+      "strand": "Writing",
+      "title": "Assessing writing",
+      "lessons": 2,
+      "canonical_sub_strand_id": "f290bb3f-c841-4020-9f3a-f06d14e6516d",
+      "reference_source_ref": "VS-REF-G09-EN-2024#8.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "9.1.1",
+      "theme": "Heroes and Heroines: World",
+      "strand": "Listening and Speaking",
+      "title": "Diphthongs and sentence stress",
+      "lessons": 2,
+      "canonical_sub_strand_id": "7e82d237-0b8a-4b2e-88e6-8fed9ee86d02",
+      "reference_source_ref": "VS-REF-G09-EN-2024#9.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "9.2.1",
+      "theme": "Heroes and Heroines: World",
+      "strand": "Reading",
+      "title": "Extensive reading: fiction",
+      "lessons": 2,
+      "canonical_sub_strand_id": "08f7254a-45c9-4bff-9ba6-16c0e1eb2e53",
+      "reference_source_ref": "VS-REF-G09-EN-2024#9.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "9.3.1",
+      "theme": "Heroes and Heroines: World",
+      "strand": "Grammar in Use",
+      "title": "Correlative conjunctions",
+      "lessons": 2,
+      "canonical_sub_strand_id": "b1cf7d27-ff44-40ca-9e5d-555513ef8987",
+      "reference_source_ref": "VS-REF-G09-EN-2024#9.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "9.4.1",
+      "theme": "Heroes and Heroines: World",
+      "strand": "Reading",
+      "title": "Class reader: style",
+      "lessons": 2,
+      "canonical_sub_strand_id": "d85715e3-e073-4a6d-bfef-64679fc3b21a",
+      "reference_source_ref": "VS-REF-G09-EN-2024#9.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "9.5.1",
+      "theme": "Heroes and Heroines: World",
+      "strand": "Writing",
+      "title": "Narrative composition",
+      "lessons": 2,
+      "canonical_sub_strand_id": "c3c26116-60d5-460b-ba51-9cb92d6a55cb",
+      "reference_source_ref": "VS-REF-G09-EN-2024#9.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "10.1.1",
+      "theme": "Social and Mass Media",
+      "strand": "Listening and Speaking",
+      "title": "Impromptu speeches",
+      "lessons": 2,
+      "canonical_sub_strand_id": "6b0933cc-3e20-45f1-890a-807711e0c091",
+      "reference_source_ref": "VS-REF-G09-EN-2024#10.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "10.2.1",
+      "theme": "Social and Mass Media",
+      "strand": "Reading",
+      "title": "Study skills: note making",
+      "lessons": 2,
+      "canonical_sub_strand_id": "62a3f291-db08-4b70-94de-fca4deba017b",
+      "reference_source_ref": "VS-REF-G09-EN-2024#10.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "10.3.1",
+      "theme": "Social and Mass Media",
+      "strand": "Grammar in Use",
+      "title": "Numerals and ordinals",
+      "lessons": 2,
+      "canonical_sub_strand_id": "6d4e1681-5823-4c3e-9ef1-151c3a7c2a53",
+      "reference_source_ref": "VS-REF-G09-EN-2024#10.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "10.4.1",
+      "theme": "Social and Mass Media",
+      "strand": "Reading",
+      "title": "Class reader: play project",
+      "lessons": 2,
+      "canonical_sub_strand_id": "bdc2972b-ceeb-457f-9a04-2e07e5de8cdd",
+      "reference_source_ref": "VS-REF-G09-EN-2024#10.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "10.5.1",
+      "theme": "Social and Mass Media",
+      "strand": "Writing",
+      "title": "Completing application forms",
+      "lessons": 2,
+      "canonical_sub_strand_id": "95815957-5709-44c7-a312-0e7c708d5a8e",
+      "reference_source_ref": "VS-REF-G09-EN-2024#10.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "11.1.1",
+      "theme": "Income Generating Activities",
+      "strand": "Listening and Speaking",
+      "title": "Job interview conversations",
+      "lessons": 2,
+      "canonical_sub_strand_id": "bf1239da-b3b8-4a5d-9ef5-acc5f9d728e5",
+      "reference_source_ref": "VS-REF-G09-EN-2024#11.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "11.2.1",
+      "theme": "Income Generating Activities",
+      "strand": "Reading",
+      "title": "Extensive reading: fiction",
+      "lessons": 2,
+      "canonical_sub_strand_id": "ae567580-2418-4ce6-b608-773902478f80",
+      "reference_source_ref": "VS-REF-G09-EN-2024#11.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "11.3.1",
+      "theme": "Income Generating Activities",
+      "strand": "Grammar in Use",
+      "title": "Nouns",
+      "lessons": 2,
+      "canonical_sub_strand_id": "499c0d91-3e56-4d78-878d-63faa26c8c11",
+      "reference_source_ref": "VS-REF-G09-EN-2024#11.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "11.4.1",
+      "theme": "Income Generating Activities",
+      "strand": "Reading",
+      "title": "Class reader: lessons learnt",
+      "lessons": 2,
+      "canonical_sub_strand_id": "17670137-939d-43f7-b6f0-c9802492ccff",
+      "reference_source_ref": "VS-REF-G09-EN-2024#11.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "11.5.1",
+      "theme": "Income Generating Activities",
+      "strand": "Writing",
+      "title": "Abbreviations and acronyms",
+      "lessons": 2,
+      "canonical_sub_strand_id": "7cff2e8e-bdeb-4d12-a33f-ad57ca8d953c",
+      "reference_source_ref": "VS-REF-G09-EN-2024#11.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "12.1.1",
+      "theme": "Personal Grooming",
+      "strand": "Listening and Speaking",
+      "title": "Listening and responding: feelings",
+      "lessons": 2,
+      "canonical_sub_strand_id": "56bade73-affb-4707-8fbe-61530461e322",
+      "reference_source_ref": "VS-REF-G09-EN-2024#12.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "12.2.1",
+      "theme": "Personal Grooming",
+      "strand": "Reading",
+      "title": "Comprehension strategies",
+      "lessons": 2,
+      "canonical_sub_strand_id": "dfad86d1-2235-425c-9df5-9e49395f07c4",
+      "reference_source_ref": "VS-REF-G09-EN-2024#12.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "12.3.1",
+      "theme": "Personal Grooming",
+      "strand": "Grammar in Use",
+      "title": "Phrasal verbs",
+      "lessons": 2,
+      "canonical_sub_strand_id": "268787dc-0247-41a6-9e99-e4140f7ddfbf",
+      "reference_source_ref": "VS-REF-G09-EN-2024#12.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "12.4.1",
+      "theme": "Personal Grooming",
+      "strand": "Reading",
+      "title": "Class reader: characterisation",
+      "lessons": 2,
+      "canonical_sub_strand_id": "2db904da-425a-4e98-a770-cb31dea9a07f",
+      "reference_source_ref": "VS-REF-G09-EN-2024#12.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "12.5.1",
+      "theme": "Personal Grooming",
+      "strand": "Writing",
+      "title": "Writing process",
+      "lessons": 2,
+      "canonical_sub_strand_id": "524dd75f-7317-4394-8711-cbc5504e082f",
+      "reference_source_ref": "VS-REF-G09-EN-2024#12.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "13.1.1",
+      "theme": "Sea Travel",
+      "strand": "Listening and Speaking",
+      "title": "Extensive listening: speeches",
+      "lessons": 2,
+      "canonical_sub_strand_id": "f32a15d8-31fa-4baa-8554-a17fd5dc0400",
+      "reference_source_ref": "VS-REF-G09-EN-2024#13.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "13.2.1",
+      "theme": "Sea Travel",
+      "strand": "Reading",
+      "title": "Visualising and summarising",
+      "lessons": 2,
+      "canonical_sub_strand_id": "e8c48632-bb84-4071-9f92-077381075ec0",
+      "reference_source_ref": "VS-REF-G09-EN-2024#13.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "13.3.1",
+      "theme": "Sea Travel",
+      "strand": "Grammar in Use",
+      "title": "Complex sentences",
+      "lessons": 2,
+      "canonical_sub_strand_id": "8fe9bd9a-e4ec-4dee-a5ed-d1c29eea6545",
+      "reference_source_ref": "VS-REF-G09-EN-2024#13.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "13.4.1",
+      "theme": "Sea Travel",
+      "strand": "Reading",
+      "title": "Class reader: style",
+      "lessons": 2,
+      "canonical_sub_strand_id": "c7a38d02-2444-44c0-87d2-74790a5f7633",
+      "reference_source_ref": "VS-REF-G09-EN-2024#13.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "13.5.1",
+      "theme": "Sea Travel",
+      "strand": "Writing",
+      "title": "Creative writing with idioms",
+      "lessons": 2,
+      "canonical_sub_strand_id": "3098169f-c083-49c3-9552-8605343c3411",
+      "reference_source_ref": "VS-REF-G09-EN-2024#13.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "14.1.1",
+      "theme": "Sports: World Cup (Football)",
+      "strand": "Listening and Speaking",
+      "title": "Intonation in question tags",
+      "lessons": 2,
+      "canonical_sub_strand_id": "1f30734e-953d-45bd-a453-13db2f8d2ada",
+      "reference_source_ref": "VS-REF-G09-EN-2024#14.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "14.2.1",
+      "theme": "Sports: World Cup (Football)",
+      "strand": "Reading",
+      "title": "Summarising argumentative texts",
+      "lessons": 2,
+      "canonical_sub_strand_id": "bf48a655-348b-402d-b534-fc9a002e8241",
+      "reference_source_ref": "VS-REF-G09-EN-2024#14.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "14.3.1",
+      "theme": "Sports: World Cup (Football)",
+      "strand": "Grammar in Use",
+      "title": "Direct and indirect speech",
+      "lessons": 2,
+      "canonical_sub_strand_id": "8d98f1dc-0c68-4f77-a708-cb509e765656",
+      "reference_source_ref": "VS-REF-G09-EN-2024#14.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "14.4.1",
+      "theme": "Sports: World Cup (Football)",
+      "strand": "Reading",
+      "title": "Relating characters and themes to life",
+      "lessons": 2,
+      "canonical_sub_strand_id": "e72513d8-35d5-4f77-bbbc-93dbe2801e5d",
+      "reference_source_ref": "VS-REF-G09-EN-2024#14.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "14.5.1",
+      "theme": "Sports: World Cup (Football)",
+      "strand": "Writing",
+      "title": "Descriptive writing",
+      "lessons": 2,
+      "canonical_sub_strand_id": "761f4e2e-e689-43a5-b04c-aff59a6cc15a",
+      "reference_source_ref": "VS-REF-G09-EN-2024#14.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "15.1.1",
+      "theme": "Tourist Attraction Sites: World",
+      "strand": "Listening and Speaking",
+      "title": "Oral news reporting",
+      "lessons": 2,
+      "canonical_sub_strand_id": "1a14b5d3-8a26-4cec-b6a0-b6faa917a293",
+      "reference_source_ref": "VS-REF-G09-EN-2024#15.1.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "15.2.1",
+      "theme": "Tourist Attraction Sites: World",
+      "strand": "Reading",
+      "title": "Reading fluency",
+      "lessons": 2,
+      "canonical_sub_strand_id": "270208b2-540e-4b9a-8cdd-643b2c94f14b",
+      "reference_source_ref": "VS-REF-G09-EN-2024#15.2.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "15.3.1",
+      "theme": "Tourist Attraction Sites: World",
+      "strand": "Grammar in Use",
+      "title": "Imperatives and exclamatory sentences",
+      "lessons": 2,
+      "canonical_sub_strand_id": "3e28b9b2-b47c-4283-b4b7-58dbc1fe6048",
+      "reference_source_ref": "VS-REF-G09-EN-2024#15.3.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "15.4.1",
+      "theme": "Tourist Attraction Sites: World",
+      "strand": "Reading",
+      "title": "Intensive reading: poems",
+      "lessons": 2,
+      "canonical_sub_strand_id": "152a0bb5-9591-441e-bd3e-1d84337530c2",
+      "reference_source_ref": "VS-REF-G09-EN-2024#15.4.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    },
+    {
+      "code": "15.5.1",
+      "theme": "Tourist Attraction Sites: World",
+      "strand": "Writing",
+      "title": "Emails",
+      "lessons": 2,
+      "canonical_sub_strand_id": "9a3433fe-cba3-4888-9abe-34007f5babd0",
+      "reference_source_ref": "VS-REF-G09-EN-2024#15.5.1",
+      "status": "CANONICAL_HEADING_REGISTERED_OUTCOMES_MISSING"
+    }
+  ]
+}
