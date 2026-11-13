@@ -36,6 +36,23 @@ assert.equal(terms.reduce((n,t)=>n+termCreativeSchemeRows(draft,t.id).length,0),
 assert.ok(buildGrade1AnnualSchemeDraft({...opts,terms:terms.slice(0,2)}).error,'missing school term must fail closed')
 assert.ok(buildGrade1AnnualSchemeDraft({...opts,weeklyAllocation:4}).error,'cannot exceed school weekly allocation')
 assert.ok(page.includes('isGrade8Mathematics && <Grade8MathematicsMap'))
+const grade8MapEntry=page.slice(
+  page.indexOf('curriculumView && isGrade8Mathematics && <Grade8MathematicsMap'),
+  page.indexOf('curriculumView && isGrade8English && <Grade8EnglishMap')
+)
+assert.ok(grade8MapEntry.includes('onPlanUnit={selectedClass&&selectedSubject ? unitId=>'),
+  'Curriculum-to-Scheme navigation cannot be blocked by an unselected term')
+assert.ok(grade8MapEntry.includes("if(selectedTermId)p.set('termId',selectedTermId)"),
+  'Pass an actual selected term; omit absent term instead of sending an empty value')
+assert.ok(grade8MapEntry.includes('termSelected={!!selectedTermId}'),
+  'Show term-ready guidance from the actual selection')
+assert.ok(page.includes('Curriculum browsing does not require a term or timetable.'),
+  'Curriculum browsing cannot show a misleading calendar failure with no term selected')
+assert.ok(map.includes('Select a term before saving a lesson.'),
+  'Scheme entry should explain that term selection is required for saving')
+assert.ok(map.includes('Source-exact KICD outcome verification is separate and remains pending.'),
+  'Source verification must not be confused with VibeSchool-authored outcomes')
+
 assert.ok(page.includes('isAutoScheme = isGrade1AutoScheme || isGrade8Mathematics'))
 assert.ok(page.includes("from('grade8_mathematics_reader_bindings')"))
 assert.ok(page.includes("p_outcome_ids:item.outcomeIds"))
