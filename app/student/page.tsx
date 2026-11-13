@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, ClipboardCheck, ChartNoAxesColumn, PencilLine, ArrowUpRight } from 'lucide-react'
+import { BookOpen, ClipboardCheck, ChartNoAxesColumn, PencilLine, ArrowUpRight, BookMarked, CalendarDays, LibraryBig } from 'lucide-react'
 import './student-home.css'
 import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
 import { loadActiveClassTimetable, timetableSlotsForDay } from '@/lib/timetable/engine'
@@ -142,6 +142,15 @@ export default function StudentHomePage() {
     <section style={card} aria-label="Learning destinations"><SectionHeader title="Explore learning" /><div className="student-home-quick-grid"><Quick title="Learn" note="Lessons and reading" onClick={() => router.push('/student/study')} /><Quick title="Practise" note="Questions and exercises" onClick={() => router.push('/student/vibelearn/topic-practice')} /><Quick title="Exams" note="Tests and assessments" onClick={() => router.push('/student/vibelearn/exams')} /><Quick title="Results" note="Marks and feedback" onClick={() => router.push('/student/marks')} /></div></section>
     </div>
 
+    <section style={card} aria-label="Your learning tools">
+      <SectionHeader title="Your tools" action="Personalise" onClick={() => router.push('/student/settings')} />
+      <div className="student-home-secondary-grid">
+        <Quick title="Workspace" note="Notes and saved study material" onClick={() => router.push('/student/workspace')} />
+        <Quick title="Stories" note="Books and series" onClick={() => router.push('/learn/stories')} />
+        <Quick title="My Day" note="Timetable and study plan" onClick={() => router.push('/student/timetable')} />
+      </div>
+    </section>
+
     <section style={card}><SectionHeader title="My academic target" action={settingsOpen ? 'Close' : 'Set goals'} onClick={() => setSettingsOpen(value => !value)} /><div className="student-home-goals" style={goalGrid}>{isKcseLearner ? <Metric label="KCSE target" value={progress?.targets.kcseTargetGrade ?? 'Not set'} /> : <Metric label="Learning level" value={identity.className || 'Not set'} />}<Metric label="Weekly study" value={`${progress?.targets.weeklyStudyMinutes ?? 300} min`} /><Metric label="Focus session" value={`${progress?.targets.preferredSessionMinutes ?? 25} min`} /></div>{settingsOpen && <div style={formGrid}>{isKcseLearner && <label style={field}>KCSE target<select value={targetGrade} onChange={event => setTargetGrade(event.target.value)} style={input}>{GRADES.map(grade => <option key={grade || 'none'} value={grade}>{grade || 'Not set'}</option>)}</select></label>}<label style={field}>Weekly minutes<input type="number" min={30} max={4200} value={weeklyMinutes} onChange={event => setWeeklyMinutes(Number(event.target.value))} style={input} /></label><label style={field}>Session minutes<input type="number" min={10} max={180} value={sessionMinutes} onChange={event => setSessionMinutes(Number(event.target.value))} style={input} /></label><label style={field}>Preferred time<select value={studyTime} onChange={event => setStudyTime(event.target.value as PreferredStudyTime)} style={input}>{STUDY_TIMES.map(item => <option key={item} value={item}>{item}</option>)}</select></label><button disabled={saving} onClick={() => void savePreferences()} style={primaryButton}>{saving ? 'Saving…' : 'Save my goals'}</button></div>}</section>
 
     <section style={card}><SectionHeader title={`What changed?${brief?.unreadChangeCount ? ` · ${brief.unreadChangeCount} new` : ''}`} action={brief?.unreadChangeCount ? 'Mark seen' : 'Results'} onClick={() => brief?.unreadChangeCount ? void acknowledgeChanges() : router.push('/student/marks')} />{recentChanges.length === 0 ? <Empty title={hasLearningEvidence ? 'No recent updates' : 'No learning activity yet'} body="Completed learning, marks and feedback will appear here as they become available." /> : <div style={{ display: 'grid', gap: 8 }}>{recentChanges.map(change => <div key={`${change.kind}:${change.id}:${change.occurredAt}`} className="student-home-change" style={{ ...changeRow, borderColor: change.isUnread ? 'var(--vs-accent)' : 'var(--vs-border)' }}><div><div style={label}>{change.isUnread ? 'NEW · ' : ''}{change.kind.replaceAll('_', ' ')}</div><strong style={{ fontSize: 12 }}>{change.kind === 'result' ? (change.title === 'Assessment result released' ? 'Assessment result' : change.title) : change.title}</strong>{change.summary && <div style={muted}>{change.summary}</div>}{change.kind === 'result' && <button style={{ ...linkButton, marginTop: 5, fontSize: 12 }} onClick={() => router.push('/student/marks')}>Review result →</button>}</div><span style={muted}>{relativeTime(change.occurredAt)}</span></div>)}</div>}</section>
@@ -160,7 +169,7 @@ function SectionHeader({ title, action, onClick }: { title: string; action?: str
 function Metric({ label: text, value }: { label: string; value: string | number }) { return <div style={metric}><span style={muted}>{text}</span><strong style={{ display: 'block', marginTop: 4, fontSize: 17 }}>{value}</strong></div> }
 function Empty({ title, body: text }: { title: string; body: string }) { return <div style={{ padding: 14, textAlign: 'center' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={body}>{text}</p></div> }
 function Quick({ title, note, onClick }: { title: string; note: string; onClick: () => void }) {
-  const Icon = title === 'Learn' ? BookOpen : title === 'Exams' ? ClipboardCheck : title === 'Results' ? ChartNoAxesColumn : PencilLine
+  const Icon = title === 'Learn' ? BookOpen : title === 'Exams' ? ClipboardCheck : title === 'Results' ? ChartNoAxesColumn : title === 'Workspace' ? BookMarked : title === 'Stories' ? LibraryBig : title === 'My Day' ? CalendarDays : PencilLine
   return <button onClick={onClick} style={{ ...quick, display: 'flex' }} aria-label={title + ': ' + note}>
     <span className="student-home-quick-icon"><Icon size={20} aria-hidden="true" /></span>
     <span className="student-home-quick-copy"><strong>{title}</strong><small>{note}</small></span>
@@ -168,11 +177,11 @@ function Quick({ title, note, onClick }: { title: string; note: string; onClick:
   </button>
 }
 
-const hero: React.CSSProperties = { padding: 'clamp(18px,3vw,30px)', borderRadius: 20, color: 'var(--vs-text)', background: 'var(--vs-card)', border: '1px solid var(--vs-border)', boxShadow: '0 9px 26px rgba(22,109,73,.055)' }
+const hero: React.CSSProperties = { padding: 'clamp(18px,3vw,30px)', borderRadius: 20, color: 'var(--vs-text)', background: 'linear-gradient(130deg, var(--vs-accent-soft), var(--vs-card) 76%)', border: '1px solid var(--vs-border)', boxShadow: '0 9px 26px rgba(22,109,73,.055)' }
 const heroPanel: React.CSSProperties = { marginTop: 17, padding: 'clamp(14px,2vw,18px)', borderRadius: 14, background: 'var(--vs-accent-soft)', border: '1px solid var(--vs-border)' }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 850, letterSpacing: .9, color: 'var(--vs-accent)', textTransform: 'uppercase' }
 const heroSub: React.CSSProperties = { margin: 0, fontSize: 13, color: 'var(--vs-muted)', lineHeight: 1.6 }
-const heroButton: React.CSSProperties = { marginTop: 13, border: 0, borderRadius: 11, padding: '11px 17px', color: '#fff', background: '#166d49', fontFamily: 'inherit', fontSize: 13, fontWeight: 850, cursor: 'pointer', minHeight: 44 }
+const heroButton: React.CSSProperties = { marginTop: 13, border: 0, borderRadius: 11, padding: '11px 17px', color: 'var(--vs-on-accent)', background: 'var(--vs-accent)', fontFamily: 'inherit', fontSize: 13, fontWeight: 850, cursor: 'pointer', minHeight: 44 }
 const heroTrack: React.CSSProperties = { height: 7, background: 'var(--vs-border)', borderRadius: 999, overflow: 'hidden', marginTop: 8 }
 const splitSmall: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, flexWrap: 'wrap' }
 const card: React.CSSProperties = { padding: 'clamp(16px,2vw,21px)', borderRadius: 16, border: '1px solid var(--vs-border)', background: 'var(--vs-card)', minWidth: 0 }
