@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLearningFeedback } from '@/components/learn/LearningFeedback'
+import styles from './assessment-runner.module.css'
 import { useParams, useRouter } from 'next/navigation'
 import {
   claimAttemptClient,
@@ -88,6 +89,7 @@ export default function LearnerAssessmentPage() {
   const automaticExpiryAttemptedRef = useRef(false)
 
   const [currentIndex, setCurrentIndex] = useState(0)
+  const questionHeadingRef = useRef<HTMLHeadingElement>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [exiting, setExiting] = useState(false)
@@ -599,6 +601,10 @@ export default function LearnerAssessmentPage() {
     () => Object.values(answers).filter(hasAnswer).length,
     [answers],
   )
+  useEffect(() => {
+    if (workspace) questionHeadingRef.current?.focus({ preventScroll: true })
+  }, [currentIndex, workspace?.attemptId])
+
   const unansweredIndexes = useMemo(
     () => workspace
       ? workspace.items
@@ -608,9 +614,9 @@ export default function LearnerAssessmentPage() {
     [workspace, answers],
   )
 
-  if (loading) return <main style={shell}>Loading assessment…</main>
+  if (loading) return <main className={styles.runner} style={shell}>Loading assessment…</main>
   if (error && !workspace) {
-    return <main style={shell}><section style={card}>
+    return <main className={styles.runner} style={shell}><section style={card}>
       <h1 style={{ marginTop: 0 }}>Assessment unavailable</h1>
       <p style={{ color: '#b91c1c' }}>{error}</p>
       <button type="button" onClick={() => router.push('/student/vibelearn/exams')} style={secondaryButton}>Back to Exams</button>
@@ -619,7 +625,7 @@ export default function LearnerAssessmentPage() {
   if (!workspace) return null
 
   if (result) {
-    return <main style={shell}><section style={{ ...card, maxWidth: 620, margin: '0 auto', borderColor: '#6ee7b7' }}>
+    return <main className={styles.runner} style={shell}><section style={{ ...card, maxWidth: 620, margin: '0 auto', borderColor: '#6ee7b7' }}>
       <h1 style={{ marginTop: 0, color: '#065f46' }}>Assessment submitted ✓</h1>
       {result.scoreReleased && result.score !== null && result.maxScore !== null && result.percentage !== null
         ? <><p style={{ fontSize: 30, fontWeight: 800, margin: '12px 0' }}>{result.score}/{result.maxScore}</p><p>{result.percentage.toFixed(1)}%</p></>
@@ -642,85 +648,115 @@ export default function LearnerAssessmentPage() {
   const item = workspace.items[currentIndex]
   const answer = item ? answers[item.id] : undefined
 
-  return <main style={shell}>
-    <div style={{ maxWidth: 760, margin: '0 auto' }}>
-      <section style={card}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-          <div style={eyebrow}>{workspace.assessmentType.replaceAll('_', ' ')}</div>
-          {secondsLeft !== null && <div style={{ fontWeight: 900, color: secondsLeft <= 60 ? '#b91c1c' : '#4338ca' }}>⏱ {formatTime(secondsLeft)}</div>}
-        </div>
-        <h1 style={{ margin: '6px 0' }}>{workspace.title}</h1>
-        {workspace.instructions && <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.5 }}>{workspace.instructions}</p>}
-        <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700 }}>{answeredCount}/{workspace.items.length} answered · Attempt {workspace.attemptNumber}</div>
-        <p style={{ margin: '8px 0 0', color: '#92400e', fontSize: 12, fontWeight: 700 }}>{unansweredIndexes.length} unanswered · Skipped questions receive 0 marks if submitted.</p>
-        {recoveredDraft && <div style={notice}>Recovered newer work saved on this device.</div>}
-        {secondsLeft === 0 && <div role="status" aria-live="polite" style={notice}>
-          Time ended. Editing is locked while the server finalises saved answers.
-          {error && !submitting && !activeElsewhere && <button type="button" onClick={() => void submit(true)} style={{ ...secondaryButton, marginLeft: 8 }}>Retry finalising attempt</button>}
-        </div>}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-          <button type="button" disabled={secondsLeft === 0 || exiting || submitting || activeElsewhere || !!conflict} onClick={() => void saveAndExit()} style={secondaryButton}>{exiting ? 'Saving…' : workspace.expiresAt || workspace.closesAt ? 'Save & Exit' : 'Pause & Exit'}</button>
-          <button type="button" disabled={secondsLeft === 0 || exiting || submitting || activeElsewhere || !!conflict} onClick={() => setShowConfirm(true)} style={primaryButton}>Submit & Finish</button>
-        </div>
-        <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 0 }}>{workspace.expiresAt || workspace.closesAt ? 'Save & Exit keeps saved answers, but the exam timer continues. You cannot pause a timed exam.' : 'Pause & Exit saves your answers. Resume later to continue this untimed practice.'}</p>
-      </section>
 
-      {activeElsewhere && <section style={{ ...card, borderColor: '#f59e0b', background: '#fffbeb' }}>
-        <strong style={{ color: '#92400e' }}>This attempt is active on another tab or device.</strong>
-        <p style={{ color: '#78350f', lineHeight: 1.5 }}>Editing is paused to prevent answers from being overwritten. Taking over will make this device authoritative.</p>
-        <button type="button" disabled={claiming} onClick={() => void takeOver()} style={primaryButton}>
-          {claiming ? 'Taking over…' : 'Take over this attempt'}
-        </button>
-      </section>}
+  return <main className={styles.runner} style={shell}>
+    <section className={styles.intro} aria-label="Assessment progress">
+      <div className={styles.introTop}>
+        <span className={styles.kicker}>{workspace.assessmentType.replaceAll('_', ' ')} · Attempt {workspace.attemptNumber}</span>
+        {secondsLeft === null
+          ? <span className={styles.timer}>Untimed practice</span>
+          : <span className={`${styles.timer} ${secondsLeft <= 60 ? styles.urgent : ''}`} role="timer" aria-label={`Time remaining ${formatTime(secondsLeft)}`}>⏱ {formatTime(secondsLeft)} left</span>}
+      </div>
+      <h1 className={styles.title}>{workspace.title}</h1>
+      <div className={styles.progressRow}>
+        <strong>Question {currentIndex + 1} of {workspace.items.length}</strong>
+        <span>{answeredCount} answered · {unansweredIndexes.length} unanswered</span>
+      </div>
+      <progress className={styles.progress} max={workspace.items.length} value={answeredCount} aria-label={`${answeredCount} of ${workspace.items.length} questions answered`} />
+      {workspace.instructions && <details className={styles.instructions}><summary>Assessment instructions</summary><p>{workspace.instructions}</p></details>}
+      <div className={styles.metaActions}>
+        <button type="button" className={styles.quietButton}
+          disabled={secondsLeft === 0 || exiting || submitting || activeElsewhere || !!conflict}
+          onClick={() => void saveAndExit()}>{exiting ? 'Saving…' : workspace.expiresAt || workspace.closesAt ? 'Save & Exit' : 'Pause & Exit'}</button>
+        <button type="button" className={styles.textButton}
+          disabled={secondsLeft === 0 || exiting || submitting || activeElsewhere || !!conflict}
+          onClick={() => setShowReview(true)}>Review & finish</button>
+      </div>
+      <p className={styles.note}>{workspace.expiresAt || workspace.closesAt
+        ? 'Save & Exit keeps saved answers; the timed exam continues counting down.'
+        : 'Pause & Exit saves your answers. Continue your untimed practice later.'}</p>
+      {recoveredDraft && <div role="status" style={notice}>Recovered newer work saved on this device.</div>}
+      {secondsLeft === 0 && <div role="status" aria-live="polite" style={notice}>
+        Time ended. Editing is locked while the server finalises saved answers.
+        {error && !submitting && !activeElsewhere && <button type="button" onClick={() => void submit(true)} style={{ ...secondaryButton, marginLeft: 8 }}>Retry finalising attempt</button>}
+      </div>}
+    </section>
 
-      <section style={{ ...card, paddingBottom: 10 }}>
-        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 6 }}>
-          {workspace.items.map((question, index) => {
-            const complete = hasAnswer(answers[question.id])
-            return <button
-              key={question.id}
-              type="button"
-              onClick={() => setCurrentIndex(index)}
-              style={{
-                ...questionButton,
-                borderColor: index === currentIndex ? '#4338ca' : complete ? '#6ee7b7' : '#d1d5db',
-                background: index === currentIndex ? '#eef2ff' : complete ? '#ecfdf5' : '#fff',
-              }}
-            >{index + 1}</button>
-          })}
-        </div>
-      </section>
+    {activeElsewhere && <section style={{ ...card, borderColor: 'var(--vs-warning)', background: 'var(--vs-soft)' }} role="alert">
+      <strong>This attempt is active on another tab or device.</strong>
+      <p>Editing is paused to protect your answers. Taking over will make this device authoritative.</p>
+      <button type="button" disabled={claiming} onClick={() => void takeOver()} style={primaryButton}>
+        {claiming ? 'Taking over…' : 'Take over this attempt'}
+      </button>
+    </section>}
 
-      {item && <section style={card}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-          <strong>Question {currentIndex + 1} of {workspace.items.length}</strong>
-          <span style={{ color: '#6b7280', fontSize: 12 }}>{item.marks} mark{item.marks === 1 ? '' : 's'}</span>
-        </div>
-        <p style={{ lineHeight: 1.6 }}>{item.prompt}</p>
-        {item.questionType === 'true_false'
-          ? <div style={{ display: 'flex', gap: 10 }}>{['true', 'false'].map(option => <button key={option} type="button" disabled={locked} onClick={() => updateValue(item, null, option)} style={{ ...secondaryButton, flex: 1, background: answer?.text === option ? '#eef2ff' : '#fff', borderColor: answer?.text === option ? '#4338ca' : '#d1d5db' }}>{option === 'true' ? 'True' : 'False'}</button>)}</div>
-          : item.questionType === 'multiple_choice' && Array.isArray(item.options)
-            ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{item.options.map((option, optionIndex) => {
+    <details className={styles.jump}>
+      <summary>Jump to question <span>{answeredCount}/{workspace.items.length} answered</span></summary>
+      <div className={styles.jumpGrid} role="group" aria-label="Jump to question number">
+        {workspace.items.map((question, index) => {
+          const complete = hasAnswer(answers[question.id])
+          return <button key={question.id} type="button" className={styles.jumpButton}
+            data-answered={complete} aria-current={index === currentIndex ? 'step' : undefined}
+            aria-label={`Question ${index + 1}, ${complete ? 'answered' : 'unanswered'}`}
+            onClick={() => setCurrentIndex(index)}>{index + 1}</button>
+        })}
+      </div>
+      <p className={styles.jumpLegend}>Green: answered. Outlined: unanswered. Filled: current question.</p>
+    </details>
+
+    {item && <section className={styles.questionCard} aria-labelledby="current-assessment-question">
+      <div className={styles.questionTop}>
+        <span className={styles.questionCount}>Question {currentIndex + 1}</span>
+        <span className={styles.marks}>{item.marks} mark{item.marks === 1 ? '' : 's'}</span>
+      </div>
+      <h2 ref={questionHeadingRef} id="current-assessment-question" tabIndex={-1} className={styles.questionTitle}>{item.prompt}</h2>
+      {item.questionType === 'true_false'
+        ? <div role="group" aria-label="Choose true or false" className={styles.answerGroup}>
+            {['true', 'false'].map((option, optionIndex) =>
+              <button key={option} type="button" disabled={locked} aria-pressed={answer?.text === option}
+                onClick={() => updateValue(item, null, option)} className={styles.option}>
+                <span aria-hidden="true" className={styles.optionLetter}>{optionIndex === 0 ? 'A' : 'B'}</span>
+                {option === 'true' ? 'True' : 'False'}
+              </button>)}
+          </div>
+        : item.questionType === 'multiple_choice' && Array.isArray(item.options)
+          ? <div className={styles.answerGroup} role="group" aria-label="Choose your answer">
+              {item.options.map((option, optionIndex) => {
                 const choice = typeof option === 'object' && option !== null && !Array.isArray(option) ? option as {label?: unknown; value?: unknown} : null
                 const value = typeof choice?.value === 'string' ? choice.value : String(option)
                 const label = typeof choice?.label === 'string' ? choice.label : String(option)
-                return <button key={optionIndex} type="button" disabled={locked} onClick={() => updateValue(item, value)} style={{ ...secondaryButton, textAlign: 'left', minHeight: 52, background: answer?.value === value ? '#eef2ff' : '#fff', borderColor: answer?.value === value ? '#4338ca' : '#d1d5db' }}>{choice ? `${value}. ${label}` : label}</button>
-              })}</div>
-            : <textarea disabled={locked} value={answer?.text ?? ''} onChange={event => updateText(item, event.target.value)} onBlur={() => void persistAnswer(item)} rows={item.questionType === 'structured' ? 5 : 3} placeholder="Type your answer" style={input} />}
-        <div style={{ marginTop: 8, fontSize: 11, color: answer?.dirty ? '#b45309' : '#6b7280' }}>
-          {answer?.saving ? 'Saving…' : answer?.dirty ? 'Saved on this device — syncing…' : answer?.saved ? `Saved ✓ · revision ${answer.revision}` : 'Not answered'}
-        </div>
-      </section>}
+                return <button key={optionIndex} type="button" disabled={locked}
+                  aria-pressed={answer?.value === value} onClick={() => updateValue(item, value)}
+                  className={styles.option}>
+                  <span className={styles.optionLetter} aria-hidden="true">{String.fromCharCode(65 + optionIndex)}</span>
+                  <span>{label}</span>
+                </button>
+              })}
+            </div>
+          : <textarea aria-label="Your written answer" disabled={locked} value={answer?.text ?? ''}
+              onChange={event => updateText(item, event.target.value)} onBlur={() => void persistAnswer(item)}
+              rows={item.questionType === 'structured' ? 5 : 3} placeholder="Write your answer here"
+              className={styles.answerInput} />}
+      <p className={styles.saveStatus} data-dirty={Boolean(answer?.dirty)} role="status" aria-live="polite">
+        {answer?.saving ? 'Saving your answer…'
+          : answer?.dirty ? 'Saved on this device — syncing…'
+          : answer?.saved ? 'Answer saved ✓' : 'Not answered yet'}
+      </p>
+    </section>}
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-        <button type="button" disabled={currentIndex === 0} onClick={() => setCurrentIndex(index => Math.max(0, index - 1))} style={{ ...secondaryButton, flex: 1, opacity: currentIndex === 0 ? 0.5 : 1 }}>Previous</button>
-        {currentIndex < workspace.items.length - 1
-          ? <button type="button" onClick={() => { if (!hasAnswer(answer)) play('skip'); setCurrentIndex(index => Math.min(workspace.items.length - 1, index + 1)) }} style={{ ...primaryButton, flex: 1 }}>{hasAnswer(answer) ? 'Next' : 'Skip for now'}</button>
-          : <button type="button" disabled={activeElsewhere} onClick={() => setShowReview(true)} style={{ ...primaryButton, flex: 1, opacity: activeElsewhere ? 0.5 : 1 }}>Review answers</button>}
-      </div>
-
-      {error && <div role="alert" style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</div>}
+    <div className={styles.footer}>
+      <button type="button" className={styles.previous} disabled={currentIndex === 0}
+        onClick={() => setCurrentIndex(index => Math.max(0, index - 1))}>Previous</button>
+      {currentIndex < workspace.items.length - 1
+        ? <button type="button" className={styles.next}
+            onClick={() => {
+              if (!hasAnswer(answer)) play('skip')
+              setCurrentIndex(index => Math.min(workspace.items.length - 1, index + 1))
+            }}>{hasAnswer(answer) ? 'Next question' : 'Skip for now'}</button>
+        : <button type="button" className={styles.next} disabled={activeElsewhere}
+            onClick={() => setShowReview(true)}>Review & finish</button>}
     </div>
+    {error && <div role="alert" style={{ ...card, color: 'var(--vs-error)', borderColor: 'var(--vs-error)' }}>{error}</div>}
 
     {showReview && <div style={overlay}><section style={modal}>
       <h2 style={{ marginTop: 0 }}>Review your answers</h2>
@@ -748,14 +784,14 @@ export default function LearnerAssessmentPage() {
   </main>
 }
 
-const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }
+const shell: React.CSSProperties = { minHeight: '50vh', background: 'transparent', padding: '0', color: 'var(--vs-text)' }
+const card: React.CSSProperties = { background: 'var(--vs-card)', color: 'var(--vs-text)', border: '1px solid var(--vs-border)', borderRadius: 16, padding: 16, marginBottom: 12 }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
 const notice: React.CSSProperties = { marginTop: 12, padding: '9px 11px', borderRadius: 10, background: '#fffbeb', color: '#92400e', fontSize: 12, fontWeight: 700 }
 const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '11px 12px', font: 'inherit', resize: 'vertical' }
-const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 12, padding: '13px 16px', background: '#4338ca', color: '#fff', fontWeight: 800, fontSize: 13, fontFamily: 'inherit', cursor: 'pointer' }
-const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }
-const questionButton: React.CSSProperties = { minWidth: 38, height: 38, border: '1px solid #d1d5db', borderRadius: 10, background: '#fff', fontWeight: 800, cursor: 'pointer' }
+const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 12, padding: '13px 16px', minHeight: 48, background: 'var(--vs-accent)', color: 'var(--vs-on-accent)', fontWeight: 800, fontSize: 14, fontFamily: 'inherit', cursor: 'pointer' }
+const secondaryButton: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 10, padding: '11px 14px', minHeight: 44, background: 'var(--vs-card)', color: 'var(--vs-text)', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', cursor: 'pointer' }
+const questionButton: React.CSSProperties = { minWidth: 44, minHeight: 44, border: '1px solid var(--vs-border)', borderRadius: 10, background: 'var(--vs-card)', color: 'var(--vs-text)', fontWeight: 800, cursor: 'pointer' }
 const overlay: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'grid', placeItems: 'center', padding: 18, zIndex: 100 }
-const modal: React.CSSProperties = { width: '100%', maxWidth: 520, maxHeight: '85vh', overflowY: 'auto', background: '#fff', borderRadius: 18, padding: 20, boxShadow: '0 20px 50px rgba(15,23,42,0.25)' }
-const compareBox: React.CSSProperties = { border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 10, background: '#f8fafc', overflowWrap: 'anywhere' }
+const modal: React.CSSProperties = { width: '100%', maxWidth: 520, maxHeight: '85vh', overflowY: 'auto', background: 'var(--vs-card)', color: 'var(--vs-text)', borderRadius: 18, padding: 20, boxShadow: '0 20px 50px rgba(15,23,42,0.25)' }
+const compareBox: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 12, padding: 12, marginBottom: 10, background: 'var(--vs-soft)', overflowWrap: 'anywhere' }
