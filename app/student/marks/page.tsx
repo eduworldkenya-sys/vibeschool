@@ -339,7 +339,6 @@ export default function MarksPage() {
       )}
     </div>
   );
+}
 
 const progressAction: React.CSSProperties = {display:"inline-flex",alignItems:"center",justifyContent:"center",minHeight:44,padding:"10px 13px",borderRadius:10,border:"1px solid var(--vs-border)",background:"var(--vs-accent-soft)",color:"var(--vs-accent)",textDecoration:"none",fontWeight:800,fontSize:12}
-
-}
