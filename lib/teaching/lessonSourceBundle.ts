@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { buildCertifiedTeacherToolContexts } from '@/lib/learn/teachingToolContentBridge.mjs'
 import { includeGradeOneJumpingAsset } from '@/lib/teaching/jumpingContentSelection'
 import type { Json } from '@/lib/database.types'
 import type { LessonContext } from '@/lib/teaching/lessonContext'
@@ -34,6 +35,7 @@ export interface CanonicalLessonSourceBundle {
   }
   scheme: LessonSourceSuggestion | null
   certifiedContent: CertifiedLessonContentAsset[]
+  toolContexts: ReturnType<typeof buildCertifiedTeacherToolContexts>
   provenance: {
     schemeId: string | null
     curriculumId: string | null
@@ -355,6 +357,14 @@ export async function buildCanonicalLessonSourceBundle({
     },
     scheme: source,
     certifiedContent,
+    toolContexts: context.grade ? buildCertifiedTeacherToolContexts({
+      subject: subjectName,
+      grade: context.grade,
+      schemeLessonId: source?.schemeId ?? null,
+      curriculumId: source?.id ?? null,
+      subStrandId: source?.strandId ?? null,
+      assets: certifiedContent,
+    }) : [],
     provenance: {
       schemeId: source?.schemeId ?? null,
       curriculumId: source?.id ?? null,

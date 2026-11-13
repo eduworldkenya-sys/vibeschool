@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
+import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.mjs'
 import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
@@ -180,6 +181,12 @@ export default function Grade4TimeOutcomePackage({
     [lessons, selectedLesson])
   const parsedSelected = useMemo(() => selected
     ? parseGrade4TimeLessonSections(formatGrade4TimeLessonBody(selected.body)) : null, [selected])
+  const toolContext = useMemo(() => selected ? buildLearningToolContext({
+    sourceKind: 'published_outcome', audience,
+    subject: 'Mathematics', grade: 'Grade 4',
+    resourceId: selected.resource_id, resourceVersionId: selected.resource_version_id,
+    outcomeId: selected.outcome_id, sections: parsedSelected?.sections ?? [],
+  }) : null, [selected, parsedSelected, audience])
   const selectedIndex = selected ? lessons.findIndex(row => row.resource_version_id === selected.resource_version_id) : -1
   const selectedItems = useMemo(() => items.filter(row =>
     !selected || row.resource_version_id === selected.resource_version_id), [items, selected])
@@ -251,7 +258,9 @@ export default function Grade4TimeOutcomePackage({
           renderBody={(section) => section.id === 'example'
             ? <Grade4TimeWorkedSteps body={section.body} />
             : undefined}
-          afterSection={(section) => <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />}
+          toolContext={toolContext ?? undefined}
+          afterSection={(section, index) => toolContext && getLearningToolSectionBinding(toolContext, section, index)
+            ? <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} /> : null}
         />
         <Grade4TimeVisualModels lessonOrder={selected.lesson_order} inlineVisualPresent={/\[visual:/.test(selected.body)} />
         <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
