@@ -57,6 +57,8 @@ test('interactive examples remain ephemeral and require an explicit click for ch
   assert.match(math, /role="img"/)
   assert.match(languageScience, /disabled=\{!complete\}/)
   assert.match(languageScience, /setChecked\(true\)/)
+  assert.match(languageScience, /separator=" " \/>/, 'sentences display natural spaces')
+  assert.doesNotMatch(languageScience, /!variables && Array\.isArray\(spec\.items\)/, 'fair-test input must be author-configurable')
   for (const source of [shelf, math, languageScience, read('../lib/learn/teachingToolCatalog.ts')]) {
     for (const prohibited of ['supabase.', 'localStorage', 'service_role', '/api/', 'fetch(', 'document.cookie', 'student_outcome_mastery']) {
       assert.ok(!source.includes(prohibited), 'side-effect boundary violated by: ' + prohibited)
