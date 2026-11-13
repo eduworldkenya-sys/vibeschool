@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ArrowRight, BookOpen, BookmarkCheck, ChevronLeft, ChevronRight, List, Moon, Sun, Type } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, BookmarkCheck, ChevronLeft, ChevronRight, Moon, Sun, Type } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { ContentBlock, VibeChapter, VibePublication } from '@/lib/publishTypes'
 import { isStoryPublication, safeStoryImage, storyReaderHref, storyText } from '@/lib/learn/storyPublications'
@@ -35,6 +35,7 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
   const router=useRouter()
   const search=useSearchParams()
   const id=typeof params.id==='string'?params.id:''
+  const initialRequest=useRef({id,chapter:search.get('chapter'),resume:search.get('resume')==='1'})
   const [publication,setPublication]=useState<VibePublication|null>(null)
   const [chapters,setChapters]=useState<StoryChapter[]>([])
   const [saved,setSaved]=useState<SavedProgress[]>([])
@@ -87,17 +88,15 @@ export function StoryBook({mode}:{mode:'detail'|'read'}) {
         setChapters(available)
         setSaved(records)
         setSignedIn(Boolean(user))
-        const explicit=search.get('chapter')
+        const explicit=initialRequest.current.id===id?initialRequest.current.chapter:null
         const requested=explicit&&available.find(c=>c.id===explicit)
-        const resumed=search.get('resume')==='1'&&records.length?available.find(c=>c.id===records[0].chapter_id):null
+        const resumed=initialRequest.current.id===id&&initialRequest.current.resume&&records.length?available.find(c=>c.id===records[0].chapter_id):null
         setActiveId(requested?.id||resumed?.id||available[0]?.id||'')
       }catch{
         if(mounted)setError('Unable to load this story. Please try again.')
       }finally{if(mounted)setLoading(false)}
     })()
     return()=>{mounted=false}
-  // A new publication changes the query; chapter navigation within a publication is local state.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[id])
 
   const activeIndex=useMemo(()=>chapters.findIndex(c=>c.id===activeId),[chapters,activeId])
