@@ -42,6 +42,29 @@ The owner has instructed all VibeSchool curriculum-production chats not to repea
 
 These instructions preserve the existing source-intake and approved release architecture. They do not grant a new write capability, make the app automatically generate visual files or turn static editorial verification into a production approval.
 
+## 0C. Six-stage execution and resumable evidence (reconciled from #1479)
+
+This is the short execution interface for the **existing** production loop in §§2–12, not a second workflow, new engine or release authority. An investigation-only request never implies permission to author, mutate or publish.
+
+| Stage | Action | Evidence |
+| --- | --- | --- |
+| 1. Verify | Identify the governing official edition and inventory requested scope; crosswalk each eligible outcome to actual canonical VibeSchool records | Page/edition locator, scope, current outcome ID and verified match or precise blocker |
+| 2. Reuse | Inspect existing content, visuals, teaching assets and assessment records | Reused IDs/versions, resource applicability and unchecked gaps |
+| 3. Produce | Complete coherent Core, Supplementary, Revision and Teacher Support for one eligible outcome at a time | Actual instructional work, worked reasoning and relevant usable media |
+| 4. Validate | Check subject accuracy, answers, accessibility, pedagogy, rights and protected assessment boundaries | Check evidence, defects and explicit NOT_CHECKED status |
+| 5. Integrate | Use existing canonical IDs, versioned resources and Scheme/lesson links | Stored record read-back; NOT_CONNECTED when not actually linked |
+| 6. Verify and resume | Test relevant authorized teacher/learner routes and persist the exact next eligible outcome | Actual delivery evidence, current status and durable resume key |
+
+**Three-layer reconciliation:** (A) inventory the whole subject and source edition, (B) verify each official-to-current-canonical outcome crosswalk, and (C) mark only individually reconciled outcomes eligible for authoring. A verified narrower sub-strand can progress while other outcomes remain blocked; never claim a full-subject PASS from a partial scope. Preserve historical IDs, Scheme records, attempts, existing resources and certified versions during any repair. Different April/July curriculum editions must be compared rather than assumed equivalent.
+
+**Per-outcome resource applicability:** For Core, worked demonstration (where procedural modelling matters), supplementary practice, revision, teacher guidance, essential visual/practical support and assessment, record `REQUIRED_PRESENT` (with ID/version and evidence), `REQUIRED_MISSING`, `NOT_APPLICABLE` (pedagogical reason) or `NOT_CHECKED`. Fifteen Teaching Library slots remain optional; never fill them to satisfy a quota. Authored, certified, linked and learner-visible are separate facts.
+
+**Mathematics accuracy:** Explain the selected formula and symbols, transformations, intermediate arithmetic, units/rounding, contextual conclusion and appropriate inverse/substitution/estimate check. Independently check answerable numerical items where feasible, including an ordinary and a misconception/edge case where relevant; record actual checker/result or NOT_CHECKED. Correct arithmetic alone is not proof of correct reasoning.
+
+**Resume from persisted truth:** Use the existing content-package ledger and record the grade/subject, source edition/page, canonical outcome ID, verified source/record version, content and question/visual IDs and versions, applicability, test evidence, defects, last completed stage and first incomplete eligible outcome. A later chat reads this ledger, rechecks stale dependencies and resumes rather than recreating prior work. No new database, scheduler or background work is implied.
+
+**Optional editorial rubric, not certification:** When all six dimensions were actually assessed, rate each 0–4 and calculate `sum(weight × score / 4)`: curriculum fidelity 25%, subject accuracy 20%, conceptual understanding 20%, practice/feedback 15%, teacher usability 10%, accessibility/inclusion 10%. Unchecked dimensions stay NOT_CHECKED and prevent an overall score. Curriculum mismatches, wrong answers, unsafe content, rights or protected-answer breaches and broken indispensable assets fail their respective gates regardless of score. Distinguish editorial readiness, delivery readiness and demonstrated learner effectiveness.
+
 ## 1. The non-negotiable mission
 
 1. A learner must be able to **understand, explain, demonstrate, apply and progressively retain** the relevant outcome, at an appropriate level of support.
