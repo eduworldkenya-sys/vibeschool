@@ -17,7 +17,7 @@ type AccessState = { role?: unknown; account_status?: unknown; is_anonymized?: u
 type OnboardingState = { state?: unknown; destination?: unknown }
 
 const SIGNUP_LINKS: Partial<Record<RoleKey, string>> = {
-  teacher: '/signup/teacher', parent: '/signup/parent', student: '/signup/student',
+  teacher: '/join?role=teacher', parent: '/join?role=parent', student: '/signup/student',
 }
 
 export default function RoleLoginPage() {

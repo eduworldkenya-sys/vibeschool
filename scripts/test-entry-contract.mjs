@@ -10,6 +10,7 @@ const parentSignup = fs.readFileSync('app/signup/parent/page.tsx', 'utf8')
 const studentSignup = fs.readFileSync('app/signup/student/SchoolSignupForm.tsx', 'utf8')
 const studentAccountRoute = fs.readFileSync('app/api/create-student-account/route.ts', 'utf8')
 const roleLogin = fs.readFileSync('app/login/[role]/page.tsx', 'utf8')
+const join = fs.readFileSync('app/join/JoinForm.tsx', 'utf8')
 const authCallback = fs.readFileSync('app/auth/callback/route.ts', 'utf8')
 const guardianConsent = fs.readFileSync('lib/learner/guardian-consent.ts', 'utf8')
 
@@ -26,11 +27,16 @@ const checks = [
   [parentSignup.includes("claim_my_initial_role") && parentSignup.includes("p_role: 'parent'") && !parentSignup.includes("data: { role: 'parent'"), 'parent signup creates the parent role through the authority boundary'],
   [parentSignup.includes("get_my_onboarding_state") && parentSignup.includes('router.replace(destination)'), 'parent signup continues through the canonical onboarding resolver'],
 
+  [join.includes('signInWithOtp') && join.includes("signInWithOAuth") && join.includes("provider: 'google'"), 'account-first joining accepts verified email or Google'],
+  [join.includes('claim_my_initial_role') && join.includes('get_my_auth_access_state') && join.includes('get_my_onboarding_state'), 'adult join uses canonical server role and journey verification'],
+  [!join.includes('profile.role =') && !join.includes(".from('profiles').update") && join.includes('access.role !== role'), 'adult join cannot spoof or mutate an already established account role'],
+  [!join.includes('school_id') && !join.includes('school code') && !join.includes('password'), 'adult join requires no school, code or password'],
+
   [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the server-side account creation boundary'],
   [studentAccountRoute.includes("rpc('lookup_student_claim'") && studentAccountRoute.includes("status !== 'ready'") && studentAccountRoute.includes("rpc('finalize_student_provisioning'"), 'learner claim is validated through the canonical server-side provisioning boundary'],
   [studentAccountRoute.includes("case 'class_not_found'") && studentAccountRoute.includes("code: 'class_required'") && studentAccountRoute.includes('!studentId || !studentName || !schoolId'), 'learner credentials require valid school identity and class enrollment'],
   [studentSignup.includes('Joining through your school? Use learner code') && studentSignup.includes('schoolExpanded') && studentSignup.includes('Enter the learner code provided by your school.') && !studentSignup.includes('className="steps"'), 'school learner signup remains clear and optional after its approved simplification'],
-  [roleLogin.includes("student: '/signup/student'") && roleLogin.includes("parent: '/signup/parent'") && roleLogin.includes("href={signupLink}"), 'focused sign in connects new learners and parents to direct signup'],
+  [roleLogin.includes("student: '/signup/student'") && roleLogin.includes("parent: '/join?role=parent'") && roleLogin.includes("teacher: '/join?role=teacher'") && roleLogin.includes("href={signupLink}"), 'focused sign in opens the simplified adult join and preserves learner signup'],
 
   // The selected login page is presentation/intent only. DB access state + onboarding own routing.
   [roleLogin.includes("get_my_auth_access_state") && roleLogin.includes("get_my_onboarding_state") && roleLogin.includes('roleCanVisit(actualRole'), 'focused sign in verifies authoritative role and onboarding state before routing'],
