@@ -26,6 +26,7 @@
     "test:outcome-delivery": "node scripts/test-p1-outcome-delivery.mjs && node scripts/test-notebook-learning.mjs && node --test scripts/test-grade4-time-readable-content.mjs && node --test scripts/test-universal-learn-reader.mjs && node scripts/test-learning-feedback-contract.mjs && node scripts/test-student-assessment-display-feedback.mjs && node --experimental-strip-types --test scripts/test-teaching-tools.mjs && node --experimental-strip-types --test scripts/test-stage3-practical-tools.mjs && node --experimental-strip-types --test scripts/test-teaching-tool-registry.mjs && node --test scripts/test-learning-tool-content-bridge.mjs && node --experimental-strip-types --test scripts/test-universal-learn-canonical-repair.mjs",
     "test:package-quality": "node scripts/test-outcome-package-quality.mjs",
     "check:content-without-hq": "npm run test:curriculum-identity && npm run test:outcome-packages && node --test scripts/test-content-hq-optional-contract.mjs",
+    "test:spin-studio": "node --test scripts/test-spin-studio-director.mjs",
     "test:student-theme": "node --test scripts/test-student-unified-theme.mjs",
     "test:student-journey": "node --test scripts/test-student-learning-journey.mjs scripts/test-student-learn-practice-roles.mjs"
   },
