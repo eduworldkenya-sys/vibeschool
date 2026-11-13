@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, Btn, C, SectionLabel } from '@/components/teacher/ui'
 import SchoolDaySampleBuilder from '@/components/teacher/SchoolDaySampleBuilder'
+import { periodAppearance } from '@/lib/timetable/periodAppearance'
 
 interface SchoolChoice {
   id: string
@@ -419,12 +420,12 @@ export default function TimetableSetupPage() {
                 </div>
                 <div style={{ display: 'grid', gap: 6 }}>
                   {rows.map(period => (
-                    <div key={period.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 10, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+                    <div key={period.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 10, border: `1px solid ${C.border}`, borderLeft: `3px solid ${periodAppearance(period.kind).border}`, background: periodAppearance(period.kind).background, borderRadius: 10 }}>
                       <div style={{ minWidth: 92, fontSize: 12, fontWeight: 800, color: C.textPrimary }}>
                         {formatTime(period.start_time)}–{formatTime(period.end_time)}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 750, color: C.textPrimary }}>{period.label}</div>
+                        <div style={{ fontSize: 12, fontWeight: 750, color: periodAppearance(period.kind).text }}>{period.label}</div>
                         <div style={{ fontSize: 11, color: C.textMuted }}>{period.kind}{period.protected ? ' · protected' : ''}</div>
                       </div>
                       {canManage && <>
