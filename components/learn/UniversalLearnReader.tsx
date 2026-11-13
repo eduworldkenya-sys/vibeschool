@@ -69,10 +69,6 @@ function MathsWorking({ body }: { body: string }) {
         <RotateCcw size={15} aria-hidden="true" /> {visible === 1 ? 'Show all steps' : 'Start again'}
       </button>
     </div>
-    {showTeachingTools && <TeachingToolShelf
-      subject={subject} topic={topic || title || ''}
-      tools={tools ?? (sectionTools.length ? sectionTools : undefined)}
-    />}
   </div>
 }
 
@@ -128,5 +124,9 @@ export default function UniversalLearnReader({
         </section>
       })}
     </div>
+    {showTeachingTools && <TeachingToolShelf
+      subject={subject} topic={topic || title || ''}
+      tools={tools ?? (sectionTools.length ? sectionTools : undefined)}
+    />}
   </div>
 }
