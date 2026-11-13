@@ -65,7 +65,7 @@ test('teacher-side Scheme and curriculum sources reuse certified canonical paylo
     {id:'feedback',title:'Answer key',body:'Teacher-only response',tone:'feedback'}],
    teacher_guidance:{private:'Do not expose this to learners'},
   }}
- const linked=buildCertifiedTeacherToolContexts({subject:'Science',grade:'Grade 8',schemeLessonId:C,assets:[asset]})
+ const linked=buildCertifiedTeacherToolContexts({subject:'Science',grade:'Grade 8',schemeLessonId:C,curriculumId:'actual-curriculum-id',subStrandId:'actual-substrand-id',assets:[asset]})
  assert.equal(linked.length,1)
  assert.equal(linked[0].sourceKind,'certified_scheme')
  assert.equal(linked[0].schemeLessonId,C)
