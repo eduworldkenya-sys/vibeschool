@@ -4,3 +4,8 @@
   .nav { display: block; }
   .spacer { display: block; height: calc(76px + env(safe-area-inset-bottom)); }
 }
+
+/* Learn owns a persistent bottom navigator, including wide screens.
+   The public website's own bar stays mobile-only. */
+.learnNav { display: block; }
+.learnSpacer { display: block; height: calc(76px + env(safe-area-inset-bottom, 0px)); }
