@@ -18,7 +18,7 @@
 .item{display:flex;align-items:center;justify-content:space-between;gap:15px;border:1px solid var(--vs-border);border-radius:10px;background:var(--vs-soft);color:var(--vs-text);text-decoration:none;padding:13px;font-size:13px}
 .item strong{display:block;line-height:1.45}.item small{display:block;color:var(--vs-muted);font-size:11px;line-height:1.55;margin-top:5px}
 .item svg{flex:none}
-.alert{background:var(--vs-card)7f1;border:1px solid #eccbbb;color:#8d471d;padding:13px;border-radius:12px}
+.alert{background:#fff7f1;border:1px solid #eccbbb;color:#8d471d;padding:13px;border-radius:12px}
 .split{display:flex;align-items:start;justify-content:space-between;gap:13px;flex-wrap:wrap}
 .form{display:grid;gap:11px;margin-top:15px}
 .form label{display:grid;gap:6px;font-size:12px;font-weight:800;color:var(--vs-text)}
