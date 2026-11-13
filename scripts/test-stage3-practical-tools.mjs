@@ -106,6 +106,6 @@ test('Stage 2 charts, reading and numeric controls survive the same canonical ad
   assert.equal(adapted[0].tools?.[1].sampleAnswer,'The farmer observed the maize.')
   assert.equal(adapted[0].tools?.[2].min,-500)
   assert.equal(adapted[0].tools?.[2].step,10)
-  assert.equal(resolveTeachingTools('Mathematics','',adapted[0].tools).length,2)
+  assert.equal(resolveTeachingTools('Mathematics','',adapted[0].tools).length,3)
   assert.equal(resolveTeachingTools('English','',adapted[0].tools).length,2)
 })
