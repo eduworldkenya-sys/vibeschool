@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, ListTodo, Plus, Trash2, Pencil, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useStudent } from '@/lib/student-context'
@@ -37,6 +38,7 @@ export default function TasksPage() {
   const {identity,loading:identityLoading}=useStudent()
   const [items,setItems]=useState<PlannerItem[]>([])
   const [assigned,setAssigned]=useState<StudentTask[]>([])
+  const [assignedError,setAssignedError]=useState(false)
   const [tab,setTab]=useState<PlannerTab>('today')
   const [selected,setSelected]=useState(()=>new Date())
   const [month,setMonth]=useState(()=>new Date(new Date().getFullYear(),new Date().getMonth(),1))
@@ -56,9 +58,9 @@ export default function TasksPage() {
     const {data,error:loadError}=await supabase.from('student_personal_planner').select('*').eq('owner_user_id',owner).order('created_at',{ascending:false}).limit(500)
     if(loadError) setError(loadError.message)
     else setItems((data??[]) as PlannerItem[])
-    // Assigned work is supplemental. A broken school RPC must not disable independent planning.
-    try { const feed=await listMyTasks(); setAssigned(feed.tasks.filter(task=>['ready','in_progress','overdue','returned','upcoming'].includes(task.status))) }
-    catch { setAssigned([]) }
+    // Use the canonical task feed; keep independent planning usable if it is unavailable.
+    try { const feed=await listMyTasks(); setAssigned(feed.tasks); setAssignedError(false) }
+    catch { setAssigned([]); setAssignedError(true) }
     setLoading(false)
   },[owner])
   useEffect(()=>{void refresh()},[refresh])
@@ -109,6 +111,12 @@ export default function TasksPage() {
   }
   const selectedItems=useMemo(()=>items.filter(item=>!item.completed_at && occurOn(item,selected)),[items,selected])
   const undated=items.filter(item=>item.kind==='task'&&!item.starts_at&&!item.due_at&&!item.completed_at)
+  const actionable=useMemo(()=>assigned.filter(task=>['ready','in_progress','overdue','returned','upcoming'].includes(task.status)).sort((a,b)=>{
+    const rank:Record<string,number>={overdue:0,returned:1,in_progress:2,ready:3,upcoming:4}
+    return (rank[a.status]??5)-(rank[b.status]??5) || (a.dueAt??'9999').localeCompare(b.dueAt??'9999')
+  }),[assigned])
+  const awaiting=assigned.filter(task=>task.status==='awaiting_marking').length
+  const results=assigned.filter(task=>task.status==='released').length
   const pending=items.filter(item=>!item.completed_at).length
   const completed=items.filter(item=>!!item.completed_at).length
   const calendarCells=useMemo(()=>{const first=new Date(month.getFullYear(),month.getMonth(),1); const offset=(first.getDay()+6)%7;return Array.from({length:Math.ceil((offset+new Date(first.getFullYear(),first.getMonth()+1,0).getDate())/7)*7},(_,index)=>new Date(first.getFullYear(),first.getMonth(),index-offset+1))},[month])
@@ -116,9 +124,23 @@ export default function TasksPage() {
   if(identityLoading||!identity) return <p style={{padding:20}}>Loading your learner workspace…</p>
   return <div className="planner" style={{display:'grid',gap:16,color:'#17213b'}}>
     <header className="planner-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-      <div><h1 style={{fontSize:26,margin:0}}>My Tasks</h1><p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>Your personal study planner</p></div>
+      <div><h1 style={{fontSize:26,margin:0}}>My Tasks</h1><p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>Teacher assignments and your personal study plan</p></div>
       <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> Add task</button>
     </header>
+    <nav aria-label="Learning priorities" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+      {([['Homework','/student/homework'],['Classwork','/student/assessment'],['Exercises','/student/exercises'],['Projects',identity?.classId?'/student/projects':'/student/projects/independent'],['Practice','/student/vibelearn/topic-practice'],['Exams','/student/vibelearn/exams'],['Revision','/student/vibelearn/revision']] as const).map(([label,href])=><Link key={href} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
+    </nav>
+    <section aria-labelledby="assigned-work-heading" style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:14,padding:14,display:'grid',gap:10}}>
+      <div><h2 id="assigned-work-heading" style={{fontSize:18,margin:'0 0 4px'}}>Assigned work {actionable.length>0&&`(${actionable.length})`}</h2><p style={{fontSize:12,color:'#64748b',margin:0}}>Homework, classwork and assessments from your teachers. Open a task here to complete it in its original workspace.</p></div>
+      {assignedError ? <p role="status" style={{fontSize:13,margin:0}}>Assigned work is unavailable right now. <Link href="/student/homework">Check homework</Link> or retry by reloading this page. Your personal plan is still available.</p>
+       : loading ? <p role="status" style={{fontSize:13,margin:0}}>Loading assigned work…</p>
+       : actionable.length===0 ? <p style={{fontSize:13,margin:0,color:'#64748b'}}>Nothing assigned for action right now. <Link href="/learn">Continue learning</Link>.</p>
+       : <>{actionable.slice(0,3).map(task=><AssignedTaskRow key={task.taskId} task={task} opening={opening} onOpen={()=>void openAssigned(task)}/>)}
+          {actionable.length>3&&<details><summary style={{minHeight:44,cursor:'pointer',padding:8,fontSize:13,fontWeight:650}}>Show {actionable.length-3} more assigned tasks</summary><div style={{display:'grid',gap:9}}>{actionable.slice(3).map(task=><AssignedTaskRow key={task.taskId} task={task} opening={opening} onOpen={()=>void openAssigned(task)}/>)}</div></details>}
+        </>}
+      {(awaiting>0||results>0)&&<p style={{fontSize:12,color:'#64748b',margin:0}}>{awaiting>0&&`${awaiting} awaiting marking`}{awaiting>0&&results>0?' · ':''}{results>0&&`${results} results available`} · <Link href="/student/homework">View homework and feedback</Link></p>}
+    </section>
+    <h2 style={{fontSize:17,margin:0}}>My personal plan</h2>
     <section className="planner-stats" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:9}}>
       {[['To do',pending],['Done',completed],['Scheduled',schedules.length]].map(([label,value])=><div key={label} style={{border:'1px solid #e2e8f0',borderRadius:12,background:'#fff',padding:12}}><strong style={{fontSize:22,display:'block'}}>{value}</strong><span style={{fontSize:12,color:'#64748b'}}>{label}</span></div>)}
     </section>
@@ -157,7 +179,6 @@ export default function TasksPage() {
       <h2 style={{fontSize:17,margin:0}}>My study schedule</h2>
       {schedules.length===0?<p style={{background:'#fff',padding:24,borderRadius:14,color:'#64748b'}}>No sessions scheduled. Add a study session to create your timetable.</p>:schedules.map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)}/>)}
     </section>}
-    {assigned.length>0&&<section style={{display:'grid',gap:9,marginTop:8}}><h2 style={{fontSize:17,margin:0}}>Learning tasks</h2><p style={{fontSize:12,color:'#64748b',margin:0}}>Real assigned or unfinished learning work. Completion is recorded in the assessment system.</p>{assigned.map(task=><div key={task.taskId} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:14,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}><div style={{minWidth:0}}><strong>{task.title}</strong><p style={{fontSize:12,color:'#64748b',margin:'4px 0'}}>{task.subject} · {task.status.replaceAll('_',' ')}</p></div><button type="button" disabled={opening!==null} style={button} onClick={()=>void openAssigned(task)}>{opening===task.taskId?'Opening…':task.actionLabel}</button></div>)}</section>}
     <style>{`
       .planner { min-width:0; width:100%; }
       .planner :is(input,select,textarea,button) { max-width:100%; }
@@ -173,5 +194,13 @@ function Activity({item,onEdit,onDelete,onComplete}:{item:PlannerItem;onEdit:()=
     {item.kind==='task'&&!repeating?<button type="button" onClick={onComplete} aria-label={item.completed_at?'Mark incomplete':'Mark complete'} style={{...secondary,minWidth:44,padding:10,background:item.completed_at?'#dcfce7':'#f8fafc'}}><Check size={18} color={item.completed_at?'#15803d':'#94a3b8'}/></button>:<Clock3 size={20} color="#5145e8" style={{marginTop:11,flexShrink:0}}/>}
     <div style={{flex:1,minWidth:0,overflowWrap:'anywhere'}}><strong style={{textDecoration:item.completed_at?'line-through':'none'}}>{item.title}</strong><p style={{fontSize:12,color:'#64748b',margin:'5px 0'}}>{item.starts_at?new Date(item.starts_at).toLocaleString('en-KE',{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):item.due_at?'Due '+new Date(item.due_at).toLocaleDateString('en-KE'):'Any time'}{item.duration_minutes?' · '+item.duration_minutes+' min':''}{repeating?' · '+item.repeat_rule:''}</p>{item.reminder_minutes!==null && item.reminder_minutes!==undefined && <p style={{fontSize:11,color:'#5145e8',margin:'4px 0'}}><Bell size={12} style={{verticalAlign:'middle'}}/> {item.reminder_minutes===0?'At scheduled time':item.reminder_minutes===1440?'1 day before':item.reminder_minutes+' min before'}</p>}{item.notes&&<p style={{fontSize:12,color:'#475569',margin:0}}>{item.notes}</p>}</div>
     <div style={{display:'flex',gap:4}}><button type="button" onClick={onEdit} style={{...secondary,padding:9}} aria-label={'Edit '+item.title}><Pencil size={16}/></button><button type="button" onClick={onDelete} style={{...secondary,padding:9}} aria-label={'Delete '+item.title}><Trash2 size={16}/></button></div>
+  </article>
+}
+
+function AssignedTaskRow({task,opening,onOpen}:{task:StudentTask;opening:string|null;onOpen:()=>void}){
+  const future=task.status==='upcoming'
+  return <article style={{border:'1px solid #e2e8f0',borderRadius:11,padding:12,display:'flex',gap:10,alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}>
+    <div style={{flex:'1 1 220px',minWidth:0}}><strong style={{overflowWrap:'anywhere'}}>{task.title}</strong><p style={{fontSize:12,color:'#64748b',margin:'4px 0'}}>{task.subject} · {task.taskType.replaceAll('_',' ')} · {task.status.replaceAll('_',' ')}{task.dueAt?' · Due '+new Date(task.dueAt).toLocaleDateString('en-KE',{timeZone:'Africa/Nairobi',day:'numeric',month:'short'}):''}</p></div>
+    <button type="button" disabled={opening!==null||future} onClick={onOpen} style={{...button,opacity:future?.55:1}}>{opening===task.taskId?'Opening…':future?'Not open yet':task.actionLabel}</button>
   </article>
 }

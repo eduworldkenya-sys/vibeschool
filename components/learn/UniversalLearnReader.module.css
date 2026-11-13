@@ -31,3 +31,26 @@
 .workingActions button{cursor:pointer;border:1px solid #abc7b6;background:white;border-radius:9px;min-height:44px;padding:10px 14px;display:inline-flex;align-items:center;gap:6px;color:#185b3d;font-weight:750}
 @media(max-width:600px){.navigation{margin-right:-4px}.navigation a{font-size:12px}.sectionHeading h3,.sectionHeading h4{font-size:18px}.section{padding:16px}}
 @media print{.navigation,.workingActions{display:none}.section,.feedback{break-inside:avoid;box-shadow:none}}
+
+/* Section presentation tools reuse the canonical certified visual renderer. */
+.readingPassage{max-width:70ch;padding:18px 21px;border-left:4px solid #4c8b73;background:#f7fbf8;border-radius:0 12px 12px 0;font-size:1.06em;line-height:1.95}
+.scienceObservation{padding:16px 18px;border:1px solid #d7e8e0;background:#f6faf8;border-radius:12px;line-height:1.8}
+@media(max-width:600px){.readingPassage{padding:14px 15px}.scienceObservation{padding:14px}}
+
+/* Author-supplied canonical blocks; never render HTML from a lesson payload. */
+.blockStack{display:grid;gap:16px;min-width:0}
+.blockStack ol,.blockStack ul{margin:0;padding-left:24px}
+.blockStack li{margin:6px 0}
+.formula{margin:0;padding:16px;background:#f3f7ff;border:1px solid #d9e3f6;border-radius:12px;overflow-wrap:anywhere}
+.formula>div{font-size:clamp(17px,2.5vw,21px);font-weight:750;white-space:pre-wrap;line-height:1.7}
+.formula figcaption{margin-top:9px;font-size:13px;line-height:1.5;color:#48617e}
+.tableScroller{overflow-x:auto;width:100%;max-width:100%}
+.tableScroller table{border-collapse:collapse;min-width:100%;font-size:14px}
+.tableScroller caption{text-align:left;font-weight:750;padding:8px 0}
+.tableScroller th,.tableScroller td{border:1px solid #d5e5dc;padding:10px 12px;text-align:left;vertical-align:top}
+.tableScroller th{background:#e9f4ee;color:#194d35}
+.passage{margin:0;border-left:4px solid #7ba2c3;padding:12px 15px;background:#f7f9fc;border-radius:0 10px 10px 0}
+.passage footer{font-size:12px;margin-top:10px;color:#607486}
+.activity{padding:15px;border-radius:12px;border:1px solid #ead8ab;background:#fffaf0}
+.activity strong{display:block;color:#6c4e15;font-size:15px;margin-bottom:6px}
+.activity p{font-size:13px;margin:6px 0}

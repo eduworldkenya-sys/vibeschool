@@ -1,21 +1,26 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
-import { ArrowRight, RotateCcw } from 'lucide-react'
+import { type ReactNode } from 'react'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 import styles from './UniversalLearnReader.module.css'
 import TeachingToolShelf from '@/components/learn/tools/TeachingToolShelf'
 import type { TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
+import TeachingToolHost from '@/components/learn/TeachingToolHost'
+import LearningBlockRenderer from '@/components/learn/LearningBlockRenderer'
+import SectionVisualModels, { type LessonVisualContext } from '@/components/learn/SectionVisualModels'
+import type { LearningBlock } from '@/lib/learn/learningBlockContract'
+import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
+import { learnSubjectMode, type TeachingToolSection } from '@/lib/learn/teachingToolRegistry'
 
 /** Presentation-only contract. Canonical release/RLS checks stay with the caller. */
-export type UniversalLearnSection = {
-  id: string
+export type UniversalLearnSection = TeachingToolSection & {
   title: string
   hint?: string
-  tone?: string
-  body: string
   tools?: readonly TeachingToolSpec[]
+  blocks?: readonly LearningBlock[]
 }
+
+export { learnSubjectMode } from '@/lib/learn/teachingToolRegistry'
 
 type Props = {
   subject: string
@@ -28,47 +33,10 @@ type Props = {
   showTeachingTools?: boolean
   renderBody?: (section: UniversalLearnSection, index: number) => ReactNode
   afterSection?: (section: UniversalLearnSection, index: number) => ReactNode
-}
-
-export function learnSubjectMode(subject: string): 'math' | 'language' | 'science' | 'creative' | 'general' {
-  if (/math|mathematics/i.test(subject)) return 'math'
-  if (/english|kiswahili|language|literature|french|arabic/i.test(subject)) return 'language'
-  if (/science|agriculture|health|biology|chemistry|physics|environment/i.test(subject)) return 'science'
-  if (/creative|art|music|performing|design/i.test(subject)) return 'creative'
-  return 'general'
-}
-
-function MathsWorking({ body }: { body: string }) {
-  const working = useMemo(() => {
-    const lead: string[] = []
-    const steps: string[] = []
-    for (const raw of body.replace(/\r\n?/g, '\n').split('\n')) {
-      const step = /^\s*\d+[.)]\s+(.+)$/.exec(raw)
-      if (step) steps.push(step[1])
-      else if (steps.length && raw.trim()) steps[steps.length - 1] += '\n' + raw
-      else lead.push(raw)
-    }
-    return { lead: lead.join('\n').trim(), steps }
-  }, [body])
-  const [visible, setVisible] = useState(1)
-  if (working.steps.length < 2) return <VisualRichText body={body} />
-  return <div className={styles.mathWorking}>
-    {working.lead && <VisualRichText body={working.lead} />}
-    <ol className={styles.workingList}>
-      {working.steps.slice(0, visible).map((step, i) =>
-        <li key={i}><span className={styles.stepNumber} aria-hidden="true">{i + 1}</span><VisualRichText body={step} /></li>)}
-    </ol>
-    <div className={styles.workingActions}>
-      {visible < working.steps.length
-        ? <button type="button" onClick={() => setVisible(n => Math.min(n + 1, working.steps.length))}>
-          Show next step <ArrowRight size={16} aria-hidden="true" />
-        </button>
-        : <span role="status">All {working.steps.length} steps are shown.</span>}
-      <button type="button" onClick={() => setVisible(visible === 1 ? working.steps.length : 1)}>
-        <RotateCcw size={15} aria-hidden="true" /> {visible === 1 ? 'Show all steps' : 'Start again'}
-      </button>
-    </div>
-  </div>
+  /** Immutable source context from the existing authorised released read. */
+  toolContext?: ReturnType<typeof buildLearningToolContext>
+  /** Explicit outcome-approved visual scope; omitted for lessons without verified linkage. */
+  visualContext?: LessonVisualContext
 }
 
 /**
@@ -79,20 +47,29 @@ function MathsWorking({ body }: { body: string }) {
 export default function UniversalLearnReader({
   subject, sections, title, goal, anchorPrefix = 'learn',
   topic = '', tools, showTeachingTools = true,
-  renderBody, afterSection,
+  renderBody, afterSection, toolContext, visualContext,
 }: Props) {
   const mode = learnSubjectMode(subject)
   // Full-reader pages have an h2 lesson title; outcome pages supply an h3 title.
   const SectionHeading = title ? 'h4' : 'h3'
   const anchor = (section: UniversalLearnSection, index: number) =>
     `${anchorPrefix}-${index}-${section.id.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`
-  const validSections = sections.filter(section => typeof section.body === 'string' && !!section.body.trim())
-  const sectionTools = validSections.flatMap(section => section.tools ?? [])
+  const validSections = sections.filter(section =>
+    (typeof section.body === 'string' && !!section.body.trim()) || !!section.blocks?.length)
+  const sectionTools = validSections
+    .map((section, index) => ({ section, index }))
+    .filter(({ section, index }) =>
+      !['feedback', 'answer', 'answers', 'solution', 'solutions', 'teacher_guidance', 'marking_scheme'].includes(section.id.toLowerCase()) &&
+      section.tone !== 'feedback' &&
+      (!toolContext || !!getLearningToolSectionBinding(toolContext, section, index)))
+    .flatMap(({ section }) => section.tools ?? [])
+  const sourceValid = !toolContext || validSections.some((section, index) =>
+    getLearningToolSectionBinding(toolContext, section, index))
   if (!validSections.length) return <p role="status">No released lesson sections are available.</p>
 
   return <div className={styles.reader} data-subject-mode={mode}>
     {(title || goal) && <header className={styles.heading}>
-      {title && <h3>{title}</h3>}
+      {title && <h3 id={`${anchorPrefix}-title`} tabIndex={-1}>{title}</h3>}
       {goal && <p><strong>What you will learn:</strong> {goal}</p>}
     </header>}
     {validSections.length > 1 && <nav className={styles.navigation} aria-label="Lesson sections">
@@ -102,12 +79,14 @@ export default function UniversalLearnReader({
     <div className={styles.sections}>
       {validSections.map((section, index) => {
         const id = anchor(section, index)
+        const sourceBinding = toolContext ? getLearningToolSectionBinding(toolContext, section, index) : null
         const tone = ['learn', 'example', 'explore', 'practice', 'feedback', 'support', 'challenge', 'reflect'].includes(section.tone ?? '')
           ? section.tone : 'learn'
         if (section.id === 'feedback') return <details id={id} key={id} className={styles.feedback}>
           <summary>Review all explanations</summary>
           <div className={styles.feedbackBody}>
-            {renderBody?.(section, index) ?? <VisualRichText body={section.body} />}
+            {renderBody?.(section, index) ?? (section.blocks?.length
+              ? <LearningBlockRenderer blocks={section.blocks} /> : <VisualRichText body={section.body} />)}
           </div>
         </details>
         return <section id={id} key={id} data-tone={tone} className={styles.section} aria-labelledby={`${id}-heading`}>
@@ -117,15 +96,25 @@ export default function UniversalLearnReader({
           </header>
           <div className={styles.body}>
             {renderBody?.(section, index)
-              ?? (mode === 'math' && section.id === 'example'
-                ? <MathsWorking key={id} body={section.body} />
-                : <VisualRichText body={section.body} />)}
+              ?? (section.blocks?.length
+                ? <LearningBlockRenderer blocks={section.blocks} />
+                : (toolContext && !sourceBinding
+                  ? <VisualRichText body={section.body} />
+                  : <TeachingToolHost subject={subject} section={section} sourceBinding={sourceBinding} />))}
           </div>
+          {visualContext && (!toolContext || !!sourceBinding)
+            && !/\[visual:/i.test(section.body)
+            && !JSON.stringify(section.blocks ?? []).includes('[visual:')
+            && !section.blocks?.some(block => block.kind === 'visual')
+            && <SectionVisualModels context={visualContext}
+              sectionId={section.id} sectionTone={section.tone} />}
           {afterSection?.(section, index)}
         </section>
       })}
     </div>
-    {showTeachingTools && <TeachingToolShelf subject={subject} topic={topic || title || ''}
-      tools={tools ?? (sectionTools.length ? sectionTools : undefined)} />}
+    {showTeachingTools && sourceValid && (tools !== undefined || sectionTools.length > 0) && <TeachingToolShelf
+      key={toolContext?.resourceVersionId ?? subject + ':' + (topic || title || '')}
+      subject={subject} topic={topic || title || ''}
+      tools={toolContext ? sectionTools : (tools ?? (sectionTools.length ? sectionTools : undefined))} />}
   </div>
 }

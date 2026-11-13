@@ -9,6 +9,7 @@ import {
 } from '@/lib/learn/teachingToolCatalog'
 import MathTeachingTool from './MathTeachingTools'
 import LanguageScienceTeachingTool from './LanguageScienceTeachingTools'
+import EarlyYearsPracticalTool from './EarlyYearsPracticalTools'
 import styles from './TeachingTools.module.css'
 
 /**
@@ -48,6 +49,10 @@ export default function TeachingToolShelf({
       <p className={styles.description}>{current.prompt || metadata.description}</p>
       {metadata.subject === 'math'
         ? <MathTeachingTool key={current.id} spec={current} />
+        : current.id === 'sorting-groups'
+        ? <LanguageScienceTeachingTool key={current.id} spec={current} />
+        : metadata.subject === 'interactive'
+        ? <EarlyYearsPracticalTool key={current.id} spec={current} />
         : <LanguageScienceTeachingTool key={current.id} spec={current} />}
     </div>
   </aside>

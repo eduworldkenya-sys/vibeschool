@@ -75,7 +75,10 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 const CLASS_ACTIONS = [
   { id: 'students', label: 'Learners', route: '' },
   { id: 'attendance', label: 'Register', route: '/teacher/attendance' },
-  { id: 'homework', label: 'Classwork', route: '' },
+  { id: 'homework', label: 'Homework', route: '' },
+  { id: 'classwork', label: 'Classwork', route: '/teacher/assessment' },
+  { id: 'exercises', label: 'Exercises', route: '' },
+  { id: 'projects', label: 'Projects', route: '' },
   { id: 'assessment', label: 'Assessment', route: '/teacher/assessment' },
   { id: 'timetable', label: 'Timetable', route: '/teacher/timetable' },
   { id: 'progress', label: 'Progress', route: '' },
@@ -88,7 +91,7 @@ const SUBJECT_ACTIONS = [
   { id: 'scheme', label: 'Scheme of work', route: '/teacher/scheme' },
 ]
 
-const actionIcons = { workspace: School, workbook: Table2, students: Users, attendance: ClipboardCheck, history: TrendingUp, lessonplan: NotebookPen, assessment: ClipboardList, timetable: CalendarDays, groups: UsersRound, activities: Award, homework: NotebookPen, projects: Folder, exercises: Ruler, scheme: BookOpen, progress: TrendingUp, more: UsersRound }
+const actionIcons = { workspace: School, workbook: Table2, students: Users, attendance: ClipboardCheck, history: TrendingUp, lessonplan: NotebookPen, assessment: ClipboardList, timetable: CalendarDays, groups: UsersRound, activities: Award, homework: NotebookPen, classwork: ClipboardList, projects: Folder, exercises: Ruler, scheme: BookOpen, progress: TrendingUp, more: UsersRound }
 
 function ClassPageInner() {
   const router       = useRouter()

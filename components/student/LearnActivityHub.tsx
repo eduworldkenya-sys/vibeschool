@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, FlaskConical, PencilLine, ClipboardCheck, PlayCircle, Puzzle, FolderOpen, CalendarDays, Users, LayoutGrid, ChevronDown, ArrowUpRight } from "lucide-react";
+import { BookOpen, FlaskConical, PencilLine, ClipboardCheck, ClipboardList, NotebookPen, Ruler, PlayCircle, Puzzle, FolderOpen, CalendarDays, Users, LayoutGrid, ChevronDown, ArrowUpRight } from "lucide-react";
 import { useStudent } from "@/lib/student-context";
 import { supabase } from "@/lib/supabase";
 
@@ -35,15 +35,19 @@ export default function LearnActivityHub() {
   }, [identity?.studentId,identity?.className]);
   const hasSchoolClass = Boolean(identity?.classId);
   const primary: Activity[] = [
+    { title: "Homework", detail:"Read, complete and submit homework", Icon:ClipboardList, href: "/student/homework" },
+    { title: "Classwork", detail:"Open assigned class assessments", Icon:NotebookPen, href: "/student/assessment" },
+    { title: "Exercises", detail:"Complete and review class exercises", Icon:Ruler, href: "/student/exercises" },
+    { title: "Projects", detail:hasSchoolClass ? "Your class projects" : "Independent learning projects", Icon:FlaskConical, href: hasSchoolClass ? "/student/projects" : "/student/projects/independent" },
+    { title: "My Work", detail:"All assigned tasks and personal plans", Icon:FolderOpen, href: "/student/tasks" },
     { title: "Exams", detail:"Start an exam and see results", Icon:ClipboardCheck, href: "/student/vibelearn/exams" },
     { title: "Topic Practice", detail:"Five questions per ready topic", Icon:PencilLine, href: "/student/vibelearn/topic-practice" },
     { title: "Read", detail:"Open books and resources", Icon:BookOpen, href: "/learn" },
-    { title: "My Work", detail:"Open your tasks", Icon:FolderOpen, href: "/student/tasks" },
     { title: "Revision", detail:"Review what you learned", Icon:CalendarDays, href: "/student/vibelearn/revision" },
     { title: "My Tuition", detail:"Go to tuition", Icon:Users, href: "/student/tutoring" },
   ];
   const secondary: Activity[] = [
-    { title: "Projects", detail:hasSchoolClass ? "School and personal projects" : "Independent learning projects", Icon:FlaskConical, href: hasSchoolClass ? "/student/projects" : "/student/projects/independent" },
+    { title: "Mistakes", detail:"Review answers to improve", Icon:ClipboardCheck, href: "/student/vibelearn/mistakes" },
   ];
   const activity = (item:Activity) => <Link key={item.title} className="vs-activity-card" href={item.href}>
     <span className="vs-activity-card-icon"><item.Icon size={22} strokeWidth={1.8} aria-hidden="true" /></span>

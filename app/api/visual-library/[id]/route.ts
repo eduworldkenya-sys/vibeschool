@@ -19,10 +19,14 @@ export async function GET(req: NextRequest, ctx: { params: { id: string } }) {
       .eq('status', 'active').eq('visibility', 'public').maybeSingle()
     if (error || !root) return visualJson({ error: 'Visual not available.' }, 404)
     let versionQuery = db.from('learning_resource_versions')
-      .select('id,payload,version').eq('resource_id', id)
+      .select('id,payload,version,rights_status,certified_at').eq('resource_id', id)
       .eq('lifecycle_status', 'certified')
+      .in('rights_status', ['cleared', 'not_applicable']).not('certified_at', 'is', null)
     if (pinnedVersion) versionQuery = versionQuery.eq('id', pinnedVersion)
-    const { data: version, error: versionError } = await versionQuery.maybeSingle()
+    // An unpinned gallery lookup must select the newest certified version.
+    // A plain maybeSingle() fails once the same visual has two certified versions.
+    const { data: version, error: versionError } = await versionQuery
+      .order('version', { ascending: false }).limit(1).maybeSingle()
     if (versionError || !version || !isVisualPayload(version.payload) || !isSafeVisualStoragePath(version.payload.storage.path))
       return visualJson({ error: 'Visual not available.' }, 404)
     const p = version.payload
