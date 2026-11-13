@@ -502,9 +502,7 @@ export default function Grade4TimeOutcomePackage({
       {tab === 'guide' && <section style={PANEL}>
         <h3 style={{ marginTop: 0 }}>{audience === 'teacher' ? 'Certified teacher guidance' : 'How to strengthen understanding'}</h3>
         <LearningNotebookPrompt subject="Mathematics" stage={audience === 'teacher' ? 'teacher' : 'learn'} compact />
-        {audience === 'learner'
-          ? <p>Read the explanation first, try the guided questions, then attempt the exercises. Review each checked answer after trying.</p>
-          : guides.filter(row => row.id === selected?.resource_version_id).length === 0
+        {guides.filter(row => row.id === selected?.resource_version_id).length === 0
             ? <p role="status">No teacher guidance was accessible from the certified version. Use the linked Scheme and your saved Lesson Plan; no guidance is invented.</p>
             : guides.filter(row => row.id === selected?.resource_version_id).map(guide =>
               <div key={guide.id}>{Object.entries(guide.guidance).map(([key, value]) =>
