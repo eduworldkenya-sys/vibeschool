@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
 import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.mjs'
 import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
+import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
+import Grade4TimeWorkedSteps from '@/components/learn/Grade4TimeWorkedSteps'
 import { formatGrade4TimeLessonBody } from '@/lib/content/grade4TimePresentation.mjs'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 
@@ -138,7 +140,7 @@ export default function Grade4TimeOutcomePackage({
           throw new Error('An invalid formative item was returned.')
         }
         if (!active) return
-        setLessons(checked)
+        setLessons([...checked].sort((a, b) => a.lesson_order - b.lesson_order))
         setItems(checkedItems)
 
         if (audience === 'teacher' && checked.length > 0) {
@@ -246,6 +248,10 @@ export default function Grade4TimeOutcomePackage({
           title={parsedSelected?.title || selected.title}
           goal={parsedSelected?.goal}
           anchorPrefix="outcome-time"
+          renderBody={(section) => section.id === 'example'
+            ? <Grade4TimeWorkedSteps body={section.body} />
+            : undefined}
+          afterSection={(section) => <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />}
         />
         <Grade4TimeVisualModels lessonOrder={selected.lesson_order} inlineVisualPresent={/\[visual:/.test(selected.body)} />
         <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />

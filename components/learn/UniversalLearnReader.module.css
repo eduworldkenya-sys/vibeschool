@@ -14,7 +14,7 @@
 .section[data-tone=challenge]{background:#fff7fa;border-color:#f1e0e7}
 .section[data-tone=reflect]{background:#f4faf6;border-color:#dfece2}
 .sectionHeading{margin-bottom:12px}
-.sectionHeading h4{font-size:19px;line-height:1.35;color:#183e2c;margin:0;font-weight:800}
+.sectionHeading h3,.sectionHeading h4{font-size:19px;line-height:1.35;color:#183e2c;margin:0;font-weight:800}
 .sectionHeading p{font-size:13px;line-height:1.55;color:#536d5c;margin:5px 0 0}
 .body{font-size:16px;line-height:1.8;overflow-wrap:anywhere}
 .reader[data-subject-mode=language] .body{font-size:17px;line-height:1.95}
@@ -29,5 +29,5 @@
 .stepNumber{flex:none;display:grid;place-items:center;width:29px;height:29px;background:#e6edf8;color:#255493;border-radius:50%;font-weight:800}
 .workingActions{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
 .workingActions button{cursor:pointer;border:1px solid #abc7b6;background:white;border-radius:9px;min-height:44px;padding:10px 14px;display:inline-flex;align-items:center;gap:6px;color:#185b3d;font-weight:750}
-@media(max-width:600px){.navigation{margin-right:-4px}.navigation a{font-size:12px}.sectionHeading h4{font-size:18px}.section{padding:16px}}
+@media(max-width:600px){.navigation{margin-right:-4px}.navigation a{font-size:12px}.sectionHeading h3,.sectionHeading h4{font-size:18px}.section{padding:16px}}
 @media print{.navigation,.workingActions{display:none}.section,.feedback{break-inside:avoid;box-shadow:none}}
