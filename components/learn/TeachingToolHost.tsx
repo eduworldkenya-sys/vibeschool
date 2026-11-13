@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { ArrowRight, RotateCcw } from 'lucide-react'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 import { selectTeachingTool, type TeachingToolSection } from '@/lib/learn/teachingToolRegistry'
+import { getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import styles from './UniversalLearnReader.module.css'
 
 /** Progressive display only: the published explanation, not generated steps. */
@@ -46,13 +47,14 @@ function MathsWorking({ body }: { body: string }) {
  * No exam engine, student completion state or new data fetching is introduced.
  */
 export default function TeachingToolHost({
-  subject, section,
+  subject, section, sourceBinding = null,
 }: {
   subject: string
   section: TeachingToolSection
+  sourceBinding?: NonNullable<ReturnType<typeof getLearningToolSectionBinding>> | null
 }) {
-  const tool = selectTeachingTool(subject, section)
-  const body = typeof section.body === 'string' ? section.body : ''
+  const body = sourceBinding?.body ?? (typeof section.body === 'string' ? section.body : '')
+  const tool = selectTeachingTool(subject, { ...section, body })
   return <div data-teaching-tool={tool.id} data-tool-source={tool.source}>
     {tool.id === 'math-worked-steps'
       ? <MathsWorking key={section.id} body={body} />

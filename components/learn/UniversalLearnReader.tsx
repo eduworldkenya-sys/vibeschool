@@ -6,6 +6,7 @@ import styles from './UniversalLearnReader.module.css'
 import TeachingToolShelf from '@/components/learn/tools/TeachingToolShelf'
 import type { TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 import TeachingToolHost from '@/components/learn/TeachingToolHost'
+import { buildLearningToolContext, getLearningToolSectionBinding } from '@/lib/learn/teachingToolContentBridge.mjs'
 import { learnSubjectMode, type TeachingToolSection } from '@/lib/learn/teachingToolRegistry'
 
 /** Presentation-only contract. Canonical release/RLS checks stay with the caller. */
@@ -28,6 +29,8 @@ type Props = {
   showTeachingTools?: boolean
   renderBody?: (section: UniversalLearnSection, index: number) => ReactNode
   afterSection?: (section: UniversalLearnSection, index: number) => ReactNode
+  /** Immutable source context from the existing authorised released read. */
+  toolContext?: ReturnType<typeof buildLearningToolContext>
 }
 
 /**
@@ -38,7 +41,7 @@ type Props = {
 export default function UniversalLearnReader({
   subject, sections, title, goal, anchorPrefix = 'learn',
   topic = '', tools, showTeachingTools = true,
-  renderBody, afterSection,
+  renderBody, afterSection, toolContext,
 }: Props) {
   const mode = learnSubjectMode(subject)
   // Full-reader pages have an h2 lesson title; outcome pages supply an h3 title.
@@ -46,7 +49,11 @@ export default function UniversalLearnReader({
   const anchor = (section: UniversalLearnSection, index: number) =>
     `${anchorPrefix}-${index}-${section.id.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`
   const validSections = sections.filter(section => typeof section.body === 'string' && !!section.body.trim())
-  const sectionTools = validSections.flatMap(section => section.tools ?? [])
+  const sectionTools = validSections.flatMap((section, index) =>
+    section.id === 'feedback' || (toolContext && !getLearningToolSectionBinding(toolContext, section, index))
+      ? [] : section.tools ?? [])
+  const sourceValid = !toolContext || validSections.some((section, index) =>
+    getLearningToolSectionBinding(toolContext, section, index))
   if (!validSections.length) return <p role="status">No released lesson sections are available.</p>
 
   return <div className={styles.reader} data-subject-mode={mode}>
@@ -61,6 +68,7 @@ export default function UniversalLearnReader({
     <div className={styles.sections}>
       {validSections.map((section, index) => {
         const id = anchor(section, index)
+        const sourceBinding = toolContext ? getLearningToolSectionBinding(toolContext, section, index) : null
         const tone = ['learn', 'example', 'explore', 'practice', 'feedback', 'support', 'challenge', 'reflect'].includes(section.tone ?? '')
           ? section.tone : 'learn'
         if (section.id === 'feedback') return <details id={id} key={id} className={styles.feedback}>
@@ -76,13 +84,17 @@ export default function UniversalLearnReader({
           </header>
           <div className={styles.body}>
             {renderBody?.(section, index)
-              ?? <TeachingToolHost subject={subject} section={section} />}
+              ?? (toolContext && !sourceBinding
+                ? <VisualRichText body={section.body} />
+                : <TeachingToolHost subject={subject} section={section} sourceBinding={sourceBinding} />)}
           </div>
           {afterSection?.(section, index)}
         </section>
       })}
     </div>
-    {showTeachingTools && <TeachingToolShelf subject={subject} topic={topic || title || ''}
+    {showTeachingTools && sourceValid && <TeachingToolShelf
+      key={toolContext?.resourceVersionId ?? subject + ':' + (topic || title || '')}
+      subject={subject} topic={topic || title || ''}
       tools={tools ?? (sectionTools.length ? sectionTools : undefined)} />}
   </div>
 }
