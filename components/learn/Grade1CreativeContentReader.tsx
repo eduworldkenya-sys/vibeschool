@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
 import Grade1CreativeActivitiesMap, {
   GRADE1_CREATIVE_STRANDS,
   GRADE1_CREATIVE_UNITS,
@@ -152,8 +152,13 @@ export default function Grade1CreativeContentReader() {
             </div>
             {activeLesson && (
               <article aria-live="polite" style={{ background: '#fff', border: '1px solid #d0e4d7', borderRadius: 12, padding: 18 }}>
-                <h3 style={{ fontSize: 20, margin: '0 0 12px', color: '#164e35' }}>{activeLesson.title}</h3>
-                <VisualRichText body={activeLesson.body} style={{ fontSize: 16, lineHeight: 1.85, color: '#183b2b' }} />
+                <UniversalLearnReader
+                  subject="Creative Activities"
+                  title={activeLesson.title}
+                  anchorPrefix={`grade1-creative-${unit.id.replace(/[^a-z0-9]/gi, '-')}-${activeLesson.lessonOrder}`}
+                  sections={[{ id: 'learn', title: 'Read and explore', body: activeLesson.body, tone: 'learn' }]}
+                  showTeachingTools={false}
+                />
                 {activeLessonIndex + 1 < lessons.length && (
                   <button type="button" onClick={() => setSelectedLessonId(lessons[activeLessonIndex + 1].id)}
                     style={{ minHeight: 46, marginTop: 16, background: '#175b43', color: '#fff', border: 0, borderRadius: 10, padding: '9px 18px', fontWeight: 750, cursor: 'pointer' }}>
@@ -186,7 +191,7 @@ export default function Grade1CreativeContentReader() {
       {view === 'teach' ? (
         <Grade1CreativeActivitiesMap key={unit.id} compact selectedUnitId={unit.id} />
       ) : (
-        <section aria-label={unit.title + ' learning activities'} style={{ display: 'grid', gap: 14 }}>
+        <section aria-label={unit.title + ' learning activities'}>
           <div style={{ borderRadius: 16, padding: 20, background: '#eaf5ef', border: '1px solid #c8ded1' }}>
             <div style={{ fontSize: 11, fontWeight: 750, letterSpacing: '.08em', color: '#24664a' }}>
               {GRADE1_CREATIVE_STRANDS.find(strand => strand.id === unit.strand)?.title}
@@ -196,33 +201,18 @@ export default function Grade1CreativeContentReader() {
               Explore this topic with a teacher, parent or another responsible adult.
             </p>
           </div>
-
-          <article style={sectionStyle}>
-            <h3 style={headingStyle}>Let's learn</h3>
-            <ul style={listStyle}>
-              {unit.outcomes.map((outcome, index) => <li key={index} style={itemStyle}>{outcome}</li>)}
-            </ul>
-          </article>
-          <article style={sectionStyle}>
-            <h3 style={headingStyle}>Try these activities</h3>
-            <ol style={listStyle}>
-              {unit.experiences.map((experience, index) => <li key={index} style={itemStyle}>{experience}</li>)}
-            </ol>
-          </article>
-          <article style={sectionStyle}>
-            <h3 style={headingStyle}>Talk about it</h3>
-            <ul style={listStyle}>
-              {unit.inquiry.map((question, index) => <li key={index} style={itemStyle}>{question}</li>)}
-            </ul>
-          </article>
-          <article style={sectionStyle}>
-            <h3 style={headingStyle}>What you need</h3>
-            <p style={paragraphStyle}>{unit.resources}</p>
-          </article>
-          {unit.safety && <aside style={{ ...sectionStyle, background: '#fff8eb' }}>
-            <h3 style={headingStyle}>Stay safe</h3>
-            <p style={paragraphStyle}>{unit.safety}</p>
-          </aside>}
+          <UniversalLearnReader
+            subject="Creative Activities"
+            anchorPrefix={`grade1-creative-guidance-${unit.id.replace(/[^a-z0-9]/gi, '-')}`}
+            showTeachingTools={false}
+            sections={[
+              { id: 'understand', title: "Let's learn", tone: 'learn', body: unit.outcomes.map(item => '• ' + item).join('\n') },
+              { id: 'explore', title: 'Try these activities', tone: 'explore', body: unit.experiences.map((item, i) => (i + 1) + '. ' + item).join('\n') },
+              { id: 'reflect', title: 'Talk about it', tone: 'reflect', body: unit.inquiry.map(item => '• ' + item).join('\n') },
+              { id: 'resources', title: 'What you need', tone: 'support', body: unit.resources },
+              ...(unit.safety ? [{ id: 'safety', title: 'Stay safe', tone: 'support', body: unit.safety }] : []),
+            ]}
+          />
         </section>
       )}
 
@@ -240,7 +230,4 @@ const sectionStyle = {
   background: '#fff',
   padding: 18,
 } as const
-const headingStyle = { fontSize: 17, margin: '0 0 9px' } as const
 const paragraphStyle = { fontSize: 14, lineHeight: 1.7, margin: 0 } as const
-const listStyle = { paddingLeft: 21, margin: 0 } as const
-const itemStyle = { lineHeight: 1.7, paddingBottom: 7, fontSize: 14 } as const
