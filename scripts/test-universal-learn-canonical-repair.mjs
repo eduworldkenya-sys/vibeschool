@@ -50,12 +50,12 @@ test('reader accepts content blocks and never chooses generic suggestion tools i
 
 test('content-bound learning tools keep the released source authority',()=>{
   assert.match(reader, /getLearningToolSectionBinding/)
-  assert.match(reader, /sourceValid && \\(tools !== undefined \\|\\| sectionTools\\.length > 0\\)/)
+  assert.ok(reader.includes('sourceValid && (tools !== undefined || sectionTools.length > 0)'))
   for(const source of [time,outcome]) {
-    assert.match(source,/buildLearningToolContext/)
-    assert.match(source,/toolContext=\\{toolContext/)
-    assert.match(source,/sections=\\{adaptCanonicalLearnSections/)
-    assert.match(source,/getLearningToolSectionBinding/)
+    assert.ok(source.includes('buildLearningToolContext'))
+    assert.ok(source.includes('toolContext={toolContext'))
+    assert.ok(source.includes('sections={adaptCanonicalLearnSections'))
+    assert.ok(source.includes('getLearningToolSectionBinding'))
   }
 })
 
