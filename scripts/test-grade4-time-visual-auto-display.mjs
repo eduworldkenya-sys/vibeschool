@@ -44,7 +44,7 @@ test('both learner and teacher readers use one shared panel and suppress duplica
    assert.match(s,/import Grade4TimeVisualModels from/)
    assert.match(s,/<Grade4TimeVisualModels\s+lessonOrder=/)
    assert.match(s,/sectionId=\{section.id\}/)
-   assert.match(s,/afterSection=\{\(section\)/)
+   assert.match(s,/afterSection=\{\(section, index\)/)
    assert.match(s,/inlineVisualPresent=\{/)
    assert.equal((s.match(/<Grade4TimeVisualModels/g)||[]).length,1, 'No duplicate visual panel after sections')
  }
