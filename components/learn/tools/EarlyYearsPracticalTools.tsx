@@ -68,6 +68,7 @@ function VisualExplorer({ spec }: { spec: TeachingToolSpec }) {
 }
 
 function AudioLearning({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const spokenText = readable(spec.spokenText, 1500) ? spec.spokenText : ''
   const [status, setStatus] = useState('')
   useEffect(() => () => { if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel() }, [])
@@ -78,13 +79,14 @@ function AudioLearning({ spec }: { spec: TeachingToolSpec }) {
         <button type="button" onClick={() => {
           if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
             setStatus('Audio is unavailable on this device. Read the text above.')
+            play('error')
             return
           }
           window.speechSynthesis.cancel()
           const utterance = new SpeechSynthesisUtterance(spokenText)
           if (spec.language && /^[a-z]{2,3}(?:-[A-Za-z]{2,4})?$/.test(spec.language)) utterance.lang = spec.language
           utterance.rate = 0.9
-          utterance.onerror = () => setStatus('Audio could not play. Read the text above.')
+          utterance.onerror = () => { setStatus('Audio could not play. Read the text above.'); play('error') }
           utterance.onend = () => setStatus('Audio finished.')
           window.speechSynthesis.speak(utterance)
           setStatus('Playing audio.')
@@ -92,6 +94,7 @@ function AudioLearning({ spec }: { spec: TeachingToolSpec }) {
         <button type="button" className={styles.secondary} onClick={() => {
           if ('speechSynthesis' in window) window.speechSynthesis.cancel()
           setStatus('Audio stopped.')
+          play('select')
         }}>Stop</button>
       </div>
       <p role="status">{status}</p>
@@ -176,6 +179,7 @@ function DrawingPad({ spec }: { spec: TeachingToolSpec }) {
       <button type="button" onClick={() => {
         canvas.current?.getContext('2d')?.clearRect(0, 0, 640, 360)
         setStatus('Canvas cleared.')
+        play('select')
       }} className={styles.secondary}>Clear drawing</button>
       <button type="button" onClick={() => {
         const image = canvas.current?.toDataURL('image/png')
@@ -231,7 +235,7 @@ function MapExplorer({ spec }: { spec: TeachingToolSpec }) {
       <small>Schematic positions only — not to scale</small>
     </div>}
     <div className={styles.tokenRow}>{places.map((p, i) => <button className={styles.token}
-      aria-pressed={selected === i} type="button" key={i} onClick={() => setSelected(i)}>
+      aria-pressed={selected === i} type="button" key={i} onClick={() => { setSelected(i); play('select') }}>
       {i + 1}. {p.label}</button>)}</div>
     {selected !== null && <div className={styles.resultBox} role="status">
       <strong>{places[selected].label}</strong><p>{places[selected].description}</p>
