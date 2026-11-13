@@ -40,7 +40,7 @@ test('recommendations are topic-aware and opt-in configurations replace defaults
 test('reader attaches tools after lesson content without changing publication or question authority', () => {
   assert.match(reader, /<TeachingToolShelf/)
   assert.match(reader, /showTeachingTools &&/)
-  assert.match(reader, /tools\?\? \(sectionTools\.length/)
+  assert.match(reader, /tools\s*\?\?\s*\(sectionTools\.length/)
   assert.match(reader, /section\.tools \?\? \[\]/)
   assert.match(reader, /<VisualRichText body=\{section\.body\}/)
   assert.match(grade4, /topic="time"/)
