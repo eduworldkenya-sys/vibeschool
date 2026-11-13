@@ -45,6 +45,14 @@ export const SPECIALIST_TOOL_ROADMAP = [
   { id: 'technical-simulations', title: 'Technical design simulations', priority: 'later', status: 'planned', reuse: ['visual-explorer', 'practical-steps'] },
   { id: 'advanced-science', title: 'Advanced science investigations', priority: 'later', status: 'planned', reuse: ['experiment-variables', 'data-chart', 'observation-journal'] },
   { id: 'performance-interfaces', title: 'Creative and physical performance', priority: 'later', status: 'planned', reuse: ['audio-learning', 'drawing-pad', 'evidence-notes'] },
+  { id: 'spreadsheet-data-lab', title: 'Spreadsheet and data lab', priority: 'first', status: 'planned', reuse: ['data-chart', 'writing-planner'] },
+  { id: 'geography-gis-explorer', title: 'Geography and GIS explorer', priority: 'first', status: 'planned', reuse: ['map-explorer', 'data-chart', 'visual-explorer'] },
+  { id: 'agriculture-virtual-farm', title: 'Agriculture virtual farm', priority: 'first', status: 'planned', reuse: ['observation-journal', 'data-chart', 'practical-steps'] },
+  { id: 'technical-drawing-studio', title: 'Technical drawing studio', priority: 'later', status: 'planned', reuse: ['drawing-pad', 'visual-explorer', 'unit-converter'] },
+  { id: 'home-science-lab', title: 'Home science laboratory', priority: 'later', status: 'planned', reuse: ['unit-converter', 'practical-steps', 'observation-journal'] },
+  { id: 'media-production-studio', title: 'Media production studio', priority: 'later', status: 'planned', reuse: ['writing-planner', 'drawing-pad', 'visual-explorer'] },
+  { id: 'language-debate-studio', title: 'Language and debate studio', priority: 'later', status: 'planned', reuse: ['reading-comprehension', 'writing-planner', 'audio-learning'] },
+  { id: 'community-project-portfolio', title: 'Community project portfolio', priority: 'first', status: 'planned', reuse: ['evidence-notes', 'practical-steps', 'timeline-explorer'] },
 ] as const
 
 export type SpecialistToolFamilyId = (typeof SPECIALIST_TOOL_ROADMAP)[number]['id']
