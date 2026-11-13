@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { VisualLearningAsset } from '@/components/learn/VisualLearningAsset'
+import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import type { TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 import styles from './TeachingTools.module.css'
 
@@ -32,6 +33,7 @@ function Empty({ name }: { name: string }) {
   return <p role="status">This {name} activity needs lesson-specific instructions from the content author.</p>
 }
 function CopyNotes({ text }: { text: string }) {
+  const { play } = useLearningFeedback()
   const [status, setStatus] = useState('')
   return <div className={styles.actions}>
     <button type="button" disabled={!text.trim()} onClick={async () => {
@@ -39,6 +41,7 @@ function CopyNotes({ text }: { text: string }) {
         if (!navigator.clipboard?.writeText) throw Error('Clipboard unavailable')
         await navigator.clipboard.writeText(text)
         setStatus('Copied. Paste this into your existing assignment submission or share with your teacher.')
+        play('saved')
       } catch {
         setStatus('Copy unavailable. Select your notes and copy them manually.')
       }
@@ -48,6 +51,7 @@ function CopyNotes({ text }: { text: string }) {
 }
 
 function VisualExplorer({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const notes = Array.isArray(spec.visualNotes) && spec.visualNotes.length <= 12
     ? spec.visualNotes.filter(n => n && readable(n.label, 80) && readable(n.detail, 500)) : []
   const [selected, setSelected] = useState<number | null>(null)
@@ -57,7 +61,7 @@ function VisualExplorer({ spec }: { spec: TeachingToolSpec }) {
       <p>Choose a label to explore the illustration.</p>
       <div className={styles.tokenRow}>{notes.map((n, i) =>
         <button type="button" key={i} className={styles.token} aria-pressed={selected === i}
-          onClick={() => setSelected(i)}>{n.label}</button>)}</div>
+          onClick={() => { setSelected(i); play("select") }}>{n.label}</button>)}</div>
       {selected !== null && <p className={styles.resultBox} role="status">{notes[selected].detail}</p>}
     </>}
   </div>
@@ -113,6 +117,7 @@ function ObservationJournal({ spec }: { spec: TeachingToolSpec }) {
 }
 
 function DrawingPad({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const canvas = useRef<HTMLCanvasElement>(null)
   const activePointer = useRef<number | null>(null)
   const [colour, setColour] = useState('#245c92')
@@ -180,6 +185,7 @@ function DrawingPad({ spec }: { spec: TeachingToolSpec }) {
         link.download = 'my-learning-drawing.png'
         link.click()
         setStatus('Drawing downloaded to this device. It has not been submitted.')
+        play('saved')
       }}>Save drawing to device</button>
     </div>
     <CopyNotes text={description} />
@@ -188,6 +194,7 @@ function DrawingPad({ spec }: { spec: TeachingToolSpec }) {
 }
 
 function PracticalSteps({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const steps = lines(spec.steps, 15)
   const materials = lines(spec.materials, 20)
   const [index, setIndex] = useState(0)
@@ -200,13 +207,14 @@ function PracticalSteps({ spec }: { spec: TeachingToolSpec }) {
     <div className={styles.resultBox} aria-live="polite">{steps[index]}</div>
     <div className={styles.actions}>
       <button className={styles.secondary} type="button" disabled={index === 0} onClick={() => setIndex(i => i - 1)}>Previous step</button>
-      <button type="button" disabled={index === steps.length - 1} onClick={() => setIndex(i => i + 1)}>Next step</button>
+      <button type="button" disabled={index === steps.length - 1} onClick={() => { setIndex(i => i + 1); play("select") }}>Next step</button>
     </div>
     {index === steps.length - 1 && <p className={styles.note}>All instructions displayed. Ask your teacher for help with equipment or activities that require supervision.</p>}
   </div>
 }
 
 function MapExplorer({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const places = Array.isArray(spec.places) && spec.places.length <= 12
     ? spec.places.filter(p => p && readable(p.label, 100) && readable(p.description, 500)) : []
   const [selected, setSelected] = useState<number | null>(null)
@@ -219,7 +227,7 @@ function MapExplorer({ spec }: { spec: TeachingToolSpec }) {
       {places.map((p, i) => <button type="button" key={i} className={styles.mapPin}
         aria-label={'Explore ' + p.label} aria-pressed={selected === i}
         style={{ left: String(p.x) + '%', top: String(p.y) + '%' }}
-        onClick={() => setSelected(i)}>{i + 1}</button>)}
+        onClick={() => { setSelected(i); play("select") }}>{i + 1}</button>)}
       <small>Schematic positions only — not to scale</small>
     </div>}
     <div className={styles.tokenRow}>{places.map((p, i) => <button className={styles.token}
@@ -232,6 +240,7 @@ function MapExplorer({ spec }: { spec: TeachingToolSpec }) {
 }
 
 function TimelineExplorer({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const events = Array.isArray(spec.events) && spec.events.length <= 15
     ? spec.events.filter(e => e && readable(e.date, 70) && readable(e.label, 150)) : []
   const [selected, setSelected] = useState<number | null>(null)
@@ -239,7 +248,7 @@ function TimelineExplorer({ spec }: { spec: TeachingToolSpec }) {
   return <div className={styles.stack}>
     <p>Explore events in the order supplied in this lesson.</p>
     <ol className={styles.timeline}>{events.map((event, i) => <li key={i}>
-      <button type="button" aria-pressed={selected === i} onClick={() => setSelected(i)}>
+      <button type="button" aria-pressed={selected === i} onClick={() => { setSelected(i); play("select") }}>
         <strong>{event.date}</strong> — {event.label}
       </button>
     </li>)}</ol>
