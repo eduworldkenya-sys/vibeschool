@@ -57,7 +57,7 @@ for (const token of [
   'get_my_substitute_occurrences',
   'Copy Lesson',
   'Substitute lesson',
-  'School day setup',
+  'Timetable setup',
   'Prepare lesson',
   'Repeat from next week',
 ]) requireText('timetable closure UI', timetable, token)
@@ -74,10 +74,10 @@ requireText('grade duration query', modal, ".from('school_lesson_duration_defaul
 requireText('grade duration advice', modal, 'school default:')
 requireText('configured periods remain primary', modal, 'teachingBlock')
 
-requireText('setup member reader', setup, "'get_school_day_blocks_for_member'")
+requireText('setup member reader', setup, "'get_my_school_day_blocks'")
 requireText('setup admin capability', setup, "'can_manage_my_school_timetable'")
 requireText('setup period writer', setup, "'save_school_period_block'")
 requireText('setup duration writer', setup, "'set_school_lesson_duration_default'")
-requireText('setup human explanation', setup, 'Define the real teaching periods, breaks and grade-specific lesson lengths used by your school.')
+requireText('setup human explanation', setup, 'authorised administrators can also confirm real teaching periods, breaks and grade-specific lesson lengths.')
 
 console.log('PASS: timetable modernization closure covers independent preparation, governed school-day setup, copy/undo, multi-school visibility, readiness, exceptions and substitution boundaries')
