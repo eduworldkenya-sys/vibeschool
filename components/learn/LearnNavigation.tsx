@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { PublicBottomNav } from '@/components/public/PublicBottomNav'
 import StudentBottomNav from '@/components/student/BottomNav'
 import styles from './LearnNavigation.module.css'
+import {DEFAULT_LEARNER_APPEARANCE,LEARNER_APPEARANCE_EVENT,readLearnerAppearance,saveLearnerAppearance,learnerAppearanceStyle,type LearnerAppearance} from '@/lib/student-appearance'
 
 /**
  * Use one existing public or student navigation on Learn discovery surfaces.
@@ -108,9 +109,44 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const showHeader = isLearnDiscoveryPath(pathname)
   const showBottom = usesLearnBottomNav(pathname) && !isStoryReadingPath(pathname)
-  const student = useStudentNavigation(showBottom)
+  const student = useStudentNavigation(showBottom || isStoryReadingPath(pathname))
+  const [appearance,setAppearance]=useState<LearnerAppearance>(DEFAULT_LEARNER_APPEARANCE)
+  const [learnerId,setLearnerId]=useState<string|null>(null)
+  const [systemDark,setSystemDark]=useState(false)
+  useEffect(()=>{
+    if(!student)return
+    let active=true
+    let studentId:string|null=null
+    const media=window.matchMedia('(prefers-color-scheme: dark)')
+    const updateMedia=()=>setSystemDark(media.matches)
+    updateMedia();media.addEventListener('change',updateMedia)
+    const update=()=>{if(active&&studentId)setAppearance(readLearnerAppearance(studentId))}
+    void (async()=>{
+      const {data:{user}}=await supabase.auth.getUser()
+      if(!user||!active)return
+      const {data}=await supabase.from('students').select('id')
+        .eq('profile_id',user.id).is('deleted_at',null).limit(1).maybeSingle()
+      studentId=data?.id??null
+      if(active)setLearnerId(studentId)
+      update()
+    })()
+    window.addEventListener(LEARNER_APPEARANCE_EVENT,update)
+    return()=>{active=false;window.removeEventListener(LEARNER_APPEARANCE_EVENT,update);media.removeEventListener('change',updateMedia)}
+  },[student])
 
-  return <>
+  function exitSharedStudyMode(){
+    if(!learnerId)return
+    const next={...appearance,studyMode:'normal' as const}
+    if(saveLearnerAppearance(learnerId,next))setAppearance(next)
+  }
+  return <div className={student?styles.studentLearnRoot:undefined}
+    data-learner-root={student?'true':undefined}
+    data-study-mode={student?appearance.studyMode:undefined}
+    style={student?learnerAppearanceStyle(appearance,systemDark):undefined}>
+    {student&&appearance.studyMode!=='normal'&&<div className={styles.modeBanner} role="status">
+      <span><strong>{appearance.studyMode==='reading'?'Reading Mode':'Focus Mode'}</strong> is on. Your study preferences are active.</span>
+      <button type="button" onClick={exitSharedStudyMode}>Exit</button>
+    </div>}
     {showHeader && <Suspense fallback={null}><LearnHeader/></Suspense>}
     {showBottom ? <div className={student ? styles.studentLearnMain : undefined}>{children}</div> : children}
     {showBottom && (student === null
@@ -118,5 +154,5 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
       : student
         ? <div className={styles.studentNavTheme}><StudentBottomNav/><div className={styles.navReserve} aria-hidden="true"/></div>
         : <Suspense fallback={<div className={styles.navReserve} aria-hidden="true"/>}><LearnPublicBottomNav/></Suspense>)}
-  </>
+  </div>
 }

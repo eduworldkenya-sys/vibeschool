@@ -11,9 +11,10 @@ import { ToastContext, ThemeContext } from "@/components/student/StudentUiContex
 import { FeedbackSoundToggle } from "@/components/student/LearningFeedback";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student-theme";
-import { DEFAULT_LEARNER_APPEARANCE, LEARNER_APPEARANCE_EVENT, readLearnerAppearance, learnerAppearanceStyle } from "@/lib/student-appearance";
+import { DEFAULT_LEARNER_APPEARANCE, LEARNER_APPEARANCE_EVENT, readLearnerAppearance, saveLearnerAppearance, readLearnerWallpaperPhoto, learnerWallpaperBackground, resolvedLearnerDisplayMode, isSocialDestination, learnerAppearanceStyle, type LearnerStudyMode } from "@/lib/student-appearance";
+import { useToast } from "@/components/student/StudentUiContext";
 
-function TopBar({ name, className, schoolName, focused = false }: { name: string; className: string; schoolName: string; focused?: boolean }) {
+function TopBar({ name, className, schoolName, focused = false, studyMode, onModeToggle }: { name: string; className: string; schoolName: string; focused?: boolean; studyMode:LearnerStudyMode; onModeToggle:()=>void }) {
   const router   = useRouter();
   const pathname = usePathname();
   const isRoot   = pathname === "/student" || pathname === "/student/";
@@ -48,7 +49,7 @@ function TopBar({ name, className, schoolName, focused = false }: { name: string
             width: 30, height: 30, borderRadius: 9,
             background: "var(--vs-accent)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 15, fontWeight: 900, color: "#fff",
+            fontSize: 15, fontWeight: 900, color: "var(--vs-on-accent)",
           }}>
             V
           </div>
@@ -62,8 +63,14 @@ function TopBar({ name, className, schoolName, focused = false }: { name: string
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <FeedbackSoundToggle />
-        {!focused && <button type="button" aria-label="Open notifications" onClick={() => router.push("/student/notifications")}
+        {!focused && <button type="button" aria-label={studyMode==='normal'?'Turn on Focus Mode':'Exit study mode'}
+          onClick={onModeToggle} style={{border:'1px solid var(--vs-border)',borderRadius:11,minHeight:40,
+          padding:'7px 10px',fontSize:11,fontWeight:800,cursor:'pointer',
+          background:studyMode==='normal'?'var(--vs-card)':'var(--vs-accent-soft)',color:'var(--vs-accent)'}}>
+          {studyMode==='normal'?'Focus':studyMode==='reading'?'Reading on':'Focus on'}
+        </button>}
+        {studyMode==='normal' && <FeedbackSoundToggle />}
+        {!focused && studyMode==='normal' && <button type="button" aria-label="Open notifications" onClick={() => router.push("/student/notifications")}
           style={{ cursor: "pointer", color: "var(--vs-accent)", border: "none", background: "transparent", display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center" }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -78,7 +85,7 @@ function TopBar({ name, className, schoolName, focused = false }: { name: string
             width: 44, height: 44, borderRadius: "50%", border: "none",
             background: "var(--vs-accent)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
+            fontSize: 13, fontWeight: 800, color: "var(--vs-on-accent)", cursor: "pointer",
             flexShrink: 0,
           }}
         >
@@ -117,16 +124,48 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   const { identity, loading, error, retry } = useStudent();
   const pathname = usePathname();
   const focusedAssessment = /^\/student\/assessment\/[^/]+\/?$/.test(pathname);
+  const showToast=useToast().showToast;
   const [appearance,setAppearance] = useState(DEFAULT_LEARNER_APPEARANCE);
+  const [wallpaperPhoto,setWallpaperPhoto]=useState<string|null>(null);
+  const [systemDark,setSystemDark]=useState(false);
+  useEffect(()=>{
+    const media=window.matchMedia('(prefers-color-scheme: dark)');
+    const update=()=>setSystemDark(media.matches);
+    update();media.addEventListener('change',update);
+    return()=>media.removeEventListener('change',update);
+  },[]);
   useEffect(()=>{
     const studentId=identity?.studentId;
-    if (!studentId) return;
-    const refresh=()=>setAppearance(readLearnerAppearance(studentId));
+    if (!studentId) {setAppearance(DEFAULT_LEARNER_APPEARANCE);setWallpaperPhoto(null);return;}
+    const refresh=()=>{
+      setAppearance(readLearnerAppearance(studentId));
+      setWallpaperPhoto(readLearnerWallpaperPhoto(studentId));
+    };
     refresh();
     window.addEventListener(LEARNER_APPEARANCE_EVENT,refresh);
     return ()=>window.removeEventListener(LEARNER_APPEARANCE_EVENT,refresh);
   },[identity?.studentId]);
-
+  const studyMode=focusedAssessment?'normal':appearance.studyMode;
+  const resolvedMode=resolvedLearnerDisplayMode(appearance.displayMode,systemDark);
+  const showWallpaper=studyMode!=='reading' && appearance.wallpaperPlacement==='home-workspace' &&
+    (pathname==='/student'||pathname==='/student/'||pathname==='/student/workspace');
+  function toggleFocus(){
+    if(!identity?.studentId)return;
+    const next={...appearance,studyMode:appearance.studyMode==='normal'?'focus' as const:'normal' as const};
+    if(!saveLearnerAppearance(identity.studentId,next)){showToast('Focus setting could not be saved on this device.');return;}
+    setAppearance(next);
+  }
+  function guardSocialLinks(event:React.MouseEvent<HTMLDivElement>){
+    if(studyMode==='normal'||!appearance.pauseSocialLinks)return;
+    const target=event.target;
+    const anchor=target instanceof Element?target.closest('a[href]'):null;
+    if(!anchor)return;
+    const href=(anchor as HTMLAnchorElement).href;
+    if(isSocialDestination(href)){
+      event.preventDefault();event.stopPropagation();
+      showToast('Social links are paused during study mode. Turn off Focus to open them.');
+    }
+  }
 
   if (loading) {
     return (
@@ -152,19 +191,30 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="student-app"
+    <div className="student-app" onClickCapture={guardSocialLinks}
+      data-study-mode={studyMode}
       data-learner-font={appearance.font}
       data-learner-italics={appearance.italicHeadings ? "true" : "false"}
       data-learner-compact={appearance.compact ? "true" : "false"}
       data-reduce-motion={appearance.reduceMotion ? "true" : "false"}
-      style={{ minHeight: '100dvh', background: 'var(--vs-bg)', color: 'var(--vs-text)', ...learnerAppearanceStyle(appearance) }}>
+      style={{ minHeight: '100dvh', background: 'var(--vs-bg)', color: 'var(--vs-text)', ...learnerAppearanceStyle(appearance,systemDark) }}>
       <TopBar
         name={identity?.name ?? ""}
         className={identity?.className ?? ""}
         schoolName={identity?.schoolName ?? ""}
         focused={focusedAssessment}
+        studyMode={studyMode}
+        onModeToggle={toggleFocus}
       />
       <OfflineBar />
+      {!focusedAssessment&&studyMode!=='normal'&&<div role="status" style={{display:'flex',gap:10,
+        alignItems:'center',justifyContent:'space-between',padding:'10px clamp(12px,3vw,24px)',
+        borderBottom:'1px solid var(--vs-border)',background:'var(--vs-accent-soft)',color:'var(--vs-text)'}}>
+        <div style={{fontSize:12}}><strong>{studyMode==='reading'?'Reading Mode':'Focus Mode'} is on.</strong>{' '}
+          {studyMode==='reading'?'Comfortable text and a quiet study space.':'In-app interruptions and social links are paused.'}</div>
+        <button type="button" onClick={toggleFocus} style={{border:'1px solid var(--vs-border)',borderRadius:10,
+          minHeight:40,padding:'7px 12px',background:'var(--vs-card)',color:'var(--vs-accent)',fontWeight:800,cursor:'pointer'}}>Exit</button>
+      </div>}
       <main className={focusedAssessment ? "student-content assessment-focus" : "student-content"} style={{
         width: "100%",
         minWidth: 0,
@@ -173,10 +223,11 @@ function StudentShell({ children }: { children: React.ReactNode }) {
         padding:       "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
         paddingBottom: focusedAssessment ? 24 : 160,
         minHeight:     "calc(100dvh - 120px)",
+        ...(showWallpaper?learnerWallpaperBackground(appearance.wallpaper,wallpaperPhoto,resolvedMode):{}),
       }}>
         {children}
       </main>
-      {!focusedAssessment && <StudentPlannerReminders />}
+      {!focusedAssessment && <StudentPlannerReminders quiet={studyMode!=='normal'||!appearance.remindersEnabled} />}
       {!focusedAssessment && <BottomNav />}
     </div>
   );
@@ -243,6 +294,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           .student-app[data-learner-font="rounded"] :where(h1,h2,h3) { font-family:'Nunito Sans','Trebuchet MS',sans-serif !important; }
           .student-app[data-learner-italics="true"] .student-home-hero h2 { font-style:italic; }
           .student-app[data-learner-compact="true"] .student-home-quick-grid button { min-height:68px; }
+          .student-app[data-study-mode="reading"] .student-content:not(.assessment-focus) :where(p,li) { line-height:1.9; letter-spacing:.008em; }
+          .student-app[data-study-mode="reading"] .student-content:not(.assessment-focus) :where(article p,section p) { max-width:74ch; }
+          .student-app[data-study-mode="reading"] .student-content:not(.assessment-focus) :where(h1,h2,h3) { line-height:1.35; }
+          .student-app[data-study-mode="reading"] .student-content:not(.assessment-focus) { background-image:none !important; }
+          .student-app[data-study-mode="reading"] .student-content:not(.assessment-focus) :where(article,section) { scroll-margin-top:80px; }
+
           .student-app[data-reduce-motion="true"] *, .student-app[data-reduce-motion="true"] *::before { animation:none !important; transition:none !important; }
           @media(min-width:1024px) {
             .student-app .student-content:not(.assessment-focus) {

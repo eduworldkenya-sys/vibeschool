@@ -4,11 +4,10 @@ export const dynamic = 'force-dynamic'
 import {useEffect,useState,type ChangeEvent} from 'react'
 import Link from 'next/link'
 import {useStudent} from '@/lib/student-context'
-import {useTheme} from '@/components/student/StudentUiContext'
 import {DEFAULT_LEARNER_APPEARANCE,readLearnerAppearance,saveLearnerAppearance,readLearnerWallpaperPhoto,saveLearnerWallpaperPhoto,type LearnerAppearance,type LearnerFont,type LearnerPalette,type LearnerWallpaper} from '@/lib/student-appearance'
 import styles from './settings.module.css'
 
-type Section = 'appearance'|'reading'|'permissions'
+type Section = 'appearance'|'reading'|'study'|'permissions'
 const PALETTES:{id:LearnerPalette;title:string;bg:string;accent:string}[]=[
   {id:'jade',title:'Jade',bg:'#e0f1e5',accent:'#186b4c'},
   {id:'ocean',title:'Ocean',bg:'#e1efff',accent:'#245eae'},
@@ -50,22 +49,19 @@ async function compressWallpaper(file:File):Promise<string> {
 }
 export default function LearnerSettingsPage(){
   const {identity,loading}=useStudent()
-  const {theme,setTheme}=useTheme()
   const [tab,setTab]=useState<Section>('appearance')
   const [value,setValue]=useState<LearnerAppearance>(DEFAULT_LEARNER_APPEARANCE)
   const [photo,setPhoto]=useState<string|null>(null)
   const [notice,setNotice]=useState('')
   const [busy,setBusy]=useState(false)
   const [notifications,setNotifications]=useState('unsupported')
-  const [inAppReminders,setInAppReminders]=useState(true)
   useEffect(()=>{
     if(!identity?.studentId)return
     setValue(readLearnerAppearance(identity.studentId))
     setPhoto(readLearnerWallpaperPhoto(identity.studentId))
-    try{setInAppReminders(localStorage.getItem('vibeschool:learner-reminders:v1:'+identity.studentId)!=='off')}catch{}
     setNotifications(typeof window!=='undefined'&&'Notification'in window?Notification.permission:'unsupported')
     const section=new URLSearchParams(window.location.search).get('section')
-    if(section==='appearance'||section==='reading'||section==='permissions')setTab(section)
+    if(section==='appearance'||section==='reading'||section==='study'||section==='permissions')setTab(section)
   },[identity?.studentId])
   function change(patch:Partial<LearnerAppearance>){
     if(!identity?.studentId)return
@@ -92,18 +88,12 @@ export default function LearnerSettingsPage(){
       setNotice(permission==='granted'?'Browser notifications enabled.':'Permission was not granted. You can change it in your browser settings.')
     }catch{setNotice('Permission request failed. Check your browser settings.')}
   }
-  function toggleReminders(){
-    if(!identity?.studentId)return
-    const next=!inAppReminders
-    try{localStorage.setItem('vibeschool:learner-reminders:v1:'+identity.studentId,next?'on':'off');setInAppReminders(next)}
-    catch{setNotice('Reminder preference could not be saved.')}
-  }
   if(loading||!identity)return <div className={styles.page} role="status">Opening learner settings…</div>
   return <main className={styles.page}>
     <header className={styles.header}><span className={styles.eyebrow}>Personalisation</span><h1 className={styles.title}>Make VibeSchool yours.</h1>
       <p className={styles.muted}>Change how the app looks and feels. Your lessons, tasks and exams stay exactly where they are.</p></header>
     <nav className={styles.tabs} aria-label="Learner settings sections">
-      {([['appearance','Appearance'],['reading','Reading'],['permissions','Permissions']] as const).map(([id,label])=>
+      {([['appearance','Themes'],['reading','Reading'],['study','Study Mode'],['permissions','Permissions']] as const).map(([id,label])=>
         <button type="button" role="tab" aria-selected={tab===id} key={id} onClick={()=>setTab(id)}>{label}</button>)}
     </nav>
     {tab==='appearance'&&<>
@@ -111,18 +101,22 @@ export default function LearnerSettingsPage(){
         <div className={styles.grid}>{PALETTES.map(p=><button key={p.id} type="button" className={styles.swatch} aria-pressed={value.palette===p.id} onClick={()=>change({palette:p.id})}>
           <div className={styles.color} style={{background:p.bg}}><span style={{background:p.accent}}/></div>{p.title}
         </button>)}</div>
-        <div className={styles.row}><div><strong>System appearance</strong><p>Light, Dark or follow the device. Colour presets can override this appearance.</p></div>
-          <select aria-label="System appearance" value={theme} onChange={e=>setTheme(e.target.value as 'light'|'dark'|'auto')} className={styles.choice}>
-            <option value="light">Light</option><option value="dark">Dark</option><option value="auto">Auto</option>
+        <div className={styles.row}><div><strong>Brightness</strong><p>Light, dark or follow your device. Every colour preset now supports both.</p></div>
+          <select aria-label="Learner colour brightness" value={value.displayMode} onChange={e=>change({displayMode:e.target.value as 'light'|'dark'|'auto'})} className={styles.choice}>
+            <option value="light">Light</option><option value="dark">Dark</option><option value="auto">Follow device</option>
           </select></div>
       </section>
-      <section className={styles.card}><h2>My Workspace background</h2><div className={styles.wall} style={wallpaperStyle(value.wallpaper,photo)}><strong>Your personal study corner</strong></div>
+      <section className={styles.card}><h2>Backgrounds and photos</h2><div className={styles.wall} style={wallpaperStyle(value.wallpaper,photo)}><strong>Your personal study corner</strong></div>
         <div className={styles.wallChoices}>{WALLPAPERS.map(w=><button key={w.id} className={styles.choice} aria-pressed={value.wallpaper===w.id} onClick={()=>change({wallpaper:w.id})}>{w.title}</button>)}
           {photo&&<button className={styles.choice} aria-pressed={value.wallpaper==='photo'} onClick={()=>change({wallpaper:'photo'})}>My photo</button>}</div>
+        <div className={styles.row}><div><strong>Background placement</strong><p>Keep content cards solid, and exam answers distraction-free.</p></div>
+          <select aria-label="Background placement" value={value.wallpaperPlacement} onChange={e=>change({wallpaperPlacement:e.target.value as 'workspace'|'home-workspace'})} className={styles.choice}>
+            <option value="workspace">Workspace only</option><option value="home-workspace">Home + Workspace</option>
+          </select></div>
         <label className={styles.field}>Add a background image (JPEG, PNG or WebP; 5 MB max)
           <input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={busy}/></label>
         {photo&&<button className={styles.choice} type="button" onClick={()=>{if(saveLearnerWallpaperPhoto(identity.studentId,null)){setPhoto(null);change({wallpaper:'sage'});setNotice('Background photo removed from this browser.')}}}>Remove saved photo</button>}
-        <div className={styles.notice}>Personal photos are compressed and stored in this browser, scoped to this learner identity. They are not uploaded to VibeSchool. Avoid personal photos on a shared device.</div>
+        <div className={styles.notice}>Personal photos are compressed and stored in this browser, scoped to this learner identity. They are not uploaded to VibeSchool. Avoid personal photos on a shared device. Backgrounds never cover assessment answers.</div>
       </section>
     </>}
     {tab==='reading'&&<>
@@ -137,12 +131,28 @@ export default function LearnerSettingsPage(){
         <div className={styles.row}><div><strong>Reduce animation</strong><p>Respect motion sensitivity in addition to device settings.</p></div><button className={styles.toggle} aria-pressed={value.reduceMotion} onClick={()=>change({reduceMotion:!value.reduceMotion})}>{value.reduceMotion?'On':'Off'}</button></div>
       </section>
     </>}
+    {tab==='study'&&<>
+      <section className={styles.card}><h2>Study modes</h2><p className={styles.muted}>Focus can also be turned on with one tap in the learner top bar. Your core navigation and work are always accessible.</p>
+        <div className={styles.modeGrid}>{([
+          ['normal','Everyday','Normal navigation and study reminders'],
+          ['focus','Do Not Disturb','Quiet alerts and fewer social distractions'],
+          ['reading','Reading Mode','Comfortable line spacing and distraction-free reading'],
+        ] as const).map(([id,label,description])=>
+          <button type="button" className={styles.modeChoice} key={id} aria-pressed={value.studyMode===id} onClick={()=>change({studyMode:id})}>
+            <strong>{label}</strong><span>{description}</span><em>{value.studyMode===id?'Selected':'Choose'}</em>
+          </button>)}</div>
+        <div className={styles.row}><div><strong>Pause social links during study</strong><p>Pause links to common social websites within learner screens when Focus or Reading Mode is active.</p></div>
+          <button className={styles.toggle} aria-pressed={value.pauseSocialLinks} onClick={()=>change({pauseSocialLinks:!value.pauseSocialLinks})}>{value.pauseSocialLinks?'On':'Off'}</button></div>
+        <div className={styles.notice}>VibeSchool cannot block social-media apps, other browser tabs or device notifications. Use device Focus/Screen Time or parental controls for device-wide restrictions.</div>
+      </section>
+      <Link href="/student/study" className={styles.link}>Open my learning desk <span aria-hidden="true">›</span></Link>
+    </>}
     {tab==='permissions'&&<>
       <section className={styles.card}><h2>Notifications and reminders</h2>
-        <div className={styles.row}><div><strong>In-app study reminders</strong><p>See your due activities while VibeSchool is open.</p></div><button className={styles.toggle} aria-pressed={inAppReminders} onClick={toggleReminders}>{inAppReminders?'On':'Off'}</button></div>
+        <div className={styles.row}><div><strong>In-app study reminders</strong><p>See your due activities while VibeSchool is open, except in Focus or Reading Mode.</p></div><button className={styles.toggle} aria-pressed={value.remindersEnabled} onClick={()=>change({remindersEnabled:!value.remindersEnabled})}>{value.remindersEnabled?'On':'Off'}</button></div>
         <div className={styles.row}><div><strong>Browser notifications</strong><p>Current status: {notifications}. Only ask for permission when you choose to enable this.</p></div>
           {notifications==='default'?<button className={styles.button} onClick={()=>void enableNotifications()}>Enable</button>:<span className={styles.muted}>{notifications==='granted'?'Allowed':notifications==='denied'?'Blocked in browser':'Unavailable'}</span>}</div>
-        <div className={styles.notice}>Background delivery is not guaranteed. Browser permissions can also be changed in your device settings.</div>
+        <div className={styles.notice}>Focus and Reading Mode pause in-app reminders and VibeSchool browser reminders. Other apps are controlled in device settings.</div>
       </section>
       <section className={styles.card}><h2>Camera, microphone and privacy</h2>
         <div className={styles.row}><div><strong>Camera and photos</strong><p>Requested only if you choose to attach an image to work.</p></div><span className={styles.muted}>On demand</span></div>
