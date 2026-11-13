@@ -9,7 +9,7 @@ const outcome = read('../components/learn/Grade4TimeOutcomePackage.tsx')
 const time = read('../components/learn/Grade4TimeContentReader.tsx')
 const visualApi = read('../app/api/visual-library/route.ts')
 const visualAssetApi = read('../app/api/visual-library/[id]/route.ts')
-const visuals = read('../components/learn/Grade4TimeVisualModels.tsx')
+const visuals = read('../components/learn/SectionVisualModels.tsx')
 const blocks = read('../components/learn/LearningBlockRenderer.tsx')
 
 test('canonical published blocks preserve order and reject invalid or unsafe content', () => {
@@ -68,15 +68,16 @@ test('published visual catalogue exposes only certified metadata at matching sec
   assert.match(visualAssetApi, /rights_status/)
   assert.match(visualAssetApi, /certified_at/)
   assert.match(visualAssetApi, /\.eq\('lifecycle_status', 'certified'\)/)
-  assert.match(visuals, /understand: 'explanation'/)
-  assert.match(visuals, /example: 'worked_example'/)
-  assert.match(visuals, /row\.sourceStrandId === GRADE4_TIME_SUBSTRAND_ID/)
+  assert.match(visuals, /'worked_example'/)
+  assert.match(visuals, /'explanation'/)
+  assert.match(visuals, /row\.sourceStrandId === sourceStrandId/)
   assert.match(visuals, /row\.placements\.includes\(placement\)/)
+  assert.match(reader, /<SectionVisualModels/)
   for(const source of [time,outcome]) {
     assert.match(source, /afterSection=\{\(section, index\)/)
-    assert.match(source, /<Grade4TimeVisualModels\s+lessonOrder=/)
-    assert.match(source, /sectionId=\{section\.id\}/)
-    assert.equal((source.match(/<Grade4TimeVisualModels/g)||[]).length,1)
+    assert.match(source, /visualContext=\{/)
+    assert.match(source, /sourceStrandId: 'e975dcc6-32a9-4274-a2a3-3d19e409cf5c'/)
+    assert.doesNotMatch(source,/Grade4TimeVisualModels/)
   }
 })
 
