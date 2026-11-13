@@ -18,7 +18,7 @@ export type CanonicalLearnSection = {
 }
 
 const id = /^[a-z][a-z0-9_-]{0,60}$/i
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const text = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
 const strings = (value: unknown): value is string[] =>
   Array.isArray(value) && value.length > 0 && value.every(text)
