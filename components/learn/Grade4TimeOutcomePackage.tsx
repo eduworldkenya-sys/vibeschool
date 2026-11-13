@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
+import { adaptCanonicalLearnSections } from '@/lib/learn/learningBlockContract'
+import { grade4TimeToolsForReleasedLesson } from '@/lib/learn/grade4TimeToolBindings'
 import { parseGrade4TimeLessonSections } from '@/lib/content/grade4TimeSections.mjs'
 import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import Grade4TimeLearningAid from '@/components/learn/Grade4TimeLearningAid'
@@ -244,16 +246,20 @@ export default function Grade4TimeOutcomePackage({
           key={selected.resource_version_id}
           subject="Mathematics"
           topic="time"
-          sections={parsedSelected?.sections ?? []}
+          sections={adaptCanonicalLearnSections(parsedSelected?.sections ?? [])}
+          tools={grade4TimeToolsForReleasedLesson(selected.lesson_order)}
           title={parsedSelected?.title || selected.title}
           goal={parsedSelected?.goal}
           anchorPrefix="outcome-time"
           renderBody={(section) => section.id === 'example'
             ? <Grade4TimeWorkedSteps body={section.body} />
             : undefined}
-          afterSection={(section) => <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />}
+          afterSection={(section) => <>
+            <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />
+            {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
+              lessonOrder={selected.lesson_order} sectionId={section.id} inlineVisualPresent={/\\[visual:/.test(selected.body)} />}
+          </>}
         />
-        <Grade4TimeVisualModels lessonOrder={selected.lesson_order} inlineVisualPresent={/\[visual:/.test(selected.body)} />
         <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
         <nav aria-label="Move between outcome lessons"
           style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
