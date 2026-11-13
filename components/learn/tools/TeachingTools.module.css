@@ -83,3 +83,16 @@
 .menu button,.stack button{transition:transform .14s ease,background-color .14s ease}
 .menu button:active,.stack button:not(:disabled):active{transform:scale(.985)}
 @media(prefers-reduced-motion:reduce){.menu button,.stack button{transition:none}.menu button:active,.stack button:not(:disabled):active{transform:none}}
+
+/* Micro-feedback for interactive learning, using the same VibeSchool design tokens. */
+.numberLineFrame{position:relative;padding-bottom:14px;margin-top:8px;min-width:0}
+.numberLineMarker{position:absolute;bottom:7px;width:15px;height:15px;background:var(--vs-accent,#176244);border:2px solid var(--vs-card,#fff);box-shadow:0 0 0 1px var(--vs-accent,#176244);border-radius:50%;transform:translateX(-50%);transition:left .16s ease;pointer-events:none}
+.dataLabelButton{width:100%;text-align:left;min-height:42px;padding:6px 9px;border:1px solid var(--vs-border,#dce9de)!important;border-radius:8px;background:var(--vs-card,#fff)!important;color:var(--vs-text,#1b4030)!important;font-size:13px!important}
+.dataRow[data-selected="true"] .dataLabelButton{border-color:var(--vs-accent,#176244)!important;background:var(--vs-accent-soft,#eef7f0)!important}
+.dataTrack>div{transition:width .19s ease,background-color .19s ease}
+.dataRow[data-selected="true"] .dataTrack>div{background:var(--vs-accent,#176244)}
+.stack .feedbackCorrect{background:var(--vs-accent-soft,#eef7f0);border:1px solid var(--vs-success,#168153);border-radius:11px;padding:12px 14px;color:var(--vs-text,#1b4030);animation:tool-feedback-in .2s ease-out}
+.stack .feedbackRetry{background:var(--vs-soft,#fff7ed);border:1px solid var(--vs-warning,#a45a11);border-radius:11px;padding:12px 14px;color:var(--vs-text,#1b4030);animation:tool-feedback-in .2s ease-out}
+.stack .token[aria-pressed="true"]{outline:2px solid var(--vs-accent,#176244);outline-offset:2px}
+@keyframes tool-feedback-in{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.numberLineMarker,.dataTrack>div{transition:none}.stack .feedbackCorrect,.stack .feedbackRetry{animation:none}}
