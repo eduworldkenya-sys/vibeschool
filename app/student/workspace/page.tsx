@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 const C = {
-  bg: "#f0f2f5",
-  surface: "#ffffff",
-  border: "#e5e7eb",
-  text: "#111827",
-  muted: "#6b7280",
-  accent: "#6366f1",
-  accentLight: "#eef2ff",
+  bg: "var(--vs-bg)",
+  surface: "var(--vs-card)",
+  border: "var(--vs-border)",
+  text: "var(--vs-text)",
+  muted: "var(--vs-muted)",
+  accent: "var(--vs-accent)",
+  accentLight: "var(--vs-accent-soft)",
   error: "#ef4444",
 };
 
@@ -703,7 +703,7 @@ function AssignedReadingCard({
         ? { background: "#fff7ed", color: "#c2410c", border: "#fed7aa" }
         : item.due_status === "completed"
           ? { background: "#ecfdf5", color: "#047857", border: "#a7f3d0" }
-          : { background: C.accentLight, color: C.accent, border: "#c7d2fe" };
+          : { background: C.accentLight, color: C.accent, border: "var(--vs-border)" };
 
   return (
     <article
