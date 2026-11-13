@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import curriculum from '@/content/curriculum/grade9-english-2024-index.json'
 import crosswalk from '@/content/curriculum/grade9-english-scheme-crosswalk-20261113.json'
 
-export const GRADE9_ENGLISH_UNITS = curriculum.themes.flatMap(theme => theme.units.map(unit => ({...unit, themeNumber: theme.number, themeName: theme.title})))
+export const GRADE9_ENGLISH_UNITS = curriculum.themes.flatMap(theme => theme.units.map(unit => ({...unit, themeNumber: theme.number, themeName: theme.title, canonicalSubStrandId: crosswalk.rows.find(row => row.code === unit.code)?.canonical_sub_strand_id})))
 
 type Props = {
   compact?: boolean
@@ -70,7 +70,7 @@ export default function Grade9EnglishMap({ compact = false, selectedUnitId = '1.
             style={{ display: 'block', width: '100%', minHeight: 44, marginTop: 5, borderRadius: 9, border: `1px solid ${border}`, padding: '9px 10px', color: ink, fontSize: 14 }} />
         </label>
       </div>
-      <p role="status" data-registered-headings={crosswalk.source_indexed_rows} style={{ fontSize: 12, color: '#784b0c', background: '#fff7e8', border: '1px solid #eed8ad', borderRadius: 9, padding: 10, margin: '0 0 12px' }}>All 75 curriculum headings have a persisted identity. Specific learning outcomes and outcome-backed Scheme lessons are not yet linked. Select a sub-strand to review its Scheme status.</p>
+      <p role="status" data-registered-headings={crosswalk.source_indexed_rows} style={{ fontSize: 12, color: '#784b0c', background: '#fff7e8', border: '1px solid #eed8ad', borderRadius: 9, padding: 10, margin: '0 0 12px' }}>All 75 curriculum headings have a persisted identity. Select a sub-strand to check whether independently authored outcomes and guidance are eligible to save in Scheme of Work.</p>
       {visible.length === 0 ? <p role="status" style={{ color: muted, fontSize: 13 }}>No matching topics. Try another search.</p> : visible.map(theme => (
         <article key={theme.number} style={{ border: `1px solid ${border}`, borderRadius: 12, marginBottom: 10, overflow: 'hidden' }}>
           <header style={{ background: '#f4f8f5', padding: '13px 14px' }}>
@@ -84,7 +84,7 @@ export default function Grade9EnglishMap({ compact = false, selectedUnitId = '1.
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <button type="button" onClick={() => { setSelectedTheme(theme.number); onSelectUnit?.(unit.code) }} aria-pressed={unit.code === selectedUnitId} style={{ textAlign: 'left', fontWeight: 750, fontSize: 13, cursor: 'pointer', color: ink, padding: 0, border: 0, background: 'transparent' }}>{unit.title}</button>
                   <div style={{ fontSize: 12, color: muted, marginTop: 4 }}>{unit.focus === 'Literature' ? 'Reading · Literature' : unit.strand} · {unit.suggestedLessons} suggested lessons</div>
-                  <div style={{ fontSize: 11, color: '#784b0c', marginTop: 4 }}>Heading registered · learning outcomes not yet linked</div>
+                  <div style={{ fontSize: 11, color: '#784b0c', marginTop: 4 }}>Heading registered · check linked outcomes in Scheme</div>
                   {onOpenScheme && <button type="button" onClick={() => onOpenScheme(unit.code)} style={{ marginTop: 7, color: '#24634b', cursor: 'pointer', padding: '5px 0', border: 0, background: 'transparent', fontSize: 12, fontWeight: 800 }}>Review in Scheme</button>}
                 </div>
               </div>
