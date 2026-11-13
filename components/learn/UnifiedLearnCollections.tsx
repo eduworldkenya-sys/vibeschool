@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowRight, BookOpen, BookText, BriefcaseBusiness, ChevronRight, FileText, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './SchoolLearnLibrary.module.css'
+import { isStoryPublication, storyLandingHref } from '@/lib/learn/storyPublications'
 
 type Publication = {
   id: string
@@ -13,6 +14,8 @@ type Publication = {
   format: string
   cbc_grade: string | null
   cbc_subject: string | null
+  genre: string
+  series_name: string | null
 }
 type Course = {
   id: string
@@ -26,9 +29,11 @@ type Course = {
 }
 
 function PublicationDestination({publication}:{publication:Publication}) {
-  const href = publication.format === 'vibetextbook'
-    ? '/read/textbook/' + encodeURIComponent(publication.id)
-    : '/global/read/publication/' + encodeURIComponent(publication.id)
+  const href = isStoryPublication(publication as Parameters<typeof isStoryPublication>[0])
+    ? storyLandingHref(publication.id)
+    : publication.format === 'vibetextbook'
+      ? '/read/textbook/' + encodeURIComponent(publication.id)
+      : '/global/read/publication/' + encodeURIComponent(publication.id)
   const category = publication.format === 'vibetextbook' ? 'Textbook'
     : publication.format === 'vibepress' ? 'Article'
     : publication.format === 'ebook' ? 'Ebook'
@@ -72,7 +77,7 @@ export default function UnifiedLearnCollections({view}:{view:'reading'|'courses'
           const size=200
           for(let page=0;page<25;page++){
             const {data,error}=await supabase.from('vibe_publications')
-              .select('id,title,description,format,cbc_grade,cbc_subject')
+              .select('id,title,description,format,cbc_grade,cbc_subject,genre,series_name')
               .eq('status','published')
               .order('id',{ascending:true})
               .range(page*size,(page+1)*size-1)
@@ -116,6 +121,7 @@ export default function UnifiedLearnCollections({view}:{view:'reading'|'courses'
     <p className={styles.description}>{isReading
       ? 'Discover released textbooks, ebooks and other public reading in one place. Open each publication in its existing reader.'
       : 'Explore existing courses and institutions. Only courses marked live can be opened.'}</p>
+    {isReading && <div className={styles.linksRow}><Link href="/learn/stories" className={styles.buttonPrimary}>Browse Stories &amp; Series <ArrowRight size={16}/></Link></div>}
     <label className={styles.searchbox}><Search size={18} aria-hidden="true"/>
       <input type="search" value={search} onChange={e=>setSearch(e.target.value)}
         placeholder={isReading?'Search titles, subjects or grades…':'Search courses or institutions…'}
