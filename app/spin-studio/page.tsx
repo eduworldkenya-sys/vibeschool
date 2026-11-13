@@ -322,19 +322,25 @@ export default function SpinStudio() {
     <div className={styles.shell}>
       {!recording && <header className={styles.header}>
         <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>Spin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
-        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={()=>{setRecording(true);setFeedback('')}}>Enter recording mode ↗</button></div>
+        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={()=>{setRecording(true);setFeedback('')}}>Launch Show ↗</button></div>
       </header>}
       <div className={recording?styles.recordLayout:styles.layout}>
         {!recording && <aside className={styles.controls}>
-          <div className={styles.panel}>
+          <nav className={styles.setupTabs} aria-label="Spin Studio setup">
+            {(['wheels','content','appearance','effects','settings'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':'Settings'}</button>)}
+          </nav>
+          {setupTab==='wheels' && <div className={styles.panel}>
             <div className={styles.panelTitle}><h2>My wheels</h2><button onClick={addWheel} className={styles.smallButton}>+ New</button></div>
             <select aria-label="Select a saved wheel" value={selectedId} onChange={e=>setSelectedId(e.target.value)}>{wheels.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select>
             <div className={styles.row}><button onClick={duplicateWheel}>Duplicate</button><button disabled={wheels.length<=1} onClick={removeWheel}>Delete wheel</button></div>
             <label>Wheel name<input value={wheel.name} maxLength={90} onChange={e=>update({name:e.target.value})}/></label>
             <label>Video hook / headline<input value={wheel.headline} maxLength={100} onChange={e=>update({headline:e.target.value})}/></label>
             <label>Closing call to action<input value={wheel.cta} maxLength={120} onChange={e=>update({cta:e.target.value})}/></label>
-          </div>
-          <div className={styles.panel}>
+            <label>Episode number<input type="number" min="1" max="9999" value={wheel.episode??1} onChange={e=>update({episode:Math.max(1,Math.min(9999,Number(e.target.value)||1))})}/></label>
+            <p className={styles.hint}>Ready-made content templates</p>
+            <div className={styles.templateGrid}>{templates.map((t,i)=><button key={t.name} onClick={()=>loadTemplate(i)}>{t.name}</button>)}</div>
+          </div>}
+          {setupTab==='content' && <div className={styles.panel}>
             <div className={styles.panelTitle}><h2>Wheel entries <span className={styles.muted}>{entries.length}/100</span></h2><button className={styles.smallButton} disabled={entries.length>=100} onClick={()=>update({entries:[...entries,{id:uid(),label:'New item',question:'',answer:''}]})}>+ Add</button></div>
             <p className={styles.hint}>Every segment can have its own question and answer. Both are optional.</p>
             <div className={styles.entries}>{entries.map((entry,i)=><div className={styles.entry} key={entry.id}>
@@ -345,18 +351,41 @@ export default function SpinStudio() {
             </div>)}</div>
             <button onClick={()=>setShowBulk(v=>!v)}>{showBulk?'Close bulk editor':'+ Paste multiple entries'}</button>
             {showBulk && <div className={styles.bulk}><p className={styles.hint}>One line per segment: Label | Question | Answer</p><textarea rows={5} value={paste} onChange={e=>setPaste(e.target.value)} placeholder={'Brazil | What is its capital? | Brasília\nFractions | What is 1/2 + 1/4? | 3/4'}/><button onClick={importRows} disabled={!paste.trim()}>Add entries</button></div>}
-          </div>
-          <div className={styles.panel}>
+          </div>}
+          {setupTab==='appearance' && <div className={styles.panel}>
+            <h2>Appearance & backgrounds</h2>
+            <label>Stage theme<select value={wheel.stageBackground??'game'} onChange={e=>update({stageBackground:e.target.value,backgroundImage:''})}>
+              <option value="game">Game Show Blue</option><option value="gold">Gold Challenge</option><option value="pop">Pop Challenge</option><option value="midnight">Neon Night</option><option value="clean">Clean Studio</option>
+            </select></label>
+            <div className={styles.themeGrid}>{Object.entries(stageThemes).map(([name,background])=><button key={name} aria-label={'Choose '+name+' background'} className={wheel.stageBackground===name?styles.activeTheme:''} style={{background}} onClick={()=>update({stageBackground:name,backgroundImage:''})}>{name}</button>)}</div>
+            <label>Wheel palette<select value={wheel.theme} onChange={e=>update({theme:e.target.value as Wheel['theme']})}><option value="electric">Electric Vibe</option><option value="sunset">Sunset Pop</option><option value="neon">Neon Night</option></select></label>
+            <label>Typography<select value={wheel.fontStyle??'modern'} onChange={e=>update({fontStyle:e.target.value as Wheel['fontStyle']})}><option value="modern">Modern Bold</option><option value="classic">Classic Serif</option><option value="playful">Playful Round</option></select></label>
+            <label>Upload your background (JPG / PNG / WebP, max 220 KB)<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{uploadBackground(e.target.files?.[0]);e.target.value=''}}/></label>
+            {wheel.backgroundImage && <button onClick={()=>update({backgroundImage:''})}>Remove uploaded background</button>}
+            <p className={styles.hint}>Backgrounds are saved locally in this browser with your wheel. Large images are intentionally limited to protect storage.</p>
+          </div>}
+          {setupTab==='effects' && <div className={styles.panel}>
+            <h2>Effects & show director</h2>
+            <label className={styles.check}><input type="checkbox" checked={wheel.automatic??true} onChange={e=>update({automatic:e.target.checked})}/> Automatic countdown and answer reveal</label>
+            <label>Answer display: {wheel.revealHold??3} seconds<input type="range" min="1" max="10" value={wheel.revealHold??3} onChange={e=>update({revealHold:Number(e.target.value)})}/></label>
+            <label>Celebration<select value={wheel.celebration??'confetti'} onChange={e=>update({celebration:e.target.value as Wheel['celebration']})}><option value="confetti">Confetti</option><option value="glow">Soft glow</option><option value="none">No celebration</option></select></label>
+            <label className={styles.check}><input type="checkbox" checked={wheel.sound} onChange={e=>update({sound:e.target.checked})}/> Sound effects on</label>
+            <label>Spin / ticking volume: {wheel.volumes?.spin??55}%<input type="range" min="0" max="100" value={wheel.volumes?.spin??55} onChange={e=>update({volumes:{spin:Number(e.target.value),reveal:wheel.volumes?.reveal??75}})}/></label>
+            <label>Reveal / success volume: {wheel.volumes?.reveal??75}%<input type="range" min="0" max="100" value={wheel.volumes?.reveal??75} onChange={e=>update({volumes:{spin:wheel.volumes?.spin??55,reveal:Number(e.target.value)}})}/></label>
+            <p className={styles.hint}>Audio is generated locally. To include sound in a recording, select the browser tab and enable Share tab audio.</p>
+          </div>}
+          {setupTab==='settings' && <div className={styles.panel}>
             <h2>Show controls</h2>
             <label>Video shape<select value={format} onChange={e=>setFormat(e.target.value as Format)}><option value="portrait">9:16 · Shorts & TikTok</option><option value="landscape">16:9 · YouTube</option><option value="square">1:1 · Square</option></select></label>
-            <label>Wheel colour<select value={wheel.theme} onChange={e=>update({theme:e.target.value as Wheel['theme']})}><option value="electric">Electric Vibe</option><option value="sunset">Sunset Pop</option><option value="neon">Neon Night</option></select></label>
             <label>Spin duration: {wheel.duration} seconds<input aria-label="Spin duration" type="range" min="3" max="10" value={wheel.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
             <label>Answer countdown: {wheel.countdown} seconds<input aria-label="Answer countdown" type="range" min="0" max="15" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/></label>
             <label>Maximum spins (0 = unlimited)<input type="number" min="0" max="9999" value={wheel.maxSpins} onChange={e=>update({maxSpins:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>
             <label className={styles.check}><input type="checkbox" checked={wheel.noRepeat} onChange={e=>update({noRepeat:e.target.checked})}/> Do not repeat a segment in this session</label>
-            <label className={styles.check}><input type="checkbox" checked={wheel.sound} onChange={e=>update({sound:e.target.checked})}/> Sound effects (device audio must be recorded)</label>
+            <label className={styles.check}><input type="checkbox" checked={batchMode} onChange={e=>setBatchMode(e.target.checked)}/> Batch production: spin again after answer reveal</label>
+            <p className={styles.hint}>Space = Spin · R = Reveal · N = Next spin. You can also use the visible buttons below the stage.</p>
             <div className={styles.row}><button onClick={download}>Export wheel</button><label className={styles.fileButton}>Import JSON<input type="file" accept=".json,application/json" onChange={e=>{void upload(e.target.files?.[0]);e.target.value=''}}/></label></div>
-          </div>
+            <p className={styles.hint}>Session history: {episodeLog.length} spins</p>
+          </div>}
         </aside>}
         <section className={styles.previewSection} aria-label="Wheel preview">
           {!recording && <div className={styles.previewTop}><span>LIVE PREVIEW</span><span>{format==='portrait'?'9:16':format==='landscape'?'16:9':'1:1'} · Ready to record</span></div>}
