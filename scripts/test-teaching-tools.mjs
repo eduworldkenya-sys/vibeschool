@@ -12,15 +12,16 @@ const css = read('../components/learn/tools/TeachingTools.module.css')
 const grade4 = read('../components/learn/Grade4TimeContentReader.tsx')
 const outcome = read('../components/learn/Grade4TimeOutcomePackage.tsx')
 
-test('exactly twelve distinct, runnable tools cover three core subject groups', () => {
-  assert.equal(TEACHING_TOOL_CATALOG.length, 12)
-  assert.equal(new Set(TEACHING_TOOL_CATALOG.map(x => x.id)).size, 12)
+test('twelve original tools remain and Stage 3 extends the same catalogue', () => {
+  assert.equal(TEACHING_TOOL_CATALOG.length, 21)
+  assert.equal(new Set(TEACHING_TOOL_CATALOG.map(x => x.id)).size, 21)
   for (const [subject, count] of [['math', 6], ['language', 3], ['science', 3]]) {
     assert.equal(TEACHING_TOOL_CATALOG.filter(x => x.subject === subject).length, count)
   }
+  const stage3 = read('../components/learn/tools/EarlyYearsPracticalTools.tsx')
   for (const tool of TEACHING_TOOL_CATALOG) {
     assert.ok(isTeachingToolId(tool.id))
-    assert.ok((math + languageScience).includes("case '" + tool.id + "'"), tool.id + ' missing implementation')
+    assert.ok((math + languageScience + stage3).includes("case '" + tool.id + "'"), tool.id + ' missing implementation')
   }
 })
 
