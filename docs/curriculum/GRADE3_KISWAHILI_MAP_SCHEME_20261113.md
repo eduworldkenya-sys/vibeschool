@@ -37,3 +37,15 @@ The official KICD 2024 PDF is publicly locatable and partially text-searchable. 
 5. Save a representative teacher lesson in an actual assigned Grade 3 class, then read back scheme_of_work.curriculum_outcome_id and scheme_lesson_outcomes. Test unauthorized and wrong-grade/wrong-subject negative paths, exact-head CI, private source isolation and production UI before declaring connection complete.
 
 **Implementation state:** partial read-only Curriculum Map → Scheme navigation, not a full KICD copy, not connected/saved Scheme outcome rows, not production content certification.
+
+## Grade 3 Kiswahili Scheme implementation extension (13 November 2026)
+
+A subsequent implementation wires the existing Grade 3 Kiswahili Curriculum Map to the **same** teacher Scheme write contract rather than stopping at a read-only navigation reference:
+
+- The Curriculum Map passes the persisted `cbc_strands.id` as `unitId`, together with the teacher's real selected class, subject, term and instructional week. The Scheme can return to that same curriculum sub-strand from a saved linked lesson.
+- The Scheme reads active VibeSchool-original outcomes and active `curriculum_unit_guidance` for those persisted identities. It offers a multi-outcome selection and **Add to Week Scheme** only if the sub-strand has a valid `VS-CUR-G03-SW-2026#<unit>` source reference, active exact-prefix outcome references, nonempty key inquiry, learning experiences, learning resources and assessment methods.
+- `supabase/migrations/20261113150000_grade3_kiswahili_canonical_scheme_activation.sql` patches the existing **security-invoker** `commit_mapped_scheme_lesson` only. It preserves its authenticated teacher-assignment, grade, canonical global-subject, school term/week and selected-outcome checks, and the atomic `scheme_of_work` + `scheme_lesson_outcomes` linkage. Its fail-closed patch guard requires the already deployed Grade 9 English extension; no second Scheme engine or artificial teacher records are created.
+- The displayed four lessons per week is an allocation, **not** an automatic term-week assignment or KICD page-verification claim. No Scheme row is written on map navigation.
+- Exact-identity and negative-path regression checks run in the existing `test:curriculum-identity` suite.
+
+**Production data gate remains:** the last read-only Supabase audit found 12 legacy headings but **zero Grade 3 Kiswahili outcome records, zero active teaching guides and zero saved Scheme lessons**. The code supports a real save once authentic, source-reconciled and approved VibeSchool records are entered and the migration is deployed. Until those exist, the UI correctly keeps the save action unavailable. A GitHub merge is not the same as a migration applied in production or a teacher save/readback.
