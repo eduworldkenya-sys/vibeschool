@@ -1,18 +1,18 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
-import { ArrowRight, RotateCcw } from 'lucide-react'
+import { type ReactNode } from 'react'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import TeachingToolHost from '@/components/learn/TeachingToolHost'
+import { learnSubjectMode, type TeachingToolSection } from '@/lib/learn/teachingToolRegistry'
 import styles from './UniversalLearnReader.module.css'
 
 /** Presentation-only contract. Canonical release/RLS checks stay with the caller. */
-export type UniversalLearnSection = {
-  id: string
+export type UniversalLearnSection = TeachingToolSection & {
   title: string
   hint?: string
-  tone?: string
-  body: string
 }
+
+export { learnSubjectMode } from '@/lib/learn/teachingToolRegistry'
 
 type Props = {
   subject: string
@@ -22,47 +22,6 @@ type Props = {
   anchorPrefix?: string
   renderBody?: (section: UniversalLearnSection, index: number) => ReactNode
   afterSection?: (section: UniversalLearnSection, index: number) => ReactNode
-}
-
-export function learnSubjectMode(subject: string): 'math' | 'language' | 'science' | 'creative' | 'general' {
-  if (/math|mathematics/i.test(subject)) return 'math'
-  if (/english|kiswahili|language|literature|french|arabic/i.test(subject)) return 'language'
-  if (/science|agriculture|health|biology|chemistry|physics|environment/i.test(subject)) return 'science'
-  if (/creative|art|music|performing|design/i.test(subject)) return 'creative'
-  return 'general'
-}
-
-function MathsWorking({ body }: { body: string }) {
-  const working = useMemo(() => {
-    const lead: string[] = []
-    const steps: string[] = []
-    for (const raw of body.replace(/\r\n?/g, '\n').split('\n')) {
-      const step = /^\s*\d+[.)]\s+(.+)$/.exec(raw)
-      if (step) steps.push(step[1])
-      else if (steps.length && raw.trim()) steps[steps.length - 1] += '\n' + raw
-      else lead.push(raw)
-    }
-    return { lead: lead.join('\n').trim(), steps }
-  }, [body])
-  const [visible, setVisible] = useState(1)
-  if (working.steps.length < 2) return <VisualRichText body={body} />
-  return <div className={styles.mathWorking}>
-    {working.lead && <VisualRichText body={working.lead} />}
-    <ol className={styles.workingList}>
-      {working.steps.slice(0, visible).map((step, i) =>
-        <li key={i}><span className={styles.stepNumber} aria-hidden="true">{i + 1}</span><VisualRichText body={step} /></li>)}
-    </ol>
-    <div className={styles.workingActions}>
-      {visible < working.steps.length
-        ? <button type="button" onClick={() => setVisible(n => Math.min(n + 1, working.steps.length))}>
-          Show next step <ArrowRight size={16} aria-hidden="true" />
-        </button>
-        : <span role="status">All {working.steps.length} steps are shown.</span>}
-      <button type="button" onClick={() => setVisible(visible === 1 ? working.steps.length : 1)}>
-        <RotateCcw size={15} aria-hidden="true" /> {visible === 1 ? 'Show all steps' : 'Start again'}
-      </button>
-    </div>
-  </div>
 }
 
 /**
@@ -109,9 +68,7 @@ export default function UniversalLearnReader({
           </header>
           <div className={styles.body}>
             {renderBody?.(section, index)
-              ?? (mode === 'math' && section.id === 'example'
-                ? <MathsWorking key={id} body={section.body} />
-                : <VisualRichText body={section.body} />)}
+              ?? <TeachingToolHost subject={subject} section={section} />}
           </div>
           {afterSection?.(section, index)}
         </section>
