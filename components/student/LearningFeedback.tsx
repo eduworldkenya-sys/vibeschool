@@ -29,28 +29,41 @@ const tones: Record<LearningFeedbackKind, readonly [number, number, number][]> =
 }
 
 /** Original gentle non-musical tones; never autoplay or interrupt speech. */
+function renderTone(context: AudioContext, kind: LearningFeedbackKind) {
+  const start = context.currentTime
+  for (const [frequency, delay, duration] of tones[kind]) {
+    const oscillator = context.createOscillator()
+    const gain = context.createGain()
+    oscillator.type = 'sine'
+    oscillator.frequency.setValueAtTime(frequency, start + delay)
+    gain.gain.setValueAtTime(.0001, start + delay)
+    gain.gain.exponentialRampToValueAtTime(kind === 'select' ? .012 : .026, start + delay + .015)
+    gain.gain.exponentialRampToValueAtTime(.0001, start + delay + duration)
+    oscillator.connect(gain)
+    gain.connect(context.destination)
+    oscillator.start(start + delay)
+    oscillator.stop(start + delay + duration + .015)
+    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect() }
+  }
+}
+
+/** A blocked/suspended first sound is retried only after the user-gesture audio unlock. */
 function playTone(kind: LearningFeedbackKind) {
   if (!readPreference() || typeof window === 'undefined') return
   if ('speechSynthesis' in window && window.speechSynthesis.speaking) return
   try {
     const context = audioContext ?? new window.AudioContext()
     audioContext = context
-    if (context.state !== 'running') { void context.resume().catch(() => undefined); return }
-    const start = context.currentTime
-    for (const [frequency, delay, duration] of tones[kind]) {
-      const oscillator = context.createOscillator()
-      const gain = context.createGain()
-      oscillator.type = 'sine'
-      oscillator.frequency.setValueAtTime(frequency, start + delay)
-      gain.gain.setValueAtTime(.0001, start + delay)
-      gain.gain.exponentialRampToValueAtTime(kind === 'select' ? .012 : .026, start + delay + .015)
-      gain.gain.exponentialRampToValueAtTime(.0001, start + delay + duration)
-      oscillator.connect(gain)
-      gain.connect(context.destination)
-      oscillator.start(start + delay)
-      oscillator.stop(start + delay + duration + .015)
-      oscillator.onended = () => { oscillator.disconnect(); gain.disconnect() }
+    if (context.state !== 'running') {
+      void context.resume().then(() => {
+        if (context.state === 'running' && readPreference() &&
+          !('speechSynthesis' in window && window.speechSynthesis.speaking)) {
+          renderTone(context, kind)
+        }
+      }).catch(() => undefined)
+      return
     }
+    renderTone(context, kind)
   } catch { /* Sounds must never prevent learning or grading. */ }
 }
 
@@ -144,7 +157,14 @@ export default function LearningFeedback({
       </button>
     </div>
     {answer && <p><strong>Correct answer:</strong> {answer}</p>}
-    {explanation && <p className="learning-feedback__explanation">{explanation}</p>}
+    {explanation && <p className="learning-feedback__explanation"><strong>Why:</strong> {explanation}</p>}
+    {status !== 'correct' && <p className="learning-feedback__guidance">
+      {status === 'incorrect'
+        ? explanation
+          ? 'Read why the answer works. After finishing, practise this skill again using a fresh question.'
+          : 'Review the lesson explanation in Learn, then try a fresh question. This result does not mean you cannot improve.'
+        : 'Return to this skill during your review. Skipped questions do not count as correct answers.'}
+    </p>}
     <div className="learning-feedback__actions">{children}</div>
   </div>
 }
