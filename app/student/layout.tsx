@@ -12,7 +12,7 @@ import { FeedbackSoundToggle } from "@/components/student/LearningFeedback";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student-theme";
 
-function TopBar({ name, className, schoolName }: { name: string; className: string; schoolName: string }) {
+function TopBar({ name, className, schoolName, focused = false }: { name: string; className: string; schoolName: string; focused?: boolean }) {
   const router   = useRouter();
   const pathname = usePathname();
   const isRoot   = pathname === "/student" || pathname === "/student/";
@@ -62,16 +62,16 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <FeedbackSoundToggle />
-        <button type="button" aria-label="Open notifications" onClick={() => router.push("/student/notifications")}
+        {!focused && <button type="button" aria-label="Open notifications" onClick={() => router.push("/student/notifications")}
           style={{ cursor: "pointer", color: "var(--vs-accent)", border: "none", background: "transparent", display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center" }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
-        </button>
+        </button>}
 
-        <button type="button" aria-label="Open learner profile"
+        {!focused && <button type="button" aria-label="Open learner profile"
           onClick={() => router.push("/student/profile")}
           style={{
             width: 44, height: 44, borderRadius: "50%", border: "none",
@@ -82,7 +82,7 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
           }}
         >
           {initials}
-        </button>
+        </button>}
       </div>
     </div>
   );
@@ -115,6 +115,7 @@ function Toast({ msg }: { msg: string }) {
 function StudentShell({ children }: { children: React.ReactNode }) {
   const { identity, loading, error, retry } = useStudent();
   const pathname = usePathname();
+  const focusedAssessment = /^\/student\/assessment\/[^/]+\/?$/.test(pathname);
 
   if (loading) {
     return (
@@ -145,21 +146,22 @@ function StudentShell({ children }: { children: React.ReactNode }) {
         name={identity?.name ?? ""}
         className={identity?.className ?? ""}
         schoolName={identity?.schoolName ?? ""}
+        focused={focusedAssessment}
       />
       <OfflineBar />
-      <main className="student-content" style={{
+      <main className={focusedAssessment ? "student-content assessment-focus" : "student-content"} style={{
         width: "100%",
         minWidth: 0,
-        maxWidth:      1120,
+        maxWidth:      focusedAssessment ? 960 : 1120,
         margin:        "0 auto",
         padding:       "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
-        paddingBottom: 160,
+        paddingBottom: focusedAssessment ? 24 : 160,
         minHeight:     "calc(100dvh - 120px)",
       }}>
         {children}
       </main>
-      <StudentPlannerReminders />
-      <BottomNav />
+      {!focusedAssessment && <StudentPlannerReminders />}
+      {!focusedAssessment && <BottomNav />}
     </div>
   );
 }
@@ -230,7 +232,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             .student-home .student-home-change { flex-wrap:wrap; }
           }
           @media(min-width:768px) {
-            .student-content { padding-bottom:110px !important; }
+            .student-content:not(.assessment-focus) { padding-bottom:110px !important; }
           }
           @media(prefers-reduced-motion:reduce) {
             .student-home { animation:none !important; }
