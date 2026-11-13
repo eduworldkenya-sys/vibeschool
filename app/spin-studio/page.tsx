@@ -491,12 +491,19 @@ export default function SpinStudio() {
         {!recording && <aside className={styles.controls}>
           <div className={styles.historyControls}><button disabled={!undoCount} onClick={undoEdit}>↶ Undo</button><button disabled={!redoCount} onClick={redoEdit}>↷ Redo</button><span>Changes saved locally</span></div>
           <nav className={styles.setupTabs} aria-label="Spin Studio setup">
-            {(['wheels','content','appearance','effects','settings'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':'Settings'}</button>)}
+            {(['wheels','content','appearance','effects','settings','production'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':tab==='production'?'Production':'Settings'}</button>)}
           </nav>
           {setupTab==='wheels' && <div className={styles.panel}>
             <div className={styles.panelTitle}><h2>My wheels</h2><button onClick={addWheel} className={styles.smallButton}>+ New</button></div>
             <select aria-label="Select a saved wheel" value={selectedId} onChange={e=>setSelectedId(e.target.value)}>{wheels.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select>
             <div className={styles.row}><button onClick={duplicateWheel}>Duplicate</button><button disabled={wheels.length<=1} onClick={removeWheel}>Delete wheel</button></div>
+            <label>Show format<select value={showFormat} onChange={e=>setShowFormat(e.target.value as ShowFormat)}>
+              <option value="challenge">VibeSpin Challenge · questions and guesses</option>
+              <option value="lucky">VibeSpin Lucky Draw · prizes and entries</option>
+              <option value="trending">VibeSpin Trending · entertainment topics</option>
+              <option value="learn">VibeSpin Learn · curriculum challenges</option>
+            </select></label>
+            <p className={styles.hint}>{showFormat==='trending'?'A random result is not a forecast, poll, or endorsement. Keep candidate lists fact-checked and neutral.':showFormat==='lucky'?'Check eligibility, transparency and any applicable promotion rules before announcing prizes.':'One reusable wheel for different topics and episodes.'}</p>
             <label>Wheel name<input value={wheel.name} maxLength={90} onChange={e=>update({name:e.target.value})}/></label>
             <label>Video hook / headline<input value={wheel.headline} maxLength={100} onChange={e=>update({headline:e.target.value})}/></label>
             <label>Closing call to action<input value={wheel.cta} maxLength={120} onChange={e=>update({cta:e.target.value})}/></label>
@@ -512,12 +519,19 @@ export default function SpinStudio() {
               <input aria-label={'Label '+(i+1)} placeholder="Segment label" maxLength={70} value={entry.label} onChange={e=>editEntry(entry.id,{label:e.target.value})}/>
               <input aria-label={'Question '+(i+1)} placeholder="Question (optional)" maxLength={250} value={entry.question} onChange={e=>editEntry(entry.id,{question:e.target.value})}/>
               <input aria-label={'Answer '+(i+1)} placeholder="Answer (optional)" maxLength={250} value={entry.answer} onChange={e=>editEntry(entry.id,{answer:e.target.value})}/>
+              <label className={styles.photoUpload}>Segment image (JPG, PNG or WebP, max 140 KB)
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{imageForEntry(entry.id,e.target.files?.[0]);e.target.value=''}}/>
+              </label>
+              {entry.image && <div className={styles.photoPreview}><img src={entry.image} alt={'Segment '+entry.label}/><button onClick={()=>editEntry(entry.id,{image:''})}>Remove photo</button></div>}
             </div>)}</div>
             <button onClick={()=>setShowBulk(v=>!v)}>{showBulk?'Close bulk editor':'+ Paste multiple entries'}</button>
             {showBulk && <div className={styles.bulk}><p className={styles.hint}>One line per segment: Label | Question | Answer</p><textarea rows={5} value={paste} onChange={e=>setPaste(e.target.value)} placeholder={'Brazil | What is its capital? | Brasília\nFractions | What is 1/2 + 1/4? | 3/4'}/><button onClick={importRows} disabled={!paste.trim()}>Add entries</button></div>}
           </div>}
           {setupTab==='appearance' && <div className={styles.panel}>
             <h2>Appearance & backgrounds</h2>
+            <label>Wheel segment display<select value={wheel.segmentStyle??'both'} onChange={e=>update({segmentStyle:e.target.value as SegmentStyle})}>
+              <option value="text">Text only</option><option value="photo">Photo / icon only when provided</option><option value="both">Photo and name</option>
+            </select></label>
             <label>Stage theme<select value={wheel.stageBackground??'game'} onChange={e=>update({stageBackground:e.target.value,backgroundImage:''})}>
               <option value="game">Game Show Blue</option><option value="gold">Gold Challenge</option><option value="pop">Pop Challenge</option><option value="midnight">Neon Night</option><option value="clean">Clean Studio</option>
             </select></label>
@@ -532,8 +546,12 @@ export default function SpinStudio() {
           </div>}
           {setupTab==='effects' && <div className={styles.panel}>
             <h2>Effects & show director</h2>
+            <label className={styles.check}><input type="checkbox" checked={wheel.introEnabled??true} onChange={e=>update({introEnabled:e.target.checked})}/> Branded opening scene</label>
+            <label>Opening duration: {wheel.introDuration??2} seconds<input type="range" min="1" max="5" value={wheel.introDuration??2} onChange={e=>update({introDuration:Number(e.target.value)})}/></label>
+            <label className={styles.check}><input type="checkbox" checked={wheel.outroEnabled??true} onChange={e=>update({outroEnabled:e.target.checked})}/> Branded closing scene</label>
+            <label>Closing duration: {wheel.outroDuration??3} seconds<input type="range" min="1" max="8" value={wheel.outroDuration??3} onChange={e=>update({outroDuration:Number(e.target.value)})}/></label>
             <label className={styles.check}><input type="checkbox" checked={wheel.musicEnabled??false} onChange={e=>{update({musicEnabled:e.target.checked});if(!e.target.checked)stopMusic()}}/> Background music (original synthesised soundtrack)</label>
-            <label>Music style<select value={wheel.musicStyle??'ambient'} onChange={e=>{update({musicStyle:e.target.value as Wheel['musicStyle']});stopMusic()}}><option value="ambient">Soft ambient suspense</option><option value="pulse">Bright game-show pulse</option></select></label>
+            <label>Music style<select value={wheel.musicStyle??'ambient'} onChange={e=>{update({musicStyle:e.target.value as Wheel['musicStyle']});stopMusic()}}><option value="ambient">Soft ambient</option><option value="pulse">Energetic game-show pulse</option><option value="suspense">Dramatic suspense</option><option value="comedy">Playful comedy</option><option value="calm">Calm background</option></select></label>
             <label>Music volume: {wheel.musicVolume??18}%<input type="range" min="0" max="100" value={wheel.musicVolume??18} onChange={e=>{const volume=Number(e.target.value);update({musicVolume:volume});if(musicRef.current)musicRef.current.gain.gain.value=Math.min(0.12,volume/100*0.12)}}/></label>
             <div className={styles.row}><button onClick={()=>{if(musicPlaying)stopMusic();else playMusic()}}>{musicPlaying?'Stop background music':'Preview music'}</button></div>
             <label className={styles.check}><input type="checkbox" checked={wheel.automatic??true} onChange={e=>update({automatic:e.target.checked})}/> Automatic countdown and answer reveal</label>
@@ -546,6 +564,7 @@ export default function SpinStudio() {
           </div>}
           {setupTab==='settings' && <div className={styles.panel}>
             <h2>Show controls</h2>
+            <label className={styles.check}><input type="checkbox" checked={safeZone} onChange={e=>setSafeZone(e.target.checked)}/> Show portrait safe-area guide in editing preview</label>
             <label>Video shape<select value={format} onChange={e=>setFormat(e.target.value as Format)}><option value="portrait">9:16 · Shorts & TikTok</option><option value="landscape">16:9 · YouTube</option><option value="square">1:1 · Square</option></select></label>
             <label>Spin duration: {wheel.duration} seconds<input aria-label="Spin duration" type="range" min="3" max="10" value={wheel.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
             <label>Answer countdown: {wheel.countdown} seconds<input aria-label="Answer countdown" type="range" min="0" max="15" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/></label>
@@ -555,6 +574,30 @@ export default function SpinStudio() {
             <p className={styles.hint}>Space = Spin · R = Reveal · N = Next spin. You can also use the visible buttons below the stage.</p>
             <div className={styles.row}><button onClick={download}>Export wheel</button><label className={styles.fileButton}>Import JSON<input type="file" accept=".json,application/json" onChange={e=>{void upload(e.target.files?.[0]);e.target.value=''}}/></label></div>
             <p className={styles.hint}>Session history: {episodeLog.length} spins</p><button onClick={exportSession} disabled={!episodeLog.length}>Export session log (CSV)</button>
+          </div>}
+          {setupTab==='production' && <div className={styles.panel}>
+            <div className={styles.panelTitle}><h2>Video production</h2><button className={styles.smallButton} onClick={createProduction}>+ Track episode</button></div>
+            <p className={styles.hint}>Plan and track videos here. Publishing still happens in your social-media apps; all records stay in this browser.</p>
+            <label>Copy-ready title, caption and hashtags
+              <textarea rows={7} readOnly value={suggestedCaption()}/>
+            </label>
+            <button onClick={()=>{void copyCaption()}}>{captionCopied?'Copied!':'Copy video caption'}</button>
+            <div className={styles.row}><button onClick={exportTracker} disabled={production.length===0}>Export production CSV</button><button onClick={createProduction}>Save this episode to tracker</button></div>
+            <p className={styles.hint}>{production.length} tracked videos · {production.filter(item=>item.status==='published'||item.status==='reviewed').length} published</p>
+            <div className={styles.productionList}>{production.map(item=><div className={styles.productionItem} key={item.id}>
+              <label>Video title<input maxLength={120} value={item.title} onChange={e=>updateProduction(item.id,{title:e.target.value})}/></label>
+              <div className={styles.productionTwo}>
+                <label>Platform<select value={item.platform} onChange={e=>updateProduction(item.id,{platform:e.target.value})}>{socialPlatforms.map(platform=><option key={platform} value={platform}>{platform}</option>)}</select></label>
+                <label>Status<select value={item.status} onChange={e=>updateProduction(item.id,{status:e.target.value as ProductionStatus})}>
+                  {(['idea','recorded','edited','scheduled','published','reviewed'] as const).map(status=><option key={status} value={status}>{status}</option>)}
+                </select></label>
+              </div>
+              <label>Planned publishing date<input type="date" value={item.plannedDate} onChange={e=>updateProduction(item.id,{plannedDate:e.target.value})}/></label>
+              <label>Published link<input placeholder="Paste the published video URL" maxLength={500} value={item.url} onChange={e=>updateProduction(item.id,{url:e.target.value})}/></label>
+              <div className={styles.productionMetrics}>{(['views','likes','shares','comments','followers'] as const).map(metric=><label key={metric}>{metric}<input type="number" min="0" max="999999999" value={item[metric]} onChange={e=>updateProduction(item.id,{[metric]:Math.max(0,Number(e.target.value)||0)})}/></label>)}</div>
+              <label>Notes<textarea rows={2} maxLength={500} value={item.notes} onChange={e=>updateProduction(item.id,{notes:e.target.value})}/></label>
+              <button onClick={()=>setProduction(old=>old.filter(row=>row.id!==item.id))}>Delete this record</button>
+            </div>)}</div>
           </div>}
         </aside>}
         <section className={styles.previewSection} aria-label="Wheel preview">
