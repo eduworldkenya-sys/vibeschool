@@ -32,7 +32,7 @@ $old_guard$;
   v_guard_new text := $new_guard$
   -- Never commit an empty Grade 3 Kiswahili shell, even if a stale row
   -- appears active: require inquiry, experiences, resources and assessment.
-  if v_unit.grade='Grade 3' and (
+  if v_unit.grade='Grade 3' and v_unit.source_ref like 'VS-CUR-G03-SW-2026#%' and (
      v_unit.source_ref !~ '^VS-CUR-G03-SW-2026#[a-zA-Z0-9._-]+$'
      or coalesce(cardinality(v_reader_inquiry),0)=0
      or coalesce(cardinality(v_reader_experiences),0)=0
