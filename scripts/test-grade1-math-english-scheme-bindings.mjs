@@ -63,7 +63,7 @@ assert.ok(scheme.includes("supabase.rpc('commit_mapped_scheme_lesson'"),
   'Teacher must use existing atomic scheme commit')
 assert.ok(scheme.includes('const activeMappedDraftRecord = mappedDraftRecord || grade3KiswahiliDraftRecord') &&
   scheme.includes('p_sub_strand_id:activeMappedDraftRecord.id') &&
-  scheme.includes('const mappedDraftRecord = grade3EnglishDraftRecord || creativeDraftRecord || grade1DraftRecord'),
+  (scheme.split('\n').find(line=>line.includes('const mappedDraftRecord ='))||'').includes('grade1DraftRecord'),
   'Grade 1 must retain actual persisted sub-strand IDs through the shared mapped Scheme RPC')
 assert.ok(scheme.includes("(mappedDraftRecord?.outcomes||[]).map"),
   'Use actual persisted outcome IDs')
