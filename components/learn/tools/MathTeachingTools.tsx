@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useState } from 'react'
+import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import type { TeachingToolId, TeachingToolSpec } from '@/lib/learn/teachingToolCatalog'
 import styles from './TeachingTools.module.css'
 
@@ -8,6 +9,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const fmt = (value: number) => Number(value.toPrecision(8)).toLocaleString('en-KE')
 
 function NumberLine({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const inputId = useId()
   const lower = spec.min ?? -10, upper = spec.max ?? 10
   const min = lower < upper && lower >= -1000 && upper <= 1000 ? lower : -10
@@ -18,17 +20,22 @@ function NumberLine({ spec }: { spec: TeachingToolSpec }) {
   return <div className={styles.stack}>
     <label htmlFor={inputId}>Move the marker: <strong>{fmt(position)}</strong></label>
     <input id={inputId} aria-label="Number line position" type="range" min={min} max={max} step={step}
-      value={position} onChange={e => setPosition(Number(e.target.value))} />
-    <div className={styles.numberLine} role="img" aria-label={'Number line from '+min+' to '+max+', marker at '+position}>
-      {ticks.map((tick, i) => <span key={i} aria-hidden="true"><small>{fmt(tick)}</small></span>)}
+      value={position} onChange={e => setPosition(Number(e.target.value))}
+      onPointerUp={() => play("select")} onKeyUp={e => { if (e.key.startsWith("Arrow")) play("select") }} />
+    <div className={styles.numberLineFrame}>
+      <div className={styles.numberLine} role="img" aria-label={'Number line from '+min+' to '+max+', marker at '+position}>
+        {ticks.map((tick, i) => <span key={i} aria-hidden="true"><small>{fmt(tick)}</small></span>)}
+      </div>
+      <span aria-hidden="true" className={styles.numberLineMarker} style={{left: `${((position - min) / (max - min)) * 100}%`}} />
     </div>
     <p className={styles.explain}>The marker is at <strong>{fmt(position)}</strong>.
       {position < 0 ? ' It is left of zero.' : position > 0 ? ' It is right of zero.' : ' It is at zero.'}</p>
-    <button type="button" className={styles.secondary} onClick={() => setPosition(clamp(0,min,max))}>Back towards zero</button>
+    <button type="button" className={styles.secondary} onClick={() => { setPosition(clamp(0,min,max)); play("select") }}>Back towards zero</button>
   </div>
 }
 
 function PlaceValue({ spec }: { spec: TeachingToolSpec }) {
+  const { play } = useLearningFeedback()
   const inputId = useId()
   const [number, setNumber] = useState(String(Math.floor(clamp(spec.number ?? 20458, 0, 999999999999))))
   const valid = /^\d{1,12}$/.test(number) && Number(number) <= 999999999999
@@ -37,7 +44,7 @@ function PlaceValue({ spec }: { spec: TeachingToolSpec }) {
     'millions', 'hundred thousands', 'ten thousands', 'thousands', 'hundreds', 'tens', 'ones']
   return <div className={styles.stack}>
     <label htmlFor={inputId}>Choose a whole number (0 to 999,999,999,999)</label>
-    <input id={inputId} type="number" min="0" max="999999999999" step="1" value={number} onChange={e => setNumber(e.target.value)} />
+    <input id={inputId} type="number" min="0" max="999999999999" step="1" value={number} onChange={e => setNumber(e.target.value)} onBlur={() => { if (valid) play("select") }} />
     {!valid ? <p role="alert">Enter a whole number of up to twelve digits.</p>
       : <><div className={styles.digitGrid}>{digits.map((digit,index) => {
         const power=digits.length-index-1
@@ -50,15 +57,16 @@ function PlaceValue({ spec }: { spec: TeachingToolSpec }) {
 }
 
 function FractionBars() {
+  const { play } = useLearningFeedback()
   const [a,setA]=useState(3), [b,setB]=useState(2)
   const [c,setC]=useState(2), [d,setD]=useState(3)
   const fraction=(n:number,den:number,name:string,onN:(n:number)=>void,onD:(n:number)=>void)=>
     <div className={styles.stack}>
       <div className={styles.controlRow}>
         <label>{name} numerator <input type="number" min="0" max={den*3} value={n}
-          onChange={e=>onN(clamp(Math.floor(Number(e.target.value)),0,den*3))}/></label>
+          onChange={e=>onN(clamp(Math.floor(Number(e.target.value)),0,den*3))} onBlur={() => play("select")}/></label>
         <label>denominator <input type="number" min="1" max="12" value={den}
-          onChange={e=>{const next=clamp(Math.floor(Number(e.target.value)),1,12);onD(next);onN(Math.min(next*3,n))}}/></label>
+          onChange={e=>{const next=clamp(Math.floor(Number(e.target.value)),1,12);onD(next);onN(Math.min(next*3,n))}} onBlur={() => play("select")}/></label>
       </div>
       <div className={styles.fractionSet} role="img" aria-label={n+' of '+den+' equal parts shaded; '+Math.floor(n/den)+' wholes and '+(n%den)+' extra parts'}>
         {Array.from({length:Math.max(1,Math.ceil(n/den))},(_,barIndex)=>
@@ -77,11 +85,12 @@ function FractionBars() {
 }
 
 function MultiplicationArray() {
+  const { play } = useLearningFeedback()
   const [rows, setRows] = useState(3), [columns, setColumns] = useState(4)
   return <div className={styles.stack}>
     <div className={styles.controlRow}>
-      <label>Rows <input type="number" min="1" max="10" value={rows} onChange={e => setRows(clamp(Math.floor(Number(e.target.value)), 1, 10))} /></label>
-      <label>Columns <input type="number" min="1" max="10" value={columns} onChange={e => setColumns(clamp(Math.floor(Number(e.target.value)), 1, 10))} /></label>
+      <label>Rows <input type="number" min="1" max="10" value={rows} onChange={e => setRows(clamp(Math.floor(Number(e.target.value)), 1, 10))} onBlur={() => play("select")} /></label>
+      <label>Columns <input type="number" min="1" max="10" value={columns} onChange={e => setColumns(clamp(Math.floor(Number(e.target.value)), 1, 10))} onBlur={() => play("select")} /></label>
     </div>
     <div className={styles.array} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 28px))` }}
       role="img" aria-label={`${rows} rows of ${columns} dots: ${rows * columns} dots total`}>
@@ -92,6 +101,7 @@ function MultiplicationArray() {
 }
 
 function Clock() {
+  const { play } = useLearningFeedback()
   const [hour, setHour] = useState(3), [minute, setMinute] = useState(0)
   const point = (angle: number, length: number) => {
     const radians = angle * Math.PI / 180
@@ -101,8 +111,8 @@ function Clock() {
   const longHand = point(minute * 6, 65)
   return <div className={styles.stack}>
     <div className={styles.controlRow}>
-      <label>Hour <select value={hour} onChange={e => setHour(Number(e.target.value))}>{Array.from({ length: 12 }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}</select></label>
-      <label>Minute <select value={minute} onChange={e => setMinute(Number(e.target.value))}>{Array.from({ length: 60 }, (_, i) => <option key={i} value={i}>{String(i).padStart(2, '0')}</option>)}</select></label>
+      <label>Hour <select value={hour} onChange={e => { setHour(Number(e.target.value)); play("select") }}>{Array.from({ length: 12 }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}</select></label>
+      <label>Minute <select value={minute} onChange={e => { setMinute(Number(e.target.value)); play("select") }}>{Array.from({ length: 60 }, (_, i) => <option key={i} value={i}>{String(i).padStart(2, '0')}</option>)}</select></label>
     </div>
     <svg className={styles.clock} viewBox="0 0 200 200" role="img" aria-label={`Clock showing ${hour}:${String(minute).padStart(2, '0')}`}>
       <circle cx="100" cy="100" r="90" fill="#fff" stroke="#37664b" strokeWidth="4" />
@@ -112,7 +122,7 @@ function Clock() {
       <circle cx="100" cy="100" r="5" fill="#255f43" />
     </svg>
     <p className={styles.explain}>Time: <strong>{hour}:{String(minute).padStart(2, '0')}</strong>. The shorter hand shows hours; the longer hand shows minutes.</p>
-    <button type="button" className={styles.secondary} onClick={() => { setHour(3); setMinute(0) }}>Reset clock</button>
+    <button type="button" className={styles.secondary} onClick={() => { setHour(3); setMinute(0); play("select") }}>Reset clock</button>
   </div>
 }
 
@@ -124,6 +134,7 @@ const units = {
 } as const
 
 function UnitConverter() {
+  const { play } = useLearningFeedback()
   const [family, setFamily] = useState<keyof typeof units>('time')
   const [from, setFrom] = useState('hour')
   const [to, setTo] = useState('minute')
@@ -137,11 +148,11 @@ function UnitConverter() {
       <label>Measure <select value={family} onChange={e => {
         const selected = e.target.value as keyof typeof units
         const names = Object.keys(units[selected])
-        setFamily(selected); setFrom(names[0]); setTo(names[1] ?? names[0])
+        setFamily(selected); setFrom(names[0]); setTo(names[1] ?? names[0]); play("select")
       }}><option value="time">Time</option><option value="length">Length</option><option value="mass">Mass</option><option value="capacity">Capacity</option></select></label>
-      <label>Amount <input type="number" min="0" max="1000000000" step="any" value={amount} onChange={e => setAmount(e.target.value)} /></label>
-      <label>From <select value={from} onChange={e => setFrom(e.target.value)}>{options.map(x => <option key={x}>{x}</option>)}</select></label>
-      <label>To <select value={to} onChange={e => setTo(e.target.value)}>{options.map(x => <option key={x}>{x}</option>)}</select></label>
+      <label>Amount <input type="number" min="0" max="1000000000" step="any" value={amount} onChange={e => setAmount(e.target.value)} onBlur={() => { if (valid) play("select") }} /></label>
+      <label>From <select value={from} onChange={e => { setFrom(e.target.value); play("select") }}>{options.map(x => <option key={x}>{x}</option>)}</select></label>
+      <label>To <select value={to} onChange={e => { setTo(e.target.value); play("select") }}>{options.map(x => <option key={x}>{x}</option>)}</select></label>
     </div>
     {result === null ? <p role="alert">Enter an amount between 0 and 1,000,000,000.</p>
       : <p className={styles.explain} role="status"><strong>{fmt(Number(amount))} {from} = {fmt(result)} {to}</strong></p>}
@@ -149,17 +160,23 @@ function UnitConverter() {
 }
 
 function DataChart({spec}:{spec:TeachingToolSpec}) {
+  const { play } = useLearningFeedback()
   const points=spec.points ?? []
+  const [selected, setSelected] = useState<number | null>(null)
   const max=Math.max(1,...points.map(x=>x.value))
   const highest=points.reduce((best,next)=>next.value>best.value?next:best,points[0])
   return <div className={styles.stack}>
-    <div className={styles.dataChart} role="img" aria-label={'Bar chart of '+points.map(p=>p.label+': '+fmt(p.value)).join(', ')}>
-      {points.map((point,index)=><div key={index} className={styles.dataRow}>
-        <span>{point.label}</span>
-        <div className={styles.dataTrack}><div style={{width:(point.value/max*100)+'%'}}/></div>
+    <div className={styles.dataChart} role="group" aria-label="Explore the values in this bar chart">
+      {points.map((point,index)=><div key={index} className={styles.dataRow} data-selected={selected===index}>
+        <button type="button" className={styles.dataLabelButton} aria-pressed={selected===index}
+          onClick={() => { setSelected(index); play('select') }}>{point.label}</button>
+        <div className={styles.dataTrack} role="img" aria-label={point.label+': '+fmt(point.value)}><div style={{width:(point.value/max*100)+'%'}}/></div>
         <strong>{fmt(point.value)}</strong>
       </div>)}
     </div>
+    {selected!==null && points[selected] && <p className={styles.explain} role="status">
+      Selected: <strong>{points[selected].label} — {fmt(points[selected].value)}</strong>.
+    </p>}
     <p className={styles.explain}>Largest value: {highest?.label} ({fmt(highest?.value ?? 0)}). Compare the bars to describe the data.</p>
   </div>
 }

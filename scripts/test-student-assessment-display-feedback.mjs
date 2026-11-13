@@ -1,0 +1,67 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const read = path => readFileSync(new URL('../'+path, import.meta.url),'utf8')
+const exam = read('app/student/assessment/[assignmentId]/page.tsx')
+const display = read('app/student/assessment/[assignmentId]/assessment-runner.module.css')
+const shell = read('app/student/layout.tsx')
+const maths = read('components/learn/tools/MathTeachingTools.tsx')
+const tools = read('components/learn/tools/TeachingTools.module.css')
+const language = read('components/learn/tools/LanguageScienceTeachingTools.tsx')
+const practical = read('components/learn/tools/EarlyYearsPracticalTools.tsx')
+const revision = read('app/student/vibelearn/revision/page.tsx')
+const results = read('app/student/results/[attemptId]/page.tsx')
+const resultStyles = read('app/student/results/[attemptId]/result-feedback.module.css')
+const reader = read('components/global/read/StoryReaderEnd.tsx')
+
+// Preserve the canonical save -> submit -> released result authority.
+assert.match(exam,/saveResponseWithRevision\(/)
+assert.match(exam,/await submitAttempt\(workspace\.attemptId\)/)
+assert.match(exam,/result\.scoreReleased/)
+assert.match(exam,/if \(!deadlineReached\) play\('submitted'/)
+assert.doesNotMatch(exam,/play\(['"](?:correct|retry)['"]/)
+
+// One question at a time, visible progress, save states and non-dominant finish.
+assert.match(exam,/className=\{styles\.questionCard\}/)
+assert.match(exam,/className=\{styles\.questionTitle\}/)
+assert.match(exam,/className=\{styles\.option\}/)
+assert.match(exam,/<progress className=\{styles\.progress\}/)
+assert.match(exam,/<details className=\{styles\.jump\}>/)
+assert.match(exam,/aria-current=\{index === currentIndex \? 'step'/)
+assert.match(exam,/className=\{styles\.quietButton\}/)
+assert.match(exam,/Review & finish/)
+assert.match(exam,/Submit & Finish\?/)
+assert.match(exam,/unansweredIndexes\.length > 0/)
+assert.match(exam,/questionHeadingRef\.current\?\.focus\(\)/)
+assert.doesNotMatch(exam,/<main className=\{styles\.runner\}/)
+assert.match(display,/font-size:clamp\(21px,4\.4vw,29px\)/)
+assert.match(display,/min-height:62px/)
+assert.match(display,/@media\(max-width:340px\)/)
+assert.match(display,/@media\(prefers-reduced-motion:reduce\)/)
+assert.match(display,/var\(--vs-accent/)
+assert.match(shell,/focusedAssessment/)
+assert.match(shell,/!focusedAssessment && <BottomNav/)
+assert.match(shell,/!focusedAssessment && <StudentPlannerReminders/)
+assert.match(shell,/\{!focused && <button type="button" aria-label="Open notifications"/)
+
+// Mathematical models give neutral interaction cues, never pretend graded correctness.
+for (const name of ['NumberLine','PlaceValue','FractionBars','MultiplicationArray','Clock','UnitConverter','DataChart']) {
+  assert.match(maths,new RegExp('function '+name+'\\([\\s\\S]*?const \\{ play \\} = useLearningFeedback\\(\\)'))
+}
+assert.match(maths,/numberLineMarker/)
+assert.match(maths,/aria-pressed=\{selected===index\}/)
+assert.match(maths,/play\('select'\)/)
+assert.doesNotMatch(maths,/play\(['"](?:correct|retry)['"]/)
+assert.match(tools,/\.numberLineMarker/)
+assert.match(tools,/\.dataLabelButton/)
+assert.match(tools,/prefers-reduced-motion:reduce/)
+assert.match(language,/styles\.feedbackCorrect/)
+assert.match(language,/styles\.feedbackRetry/)
+assert.match(practical,/Audio could not play/)
+assert.match(practical,/play\('error'\)/)
+assert.match(revision,/await generateRevisionPlan\(todayIso\(\), 7\); await load\(\); play\('saved'/)
+assert.match(results,/className=\{styles\.scoreNumber\}/)
+assert.match(results,/result\.answersRevealed/)
+assert.match(resultStyles,/@media\(prefers-reduced-motion:reduce\)/)
+assert.match(reader,/CONFETTI_KEYFRAMES/) // Do not duplicate its completion animation.
+console.log('Student assessment display + learning feedback contract PASS')

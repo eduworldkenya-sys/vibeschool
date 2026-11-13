@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import { generateRevisionPlan, getRevisionWorkspace, isCurrentGradeMistake, type RevisionWorkspace } from '@/lib/student/vibelearn'
@@ -14,6 +15,7 @@ function todayIso(): string {
 }
 
 export default function RevisionWorkspacePage() {
+  const { play } = useLearningFeedback()
   const router = useRouter()
   const { identity } = useStudent()
   const [workspace, setWorkspace] = useState<RevisionWorkspace | null>(null)
@@ -32,8 +34,8 @@ export default function RevisionWorkspacePage() {
 
   async function buildPlan() {
     setWorking(true); setError('')
-    try { await generateRevisionPlan(todayIso(), 7); await load() }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not build your revision plan.') }
+    try { await generateRevisionPlan(todayIso(), 7); await load(); play('saved', 'Your revision plan is ready') }
+    catch (reason) { play('error'); setError(reason instanceof Error ? reason.message : 'Could not build your revision plan.') }
     finally { setWorking(false) }
   }
 
