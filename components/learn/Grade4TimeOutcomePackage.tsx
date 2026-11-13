@@ -140,7 +140,7 @@ export default function Grade4TimeOutcomePackage({
           throw new Error('An invalid formative item was returned.')
         }
         if (!active) return
-        setLessons(checked)
+        setLessons([...checked].sort((a, b) => a.lesson_order - b.lesson_order))
         setItems(checkedItems)
 
         if (audience === 'teacher' && checked.length > 0) {
