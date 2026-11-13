@@ -4,7 +4,7 @@ import {GRADE8_ENGLISH_UNITS,GRADE8_ENGLISH_THEMES,GRADE8_ENGLISH_SOURCE_URL,GRA
 
 const green='#175b43'
 export default function Grade8EnglishMap({
- selectedUnitId='01-LS',onSelectUnit,onPlanUnit,mappedUnits={},catalogLoading=false,catalogError=''
+ selectedUnitId='01-LS',onSelectUnit,onPlanUnit,termSelected=false,mappedUnits={},catalogLoading=false,catalogError=''
 }){
  const selected=GRADE8_ENGLISH_UNITS.find(unit=>unit.id===selectedUnitId)||GRADE8_ENGLISH_UNITS[0]
  const theme=GRADE8_ENGLISH_THEMES.find(item=>item.id===selected.theme)
@@ -46,6 +46,7 @@ export default function Grade8EnglishMap({
     </article>
    })}
   </div>
-  <p style={{fontSize:11,color:'#577063',lineHeight:1.5,margin:'12px 0 0'}}>VibeSchool skill units are planning aids, not certified KICD sub-strand IDs. A Scheme lesson is created only when a teacher saves it.</p>
+  <p style={{fontSize:11,color:'#577063',lineHeight:1.5,margin:'12px 0 0'}}>VibeSchool skill units and learning outcomes are original planning aids, not a verified copy of official KICD outcomes. A Scheme lesson is created only when a teacher saves it.</p>
+  {onPlanUnit&&!termSelected&&<p style={{fontSize:12,color:'#456252',margin:'7px 0 0'}}>Open a unit in Scheme of Work now; choose a term before saving the lesson.</p>}
  </section>
 }
