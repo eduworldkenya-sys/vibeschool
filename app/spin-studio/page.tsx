@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
-type Entry = { id: string; label: string; question: string; answer: string; image?: string }
+type Entry = { id: string; label: string; question: string; answer: string; image?: string; symbol?: string }
 type ShowFormat = 'challenge' | 'lucky' | 'trending' | 'learn'
 type SegmentStyle = 'text' | 'photo' | 'both'
 type ProductionStatus = 'idea' | 'recorded' | 'edited' | 'scheduled' | 'published' | 'reviewed'
@@ -58,7 +58,7 @@ function validEntry(x: unknown): x is Entry {
   if (!x || typeof x !== 'object') return false
   const e=x as Record<string,unknown>
   return typeof e.id==='string' && typeof e.label==='string' && typeof e.question==='string' && typeof e.answer==='string'
-    && (e.image===undefined || (typeof e.image==='string' && (e.image==='' || (e.image.startsWith('data:image/') && e.image.length<220000))))
+    && (e.image===undefined || (typeof e.image==='string' && (e.image==='' || (e.image.startsWith('data:image/') && e.image.length<220000)))) && (e.symbol===undefined || (typeof e.symbol==='string' && e.symbol.length<=12))
 }
 function validWheel(x: unknown): x is Wheel {
   if (!x || typeof x!=='object') return false
@@ -519,6 +519,7 @@ export default function SpinStudio() {
               <input aria-label={'Label '+(i+1)} placeholder="Segment label" maxLength={70} value={entry.label} onChange={e=>editEntry(entry.id,{label:e.target.value})}/>
               <input aria-label={'Question '+(i+1)} placeholder="Question (optional)" maxLength={250} value={entry.question} onChange={e=>editEntry(entry.id,{question:e.target.value})}/>
               <input aria-label={'Answer '+(i+1)} placeholder="Answer (optional)" maxLength={250} value={entry.answer} onChange={e=>editEntry(entry.id,{answer:e.target.value})}/>
+              <label>Segment icon / emoji (optional)<input maxLength={12} placeholder="⭐ or 🎓" value={entry.symbol??''} onChange={e=>editEntry(entry.id,{symbol:e.target.value})}/></label>
               <label className={styles.photoUpload}>Segment image (JPG, PNG or WebP, max 140 KB)
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{imageForEntry(entry.id,e.target.files?.[0]);e.target.value=''}}/>
               </label>
@@ -530,7 +531,7 @@ export default function SpinStudio() {
           {setupTab==='appearance' && <div className={styles.panel}>
             <h2>Appearance & backgrounds</h2>
             <label>Wheel segment display<select value={wheel.segmentStyle??'both'} onChange={e=>update({segmentStyle:e.target.value as SegmentStyle})}>
-              <option value="text">Text only</option><option value="photo">Photo / icon only when provided</option><option value="both">Photo and name</option>
+              <option value="text">Text only</option><option value="photo">Photo or emoji only when provided</option><option value="both">Photo and name</option>
             </select></label>
             <label>Stage theme<select value={wheel.stageBackground??'game'} onChange={e=>update({stageBackground:e.target.value,backgroundImage:''})}>
               <option value="game">Game Show Blue</option><option value="gold">Gold Challenge</option><option value="pop">Pop Challenge</option><option value="midnight">Neon Night</option><option value="clean">Clean Studio</option>
@@ -619,7 +620,8 @@ export default function SpinStudio() {
                         <defs><clipPath id={'vibespin-clip-'+index}><path d={path}/></clipPath></defs>
                         <image href={entry.image} x="180" y="70" width="40" height="43" preserveAspectRatio="xMidYMid slice" transform={'rotate('+degree+' 200 200)'} clipPath={'url(#vibespin-clip-'+index+')'}/>
                       </>}
-                      {(wheel.segmentStyle!=='photo'||!entry.image) && <text x="200" y={entry.image&&wheel.segmentStyle==='both'?'126':'73'} textAnchor="middle" transform={'rotate('+degree+' 200 200)'} fill="#10162b" fontSize={entries.length>16?8:entries.length>10?10:13} fontWeight="900">{entry.label.length>15?entry.label.slice(0,14)+'…':entry.label||'Item'}</text>}
+                      {entry.symbol && !entry.image && wheel.segmentStyle!=='text' && entries.length<=24 && <text x="200" y="98" fontSize="32" textAnchor="middle" transform={'rotate('+degree+' 200 200)'}>{entry.symbol}</text>}
+                      {(wheel.segmentStyle!=='photo'||(!entry.image&&!entry.symbol)) && <text x="200" y={(entry.image||entry.symbol)&&wheel.segmentStyle==='both'?'132':'73'} textAnchor="middle" transform={'rotate('+degree+' 200 200)'} fill="#10162b" fontSize={entries.length>16?8:entries.length>10?10:13} fontWeight="900">{entry.label.length>15?entry.label.slice(0,14)+'…':entry.label||'Item'}</text>}
                     </g>)}
                   </g>}
                   <circle cx="200" cy="200" r="48" fill="#0d1831" stroke="#ffffff" strokeWidth="5"/>
