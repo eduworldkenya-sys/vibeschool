@@ -257,7 +257,7 @@ export default function Grade4TimeOutcomePackage({
           afterSection={(section) => <>
             <Grade4TimeLearningAid lessonNumber={selected.lesson_order} sectionId={section.id} />
             {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
-              lessonOrder={selected.lesson_order} sectionId={section.id} inlineVisualPresent={/\\[visual:/.test(selected.body)} />}
+              lessonOrder={selected.lesson_order} sectionId={section.id} inlineVisualPresent={/\[visual:/.test(selected.body)} />}
           </>}
         />
         <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
