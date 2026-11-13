@@ -48,7 +48,7 @@ assert.match(shared, /cbc_grade/, 'Reading needs grade selection');
 assert.match(shared, /return \(\) => \{ active = false \}/, 'Reading must cancel stale loads');
 assert.match(reading, /StudentLearnLegacyRedirect/, 'Old reading URL must converge on Learn');
 assert.match(catalog, /readersForSubject/, 'Known published readers must be discoverable');
-assert.match(form4, /StudentLearnLegacyRedirect/, 'Form 4 and other learners enter Learn');
+assert.match(form4, /redirect\('\\/student\\/study'\)/, 'All learners enter their protected study desk');
 assert.match(layout, /return <>\{children\}<\/>/, 'Nested exams, practice and revision routes must pass through unchanged');
 assert.match(read('app/student/study/page.tsx'), /getVibeLearnWorkstation/, 'The personal learning workspace retains canonical backend');
 assert.doesNotMatch(layout, /identity\.independent \|\| pathname/, "Independent learners must use the same grade workstation");
