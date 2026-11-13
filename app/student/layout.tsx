@@ -209,6 +209,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             --vs-error:       ${resolved === "dark" ? "#ff9c9c" : "#b93434"};
             --vs-card:        ${resolved === "dark" ? "#1b2c21" : "#ffffff"};
             --vs-soft:        ${resolved === "dark" ? "#213629" : "#f9fcf9"};
+            --vs-on-accent:   ${resolved === "dark" ? "#101d16" : "#ffffff"};
             --vs-nav-bg:      ${resolved === "dark" ? "#1b2c21" : "#ffffff"};
             --vs-nav-border:  ${resolved === "dark" ? "#355542" : "#dce9de"};
           }
