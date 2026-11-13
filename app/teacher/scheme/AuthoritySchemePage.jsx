@@ -1059,7 +1059,9 @@ function Inner({ curriculumView = false }) {
       <div style={{fontSize:11,color:C.text3,fontWeight:800,marginBottom:6}}>SUBJECT</div><div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>{filteredSubjects.map(x=><Chip key={x.id} label={x.label} active={x.id===selectedSubject} onClick={()=>{setSelectedSubject(x.id);setMapUnitId('1.1')}}/>)}</div>
       <div style={{fontSize:11,color:C.text3,fontWeight:800,marginBottom:6}}>TERM</div><div style={{display:'flex',gap:6,overflowX:'auto',marginBottom:12}}>{terms.map(x=><Chip key={x.id} label={termLabel(x)} active={x.id===selectedTermId} onClick={()=>setSelectedTermId(x.id)}/>)}</div>
       </div><div style={{fontSize:12,color:C.text3,fontWeight:800,marginBottom:8}}>INSTRUCTIONAL WEEK</div><div className="studio-scheme-weeks">{weeks.map(x=><button key={x.week_number} type="button" onClick={()=>setSelectedWeek(x.week_number)} style={{padding:8,borderRadius:8,border:`1px solid ${x.week_number===selectedWeek?C.indigo:C.border}`,background:x.week_number===selectedWeek?C.indigoLight:C.surface2,color:x.week_number===currentWeek?C.teal:C.text2,fontWeight:800}}>W{x.week_number}</button>)}</div>
-      {curriculumView&&isGrade4Kiswahili?null:!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
+      {curriculumView&&isGrade8Mathematics&&!selectedTermId
+        ? <div style={{fontSize:12,color:C.text3,marginTop:7}}>Curriculum browsing does not require a term or timetable. Select a term when you want to save a Scheme of Work lesson.</div>
+        :curriculumView&&isGrade4Kiswahili?null:!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>Your class and subject assignment are still connected, but the school calendar could not be prepared automatically. Retry this page; if the problem continues, the calendar health check needs attention.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>Instructional weeks could not be prepared automatically for this term. Retry this page.</div>}
     </div>
 
     {selectedSubject && !(curriculumView && (isGrade1Mathematics || isGrade1English || isGrade8Mathematics || isGrade8English || isGrade9English || isGrade9Mathematics || isGrade8Kiswahili || isGrade4Kiswahili || isGrade6Mathematics || isGrade6English || isGrade6Kiswahili || isGrade4Mathematics || isGrade4Indigenous)) && <WeeklyLessonSlots week={selectedWeek} allocation={weeklyTarget} lessons={selectedWeekItems} previewCount={!curriculumView&&isAutoScheme?autoWeekSuggestions.length:0} label={subjectObj?.label || 'Selected subject'} curriculumTopics={curriculumView ? allCurriculumRows : []} compact={!curriculumView}/>}
@@ -1126,8 +1128,10 @@ function Inner({ curriculumView = false }) {
     {curriculumView && isGrade8Mathematics && <Grade8MathematicsMap
       selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
       mappedUnits={grade8Catalog} catalogLoading={grade8CatalogLoading} catalogError={grade8CatalogError}
-      onPlanUnit={selectedClass&&selectedSubject&&selectedTermId ? unitId=>{
-        const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,termId:selectedTermId,week:String(selectedWeek),unitId})
+      termSelected={!!selectedTermId}
+      onPlanUnit={selectedClass&&selectedSubject ? unitId=>{
+        const p=new URLSearchParams({classId:selectedClass,subjectId:selectedSubject,week:String(selectedWeek),unitId})
+        if(selectedTermId)p.set('termId',selectedTermId)
         router.push('/teacher/scheme?'+p.toString())
       }:undefined} />}
     {curriculumView && isGrade8English && <Grade8EnglishMap key={selectedSubject} selectedUnitId={mapUnitId} onSelectUnit={setMapUnitId}
