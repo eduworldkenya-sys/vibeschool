@@ -275,6 +275,14 @@ For each row preserve:
 
 **Non-negotiable stop:** An outcome package cannot be marked **content-complete** if the core is missing explanations, supplementary work does not meaningfully practise the stated skill, revision simply repeats visible worked answers, required teacher guidance is absent, or answer/rubric quality is unchecked. Repair and recheck before moving to the next outcome. If an aspect is genuinely not applicable to that outcome, cite the subject-appropriate reason. Do not equate completed content, draft revision items or page counts with published access or demonstrated individual mastery.
 
+### 3C. Resumable outcome ledger and independent editorial checks (reconciled from #1479)
+
+Use the **existing** §3B outcome ledger, not a separate tracking system. For every scoped outcome, retain a durable replay key (grade, subject, governing KICD edition/page, current canonical ID), actual source/canonical check and date, resource/question/visual IDs and versions, disposition of each learning function (`REQUIRED_PRESENT`, `REQUIRED_MISSING`, `NOT_APPLICABLE` with reason, or `NOT_CHECKED`), tested answer/reasoning evidence, known defects, teacher/learner delivery state, last completed stage and the next eligible unfinished outcome. Record `NOT_PERSISTED` when a handoff has not actually been saved.
+
+Separate full-subject inventory from outcome-level crosswalk matches and actual authored, checked, linked and published counts. Record curriculum edition changes and affected dependencies without overwriting historical IDs, Scheme allocations, attempts or certified versions. Only individually matched outcomes are eligible for authoring; a sub-strand-level release is not a whole-subject PASS.
+
+Where all six editorial dimensions have evidence, rate curriculum fidelity (25%), subject accuracy (20%), conceptual understanding (20%), practice/feedback (15%), teacher usability (10%) and accessibility/inclusion (10%) from 0–4. A weighted optional score is `sum(weight × rating / 4)`. If any dimension is NOT_CHECKED, report no overall score. Hard failures in curriculum, arithmetic/reasoning, protected exam content, rights, security or indispensable learning assets override all scores. Editorial readiness, actual delivery and evidence of learner effectiveness are separate statuses.
+
 ## 4. Practice and question integrity
 
 For each reusable assessment item or set, preserve:
