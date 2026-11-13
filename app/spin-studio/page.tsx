@@ -185,13 +185,14 @@ export default function SpinStudio() {
     document.addEventListener('fullscreenchange',change)
     return ()=>document.removeEventListener('fullscreenchange',change)
   },[])
-  const update=useCallback((patch:Partial<Wheel>)=>setWheels(all=>all.map(w=>{
-    if(w.id!==selectedId)return w
-    pastRef.current=[...pastRef.current.slice(-29),{...w,entries:w.entries.map(e=>({...e}))}]
+  const update=useCallback((patch:Partial<Wheel>)=>{
+    const current=wheels.find(w=>w.id===selectedId)
+    if(!current)return
+    pastRef.current=[...pastRef.current.slice(-29),{...current,entries:current.entries.map(e=>({...e}))}]
     futureRef.current=[]
     setUndoCount(pastRef.current.length);setRedoCount(0)
-    return {...w,...patch}
-  })),[selectedId])
+    setWheels(all=>all.map(w=>w.id===selectedId?{...w,...patch}:w))
+  },[selectedId,wheels])
   const undoEdit=()=>{
     const previous=pastRef.current.pop()
     if(!previous||previous.id!==selectedId)return
