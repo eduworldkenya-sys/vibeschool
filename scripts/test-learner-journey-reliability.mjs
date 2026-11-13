@@ -10,7 +10,8 @@ test('Independent learner keeps one identity, reading resume and reachable pract
   assert.match(study, /getVibeLearnWorkstation\(/)
   assert.match(study, /continueLearning\.slice\(0,3\)/)
   assert.match(study, /safeInternalRoute\(item\.actionUrl\)/)
-  assert.match(study, /\/student\/vibelearn\/topic-practice/)
+  assert.match(study, /<StudentLearningFeatureLinks mode="learn"/)
+  assert.match(read('components/student/StudentLearningFeatureLinks.tsx'), /\/student\/vibelearn\/topic-practice/)
   assert.doesNotMatch(study, /if\s*\([^)]*schoolId[^)]*\)\s*return\s*null/)
 })
 
