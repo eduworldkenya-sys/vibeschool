@@ -241,6 +241,7 @@ export default function Grade4TimeOutcomePackage({
         <UniversalLearnReader
           key={selected.resource_version_id}
           subject="Mathematics"
+          topic="time"
           sections={parsedSelected?.sections ?? []}
           title={parsedSelected?.title || selected.title}
           goal={parsedSelected?.goal}
