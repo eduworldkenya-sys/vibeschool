@@ -68,7 +68,7 @@ export function PublicFooter({ compact = false, hideSupport = false, focused = f
           <details data-footer-group open className={styles.footerGroup}>
             <summary className={styles.columnTitle}>Explore</summary>
             <div className={styles.linkList}>
-              <Link href="/global">Learn</Link>
+              <Link href="/learn">Learn</Link>
               <Link href="/schools">Find schools</Link>
               <Link href="/pathways">Pathways</Link>
               <Link href="/blog">News &amp; guides</Link>
