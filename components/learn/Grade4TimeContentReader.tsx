@@ -13,6 +13,8 @@ import Grade4TimePracticeCards from '@/components/learn/Grade4TimePracticeCards'
 import Grade4TimeVisualModels from '@/components/learn/Grade4TimeVisualModels'
 import Grade4TimeWorkedSteps from '@/components/learn/Grade4TimeWorkedSteps'
 import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
+import { adaptCanonicalLearnSections } from '@/lib/learn/learningBlockContract'
+import { grade4TimeToolsForReleasedLesson } from '@/lib/learn/grade4TimeToolBindings'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import styles from './Grade4TimeContentReader.module.css'
 
@@ -81,7 +83,8 @@ function Grade4TimeLessonArticle({
     <UniversalLearnReader
       subject="Mathematics"
       topic="time"
-      sections={parsed.sections}
+      sections={adaptCanonicalLearnSections(parsed.sections)}
+      tools={grade4TimeToolsForReleasedLesson(lesson.order)}
       anchorPrefix="time-section"
       renderBody={(section) => section.id === 'example'
         ? <Grade4TimeWorkedSteps body={section.body}/>
@@ -90,10 +93,12 @@ function Grade4TimeLessonArticle({
         : section.id === 'check' && cards.check.length > 0
         ? <Grade4TimePracticeCards questions={cards.check} lessonNumber={lesson.order}/>
         : <VisualRichText body={section.body} style={{ fontSize: 17, lineHeight: 1.8 }} />}
-      afterSection={(section) => <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>}
+      afterSection={(section) => <>
+        <Grade4TimeLearningAid lessonNumber={lesson.order} sectionId={section.id}/>
+        {(section.id === 'understand' || section.id === 'example') && <Grade4TimeVisualModels
+          lessonOrder={lesson.order} sectionId={section.id} inlineVisualPresent={/\\[visual:/.test(rawBody)} />}
+      </>}
     />
-
-    <Grade4TimeVisualModels lessonOrder={lesson.order} inlineVisualPresent={/\[visual:/.test(lesson.body)} />
 
     <div className={styles.articleBottom}>
       <LearningNotebookPrompt subject="Mathematics" stage="learn" compact />
