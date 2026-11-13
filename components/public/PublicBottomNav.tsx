@@ -7,6 +7,7 @@ import styles from './PublicBottomNav.module.css'
 // Public destinations only. Learning, exams and signed-in workspaces own their navigation.
 const items = [
   { label: 'Home', href: '/', icon: 'home' },
+  { label: 'Explore', href: '/product', icon: 'explore' },
   { label: 'Learn', href: '/learn', icon: 'learn' },
   { label: 'Schools', href: '/schools', icon: 'schools' },
   { label: 'Teachers', href: '/teacher', icon: 'teachers' },
@@ -22,6 +23,7 @@ function NavIcon({ name }: { name: (typeof items)[number]['icon'] }) {
   }
   switch (name) {
     case 'home': return <svg {...common}><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9M9 20v-6h6v6"/></svg>
+    case 'explore': return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="m15.8 8.2-2.5 5.1-5.1 2.5 2.5-5.1 5.1-2.5Z"/></svg>
     case 'learn': return <svg {...common}><path d="M2 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h7z"/></svg>
     case 'schools': return <svg {...common}><path d="M4 21V7l8-4 8 4v14M4 10h16M9 21v-7h6v7M7 13h.01M17 13h.01"/></svg>
     case 'teachers': return <svg {...common}><path d="M3 5h18v11H3zM7 21l5-5 5 5M8 9h8M8 12h5"/></svg>
@@ -43,7 +45,7 @@ export function PublicBottomNav({ forceVisible = false }: { forceVisible?: boole
         background: 'rgba(255,255,255,.97)', borderTop: '1px solid #e5e7eb',
         boxShadow: '0 -5px 22px rgba(17,24,39,.08)', backdropFilter: 'blur(14px)',
       }}>
-        <div style={{ width: 'min(640px, 100%)', height: 64, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', alignItems: 'center' }}>
+        <div style={{ width: 'min(640px, 100%)', height: 64, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', alignItems: 'center' }}>
           {items.map((item) => {
             const isActive = pathname === item.href || (item.href === '/learn' && pathname.startsWith('/learn/'))
             return (
