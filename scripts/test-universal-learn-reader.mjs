@@ -26,6 +26,8 @@ test('section navigation is content-driven, accessible, and scoped', () => {
   assert.match(universal, /aria-label="Lesson sections"/)
   assert.match(universal, /section\.id\.replace/)
   assert.match(universal, /section\.title/)
+  assert.match(universal, /const SectionHeading = title \? 'h4' : 'h3'/)
+  assert.match(outcome, /\.sort\(\(a, b\) => a\.lesson_order - b\.lesson_order\)/)
   assert.match(universal, /scroll-margin-top:20px|anchorPrefix/)
   assert.match(universal, /<VisualRichText body=\{section\.body\}/)
   assert.match(universal, /Review all explanations/)
