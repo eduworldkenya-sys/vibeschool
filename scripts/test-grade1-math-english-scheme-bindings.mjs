@@ -61,8 +61,10 @@ assert.ok(scheme.includes("supabase.from('grade1_curriculum_reader_bindings')"),
   'Reader must load canonical ID bindings, not fuzzy names')
 assert.ok(scheme.includes("supabase.rpc('commit_mapped_scheme_lesson'"),
   'Teacher must use existing atomic scheme commit')
-assert.ok(scheme.includes('p_sub_strand_id:mappedDraftRecord.id'),
-  'Use actual persisted sub-strand ID')
+assert.ok(scheme.includes('const activeMappedDraftRecord = mappedDraftRecord || grade3KiswahiliDraftRecord') &&
+  scheme.includes('p_sub_strand_id:activeMappedDraftRecord.id') &&
+  scheme.includes('const mappedDraftRecord = creativeDraftRecord || grade1DraftRecord'),
+  'Grade 1 must retain actual persisted sub-strand IDs through the shared mapped Scheme RPC')
 assert.ok(scheme.includes("(mappedDraftRecord?.outcomes||[]).map"),
   'Use actual persisted outcome IDs')
 assert.ok(scheme.includes('grade1ReaderCatalogError')&&scheme.includes('grade1ReaderCatalogLoading'),
