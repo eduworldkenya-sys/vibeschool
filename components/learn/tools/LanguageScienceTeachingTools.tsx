@@ -143,6 +143,7 @@ export default function LanguageScienceTeachingTool({ spec }: { spec: TeachingTo
     case 'sentence-order': return <SentenceOrder spec={spec} />
     case 'vocabulary-match': return <VocabularyMatch spec={spec} />
     case 'classification': return <Classification spec={spec} />
+    case 'sorting-groups': return <Classification spec={spec} />
     case 'experiment-variables': return <Classification spec={spec} variables />
     case 'food-chain': return <FoodChain spec={spec} />
     default: return null
