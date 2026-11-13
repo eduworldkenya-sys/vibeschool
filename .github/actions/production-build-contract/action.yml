@@ -35,6 +35,8 @@ runs:
     - name: Run caller-specific prebuild certification
       if: ${{ inputs.prebuild_command != '' }}
       shell: bash
+      env:
+        NODE_OPTIONS: --max-old-space-size=6144
       run: ${{ inputs.prebuild_command }}
 
     - name: Build production application
