@@ -42,3 +42,15 @@ export function storyText(html: string) {
     } as Record<string,string>)[entity] || entity)
     .trim()
 }
+
+/** Guest progress uses the same per-book key as the existing Originals reader. */
+export const STORY_GUEST_KEY = 'vibeschool.originals.guest.'
+
+/** Series order is a reading order, not publication recency. No manual curation required. */
+export function orderSeriesBooks<T extends {series_number:number|null;published_at:string|null;title:string|null}>(books:T[]):T[] {
+  return [...books].sort((a,b)=>{
+    const left=typeof a.series_number==='number'&&a.series_number>0?a.series_number:Number.MAX_SAFE_INTEGER
+    const right=typeof b.series_number==='number'&&b.series_number>0?b.series_number:Number.MAX_SAFE_INTEGER
+    return left-right || String(a.published_at||'').localeCompare(String(b.published_at||'')) || String(a.title||'').localeCompare(String(b.title||''))
+  })
+}
