@@ -29,5 +29,5 @@ export default function VibeLearnSubnav() {
 }
 
 const navStyle: React.CSSProperties = { display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 0 12px', marginBottom: 4, scrollbarWidth: 'none' }
-const tabStyle: React.CSSProperties = { flex: '0 0 auto', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', borderRadius: 999, padding: '9px 13px', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
-const activeTabStyle: React.CSSProperties = { borderColor: '#4f46e5', background: '#eef2ff', color: '#4338ca' }
+const tabStyle: React.CSSProperties = { flex: '0 0 auto', border: '1px solid #e2e8f0', background: 'var(--vs-card)', color: 'var(--vs-muted)', borderRadius: 999, padding: '9px 13px', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
+const activeTabStyle: React.CSSProperties = { borderColor: 'var(--vs-accent)', background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)' }
