@@ -136,7 +136,7 @@ function Metric({ label: text, value }: { label: string; value: string | number 
 function Empty({ title, body: text }: { title: string; body: string }) { return <div style={{ padding: 14, textAlign: 'center' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={body}>{text}</p></div> }
 function Quick({ title, note, onClick }: { title: string; note: string; onClick: () => void }) {
   const Icon = title === 'Learn' ? BookOpen : title === 'Exams' ? ClipboardCheck : title === 'Results' ? ChartNoAxesColumn : Sparkles
-  return <button onClick={onClick} style={quick} aria-label={title + ': ' + note}>
+  return <button onClick={onClick} style={{ ...quick, display: 'flex' }} aria-label={title + ': ' + note}>
     <span className="student-home-quick-icon"><Icon size={20} aria-hidden="true" /></span>
     <span className="student-home-quick-copy"><strong>{title}</strong><small>{note}</small></span>
     <ArrowUpRight size={16} aria-hidden="true" className="student-home-quick-arrow" />
@@ -169,6 +169,5 @@ const changeRow: React.CSSProperties = { display: 'flex', justifyContent: 'space
 const track: React.CSSProperties = { height: 7, marginTop: 7, overflow: 'hidden', borderRadius: 999, background: 'var(--vs-border)' }
 const slotRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '48px 1fr auto', alignItems: 'center', gap: 10, padding: 9, borderRadius: 11, border: '1px solid var(--vs-border)' }
 const badge: React.CSSProperties = { padding: '3px 6px', borderRadius: 999, background: '#ecfdf5', color: '#047857', fontSize: 8, fontWeight: 900 }
-const quickGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }
 const quick: React.CSSProperties = { display: 'grid', gap: 4, textAlign: 'left', minHeight: 65, padding: 11, borderRadius: 12, border: '1px solid var(--vs-border)', background: 'var(--vs-soft)', color: 'var(--vs-text)', fontFamily: 'inherit', cursor: 'pointer' }
-const linkButton: React.CSSProperties = { border: 0, background: 'transparent', color: '#4f46e5', fontFamily: 'inherit', fontSize: 12, fontWeight: 800, cursor: 'pointer' }
+const linkButton: React.CSSProperties = { border: 0, background: 'transparent', color: 'var(--vs-accent)', fontFamily: 'inherit', fontSize: 12, fontWeight: 800, cursor: 'pointer' }
