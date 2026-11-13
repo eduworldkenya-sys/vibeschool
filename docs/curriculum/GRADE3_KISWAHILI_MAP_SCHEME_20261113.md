@@ -8,7 +8,7 @@ Read-only inspection of Supabase project yauqsxggtuxuykcbrtzf, canonical global 
 - 0 linked public.curriculum_learning_outcomes for these 12 existing row IDs.
 - 0 saved public.scheme_of_work rows for Grade 3 Kiswahili.
 - The lower-primary timetable allocation already records **4 Kiswahili/KSL alternative lessons per week**. This is not a claim that any specific strand owns a particular calendar week.
-- No complete authenticated private KICD Grade 1–3 Kiswahili source artifact or page-by-page verified transcription has been established here.
+- The official Grade 1–3 Kiswahili PDF (second edition 2024, ISBN 978-9914-43-071-4) has been located. An authenticated restricted source artifact, exact source hash and page-by-page verified transcription have not been established.
 
 The 12 stored legacy headings are an **incomplete legacy navigation index**, not 12 verified official KICD sub-strands. Preserve their UUIDs and their historical relations; do not overwrite or pretend title matches prove source coverage.
 
@@ -23,10 +23,10 @@ The 12 stored legacy headings are an **incomplete legacy navigation index**, not
 ## Official source and restricted word-for-word copy
 
 - Official KICD Lower Primary Grade 1–3 designs: https://kicd.ac.ke/cbc-materials/lower-primary/
-- KICD Kiswahili embedded document locator: https://drive.google.com/file/d/1xVa-cvQ3jSlfR4yNEL3DIXGmU-U7tHXk/preview
+- KICD Kiswahili embedded document locator: https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-Kiswahili-Revised.pdf
 - Governing private source-transcription process: docs/curriculum/COPY_KICD_CURRICULUM.md. The owner's permission assertion is already recorded there.
 
-The official Google Drive viewer did not yield a full inspectable page inventory in this operation. No verbatim KICD text was copied into GitHub or the public client. The private source layer, specific rights evidence, page inventory and true source-equivalence audit remain **NOT VERIFIED**; it is incorrect to label this private transcription complete.
+The official KICD 2024 PDF is publicly locatable and partially text-searchable. Its contents show Grade 3 beginning at printed page 184, assessment rubrics beginning at printed page 268, and the CSL appendix beginning at printed page 274. The web PDF reader cannot reliably inspect/render all pages for exact source-text comparison; no full page-by-page private transcription or verified source hash was imported. No verbatim KICD text was copied into GitHub or the public client. The private source layer, specific rights evidence, page inventory and true source-equivalence audit remain **NOT VERIFIED**; it is incorrect to label this private transcription complete.
 
 ## Completion gates still required
 
