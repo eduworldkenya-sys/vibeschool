@@ -29,7 +29,7 @@ type Course = {
 }
 
 function PublicationDestination({publication}:{publication:Publication}) {
-  const href = isStoryPublication(publication as Parameters<typeof isStoryPublication>[0])
+  const href = isStoryPublication(publication)
     ? storyLandingHref(publication.id)
     : publication.format === 'vibetextbook'
       ? '/read/textbook/' + encodeURIComponent(publication.id)
