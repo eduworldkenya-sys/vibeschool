@@ -75,6 +75,8 @@ export default function UniversalLearnReader({
   renderBody, afterSection,
 }: Props) {
   const mode = learnSubjectMode(subject)
+  // Full-reader pages have an h2 lesson title; outcome pages supply an h3 title.
+  const SectionHeading = title ? 'h4' : 'h3'
   const anchor = (section: UniversalLearnSection, index: number) =>
     `${anchorPrefix}-${index}-${section.id.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`
   const validSections = sections.filter(section => typeof section.body === 'string' && !!section.body.trim())
@@ -102,7 +104,7 @@ export default function UniversalLearnReader({
         </details>
         return <section id={id} key={id} data-tone={tone} className={styles.section} aria-labelledby={`${id}-heading`}>
           <header className={styles.sectionHeading}>
-            <h4 id={`${id}-heading`}>{section.title || 'Read and learn'}</h4>
+            <SectionHeading id={`${id}-heading`}>{section.title || 'Read and learn'}</SectionHeading>
             {section.hint && <p>{section.hint}</p>}
           </header>
           <div className={styles.body}>
