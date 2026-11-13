@@ -29,7 +29,7 @@ const capabilities = [
     number: '03',
     title: 'Learning & assessment',
     description: 'Give learners a place to practise, complete assessments and review their learning.',
-    href: '/global',
+    href: '/learn',
     action: 'Explore learning',
   },
   {
