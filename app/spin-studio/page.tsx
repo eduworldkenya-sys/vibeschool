@@ -141,6 +141,8 @@ export default function SpinStudio() {
   const [wheelTiltX,setWheelTiltX]=useState(0)
   const [wheelTiltY,setWheelTiltY]=useState(0)
   const wheelDragRef=useRef<{x:number;y:number;rotation:number;tiltX:number;tiltY:number}|null>(null)
+  const tallyDragRef=useRef<{x:number;y:number;initialX:number;initialY:number}|null>(null)
+  const [tallyDragging,setTallyDragging]=useState<{x:number;y:number}|null>(null)
   const [spinning,setSpinning]=useState(false)
   const [result,setResult]=useState<number|null>(null)
   const [reveal,setReveal]=useState(false)
@@ -219,8 +221,8 @@ export default function SpinStudio() {
   const tallyBarHeight=Math.max(3,Math.min(24,wheel?.electionTallyBarHeight??5))
   const tallyWidth=Math.max(140,Math.min(450,wheel?.electionTallyWidth??240))
   const tallyOpacity=Math.max(30,Math.min(100,wheel?.electionTallyOpacity??92))
-  const tallyOffsetX=Math.max(-250,Math.min(250,wheel?.electionTallyOffsetX??0))
-  const tallyOffsetY=Math.max(-250,Math.min(250,wheel?.electionTallyOffsetY??0))
+  const tallyOffsetX=tallyDragging?.x??Math.max(-250,Math.min(250,wheel?.electionTallyOffsetX??0))
+  const tallyOffsetY=tallyDragging?.y??Math.max(-250,Math.min(250,wheel?.electionTallyOffsetY??0))
   const tallyAnimation=wheel?.electionTallyAnimation!==false
   const tallyShowNames=wheel?.electionTallyShowNames!==false
   const electionScores=entries.map(entry=>({id:entry.id,name:entry.label,score:electionVotes.filter(id=>id===entry.id).length*electionPoints}))
@@ -348,6 +350,26 @@ export default function SpinStudio() {
     setUndoCount(pastRef.current.length);setRedoCount(0)
     setWheels(all=>all.map(w=>w.id===selectedId?{...w,...patch}:w))
   },[selectedId,wheels])
+  const tallyPointerDown=(e:React.PointerEvent<HTMLDivElement>)=>{
+    if(tallyPlacement!=='floating'||e.button!==0)return
+    tallyDragRef.current={x:e.clientX,y:e.clientY,initialX:tallyOffsetX,initialY:tallyOffsetY}
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const tallyPointerMove=(e:React.PointerEvent<HTMLDivElement>)=>{
+    const initial=tallyDragRef.current
+    if(!initial)return
+    setTallyDragging({x:Math.max(-250,Math.min(250,initial.initialX+e.clientX-initial.x)),y:Math.max(-250,Math.min(250,initial.initialY+e.clientY-initial.y))})
+  }
+  const tallyPointerUp=(e:React.PointerEvent<HTMLDivElement>)=>{
+    const initial=tallyDragRef.current
+    if(!initial)return
+    tallyDragRef.current=null
+    const x=Math.max(-250,Math.min(250,initial.initialX+e.clientX-initial.x))
+    const y=Math.max(-250,Math.min(250,initial.initialY+e.clientY-initial.y))
+    setTallyDragging(null)
+    if(x!==initial.initialX||y!==initial.initialY)update({electionTallyOffsetX:x,electionTallyOffsetY:y})
+  }
+
   const undoEdit=()=>{
     if(electionMode&&(spinCount>0||spinning))return
     const previous=pastRef.current.pop()
@@ -810,7 +832,7 @@ export default function SpinStudio() {
  <label>Tally presentation<select aria-label="Tally presentation" value={tallyStyle} onChange={e=>update({electionTallyStyle:e.target.value as 'bars'|'numbers'|'podium'})}><option value="bars">Animated bars and numbers</option><option value="numbers">Large numbers</option><option value="podium">Ranking with bars</option></select></label>
  <label>Tally order<select aria-label="Tally order" value={wheel.electionTallySort??'rank'} onChange={e=>update({electionTallySort:e.target.value as 'rank'|'fixed'})}><option value="rank">Highest score first</option><option value="fixed">Original candidate order</option></select></label>
  <h3>Tally Director · appearance and broadcast</h3>
- <p className={styles.hint}>Changes preview immediately. Adjust floating-panel position below.</p>
+ <p className={styles.hint}>Changes preview immediately. In floating mode, drag the tally heading or use the position sliders.</p>
  <div className={styles.tallyDirectorGrid}>
  <label>Bar colour<input aria-label="Tally bar colour" type="color" value={tallyColor} onChange={e=>update({electionTallyColor:e.target.value})}/></label>
  <label>Panel colour<input aria-label="Tally background colour" type="color" value={tallyBackground} onChange={e=>update({electionTallyBackground:e.target.value})}/></label>
@@ -824,7 +846,7 @@ export default function SpinStudio() {
  {tallyPlacement==='floating'&&<>
  <label>Horizontal position · {tallyOffsetX}px<input aria-label="Tally horizontal position" type="range" min="-250" max="250" value={tallyOffsetX} onChange={e=>update({electionTallyOffsetX:Number(e.target.value)})}/></label>
  <label>Vertical position · {tallyOffsetY}px<input aria-label="Tally vertical position" type="range" min="-250" max="250" value={tallyOffsetY} onChange={e=>update({electionTallyOffsetY:Number(e.target.value)})}/></label>
- <button type="button" onClick={()=>update({electionTallyOffsetX:0,electionTallyOffsetY:0})}>Centre floating tally</button>
+ <button type="button" onClick={()=>{setTallyDragging(null);update({electionTallyOffsetX:0,electionTallyOffsetY:0})}}>Centre floating tally</button>
  </>}
  <label>Final announcement title<input aria-label="Election winner announcement title" maxLength={55} value={wheel.electionWinnerTitle??'CHAMPION'} onChange={e=>update({electionWinnerTitle:e.target.value})}/></label>
 <p><b>{entries.length} candidates · {electionTotal} spins · +{electionPoints} point{electionPoints===1?'':'s'} per landing</b>. Press Spin Now once. Every round reveals the selected name while the adjacent tally builds live. The final random-draw result is announced after the last reveal. Ties are shown without inventing a winner.</p>
@@ -903,7 +925,7 @@ export default function SpinStudio() {
                 {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
               {electionMode&&wheel.electionTallyVisible!==false&&<aside className={[styles.electionTally,styles['electionTally'+tallyPlacement],!tallyAnimation?styles.electionTallyStill:''].join(' ')} style={{['--tally-color' as string]:tallyColor,['--tally-background' as string]:tallyBackground,['--tally-font-size' as string]:tallyFontSize+'px',['--tally-bar-height' as string]:tallyBarHeight+'px',['--tally-opacity' as string]:tallyOpacity+'%',['--tally-width' as string]:tallyWidth+'px',['--tally-x' as string]:tallyOffsetX+'px',['--tally-y' as string]:tallyOffsetY+'px'}} aria-label="Live random spin tally" aria-live="polite">
-                <div className={styles.electionTallyHead}><strong>{tallyStyle==='podium'?'ROUND RANKINGS':'LIVE TALLY'}</strong><span>{spinCount}/{electionTotal}</span></div>
+                <div className={styles.electionTallyHead} onPointerDown={tallyPointerDown} onPointerMove={tallyPointerMove} onPointerUp={tallyPointerUp} onPointerCancel={()=>{tallyDragRef.current=null;setTallyDragging(null)}} style={{touchAction:tallyPlacement==='floating'?'none':undefined,cursor:tallyPlacement==='floating'?'grab':undefined}}><strong>{tallyStyle==='podium'?'ROUND RANKINGS':'LIVE TALLY'}</strong><span>{spinCount}/{electionTotal}</span></div>
                 {(wheel.electionTallySort==='fixed'?[...electionScores]:[...electionScores].sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name))).map((candidate,index)=><div key={candidate.id} className={[styles.electionTallyRow,!tallyShowNames?styles.electionTallyNoNames:'',tallyAnimation&&candidate.id===lastElectionVote&&showPhase!=='spinning'?styles.electionTallyPulse:''].join(' ')}>
                   <span className={styles.electionTallyRank}>{index+1}</span>
                   {tallyShowNames&&<span className={styles.electionTallyName}>{candidate.name}</span>}
