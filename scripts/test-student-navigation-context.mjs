@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+
+const read = path => readFileSync(path,'utf8')
+const canonical = read('components/student/CanonicalTopicPractice.tsx')
+const progress = read('app/student/vibelearn/topic-practice/progress/page.tsx')
+const revision = read('app/student/vibelearn/revision/page.tsx')
+const result = read('app/student/results/[attemptId]/page.tsx')
+const marks = read('app/student/marks/page.tsx')
+const practice = read('app/student/vibelearn/practice/page.tsx')
+const bottom = read('components/student/BottomNav.tsx')
+
+assert.match(canonical,/router\.push\('\/student\/vibelearn\/topic-practice\/progress'/,'Topic Practice progress button stays inside practice')
+assert.doesNotMatch(canonical,/router\.push\('\/student\/marks'\)/,'Topic Practice must not jump to overall report')
+assert.match(progress,/student_list_canonical_topic_practice/,'Progress uses the learner-authorized topic listing')
+assert.match(progress,/listMyAssessmentAssignments/,'Progress uses the existing assessment history')
+assert.match(progress,/completed_attempts/,'Progress exposes recorded attempt counts')
+assert.match(progress,/resultStatus==='released'/,'Progress respects formal result release')
+assert.match(progress,/from=topic-practice/,'Topic Practice result preserves return owner')
+assert.match(canonical,/from=topic-practice/,'Canonical completion retains practice return owner')
+assert.match(revision,/RevisionTopicStarter/,'Revision uses the authorized topic starter rather than redirecting to unrelated practice')
+assert.match(revision,/searchParams\.get\('subject'\)/,'Revision reads subject context')
+assert.match(practice,/from=practice/,'Legacy practice result retains its return context')
+assert.match(marks,/from=progress-report/,'Overall report result retains return context')
+assert.match(result,/from === 'topic-practice'/,'Result returns to Topic Practice')
+assert.match(result,/from === 'progress-report'/,'Result returns to overall progress')
+assert.match(bottom,/\/student\/assessment"\)\) return null/,'Shared assessment runners do not masquerade as Tasks')
+console.log('Student navigation ownership and context contracts: PASS')

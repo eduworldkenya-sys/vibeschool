@@ -23,7 +23,10 @@ export default function StudentResultDetailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const from = searchParams.get('from')
-  const returnPath = `/student/vibelearn/exams?view=${from === 'progress' || from === 'history' ? from : 'for-you'}`
+  const returnPath = from === 'topic-practice' ? '/student/vibelearn/topic-practice/progress'
+    : from === 'practice' ? '/student/vibelearn/practice'
+    : from === 'progress-report' ? '/student/marks'
+    : `/student/vibelearn/exams?view=${from === 'progress' || from === 'history' ? from : 'for-you'}`
   const [reviewFilter, setReviewFilter] = useState<'all' | 'mistakes' | 'skipped'>('all')
   const [result, setResult] = useState<LearnerResultDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -58,7 +61,7 @@ export default function StudentResultDetailPage() {
   return (
     <main style={shell}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <button type="button" onClick={() => router.push(returnPath)} style={{ ...secondaryButton, marginBottom: 12 }}>← Back to results</button>
+        <button type="button" onClick={() => router.push(returnPath)} style={{ ...secondaryButton, marginBottom: 12 }}>← Back</button>
 
         <section style={card}>
           <div style={eyebrow}>{result.assessmentType.replaceAll('_', ' ')}</div>
@@ -151,7 +154,7 @@ export default function StudentResultDetailPage() {
             <button type="button" onClick={() => router.push(`/student/assessment/${encodeURIComponent(result.assignmentId)}`)} style={primaryButton}>Try this exam again</button>
           </section>
         )}
-        <button type="button" onClick={() => router.push(returnPath)} style={{ ...secondaryButton, marginTop: 8, width: '100%' }}>Back to Exams</button>
+        <button type="button" onClick={() => router.push(returnPath)} style={{ ...secondaryButton, marginTop: 8, width: '100%' }}>Back</button>
       </div>
     </main>
   )

@@ -239,8 +239,8 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
         </button>)}</div>}
     </section>}
     {!workspace && !loading && <nav aria-label="Other learning tools" style={{display:'flex',flexWrap:'wrap',gap:9,marginTop:18}}>
-      <button style={secondary} onClick={()=>router.push('/student/vibelearn/revision')}><RotateCcw size={15} style={{verticalAlign:'middle',marginRight:6}}/>Revision</button>
-      <button style={secondary} onClick={()=>router.push('/student/marks')}><CheckCircle2 size={15} style={{verticalAlign:'middle',marginRight:6}}/>My progress</button>
+      <button style={secondary} onClick={()=>router.push('/student/vibelearn/revision'+(subjectFilter?'?subject='+encodeURIComponent(subjectFilter):''))}><RotateCcw size={15} style={{verticalAlign:'middle',marginRight:6}}/>Revision</button>
+      <button style={secondary} onClick={()=>router.push('/student/vibelearn/topic-practice/progress'+(subjectFilter?'?subject='+encodeURIComponent(subjectFilter):''))}><CheckCircle2 size={15} style={{verticalAlign:'middle',marginRight:6}}/>My progress</button>
       <button style={secondary} onClick={()=>router.push('/student/study')}><BookOpen size={15} style={{verticalAlign:'middle',marginRight:6}}/>Learn</button>
     </nav>}
     {workspace && !finished && <section style={card}>
@@ -286,7 +286,7 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
       {feedbackReady
         ? <div aria-label="Answer summary" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginBottom:16}}>{[{label:'Correct',value:correct},{label:'Incorrect',value:incorrect},{label:'Skipped',value:skipped}].map(entry=><div key={entry.label} style={{padding:12,borderRadius:12,background:'var(--vs-soft)',textAlign:'center'}}><strong style={{display:'block',fontSize:22}}>{entry.value}</strong><span style={muted}>{entry.label}</span></div>)}</div>
         : <p role="status" style={muted}>Your attempt is saved. Detailed review is temporarily unavailable. Your recorded score is not being estimated from missing feedback.</p>}
-      {finished.scoreReleased && <button style={{...secondary,marginRight:8,marginBottom:8}} onClick={()=>router.push('/student/results/'+encodeURIComponent(finished.attemptId))}>View saved result</button>}
+      {finished.scoreReleased && <button style={{...secondary,marginRight:8,marginBottom:8}} onClick={()=>router.push('/student/results/'+encodeURIComponent(finished.attemptId)+'?from=topic-practice')}>View saved result</button>}
       {feedbackReady && <button style={button} onClick={()=>setReviewing(true)}>{incorrect+skipped>0?'Review mistakes':'Review answers'}</button>}
       {!feedbackReady && <button style={secondary} onClick={()=>void retryFeedback()} disabled={busy}>Reload review feedback</button>}
       <button style={{...secondary,marginLeft:8}} onClick={()=>{setWorkspace(null);setFinished(null);setFeedback([]);setReviewing(false)}}>Choose another topic</button>
