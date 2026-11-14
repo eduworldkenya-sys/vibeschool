@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
+import Link from 'next/link'
 import { useShowDirector, DirectorControls, DirectorStageEffects, focalStyle } from '../../components/games/ShowDirector'
 
 type Entry = { id: string; label: string; question: string; answer: string; image?: string; symbol?: string; displayName?: string }
@@ -134,6 +135,9 @@ export default function SpinStudio() {
   const [redoCount,setRedoCount]=useState(0)
   const [format,setFormat]=useState<Format>('portrait')
   const [rotation,setRotation]=useState(0)
+  const [wheelTiltX,setWheelTiltX]=useState(0)
+  const [wheelTiltY,setWheelTiltY]=useState(0)
+  const wheelDragRef=useRef<{x:number;y:number;rotation:number;tiltX:number;tiltY:number}|null>(null)
   const [spinning,setSpinning]=useState(false)
   const [result,setResult]=useState<number|null>(null)
   const [reveal,setReveal]=useState(false)
@@ -197,6 +201,29 @@ export default function SpinStudio() {
   const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>!wheel?.noRepeat || !used.includes(entry.id))
   const remaining=wheel?.maxSpins ? Math.max(0,wheel.maxSpins-spinCount) : null
   const locked=spinning || showPhase==='question' || showPhase==='countdown' || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
+  const axisEditable=!spinning && (showPhase==='idle'||showPhase==='reveal')
+  const moveWheelAxes=(nextAngle:number,nextX:number,nextY:number)=>{
+    if(!axisEditable)return
+    setRotation(nextAngle)
+    setWheelTiltX(Math.max(-35,Math.min(35,nextX)))
+    setWheelTiltY(Math.max(-35,Math.min(35,nextY)))
+    if(showPhase==='reveal'){setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowPhase('idle')}
+  }
+  const onWheelPointerDown=(e:React.PointerEvent<SVGSVGElement>)=>{
+    if(!axisEditable || e.button!==0)return
+    wheelDragRef.current={x:e.clientX,y:e.clientY,rotation,tiltX:wheelTiltX,tiltY:wheelTiltY}
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const onWheelPointerMove=(e:React.PointerEvent<SVGSVGElement>)=>{
+    const p=wheelDragRef.current
+    if(!p)return
+    const dx=e.clientX-p.x,dy=e.clientY-p.y
+    moveWheelAxes(p.rotation+dx*.8,p.tiltX-dy*.16,p.tiltY+dx*.10)
+  }
+  const onWheelPointerEnd=(e:React.PointerEvent<SVGSVGElement>)=>{
+    wheelDragRef.current=null
+    if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId)
+  }
 
   useEffect(()=>{
     try{
@@ -310,6 +337,7 @@ export default function SpinStudio() {
     const chosen=available[Math.floor(Math.random()*available.length)]
     if(!chosen)return
     pendingSpin.current=true
+    wheelDragRef.current=null;setWheelTiltX(0);setWheelTiltY(0)
     setSpinning(true);setShowPhase('spinning');setShowOverlay(false);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setFeedback('')
     const step=360/entries.length, target=(360-(chosen.index+.5)*step)%360
     const current=((rotation%360)+360)%360
@@ -531,7 +559,7 @@ export default function SpinStudio() {
     <div className={styles.shell}>
       {!recording && <header className={styles.header}>
         <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>VibeSpin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
-        <div className={styles.headActions}><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={launchShow}>Launch Show ↗</button></div>
+        <div className={styles.headActions}><Link href="/marketing-studio" className={styles.studioBack}>All Marketing Studio tools</Link><span className={styles.localTag}>● Browser-saved · Unlisted</span><button className={styles.primary} onClick={launchShow}>Launch Show ↗</button></div>
       </header>}
       <div className={recording?styles.recordLayout:styles.layout}>
         {!recording && <aside className={styles.controls}>
@@ -677,6 +705,24 @@ export default function SpinStudio() {
             <DirectorControls settings={director} onChange={updateDirector}/>
             <label className={styles.check}><input type="checkbox" checked={safeZone} onChange={e=>setSafeZone(e.target.checked)}/> Show portrait safe-area guide in editing preview</label>
             <label>Video shape<select value={format} onChange={e=>setFormat(e.target.value as Format)}><option value="portrait">9:16 · Shorts & TikTok</option><option value="landscape">16:9 · YouTube</option><option value="square">1:1 · Square</option></select></label>
+            <h3>Wheel rotation & axis control</h3>
+            <p className={styles.hint}>Drag the wheel left/right to rotate its segments, and drag up/down to tilt its face. Adjust both axes below; the fixed pointer remains centred. Tilts reset before an automatic result spin.</p>
+            <label>Wheel position · {Math.round(((rotation%360)+360)%360)}°
+              <input aria-label="Manual wheel rotation" type="range" min="0" max="360" value={((rotation%360)+360)%360} disabled={!axisEditable} onChange={e=>moveWheelAxes(Number(e.target.value),wheelTiltX,wheelTiltY)}/>
+            </label>
+            <label>Vertical tilt · {Math.round(wheelTiltX)}°
+              <input aria-label="Wheel vertical tilt" type="range" min="-35" max="35" value={wheelTiltX} disabled={!axisEditable} onChange={e=>moveWheelAxes(rotation,Number(e.target.value),wheelTiltY)}/>
+            </label>
+            <label>Horizontal tilt · {Math.round(wheelTiltY)}°
+              <input aria-label="Wheel horizontal tilt" type="range" min="-35" max="35" value={wheelTiltY} disabled={!axisEditable} onChange={e=>moveWheelAxes(rotation,wheelTiltX,Number(e.target.value))}/>
+            </label>
+            <div className={styles.axisButtons}>
+              <button disabled={!axisEditable} onClick={()=>moveWheelAxes(rotation-30,wheelTiltX,wheelTiltY)}>↶ Left</button>
+              <button disabled={!axisEditable} onClick={()=>moveWheelAxes(rotation+30,wheelTiltX,wheelTiltY)}>Right ↷</button>
+              <button disabled={!axisEditable} onClick={()=>moveWheelAxes(rotation,wheelTiltX+10,wheelTiltY)}>Tilt up</button>
+              <button disabled={!axisEditable} onClick={()=>moveWheelAxes(rotation,wheelTiltX-10,wheelTiltY)}>Tilt down</button>
+            </div>
+            <button disabled={!axisEditable} onClick={()=>moveWheelAxes(0,0,0)}>Centre wheel and axes</button>
             <label>Spin duration: {wheel.duration} seconds<input aria-label="Spin duration" type="range" min="3" max="10" value={wheel.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
             <label>Answer countdown: {wheel.countdown} seconds<input aria-label="Answer countdown" type="range" min="0" max="15" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/></label>
             <label>Maximum spins (0 = unlimited)<input type="number" min="0" max="9999" value={wheel.maxSpins} onChange={e=>update({maxSpins:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>
@@ -723,7 +769,11 @@ export default function SpinStudio() {
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
               <div className={styles.wheelArea} style={focalStyle(director,showPhase==='reveal'?'reveal':spinning?'action':'idle',reducedMotion)}>
                 <div className={styles.wheelHalo}/>
-                <svg role="img" aria-label="Wheel with editable segments" className={styles.wheelSvg} viewBox="0 0 400 400">
+                <div className={styles.wheelOrbitWrapper}>
+                <svg role="img" aria-label="Drag wheel to rotate and tilt along its axes" className={styles.wheelSvg} viewBox="0 0 400 400"
+                 onPointerDown={onWheelPointerDown} onPointerMove={onWheelPointerMove} onPointerUp={onWheelPointerEnd}
+                 onPointerCancel={()=>{wheelDragRef.current=null}}
+                 style={{transform:'perspective(820px) rotateX('+wheelTiltX+'deg) rotateY('+wheelTiltY+'deg)',cursor:axisEditable?'grab':'default'}}>
                   <circle cx="200" cy="200" r="198" fill="#08152c" stroke="rgba(255,255,255,.32)" strokeWidth="3"/>
                   {segmented.length>0 && <g style={{transform:'rotate('+rotation+'deg)',transformOrigin:'200px 200px',transition:spinning?'transform '+wheel.duration+'s cubic-bezier(.12,.78,.08,1)':'none'}}>
                     {segmented.map(({entry,index,path,degree})=><g key={entry.id}>
@@ -740,9 +790,11 @@ export default function SpinStudio() {
                   <circle cx="200" cy="200" r="41" fill="#0e2442"/>
                   <text x="200" y="197" fill="white" textAnchor="middle" fontSize="27" fontWeight="900">VIBE</text>
                   <text x="200" y="217" fill="#40e4cd" textAnchor="middle" fontSize="17" fontWeight="900">SPIN</text>
-                  <path d="M182 2 L218 2 L200 42 Z" fill="#fff" stroke="#0e1832" strokeWidth="4"/>
+
                   <circle cx="200" cy="200" r="195" fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="5" strokeDasharray="2 13"/>
                 </svg>
+                <div className={styles.wheelFixedPointer} aria-hidden="true"/>
+                </div>
                 {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
               {(showPhase==='intro'||showPhase==='outro')&&<div className={styles.brandScene} role="status" aria-live="polite">
