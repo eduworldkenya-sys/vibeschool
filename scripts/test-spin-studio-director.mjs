@@ -85,3 +85,20 @@ test('solo creator can produce captions and track publication manually',()=>{
   assert.match(page,/followers/)
   assert.match(page,/Copy video caption/)
 })
+
+test('political spin is an optional neutral format, never a predicted winner',()=>{
+  assert.match(page,/political:'VibeSpin Political'/)
+  assert.match(page,/politicalPresetNames/)
+  assert.match(page,/KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK/)
+  assert.match(page,/NOT a poll, election forecast, or endorsement/)
+  assert.match(page,/selectedIsReward=showFormat==='lucky'\|\|showFormat==='trending'\|\|showFormat==='political'/)
+  assert.match(page,/politicalStageDisclaimer/)
+})
+test('political preset is copied before editing, with a restore that retains edits',()=>{
+  assert.match(page,/Create editable political wheel/)
+  assert.match(page,/setWheels\(all=>\[\.\.\.all,fresh\]\)/)
+  assert.match(page,/const restorePoliticalNames=/)
+  assert.match(page,/entries:\[\.\.\.wheel.entries,\.\.\.missing\]/)
+  assert.match(page,/Save as new version/)
+  assert.match(page,/Edits appear instantly/)
+})
