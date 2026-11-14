@@ -448,7 +448,7 @@ export default function SpinStudio() {
     reader.readAsDataURL(file)
   }
   const setShowFormat=(kind:ShowFormat)=>{
-    if(!wheel)return
+    if(!wheel||spinning||(electionMode&&spinCount>0))return
     const patch:Partial<Wheel>={showFormat:kind}
     if(kind==='political')patch.electionMode=true
     if(kind==='political'){patch.countdown=0;patch.headline='KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK?';patch.cta='Random entertainment • Not a poll, prediction or endorsement'}
@@ -596,7 +596,7 @@ export default function SpinStudio() {
             <div className={styles.panelTitle}><h2>My wheels</h2><button onClick={addWheel} className={styles.smallButton}>+ New</button></div>
             <select aria-label="Select a saved wheel" value={selectedId} onChange={e=>setSelectedId(e.target.value)}>{wheels.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select>
             <div className={styles.row}><button onClick={duplicateWheel}>Save as new version</button><button disabled={wheels.length<=1} onClick={removeWheel}>Delete wheel</button></div>
-            <label>Show format<select value={showFormat} onChange={e=>setShowFormat(e.target.value as ShowFormat)}>
+            <label>Show format<select value={showFormat} disabled={electionMode&&(spinCount>0||spinning)} onChange={e=>setShowFormat(e.target.value as ShowFormat)}>
               <option value="challenge">VibeSpin Challenge · questions and guesses</option>
               <option value="lucky">VibeSpin Lucky Draw · prizes and entries</option>
               <option value="trending">VibeSpin Trending · entertainment topics</option>
