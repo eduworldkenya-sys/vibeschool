@@ -9,11 +9,12 @@ type Phase = 'idle' | 'countdown' | 'flipping' | 'ready' | 'reveal'
 type Theme = 'royal' | 'neon' | 'arena' | 'sunset'
 type Aspect = 'portrait' | 'landscape' | 'square'
 type CoinStyle = 'gold' | 'silver' | 'copper' | 'neon'
+type TossAxis = 'vertical' | 'horizontal'
 type Tab = 'matchup' | 'appearance' | 'show' | 'director' | 'production'
 type Option = { name: string; subtitle: string; logo: string; symbol: string; color: string }
 type Setup = {
   id: string; name: string; headline: string; cta: string; heads: Option; tails: Option;
-  theme: Theme; coinStyle: CoinStyle; aspect: Aspect; duration: number; countdown: number;
+  theme: Theme; coinStyle: CoinStyle; aspect: Aspect; tossAxis: TossAxis; autoStart: boolean; duration: number; countdown: number;
   automatic: boolean; batch: boolean; hold: number; sound: boolean; volume: number;
   confetti: boolean; spotlight: boolean; showBrand: boolean; showLogos: boolean; showSafeArea: boolean;
   episode: number; backgroundImage: string
@@ -24,7 +25,7 @@ const initial = (): Setup => ({
   id: makeId(), name: 'The Football Coin Toss', headline: 'ARSENAL OR MAN UNITED?', cta: 'Did the coin agree with you? Comment below.',
   heads: { name: 'ARSENAL', subtitle: 'HEADS', logo: '', symbol: 'A', color: '#ed5366' },
   tails: { name: 'MANCHESTER UNITED', subtitle: 'TAILS', logo: '', symbol: 'M', color: '#4fb8ed' },
-  theme: 'royal', coinStyle: 'gold', aspect: 'portrait', duration: 4, countdown: 2,
+  theme: 'royal', coinStyle: 'gold', aspect: 'portrait', tossAxis: 'vertical', autoStart: false, duration: 4, countdown: 2,
   automatic: true, batch: false, hold: 3, sound: true, volume: 65, confetti: true,
   spotlight: true, showBrand: true, showLogos: true, showSafeArea: false, episode: 1, backgroundImage: ''
 })
@@ -58,7 +59,7 @@ const safe = (s: Setup): Setup => ({
   ...s, duration: Math.max(2,Math.min(9,s.duration)), countdown: Math.max(0,Math.min(10,s.countdown)),
   hold: Math.max(1,Math.min(12,s.hold)), volume: Math.max(0,Math.min(100,s.volume)),
   episode: Math.max(1,Math.min(9999,s.episode)), batch: Boolean(s.batch), confetti: Boolean(s.confetti),
-  spotlight: Boolean(s.spotlight), showBrand: s.showBrand !== false,
+  spotlight: Boolean(s.spotlight), tossAxis: s.tossAxis === 'horizontal' ? 'horizontal' : 'vertical', autoStart: s.autoStart === true, showBrand: s.showBrand !== false,
   showLogos: s.showLogos !== false, showSafeArea: Boolean(s.showSafeArea),
   backgroundImage: typeof s.backgroundImage === 'string' && s.backgroundImage.length < 350000 ? s.backgroundImage : ''
 })
@@ -96,6 +97,9 @@ export default function CoinStudio() {
   const [reduceMotion,setReduceMotion] = useState(false)
   const [autoRuns,setAutoRuns] = useState(0)
   const stageRef = useRef<HTMLDivElement>(null)
+  const coinRef = useRef<HTMLDivElement>(null)
+  const flightRef = useRef<HTMLDivElement>(null)
+  const motionRef = useRef<Animation[]>([])
   const pendingRef = useRef<Side | null>(null)
   const timers = useRef<number[]>([])
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -104,7 +108,11 @@ export default function CoinStudio() {
   const current = setups.find(s => s.id === selectedId) || setups[0]
   const idle = phase === 'idle' || phase === 'reveal'
   const schedule = (fn: () => void, ms: number) => { timers.current.push(window.setTimeout(fn,ms)) }
-  const cancel = () => { timers.current.forEach(window.clearTimeout); timers.current = [] }
+  const cancel = () => {
+    timers.current.forEach(window.clearTimeout); timers.current = []
+    motionRef.current.forEach(animation => animation.cancel()); motionRef.current = []
+    if (flightRef.current) flightRef.current.style.transform = ''
+  }
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.has('a') && params.has('b')) {
@@ -156,21 +164,61 @@ export default function CoinStudio() {
     pendingRef.current = choice
     const finish = () => {
       setPhase('flipping')
-      // Continue from the previously landed face, instead of snapping back to heads.
-      // A whole number of revolutions plus the shortest forward adjustment
-      // guarantees that the visible landing face matches the selected side.
+      const axis = current.tossAxis === 'horizontal' ? 'Y' : 'X'
       const turns = 6 + Math.floor(Math.random()*2)
       const desiredFace = choice === 'heads' ? 0 : 180
       const alignment = (desiredFace - ((rotation % 360) + 360) % 360 + 360) % 360
       const targetAngle = rotation + turns * 360 + alignment
-      if (reduceMotion) setRotation(targetAngle)
-      else window.requestAnimationFrame(() => window.requestAnimationFrame(() => setRotation(targetAngle)))
+      const rotate = (angle: number) => 'rotate' + axis + '(' + angle + 'deg)'
+      const duration = reduceMotion ? 0 : current.duration * 1000
+      if (coinRef.current && !reduceMotion) {
+        // Web Animations start immediately from the actual DOM node; no React
+        // repaint race can silently skip the launch or intermediate coin faces.
+        const spin = coinRef.current.animate(
+          [{ transform: rotate(rotation) }, { transform: rotate(targetAngle) }],
+          { duration, easing: 'cubic-bezier(.14,.62,.22,1)', fill: 'forwards' }
+        )
+        motionRef.current.push(spin)
+        spin.onfinish = () => {
+          if (coinRef.current) coinRef.current.style.transform = rotate(targetAngle)
+          setRotation(targetAngle)
+          spin.cancel()
+          motionRef.current = motionRef.current.filter(animation => animation !== spin)
+        }
+        if (flightRef.current) {
+          const travel = current.tossAxis === 'horizontal'
+            ? [
+                {transform:'translate3d(0,22%,0) scale(.88)',offset:0},
+                {transform:'translate3d(-55%,-42%,0) scale(1.13)',offset:.34},
+                {transform:'translate3d(28%,-26%,0) scale(1.06)',offset:.62},
+                {transform:'translate3d(0,8%,0) scale(1.02)',offset:.84},
+                {transform:'translate3d(0,-8%,0) scale(.99)',offset:.93},
+                {transform:'translate3d(0,0,0) scale(1)',offset:1}
+              ]
+            : [
+                {transform:'translate3d(0,28%,0) scale(.88)',offset:0},
+                {transform:'translate3d(0,-85%,0) scale(1.14)',offset:.37},
+                {transform:'translate3d(0,-34%,0) scale(1.08)',offset:.67},
+                {transform:'translate3d(0,8%,0) scale(1.03)',offset:.84},
+                {transform:'translate3d(0,-10%,0) scale(.99)',offset:.93},
+                {transform:'translate3d(0,0,0) scale(1)',offset:1}
+              ]
+          const flight = flightRef.current.animate(travel,{duration, easing:'ease-in-out',fill:'forwards'})
+          motionRef.current.push(flight)
+          flight.onfinish = () => {
+            if (flightRef.current) flightRef.current.style.transform = ''
+            flight.cancel()
+            motionRef.current = motionRef.current.filter(animation => animation !== flight)
+          }
+        }
+      } else {
+        setRotation(targetAngle)
+      }
       if (current.sound) ping('toss',current.volume)
       schedule(() => {
-        // Landing has completed: show the settled coin before the result overlay.
         if (current.automatic) revealChoice(choice)
         else setPhase('ready')
-      },reduceMotion ? 100 : current.duration * 1000 + 350)
+      },duration + 350)
     }
     if (current.countdown === 0) { finish(); return }
     setPhase('countdown'); setSeconds(current.countdown)
@@ -179,6 +227,13 @@ export default function CoinStudio() {
   },[current,phase,reduceMotion,rotation])
   const tossRef = useRef(toss)
   useEffect(() => { tossRef.current = toss },[toss])
+  // Start the first show toss without any extra button press when enabled.
+  // Browsers may suppress automatic sound until the viewer interacts.
+  useEffect(() => {
+    if (!showMode || !current?.autoStart || phase !== 'idle') return
+    const timer = window.setTimeout(() => tossRef.current(), 950)
+    return () => window.clearTimeout(timer)
+  },[showMode, current?.autoStart, selectedId, phase])
   // Automatic replay is deliberately bounded for a single batch (max 20).
   useEffect(() => {
     if (!current?.automatic || !current.batch || phase !== 'reveal' || autoRuns >= 19 || recording) return
@@ -286,6 +341,9 @@ export default function CoinStudio() {
             </>}
             {tab==='show' && <>
               <h2>Motion & suspense</h2>
+              <label>Toss direction<select value={current.tossAxis} disabled={phase==='flipping'||phase==='countdown'} onChange={e=>{reset();patch({tossAxis:e.target.value as TossAxis})}}><option value="vertical">Up / down · vertical flip</option><option value="horizontal">Left / right · side flip</option></select></label>
+              <label className={styles.check}><input type="checkbox" checked={current.autoStart} onChange={e=>patch({autoStart:e.target.checked})}/> Start automatically when Show Mode opens</label>
+              <p className={styles.hint}>You can also tap the coin stage to toss. Automatic start may be silent until the first user interaction due to browser audio restrictions.</p>
               <label>Toss duration: {current.duration}s<input type="range" min="2" max="9" value={current.duration} onChange={e=>patch({duration:Number(e.target.value)})}/></label>
               <label>Countdown: {current.countdown}s<input type="range" min="0" max="10" value={current.countdown} onChange={e=>patch({countdown:Number(e.target.value)})}/></label>
               <label>Result hold: {current.hold}s<input type="range" min="1" max="12" value={current.hold} onChange={e=>patch({hold:Number(e.target.value)})}/></label>
@@ -315,7 +373,7 @@ export default function CoinStudio() {
         </aside>}
         <section className={styles.preview} aria-label="VibeCoin stage">
           {!showMode && <div className={styles.previewBar}><span><i/> LIVE EDITING PREVIEW</span><span>{current.aspect==='portrait'?'9:16':current.aspect==='landscape'?'16:9':'1:1'} · FAIR 50/50 TOSS</span></div>}
-          <div ref={stageRef} className={[styles.stage,styles[current.theme],styles[current.aspect]].join(' ')} style={current.backgroundImage?{backgroundImage:'linear-gradient(#050d26ad,#050d26bd),url('+current.backgroundImage+')',backgroundSize:'cover',backgroundPosition:'center'}:undefined}>
+          <div ref={stageRef} className={[styles.stage,styles[current.theme],styles[current.aspect]].join(' ')} role={showMode?'button':undefined} tabIndex={showMode?0:undefined} aria-label={showMode?'Tap to toss or replay coin':undefined} onClick={()=>{if(showMode)tossRef.current()}} onKeyDown={e=>{if(showMode&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tossRef.current()}}} style={current.backgroundImage?{backgroundImage:'linear-gradient(#050d26ad,#050d26bd),url('+current.backgroundImage+')',backgroundSize:'cover',backgroundPosition:'center'}:undefined}>
             <DirectorStageEffects settings={director} phase={phaseStyle} prompt="CHOOSE A SIDE · COMMENT YOUR PICK"/>
             <div className={styles.stageInner}>
               {current.showBrand && <div className={styles.brand}><span className={styles.brandMark}>V</span><span><strong>VIBECOIN</strong><small>BY VIBESCHOOL</small></span><em>EP {String(current.episode).padStart(2,'0')}</em></div>}
@@ -329,13 +387,13 @@ export default function CoinStudio() {
               </div>
               <div className={styles.coinArea} style={focalStyle(director,phaseStyle,reduceMotion)}>
                 <div className={styles.coinHalo}/>
-                <div className={[styles.tossTrajectory,phase==='flipping'&&!reduceMotion?styles.tossing:''].join(' ')} style={{'--flight-duration':current.duration+'s'} as CSSProperties}>
-                  <div className={[styles.coin,styles[current.coinStyle]].join(' ')} style={{transform:'rotateX('+showRotation+'deg)',transition:phase==='flipping'&&!reduceMotion?'transform '+current.duration+'s cubic-bezier(.12,.7,.12,1)':'none'}}>
-                    <div className={[styles.face,styles.front].join(' ')}>
+                <div ref={flightRef} className={styles.tossTrajectory}>
+                  <div ref={coinRef} className={[styles.coin,styles[current.coinStyle],current.tossAxis==='horizontal'?styles.horizontal:''].join(' ')} style={{transform:(current.tossAxis==='horizontal'?'rotateY(':'rotateX(')+showRotation+'deg)'}}>
+                    <div className={[styles.face,styles.front].join(' ')} style={{background:'radial-gradient(circle at 24% 16%,#ffffffb0,'+current.heads.color+' 45%,#091528 100%)',color:'#fff'}}>
                       <div className={styles.coinRing}>{current.showLogos&&current.heads.logo?<img src={current.heads.logo} alt="Heads logo"/>:<span>{current.heads.symbol||'H'}</span>}</div>
                       <b>{current.heads.name}</b><small>HEADS · VIBECOIN</small>
                     </div>
-                    <div className={[styles.face,styles.back].join(' ')}>
+                    <div className={[styles.face,styles.back].join(' ')} style={{background:'radial-gradient(circle at 24% 16%,#ffffffb0,'+current.tails.color+' 45%,#091528 100%)',color:'#fff'}}>
                       <div className={styles.coinRing}>{current.showLogos&&current.tails.logo?<img src={current.tails.logo} alt="Tails logo"/>:<span>{current.tails.symbol||'T'}</span>}</div>
                       <b>{current.tails.name}</b><small>TAILS · VIBECOIN</small>
                     </div>
