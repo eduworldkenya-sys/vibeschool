@@ -15,7 +15,7 @@ test('political Tally Director controls are persisted on the canonical wheel',()
 })
 test('tally styling is independent of random selection, result and score logic',()=>{
   assert.match(page,/electionVotes\.filter\(id=>id===entry\.id\)\.length\*electionPoints/)
-  assert.match(page,/electionVotes\(old=>\[\.\.\.old,plan\.selectedId\]\)/)
+  assert.match(page,/setElectionVotes\(old=>\[\.\.\.old,plan\.selectedId\]\)/)
   assert.match(page,/candidate\.score\/electionTop\*100/)
   assert.match(css,/--tally-color/)
   assert.match(css,/--tally-background/)
