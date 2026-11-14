@@ -34,3 +34,12 @@ test('local storage and screen capture cleanups are present',()=>{
  assert.match(page,/getTracks\(\)\.forEach/)
  assert.match(page,/URL\.revokeObjectURL/)
 })
+
+test('pendulum explicitly catches off-centre selection and makes angle configurable',()=>{
+ assert.match(page,/landingAngle\?:number/)
+ assert.match(page,/catcher\?:boolean/)
+ assert.match(page,/const finalAngle=target==='left'/)
+ assert.match(page,/LEFT CATCH/)
+ assert.match(page,/RIGHT CATCH/)
+ assert.match(css,/\.catchBracket/)
+})
