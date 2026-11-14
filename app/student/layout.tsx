@@ -303,8 +303,8 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           .student-app[data-reduce-motion="true"] *, .student-app[data-reduce-motion="true"] *::before { animation:none !important; transition:none !important; }
           @media(min-width:1024px) {
             .student-app .student-content:not(.assessment-focus) {
-              margin:0 0 0 208px !important;
-              width:calc(100% - 208px) !important;
+              margin:0 0 0 220px !important;
+              width:calc(100% - 220px) !important;
               max-width:none !important;
               padding:24px clamp(20px,3.2vw,42px) 65px !important;
             }
