@@ -26,7 +26,7 @@ test('Practice keeps submitted answers independent of feedback read availability
   assert.match(practice, /await submitAttempt\(workspace\.attemptId\)/)
   assert.match(practice, /setFinished\(result\)[\s\S]*?play\('complete'\)/)
   assert.match(practice, /Retry feedback/)
-  assert.match(practice, /feedbackReady\s*\?\s*<p/)
+  assert.match(practice, /feedbackReady\s*\?\s*<div aria-label="Answer summary"/)
   assert.match(practice, /Your attempt is saved\. Detailed review is temporarily unavailable/)
   assert.match(practice, /finished\.scoreReleased/)
 })
