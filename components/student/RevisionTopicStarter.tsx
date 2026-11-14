@@ -51,12 +51,11 @@ export default function RevisionTopicStarter({className}:{className:string}) {
   async function mark(yes:boolean) {
     if(!grade||!active||busy)return
     const newRemembered=remembered+Number(yes),newStruggled=struggled+Number(!yes)
-    setRemembered(newRemembered);setStruggled(newStruggled)
-    if(index+1<cards.length){setIndex(i=>i+1);setRevealed(false);play(yes?'correct':'retry');return}
+    if(index+1<cards.length){setRemembered(newRemembered);setStruggled(newStruggled);setIndex(i=>i+1);setRevealed(false);play(yes?'correct':'retry');return}
     setBusy(true);setError('')
     try {
       const date=await saveRevisionTopicRecall(grade,active.assignmentId,newStruggled===0)
-      setNextDate(date);play('complete','Revision recorded')
+      setRemembered(newRemembered);setStruggled(newStruggled);setNextDate(date);play('complete','Revision recorded')
     } catch(e){setError(e instanceof Error?e.message:'Could not save this revision. Retry finishing.')}
     finally{setBusy(false)}
   }
@@ -123,6 +122,6 @@ export default function RevisionTopicStarter({className}:{className:string}) {
         <p style={{...muted,fontSize:12,margin:0}}>Self-check only. This does not grade an exam or change verified mastery.</p>
       </>}
     </>}
-    {error&&<div role="alert" style={{background:'var(--vs-accent-soft)',borderRadius:12,padding:11,color:'var(--vs-text)',fontSize:13}}>{error}{active&& !nextDate && index===cards.length-1 && revealed&&<button type="button" style={{...secondary,marginLeft:8}} disabled={busy} onClick={()=>void mark(struggled===0)}>Retry save</button>}</div>}
+    {error&&<div role="alert" style={{background:'var(--vs-accent-soft)',borderRadius:12,padding:11,color:'var(--vs-text)',fontSize:13}}>{error}{active&& !nextDate && index===cards.length-1 && revealed&&<button type="button" style={{...secondary,marginLeft:8}} disabled={busy} onClick={()=>void mark(true)}>Retry save</button>}</div>}
   </section>
 }
