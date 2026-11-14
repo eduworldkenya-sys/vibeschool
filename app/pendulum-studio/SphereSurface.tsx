@@ -108,10 +108,10 @@ export default function SphereSurface({rotation,left,right,showNames,showLogos,c
  rotationRef.current=rotation
  useEffect(()=>{
   const canvas=canvasRef.current
-  if(!canvas)return
+  if(!canvas)return undefined
   try{
    const gl=canvas.getContext('webgl',{alpha:true,antialias:true,preserveDrawingBuffer:true})
-   if(!gl)return
+   if(!gl)return undefined
    const e=engine(gl);engineRef.current=e
    drawRef.current=()=>{
     const current=engineRef.current,tex=texRef.current
@@ -127,6 +127,7 @@ export default function SphereSurface({rotation,left,right,showNames,showLogos,c
    drawRef.current()
    return ()=>{engineRef.current=null;gl.deleteTexture(e.texture);gl.deleteBuffer(e.buffer);gl.deleteProgram(e.program)}
   }catch{/* context blocked or unsupported: keep accessible fallback */}
+  return undefined
  },[])
  useEffect(()=>{
   let active=true
