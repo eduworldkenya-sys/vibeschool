@@ -6,7 +6,7 @@
   "strand": "Numbers",
   "sub_strand": "Whole Numbers",
   "topic": "Place Value & Total Value",
-  "status": "awaiting_curriculum_verification",
+  "status": "published_owner_approved_provisional",
   "canonical_assessment_engine": "EXQ assessment_definitions → assessment_items → assessment_assignments → assessment_attempts → assessment_responses",
   "assessment_type": "practice",
   "audience": "public_practice",
@@ -20,9 +20,10 @@
     "status": "active",
     "source_type": "creator_claimed",
     "verified_at": null,
-    "binding_allowed": false
+    "binding_allowed": true,
+    "mapping_status": "owner_approved_provisional"
   },
-  "release_gate": "Do not publish unless the source authority and canonical outcome are verified, existing EXQ schema/permissions have been inspected, and a learner end-to-end test passes.",
+  "release_gate": "Owner-approved provisional production release; official KICD source verification is outstanding. No re-release or duplicate insertion. Existing EXQ engine remains authoritative.",
   "questions": [
     {
       "id": "PV001-Q1",
@@ -149,5 +150,20 @@
       "explanation": "The 3 is in the thousands place. Its total value is 3,000, not 300.",
       "difficulty": "medium"
     }
-  ]
+  ],
+  "published_at": "2026-11-14T08:08:33.404331Z",
+  "assessment_id": "33d833ac-1b82-452c-aa37-b10d41710392",
+  "assignment_id": "552202c6-f74d-4bfa-b28d-fd1984724fae",
+  "curriculum_verification": "provisional",
+  "production_receipt": {
+    "source_block_count": 5,
+    "linked_item_count": 5,
+    "approved_item_count": 5,
+    "assignment_status": "open",
+    "time_limit_minutes": null,
+    "max_attempts": 3,
+    "show_score_policy": "immediate",
+    "learner_e2e": "not_verified",
+    "source": "Supabase production readback 2026-11-14"
+  }
 }

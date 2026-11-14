@@ -24,3 +24,17 @@ The active VibeSchool outcome candidate `c600f693-6242-45b3-b6f2-0211447e579c` h
 ## Content quality
 
 The companion JSON contains five original VibeSchool questions with one unambiguous answer, grade-appropriate values, and immediate explanations. Source questions remain staged; this JSON must **not** be loaded by a parallel learner runtime.
+
+
+## Production publication receipt — 14 November 2026
+
+The owner explicitly authorized release while handling other work. The publication uses a **provisional VibeSchool curriculum mapping**; it does **not** claim a verified KICD source. The old official-verification-only operator script is superseded for this release by the actual owner-approved production transaction. **Do not rerun either publisher.**
+
+- EXQ assessment: `33d833ac-1b82-452c-aa37-b10d41710392`
+- EXQ public-practice assignment: `552202c6-f74d-4bfa-b28d-fd1984724fae` (open; `Grade 4`; untimed; 3 attempts; immediate score)
+- Original question source publication: five linked canonical content blocks
+- Five approved multiple-choice items, each linked to curriculum outcome `c600f693-6242-45b3-b6f2-0211447e579c`
+- Curriculum outcome remains `active`, `creator_claimed`, `verified_at=null`: official external verification remains outstanding
+- Independent learner end-to-end journey is **not yet verified**; saved response, score, and retry behavior are existing EXQ engine paths, not separately tested on this new assignment
+
+Production readback was completed immediately after the transaction. The source manifest is synchronized with this receipt. All future changes to this release should be versioned, not duplicated.

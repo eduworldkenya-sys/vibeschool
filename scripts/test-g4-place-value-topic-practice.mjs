@@ -6,8 +6,13 @@ const manifest=JSON.parse(readFileSync('content/topic-practice/grade4-mathematic
 const publisher=readFileSync('scripts/sql/publish_g4_math_place_value_topic_practice_001.sql','utf8')
 test('original Grade 4 practice has five valid keyed questions',()=>{
   assert.equal(manifest.questions.length,5)
-  assert.equal(manifest.status,'awaiting_curriculum_verification')
-  assert.equal(manifest.outcome_candidate.binding_allowed,false)
+  assert.equal(manifest.status,'published_owner_approved_provisional')
+  assert.equal(manifest.outcome_candidate.binding_allowed,true)
+  assert.equal(manifest.curriculum_verification,'provisional')
+  assert.equal(manifest.production_receipt.approved_item_count,5)
+  assert.equal(manifest.production_receipt.linked_item_count,5)
+  assert.equal(manifest.production_receipt.source_block_count,5)
+  assert.equal(manifest.production_receipt.learner_e2e,'not_verified')
   assert.equal(new Set(manifest.questions.map(q=>q.id)).size,5)
   for(const q of manifest.questions){
     assert.equal(q.options.length,4)
@@ -17,7 +22,7 @@ test('original Grade 4 practice has five valid keyed questions',()=>{
     assert.ok(q.explanation.trim().length>20)
   }
 })
-test('publisher uses the existing EXQ canonical tables and refuses unverified outcomes',()=>{
+test('legacy strict publisher remains guarded and must not be rerun',()=>{
   for(const name of ['curriculum_authority_promotions','curriculum_authority_sources','curriculum_authority_snapshots',
     'assessment_definitions','assessment_items','assessment_item_outcomes','assessment_assignments'])
     assert.match(publisher,new RegExp(name))
