@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import styles from './pendulum-studio.module.css'
+import { useShowDirector, DirectorControls, DirectorStageEffects, focalStyle } from '../../components/games/ShowDirector'
 
 type Side='left'|'right'
 type Phase='idle'|'countdown'|'swinging'|'reveal'
@@ -52,6 +53,7 @@ function tone(freq:number,volume:number,duration=.14){
  }catch{/* audio can be restricted */}
 }
 export default function PendulumStudio(){
+ const {settings:director,patch:updateDirector}=useShowDirector('pendulum')
  const [setups,setSetups]=useState<Setup[]>([])
  const [selectedId,setSelectedId]=useState('')
  const [loaded,setLoaded]=useState(false)
@@ -242,6 +244,7 @@ export default function PendulumStudio(){
       </>}
       {tab==='stage'&&<>
        <h2>Studio atmosphere</h2>
+       <DirectorControls settings={director} onChange={updateDirector}/>
        <label>Scene<select value={setup.theme} onChange={e=>update({theme:e.target.value as Theme})}><option value="classic">Classic metal studio</option><option value="neon">Neon prediction arena</option><option value="gold">Black & gold premium</option></select></label>
        <label>Camera angle<select value={setup.camera} onChange={e=>update({camera:e.target.value as Camera})}><option value="front">Front view</option><option value="angled">3D angled</option><option value="close">Cinematic close</option></select></label>
        <label>Video frame<select value={setup.aspect} onChange={e=>update({aspect:e.target.value as Aspect})}><option value="portrait">9:16 Shorts / Reels</option><option value="landscape">16:9 YouTube</option><option value="square">1:1 Social</option></select></label>
@@ -280,10 +283,11 @@ export default function PendulumStudio(){
      {!showMode&&<div className={styles.previewBar}><span><i/> LIVE STAGE · YOUR EDITS APPEAR IMMEDIATELY</span><span>{setup.aspect==='portrait'?'9:16':setup.aspect==='landscape'?'16:9':'1:1'} · {setup.camera.toUpperCase()} VIEW</span></div>}
      <div ref={stageRef} className={[styles.stage,styles[setup.theme],styles[setup.aspect],styles[setup.camera],showMode?styles.interactive:''].join(' ')} role={showMode?'button':undefined} tabIndex={showMode?0:undefined} onClick={stageTap} onKeyDown={e=>{if(showMode&&(e.key==='Enter'||e.key===' ')){e.preventDefault();stageTap()}}} aria-label={showMode?'Tap to start or replay the pendulum':undefined}>
       <div className={styles.stadiumLights} aria-hidden="true"><span/><span/><span/><span/><span/></div>
+      <DirectorStageEffects settings={director} phase={revealed?'reveal':phase==='swinging'?'action':'idle'} prompt="PICK YOUR SIDE · COMMENT BELOW"/>
       <div className={styles.scene}>
        {setup.showBrand&&<div className={styles.brand}><span className={styles.brandIcon}>V</span><strong>VibePendulum</strong><small>BY VIBESCHOOL</small><em>EP. {String(setup.episode).padStart(2,'0')}</em></div>}
        <div className={styles.heading}><div className={styles.headingPill}>THE TWO-CHOICE CHALLENGE</div><h2>{setup.title}</h2><p>WHO WILL THE PENDULUM PICK?</p></div>
-       <div className={styles.frame}>
+       <div className={styles.frame} style={focalStyle(director,revealed?'reveal':phase==='swinging'?'action':'idle')}>
         <div className={styles.frameTop}/><div className={styles.framePostLeft}/><div className={styles.framePostRight}/>
         <div className={styles.pivot}>
          <div className={styles.pivotCap}/>
