@@ -113,7 +113,7 @@ export default function TuitionStudents() {
             <span style={{ background: "#e9f4ee", color: "#087451", padding: "5px 9px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>Active</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 170px), 1fr))", gap: 9, marginTop: 14 }}>
-            {([["lessons", "Lessons", CalendarDays, "Schedule and view"], ["messages", "Messages", MessageCircle, "Private conversation"]] as const).map(([tool, label, Icon, detail]) => {
+            {([["lessons", "Lessons", CalendarDays, "Schedule and view"], ["messages", "Messages", MessageCircle, "Private conversation"], ["tasks", "Tasks & feedback", BookOpen, "Assign and review work"]] as const).map(([tool, label, Icon, detail]) => {
               const open = expanded?.id === row.id && expanded.tool === tool;
               return <button key={tool} type="button" aria-expanded={open} onClick={() => toggle(row.id, tool)} style={{ border: open ? "2px solid #087451" : "1px solid #dfe5de", borderRadius: 12, padding: 13, background: open ? "#edf7f1" : "#f8faf8", color: "#17251c", textAlign: "left", cursor: "pointer", minHeight: 82 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Icon size={18} color="#087451" aria-hidden="true" /><strong>{label}</strong><ChevronDown size={16} aria-hidden="true" style={{ marginLeft: "auto", transform: open ? "rotate(180deg)" : undefined }} /></span>
