@@ -48,3 +48,35 @@
 @media(max-width:700px){.creatorGrid{grid-template-columns:1fr}.creatorGroup:last-child{grid-column:auto}.creatorHeading{flex-direction:column}.stage.format_vertical{min-height:550px}.stage.format_square{min-height:440px}}
 @media(max-width:380px){.effectList{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.stage .spotlight,.stage .particles,.stage .confetti,.stage .urgency,.stage.effectMotion .heroSymbol,.stage.effectShake .questionScene{animation:none!important}}
+
+
+/* Marketing-first campaign styling: playful branding without obscuring gameplay. */
+.brandTagline{max-width:540px;text-wrap:balance;color:#d4e6f9!important;font-size:clamp(13px,1.65vw,18px)!important}
+.campaignEndCard{width:min(100%,490px);margin-top:6px;display:flex;align-items:center;flex-direction:column;gap:9px;padding:16px 18px;border:1px solid #a4d9d16a;background:linear-gradient(135deg,#134d5cbd,#182f58bd);border-radius:16px;box-shadow:0 15px 42px #0003}
+.campaignEndCard strong{font-size:clamp(12px,1.5vw,17px);letter-spacing:.07em;text-align:center;color:#fff}
+.campaignEndCard span{color:#cfdeec;font-size:12px;line-height:1.5;text-align:center}
+.campaignEndCard a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border-radius:10px;background:var(--accent);padding:10px 17px;color:#071728;text-decoration:none;font-size:12px;font-weight:950}
+.campaignEndCard a:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.campaignStudio{margin-top:22px;background:linear-gradient(135deg,#102b40,#0c1b34);border:1px solid #3a6380;border-radius:24px;padding:clamp(16px,2.6vw,30px)}
+.campaignGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.campaignForm{display:flex;flex-direction:column;gap:12px;background:#07182bbf;border:1px solid #31536d;border-radius:16px;padding:20px}
+.campaignForm>label:not(.toggle){display:grid;gap:7px;font-size:12px;color:#c5d5e8;font-weight:750}
+.campaignForm input:not([type=checkbox]),.campaignForm select{width:100%;min-width:0;padding:12px;border:1px solid #4b6c8c;border-radius:10px;background:#11273d;color:#fff;font:inherit;font-size:13px}
+.campaignForm .toggle{line-height:1.5}
+.campaignButtons{display:flex;flex-wrap:wrap;gap:9px;margin-top:6px}
+.campaignButtons button{background:#1c3951;border:1px solid #67899f;color:#fff;padding:10px 13px;border-radius:11px;font-size:12px;font-weight:800}
+.campaignButtons button:hover{background:#2c5770}
+.campaignPreview{display:flex;flex-direction:column;gap:12px;border:1px solid #36516d;border-radius:17px;padding:19px;background:#0b1a2e}
+.campaignHero{background:radial-gradient(ellipse at top,#265974,#142c50 65%,#0a182d);border:1px solid #6799af66;min-height:270px;border-radius:17px;padding:22px;display:flex;justify-content:center;align-items:center;text-align:center;flex-direction:column;gap:15px}
+.campaignHero span{font-weight:900;letter-spacing:.2em;font-size:10px;color:#8cead4}
+.campaignHero h3{font-size:clamp(22px,3vw,39px);letter-spacing:-.045em;margin:0;line-height:1.1;max-width:550px;text-wrap:balance}
+.campaignHero p{color:#c6dcef;font-size:14px;max-width:400px;line-height:1.5;margin:0}
+.campaignHero strong{color:#73f0d3;font-size:13px}
+.campaignPreview>p{font-size:12px;color:#a7bdd2;line-height:1.6;margin:0;overflow-wrap:anywhere}
+.campaignPreview a{color:#85eace}
+.campaignCount{background:#102f45;border:1px solid #3e7188;padding:11px 17px;border-radius:13px;display:flex;flex-direction:column;gap:5px;min-width:170px}
+.campaignCount strong{font-size:26px}
+.campaignCount span{font-size:10px;color:#bdd2df;max-width:200px}
+.stage .stageTag{max-width:200px;text-align:center;line-height:1.4;overflow-wrap:anywhere}
+@media(max-width:850px){.campaignGrid{grid-template-columns:1fr}}
+@media(max-width:570px){.campaignForm,.campaignPreview{padding:14px}.campaignEndCard{padding:12px;gap:5px}.campaignEndCard a{min-height:40px}.campaignStudio .creatorHeading{flex-direction:column}.campaignHero{min-height:230px}}
