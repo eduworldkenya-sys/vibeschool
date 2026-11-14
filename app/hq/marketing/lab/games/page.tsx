@@ -50,7 +50,7 @@ export default function TrialMarketingGames(){
  const count=mode==="million"?Math.min(10,bank.length):mode==="pick"?Math.min(5,bank.length):Math.min(5,bank.length)
  const question=bank[index%bank.length]
  const done=ended || index>=count
- const clock=mode==="rush"&&!done&&picked===null
+ const clock=mode==="rush"&&!done
  useEffect(()=>{if(!clock)return;const t=window.setInterval(()=>setSeconds(s=>Math.max(0,s-1)),1000);return()=>window.clearInterval(t)},[clock])
  useEffect(()=>{if(mode==="rush"&&seconds===0&&!ended)setEnded(true)},[seconds,mode,ended])
  function reset(next:Mode=mode){setMode(next);setIndex(0);setScore(0);setPicked(null);setEnded(false);setSeconds(30);setRevealed(false);setShowClue(false)}
@@ -75,7 +75,7 @@ export default function TrialMarketingGames(){
  <>
  <h2 style={{fontSize:21,lineHeight:1.35}}>{question.prompt}</h2>
  {showClue&&question.clue&&<p style={{background:"#233b53",padding:10,borderRadius:7}}>Clue: {question.clue}</p>}
- <div style={{display:"grid",gap:9,gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))"}}>{question.options.slice(0,mode==="pick"?2:4).map((option,i)=><button key={i} disabled={picked!==null} onClick={()=>answer(i)} style={{...tile,textAlign:"left",color:"white",minHeight:65,cursor:picked===null?"pointer":"default",borderColor:picked!==null&&i===question.answer?"#3fdaa8":picked===i?"#f28e8e":"#39506d"}}>{option}</button>)}</div>
+ <div style={{display:"grid",gap:9,gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))"}}>{(mode==="pick"?[question.answer,(question.answer+1)%4]:[0,1,2,3]).map((choice,i)=><button key={choice} disabled={picked!==null} onClick={()=>answer(choice)} style={{...tile,textAlign:"left",color:"white",minHeight:65,cursor:picked===null?"pointer":"default",borderColor:picked!==null&&choice===question.answer?"#3fdaa8":picked===choice?"#f28e8e":"#39506d"}}>{question.options[choice]}</button>)}</div>
  {picked===null&&mode!=="rush"&&mode!=="pick"&&<button style={{...hqButtonStyle,marginTop:13}} onClick={()=>setShowClue(v=>!v)}>{showClue?"Hide clue":"Show clue"}</button>}
  {picked!==null&&<div style={{marginTop:14}}><p role="status">{picked===question.answer?"Correct!":"Answer recorded."} {mode==="pick"?"": "Correct answer: "+question.options[question.answer]+"."}</p><button style={hqButtonStyle} onClick={next}>{index+1===count?"Finish":"Next →"}</button></div>}
  </>}
@@ -95,7 +95,7 @@ export default function TrialMarketingGames(){
  <div style={{maxHeight:300,overflowY:"auto"}}>{bank.map(q=><div key={q.id} style={{...flex,justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #34465c"}}><span style={{fontSize:12,flex:"1 1 160px"}}>{q.prompt}</span><button style={hqButtonStyle} onClick={()=>setDraft({...q,options:[...q.options]})}>Edit</button><button disabled={bank.length<=1} style={hqButtonStyle} onClick={()=>{if(window.confirm("Delete this question?")){setBank(b=>b.filter(x=>x.id!==q.id));reset()}}}>Remove</button></div>)}</div>
  </div>}
  {message&&<p role="status" style={{fontSize:12,color:"#ffcf83"}}>{message}</p>}
- <p style={{fontSize:12,color:"#acc4d8",marginTop:12}}>VibePick presents the first two choices as a binary choice; in that format a selection is an opinion, not a factual grade. Use suitable two-choice questions when recording.</p>
+ <p style={{fontSize:12,color:"#acc4d8",marginTop:12}}>VibePick is a two-choice knowledge challenge using the correct answer and one alternative. For subjective audience polls, create a separate no-score poll rather than treating opinions as right or wrong.</p>
  </div></HQPanel>
  </div>
  <p style={{fontSize:12,color:"#acc4d8",marginTop:18}}>Trial formats: VibeScratch uses tap-to-reveal rather than touch scratching; VibeRush has a 30-second clock. These are playable prototypes, not public contests or verified prize draws.</p>
