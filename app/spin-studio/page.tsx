@@ -344,7 +344,7 @@ export default function SpinStudio() {
     if(showPhase==='intro'||showPhase==='outro'){if(sceneRef.current!==null)clearTimeout(sceneRef.current);setShowPhase('idle');return}
     if(showPhase==='question'||showPhase==='countdown'){
       if(popup.tapAction==='off')return
-      if(popup.tapAction==='next'){nextChallenge();return}
+      if(popup.tapAction==='next'){nextChallenge();if(available.length>0 && remaining!==0)window.setTimeout(()=>spinRef.current(),60);return}
       revealNow();return
     }
     if(showPhase==='reveal'){if(popup.tapAction==='off')return;nextChallenge();if(available.length>0 && remaining!==0)spinRef.current();return}
@@ -570,7 +570,11 @@ export default function SpinStudio() {
               <label>Wheel display name / spacing (optional)
                 <textarea rows={2} maxLength={90} placeholder={'BONIFACE\nMWANGI'} value={entry.displayName??''} onChange={e=>editEntry(entry.id,{displayName:e.target.value})}/>
               </label>
-              <div className={styles.row}><button type="button" onClick={()=>editEntry(entry.id,{displayName:entry.label.trim().replace(/\s+(?=[^\s]+$)/,'\n')})}>Split first / last</button><button type="button" onClick={()=>editEntry(entry.id,{displayName:''})}>Single line</button></div>
+              <div className={styles.row}>
+                <button type="button" onClick={()=>editEntry(entry.id,{displayName:entry.label.trim().replace(/\s+(?=[^\s]+$)/,'\n')})}>Split first / last</button>
+                <button type="button" onClick={()=>editEntry(entry.id,{displayName:(entry.displayName||entry.label).trimEnd()+'    '})}>Add wide space</button>
+                <button type="button" onClick={()=>editEntry(entry.id,{displayName:''})}>Single line</button>
+              </div>
               <input aria-label={'Question '+(i+1)} placeholder="Question (optional)" maxLength={250} value={entry.question} onChange={e=>editEntry(entry.id,{question:e.target.value})}/>
               <input aria-label={'Answer '+(i+1)} placeholder="Answer (optional)" maxLength={250} value={entry.answer} onChange={e=>editEntry(entry.id,{answer:e.target.value})}/>
               <label>Segment icon / emoji (optional)<input maxLength={12} placeholder="⭐ or 🎓" value={entry.symbol??''} onChange={e=>editEntry(entry.id,{symbol:e.target.value})}/></label>
@@ -705,7 +709,7 @@ export default function SpinStudio() {
                         <image href={entry.image} x="180" y="70" width="40" height="43" preserveAspectRatio="xMidYMid slice" transform={'rotate('+degree+' 200 200)'} clipPath={'url(#vibespin-clip-'+index+')'}/>
                       </>}
                       {entry.symbol && !entry.image && wheel.segmentStyle!=='text' && entries.length<=24 && <text x="200" y="98" fontSize="32" textAnchor="middle" transform={'rotate('+degree+' 200 200)'}>{entry.symbol}</text>}
-                      {(wheel.segmentStyle!=='photo'||(!entry.image&&!entry.symbol)) && <text x="200" y={(entry.image||entry.symbol)&&wheel.segmentStyle==='both'?'132':'73'} textAnchor="middle" transform={'rotate('+degree+' 200 200)'} fill="#10162b" fontSize={entries.length>16?8:entries.length>10?10:13} fontWeight="900">{(entry.displayName?.trim()||entry.label||'Item').replace(/\t/g,'    ').split(/\n/).slice(0,2).map((line,j)=><tspan key={j} x="200" dy={j===0?0:14}>{line.length>15?line.slice(0,14)+'…':line}</tspan>)}</text>}
+                      {(wheel.segmentStyle!=='photo'||(!entry.image&&!entry.symbol)) && <text x="200" y={(entry.image||entry.symbol)&&wheel.segmentStyle==='both'?'132':'73'} textAnchor="middle" xmlSpace="preserve" transform={'rotate('+degree+' 200 200)'} fill="#10162b" fontSize={entries.length>16?8:entries.length>10?10:13} fontWeight="900">{(entry.displayName?.trim()||entry.label||'Item').replace(/\t/g,'    ').split(/\n/).slice(0,2).map((line,j)=><tspan key={j} x="200" dy={j===0?0:14}>{line.length>15?line.slice(0,14)+'…':line}</tspan>)}</text>}
                     </g>)}
                   </g>}
                   <circle cx="200" cy="200" r="48" fill="#0d1831" stroke="#ffffff" strokeWidth="5"/>
