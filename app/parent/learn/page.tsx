@@ -119,7 +119,7 @@ export default function ParentLearnPage() {
 
       const nextChildren: Child[] = (links ?? [])
         .map(link => {
-          const student = link.students as unknown as {
+          const student = (Array.isArray(link.students) ? link.students[0] : link.students) as {
             id: string
             name: string
             class_id: string | null
