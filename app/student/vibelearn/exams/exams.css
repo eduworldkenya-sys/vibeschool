@@ -102,8 +102,6 @@
 
 
 /* Exam Command Centre — scoped so assessment player and student chrome remain untouched. */
-.vs-exams-command{--vs-bg:#0b1423;--vs-card:#142338;--vs-text:var(--vs-text);--vs-muted:#b0c1d5;--vs-border:var(--vs-border);--vs-accent:var(--vs-accent);--vs-on-accent:#091c30;--vs-accent-soft:#1d3048;background:var(--vs-bg);color:var(--vs-text)}
-.vs-exams-theme-light{--vs-bg:#f0f4fa;--vs-card:#fff;--vs-text:#18283c;--vs-muted:#56697e;--vs-border:#d5e0ed;--vs-accent:#1767c2;--vs-on-accent:#fff;--vs-accent-soft:#e8eff8}
 .vs-exams-command .vs-exams-container{max-width:1120px}
 .vs-command-topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:32px}
 .vs-command-brand{border:0;background:transparent;color:var(--vs-text);display:flex;align-items:center;gap:11px;text-align:left;cursor:pointer;padding:0;font-family:inherit}
