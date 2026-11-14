@@ -8,7 +8,7 @@ type Finish=(message:string)=>void
 type Props={onFinish:Finish;reducedMotion:boolean;disco:boolean;lasers:boolean;theme:string}
 const START_CUPS=[0,1,2]
 const VIEW_ANGLES:Record<Exclude<View,"free">,{x:number;z:number}>={front:{x:54,z:0},left:{x:59,z:-32},right:{x:59,z:32},top:{x:0,z:0}}
-function sample(max:number){if(max<=1)return 0;const v=new Uint32Array(1);if(typeof crypto!=="undefined"&&crypto.getRandomValues){const maxInt=4294967296,cap=Math.floor(maxInt/max)*max;do{crypto.getRandomValues(v)}while(v[0]>=cap;return v[0]%max}return Math.floor(Math.random()*max)}
+function sample(max:number){if(max<=1)return 0;const v=new Uint32Array(1);if(typeof crypto!=="undefined"&&crypto.getRandomValues){const maxInt=4294967296,cap=Math.floor(maxInt/max)*max;do{crypto.getRandomValues(v)}while(v[0]>=cap);return v[0]%max}return Math.floor(Math.random()*max)}
 function range(min:number,max:number,v:number){return Math.max(min,Math.min(max,v))}
 const THEMES=[["luxury","Luxury Gold"],["neon","Neon Arcade"],["football","Football Stadium"],["mystery","Mystery Stage"],["minimal","Minimal Studio"],["disco","Disco Party"]] as const
 export default function FollowBall3D({onFinish,reducedMotion,disco,lasers,theme}:Props){
