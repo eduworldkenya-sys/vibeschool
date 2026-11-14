@@ -24,5 +24,5 @@ assert.match(practice,/from=practice/,'Legacy practice result retains its return
 assert.match(marks,/from=progress-report/,'Overall report result retains return context')
 assert.match(result,/from === 'topic-practice'/,'Result returns to Topic Practice')
 assert.match(result,/from === 'progress-report'/,'Result returns to overall progress')
-assert.match(bottom,/\/student\/assessment"\)\) return null/,'Shared assessment runners do not masquerade as Tasks')
+assert.match(bottom,/path\.startsWith\("\/student\/assessment\/"\)\) return ""/,'Shared assessment runners do not masquerade as Tasks')
 console.log('Student navigation ownership and context contracts: PASS')

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLearningFeedback } from '@/components/student/LearningFeedback'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, ListTodo, Plus, Trash2, Pencil, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -34,8 +34,9 @@ const input: React.CSSProperties = { minWidth:0, width:'100%', minHeight:44, bor
 const button: React.CSSProperties = { minHeight:44, border:'none',borderRadius:10,padding:'10px 14px',background:'var(--vs-accent)',color:'#fff',fontWeight:700,cursor:'pointer' }
 const secondary: React.CSSProperties = { ...button, background:'var(--vs-accent-soft)',color:'var(--vs-text)',border:'1px solid var(--vs-border)' }
 
-export default function TasksPage({mode='tasks'}:{mode?:'tasks'|'day'}) {
-  const isDay=mode==='day'
+export default function TasksPage() {
+  // The timetable embeds this same learner-owned planner without passing invalid Next.js page props.
+  const isDay=usePathname().startsWith('/student/timetable')
   const { play } = useLearningFeedback()
   const router=useRouter()
   const {identity,loading:identityLoading}=useStudent()
@@ -44,7 +45,7 @@ export default function TasksPage({mode='tasks'}:{mode?:'tasks'|'day'}) {
   const [assignedError,setAssignedError]=useState(false)
   const [privateTutorTasks,setPrivateTutorTasks]=useState<Array<{id:string;invitation_id:string;title:string;status:string;tutor_feedback:string}>>([])
   const [privateTutorError,setPrivateTutorError]=useState(false)
-  const [tab,setTab]=useState<PlannerTab>(mode==='day'?'calendar':'today')
+  const [tab,setTab]=useState<PlannerTab>(isDay?'calendar':'today')
   const [selected,setSelected]=useState(()=>new Date())
   const [month,setMonth]=useState(()=>new Date(new Date().getFullYear(),new Date().getMonth(),1))
   const [editing,setEditing]=useState<string|null>(null)
@@ -159,8 +160,9 @@ export default function TasksPage({mode='tasks'}:{mode?:'tasks'|'day'}) {
           </Link>)}
     </section>
     <p style={{fontSize:12,color:"var(--vs-muted)",margin:0}}>Assigned work opens in its original tool. Only personal tasks can be marked complete here; submitting assigned work requires its own submission flow.</p>
-    <nav aria-label="Learning priorities" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-      {([['Homework','/student/homework'],['Classwork','/student/assessment'],['Exercises','/student/exercises'],['Projects',identity?.classId?'/student/projects':'/student/projects/independent'],['Practice','/student/vibelearn/topic-practice'],['Exams','/student/vibelearn/exams'],['Revision','/student/vibelearn/revision']] as const).map(([label,href])=><Link key={href} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
+
+    <nav aria-label="Assigned work types" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+      {([['Homework','/student/homework'],['Classwork','/student/assessment'],['Exercises','/student/exercises'],['Projects',identity?.classId?'/student/projects':'/student/projects/independent']] as const).map(([label,href])=><Link key={label} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
     </nav>
     <section aria-labelledby="assigned-work-heading" style={{background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:14,padding:14,display:'grid',gap:10}}>
       <div><h2 id="assigned-work-heading" style={{fontSize:18,margin:'0 0 4px'}}>Assigned work {actionable.length>0&&`(${actionable.length})`}</h2><p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>All assigned work stays together here, including homework, classwork, exercises, assessments and projects. Open it in its original workspace.</p></div>

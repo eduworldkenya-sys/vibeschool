@@ -157,7 +157,7 @@ export default function StudentHomePage() {
       {nextQueue.length === 0 ? <p style={body}>No other tasks need attention right now.</p> : <div style={{ display: 'grid', gap: 9 }}>{nextQueue.map(task => <button key={task.taskId} disabled={launchingTaskId !== null} onClick={() => void openTask(task)} style={recoveryRow}><span style={rank}>{TYPE_LABEL[task.taskType]?.slice(0, 1) ?? 'T'}</span><span style={{ textAlign: 'left', minWidth: 0 }}><strong style={{ display: 'block', fontSize: 13 }}>{task.title}</strong><span style={{ ...muted, fontSize: 11 }}>{task.subject} · {taskMeta(task)}</span></span><span aria-hidden="true">›</span></button>)}</div>}
     </section>
 
-    <section style={card} aria-label="Learning destinations"><SectionHeader title="Explore learning" /><div className="student-home-quick-grid"><Quick title="Learn" note="Lessons and reading" onClick={() => router.push('/student/study')} /><Quick title="Practise" note="Questions and exercises" onClick={() => router.push('/student/vibelearn/topic-practice')} /><Quick title="Exams" note="Tests and assessments" onClick={() => router.push('/student/vibelearn/exams')} /><Quick title="Results" note="Marks and feedback" onClick={() => router.push('/student/marks')} /></div></section>
+    <section style={card} aria-label="Learning destinations"><SectionHeader title="Explore learning" /><div className="student-home-quick-grid"><Quick title="Learn" note="Lessons and books" onClick={() => router.push('/student/study')} /><Quick title="Practise" note="Questions and exercises" onClick={() => router.push('/student/vibelearn/topic-practice')} /><Quick title="Exams" note="Tests and results" onClick={() => router.push('/student/vibelearn/exams')} /><Quick title="Revision" note="Recall and remember" onClick={() => router.push('/student/vibelearn/revision')} /><Quick title="Mistakes" note="Correct my answers" onClick={() => router.push('/student/vibelearn/mistakes')} /><Quick title="Progress" note="My learning report" onClick={() => router.push('/student/marks')} /></div></section>
     </div>
 
     <section style={card} aria-label="Your private tutors">
@@ -198,19 +198,20 @@ function SectionHeader({ title, action, onClick }: { title: string; action?: str
 function Metric({ label: text, value }: { label: string; value: string | number }) { return <div style={metric}><span style={muted}>{text}</span><strong style={{ display: 'block', marginTop: 4, fontSize: 17 }}>{value}</strong></div> }
 function Empty({ title, body: text }: { title: string; body: string }) { return <div style={{ padding: 14, textAlign: 'center' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={body}>{text}</p></div> }
 function Quick({ title, note, onClick }: { title: string; note: string; onClick: () => void }) {
-  const Icon = title === 'Learn' ? BookOpen : title === 'Exams' ? ClipboardCheck : title === 'Results' ? ChartNoAxesColumn : title === 'Workspace' ? BookMarked : title === 'Stories' ? LibraryBig : title === 'My Day' ? CalendarDays : PencilLine
+  const Icon = title === 'Learn' ? BookOpen : title === 'Exams' ? ClipboardCheck : title === 'Progress' ? ChartNoAxesColumn : title === 'Workspace' ? BookMarked : title === 'Stories' ? LibraryBig : title === 'My Day' ? CalendarDays : PencilLine
+  const object = ({Learn:'📖',Practise:'✏️',Exams:'📝',Revision:'🗂️',Mistakes:'📒',Progress:'📊'} as Record<string,string>)[title]
   return <button onClick={onClick} style={{ ...quick, display: 'flex' }} aria-label={title + ': ' + note}>
-    <span className="student-home-quick-icon"><Icon size={20} aria-hidden="true" /></span>
+    <span className="student-home-quick-icon">{object ? <span className="student-home-real-object" aria-hidden="true">{object}</span> : <Icon size={20} aria-hidden="true" />}</span>
     <span className="student-home-quick-copy"><strong>{title}</strong><small>{note}</small></span>
     <ArrowUpRight size={16} aria-hidden="true" className="student-home-quick-arrow" />
   </button>
 }
 
-const hero: React.CSSProperties = { padding: 'clamp(18px,3vw,30px)', borderRadius: 20, color: 'var(--vs-text)', background: 'linear-gradient(130deg, var(--vs-accent-soft), var(--vs-card) 76%)', border: '1px solid var(--vs-border)', boxShadow: '0 9px 26px rgba(22,109,73,.055)' }
-const heroPanel: React.CSSProperties = { marginTop: 17, padding: 'clamp(14px,2vw,18px)', borderRadius: 14, background: 'var(--vs-accent-soft)', border: '1px solid var(--vs-border)' }
+const hero: React.CSSProperties = { padding: 'clamp(20px,3vw,34px)', borderRadius: 24, color: '#f3fff8', background: 'linear-gradient(130deg, #10291d, #194c35 58%, #226443)', border: '1px solid #285c43', boxShadow: '0 18px 42px rgba(8,55,30,.16)' }
+const heroPanel: React.CSSProperties = { marginTop: 17, padding: 'clamp(17px,2.5vw,24px)', borderRadius: 18, background: 'rgba(255,255,255,.09)', border: '1px solid rgba(232,255,239,.23)', backdropFilter:'blur(6px)' }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 850, letterSpacing: .9, color: 'var(--vs-accent)', textTransform: 'uppercase' }
 const heroSub: React.CSSProperties = { margin: 0, fontSize: 13, color: 'var(--vs-muted)', lineHeight: 1.6 }
-const heroButton: React.CSSProperties = { marginTop: 13, border: 0, borderRadius: 11, padding: '11px 17px', color: 'var(--vs-on-accent)', background: 'var(--vs-accent)', fontFamily: 'inherit', fontSize: 13, fontWeight: 850, cursor: 'pointer', minHeight: 44 }
+const heroButton: React.CSSProperties = { marginTop: 13, border: 0, borderRadius: 11, padding: '11px 17px', color: '#153d2b', background: '#b5f3c9', fontFamily: 'inherit', fontSize: 13, fontWeight: 850, cursor: 'pointer', minHeight: 44 }
 const heroTrack: React.CSSProperties = { height: 7, background: 'var(--vs-border)', borderRadius: 999, overflow: 'hidden', marginTop: 8 }
 const splitSmall: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, flexWrap: 'wrap' }
 const card: React.CSSProperties = { padding: 'clamp(16px,2vw,21px)', borderRadius: 16, border: '1px solid var(--vs-border)', background: 'var(--vs-card)', minWidth: 0 }

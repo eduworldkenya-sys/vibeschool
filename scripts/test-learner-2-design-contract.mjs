@@ -6,13 +6,13 @@ const read=path=>readFileSync(path,'utf8')
 test('learner 2.0 keeps five primary tabs and visible secondary destinations',()=>{
  const nav=read('components/student/BottomNav.tsx')
  const css=read('components/student/BottomNav.module.css')
- assert.equal((nav.match(/id: "(?:home|learn|practise|tasks|results)"/g)||[]).length,5)
+ assert.equal((nav.match(/label: "(?:Home|Learn|Practice|Tasks|Progress)", href:/g)||[]).length,5)
  for(const route of ['/student/vibelearn/exams','/student/workspace','/learn/stories','/student/timetable','/student/settings']){
   assert.ok(nav.includes(route),'navigation shortcut '+route)
  }
  assert.match(css,/@media\(min-width:1024px\)/)
  assert.match(css,/\.tabbar|\.nav/)
- assert.match(read('app/student/layout.tsx'),/width:calc\(100% - 208px\)/)
+ assert.match(read('app/student/layout.tsx'),/width:calc\(100% - 220px\)/)
 })
 
 test('Home shows action first while Workspace and stories stay discoverable',()=>{

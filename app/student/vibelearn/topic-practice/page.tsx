@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
 import CanonicalTopicPractice from '@/components/student/CanonicalTopicPractice'
-import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import LearningFeedback, { playLearningSound } from '@/components/student/LearningFeedback'
 import { supabase } from '@/lib/supabase'
@@ -212,7 +211,7 @@ export default function TopicPracticePage() {
     <button style={plain} onClick={() => router.push('/student/study')}>← Learn</button>
     <h1 style={{margin:'12px 0 6px',fontSize:26}}>Topic Practice</h1>
     <p style={muted}>Practice is for improvement, not a formal exam. Get feedback after each question, review mistakes, and continue at your pace.</p>
-    {!session && <StudentLearningFeatureLinks mode="practice" grade={grade} subject={requestedSubject}/>}
+
     {!grade && <section style={card}><h2 style={heading}>Choose your grade once</h2><div style={grid}>{[4,5,6,7,8,9].map(n => <button key={n} style={button} onClick={() => void selectGrade('Grade '+n)}>Grade {n}</button>)}</div></section>}
     {grade && <p style={{...muted,marginTop:12}}>{grade} <button style={plain} onClick={() => void selectGrade('')}>Change</button></p>}
     {error && <p role="alert" style={{color:'#b91c1c'}}>{error}</p>}
