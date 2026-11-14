@@ -31,7 +31,7 @@ for(const p of doc.packets){
  }
  const first=p.checks[0]
  assert.notEqual(first.prompt,p.worked.prompt,'Independent check cannot reuse the worked wording')
- assert.notEqual(first.answer===p.worked.answer, true,'First check should not reuse worked answer object')
+ assert.notEqual(JSON.stringify(first.answer),JSON.stringify(p.worked.answer),'First check should not reuse worked answer')
  if(first.operands && Number.isInteger(p.worked.minuend)){
   assert.ok(first.operands.minuend!==p.worked.minuend || first.operands.subtrahend!==p.worked.subtrahend,
     'First check must not repeat model operands')
