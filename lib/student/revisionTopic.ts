@@ -18,7 +18,7 @@ export function learnerRevisionGrade(className: string): string | null {
   return match ? match[1].replace(/\s+/g, ' ').replace(/^grade/i, 'Grade').replace(/^form/i, 'Form') : null
 }
 export async function listRevisionTopics(grade: string): Promise<RevisionTopic[]> {
-  const {data,error} = await supabase.rpc('student_list_canonical_topic_practice' as never, {p_grade:grade} as never)
+  const {data,error} = await supabase.rpc('student_revision_studio_catalog' as never, {p_grade:grade} as never)
   if(error) throw new Error(error.message)
   const catalog = objects(data).filter(row => typeof row.assignment_id === 'string' &&
     typeof row.topic === 'string' && typeof row.subject === 'string' && row.question_count === 5)
