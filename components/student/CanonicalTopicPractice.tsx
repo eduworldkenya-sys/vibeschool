@@ -225,7 +225,7 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
           <strong>{topics.length?'No topics match this filter.':'Practice topics are being prepared'}</strong>
           <p style={{...muted,margin:0}}>{topics.length?'Try another subject to see available topics.':'Published five-question, untimed sets will appear here automatically. You can continue learning while they are prepared.'}</p>
           {topics.length>0 && <button type="button" style={secondary} onClick={()=>{setSubjectFilter('');router.replace('/student/vibelearn/topic-practice')}}>Show all topics</button>}
-          {topics.length===0 && <button type="button" style={secondary} onClick={()=>void refresh().catch(cause=>setError(cause instanceof Error?cause.message:'Could not reload topics.'))}>Check again</button>}
+          {topics.length===0 && <><button type="button" style={secondary} onClick={()=>void refresh().catch(cause=>setError(cause instanceof Error?cause.message:'Could not reload topics.'))}>Check again</button><button type="button" style={secondary} onClick={()=>router.push('/student/vibelearn/exams')}>Browse Exams</button></>}
         </div>
         : <div style={{display:'grid',gap:10}}>{topicCards.map(card=><button key={card.key} type="button" disabled={busy||card.remaining===0}
           onClick={()=>void open(card.preferred)} style={{...topicTile,opacity:card.remaining===0?.65:1}}>
