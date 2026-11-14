@@ -58,7 +58,7 @@ for (const p of batch.packets) {
   const exposed = new Set([p.worked, ...p.guided, ...p.independent].map(x => x.answer).filter(Number.isInteger))
   for (const q of p.formative) {
    assert.ok(!exposed.has(q.answer), 'Reused answer from demonstration: ' + q.id)
-   const numbers = [...q.prompt.matchAll(/\\d[\\d,]*/g)].map(m => Number(m[0].replaceAll(',', '')))
+   const numbers = [...q.prompt.matchAll(/\d[\d,]*/g)].map(m => Number(m[0].replaceAll(',', '')))
    assert.equal(numbers.length, 2, 'Expected two addends: ' + q.id)
    const [a,b] = numbers
    const expected = q.prompt.startsWith('Estimate') ? Math.round(a/10)*10 + Math.round(b/10)*10 : a+b
@@ -67,7 +67,7 @@ for (const p of batch.packets) {
  }
  if (p.outcomeCode === '1.2(d)') {
   for (const q of p.formative) {
-   const nums = [...q.prompt.matchAll(/\\d[\\d,]*/g)].map(m => Number(m[0].replaceAll(',', '')))
+   const nums = [...q.prompt.matchAll(/\d[\d,]*/g)].map(m => Number(m[0].replaceAll(',', '')))
    assert.equal(nums.length, 3)
    const step = nums[1]-nums[0]
    assert.equal(nums[2]-nums[1],step)
@@ -78,7 +78,7 @@ for (const p of batch.packets) {
   const exposed = new Set([p.worked, ...p.guided, ...p.independent].map(x => x.answer).filter(Number.isInteger))
   for (const q of p.formative) {
    assert.ok(!exposed.has(q.answer), 'Reused model/exercise answer: ' + q.id)
-   const nums = [...q.prompt.matchAll(/\\d[\\d,]*/g)].map(m => Number(m[0].replaceAll(',', '')))
+   const nums = [...q.prompt.matchAll(/\d[\d,]*/g)].map(m => Number(m[0].replaceAll(',', '')))
    assert.equal(nums.length,2)
    assert.equal(q.answer,nums[0]+nums[1])
   }
