@@ -4,6 +4,12 @@ const data=JSON.parse(readFileSync('content/curriculum/production/grade4-math-nu
 assert.equal(data.status,'SOURCE_TEXT_OBSERVED_NOT_REGISTERED_NOT_PROMOTED')
 assert.equal(data.source.url,'https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf')
 for(const key of ['contentSha256','privateArtifactStorageLocator','approvedSourceId','approvedSnapshotId'])assert.equal(data.source[key],null)
+assert.match(data.source.audience,/Regular Grade 4 Mathematics/)
+assert.match(data.source.audience,/NOT the separate adapted/)
+assert.equal(data.source.excludedAdaptedSource.url,'https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-4-MATHEMATICS.pdf')
+assert.match(data.source.excludedAdaptedSource.audience,/physical impairment/)
+assert.notEqual(data.source.url,data.source.excludedAdaptedSource.url,'A special-needs-adapted source must not silently replace the general-primary authority')
+assert.ok(data.source.sourceIdentityRules.some(x=>x.includes('Reject adapted')))
 assert.equal(data.outcomes.length,10)
 const all=new Set()
 for(const unit of ['1.2','1.3']){
