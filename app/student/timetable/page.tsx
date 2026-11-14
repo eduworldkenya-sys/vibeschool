@@ -145,7 +145,7 @@ export default function TimetablePage() {
         </p>
       </div>
 
-      <section aria-label="Personal calendar, schedule and reminders" style={{marginBottom:22}}><TasksPage mode="day" /></section>
+      <section aria-label="Personal calendar, schedule and reminders" style={{marginBottom:22}}><TasksPage /></section>
 
       <h2 style={{fontSize:17,fontWeight:800,margin:"20px 0 12px"}}>School & tuition timetable</h2>
       <div role="group" aria-label="Schedule context" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
