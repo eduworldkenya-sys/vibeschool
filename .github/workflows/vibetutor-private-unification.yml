@@ -1,0 +1,31 @@
+name: Private Tutoring Unification Contract
+on:
+  pull_request:
+    paths:
+      - 'app/student/tasks/page.tsx'
+      - 'app/student/tutoring/**'
+      - 'app/teacher/tutoring/**'
+      - 'components/vibetutor/PrivateTutorTasks.tsx'
+      - 'components/vibetutor/PrivateTutorGroups.tsx'
+      - 'supabase/migrations/*vibetutor_private_teaching_unification.sql'
+      - 'scripts/test-vibetutor-private-unification.mjs'
+      - '.github/workflows/vibetutor-private-unification.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/student/tasks/page.tsx'
+      - 'app/student/tutoring/**'
+      - 'app/teacher/tutoring/**'
+      - 'components/vibetutor/PrivateTutorTasks.tsx'
+      - 'components/vibetutor/PrivateTutorGroups.tsx'
+      - 'supabase/migrations/*vibetutor_private_teaching_unification.sql'
+      - 'scripts/test-vibetutor-private-unification.mjs'
+jobs:
+  tutoring-contract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify tutoring authority and wiring
+        run: node --test scripts/test-vibetutor-private-unification.mjs
