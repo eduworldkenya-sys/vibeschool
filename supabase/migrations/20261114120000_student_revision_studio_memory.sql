@@ -18,19 +18,20 @@ revoke all on table public.student_revision_memory from public,anon,authenticate
 grant select on table public.student_revision_memory to authenticated;
 drop policy if exists student_revision_memory_select_own on public.student_revision_memory;
 create policy student_revision_memory_select_own on public.student_revision_memory
-  for select to authenticated using (student_id = auth.uid());
+  for select to authenticated using (student_id = public.current_student_id());
 
 create or replace function public.student_record_revision_recall(
   p_mistake_id uuid, p_remembered boolean
 ) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare
-  v_student uuid := auth.uid();
+  v_student uuid := public.current_student_id();
   v_existing public.student_revision_memory%rowtype;
   v_interval integer;
   v_due timestamptz;
 begin
-  if v_student is null then raise exception 'Authentication required'; end if;
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if v_student is null then raise exception 'Learner identity not found'; end if;
   if p_mistake_id is null or p_remembered is null then raise exception 'Recall answer is required'; end if;
   if not exists (
     select 1 from public.student_mistake_notebook m
