@@ -152,21 +152,16 @@ export default function ParentLearnPage() {
     setError(null)
     setLoadingChild(true)
 
-    if (!child.classId) {
-      if (version === requestVersion.current) setLoadingChild(false)
-      return
-    }
-
     const [homeworkRes, submissionsRes, assessmentsRes, progressRes] = await Promise.all([
-      supabase
+      child.classId ? supabase
         .from("homework")
         .select("id, title, subject, instructions, due_date")
         .eq("class_id", child.classId)
-        .order("due_date", { ascending: true }),
-      supabase
+        .order("due_date", { ascending: true }) : Promise.resolve({ data: [] as Array<{ id: string; title: string; subject: string | null; instructions: string | null; due_date: string | null }>, error: null }),
+      child.classId ? supabase
         .from("homework_submissions")
         .select("id, homework_id, status, mark, feedback")
-        .eq("student_id", child.id),
+        .eq("student_id", child.id) : Promise.resolve({ data: [] as Array<{ id: string; homework_id: string; status: string; mark: number | null; feedback: string | null }>, error: null }),
       supabase
         .from("assessment_gradebook_entries")
         .select("attempt_id, assessment_title, subject_id, score, max_score, percentage, released_at, subjects(name)")
