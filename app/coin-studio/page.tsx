@@ -346,7 +346,7 @@ export default function CoinStudio() {
   if(!loaded || !current) return <main className={styles.page}>Loading VibeCoin Studio…</main>
   const showRotation = rotation
   const phaseStyle = phase==='flipping'?'action':phase==='reveal'?'reveal':'idle'
-  return <main className={styles.page}>
+  return <><main className={styles.page}>
     <div className={styles.shell}>
       {!showMode && <header className={styles.header}>
         <div><span className={styles.kicker}>VIBESCHOOL ORIGINALS / GAME CREATOR</span><h1>Vibe<span>Coin</span><em>STUDIO</em></h1><p>Two sides. One unforgettable reveal.</p></div>
@@ -478,5 +478,5 @@ export default function CoinStudio() {
       </div>
     </div>
   </main>
-  <DiscoveryInvitation/>
+  <DiscoveryInvitation/></>
 }
