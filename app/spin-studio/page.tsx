@@ -25,7 +25,7 @@ type PopupSettings = {
  tapAction:'reveal'|'next'|'off'; vibrate:boolean; playSound:boolean; dimBackdrop:boolean;
 }
 const DEFAULT_POPUP:PopupSettings={enabled:true,position:'bottom',size:88,opacity:96,style:'glass',animation:'pop',showTitle:true,showName:true,showPhoto:true,showQuestion:true,showCountdown:true,showAnswer:true,showFact:true,title:'THE WHEEL HAS CHOSEN',revealTitle:'THE RESULT',questionDelay:750,revealDelay:0,tapAction:'reveal',vibrate:false,playSound:true,dimBackdrop:false,countdownStyle:'number',countdownLabel:'TIME LEFT',countdownColor:'#71f1e6',countdownScale:100,countdownTick:true,countdownInterval:1000,countdownZeroText:'TIME!'}
-type Wheel = { popup?:Partial<PopupSettings>; showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; electionMode?: boolean; electionSpinTotal?: number; electionPointsPerSpin?: number; electionWinnerTitle?: string; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; spinDirection?: SpinDirection; spinMotion?: SpinMotion; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type Wheel = { popup?:Partial<PopupSettings>; showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; electionMode?: boolean; electionSpinTotal?: number; electionPointsPerSpin?: number; electionWinnerTitle?: string; electionTallyVisible?: boolean; electionTallyStyle?: 'bars'|'numbers'|'podium'; electionTallySort?: 'rank'|'fixed'; electionTallyPlacement?: 'side'|'bottom'|'floating'; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; spinDirection?: SpinDirection; spinMotion?: SpinMotion; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
@@ -209,6 +209,8 @@ export default function SpinStudio() {
   const electionTotal=activeSnapshot?.total??Math.max(1,Math.min(9999,wheel?.electionSpinTotal || entries.length*2))
   const electionPoints=activeSnapshot?.points??Math.max(1,Math.min(10,wheel?.electionPointsPerSpin??1))
   const electionWinnerTitle=(wheel?.electionWinnerTitle?.trim() || 'CHAMPION').slice(0,55)
+  const tallyStyle=wheel?.electionTallyStyle??'bars'
+  const tallyPlacement=wheel?.electionTallyPlacement??'side'
   const electionScores=entries.map(entry=>({id:entry.id,name:entry.label,score:electionVotes.filter(id=>id===entry.id).length*electionPoints}))
   const lastElectionVote=electionVotes[electionVotes.length-1]??null
   const electionTop=Math.max(0,...electionScores.map(candidate=>candidate.score))
@@ -777,7 +779,11 @@ export default function SpinStudio() {
 <label>Number of candidates (2–24)<input aria-label="Number of election candidates" type="number" min="2" max="24" value={entries.length} disabled={spinning||spinCount>0} onChange={e=>{const count=Math.max(2,Math.min(24,Number(e.target.value)||2));update({entries:Array.from({length:count},(_,i)=>entries[i]??{id:uid(),label:'Candidate '+(i+1),question:'Random entertainment selection',answer:'No prediction'})})}}/></label>
 <label>Total spins (0 = automatic 2×)<input aria-label="Total election spins" type="number" min="0" max="9999" value={wheel.electionSpinTotal??0} disabled={spinning||spinCount>0} onChange={e=>update({electionSpinTotal:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>
 <label>Points added per landing (1–10)<input aria-label="Election points per spin" type="number" min="1" max="10" value={electionPoints} disabled={spinning||spinCount>0} onChange={e=>update({electionPointsPerSpin:Math.max(1,Math.min(10,Number(e.target.value)||1))})}/></label>
-<label>Final announcement title<input aria-label="Election winner announcement title" maxLength={55} value={wheel.electionWinnerTitle??'CHAMPION'} onChange={e=>update({electionWinnerTitle:e.target.value})}/></label>
+<label className={styles.check}><input type="checkbox" checked={wheel.electionTallyVisible!==false} onChange={e=>update({electionTallyVisible:e.target.checked})}/> Show live tally</label>
+ <label>Tally placement<select aria-label="Tally placement" value={tallyPlacement} onChange={e=>update({electionTallyPlacement:e.target.value as 'side'|'bottom'|'floating'})}><option value="side">Beside the wheel</option><option value="bottom">Under the wheel</option><option value="floating">Floating broadcast overlay</option></select></label>
+ <label>Tally presentation<select aria-label="Tally presentation" value={tallyStyle} onChange={e=>update({electionTallyStyle:e.target.value as 'bars'|'numbers'|'podium'})}><option value="bars">Animated bars and numbers</option><option value="numbers">Large numbers</option><option value="podium">Ranking with bars</option></select></label>
+ <label>Tally order<select aria-label="Tally order" value={wheel.electionTallySort??'rank'} onChange={e=>update({electionTallySort:e.target.value as 'rank'|'fixed'})}><option value="rank">Highest score first</option><option value="fixed">Original candidate order</option></select></label>
+ <label>Final announcement title<input aria-label="Election winner announcement title" maxLength={55} value={wheel.electionWinnerTitle??'CHAMPION'} onChange={e=>update({electionWinnerTitle:e.target.value})}/></label>
 <p><b>{entries.length} candidates · {electionTotal} spins · +{electionPoints} point{electionPoints===1?'':'s'} per landing</b>. Press Spin Now once. Every round reveals the selected name while the adjacent tally builds live. The final random-draw result is announced after the last reveal. Ties are shown without inventing a winner.</p>
 <p className={styles.hint}>Use Reset before changing candidates or scoring during a run. This random game is not a poll or election forecast.</p></div>}
 {!electionMode&&<label>Maximum spins (0 = unlimited)<input type="number" min="0" max="9999" value={wheel.maxSpins} onChange={e=>update({maxSpins:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>}
@@ -822,7 +828,7 @@ export default function SpinStudio() {
             <div className={styles.stageContent}>
               <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span><b>VIBESPIN</b> by VIBESCHOOL</span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
-              <div className={electionMode?styles.electionArena:styles.wheelOnlyArena}>
+              <div className={electionMode?[styles.electionArena,styles['electionArena'+tallyPlacement]].join(' '):styles.wheelOnlyArena}>
               <div className={[styles.wheelArea,electionMode&&spinning?styles.electionSpinDrama:''].join(' ')} style={focalStyle(director,showPhase==='reveal'?'reveal':spinning?'action':'idle',reducedMotion)}>
                 <div className={styles.wheelHalo}/>
                 <div className={styles.wheelOrbitWrapper}>
@@ -853,12 +859,12 @@ export default function SpinStudio() {
                 </div>
                 {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
-              {electionMode&&<aside className={styles.electionTally} aria-label="Live random spin tally" aria-live="polite">
-                <div className={styles.electionTallyHead}><strong>LIVE TALLY</strong><span>{spinCount}/{electionTotal}</span></div>
-                {[...electionScores].sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)).map((candidate,index)=><div key={candidate.id} className={[styles.electionTallyRow,candidate.id===lastElectionVote&&showPhase!=='spinning'?styles.electionTallyPulse:''].join(' ')}>
+              {electionMode&&wheel.electionTallyVisible!==false&&<aside className={[styles.electionTally,styles['electionTally'+tallyPlacement]].join(' ')} aria-label="Live random spin tally" aria-live="polite">
+                <div className={styles.electionTallyHead}><strong>{tallyStyle==='podium'?'ROUND RANKINGS':'LIVE TALLY'}</strong><span>{spinCount}/{electionTotal}</span></div>
+                {(wheel.electionTallySort==='fixed'?[...electionScores]:[...electionScores].sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name))).map((candidate,index)=><div key={candidate.id} className={[styles.electionTallyRow,candidate.id===lastElectionVote&&showPhase!=='spinning'?styles.electionTallyPulse:''].join(' ')}>
                   <span className={styles.electionTallyRank}>{index+1}</span>
                   <span className={styles.electionTallyName}>{candidate.name}</span>
-                  <div className={styles.electionScoreTrack}><div className={styles.electionScoreFill} style={{width:(electionTop?candidate.score/electionTop*100:0)+'%'}}/></div>
+                  {tallyStyle!=='numbers'&&<div className={styles.electionScoreTrack}><div className={styles.electionScoreFill} style={{width:(electionTop?candidate.score/electionTop*100:0)+'%'}}/></div>}
                   <b className={styles.electionTallyScore}>{candidate.score}</b>
                 </div>)}
                 <div className={styles.electionTallyFoot}>{electionFinished?'FINAL TALLY':'+'+electionPoints+' PER SPIN · RANDOM DRAW'}</div>
