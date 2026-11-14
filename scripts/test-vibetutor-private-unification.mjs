@@ -31,6 +31,9 @@ test("Group membership and group task fan out require tutor ownership and accept
   assert.match(migration,/public\.vibetutor_assign_private_group_task/);
   assert.match(migration,/i\.status='accepted'/);
   assert.match(migration,/g\.tutor_id=auth\.uid\(\)/);
+  const grants = migration.slice(migration.lastIndexOf("grant execute on function"));
+  assert.match(grants,/public\\.vibetutor_remove_private_group_member\\(uuid,uuid\\)/);
+  assert.match(grants,/public\\.vibetutor_assign_private_group_task\\(uuid,text,text\\)/);
 });
 test("Private tasks are visible from the canonical learner task screen",()=>{
   assert.match(tasks,/vibetutor_my_private_tasks/);
