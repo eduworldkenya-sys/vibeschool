@@ -300,7 +300,7 @@
           2150,
           2300
         ],
-        "reason": "Add 150 each time."
+        "reason": "The sequence increases by 150 at every step: 1,850, 2,000, 2,150, then 2,300."
       },
       "misconceptionRepair": "Making a new rule at each step: verify differences.",
       "teacherPrompt": "Ask the learner for two different starting values that share one step.",
