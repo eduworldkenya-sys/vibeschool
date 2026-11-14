@@ -616,7 +616,7 @@ export default function SpinStudio() {
   const selectedIsReward=showFormat==='lucky'||showFormat==='trending'||showFormat==='political'
   const segmented=useMemo(()=>entries.map((entry,index)=>({entry,index,path:wedge(index,entries.length),degree:(index+.5)*360/entries.length})),[entries])
   if(!loaded || !wheel)return <main className={styles.page}><p>Loading Spin Studio…</p></main>
-  return <main className={styles.page}>
+  return <><main className={styles.page}>
     <div className={styles.shell}>
       {!recording && <header className={styles.header}>
         <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>VibeSpin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
@@ -955,5 +955,5 @@ export default function SpinStudio() {
       </div>
     </div>
   </main>
-  <DiscoveryInvitation/>
+  <DiscoveryInvitation/></>
 }
