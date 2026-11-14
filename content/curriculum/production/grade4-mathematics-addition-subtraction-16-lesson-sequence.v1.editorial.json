@@ -1,0 +1,661 @@
+{
+  "schema": "vibeschool.originals.g4-numbers-16-lesson-editorial-sequence.v1",
+  "status": "EDITORIAL_ONLY_NOT_CERTIFIED_NOT_PUBLISHED",
+  "grade": "Grade 4",
+  "subject": "Mathematics",
+  "source": {
+    "authority": "KICD Grade 4 Mathematics regular curriculum revised 2024",
+    "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+    "addition": "Numbers 1.2 Addition: printed pp.4–5, 8 suggested lessons",
+    "subtraction": "Numbers 1.3 Subtraction: printed pp.6–7, 8 suggested lessons",
+    "verification": "Public source text observed; owner source promotion and artifact hash pending"
+  },
+  "scope": "Eight suggested lessons for Addition 1.2 and eight for Subtraction 1.3. This is a proposed original teaching sequence, not an approved timetable or KICD-mandated lesson-by-lesson schedule.",
+  "reusedCandidatePRs": [
+    {
+      "pr": 1698,
+      "scope": "Addition 1.2(a)"
+    },
+    {
+      "pr": 1693,
+      "scope": "Addition 1.2(b-e)"
+    },
+    {
+      "pr": 1694,
+      "scope": "Subtraction 1.3(a-e)"
+    }
+  ],
+  "copyright": "All learner-facing words and examples are newly authored, not reproductions of KICD text.",
+  "quality": {
+    "mathExamplesChecked": 32,
+    "independentAssurance": "NOT_DONE",
+    "curriculumPromotion": "NOT_DONE",
+    "readerVerification": "NOT_DONE"
+  },
+  "lessons": [
+    {
+      "id": "VS-G04-MA-1.2-S01",
+      "subStrand": "Addition",
+      "sequence": 1,
+      "sourceOutcome": "1.2(a)",
+      "title": "Why one regrouping works",
+      "goal": "Explain a ten-for-one exchange in the ones column.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 2413,
+        "b": 1258,
+        "operator": "+",
+        "answer": 3671,
+        "why": "3 ones plus 8 ones make 11: exchange 10 ones for one ten and write the remaining one."
+      },
+      "guidedActivity": [
+        "Build 11 counters in ones; circle 10 and exchange for a tens card.",
+        "Add the other columns, naming each place."
+      ],
+      "exitCheck": {
+        "a": 3418,
+        "b": 2257,
+        "operator": "+",
+        "answer": 5675,
+        "reason": "15 ones become 5 ones and one carried ten."
+      },
+      "misconceptionRepair": "Forgetting the carried ten: point to the new ten before adding tens.",
+      "teacherPrompt": "Ask the learner why the number of objects does not change during exchanging.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.2-S02",
+      "subStrand": "Addition",
+      "sequence": 2,
+      "sourceOutcome": "1.2(a)",
+      "title": "One regrouping in context",
+      "goal": "Solve a real four-digit sum with exactly one exchange.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 4526,
+        "b": 1307,
+        "operator": "+",
+        "answer": 5833,
+        "why": "6+7=13 ones; write 3 ones and add one ten to the next column."
+      },
+      "guidedActivity": [
+        "Read a two-day collection story and underline the two amounts.",
+        "Explain the carried ten in words and check using subtraction."
+      ],
+      "exitCheck": {
+        "a": 5608,
+        "b": 2145,
+        "operator": "+",
+        "answer": 7753,
+        "reason": "13 ones make one ten and three ones."
+      },
+      "misconceptionRepair": "Misaligned digits: label thousands/hundreds/tens/ones before calculating.",
+      "teacherPrompt": "Ask for an estimate and inverse check.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.2-S03",
+      "subStrand": "Addition",
+      "sequence": 3,
+      "sourceOutcome": "1.2(b)",
+      "title": "Two exchanges in neighbouring columns",
+      "goal": "Show two distinct base-ten exchanges in one addition.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 2478,
+        "b": 1347,
+        "operator": "+",
+        "answer": 3825,
+        "why": "15 ones require carrying one ten; the tens then total 12 and require carrying one hundred."
+      },
+      "guidedActivity": [
+        "Draw 15 ones and exchange ten for a ten card.",
+        "Draw 12 tens and exchange ten for one hundred."
+      ],
+      "exitCheck": {
+        "a": 4387,
+        "b": 2526,
+        "operator": "+",
+        "answer": 6913,
+        "reason": "13 ones and 11 tens produce two exchanges."
+      },
+      "misconceptionRepair": "Only one carry shown: circle each column where the total exceeds nine.",
+      "teacherPrompt": "Ask the learner to show both exchanges with separate arrows.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.2-S04",
+      "subStrand": "Addition",
+      "sequence": 4,
+      "sourceOutcome": "1.2(b)",
+      "title": "Two exchanges starting beyond ones",
+      "goal": "Regroup in tens and hundreds even when ones do not need exchanging.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 3871,
+        "b": 2645,
+        "operator": "+",
+        "answer": 6516,
+        "why": "1+5=6 ones; 7+4=11 tens; 8+6+1 carried=15 hundreds."
+      },
+      "guidedActivity": [
+        "Work in four columns and mark each exchange.",
+        "Compare two-exchange examples where ones do and do not carry."
+      ],
+      "exitCheck": {
+        "a": 3659,
+        "b": 1248,
+        "operator": "+",
+        "answer": 4907,
+        "reason": "9+8=17 ones, 5+4+1=10 tens; two exchanges."
+      },
+      "misconceptionRepair": "Assuming all carries begin at ones: check each column independently.",
+      "teacherPrompt": "Ask what causes an exchange in hundreds.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.2-S05",
+      "subStrand": "Addition",
+      "sequence": 5,
+      "sourceOutcome": "1.2(c)",
+      "title": "Nearest-ten estimate of a sum",
+      "goal": "Estimate before calculating precisely.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 2463,
+        "b": 1328,
+        "operator": "estimated_sum_nearest_ten",
+        "answer": 3790,
+        "exact": 3791,
+        "why": "2,463 rounds down to 2,460 while 1,328 rounds up to 1,330; add to estimate 3,790."
+      },
+      "guidedActivity": [
+        "Mark each addend on a line between neighbouring tens.",
+        "Calculate both estimated and exact sums and compare."
+      ],
+      "exitCheck": {
+        "a": 4236,
+        "b": 1328,
+        "operator": "estimated_sum_nearest_ten",
+        "answer": 5570,
+        "exact": 5564,
+        "reason": "4,240+1,330=5,570, while exact sum is 5,564."
+      },
+      "misconceptionRepair": "Confusing estimate with exact answer: label both outcomes.",
+      "teacherPrompt": "Ask whether the estimate is close enough to detect a place-value mistake.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.2-S06",
+      "subStrand": "Addition",
+      "sequence": 6,
+      "sourceOutcome": "1.2(d)",
+      "title": "Patterns with a repeated addition step",
+      "goal": "Continue a four-digit pattern using a constant positive difference.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "start": 1150,
+        "step": 125,
+        "count": 5,
+        "operator": "increasing_pattern",
+        "answer": [
+          1150,
+          1275,
+          1400,
+          1525,
+          1650
+        ],
+        "why": "Each term is the previous term plus exactly 125; checking neighbours confirms the rule."
+      },
+      "guidedActivity": [
+        "Use five number cards to create +125 sequence.",
+        "Ask another learner to identify the rule by subtraction."
+      ],
+      "exitCheck": {
+        "start": 2400,
+        "step": 250,
+        "count": 4,
+        "operator": "increasing_pattern",
+        "answer": [
+          2400,
+          2650,
+          2900,
+          3150
+        ],
+        "reason": "Every term increases by 250."
+      },
+      "misconceptionRepair": "Increasing the step itself: display four equal +125 arrows.",
+      "teacherPrompt": "Ask how subtracting neighbours verifies an addition pattern.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.2-S07",
+      "subStrand": "Addition",
+      "sequence": 7,
+      "sourceOutcome": "1.2(d)",
+      "title": "Invent and verify an addition pattern",
+      "goal": "Create your own pattern with a sum below 10,000.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "start": 3125,
+        "step": 175,
+        "count": 4,
+        "operator": "increasing_pattern",
+        "answer": [
+          3125,
+          3300,
+          3475,
+          3650
+        ],
+        "why": "A repeatable rule adds 175; each difference is 175."
+      },
+      "guidedActivity": [
+        "Write a pattern and hide the rule.",
+        "Swap with a partner to solve and explain using subtraction."
+      ],
+      "exitCheck": {
+        "start": 1850,
+        "step": 150,
+        "count": 4,
+        "operator": "increasing_pattern",
+        "answer": [
+          1850,
+          2000,
+          2150,
+          2300
+        ],
+        "reason": "Add 150 each time."
+      },
+      "misconceptionRepair": "Making a new rule at each step: verify differences.",
+      "teacherPrompt": "Ask the learner for two different starting values that share one step.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.2-S08",
+      "subStrand": "Addition",
+      "sequence": 8,
+      "sourceOutcome": "1.2(e)",
+      "title": "Choose addition for real quantities",
+      "goal": "Solve a local context problem and justify using addition.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 2450,
+        "b": 1325,
+        "operator": "+",
+        "answer": 3775,
+        "unit": "packets",
+        "why": "The story combines two quantities of the same units, so their sum gives the total packets."
+      },
+      "guidedActivity": [
+        "Write a two-term school-garden collection story.",
+        "Solve and label units, then estimate for reasonableness."
+      ],
+      "exitCheck": {
+        "a": 3210,
+        "b": 1875,
+        "operator": "+",
+        "answer": 5085,
+        "unit": "books",
+        "reason": "Two book quantities combine into 5,085 books."
+      },
+      "misconceptionRepair": "Adding unlike units: identify matching quantities first.",
+      "teacherPrompt": "Ask what story wording would instead require subtraction.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.3-S01",
+      "subStrand": "Subtraction",
+      "sequence": 1,
+      "sourceOutcome": "1.3(a)",
+      "title": "Subtract with no exchanging",
+      "goal": "Subtract aligned four-digit numbers when no top digit is smaller.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 7864,
+        "b": 2532,
+        "operator": "-",
+        "answer": 5332,
+        "why": "Every column has enough units; subtract like units directly."
+      },
+      "guidedActivity": [
+        "Build a place-value table for 7,864 and 2,532.",
+        "Subtract ones to thousands and check by addition."
+      ],
+      "exitCheck": {
+        "a": 8675,
+        "b": 4231,
+        "operator": "-",
+        "answer": 4444,
+        "reason": "Every top digit is at least its matching bottom digit."
+      },
+      "misconceptionRepair": "Subtracting a larger place from a smaller one: align labels.",
+      "teacherPrompt": "Ask how adding the difference to the amount removed checks the answer.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.3-S02",
+      "subStrand": "Subtraction",
+      "sequence": 2,
+      "sourceOutcome": "1.3(a)",
+      "title": "Use subtraction to find a remainder",
+      "goal": "Translate a situation into no-regroup subtraction.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 9754,
+        "b": 4321,
+        "operator": "-",
+        "answer": 5433,
+        "why": "Finding what is left means subtracting the amount removed from the starting quantity."
+      },
+      "guidedActivity": [
+        "Invent a library-book remainder story using 9,754 and 4,321.",
+        "Write units and verify with inverse addition."
+      ],
+      "exitCheck": {
+        "a": 8642,
+        "b": 3210,
+        "operator": "-",
+        "answer": 5432,
+        "reason": "Subtracting column by column gives 5,432."
+      },
+      "misconceptionRepair": "Reversing starting and removed quantities: label the starting stock.",
+      "teacherPrompt": "Ask which quantity is the whole and which part was removed.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.3-S03",
+      "subStrand": "Subtraction",
+      "sequence": 3,
+      "sourceOutcome": "1.3(b)",
+      "title": "Exchange through zeros",
+      "goal": "Explain subtraction when zeros block an immediate exchange.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 5004,
+        "b": 1278,
+        "operator": "-",
+        "answer": 3726,
+        "why": "Exchange one thousand for ten hundreds, then one hundred for ten tens and one ten for ten ones; the original total stays 5,004."
+      },
+      "guidedActivity": [
+        "Draw five thousands and four ones.",
+        "Trace each exchange through zeros; write 4 thousands, 9 hundreds, 9 tens and 14 ones before subtracting."
+      ],
+      "exitCheck": {
+        "a": 7205,
+        "b": 2468,
+        "operator": "-",
+        "answer": 4737,
+        "reason": "Exchange through the zero tens; check 4,737+2,468=7,205."
+      },
+      "misconceptionRepair": "Writing tens as ten without decreasing the borrowed-from column: trace each exchange.",
+      "teacherPrompt": "Ask why 5,004 can also be represented by 4 thousands, 9 hundreds, 9 tens and 14 ones.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.3-S04",
+      "subStrand": "Subtraction",
+      "sequence": 4,
+      "sourceOutcome": "1.3(b)",
+      "title": "Regroup in real quantities",
+      "goal": "Subtract four-digit quantities after exchanging and check the result.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 8004,
+        "b": 3675,
+        "operator": "-",
+        "answer": 4329,
+        "why": "Use place-value exchanges to make enough units for subtraction; inverse addition confirms 4,329+3,675=8,004."
+      },
+      "guidedActivity": [
+        "Represent 8,004 on paper in thousands, hundreds, tens and ones.",
+        "Write and justify each exchange before finding the difference."
+      ],
+      "exitCheck": {
+        "a": 6013,
+        "b": 2786,
+        "operator": "-",
+        "answer": 3227,
+        "reason": "Check 3,227+2,786=6,013."
+      },
+      "misconceptionRepair": "Forgetting to subtract from the original higher column after an exchange: mark traded units.",
+      "teacherPrompt": "Ask the learner to prove the answer using addition.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.3-S05",
+      "subStrand": "Subtraction",
+      "sequence": 5,
+      "sourceOutcome": "1.3(c)",
+      "title": "Estimate a difference",
+      "goal": "Round each number independently to the nearest ten before subtracting.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 6457,
+        "b": 2384,
+        "operator": "estimated_difference_nearest_ten",
+        "answer": 4080,
+        "exact": 4073,
+        "why": "6,457 rounds to 6,460 and 2,384 rounds to 2,380, producing an estimated difference of 4,080."
+      },
+      "guidedActivity": [
+        "Locate each number between its neighbouring tens.",
+        "Write estimated difference and exact difference separately."
+      ],
+      "exitCheck": {
+        "a": 7263,
+        "b": 3148,
+        "operator": "estimated_difference_nearest_ten",
+        "answer": 4110,
+        "exact": 4115,
+        "reason": "7,260−3,150=4,110; exact 4,115."
+      },
+      "misconceptionRepair": "Rounding the exact final result instead of both operands: name the procedure.",
+      "teacherPrompt": "Ask how far the estimate differs from the exact answer.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.3-S06",
+      "subStrand": "Subtraction",
+      "sequence": 6,
+      "sourceOutcome": "1.3(d)",
+      "title": "Subtraction patterns",
+      "goal": "Continue a decreasing pattern with a fixed step.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "start": 8500,
+        "step": 250,
+        "count": 5,
+        "operator": "decreasing_pattern",
+        "answer": [
+          8500,
+          8250,
+          8000,
+          7750,
+          7500
+        ],
+        "why": "Subtract 250 each time; equal differences confirm a consistent rule."
+      },
+      "guidedActivity": [
+        "Create number cards 8,500 to 7,500.",
+        "Arrange cards and label the −250 jumps."
+      ],
+      "exitCheck": {
+        "start": 6400,
+        "step": 200,
+        "count": 4,
+        "operator": "decreasing_pattern",
+        "answer": [
+          6400,
+          6200,
+          6000,
+          5800
+        ],
+        "reason": "Subtract 200 repeatedly."
+      },
+      "misconceptionRepair": "Changing step size: compare each pair by subtraction.",
+      "teacherPrompt": "Ask what the same pattern looks like on a number line.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.3-S07",
+      "subStrand": "Subtraction",
+      "sequence": 7,
+      "sourceOutcome": "1.3(e)",
+      "title": "Remainders in everyday tasks",
+      "goal": "Identify the remainder after part of a stock is distributed.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 7600,
+        "b": 2350,
+        "operator": "-",
+        "answer": 5250,
+        "unit": "cards",
+        "why": "Start with 7,600 cards and remove 2,350; 5,250 remain, checked because 5,250+2,350=7,600."
+      },
+      "guidedActivity": [
+        "Tell a school stock story and write what remains.",
+        "Calculate the answer, label units and use inverse addition."
+      ],
+      "exitCheck": {
+        "a": 8000,
+        "b": 2475,
+        "operator": "-",
+        "answer": 5525,
+        "unit": "shillings",
+        "reason": "8,000−2,475=5,525 shillings."
+      },
+      "misconceptionRepair": "Adding when the question asks how many remain: draw part-whole bar.",
+      "teacherPrompt": "Ask the learner to compare remainder and difference scenarios.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    },
+    {
+      "id": "VS-G04-MA-1.3-S08",
+      "subStrand": "Subtraction",
+      "sequence": 8,
+      "sourceOutcome": "1.3(e)",
+      "title": "Comparing quantities using subtraction",
+      "goal": "Explain how subtraction finds the difference between two comparable counts.",
+      "priorLearning": "Check place-value alignment and learner's ability to explain the necessary number representation.",
+      "model": {
+        "a": 8540,
+        "b": 3125,
+        "operator": "-",
+        "answer": 5415,
+        "unit": "exercise books",
+        "why": "Two book collections share units, and the difference 8,540−3,125=5,415 shows how many more the larger collection has."
+      },
+      "guidedActivity": [
+        "Compare two labelled school book counts using a bar model.",
+        "Explain the answer as '5,415 more exercise books' rather than remaining stock."
+      ],
+      "exitCheck": {
+        "a": 9350,
+        "b": 4125,
+        "operator": "-",
+        "answer": 5225,
+        "unit": "items",
+        "reason": "The larger group exceeds the smaller by 5,225 items."
+      },
+      "misconceptionRepair": "Confusing comparison with take-away: both subtract but the words 'more than' describe a difference.",
+      "teacherPrompt": "Ask which quantity is larger and what comparison tells us.",
+      "delivery": {
+        "lowCost": "Use paper and a drawn four-column chart or locally available counters; allow spoken explanation.",
+        "accessibility": "Readable numeric columns, labels and non-colour-only visual grouping.",
+        "assessmentStatus": "editorial self-check only, not a stored examination or mastery event"
+      },
+      "canonicalOutcomeId": null,
+      "releaseState": "editorial_candidate_not_certified_or_published"
+    }
+  ]
+}
