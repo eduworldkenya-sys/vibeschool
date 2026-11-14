@@ -5,7 +5,7 @@ import { DirectorControls, DirectorStageEffects, focalStyle, useShowDirector } f
 import styles from './coin-studio.module.css'
 
 type Side = 'heads' | 'tails'
-type Phase = 'idle' | 'countdown' | 'flipping' | 'reveal'
+type Phase = 'idle' | 'countdown' | 'flipping' | 'ready' | 'reveal'
 type Theme = 'royal' | 'neon' | 'arena' | 'sunset'
 type Aspect = 'portrait' | 'landscape' | 'square'
 type CoinStyle = 'gold' | 'silver' | 'copper' | 'neon'
@@ -97,6 +97,7 @@ export default function CoinStudio() {
   const [reduceMotion,setReduceMotion] = useState(false)
   const [autoRuns,setAutoRuns] = useState(0)
   const stageRef = useRef<HTMLDivElement>(null)
+  const pendingRef = useRef<Side | null>(null)
   const timers = useRef<number[]>([])
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -106,6 +107,15 @@ export default function CoinStudio() {
   const schedule = (fn: () => void, ms: number) => { timers.current.push(window.setTimeout(fn,ms)) }
   const cancel = () => { timers.current.forEach(window.clearTimeout); timers.current = [] }
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('a') && params.has('b')) {
+      const setup = initial()
+      setup.heads.name = (params.get('a') || setup.heads.name).slice(0,46)
+      setup.tails.name = (params.get('b') || setup.tails.name).slice(0,46)
+      setup.headline = (params.get('hook') || setup.headline).slice(0,100)
+      setup.name = setup.heads.name + ' vs ' + setup.tails.name
+      setSetups([setup]); setSelectedId(setup.id); setLoaded(true); return
+    }
     try {
       const raw = localStorage.getItem(STORE)
       if (raw) {
@@ -119,14 +129,7 @@ export default function CoinStudio() {
         }
       }
     } catch { /* corrupt or blocked browser storage */ }
-    const setup = initial(); const params = new URLSearchParams(window.location.search)
-    if (params.has('a') && params.has('b')) {
-      setup.heads.name = (params.get('a') || setup.heads.name).slice(0,46)
-      setup.tails.name = (params.get('b') || setup.tails.name).slice(0,46)
-      setup.headline = (params.get('hook') || setup.headline).slice(0,100)
-      setup.name = setup.heads.name+' vs '+setup.tails.name
-    }
-    setSetups([setup]); setSelectedId(setup.id); setLoaded(true)
+    const setup = initial(); setSetups([setup]); setSelectedId(setup.id); setLoaded(true)
   },[])
   useEffect(() => { if (!loaded) return; try { localStorage.setItem(STORE,JSON.stringify({setups,selectedId})) } catch { setNotice('Browser storage unavailable. Export the setup to keep a backup.') } },[setups,selectedId,loaded])
   useEffect(() => {
@@ -138,12 +141,20 @@ export default function CoinStudio() {
   useEffect(() => () => { cancel(); if (recorderRef.current?.state === 'recording') recorderRef.current.stop(); streamRef.current?.getTracks().forEach(t => t.stop()) },[])
   const patch = (change: Partial<Setup>) => setSetups(old => old.map(s => s.id === selectedId ? {...s,...change} : s))
   const patchOption = (side: Side, change: Partial<Option>) => { if (current) patch({ [side]: { ...current[side], ...change } }) }
-  const reset = () => { cancel(); setPhase('idle'); setSeconds(null); setWinner(null); setRotation(0); setAutoRuns(0) }
+  const reset = () => { cancel(); pendingRef.current=null; setPhase('idle'); setSeconds(null); setWinner(null); setRotation(0); setAutoRuns(0) }
   const selectSetup = (id: string) => { reset(); setSelectedId(id); setHistory([]) }
+  const revealChoice = (choice: Side) => {
+    if (!current || pendingRef.current !== choice) return
+    setWinner(choice); setPhase('reveal')
+    setHistory(old => [{side:choice,name:current[choice].name},...old].slice(0,60))
+    if (current.sound) ping('win',current.volume)
+    pendingRef.current = null
+  }
   const toss = useCallback(() => {
     if (!current || (phase !== 'idle' && phase !== 'reveal')) return
     cancel(); setWinner(null); setSeconds(null)
     const choice = randomSide()
+    pendingRef.current = choice
     const finish = () => {
       setPhase('flipping'); setRotation(0); setFlipKey(i => i+1)
       const turns = 5 + Math.floor(Math.random()*3)
@@ -154,9 +165,8 @@ export default function CoinStudio() {
       else window.requestAnimationFrame(() => window.requestAnimationFrame(() => setRotation(targetAngle)))
       if (current.sound) ping('toss',current.volume)
       schedule(() => {
-        setWinner(choice); setPhase('reveal')
-        setHistory(old => [{side:choice,name:current[choice].name},...old].slice(0,60))
-        if (current.sound) ping('win',current.volume)
+        if (current.automatic) revealChoice(choice)
+        else setPhase('ready')
       },reduceMotion ? 100 : current.duration * 1000)
     }
     if (current.countdown === 0) { finish(); return }
@@ -308,7 +318,7 @@ export default function CoinStudio() {
               {current.showBrand && <div className={styles.brand}><span className={styles.brandMark}>V</span><span><strong>VIBECOIN</strong><small>BY VIBESCHOOL</small></span><em>EP {String(current.episode).padStart(2,'0')}</em></div>}
               <div className={styles.hero}><span className={styles.heroEyebrow}>THE ULTIMATE 50/50 CHALLENGE</span><h2>{current.headline}</h2><p>{current.name}</p></div>
               <div className={styles.duel}>
-                {(['heads','tails'] as const).map(side=><div key={side} className={[styles.challenger,winner===side&&phase==='reveal'?styles.chosen:''].join(' ')} style={{'--accent':current[side].color} as CSSProperties}>
+                {(['heads','tails'] as const).map(side=><div key={side} className={[styles.challenger,winner===side&&phase==='reveal'&&current.spotlight?styles.chosen:''].join(' ')} style={{'--accent':current[side].color} as CSSProperties}>
                   {current.showLogos&&current[side].logo?<img src={current[side].logo} alt="" className={styles.challengerLogo}/>:<span className={styles.challengerSymbol}>{current[side].symbol || (side==='heads'?'H':'T')}</span>}
                   <small>{current[side].subtitle}</small><strong>{current[side].name}</strong>
                   {winner===side&&phase==='reveal'&&<b className={styles.winLabel}>SELECTED</b>}
@@ -339,9 +349,10 @@ export default function CoinStudio() {
             </div>
           </div>
           <div className={styles.controlBar}>
-            <div className={styles.status}><span>{phase==='idle'?'READY':phase==='countdown'?'COUNTDOWN':phase==='flipping'?'IN THE AIR':'REVEALED'}</span><span>{recording?'● RECORDING':history.length+' TOSSES'}</span></div>
+            <div className={styles.status}><span>{phase==='idle'?'READY':phase==='countdown'?'COUNTDOWN':phase==='flipping'?'IN THE AIR':phase==='ready'?'READY TO REVEAL':'REVEALED'}</span><span>{recording?'● RECORDING':history.length+' TOSSES'}</span></div>
             <div className={styles.actions}>
               <button className={styles.primary} disabled={!idle} onClick={toss}>{phase==='flipping'?'FLIPPING…':phase==='reveal'?'↻ TOSS AGAIN':'✦ TOSS THE COIN'}</button>
+              {phase==='ready' && pendingRef.current && <button className={styles.primary} onClick={()=>{if(pendingRef.current)revealChoice(pendingRef.current)}}>Reveal result</button>}
               <button onClick={reset}>Reset</button>
               <button onClick={()=>setShowMode(v=>!v)}>{showMode?'Exit show':'Show mode'}</button>
               <button onClick={()=>{void record()}}>{recording?'■ Stop & save':'● Record'}</button>
