@@ -136,3 +136,23 @@ test('countdown director supports editable numbers, rings, bars, beat timing and
   assert.match(css,/\.countdownring/)
   assert.match(css,/\.countdownbar/)
 })
+
+
+test('VibeSpin supports manual wheel yaw and independent visual axis tilt with fixed selector',()=>{
+  assert.match(page,/const \[wheelTiltX,setWheelTiltX\]=useState\(0\)/)
+  assert.match(page,/const \[wheelTiltY,setWheelTiltY\]=useState\(0\)/)
+  assert.match(page,/const moveWheelAxes=/)
+  assert.match(page,/const onWheelPointerDown=/)
+  assert.match(page,/onPointerMove=\{onWheelPointerMove\}/)
+  assert.match(page,/setPointerCapture/)
+  assert.match(page,/wheelDragRef\.current=null;setWheelTiltX\(0\);setWheelTiltY\(0\)/)
+  assert.match(page,/Wheel position/)
+  assert.match(page,/Vertical tilt/)
+  assert.match(page,/Horizontal tilt/)
+  assert.match(page,/Centre wheel and axes/)
+  assert.match(page,/styles\.wheelFixedPointer/)
+  assert.match(page,/styles\.wheelOrbitWrapper/)
+  assert.match(css,/\.wheelFixedPointer/)
+  assert.match(css,/touch-action:none/)
+  assert.match(page,/href="\/marketing-studio"/)
+})
