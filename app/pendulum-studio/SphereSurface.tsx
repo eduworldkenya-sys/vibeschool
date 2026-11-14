@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 
 export type SphereOption = { name: string; detail: string; logo: string; color: string }
-type Props = { rotation: number; left: SphereOption; right: SphereOption; showNames: boolean; showLogos: boolean; className?: string }
+type Props = { rotation: number; tilt: number; left: SphereOption; right: SphereOption; showNames: boolean; showLogos: boolean; className?: string }
 
 const VERTEX = `
 attribute vec2 aPos;
@@ -15,13 +15,18 @@ precision mediump float;
 varying vec2 vUv;
 uniform sampler2D uAtlas;
 uniform float uRotation;
+uniform float uTilt;
 void main(){
   vec2 disk=(vUv-0.5)*2.0;
   float d=dot(disk,disk);
   if(d>1.0) discard;
   vec3 n=vec3(disk.x,disk.y,sqrt(max(0.0,1.0-d)));
-  float longitude=atan(n.x,n.z)+uRotation;
-  float latitude=asin(clamp(n.y,-1.0,1.0));
+  // Inverse pitch rotates the sphere surface around its horizontal axis.
+  // Zero pitch restores the equatorial front face for pointer-based random results.
+  float cp=cos(uTilt),sp=sin(uTilt);
+  vec3 rotated=vec3(n.x,n.y*cp+n.z*sp,n.z*cp-n.y*sp);
+  float longitude=atan(rotated.x,rotated.z)+uRotation;
+  float latitude=asin(clamp(rotated.y,-1.0,1.0));
   float u=fract(longitude/6.28318530718+1.0);
   float v=0.5+latitude/3.14159265359;
   vec4 artwork=texture2D(uAtlas,vec2(u,v));
@@ -41,7 +46,7 @@ function shader(gl:WebGLRenderingContext,type:number,source:string){
  if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){const why=gl.getShaderInfoLog(sh);gl.deleteShader(sh);throw Error(why||'Sphere shader compilation error')}
  return sh
 }
-type Engine={gl:WebGLRenderingContext;program:WebGLProgram;buffer:WebGLBuffer;texture:WebGLTexture;pos:number;rotation:WebGLUniformLocation|null;atlas:WebGLUniformLocation|null}
+type Engine={gl:WebGLRenderingContext;program:WebGLProgram;buffer:WebGLBuffer;texture:WebGLTexture;pos:number;rotation:WebGLUniformLocation|null;tilt:WebGLUniformLocation|null;atlas:WebGLUniformLocation|null}
 function engine(gl:WebGLRenderingContext):Engine{
  const vertex=shader(gl,gl.VERTEX_SHADER,VERTEX),fragment=shader(gl,gl.FRAGMENT_SHADER,FRAGMENT)
  const program=gl.createProgram();if(!program)throw Error('No WebGL program')
@@ -62,7 +67,7 @@ function engine(gl:WebGLRenderingContext):Engine{
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT)
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE)
  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,1)
- return {gl,program,buffer,texture,pos,rotation:gl.getUniformLocation(program,'uRotation'),atlas:gl.getUniformLocation(program,'uAtlas')}
+ return {gl,program,buffer,texture,pos,rotation:gl.getUniformLocation(program,'uRotation'),tilt:gl.getUniformLocation(program,'uTilt'),atlas:gl.getUniformLocation(program,'uAtlas')}
 }
 function atlas(left:SphereOption,right:SphereOption,showNames:boolean,showLogos:boolean,refresh:()=>void){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=512
@@ -99,13 +104,15 @@ function atlas(left:SphereOption,right:SphereOption,showNames:boolean,showLogos:
  drawFace(left,0,'A');drawFace(right,512,'B');drawFace(left,1024,'A')
  return canvas
 }
-export default function SphereSurface({rotation,left,right,showNames,showLogos,className}:Props){
+export default function SphereSurface({rotation,tilt,left,right,showNames,showLogos,className}:Props){
  const canvasRef=useRef<HTMLCanvasElement>(null)
  const engineRef=useRef<Engine|null>(null)
  const texRef=useRef<HTMLCanvasElement|null>(null)
  const rotationRef=useRef(rotation)
+ const tiltRef=useRef(tilt)
  const drawRef=useRef<()=>void>(()=>{})
  rotationRef.current=rotation
+ tiltRef.current=tilt
  useEffect(()=>{
   const canvas=canvasRef.current
   if(!canvas)return undefined
@@ -122,6 +129,7 @@ export default function SphereSurface({rotation,left,right,showNames,showLogos,c
     gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,e.texture)
     gl.uniform1i(e.atlas,0)
     gl.uniform1f(e.rotation,rotationRef.current*Math.PI/180)
+    gl.uniform1f(e.tilt,tiltRef.current*Math.PI/180)
     gl.drawArrays(gl.TRIANGLES,0,6)
    }
    drawRef.current()
@@ -143,6 +151,6 @@ export default function SphereSurface({rotation,left,right,showNames,showLogos,c
   drawRef.current()
   return ()=>{active=false}
  },[left,right,showNames,showLogos])
- useEffect(()=>{drawRef.current()},[rotation])
+ useEffect(()=>{drawRef.current()},[rotation,tilt])
  return <canvas ref={canvasRef} width={384} height={384} className={className} role="img" aria-label={'3D spinning sphere showing '+left.name.replace(/\s+/g,' ')+' and '+right.name.replace(/\s+/g,' ')} />
 }
