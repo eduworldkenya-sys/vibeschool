@@ -216,7 +216,7 @@ export default function ParentLearnPage() {
       .map(row => ({
         id: row.attempt_id,
         title: row.assessment_title ?? "Assessment",
-        subject: (row.subjects as unknown as { name: string } | null)?.name ?? "Subject",
+        subject: (Array.isArray(row.subjects) ? row.subjects[0]?.name : row.subjects?.name) ?? "Subject",
         score: row.score,
         maxScore: row.max_score,
         percentage: row.percentage,
