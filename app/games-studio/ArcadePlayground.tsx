@@ -54,7 +54,7 @@ function PlinkoDrop({names,onFinish,reducedMotion}:GameProps){
 }
 const PICTURES=["🌻","🚀","🌍","🎨","🎒","🦋","⭐","🎵","🐘"]
 function SpotDifference({onFinish}:GameProps){
- const [target,setTarget]=useState(()=>randomInt(9))
+ const [target,setTarget]=useState(4)
  const [tries,setTries]=useState(0)
  const [solved,setSolved]=useState(false)
  function choose(i:number){if(solved)return;setTries(n=>n+1);if(i===target){setSolved(true);onFinish("Spot the Difference solved in "+(tries+1)+" attempts")}}
@@ -63,7 +63,8 @@ function SpotDifference({onFinish}:GameProps){
 const SYMBOLS=["★","◆","●","✿","☀","♫","⚡","♥"]
 function makeCards(){return shuffled(SYMBOLS.slice(0,4).flatMap((symbol,i)=>[{id:i*2,symbol},{id:i*2+1,symbol}]))}
 function MemoryFlip({onFinish}:GameProps){
- const [cards,setCards]=useState(makeCards)
+ const [cards,setCards]=useState(()=>SYMBOLS.slice(0,4).flatMap((symbol,i)=>[{id:i*2,symbol},{id:i*2+1,symbol}]))
+ useEffect(()=>{setCards(makeCards())},[])
  const [open,setOpen]=useState<number[]>([])
  const [matched,setMatched]=useState<number[]>([])
  const [flips,setFlips]=useState(0)
@@ -87,7 +88,7 @@ function FollowBall({onFinish,reducedMotion}:GameProps){
  const [positions,setPositions]=useState([0,1,2])
  const [hidden,setHidden]=useState(false)
  const [shuffling,setShuffling]=useState(false)
- const [ball,setBall]=useState(()=>randomInt(3))
+ const [ball,setBall]=useState(0)
  const [guess,setGuess]=useState<number|null>(null)
  const [turn,setTurn]=useState(0)
  useEffect(()=>{if(!shuffling)return;let steps=0;const id=window.setInterval(()=>{setPositions(prev=>{const a=[...prev],i=randomInt(3),j=(i+1+randomInt(2))%3;[a[i],a[j]]=[a[j],a[i]];return a});steps++;if(steps>=7){window.clearInterval(id);window.setTimeout(()=>setShuffling(false),reducedMotion?20:430)}},reducedMotion?40:520);return()=>clearInterval(id)},[shuffling,reducedMotion,turn])
