@@ -37,7 +37,7 @@
 .track{height:37px;border-radius:99px;background:linear-gradient(90deg,#ffffff11,#ffffff0b);position:relative;border:1px solid #ffffff25;overflow:hidden}
 .marble{position:absolute;top:5px;left:5px;width:25px;height:25px;border-radius:50%;background:radial-gradient(circle at 34% 27%,#fff,var(--lane-color) 36%,#0d2036 96%);box-shadow:0 0 18px var(--lane-color);z-index:2}
 .marble[data-run=true]{animation:raceBall var(--race-duration) cubic-bezier(.25,.5,.17,1) forwards}
-.marble[data-finished=true]{left:calc(100% - 33px)}
+.marble[data-finished=true]{left:var(--finish-position,calc(100% - 33px))}
 .finishLine{position:absolute;right:5px;top:0;height:100%;writing-mode:vertical-rl;font-size:7px;letter-spacing:.2em;color:#fff8}
 @keyframes raceBall{0%{left:5px}10%{left:11%}35%{left:29%}65%{left:61%}85%{left:80%}100%{left:calc(100% - 33px)}}
 .boxRow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;width:min(100%,720px)}
