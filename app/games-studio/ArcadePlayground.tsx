@@ -1,5 +1,5 @@
-import {recordMarketingGameCompletion} from '../../components/games/DiscoveryInvitation'
 "use client"
+import {recordMarketingGameCompletion} from '../../components/games/DiscoveryInvitation'
 import {useEffect,useMemo,useState} from "react"
 import styles from "./arcade.module.css"
 import FollowBall3D from "./FollowBall3D"
