@@ -90,7 +90,6 @@ export default function CoinStudio() {
   const [seconds,setSeconds] = useState<number | null>(null)
   const [winner,setWinner] = useState<Side | null>(null)
   const [rotation,setRotation] = useState(0)
-  const [flipKey,setFlipKey] = useState(0)
   const [history,setHistory] = useState<{name:string;side:Side}[]>([])
   const [recording,setRecording] = useState(false)
   const [notice,setNotice] = useState('')
@@ -156,24 +155,28 @@ export default function CoinStudio() {
     const choice = randomSide()
     pendingRef.current = choice
     const finish = () => {
-      setPhase('flipping'); setRotation(0); setFlipKey(i => i+1)
-      const turns = 5 + Math.floor(Math.random()*3)
-      // CSS front face is heads at 0deg, reverse is tails at 180deg.
-      const targetAngle = turns * 360 + (choice === 'heads' ? 0 : 180)
-      // Two animation frames ensure the freshly mounted coin paints its starting face.
+      setPhase('flipping')
+      // Continue from the previously landed face, instead of snapping back to heads.
+      // A whole number of revolutions plus the shortest forward adjustment
+      // guarantees that the visible landing face matches the selected side.
+      const turns = 6 + Math.floor(Math.random()*2)
+      const desiredFace = choice === 'heads' ? 0 : 180
+      const alignment = (desiredFace - ((rotation % 360) + 360) % 360 + 360) % 360
+      const targetAngle = rotation + turns * 360 + alignment
       if (reduceMotion) setRotation(targetAngle)
       else window.requestAnimationFrame(() => window.requestAnimationFrame(() => setRotation(targetAngle)))
       if (current.sound) ping('toss',current.volume)
       schedule(() => {
+        // Landing has completed: show the settled coin before the result overlay.
         if (current.automatic) revealChoice(choice)
         else setPhase('ready')
-      },reduceMotion ? 100 : current.duration * 1000)
+      },reduceMotion ? 100 : current.duration * 1000 + 350)
     }
     if (current.countdown === 0) { finish(); return }
     setPhase('countdown'); setSeconds(current.countdown)
     for (let i=0;i<current.countdown;i++) schedule(() => { setSeconds(current.countdown-i); if(current.sound) ping('tick',current.volume) },i*1000)
     schedule(finish,current.countdown*1000)
-  },[current,phase,reduceMotion])
+  },[current,phase,reduceMotion,rotation])
   const tossRef = useRef(toss)
   useEffect(() => { tossRef.current = toss },[toss])
   // Automatic replay is deliberately bounded for a single batch (max 20).
@@ -326,7 +329,7 @@ export default function CoinStudio() {
               </div>
               <div className={styles.coinArea} style={focalStyle(director,phaseStyle,reduceMotion)}>
                 <div className={styles.coinHalo}/>
-                <div key={flipKey} className={[styles.tossTrajectory,phase==='flipping'&&!reduceMotion?styles.tossing:''].join(' ')}>
+                <div className={[styles.tossTrajectory,phase==='flipping'&&!reduceMotion?styles.tossing:''].join(' ')} style={{'--flight-duration':current.duration+'s'} as CSSProperties}>
                   <div className={[styles.coin,styles[current.coinStyle]].join(' ')} style={{transform:'rotateX('+showRotation+'deg)',transition:phase==='flipping'&&!reduceMotion?'transform '+current.duration+'s cubic-bezier(.12,.7,.12,1)':'none'}}>
                     <div className={[styles.face,styles.front].join(' ')}>
                       <div className={styles.coinRing}>{current.showLogos&&current.heads.logo?<img src={current.heads.logo} alt="Heads logo"/>:<span>{current.heads.symbol||'H'}</span>}</div>
