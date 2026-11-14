@@ -247,6 +247,7 @@ revoke all on function public.vibetutor_assign_private_task(uuid,text,text),
 grant execute on function public.vibetutor_assign_private_task(uuid,text,text),
  public.vibetutor_my_private_tasks(uuid),public.vibetutor_complete_private_task(uuid,text),
  public.vibetutor_review_private_task(uuid,text),public.vibetutor_create_private_group(text),
- public.vibetutor_add_private_group_member(uuid,uuid),public.vibetutor_my_private_groups()
+ public.vibetutor_add_private_group_member(uuid,uuid),public.vibetutor_remove_private_group_member(uuid,uuid),
+ public.vibetutor_assign_private_group_task(uuid,text,text),public.vibetutor_my_private_groups()
  to authenticated;
 commit;
