@@ -833,7 +833,7 @@ export default function SpinStudio() {
                 {popup.showPhoto && displayEntry.image && <img className={styles.popupPortrait} src={displayEntry.image} alt={'Selected '+displayEntry.label}/>}
                 {popup.showName&&(displayPhase!=='reveal'||selectedIsReward)&&<strong className={styles.popupLabel}>{selectedDisplayName}</strong>}
                 {displayPhase==='reveal'&&!selectedIsReward&&popup.showAnswer&&<strong className={styles.popupLabel}>{displayEntry.answer||selectedDisplayName}</strong>}
-                {displayPhase!=='reveal'&&popup.showQuestion&&<p className={styles.popupQuestion}>{displayEntry.question||'Your challenge starts now!'}</p>}
+                {!electionMode&&displayPhase!=='reveal'&&popup.showQuestion&&<p className={styles.popupQuestion}>{displayEntry.question||'Your challenge starts now!'}</p>}
                 {displayPhase==='countdown'&&popup.showCountdown&&<div className={[styles.countdownDirector,styles['countdown'+popup.countdownStyle]].join(' ')} style={{color:popup.countdownColor,fontSize:(popup.countdownScale/100)+'em'}}>
                   {popup.countdownLabel&&<span className={styles.countdownHeading}>{popup.countdownLabel}</span>}
                   <div className={styles.countdownMeter} style={{'--countdown-ratio':Math.round(100*(previewEntry?Math.max(1,wheel.countdown):Math.max(0,seconds??0))/Math.max(1,wheel.countdown))+'%','--countdown-accent':popup.countdownColor} as React.CSSProperties}>
@@ -841,7 +841,7 @@ export default function SpinStudio() {
                     <strong>{previewEntry?Math.max(1,wheel.countdown):(seconds===0?popup.countdownZeroText:seconds)}</strong>
                   </div>
                 </div>}
-                {displayPhase==='reveal'&&popup.showFact&&<p className={styles.popupFact}>{selectedIsReward?'Random entertainment selection — not a prediction or endorsement.':displayEntry.question}</p>}
+                {!electionMode&&displayPhase==='reveal'&&popup.showFact&&<p className={styles.popupFact}>{selectedIsReward?'Random entertainment selection — not a prediction or endorsement.':displayEntry.question}</p>}
                 {displayPhase==='reveal'&&wheel.celebration==='glow'&&<div className={styles.popupGlow} aria-hidden="true"/>}
                 </div>
               </>}
@@ -855,7 +855,7 @@ export default function SpinStudio() {
                 </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>{electionMode?'Start the wheel to reveal each randomly selected name.': 'One spin. One question. Can you get it right?'}</p></>}
               </div>
               {electionMode&&<div aria-live="polite" style={{background:'rgba(4,15,32,.9)',border:'1px solid #ffffff44',borderRadius:12,padding:10,margin:'8px 0',color:'white',textAlign:'center'}}>
-{!electionFinished?<div style={{fontSize:12,fontWeight:800}}>ROUND {spinCount} OF {electionTotal} · NAME REVEAL</div>:
+{!electionFinished?<div style={{fontSize:12,fontWeight:800}}>ROUND {spinCount===0?1:spinCount} OF {electionTotal} · NAME REVEAL</div>:
 <div style={{padding:'10px 0'}}>
 <div style={{fontSize:12,letterSpacing:2,fontWeight:800,color:'#7ef5cf'}}>FINAL RANDOM DRAW RESULT</div>
 <div style={{marginTop:8,fontSize:24,lineHeight:1.2,fontWeight:950}}>{electionWinners.length===1?electionWinnerTitle+': '+electionWinners[0].name:'TIE — '+electionWinners.map(c=>c.name).join(' / ')}</div>
