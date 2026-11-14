@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic'
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
-import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import { useStudent } from '@/lib/student-context'
 import { getRevisionWorkspace, isCurrentGradeMistake, type MistakeNotebookItem, type RevisionWorkspace } from '@/lib/student/vibelearn'
 import { supabase } from '@/lib/supabase'
@@ -78,58 +77,73 @@ export default function VibeLearnMistakesPage() {
   const next = ordered.find(item => item.status !== 'resolved')
   const recovery = (item: MistakeNotebookItem) => router.push('/student/vibelearn/recovery?mistake=' + encodeURIComponent(item.id))
 
+  // Assessment evidence stays authoritative. The dashboard presents one actionable
+  // record first, instead of forcing learners through a long, repeated list.
+  const spotlight = released.find(item => Boolean(item.attempt_id))
+  const releasedGroups = Array.from(released.reduce((groups, item) => {
+    const key = item.context_title
+    groups.set(key, [...(groups.get(key) ?? []), item])
+    return groups
+  }, new Map<string, ReleasedMiss[]>()).entries())
+
   return <main style={shell}><div className="vs-learn-page" style={container}>
-    <VibeLearnSubnav />
-    <header style={hero}>
-      <div style={kicker}>VIBESCHOOL · LEARNING REPAIR</div>
-      <h1 style={{fontSize:'clamp(26px,5vw,37px)',letterSpacing:'-.04em',lineHeight:1.12,margin:'8px 0'}}>My Mistakes</h1>
-      <p style={{...muted,maxWidth:640,margin:0}}>Find what needs another look, relearn the exact skill, and prove it with a fresh question. No AI guesses or self-awarded mastery.</p>
+    <header style={{...hero,background:'linear-gradient(125deg,var(--vs-card) 0%,var(--vs-accent-soft) 100%)',padding:'clamp(22px,4vw,36px)'}}>
+      <div style={kicker}>MY LEARNING / SKILL RECOVERY</div>
+      <h1 style={{fontSize:'clamp(30px,5vw,44px)',letterSpacing:'-.045em',lineHeight:1.1,margin:'10px 0'}}>Make your next answer better.</h1>
+      <p style={{...muted,maxWidth:580,margin:'0 0 16px'}}>My Mistakes helps you understand what went wrong, revisit the skill and try again. Your marks stay with the original assessment.</p>
+      <button type="button" style={secondary} onClick={() => void load()}>Refresh my mistakes</button>
     </header>
 
-    {error && <section style={card} role="alert"><strong>We could not load your mistakes.</strong><p style={muted}>{error}</p><button style={secondary} onClick={() => void load()}>Try again</button></section>}
-    {loading ? <section style={card} role="status">Loading your learning records…</section>
-    : error && released.length===0 ? null : <>
-      <section style={card} aria-label="Mistakes from released assessments">
-        <div style={sectionHead}><div><div style={kicker}>CANONICAL ASSESSMENT EVIDENCE</div><h2 style={heading}>Missed and skipped questions</h2></div><span style={counter}>{released.length} recent records</span></div>
-        <p style={muted}>These are drawn from your own released assessment responses, even when a curriculum link is awaiting verification. They are not a claim of verified mastery or a second score.</p>
-        {releasedError && <p role="alert" style={muted}>Released assessment evidence unavailable: {releasedError}</p>}
-        {released.length===0 && !releasedError && <p style={muted}>No missed released answers found in the recent recovery window.</p>}
-        {released.length>0 && <div style={{display:'grid',gap:10}}>{released.map(entry=><article key={entry.recovery_key} style={itemCard}>
-          <div style={sectionHead}><strong>{entry.context_title}</strong><span style={tag}>{entry.reason==='skipped'?'Skipped':'Incorrect'}</span></div>
-          <p style={{fontSize:14,lineHeight:1.55,margin:'8px 0'}}>{entry.prompt}</p>
-          <p style={muted}>{entry.identity_state==='verified'?'Verified outcome link':entry.outcome_code?'Outcome '+entry.outcome_code+' · verification pending':'Curriculum outcome link pending'}</p>
-          <div style={actions}>
-            {entry.attempt_id && <button style={primarySmall} onClick={()=>router.push('/student/vibelearn/recovery?attempt='+encodeURIComponent(entry.attempt_id!)+(entry.assessment_item_id?'&item='+encodeURIComponent(entry.assessment_item_id):''))}>Review exact mistake →</button>}
-            {entry.attempt_id && <button style={secondary} onClick={()=>router.push('/student/results/'+encodeURIComponent(entry.attempt_id!))}>View original result</button>}
+    {error && <section style={card} role="alert"><strong>Learning notebook unavailable</strong><p style={muted}>{error}</p><button style={secondary} onClick={() => void load()}>Try again</button></section>}
+    {releasedError && <section style={card} role="alert"><strong>Assessment mistakes could not be loaded</strong><p style={muted}>{releasedError}</p><button style={secondary} onClick={() => void load()}>Retry</button></section>}
+    {loading ? <section style={card} role="status">Loading your learning evidence…</section> : <>
+      <section aria-label="Your mistake recovery snapshot" style={stats}>
+        <Metric value={released.length} title="Recent misses" detail="Incorrect or skipped assessment responses" />
+        <Metric value={needs.length} title="Skills to repair" detail="Current-grade learning notebook" />
+        <Metric value={reviewed.length} title="Reviewed skills" detail="Still subject to verification" />
+      </section>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,310px),1fr))',gap:14,alignItems:'start',marginBottom:14}}>
+        <section style={{...feature,marginBottom:0}} aria-labelledby="mistake-next">
+          <div style={featureHead}><span style={kicker}>YOUR NEXT ACTION</span><span style={tag}>Start here</span></div>
+          <h2 id="mistake-next" style={{fontSize:23,letterSpacing:'-.035em',margin:'11px 0 7px'}}>Fix one mistake</h2>
+          {next ? <>
+            <p style={{...muted,margin:'0 0 9px'}}>{next.subject} · {next.topic} · missed {next.repeatCount} {next.repeatCount===1?'time':'times'}</p>
+            <div style={question}>{next.prompt}</div>
+            {next.explanation && <details style={{marginTop:12}}><summary style={summary}>See the recorded explanation</summary><p style={muted}>{next.explanation}</p></details>}
+            <button style={{...primary,marginTop:15,width:'100%'}} onClick={() => recovery(next)}>Review and retry this skill</button>
+          </> : spotlight ? <>
+            <p style={{...muted,margin:'0 0 9px'}}>{spotlight.context_title} · {spotlight.reason==='skipped'?'Skipped question':'Incorrect answer'}</p>
+            <div style={question}>{spotlight.prompt}</div>
+            <p style={{...muted,margin:'10px 0'}}>{spotlight.identity_state==='verified'?'Linked to a verified outcome':'Outcome verification pending; no mastery claim'}</p>
+            <button style={{...primary,marginTop:8,width:'100%'}} onClick={() => router.push('/student/vibelearn/recovery?attempt='+encodeURIComponent(spotlight.attempt_id!)+(spotlight.assessment_item_id?'&item='+encodeURIComponent(spotlight.assessment_item_id):''))}>Review and retry this question</button>
+          </> : <>
+            <p style={muted}>No recorded mistakes are ready to repair. You can keep learning and return after a marked assessment.</p>
+            <button style={secondary} onClick={() => router.push('/student/vibelearn/topic-practice')}>Open Topic Practice</button>
+          </>}
+        </section>
+        <section style={{...card,marginBottom:0}} aria-labelledby="mistake-how">
+          <div style={kicker}>HOW RECOVERY WORKS</div>
+          <h2 id="mistake-how" style={{...heading,marginTop:9}}>Understand. Try. Verify.</h2>
+          <div style={{display:'grid',gap:13}}>
+            {[
+              ['01','Understand','Read the explanation or return to the exact learning source.'],
+              ['02','Try again','Answer a new question using the existing assessment engine.'],
+              ['03','Check your progress','See recorded feedback. Mastery is never awarded just for opening a page.'],
+            ].map(([number,title,description])=><div key={number} style={{display:'flex',gap:12}}>
+              <span aria-hidden="true" style={{...tag,height:30,minWidth:35,textAlign:'center'}}>{number}</span>
+              <span><strong style={{fontSize:14}}>{title}</strong><p style={{...muted,margin:'3px 0'}}>{description}</p></span>
+            </div>)}
           </div>
-        </article>)}</div>}
-      </section>
-      <section aria-label="Your repair overview" style={stats}>
-        <Metric value={needs.length} title="Need fixing" detail="Current grade" />
-        <Metric value={eligible.filter(item => item.status === 'practising').length} title="Practising" detail="Still needs proof" />
-        <Metric value={reviewed.length} title="Reviewed" detail="Not automatically mastered" />
-      </section>
+        </section>
+      </div>
 
-      {next ? <section style={feature} aria-labelledby="next-repair">
-        <div style={featureHead}><span style={kicker}>YOUR NEXT REPAIR</span><span style={tag}>Recommended next</span></div>
-        <h2 id="next-repair" style={{fontSize:22,margin:'9px 0 4px',letterSpacing:'-.025em'}}>{next.subject} · {next.topic}</h2>
-        <p style={{...muted,margin:'6px 0 12px'}}>You have missed this question {next.repeatCount} {next.repeatCount===1?'time':'times'}. Start with its linked explanation, then try a new independently marked question.</p>
-        <div style={question}>{next.prompt}</div>
-        {next.explanation && <details style={{margin:'12px 0'}}><summary style={summary}>Read recorded explanation</summary><p style={muted}>{next.explanation}</p></details>}
-        <button style={primary} onClick={() => recovery(next)}>Fix this mistake →</button>
-      </section> : <section style={card}>
-        <h2 style={heading}>No verified notebook repairs waiting</h2>
-        <p style={muted}>Notebook recommendations need verified grade provenance. Your released assessment mistakes are shown separately above, even if their curriculum links are still pending verification.</p>
-        <button style={secondary} onClick={() => router.push('/student/vibelearn/topic-practice')}>Open Topic Practice</button>
-      </section>}
-
-      <section style={card} aria-labelledby="repair-queue">
-        <div style={sectionHead}><div><div style={kicker}>YOUR SKILLS</div><h2 id="repair-queue" style={heading}>Repair queue</h2></div><span style={counter}>{visible.length} shown</span></div>
+      <section style={card} aria-labelledby="mistake-skills">
+        <div style={sectionHead}><div><div style={kicker}>MY SKILL RECOVERY</div><h2 id="mistake-skills" style={heading}>Skills that need another look</h2></div><span style={counter}>{visible.length} matching</span></div>
         <div style={controls}>
-          <div role="group" aria-label="Filter by recovery state" style={tabs}>
-            {([['needs','Needs fixing'],['all','All'],['reviewed','Reviewed']] as const).map(([value,label]) =>
-              <button key={value} type="button" aria-pressed={filter===value} onClick={()=>setFilter(value)}
-                style={{...tab,...(filter===value?selectedTab:{})}}>{label}</button>)}
+          <div role="group" aria-label="Filter skills by recovery state" style={tabs}>
+            {([['needs','Needs work'],['reviewed','Reviewed'],['all','All skills']] as const).map(([value,label])=>
+              <button key={value} type="button" aria-pressed={filter===value} onClick={()=>setFilter(value)} style={{...tab,...(filter===value?selectedTab:{})}}>{label}</button>)}
           </div>
           <label style={{fontSize:12,fontWeight:700,color:'var(--vs-muted)'}}>Subject{' '}
             <select aria-label="Filter by subject" value={subject} onChange={e=>setSubject(e.target.value)} style={select}>
@@ -138,33 +152,43 @@ export default function VibeLearnMistakesPage() {
             </select>
           </label>
         </div>
-        {visible.length===0 ? <p style={muted}>No recorded skills match these filters.</p> :
-          <div style={{display:'grid',gap:10}}>
-            {visible.map(item=><article key={item.id} style={itemCard}>
-              <div style={sectionHead}><div><strong>{item.subject} · {item.topic}</strong><p style={{...muted,margin:'4px 0'}}>{item.status==='resolved'?'Reviewed — verify retained understanding':item.status==='practising'?'Practising — more evidence needed':'Needs correction'}</p></div>
-                <span style={counter}>{item.repeatCount} {item.repeatCount===1?'miss':'misses'}</span></div>
-              <p style={{fontSize:14,lineHeight:1.55,margin:'7px 0 10px'}}>{item.prompt}</p>
-              {item.explanation && <details><summary style={summary}>Show available explanation</summary><p style={muted}>{item.explanation}</p></details>}
-              <div style={actions}>
-                <button style={primarySmall} onClick={()=>recovery(item)}>{item.status==='resolved'?'Check recovery evidence':'Repair exact skill'} →</button>
-                {item.reviewUrl && <button style={secondary} onClick={()=>router.push(item.reviewUrl!)}>Review source</button>}
-              </div>
-            </article>)}
-          </div>}
+        {visible.length===0?<p style={muted}>No current-grade skills match this view. Assessment mistakes can still be reviewed in the history below.</p>:
+          <div style={{display:'grid',gap:9}}>{visible.slice(0,4).map(item=><article key={item.id} style={itemCard}>
+            <div style={sectionHead}><div><strong>{item.subject} · {item.topic}</strong><p style={{...muted,margin:'4px 0'}}>{item.status==='resolved'?'Reviewed — verify retention':item.status==='practising'?'Practising':'Needs correction'} · {item.repeatCount} {item.repeatCount===1?'miss':'misses'}</p></div><span style={tag}>{item.status==='resolved'?'Reviewed':'To practise'}</span></div>
+            <p style={{fontSize:14,lineHeight:1.55,margin:'9px 0'}}>{item.prompt}</p>
+            <div style={actions}><button style={primarySmall} onClick={()=>recovery(item)}>Work on this skill</button>{item.reviewUrl&&<button style={secondary} onClick={()=>router.push(item.reviewUrl!)}>Read lesson</button>}</div>
+          </article>)}</div>}
+        {visible.length>4&&<details style={{marginTop:14}}><summary style={summary}>Show {visible.length-4} more skills</summary>
+          <div style={{display:'grid',gap:9,marginTop:12}}>{visible.slice(4).map(item=><article key={item.id} style={itemCard}>
+            <strong>{item.subject} · {item.topic}</strong><p style={muted}>{item.prompt}</p>
+            <button style={secondary} onClick={()=>recovery(item)}>Review skill</button>
+          </article>)}</div></details>}
       </section>
 
-      {historical.length>0 && <section style={card}>
-        <details><summary style={summary}>Earlier or unverified practice ({historical.length})</summary>
-          <p style={muted}>Preserved for review only. Records without verified current-grade provenance never become recommended repairs.</p>
-          <div style={{display:'grid',gap:10}}>{historical.map(item=><article key={item.id} style={itemCard}>
-            <strong>{item.subject} · {item.topic}</strong>
-            <p style={muted}>{item.sourceGrade ?? 'Grade not recorded'} · {item.sourceVerified?'Verified source':'Source verification pending'}</p>
-            <p style={{fontSize:14,lineHeight:1.55}}>{item.prompt}</p>
-            {item.explanation && <details><summary style={summary}>Earlier explanation</summary><p style={muted}>{item.explanation}</p></details>}
-          </article>)}</div>
-        </details>
-      </section>}
-      <p style={{...muted,textAlign:'center',marginBottom:24}}>Recovery is scored by the existing assessment system. Opening an explanation or completing a screen does not earn mastery.</p>
+      <section style={card} aria-labelledby="mistake-history">
+        <div style={sectionHead}><div><div style={kicker}>ASSESSMENT HISTORY</div><h2 id="mistake-history" style={heading}>Missed and skipped questions</h2></div><span style={counter}>{released.length} recent responses</span></div>
+        <p style={muted}>Grouped by assessment to keep this screen focused. These are your released responses, not new scores. An outcome awaiting verification stays unverified.</p>
+        {releasedGroups.length===0 ? <p style={muted}>No released missed or skipped answers were found in the recent window.</p> :
+          <div style={{display:'grid',gap:9,marginTop:14}}>{releasedGroups.map(([name,items])=>
+            <details key={name} style={itemCard}><summary style={{...summary,color:'var(--vs-text)',display:'flex',justifyContent:'space-between',gap:12}}>
+              <strong>{name}</strong><span style={tag}>{items.length} {items.length===1?'question':'questions'}</span>
+            </summary>
+            <div style={{display:'grid',gap:9,marginTop:13}}>{items.map(entry=><article key={entry.recovery_key} style={{padding:'12px 0',borderTop:'1px solid var(--vs-border)'}}>
+              <div style={sectionHead}><strong style={{fontSize:13,lineHeight:1.6}}>{entry.prompt}</strong><span style={counter}>{entry.reason==='skipped'?'Skipped':'Incorrect'}</span></div>
+              <p style={{...muted,margin:'7px 0'}}>{entry.identity_state==='verified'?'Verified outcome link':entry.outcome_code?'Outcome '+entry.outcome_code+' · verification pending':'Curriculum link pending'}</p>
+              <div style={actions}>
+                {entry.attempt_id&&<button style={primarySmall} onClick={()=>router.push('/student/vibelearn/recovery?attempt='+encodeURIComponent(entry.attempt_id!)+(entry.assessment_item_id?'&item='+encodeURIComponent(entry.assessment_item_id):''))}>Review mistake</button>}
+                {entry.attempt_id&&<button style={secondary} onClick={()=>router.push('/student/results/'+encodeURIComponent(entry.attempt_id!))}>Original result</button>}
+              </div>
+            </article>)}</div>
+          </details>)}</div>}
+      </section>
+
+      {historical.length>0&&<section style={card}><details><summary style={summary}>Earlier or unverified notebook records ({historical.length})</summary>
+        <p style={muted}>Preserved for reference only. These cannot be treated as verified current-grade recovery.</p>
+        {historical.map(item=><div key={item.id} style={{...itemCard,marginTop:8}}><strong>{item.subject} · {item.topic}</strong><p style={muted}>{item.prompt}</p></div>)}
+      </details></section>}
+      <p style={{...muted,textAlign:'center'}}>Your original scores remain unchanged. Only the existing learning and assessment systems determine progress.</p>
     </>}
   </div></main>
 }
