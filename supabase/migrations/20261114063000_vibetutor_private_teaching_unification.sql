@@ -176,6 +176,47 @@ begin
   insert into public.vibetutor_private_group_members(group_id,invitation_id)
   values(p_group,p_invitation) on conflict do nothing;
 end $$;
+create or replace function public.vibetutor_remove_private_group_member(p_group uuid,p_invitation uuid)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  delete from public.vibetutor_private_group_members m
+  where m.group_id=p_group and m.invitation_id=p_invitation
+    and exists(select 1 from public.vibetutor_private_groups g
+      where g.id=m.group_id and g.tutor_id=auth.uid());
+  if not found then raise exception 'Group membership unavailable' using errcode='42501'; end if;
+end $$;
+create or replace function public.vibetutor_assign_private_group_task(p_group uuid,p_title text,p_instructions text default '')
+returns integer language plpgsql security definer set search_path = '' as $$
+declare v_count integer;
+begin
+  if not exists(select 1 from public.vibetutor_private_groups g
+      where g.id=p_group and g.tutor_id=auth.uid()) then
+    raise exception 'Group unavailable' using errcode='42501';
+  end if;
+  if char_length(trim(coalesce(p_title,''))) not between 1 and 120
+    or char_length(coalesce(p_instructions,''))>2000 then raise exception 'Invalid task'; end if;
+  if (select count(*) from public.vibetutor_private_tasks
+    where tutor_id=auth.uid() and created_at>now()-interval '1 hour') >= 40 then
+    raise exception 'Task creation limit reached';
+  end if;
+  with recipients as (
+    select distinct i.id as invitation_id, i.student_id
+    from public.vibetutor_private_group_members m
+    join public.vibetutor_student_invitations i on i.id=m.invitation_id
+      and i.tutor_id=auth.uid() and i.status='accepted'
+    join public.students s on s.id=i.student_id and s.deleted_at is null
+    where m.group_id=p_group
+    limit 30
+  ), inserted as (
+    insert into public.vibetutor_private_tasks(invitation_id,tutor_id,student_id,title,instructions)
+    select r.invitation_id,auth.uid(),r.student_id,trim(p_title),coalesce(p_instructions,'')
+    from recipients r
+    returning 1
+  )
+  select count(*) into v_count from inserted;
+  if v_count=0 then raise exception 'Group has no approved learners'; end if;
+  return v_count;
+end $$;
 create or replace function public.vibetutor_my_private_groups()
 returns jsonb language sql stable security definer set search_path = '' as $$
   select coalesce(jsonb_agg(jsonb_build_object('id',g.id,'title',g.title,
@@ -190,7 +231,8 @@ $$;
 revoke all on function public.vibetutor_assign_private_task(uuid,text,text),
  public.vibetutor_my_private_tasks(uuid),public.vibetutor_complete_private_task(uuid,text),
  public.vibetutor_review_private_task(uuid,text),public.vibetutor_create_private_group(text),
- public.vibetutor_add_private_group_member(uuid,uuid),public.vibetutor_my_private_groups()
+ public.vibetutor_add_private_group_member(uuid,uuid),public.vibetutor_remove_private_group_member(uuid,uuid),
+ public.vibetutor_assign_private_group_task(uuid,text,text),public.vibetutor_my_private_groups()
  from public,anon;
 grant execute on function public.vibetutor_assign_private_task(uuid,text,text),
  public.vibetutor_my_private_tasks(uuid),public.vibetutor_complete_private_task(uuid,text),
