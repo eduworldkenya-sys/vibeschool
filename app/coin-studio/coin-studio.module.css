@@ -55,18 +55,18 @@
 .winLabel{font-size:9px;color:#0c1c31;background:#f9dc85;padding:3px 7px;border-radius:20px}
 .coinArea{position:relative;display:grid;place-items:center;width:100%;flex:1;min-height:22%;perspective:1200px;z-index:2;overflow:visible}
 .coinHalo{position:absolute;width:75%;max-width:420px;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff7b019 10%,#ffbe2138 36%,transparent 69%);filter:blur(16px);animation:breathe 2.5s ease-in-out infinite}
-.tossTrajectory{width:clamp(144px,38%,290px);aspect-ratio:1;display:grid;place-items:center;z-index:2;transform:translateY(0)}
+.tossTrajectory{width:clamp(144px,38%,290px);aspect-ratio:1;display:grid;place-items:center;z-index:2;transform:translateY(0);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;outline-offset:5px;border-radius:50%}.tossTrajectory[data-dragging="true"]{cursor:grabbing}.tossTrajectory:focus-visible{outline:3px solid #66f5ee}
 /* Launch and bounce are driven by Web Animations on the actual stage node. */
 .coin{position:relative;width:100%;height:100%;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;will-change:transform}
 .face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4%;border-radius:50%;border:8px ridge #efd081;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;box-shadow:inset 0 0 0 8px #ffffff25,inset 0 0 38px #6a370b88,0 0 12px #fff7bd5e}
-.face::before{content:"";position:absolute;inset:7%;border-radius:50%;border:2px dashed #fff4bc8f;pointer-events:none}
+.face::before{content:"";position:absolute;inset:7%;border-radius:50%;border:2px dashed #fff4bc8f;pointer-events:none;z-index:1}.face>*:not(.facePattern){position:relative;z-index:2}
 .front{transform:rotateX(0deg) translateZ(7px)}.back{transform:rotateX(180deg) translateZ(7px)}.horizontal .front{transform:rotateY(0deg) translateZ(7px)}.horizontal .back{transform:rotateY(180deg) translateZ(7px)}
 .gold .face{background:radial-gradient(circle at 26% 20%,#fffad1,#f7d36c 35%,#bc7616 72%,#815015);color:#4a2b08;border-color:#ffdd82}
 .silver .face{background:radial-gradient(circle at 25% 20%,#ffffff,#d8e3ed 33%,#7b99b5 75%,#43536b);color:#213148;border-color:#d5e4f2}
 .copper .face{background:radial-gradient(circle at 25% 20%,#ffe3ac,#da9256 39%,#93412d 76%,#592515);color:#39180d;border-color:#e5a26c}
 .neon .face{background:radial-gradient(circle at 28% 18%,#b3ffff,#45ccda 35%,#2455ad 73%,#161b53);color:#041c3e;border-color:#74f4ff}
 /* Every coin face has its own colour; material finish controls only the rim. */
-.face{background-blend-mode:screen;text-shadow:0 2px 7px #000a}
+\n.face{background-blend-mode:normal;text-shadow:0 2px 7px #000a;box-shadow:inset 0 0 0 5px #ffffff2b,inset 0 0 35px #061025a5,0 0 17px color-mix(in srgb,var(--face-color,#ffffff) 60%,transparent)}\n.front{border-color:#ffc9d4!important}.back{border-color:#9df4ff!important}\n.facePattern{position:absolute;inset:13%;border-radius:50%;pointer-events:none;z-index:0}.front .facePattern{background:repeating-conic-gradient(from 9deg,#ffffff28 0deg 6deg,transparent 7deg 30deg);border:3px solid #ffffff66}.back .facePattern{background:repeating-linear-gradient(135deg,#ffffff2c 0px 4px,transparent 5px 22px);border:3px double #ffffffb0}\n.dragHint{position:absolute;z-index:5;top:2%;left:0;right:0;text-align:center;color:#c7fff4;font-weight:900;font-size:clamp(8px,1vw,11px);letter-spacing:.15em;pointer-events:none;text-shadow:0 2px 9px #031727}\n.paletteRow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.paletteButton{display:flex;align-items:center;gap:5px;min-width:0;flex-wrap:wrap;justify-content:center;padding:10px 5px!important}.paletteButton span{height:21px;width:21px;border-radius:50%;border:2px solid #ffffffa0;display:inline-block}.paletteButton small{font-size:10px;flex-basis:100%;color:#eaf2ff!important}
 .coinRing{display:grid;place-items:center;width:42%;aspect-ratio:1;border:4px solid currentColor;border-radius:50%;background:#ffffff33}
 .coinRing span{font-size:clamp(27px,5vw,53px);line-height:1;font-weight:1000}.coinRing img{width:82%;height:82%;object-fit:contain;border-radius:50%}
 .face b{font-size:clamp(10px,1.7vw,16px);max-width:80%;overflow-wrap:anywhere;text-align:center;line-height:1.1}
