@@ -203,3 +203,32 @@
 .orbPerspective{touch-action:none;user-select:none;-webkit-user-select:none}
 .orbPerspective:active{cursor:grabbing!important}
 @media(prefers-reduced-motion:reduce){.orbPerspective{scroll-behavior:auto}}
+
+
+/* VibeSphere: touch-safe orbit, readable options and no clipped studio panel. */
+@media(max-width:760px){
+ .page{padding:12px max(10px,env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));overflow-x:clip}
+ .shell,.workspace,.sidebar,.preview,.stage,.controls{min-width:0;max-width:100%}
+ .workspace{display:flex;flex-direction:column;gap:12px}
+ .preview{order:0;width:100%}
+ .sidebar{order:1;width:100%;max-height:none;position:static}
+ .header{flex-wrap:wrap;gap:10px}
+ .header h1{font-size:clamp(26px,8vw,40px);overflow-wrap:anywhere}
+ .headButtons{flex-wrap:wrap;gap:7px}
+ .tabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ .tabs button{min-height:44px;white-space:normal;overflow-wrap:anywhere;padding:8px 3px;font-size:10px}
+ .stage{width:100%;max-height:none}
+ .scene{min-width:0}
+ .stageControls{max-width:100%;min-width:0}
+ .status,.previewBar{flex-wrap:wrap;gap:5px;letter-spacing:.02em}
+ .actionButtons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .actionButtons button{min-width:0;min-height:44px;white-space:normal}
+ .sphereArena{--orb-size:min(68vw,310px);min-height:0;min-width:0}
+ .orbPerspective{touch-action:none;max-width:100%}
+ .controls input,.controls select,.controls textarea{max-width:100%}
+}
+@media(max-width:360px){
+ .tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .actionButtons{grid-template-columns:minmax(0,1fr)}
+ .sphereArena{--orb-size:min(64vw,240px)}
+}

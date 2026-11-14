@@ -198,3 +198,40 @@
 .electionTallyStill .electionScoreFill{transition:none!important}
 .electionTallyStill .electionTallyScore,.electionTallyStill .electionTallyRow{animation:none!important}
 @media(max-width:520px){.electionTallyNoNames{grid-template-columns:14px minmax(14px,1fr) auto}}
+
+
+/* Mobile creator controls: leave the stage playable without page-wide horizontal scrolling. */
+@media(max-width:640px){
+ .page{padding:14px max(10px,env(safe-area-inset-right)) calc(64px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));overflow-x:clip}
+ .shell,.layout,.previewSection,.controls,.panel{min-width:0;max-width:100%}
+ .header{gap:10px;margin-bottom:14px}
+ .header h1{font-size:clamp(26px,8vw,38px);overflow-wrap:anywhere}
+ .headActions{width:100%;gap:8px}
+ .headActions>*{min-width:0}
+ .layout{gap:14px}
+ .previewSection{grid-row:1}
+ .controls{position:static;display:flex;max-height:none;overflow:visible;padding-right:0}
+ .panel{padding:13px;border-radius:14px}
+ .setupTabs{position:static;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ .setupTabs button{min-width:0;min-height:44px;padding:8px 3px;white-space:normal;overflow-wrap:anywhere;font-size:10px}
+ .stage{max-width:100%;min-width:0;border-radius:14px}
+ .stageContent{padding:clamp(7px,2.5vw,14px)}
+ .wheelSvg{max-width:100%;max-height:100%}
+ .wheelArea{min-width:0}
+ .playBar{max-width:100%;padding:10px}
+ .playStatus{flex-wrap:wrap;gap:5px;font-size:10px;letter-spacing:.04em}
+ .playButtons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .playButtons button,.spinButton{min-width:0;min-height:44px;width:100%;padding:10px 5px!important;white-space:normal}
+ .recordBar,.recordBar>div{max-width:100%;flex-wrap:wrap}
+ .recordLayout .stage{max-height:none}
+ .entry,.row{min-width:0;flex-wrap:wrap}
+ .entry>*{min-width:0}
+ .electionArena{min-width:0}
+ .electionTallyfloating{position:static;width:100%;max-width:100%;max-height:170px}
+ .electionArenafloating{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+}
+@media(max-width:360px){
+ .setupTabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .playButtons{grid-template-columns:minmax(0,1fr)}
+ .header h1{font-size:27px}
+}
