@@ -266,13 +266,14 @@ export default function CoinStudio() {
   },[current,phase,reduceMotion,rotation])
   const tossRef = useRef(toss)
   useEffect(() => { tossRef.current = toss },[toss])
-  // Start the first show toss without any extra button press when enabled.
+  // Start once on entering Show Mode (or when auto-start is enabled there).
+  // Do not restart after viewing a face, resetting, or dragging the coin.
   // Browsers may suppress automatic sound until the viewer interacts.
   useEffect(() => {
-    if (!showMode || !current?.autoStart || phase !== 'idle') return
+    if (!showMode || !current?.autoStart) return
     const timer = window.setTimeout(() => tossRef.current(), 950)
     return () => window.clearTimeout(timer)
-  },[showMode, current?.autoStart, selectedId, phase])
+  },[showMode, current?.autoStart, selectedId])
   // Automatic replay is deliberately bounded for a single batch (max 20).
   useEffect(() => {
     if (!current?.automatic || !current.batch || phase !== 'reveal' || autoRuns >= 19 || recording) return
