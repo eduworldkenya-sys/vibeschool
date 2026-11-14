@@ -1,80 +1,87 @@
 #!/usr/bin/env python3
-"""Read-only, exact-origin official KICD PDF evidence preflight.
+"""Read-only PDF hash preflight for the KICD-linked Google Drive preview.
 
-Never uploads, registers, promotes or stores publisher PDF content in Git.
-A successful checksum confirms the bytes *retrieved by this runner*, not
-KICD approval or the VibeSchool curriculum authority promotion gate.
+The canonical curriculum-authority-intake Edge Function remains the only
+path to registering source evidence. This script never approves or uploads it.
 """
 import hashlib
 import json
 import os
-import re
 import ssl
 import sys
+from urllib.parse import urlsplit, parse_qs
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-SOURCE_URL = "https://drive.google.com/uc?export=download&id=1o5tDq16yC0Jj1h6zb9mo3dsxtjqXUk4G"
-KICD_LISTING = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-four-designs/"
-HISTORICAL_URL = "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf"
-ADAPTED_SOURCE = "https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-4-MATHEMATICS.pdf"
+FILE_ID = "1o5tDq16yC0Jj1h6zb9mo3dsxtjqXUk4G"
+KICD_CATALOG = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-four-designs/"
+KICD_PREVIEW = "https://drive.google.com/file/d/" + FILE_ID + "/preview"
+DOWNLOAD_URL = "https://drive.usercontent.google.com/download?id=" + FILE_ID + "&export=download&confirm=t"
+HISTORICAL_KICD_URL = "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf"
+ADAPTED_URL = "https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-4-MATHEMATICS.pdf"
 MAX_BYTES = 30 * 1024 * 1024
 MIN_BYTES = 30 * 1024
+ALLOWED_HOSTS = {"drive.google.com", "drive.usercontent.google.com"}
 
-def main() -> int:
-    if SOURCE_URL == ADAPTED_SOURCE:
-        raise AssertionError("Regular and adapted curriculum authorities must differ")
-    request = Request(SOURCE_URL, headers={
-        "User-Agent": "VibeSchool-Curriculum-Source-Evidence/1.0 (read-only)",
-        "Accept": "application/pdf",
+def allowed(url):
+    u=urlsplit(url)
+    host=(u.hostname or "").lower()
+    return u.scheme == "https" and (host in ALLOWED_HOSTS or host.endswith(".googleusercontent.com"))
+
+def main():
+    assert KICD_PREVIEW != ADAPTED_URL and KICD_PREVIEW != HISTORICAL_KICD_URL
+    assert FILE_ID in KICD_PREVIEW and FILE_ID in DOWNLOAD_URL
+    request=Request(DOWNLOAD_URL,headers={
+        "User-Agent":"VibeSchool-CurriculumAuthority/1.1",
+        "Accept":"application/pdf,application/octet-stream;q=0.9,text/html;q=0.2,*/*;q=0.1",
     })
-    digest = hashlib.sha256()
-    nbytes = 0
-    first_bytes = b""
+    length=0
+    sha=hashlib.sha256()
+    prefix=b""
     try:
-        with urlopen(request, timeout=25, context=ssl.create_default_context()) as response:
-            final_url = response.geturl()
-            if not (final_url.startswith("https://drive.google.com/") or final_url.startswith("https://drive.usercontent.google.com/") or ".googleusercontent.com/" in final_url):
-                raise RuntimeError("Source URL redirected; authority identity requires separate review: " + final_url)
+        with urlopen(request,timeout=25,context=ssl.create_default_context()) as response:
+            resolved=response.geturl()
+            if not allowed(resolved):
+                raise RuntimeError("SOURCE_REDIRECT_HOST_BLOCKED")
+            content_type=response.headers.get("Content-Type","unknown").split(";")[0]
             while True:
-                chunk = response.read(64 * 1024)
-                if not chunk:
-                    break
-                nbytes += len(chunk)
-                if nbytes > MAX_BYTES:
-                    raise RuntimeError("Source exceeds preflight byte limit")
-                if len(first_bytes) < 10:
-                    first_bytes += chunk[:10-len(first_bytes)]
-                digest.update(chunk)
-    except (HTTPError, URLError, TimeoutError) as error:
-        print("SOURCE_RETRIEVAL_BLOCKED: " + repr(error), file=sys.stderr)
+                block=response.read(65536)
+                if not block: break
+                length+=len(block)
+                if length>MAX_BYTES: raise RuntimeError("SOURCE_OVERSIZE_BLOCKED")
+                if len(prefix)<8: prefix+=block[:8-len(prefix)]
+                sha.update(block)
+    except (HTTPError,URLError,TimeoutError,RuntimeError) as exc:
+        print("SOURCE_FETCH_BLOCKED: "+str(exc),file=sys.stderr)
         return 3
-    if not first_bytes.startswith(b"%PDF-") or nbytes < MIN_BYTES:
-        print("SOURCE_IDENTITY_BLOCKED: response was not a complete-looking PDF", file=sys.stderr)
+    if not prefix.startswith(b"%PDF-") or length<MIN_BYTES:
+        # Never hash or register the HTML/Drive viewer response as an official PDF.
+        print("SOURCE_NOT_PDF: content_type="+content_type+"; bytes="+str(length)+
+              "; method=Google usercontent download; viewer evidence fallback requires the existing authenticated intake",
+              file=sys.stderr)
         return 4
-    evidence = {
-        "schema": "vibeschool.kicd.readonly-source-observation.v1",
-        "url": SOURCE_URL,
-        "origin_listing": KICD_LISTING,
-        "historical_kicd_url": HISTORICAL_URL,
-        "historical_pdf_equivalence": "NOT_VERIFIED",
-        "target": "KICD Grade 4 regular Mathematics, revised 2024",
-        "sha256_of_retrieved_bytes": digest.hexdigest(),
-        "size_bytes": nbytes,
-        "pdf_header": first_bytes[:8].decode("ascii", errors="replace"),
-        "authority_promotion": "NOT_PERFORMED",
-        "publisher_approval": "NOT_INFERRED",
-        "source_snapshot": "NOT_REGISTERED",
-        "downloaded_pdf_committed": False,
+    evidence={
+        "schema":"vibeschool.kicd.source-byte-preflight.v1",
+        "catalog":KICD_CATALOG,
+        "approved_source_url":None,
+        "kicd_linked_preview":KICD_PREVIEW,
+        "download_url":DOWNLOAD_URL,
+        "historical_url":HISTORICAL_KICD_URL,
+        "sha256_of_retrieved_pdf":sha.hexdigest(),
+        "bytes":length,
+        "source_edition_comparison":"NOT_PERFORMED",
+        "source_authority_promotion":"NOT_PERFORMED",
+        "curriculum_outcome_verification":"NOT_PERFORMED",
     }
-    print("KICD_SOURCE_EVIDENCE=" + json.dumps(evidence, sort_keys=True))
-    with open(os.environ.get("GITHUB_STEP_SUMMARY", os.devnull), "a", encoding="utf-8") as summary:
-        summary.write("### KICD regular Grade 4 Mathematics source observation\n")
-        summary.write("Retrieved PDF bytes and calculated SHA-256 (non-promoting preflight only).\n")
-        summary.write("Source: `" + SOURCE_URL + "`\n")
-        summary.write("SHA-256: `" + evidence["sha256_of_retrieved_bytes"] + "`\n")
-        summary.write("Size: " + str(nbytes) + " bytes. No official approval, certification or publication.\n")
+    print("SOURCE_PDF_PREFLIGHT="+json.dumps(evidence,sort_keys=True))
+    summary=os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with open(summary,"a",encoding="utf-8") as out:
+            out.write("### KICD-linked Grade 4 Mathematics PDF preflight\\n")
+            out.write("The bytes were retrieved from a Google Drive download linked by KICD, not approved as the official source.\\n")
+            out.write("SHA-256: `"+evidence["sha256_of_retrieved_pdf"]+"`\\n")
+            out.write("No authenticated registration, equivalence test, source promotion or publication.\\n")
     return 0
 
-if __name__ == "__main__":
+if __name__=="__main__":
     sys.exit(main())
