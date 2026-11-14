@@ -13,9 +13,9 @@ const sql = read('supabase/migrations/20261112105000_student_mistake_source_cont
 
 assert.match(topic,/CanonicalTopicPractice grade=\{grade\}/,'grade routes reuse canonical EXQ')
 assert.match(topic,/\(\?:4\|9\)/,'Grade 4 and Grade 9 use canonical practice without changing other grades')
-assert.match(canonical,/listMyAssessmentAssignments\(\)/,'fallback uses learner-scoped canonical discovery')
-assert.match(canonical,/question counts/,'12-item assessments cannot be called five-question drills')
-assert.match(canonical,/otherPractice\.map/,'learner must have an alternative to empty topics')
+assert.doesNotMatch(canonical,/listMyAssessmentAssignments|otherPractice\.map/,'Topic Practice must not duplicate the Exams assessment shelf')
+assert.match(canonical,/Browse Exams/,'empty certified Topic Practice links directly to canonical Exams')
+assert.match(canonical,/Longer or timed assessments stay in Exams/,'different assessment question counts and timing remain in Exams')
 assert.match(recovery,/: error \? null/,'DB errors must not be rendered as empty recovery')
 assert.match(recovery,/Retry recovery/,'backend errors remain actionable')
 assert.match(lib,/student_get_my_mistake_source_grades/,'provenance is scoped to signed-in learner')
