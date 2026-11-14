@@ -16,14 +16,14 @@ type Setup={
  sound:boolean;confetti:boolean;spotlight:boolean;countdown:boolean;volume:number;
  resultText:string;episode:number; catcher?:boolean; landingAngle?:number
 }
-const STORAGE='vibeschool.vibependulum.studio.v1'
+const STORAGE='vibeschool.vibependulum.studio.v1' // Keep legacy storage so all matchups, logos, and presets migrate automatically
 const makeId=()=>Math.random().toString(36).slice(2)+Date.now().toString(36)
 const defaultSetup=():Setup=>({
  id:makeId(),title:'Arsenal vs Manchester United',left:{name:'ARSENAL',detail:'Option A',logo:'',color:'#e95465'},
  right:{name:'MANCHESTER\nUNITED',detail:'Option B',logo:'',color:'#62a6f4'},
  theme:'classic',camera:'angled',aspect:'portrait',duration:7,amplitude:43,
  showNames:true,showLogos:true,showBrand:true,sound:true,confetti:true,spotlight:true,
- countdown:true,volume:55,resultText:'THE PENDULUM CHOSE',episode:1,catcher:true,landingAngle:56
+ countdown:true,volume:55,resultText:'THE SPHERE CHOSE',episode:1,catcher:true,landingAngle:56
 })
 const templates:{label:string;title:string;left:string;right:string;colors:[string,string]}[]=[
  {label:'Football rivalry',title:'Arsenal vs Manchester United',left:'ARSENAL',right:'MANCHESTER\nUNITED',colors:['#e95465','#62a6f4']},
@@ -59,7 +59,7 @@ export default function PendulumStudio(){
  const [loaded,setLoaded]=useState(false)
  const [tab,setTab]=useState<'matchup'|'stage'|'motion'|'effects'|'record'>('matchup')
  const [phase,setPhase]=useState<Phase>('idle')
- const [angle,setAngle]=useState(-36)
+ const [rotation,setRotation]=useState(0)
  const [winner,setWinner]=useState<Side|null>(null)
  const [seconds,setSeconds]=useState(3)
  const [showMode,setShowMode]=useState(false)
@@ -101,7 +101,7 @@ export default function PendulumStudio(){
  useEffect(()=>{
   if(frameRef.current!==null)cancelAnimationFrame(frameRef.current)
   if(countdownRef.current!==null)clearInterval(countdownRef.current)
-  winnerRef.current=null;setWinner(null);setAngle(-36);setStagePhase('idle');setNotice('')
+  winnerRef.current=null;setWinner(null);setRotation(0);setStagePhase('idle');setNotice('')
  },[selectedId])
  const update=(patch:Partial<Setup>)=>{setSetups(a=>a.map(s=>s.id===selectedId?{...s,...patch}:s))}
  const editOutcome=(side:Side,patch:Partial<Outcome>)=>{if(setup)update({[side]:{...setup[side],...patch}})}
@@ -127,7 +127,7 @@ export default function PendulumStudio(){
  const download=()=>{
   if(!setup)return
   const url=URL.createObjectURL(new Blob([JSON.stringify(setup,null,2)],{type:'application/json'}))
-  const a=document.createElement('a');a.href=url;a.download='vibependulum-'+setup.title.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.json';a.click()
+  const a=document.createElement('a');a.href=url;a.download='vibesphere-'+setup.title.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.json';a.click()
   window.setTimeout(()=>URL.revokeObjectURL(url),1000)
  }
  const importFile=async(file?:File)=>{
@@ -135,31 +135,33 @@ export default function PendulumStudio(){
   try{
    if(file.size>500000)throw Error('File too large.')
    const parsed:unknown=JSON.parse(await file.text())
-   if(!valid(parsed))throw Error('This is not a VibePendulum setup.')
+   if(!valid(parsed))throw Error('This is not a VibeSphere setup.')
    const copy:Setup={...parsed,id:makeId(),title:parsed.title.slice(0,110),left:{...parsed.left},right:{...parsed.right}}
    setSetups(s=>[...s,copy].slice(-30));setSelectedId(copy.id);setNotice('Setup imported as a separate copy.')
   }catch(e){setNotice(e instanceof Error?e.message:'Unable to import setup.')}
  }
  const animate=(target:Side)=>{
   if(!setup)return
-  const start=performance.now(),duration=setup.duration*1000
-  const finalAngle=target==='left'?-(setup.landingAngle??56):(setup.landingAngle??56)
+  const began=performance.now()
+  const duration=Math.max(3000,setup.duration*1000)
+  // Two opposite sphere faces: A faces the fixed pointer at 0°, B at 180°.
+  // Whole revolutions make the first choice invisible to the viewer until the stop.
+  const base=rotation
+  const loops=4+Math.max(0,Math.round(setup.amplitude/15))
+  const finish=360*loops+(target==='left'?0:180)
+  const destination=base+finish-(((base%360)+360)%360)
   winnerRef.current=target;setWinner(null);setStagePhase('swinging')
   const tick=(now:number)=>{
-   const t=Math.min(1,(now-start)/duration)
-   const capture=Math.max(0,Math.min(1,(t-.78)/.22))
-   const smooth=capture*capture*(3-2*capture)
-   const envelope=Math.pow(1-t,1.25)
-   const natural=-Math.cos(t*22*Math.PI)*setup.amplitude*envelope
-   const bounce=Math.sin(capture*5*Math.PI)*Math.exp(-4*capture)*1.6
-   const next=natural*(1-smooth)+finalAngle*smooth+bounce
-   setAngle(t===1?finalAngle:next)
-   if(setup.sound && t<.7 && Math.floor(t*16)!==Math.floor(((now-start-16)/duration)*16)&&Math.floor(t*16)%2===0)tone(250,setup.volume,.055)
+   const t=Math.min(1,(now-began)/duration)
+   // Ease-out quintic slows the sphere progressively and lands the selected face exactly at the fixed pointer.
+   const eased=1-Math.pow(1-t,5)
+   setRotation(base+(destination-base)*eased)
+   if(setup.sound && t<.72 && Math.floor(t*18)!==Math.floor(((now-began-16)/duration)*18)&&Math.floor(t*18)%3===0)tone(220+Math.floor(t*10)*22,setup.volume,.04)
    if(t<1){frameRef.current=requestAnimationFrame(tick);return}
-   setAngle(finalAngle);setWinner(target);setStagePhase('reveal')
-   if(setup.catcher && setup.sound)tone(260,setup.volume,.18)
+   frameRef.current=null
+   setRotation(destination);setWinner(target);setStagePhase('reveal')
    if(setup.sound){tone(740,setup.volume,.3);window.setTimeout(()=>tone(980,setup.volume,.35),130)}
-   setHistory(h=>[{title:setup.title,winner:setup[target].name.replace(/\s+/g,' '),time:new Date().toLocaleString()},...h].slice(0,20))
+   setHistory(h=>[{title:setup.title,winner:setup[target].name.replace(/\\s+/g,' '),time:new Date().toLocaleString()},...h].slice(0,20))
   }
   frameRef.current=requestAnimationFrame(tick)
  }
@@ -168,7 +170,7 @@ export default function PendulumStudio(){
   if(frameRef.current!==null)cancelAnimationFrame(frameRef.current)
   if(countdownRef.current!==null)clearInterval(countdownRef.current)
   const choice=randomSide()
-  setWinner(null);setAngle(-setup.amplitude);winnerRef.current=choice
+  setWinner(null);winnerRef.current=choice
   if(!setup.countdown){animate(choice);return}
   setSeconds(3);setStagePhase('countdown')
   let remaining=3
@@ -185,7 +187,7 @@ export default function PendulumStudio(){
   if(frameRef.current!==null)cancelAnimationFrame(frameRef.current)
   if(countdownRef.current!==null)clearInterval(countdownRef.current)
   countdownRef.current=null;frameRef.current=null;winnerRef.current=null
-  setWinner(null);setAngle(-36);setStagePhase('idle')
+  setWinner(null);setRotation(0);setStagePhase('idle')
  }
  const startRecording=async()=>{
   if(capturing)return
@@ -198,7 +200,7 @@ export default function PendulumStudio(){
    recorder.ondataavailable=e=>{if(e.data.size>0)chunksRef.current.push(e.data)}
    recorder.onstop=()=>{
     const blob=new Blob(chunksRef.current,{type:recorder.mimeType||'video/webm'})
-    if(blob.size){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='vibependulum-'+Date.now()+'.webm';a.click();window.setTimeout(()=>URL.revokeObjectURL(url),3000)}
+    if(blob.size){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='vibesphere-'+Date.now()+'.webm';a.click();window.setTimeout(()=>URL.revokeObjectURL(url),3000)}
     stream.getTracks().forEach(t=>t.stop());setCapturing(false);streamRef.current=null;recorderRef.current=null
    }
    stream.getVideoTracks().forEach(t=>{t.onended=()=>{if(recorder.state!=='inactive')recorder.stop()}})
@@ -220,12 +222,12 @@ export default function PendulumStudio(){
    {item.logo && <div className={styles.logoRow}><img src={item.logo} alt="" width="40" height="40"/><button onClick={()=>editOutcome(side,{logo:''})}>Remove logo</button></div>}
   </div>
  }
- if(!loaded||!setup)return <main className={styles.page}>Loading VibePendulum…</main>
+ if(!loaded||!setup)return <main className={styles.page}>Loading VibeSphere…</main>
  const revealed=winner!==null&&phase==='reveal'
  return <main className={styles.page}>
   <div className={[styles.shell,showMode?styles.showShell:''].join(' ')}>
    {!showMode&&<header className={styles.header}>
-    <div><p className={styles.kicker}>VIBESCHOOL ORIGINALS / CREATOR LAB</p><h1>Vibe<span>Pendulum</span><b>3D</b></h1><p>Two outcomes. One breathtaking moment.</p></div>
+    <div><p className={styles.kicker}>VIBESCHOOL ORIGINALS / CREATOR LAB</p><h1>Vibe<span>Sphere</span><b>3D</b></h1><p>Two faces. One fixed pointer. A cinematic choice.</p></div>
     <div className={styles.headButtons}><span>UNLISTED STUDIO · SAVED IN YOUR BROWSER</span><button className={styles.primary} onClick={()=>setShowMode(true)}>Launch show ↗</button></div>
    </header>}
    <div className={styles.workspace}>
@@ -255,17 +257,15 @@ export default function PendulumStudio(){
        <label className={styles.check}><input type="checkbox" checked={setup.showLogos} onChange={e=>update({showLogos:e.target.checked})}/> Show uploaded logos</label>
       </>}
       {tab==='motion'&&<>
-       <h2>Realistic swing controls</h2>
-       <label>Swing duration · {setup.duration}s<input type="range" min="4" max="14" step="1" value={setup.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
-       <label>Starting swing · {setup.amplitude}°<input type="range" min="24" max="60" step="1" value={setup.amplitude} onChange={e=>update({amplitude:Number(e.target.value)})}/></label>
-       <label className={styles.check}><input type="checkbox" checked={setup.countdown} onChange={e=>update({countdown:e.target.checked})}/> Three-beat countdown before swing</label>
-       <label className={styles.check}><input type="checkbox" checked={setup.catcher??true} onChange={e=>update({catcher:e.target.checked})}/> Show mechanical catch brackets</label>
-       <label>Landing angle: {setup.landingAngle??56}°<input type="range" min="40" max="65" value={setup.landingAngle??56} onChange={e=>update({landingAngle:Number(e.target.value)})}/></label>
-       <p className={styles.help}>A free pendulum stops at the centre. This version uses visible left/right catch brackets to justify the off-centre finish. The outcome is randomly selected before the swing; the catch is a cinematic effect, not a physics prediction. A coin toss is more natural for pure two-sided chance.</p>
+       <h2>Spinning sphere controls</h2>
+       <label>Spin duration · {setup.duration}s<input type="range" min="4" max="14" step="1" value={setup.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
+       <label>Spin intensity · {setup.amplitude}<input type="range" min="24" max="60" step="1" value={setup.amplitude} onChange={e=>update({amplitude:Number(e.target.value)})}/></label>
+       <label className={styles.check}><input type="checkbox" checked={setup.countdown} onChange={e=>update({countdown:e.target.checked})}/> Three-beat countdown before spin</label>
+       <p className={styles.help}>The ball rotates on its vertical axis while a stationary pointer marks the visible face. A and B occupy opposite sides of the sphere. The face shown at the exact stop is always the announced result. The choice is random entertainment, not an actual match forecast.</p>
       </>}
       {tab==='effects'&&<>
        <h2>Sound & reveal effects</h2>
-       <label className={styles.check}><input type="checkbox" checked={setup.sound} onChange={e=>update({sound:e.target.checked})}/> Swing & reveal sounds</label>
+       <label className={styles.check}><input type="checkbox" checked={setup.sound} onChange={e=>update({sound:e.target.checked})}/> Rotation & reveal sounds</label>
        <label>Sound volume · {setup.volume}%<input type="range" min="0" max="100" value={setup.volume} onChange={e=>update({volume:Number(e.target.value)})}/></label>
        <label className={styles.check}><input type="checkbox" checked={setup.spotlight} onChange={e=>update({spotlight:e.target.checked})}/> Spotlight winner</label>
        <label className={styles.check}><input type="checkbox" checked={setup.confetti} onChange={e=>update({confetti:e.target.checked})}/> Celebration particles</label>
@@ -274,7 +274,7 @@ export default function PendulumStudio(){
       </>}
       {tab==='record'&&<>
        <h2>Recording & saving</h2>
-       <p className={styles.help}>Select Launch show for an uncluttered stage. Tap the stage to start and replay the pendulum. Record the browser tab using the button below, and enable tab audio if needed.</p>
+       <p className={styles.help}>Select Launch show for an uncluttered stage. Tap the stage to spin and replay the sphere. Record the browser tab using the button below, and enable tab audio if needed.</p>
        <div className={styles.buttonRow}><button onClick={startRecording} disabled={capturing}>Start screen recording</button><button onClick={stopRecording} disabled={!capturing}>Stop & download</button></div>
        <div className={styles.buttonRow}><button onClick={download}>Export setup JSON</button><label className={styles.fileButton}>Import setup<input type="file" accept=".json,application/json" onChange={e=>{void importFile(e.target.files?.[0]);e.target.value=''}}/></label></div>
        <h3>Recent spins</h3>
@@ -284,25 +284,34 @@ export default function PendulumStudio(){
     </aside>}
     <section className={styles.preview}>
      {!showMode&&<div className={styles.previewBar}><span><i/> LIVE STAGE · YOUR EDITS APPEAR IMMEDIATELY</span><span>{setup.aspect==='portrait'?'9:16':setup.aspect==='landscape'?'16:9':'1:1'} · {setup.camera.toUpperCase()} VIEW</span></div>}
-     <div ref={stageRef} className={[styles.stage,styles[setup.theme],styles[setup.aspect],styles[setup.camera],showMode?styles.interactive:''].join(' ')} role={showMode?'button':undefined} tabIndex={showMode?0:undefined} onClick={stageTap} onKeyDown={e=>{if(showMode&&(e.key==='Enter'||e.key===' ')){e.preventDefault();stageTap()}}} aria-label={showMode?'Tap to start or replay the pendulum':undefined}>
+     <div ref={stageRef} className={[styles.stage,styles[setup.theme],styles[setup.aspect],styles[setup.camera],showMode?styles.interactive:''].join(' ')} role={showMode?'button':undefined} tabIndex={showMode?0:undefined} onClick={stageTap} onKeyDown={e=>{if(showMode&&(e.key==='Enter'||e.key===' ')){e.preventDefault();stageTap()}}} aria-label={showMode?'Tap to spin or replay the sphere':undefined}>
       <div className={styles.stadiumLights} aria-hidden="true"><span/><span/><span/><span/><span/></div>
       <DirectorStageEffects settings={director} phase={revealed?'reveal':phase==='swinging'?'action':'idle'} prompt="PICK YOUR SIDE · COMMENT BELOW"/>
       <div className={styles.scene}>
-       {setup.showBrand&&<div className={styles.brand}><span className={styles.brandIcon}>V</span><strong>VibePendulum</strong><small>BY VIBESCHOOL</small><em>EP. {String(setup.episode).padStart(2,'0')}</em></div>}
-       <div className={styles.heading}><div className={styles.headingPill}>THE TWO-CHOICE CHALLENGE</div><h2>{setup.title}</h2><p>WHO WILL THE PENDULUM PICK?</p></div>
-       <div className={styles.frame} style={focalStyle(director,revealed?'reveal':phase==='swinging'?'action':'idle')}>
-        <div className={styles.frameTop}/><div className={styles.framePostLeft}/><div className={styles.framePostRight}/>
-        <div className={styles.pivot}>
-         <div className={styles.pivotCap}/>
-         <div className={styles.arm} style={{transform:'rotate('+angle+'deg)'}}>
-          <div className={styles.cable}/><div className={styles.bob}><div className={styles.bobShine}/></div>
-         </div>
+       {setup.showBrand&&<div className={styles.brand}><span className={styles.brandIcon}>V</span><strong>VibeSphere</strong><small>BY VIBESCHOOL</small><em>EP. {String(setup.episode).padStart(2,'0')}</em></div>}
+       <div className={styles.heading}><div className={styles.headingPill}>THE TWO-CHOICE CHALLENGE</div><h2>{setup.title}</h2><p>WHICH FACE WILL THE POINTER PICK?</p></div>
+       <div className={styles.sphereArena} style={focalStyle(director,revealed?'reveal':phase==='swinging'?'action':'idle')}>
+        <div className={styles.pointerAssembly} aria-hidden="true">
+         <div className={styles.pointerMount}/><div className={styles.pointerNeedle}/><span>FIXED POINTER</span>
         </div>
-        {setup.catcher!==false&&<>
-         <div className={[styles.catchBracket,styles.catchLeft,phase==='reveal'&&winner==='left'?styles.catchActive:''].join(' ')}><span>A</span><small>LEFT CATCH</small></div>
-         <div className={[styles.catchBracket,styles.catchRight,phase==='reveal'&&winner==='right'?styles.catchActive:''].join(' ')}><span>B</span><small>RIGHT CATCH</small></div>
-        </>}
-        <div className={styles.floorMark}><span/><span/><span/></div>
+        <div className={styles.sphereShadow} aria-hidden="true"/>
+        <div className={styles.orbPerspective}>
+         <div className={styles.orbRotor} style={{transform:'rotateY('+rotation+'deg)'}}>
+          {(['left','right'] as const).map(side=>{
+           const face=setup[side]
+           return <div key={side} className={[styles.orbFace,side==='left'?styles.orbFront:styles.orbBack].join(' ')} style={{'--face-accent':face.color} as React.CSSProperties}>
+            <div className={styles.orbSurface}>
+             <span className={styles.orbId}>{side==='left'?'A':'B'}</span>
+             {setup.showLogos&&face.logo&&<img className={styles.orbLogo} src={face.logo} alt=""/>}
+             {setup.showNames&&<strong className={styles.orbName}>{face.name}</strong>}
+             <small>{face.detail}</small>
+            </div>
+           </div>
+          })}
+         </div>
+         <div className={styles.orbGlass} aria-hidden="true"/>
+        </div>
+        <div className={styles.arenaBase} aria-hidden="true"><span>VIBESPHERE · RANDOM SELECTOR</span></div>
        </div>
        <div className={styles.outcomes}>
         {(['left','right'] as const).map(side=>{
@@ -316,8 +325,8 @@ export default function PendulumStudio(){
          </div>
         })}
        </div>
-       <div className={styles.sceneBottom}><span>LIGHTS. MOTION. SUSPENSE.</span><span>ENTERTAINMENT · RANDOM SELECTION</span></div>
-       {phase==='countdown'&&<div className={styles.countdown}><small>READY TO SWING?</small><b>{seconds}</b></div>}
+       <div className={styles.sceneBottom}><span>SPIN. SLOW. SELECT.</span><span>ENTERTAINMENT · RANDOM SELECTION</span></div>
+       {phase==='countdown'&&<div className={styles.countdown}><small>READY TO SPIN?</small><b>{seconds}</b></div>}
        {revealed&&winner&&<div className={styles.reveal}>
         <small>{setup.resultText}</small><strong>{setup[winner].name}</strong><p>Random entertainment result · Not a match prediction</p>
        </div>}
@@ -325,9 +334,9 @@ export default function PendulumStudio(){
       </div>
      </div>
      <div className={styles.stageControls}>
-      <div className={styles.status}><b>{phase==='idle'?'READY':phase==='countdown'?'COUNTDOWN':phase==='swinging'?'IN MOTION':'REVEALED'}</b><span>{capturing?'● RECORDING':'CINEMATIC RANDOM SELECTOR'}</span></div>
+      <div className={styles.status}><b>{phase==='idle'?'READY':phase==='countdown'?'COUNTDOWN':phase==='swinging'?'IN MOTION':'REVEALED'}</b><span>{capturing?'● RECORDING':'POINTER-BASED RANDOM SELECTOR'}</span></div>
       <div className={styles.actionButtons}>
-       <button className={styles.primary} onClick={start} disabled={phase==='swinging'||phase==='countdown'}>{revealed?'Swing again ↻':'Release pendulum ↗'}</button>
+       <button className={styles.primary} onClick={start} disabled={phase==='swinging'||phase==='countdown'}>{revealed?'Spin again ↻':'Spin sphere ↗'}</button>
        <button onClick={reset}>Reset</button>
        <button onClick={()=>setShowMode(v=>!v)}>{showMode?'Exit show':'Show mode'}</button>
        <button onClick={capturing?stopRecording:startRecording}>{capturing?'Stop & save video':'● Record'}</button>
@@ -336,7 +345,7 @@ export default function PendulumStudio(){
      {notice&&<div className={styles.notice} role="status">{notice}<button onClick={()=>setNotice('')} aria-label="Dismiss notice">×</button></div>}
     </section>
    </div>
-   {!showMode&&<footer className={styles.footer}>VIBEPENDULUM · A VIBESCHOOL ORIGINAL <span>For entertainment. A random pendulum result is not a sports forecast, poll or endorsement.</span></footer>}
+   {!showMode&&<footer className={styles.footer}>VIBESPHERE · A VIBESCHOOL ORIGINAL <span>For entertainment. A random sphere result is not a sports forecast, poll or endorsement.</span></footer>}
   </div>
  </main>
 }
