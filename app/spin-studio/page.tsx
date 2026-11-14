@@ -289,10 +289,15 @@ export default function SpinStudio() {
     if(showPhase!=='reveal'||!(electionMode || wheel?.automatic)||!batchMode||remaining===0)return
     const timer=window.setTimeout(()=>{
       setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false)
-      nextRef.current()
+      if(!electionMode)window.setTimeout(()=>nextRef.current(),60)
     },Math.max(1,wheel.revealHold??3)*1000)
     return ()=>clearTimeout(timer)
-  },[showPhase,wheel,batchMode,electionMode,remaining]
+  },[showPhase,wheel,batchMode,electionMode,remaining])
+  useEffect(()=>{
+    if(!electionMode || showPhase!=='idle' || spinning || spinCount===0 || remaining===0)return
+    const timer=window.setTimeout(()=>spinRef.current(),80)
+    return ()=>window.clearTimeout(timer)
+  },[electionMode,showPhase,spinning,spinCount,remaining])
   useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);if(sceneRef.current!==null)window.clearTimeout(sceneRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop());const audio=musicRef.current;if(audio){audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}});void audio.ctx.close().catch(()=>{})}},[])
   useEffect(()=>{
     const media=window.matchMedia('(prefers-reduced-motion: reduce)')
