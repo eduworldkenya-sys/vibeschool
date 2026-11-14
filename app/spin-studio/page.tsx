@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
-type Entry = { id: string; label: string; question: string; answer: string; image?: string; symbol?: string }
+type Entry = { id: string; label: string; question: string; answer: string; image?: string; symbol?: string; displayName?: string }
 type ShowFormat = 'challenge' | 'lucky' | 'trending' | 'learn' | 'political'
 type SegmentStyle = 'text' | 'photo' | 'both'
 type ProductionStatus = 'idea' | 'recorded' | 'edited' | 'scheduled' | 'published' | 'reviewed'
@@ -12,7 +12,15 @@ const PRODUCTION_STORAGE='vibeschool.vibespin.production.v1'
 const formatNames:Record<ShowFormat,string>={challenge:'VibeSpin Challenge',lucky:'VibeSpin Lucky Draw',trending:'VibeSpin Trending',learn:'VibeSpin Learn',political:'VibeSpin Political'}
 const socialPlatforms=['YouTube Shorts','TikTok','Facebook Reels','Instagram Reels','WhatsApp Status','Other']
 const initialProduction=():ProductionItem=>({id:uid(),wheelId:'',title:'',platform:'YouTube Shorts',status:'idea',plannedDate:'',url:'',views:0,likes:0,shares:0,comments:0,followers:0,notes:''})
-type Wheel = { showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type PopupSettings = {
+ enabled:boolean; position:'top'|'center'|'bottom'; size:number; opacity:number;
+ style:'glass'|'solid'|'outline'; animation:'pop'|'slide'|'fade'|'none';
+ showTitle:boolean; showName:boolean; showPhoto:boolean; showQuestion:boolean; showCountdown:boolean; showAnswer:boolean; showFact:boolean;
+ title:string; revealTitle:string; questionDelay:number; revealDelay:number;
+ tapAction:'reveal'|'next'|'off'; vibrate:boolean; playSound:boolean; dimBackdrop:boolean;
+}
+const DEFAULT_POPUP:PopupSettings={enabled:true,position:'bottom',size:88,opacity:96,style:'glass',animation:'pop',showTitle:true,showName:true,showPhoto:true,showQuestion:true,showCountdown:true,showAnswer:true,showFact:true,title:'THE WHEEL HAS CHOSEN',revealTitle:'THE RESULT',questionDelay:750,revealDelay:0,tapAction:'reveal',vibrate:false,playSound:true,dimBackdrop:false}
+type Wheel = { popup?:Partial<PopupSettings>; showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
@@ -110,7 +118,8 @@ export default function SpinStudio() {
   const [productionLoaded,setProductionLoaded]=useState(false)
   const [captionCopied,setCaptionCopied]=useState(false)
   const [safeZone,setSafeZone]=useState(true)
-  const [setupTab,setSetupTab]=useState<'wheels'|'content'|'appearance'|'effects'|'settings'|'production'>('wheels')
+  const [popupDemo,setPopupDemo]=useState<'off'|'question'|'countdown'|'reveal'>('off')
+  const [setupTab,setSetupTab]=useState<'wheels'|'content'|'appearance'|'effects'|'popup'|'settings'|'production'>('wheels')
   const [showPhase,setShowPhase]=useState<'idle'|'intro'|'spinning'|'question'|'countdown'|'reveal'|'outro'>('idle')
   const [showOverlay,setShowOverlay]=useState(false)
   const [capturing,setCapturing]=useState(false)
@@ -147,6 +156,7 @@ export default function SpinStudio() {
   const revealActionRef=useRef<()=>void>(()=>{})
   const nextRef=useRef<()=>void>(()=>{})
   const wheel=wheels.find(w=>w.id===selectedId) || wheels[0]
+  const popup:PopupSettings={...DEFAULT_POPUP,...wheel?.popup}
   const stopMusic=()=>{
     const audio=musicRef.current
     if(!audio)return
@@ -230,8 +240,12 @@ export default function SpinStudio() {
   },[seconds,spinning,showPhase,wheel])
   useEffect(()=>{
     if(showPhase!=='countdown'||seconds!==0||!wheel?.automatic)return
-    setReveal(true);setShowPhase('reveal')
-    soundEffect('win',wheel.sound,wheel.volumes?.reveal??75)
+    const delay=Math.max(0,Math.min(5000,wheel.popup?.revealDelay??0))
+    const timer=window.setTimeout(()=>{
+      setReveal(true);setShowPhase('reveal')
+      soundEffect('win',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.reveal??75)
+    },delay)
+    return ()=>window.clearTimeout(timer)
   },[seconds,showPhase,wheel])
   useEffect(()=>{
     if(showPhase!=='reveal'||!wheel?.automatic||!batchMode)return
@@ -278,6 +292,8 @@ export default function SpinStudio() {
     setWheels(all=>all.map(w=>w.id===selectedId?next:w))
     setUndoCount(pastRef.current.length);setRedoCount(futureRef.current.length)
   }
+  const editPopup=(patch:Partial<PopupSettings>)=>update({popup:{...popup,...patch}})
+  const resetPopup=()=>update({popup:{...DEFAULT_POPUP}})
   const editEntry=(id:string,patch:Partial<Entry>)=>update({entries:entries.map(e=>e.id===id?{...e,...patch}:e)})
   const resetRun=()=>{
     if(spinning)return
@@ -300,15 +316,16 @@ export default function SpinStudio() {
     spinTimer.current=window.setTimeout(()=>{
       setSpinning(false);setResult(chosen.index);setUsed(old=>[...old,chosen.entry.id])
       setSpinCount(n=>n+1);pendingSpin.current=false
-      setShowOverlay(true);setShowPhase('question')
+      setShowOverlay(wheel.popup?.enabled??true);setShowPhase('question')
       setEpisodeLog(old=>[...old,chosen.entry.label].slice(-150))
-      soundEffect('tick',wheel.sound,wheel.volumes?.spin??55)
+      soundEffect('tick',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.spin??55)
+      if(wheel.popup?.vibrate && navigator.vibrate)navigator.vibrate(40)
       countdownRef.current=window.setTimeout(()=>{
         if(wheel.countdown===0){
           setShowPhase(wheel.automatic?'reveal':'countdown');setSeconds(0)
           if(wheel.automatic){setReveal(true);soundEffect('win',wheel.sound,wheel.volumes?.reveal??75)}
         }else{setShowPhase('countdown');setSeconds(wheel.countdown)}
-      },750)
+      },Math.max(0,Math.min(5000,wheel.popup?.questionDelay??750)))
     },wheel.duration*1000)
   }
   const doVerdict=(v:'correct'|'wrong')=>{
@@ -319,14 +336,18 @@ export default function SpinStudio() {
   const revealNow=()=>{
     if(result===null || spinning)return
     setReveal(true);setShowPhase('reveal');setSeconds(null)
-    soundEffect('win',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)
+    soundEffect('win',Boolean(wheel?.sound)&&popup.playSound,wheel?.volumes?.reveal??75)
   }
   const nextChallenge=()=>{if(spinning)return;if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
   const advanceStage=()=>{
     if(!recording || spinning)return
     if(showPhase==='intro'||showPhase==='outro'){if(sceneRef.current!==null)clearTimeout(sceneRef.current);setShowPhase('idle');return}
-    if(showPhase==='question'||showPhase==='countdown'){revealNow();return}
-    if(showPhase==='reveal'){nextChallenge();if(available.length>0 && remaining!==0)spinRef.current();return}
+    if(showPhase==='question'||showPhase==='countdown'){
+      if(popup.tapAction==='off')return
+      if(popup.tapAction==='next'){nextChallenge();return}
+      revealNow();return
+    }
+    if(showPhase==='reveal'){if(popup.tapAction==='off')return;nextChallenge();if(available.length>0 && remaining!==0)spinRef.current();return}
     if(showPhase==='idle')spin()
   }
   spinRef.current=spin
@@ -507,7 +528,7 @@ export default function SpinStudio() {
         {!recording && <aside className={styles.controls}>
           <div className={styles.historyControls}><button disabled={!undoCount} onClick={undoEdit}>↶ Undo</button><button disabled={!redoCount} onClick={redoEdit}>↷ Redo</button><span>Changes saved locally</span></div>
           <nav className={styles.setupTabs} aria-label="Spin Studio setup">
-            {(['wheels','content','appearance','effects','settings','production'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':tab==='production'?'Production':'Settings'}</button>)}
+            {(['wheels','content','appearance','effects','popup','settings','production'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':tab==='popup'?'Popup':tab==='production'?'Production':'Settings'}</button>)}
           </nav>
           {setupTab==='wheels' && <div className={styles.panel}>
             <div className={styles.panelTitle}><h2>My wheels</h2><button onClick={addWheel} className={styles.smallButton}>+ New</button></div>
@@ -541,6 +562,10 @@ export default function SpinStudio() {
             <div className={styles.entries}>{entries.map((entry,i)=><div className={styles.entry} key={entry.id}>
               <div className={styles.entryHead}><span>SEGMENT {i+1}</span><button aria-label={'Remove '+entry.label} onClick={()=>update({entries:entries.filter(e=>e.id!==entry.id)})}>Remove</button></div>
               <input aria-label={'Label '+(i+1)} placeholder={showFormat==='political'?'Edit name':'Segment label'} maxLength={70} value={entry.label} onChange={e=>editEntry(entry.id,{label:e.target.value})}/>
+              <label>Wheel display name / spacing (optional)
+                <textarea rows={2} maxLength={90} placeholder={'BONIFACE\nMWANGI'} value={entry.displayName??''} onChange={e=>editEntry(entry.id,{displayName:e.target.value})}/>
+              </label>
+              <div className={styles.row}><button type="button" onClick={()=>editEntry(entry.id,{displayName:entry.label.trim().replace(/\s+(?=[^\s]+$)/,'\n')})}>Split first / last</button><button type="button" onClick={()=>editEntry(entry.id,{displayName:''})}>Single line</button></div>
               <input aria-label={'Question '+(i+1)} placeholder="Question (optional)" maxLength={250} value={entry.question} onChange={e=>editEntry(entry.id,{question:e.target.value})}/>
               <input aria-label={'Answer '+(i+1)} placeholder="Answer (optional)" maxLength={250} value={entry.answer} onChange={e=>editEntry(entry.id,{answer:e.target.value})}/>
               <label>Segment icon / emoji (optional)<input maxLength={12} placeholder="⭐ or 🎓" value={entry.symbol??''} onChange={e=>editEntry(entry.id,{symbol:e.target.value})}/></label>
