@@ -202,7 +202,11 @@ begin
   if char_length(trim(coalesce(p_title,''))) not between 1 and 120
     or char_length(coalesce(p_instructions,''))>2000 then raise exception 'Invalid task'; end if;
   if (select count(*) from public.vibetutor_private_tasks
-    where tutor_id=auth.uid() and created_at>now()-interval '1 hour') >= 40 then
+    where tutor_id=auth.uid() and created_at>now()-interval '1 hour')
+    + (select count(*) from public.vibetutor_private_group_members m
+      join public.vibetutor_student_invitations i on i.id=m.invitation_id
+        and i.tutor_id=auth.uid() and i.status='accepted'
+      where m.group_id=p_group) > 40 then
     raise exception 'Task creation limit reached';
   end if;
   with recipients as (
