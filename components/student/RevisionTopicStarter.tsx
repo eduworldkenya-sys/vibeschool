@@ -122,6 +122,6 @@ export default function RevisionTopicStarter({className}:{className:string}) {
         <p style={{...muted,fontSize:12,margin:0}}>Self-check only. This does not grade an exam or change verified mastery.</p>
       </>}
     </>}
-    {error&&<div role="alert" style={{background:'var(--vs-accent-soft)',borderRadius:12,padding:11,color:'var(--vs-text)',fontSize:13}}>{error}{active&& !nextDate && index===cards.length-1 && revealed&&<button type="button" style={{...secondary,marginLeft:8}} disabled={busy} onClick={()=>void mark(true)}>Retry save</button>}</div>}
+    {error&&<div role="alert" style={{background:'var(--vs-accent-soft)',borderRadius:12,padding:11,color:'var(--vs-text)',fontSize:13}}>{error}</div>}
   </section>
 }
