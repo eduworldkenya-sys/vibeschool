@@ -144,6 +144,7 @@ export default function SpinStudio() {
   const [verdict,setVerdict]=useState<'correct'|'wrong'|null>(null)
   const [used,setUsed]=useState<string[]>([])
   const [spinCount,setSpinCount]=useState(0)
+  const [electionVotes,setElectionVotes]=useState<string[]>([])
   const [seconds,setSeconds]=useState<number|null>(null)
   const [paste,setPaste]=useState('')
   const [showBulk,setShowBulk]=useState(false)
@@ -199,7 +200,7 @@ export default function SpinStudio() {
   const entries=wheel?.entries || []
   const electionMode=wheel?.showFormat==='political' && (wheel.electionMode??false)
   const electionTotal=entries.length*2
-  const electionScores=entries.map(entry=>({id:entry.id,name:entry.label,score:episodeLog.filter(name=>name===entry.label).length}))
+  const electionScores=entries.map(entry=>({id:entry.id,name:entry.label,score:electionVotes.filter(id=>id===entry.id).length}))
   const electionTop=Math.max(0,...electionScores.map(candidate=>candidate.score))
   const electionWinners=electionScores.filter(candidate=>candidate.score===electionTop)
   const electionFinished=electionMode && spinCount>=electionTotal && electionTotal>=4
@@ -268,7 +269,7 @@ export default function SpinStudio() {
     if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
     if(sceneRef.current!==null)window.clearTimeout(sceneRef.current)
     pendingSpin.current=false
-    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
+    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setElectionVotes([]);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
   },[selectedId])
   useEffect(()=>{
     if(seconds===null || seconds<=0 || spinning || showPhase!=='countdown')return
@@ -335,7 +336,7 @@ export default function SpinStudio() {
   const resetRun=()=>{
     if(spinning)return
     if(countdownRef.current!==null)clearTimeout(countdownRef.current)
-    setUsed([]);setSpinCount(0);setEpisodeLog([]);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
+    setUsed([]);setSpinCount(0);setElectionVotes([]);setEpisodeLog([]);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
   }
   const spin=()=>{
     if(locked || !wheel || pendingSpin.current)return
@@ -353,7 +354,7 @@ export default function SpinStudio() {
     soundEffect('tick',wheel.sound,wheel.volumes?.spin??55)
     spinTimer.current=window.setTimeout(()=>{
       setSpinning(false);setResult(chosen.index);setUsed(old=>[...old,chosen.entry.id])
-      setSpinCount(n=>n+1);pendingSpin.current=false
+      setSpinCount(n=>n+1);if(electionMode)setElectionVotes(old=>[...old,chosen.entry.id]);pendingSpin.current=false
       setShowOverlay(wheel.popup?.enabled??true);setShowPhase('question')
       setEpisodeLog(old=>[...old,chosen.entry.label].slice(-150))
       soundEffect('tick',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.spin??55)
