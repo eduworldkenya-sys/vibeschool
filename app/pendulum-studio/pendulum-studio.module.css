@@ -131,3 +131,14 @@
 @media(max-width:760px){.workspace{display:flex;flex-direction:column}.sidebar{width:100%;position:static;max-height:none}.controls{max-height:none}.preview{width:100%}.stage{width:min(100%,580px)}.stageControls{gap:9px}.header{align-items:flex-start}.footer{display:grid}.footer span{text-align:left}.stage.angled .frame{transform:rotateX(4deg)}}
 @media(max-width:440px){.page{padding:10px}.stage{border-radius:11px}.heading{margin-top:5%}.heading h2{font-size:17px}.headingPill{font-size:7px}.frame{margin:1% auto}.framePostLeft,.framePostRight{width:6px}.frameTop{height:7px}.cable{height:28vh}.bob{top:28vh;width:39px;height:39px;left:-20px}.outcome{min-height:90px;padding:7px 4px}.outcomeName{font-size:12px}.outcomes{gap:7px}.brand small{font-size:7px}.sceneBottom{font-size:6px}.actionButtons button{flex:1;min-width:110px}.tabs button{font-size:9px}.previewBar{font-size:8px}}
 @media(prefers-reduced-motion:reduce){.reveal,.outcomeWinner,.particles i{animation:none}}
+
+
+/* Mechanical left/right landing catches: an explicit arresting mechanism rather than a free pendulum stopping off-centre. */
+.catchBracket{position:absolute;z-index:3;top:64%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:56px;padding:8px 5px;color:#d9e8fc;background:linear-gradient(140deg,#6c839a,#263c53 48%,#111e32);border:2px solid #aabed1;border-radius:9px 9px 18px 18px;box-shadow:0 8px 22px #000a,inset 1px 1px #ffffff6b}
+.catchBracket:before,.catchBracket:after{content:"";position:absolute;top:-16px;width:8px;height:23px;border:2px solid #b9d3e6;background:linear-gradient(#a4bacd,#40576e);border-radius:5px 5px 0 0}
+.catchBracket:before{left:4px}.catchBracket:after{right:4px}
+.catchLeft{left:17%}.catchRight{right:17%}
+.catchBracket span{font-size:17px;font-weight:1000;color:var(--accent)}
+.catchBracket small{font-size:7px;font-weight:850;letter-spacing:.04em}
+.catchActive{background:linear-gradient(140deg,#5dcfb6,#15596a);border-color:#dffdf6;box-shadow:0 0 30px var(--accent),0 8px 20px #000b}
+@media(max-width:440px){.catchBracket{top:62%;min-width:40px;padding:5px 2px}.catchLeft{left:15%}.catchRight{right:15%}.catchBracket small{font-size:6px}}
