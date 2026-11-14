@@ -134,6 +134,13 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibetutor_schedule_lesson: { Args: { p_invitation: string; p_title: string; p_start: string; p_end: string }; Returns: string }
       vibetutor_cancel_lesson: { Args: { p_lesson: string }; Returns: undefined }
       vibetutor_send_lesson_message: { Args: { p_invitation: string; p_body: string }; Returns: string }
+      vibetutor_assign_private_task: { Args: { p_invitation: string; p_title: string; p_instructions?: string }; Returns: string }
+      vibetutor_my_private_tasks: { Args: { p_invitation?: string | null }; Returns: { id: string; invitation_id: string; title: string; instructions: string; status: string; learner_note: string; tutor_feedback: string; created_at: string; completed_at: string | null; reviewed_at: string | null; is_tutor: boolean }[] }
+      vibetutor_complete_private_task: { Args: { p_task: string; p_note?: string }; Returns: undefined }
+      vibetutor_review_private_task: { Args: { p_task: string; p_feedback: string }; Returns: undefined }
+      vibetutor_create_private_group: { Args: { p_title: string }; Returns: string }
+      vibetutor_add_private_group_member: { Args: { p_group: string; p_invitation: string }; Returns: undefined }
+      vibetutor_my_private_groups: { Args: Record<never, never>; Returns: { id: string; title: string; members: { invitation_id: string; student: string }[] }[] }
       vibetutor_respond_student_invite: { Args: { p_id: string; p_accept: boolean }; Returns: "accepted" | "pending_guardian" | "declined" }
       preview_timetable_conflicts: { Args: { p_school_id: string; p_teacher_id: string; p_class_id: string; p_subject_id: string; p_day_of_week: number; p_start_time: string; p_end_time: string; p_room?: string | null; p_effective_from?: string | null; p_effective_until?: string | null; p_exclude_slot_id?: string | null }; Returns: { conflict_type: string; conflicting_slot_id: string; conflicting_teacher_id: string | null; conflicting_class_id: string; conflicting_subject_id: string; conflicting_room: string | null; detail: string }[] }
       get_published_class_timetable: { Args: { p_class_id: string; p_on?: string | null }; Returns: LiveTimetableSlots['Row'][] }
