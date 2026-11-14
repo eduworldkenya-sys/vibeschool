@@ -40,3 +40,17 @@ test('creator production workflow offers editing, templates, recording, export, 
   assert.match(page,/url\.searchParams\.set\('b'/)
   assert.match(page,/current\.batch/)
 })
+
+test('a toss alternates visible faces and performs a finite landing', () => {
+  assert.match(page,/const desiredFace = choice === 'heads' \? 0 : 180/)
+  assert.match(page,/const alignment = \(desiredFace/)
+  assert.match(page,/targetAngle = rotation \+ turns \* 360 \+ alignment/)
+  assert.doesNotMatch(page,/setRotation\(0\); setFlipKey/)
+  assert.doesNotMatch(css,/\.coin\{[^}]*filter:drop-shadow/)
+  assert.match(css,/\.coin\{[^}]*transform-style:preserve-3d/)
+  assert.match(css,/\.tossTrajectory\.tossing\{animation:coinFlight var\(--flight-duration,4s\)[^}]* 1 both\}/)
+  assert.match(css,/@keyframes coinFlight\{[^}]*86%\{transform:translateY\(0\)/)
+  assert.match(css,/93%\{transform:translateY\(-5%\)/)
+  assert.match(css,/100%\{transform:translateY\(0\)/)
+  assert.match(page,/current\.duration \* 1000 \+ 350/)
+})
