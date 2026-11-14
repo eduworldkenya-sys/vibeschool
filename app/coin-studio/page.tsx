@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { DirectorControls, DirectorStageEffects, focalStyle, useShowDirector } from '../../components/games/ShowDirector'
 import styles from './coin-studio.module.css'
 
@@ -160,14 +160,14 @@ export default function CoinStudio() {
     if (current.sound) ping('win',current.volume)
     pendingRef.current = null
   }
-  const onCoinPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onCoinPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (phase==='flipping' || phase==='countdown' || phase==='ready') return
     e.currentTarget.setPointerCapture(e.pointerId)
     dragRef.current = {pointerId:e.pointerId,start:current?.tossAxis==='horizontal'?e.clientX:e.clientY,angle:rotation,moved:false}
     suppressClickRef.current=false
     setDragging(true)
   }
-  const onCoinPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onCoinPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag=dragRef.current
     if (!drag || drag.pointerId!==e.pointerId) return
     const position=current?.tossAxis==='horizontal'?e.clientX:e.clientY
@@ -179,7 +179,7 @@ export default function CoinStudio() {
       setRotation(drag.angle+delta*1.55)
     }
   }
-  const onCoinPointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onCoinPointerEnd = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag=dragRef.current
     if (!drag || drag.pointerId!==e.pointerId) return
     suppressClickRef.current=drag.moved
