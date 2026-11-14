@@ -51,14 +51,40 @@ export default function StudentHomePage() {
     setLoading(true); setError('')
     try {
       const [brief, twin] = await Promise.all([getStudentHomeOsBrief(), getLearnerTwinState()])
+      // Tasks and learning guidance are primary: optional school integrations must
+      // never turn a successfully loaded Home into an error screen.
+      setData({ brief, twin, todaySlots: [], attendancePct: null })
       const day = nairobiDayOfWeek()
-      const slots = identity.classId && identity.schoolId ? await loadActiveClassTimetable({ classId: identity.classId, schoolId: identity.schoolId, activeOn: nairobiDateStr() }).then(all => timetableSlotsForDay(all, day)) : []
-      const subjectIds = Array.from(new Set(slots.map(slot => slot.subject_id).filter((id): id is string => Boolean(id))))
-      let subjectNames: Record<string, string> = {}
-      if (subjectIds.length > 0) { const { data: rows } = await supabase.from('subjects').select('id,name').in('id', subjectIds); subjectNames = Object.fromEntries((rows ?? []).map(row => [row.id, row.name])) }
-      const todaySlots = slots.map(slot => ({ id: slot.id, subject: slot.subject_id ? subjectNames[slot.subject_id] ?? 'Lesson' : 'Lesson', start: slot.start_time.slice(0, 5), end: slot.end_time.slice(0, 5), room: slot.room ?? '' }))
-      const { data: attendance } = await supabase.from('attendance').select('status').eq('student_id', identity.studentId)
-      const marked = attendance ?? []; const present = marked.filter(row => row.status === 'present').length; const attendancePct = marked.length > 0 ? Math.round((present / marked.length) * 100) : null
+      let todaySlots: TodaySlot[] = []
+      let attendancePct: number | null = null
+      if (identity.classId && identity.schoolId) {
+        try {
+          const slots = timetableSlotsForDay(await loadActiveClassTimetable({
+            classId: identity.classId, schoolId: identity.schoolId, activeOn: nairobiDateStr(),
+          }), day)
+          const subjectIds = Array.from(new Set(slots.map(slot => slot.subject_id).filter((id): id is string => Boolean(id))))
+          let subjectNames: Record<string, string> = {}
+          if (subjectIds.length > 0) {
+            const { data: rows, error: subjectError } = await supabase.from('subjects').select('id,name').in('id', subjectIds)
+            if (!subjectError) subjectNames = Object.fromEntries((rows ?? []).map(row => [row.id, row.name]))
+          }
+          todaySlots = slots.map(slot => ({
+            id: slot.id, subject: slot.subject_id ? subjectNames[slot.subject_id] ?? 'Lesson' : 'Lesson',
+            start: slot.start_time.slice(0, 5), end: slot.end_time.slice(0, 5), room: slot.room ?? '',
+          }))
+        } catch (cause) {
+          console.warn('Student Home: timetable unavailable; tasks remain accessible', cause)
+        }
+        try {
+          const { data: attendance, error: attendanceError } = await supabase.from('attendance').select('status').eq('student_id', identity.studentId)
+          if (!attendanceError) {
+            const marked = attendance ?? []
+            attendancePct = marked.length ? Math.round(marked.filter(row => row.status === 'present').length / marked.length * 100) : null
+          }
+        } catch (cause) {
+          console.warn('Student Home: attendance unavailable; tasks remain accessible', cause)
+        }
+      }
       setData({ brief, twin, todaySlots, attendancePct })
       setTargetGrade(brief.progress.targets.kcseTargetGrade ?? ''); setWeeklyMinutes(brief.progress.targets.weeklyStudyMinutes); setSessionMinutes(brief.progress.targets.preferredSessionMinutes); setStudyTime(brief.progress.targets.preferredStudyTime)
       void markStudentHomeOpened().catch(() => undefined)
