@@ -1,0 +1,13 @@
+# Grade 4 Mathematics — 16-lesson progression handoff (editorial)
+
+**Scope:** Numbers 1.2 Addition (8 suggested lessons) and Numbers 1.3 Subtraction (8 suggested lessons), KICD revised 2024 regular Grade 4 Mathematics source.
+
+**Authority:** https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf, printed pp. 4–7. The official source text was read and matched at outcomes a–e for each sub-strand. Attempts to retrieve source-page images from the web screenshot service failed with a cache miss. Authentic source bytes/checksum remain unregistered in the protected curriculum-authority pipeline.
+
+**Actual deliverables:** 16 individually authored lesson-sequence candidates in `content/curriculum/production/grade4-mathematics-addition-subtraction-16-lesson-sequence.v1.editorial.json`; each includes a clear outcome scope, objective, distinct worked model with explanation, two guided tasks, a checked exit question, misconception repair, teacher prompt and low-cost/accessibility requirements. A dedicated GitHub Action invokes a deterministic 32-item math/sequence test and checks unique IDs and draft-only authority. These are lesson **editorial candidates**, not teacher Scheme entries, certified lesson plans, publication records, official KICD lesson scripts, or achieved learner outcomes.
+
+**Reuse and dependencies:** Existing Grade 4 Addition source drafts PR #1698 (1.2a) and #1693 (1.2b–e), Subtraction PR #1694 (1.3a–e). Do not copy their whole packages into the new sequence or create a duplicate content library. Preserve existing `lib/teaching/grade4MathematicsCatalog.mjs`, scheme ownership, and current versioned learning-resource and assessment models. A single valid official-source artifact should be referenced by all packages after protected registration; do not invent 10 independent authorities.
+
+**Publication gate:** The production database lacked a Grade 4 Mathematics `curriculum_authority_sources` source and promoted outcome snapshot when last inspected. Existing owner-authenticated registration, hierarchy binding, protected promotion, independent content QA, resource candidate→certified version and learner E2E read-back remain required. The editorial file explicitly keeps `canonicalOutcomeId:null` and `releaseState:editorial_candidate_not_certified_or_published`. No bypass, data migration, live publishing, or automatic learner exposure is performed.
+
+**Next:** Run PR exact-head CI, resolve any authoring failures, independently review math/explanations and grade appropriateness, source-register the one authoritative artifact using properly authenticated existing tooling, then assemble canonical outcome-linked resources and verify learner delivery.
