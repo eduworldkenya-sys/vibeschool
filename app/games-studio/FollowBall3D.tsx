@@ -1,5 +1,5 @@
 "use client"
-import {useCallback,useEffect,useRef,useState} from "react"
+import {useEffect,useRef,useState} from "react"
 import styles from "./follow-ball-3d.module.css"
 
 type Phase="ready"|"preview"|"shuffle"|"guess"|"reveal"
@@ -39,9 +39,7 @@ export default function FollowBall3D({onFinish,reducedMotion,disco,lasers,theme}
  const audio=useRef<AudioContext|null>(null)
  const audioEnabled=useRef(false)
  const finishRef=useRef(onFinish)
- const latest=useRef({count,swaps,speed,difficulty,reducedMotion,auto})
  finishRef.current=onFinish
- latest.current={count,swaps,speed,difficulty,reducedMotion,auto}
  function clearTimers(){timeouts.current.forEach(clearTimeout);timeouts.current=[]}
  function later(callback:()=>void,ms:number){const id=setTimeout(callback,ms);timeouts.current.push(id)}
  useEffect(()=>()=>{clearTimers();session.current++;if(audio.current)void audio.current.close()},[])
