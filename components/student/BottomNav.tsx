@@ -43,7 +43,7 @@ export default function BottomNav() {
   const current = activeSection(pathname);
   const navigate = (href: string) => { setMoreOpen(false); router.push(href); };
   return <>
-    <nav className={styles.nav} aria-label="Learner primary navigation">
+    <nav className={styles.nav} aria-label="Student primary navigation">
       <div className={styles.heading}>MY LEARNING</div>
       {PRIMARY.map(({label,href,Icon}) => <button key={href} type="button" className={styles.tab + (current===label ? " "+styles.tabActive:"")} aria-current={current===label?"page":undefined} onClick={()=>navigate(href)}>
         <Icon size={21} aria-hidden="true"/><span className={styles.label}>{label}</span>
