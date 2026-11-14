@@ -23,8 +23,8 @@ const STORE = 'vibeschool.vibecoin.studio.v1'
 const makeId = () => Math.random().toString(36).slice(2) + Date.now().toString(36)
 const initial = (): Setup => ({
   id: makeId(), name: 'The Football Coin Toss', headline: 'ARSENAL OR MAN UNITED?', cta: 'Did the coin agree with you? Comment below.',
-  heads: { name: 'ARSENAL', subtitle: 'HEADS', logo: '', symbol: 'A', color: '#ed5366' },
-  tails: { name: 'MANCHESTER UNITED', subtitle: 'TAILS', logo: '', symbol: 'M', color: '#4fb8ed' },
+  heads: { name: 'ARSENAL', subtitle: 'HEADS', logo: '', symbol: 'A', color: '#ff315c' },
+  tails: { name: 'MANCHESTER UNITED', subtitle: 'TAILS', logo: '', symbol: 'M', color: '#00c9f0' },
   theme: 'royal', coinStyle: 'gold', aspect: 'portrait', tossAxis: 'vertical', autoStart: true, duration: 4, countdown: 2,
   automatic: true, batch: false, hold: 3, sound: true, volume: 65, confetti: true,
   spotlight: true, showBrand: true, showLogos: true, showSafeArea: false, episode: 1, backgroundImage: ''
@@ -91,6 +91,7 @@ export default function CoinStudio() {
   const [seconds,setSeconds] = useState<number | null>(null)
   const [winner,setWinner] = useState<Side | null>(null)
   const [rotation,setRotation] = useState(0)
+  const [dragging,setDragging] = useState(false)
   const [history,setHistory] = useState<{name:string;side:Side}[]>([])
   const [recording,setRecording] = useState(false)
   const [notice,setNotice] = useState('')
@@ -100,6 +101,8 @@ export default function CoinStudio() {
   const coinRef = useRef<HTMLDivElement>(null)
   const flightRef = useRef<HTMLDivElement>(null)
   const motionRef = useRef<Animation[]>([])
+  const dragRef = useRef<{pointerId:number;start:number;angle:number;moved:boolean}|null>(null)
+  const suppressClickRef = useRef(false)
   const pendingRef = useRef<Side | null>(null)
   const timers = useRef<number[]>([])
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -148,7 +151,7 @@ export default function CoinStudio() {
   useEffect(() => () => { cancel(); if (recorderRef.current?.state === 'recording') recorderRef.current.stop(); streamRef.current?.getTracks().forEach(t => t.stop()) },[])
   const patch = (change: Partial<Setup>) => setSetups(old => old.map(s => s.id === selectedId ? {...s,...change} : s))
   const patchOption = (side: Side, change: Partial<Option>) => { if (current) patch({ [side]: { ...current[side], ...change } }) }
-  const reset = () => { cancel(); pendingRef.current=null; setPhase('idle'); setSeconds(null); setWinner(null); setRotation(0); setAutoRuns(0) }
+  const reset = () => { cancel(); dragRef.current=null; setDragging(false); pendingRef.current=null; setPhase('idle'); setSeconds(null); setWinner(null); setRotation(0); setAutoRuns(0) }
   const selectSetup = (id: string) => { reset(); setSelectedId(id); setHistory([]) }
   const revealChoice = (choice: Side) => {
     if (!current || pendingRef.current !== choice) return
@@ -157,9 +160,44 @@ export default function CoinStudio() {
     if (current.sound) ping('win',current.volume)
     pendingRef.current = null
   }
+  const onCoinPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (phase==='flipping' || phase==='countdown' || phase==='ready') return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = {pointerId:e.pointerId,start:current?.tossAxis==='horizontal'?e.clientX:e.clientY,angle:rotation,moved:false}
+    suppressClickRef.current=false
+    setDragging(true)
+  }
+  const onCoinPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag=dragRef.current
+    if (!drag || drag.pointerId!==e.pointerId) return
+    const position=current?.tossAxis==='horizontal'?e.clientX:e.clientY
+    const delta=position-drag.start
+    if(Math.abs(delta)>5) drag.moved=true
+    if(drag.moved) {
+      e.preventDefault()
+      // Roughly half a coin-diameter of movement reveals the reverse face.
+      setRotation(drag.angle+delta*1.55)
+    }
+  }
+  const onCoinPointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag=dragRef.current
+    if (!drag || drag.pointerId!==e.pointerId) return
+    suppressClickRef.current=drag.moved
+    dragRef.current=null
+    setDragging(false)
+    if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId)
+  }
+  const viewCoinSide = (side:Side) => {
+    if(!idle) return
+    cancel()
+    pendingRef.current=null
+    setWinner(null);setPhase('idle')
+    // Previewing a side is a camera operation, not a game outcome.
+    setRotation(value=>value+((side==='heads'?0:180)-((value%360)+360)%360+360)%360)
+  }
   const toss = useCallback(() => {
     if (!current || (phase !== 'idle' && phase !== 'reveal')) return
-    cancel(); setWinner(null); setSeconds(null)
+    cancel(); dragRef.current=null; setDragging(false); setWinner(null); setSeconds(null)
     const choice = randomSide()
     pendingRef.current = choice
     const finish = () => {
@@ -330,6 +368,11 @@ export default function CoinStudio() {
             {tab==='appearance' && <>
               <h2>Art direction</h2>
               <label>Stage theme<select value={current.theme} onChange={e=>patch({theme:e.target.value as Theme})}><option value="royal">Midnight Royale</option><option value="neon">Electric Neon</option><option value="arena">Sports Arena</option><option value="sunset">Sunset Pop</option></select></label>
+              <label>Distinct coin-face palettes</label>
+              <div className={styles.paletteRow} role="group" aria-label="Two-sided coin colour presets">
+                {([{name:'Crimson / Cyan',a:'#ff315c',b:'#00c9f0'},{name:'Gold / Violet',a:'#ffb900',b:'#7040e8'},{name:'Lime / Magenta',a:'#a9f51b',b:'#ff30c8'},{name:'Orange / Ocean',a:'#ff7300',b:'#0679e7'}] as const).map(pair=><button type="button" key={pair.name} className={styles.paletteButton} onClick={()=>patch({heads:{...current.heads,color:pair.a},tails:{...current.tails,color:pair.b}})} title={pair.name}><span style={{background:pair.a}}/><span style={{background:pair.b}}/><small>{pair.name}</small></button>)}
+              </div>
+              <p className={styles.hint}>Each face has its own solid colour identity and decorative pattern. You can still choose custom colours under Matchup.</p>
               <label>Coin material<select value={current.coinStyle} onChange={e=>patch({coinStyle:e.target.value as CoinStyle})}><option value="gold">24K Gold</option><option value="silver">Chrome Silver</option><option value="copper">Warm Copper</option><option value="neon">Electric Glass</option></select></label>
               <label>Video canvas<select value={current.aspect} onChange={e=>patch({aspect:e.target.value as Aspect})}><option value="portrait">9:16 TikTok / Shorts</option><option value="landscape">16:9 YouTube / TV</option><option value="square">1:1 Square</option></select></label>
               <label>Custom background <small>(180 KB max)</small><input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{upload(e.target.files?.[0]);e.target.value=''}}/></label>
@@ -386,15 +429,18 @@ export default function CoinStudio() {
                 </div>)}
               </div>
               <div className={styles.coinArea} style={focalStyle(director,phaseStyle,reduceMotion)}>
+                <div className={styles.dragHint}>DRAG {current.tossAxis==='horizontal'?'← →':'↑ ↓'} TO TURN THE COIN</div>
                 <div className={styles.coinHalo} style={{background:'radial-gradient(circle,'+current.heads.color+'44 0%,'+current.tails.color+'45 42%,transparent 72%)'}}/>
                 {phase==='flipping'&&!reduceMotion&&<div className={styles.launchStreak} aria-hidden="true"/>}
-                <div ref={flightRef} className={styles.tossTrajectory}>
+                <div ref={flightRef} className={styles.tossTrajectory} onPointerDown={onCoinPointerDown} onPointerMove={onCoinPointerMove} onPointerUp={onCoinPointerEnd} onPointerCancel={onCoinPointerEnd} onClick={event=>{event.stopPropagation();if(showMode&&!suppressClickRef.current)tossRef.current();suppressClickRef.current=false}} role="slider" tabIndex={0} aria-label="Rotate the two-sided coin; drag to show heads or tails" aria-valuemin={0} aria-valuemax={359} aria-valuenow={Math.round(((rotation%360)+360)%360)} onKeyDown={event=>{if(event.key==='ArrowRight'||event.key==='ArrowUp'||event.key==='ArrowLeft'||event.key==='ArrowDown'){event.preventDefault();setRotation(angle=>angle+(event.key==='ArrowRight'||event.key==='ArrowUp'?30:-30))}}} data-dragging={dragging?'true':'false'}>
                   <div ref={coinRef} className={[styles.coin,styles[current.coinStyle],current.tossAxis==='horizontal'?styles.horizontal:''].join(' ')} style={{transform:(current.tossAxis==='horizontal'?'rotateY(':'rotateX(')+showRotation+'deg)'}}>
-                    <div className={[styles.face,styles.front].join(' ')} style={{background:'radial-gradient(circle at 24% 16%,#ffffffb0,'+current.heads.color+' 45%,#091528 100%)',color:'#fff'}}>
+                    <div className={[styles.face,styles.front].join(' ')} style={{'--face-color':current.heads.color,background:'radial-gradient(circle at 22% 14%,#ffffffd0,transparent 42%),linear-gradient(145deg,'+current.heads.color+' 15%,#2b0b31 125%)',color:'#fff'} as CSSProperties}>
+                      <span className={styles.facePattern} aria-hidden="true"/>
                       <div className={styles.coinRing}>{current.showLogos&&current.heads.logo?<img src={current.heads.logo} alt="Heads logo"/>:<span>{current.heads.symbol||'H'}</span>}</div>
                       <b>{current.heads.name}</b><small>HEADS · VIBECOIN</small>
                     </div>
-                    <div className={[styles.face,styles.back].join(' ')} style={{background:'radial-gradient(circle at 24% 16%,#ffffffb0,'+current.tails.color+' 45%,#091528 100%)',color:'#fff'}}>
+                    <div className={[styles.face,styles.back].join(' ')} style={{'--face-color':current.tails.color,background:'radial-gradient(circle at 22% 14%,#ffffffb9,transparent 43%),linear-gradient(145deg,'+current.tails.color+' 15%,#07304f 125%)',color:'#fff'} as CSSProperties}>
+                      <span className={styles.facePattern} aria-hidden="true"/>
                       <div className={styles.coinRing}>{current.showLogos&&current.tails.logo?<img src={current.tails.logo} alt="Tails logo"/>:<span>{current.tails.symbol||'T'}</span>}</div>
                       <b>{current.tails.name}</b><small>TAILS · VIBECOIN</small>
                     </div>
@@ -416,6 +462,8 @@ export default function CoinStudio() {
             <div className={styles.actions}>
               <button className={styles.primary} disabled={!idle} onClick={toss}>{phase==='flipping'?'FLIPPING…':phase==='reveal'?'↻ TOSS AGAIN':'✦ TOSS THE COIN'}</button>
               {phase==='ready' && pendingRef.current && <button className={styles.primary} onClick={()=>{if(pendingRef.current)revealChoice(pendingRef.current)}}>Reveal result</button>}
+              <button disabled={!idle} onClick={()=>viewCoinSide('heads')}>View Heads</button>
+              <button disabled={!idle} onClick={()=>viewCoinSide('tails')}>View Tails</button>
               <button onClick={reset}>Reset</button>
               <button onClick={()=>setShowMode(v=>!v)}>{showMode?'Exit show':'Show mode'}</button>
               <button onClick={()=>{void record()}}>{recording?'■ Stop & save':'● Record'}</button>
