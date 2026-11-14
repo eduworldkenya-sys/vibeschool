@@ -61,6 +61,11 @@ export default function VibeLearnExamsPage() {
   const [assessmentError, setAssessmentError] = useState('')
   const [resultsError, setResultsError] = useState('')
   const [retake, setRetake] = useState<LearnerAssessmentAssignment | null>(null)
+  const [query, setQuery] = useState('')
+  const [subject, setSubject] = useState('All subjects')
+  const [examType, setExamType] = useState('All types')
+  const [layout, setLayout] = useState<'grid' | 'list'>('grid')
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
 
   const reload = useCallback(() => {
     let mounted = true
@@ -139,6 +144,14 @@ export default function VibeLearnExamsPage() {
     }
     return { ongoing, fresh, retakes, awaiting, completed }
   }, [assignments])
+  const subjects = useMemo(() => ['All subjects', ...Array.from(new Set(assignments.map(item => subjectFromTitle(item.title)).filter(name => name !== 'Assessment'))).sort()], [assignments])
+  const types = useMemo(() => ['All types', ...Array.from(new Set(assignments.map(item => item.assessmentType.replaceAll('_', ' ')))).sort()], [assignments])
+  const filterExam = (item: LearnerAssessmentAssignment) => (subject === 'All subjects' || subjectFromTitle(item.title) === subject)
+    && (examType === 'All types' || item.assessmentType.replaceAll('_', ' ') === examType)
+    && (item.title + ' ' + item.assessmentType).toLowerCase().includes(query.trim().toLowerCase())
+  const filteredFresh = groups.fresh.filter(filterExam)
+  const filteredRetakes = groups.retakes.filter(filterExam)
+  const featured = groups.ongoing[0] ?? groups.fresh[0] ?? null
   const results = hub?.results ?? []
   const scored = results.filter(r => r.percentage !== null)
   // Raw attempts may include repeat practice and timeouts: never present this as mastery.
@@ -164,7 +177,7 @@ export default function VibeLearnExamsPage() {
       : kind === 'retake' ? 'Retake exam' : kind === 'completed' && item.attemptId ? 'View result' : 'View status'
     const resultAvailable = item.resultStatus === 'released' ||
       (item.assessmentType === 'practice' && item.showScorePolicy === 'immediate' && item.resultStatus === 'marked')
-    return <article className="vs-exam-card" key={item.assignmentId + kind}>
+    return <article className="vs-exam-card" key={item.assignmentId + kind}><div className="vs-command-glyph" aria-hidden="true">{subjectFromTitle(item.title).slice(0, 1).toUpperCase()}</div>
       <div className="vs-exam-card-main">
         <span className={`vs-exam-status vs-exam-status--${kind}`}>{statusText[kind]}</span>
         <h3>{item.title}</h3>
@@ -189,13 +202,18 @@ export default function VibeLearnExamsPage() {
     </article>
   }
 
-  return <main className="vs-exams">
+  return <main className={`vs-exams vs-exams-command vs-exams-theme-${theme}`}>
     <div className="vs-exams-container">
-      <button type="button" className="vs-exams-back" onClick={() => router.push('/student/vibelearn')}>← Learn</button>
+      <div className="vs-command-topbar">
+        <button type="button" className="vs-command-brand" onClick={() => router.push('/student')}><span className="vs-command-brand-icon" aria-hidden="true">V</span><span><strong>VibeSchool</strong><small>EXAM COMMAND CENTRE</small></span></button>
+        <div className="vs-command-actions">
+          <button type="button" className="vs-exams-refresh" onClick={() => setTheme(old => old === 'dark' ? 'light' : 'dark')} aria-label="Toggle examination dashboard theme">{theme === 'dark' ? '☀ Light' : '☾ Dark'}</button>
+          <button type="button" className="vs-exams-refresh" onClick={() => reload()} disabled={loading}>Refresh</button>
+        </div>
+      </div>
       <header className="vs-exams-heading">
-        <div><p className="vs-exams-kicker">VibeSchool · Learn</p><h1>My Exams</h1>
-          <p>Continue learning, explore new assessments and review your progress.</p></div>
-        <button type="button" className="vs-exams-refresh" onClick={() => { setLoading(true); Promise.allSettled([listMyAssessmentAssignments(), getLearnerAssessmentHub()]).then(([a,h]) => { if (a.status === 'fulfilled') { setAssignments(a.value); setAssessmentError('') } else setAssessmentError('Could not refresh exams.'); if (h.status === 'fulfilled') { setHub(h.value); setResultsError('') } else setResultsError('Could not refresh results.') }).finally(() => setLoading(false)) }} disabled={loading}>Refresh</button>
+        <div><p className="vs-exams-kicker">● YOUR EXAMINATION SPACE</p><h1>My Exams <span aria-hidden="true">✦</span></h1>
+          <p>Choose your next assessment, resume your work or explore your results.</p></div>
       </header>
 
       <section className="vs-exams-overview" aria-label="Exam overview">
@@ -204,8 +222,17 @@ export default function VibeLearnExamsPage() {
         <div><strong>{loading ? '—' : results.length}</strong><span>Results</span></div>
       </section>
 
+      {!loading && featured && view === 'for-you' && <section className="vs-command-featured" aria-label="Featured examination">
+        <div className="vs-command-feature-copy">
+          <span className="vs-command-feature-kicker">{examState(featured) === 'in-progress' ? '↻ CONTINUE YOUR EXAM' : '✦ NEXT UP · READY FOR YOU'}</span>
+          <h2>{featured.title}</h2>
+          <p>{featured.assessmentType.replaceAll('_', ' ')}{featured.timeLimitMinutes ? ' · ' + featured.timeLimitMinutes + ' minutes' : ''}</p>
+          <button type="button" className="vs-exam-button" onClick={() => start(featured)}>{examState(featured) === 'in-progress' ? 'Resume examination ↗' : 'Open examination ↗'}</button>
+        </div>
+        <div className="vs-command-orbit" aria-hidden="true"><div className="vs-command-cube">✓</div><small>ASSESSMENT READY</small></div>
+      </section>}
       <nav className="vs-exams-tabs" aria-label="Exam views">
-        {([['for-you', 'For you'], ['history', 'History'], ['progress', 'Progress']] as const).map(([id, label]) =>
+        {([['for-you', 'Explore'], ['history', 'Results'], ['progress', 'Insights']] as const).map(([id, label]) =>
           <button key={id} type="button" aria-current={view === id ? 'page' : undefined}
             className={view === id ? 'vs-exams-tab is-active' : 'vs-exams-tab'} onClick={() => changeView(id)}>{label}</button>)}
       </nav>
@@ -215,16 +242,25 @@ export default function VibeLearnExamsPage() {
       {!loading && resultsError && <div className="vs-exams-message vs-exams-error" role="alert">{resultsError}</div>}
 
       {!loading && view === 'for-you' && <div className="vs-exams-sections">
+        <section className="vs-command-explore" aria-label="Search and filter exams">
+          <div className="vs-exams-section-header"><div><h2>Exam library</h2><p className="vs-exams-section-note">Find the right assessment for you.</p></div><div className="vs-command-layout"><button type="button" aria-pressed={layout === 'grid'} onClick={() => setLayout('grid')}>▦ Cards</button><button type="button" aria-pressed={layout === 'list'} onClick={() => setLayout('list')}>☷ List</button></div></div>
+          <div className="vs-command-filters">
+            <label className="vs-command-search"><span>Search exams</span><input type="search" placeholder="Search exam title or type" value={query} onChange={event => setQuery(event.target.value)} /></label>
+            <label><span>Subject</span><select value={subject} onChange={event => setSubject(event.target.value)}>{subjects.map(option => <option key={option}>{option}</option>)}</select></label>
+            <label><span>Exam type</span><select value={examType} onChange={event => setExamType(event.target.value)}>{types.map(option => <option key={option}>{option}</option>)}</select></label>
+          </div>
+          <div className="vs-command-filter-summary"><span>{filteredFresh.length} available matching exams</span><button type="button" onClick={() => {setQuery('');setSubject('All subjects');setExamType('All types')}}>Clear filters</button></div>
+        </section>
         {groups.ongoing.length > 0 && <section aria-labelledby="vs-exams-continue">
           <h2 id="vs-exams-continue">Continue your exam</h2>
           <div className="vs-exams-card-list">{groups.ongoing.map(item => examCard(item, 'in-progress'))}</div>
         </section>}
         <section aria-labelledby="vs-exams-new">
-          <div className="vs-exams-section-header"><h2 id="vs-exams-new">New exams</h2><span>{groups.fresh.length} available</span></div>
-          {groups.fresh.length ? <div className="vs-exams-card-list">{groups.fresh.map(item => examCard(item, 'new'))}</div>
+          <div className="vs-exams-section-header"><h2 id="vs-exams-new">Available examinations</h2><span>{filteredFresh.length} shown</span></div>
+          {filteredFresh.length ? <div className={`vs-exams-card-list vs-command-card-${layout}`}>{filteredFresh.map(item => examCard(item, 'new'))}</div>
             : <div className="vs-exams-next" role="status">
-                <strong>You're up to date with new exams</strong>
-                <p>Use your previous results to choose what to improve next.</p>
+                <strong>{groups.fresh.length ? 'No exams match your filters' : "You're up to date with new exams"}</strong>
+                <p>{groups.fresh.length ? 'Change your filters to find an available assessment.' : 'Use your previous results to choose what to improve next.'}</p>
                 <div className="vs-exams-next-actions">
                   {reviewFirst && <button type="button" className="vs-exam-button" onClick={() => viewResult(reviewFirst.attemptId)}>Review previous mistakes</button>}
                   {revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={event => openRetake(revisionCandidate, event.currentTarget)}>Practise again</button>}
@@ -237,10 +273,10 @@ export default function VibeLearnExamsPage() {
           <h2 id="vs-exams-awaiting">Waiting for results</h2>
           <div className="vs-exams-card-list">{groups.awaiting.map(item => examCard(item, examState(item)))}</div>
         </section>}
-        {groups.retakes.length > 0 && <section aria-labelledby="vs-exams-retakes">
+        {filteredRetakes.length > 0 && <section aria-labelledby="vs-exams-retakes">
           <h2 id="vs-exams-retakes">Practise again</h2>
           <p className="vs-exams-section-note">Retakes are optional and keep your previous attempts.</p>
-          <div className="vs-exams-card-list">{groups.retakes.map(item => examCard(item, 'retake'))}</div>
+          <div className="vs-exams-card-list">{filteredRetakes.map(item => examCard(item, 'retake'))}</div>
         </section>}
       </div>}
 
