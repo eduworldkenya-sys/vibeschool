@@ -129,7 +129,7 @@ export default function GamesStudio(){
  useEffect(()=>{function key(e:KeyboardEvent){const target=e.target;if(target instanceof HTMLElement&&(target.isContentEditable||["INPUT","TEXTAREA","SELECT","BUTTON"].includes(target.tagName)))return;if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();if(record)advanceByTap();else if(answered)advance()}if(e.key.toLowerCase()==="r"&&config.style==="host")revealHost()}window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key)})
  const scratchReady=mode!=="scratch"||scratch>=100
  const revealReady=mode!=="reveal"||clues>0
- return <main className={styles.page} style={{["--accent" as string]:currentMode.accent}}>
+ return <><main className={styles.page} style={{["--accent" as string]:currentMode.accent}}>
  <div className={styles.shell}>
  <header className={styles.header}><div><div className={styles.brand}><span className={styles.mark}>V</span> VIBESCHOOL <span className={styles.brandLight}>ORIGINALS</span></div><div className={styles.eyebrow}>VIBESCHOOL ORIGINALS / MARKETING GAME STUDIO</div><h1>Play something <em>worth sharing.</em></h1><p>Six games. Your look, your show, your audience. Make every challenge memorable and introduce people to VibeSchool.</p></div><div className={styles.headerActions}><a href="/marketing-studio" style={{color:"#89f5df",fontWeight:850,fontSize:12,padding:"10px 13px",border:"1px solid #5ac5aa70",borderRadius:9,textDecoration:"none"}}>All Marketing Studio tools</a><button type="button" onClick={()=>setEditor(x=>!x)}>{editor?"Close question editor":"Question studio"}</button><button type="button" onClick={exportQuestions}>Export questions</button></div></header>
  <p className={styles.arcadeBanner}>Looking for something beyond questions? <a href="#vibeschool-arcade">Explore 8 visual arcade games ↓</a></p>
@@ -161,5 +161,5 @@ export default function GamesStudio(){
  {message&&<p className={styles.toast} role="status">{message}</p>}
  <footer className={styles.footer}>UNLISTED CREATOR STUDIO <span>·</span> No prize promises <span>·</span> No automatic publishing <span>·</span> Local browser saves</footer>
  </div></main>
-  <DiscoveryInvitation/>
+  <DiscoveryInvitation/></>
 }
