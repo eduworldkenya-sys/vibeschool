@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import styles from './pendulum-studio.module.css'
+import SphereSurface from './SphereSurface'
 import { useShowDirector, DirectorControls, DirectorStageEffects, focalStyle } from '../../components/games/ShowDirector'
 
 type Side='left'|'right'
@@ -291,25 +292,13 @@ export default function VibeSphereStudio(){
        {setup.showBrand&&<div className={styles.brand}><span className={styles.brandIcon}>V</span><strong>VibeSphere</strong><small>BY VIBESCHOOL</small><em>EP. {String(setup.episode).padStart(2,'0')}</em></div>}
        <div className={styles.heading}><div className={styles.headingPill}>THE TWO-CHOICE CHALLENGE</div><h2>{setup.title}</h2><p>WHICH FACE WILL THE POINTER PICK?</p></div>
        <div className={styles.sphereArena} style={focalStyle(director,revealed?'reveal':phase==='swinging'?'action':'idle')}>
-        <div className={styles.pointerAssembly} aria-hidden="true">
-         <div className={styles.pointerMount}/><div className={styles.pointerNeedle}/><span>FIXED POINTER</span>
-        </div>
         <div className={styles.sphereShadow} aria-hidden="true"/>
         <div className={styles.orbPerspective}>
-         <div className={styles.orbRotor} style={{transform:'rotateY('+rotation+'deg)'}}>
-          {(['left','right'] as const).map(side=>{
-           const face=setup[side]
-           return <div key={side} className={[styles.orbFace,side==='left'?styles.orbFront:styles.orbBack].join(' ')} style={{'--face-accent':face.color} as React.CSSProperties}>
-            <div className={styles.orbSurface}>
-             <span className={styles.orbId}>{side==='left'?'A':'B'}</span>
-             {setup.showLogos&&face.logo&&<img className={styles.orbLogo} src={face.logo} alt=""/>}
-             {setup.showNames&&<strong className={styles.orbName}>{face.name}</strong>}
-             <small>{face.detail}</small>
-            </div>
-           </div>
-          })}
-         </div>
+         <SphereSurface rotation={rotation} left={setup.left} right={setup.right} showNames={setup.showNames} showLogos={setup.showLogos} className={styles.sphereCanvas}/>
          <div className={styles.orbGlass} aria-hidden="true"/>
+         <div className={styles.pointerAssembly} aria-hidden="true">
+          <div className={styles.pointerMount}/><div className={styles.pointerNeedle}/><span>FIXED POINTER · FRONT FACE</span>
+         </div>
         </div>
         <div className={styles.arenaBase} aria-hidden="true"><span>VIBESPHERE · RANDOM SELECTOR</span></div>
        </div>
