@@ -126,14 +126,7 @@ export default function StudentTuition() {
           style={{ ...action, background: tab === key ? "var(--vs-accent, #087451)" : "var(--vs-surface, #fff)",
             color: tab === key ? "#fff" : "var(--vs-text, #17251c)", border: "1px solid var(--vs-border, #dcdce8)" }}>{label}</button>)}
     </nav>
-    <section aria-label="Your learning tools" style={{ ...panel, display: "flex", flexWrap: "wrap", gap: 12 }}>
-      <Link href="/student/study">Learn</Link>
-      <Link href="/student/vibelearn/topic-practice">Practise</Link>
-      <Link href="/student/vibelearn/exams">Exams</Link>
-      <Link href="/student/tasks">My Tasks</Link>
-      <Link href="/student/timetable">My Day</Link>
-      <Link href="/student/marks">Progress</Link>
-    </section>
+
     {loading ? <section role="status" style={panel}>Loading private tuition…</section> : <>
       {tab === "overview" && <section style={panel} aria-label="Private tuition overview">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
