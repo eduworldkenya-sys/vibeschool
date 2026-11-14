@@ -13,6 +13,9 @@ create table if not exists public.student_revision_memory (
 create index if not exists student_revision_memory_due_idx
   on public.student_revision_memory (student_id, next_review_at);
 alter table public.student_revision_memory enable row level security;
+-- authorization-test: public.student_revision_memory authenticated users can read only their own rows; writes require the guarded RPC.
+revoke all on table public.student_revision_memory from public,anon,authenticated;
+grant select on table public.student_revision_memory to authenticated;
 drop policy if exists student_revision_memory_select_own on public.student_revision_memory;
 create policy student_revision_memory_select_own on public.student_revision_memory
   for select to authenticated using (student_id = auth.uid());
