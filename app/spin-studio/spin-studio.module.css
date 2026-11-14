@@ -142,3 +142,6 @@
 .studioBack{font-size:12px;font-weight:800;color:#80f7e0;text-decoration:none;border:1px solid #5adcc655;padding:10px 12px;border-radius:10px}
 .studioBack:hover{text-decoration:underline}
 @media(max-width:640px){.wheelFixedPointer{border-left-width:13px;border-right-width:13px;border-top-width:29px}}
+
+.wheelOrbitWrapper{position:relative;display:grid;place-items:center;aspect-ratio:1;width:min(100%,62vh);max-height:100%;flex:none}
+.wheelOrbitWrapper .wheelSvg{height:100%;width:100%;max-width:100%;max-height:100%}
