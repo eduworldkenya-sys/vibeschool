@@ -142,6 +142,8 @@ export default function SpinStudio() {
   const [wheelTiltY,setWheelTiltY]=useState(0)
   const wheelDragRef=useRef<{x:number;y:number;rotation:number;tiltX:number;tiltY:number}|null>(null)
   const tallyDragRef=useRef<{x:number;y:number;initialX:number;initialY:number}|null>(null)
+  const politicalWheelDragRef=useRef<{x:number;y:number;initialX:number;initialY:number}|null>(null)
+  const [politicalWheelDrag,setPoliticalWheelDrag]=useState<{x:number;y:number}|null>(null)
   const [tallyDragging,setTallyDragging]=useState<{x:number;y:number}|null>(null)
   const [spinning,setSpinning]=useState(false)
   const [result,setResult]=useState<number|null>(null)
@@ -226,8 +228,8 @@ export default function SpinStudio() {
   const tallyAnimation=wheel?.electionTallyAnimation!==false
   const tallyShowNames=wheel?.electionTallyShowNames!==false
   const electionWheelSize=Math.max(140,Math.min(460,wheel?.electionWheelSize??330))
-  const electionWheelOffsetX=Math.max(-100,Math.min(100,wheel?.electionWheelOffsetX??0))
-  const electionWheelOffsetY=Math.max(-100,Math.min(100,wheel?.electionWheelOffsetY??0))
+  const electionWheelOffsetX=politicalWheelDrag?.x??Math.max(-100,Math.min(100,wheel?.electionWheelOffsetX??0))
+  const electionWheelOffsetY=politicalWheelDrag?.y??Math.max(-100,Math.min(100,wheel?.electionWheelOffsetY??0))
   const electionScores=entries.map(entry=>({id:entry.id,name:entry.label,score:electionVotes.filter(id=>id===entry.id).length*electionPoints}))
   const lastElectionVote=electionVotes[electionVotes.length-1]??null
   const electionTop=Math.max(0,...electionScores.map(candidate=>candidate.score))
@@ -353,6 +355,28 @@ export default function SpinStudio() {
     setUndoCount(pastRef.current.length);setRedoCount(0)
     setWheels(all=>all.map(w=>w.id===selectedId?{...w,...patch}:w))
   },[selectedId,wheels])
+  const politicalWheelPointerDown=(event:React.PointerEvent<HTMLButtonElement>)=>{
+    if(recording||spinning||event.button!==0)return
+    event.stopPropagation()
+    politicalWheelDragRef.current={x:event.clientX,y:event.clientY,initialX:electionWheelOffsetX,initialY:electionWheelOffsetY}
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+  const politicalWheelPointerMove=(event:React.PointerEvent<HTMLButtonElement>)=>{
+    const drag=politicalWheelDragRef.current
+    if(!drag)return
+    event.stopPropagation()
+    setPoliticalWheelDrag({x:Math.max(-100,Math.min(100,drag.initialX+event.clientX-drag.x)),y:Math.max(-100,Math.min(100,drag.initialY+event.clientY-drag.y))})
+  }
+  const politicalWheelPointerUp=(event:React.PointerEvent<HTMLButtonElement>)=>{
+    const drag=politicalWheelDragRef.current
+    if(!drag)return
+    event.stopPropagation()
+    const x=Math.max(-100,Math.min(100,drag.initialX+event.clientX-drag.x))
+    const y=Math.max(-100,Math.min(100,drag.initialY+event.clientY-drag.y))
+    politicalWheelDragRef.current=null
+    setPoliticalWheelDrag(null)
+    if(x!==drag.initialX||y!==drag.initialY)update({electionWheelOffsetX:x,electionWheelOffsetY:y})
+  }
   const tallyPointerDown=(e:React.PointerEvent<HTMLDivElement>)=>{
     if(tallyPlacement!=='floating'||e.button!==0)return
     tallyDragRef.current={x:e.clientX,y:e.clientY,initialX:tallyOffsetX,initialY:tallyOffsetY}
@@ -835,11 +859,11 @@ export default function SpinStudio() {
  <label>Tally presentation<select aria-label="Tally presentation" value={tallyStyle} onChange={e=>update({electionTallyStyle:e.target.value as 'bars'|'numbers'|'podium'})}><option value="bars">Animated bars and numbers</option><option value="numbers">Large numbers</option><option value="podium">Ranking with bars</option></select></label>
  <label>Tally order<select aria-label="Tally order" value={wheel.electionTallySort??'rank'} onChange={e=>update({electionTallySort:e.target.value as 'rank'|'fixed'})}><option value="rank">Highest score first</option><option value="fixed">Original candidate order</option></select></label>
  <h3>Wheel & tally layout</h3>
- <p className={styles.hint}>Keep the wheel and tally side by side in landscape. Resize the wheel and adjust its position without changing its spin or the fixed pointer.</p>
+ <p className={styles.hint}>Keep the wheel and tally side by side in landscape. Resize the wheel and adjust its position without changing its spin or the fixed pointer. Drag the Move wheel handle in the preview to reposition it.</p>
  <label>Wheel size · {electionWheelSize}px<input aria-label="Political wheel size" type="range" min="140" max="460" value={electionWheelSize} onChange={e=>update({electionWheelSize:Number(e.target.value)})}/></label>
  <label>Wheel horizontal position · {electionWheelOffsetX}px<input aria-label="Political wheel horizontal position" type="range" min="-100" max="100" value={electionWheelOffsetX} onChange={e=>update({electionWheelOffsetX:Number(e.target.value)})}/></label>
  <label>Wheel vertical position · {electionWheelOffsetY}px<input aria-label="Political wheel vertical position" type="range" min="-100" max="100" value={electionWheelOffsetY} onChange={e=>update({electionWheelOffsetY:Number(e.target.value)})}/></label>
- <button type="button" onClick={()=>update({electionWheelSize:330,electionWheelOffsetX:0,electionWheelOffsetY:0,electionTallyOffsetX:0,electionTallyOffsetY:0})}>Reset stage layout</button>
+ <button type="button" onClick={()=>{setPoliticalWheelDrag(null);update({electionWheelSize:330,electionWheelOffsetX:0,electionWheelOffsetY:0,electionTallyOffsetX:0,electionTallyOffsetY:0})}}>Reset stage layout</button>
  <h3>Tally Director · appearance and broadcast</h3>
  <p className={styles.hint}>Changes preview immediately. In floating mode, drag the tally heading or use the position sliders.</p>
  <div className={styles.tallyDirectorGrid}>
@@ -930,6 +954,7 @@ export default function SpinStudio() {
                   <circle cx="200" cy="200" r="195" fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="5" strokeDasharray="2 13"/>
                 </svg>
                 <div className={styles.wheelFixedPointer} aria-hidden="true"/>
+                {electionMode&&!recording&&!spinning&&<button type="button" className={styles.wheelPositionHandle} aria-label="Drag to reposition political wheel" title="Drag to move wheel" onPointerDown={politicalWheelPointerDown} onPointerMove={politicalWheelPointerMove} onPointerUp={politicalWheelPointerUp} onPointerCancel={()=>{politicalWheelDragRef.current=null;setPoliticalWheelDrag(null)}} onClick={event=>event.stopPropagation()}>Move wheel</button>}
                 </div>
                 {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
