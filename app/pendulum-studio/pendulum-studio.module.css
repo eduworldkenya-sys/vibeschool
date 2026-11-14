@@ -195,3 +195,11 @@
 .orbPerspective .pointerNeedle{border-top-width:42px}
 .orbPerspective .pointerAssembly span{font-size:7px;text-align:center;letter-spacing:.04em}
 @media(max-width:440px){.orbPerspective .pointerAssembly{top:-9%}.orbPerspective .pointerNeedle{border-top-width:28px}}
+
+
+/* Manual VibeSphere orbit: mouse/touch drag is restricted to the globe, never the show stage. */
+.axisButtons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.axisButtons button{min-height:36px}
+.orbPerspective{touch-action:none;user-select:none;-webkit-user-select:none}
+.orbPerspective:active{cursor:grabbing!important}
+@media(prefers-reduced-motion:reduce){.orbPerspective{scroll-behavior:auto}}
