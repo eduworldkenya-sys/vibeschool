@@ -38,6 +38,7 @@ function IconResults({ active }: { active: boolean }) { return <svg width={activ
 const ICONS: Record<TabId, ({ active }: { active: boolean }) => React.ReactNode> = { home: IconHome, learn: IconLearn, practise: IconPractise, tasks: IconTasks, results: IconResults }
 
 const QUICK_LINKS = [
+  { href: "/student/vibelearn/practice", label: "Practice Sets", Icon: BookOpenCheck },
   { href: "/student/vibelearn/exams", label: "Exams", Icon: GraduationCap },
   { href: "/student/workspace", label: "Workspace", Icon: BookOpenCheck },
   { href: "/learn/stories", label: "Stories", Icon: BookOpenCheck },

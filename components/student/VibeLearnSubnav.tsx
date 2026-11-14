@@ -6,7 +6,8 @@ import { useStudent } from '@/lib/student-context'
 const TABS = [
   { label: 'Learn', href: '/student/study' },
   { label: 'KCSE', href: '/student/vibelearn/kcse' },
-  { label: 'Practice', href: '/student/vibelearn/topic-practice' },
+  { label: 'Practice Sets', href: '/student/vibelearn/practice' },
+  { label: 'Topic Practice', href: '/student/vibelearn/topic-practice' },
   { label: 'Exams', href: '/student/vibelearn/exams' },
   { label: 'Revision', href: '/student/vibelearn/revision' },
   { label: 'Mistakes', href: '/student/vibelearn/mistakes' },
@@ -14,7 +15,6 @@ const TABS = [
 ] as const
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === '/student/vibelearn/topic-practice' && pathname === '/student/vibelearn/practice') return true
   if (href === '/student/study') return pathname === href || pathname === `${href}/` || pathname.startsWith('/learn')
   return pathname === href || pathname.startsWith(`${href}/`)
 }
