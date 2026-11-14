@@ -1,0 +1,277 @@
+{
+  "schema": "vibeschool.originals.editorial-learning-packet.v1",
+  "id": "VS-G04-MA-1.2-A-L01",
+  "status": "editorial_candidate_not_certified_not_published",
+  "grade": "Grade 4",
+  "subject": "Mathematics",
+  "curriculum": {
+    "authority": "Kenya Institute of Curriculum Development",
+    "edition": "Grade 4 Mathematics, Revised 2024, regular curriculum",
+    "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+    "locator": "Strand 1.0 Numbers; sub-strand 1.2 Addition; printed pp. 4–5; outcome (a)",
+    "strand": "1.0 Numbers",
+    "subStrand": "1.2 Addition",
+    "subStrandSuggestedLessons": 8,
+    "scope": "Specific outcome (a) only, not all eight lessons or the entire sub-strand",
+    "outcomeIntent": "Add two four-digit numbers with exactly one regrouping and total no greater than 10,000 in practical contexts",
+    "curriculumOutcomeId": null,
+    "sourceVerification": "official_source_observed; canonical approval and exact outcome promotion pending",
+    "sourceRights": "KICD source linked for curriculum reference; VibeSchool authored wording and materials"
+  },
+  "reused": {
+    "placeValueManuscript": "content/curriculum/production/grade4-original-first-lessons.v1.json#VS-G04-MA-1.1-L01",
+    "mathematicsCatalog": "lib/teaching/grade4MathematicsCatalog.mjs#1.2",
+    "existingPublication": "2745c031-65be-47de-bd75-1e1db74d4123",
+    "sourceCurriculumRowNote": "Existing Grade 4 Mathematics weekly Operations/Addition row is not an authority-verified canonical 1.2 outcome. Preserve and reconcile; do not overwrite.",
+    "reusePolicy": "Review place-value prerequisite, not republish existing lesson or question set"
+  },
+  "learner": {
+    "title": "Adding four-digit numbers: exchange once",
+    "goal": "Add two four-digit numbers accurately when one column needs exchanging and explain the carried ten.",
+    "priorKnowledge": [
+      "Read ones, tens, hundreds and thousands on a place-value chart",
+      "Add one-digit numbers and explain 10 ones = 1 ten"
+    ],
+    "vocabulary": [
+      {
+        "term": "regrouping",
+        "meaning": "Exchanging ten objects in one column for one object in the next column"
+      },
+      {
+        "term": "sum",
+        "meaning": "The total obtained by addition"
+      },
+      {
+        "term": "estimate",
+        "meaning": "A nearby value used to judge whether an answer is sensible"
+      }
+    ],
+    "explanation": "Four-digit numbers are easier to add when the same place values line up. Begin with ones. If a column totals ten or more, exchange ten of that place for one in the next column. Write the remaining units below the column and carry the exchanged unit above the next column. The digits change position in the calculation, but the amount is conserved.",
+    "worked": [
+      {
+        "id": "model-1",
+        "prompt": "The library receives 2,413 story cards and 1,258 number cards. How many cards altogether?",
+        "operandA": 2413,
+        "operandB": 1258,
+        "expectedSum": 3671,
+        "regroupColumns": [
+          "ones"
+        ],
+        "steps": [
+          {
+            "action": "Align 2,413 above 1,258 under thousands, hundreds, tens and ones.",
+            "why": "Only equal-sized place-value units should be added together."
+          },
+          {
+            "action": "Add the ones: 3 + 8 = 11. Write 1 in the ones column and carry 1 ten.",
+            "why": "11 ones equal 1 ten and 1 one; the total value stays 11."
+          },
+          {
+            "action": "Add the tens: 1 + 5 + 1 carried = 7 tens. Write 7.",
+            "why": "The carried ten must be counted exactly once."
+          },
+          {
+            "action": "Add hundreds: 4 + 2 = 6 hundreds; thousands: 2 + 1 = 3 thousands.",
+            "why": "No more exchanges are needed; both columns total fewer than ten."
+          },
+          {
+            "action": "Read 3,671 and estimate 2,400 + 1,300 ≈ 3,700.",
+            "why": "A close estimate makes the precise sum reasonable."
+          }
+        ],
+        "answer": "3,671 cards",
+        "check": "3,671 - 1,258 = 2,413; reverse subtraction checks the total."
+      }
+    ],
+    "guided": [
+      {
+        "id": "guided-1",
+        "prompt": "Use digit cards to find 3,418 + 2,257. Which column requires regrouping?",
+        "operandA": 3418,
+        "operandB": 2257,
+        "answer": 5675,
+        "regroupColumns": [
+          "ones"
+        ],
+        "reason": "8 + 7 = 15 ones, exchange 10 ones for 1 ten; then 1 + 5 + 1 carried = 7 tens."
+      },
+      {
+        "id": "guided-2",
+        "prompt": "Why do we write 1 above the tens column when 6 ones + 7 ones = 13 ones?",
+        "answer": "Because 13 ones are 1 ten and 3 ones; the ten is exchanged into the tens column.",
+        "reason": "Regrouping changes representation, not quantity."
+      }
+    ],
+    "activity": {
+      "title": "Build and exchange cards",
+      "materials": [
+        "Paper place-value table with four labelled columns",
+        "Bottle tops or drawn dots",
+        "Small cards marked 1, 10, 100 and 1,000"
+      ],
+      "steps": [
+        "Represent 2,413 and 1,258 using place-value cards.",
+        "Combine ones: show 11 ones, then exchange 10 ones for 1 ten.",
+        "Complete the other columns, explaining why the carried ten belongs with tens.",
+        "Compare with the written column addition, then check by subtraction."
+      ],
+      "evidence": "Learner shows one exchange, writes the correct four-digit total and explains it in speech, drawing or writing.",
+      "soloOption": "Draw the column chart on paper and cross out ten ones to replace them with one ten; no bought apparatus required."
+    },
+    "independent": [
+      {
+        "id": "G04-MA-1.2-A-E01",
+        "type": "numeric",
+        "prompt": "Calculate 4,526 + 1,307.",
+        "operandA": 4526,
+        "operandB": 1307,
+        "answer": 5833,
+        "reason": "6 + 7 = 13 ones, carry one ten; 2 + 0 + 1 = 3 tens, with no further regrouping."
+      },
+      {
+        "id": "G04-MA-1.2-A-E02",
+        "type": "numeric",
+        "prompt": "Calculate 5,608 + 2,145.",
+        "operandA": 5608,
+        "operandB": 2145,
+        "answer": 7753,
+        "reason": "8 + 5 = 13 ones; 0 + 4 + 1 ten carried = 5 tens."
+      },
+      {
+        "id": "G04-MA-1.2-A-E03",
+        "type": "numeric",
+        "prompt": "A club collected 6,412 bottle tops in one week and 1,269 the next. Find the total.",
+        "operandA": 6412,
+        "operandB": 1269,
+        "answer": 7681,
+        "reason": "2 + 9 = 11 ones and 1 + 6 + 1 ten carried = 8 tens."
+      }
+    ],
+    "formative": [
+      {
+        "id": "G04-MA-1.2-A-Q01",
+        "type": "numeric",
+        "prompt": "What is 3,418 + 2,257?",
+        "operandA": 3418,
+        "operandB": 2257,
+        "answer": 5675,
+        "explanation": "Add ones 8 + 7 = 15, regroup one ten, then 1 + 5 + 1 = 7 tens; 4 + 2 = 6 hundreds; 3 + 2 = 5 thousands.",
+        "mistakeFeedback": "If you got 5,665, you may have forgotten the carried ten."
+      },
+      {
+        "id": "G04-MA-1.2-A-Q02",
+        "type": "numeric",
+        "prompt": "What is 2,413 + 1,258?",
+        "operandA": 2413,
+        "operandB": 1258,
+        "answer": 3671,
+        "explanation": "11 ones becomes 1 one and 1 carried ten, so the tens are 1 + 5 + 1 = 7.",
+        "mistakeFeedback": "If you got 3,661, you may have omitted the regrouped ten."
+      },
+      {
+        "id": "G04-MA-1.2-A-Q03",
+        "type": "numeric",
+        "prompt": "What is 5,608 + 2,145?",
+        "operandA": 5608,
+        "operandB": 2145,
+        "answer": 7753,
+        "explanation": "Exchange 13 ones for 1 ten and 3 ones; the tens column becomes 5.",
+        "mistakeFeedback": "Count the carried ten once in the tens column."
+      },
+      {
+        "id": "G04-MA-1.2-A-Q04",
+        "type": "numeric",
+        "prompt": "What is 4,526 + 1,307?",
+        "operandA": 4526,
+        "operandB": 1307,
+        "answer": 5833,
+        "explanation": "Exchange 13 ones into 1 ten and 3 ones, then finish each column.",
+        "mistakeFeedback": "Align digits before adding; check that 3 is in the tens place."
+      },
+      {
+        "id": "G04-MA-1.2-A-Q05",
+        "type": "numeric",
+        "prompt": "What is 6,412 + 1,269?",
+        "operandA": 6412,
+        "operandB": 1269,
+        "answer": 7681,
+        "explanation": "11 ones means carry one ten; tens are 1 + 6 + 1 = 8.",
+        "mistakeFeedback": "If your answer has 7 tens, revisit regrouping."
+      }
+    ],
+    "reflection": "Explain in your own words why exchanging ten ones for one ten does not change the total."
+  },
+  "revision": {
+    "flashcards": [
+      {
+        "front": "When do we regroup in the ones column?",
+        "back": "When the ones add to 10 or more; exchange 10 ones for 1 ten."
+      },
+      {
+        "front": "Why is the carried 1 written in the tens column?",
+        "back": "It represents one group of ten, not one extra one."
+      }
+    ],
+    "recall": {
+      "prompt": "Without using the worked example, solve 3,418 + 2,257 and explain the exchange.",
+      "answer": "5,675; 15 ones become 5 ones and 1 ten."
+    },
+    "remedial": "First practise combining 8 and 7 counters into a group of ten and five left over. Then work with three-digit sums before returning to four-digit sums.",
+    "enrichment": "Invent two four-digit numbers whose sum is below 10,000 and that need exactly one regrouping. Solve, then prove it with a column table.",
+    "misconceptions": [
+      {
+        "error": "Forgetting to carry the extra ten",
+        "response": "Represent 11 ones as 10 + 1 before writing the next column."
+      },
+      {
+        "error": "Adding unlike columns",
+        "response": "Use four clearly labelled place-value columns."
+      },
+      {
+        "error": "Carrying twice",
+        "response": "Mark the carry once and point to it while adding the next column."
+      }
+    ]
+  },
+  "teacherSupport": {
+    "guidance": "Begin concretely, then pictorially, then with column notation. Assess the exchange explanation, not only final answers. Avoid assuming access to a printer or data plan.",
+    "questions": [
+      "Where did the extra ten come from?",
+      "What happens to the sum if the carry is forgotten?",
+      "How can subtraction confirm your answer?"
+    ],
+    "assessmentChecklist": [
+      "Learner aligns four place values",
+      "Learner makes exactly one exchange",
+      "Learner includes the carried ten correctly",
+      "Learner finds total at or below 10,000",
+      "Learner explains the result using an estimate or inverse operation"
+    ],
+    "differentiation": {
+      "support": "Use enlarged chart and counters, optional spoken or tactile explanation.",
+      "extension": "Explore an error-correction task and create own one-regroup sum."
+    },
+    "accessibility": "Large-print and high-contrast numeral labels, descriptive text for diagram, and screen reader-friendly linear representation. No animation-only information."
+  },
+  "visualAid": {
+    "kind": "annotated_place_value_exchange",
+    "title": "Regroup 11 ones as one ten and one one",
+    "alt": "Place-value chart for 2,413 plus 1,258: columns thousands 3, hundreds 6, tens 7, ones 1. An arrow shows 11 ones exchanging into one ten and one one.",
+    "description": "Create a four-column thousands/hundreds/tens/ones chart. Show 3+8=11 in ones, group ten dots into a ten bundle, and display carried 1 above tens. Use a visible outlined arrow and labels rather than color alone.",
+    "assetStatus": "brief_only_not_certified_or_uploaded"
+  },
+  "release": {
+    "editorialReview": "candidate_requires_independent_checks",
+    "officialSourceAlignment": "observed_1.2a_not_promoted",
+    "answerAudit": "arithmetic_checked_in_authoring_script",
+    "canonicalIntegration": "not_imported",
+    "learnerVisible": false,
+    "assessmentBank": "do_not_publish_question_answers_from_editorial_file",
+    "requiredNext": [
+      "Owner-authorised official source intake and stable curriculum outcome promotion",
+      "Canonical resource candidate version and immutable checks",
+      "Independent pedagogical, arithmetic, rights and accessibility review",
+      "Teacher and independent learner read-back after authorised release"
+    ]
+  }
+}
