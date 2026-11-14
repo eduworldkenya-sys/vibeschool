@@ -34,3 +34,9 @@ All are distinct editorial candidates. Merging an editorial file is not authoriz
 ## Source limitations
 
 The KICD official PDF text was returned through the publicly accessible PDF page. Web screenshot attempts failed with cache misses, and a separate download of source PDF bytes failed. **No independent page-image inspection, immutable source SHA-256, source artifact upload, or official promotion was claimed.** Preserve these limits in future chat handoffs.
+
+## Important source edition safeguard (verified 14 November 2026)
+
+KICD also hosts `https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-4-MATHEMATICS.pdf`, which is **Mathematics Grade 4 for learners with physical impairment**, revised 2024. That is an **adapted curriculum design**, not the same authority as the regular Grade 4 Mathematics source used for these generic learner packages (`https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf`). Both say “Grade 4 Mathematics” and “Revised 2024”, so name/year-only matching would be unsafe. The adapted design has a different strand organisation and needs its own scope/authority reconciliation if VibeSchool chooses to produce adapted content. Do not assume the adapted source is invalid or less important; it is simply distinct.
+
+The crosswalk now pins the expected audience and excludes that separate KICD URL for the regular-grade batch. The deterministic test fails if the audience distinction or explicit adapted-source exclusion disappears. Official KICD source texts inspected; neither PDF's bytes nor immutable source SHA-256 were downloaded or registered during this audit, so source approval remains blocked.
