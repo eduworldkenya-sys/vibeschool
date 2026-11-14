@@ -38,3 +38,7 @@ The owner explicitly authorized release while handling other work. The publicati
 - Independent learner end-to-end journey is **not yet verified**; saved response, score, and retry behavior are existing EXQ engine paths, not separately tested on this new assignment
 
 Production readback was completed immediately after the transaction. The source manifest is synchronized with this receipt. All future changes to this release should be versioned, not duplicated.
+
+## Attempt-limit incident — 14 November 2026
+
+Investigation found three completed/released attempts on the same Grade 4 Topic Practice assignment, 5 saved responses per attempt, with scores 2/5, 5/5 and 2/5. The original max_attempts=3 exhausted the set, so CanonicalTopicPractice disabled the topic card. A narrowly scoped database correction updated only assignment `552202c6-f74d-4bfa-b28d-fd1984724fae` to max_attempts=1000. Readback: status=open, 3 existing attempts preserved, 997 remaining, untimed, immediate scoring. **This is not a formal unlimited-attempt model**: future product work should define a canonical unlimited-practice policy separately from formal exams. An authenticated browser E2E retry after correction is still outstanding.
