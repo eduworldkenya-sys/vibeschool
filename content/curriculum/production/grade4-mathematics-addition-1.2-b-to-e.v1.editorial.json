@@ -131,52 +131,52 @@
       "formative": [
         {
           "id": "B-Q1",
-          "prompt": "3,659 + 1,248 = ?",
-          "answer": 4907,
-          "explanation": "17 ones and 10 tens require two exchanges.",
-          "incorrectFeedback": "If you got 4,807, check the carried hundred.",
-          "a": 3659,
-          "b": 1248,
+          "prompt": "Calculate 2,768 + 1,417. Show both exchanges.",
+          "answer": 4185,
+          "explanation": "2,768 + 1,417 = 4,185. Exchange whenever a column reaches ten or more; exactly two exchanges are needed.",
+          "incorrectFeedback": "Begin with ones, include each carried unit once in the next column, and check the final sum by subtraction.",
+          "a": 2768,
+          "b": 1417,
           "regroupCount": 2
         },
         {
           "id": "B-Q2",
-          "prompt": "2,478 + 1,347 = ?",
-          "answer": 3825,
-          "explanation": "The 15 ones and then 12 tens each produce one exchange.",
-          "incorrectFeedback": "Carry from ones and tens.",
-          "a": 2478,
-          "b": 1347,
+          "prompt": "Calculate 3,548 + 2,267. Show both exchanges.",
+          "answer": 5815,
+          "explanation": "3,548 + 2,267 = 5,815. Exchange whenever a column reaches ten or more; exactly two exchanges are needed.",
+          "incorrectFeedback": "Begin with ones, include each carried unit once in the next column, and check the final sum by subtraction.",
+          "a": 3548,
+          "b": 2267,
           "regroupCount": 2
         },
         {
           "id": "B-Q3",
-          "prompt": "4,387 + 2,526 = ?",
-          "answer": 6913,
-          "explanation": "13 ones give 3 ones and a ten; 11 tens give 1 ten and a hundred.",
-          "incorrectFeedback": "The result has 1 in the tens place.",
-          "a": 4387,
-          "b": 2526,
+          "prompt": "Calculate 4,685 + 1,324. Show both exchanges.",
+          "answer": 6009,
+          "explanation": "4,685 + 1,324 = 6,009. Exchange whenever a column reaches ten or more; exactly two exchanges are needed.",
+          "incorrectFeedback": "Begin with ones, include each carried unit once in the next column, and check the final sum by subtraction.",
+          "a": 4685,
+          "b": 1324,
           "regroupCount": 2
         },
         {
           "id": "B-Q4",
-          "prompt": "5,278 + 2,447 = ?",
-          "answer": 7725,
-          "explanation": "15 ones, 12 tens; retain 5 ones and 2 tens.",
-          "incorrectFeedback": "Do not put the carried units in the answer twice.",
-          "a": 5278,
-          "b": 2447,
+          "prompt": "Calculate 2,579 + 3,146. Show both exchanges.",
+          "answer": 5725,
+          "explanation": "2,579 + 3,146 = 5,725. Exchange whenever a column reaches ten or more; exactly two exchanges are needed.",
+          "incorrectFeedback": "Begin with ones, include each carried unit once in the next column, and check the final sum by subtraction.",
+          "a": 2579,
+          "b": 3146,
           "regroupCount": 2
         },
         {
           "id": "B-Q5",
-          "prompt": "3,871 + 2,645 = ?",
-          "answer": 6516,
-          "explanation": "The two exchanges occur in the tens and hundreds columns.",
-          "incorrectFeedback": "Check every column for totals of at least ten.",
-          "a": 3871,
-          "b": 2645,
+          "prompt": "Calculate 1,867 + 2,418. Show both exchanges.",
+          "answer": 4285,
+          "explanation": "1,867 + 2,418 = 4,285. Exchange whenever a column reaches ten or more; exactly two exchanges are needed.",
+          "incorrectFeedback": "Begin with ones, include each carried unit once in the next column, and check the final sum by subtraction.",
+          "a": 1867,
+          "b": 2418,
           "regroupCount": 2
         }
       ],
@@ -315,38 +315,38 @@
       "formative": [
         {
           "id": "C-Q1",
-          "prompt": "Estimate 2,463 + 1,328 to the nearest tens.",
-          "answer": 3790,
-          "explanation": "2,460 + 1,330 = 3,790.",
-          "incorrectFeedback": "Use the rounded addends."
+          "prompt": "Estimate 2,736 + 1,847 by rounding each addend to the nearest ten.",
+          "answer": 4590,
+          "explanation": "2,736 rounds to 2,740 and 1,847 rounds to 1,850; their estimated sum is 4,590.",
+          "incorrectFeedback": "Round each addend separately to the nearest ten before adding; do not round the exact sum instead."
         },
         {
           "id": "C-Q2",
-          "prompt": "Estimate 3,147 + 2,456 to the nearest tens.",
-          "answer": 5610,
-          "explanation": "3,150 + 2,460 = 5,610.",
-          "incorrectFeedback": "Round 7 and 6 upward."
+          "prompt": "Estimate 4,612 + 2,379 by rounding each addend to the nearest ten.",
+          "answer": 6990,
+          "explanation": "4,612 rounds to 4,610 and 2,379 rounds to 2,380; their estimated sum is 6,990.",
+          "incorrectFeedback": "Round each addend separately to the nearest ten before adding; do not round the exact sum instead."
         },
         {
           "id": "C-Q3",
-          "prompt": "Estimate 4,236 + 1,328 to the nearest tens.",
-          "answer": 5570,
-          "explanation": "4,240 + 1,330 = 5,570.",
-          "incorrectFeedback": "6 and 8 round upward."
+          "prompt": "Estimate 3,254 + 2,417 by rounding each addend to the nearest ten.",
+          "answer": 5670,
+          "explanation": "3,254 rounds to 3,250 and 2,417 rounds to 2,420; their estimated sum is 5,670.",
+          "incorrectFeedback": "Round each addend separately to the nearest ten before adding; do not round the exact sum instead."
         },
         {
           "id": "C-Q4",
-          "prompt": "Estimate 2,814 + 3,162 to the nearest tens.",
-          "answer": 5970,
-          "explanation": "2,810 + 3,160 = 5,970.",
-          "incorrectFeedback": "4 and 2 round downward."
+          "prompt": "Estimate 5,186 + 1,323 by rounding each addend to the nearest ten.",
+          "answer": 6510,
+          "explanation": "5,186 rounds to 5,190 and 1,323 rounds to 1,320; their estimated sum is 6,510.",
+          "incorrectFeedback": "Round each addend separately to the nearest ten before adding; do not round the exact sum instead."
         },
         {
           "id": "C-Q5",
-          "prompt": "What is the exact sum 2,463 + 1,328?",
-          "answer": 3791,
-          "explanation": "The exact answer differs from 3,790 by one.",
-          "incorrectFeedback": "Exact answers are not always multiples of ten."
+          "prompt": "Find the exact sum 2,743 + 1,658 without rounding.",
+          "answer": 4401,
+          "explanation": "Add the original numbers, 2,743 + 1,658 = 4,401.",
+          "incorrectFeedback": "Use the original numbers rather than rounded estimates, and check the carried place values."
         }
       ],
       "activity": {
@@ -503,47 +503,50 @@
       "formative": [
         {
           "id": "D-Q1",
-          "prompt": "Give the next two terms after 1,150, 1,275, 1,400.",
+          "prompt": "Give the next two terms: 2,100, 2,250, 2,400.",
           "answer": [
-            1525,
-            1650
+            2550,
+            2700
           ],
-          "explanation": "Add 125 twice.",
-          "incorrectFeedback": "A pattern needs the same step."
+          "explanation": "Add 150 twice to get 2,550 and 2,700.",
+          "incorrectFeedback": "Subtract neighbouring terms to find a constant step, then use that same step for each new term."
         },
         {
           "id": "D-Q2",
-          "prompt": "Give the next two terms after 2,400, 2,650, 2,900.",
+          "prompt": "Give the next two terms: 3,425, 3,550, 3,675.",
           "answer": [
-            3150,
-            3400
+            3800,
+            3925
           ],
-          "explanation": "Add 250 twice.",
-          "incorrectFeedback": "Check the difference."
+          "explanation": "Add 125 twice to get 3,800 and 3,925.",
+          "incorrectFeedback": "Subtract neighbouring terms to find a constant step, then use that same step for each new term."
         },
         {
           "id": "D-Q3",
-          "prompt": "Give the next two terms after 1,250, 1,450, 1,650.",
+          "prompt": "Give the next two terms: 4,100, 4,400, 4,700.",
           "answer": [
-            1850,
-            2050
+            5000,
+            5300
           ],
-          "explanation": "Add 200 twice.",
-          "incorrectFeedback": "Do not add a changing number."
+          "explanation": "Add 300 twice to get 5,000 and 5,300.",
+          "incorrectFeedback": "Subtract neighbouring terms to find a constant step, then use that same step for each new term."
         },
         {
           "id": "D-Q4",
-          "prompt": "What is the step in 3,125, 3,250, 3,375?",
-          "answer": 125,
-          "explanation": "Subtract neighbouring terms: 3,250−3,125 = 125.",
-          "incorrectFeedback": "Find the common difference."
+          "prompt": "Find the common step in 5,250, 5,500, 5,750.",
+          "answer": 250,
+          "explanation": "The difference between adjacent terms is 250.",
+          "incorrectFeedback": "Subtract neighbouring terms to find a constant step, then use that same step for each new term."
         },
         {
           "id": "D-Q5",
-          "prompt": "What comes next after 2,000, 2,500, 3,000, 3,500?",
-          "answer": 4000,
-          "explanation": "Add 500 to 3,500.",
-          "incorrectFeedback": "The rule stays the same."
+          "prompt": "Give the next two terms: 1,800, 2,200, 2,600.",
+          "answer": [
+            3000,
+            3400
+          ],
+          "explanation": "Add 400 twice to get 3,000 and 3,400.",
+          "incorrectFeedback": "Subtract neighbouring terms to find a constant step, then use that same step for each new term."
         }
       ],
       "activity": {
@@ -679,38 +682,38 @@
       "formative": [
         {
           "id": "E-Q1",
-          "prompt": "A class has 2,450 pencils and receives 1,325 more. Find the new total.",
-          "answer": 3775,
-          "explanation": "2,450 + 1,325 = 3,775 pencils.",
-          "incorrectFeedback": "The word 'more' indicates addition here."
+          "prompt": "A learning centre counted 2,365 notebooks and received 1,424 more. How many notebooks are there altogether?",
+          "answer": 3789,
+          "explanation": "The two quantities share the same unit: 2,365 + 1,424 = 3,789 notebooks.",
+          "incorrectFeedback": "Because the notebooks are combined, add the two amounts with aligned place values and label the total in notebooks."
         },
         {
           "id": "E-Q2",
-          "prompt": "A cooperative recorded 3,210 and 1,875 mangoes. How many mangoes together?",
-          "answer": 5085,
-          "explanation": "The combined total is 5,085 mangoes.",
-          "incorrectFeedback": "Retain the unit."
+          "prompt": "A learning centre counted 3,127 notebooks and received 2,546 more. How many notebooks are there altogether?",
+          "answer": 5673,
+          "explanation": "The two quantities share the same unit: 3,127 + 2,546 = 5,673 notebooks.",
+          "incorrectFeedback": "Because the notebooks are combined, add the two amounts with aligned place values and label the total in notebooks."
         },
         {
           "id": "E-Q3",
-          "prompt": "A school has 1,432 exercise books and 2,546 storybooks. How many books total?",
-          "answer": 3978,
-          "explanation": "1,432 + 2,546 = 3,978 books.",
-          "incorrectFeedback": "The combined quantities are both books."
+          "prompt": "A learning centre counted 1,834 notebooks and received 2,715 more. How many notebooks are there altogether?",
+          "answer": 4549,
+          "explanation": "The two quantities share the same unit: 1,834 + 2,715 = 4,549 notebooks.",
+          "incorrectFeedback": "Because the notebooks are combined, add the two amounts with aligned place values and label the total in notebooks."
         },
         {
           "id": "E-Q4",
-          "prompt": "A farmer has 1,120 red flowers and 2,340 yellow flowers. How many flowers altogether?",
-          "answer": 3460,
-          "explanation": "1,120 + 2,340 = 3,460 flowers.",
-          "incorrectFeedback": "Join like units."
+          "prompt": "A learning centre counted 4,260 notebooks and received 1,235 more. How many notebooks are there altogether?",
+          "answer": 5495,
+          "explanation": "The two quantities share the same unit: 4,260 + 1,235 = 5,495 notebooks.",
+          "incorrectFeedback": "Because the notebooks are combined, add the two amounts with aligned place values and label the total in notebooks."
         },
         {
           "id": "E-Q5",
-          "prompt": "A community group receives KSh 4,125 and KSh 1,305. Find the total.",
-          "answer": 5430,
-          "explanation": "4,125 + 1,305 = KSh 5,430.",
-          "incorrectFeedback": "Write the final result in shillings."
+          "prompt": "A learning centre counted 2,648 notebooks and received 3,151 more. How many notebooks are there altogether?",
+          "answer": 5799,
+          "explanation": "The two quantities share the same unit: 2,648 + 3,151 = 5,799 notebooks.",
+          "incorrectFeedback": "Because the notebooks are combined, add the two amounts with aligned place values and label the total in notebooks."
         }
       ],
       "activity": {
