@@ -1,3 +1,4 @@
+import {recordMarketingGameCompletion} from '../../components/games/DiscoveryInvitation'
 "use client"
 import {useEffect,useMemo,useState} from "react"
 import styles from "./arcade.module.css"
@@ -106,7 +107,7 @@ export default function ArcadePlayground({campaignHeadline,cta,destination,reduc
  const [classicCups,setClassicCups]=useState(false)
  const names=useMemo(()=>{const parts=namesInput.split(/[,\n]+/).map(x=>x.trim().slice(0,28)).filter(Boolean);return [...parts,...DEFAULT_NAMES].slice(0,8)},[namesInput])
  useEffect(()=>{try{const n=Number(localStorage.getItem("vibeschool.games.arcade.completed.v1"));if(Number.isInteger(n)&&n>=0)setCompleted(n);const prev=localStorage.getItem("vibeschool.games.arcade.names.v1");if(prev)setNamesInput(prev)}catch{}},[])
- function completedGame(result:string){setRecent(result);setCompleted(n=>{const next=n+1;try{localStorage.setItem("vibeschool.games.arcade.completed.v1",String(next))}catch{}return next})}
+ function completedGame(result:string){recordMarketingGameCompletion();setRecent(result);setCompleted(n=>{const next=n+1;try{localStorage.setItem("vibeschool.games.arcade.completed.v1",String(next))}catch{}return next})}
  function editNames(text:string){setNamesInput(text);try{localStorage.setItem("vibeschool.games.arcade.names.v1",text)}catch{}}
  async function share(){const text="I played "+GAMES.find(g=>g.id===active)?.name+" on VibeSchool! "+recent+" Join the challenge: https://vibeschool.co.ke/games-studio";try{if(navigator.share)await navigator.share({title:"VibeSchool Arcade Challenge",text});else await navigator.clipboard.writeText(text)}catch{}}
  const props:GameProps={names,onFinish:completedGame,reducedMotion}
