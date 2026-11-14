@@ -893,10 +893,10 @@ export default function SpinStudio() {
             <div className={styles.playStatus}><span>{electionMode?'ELECTION AUTO':(wheel.automatic??true?'AUTO SHOW':'MANUAL SHOW')} · {batchMode?'BATCH ON':'SINGLE'}</span><span>SPINS <b>{spinCount}{remaining!==null?' / '+(electionMode?electionTotal:wheel.maxSpins):''}</b></span><span>{wheel.noRepeat?'UNIQUE LEFT '+available.length:'RANDOM MODE'}</span></div>
             <div className={styles.playButtons}>
               <button className={styles.spinButton} disabled={locked||electionFinale} onClick={spin}>{spinning?'SPINNING…':available.length===0?'ALL SEGMENTS USED':remaining===0?'SPIN LIMIT REACHED':'✦ SPIN NOW'}</button>
-              {!electionMode&&<button disabled={spinning || result===null} onClick={()=>{if(reveal){setReveal(false);setShowPhase('question');setSeconds(null)}else revealNow();setVerdict(null)}}>{reveal?'Hide answer':'Reveal answer'}</button>
+              {!electionMode&&<><button disabled={spinning || result===null} onClick={()=>{if(reveal){setReveal(false);setShowPhase('question');setSeconds(null)}else revealNow();setVerdict(null)}}>{reveal?'Hide answer':'Reveal answer'}</button>
               <button disabled={spinning || result===null} onClick={()=>doVerdict('correct')}>✓ Correct</button>
               <button disabled={spinning || result===null} onClick={()=>doVerdict('wrong')}>✕ Wrong</button>
-              <button onClick={nextChallenge} disabled={spinning || result===null}>Next</button>}
+              <button onClick={nextChallenge} disabled={spinning || result===null}>Next</button></>}
               {electionMode&&<button type="button" disabled={!spinCount||electionFinale} onClick={()=>setElectionPaused(v=>!v)}>{electionPaused?'Resume show':'Pause show'}</button>}
               <button onClick={resetRun} disabled={spinning}>Reset</button>
             </div>
