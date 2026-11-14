@@ -29,7 +29,7 @@ const colors={
  navy:'var(--vs-hero-bg, #10213b)',
  heroText:'var(--vs-hero-text, #fff)',
  goal:'var(--vs-goal-fill, #b9f58c)',
- canvas:'var(--vs-soft)',
+ canvas:'color-mix(in srgb, var(--vs-card) 94%, var(--vs-text) 6%)',
  panel:'var(--vs-card)',
  ink:'var(--vs-text)',
  muted:'var(--vs-muted)',
@@ -40,7 +40,7 @@ const colors={
 const basic:React.CSSProperties={fontFamily:'inherit',cursor:'pointer'}
 const card:React.CSSProperties={padding:15,border:'1px solid var(--vs-border)',borderRadius:16,background:colors.panel}
 const muted:React.CSSProperties={fontSize:12,lineHeight:1.5,color:colors.muted}
-const primary:React.CSSProperties={...basic,minHeight:44,border:0,borderRadius:999,padding:'11px 18px',fontSize:13,fontWeight:850,background:colors.accent,color:'var(--vs-on-accent, #fff)'}
+const primary:React.CSSProperties={...basic,minHeight:44,border:0,borderRadius:999,padding:'11px 18px',fontSize:13,fontWeight:850,background:'color-mix(in srgb, var(--vs-hero-bg, #10213b) 25%, #000 75%)',color:'#fff'}
 const secondary:React.CSSProperties={...basic,minHeight:42,borderRadius:12,padding:'10px 14px',border:'1px solid var(--vs-border)',fontWeight:750,fontSize:13,background:colors.accentSoft,color:colors.accent}
 const dateDue=(date:string|null)=>!date||new Date(date).getTime()<=Date.now()
 const dateLabel=(date:string)=>new Intl.DateTimeFormat('en-KE',{month:'short',day:'numeric',timeZone:'Africa/Nairobi'}).format(new Date(date))
