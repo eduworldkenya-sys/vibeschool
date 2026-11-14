@@ -1,0 +1,35 @@
+import {test} from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8')
+const hub=read('app/marketing-studio/page.tsx')
+const style=read('app/marketing-studio/marketing-studio.module.css')
+const layout=read('app/marketing-studio/layout.tsx')
+const robots=read('app/robots.ts')
+const spin=read('app/spin-studio/page.tsx')
+const sphere=read('app/pendulum-studio/page.tsx')
+const coin=read('app/coin-studio/page.tsx')
+const games=read('app/games-studio/page.tsx')
+const hq=read('app/hq/marketing/page.tsx')
+test('one unlisted Marketing Studio navigates to all existing canonical game engines',()=>{
+ for(const path of ['/spin-studio','/pendulum-studio','/coin-studio','/games-studio'])assert.ok(hub.includes("href:'"+path+"'"),path)
+ assert.match(layout,/index:false/)
+ assert.match(robots,/\/marketing-studio/)
+ assert.match(hub,/vibeschool\.marketing\.studio\.last-tool\.v1/)
+ assert.match(hub,/Six games|14 formats/)
+ assert.match(hub,/TOOLS\.filter/)
+ assert.match(hub,/aria-pressed=/)
+})
+test('each creator links back without changing its local persistence key or game implementation',()=>{
+ for(const [name,source] of [['spin',spin],['sphere',sphere],['coin',coin],['games',games]])assert.ok(source.includes('href="/marketing-studio"'),name)
+ assert.match(spin,/vibeschool\.vibespin/)
+ assert.match(sphere,/vibeschool\.vibependulum\.studio\.v1/)
+ assert.match(coin,/vibeschool\.vibecoin/)
+ assert.match(hq,/Open Marketing Studio/)
+})
+test('responsive premium marketing suite has no embedded duplicated game engines',()=>{
+ assert.match(style,/\.grid\{/)
+ assert.match(style,/@media\(max-width:530px\)/)
+ assert.doesNotMatch(hub,/<iframe|<canvas|<svg/i)
+ assert.doesNotMatch(hub,/Math\.random\(/)
+})
