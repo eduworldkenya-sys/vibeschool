@@ -319,5 +319,1696 @@
     "preserve_teacher_scheme_and_assessment_history": true,
     "do_not_promote_from_this_candidate": true
   },
-  "next_gate": "Verify the complete official KICD July 2024 revision at the registered source, record artifact bytes/checksum and source-page observations via curriculum_authority_* workflow; compare line-by-line, reconcile 19 sub-strands and official outcomes; authorize promotion before generating/releasing VibeSchool-original outcome packages."
+  "next_gate": "Verify the complete official KICD July 2024 revision at the registered source, record artifact bytes/checksum and source-page observations via curriculum_authority_* workflow; compare line-by-line, reconcile 19 sub-strands and official outcomes; authorize promotion before generating/releasing VibeSchool-original outcome packages.",
+  "july_2024_editorial_crosswalk": {
+    "source_authority": "Kenya Institute of Curriculum Development (KICD)",
+    "registered_source_id": "97193d03-7eda-4124-93b1-1a3840647ca3",
+    "official_source_url": "https://drive.google.com/file/d/1HgntYl8nS1zydy8k00KrjEt_zJiMqISL/preview",
+    "registered_edition": "July 2024 Revised",
+    "supporting_transcription_url": "https://github.com/Vincent-mutwiri/KICD-Curriculum-Designs/blob/main/Grade_9/Mathematics%20Grade%209%20-%20July%202024%20-%20Revised.md",
+    "supporting_transcription_note": "Unverified third-party Markdown transcription of the KICD July 2024 edition, consulted for editorial scoping only. Not an official source artifact or authorized proof. No copyrighted passages are reproduced here.",
+    "units": [
+      {
+        "code": "1.1",
+        "strand": "Numbers",
+        "sub_strand": "Integers",
+        "source_printed_page": 1,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-1.1-a",
+            "paraphrased_learning_target": "Compute sums, differences, products and quotients of signed integers and explain the sign of each result.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.1-b",
+            "paraphrased_learning_target": "Evaluate expressions containing more than one integer operation in the correct sequence.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.1-c",
+            "paraphrased_learning_target": "Model and solve practical problems involving gains, losses, temperature changes or positions below zero.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.1-d",
+            "paraphrased_learning_target": "Explain when signed integers are useful for describing everyday quantities.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can signed integers represent changes and help us make calculations?",
+          "Where do negative values occur in familiar situations?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Pairs choose signed number cards and justify all four operations before comparing strategies.",
+          "Read thermometer changes that cross zero and write a number sentence explaining the movement.",
+          "Test the order of combined operations with a calculator after producing independent working."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Observe accurate integer operations, justified signs and an explanation of a real situation."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Learning to learn",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Respect",
+          "Unity"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Environmental education: measuring and interpreting temperature changes"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Use all four signed-number operations correctly",
+          "Follow order of operations in combined calculations",
+          "Interpret negative quantities in a real situation"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "1.2",
+        "strand": "Numbers",
+        "sub_strand": "Cubes and Cube Roots",
+        "source_printed_page": 3,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-1.2-a",
+            "paraphrased_learning_target": "Determine cubes of suitable numbers through repeated multiplication and relate the calculation to cubic volume.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.2-b",
+            "paraphrased_learning_target": "Find cube values accurately using mathematical tables.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.2-c",
+            "paraphrased_learning_target": "Obtain cube roots of perfect cubes through factor-based reasoning.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.2-d",
+            "paraphrased_learning_target": "Use mathematical tables to identify cube roots and check their relationship with cubes.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.2-e",
+            "paraphrased_learning_target": "Calculate cubes and cube roots with a calculator and check that the operation is appropriate.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.2-f",
+            "paraphrased_learning_target": "Use cubes or cube roots to resolve a practical measurement or volume question.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How are a number's cube and its cube root related, and when is each useful?",
+          "How can we find the edge of a cube from its volume?",
+          "Where can cubes and cube roots help us make decisions in everyday situations?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Construct cubic arrays with identical unit blocks and count the total units.",
+          "Use factor groupings to discover cube roots, explaining why factors occur in groups of three.",
+          "Compare independently found cube and cube-root results with printed tables and calculators.",
+          "Compare several cube-building methods with peers and explain how the side length determines the total unit cubes."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Check a written cubing method, factorised cube root, table reading and contextual volume result."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Creativity and imagination"
+        ],
+        "vibeschool_values": [
+          "Respect"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Environmental awareness: interpreting cubic objects in the surroundings"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Find cubes through multiplication",
+          "Use mathematical tables for cubes and cube roots",
+          "Use factors and a calculator to obtain and check cube roots",
+          "Apply cubes to a real volume or measurement problem"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "1.3",
+        "strand": "Numbers",
+        "sub_strand": "Indices and Logarithms",
+        "source_printed_page": 5,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-1.3-a",
+            "paraphrased_learning_target": "Represent repeated multiplication with a base and exponent, explaining what each symbol means.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.3-b",
+            "paraphrased_learning_target": "Investigate patterns that establish rules for multiplying and dividing powers with a common base.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.3-c",
+            "paraphrased_learning_target": "Simplify numerical expressions by applying the relevant index laws correctly.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.3-d",
+            "paraphrased_learning_target": "Link powers of ten to common logarithms as inverse descriptions of the same relationship.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.3-e",
+            "paraphrased_learning_target": "Give meaningful examples of where index notation or logarithms simplify a practical calculation.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "Why are powers useful for representing quantities, and how do logarithms relate to powers of ten?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Write a table of powers sharing one base, then infer multiplication and division rules.",
+          "Expand index notation before simplifying a multi-step index problem.",
+          "Match powers of ten with common-logarithm expressions using appropriate tables or technology."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess equivalent powers, correctly justified index-law steps and powers-of-ten/logarithm correspondence."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Self-efficacy"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Unity"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Self-awareness while reasoning and explaining index notation"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Interpret base and exponent",
+          "Derive and apply laws of indices",
+          "Relate powers of ten to common logarithms"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "1.4",
+        "strand": "Numbers",
+        "sub_strand": "Compound Proportions and Rates of Work",
+        "source_printed_page": 6,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-1.4-a",
+            "paraphrased_learning_target": "Divide a given amount into specified proportional shares and express each share clearly.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.4-b",
+            "paraphrased_learning_target": "Compare proportional quantities by forming and interpreting ratios.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.4-c",
+            "paraphrased_learning_target": "Solve compound-proportion questions using a clearly explained ratio method.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.4-d",
+            "paraphrased_learning_target": "Calculate how amounts of work, numbers of workers and completion times relate under stated assumptions.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-1.4-e",
+            "paraphrased_learning_target": "Explain why proportional reasoning and work-rate calculations support decisions in daily life.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How do changes in several quantities affect a proportional share or the time taken to finish a task?",
+          "When does adding workers reduce the amount of time needed for the same task?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Share paper counters or hypothetical school resources in a given ratio and express each part as a fraction.",
+          "Create a ratio table where two quantities vary together, including compound cases.",
+          "Compare predicted task completion times under clearly stated equal-work-rate assumptions."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Check each proportion and unit, explanations of direct or inverse relationships and reasonableness of work-rate answers."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Citizenship",
+          "Critical thinking and problem-solving"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Respect"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Self-esteem through independent proportional reasoning"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Divide a quantity into proportional parts",
+          "Solve a compound proportion with ratios",
+          "Calculate and interpret rates of work"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "2.1",
+        "strand": "Algebra",
+        "sub_strand": "Matrices",
+        "source_printed_page": 10,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-2.1-a",
+            "paraphrased_learning_target": "Recognise an arrangement of entries in rows and columns as a matrix.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.1-b",
+            "paraphrased_learning_target": "Describe a matrix by its number of rows and columns.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.1-c",
+            "paraphrased_learning_target": "Locate and identify an element by its row and column position.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.1-d",
+            "paraphrased_learning_target": "Determine whether two matrices have compatible orders for addition or subtraction.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.1-e",
+            "paraphrased_learning_target": "Add or subtract matrices of the same order entry by entry with a meaningful context.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.1-f",
+            "paraphrased_learning_target": "Explain how a matrix can organise real-world information.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How does a rectangular arrangement of information help us compare or combine data?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Translate a simple sports-results table into a matrix and record its order.",
+          "Identify specific entries using their row and column positions.",
+          "Decide whether two matrices can be added or subtracted before combining corresponding entries."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess matrix order, item position, matching dimensions and each calculated entry."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Learning to learn"
+        ],
+        "vibeschool_values": [
+          "Integrity"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Social and economic awareness in tabular data",
+          "Citizenship: interpreting travel schedules"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Identify a matrix and its order",
+          "Locate an element by row and column",
+          "Check compatible orders and calculate matrix sums and differences"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "2.2",
+        "strand": "Algebra",
+        "sub_strand": "Equation of a Straight Line",
+        "source_printed_page": 12,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-2.2-a",
+            "paraphrased_learning_target": "Identify gradient as a measure of steepness in examples from the surroundings.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.2-b",
+            "paraphrased_learning_target": "Calculate gradient from coordinates of two distinct points.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.2-c",
+            "paraphrased_learning_target": "Form the equation of a straight line from two given points.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.2-d",
+            "paraphrased_learning_target": "Form a straight-line equation using a point and a known gradient.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.2-e",
+            "paraphrased_learning_target": "Rearrange a linear equation to identify its gradient and intercept in y = mx + c form.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.2-f",
+            "paraphrased_learning_target": "Interpret the meaning of m, c and the variables in a straight-line model.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.2-g",
+            "paraphrased_learning_target": "Find the horizontal and vertical axis intercepts of a straight line.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 7,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.2-h",
+            "paraphrased_learning_target": "Explain a practical situation represented by a straight-line equation.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 8,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can a straight-line equation describe steepness and position on a graph?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Compare steepness in safe observations of ramps and stairs, without positioning or climbing an unsecured ladder.",
+          "Calculate gradients from two plotted points, then reconstruct the line equation.",
+          "Find intercepts from both equation and graph, explaining the meaning of each constant."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess gradients, equations from both required forms, m/c interpretation and correct x-/y-intercepts."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Digital literacy",
+          "Learning to learn"
+        ],
+        "vibeschool_values": [
+          "Integrity"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Safety in observing slopes and gradient in the built environment"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Calculate gradient from points",
+          "Find equations from two points or a gradient and point",
+          "Interpret slope/intercept form and axis intercepts"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "2.3",
+        "strand": "Algebra",
+        "sub_strand": "Linear Inequalities",
+        "source_printed_page": 14,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-2.3-a",
+            "paraphrased_learning_target": "Solve a linear inequality containing one unknown and interpret the valid values.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.3-b",
+            "paraphrased_learning_target": "Represent a one-variable inequality on a number line or suitable graph.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.3-c",
+            "paraphrased_learning_target": "Draw the boundary and solution region for a linear inequality in two variables.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.3-d",
+            "paraphrased_learning_target": "Model a practical lower or upper limit with an inequality and check possible solutions.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-2.3-e",
+            "paraphrased_learning_target": "Explain how inequalities help describe real-world constraints.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can a graph show every value that satisfies a restriction?",
+          "How can we test whether a plotted point satisfies an inequality?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Describe a lower or upper purchasing limit as a one-variable inequality.",
+          "Represent the inequality on a number line and test a value on each side of its boundary.",
+          "Draw and shade the valid region of a two-variable inequality by checking sample points."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Look for correctly transformed inequalities, open/closed boundaries and correctly shaded feasible regions."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Digital literacy",
+          "Communication and collaboration"
+        ],
+        "vibeschool_values": [
+          "Social justice"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Citizenship in fair and feasible resource allocation"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Solve a linear inequality in one unknown",
+          "Graph solution regions for inequalities in one and two unknowns",
+          "Apply feasible ranges to a practical limit"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "3.1",
+        "strand": "Measurements",
+        "sub_strand": "Area",
+        "source_printed_page": 18,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-3.1-a",
+            "paraphrased_learning_target": "Determine the area of pentagonal and hexagonal plane figures by appropriate decomposition.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.1-b",
+            "paraphrased_learning_target": "Find the surface areas of triangular and rectangular-based prisms.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.1-c",
+            "paraphrased_learning_target": "Calculate surface area of pyramids with triangular, rectangular or square bases.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.1-d",
+            "paraphrased_learning_target": "Determine areas of circular sectors and circular segments using the stated dimensions.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.1-e",
+            "paraphrased_learning_target": "Work out curved and total surface areas of cones where relevant.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.1-f",
+            "paraphrased_learning_target": "Calculate the surface area of a sphere using its radius or diameter.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.1-g",
+            "paraphrased_learning_target": "Relate area calculations to real objects and explain the units used.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 7,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can flat shapes and nets help calculate areas of complex objects?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Divide paper pentagons and hexagons into triangles to calculate total area.",
+          "Unfold or draw nets of prism, pyramid and cone models and label the faces.",
+          "Mark sectors and segments on drawn circles and compare their areas; use radius to estimate sphere area.",
+          "Study repeating local fabric or building patterns and connect observed polygon shapes to area calculations."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess correct decomposition, units, and surface-area or sector formula selection."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Creativity and imagination"
+        ],
+        "vibeschool_values": [
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Patriotism through local mathematical patterns and careful collection of models"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Calculate polygon and circular-part areas",
+          "Calculate surface areas of the specified prisms, pyramids, cones and spheres",
+          "Use correct squared units and well-labelled nets"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "3.2",
+        "strand": "Measurements",
+        "sub_strand": "Volume of Solids",
+        "source_printed_page": 21,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-3.2-a",
+            "paraphrased_learning_target": "Calculate the volume of prisms with triangular or rectangular bases.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.2-b",
+            "paraphrased_learning_target": "Determine the volume of pyramids having triangular, rectangular or square bases.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.2-c",
+            "paraphrased_learning_target": "Use dimensions to calculate the volume of a cone in an everyday setting.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.2-d",
+            "paraphrased_learning_target": "Work out the volume of a frustum by comparing or subtracting appropriate solids.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.2-e",
+            "paraphrased_learning_target": "Calculate the volume of spherical objects with correct cubic units.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.2-f",
+            "paraphrased_learning_target": "Describe a situation where solid volume or capacity matters.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can the shape and dimensions of a solid determine its volume?",
+          "How can cutting or combining solids help establish a volume?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Measure model prism and pyramid dimensions to compare volume formulas.",
+          "Separate a model of a truncated pyramid into a smaller pyramid and frustum to reason about the remaining volume.",
+          "Compare spherical and conical containers by calculating volumes with appropriate units."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess diagrams, substitution into correct solid-volume formulas and contextual interpretation."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Creativity and imagination"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Patriotism"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Environmental education when collecting models",
+          "Safety when handling physical objects"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Calculate volumes of prisms, pyramids, cones, frustums and spheres",
+          "Explain volume relationships through models",
+          "Use correct cubic units and practical contexts"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "3.3",
+        "strand": "Measurements",
+        "sub_strand": "Mass, Volume, Weight and Density",
+        "source_printed_page": 23,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-3.3-a",
+            "paraphrased_learning_target": "Convert accurately among commonly used units of mass.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.3-b",
+            "paraphrased_learning_target": "Differentiate mass from weight and describe how they are related.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.3-c",
+            "paraphrased_learning_target": "Use measurements of mass and volume to determine a material's density.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.3-d",
+            "paraphrased_learning_target": "Apply density calculations to a practical comparison of substances.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.3-e",
+            "paraphrased_learning_target": "Explain why density is relevant in daily activities.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "Why may equal-sized objects have different masses, and how can density help explain this?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Collect masses using a calibrated classroom scale and convert between units.",
+          "Compare mass and weight conceptually with real objects and familiar contexts.",
+          "Use measured mass and volume values to determine and interpret density."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Check unit conversions, density = mass/volume reasoning, and distinction between mass and weight."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Creativity and imagination",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Integrity",
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Sustainable careers involving weighing",
+          "Self-awareness in measurement"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Convert mass units",
+          "Distinguish mass and weight",
+          "Calculate and interpret density"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "3.4",
+        "strand": "Measurements",
+        "sub_strand": "Time, Distance and Speed",
+        "source_printed_page": 25,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-3.4-a",
+            "paraphrased_learning_target": "Find speed using distance and time and express it in kilometres per hour or metres per second.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.4-b",
+            "paraphrased_learning_target": "Calculate average speed for a journey or timed activity.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.4-c",
+            "paraphrased_learning_target": "Distinguish velocity from speed by including direction where appropriate.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.4-d",
+            "paraphrased_learning_target": "Determine acceleration from a change in velocity over time.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.4-e",
+            "paraphrased_learning_target": "Identify and locate lines of longitude on a globe or map.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.4-f",
+            "paraphrased_learning_target": "Relate longitude differences to differences in local time.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.4-g",
+            "paraphrased_learning_target": "Calculate the local time of places whose longitudes are supplied.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 7,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.4-h",
+            "paraphrased_learning_target": "Explain how time and distance measurements support everyday tasks.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 8,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can movement be described mathematically, and why does local time change with longitude?",
+          "How does direction affect the description of a moving object?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Record a safe timed walking distance, then find speed and average speed.",
+          "Distinguish directed velocity from scalar speed and infer acceleration from change over time.",
+          "Use a globe and longitudes to work out local time differences and compare with mapped cities."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Check speed, average-speed, velocity and acceleration distinctions, unit conversion and longitude/time arithmetic."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Self-efficacy",
+          "Digital literacy",
+          "Citizenship"
+        ],
+        "vibeschool_values": [
+          "Integrity",
+          "Respect"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Safety in movement activities",
+          "Sustainable development and sporting careers",
+          "Self-awareness in timed activities"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Calculate speed, average speed, velocity and acceleration",
+          "Convert motion units correctly",
+          "Calculate longitude-related local times"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "3.5",
+        "strand": "Measurements",
+        "sub_strand": "Money",
+        "source_printed_page": 27,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-3.5-a",
+            "paraphrased_learning_target": "Recognise and identify the currencies used by selected countries.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.5-b",
+            "paraphrased_learning_target": "Convert between currencies using a supplied exchange rate.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.5-c",
+            "paraphrased_learning_target": "Calculate export duty on goods from a stated customs scenario and rate.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.5-d",
+            "paraphrased_learning_target": "Calculate import duty from given customs value and duty rate.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.5-e",
+            "paraphrased_learning_target": "Determine excise duty for goods or services using supplied rules.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.5-f",
+            "paraphrased_learning_target": "Calculate value-added tax for taxable goods or services using a specified rate.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.5-g",
+            "paraphrased_learning_target": "Explain how currency exchange and taxes affect everyday purchases or trade.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 7,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "Why do people exchange currencies, and how are taxes on goods determined?",
+          "Which values and rates are needed before estimating a tax or import duty?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Compare historical or explicitly dated currency quotations from credible sources.",
+          "Convert a specified Kenyan-shilling amount to another currency and reverse the calculation.",
+          "Use hypothetical customs invoices and receipts to calculate each duty and VAT separately.",
+          "Check two independently sourced exchange-rate examples and discuss why the rates must carry a date."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess correct exchange direction, labelled currency units and separately calculated duty/tax values; do not claim sample rates are current."
+        ],
+        "core_competency_focus": "financial literacy and digital literacy",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Global citizenship",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Integrity",
+          "Social cohesion"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Financial literacy in currencies and taxation",
+          "Sustainable careers in import, export and trade"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Identify foreign currencies and convert at supplied rates",
+          "Calculate import, export, excise duty and VAT",
+          "Interpret an invoice or receipt without assuming current rates"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "3.6",
+        "strand": "Measurements",
+        "sub_strand": "Approximations and Errors",
+        "source_printed_page": 29,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-3.6-a",
+            "paraphrased_learning_target": "Estimate measurable quantities, choosing a suitable level of precision.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.6-b",
+            "paraphrased_learning_target": "Compare estimated values with measured values to determine absolute differences.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.6-c",
+            "paraphrased_learning_target": "Calculate the percentage error using the actual measurement as the reference value.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-3.6-d",
+            "paraphrased_learning_target": "Explain how checking measurement error supports sound practical decisions.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can a measured value help us judge the accuracy of an estimate?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Estimate a set of lengths or masses before obtaining actual instrument readings.",
+          "Record absolute differences between estimated and measured results.",
+          "Calculate percent error and discuss when rounding or imprecision changes a decision."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess the actual/estimated values, absolute-error working, reference denominator and percentage representation."
+        ],
+        "core_competency_focus": "mathematical reasoning, collaboration and practical problem-solving",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Creativity and imagination",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Integrity",
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Safety when using measuring instruments"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Approximate quantities",
+          "Compute measurement error and percentage error",
+          "Check reliability and precision of a result"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "4.1",
+        "strand": "Geometry",
+        "sub_strand": "Coordinates and Graphs",
+        "source_printed_page": 34,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-4.1-a",
+            "paraphrased_learning_target": "Locate ordered pairs and plot points accurately on Cartesian axes.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.1-b",
+            "paraphrased_learning_target": "Produce the graph of a straight line from a supplied linear equation.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.1-c",
+            "paraphrased_learning_target": "Construct parallel straight lines on a coordinate plane.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.1-d",
+            "paraphrased_learning_target": "Compare gradients to establish when non-vertical lines are parallel.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.1-e",
+            "paraphrased_learning_target": "Construct perpendicular straight lines on the coordinate plane.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.1-f",
+            "paraphrased_learning_target": "Determine how gradients of non-vertical, non-horizontal perpendicular lines are related, including relevant special cases.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.1-g",
+            "paraphrased_learning_target": "Interpret a straight-line graph in a practical setting.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 7,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How do positions and gradients on coordinate axes describe lines and their relationships?",
+          "What can we learn from interpreting a straight-line graph in a practical situation?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Plot coordinate pairs from a table of values, then draw the matching straight line.",
+          "Construct line pairs with equal gradients and explain their parallelism.",
+          "Construct perpendicular lines and test their gradient relationships on graph paper.",
+          "Use a table of values from a simple practical model to interpret intercepts and changes on a plotted straight line."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess plotting, graph scales, gradient comparisons and explanation of parallel/perpendicular relationships."
+        ],
+        "core_competency_focus": "problem solving, communication and spatial reasoning",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Critical thinking and problem-solving"
+        ],
+        "vibeschool_values": [
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Sustainable development through interpretation of coordinate graphs",
+          "Safety when handling graphing tools"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Plot points and straight-line graphs",
+          "Relate gradients of parallel lines",
+          "Relate gradients of perpendicular lines",
+          "Interpret the meaning of a graph"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "4.2",
+        "strand": "Geometry",
+        "sub_strand": "Scale Drawing",
+        "source_printed_page": 36,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-4.2-a",
+            "paraphrased_learning_target": "Identify compass directions and distinguish compass from true bearings.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.2-b",
+            "paraphrased_learning_target": "Determine the bearing of one point from another.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.2-c",
+            "paraphrased_learning_target": "Locate a destination using a specified distance and bearing.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.2-d",
+            "paraphrased_learning_target": "Recognise an angle of elevation in a real-world diagram.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.2-e",
+            "paraphrased_learning_target": "Determine an angle of elevation from a measured or drawn situation.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.2-f",
+            "paraphrased_learning_target": "Recognise angles of depression from a horizontal line of sight.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.2-g",
+            "paraphrased_learning_target": "Find angles of depression in diagrams or practical situations.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 7,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.2-h",
+            "paraphrased_learning_target": "Use a suitable scale drawing in a simple survey of positions or distances.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 8,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.2-i",
+            "paraphrased_learning_target": "Describe applications of scale drawing to real directions or measurements.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 9,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can drawings with scale, distance and bearings help locate objects?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Sketch a compass rose and label the clockwise three-figure bearings of objects.",
+          "Create a scaled map showing locations from a known position using distances and bearings.",
+          "Draw horizontal sightlines for angles of elevation and depression and model a simple survey."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess scale consistency, bearings measured clockwise from north, sightline angles and a correctly labelled survey drawing."
+        ],
+        "core_competency_focus": "problem solving, communication and spatial reasoning",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Creativity and imagination",
+          "Citizenship"
+        ],
+        "vibeschool_values": [
+          "Unity",
+          "Social cohesion"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Career awareness in surveying and scale drawing"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Use compass and true bearings and accurate three-figure bearings",
+          "Locate points from bearing and distance",
+          "Determine angles of elevation and depression",
+          "Use scale drawings in a simple survey"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "4.3",
+        "strand": "Geometry",
+        "sub_strand": "Similarity and Enlargement",
+        "source_printed_page": 38,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-4.3-a",
+            "paraphrased_learning_target": "Recognise similar figures and explain their matching-angle and proportional-side properties.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.3-b",
+            "paraphrased_learning_target": "Construct or draw pairs of similar figures accurately.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.3-c",
+            "paraphrased_learning_target": "Describe what remains unchanged and what changes during enlargement.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.3-d",
+            "paraphrased_learning_target": "Enlarge or reduce a plane figure using the properties of enlargement.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.3-e",
+            "paraphrased_learning_target": "Find the linear scale factor between corresponding lengths of similar figures.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.3-f",
+            "paraphrased_learning_target": "Identify practical uses of scale drawings, similarity and enlargement.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can two figures have the same shape but different sizes?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Sort diagrams by similarity and compare the ratios of corresponding side lengths.",
+          "Enlarge a figure on squared paper using a stated linear scale factor.",
+          "Repeat enlargement in a digital drawing tool and verify matching angles."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess proportional lengths, scale-factor calculations and accurate enlarged figures."
+        ],
+        "core_competency_focus": "problem solving, communication and spatial reasoning",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Social cohesion"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Environmental education through relevant physical models"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Identify and draw similar figures",
+          "Construct enlargements with correct properties",
+          "Find and apply linear scale factors"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "4.4",
+        "strand": "Geometry",
+        "sub_strand": "Trigonometry",
+        "source_printed_page": 40,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-4.4-a",
+            "paraphrased_learning_target": "Identify the angles, hypotenuse and other sides of right-angled triangles.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.4-b",
+            "paraphrased_learning_target": "Express sine, cosine and tangent for an acute angle as appropriate side ratios.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.4-c",
+            "paraphrased_learning_target": "Read trigonometric ratio values for acute angles from mathematical tables.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.4-d",
+            "paraphrased_learning_target": "Find sine, cosine and tangent values using a calculator correctly set to the required angle unit.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.4-e",
+            "paraphrased_learning_target": "Determine unknown sides or angles in a right triangle using trigonometric ratios.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-4.4-f",
+            "paraphrased_learning_target": "Describe uses of right-triangle trigonometry for measurement problems.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How do changes in a right-triangle angle affect the ratios of its sides?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Mark acute angles, opposite and adjacent sides, and hypotenuse on several right triangles.",
+          "Calculate sine, cosine and tangent ratios from measured sides.",
+          "Use printed tables or a calculator in degree mode to solve missing-side and missing-angle questions."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess correct opposite/adjacent/hypotenuse identification, ratio choice and credible side/angle results."
+        ],
+        "core_competency_focus": "problem solving, communication and spatial reasoning",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Critical thinking and problem-solving",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Responsibility"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Safety when using devices and drawing apparatus"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Identify right-triangle sides and angles",
+          "Use sine, cosine and tangent as side ratios",
+          "Find trigonometric ratios from tables or calculators",
+          "Calculate unknown sides and acute angles"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "5.1",
+        "strand": "Data Handling and Probability",
+        "sub_strand": "Data Interpretation (Grouped Data)",
+        "source_printed_page": 45,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-5.1-a",
+            "paraphrased_learning_target": "Choose a sensible class width when organising a numerical data set.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.1-b",
+            "paraphrased_learning_target": "Create a grouped frequency distribution from collected data.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.1-c",
+            "paraphrased_learning_target": "Identify the class interval having the greatest frequency.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.1-d",
+            "paraphrased_learning_target": "Calculate or estimate a mean from grouped data using suitable class values.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.1-e",
+            "paraphrased_learning_target": "Determine the median or median class from a grouped distribution using an appropriate method.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.1-f",
+            "paraphrased_learning_target": "Explain a conclusion drawn from grouped data in an everyday situation.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can grouping observations help reveal the centre and pattern of data?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Collect non-sensitive numerical observations, select suitable equal class widths and tally the values.",
+          "Identify modal class, grouped mean and the position of the median from a completed frequency table.",
+          "Compare group summaries and explain why a grouped result may be an estimate."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess class boundaries, totals, modal class and the choice and interpretation of grouped mean/median."
+        ],
+        "core_competency_focus": "critical thinking, data literacy and collaboration",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Learning to learn",
+          "Critical thinking and problem-solving",
+          "Digital literacy"
+        ],
+        "vibeschool_values": [
+          "Respect"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Citizenship through collecting and interpreting community data"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Choose class widths and construct grouped frequency tables",
+          "Identify modal class",
+          "Calculate grouped mean and median appropriately"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      },
+      {
+        "code": "5.2",
+        "strand": "Data Handling and Probability",
+        "sub_strand": "Probability",
+        "source_printed_page": 47,
+        "manuscript_outcomes": [
+          {
+            "manuscript_alias": "VS-G09-MA-5.2-a",
+            "paraphrased_learning_target": "Carry out a chance experiment in which basic outcomes are equally likely.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 1,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.2-b",
+            "paraphrased_learning_target": "Explain and calculate probability values within the interval from zero to one.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 2,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.2-c",
+            "paraphrased_learning_target": "Recognise when two events cannot both occur in a single trial.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 3,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.2-d",
+            "paraphrased_learning_target": "Run or model single-trial chance experiments involving mutually exclusive outcomes.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 4,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.2-e",
+            "paraphrased_learning_target": "Investigate events in which one trial does not influence the probability of another.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 5,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.2-f",
+            "paraphrased_learning_target": "Use a tree diagram to display possible branches of a simple chance process.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 6,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          },
+          {
+            "manuscript_alias": "VS-G09-MA-5.2-g",
+            "paraphrased_learning_target": "Explain how probability reasoning can inform non-gambling everyday decisions.",
+            "canonical_outcome_id": null,
+            "source_outcome_ordinal": 7,
+            "source_verification": "AWAITING_OFFICIAL_ARTIFACT_AND_OWNER_PROMOTION"
+          }
+        ],
+        "vibeschool_inquiry_questions": [
+          "How can experiments and diagrams help us reason about the likelihood of events?"
+        ],
+        "vibeschool_suggested_learning_experiences": [
+          "Run repeated coin, die or counter experiments and compare frequencies with theoretical probabilities.",
+          "List mutually exclusive outcomes for one trial and independently repeated trials for another.",
+          "Draw and label the branches of a probability tree for a simple chance experiment.",
+          "Compare independent and mutually exclusive event models using a non-monetary chance experiment."
+        ],
+        "vibeschool_assessment_evidence": [
+          "Assess probabilities in [0,1], clear event distinctions and correctly labelled probability trees."
+        ],
+        "core_competency_focus": "critical thinking, data literacy and collaboration",
+        "editorial_status": "CANDIDATE_ONLY_UNVERIFIED",
+        "source_review_requirement": "Compare all paraphrased targets with official PDF text and section/page references before any canonical promotion.",
+        "experience_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "inquiry_wording_status": "VIBESCHOOL_ORIGINAL_DRAFT",
+        "vibeschool_competencies": [
+          "Communication and collaboration",
+          "Critical thinking and problem-solving",
+          "Self-efficacy"
+        ],
+        "vibeschool_values": [
+          "Responsibility",
+          "Social cohesion"
+        ],
+        "vibeschool_pertinent_contemporary_issues": [
+          "Financial literacy through responsible probability reasoning without gambling"
+        ],
+        "vibeschool_assessment_dimensions": [
+          "Model equally likely chance outcomes",
+          "Place valid probabilities between zero and one",
+          "Differentiate mutually exclusive and independent events",
+          "Use a labelled tree diagram"
+        ],
+        "source_dimensions_edition": "July 2024 revised, third-party transcription (independent official PDF authentication required)",
+        "source_verification_status": "EDITORIAL_REVIEW_NOT_OFFICIAL_PDF_VERIFIED"
+      }
+    ],
+    "total_candidate_learning_targets": 117,
+    "canonical_live_outcomes_at_review": 0,
+    "authority_state": "BLOCKED_CURRICULUM_RECONCILIATION",
+    "certification_state": "NOT_CERTIFIED",
+    "publication_state": "NOT_RELEASED",
+    "critical_note": "These are VibeSchool ORIGINAL editorial paraphrases, not official KICD exact wording and not verified curriculum_learning_outcomes. No IDs in this manifest should be mistaken for database UUIDs. Do not map, import, publish or promote until the registered July 2024 source artifact, observations, reconciliations and owner approval are completed in existing curriculum_authority workflow.",
+    "known_source_ambiguities": [
+      {
+        "code": "1.2",
+        "source_page": 3,
+        "issue": "July design summary suggests 6 lessons, while detailed sub-strand lists 5",
+        "status": "OPEN"
+      },
+      {
+        "code": "1.3",
+        "source_page": 5,
+        "issue": "July design summary suggests 8 lessons, while detailed sub-strand lists 6",
+        "status": "OPEN"
+      },
+      {
+        "code": "1.4",
+        "source_page": 6,
+        "issue": "July design summary suggests 9 lessons, while detailed sub-strand lists 12",
+        "status": "OPEN"
+      },
+      {
+        "code": "5.2",
+        "source_page": 47,
+        "issue": "Source outcomes describe mutually exclusive events while one suggested experience says mutually inclusive events; adjudicate with official PDF",
+        "status": "OPEN"
+      },
+      {
+        "code": "2.2",
+        "source_page": 12,
+        "issue": "Official title on detailed page varies from summary form (Equations of Straight Lines versus Equation of a Straight Line); retain canonical summary label pending authority match.",
+        "status": "OPEN"
+      }
+    ],
+    "total_original_learning_experiences": 62,
+    "total_original_inquiry_questions": 28,
+    "source_dimensions": "Crosswalk drafted against July 2024 secondary transcription; original KICD Drive PDF not authenticated in live curriculum-authority intake. The skills/values/PCIs/assessment dimensions are VibeSchool-original concise educational paraphrases, not full publisher text or verified claims."
+  }
 }
