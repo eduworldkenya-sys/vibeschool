@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, ArrowRight, BookOpenCheck, BrainCircuit, CalendarDays, CheckCircle2, ChevronRight, Clock3, Layers3, Lightbulb, RefreshCcw, RotateCcw, Sparkles, Target, X } from 'lucide-react'
 import { useStudent } from '@/lib/student-context'
 import { useLearningFeedback } from '@/components/learn/LearningFeedback'
@@ -27,6 +27,8 @@ function dateDue(date:string) {return new Date(date).getTime()<=Date.now()}
 function prettyDate(date:string) {return dayTitle(date)}
 export default function RevisionStudioPage() {
   const router=useRouter()
+  const searchParams=useSearchParams()
+  const requestedSubject=searchParams.get('subject')?.trim()??''
   const {identity,loading:identityLoading}=useStudent()
   const {play}=useLearningFeedback()
   const [workspace,setWorkspace]=useState<RevisionWorkspace|null>(null)
@@ -53,6 +55,7 @@ export default function RevisionStudioPage() {
   const verified=useMemo(()=> (workspace?.mistakes??[]).filter(m=>isCurrentGradeMistake(m,identity?.className)),[workspace,identity?.className])
   const memoryById=useMemo(()=>new Map(memory.map(m=>[m.mistakeId,m])),[memory])
   const subjects=useMemo(()=>['All subjects',...Array.from(new Set(verified.map(m=>m.subject)))],[verified])
+  useEffect(()=>{const match=subjects.find(s=>s.toLowerCase()===requestedSubject.toLowerCase());if(match)setSubject(match)},[requestedSubject,subjects])
   const filtered=useMemo(()=>verified.filter(m=>subject==='All subjects'||m.subject===subject).sort((a,b)=>{
     const ad=memoryById.get(a.id)?.nextReviewAt
     const bd=memoryById.get(b.id)?.nextReviewAt

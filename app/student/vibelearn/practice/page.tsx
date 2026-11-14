@@ -232,7 +232,7 @@ export default function VibeLearnPracticePage() {
                 {active ? 'Resume practice' : item.attemptId ? 'Try another attempt' : 'Start practice'}
               </button>
               {resultReady && item.attemptId && <button type="button" style={secondaryButton}
-                onClick={() => router.push(`/student/results/${encodeURIComponent(item.attemptId as string)}`)}>Review result</button>}
+                onClick={() => router.push(`/student/results/${encodeURIComponent(item.attemptId as string)}?from=practice`)}>Review result</button>}
             </div>
           </article>
         })}

@@ -23,7 +23,8 @@ function activeTab(path: string): TabId | null {
   if (path.startsWith("/student/exercises") || path.startsWith("/student/projects")) return "tasks"
   if (path.startsWith("/student/twin")) return "learn"
   if (path.startsWith("/learn") || path.startsWith("/student/study") || path.startsWith("/student/vibelearn") || path.startsWith("/student/learn") || path.startsWith("/student/lesson") || path.startsWith("/student/resources")) return "learn"
-  if (path.startsWith("/student/tasks") || path.startsWith("/student/homework") || path.startsWith("/student/assessment")) return "tasks"
+  if (path.startsWith("/student/assessment")) return null // Shared exam/practice assessment is not a Tasks destination.
+  if (path.startsWith("/student/tasks") || path.startsWith("/student/homework")) return "tasks"
   if (path.startsWith("/student/marks") || path.startsWith("/student/results")) return "results"
   return "home"
 }
