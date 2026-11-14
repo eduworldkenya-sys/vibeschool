@@ -1,5 +1,10 @@
 # VibeSchool Curriculum Content Production Standard — Grades 1–9
 
+## Owner operating instruction — no manual HQ content administration (14 November 2026)
+
+For Grades 1–9 and separately sourced legacy Forms 1–4, apply the same outcome-led educational and answer-quality principles. ChatGPT prepares each outcome package, checks libraries and curriculum evidence, and runs available authorised publishing/testing operations without making the owner repeat HQ entry tasks. Continue to require subject-appropriate verification, specialist or independent review where needed, source-rights checks, secure publishing, and evidence of actual learner delivery. Do not substitute a fast template for clear explanations, reasoned mathematics steps, meaningful activities, accurate diagrams or answer rationales. Production states stay separated: mapped, drafted, checked, certified, published, tested. Operational diagram: [ChatGPT-operated Content Factory](./CHATGPT_OPERATED_FACTORY.md).
+
+
 **START HERE FOR ALL CONTENT GENERATION:** [Single Canonical Content Generation Playbook](./CONTENT_GENERATION.md) is the sole day-to-day work sequence. This file remains the deeper educational and subject-quality reference; it does not define an independent second production process. Preserve its detailed outcome standards and mathematics/visual contracts. Repository governance and authoritative curriculum evidence still outrank editorial instructions.
 
 **Policy version:** 1.3
