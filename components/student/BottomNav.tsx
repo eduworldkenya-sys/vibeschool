@@ -34,6 +34,7 @@ function activeSection(path: string): string {
   if (path.startsWith("/student/marks") || path.startsWith("/student/results")) return "Progress";
   // Formal exams keep their own owner and cannot appear as Topic Practice.
   if (path.startsWith("/student/vibelearn/exams")) return "";
+  if (path.startsWith("/student/assessment/")) return "";
   return "";
 }
 
