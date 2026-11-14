@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import styles from './pendulum-studio.module.css'
+import DiscoveryInvitation, {recordMarketingGameCompletion} from '../../components/games/DiscoveryInvitation'
 import SphereSurface from './SphereSurface'
 import { useShowDirector, DirectorControls, DirectorStageEffects, focalStyle } from '../../components/games/ShowDirector'
 
@@ -162,7 +163,7 @@ export default function VibeSphereStudio(){
    if(setup.sound && t<.72 && Math.floor(t*18)!==Math.floor(((now-began-16)/duration)*18)&&Math.floor(t*18)%3===0)tone(220+Math.floor(t*10)*22,setup.volume,.04)
    if(t<1){frameRef.current=requestAnimationFrame(tick);return}
    frameRef.current=null
-   setRotation(destination);setWinner(target);setStagePhase('reveal')
+   setRotation(destination);setWinner(target);setStagePhase('reveal');recordMarketingGameCompletion()
    if(setup.sound){tone(740,setup.volume,.3);window.setTimeout(()=>tone(980,setup.volume,.35),130)}
    setHistory(h=>[{title:setup.title,winner:setup[target].name.replace(/\s+/g,' '),time:new Date().toLocaleString()},...h].slice(0,20))
   }
@@ -386,4 +387,5 @@ export default function VibeSphereStudio(){
    {!showMode&&<footer className={styles.footer}>VIBESPHERE · A VIBESCHOOL ORIGINAL <span>For entertainment. A random sphere result is not a sports forecast, poll or endorsement.</span></footer>}
   </div>
  </main>
+  <DiscoveryInvitation/>
 }
