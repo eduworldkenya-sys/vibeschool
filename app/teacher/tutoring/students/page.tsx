@@ -5,9 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { BookOpen, CalendarDays, ChevronDown, MessageCircle, UserPlus, Users } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 import PrivateTuitionTools from "@/components/vibetutor/PrivateTuitionTools";
+import PrivateTutorTasks from "@/components/vibetutor/PrivateTutorTasks";
+import PrivateTutorGroups from "@/components/vibetutor/PrivateTutorGroups";
 
 type Invite = { id: string; token: string | null; student: string | null; status: string; created_at: string };
-type StudentTool = "lessons" | "messages";
+type StudentTool = "lessons" | "messages" | "tasks";
 const card: React.CSSProperties = { background: "var(--teacher-surface, #fff)", border: "1px solid var(--teacher-border, #dfe5de)", borderRadius: 16, padding: 16 };
 const action: React.CSSProperties = { minHeight: 44, padding: "10px 14px", border: 0, borderRadius: 11, background: "#087451", color: "#fff", fontWeight: 700, cursor: "pointer" };
 const muted = { color: "var(--teacher-muted, #536159)", fontSize: 13 };
@@ -33,7 +35,7 @@ export default function TuitionStudents() {
     if (rpcError) { setError("Could not load tuition students. Please try again."); setState("error"); return; }
     const invites = (data ?? []) as Invite[];
     setRows(invites);
-    if ((requestedTool === "lessons" || requestedTool === "messages") && invites.some(row => row.status === "accepted")) {
+    if ((requestedTool === "lessons" || requestedTool === "messages" || requestedTool === "tasks") && invites.some(row => row.status === "accepted")) {
       setExpanded(current => current ?? { id: invites.find(row => row.status === "accepted")!.id, tool: requestedTool });
     }
     setError("");
@@ -45,7 +47,7 @@ export default function TuitionStudents() {
     setBusy(true); setError("");
     const { error: rpcError } = await getSupabaseClient().rpc("vibetutor_create_student_invite");
     setBusy(false);
-    if (rpcError) { setError("Could not create invitation. Check your tutor listing."); return; }
+    if (rpcError) { setError("Could not create invitation. Check your teacher account."); return; }
     setNotice("Invitation created. Share the link privately.");
     await load();
   }
@@ -100,6 +102,7 @@ export default function TuitionStudents() {
     {state === "loading" && <p role="status">Loading tuition students…</p>}
     {state === "error" && <button type="button" onClick={() => void load()} style={action}>Retry</button>}
     {state === "ready" && <>
+      <PrivateTutorGroups learners={rows} />
       <section aria-label="Connected learners" style={{ display: "grid", gap: 10 }}>
         <h2 style={{ fontSize: 17, margin: "3px 0" }}><Users size={18} aria-hidden="true" style={{ verticalAlign: "middle", marginRight: 8 }} />My students {active.length > 0 ? `(${active.length})` : ""}</h2>
         {active.length === 0 && <div style={card}><p style={{ ...muted, margin: 0 }}>No connected learners yet. Use Invite student to get started.</p></div>}
@@ -110,7 +113,7 @@ export default function TuitionStudents() {
             <span style={{ background: "#e9f4ee", color: "#087451", padding: "5px 9px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>Active</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 170px), 1fr))", gap: 9, marginTop: 14 }}>
-            {([["lessons", "Lessons", CalendarDays, "Schedule and view"], ["messages", "Messages", MessageCircle, "Private conversation"]] as const).map(([tool, label, Icon, detail]) => {
+            {([["lessons", "Lessons", CalendarDays, "Schedule and view"], ["messages", "Messages", MessageCircle, "Private conversation"], ["tasks", "Tasks & feedback", BookOpen, "Assign and review work"]] as const).map(([tool, label, Icon, detail]) => {
               const open = expanded?.id === row.id && expanded.tool === tool;
               return <button key={tool} type="button" aria-expanded={open} onClick={() => toggle(row.id, tool)} style={{ border: open ? "2px solid #087451" : "1px solid #dfe5de", borderRadius: 12, padding: 13, background: open ? "#edf7f1" : "#f8faf8", color: "#17251c", textAlign: "left", cursor: "pointer", minHeight: 82 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Icon size={18} color="#087451" aria-hidden="true" /><strong>{label}</strong><ChevronDown size={16} aria-hidden="true" style={{ marginLeft: "auto", transform: open ? "rotate(180deg)" : undefined }} /></span>
@@ -118,7 +121,7 @@ export default function TuitionStudents() {
               </button>;
             })}
           </div>
-          {expanded?.id === row.id && <PrivateTuitionTools key={row.id} invitationId={row.id} isTutor={true} section={expanded.tool} />}
+          {expanded?.id === row.id && (expanded.tool === "tasks" ? <PrivateTutorTasks key={row.id} invitationId={row.id} isTutor /> : <PrivateTuitionTools key={row.id} invitationId={row.id} isTutor={true} section={expanded.tool} />)}
           <button type="button" disabled={busy} onClick={() => void revoke(row.id)} style={{ border: 0, background: "transparent", color: "#6b7280", cursor: "pointer", fontSize: 12, marginTop: 12, padding: "8px 2px" }}>Remove connection</button>
         </article>)}
       </section>
