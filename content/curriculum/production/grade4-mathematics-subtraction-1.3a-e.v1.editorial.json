@@ -70,7 +70,12 @@
           "answer": 4332,
           "explanation": "Ones 3−1=2, tens 5−2=3, hundreds 7−4=3, thousands 6−2=4.",
           "correctFeedback": "Correct — Ones 3−1=2, tens 5−2=3, hundreds 7−4=3, thousands 6−2=4.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 6753,
+            "subtrahend": 2421,
+            "kind": "exact"
+          }
         }
       ],
       "independent": [
@@ -80,7 +85,12 @@
           "answer": 4343,
           "explanation": "Column differences are 3,4,3,4 from ones to thousands.",
           "correctFeedback": "Correct — Column differences are 3,4,3,4 from ones to thousands.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 8975,
+            "subtrahend": 4632,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-A-E2",
@@ -88,7 +98,12 @@
           "answer": 4431,
           "explanation": "Subtract without borrowing in each of four columns.",
           "correctFeedback": "Correct — Subtract without borrowing in each of four columns.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7642,
+            "subtrahend": 3211,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-A-E3",
@@ -96,7 +111,12 @@
           "answer": 6622,
           "explanation": "Subtract the sold oranges from the stock.",
           "correctFeedback": "Correct — Subtract the sold oranges from the stock.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 9876,
+            "subtrahend": 3254,
+            "kind": "exact"
+          }
         }
       ],
       "checks": [
@@ -106,7 +126,12 @@
           "answer": 5332,
           "explanation": "Check 5,332+2,532=7,864.",
           "correctFeedback": "Correct — Check 5,332+2,532=7,864.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7864,
+            "subtrahend": 2532,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-A-Q2",
@@ -114,7 +139,12 @@
           "answer": 4332,
           "explanation": "No column needs regrouping.",
           "correctFeedback": "Correct — No column needs regrouping.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 6753,
+            "subtrahend": 2421,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-A-Q3",
@@ -122,7 +152,12 @@
           "answer": 4343,
           "explanation": "Subtract like place values.",
           "correctFeedback": "Correct — Subtract like place values.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 8975,
+            "subtrahend": 4632,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-A-Q4",
@@ -130,7 +165,12 @@
           "answer": 4431,
           "explanation": "Column totals stay nonnegative.",
           "correctFeedback": "Correct — Column totals stay nonnegative.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7642,
+            "subtrahend": 3211,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-A-Q5",
@@ -138,7 +178,12 @@
           "answer": 6622,
           "explanation": "The remaining quantity is 6,622.",
           "correctFeedback": "Correct — The remaining quantity is 6,622.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 9876,
+            "subtrahend": 3254,
+            "kind": "exact"
+          }
         }
       ],
       "activity": {
@@ -228,7 +273,12 @@
           "answer": 2784,
           "explanation": "Exchange across ones and tens; confirm by adding 2,784+1,578=4,362.",
           "correctFeedback": "Correct — Exchange across ones and tens; confirm by adding 2,784+1,578=4,362.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 4362,
+            "subtrahend": 1578,
+            "kind": "exact"
+          }
         }
       ],
       "independent": [
@@ -238,7 +288,12 @@
           "answer": 4737,
           "explanation": "Regroup across the zero tens, then check 4,737+2,468=7,205.",
           "correctFeedback": "Correct — Regroup across the zero tens, then check 4,737+2,468=7,205.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7205,
+            "subtrahend": 2468,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-B-E2",
@@ -246,7 +301,12 @@
           "answer": 3227,
           "explanation": "Borrow across zeros and check by addition.",
           "correctFeedback": "Correct — Borrow across zeros and check by addition.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 6013,
+            "subtrahend": 2786,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-B-E3",
@@ -254,7 +314,12 @@
           "answer": 4329,
           "explanation": "Subtract 3,675 from 8,004, exchanging as needed.",
           "correctFeedback": "Correct — Subtract 3,675 from 8,004, exchanging as needed.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 8004,
+            "subtrahend": 3675,
+            "kind": "exact"
+          }
         }
       ],
       "checks": [
@@ -264,7 +329,12 @@
           "answer": 3726,
           "explanation": "Check 3,726+1,278=5,004.",
           "correctFeedback": "Correct — Check 3,726+1,278=5,004.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 5004,
+            "subtrahend": 1278,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-B-Q2",
@@ -272,7 +342,12 @@
           "answer": 2784,
           "explanation": "After regrouping, 2,784 remains.",
           "correctFeedback": "Correct — After regrouping, 2,784 remains.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 4362,
+            "subtrahend": 1578,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-B-Q3",
@@ -280,7 +355,12 @@
           "answer": 4737,
           "explanation": "Borrow correctly across zero tens.",
           "correctFeedback": "Correct — Borrow correctly across zero tens.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7205,
+            "subtrahend": 2468,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-B-Q4",
@@ -288,7 +368,12 @@
           "answer": 3227,
           "explanation": "Check the result by addition.",
           "correctFeedback": "Correct — Check the result by addition.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 6013,
+            "subtrahend": 2786,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-B-Q5",
@@ -296,7 +381,12 @@
           "answer": 4329,
           "explanation": "The answer is 4,329 cards.",
           "correctFeedback": "Correct — The answer is 4,329 cards.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 8004,
+            "subtrahend": 3675,
+            "kind": "exact"
+          }
         }
       ],
       "activity": {
@@ -387,7 +477,12 @@
           "answer": 4110,
           "explanation": "7,260−3,150=4,110.",
           "correctFeedback": "Correct — 7,260−3,150=4,110.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7263,
+            "subtrahend": 3148,
+            "kind": "rounded_estimate"
+          }
         }
       ],
       "independent": [
@@ -397,7 +492,12 @@
           "answer": 5720,
           "explanation": "8,430−2,710=5,720.",
           "correctFeedback": "Correct — 8,430−2,710=5,720.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 8426,
+            "subtrahend": 2713,
+            "kind": "rounded_estimate"
+          }
         },
         {
           "id": "S-C-E2",
@@ -405,7 +505,12 @@
           "answer": 4350,
           "explanation": "5,640−1,290=4,350.",
           "correctFeedback": "Correct — 5,640−1,290=4,350.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 5642,
+            "subtrahend": 1287,
+            "kind": "rounded_estimate"
+          }
         },
         {
           "id": "S-C-E3",
@@ -413,7 +518,12 @@
           "answer": 4073,
           "explanation": "The exact result is 4,073, which is near 4,080.",
           "correctFeedback": "Correct — The exact result is 4,073, which is near 4,080.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 6457,
+            "subtrahend": 2384,
+            "kind": "exact"
+          }
         }
       ],
       "checks": [
@@ -423,7 +533,12 @@
           "answer": 4080,
           "explanation": "6,460−2,380=4,080.",
           "correctFeedback": "Correct — 6,460−2,380=4,080.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 6457,
+            "subtrahend": 2384,
+            "kind": "rounded_estimate"
+          }
         },
         {
           "id": "S-C-Q2",
@@ -431,7 +546,12 @@
           "answer": 4110,
           "explanation": "7,260−3,150=4,110.",
           "correctFeedback": "Correct — 7,260−3,150=4,110.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7263,
+            "subtrahend": 3148,
+            "kind": "rounded_estimate"
+          }
         },
         {
           "id": "S-C-Q3",
@@ -439,7 +559,12 @@
           "answer": 5720,
           "explanation": "8,430−2,710=5,720.",
           "correctFeedback": "Correct — 8,430−2,710=5,720.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 8426,
+            "subtrahend": 2713,
+            "kind": "rounded_estimate"
+          }
         },
         {
           "id": "S-C-Q4",
@@ -447,7 +572,12 @@
           "answer": 4350,
           "explanation": "5,640−1,290=4,350.",
           "correctFeedback": "Correct — 5,640−1,290=4,350.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 5642,
+            "subtrahend": 1287,
+            "kind": "rounded_estimate"
+          }
         },
         {
           "id": "S-C-Q5",
@@ -455,7 +585,12 @@
           "answer": 4073,
           "explanation": "Subtraction without rounding gives 4,073.",
           "correctFeedback": "Correct — Subtraction without rounding gives 4,073.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 6457,
+            "subtrahend": 2384,
+            "kind": "exact"
+          }
         }
       ],
       "activity": {
@@ -731,7 +866,12 @@
           "answer": 5525,
           "explanation": "8,000−2,475=KSh 5,525.",
           "correctFeedback": "Correct — 8,000−2,475=KSh 5,525.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 8000,
+            "subtrahend": 2475,
+            "kind": "exact"
+          }
         }
       ],
       "independent": [
@@ -741,7 +881,12 @@
           "answer": 4420,
           "explanation": "6,540−2,120=4,420 flyers.",
           "correctFeedback": "Correct — 6,540−2,120=4,420 flyers.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 6540,
+            "subtrahend": 2120,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-E-E2",
@@ -749,7 +894,12 @@
           "answer": 5550,
           "explanation": "9,000−3,450=5,550 tickets.",
           "correctFeedback": "Correct — 9,000−3,450=5,550 tickets.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 9000,
+            "subtrahend": 3450,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-E-E3",
@@ -757,7 +907,12 @@
           "answer": 4415,
           "explanation": "7,650−3,235=KSh 4,415.",
           "correctFeedback": "Correct — 7,650−3,235=KSh 4,415.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7650,
+            "subtrahend": 3235,
+            "kind": "exact"
+          }
         }
       ],
       "checks": [
@@ -767,7 +922,12 @@
           "answer": 5250,
           "explanation": "The remainder is 5,250 cards.",
           "correctFeedback": "Correct — The remainder is 5,250 cards.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7600,
+            "subtrahend": 2350,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-E-Q2",
@@ -775,7 +935,12 @@
           "answer": 5525,
           "explanation": "The money remaining is KSh 5,525.",
           "correctFeedback": "Correct — The money remaining is KSh 5,525.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 8000,
+            "subtrahend": 2475,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-E-Q3",
@@ -783,7 +948,12 @@
           "answer": 4420,
           "explanation": "Subtract distribution from stock.",
           "correctFeedback": "Correct — Subtract distribution from stock.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 6540,
+            "subtrahend": 2120,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-E-Q4",
@@ -791,7 +961,12 @@
           "answer": 5550,
           "explanation": "Unsold = printed−sold.",
           "correctFeedback": "Correct — Unsold = printed−sold.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 9000,
+            "subtrahend": 3450,
+            "kind": "exact"
+          }
         },
         {
           "id": "S-E-Q5",
@@ -799,7 +974,12 @@
           "answer": 4415,
           "explanation": "The answer is KSh 4,415.",
           "correctFeedback": "Correct — The answer is KSh 4,415.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "operands": {
+            "minuend": 7650,
+            "subtrahend": 3235,
+            "kind": "exact"
+          }
         }
       ],
       "activity": {
