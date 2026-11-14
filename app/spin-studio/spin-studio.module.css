@@ -154,7 +154,7 @@
 .electionArena .wheelOrbitWrapper{max-width:100%;max-height:100%}
 .electionTally{z-index:2;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;border:1px solid #ffffff45;border-radius:14px;background:linear-gradient(145deg,#0a2444eb,#041126ee);padding:9px 8px;color:#fff;text-align:left;box-shadow:0 10px 28px #0005;scrollbar-width:thin}
 .electionTallyHead{position:sticky;top:-9px;display:flex;align-items:center;justify-content:space-between;gap:5px;background:#0a2444;padding:5px 2px 8px;font-size:clamp(9px,1.2vw,13px);letter-spacing:.08em;font-weight:900;color:#8cf8df}
-.electionTallyRow{display:grid;grid-template-columns:19px minmax(0,1fr) auto;align-items:center;gap:5px;padding:6px 0;border-bottom:1px solid #ffffff25;font-size:clamp(9px,1vw,13px)}
+.electionTallyRow{display:grid;grid-template-columns:16px minmax(0,1fr) 38px auto;align-items:center;gap:5px;padding:6px 0;border-bottom:1px solid #ffffff25;font-size:clamp(9px,1vw,13px)}
 .electionTallyRank{color:#9bb5d0;font-variant-numeric:tabular-nums}
 .electionTallyName{overflow-wrap:anywhere;font-weight:750;line-height:1.2}
 .electionTallyScore{border-radius:7px;min-width:24px;text-align:center;padding:4px;background:#1e557a;color:#ffffff;font-size:clamp(11px,1.6vw,16px);font-variant-numeric:tabular-nums}
@@ -164,3 +164,19 @@
 .portrait .electionTallyHead,.square .electionTallyHead{padding:3px 2px 5px}
 .portrait .electionTallyRow,.square .electionTallyRow{padding:3px 0}
 @media(max-width:520px){.electionArena{gap:5px}.electionTallyRow{font-size:10px}.electionTallyScore{font-size:12px}}
+
+/* Political broadcast: lively score updates without manipulating wheel results. */
+.electionTallyPulse{border-radius:8px;background:linear-gradient(90deg,#19b6a92e,transparent);animation:electionScoreFlash .9s ease-out}
+.electionTallyPulse .electionTallyScore{animation:electionScorePop .65s cubic-bezier(.22,1.5,.5,1);background:#2baea0;color:#061627}
+.electionScoreTrack{height:5px;border-radius:99px;background:#ffffff24;min-width:22px;overflow:hidden}
+.electionScoreFill{height:100%;border-radius:99px;background:linear-gradient(90deg,#2d9df4,#71f6de);transition:width .45s cubic-bezier(.2,.7,.2,1)}
+.electionSpinDrama .wheelHalo{animation:electionWheelSurge 1.2s ease-in-out infinite alternate}
+.electionSpinDrama .wheelFixedPointer{filter:drop-shadow(0 0 13px #fff8bf) drop-shadow(0 4px 3px #000d)}
+.electionRoundStatus{background:rgba(4,15,32,.9);border:1px solid #ffffff44;border-radius:12px;padding:10px;margin:8px 0;color:#fff;text-align:center}
+.electionFinale{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 0%,#0a695ca8,#041126 75%);border:2px solid #64efcf;border-radius:14px;padding:13px;margin:8px 0;color:#fff;text-align:center;box-shadow:0 0 34px #20d6bb55;animation:electionFinalReveal .85s ease-out both}
+@keyframes electionScorePop{0%{transform:scale(.75)}55%{transform:scale(1.28)}100%{transform:scale(1)}}
+@keyframes electionScoreFlash{0%{background:#31e2bd66}100%{background:transparent}}
+@keyframes electionWheelSurge{0%{opacity:.5;transform:scale(.93)}100%{opacity:1;transform:scale(1.07)}}
+@keyframes electionFinalReveal{0%{opacity:.2;transform:scale(.96);filter:brightness(1.9)}100%{opacity:1;transform:scale(1);filter:brightness(1)}}
+@media(max-width:520px){.electionTallyRow{grid-template-columns:14px minmax(0,1fr) 28px auto;gap:3px}.electionScoreTrack{min-width:14px}}
+@media(prefers-reduced-motion:reduce){.electionTallyPulse,.electionTallyPulse .electionTallyScore,.electionSpinDrama .wheelHalo,.electionFinale{animation:none!important}.electionScoreFill{transition:none}}
