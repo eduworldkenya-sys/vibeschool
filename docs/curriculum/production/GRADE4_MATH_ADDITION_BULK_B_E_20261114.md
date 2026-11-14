@@ -41,3 +41,12 @@ Continue to 1.3 Subtraction only after confirming revised 2024 KICD scope and ex
 ## Access limitation / governance
 
 This work uses GitHub editorial writes on an isolated branch and read-only Supabase inspection. No production write, source authority promotion, publishing, RLS changes, automated worker activation or learner-facing deployment was performed. Cyborg exact-head mission/lease/independent release gates remain applicable, and are not claimed to have run in this ChatGPT connector session.
+
+
+## Follow-on execution — same-day senior repair
+
+- Added a path-scoped GitHub Action: `.github/workflows/grade4-math-addition-editorial.yml` executes `scripts/test-grade4-math-addition-bulk-editorial.mjs` for changes to this editorial batch. CI results must be checked against the exact current head.
+- Converted four mere diagram briefs into actual source-controlled, accessible SVG candidate visuals at `content/curriculum/production/visuals/grade4-addition-1.2{b,c,d,e}-*.svg`. They show two regrouping exchanges, number-line rounding, a five-term +125 addition pattern, and a combined-quantity bar model. These are **candidate illustrations**, not certified in the visual library or live in Learn.
+- Extended the test to verify outcome-specific diagrams, accessible labels, the displayed calculation result, source URL, and explicit draft-only/no-bank/no-authority states. This test is a repeatable editorial **preflight**, not a replacement for educational review or publication authorization.
+- Current production source pipeline is `curriculum_authority_register_source → artifact intake/verified checksum → snapshot observations → seal/reconcile → authenticated hierarchy binding → re-reconcile → owner promotion`. The service edge function expressly requires an authenticated platform-owner identity; SQL access or the user's standing preference to avoid HQ does **not** furnish an equivalent user session or authorise impersonation.
+- The first `1.2(a)` draft is still isolated under PR #1691. A combined release will need careful integration after that exact candidate is reviewed; do not copy its manuscript into this PR and create duplicate package identities.
