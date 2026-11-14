@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import { useStudent } from '@/lib/student-context'
 import { getGroundedChapterPractice, recordGroundedPracticeAnswer, recordVibeLearnPracticeAnswer, type GroundedPracticeQuestion, type GroundedPracticeSource } from '@/lib/student/vibelearn'
@@ -198,21 +197,23 @@ export default function VibeLearnPracticePage() {
   function restart() { setIndex(0); setCorrect(0); setSelected(null); setTextAnswer(''); setSubmitted(false); setAnswerCorrect(null); setExpectedAnswer(null); setBankExplanation(null); setReviewUrl(null); setShowHint(false); startedAtRef.current = Date.now(); sessionIdRef.current = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : null }
 
   return <main style={shell}><div style={{ maxWidth: 1120, margin: '0 auto' }}>
-    <VibeLearnSubnav />
     {sourceContext && <button style={backButton} onClick={() => router.push(backUrl)}>← Back to unit</button>}
-    <section style={hero}><div style={eyebrow}>My learning · Practice</div><h1 style={{ margin: '7px 0 4px', fontSize: 25 }}>{hasReaderSource ? `${practiceTitle} practice` : 'Practice Sets'}</h1><p style={{ margin: 0, color: 'var(--vs-muted)' }}>{hasReaderSource ? 'Answer questions from this published learning unit.' : 'Open published practice sets, resume saved attempts, and review results.'}</p></section>
+    <section style={hero}><div style={eyebrow}>My learning · Practice</div><h1 style={{ margin: '8px 0 8px', fontSize: 'clamp(25px, 3vw, 32px)', lineHeight: 1.2, letterSpacing: '-0.5px' }}>{hasReaderSource ? `${practiceTitle} practice` : 'Practice Sets'}</h1><p style={{ margin: 0, color: 'var(--vs-muted)' }}>{hasReaderSource ? 'Answer questions from this published learning unit.' : 'Open published practice sets, resume saved attempts, and review results.'}</p></section>
 
     {sourceContext && <section style={{ ...card, borderColor: 'var(--vs-border)', background: 'var(--vs-accent-soft)' }}><div style={eyebrowDark}>Exact learning source</div><strong style={{ display: 'block', margin: '6px 0 3px' }}>{sourceContext.publicationTitle} · {sourceContext.chapterTitle}</strong><p style={muted}>{[sourceContext.grade, sourceContext.subject].filter(Boolean).join(' · ') || 'VibeTextbook'} · {sourceContext.assessableBlockCount} assessable blocks · {sourceContext.verifiedOutcomeCount} verified outcomes</p><p style={{ ...muted, marginTop: 8 }}>Questions come from authored assessable blocks in this exact unit. Answers are scored by the server, and mistakes retain a link back to their source section.</p></section>}
     {assignmentError && <section role="alert" style={{ ...card, color: '#b91c1c' }}>{assignmentError}</section>}
     {!hasReaderSource && <section style={card} aria-label="Available practice assessments">
       <div style={eyebrowDark}>{identity?.className || 'Your grade'} · Published practice</div>
-      <h2 style={{ fontSize: 16, margin: '7px 0 8px' }}>Published practice sets</h2><p style={muted}>For five-question, untimed practice by topic, use the separate Topic Practice workspace.</p><button type="button" style={{ ...secondaryButton, marginTop: 12 }} onClick={() => router.push('/student/vibelearn/topic-practice')}>Open Topic Practice</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div><h2 style={{ fontSize: 20, lineHeight: 1.3, margin: '7px 0 5px' }}>Published practice sets</h2><p style={muted}>Choose a subject below or open five-question Topic Practice.</p></div>
+        <button type="button" style={secondaryButton} onClick={() => router.push('/student/vibelearn/topic-practice')}>Open Topic Practice →</button>
+      </div>
       {practiceSubjects.length > 1 && <div aria-label="Practice subjects" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
-        <button type="button" aria-pressed={!selectedPracticeSubject} onClick={() => setPracticeSubject('')} style={secondaryButton}>All subjects</button>
-        {practiceSubjects.map(subject => <button type="button" key={subject} aria-pressed={selectedPracticeSubject.toLowerCase() === subject.toLowerCase()} onClick={() => setPracticeSubject(subject)} style={{ ...secondaryButton, background: selectedPracticeSubject.toLowerCase() === subject.toLowerCase() ? 'var(--vs-border)' : 'var(--vs-accent-soft)' }}>{subject}</button>)}
+        <button type="button" aria-pressed={!selectedPracticeSubject} onClick={() => setPracticeSubject('')} style={{ ...filterButton, ...(selectedPracticeSubject ? {} : activeFilterButton) }}>All subjects</button>
+        {practiceSubjects.map(subject => <button type="button" key={subject} aria-pressed={selectedPracticeSubject.toLowerCase() === subject.toLowerCase()} onClick={() => setPracticeSubject(subject)} style={{ ...filterButton, ...(selectedPracticeSubject.toLowerCase() === subject.toLowerCase() ? activeFilterButton : {}) }}>{subject}</button>)}
       </div>}
-      <div role="group" aria-label="Practice status" style={{ display: 'flex', gap: 6, padding: 5, borderRadius: 12, background: 'var(--vs-soft)', marginTop: 14 }}>
-        {(['available', 'in_progress', 'completed'] as const).map(view => <button type="button" key={view} aria-pressed={practiceView === view} onClick={() => setPracticeView(view)} style={{ ...viewButton, background: practiceView === view ? 'var(--vs-card)' : 'transparent', color: practiceView === view ? 'var(--vs-text)' : 'var(--vs-muted)' }}>{view === 'in_progress' ? 'In progress' : view === 'completed' ? 'Completed' : 'Available'}</button>)}
+      <div role="group" aria-label="Practice status" style={{ display: 'flex', gap: 6, padding: 5, borderRadius: 12, background: '#f5eee8', marginTop: 18, border: '1px solid #ead9cd' }}>
+        {(['available', 'in_progress', 'completed'] as const).map(view => <button type="button" key={view} aria-pressed={practiceView === view} onClick={() => setPracticeView(view)} style={{ ...viewButton, background: practiceView === view ? '#fff' : 'transparent', color: practiceView === view ? '#74381f' : '#695a52', boxShadow: practiceView === view ? '0 1px 5px #58311a19' : 'none' }}>{view === 'in_progress' ? 'In progress' : view === 'completed' ? 'Completed' : 'Available'}</button>)}
       </div>
       {assignmentError ? <p role="alert" style={{ color: '#b91c1c', marginTop: 12 }}>{assignmentError}</p>
         : identityLoading || assignmentsLoading ? <p role="status" style={{ ...muted, marginTop: 12 }}>Checking your available practice…</p>
@@ -220,20 +221,20 @@ export default function VibeLearnPracticePage() {
           <strong>{practiceView === 'in_progress' ? 'No practice in progress' : practiceView === 'completed' ? 'No completed practice for this selection' : requestedTopic ? 'No approved practice for this topic yet' : 'No practice sets available for this selection yet'}</strong>
           <p style={{ ...muted, marginTop: 6 }}>Your published practice and saved attempts appear here automatically.</p>
           <button style={{ ...secondaryButton, marginTop: 10 }} onClick={() => router.push('/student/vibelearn/exams')}>Explore available assessments</button>
-        </div> : <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
+        </div> : <div style={{ display: 'grid', gap: 14, marginTop: 18 }}>
         {filteredPracticeAssignments.map(item => {
           const active = item.attemptStatus === 'in_progress' && (!item.attemptExpiresAt || Date.parse(item.attemptExpiresAt) > Date.now())
           const resultReady = Boolean(item.attemptId && (item.resultStatus === 'released' || (item.resultStatus === 'marked' && item.showScorePolicy === 'immediate')))
           const canLaunch = item.canStart || active
-          return <article key={item.assignmentId} style={{ border: '1px solid var(--vs-border)', padding: 14, borderRadius: 13 }}>
+          return <article key={item.assignmentId} style={{ border: '1px solid #e6d7cc', padding: 'clamp(16px, 2.2vw, 22px)', borderRadius: 16, background: '#fff', boxShadow: '0 2px 10px rgba(68, 38, 24, .045)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'start' }}>
-              <strong style={{ fontSize: 15 }}>{item.title}</strong>
-              <span style={pill}>{active ? 'In progress' : resultReady ? 'Completed' : item.canStart ? 'New practice' : item.availability.replaceAll('_', ' ')}</span>
+              <strong style={{ fontSize: 17, lineHeight: 1.45, color: '#30231f' }}>{item.title}</strong>
+              <span style={{ ...pill, ...(active ? statusActive : resultReady ? statusCompleted : statusNew) }}>{active ? 'In progress' : resultReady ? 'Completed' : item.canStart ? 'New practice' : item.availability.replaceAll('_', ' ')}</span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
-              <div style={stat}><strong>{item.attemptNumber ?? 0}</strong><span>Attempts used</span></div>
-              <div style={stat}><strong>{item.maxAttempts}</strong><span>Maximum attempts</span></div>
-              <div style={stat}><strong>{active ? 'Resume' : resultReady ? 'Completed' : item.canStart ? 'Ready' : 'Unavailable'}</strong><span>Practice status</span></div>
+              <div style={stat}><strong style={statNumber}>{item.attemptNumber ?? 0}</strong><span>Attempts used</span></div>
+              <div style={stat}><strong style={statNumber}>{item.maxAttempts}</strong><span>Maximum attempts</span></div>
+              <div style={stat}><strong style={{ ...statNumber, fontSize: 16 }}>{active ? 'Resume' : resultReady ? 'Completed' : item.canStart ? 'Ready' : 'Unavailable'}</strong><span>Practice status</span></div>
             </div>
             {item.timeLimitMinutes ? <p style={{ ...muted, marginTop: 9 }}>Time limit: {item.timeLimitMinutes} minutes</p> : null}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginTop: 12 }}>
@@ -265,23 +266,29 @@ export default function VibeLearnPracticePage() {
   </div></main>
 }
 
-const shell: React.CSSProperties = { minHeight: '100vh', background: 'var(--vs-soft)', padding: '18px clamp(12px, 3vw, 32px) 90px', color: 'var(--vs-text)', fontFamily: "'Plus Jakarta Sans', sans-serif" }
-const hero: React.CSSProperties = { background: 'transparent', color:'var(--vs-text)', borderRadius:16, padding:'16px 4px', marginBottom:8 }
-const card: React.CSSProperties = { background:'#fff', border:'1px solid var(--vs-border)', borderRadius:16, padding:16, marginBottom:12 }
-const eyebrow: React.CSSProperties = { fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.1, color:'var(--vs-accent)' }
-const eyebrowDark: React.CSSProperties = { fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.1, color:'var(--vs-accent)' }
-const muted: React.CSSProperties = { fontSize:12, color:'var(--vs-muted)', margin:0 }
+const shell: React.CSSProperties = { minHeight: '100vh', background: '#fbf7f3', padding: '22px clamp(12px, 3vw, 32px) 90px', color: 'var(--vs-text)', fontFamily: "'Plus Jakarta Sans', sans-serif" }
+const hero: React.CSSProperties = { background: 'transparent', color:'var(--vs-text)', borderRadius:16, padding:'10px 4px 20px', marginBottom:8 }
+const card: React.CSSProperties = { background:'#fff', border:'1px solid #e8dbd1', borderRadius:18, padding:'clamp(16px, 2.5vw, 28px)', marginBottom:16, boxShadow:'0 4px 20px rgba(59, 35, 23, .04)' }
+const eyebrow: React.CSSProperties = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1.1, color:'var(--vs-accent)' }
+const eyebrowDark: React.CSSProperties = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1.1, color:'var(--vs-accent)' }
+const muted: React.CSSProperties = { fontSize:14, lineHeight:1.55, color:'#65574f', margin:0 }
 const backButton: React.CSSProperties = { border:'none', background:'transparent', color:'var(--vs-accent)', fontWeight:800, marginBottom:10, cursor:'pointer', fontFamily:'inherit' }
-const viewButton: React.CSSProperties = { flex: 1, minWidth: 0, border: 0, borderRadius: 9, padding: '10px 4px', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }
-const stat: React.CSSProperties = { flex: '1 1 115px', display: 'flex', flexDirection: 'column', gap: 4, padding: '12px', background: 'var(--vs-soft)', borderRadius: 11, fontSize: 13 }
-const pill: React.CSSProperties = { width:'fit-content', background:'var(--vs-accent-soft)', color:'var(--vs-accent)', borderRadius:999, padding:'4px 8px', fontSize:10, fontWeight:800 }
+const viewButton: React.CSSProperties = { flex: 1, minWidth: 0, border: 0, borderRadius: 9, padding: '12px 6px', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }
+const stat: React.CSSProperties = { flex: '1 1 150px', display: 'flex', flexDirection: 'column', gap: 6, padding: '14px 16px', background: '#f8f1eb', borderRadius: 12, fontSize: 13, color:'#65574f' }
+const statNumber: React.CSSProperties = { color:'#35251f', fontSize:20, lineHeight:1.2, fontWeight:800 }
+const filterButton: React.CSSProperties = { border:'1px solid #dfcabd', background:'#fff', color:'#713b26', padding:'9px 13px', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }
+const activeFilterButton: React.CSSProperties = { background:'#a54b30', borderColor:'#a54b30', color:'#fff' }
+const statusActive: React.CSSProperties = { background:'#fff2d8', color:'#83520c' }
+const statusCompleted: React.CSSProperties = { background:'#e4f5ea', color:'#176b40' }
+const statusNew: React.CSSProperties = { background:'#e8f1ff', color:'#275b96' }
+const pill: React.CSSProperties = { flexShrink:0, width:'fit-content', background:'var(--vs-accent-soft)', color:'var(--vs-accent)', borderRadius:999, padding:'6px 11px', fontSize:12, fontWeight:800 }
 const progressTrack: React.CSSProperties = { height:6, borderRadius:999, background:'var(--vs-border)', overflow:'hidden', margin:'12px 0 16px' }
 const progressFill: React.CSSProperties = { height:'100%', background:'var(--vs-accent)' }
 const optionButton: React.CSSProperties = { width:'100%', border:'1px solid var(--vs-border)', borderRadius:12, padding:12, display:'flex', gap:10, alignItems:'flex-start', textAlign:'left', fontFamily:'inherit', cursor:'pointer' }
 const optionLetter: React.CSSProperties = { width:24, height:24, borderRadius:999, background:'var(--vs-soft)', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, flexShrink:0 }
 const answerInput: React.CSSProperties = { width:'100%', border:'1px solid var(--vs-border)', borderRadius:12, padding:12, fontFamily:'inherit', fontSize:14, resize:'vertical' }
-const primaryButton: React.CSSProperties = { border:'none', background:'var(--vs-accent)', color:'#fff', borderRadius:11, padding:'10px 14px', fontWeight:800, cursor:'pointer', fontFamily:'inherit' }
-const secondaryButton: React.CSSProperties = { border:'1px solid var(--vs-border)', background:'var(--vs-accent-soft)', color:'var(--vs-accent)', borderRadius:10, padding:'8px 11px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }
+const primaryButton: React.CSSProperties = { border:'none', background:'#a54b30', color:'#fff', borderRadius:11, padding:'12px 18px', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'inherit' }
+const secondaryButton: React.CSSProperties = { border:'1px solid #dec7ba', background:'#fff6f0', color:'#783b25', borderRadius:10, padding:'11px 15px', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:'inherit' }
 const hintBox: React.CSSProperties = { marginTop:12, padding:12, background:'#fffbeb', border:'1px solid #fde68a', borderRadius:12, color:'#78350f' }
 const correctBox: React.CSSProperties = { marginTop:14, padding:13, background:'#ecfdf5', border:'1px solid #a7f3d0', borderRadius:12, color:'#065f46' }
 const incorrectBox: React.CSSProperties = { marginTop:14, padding:13, background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:12, color:'#9a3412' }
