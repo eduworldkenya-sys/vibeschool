@@ -29,6 +29,17 @@ for(const p of doc.packets){
    checked++
   }else assert.equal(p.outcome,'1.3(d)','Numeric question lacks operand metadata')
  }
+ const first=p.checks[0]
+ assert.notEqual(first.prompt,p.worked.prompt,'Independent check cannot reuse the worked wording')
+ assert.notEqual(first.answer===p.worked.answer, true,'First check should not reuse worked answer object')
+ if(first.operands && Number.isInteger(p.worked.minuend)){
+  assert.ok(first.operands.minuend!==p.worked.minuend || first.operands.subtrahend!==p.worked.subtrahend,
+    'First check must not repeat model operands')
+ }
+ const feedback=first.incorrectFeedback.toLowerCase()
+ if(p.outcome==='1.3(c)')assert.match(feedback,/round/)
+ if(p.outcome==='1.3(d)')assert.match(feedback,/pattern|step|term/)
+ if(p.outcome==='1.3(e)')assert.match(feedback,/remainder/)
  if(Number.isInteger(p.worked.minuend)){
   assert.equal(subtract(p.worked.minuend,p.worked.subtrahend),p.worked.answer)
   if(p.worked.estimate!==undefined) assert.equal(estimate(p.worked.minuend,p.worked.subtrahend),p.worked.estimate)
@@ -38,5 +49,5 @@ for(const p of doc.packets){
 const pattern=doc.packets[3]
 for(const [i,value] of pattern.worked.answer.entries())assert.equal(value,pattern.worked.start-i*pattern.worked.step)
 assert.deepEqual(pattern.independent.map(x=>x.answer),[[8250,8000,7750],[4550,4450],[4500,4000,3500]])
-assert.deepEqual(pattern.checks.map(x=>x.answer),[[7750,7500],[5800,5600],250,[4550,4450],3000])
+assert.deepEqual(pattern.checks.map(x=>x.answer),[[6850,6600],[5800,5600],250,[4550,4450],3000])
 console.log('PASS: Grade 4 Subtraction: five separate draft outcomes, 25 checks, 15 independent tasks; '+checked+' arithmetic validations; draft authority preserved.')
