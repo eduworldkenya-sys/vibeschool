@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, BookOpenCheck, CheckCircle2, ChevronRight, Layers3, Lightbulb, RefreshCw, RotateCcw } from 'lucide-react'
 import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import { getRevisionCards, learnerRevisionGrade, listRevisionTopics, saveRevisionTopicRecall, type RevisionCard, type RevisionTopic } from '@/lib/student/revisionTopic'
@@ -12,7 +12,9 @@ const muted: React.CSSProperties = { color:'var(--vs-muted)',fontSize:13,lineHei
 const due = (iso:string|null) => !iso || new Date(iso).getTime()<=Date.now()
 const future = (iso:string) => new Intl.DateTimeFormat('en-KE',{day:'numeric',month:'short',timeZone:'Africa/Nairobi'}).format(new Date(iso))
 
-export default function RevisionTopicStarter({className}:{className:string}) {
+export type RevisionStarterHandle = { startFirst: (subject?:string)=>Promise<boolean>; startTopic: (assignmentId:string)=>Promise<boolean> }
+type RevisionStarterProps = {className:string; embedded?:boolean; onTopicsChange?:(topics:RevisionTopic[])=>void; onActiveChange?:(active:boolean)=>void; onCompleted?:()=>void}
+const RevisionTopicStarter = forwardRef<RevisionStarterHandle,RevisionStarterProps>(function RevisionTopicStarter({className,embedded=false,onTopicsChange,onActiveChange,onCompleted},ref) {
   const grade = learnerRevisionGrade(className)
   const {play}=useLearningFeedback()
   const [topics,setTopics]=useState<RevisionTopic[]>([])
@@ -30,24 +32,38 @@ export default function RevisionTopicStarter({className}:{className:string}) {
   const refresh=useCallback(async()=>{
     if(!grade) {setLoading(false);setError('Set your learner grade to see approved revision topics.');return}
     setLoading(true);setError('')
-    try {setTopics(await listRevisionTopics(grade))}
+    try {const found=await listRevisionTopics(grade);setTopics(found);onTopicsChange?.(found)}
     catch(e) {setError(e instanceof Error?e.message:'Could not load revision topics.')}
     finally {setLoading(false)}
-  },[grade])
+  },[grade,onTopicsChange])
   useEffect(()=>{void refresh()},[refresh])
+  useEffect(()=>{onActiveChange?.(Boolean(active))},[active,onActiveChange])
   const subjects=useMemo(()=>['All',...Array.from(new Set(topics.map(t=>t.subject)))],[topics])
   const visible=topics.filter(t=>subject==='All'||t.subject===subject)
     .sort((a,b)=>Number(due(b.nextReviewAt))-Number(due(a.nextReviewAt)))
-  async function start(topic:RevisionTopic) {
-    if(!grade||busy)return
+  async function start(topic:RevisionTopic):Promise<boolean> {
+    if(!grade||busy)return false
     setBusy(true);setError('')
     try {
       const available=await getRevisionCards(grade,topic.assignmentId)
       if(!available.length)throw new Error('This topic has no approved revision cards yet.')
-      setCards(available);setActive(topic);setIndex(0);setRevealed(false);setRemembered(0);setStruggled(0);setNextDate('')
-    } catch(e) {setError(e instanceof Error?e.message:'Could not open this revision.')}
+      setCards(available);setActive(topic);setIndex(0);setRevealed(false);setRemembered(0);setStruggled(0);setNextDate('');return true
+    } catch(e) {setError(e instanceof Error?e.message:'Could not open this revision.');return false}
     finally {setBusy(false)}
   }
+  useImperativeHandle(ref,()=>({
+    startFirst:async (selectedSubject?:string)=>{
+      const available=topics.filter(t=>!selectedSubject||selectedSubject==='All'||t.subject.toLowerCase()===selectedSubject.toLowerCase())
+        .sort((a,b)=>Number(due(b.nextReviewAt))-Number(due(a.nextReviewAt)))
+      if(!available.length){setError('No approved revision cards in this subject yet.');return false}
+      return start(available[0])
+    },
+    startTopic:async (assignmentId:string)=>{
+      const found=topics.find(t=>t.assignmentId===assignmentId)
+      if(!found){setError('This revision topic is not available.');return false}
+      return start(found)
+    }
+  }))
   async function mark(yes:boolean) {
     if(!grade||!active||busy)return
     const newRemembered=remembered+Number(yes),newStruggled=struggled+Number(!yes)
@@ -60,8 +76,9 @@ export default function RevisionTopicStarter({className}:{className:string}) {
     finally{setBusy(false)}
   }
   async function finishAgain() {
-    setActive(null);setCards([]);setNextDate('');await refresh()
+    setActive(null);setCards([]);setNextDate('');await refresh();onCompleted?.()
   }
+  if (embedded && !active) return error ? <div role="alert" style={{...card,color:'var(--vs-text)'}}>{error}</div> : null
   return <section id="revision-topics" style={{...card,display:'grid',gap:15,scrollMarginTop:20}} aria-label="Revise a topic">
     {!active?<>
       <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}>
@@ -124,4 +141,5 @@ export default function RevisionTopicStarter({className}:{className:string}) {
     </>}
     {error&&<div role="alert" style={{background:'var(--vs-accent-soft)',borderRadius:12,padding:11,color:'var(--vs-text)',fontSize:13}}>{error}</div>}
   </section>
-}
+})
+export default RevisionTopicStarter
