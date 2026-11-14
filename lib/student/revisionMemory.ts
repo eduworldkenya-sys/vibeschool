@@ -10,12 +10,10 @@ export interface RevisionMemoryRecord {
 export async function getMyRevisionMemory(): Promise<RevisionMemoryRecord[]> {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError) throw new Error(authError.message)
-  const uid = auth.user?.id
-  if (!uid) throw new Error('Sign in to view your revision.')
+  if (!auth.user) throw new Error('Sign in to view your revision.')
   const { data, error } = await supabase
     .from('student_revision_memory')
     .select('mistake_id,next_review_at,last_remembered,recall_count')
-    .eq('student_id', uid)
     .order('next_review_at', { ascending: true })
     .limit(250)
   if (error) throw new Error(error.message)
