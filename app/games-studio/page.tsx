@@ -1,6 +1,7 @@
 "use client"
 import {useEffect,useRef,useState} from "react"
 import styles from "./games-studio.module.css"
+import DiscoveryInvitation, {recordMarketingGameCompletion} from '../../components/games/DiscoveryInvitation'
 import ScratchSurface from "./ScratchSurface"
 import ArcadePlayground from "./ArcadePlayground"
 
@@ -106,7 +107,7 @@ export default function GamesStudio(){
  useEffect(()=>{if(phase!=="play"||!timed)return;const id=window.setInterval(()=>setSeconds(s=>Math.max(0,s-1)),1000);return()=>window.clearInterval(id)},[phase,timed])
  useEffect(()=>{if(timed&&seconds===0&&phase==="play")setPhase("result")},[timed,seconds,phase])
  useEffect(()=>{if(phase!=="play"||chosen===null||!config.autoAdvance||autoPaused||config.revealDelay===0)return;const id=window.setTimeout(()=>{if(index+1>=target||((mode==="million"||config.style==="survival")&&chosen!==question.answer)){setPhase("result")}else{setIndex(x=>x+1);setChosen(null);setClues(0);setScratch(0);setFifty(false);setShowAnswer(false)}},config.revealDelay*1000);return()=>window.clearTimeout(id)},[phase,chosen,config.autoAdvance,config.revealDelay,autoPaused,index,target,mode,config.style,question.answer])
- useEffect(()=>{if(phase!=="result")return;setCompletedRounds(x=>x+1)},[phase])
+ useEffect(()=>{if(phase!=="result")return;setCompletedRounds(x=>x+1);recordMarketingGameCompletion()},[phase])
  useEffect(()=>{if(phase!=="result"||batchStep>=config.batchRounds||autoPaused)return;const id=window.setTimeout(()=>{setBatchStep(x=>x+1);start(false)},4500);return()=>window.clearTimeout(id)},[phase,batchStep,config.batchRounds,autoPaused])
  useEffect(()=>()=>{if(audioRef.current)void audioRef.current.close()},[])
  function tone(win:boolean){if(!(sound||config.effects.sound)||config.masterVolume===0)return;try{const Audio=window.AudioContext;if(!Audio)return;const context=audioRef.current??new Audio();audioRef.current=context;const notes=config.soundPack==="arcade"?(win?[780,1040]:[330,220]):config.soundPack==="showtime"?(win?[523,659,784]:[310,200]):[win?660:220];notes.forEach((hz,i)=>{const osc=context.createOscillator(),gain=context.createGain();osc.type=config.soundPack==="arcade"?"square":"sine";osc.frequency.value=hz;const start=context.currentTime+i*.09;gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(.05*config.masterVolume/100,start+.012);gain.gain.exponentialRampToValueAtTime(.0001,start+.21);osc.connect(gain);gain.connect(context.destination);osc.start(start);osc.stop(start+.22)})}catch{}}
@@ -128,7 +129,7 @@ export default function GamesStudio(){
  useEffect(()=>{function key(e:KeyboardEvent){const target=e.target;if(target instanceof HTMLElement&&(target.isContentEditable||["INPUT","TEXTAREA","SELECT","BUTTON"].includes(target.tagName)))return;if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();if(record)advanceByTap();else if(answered)advance()}if(e.key.toLowerCase()==="r"&&config.style==="host")revealHost()}window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key)})
  const scratchReady=mode!=="scratch"||scratch>=100
  const revealReady=mode!=="reveal"||clues>0
- return <main className={styles.page} style={{["--accent" as string]:currentMode.accent}}>
+ return <><main className={styles.page} style={{["--accent" as string]:currentMode.accent}}>
  <div className={styles.shell}>
  <header className={styles.header}><div><div className={styles.brand}><span className={styles.mark}>V</span> VIBESCHOOL <span className={styles.brandLight}>ORIGINALS</span></div><div className={styles.eyebrow}>VIBESCHOOL ORIGINALS / MARKETING GAME STUDIO</div><h1>Play something <em>worth sharing.</em></h1><p>Six games. Your look, your show, your audience. Make every challenge memorable and introduce people to VibeSchool.</p></div><div className={styles.headerActions}><a href="/marketing-studio" style={{color:"#89f5df",fontWeight:850,fontSize:12,padding:"10px 13px",border:"1px solid #5ac5aa70",borderRadius:9,textDecoration:"none"}}>All Marketing Studio tools</a><button type="button" onClick={()=>setEditor(x=>!x)}>{editor?"Close question editor":"Question studio"}</button><button type="button" onClick={exportQuestions}>Export questions</button></div></header>
  <p className={styles.arcadeBanner}>Looking for something beyond questions? <a href="#vibeschool-arcade">Explore 8 visual arcade games ↓</a></p>
@@ -160,4 +161,5 @@ export default function GamesStudio(){
  {message&&<p className={styles.toast} role="status">{message}</p>}
  <footer className={styles.footer}>UNLISTED CREATOR STUDIO <span>·</span> No prize promises <span>·</span> No automatic publishing <span>·</span> Local browser saves</footer>
  </div></main>
+  <DiscoveryInvitation/></>
 }

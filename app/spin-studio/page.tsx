@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
+import DiscoveryInvitation, {recordMarketingGameCompletion} from '../../components/games/DiscoveryInvitation'
 import Link from 'next/link'
 import { createSpinPlan, uniformSpinIndex, type SpinPlan, type SpinDirection, type SpinMotion } from './spin-brain'
 import { useShowDirector, DirectorControls, DirectorStageEffects, focalStyle } from '../../components/games/ShowDirector'
@@ -371,7 +372,7 @@ export default function SpinStudio() {
     if(spinTimer.current!==null){window.clearTimeout(spinTimer.current);spinTimer.current=null}
     setRotation(plan.settledAngle);setSpinning(false);setActiveSpinPlan(null)
     setResult(plan.selectedIndex);setUsed(old=>[...old,plan.selectedId])
-    setSpinCount(n=>n+1);setSpinHistory(old=>[...old,plan])
+    setSpinCount(n=>n+1);setSpinHistory(old=>[...old,plan]);recordMarketingGameCompletion()
     if(electionMode)setElectionVotes(old=>[...old,plan.selectedId])
     pendingSpin.current=false
     setShowOverlay(wheel.popup?.enabled??true);setShowPhase('question')
@@ -615,7 +616,7 @@ export default function SpinStudio() {
   const selectedIsReward=showFormat==='lucky'||showFormat==='trending'||showFormat==='political'
   const segmented=useMemo(()=>entries.map((entry,index)=>({entry,index,path:wedge(index,entries.length),degree:(index+.5)*360/entries.length})),[entries])
   if(!loaded || !wheel)return <main className={styles.page}><p>Loading Spin Studio…</p></main>
-  return <main className={styles.page}>
+  return <><main className={styles.page}>
     <div className={styles.shell}>
       {!recording && <header className={styles.header}>
         <div><span className={styles.eyebrow}>VIBESCHOOL ORIGINALS · CREATOR TOOLS</span><h1>VibeSpin Studio <span>✦</span></h1><p>Create the challenge. Capture the moment. Build curiosity.</p></div>
@@ -954,4 +955,5 @@ export default function SpinStudio() {
       </div>
     </div>
   </main>
+  <DiscoveryInvitation/></>
 }
