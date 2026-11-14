@@ -99,3 +99,17 @@
 @media(max-width:950px){.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:610px){.arcade{padding:13px;border-radius:18px}.intro{align-items:flex-start;flex-direction:column}.stat{align-self:flex-start}.gameTile{padding:8px;gap:7px}.gameTile .symbol{width:33px;height:35px;font-size:20px}.gameTile strong{font-size:11px}.titleRow{align-items:flex-start;flex-direction:column}.gamePanel{padding:12px;min-height:320px}.boxRow{gap:6px}.mysteryBox{min-height:135px}.boxIcon{height:48px;width:48px;font-size:28px}.picturePair{gap:7px}.pictureGrid{gap:3px}.pictureGrid span,.pictureGrid button{font-size:23px;min-height:49px}.bracket{grid-template-columns:1fr}.lane{grid-template-columns:70px 1fr}.laneName{font-size:10px}.brandFooter,.result{align-items:flex-start;flex-direction:column}.cup{height:70px}.cupStage{height:165px}.gallery{gap:6px}}
 @media(prefers-reduced-motion:reduce){.arcade *, .arcade *:before,.arcade *:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+
+/* Arcade inherits the existing Creator Lab theme and lighting toggles. */
+.stage .gamePanel{position:relative;z-index:1}
+.stage[data-disco=true]::before,.stage[data-lasers=true]::after{content:"";position:absolute;inset:-45%;pointer-events:none;mix-blend-mode:screen;opacity:var(--arcade-intensity,.6);transform-origin:50% 50%}
+.stage[data-disco=true]::before{background:conic-gradient(transparent 0 9%,#ff48aa55 13%,transparent 18% 29%,#3dbfff60 33%,transparent 40% 52%,#e2e96555 56%,transparent 63% 76%,#a37eff66 80%,transparent 87%);animation:arcadeDisco 8s linear infinite}
+.stage[data-lasers=true]::after{background:repeating-conic-gradient(transparent 0 25deg,#baf8ff44 25deg 26deg,transparent 27deg 58deg);animation:arcadeDisco 12s linear reverse infinite}
+.stage[data-theme=gold]{background:radial-gradient(ellipse at top,#7c552b,#382342 52%,#15152d)}
+.stage[data-theme=neon],.stage[data-theme=disco]{background:radial-gradient(ellipse at top,#752ca4,#30245a 56%,#120c2b)}
+.stage[data-theme=stadium]{background:radial-gradient(ellipse at top,#215e65,#1e4050 56%,#0b2635)}
+.stage[data-theme=mystery]{background:radial-gradient(ellipse at top,#58334d,#312344 56%,#160e25)}
+.stage[data-theme=classroom]{background:radial-gradient(ellipse at top,#2c6f96,#164368 56%,#102843)}
+@keyframes arcadeDisco{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.stage::before,.stage::after{animation:none!important}}
