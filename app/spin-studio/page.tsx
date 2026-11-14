@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
+import DiscoveryInvitation, {recordMarketingGameCompletion} from '../../components/games/DiscoveryInvitation'
 import Link from 'next/link'
 import { createSpinPlan, uniformSpinIndex, type SpinPlan, type SpinDirection, type SpinMotion } from './spin-brain'
 import { useShowDirector, DirectorControls, DirectorStageEffects, focalStyle } from '../../components/games/ShowDirector'
@@ -371,7 +372,7 @@ export default function SpinStudio() {
     if(spinTimer.current!==null){window.clearTimeout(spinTimer.current);spinTimer.current=null}
     setRotation(plan.settledAngle);setSpinning(false);setActiveSpinPlan(null)
     setResult(plan.selectedIndex);setUsed(old=>[...old,plan.selectedId])
-    setSpinCount(n=>n+1);setSpinHistory(old=>[...old,plan])
+    setSpinCount(n=>n+1);setSpinHistory(old=>[...old,plan]);recordMarketingGameCompletion()
     if(electionMode)setElectionVotes(old=>[...old,plan.selectedId])
     pendingSpin.current=false
     setShowOverlay(wheel.popup?.enabled??true);setShowPhase('question')
@@ -954,4 +955,5 @@ export default function SpinStudio() {
       </div>
     </div>
   </main>
+  <DiscoveryInvitation/>
 }
