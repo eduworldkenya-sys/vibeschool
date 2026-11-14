@@ -41,6 +41,8 @@ export default function TasksPage() {
   const [items,setItems]=useState<PlannerItem[]>([])
   const [assigned,setAssigned]=useState<StudentTask[]>([])
   const [assignedError,setAssignedError]=useState(false)
+  const [privateTutorTasks,setPrivateTutorTasks]=useState<Array<{id:string;invitation_id:string;title:string;status:string;tutor_feedback:string}>>([])
+  const [privateTutorError,setPrivateTutorError]=useState(false)
   const [tab,setTab]=useState<PlannerTab>('today')
   const [selected,setSelected]=useState(()=>new Date())
   const [month,setMonth]=useState(()=>new Date(new Date().getFullYear(),new Date().getMonth(),1))
@@ -63,6 +65,14 @@ export default function TasksPage() {
     // Use the canonical task feed; keep independent planning usable if it is unavailable.
     try { const feed=await listMyTasks(); setAssigned(feed.tasks); setAssignedError(false) }
     catch { setAssigned([]); setAssignedError(true) }
+    // Supplement the canonical school task feed with invitation-authorised private tasks.
+    // No school class is fabricated, and tutoring tasks remain separate from graded exams.
+    try {
+      const { data: privateRows, error: privateError } = await supabase.rpc('vibetutor_my_private_tasks', { p_invitation: null })
+      if (privateError) throw privateError
+      setPrivateTutorTasks((privateRows ?? []).map(row => ({ id:row.id, invitation_id:row.invitation_id, title:row.title, status:row.status, tutor_feedback:row.tutor_feedback })))
+      setPrivateTutorError(false)
+    } catch { setPrivateTutorTasks([]); setPrivateTutorError(true) }
     setLoading(false)
   },[owner])
   useEffect(()=>{void refresh()},[refresh])
@@ -132,7 +142,19 @@ export default function TasksPage() {
       <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> Add personal task</button>
     </header>
     <section aria-label="Task summary" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:9}}>
-      {([{value:pending+actionable.length,label:"To do"},{value:dueSoon,label:"Due soon"},{value:completed,label:"Personal tasks done"}] as const).map(entry=><div key={entry.label} style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:"12px 10px"}}><strong style={{fontSize:25}}>{entry.value}</strong><div style={{fontSize:11,color:"var(--vs-muted)"}}>{entry.label}</div></div>)}
+      {([{value:pending+actionable.length+privateTutorTasks.filter(item=>item.status==='assigned').length,label:"To do"},{value:dueSoon,label:"Due soon"},{value:completed,label:"Personal tasks done"}] as const).map(entry=><div key={entry.label} style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:"12px 10px"}}><strong style={{fontSize:25}}>{entry.value}</strong><div style={{fontSize:11,color:"var(--vs-muted)"}}>{entry.label}</div></div>)}
+    </section>
+    <section aria-label="Private tutoring assignments" style={{display:'grid',gap:10,padding:14,border:'1px solid var(--vs-border)',background:'var(--vs-card)',borderRadius:14}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <h2 style={{fontSize:17,margin:0}}>Tutoring tasks & feedback</h2>
+        <Link href="/student/tutoring">My Tutors →</Link>
+      </div>
+      {privateTutorError ? <p role="status" style={{fontSize:13}}>Tutoring tasks could not be loaded. Use My Tutors or refresh this page.</p>
+        : privateTutorTasks.length === 0 ? <p style={{fontSize:13,margin:0}}>No private tutoring tasks assigned yet.</p>
+        : privateTutorTasks.map(item=><Link key={item.id} href={`/student/tutoring/${encodeURIComponent(item.invitation_id)}`}
+            style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:52,padding:'10px 12px',border:'1px solid var(--vs-border)',borderRadius:10,color:'var(--vs-text)',textDecoration:'none'}}>
+            <span><strong style={{display:'block',fontSize:13}}>{item.title}</strong><small style={{color:'var(--vs-muted)'}}>Private tutor · {item.status === 'reviewed' ? 'Feedback ready' : item.status === 'completed' ? 'Awaiting tutor review' : 'To do'}</small></span><span aria-hidden="true">›</span>
+          </Link>)}
     </section>
     <p style={{fontSize:12,color:"var(--vs-muted)",margin:0}}>Assigned work opens in its original tool. Only personal tasks can be marked complete here; submitting assigned work requires its own submission flow.</p>
     <nav aria-label="Learning priorities" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
