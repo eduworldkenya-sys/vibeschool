@@ -26,7 +26,8 @@ const choices:{id:Action;label:string;hint:string;role:"household"|"teacher"}[]=
 {id:"referral",label:"Teacher referrals",hint:"Reach parent households",role:"teacher"},
 {id:"activate",label:"Activate teachers",hint:"Follow up signups",role:"teacher"}]
 function act(before:Sim,id:Action):Sim{
- let s={...before,activity:before.activity+1},r:number
+ const s={...before,activity:before.activity+1}
+ let r:number
  ;[r,s.seed]=nextRandom(s)
  if(id==="follow"){const n=Math.min(s.interested,Math.floor(r*4));s.interested-=n;s.qualified+=n;s.vitality=clamp(s.vitality+(n?3:0));return event(s,"Prospect follow-up",n+" households ready for subscription",n>0)}
  if(id==="activate"){const n=Math.min(s.teacherLeads,Math.floor(r*3));s.teacherLeads-=n;s.teachers+=n;s.vitality=clamp(s.vitality+2*n);return event(s,"Teacher follow-up",n+" simulated teachers activated",n>0)}
