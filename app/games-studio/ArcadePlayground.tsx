@@ -1,6 +1,7 @@
 "use client"
 import {useEffect,useMemo,useState} from "react"
 import styles from "./arcade.module.css"
+import FollowBall3D from "./FollowBall3D"
 
 type Game="race"|"boxes"|"versus"|"plinko"|"difference"|"memory"|"knockout"|"cups"
 type GameProps={names:string[];onFinish:(result:string)=>void;reducedMotion:boolean}
@@ -102,6 +103,7 @@ export default function ArcadePlayground({campaignHeadline,cta,destination,reduc
  const [recent,setRecent]=useState("")
  const [completed,setCompleted]=useState(0)
  const [showSetup,setShowSetup]=useState(false)
+ const [classicCups,setClassicCups]=useState(false)
  const names=useMemo(()=>{const parts=namesInput.split(/[,\n]+/).map(x=>x.trim().slice(0,28)).filter(Boolean);return [...parts,...DEFAULT_NAMES].slice(0,8)},[namesInput])
  useEffect(()=>{try{const n=Number(localStorage.getItem("vibeschool.games.arcade.completed.v1"));if(Number.isInteger(n)&&n>=0)setCompleted(n);const prev=localStorage.getItem("vibeschool.games.arcade.names.v1");if(prev)setNamesInput(prev)}catch{}},[])
  function completedGame(result:string){setRecent(result);setCompleted(n=>{const next=n+1;try{localStorage.setItem("vibeschool.games.arcade.completed.v1",String(next))}catch{}return next})}
@@ -111,9 +113,9 @@ export default function ArcadePlayground({campaignHeadline,cta,destination,reduc
  return <section className={styles.arcade} aria-label="VibeSchool non-question games">
   <div className={styles.intro}><div><span className={styles.kicker}>NEW · VIBESCHOOL ARCADE</span><h2>Not another quiz. <em>Play something different.</em></h2><p>Race, discover, compete and solve visual challenges. Eight playable games with no questions required.</p></div><div className={styles.stat}><strong>{completed}</strong><span>Local games completed</span></div></div>
   <div className={styles.gallery} role="group" aria-label="Choose an arcade game">{GAMES.map(g=><button key={g.id} type="button" className={styles.gameTile} data-active={g.id===active} aria-pressed={g.id===active} onClick={()=>{setActive(g.id);setRecent("")}}><span className={styles.symbol}>{g.symbol}</span><span><strong>{g.name}</strong><small>{g.type}</small></span></button>)}</div>
-  <div className={styles.workspace}><div className={styles.titleRow}><div><span className={styles.kicker}>{GAMES.find(g=>g.id===active)?.type} / VIBESCHOOL ORIGINALS</span><h3>{GAMES.find(g=>g.id===active)?.name}</h3><p>{GAMES.find(g=>g.id===active)?.description}</p></div><button className={styles.outline} onClick={()=>setShowSetup(v=>!v)}>{showSetup?"Hide setup":"Customize names"}</button></div>
+  <div className={styles.workspace}><div className={styles.titleRow}><div><span className={styles.kicker}>{GAMES.find(g=>g.id===active)?.type} / VIBESCHOOL ORIGINALS</span><h3>{GAMES.find(g=>g.id===active)?.name}</h3><p>{GAMES.find(g=>g.id===active)?.description}</p></div><div className={styles.modeActions}>{active==="cups"&&<button className={styles.outline} onClick={()=>setClassicCups(v=>!v)}>{classicCups?"Use 3D edition":"Use classic fallback"}</button>}<button className={styles.outline} onClick={()=>setShowSetup(v=>!v)}>{showSetup?"Hide setup":"Customize names"}</button></div></div>
   {showSetup&&<div className={styles.setup}><label htmlFor="arcade-names">Contenders / destinations (comma or newline separated)</label><textarea id="arcade-names" value={namesInput} maxLength={480} onChange={e=>editNames(e.target.value)} rows={3}/><small>Used for Marble Race, VS Battle, Plinko and Knockout. Saved on this device. Eight entries maximum.</small></div>}
-  <div className={styles.stage} key={active} data-disco={disco&&!reducedMotion} data-lasers={lasers&&!reducedMotion} data-theme={theme} style={{["--arcade-intensity" as string]:String(intensity/100)}}>{active==="race"?<MarbleRace {...props}/>:active==="boxes"?<MysteryBoxes {...props}/>:active==="versus"?<VsBattle {...props}/>:active==="plinko"?<PlinkoDrop {...props}/>:active==="difference"?<SpotDifference {...props}/>:active==="memory"?<MemoryFlip {...props}/>:active==="knockout"?<Knockout {...props}/>:<FollowBall {...props}/>}</div>
+  <div className={styles.stage} key={active} data-disco={disco&&!reducedMotion} data-lasers={lasers&&!reducedMotion} data-theme={theme} style={{["--arcade-intensity" as string]:String(intensity/100)}}>{active==="race"?<MarbleRace {...props}/>:active==="boxes"?<MysteryBoxes {...props}/>:active==="versus"?<VsBattle {...props}/>:active==="plinko"?<PlinkoDrop {...props}/>:active==="difference"?<SpotDifference {...props}/>:active==="memory"?<MemoryFlip {...props}/>:active==="knockout"?<Knockout {...props}/>:classicCups?<FollowBall {...props}/>:<FollowBall3D onFinish={completedGame} reducedMotion={reducedMotion} disco={disco} lasers={lasers} theme={theme}/>}</div>
   <div className={styles.brandFooter}><div><strong>VIBESCHOOL</strong><span>{campaignHeadline}</span></div><a href={destination} target="_blank" rel="noopener noreferrer">{cta} ↗</a></div>
   {recent&&<div className={styles.result} role="status"><strong>{recent}</strong><button onClick={()=>void share()}>Share challenge ↗</button></div>}
   </div>

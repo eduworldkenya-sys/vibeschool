@@ -113,3 +113,7 @@
 .stage[data-theme=classroom]{background:radial-gradient(ellipse at top,#2c6f96,#164368 56%,#102843)}
 @keyframes arcadeDisco{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.stage::before,.stage::after{animation:none!important}}
+
+.modeActions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.modeActions button{white-space:normal}
+@media(max-width:610px){.modeActions{width:100%}.modeActions button{flex:1}}
