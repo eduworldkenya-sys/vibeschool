@@ -120,3 +120,14 @@
 @keyframes popupDirectorFade{from{opacity:0}to{opacity:1}}
 @media(max-width:640px){.stage .popupPositiontop{top:8%}.stage .popupPositionbottom{bottom:8%}.popupToggles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.stage .popupAnimpop,.stage .popupAnimslide,.stage .popupAnimfade{animation:none}}
+
+
+/* VibeSpin countdown controls */
+.countdownDirector{display:grid;justify-items:center;gap:5px;font-weight:900;min-width:70px;max-width:100%}
+.countdownHeading{font-size:.58em;letter-spacing:.13em;text-transform:uppercase;opacity:.85}
+.countdownMeter{position:relative;display:grid;place-items:center;width:clamp(64px,10vw,120px);min-height:clamp(46px,7vw,86px);color:var(--countdown-accent);text-align:center}
+.countdownMeter strong{z-index:1;font-size:2em;line-height:1;overflow-wrap:anywhere}
+.countdownring .countdownMeter{border-radius:100%;aspect-ratio:1;background:conic-gradient(var(--countdown-accent) var(--countdown-ratio),#ffffff26 var(--countdown-ratio));box-shadow:0 0 15px #0005}
+.countdownring .countdownMeter:before{content:"";position:absolute;inset:6px;border-radius:100%;background:#09172e}
+.countdownbar .countdownMeter{min-height:65px;padding-bottom:10px;box-sizing:border-box}
+.countdownFill{position:absolute;bottom:0;left:0;width:var(--countdown-ratio);height:8px;max-width:100%;border-radius:100px;background:var(--countdown-accent);box-shadow:0 0 15px var(--countdown-accent);transition:width .2s ease}
