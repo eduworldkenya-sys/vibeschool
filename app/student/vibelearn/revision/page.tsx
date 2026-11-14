@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, BookOpenCheck, BrainCircuit, CalendarDays, Check
 import { useStudent } from '@/lib/student-context'
 import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
+import RevisionTopicStarter from '@/components/student/RevisionTopicStarter'
 import { getRevisionWorkspace, isCurrentGradeMistake, type MistakeNotebookItem, type RevisionWorkspace } from '@/lib/student/vibelearn'
 import { getMyRevisionMemory, recordRevisionRecall, type RevisionMemoryRecord } from '@/lib/student/revisionMemory'
 
@@ -95,6 +96,7 @@ export default function RevisionStudioPage() {
     {identityLoading||loading?<section style={style.card} aria-live="polite">Preparing your personal revision…</section>:
     !identity?<section style={style.card}><h2>Sign in to revise</h2><p style={style.muted}>Your revision history belongs to your learner account.</p><button style={style.primary} onClick={()=>router.push('/student')}>Go to learner home</button></section>:
     screen==='home'?<>
+      <RevisionTopicStarter className={identity.className ?? ''}/>
       <section style={{...style.card,background:'var(--vs-card, #fff)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
           <div><div style={{color:'var(--vs-accent)',fontSize:11,fontWeight:800,textTransform:'uppercase',letterSpacing:1}}>Your next revision</div>
@@ -103,8 +105,8 @@ export default function RevisionStudioPage() {
           <div style={{borderRadius:16,background:'var(--vs-accent-soft)',padding:18,color:'var(--vs-accent)'}}><BookOpenCheck size={32}/></div>
         </div>
         <div style={{display:'flex',gap:9,flexWrap:'wrap',marginTop:18}}>
-          <button style={style.primary} onClick={()=>selectedItem?begin(selectedItem):router.push('/student/vibelearn/practice')}>
-            {selectedItem?'Start revision':'Explore practice'} <ArrowRight size={16} style={{verticalAlign:'middle',marginLeft:6}}/>
+          <button style={style.primary} onClick={()=>selectedItem?begin(selectedItem):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}>
+            {selectedItem?'Start revision':'Choose a revision topic'} <ArrowRight size={16} style={{verticalAlign:'middle',marginLeft:6}}/>
           </button>
           <button style={style.secondary} onClick={()=>router.push('/student/study')}>Open Learn</button>
         </div>
@@ -120,7 +122,7 @@ export default function RevisionStudioPage() {
       </section>
       <section style={style.card}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}><h2 style={{margin:0,fontSize:20}}>Revision queue</h2><span style={{fontSize:12,color:'var(--vs-muted)'}}>{due.length} due · {completeCount} reviewed</span></div>
-        {filtered.length===0?<div style={{padding:'20px 0'}}><p style={style.muted}>No verified current-grade mistakes to revise yet. Learn or practise a topic first; this space will use your real learning history.</p><button style={style.secondary} onClick={()=>router.push('/student/vibelearn/practice')}>Choose a topic <ChevronRight size={15} style={{verticalAlign:'middle'}}/></button></div>:
+        {filtered.length===0?<div style={{padding:'20px 0'}}><p style={style.muted}>No eligible mistakes to revisit yet. Use the approved topic cards above to revise independently.</p><button style={style.secondary} onClick={()=>document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}>Choose an approved topic <ChevronRight size={15} style={{verticalAlign:'middle'}}/></button></div>:
         <div style={{display:'grid',gap:9,marginTop:14}}>{filtered.slice(0,12).map(m=>{
           const record=memoryById.get(m.id),isDue=!record||dateDue(record.nextReviewAt)
           return <div key={m.id} style={{border:'1px solid var(--vs-border)',borderRadius:14,padding:13,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
@@ -130,9 +132,9 @@ export default function RevisionStudioPage() {
         })}</div>}
       </section>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(205px,1fr))',gap:12}}>
-        <button style={{...style.card,textAlign:'left',cursor:'pointer',fontFamily:'inherit',color:'inherit'}} onClick={()=>selectedItem?begin(selectedItem,'Flashcards'):router.push('/student/vibelearn/practice')}><Layers3 size={24} color="var(--vs-accent)"/><h3 style={{margin:'12px 0 5px'}}>Quick recall</h3><span style={style.muted}>Remember before revealing an explanation.</span></button>
+        <button style={{...style.card,textAlign:'left',cursor:'pointer',fontFamily:'inherit',color:'inherit'}} onClick={()=>selectedItem?begin(selectedItem,'Flashcards'):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}><Layers3 size={24} color="var(--vs-accent)"/><h3 style={{margin:'12px 0 5px'}}>Quick recall</h3><span style={style.muted}>Remember before revealing an explanation.</span></button>
         <button style={{...style.card,textAlign:'left',cursor:'pointer',fontFamily:'inherit',color:'inherit'}} onClick={()=>router.push('/student/vibelearn/mistakes')}><RefreshCcw size={24} color="var(--vs-accent)"/><h3 style={{margin:'12px 0 5px'}}>Mistake notebook</h3><span style={style.muted}>Review the source and retry difficult ideas.</span></button>
-        <button style={{...style.card,textAlign:'left',cursor:'pointer',fontFamily:'inherit',color:'inherit'}} onClick={()=>router.push('/student/vibelearn/practice')}><Sparkles size={24} color="var(--vs-accent)"/><h3 style={{margin:'12px 0 5px'}}>Choose a topic</h3><span style={style.muted}>Practise independently when nothing is due.</span></button>
+        <button style={{...style.card,textAlign:'left',cursor:'pointer',fontFamily:'inherit',color:'inherit'}} onClick={()=>document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}><Sparkles size={24} color="var(--vs-accent)"/><h3 style={{margin:'12px 0 5px'}}>Choose a topic</h3><span style={style.muted}>Practise independently when nothing is due.</span></button>
       </div>
       <section style={style.card}><div style={{display:'flex',gap:10,alignItems:'center'}}><CalendarDays size={20} color="var(--vs-accent)"/><h2 style={{fontSize:18,margin:0}}>Coming up</h2></div>
         {memory.filter(m=>verified.some(v=>v.id===m.mistakeId)&&!dateDue(m.nextReviewAt)).length===0?
