@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, RotateCcw, Save, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
@@ -60,11 +61,15 @@ const button:React.CSSProperties={border:0,borderRadius:11,minHeight:46,padding:
 const secondary:React.CSSProperties={...button,color:'var(--vs-text)',background:'var(--vs-card)',border:'1px solid var(--vs-border)'}
 const muted:React.CSSProperties={fontSize:13,lineHeight:1.55,color:'var(--vs-muted)'}
 const optionStyle:React.CSSProperties={...secondary,textAlign:'left',width:'100%',minHeight:54}
+const topicTile:React.CSSProperties={...optionStyle,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,padding:16,borderRadius:15}
+const progressTrack:React.CSSProperties={height:7,flex:1,background:'var(--vs-border)',borderRadius:99,overflow:'hidden'}
 
 export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grade:string;subject?:string;topic?:string}) {
   const router=useRouter()
   const {play}=useLearningFeedback()
   const [topics,setTopics]=useState<Topic[]>([])
+  const [subjectFilter,setSubjectFilter]=useState(subject)
+  useEffect(()=>setSubjectFilter(subject),[subject])
   const [workspace,setWorkspace]=useState<AttemptWorkspace|null>(null)
   const topicCards=useMemo(()=>{
     const groups=new Map<string,Topic[]>()
@@ -81,9 +86,10 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
       const remaining=sets.filter(item=>item.in_progress||item.completed_attempts<item.max_attempts).length
       return {key,title:key.split('::')[1],preferred,count:sets.length,remaining}
     }).sort((a,b)=>a.title.localeCompare(b.title)).filter(card =>
-      (!subject || card.preferred.subject.toLowerCase() === subject.toLowerCase()) &&
+      (!subjectFilter || card.preferred.subject.toLowerCase() === subjectFilter.toLowerCase()) &&
       (!topic || card.title.toLowerCase() === topic.toLowerCase()))
-  },[topics,subject,topic])
+  },[topics,subjectFilter,topic])
+  const subjects=useMemo(()=>[...new Set(topics.map(item=>item.subject))].sort(),[topics])
   const [feedback,setFeedback]=useState<Feedback[]>([])
   const [index,setIndex]=useState(0)
   const [finished,setFinished]=useState<SubmitAttemptResult|null>(null)
@@ -92,6 +98,7 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
   const [busy,setBusy]=useState(false)
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
+  const [showExplanation,setShowExplanation]=useState(true)
   const refresh=useCallback(async()=>{
     const list=await fetchTopics(grade)
     setTopics(list)
@@ -130,6 +137,9 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
   const incorrect=feedback.filter(entry=>entry.correct===false).length
   const correct=feedback.filter(entry=>entry.correct===true).length
   const skipped=feedback.filter(entry=>entry.skipped).length
+  const savedCount=workspace?.items.filter(question=>seen.has(question.id)).length??0
+  const savedResponse=item?workspace?.responses.find(response=>response.assessmentItemId===item.id):null
+  const selectedValue=savedResponse?.responseValue === null ? null : typeof savedResponse?.responseValue==='string' ? savedResponse.responseValue : currentFeedback?.selected??null
   async function save(value:string|null) {
     if(!workspace || !item || busy || seen.has(item.id))return
     setBusy(true);setError('')
@@ -183,33 +193,64 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
     finally{setBusy(false)}
   }
   return <main style={shell}>
-    <button style={secondary} onClick={()=>workspace?setWorkspace(null):router.push('/student/study')}>{workspace?'Choose topic':'← Learn'}</button>
-    <h1 style={{fontSize:26,margin:'16px 0 6px'}}>Topic Practice</h1>
-    <p style={muted}>{grade} · {topics.length>0?'Five questions · No timer or class code':'Choose approved practice while five-question topics are prepared'}</p>
-    {error && <div role='alert' style={{...card,borderColor:'#fda4af',color:'#be123c'}}>{error}</div>}
-    {!workspace && <StudentLearningFeatureLinks mode="practice" grade={grade} subject={subject}/>}
-    {loading && <div style={card}>Loading available topics…</div>}
-    {!loading && !workspace && <section style={card}>
-      <h2 style={{fontSize:18,margin:'0 0 12px'}}>Choose a topic</h2>
-      {topicCards.length===0?<><p style={muted}>{subject || topic ? 'No certified topic practice matches this subject or topic yet.' : `No certified five-question topics are published for ${grade} yet. Longer or timed assessments stay in Exams.`}</p>{(subject || topic) && <button style={secondary} onClick={()=>router.push('/student/vibelearn/topic-practice')}>See all topics</button>}</>:<div style={{display:'grid',gap:10}}>
-        {topicCards.map(card=><button key={card.key} disabled={busy||card.remaining===0} onClick={()=>void open(card.preferred)} style={{...optionStyle,display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
-          <span><strong style={{display:'block'}}>{card.title}</strong><span style={muted}>{card.count} sets available · 5 questions per session</span></span>
-          <strong style={{color:'var(--vs-accent)'}}>{card.preferred.in_progress?'Continue':card.remaining===0?'Completed':card.preferred.completed_attempts>0?'Practise again':'Start'}</strong>
-        </button>)}
-      </div>}
-    </section>}
-    {!loading && !workspace && topics.length===0 && <section style={card}>
-      <h2 style={{fontSize:18,margin:'0 0 10px'}}>Looking for an assessment?</h2>
-      <p style={muted}>Topic Practice only shows certified five-question untimed sessions. Timed and longer practice assessments are available in Exams, without changing their saved attempts or results.</p>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
-        <button style={button} onClick={()=>router.push('/student/vibelearn/exams')}>Browse Exams</button>
-        <button style={secondary} onClick={()=>router.push('/student/study')}>Return to Learn</button>
+    <header style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center',flexWrap:'wrap'}}>
+      <button type="button" style={{...secondary,display:'inline-flex',alignItems:'center',gap:7}} onClick={()=>{if(workspace){setWorkspace(null);setFinished(null);setFeedback([])}else router.push('/student/study')}}>
+        <ArrowLeft size={16} aria-hidden="true" />{workspace?'Save & exit':'Back to Learn'}
+      </button>
+      <span style={{...muted,display:'inline-flex',alignItems:'center',gap:6}}><Clock3 size={15} aria-hidden="true"/> Untimed · {grade}</span>
+    </header>
+    <div style={{margin:'22px 0 18px'}}>
+      <p style={{...muted,fontSize:12,fontWeight:800,letterSpacing:1,textTransform:'uppercase',margin:'0 0 6px'}}>VibeLearn / Practise</p>
+      <h1 style={{fontSize:'clamp(25px,4vw,34px)',letterSpacing:'-.035em',margin:'0 0 8px'}}>{workspace ? 'Keep going' : 'Ready to practise?'}</h1>
+      <p style={{...muted,fontSize:14,margin:0}}>{workspace?'Your answers are saved as you go. Complete all five questions at your own pace.':'Choose a topic, answer five questions and learn from every answer.'}</p>
+    </div>
+    {error && <div role="alert" style={{...card,borderColor:'#fda4af',color:'#be123c',display:'flex',flexWrap:'wrap',gap:10,alignItems:'center'}}>
+      <span style={{flex:1}}>{error}</span>
+      {!workspace && <button type="button" disabled={loading||busy} style={secondary} onClick={()=>{setError('');void refresh().catch(cause=>setError(cause instanceof Error?cause.message:'Could not reload topics.'))}}>Try again</button>}
+    </div>}
+    {loading && !workspace && <div role="status" style={card}>Loading your topics…</div>}
+    {!loading && !workspace && <section aria-label="Choose a practice topic" style={{...card,marginTop:0}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap',marginBottom:14}}>
+        <h2 style={{fontSize:19,margin:0}}>Choose a topic</h2>
+        <span style={{...muted,fontSize:12}}>{topicCards.length} available · 5 questions each</span>
       </div>
+      {subjects.length>1 && <div aria-label="Filter practice by subject" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
+        {['',...subjects].map(value=><button key={value||'all'} type="button" aria-pressed={subjectFilter===value} onClick={()=>setSubjectFilter(value)}
+          style={{...secondary,minHeight:36,padding:'7px 13px',borderRadius:999,background:subjectFilter===value?'var(--vs-accent-soft)':'var(--vs-card)',borderColor:subjectFilter===value?'var(--vs-accent)':'var(--vs-border)'}}>{value||'All subjects'}</button>)}
+      </div>}
+      {topicCards.length===0
+        ? <div style={{padding:'18px 4px',display:'grid',gap:10,justifyItems:'start'}}>
+          <BookOpen size={29} color="var(--vs-accent)" aria-hidden="true"/>
+          <strong>{topics.length?'No topics match this filter.':'Practice topics are being prepared'}</strong>
+          <p style={{...muted,margin:0}}>{topics.length?'Try another subject to see available topics.':'Published five-question, untimed sets will appear here automatically. You can continue learning while they are prepared.'}</p>
+          {topics.length>0 && <button type="button" style={secondary} onClick={()=>{setSubjectFilter('');router.replace('/student/vibelearn/topic-practice')}}>Show all topics</button>}
+          {topics.length===0 && <button type="button" style={secondary} onClick={()=>void refresh().catch(cause=>setError(cause instanceof Error?cause.message:'Could not reload topics.'))}>Check again</button>}
+        </div>
+        : <div style={{display:'grid',gap:10}}>{topicCards.map(card=><button key={card.key} type="button" disabled={busy||card.remaining===0}
+          onClick={()=>void open(card.preferred)} style={{...topicTile,opacity:card.remaining===0?.65:1}}>
+          <span style={{display:'flex',alignItems:'center',gap:12,minWidth:0}}>
+            <span style={{background:'var(--vs-accent-soft)',padding:11,borderRadius:12,display:'inline-flex',color:'var(--vs-accent)'}}><BookOpen size={20} aria-hidden="true"/></span>
+            <span style={{minWidth:0}}><strong style={{display:'block',fontSize:15,marginBottom:3}}>{card.title}</strong>
+            <span style={muted}>{card.preferred.subject} · {card.count} set{card.count===1?'':'s'} · No timer</span></span>
+          </span>
+          <span style={{display:'inline-flex',alignItems:'center',gap:6,color:'var(--vs-accent)',fontWeight:800,whiteSpace:'nowrap'}}>
+            {card.preferred.in_progress?'Continue':card.remaining===0?'Completed':card.preferred.completed_attempts>0?'Again':'Start'} <ArrowRight size={17} aria-hidden="true"/>
+          </span>
+        </button>)}</div>}
     </section>}
+    {!workspace && !loading && <nav aria-label="Other learning tools" style={{display:'flex',flexWrap:'wrap',gap:9,marginTop:18}}>
+      <button style={secondary} onClick={()=>router.push('/student/vibelearn/revision')}><RotateCcw size={15} style={{verticalAlign:'middle',marginRight:6}}/>Revision</button>
+      <button style={secondary} onClick={()=>router.push('/student/marks')}><CheckCircle2 size={15} style={{verticalAlign:'middle',marginRight:6}}/>My progress</button>
+      <button style={secondary} onClick={()=>router.push('/student/study')}><BookOpen size={15} style={{verticalAlign:'middle',marginRight:6}}/>Learn</button>
+    </nav>}
     {workspace && !finished && <section style={card}>
-      <p style={muted}>{workspace.title}</p>
+      <p style={{...muted,margin:'0 0 12px'}}>{workspace.title}</p>
+      <div role="progressbar" aria-label="Practice questions recorded" aria-valuemin={0} aria-valuemax={5} aria-valuenow={savedCount} style={{display:'flex',gap:6,margin:'0 0 18px'}}>
+        {workspace.items.map(question=><span key={question.id} style={progressTrack}><span style={{display:'block',height:'100%',width:seen.has(question.id)?'100%':'0%',background:'var(--vs-accent)',borderRadius:99}} /></span>)}
+      </div>
+      <p style={{...muted,margin:'0 0 12px'}}>{savedCount} of 5 recorded · Answers saved automatically</p>
       {item ? <>
-        <p style={{fontWeight:800,fontSize:14}}>Question {index+1} of 5</p>
+        <p style={{fontWeight:800,fontSize:14,letterSpacing:'.02em',color:'var(--vs-accent)'}}>QUESTION {index+1} OF 5</p>
         <h2 style={{fontSize:19,lineHeight:1.5,margin:'12px 0 18px'}}>{item.prompt}</h2>
         <LearningNotebookPrompt subject={workspace.title} stage="practice" compact />
         {item.hint && !seen.has(item.id) && <details style={{padding:'10px 12px',border:'1px solid var(--vs-border)',borderRadius:10,marginBottom:14}}>
@@ -217,33 +258,33 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
           <p style={muted}>{item.hint}</p>
         </details>}
         <div style={{display:'grid',gap:10}}>
-          {options.map(option=><button key={option.value} disabled={busy||seen.has(item.id)} style={{...optionStyle,background:currentFeedback?.selected===option.value?'var(--vs-accent-soft)':'var(--vs-card)'}} onClick={()=>void save(option.value)}><strong>{option.value}.</strong> {option.label}</button>)}
+          {options.map(option=><button key={option.value} type="button" disabled={busy||seen.has(item.id)} aria-pressed={selectedValue===option.value} style={{...optionStyle,display:'flex',alignItems:'center',gap:12,padding:14,borderRadius:13,background:selectedValue===option.value?'var(--vs-accent-soft)':'var(--vs-card)',borderColor:selectedValue===option.value?'var(--vs-accent)':'var(--vs-border)'}} onClick={()=>void save(option.value)}><span style={{border:'1px solid var(--vs-border)',borderRadius:9,padding:'7px 10px',fontWeight:800}}>{option.value}</span><span style={{flex:1}}>{option.label}</span>{currentFeedback?.correct_answer===option.value&&<CheckCircle2 size={18} color="var(--vs-accent)"/>}</button>)}
         </div>
         {seen.has(item.id) && !currentFeedback && <div role="status" style={{...card,background:'var(--vs-soft)'}}>
-          <p style={muted}>Answer saved to your attempt. Feedback has not loaded yet; this does not change your recorded answer.</p>
+          <p style={muted}>Answer saved securely. Feedback could not load yet; you can retry feedback or continue without losing your answer.</p>
           <button type="button" disabled={busy} style={secondary} onClick={()=>void retryFeedback()}>{busy?'Loading…':'Retry feedback'}</button>
           <button type="button" disabled={busy} style={{...secondary,marginLeft:8}} onClick={next}>{index===4?'Review & finish':'Next question'}</button>
         </div>}
         {currentFeedback?<LearningFeedback
           status={currentFeedback.skipped?'skipped':currentFeedback.correct?'correct':'incorrect'}
           answer={currentFeedback.correct_answer ? currentFeedback.correct_answer + '. ' + (options.find(option=>option.value===currentFeedback.correct_answer)?.label??'') : null}
-          explanation={currentFeedback.explanation}>
-          <button style={button} onClick={next}>{index===4?'Finish':'Next'}</button>
-        </LearningFeedback>:<button disabled={busy} style={{...secondary,marginTop:14}} onClick={()=>void save(null)}>Skip</button>}
+          explanation={showExplanation?currentFeedback.explanation:null}>
+          <div style={{display:'flex',flexWrap:'wrap',gap:8,alignItems:'center'}}><button style={button} onClick={next}>{index===4?'Review and finish':'Next question'} <ArrowRight size={15} style={{verticalAlign:'middle'}}/></button><button style={secondary} type="button" onClick={()=>setShowExplanation(v=>!v)}>{showExplanation?'Hide explanation':'Show explanation'}</button></div>
+        </LearningFeedback>:!seen.has(item.id) && <button disabled={busy} style={{...secondary,marginTop:14}} onClick={()=>void save(null)}>{busy?'Saving…':'Skip question'}</button>}
       </>:<>
-        <h2 style={{fontSize:18}}>All five questions completed</h2>
+        <h2 style={{fontSize:20}}>All five questions recorded</h2>
         <p style={muted}>Check the summary and finish to save your official result.</p>
         <p style={muted} role="status">{everyAnswerSaved ? 'All five answers are recorded. You can finish even if review feedback is temporarily unavailable.' : 'Finish is available after all five answers have been recorded.'}</p>
         <button disabled={busy||!everyAnswerSaved} style={button} onClick={()=>void finish()}>{busy?'Submitting…':'Finish practice'}</button>
       </>}
     </section>}
     {workspace && finished && <section style={card}>
-      <h2 style={{fontSize:20}}>Practice complete</h2>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}><Sparkles size={25} color="var(--vs-accent)" aria-hidden="true"/><h2 style={{fontSize:23,margin:0}}>Practice complete!</h2></div>
       {finished.scoreReleased && finished.score!==null && finished.maxScore!==null
         ? <p style={{fontSize:23,fontWeight:800,margin:'10px 0'}}>{finished.score} / {finished.maxScore} marks{finished.percentage!==null ? ` · ${Math.round(finished.percentage)}%` : ''}</p>
         : <p role="status" style={muted}>Your attempt is saved. The result is not yet released.</p>}
       {feedbackReady
-        ? <p style={{fontSize:17,fontWeight:800}}>{correct} correct · {incorrect} incorrect · {skipped} skipped</p>
+        ? <div aria-label="Answer summary" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginBottom:16}}>{[{label:'Correct',value:correct},{label:'Incorrect',value:incorrect},{label:'Skipped',value:skipped}].map(entry=><div key={entry.label} style={{padding:12,borderRadius:12,background:'var(--vs-soft)',textAlign:'center'}}><strong style={{display:'block',fontSize:22}}>{entry.value}</strong><span style={muted}>{entry.label}</span></div>)}</div>
         : <p role="status" style={muted}>Your attempt is saved. Detailed review is temporarily unavailable. Your recorded score is not being estimated from missing feedback.</p>}
       {finished.scoreReleased && <button style={{...secondary,marginRight:8,marginBottom:8}} onClick={()=>router.push('/student/results/'+encodeURIComponent(finished.attemptId))}>View saved result</button>}
       {feedbackReady && <button style={button} onClick={()=>setReviewing(true)}>{incorrect+skipped>0?'Review mistakes':'Review answers'}</button>}
