@@ -1,0 +1,831 @@
+{
+  "schema": "vibeschool.originals.grade4-subtraction-bulk-editorial.v1",
+  "createdAt": "2026-11-14",
+  "status": "EDITORIAL_CANDIDATE_ONLY_NOT_IN_CONTENT_ENGINE",
+  "scope": "Five official subtraction outcome scopes 1.3(a–e), not 8 fully certified lessons",
+  "source": {
+    "authority": "KICD",
+    "edition": "Grade 4 Mathematics regular curriculum, revised 2024",
+    "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+    "locator": "Numbers → 1.3 Subtraction, printed pp. 6–7 (PDF indices 14–15)",
+    "verification": "Official KICD PDF text checked. No authenticated VibeSchool artifact, checksum, promoted outcomes, or independent source-page image inspection.",
+    "suggestedLessons": 8
+  },
+  "proof": "All worked scalar arithmetic and practice answers subject to independent checking; candidate only",
+  "packets": [
+    {
+      "id": "VS-G04-MA-1.3-A-L01",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "strand": "1.0 Numbers",
+      "subStrand": "1.3 Subtraction",
+      "outcome": "1.3(a)",
+      "title": "Subtract without exchanging",
+      "goal": "Subtract up to four-digit numbers without regrouping in real situations.",
+      "explanation": "Subtraction finds what remains or the difference. Align thousands with thousands, hundreds with hundreds, tens with tens, and ones with ones. If each upper digit is at least the digit below, subtract within each column without exchanging.",
+      "source": {
+        "authority": "KICD",
+        "edition": "Grade 4 Mathematics regular curriculum, revised 2024",
+        "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "locator": "Numbers → 1.3 Subtraction, printed pp. 6–7 (PDF indices 14–15)",
+        "verification": "Official KICD PDF text checked. No authenticated VibeSchool artifact, checksum, promoted outcomes, or independent source-page image inspection.",
+        "suggestedLessons": 8
+      },
+      "canonicalOutcomeId": null,
+      "status": "EDITORIAL_DRAFT_NOT_CERTIFIED_NOT_PUBLISHED",
+      "prior": [
+        "Read place values up to thousands",
+        "Subtract single digits and interpret difference"
+      ],
+      "accessibility": "Large numeral columns, clear labels, a tactile or pencil-drawn option, no dependence on sound/colour/printing",
+      "visualStatus": "brief_only_no_certified_asset",
+      "worked": {
+        "prompt": "A class had 7,864 seeds and used 2,532. How many remained?",
+        "minuend": 7864,
+        "subtrahend": 2532,
+        "answer": 5332,
+        "steps": [
+          [
+            "Place 7,864 above 2,532 in matching thousands, hundreds, tens and ones columns.",
+            "Each subtraction must compare the same kind of unit."
+          ],
+          [
+            "Subtract ones: 4−2=2; tens: 6−3=3.",
+            "Neither column needs an exchange."
+          ],
+          [
+            "Subtract hundreds: 8−5=3; thousands: 7−2=5.",
+            "All upper digits are large enough to subtract directly."
+          ],
+          [
+            "State 5,332 seeds remained, then check 5,332 + 2,532 = 7,864.",
+            "The inverse calculation confirms the subtraction."
+          ]
+        ]
+      },
+      "guided": [
+        {
+          "id": "S-A-G1",
+          "prompt": "Subtract 6,753 − 2,421.",
+          "answer": 4332,
+          "explanation": "Ones 3−1=2, tens 5−2=3, hundreds 7−4=3, thousands 6−2=4.",
+          "correctFeedback": "Correct — Ones 3−1=2, tens 5−2=3, hundreds 7−4=3, thousands 6−2=4.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "independent": [
+        {
+          "id": "S-A-E1",
+          "prompt": "Find 8,975 − 4,632.",
+          "answer": 4343,
+          "explanation": "Column differences are 3,4,3,4 from ones to thousands.",
+          "correctFeedback": "Correct — Column differences are 3,4,3,4 from ones to thousands.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-A-E2",
+          "prompt": "Calculate 7,642 − 3,211.",
+          "answer": 4431,
+          "explanation": "Subtract without borrowing in each of four columns.",
+          "correctFeedback": "Correct — Subtract without borrowing in each of four columns.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-A-E3",
+          "prompt": "A store stocked 9,876 oranges and sold 3,254. How many remain?",
+          "answer": 6622,
+          "explanation": "Subtract the sold oranges from the stock.",
+          "correctFeedback": "Correct — Subtract the sold oranges from the stock.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "checks": [
+        {
+          "id": "S-A-Q1",
+          "prompt": "7,864 − 2,532 = ?",
+          "answer": 5332,
+          "explanation": "Check 5,332+2,532=7,864.",
+          "correctFeedback": "Correct — Check 5,332+2,532=7,864.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-A-Q2",
+          "prompt": "6,753 − 2,421 = ?",
+          "answer": 4332,
+          "explanation": "No column needs regrouping.",
+          "correctFeedback": "Correct — No column needs regrouping.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-A-Q3",
+          "prompt": "8,975 − 4,632 = ?",
+          "answer": 4343,
+          "explanation": "Subtract like place values.",
+          "correctFeedback": "Correct — Subtract like place values.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-A-Q4",
+          "prompt": "7,642 − 3,211 = ?",
+          "answer": 4431,
+          "explanation": "Column totals stay nonnegative.",
+          "correctFeedback": "Correct — Column totals stay nonnegative.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-A-Q5",
+          "prompt": "9,876 − 3,254 = ?",
+          "answer": 6622,
+          "explanation": "The remaining quantity is 6,622.",
+          "correctFeedback": "Correct — The remaining quantity is 6,622.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "activity": {
+        "materials": [
+          "Hand-drawn four-column place-value table",
+          "Number cards"
+        ],
+        "steps": [
+          "Place the digits of 7,864 and 2,532 in matching columns.",
+          "Subtract each place separately without exchanging.",
+          "Read the result with its original units.",
+          "Check by adding the amount removed to the remaining amount."
+        ]
+      },
+      "revision": {
+        "recall": "How do you check subtraction?",
+        "answer": "Add the difference to the amount subtracted; you should recover the starting quantity.",
+        "remedial": "Begin with two-digit subtraction before using four columns.",
+        "enrichment": "Make a four-digit subtraction with no exchange where the answer is exactly 4,000."
+      },
+      "teacher": {
+        "focus": "Ensure learners identify minuend, subtrahend, difference and units.",
+        "misconception": "Misaligned columns; use a labelled chart to prevent subtracting tens from hundreds."
+      },
+      "visual": {
+        "brief": "Four-column subtraction table with 7,864 over 2,532 and difference 5,332; no borrowing arrows."
+      }
+    },
+    {
+      "id": "VS-G04-MA-1.3-B-L01",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "strand": "1.0 Numbers",
+      "subStrand": "1.3 Subtraction",
+      "outcome": "1.3(b)",
+      "title": "Subtract by exchanging",
+      "goal": "Subtract up to four-digit numbers using place-value regrouping and explain each exchange.",
+      "explanation": "When the top digit in a column is smaller than the digit beneath it, exchange one unit from the next larger column for ten of the smaller units. This preserves the number's value. Check which higher column can provide the exchange; crossing zeros may require exchanging through multiple places.",
+      "source": {
+        "authority": "KICD",
+        "edition": "Grade 4 Mathematics regular curriculum, revised 2024",
+        "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "locator": "Numbers → 1.3 Subtraction, printed pp. 6–7 (PDF indices 14–15)",
+        "verification": "Official KICD PDF text checked. No authenticated VibeSchool artifact, checksum, promoted outcomes, or independent source-page image inspection.",
+        "suggestedLessons": 8
+      },
+      "canonicalOutcomeId": null,
+      "status": "EDITORIAL_DRAFT_NOT_CERTIFIED_NOT_PUBLISHED",
+      "prior": [
+        "Read place values up to thousands",
+        "Subtract single digits and interpret difference"
+      ],
+      "accessibility": "Large numeral columns, clear labels, a tactile or pencil-drawn option, no dependence on sound/colour/printing",
+      "visualStatus": "brief_only_no_certified_asset",
+      "worked": {
+        "prompt": "A library had 5,004 books and lent out 1,278. How many are still in the library?",
+        "minuend": 5004,
+        "subtrahend": 1278,
+        "answer": 3726,
+        "steps": [
+          [
+            "Write 5,004 − 1,278 with matching columns.",
+            "The problem asks what remains after some books leave."
+          ],
+          [
+            "To subtract 8 ones from 4 ones, exchange across the zero tens and hundreds: 5 thousands become 4 thousands and 10 hundreds; exchange one hundred for 10 tens, then one ten for 10 ones.",
+            "Each exchange preserves the starting total: 4 thousands, 9 hundreds, 9 tens and 14 ones still represent 5,004."
+          ],
+          [
+            "Ones: 14−8=6; tens: 9−7=2.",
+            "Use the exchanged units already recorded, not the original zero digits."
+          ],
+          [
+            "Hundreds: 9−2=7; thousands: 4−1=3.",
+            "The result is 3,726."
+          ],
+          [
+            "Check 3,726 + 1,278 = 5,004.",
+            "Adding back the borrowed books returns the original total."
+          ]
+        ]
+      },
+      "guided": [
+        {
+          "id": "S-B-G1",
+          "prompt": "Calculate 4,362 − 1,578.",
+          "answer": 2784,
+          "explanation": "Exchange across ones and tens; confirm by adding 2,784+1,578=4,362.",
+          "correctFeedback": "Correct — Exchange across ones and tens; confirm by adding 2,784+1,578=4,362.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "independent": [
+        {
+          "id": "S-B-E1",
+          "prompt": "Find 7,205 − 2,468.",
+          "answer": 4737,
+          "explanation": "Regroup across the zero tens, then check 4,737+2,468=7,205.",
+          "correctFeedback": "Correct — Regroup across the zero tens, then check 4,737+2,468=7,205.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-B-E2",
+          "prompt": "Calculate 6,013 − 2,786.",
+          "answer": 3227,
+          "explanation": "Borrow across zeros and check by addition.",
+          "correctFeedback": "Correct — Borrow across zeros and check by addition.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-B-E3",
+          "prompt": "A school collected 8,004 cards and distributed 3,675. How many remain?",
+          "answer": 4329,
+          "explanation": "Subtract 3,675 from 8,004, exchanging as needed.",
+          "correctFeedback": "Correct — Subtract 3,675 from 8,004, exchanging as needed.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "checks": [
+        {
+          "id": "S-B-Q1",
+          "prompt": "5,004 − 1,278 = ?",
+          "answer": 3726,
+          "explanation": "Check 3,726+1,278=5,004.",
+          "correctFeedback": "Correct — Check 3,726+1,278=5,004.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-B-Q2",
+          "prompt": "4,362 − 1,578 = ?",
+          "answer": 2784,
+          "explanation": "After regrouping, 2,784 remains.",
+          "correctFeedback": "Correct — After regrouping, 2,784 remains.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-B-Q3",
+          "prompt": "7,205 − 2,468 = ?",
+          "answer": 4737,
+          "explanation": "Borrow correctly across zero tens.",
+          "correctFeedback": "Correct — Borrow correctly across zero tens.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-B-Q4",
+          "prompt": "6,013 − 2,786 = ?",
+          "answer": 3227,
+          "explanation": "Check the result by addition.",
+          "correctFeedback": "Correct — Check the result by addition.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-B-Q5",
+          "prompt": "8,004 − 3,675 = ?",
+          "answer": 4329,
+          "explanation": "The answer is 4,329 cards.",
+          "correctFeedback": "Correct — The answer is 4,329 cards.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "activity": {
+        "materials": [
+          "Place-value boxes or bundled counters",
+          "A four-column drawing"
+        ],
+        "steps": [
+          "Represent 5,004 as 5 thousand bundles and 4 individual units.",
+          "Trade a thousand for ten hundreds, one hundred for ten tens, then one ten for ten ones.",
+          "Subtract 1,278 from the redistributed quantities.",
+          "Explain aloud why the value of 5,004 did not change during trading."
+        ]
+      },
+      "revision": {
+        "recall": "Why can we exchange one hundred for ten tens?",
+        "answer": "Both amounts have the same value of 100.",
+        "remedial": "Use 302−178 with concrete blocks to practise exchanging across a zero.",
+        "enrichment": "Create a four-digit subtraction with two zeros in the top number; draw every exchange."
+      },
+      "teacher": {
+        "focus": "Use concrete→pictorial→written notation. Learners must track each trade.",
+        "misconception": "Treating zero as ten without decreasing the next available larger column."
+      },
+      "visual": {
+        "brief": "Animated-style static arrows showing 5 thousands→4 thousands+10 hundreds→9 hundreds+10 tens→9 tens+10 ones, with resulting digits 4|9|9|14 and subtrahend 1|2|7|8."
+      }
+    },
+    {
+      "id": "VS-G04-MA-1.3-C-L01",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "strand": "1.0 Numbers",
+      "subStrand": "1.3 Subtraction",
+      "outcome": "1.3(c)",
+      "title": "Estimate the difference",
+      "goal": "Estimate a subtraction difference by rounding numbers to the nearest ten, then compare with an exact answer.",
+      "explanation": "An estimate helps check a subtraction. Round the starting amount and the amount removed independently to nearby tens, then subtract the rounded numbers. The exact difference comes from the original values; it may not be a multiple of ten.",
+      "source": {
+        "authority": "KICD",
+        "edition": "Grade 4 Mathematics regular curriculum, revised 2024",
+        "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "locator": "Numbers → 1.3 Subtraction, printed pp. 6–7 (PDF indices 14–15)",
+        "verification": "Official KICD PDF text checked. No authenticated VibeSchool artifact, checksum, promoted outcomes, or independent source-page image inspection.",
+        "suggestedLessons": 8
+      },
+      "canonicalOutcomeId": null,
+      "status": "EDITORIAL_DRAFT_NOT_CERTIFIED_NOT_PUBLISHED",
+      "prior": [
+        "Read place values up to thousands",
+        "Subtract single digits and interpret difference"
+      ],
+      "accessibility": "Large numeral columns, clear labels, a tactile or pencil-drawn option, no dependence on sound/colour/printing",
+      "visualStatus": "brief_only_no_certified_asset",
+      "worked": {
+        "prompt": "Estimate 6,457 − 2,384 to the nearest tens, then find the exact difference.",
+        "minuend": 6457,
+        "subtrahend": 2384,
+        "estimate": 4080,
+        "answer": 4073,
+        "steps": [
+          [
+            "Round 6,457 to 6,460 because the ones digit 7 is at least five.",
+            "Rounding chooses the nearer multiple of ten."
+          ],
+          [
+            "Round 2,384 to 2,380 because the ones digit 4 is less than five.",
+            "Each number is rounded independently."
+          ],
+          [
+            "Subtract 6,460−2,380=4,080.",
+            "This is the approximate difference."
+          ],
+          [
+            "Find the exact difference: 6,457−2,384=4,073.",
+            "The original numbers provide the precise result."
+          ],
+          [
+            "Compare the two: 4,080 differs by 7 from 4,073.",
+            "A nearby estimate supports the precise calculation."
+          ]
+        ]
+      },
+      "guided": [
+        {
+          "id": "S-C-G1",
+          "prompt": "Estimate 7,263 − 3,148 after rounding each number to the nearest ten.",
+          "answer": 4110,
+          "explanation": "7,260−3,150=4,110.",
+          "correctFeedback": "Correct — 7,260−3,150=4,110.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "independent": [
+        {
+          "id": "S-C-E1",
+          "prompt": "Estimate 8,426 − 2,713 to the nearest tens.",
+          "answer": 5720,
+          "explanation": "8,430−2,710=5,720.",
+          "correctFeedback": "Correct — 8,430−2,710=5,720.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-C-E2",
+          "prompt": "Estimate 5,642 − 1,287 to the nearest tens.",
+          "answer": 4350,
+          "explanation": "5,640−1,290=4,350.",
+          "correctFeedback": "Correct — 5,640−1,290=4,350.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-C-E3",
+          "prompt": "Find the exact difference 6,457 − 2,384.",
+          "answer": 4073,
+          "explanation": "The exact result is 4,073, which is near 4,080.",
+          "correctFeedback": "Correct — The exact result is 4,073, which is near 4,080.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "checks": [
+        {
+          "id": "S-C-Q1",
+          "prompt": "Estimate 6,457 − 2,384 to the nearest tens.",
+          "answer": 4080,
+          "explanation": "6,460−2,380=4,080.",
+          "correctFeedback": "Correct — 6,460−2,380=4,080.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-C-Q2",
+          "prompt": "Estimate 7,263 − 3,148 to the nearest tens.",
+          "answer": 4110,
+          "explanation": "7,260−3,150=4,110.",
+          "correctFeedback": "Correct — 7,260−3,150=4,110.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-C-Q3",
+          "prompt": "Estimate 8,426 − 2,713 to the nearest tens.",
+          "answer": 5720,
+          "explanation": "8,430−2,710=5,720.",
+          "correctFeedback": "Correct — 8,430−2,710=5,720.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-C-Q4",
+          "prompt": "Estimate 5,642 − 1,287 to the nearest tens.",
+          "answer": 4350,
+          "explanation": "5,640−1,290=4,350.",
+          "correctFeedback": "Correct — 5,640−1,290=4,350.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-C-Q5",
+          "prompt": "Calculate exactly: 6,457 − 2,384.",
+          "answer": 4073,
+          "explanation": "Subtraction without rounding gives 4,073.",
+          "correctFeedback": "Correct — Subtraction without rounding gives 4,073.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "activity": {
+        "materials": [
+          "Number line",
+          "Two original stock quantity cards"
+        ],
+        "steps": [
+          "Mark 6,457 between 6,450 and 6,460, and 2,384 between 2,380 and 2,390.",
+          "Round both numbers to the nearest tens.",
+          "Subtract the rounded values and then the original values.",
+          "Discuss whether the estimate helps identify an arithmetic mistake."
+        ]
+      },
+      "revision": {
+        "recall": "How do an estimated difference and exact difference differ?",
+        "answer": "An estimate uses rounded numbers; an exact difference uses original numbers.",
+        "remedial": "Round two-digit amounts before four-digit amounts.",
+        "enrichment": "Find subtraction pairs whose exact differences are close to the same estimate of 4,080."
+      },
+      "teacher": {
+        "focus": "Always label answers as estimates or exact differences.",
+        "misconception": "Rounding only the final difference when asked to estimate by rounding both numbers."
+      },
+      "visual": {
+        "brief": "Two number lines with 6,457 → 6,460 and 2,384 → 2,380, followed by estimated difference 4,080."
+      }
+    },
+    {
+      "id": "VS-G04-MA-1.3-D-L01",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "strand": "1.0 Numbers",
+      "subStrand": "1.3 Subtraction",
+      "outcome": "1.3(d)",
+      "title": "Make subtraction patterns",
+      "goal": "Create and explain subtraction number patterns, keeping numbers within 10,000.",
+      "explanation": "A subtraction pattern decreases by a repeated step. Compare adjacent terms to find the constant decrease. Subtract the same step each time and check by adding it back.",
+      "source": {
+        "authority": "KICD",
+        "edition": "Grade 4 Mathematics regular curriculum, revised 2024",
+        "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "locator": "Numbers → 1.3 Subtraction, printed pp. 6–7 (PDF indices 14–15)",
+        "verification": "Official KICD PDF text checked. No authenticated VibeSchool artifact, checksum, promoted outcomes, or independent source-page image inspection.",
+        "suggestedLessons": 8
+      },
+      "canonicalOutcomeId": null,
+      "status": "EDITORIAL_DRAFT_NOT_CERTIFIED_NOT_PUBLISHED",
+      "prior": [
+        "Read place values up to thousands",
+        "Subtract single digits and interpret difference"
+      ],
+      "accessibility": "Large numeral columns, clear labels, a tactile or pencil-drawn option, no dependence on sound/colour/printing",
+      "visualStatus": "brief_only_no_certified_asset",
+      "worked": {
+        "prompt": "Start at 8,500 and subtract 250 each time. Give five terms.",
+        "start": 8500,
+        "step": 250,
+        "answer": [
+          8500,
+          8250,
+          8000,
+          7750,
+          7500
+        ],
+        "steps": [
+          [
+            "Write 8,500 as the first term.",
+            "This establishes the starting quantity."
+          ],
+          [
+            "Subtract 250 to get 8,250.",
+            "The rule decreases by 250."
+          ],
+          [
+            "Subtract 250 again to get 8,000.",
+            "The same step is repeated."
+          ],
+          [
+            "Continue to 7,750 and then 7,500.",
+            "Every step uses 250, not a changing amount."
+          ],
+          [
+            "Check 8,500−8,250=250 and 8,250−8,000=250.",
+            "Equal adjacent differences verify the pattern."
+          ]
+        ]
+      },
+      "guided": [
+        {
+          "id": "S-D-G1",
+          "prompt": "Continue 6,400, 6,200, 6,000 with two terms.",
+          "answer": [
+            5800,
+            5600
+          ],
+          "explanation": "Subtract 200 each time.",
+          "correctFeedback": "Correct — Subtract 200 each time.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "independent": [
+        {
+          "id": "S-D-E1",
+          "prompt": "Find the next three numbers: 9,000, 8,750, 8,500.",
+          "answer": [
+            8250,
+            8000,
+            7750
+          ],
+          "explanation": "The step is subtract 250.",
+          "correctFeedback": "Correct — The step is subtract 250.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-D-E2",
+          "prompt": "Continue 4,850, 4,750, 4,650 with two terms.",
+          "answer": [
+            4550,
+            4450
+          ],
+          "explanation": "Subtract 100 repeatedly.",
+          "correctFeedback": "Correct — Subtract 100 repeatedly.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-D-E3",
+          "prompt": "A shop begins with 5,000 tickets and sells 500 daily. Write the stock after each of the next three days.",
+          "answer": [
+            4500,
+            4000,
+            3500
+          ],
+          "explanation": "Subtract 500 for each day.",
+          "correctFeedback": "Correct — Subtract 500 for each day.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "checks": [
+        {
+          "id": "S-D-Q1",
+          "prompt": "Write the next two terms: 8,500, 8,250, 8,000.",
+          "answer": [
+            7750,
+            7500
+          ],
+          "explanation": "Each term is 250 less.",
+          "correctFeedback": "Correct — Each term is 250 less.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-D-Q2",
+          "prompt": "Write two terms after 6,400, 6,200, 6,000.",
+          "answer": [
+            5800,
+            5600
+          ],
+          "explanation": "Step −200.",
+          "correctFeedback": "Correct — Step −200.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-D-Q3",
+          "prompt": "What is the constant subtraction step in 9,000, 8,750, 8,500?",
+          "answer": 250,
+          "explanation": "Each difference is 250.",
+          "correctFeedback": "Correct — Each difference is 250.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-D-Q4",
+          "prompt": "Write the next two terms: 4,850, 4,750, 4,650.",
+          "answer": [
+            4550,
+            4450
+          ],
+          "explanation": "Subtract 100.",
+          "correctFeedback": "Correct — Subtract 100.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-D-Q5",
+          "prompt": "What comes after 5,000, 4,500, 4,000, 3,500?",
+          "answer": 3000,
+          "explanation": "Subtract 500 again.",
+          "correctFeedback": "Correct — Subtract 500 again.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "activity": {
+        "materials": [
+          "Paper number line or number cards"
+        ],
+        "steps": [
+          "Write 8,500 as a starting stock number.",
+          "Move backward by 250 each turn, writing each number.",
+          "Compare two neighbouring terms by subtraction.",
+          "Invent a real-life stock or saving story for the pattern."
+        ]
+      },
+      "revision": {
+        "recall": "How can you verify a subtraction pattern?",
+        "answer": "Compare neighbouring numbers; the decrease should remain constant.",
+        "remedial": "Practise countdown by tens from 200.",
+        "enrichment": "Create two different constant-decrease patterns that both end at 5,000."
+      },
+      "teacher": {
+        "focus": "Learner explains the constant difference rather than guessing visually.",
+        "misconception": "Subtracting 250, then 500, then 750 rather than a constant 250."
+      },
+      "visual": {
+        "brief": "Five numbered points with arrows labelled −250: 8,500, 8,250, 8,000, 7,750, 7,500."
+      }
+    },
+    {
+      "id": "VS-G04-MA-1.3-E-L01",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "strand": "1.0 Numbers",
+      "subStrand": "1.3 Subtraction",
+      "outcome": "1.3(e)",
+      "title": "Use subtraction in daily life",
+      "goal": "Identify practical situations where subtraction helps find a remaining quantity or the difference between amounts.",
+      "explanation": "Use subtraction when you are finding what is left after some amount is taken away or measuring how much more one same-unit quantity is than another. First decide whether the problem asks for a remainder or a comparison. Check by adding the difference back.",
+      "source": {
+        "authority": "KICD",
+        "edition": "Grade 4 Mathematics regular curriculum, revised 2024",
+        "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "locator": "Numbers → 1.3 Subtraction, printed pp. 6–7 (PDF indices 14–15)",
+        "verification": "Official KICD PDF text checked. No authenticated VibeSchool artifact, checksum, promoted outcomes, or independent source-page image inspection.",
+        "suggestedLessons": 8
+      },
+      "canonicalOutcomeId": null,
+      "status": "EDITORIAL_DRAFT_NOT_CERTIFIED_NOT_PUBLISHED",
+      "prior": [
+        "Read place values up to thousands",
+        "Subtract single digits and interpret difference"
+      ],
+      "accessibility": "Large numeral columns, clear labels, a tactile or pencil-drawn option, no dependence on sound/colour/printing",
+      "visualStatus": "brief_only_no_certified_asset",
+      "worked": {
+        "prompt": "A school library had 7,600 reading cards and gave out 2,350. How many are left?",
+        "minuend": 7600,
+        "subtrahend": 2350,
+        "answer": 5250,
+        "steps": [
+          [
+            "Identify the starting and removed quantities: 7,600 cards and 2,350 cards.",
+            "Both amounts share units and some cards leave the library."
+          ],
+          [
+            "Write 7,600−2,350.",
+            "A remainder is found by subtraction."
+          ],
+          [
+            "Regroup one hundred to subtract five tens from zero tens: 10−5=5 tens; hundreds 5−3=2.",
+            "The exchange preserves the total."
+          ],
+          [
+            "Subtract thousands: 7−2=5; ones: 0−0=0.",
+            "The result is 5,250 cards."
+          ],
+          [
+            "Check 5,250 + 2,350 = 7,600.",
+            "The remaining plus distributed cards equal the starting stock."
+          ]
+        ]
+      },
+      "guided": [
+        {
+          "id": "S-E-G1",
+          "prompt": "A club had KSh 8,000 and spent KSh 2,475. How much remains?",
+          "answer": 5525,
+          "explanation": "8,000−2,475=KSh 5,525.",
+          "correctFeedback": "Correct — 8,000−2,475=KSh 5,525.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "independent": [
+        {
+          "id": "S-E-E1",
+          "prompt": "A club held 6,540 flyers and handed out 2,120. How many remain?",
+          "answer": 4420,
+          "explanation": "6,540−2,120=4,420 flyers.",
+          "correctFeedback": "Correct — 6,540−2,120=4,420 flyers.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-E-E2",
+          "prompt": "An event printed 9,000 tickets and sold 3,450. How many unsold?",
+          "answer": 5550,
+          "explanation": "9,000−3,450=5,550 tickets.",
+          "correctFeedback": "Correct — 9,000−3,450=5,550 tickets.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-E-E3",
+          "prompt": "A family saved KSh 7,650 and spent KSh 3,235. What remains?",
+          "answer": 4415,
+          "explanation": "7,650−3,235=KSh 4,415.",
+          "correctFeedback": "Correct — 7,650−3,235=KSh 4,415.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "checks": [
+        {
+          "id": "S-E-Q1",
+          "prompt": "7,600 cards minus 2,350 cards leaves how many?",
+          "answer": 5250,
+          "explanation": "The remainder is 5,250 cards.",
+          "correctFeedback": "Correct — The remainder is 5,250 cards.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-E-Q2",
+          "prompt": "KSh 8,000 less KSh 2,475 = ?",
+          "answer": 5525,
+          "explanation": "The money remaining is KSh 5,525.",
+          "correctFeedback": "Correct — The money remaining is KSh 5,525.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-E-Q3",
+          "prompt": "6,540 flyers with 2,120 distributed leave how many?",
+          "answer": 4420,
+          "explanation": "Subtract distribution from stock.",
+          "correctFeedback": "Correct — Subtract distribution from stock.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-E-Q4",
+          "prompt": "9,000 tickets sold 3,450 leave how many?",
+          "answer": 5550,
+          "explanation": "Unsold = printed−sold.",
+          "correctFeedback": "Correct — Unsold = printed−sold.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        },
+        {
+          "id": "S-E-Q5",
+          "prompt": "KSh 7,650 less KSh 3,235 = ?",
+          "answer": 4415,
+          "explanation": "The answer is KSh 4,415.",
+          "correctFeedback": "Correct — The answer is KSh 4,415.",
+          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+        }
+      ],
+      "activity": {
+        "materials": [
+          "Paper shop and library stock story cards"
+        ],
+        "steps": [
+          "Write two same-unit numbers for a classroom or household problem.",
+          "Explain whether the question is about remaining stock or comparing two totals.",
+          "Subtract with a place-value method.",
+          "Verify the answer with an addition equation and state its units."
+        ]
+      },
+      "revision": {
+        "recall": "What words can indicate subtraction?",
+        "answer": "How many left, remain, fewer, or difference; interpret the whole story rather than relying only on a word.",
+        "remedial": "Sort join, take-away and comparison story cards before calculating.",
+        "enrichment": "Write two stories using 7,600 and 2,350: one about a remainder and one about a comparison."
+      },
+      "teacher": {
+        "focus": "Assess operation choice, labelled units and inverse check.",
+        "misconception": "Adding all numbers in a story without identifying the question."
+      },
+      "visual": {
+        "brief": "Stock bar showing 7,600 split into 2,350 distributed and 5,250 remaining, with both parts clearly labelled."
+      }
+    }
+  ]
+}
