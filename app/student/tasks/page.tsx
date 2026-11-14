@@ -122,14 +122,19 @@ export default function TasksPage() {
   const results=assigned.filter(task=>task.status==='released').length
   const pending=items.filter(item=>!item.completed_at).length
   const completed=items.filter(item=>!!item.completed_at).length
+  const dueSoon=items.filter(item=>!item.completed_at&&item.due_at&&Date.parse(item.due_at)<Date.now()+48*60*60*1000).length + actionable.filter(task=>task.status==="overdue").length
   const calendarCells=useMemo(()=>{const first=new Date(month.getFullYear(),month.getMonth(),1); const offset=(first.getDay()+6)%7;return Array.from({length:Math.ceil((offset+new Date(first.getFullYear(),first.getMonth()+1,0).getDate())/7)*7},(_,index)=>new Date(first.getFullYear(),first.getMonth(),index-offset+1))},[month])
   const schedules=items.filter(item=>item.kind==='study'&&item.starts_at).sort((a,b)=>(a.starts_at??'').localeCompare(b.starts_at??''))
   if(identityLoading||!identity) return <p style={{padding:20}}>Loading your learner workspace…</p>
   return <div className="planner" style={{display:'grid',gap:16,color:'var(--vs-text)'}}>
     <header className="planner-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
       <div><h1 style={{fontSize:26,margin:0}}>My Tasks</h1><p style={{fontSize:13,color:'var(--vs-muted)',margin:'4px 0 0'}}>Homework, classwork, exercises, projects and your personal study plan</p></div>
-      <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> Add task</button>
+      <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> Add personal task</button>
     </header>
+    <section aria-label="Task summary" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:9}}>
+      {([{value:pending+actionable.length,label:"To do"},{value:dueSoon,label:"Due soon"},{value:completed,label:"Personal tasks done"}] as const).map(entry=><div key={entry.label} style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:"12px 10px"}}><strong style={{fontSize:25}}>{entry.value}</strong><div style={{fontSize:11,color:"var(--vs-muted)"}}>{entry.label}</div></div>)}
+    </section>
+    <p style={{fontSize:12,color:"var(--vs-muted)",margin:0}}>Assigned work opens in its original tool. Only personal tasks can be marked complete here; submitting assigned work requires its own submission flow.</p>
     <nav aria-label="Learning priorities" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
       {([['Homework','/student/homework'],['Classwork','/student/assessment'],['Exercises','/student/exercises'],['Projects',identity?.classId?'/student/projects':'/student/projects/independent'],['Practice','/student/vibelearn/topic-practice'],['Exams','/student/vibelearn/exams'],['Revision','/student/vibelearn/revision']] as const).map(([label,href])=><Link key={href} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
     </nav>
@@ -182,8 +187,11 @@ export default function TasksPage() {
       <h2 style={{fontSize:17,margin:0}}>My study schedule</h2>
       {schedules.length===0?<p style={{background:'var(--vs-card)',padding:24,borderRadius:14,color:'var(--vs-muted)'}}>No sessions scheduled. Add a study session to create your timetable.</p>:schedules.map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)}/>)}
     </section>}
+    {!showForm&&<button type="button" aria-label="Add personal task or reminder" title="Add personal task" onClick={()=>edit()} className="planner-floating-add" style={{position:"fixed",right:18,bottom:"calc(88px + env(safe-area-inset-bottom, 0px))",zIndex:350,border:0,borderRadius:999,width:54,height:54,background:"var(--vs-accent)",color:"var(--vs-on-accent)",boxShadow:"0 6px 20px rgba(0,0,0,.18)",display:"grid",placeItems:"center",cursor:"pointer"}}><Plus size={24}/></button>}
     <style>{`
       .planner { min-width:0; width:100%; }
+      @media(min-width:900px){.planner-floating-add{display:none!important}}
+      @media(max-height:440px){.planner-floating-add{display:none!important}}
       .planner :is(input,select,textarea,button) { max-width:100%; }
       @media(max-width:480px){.planner-form-grid{grid-template-columns:minmax(0,1fr)!important}.planner-header h1{font-size:23px!important}}
       @media(prefers-reduced-motion:reduce){.planner *{scroll-behavior:auto!important;transition:none!important}}
