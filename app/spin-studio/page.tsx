@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
+import { useShowDirector, DirectorControls, DirectorStageEffects, focalStyle } from '../../components/games/ShowDirector'
 
 type Entry = { id: string; label: string; question: string; answer: string; image?: string; symbol?: string; displayName?: string }
 type ShowFormat = 'challenge' | 'lucky' | 'trending' | 'learn' | 'political'
@@ -112,6 +113,7 @@ function soundEffect(kind:'tick'|'win'|'fail',enabled:boolean,volume=70) {
   }catch { /* Audio is optional and can be blocked by the browser. */ }
 }
 export default function SpinStudio() {
+  const { settings: director, patch: updateDirector } = useShowDirector('spin')
   const [wheels,setWheels]=useState<Wheel[]>([])
   const [selectedId,setSelectedId]=useState('')
   const [loaded,setLoaded]=useState(false)
@@ -672,6 +674,7 @@ export default function SpinStudio() {
           </div>}
           {setupTab==='settings' && <div className={styles.panel}>
             <h2>Show controls</h2>
+            <DirectorControls settings={director} onChange={updateDirector}/>
             <label className={styles.check}><input type="checkbox" checked={safeZone} onChange={e=>setSafeZone(e.target.checked)}/> Show portrait safe-area guide in editing preview</label>
             <label>Video shape<select value={format} onChange={e=>setFormat(e.target.value as Format)}><option value="portrait">9:16 · Shorts & TikTok</option><option value="landscape">16:9 · YouTube</option><option value="square">1:1 · Square</option></select></label>
             <label>Spin duration: {wheel.duration} seconds<input aria-label="Spin duration" type="range" min="3" max="10" value={wheel.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
@@ -713,11 +716,12 @@ export default function SpinStudio() {
           {!recording && <div className={styles.previewTop}><span>LIVE PREVIEW · Edits appear instantly</span><span>{format==='portrait'?'9:16':format==='landscape'?'16:9':'1:1'} · Ready to record</span></div>}
           <div ref={stageRef} role={recording?'button':undefined} tabIndex={recording?0:undefined} aria-label={recording?'Tap to advance the show':undefined} onClick={advanceStage} onKeyDown={event=>{if(recording && event.key==='Enter'){event.preventDefault();advanceStage()}}} className={[styles.stage,recording?styles.tapStage:'',styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
             <div className={styles.stageGlow} aria-hidden="true"/>
+            <DirectorStageEffects settings={director} phase={showPhase==='reveal'?'reveal':spinning?'action':'idle'} prompt="MAKE YOUR PREDICTION · COMMENT BELOW"/>
             {!recording&&safeZone&&<div className={styles.safeZone} aria-hidden="true"/>}
             <div className={styles.stageContent}>
               <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span><b>VIBESPIN</b> by VIBESCHOOL</span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
-              <div className={styles.wheelArea}>
+              <div className={styles.wheelArea} style={focalStyle(director,showPhase==='reveal'?'reveal':spinning?'action':'idle',reducedMotion)}>
                 <div className={styles.wheelHalo}/>
                 <svg role="img" aria-label="Wheel with editable segments" className={styles.wheelSvg} viewBox="0 0 400 400">
                   <circle cx="200" cy="200" r="198" fill="#08152c" stroke="rgba(255,255,255,.32)" strokeWidth="3"/>
