@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       ],
       disallow: [
         '/login', '/signup/', '/welcome', '/auth/', '/reset-password', '/api/', '/hq/', '/admin/',
-        '/teacher/', '/parent/', '/student/', '/spin-studio', '/games-studio', '/pendulum-studio', '/select', '/global/create/', '/global/dashboard', '/global/profile', '/global/signup',
+        '/teacher/', '/parent/', '/student/', '/spin-studio', '/games-studio', '/pendulum-studio', '/coin-studio', '/select', '/global/create/', '/global/dashboard', '/global/profile', '/global/signup',
       ],
     }],
     sitemap: 'https://vibeschool.co.ke/sitemap.xml',

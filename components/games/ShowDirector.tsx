@@ -25,7 +25,7 @@ function valid(value: unknown): value is ShowDirectorSettings {
     typeof v.captions === 'boolean' && typeof v.motion === 'number' &&
     Number.isFinite(v.motion) && v.motion >= 0 && v.motion <= 100
 }
-export function useShowDirector(studio: 'spin' | 'pendulum') {
+export function useShowDirector(studio: 'spin' | 'pendulum' | 'coin') {
   const [settings, setSettings] = useState<ShowDirectorSettings>(defaultDirector)
   const [loaded, setLoaded] = useState(false)
   useEffect(() => {

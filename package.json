@@ -11,7 +11,7 @@
     "test:reference-convergence": "node scripts/test-reference-convergence.mjs",
     "test:canonical-references": "node scripts/test-canonical-reference-selectors.mjs",
     "test:seo-authority": "node scripts/seo-content-authority-contract-test.mjs",
-    "validate": "npm run test:spin-studio && npm run test:pendulum-studio && npm run typecheck && npm run lint && npm run test:twin && npm run test:classhub && npm run test:seo-authority && npm run test:timetable && npm run test:teaching-library && npm run test:jumping-content && npm run build",
+    "validate": "npm run test:spin-studio && npm run test:pendulum-studio && npm run test:coin-studio && npm run typecheck && npm run lint && npm run test:twin && npm run test:classhub && npm run test:seo-authority && npm run test:timetable && npm run test:teaching-library && npm run test:jumping-content && npm run build",
     "test:timetable": "node --import ./scripts/register-typescript.mjs scripts/test-timetable-modern-intelligence.mjs && node --import ./scripts/register-typescript.mjs scripts/test-timetable-guided-periods.mjs && node scripts/test-school-day-samples.mjs && node scripts/test-timetable-modernization-closure.mjs && node --test scripts/test-timetable-reconciliation.mjs",
     "test:twin": "node scripts/test-deterministic-twin-contract.mjs && node scripts/test-personal-twin.mjs && node scripts/test-personal-twin-service.mjs",
     "test:originals": "node --test scripts/test-originals-stories-series.mjs",
@@ -28,6 +28,7 @@
     "check:content-without-hq": "npm run test:curriculum-identity && npm run test:outcome-packages && node --test scripts/test-content-hq-optional-contract.mjs",
     "test:spin-studio": "node --test scripts/test-spin-studio-director.mjs",
     "test:pendulum-studio": "node --test scripts/test-vibependulum-studio.mjs",
+    "test:coin-studio": "node --test scripts/test-vibecoin-studio.mjs",
     "test:student-theme": "node --test scripts/test-student-unified-theme.mjs",
     "test:student-journey": "node --test scripts/test-student-learning-journey.mjs scripts/test-student-learn-practice-roles.mjs && node --test scripts/test-learner-2-design-contract.mjs && node --test scripts/test-learner-focus-themes.mjs"
   },
