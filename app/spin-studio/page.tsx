@@ -570,7 +570,7 @@ export default function SpinStudio() {
           electionMode?electionPoints:0,quote(plan.id),plan.startAngle,plan.endAngle,plan.settledAngle,
           plan.direction,plan.durationMs].join(',')
       })]
-    const blob=new Blob([rows.join('\\n')],{type:'text/csv;charset=utf-8'})
+    const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'})
     const url=URL.createObjectURL(blob),anchor=document.createElement('a')
     anchor.href=url;anchor.download='spin-session-'+Date.now()+'.csv';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
   }
