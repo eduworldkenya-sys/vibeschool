@@ -12,7 +12,7 @@ import { getLearnerAssessmentHub } from "@/lib/assessment/integration";
 
 interface ExamResult {
   id: string; subject: string; marks: number; total_marks: number;
-  grade: string; term: number; academic_year: number; exam_name: string; source?: "school" | "assessment";
+  grade: string; term: number; academic_year: number; exam_name: string; source?: "school" | "assessment"; occurredAt?: string | null;
 }
 interface CBCAssessment {
   id: string; subjectName: string; sub_strand: string;
@@ -162,6 +162,7 @@ export default function MarksPage() {
         grade: letterGrade(row.percentage ?? pct(row.score!, row.maxScore!)),
         term: 0,
         academic_year: row.releasedAt ? new Date(row.releasedAt).getFullYear() : 0,
+        occurredAt: row.releasedAt,
       }));
       const allExams = [...canonicalResults, ...examData];
 
