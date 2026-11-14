@@ -12,7 +12,7 @@ const muted: React.CSSProperties = { color:'var(--vs-muted)',fontSize:13,lineHei
 const due = (iso:string|null) => !iso || new Date(iso).getTime()<=Date.now()
 const future = (iso:string) => new Intl.DateTimeFormat('en-KE',{day:'numeric',month:'short',timeZone:'Africa/Nairobi'}).format(new Date(iso))
 
-export type RevisionStarterHandle = { startFirst: (subject?:string)=>Promise<boolean>; startTopic: (assignmentId:string)=>Promise<boolean> }
+export type RevisionStarterHandle = { startFirst: (subject?:string)=>Promise<boolean>; startTopic: (assignmentId:string)=>Promise<boolean>; close: ()=>void }
 type RevisionStarterProps = {className:string; embedded?:boolean; onTopicsChange?:(topics:RevisionTopic[])=>void; onActiveChange?:(active:boolean)=>void; onCompleted?:()=>void}
 const RevisionTopicStarter = forwardRef<RevisionStarterHandle,RevisionStarterProps>(function RevisionTopicStarter({className,embedded=false,onTopicsChange,onActiveChange,onCompleted},ref) {
   const grade = learnerRevisionGrade(className)
@@ -52,6 +52,7 @@ const RevisionTopicStarter = forwardRef<RevisionStarterHandle,RevisionStarterPro
     finally {setBusy(false)}
   }
   useImperativeHandle(ref,()=>({
+    close:()=>{setActive(null);setCards([]);setNextDate('');setError('')},
     startFirst:async (selectedSubject?:string)=>{
       const available=topics.filter(t=>!selectedSubject||selectedSubject==='All'||t.subject.toLowerCase()===selectedSubject.toLowerCase())
         .sort((a,b)=>Number(due(b.nextReviewAt))-Number(due(a.nextReviewAt)))
