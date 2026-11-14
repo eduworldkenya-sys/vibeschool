@@ -757,7 +757,7 @@ export default function SpinStudio() {
                 {displayPhase!=='reveal'&&popup.showQuestion&&<p className={styles.popupQuestion}>{displayEntry.question||'Your challenge starts now!'}</p>}
                 {displayPhase==='countdown'&&popup.showCountdown&&<div className={[styles.countdownDirector,styles['countdown'+popup.countdownStyle]].join(' ')} style={{color:popup.countdownColor,fontSize:(popup.countdownScale/100)+'em'}}>
                   {popup.countdownLabel&&<span className={styles.countdownHeading}>{popup.countdownLabel}</span>}
-                  <div className={styles.countdownMeter} style={{'--countdown-ratio':((previewEntry?Math.max(1,wheel.countdown):Math.max(0,seconds??0))/Math.max(1,wheel.countdown))*100)+'%','--countdown-accent':popup.countdownColor} as React.CSSProperties}>
+                  <div className={styles.countdownMeter} style={{'--countdown-ratio':((previewEntry?Math.max(1,wheel.countdown):Math.max(0,seconds??0))/Math.max(1,wheel.countdown))*100)+'%','--countdown-accent':popup.countdownColor} as React.CSSProperties}}>
                     {popup.countdownStyle==='bar'&&<div className={styles.countdownFill}/>}
                     <strong>{previewEntry?Math.max(1,wheel.countdown):(seconds===0?popup.countdownZeroText:seconds)}</strong>
                   </div>
