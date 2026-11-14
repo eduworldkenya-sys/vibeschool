@@ -73,7 +73,7 @@ export default function RevisionStudioPage() {
       setNextReview(result.nextReviewAt)
       setRemembered(value)
       setMemory(prev=>[...prev.filter(m=>m.mistakeId!==item.id),{mistakeId:item.id,nextReviewAt:result.nextReviewAt,lastRemembered:value,recallCount:(memoryById.get(item.id)?.recallCount??0)+1}])
-      play(value?'success':'saved',value?'Recall recorded':'Review scheduled')
+      play(value?'correct':'saved',value?'Recall recorded':'Review scheduled')
       setScreen('feedback')
     } catch(e) {play('error');setError(e instanceof Error?e.message:'Could not save your revision. Please try again.')}
     finally {setSaving(false)}
