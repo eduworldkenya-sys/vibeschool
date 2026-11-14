@@ -180,3 +180,12 @@
 @keyframes electionFinalReveal{0%{opacity:.2;transform:scale(.96);filter:brightness(1.9)}100%{opacity:1;transform:scale(1);filter:brightness(1)}}
 @media(max-width:520px){.electionTallyRow{grid-template-columns:14px minmax(0,1fr) 28px auto;gap:3px}.electionScoreTrack{min-width:14px}}
 @media(prefers-reduced-motion:reduce){.electionTallyPulse,.electionTallyPulse .electionTallyScore,.electionSpinDrama .wheelHalo,.electionFinale{animation:none!important}.electionScoreFill{transition:none}}
+
+/* Canonical Spin Brain: responsive presentation-only tally modes. */
+.electionArenabottom{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:6px}
+.electionArenabottom .electionTally{max-height:clamp(86px,22vh,170px)}
+.electionArenafloating{position:relative;grid-template-columns:minmax(0,1fr)}
+.electionTallyfloating{position:absolute;right:5px;bottom:5px;max-width:48%;max-height:70%;width:min(240px,48%);background:linear-gradient(145deg,#0a2444d9,#041126ed);backdrop-filter:blur(8px)}
+.electionTallynumbers .electionScoreTrack{display:none}
+@media(max-width:640px){.electionTallyfloating{max-height:40%;width:min(180px,46%)}}
+@media(prefers-reduced-motion:reduce){.electionScoreFill{transition:none!important}}
