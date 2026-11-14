@@ -24,7 +24,7 @@ type PopupSettings = {
  tapAction:'reveal'|'next'|'off'; vibrate:boolean; playSound:boolean; dimBackdrop:boolean;
 }
 const DEFAULT_POPUP:PopupSettings={enabled:true,position:'bottom',size:88,opacity:96,style:'glass',animation:'pop',showTitle:true,showName:true,showPhoto:true,showQuestion:true,showCountdown:true,showAnswer:true,showFact:true,title:'THE WHEEL HAS CHOSEN',revealTitle:'THE RESULT',questionDelay:750,revealDelay:0,tapAction:'reveal',vibrate:false,playSound:true,dimBackdrop:false,countdownStyle:'number',countdownLabel:'TIME LEFT',countdownColor:'#71f1e6',countdownScale:100,countdownTick:true,countdownInterval:1000,countdownZeroText:'TIME!'}
-type Wheel = { popup?:Partial<PopupSettings>; showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type Wheel = { popup?:Partial<PopupSettings>; showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; electionMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
@@ -197,9 +197,15 @@ export default function SpinStudio() {
     }catch{setFeedback('Background audio is unavailable in this browser.')}
   }
   const entries=wheel?.entries || []
-  const batchMode=wheel?.batchMode??false
-  const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>!wheel?.noRepeat || !used.includes(entry.id))
-  const remaining=wheel?.maxSpins ? Math.max(0,wheel.maxSpins-spinCount) : null
+  const electionMode=wheel?.showFormat==='political' && (wheel.electionMode??false)
+  const electionTotal=entries.length*2
+  const electionScores=entries.map(entry=>({id:entry.id,name:entry.label,score:episodeLog.filter(name=>name===entry.label).length}))
+  const electionTop=Math.max(0,...electionScores.map(candidate=>candidate.score))
+  const electionWinners=electionScores.filter(candidate=>candidate.score===electionTop)
+  const electionFinished=electionMode && spinCount>=electionTotal && electionTotal>=4
+  const batchMode=electionMode || (wheel?.batchMode??false)
+  const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>electionMode || !wheel?.noRepeat || !used.includes(entry.id))
+  const remaining=electionMode?Math.max(0,electionTotal-spinCount):wheel?.maxSpins ? Math.max(0,wheel.maxSpins-spinCount) : null
   const locked=spinning || showPhase==='question' || showPhase==='countdown' || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
   const axisEditable=!spinning && (showPhase==='idle'||showPhase==='reveal')
   const moveWheelAxes=(nextAngle:number,nextX:number,nextY:number)=>{
@@ -270,7 +276,7 @@ export default function SpinStudio() {
     return ()=>window.clearTimeout(timer)
   },[seconds,spinning,showPhase,wheel])
   useEffect(()=>{
-    if(showPhase!=='countdown'||seconds!==0||!wheel?.automatic)return
+    if(showPhase!=='countdown'||seconds!==0||!(electionMode||wheel?.automatic))return
     const delay=Math.max(0,Math.min(5000,wheel.popup?.revealDelay??0))
     const timer=window.setTimeout(()=>{
       setReveal(true);setShowPhase('reveal')
@@ -279,13 +285,13 @@ export default function SpinStudio() {
     return ()=>window.clearTimeout(timer)
   },[seconds,showPhase,wheel])
   useEffect(()=>{
-    if(showPhase!=='reveal'||!wheel?.automatic||!batchMode)return
+    if(showPhase!=='reveal'||!(electionMode || wheel?.automatic)||!batchMode||remaining===0)return
     const timer=window.setTimeout(()=>{
       setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false)
       nextRef.current()
     },Math.max(1,wheel.revealHold??3)*1000)
     return ()=>clearTimeout(timer)
-  },[showPhase,wheel,batchMode])
+  },[showPhase,wheel,batchMode,electionMode,remaining]
   useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);if(sceneRef.current!==null)window.clearTimeout(sceneRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop());const audio=musicRef.current;if(audio){audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}});void audio.ctx.close().catch(()=>{})}},[])
   useEffect(()=>{
     const media=window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -354,8 +360,8 @@ export default function SpinStudio() {
       if(wheel.popup?.vibrate && navigator.vibrate)navigator.vibrate(40)
       countdownRef.current=window.setTimeout(()=>{
         if(wheel.countdown===0){
-          setShowPhase(wheel.automatic?'reveal':'countdown');setSeconds(0)
-          if(wheel.automatic){setReveal(true);soundEffect('win',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.reveal??75)}
+          setShowPhase((electionMode||wheel.automatic)?'reveal':'countdown');setSeconds(0)
+          if(electionMode||wheel.automatic){setReveal(true);soundEffect('win',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.reveal??75)}
         }else{setShowPhase('countdown');setSeconds(wheel.countdown)}
       },Math.max(0,Math.min(5000,wheel.popup?.questionDelay??750)))
     },wheel.duration*1000)
@@ -426,7 +432,7 @@ export default function SpinStudio() {
   const setShowFormat=(kind:ShowFormat)=>{
     if(!wheel)return
     const patch:Partial<Wheel>={showFormat:kind}
-    if(kind==='political'){patch.countdown=3;patch.headline='KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK?';patch.cta='Random entertainment • Not a poll, prediction or endorsement'}
+    if(kind==='political'){patch.countdown=0;patch.headline='KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK?';patch.cta='Random entertainment • Not a poll, prediction or endorsement'}
     else if(kind==='lucky'){patch.countdown=0;patch.celebration='confetti';patch.cta='VibeSpin by VibeSchool • See published giveaway rules'}
     else if(kind==='trending'){patch.countdown=3;patch.cta='Random selection for entertainment • Not a poll or prediction'}
     else if(kind==='learn'){patch.countdown=5;patch.cta='How did you do? Learn more with VibeSchool'}
@@ -725,9 +731,12 @@ export default function SpinStudio() {
             <button disabled={!axisEditable} onClick={()=>moveWheelAxes(0,0,0)}>Centre wheel and axes</button>
             <label>Spin duration: {wheel.duration} seconds<input aria-label="Spin duration" type="range" min="3" max="10" value={wheel.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
             <label>Answer countdown: {wheel.countdown} seconds<input aria-label="Answer countdown" type="range" min="0" max="15" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/></label>
-            <label>Maximum spins (0 = unlimited)<input type="number" min="0" max="9999" value={wheel.maxSpins} onChange={e=>update({maxSpins:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>
-            <label className={styles.check}><input type="checkbox" checked={wheel.noRepeat} onChange={e=>update({noRepeat:e.target.checked})}/> Do not repeat a segment in this session</label>
-            <label className={styles.check}><input type="checkbox" checked={batchMode} onChange={e=>update({batchMode:e.target.checked})}/> Batch production: spin again after answer reveal</label>
+            {showFormat==='political'&&<div className={styles.politicalNote}><strong>Election Championship · 2× automatic tally</strong>
+<label className={styles.check}><input type="checkbox" checked={electionMode} onChange={e=>{update({electionMode:e.target.checked,noRepeat:e.target.checked?false:wheel.noRepeat,countdown:e.target.checked?0:wheel.countdown});resetRun()}}/> Enable election championship</label>
+<p>{entries.length} candidates × 2 = <b>{electionTotal} spins</b>. One point per result. The leader wins; ties are displayed. Press Spin Now once to begin the automatic sequence.</p><p className={styles.hint}>Reset before editing the candidate list during a championship. Entertainment simulation, not actual voting.</p></div>}
+{!electionMode&&<label>Maximum spins (0 = unlimited)<input type="number" min="0" max="9999" value={wheel.maxSpins} onChange={e=>update({maxSpins:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>}
+            {!electionMode&&<label className={styles.check}><input type="checkbox" checked={wheel.noRepeat} onChange={e=>update({noRepeat:e.target.checked})}/> Do not repeat a segment in this session</label>}
+            {!electionMode&&<label className={styles.check}><input type="checkbox" checked={batchMode} onChange={e=>update({batchMode:e.target.checked})}/> Batch production: spin again after answer reveal</label>}
             <p className={styles.hint}>Space = Spin · R = Reveal · N = Next spin. You can also use the visible buttons below the stage.</p>
             <div className={styles.row}><button onClick={download}>Export wheel</button><label className={styles.fileButton}>Import JSON<input type="file" accept=".json,application/json" onChange={e=>{void upload(e.target.files?.[0]);e.target.value=''}}/></label></div>
             <p className={styles.hint}>Session history: {episodeLog.length} spins</p><button onClick={exportSession} disabled={!episodeLog.length}>Export session log (CSV)</button>
@@ -831,12 +840,16 @@ export default function SpinStudio() {
                   {reveal && <div className={styles.answer}><span>{selectedIsReward?'RANDOM SELECTION':verdict==='correct'?'★ CORRECT ANSWER':verdict==='wrong'?'✦ THE ANSWER':'✦ ANSWER REVEAL'}</span><strong>{selectedIsReward?selected.label:(selected.answer||selected.label)}</strong></div>}
                 </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>One spin. One question. Can you get it right?</p></>}
               </div>
-              <p className={styles.cta}>{wheel.cta}</p>
+              {electionMode&&<div aria-live="polite" style={{background:'rgba(4,15,32,.9)',border:'1px solid #ffffff44',borderRadius:12,padding:10,margin:'8px 0',color:'white'}}>
+<div style={{display:'flex',justifyContent:'space-between',fontSize:12,fontWeight:900}}><span>LIVE CHAMPIONSHIP</span><span>{spinCount}/{electionTotal} SPINS</span></div>
+{[...electionScores].sort((a,b)=>b.score-a.score).map(candidate=><div key={candidate.id} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',gap:12,borderBottom:'1px solid #ffffff22'}}><span>{candidate.name}</span><b>{candidate.score}</b></div>)}
+{electionFinished&&<div style={{marginTop:8,textAlign:'center',color:'#7ef5cf',fontWeight:900}}>{electionWinners.length===1?'CHAMPION: '+electionWinners[0].name:'TIE: '+electionWinners.map(c=>c.name).join(' / ')} · {electionTop} POINTS</div>}
+</div>}<p className={styles.cta}>{wheel.cta}</p>
               {showFormat==='political'&&<p className={styles.politicalStageDisclaimer}>RANDOM SPIN · NOT A POLL OR ELECTION FORECAST</p>}
             </div>
           </div>
           <div className={styles.playBar}>
-            <div className={styles.playStatus}><span>{wheel.automatic??true?'AUTO SHOW':'MANUAL SHOW'} · {batchMode?'BATCH ON':'SINGLE'}</span><span>SPINS <b>{spinCount}{remaining!==null?' / '+wheel.maxSpins:''}</b></span><span>{wheel.noRepeat?'UNIQUE LEFT '+available.length:'RANDOM MODE'}</span></div>
+            <div className={styles.playStatus}><span>{wheel.automatic??true?'AUTO SHOW':'MANUAL SHOW'} · {batchMode?'BATCH ON':'SINGLE'}</span><span>SPINS <b>{spinCount}{remaining!==null?' / '+(electionMode?electionTotal:wheel.maxSpins):''}</b></span><span>{wheel.noRepeat?'UNIQUE LEFT '+available.length:'RANDOM MODE'}</span></div>
             <div className={styles.playButtons}>
               <button className={styles.spinButton} disabled={locked} onClick={spin}>{spinning?'SPINNING…':available.length===0?'ALL SEGMENTS USED':remaining===0?'SPIN LIMIT REACHED':'✦ SPIN NOW'}</button>
               <button disabled={spinning || result===null} onClick={()=>{if(reveal){setReveal(false);setShowPhase('question');setSeconds(null)}else revealNow();setVerdict(null)}}>{reveal?'Hide answer':'Reveal answer'}</button>
