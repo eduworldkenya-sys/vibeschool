@@ -56,20 +56,27 @@
 .coinArea{position:relative;display:grid;place-items:center;width:100%;flex:1;min-height:22%;perspective:1200px;z-index:2;overflow:visible}
 .coinHalo{position:absolute;width:75%;max-width:420px;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff7b019 10%,#ffbe2138 36%,transparent 69%);filter:blur(16px);animation:breathe 2.5s ease-in-out infinite}
 .tossTrajectory{width:clamp(144px,38%,290px);aspect-ratio:1;display:grid;place-items:center;z-index:2;transform:translateY(0)}
-.tossTrajectory.tossing{animation:coinFlight var(--flight-duration,4s) cubic-bezier(.22,.65,.28,1) 1 both}
+/* Launch and bounce are driven by Web Animations on the actual stage node. */
 .coin{position:relative;width:100%;height:100%;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;will-change:transform}
 .face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4%;border-radius:50%;border:8px ridge #efd081;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;box-shadow:inset 0 0 0 8px #ffffff25,inset 0 0 38px #6a370b88,0 0 12px #fff7bd5e}
 .face::before{content:"";position:absolute;inset:7%;border-radius:50%;border:2px dashed #fff4bc8f;pointer-events:none}
-.front{transform:rotateX(0deg) translateZ(7px)}.back{transform:rotateX(180deg) translateZ(7px)}
+.front{transform:rotateX(0deg) translateZ(7px)}.back{transform:rotateX(180deg) translateZ(7px)}.horizontal .front{transform:rotateY(0deg) translateZ(7px)}.horizontal .back{transform:rotateY(180deg) translateZ(7px)}
 .gold .face{background:radial-gradient(circle at 26% 20%,#fffad1,#f7d36c 35%,#bc7616 72%,#815015);color:#4a2b08;border-color:#ffdd82}
 .silver .face{background:radial-gradient(circle at 25% 20%,#ffffff,#d8e3ed 33%,#7b99b5 75%,#43536b);color:#213148;border-color:#d5e4f2}
 .copper .face{background:radial-gradient(circle at 25% 20%,#ffe3ac,#da9256 39%,#93412d 76%,#592515);color:#39180d;border-color:#e5a26c}
 .neon .face{background:radial-gradient(circle at 28% 18%,#b3ffff,#45ccda 35%,#2455ad 73%,#161b53);color:#041c3e;border-color:#74f4ff}
+/* Every coin face has its own colour; material finish controls only the rim. */
+.face{background-blend-mode:screen;text-shadow:0 2px 7px #000a}
 .coinRing{display:grid;place-items:center;width:42%;aspect-ratio:1;border:4px solid currentColor;border-radius:50%;background:#ffffff33}
 .coinRing span{font-size:clamp(27px,5vw,53px);line-height:1;font-weight:1000}.coinRing img{width:82%;height:82%;object-fit:contain;border-radius:50%}
 .face b{font-size:clamp(10px,1.7vw,16px);max-width:80%;overflow-wrap:anywhere;text-align:center;line-height:1.1}
 .face small{font-size:clamp(7px,.9vw,10px);letter-spacing:.13em;font-weight:900;text-align:center}
 .coinShadow{position:absolute;bottom:3%;width:50%;height:6%;background:#0009;filter:blur(13px);border-radius:50%;pointer-events:none}
+.launchStreak{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,transparent 28%,#ffffff13 48%,#ffffff5c 50%,transparent 72%);filter:blur(13px);opacity:.8;animation:launchFlash .65s ease-out 1 both}
+.landingRipple{position:absolute;z-index:1;bottom:4%;width:46%;height:9%;border-radius:50%;border:3px solid #f9e3a6;box-shadow:0 0 26px #8cf8eb99;pointer-events:none;animation:landRipple .75s ease-out 1 both}
+@keyframes launchFlash{from{opacity:0;transform:scale(.6) translateY(25%)}45%{opacity:.8}to{opacity:0;transform:scale(1.2) translateY(-30%)}}
+@keyframes landRipple{from{opacity:.85;transform:scale(.55)}to{opacity:0;transform:scale(2.4)}}
+
 .cta{z-index:3;margin:0;max-width:96%;text-align:center;padding:8px 14px;font-weight:900;font-size:clamp(11px,1.6vw,16px);border-radius:30px;color:#fff7d4;background:#060e25a8}
 .disclaimer{z-index:2;color:#d3e0f2;font-weight:800;letter-spacing:.1em;font-size:clamp(7px,.8vw,9px);text-align:center}
 .timer{position:absolute;z-index:6;top:47%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:clamp(100px,30%,180px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fbe29b,#b87817);border:5px solid #ffefb0;color:#3b2604;box-shadow:0 0 75px #ffd2629a;animation:timerPulse .8s ease-in-out infinite}
@@ -86,4 +93,4 @@
 @keyframes coinFlight{0%{transform:translateY(0) scale(1)}18%{transform:translateY(-17%) scale(.94)}47%{transform:translateY(-30%) scale(.9)}70%{transform:translateY(-13%) scale(.97)}86%{transform:translateY(0) scale(1.02)}93%{transform:translateY(-5%) scale(.99)}100%{transform:translateY(0) scale(1)}}@keyframes timerPulse{50%{scale:1.07}}@keyframes breathe{50%{opacity:.45;transform:scale(1.15)}}@keyframes slowTurn{to{transform:rotate(360deg)}}@keyframes revealIn{from{opacity:0;transform:translateY(20px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes confettiDown{to{top:110%;transform:rotate(700deg)}}
 @media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{position:static;max-height:none}.preview{grid-row:1}.stage{max-height:76vh;width:auto;max-width:100%}.landscape{width:min(100%,940px)!important}.square{width:min(100%,650px)!important}}
 @media(max-width:600px){.page{padding:14px 10px 75px}.header{flex-direction:column;align-items:start}.headActions{width:100%;justify-content:space-between}.headActions span{font-size:9px}.stage{width:100%;max-height:none}.previewBar{font-size:9px}.stageInner{gap:1%}.hero h2{font-size:clamp(19px,6vw,34px)}.duel{min-height:17%}.challenger strong{font-size:12px}.coinRing span{font-size:32px}.face b{font-size:11px}.actions button{min-width:90px}.showLayout .stage{max-height:78vh}}
-@media(prefers-reduced-motion:reduce){.stage::before,.coinHalo,.timer,.reveal,.confetti i,.tossTrajectory{animation:none!important}.coin{transition:none!important}}
+@media(prefers-reduced-motion:reduce){.stage::before,.coinHalo,.timer,.reveal,.confetti i,.tossTrajectory,.launchStreak,.landingRipple{animation:none!important}.coin{transition:none!important}}
