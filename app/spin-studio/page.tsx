@@ -131,6 +131,7 @@ export default function SpinStudio() {
   const [capturing,setCapturing]=useState(false)
   const [musicPlaying,setMusicPlaying]=useState(false)
   const [episodeLog,setEpisodeLog]=useState<string[]>([])
+  const [spinHistory,setSpinHistory]=useState<SpinPlan[]>([])
   const [reducedMotion,setReducedMotion]=useState(false)
   const [undoCount,setUndoCount]=useState(0)
   const [redoCount,setRedoCount]=useState(0)
@@ -281,7 +282,7 @@ export default function SpinStudio() {
     if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
     if(sceneRef.current!==null)window.clearTimeout(sceneRef.current)
     pendingSpin.current=false;pendingPlan.current=null;setActiveSpinPlan(null);setElectionSnapshot(null)
-    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setElectionVotes([]);setElectionPaused(false);setElectionFinale(false);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
+    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setElectionVotes([]);setElectionPaused(false);setElectionFinale(false);setEpisodeLog([]);setSpinHistory([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
   },[selectedId])
   useEffect(()=>{
     if(seconds===null || seconds<=0 || spinning || showPhase!=='countdown')return
@@ -361,7 +362,7 @@ export default function SpinStudio() {
     if(spinning)return
     if(countdownRef.current!==null)clearTimeout(countdownRef.current)
     pendingPlan.current=null;setActiveSpinPlan(null);setElectionSnapshot(null);pendingSpin.current=false
-    setUsed([]);setSpinCount(0);setElectionVotes([]);setElectionPaused(false);setElectionFinale(false);setEpisodeLog([]);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
+    setUsed([]);setSpinCount(0);setElectionVotes([]);setElectionPaused(false);setElectionFinale(false);setEpisodeLog([]);setSpinHistory([]);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
   }
   const completeSpin=(id:string|undefined)=>{
     const plan=pendingPlan.current
@@ -370,7 +371,7 @@ export default function SpinStudio() {
     if(spinTimer.current!==null){window.clearTimeout(spinTimer.current);spinTimer.current=null}
     setRotation(plan.settledAngle);setSpinning(false);setActiveSpinPlan(null)
     setResult(plan.selectedIndex);setUsed(old=>[...old,plan.selectedId])
-    setSpinCount(n=>n+1)
+    setSpinCount(n=>n+1);setSpinHistory(old=>[...old,plan])
     if(electionMode)setElectionVotes(old=>[...old,plan.selectedId])
     pendingSpin.current=false
     setShowOverlay(wheel.popup?.enabled??true);setShowPhase('question')
@@ -561,8 +562,15 @@ export default function SpinStudio() {
     setPaste('');setShowBulk(false);setFeedback('Entries added. Maximum 100 per wheel.')
   }
   const exportSession=()=>{
-    const rows=electionMode?['round,candidate_id,name,points',...electionVotes.map((id,i)=>{const entry=entries.find(e=>e.id===id);return [i+1,id,'"'+(entry?.label??'Unknown').replaceAll('"','""')+'"',electionPoints].join(',')})]:['spin,label',...episodeLog.map((label,i)=>[i+1,'"'+label.replaceAll('"','""')+'"'].join(','))]
-    const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'})
+    const quote=(value:string|number)=>'"'+String(value).replaceAll('"','""')+'"'
+    const rows=['round,candidate_id,name,points,spin_id,angle_start,angle_end,angle_settled,direction,duration_ms',
+      ...spinHistory.map((plan,i)=>{
+        const entry=entries.find(e=>e.id===plan.selectedId)
+        return [i+1,quote(plan.selectedId),quote(entry?.label??'Unknown'),
+          electionMode?electionPoints:0,quote(plan.id),plan.startAngle,plan.endAngle,plan.settledAngle,
+          plan.direction,plan.durationMs].join(',')
+      })]
+    const blob=new Blob([rows.join('\\n')],{type:'text/csv;charset=utf-8'})
     const url=URL.createObjectURL(blob),anchor=document.createElement('a')
     anchor.href=url;anchor.download='spin-session-'+Date.now()+'.csv';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
   }
