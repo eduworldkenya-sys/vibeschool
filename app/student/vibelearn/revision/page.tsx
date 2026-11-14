@@ -132,7 +132,7 @@ export default function RevisionStudioPage(){
    <div style={{maxWidth:770,margin:'0 auto',border:'1px solid var(--vs-border)',borderRadius:22,overflow:'hidden',background:colors.panel,boxShadow:'0 12px 35px rgba(0,0,0,.055)'}}>
      <header style={{padding:'15px 15px 18px',background:colors.navy,color:colors.heroText}}>
        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:onHome?18:8}}>
-         {!onHome&&<button type="button" aria-label="Back to Revision" style={{...basic,border:0,color:'inherit',background:'transparent',padding:5}} onClick={()=>{setScreen('home');setTopicActive(false)}}><ArrowLeft size={20}/></button>}
+         {!onHome&&<button type="button" aria-label="Back to Revision" style={{...basic,border:0,color:'inherit',background:'transparent',padding:5}} onClick={()=>{setScreen('home');launcher.current?.close();setTopicActive(false)}}><ArrowLeft size={20}/></button>}
          <span style={{width:37,height:37,display:'grid',placeItems:'center',background:colors.goal,color:'#10213b',borderRadius:13}}><BrainCircuit size={21}/></span>
          <div style={{flex:1,minWidth:0}}><strong style={{fontSize:16,color:colors.heroText}}>vibeschool</strong><div style={{fontSize:9,letterSpacing:.6,opacity:.83}}>REVISION STUDIO</div></div>
          <button type="button" onClick={()=>router.push('/student/tasks')} aria-label="My reminders" style={{...basic,color:colors.heroText,background:'rgba(255,255,255,.1)',border:0,borderRadius:999,width:34,height:34,display:'grid',placeItems:'center'}}><Bell size={16}/></button>
