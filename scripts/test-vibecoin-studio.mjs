@@ -89,3 +89,13 @@ test('distinctly styled coin faces can be dragged, rotated, and previewed withou
   assert.match(page,/Lime \/ Magenta/)
   assert.match(page,/Orange \/ Ocean/)
 })
+
+test('automatic show start does not interrupt face inspection or a reset', () => {
+  // The effect must depend on entering Show Mode, not on the idle phase.
+  assert.match(page,/Start once on entering Show Mode/)
+  assert.match(page,/\},\[showMode, current\?\.autoStart, selectedId\]\)/)
+  assert.doesNotMatch(page,/\},\[showMode, current\?\.autoStart, selectedId, phase\]\)/)
+  assert.match(page,/const viewCoinSide = \(side:Side\) =>/)
+  assert.match(page,/onPointerDown=\{onCoinPointerDown\}/)
+  assert.match(page,/suppressClickRef\.current=drag\.moved/)
+})
