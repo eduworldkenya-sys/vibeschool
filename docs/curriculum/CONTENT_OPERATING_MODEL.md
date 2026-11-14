@@ -1,5 +1,14 @@
 # VibeSchool Content Production Operating Model — ChatGPT-Led Phase
 
+## Owner decision — ChatGPT handles routine HQ content work (14 November 2026)
+
+The owner does **not** need to log into HQ to manage each content batch. ChatGPT is the operational production desk, using the connected GitHub/Supabase/other authorised tools to inspect coverage, author packs, prepare changes, operate permitted existing endpoints, collect verification evidence and report concise exceptions. HQ remains an optional presentation surface and its protected actions retain existing owner identity and governance.
+
+Coverage expands to **Grade 1–9 and legacy Form 1–4**, sourced against each applicable curriculum authority; never conflate school systems. The one-day plan is a **throughput sprint**, not a statement that all subjects can be certified in eight hours. An actual work session is not a background worker. No autonomous recurring action or consequential release is activated without separately configured and authorised execution.
+
+Read the [operational dashboard, workflow diagram, one-day schedule and acceptance gates](./CHATGPT_OPERATED_FACTORY.md). Canonical execution remains under [CONTENT_GENERATION.md](./CONTENT_GENERATION.md), not a second factory.
+
+
 **START HERE FOR ALL CONTENT GENERATION:** [Single Canonical Content Generation Playbook](./CONTENT_GENERATION.md) is the required unified workflow for ChatGPT-led production, library reuse, the one-outcome Core + Supplementary + Revision + Teacher Support pass, quality and evidence. This document explains the operating model and specialist handoff; if the sequence appears different, use the master playbook and reconcile the discrepancy rather than starting a separate process.
 
 **Decision date:** 11 November 2026  

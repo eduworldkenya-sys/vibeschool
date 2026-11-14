@@ -1,5 +1,10 @@
 # HQ Curriculum and Content Coverage — Canonical Read Model
 
+## ChatGPT-operated coverage review (14 November 2026)
+
+Owner decision: **HQ login must not be required for routine curriculum-production planning and reporting**. The existing `/hq/studio/coverage` page remains an optional protected dashboard. ChatGPT may read authorised canonical coverage evidence through connected tools and return an owner-facing grade/subject/outcome matrix without asking the owner to operate the UI. This does not authorize bypassing the restricted RPC, impersonating the HQ owner, or changing publishing permissions. Keep Grade 1–9 coverage and legacy Form 1–4 source editions separate. Report mapped, drafted, editorially checked, certified, published and learner-tested figures independently; unknown coverage stays unknown. See [ChatGPT-operated Content Factory](../curriculum/CHATGPT_OPERATED_FACTORY.md).
+
+
 **Route:** /hq/studio/coverage (existing HQ authentication and owner access check)
 **Source:** public.hq_content_coverage, a restricted, read-only RPC.
 **Scope:** Display-only operations; no new content/curriculum tables, no worker, no approval gate, no ingestion pathway.

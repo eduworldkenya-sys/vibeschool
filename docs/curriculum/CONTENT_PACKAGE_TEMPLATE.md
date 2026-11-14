@@ -1,5 +1,10 @@
 # VibeSchool Content Package Template — Grades 1–9
 
+## Zero-HQ-login batch handoff (14 November 2026)
+
+ChatGPT populates this manifest from read-only canonical curriculum evidence and actual authored packages; the owner is not asked to complete forms or manually copy material to HQ. Every batch must record: **school system/edition; grade or form; subject; stable outcome IDs; source locations; library reuse; package completeness; media needs; assessed answer accuracy; rights/quality decisions; publishing authority and independent assurance; learner read-back; blocker type; next action.** Use clear distinct MAPPED, DRAFTED, EDITORIALLY_CHECKED, CERTIFIED, PUBLISHED and LEARNER_TESTED statuses. A one-day production sprint may advance batches through different stages without implying that all content is complete. See [the ChatGPT-operated workflow](./CHATGPT_OPERATED_FACTORY.md).
+
+
 **START HERE FOR ALL CONTENT GENERATION:** [Single Canonical Content Generation Playbook](./CONTENT_GENERATION.md) defines the mandatory work sequence and single outcome package. Use this template as an optional **detailed evidence ledger for that same package**, never as another owner questionnaire, competing quality gate, content library or new production flow.
 
 Use this template **per subject, term, sub-strand or batch**; declare the exact scope. It operationalizes [CONTENT_PRODUCTION_STANDARD.md](./CONTENT_PRODUCTION_STANDARD.md) under the current **[ChatGPT-Led Content Production Operating Model](./CONTENT_OPERATING_MODEL.md)**, without creating a separate approval system or content engine.
