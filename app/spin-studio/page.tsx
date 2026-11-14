@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
 type Entry = { id: string; label: string; question: string; answer: string; image?: string; symbol?: string }
-type ShowFormat = 'challenge' | 'lucky' | 'trending' | 'learn'
+type ShowFormat = 'challenge' | 'lucky' | 'trending' | 'learn' | 'political'
 type SegmentStyle = 'text' | 'photo' | 'both'
 type ProductionStatus = 'idea' | 'recorded' | 'edited' | 'scheduled' | 'published' | 'reviewed'
 type ProductionItem = { id:string; wheelId:string; title:string; platform:string; status:ProductionStatus; plannedDate:string; url:string; views:number; likes:number; shares:number; comments:number; followers:number; notes:string }
 const PRODUCTION_STORAGE='vibeschool.vibespin.production.v1'
-const formatNames:Record<ShowFormat,string>={challenge:'VibeSpin Challenge',lucky:'VibeSpin Lucky Draw',trending:'VibeSpin Trending',learn:'VibeSpin Learn'}
+const formatNames:Record<ShowFormat,string>={challenge:'VibeSpin Challenge',lucky:'VibeSpin Lucky Draw',trending:'VibeSpin Trending',learn:'VibeSpin Learn',political:'VibeSpin Political'}
 const socialPlatforms=['YouTube Shorts','TikTok','Facebook Reels','Instagram Reels','WhatsApp Status','Other']
 const initialProduction=():ProductionItem=>({id:uid(),wheelId:'',title:'',platform:'YouTube Shorts',status:'idea',plannedDate:'',url:'',views:0,likes:0,shares:0,comments:0,followers:0,notes:''})
 type Wheel = { showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
@@ -23,11 +23,15 @@ const stageThemes: Record<string,string> = {
   midnight:'radial-gradient(ellipse at 50% 25%, #49339d 0%, #09152f 70%, #040716 100%)',
   clean:'linear-gradient(145deg,#1c4968 0%,#08172c 100%)'
 }
-const templates: {name:string; entries:[string,string,string][]; format?:ShowFormat}[] = [
+const politicalPresetNames=['Boniface Mwangi','David Maraga','Edwin Sifuna','Fred Matiang’i','Jimi Wanjigi','Kalonzo Musyoka','Martha Karua','Rigathi Gachagua','William Ruto']
+const politicalPresetSource='Publicly reported presidential figures as at 14 November 2026. Not an IEBC-cleared candidate list. Sources: vote.ke and The Star.'
+const politicalPresetUrl='https://www.vote.ke/presidents/2027'
+const templates: {name:string; entries:[string,string,string][]; format?:ShowFormat; headline?:string; cta?:string}[] = [
   {name:'African Capitals',entries:[['Kenya','What is the capital of Kenya?','Nairobi'],['Uganda','What is the capital of Uganda?','Kampala'],['Tanzania','What is the capital of Tanzania?','Dodoma'],['Rwanda','What is the capital of Rwanda?','Kigali'],['Ghana','What is the capital of Ghana?','Accra'],['Nigeria','What is the capital of Nigeria?','Abuja']]},
   {name:'Mental Maths',entries:[['12 × 8','What is 12 multiplied by 8?','96'],['15 + 27','What is 15 plus 27?','42'],['3/4','What is 3/4 of 20?','15'],['25%','What is 25% of 200?','50']]},
   {name:'Science Quiz',entries:[['Mars','Which planet is called the Red Planet?','Mars'],['Plants','How do green plants make food?','Photosynthesis'],['Water','What is the chemical formula for water?','H₂O'],['Gravity','Which force attracts objects towards Earth?','Gravity']],format:'learn'},
   {name:'Trending topic · Add names',entries:[],format:'trending'},
+  {name:'Kenya President 2027 · Example',entries:politicalPresetNames.map((name):[string,string,string]=>[name,'Publicly discussed figure — random wheel only','No prediction']),format:'political',headline:'KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK?',cta:'Entertainment only • Not a poll, prediction or endorsement'},
   {name:'Lucky draw · Add entries',entries:[],format:'lucky'}
 ]
 const colors = {
@@ -369,7 +373,8 @@ export default function SpinStudio() {
   const setShowFormat=(kind:ShowFormat)=>{
     if(!wheel)return
     const patch:Partial<Wheel>={showFormat:kind}
-    if(kind==='lucky'){patch.countdown=0;patch.celebration='confetti';patch.cta='VibeSpin by VibeSchool • See published giveaway rules'}
+    if(kind==='political'){patch.countdown=3;patch.headline='KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK?';patch.cta='Random entertainment • Not a poll, prediction or endorsement'}
+    else if(kind==='lucky'){patch.countdown=0;patch.celebration='confetti';patch.cta='VibeSpin by VibeSchool • See published giveaway rules'}
     else if(kind==='trending'){patch.countdown=3;patch.cta='Random selection for entertainment • Not a poll or prediction'}
     else if(kind==='learn'){patch.countdown=5;patch.cta='How did you do? Learn more with VibeSchool'}
     else{patch.countdown=5;patch.cta='Comment your answer • Follow VibeSchool'}
@@ -401,7 +406,7 @@ export default function SpinStudio() {
     if(!wheel)return ''
     const episode=String(wheel.episode??1).padStart(2,'0')
     const title=wheel.name.trim()||formatNames[wheel.showFormat??'challenge']
-    const note=wheel.showFormat==='trending'?'This is a random entertainment spin, not a poll, endorsement or prediction.\n':wheel.showFormat==='lucky'?'Check the official giveaway rules and eligibility before participating.\n':''
+    const note=wheel.showFormat==='political'?'Random entertainment selection. NOT a poll, election forecast, or endorsement. Names are examples, not officially IEBC-cleared candidates.\\n':wheel.showFormat==='trending'?'This is a random entertainment spin, not a poll, endorsement or prediction.\n':wheel.showFormat==='lucky'?'Check the official giveaway rules and eligibility before participating.\n':''
     return `VibeSpin by VibeSchool | Episode ${episode}\n${title}\n${wheel.headline}\n${note}${wheel.cta}\n#VibeSpin #VibeSchool`
   }
   const copyCaption=async()=>{
@@ -418,8 +423,8 @@ export default function SpinStudio() {
   }
   const loadTemplate=(index:number)=>{
     const t=templates[index];if(!t)return
-    const fresh:Wheel={...starter(),id:uid(),name:t.name,showFormat:t.format??'challenge',cta:t.format==='trending'?'Random selection for entertainment • Not a poll or prediction':t.format==='lucky'?'See the official giveaway rules': 'How did you do? Follow VibeSchool',entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
-    setWheels(all=>[...all,fresh]);setSelectedId(fresh.id);setSetupTab('content')
+    const fresh:Wheel={...starter(),id:uid(),name:t.name,headline:t.headline??'SPIN WITH VIBESCHOOL!',showFormat:t.format??'challenge',cta:t.cta??(t.format==='trending'?'Random selection for entertainment • Not a poll or prediction':t.format==='lucky'?'See the official giveaway rules':'How did you do? Follow VibeSchool'),entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
+    setWheels(all=>[...all,fresh]);setSelectedId(fresh.id);setSetupTab('content');setFeedback('Editable copy created. Original preset is preserved.')
   }
   const uploadBackground=(file:File|undefined,kind:'background'|'logo'='background')=>{
     if(!file)return
@@ -435,7 +440,15 @@ export default function SpinStudio() {
   const duplicateWheel=()=>{
     if(!wheel)return
     const w={...wheel,id:uid(),name:wheel.name+' Copy',entries:wheel.entries.map(e=>({...e,id:uid()}))}
-    setWheels(all=>[...all,w]);setSelectedId(w.id)
+    setWheels(all=>[...all,w]);setSelectedId(w.id);setFeedback('Copy saved separately. Original wheel is unchanged.')
+  }
+  const restorePoliticalNames=()=>{
+    if(!wheel)return
+    const existing=new Set(wheel.entries.map(e=>e.label.trim().toLowerCase()))
+    const missing=politicalPresetNames.filter(name=>!existing.has(name.toLowerCase())).map(label=>({id:uid(),label,question:'Publicly discussed figure — random wheel only',answer:'No prediction'}))
+    if(missing.length===0){setFeedback('All example names are already present.');return}
+    update({entries:[...wheel.entries,...missing].slice(0,100)})
+    setFeedback(missing.length+' example names added without deleting your edits.')
   }
   const removeWheel=()=>{
     if(!wheel || wheels.length===1)return
@@ -481,7 +494,7 @@ export default function SpinStudio() {
   }
   const selected=result===null?null:entries[result]
   const showFormat=wheel?.showFormat??'challenge'
-  const selectedIsReward=showFormat==='lucky'||showFormat==='trending'
+  const selectedIsReward=showFormat==='lucky'||showFormat==='trending'||showFormat==='political'
   const segmented=useMemo(()=>entries.map((entry,index)=>({entry,index,path:wedge(index,entries.length),degree:(index+.5)*360/entries.length})),[entries])
   if(!loaded || !wheel)return <main className={styles.page}><p>Loading Spin Studio…</p></main>
   return <main className={styles.page}>
@@ -499,27 +512,35 @@ export default function SpinStudio() {
           {setupTab==='wheels' && <div className={styles.panel}>
             <div className={styles.panelTitle}><h2>My wheels</h2><button onClick={addWheel} className={styles.smallButton}>+ New</button></div>
             <select aria-label="Select a saved wheel" value={selectedId} onChange={e=>setSelectedId(e.target.value)}>{wheels.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select>
-            <div className={styles.row}><button onClick={duplicateWheel}>Duplicate</button><button disabled={wheels.length<=1} onClick={removeWheel}>Delete wheel</button></div>
+            <div className={styles.row}><button onClick={duplicateWheel}>Save as new version</button><button disabled={wheels.length<=1} onClick={removeWheel}>Delete wheel</button></div>
             <label>Show format<select value={showFormat} onChange={e=>setShowFormat(e.target.value as ShowFormat)}>
               <option value="challenge">VibeSpin Challenge · questions and guesses</option>
               <option value="lucky">VibeSpin Lucky Draw · prizes and entries</option>
               <option value="trending">VibeSpin Trending · entertainment topics</option>
+              <option value="political">VibeSpin Political · neutral random selection</option>
               <option value="learn">VibeSpin Learn · curriculum challenges</option>
             </select></label>
-            <p className={styles.hint}>{showFormat==='trending'?'A random result is not a forecast, poll, or endorsement. Keep candidate lists fact-checked and neutral.':showFormat==='lucky'?'Check eligibility, transparency and any applicable promotion rules before announcing prizes.':'One reusable wheel for different topics and episodes.'}</p>
+            <p className={styles.hint}>{showFormat==='political'?'This is a random entertainment wheel, NOT a forecast, poll or endorsement. Only include publicly reported names.':showFormat==='trending'?'A random result is not a forecast, poll, or endorsement. Keep candidate lists fact-checked and neutral.':showFormat==='lucky'?'Check eligibility, transparency and any applicable promotion rules before announcing prizes.':'One reusable wheel for different topics and episodes.'}</p>
             <label>Wheel name<input value={wheel.name} maxLength={90} onChange={e=>update({name:e.target.value})}/></label>
             <label>Video hook / headline<input value={wheel.headline} maxLength={100} onChange={e=>update({headline:e.target.value})}/></label>
             <label>Closing call to action<input value={wheel.cta} maxLength={120} onChange={e=>update({cta:e.target.value})}/></label>
             <label>Episode number<input type="number" min="1" max="9999" value={wheel.episode??1} onChange={e=>update({episode:Math.max(1,Math.min(9999,Number(e.target.value)||1))})}/></label>
-            <p className={styles.hint}>Ready-made content templates</p>
+            <div className={styles.politicalStarter}>
+              <strong>Kenya President 2027 · editable example</strong>
+              <p>Start with nine publicly reported names. The default example will stay untouched when you customise your copy.</p>
+              <button type="button" className={styles.starterButton} onClick={()=>loadTemplate(templates.findIndex(t=>t.format==='political'))}>Create editable political wheel</button>
+              <p className={styles.hint}>{politicalPresetSource} <a href={politicalPresetUrl} target="_blank" rel="noopener noreferrer">Review sources</a></p>
+            </div>
+            <p className={styles.hint}>Other ready-made templates</p>
             <div className={styles.templateGrid}>{templates.map((t,i)=><button key={t.name} onClick={()=>loadTemplate(i)}>{t.name}</button>)}</div>
           </div>}
           {setupTab==='content' && <div className={styles.panel}>
             <div className={styles.panelTitle}><h2>Wheel entries <span className={styles.muted}>{entries.length}/100</span></h2><button className={styles.smallButton} disabled={entries.length>=100} onClick={()=>update({entries:[...entries,{id:uid(),label:'New item',question:'',answer:''}]})}>+ Add</button></div>
-            <p className={styles.hint}>Every segment can have its own question and answer. Both are optional.</p>
+            <p className={styles.hint}>Type a name below and watch the wheel change immediately. Add, rename or remove names. Your edits auto-save in this browser; use “Save as new version” to keep another copy.</p>
+            {showFormat==='political'&&<div className={styles.politicalNote}><strong>Kenya 2027 · editable names</strong><p>These are publicly reported figures, not an official ballot. A wheel spin does not predict an election result.</p><button onClick={restorePoliticalNames}>Add missing example names (keep mine)</button><a href={politicalPresetUrl} target="_blank" rel="noopener noreferrer">Check current public listings</a></div>}
             <div className={styles.entries}>{entries.map((entry,i)=><div className={styles.entry} key={entry.id}>
               <div className={styles.entryHead}><span>SEGMENT {i+1}</span><button aria-label={'Remove '+entry.label} onClick={()=>update({entries:entries.filter(e=>e.id!==entry.id)})}>Remove</button></div>
-              <input aria-label={'Label '+(i+1)} placeholder="Segment label" maxLength={70} value={entry.label} onChange={e=>editEntry(entry.id,{label:e.target.value})}/>
+              <input aria-label={'Label '+(i+1)} placeholder={showFormat==='political'?'Edit name':'Segment label'} maxLength={70} value={entry.label} onChange={e=>editEntry(entry.id,{label:e.target.value})}/>
               <input aria-label={'Question '+(i+1)} placeholder="Question (optional)" maxLength={250} value={entry.question} onChange={e=>editEntry(entry.id,{question:e.target.value})}/>
               <input aria-label={'Answer '+(i+1)} placeholder="Answer (optional)" maxLength={250} value={entry.answer} onChange={e=>editEntry(entry.id,{answer:e.target.value})}/>
               <label>Segment icon / emoji (optional)<input maxLength={12} placeholder="⭐ or 🎓" value={entry.symbol??''} onChange={e=>editEntry(entry.id,{symbol:e.target.value})}/></label>
@@ -605,7 +626,8 @@ export default function SpinStudio() {
           </div>}
         </aside>}
         <section className={styles.previewSection} aria-label="Wheel preview">
-          {!recording && <div className={styles.previewTop}><span>LIVE PREVIEW</span><span>{format==='portrait'?'9:16':format==='landscape'?'16:9':'1:1'} · Ready to record</span></div>}
+          {!recording&&showFormat==='political'&&<div className={styles.politicalNote}><strong>Political Spin · Random selection only</strong><span>Not an election prediction or endorsement. Verify names before publishing.</span></div>}
+          {!recording && <div className={styles.previewTop}><span>LIVE PREVIEW · Edits appear instantly</span><span>{format==='portrait'?'9:16':format==='landscape'?'16:9':'1:1'} · Ready to record</span></div>}
           <div ref={stageRef} role={recording?'button':undefined} tabIndex={recording?0:undefined} aria-label={recording?'Tap to advance the show':undefined} onClick={advanceStage} onKeyDown={event=>{if(recording && event.key==='Enter'){event.preventDefault();advanceStage()}}} className={[styles.stage,recording?styles.tapStage:'',styles[format],styles[wheel.theme],styles['font'+(wheel.fontStyle??'modern')]].join(' ')} style={{backgroundImage:wheel.backgroundImage?'linear-gradient(#06132c55,#06132cbb),url('+wheel.backgroundImage+')':stageThemes[wheel.stageBackground??'game'],backgroundSize:'cover',backgroundPosition:'center'}}>
             <div className={styles.stageGlow} aria-hidden="true"/>
             {!recording&&safeZone&&<div className={styles.safeZone} aria-hidden="true"/>}
@@ -661,6 +683,7 @@ export default function SpinStudio() {
                 </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>One spin. One question. Can you get it right?</p></>}
               </div>
               <p className={styles.cta}>{wheel.cta}</p>
+              {showFormat==='political'&&<p className={styles.politicalStageDisclaimer}>RANDOM SPIN · NOT A POLL OR ELECTION FORECAST</p>}
             </div>
           </div>
           <div className={styles.playBar}>
