@@ -8,6 +8,7 @@ import { fetchPulseData } from "@/lib/pulse/fetcher";
 import type { PulseSnapshot } from "@/lib/types";
 import { TeacherWorkspace } from "@/components/teacher/ui";
 import { RefreshCw } from "lucide-react";
+import Link from "next/link";
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
 
 const C = {
@@ -42,6 +43,7 @@ export default function TeachTodayPage() {
   const [name, setName] = useState("");
   const [snap, setSnap] = useState<PulseSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [noSchool, setNoSchool] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (silent) setRefreshing(true);
@@ -64,7 +66,14 @@ export default function TeachTodayPage() {
       if (profileRes.error) throw profileRes.error;
 
       const schoolId = activeTeacherSchoolId(schoolContextRes.data);
-      if (!schoolId) throw new Error("school_context_missing");
+      if (!schoolId) {
+        setTeacherId(user.id);
+        setName(profileRes.data?.full_name?.split(" ")[0] ?? "");
+        setSnap(null);
+        setNoSchool(true);
+        return;
+      }
+      setNoSchool(false);
 
       const snapshot = await fetchPulseData(user.id, schoolId, null);
       setTeacherId(user.id);
@@ -91,6 +100,20 @@ export default function TeachTodayPage() {
     );
   }
 
+  if (noSchool && !error) {
+    return <main style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px 110px", display: "grid", gap: 16 }}>
+      <header><p style={{ fontSize: 12, color: C.muted, margin: 0 }}>VIBESCHOOL · TEACHER OS</p><h1 style={{ margin: "6px 0" }}>Your teaching workspace{name ? `, ${name}` : ""}</h1>
+        <p style={{ color: C.muted }}>You can teach privately without joining a school. School lessons will appear when you connect a school.</p></header>
+      <section style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 18 }}>
+        <h2 style={{ margin: "0 0 8px" }}>My Tutoring</h2><p style={{ color: C.muted }}>Manage learners, lesson sessions and private conversations using your current account.</p>
+        <Link href="/teacher/tutoring" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "10px 16px", borderRadius: 12, background: "#087451", color: "#fff", fontWeight: 700, textDecoration: "none" }}>Open My Tutoring</Link>
+      </section>
+      <section aria-label="Shared teaching tools" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+        {documentLinks.filter(item => item.href !== "/teacher/timetable").map(item => <Link key={item.href} href={item.href} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, color: C.text, textDecoration: "none" }}><strong>{item.label}</strong><p style={{ color: C.muted, fontSize: 12 }}>{item.detail}</p></Link>)}
+      </section>
+      <p style={{ color: C.muted, fontSize: 12 }}>School-specific tools may still require an authorised school context. Tutoring learner access is granted only through accepted private connections.</p>
+    </main>;
+  }
   if (!snap || error) {
     return (
       <section style={{ minHeight: "100vh", background: C.bg, padding: 20 }}>
@@ -117,6 +140,7 @@ export default function TeachTodayPage() {
         />
       </section>
 
+      <section aria-label="Teaching arrangements" style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}><Link href="/teacher/classhub" style={{ color: "#087451", fontWeight: 700 }}>School classes</Link><Link href="/teacher/tutoring" style={{ color: "#087451", fontWeight: 700 }}>My Tutoring</Link></section>
       <section style={{ marginTop: 18 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 9 }}>
           <h2 style={{ margin: 0, color: C.text, fontSize: 16 }}>Teaching documents</h2>
