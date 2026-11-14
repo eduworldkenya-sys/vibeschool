@@ -13,7 +13,7 @@ type Setup={
  id:string;title:string;left:Outcome;right:Outcome;theme:Theme;camera:Camera;aspect:Aspect;
  duration:number;amplitude:number;showNames:boolean;showLogos:boolean;showBrand:boolean;
  sound:boolean;confetti:boolean;spotlight:boolean;countdown:boolean;volume:number;
- resultText:string;episode:number
+ resultText:string;episode:number; catcher?:boolean; landingAngle?:number
 }
 const STORAGE='vibeschool.vibependulum.studio.v1'
 const makeId=()=>Math.random().toString(36).slice(2)+Date.now().toString(36)
@@ -22,7 +22,7 @@ const defaultSetup=():Setup=>({
  right:{name:'MANCHESTER\nUNITED',detail:'Option B',logo:'',color:'#62a6f4'},
  theme:'classic',camera:'angled',aspect:'portrait',duration:7,amplitude:43,
  showNames:true,showLogos:true,showBrand:true,sound:true,confetti:true,spotlight:true,
- countdown:true,volume:55,resultText:'THE PENDULUM CHOSE',episode:1
+ countdown:true,volume:55,resultText:'THE PENDULUM CHOSE',episode:1,catcher:true,landingAngle:56
 })
 const templates:{label:string;title:string;left:string;right:string;colors:[string,string]}[]=[
  {label:'Football rivalry',title:'Arsenal vs Manchester United',left:'ARSENAL',right:'MANCHESTER\nUNITED',colors:['#e95465','#62a6f4']},
@@ -141,20 +141,21 @@ export default function PendulumStudio(){
  const animate=(target:Side)=>{
   if(!setup)return
   const start=performance.now(),duration=setup.duration*1000
-  const finalAngle=target==='left'?-38:38
+  const finalAngle=target==='left'?-(setup.landingAngle??56):(setup.landingAngle??56)
   winnerRef.current=target;setWinner(null);setStagePhase('swinging')
   const tick=(now:number)=>{
    const t=Math.min(1,(now-start)/duration)
-   const capture=Math.max(0,Math.min(1,(t-.73)/.27))
+   const capture=Math.max(0,Math.min(1,(t-.78)/.22))
    const smooth=capture*capture*(3-2*capture)
    const envelope=Math.pow(1-t,1.25)
    const natural=-Math.cos(t*22*Math.PI)*setup.amplitude*envelope
-   const bounce=Math.sin(capture*5*Math.PI)*Math.exp(-4*capture)*3
+   const bounce=Math.sin(capture*5*Math.PI)*Math.exp(-4*capture)*1.6
    const next=natural*(1-smooth)+finalAngle*smooth+bounce
    setAngle(t===1?finalAngle:next)
    if(setup.sound && t<.7 && Math.floor(t*16)!==Math.floor(((now-start-16)/duration)*16)&&Math.floor(t*16)%2===0)tone(250,setup.volume,.055)
    if(t<1){frameRef.current=requestAnimationFrame(tick);return}
    setAngle(finalAngle);setWinner(target);setStagePhase('reveal')
+   if(setup.catcher && setup.sound)tone(260,setup.volume,.18)
    if(setup.sound){tone(740,setup.volume,.3);window.setTimeout(()=>tone(980,setup.volume,.35),130)}
    setHistory(h=>[{title:setup.title,winner:setup[target].name.replace(/\s+/g,' '),time:new Date().toLocaleString()},...h].slice(0,20))
   }
@@ -255,7 +256,9 @@ export default function PendulumStudio(){
        <label>Swing duration · {setup.duration}s<input type="range" min="4" max="14" step="1" value={setup.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
        <label>Starting swing · {setup.amplitude}°<input type="range" min="24" max="60" step="1" value={setup.amplitude} onChange={e=>update({amplitude:Number(e.target.value)})}/></label>
        <label className={styles.check}><input type="checkbox" checked={setup.countdown} onChange={e=>update({countdown:e.target.checked})}/> Three-beat countdown before swing</label>
-       <p className={styles.help}>Natural-looking damping slows the arm before a final cinematic magnetic capture. The winner is selected randomly before motion begins; this is entertainment, not a scientific prediction.</p>
+       <label className={styles.check}><input type="checkbox" checked={setup.catcher??true} onChange={e=>update({catcher:e.target.checked})}/> Show mechanical catch brackets</label>
+       <label>Landing angle: {setup.landingAngle??56}°<input type="range" min="40" max="65" value={setup.landingAngle??56} onChange={e=>update({landingAngle:Number(e.target.value)})}/></label>
+       <p className={styles.help}>A free pendulum stops at the centre. This version uses visible left/right catch brackets to justify the off-centre finish. The outcome is randomly selected before the swing; the catch is a cinematic effect, not a physics prediction. A coin toss is more natural for pure two-sided chance.</p>
       </>}
       {tab==='effects'&&<>
        <h2>Sound & reveal effects</h2>
@@ -291,6 +294,10 @@ export default function PendulumStudio(){
           <div className={styles.cable}/><div className={styles.bob}><div className={styles.bobShine}/></div>
          </div>
         </div>
+        {setup.catcher!==false&&<>
+         <div className={[styles.catchBracket,styles.catchLeft,phase==='reveal'&&winner==='left'?styles.catchActive:''].join(' ')}><span>A</span><small>LEFT CATCH</small></div>
+         <div className={[styles.catchBracket,styles.catchRight,phase==='reveal'&&winner==='right'?styles.catchActive:''].join(' ')}><span>B</span><small>RIGHT CATCH</small></div>
+        </>}
         <div className={styles.floorMark}><span/><span/><span/></div>
        </div>
        <div className={styles.outcomes}>
