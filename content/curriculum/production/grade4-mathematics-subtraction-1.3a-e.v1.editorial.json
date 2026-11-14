@@ -70,7 +70,7 @@
           "answer": 4332,
           "explanation": "Ones 3−1=2, tens 5−2=3, hundreds 7−4=3, thousands 6−2=4.",
           "correctFeedback": "Correct — Ones 3−1=2, tens 5−2=3, hundreds 7−4=3, thousands 6−2=4.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "First line up the thousands, hundreds, tens and ones. Check that each top digit is at least the bottom digit, then subtract column by column.",
           "operands": {
             "minuend": 6753,
             "subtrahend": 2421,
@@ -85,7 +85,7 @@
           "answer": 4343,
           "explanation": "Column differences are 3,4,3,4 from ones to thousands.",
           "correctFeedback": "Correct — Column differences are 3,4,3,4 from ones to thousands.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "First line up the thousands, hundreds, tens and ones. Check that each top digit is at least the bottom digit, then subtract column by column.",
           "operands": {
             "minuend": 8975,
             "subtrahend": 4632,
@@ -98,7 +98,7 @@
           "answer": 4431,
           "explanation": "Subtract without borrowing in each of four columns.",
           "correctFeedback": "Correct — Subtract without borrowing in each of four columns.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "First line up the thousands, hundreds, tens and ones. Check that each top digit is at least the bottom digit, then subtract column by column.",
           "operands": {
             "minuend": 7642,
             "subtrahend": 3211,
@@ -111,7 +111,7 @@
           "answer": 6622,
           "explanation": "Subtract the sold oranges from the stock.",
           "correctFeedback": "Correct — Subtract the sold oranges from the stock.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "First line up the thousands, hundreds, tens and ones. Check that each top digit is at least the bottom digit, then subtract column by column.",
           "operands": {
             "minuend": 9876,
             "subtrahend": 3254,
@@ -122,14 +122,14 @@
       "checks": [
         {
           "id": "S-A-Q1",
-          "prompt": "7,864 − 2,532 = ?",
-          "answer": 5332,
-          "explanation": "Check 5,332+2,532=7,864.",
-          "correctFeedback": "Correct — Check 5,332+2,532=7,864.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "prompt": "Calculate 8,654 − 4,321.",
+          "answer": 4333,
+          "explanation": "All four columns subtract without exchanging: 4−1=3, 5−2=3, 6−3=3, 8−4=4.",
+          "correctFeedback": "Correct — All four columns subtract without exchanging: 4−1=3, 5−2=3, 6−3=3, 8−4=4.",
+          "incorrectFeedback": "First line up the thousands, hundreds, tens and ones. Check that each top digit is at least the bottom digit, then subtract column by column.",
           "operands": {
-            "minuend": 7864,
-            "subtrahend": 2532,
+            "minuend": 8654,
+            "subtrahend": 4321,
             "kind": "exact"
           }
         },
@@ -139,7 +139,7 @@
           "answer": 4332,
           "explanation": "No column needs regrouping.",
           "correctFeedback": "Correct — No column needs regrouping.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "First line up the thousands, hundreds, tens and ones. Check that each top digit is at least the bottom digit, then subtract column by column.",
           "operands": {
             "minuend": 6753,
             "subtrahend": 2421,
@@ -152,7 +152,7 @@
           "answer": 4343,
           "explanation": "Subtract like place values.",
           "correctFeedback": "Correct — Subtract like place values.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "First line up the thousands, hundreds, tens and ones. Check that each top digit is at least the bottom digit, then subtract column by column.",
           "operands": {
             "minuend": 8975,
             "subtrahend": 4632,
@@ -165,7 +165,7 @@
           "answer": 4431,
           "explanation": "Column totals stay nonnegative.",
           "correctFeedback": "Correct — Column totals stay nonnegative.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "First line up the thousands, hundreds, tens and ones. Check that each top digit is at least the bottom digit, then subtract column by column.",
           "operands": {
             "minuend": 7642,
             "subtrahend": 3211,
@@ -178,7 +178,7 @@
           "answer": 6622,
           "explanation": "The remaining quantity is 6,622.",
           "correctFeedback": "Correct — The remaining quantity is 6,622.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "First line up the thousands, hundreds, tens and ones. Check that each top digit is at least the bottom digit, then subtract column by column.",
           "operands": {
             "minuend": 9876,
             "subtrahend": 3254,
@@ -273,7 +273,7 @@
           "answer": 2784,
           "explanation": "Exchange across ones and tens; confirm by adding 2,784+1,578=4,362.",
           "correctFeedback": "Correct — Exchange across ones and tens; confirm by adding 2,784+1,578=4,362.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Draw the thousands, hundreds, tens and ones columns. Exchange from a nonzero higher column across zeros, preserving the total before subtracting.",
           "operands": {
             "minuend": 4362,
             "subtrahend": 1578,
@@ -288,7 +288,7 @@
           "answer": 4737,
           "explanation": "Regroup across the zero tens, then check 4,737+2,468=7,205.",
           "correctFeedback": "Correct — Regroup across the zero tens, then check 4,737+2,468=7,205.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Draw the thousands, hundreds, tens and ones columns. Exchange from a nonzero higher column across zeros, preserving the total before subtracting.",
           "operands": {
             "minuend": 7205,
             "subtrahend": 2468,
@@ -301,7 +301,7 @@
           "answer": 3227,
           "explanation": "Borrow across zeros and check by addition.",
           "correctFeedback": "Correct — Borrow across zeros and check by addition.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Draw the thousands, hundreds, tens and ones columns. Exchange from a nonzero higher column across zeros, preserving the total before subtracting.",
           "operands": {
             "minuend": 6013,
             "subtrahend": 2786,
@@ -314,7 +314,7 @@
           "answer": 4329,
           "explanation": "Subtract 3,675 from 8,004, exchanging as needed.",
           "correctFeedback": "Correct — Subtract 3,675 from 8,004, exchanging as needed.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Draw the thousands, hundreds, tens and ones columns. Exchange from a nonzero higher column across zeros, preserving the total before subtracting.",
           "operands": {
             "minuend": 8004,
             "subtrahend": 3675,
@@ -325,14 +325,14 @@
       "checks": [
         {
           "id": "S-B-Q1",
-          "prompt": "5,004 − 1,278 = ?",
-          "answer": 3726,
-          "explanation": "Check 3,726+1,278=5,004.",
-          "correctFeedback": "Correct — Check 3,726+1,278=5,004.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "prompt": "A school had 6,005 labels and used 2,478. How many labels remain?",
+          "answer": 3527,
+          "explanation": "Exchange through the zero tens and hundreds: 6,005−2,478=3,527. Check by 3,527+2,478=6,005.",
+          "correctFeedback": "Correct — Exchange through the zero tens and hundreds: 6,005−2,478=3,527. Check by 3,527+2,478=6,005.",
+          "incorrectFeedback": "Draw the thousands, hundreds, tens and ones columns. Exchange from a nonzero higher column across zeros, preserving the total before subtracting.",
           "operands": {
-            "minuend": 5004,
-            "subtrahend": 1278,
+            "minuend": 6005,
+            "subtrahend": 2478,
             "kind": "exact"
           }
         },
@@ -342,7 +342,7 @@
           "answer": 2784,
           "explanation": "After regrouping, 2,784 remains.",
           "correctFeedback": "Correct — After regrouping, 2,784 remains.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Draw the thousands, hundreds, tens and ones columns. Exchange from a nonzero higher column across zeros, preserving the total before subtracting.",
           "operands": {
             "minuend": 4362,
             "subtrahend": 1578,
@@ -355,7 +355,7 @@
           "answer": 4737,
           "explanation": "Borrow correctly across zero tens.",
           "correctFeedback": "Correct — Borrow correctly across zero tens.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Draw the thousands, hundreds, tens and ones columns. Exchange from a nonzero higher column across zeros, preserving the total before subtracting.",
           "operands": {
             "minuend": 7205,
             "subtrahend": 2468,
@@ -368,7 +368,7 @@
           "answer": 3227,
           "explanation": "Check the result by addition.",
           "correctFeedback": "Correct — Check the result by addition.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Draw the thousands, hundreds, tens and ones columns. Exchange from a nonzero higher column across zeros, preserving the total before subtracting.",
           "operands": {
             "minuend": 6013,
             "subtrahend": 2786,
@@ -381,7 +381,7 @@
           "answer": 4329,
           "explanation": "The answer is 4,329 cards.",
           "correctFeedback": "Correct — The answer is 4,329 cards.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Draw the thousands, hundreds, tens and ones columns. Exchange from a nonzero higher column across zeros, preserving the total before subtracting.",
           "operands": {
             "minuend": 8004,
             "subtrahend": 3675,
@@ -477,7 +477,7 @@
           "answer": 4110,
           "explanation": "7,260−3,150=4,110.",
           "correctFeedback": "Correct — 7,260−3,150=4,110.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Round EACH starting number to its nearest multiple of ten first, then subtract the rounded amounts. Compare the result with an exact subtraction.",
           "operands": {
             "minuend": 7263,
             "subtrahend": 3148,
@@ -492,7 +492,7 @@
           "answer": 5720,
           "explanation": "8,430−2,710=5,720.",
           "correctFeedback": "Correct — 8,430−2,710=5,720.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Round EACH starting number to its nearest multiple of ten first, then subtract the rounded amounts. Compare the result with an exact subtraction.",
           "operands": {
             "minuend": 8426,
             "subtrahend": 2713,
@@ -505,7 +505,7 @@
           "answer": 4350,
           "explanation": "5,640−1,290=4,350.",
           "correctFeedback": "Correct — 5,640−1,290=4,350.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Round EACH starting number to its nearest multiple of ten first, then subtract the rounded amounts. Compare the result with an exact subtraction.",
           "operands": {
             "minuend": 5642,
             "subtrahend": 1287,
@@ -518,7 +518,7 @@
           "answer": 4073,
           "explanation": "The exact result is 4,073, which is near 4,080.",
           "correctFeedback": "Correct — The exact result is 4,073, which is near 4,080.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Round EACH starting number to its nearest multiple of ten first, then subtract the rounded amounts. Compare the result with an exact subtraction.",
           "operands": {
             "minuend": 6457,
             "subtrahend": 2384,
@@ -529,14 +529,14 @@
       "checks": [
         {
           "id": "S-C-Q1",
-          "prompt": "Estimate 6,457 − 2,384 to the nearest tens.",
-          "answer": 4080,
-          "explanation": "6,460−2,380=4,080.",
-          "correctFeedback": "Correct — 6,460−2,380=4,080.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "prompt": "Estimate 7,836 − 2,541 by rounding each number to the nearest ten.",
+          "answer": 5300,
+          "explanation": "7,836 rounds to 7,840; 2,541 rounds to 2,540; 7,840−2,540=5,300.",
+          "correctFeedback": "Correct — 7,836 rounds to 7,840; 2,541 rounds to 2,540; 7,840−2,540=5,300.",
+          "incorrectFeedback": "Round EACH starting number to its nearest multiple of ten first, then subtract the rounded amounts. Compare the result with an exact subtraction.",
           "operands": {
-            "minuend": 6457,
-            "subtrahend": 2384,
+            "minuend": 7836,
+            "subtrahend": 2541,
             "kind": "rounded_estimate"
           }
         },
@@ -546,7 +546,7 @@
           "answer": 4110,
           "explanation": "7,260−3,150=4,110.",
           "correctFeedback": "Correct — 7,260−3,150=4,110.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Round EACH starting number to its nearest multiple of ten first, then subtract the rounded amounts. Compare the result with an exact subtraction.",
           "operands": {
             "minuend": 7263,
             "subtrahend": 3148,
@@ -559,7 +559,7 @@
           "answer": 5720,
           "explanation": "8,430−2,710=5,720.",
           "correctFeedback": "Correct — 8,430−2,710=5,720.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Round EACH starting number to its nearest multiple of ten first, then subtract the rounded amounts. Compare the result with an exact subtraction.",
           "operands": {
             "minuend": 8426,
             "subtrahend": 2713,
@@ -572,7 +572,7 @@
           "answer": 4350,
           "explanation": "5,640−1,290=4,350.",
           "correctFeedback": "Correct — 5,640−1,290=4,350.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Round EACH starting number to its nearest multiple of ten first, then subtract the rounded amounts. Compare the result with an exact subtraction.",
           "operands": {
             "minuend": 5642,
             "subtrahend": 1287,
@@ -585,7 +585,7 @@
           "answer": 4073,
           "explanation": "Subtraction without rounding gives 4,073.",
           "correctFeedback": "Correct — Subtraction without rounding gives 4,073.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Round EACH starting number to its nearest multiple of ten first, then subtract the rounded amounts. Compare the result with an exact subtraction.",
           "operands": {
             "minuend": 6457,
             "subtrahend": 2384,
@@ -689,7 +689,7 @@
           ],
           "explanation": "Subtract 200 each time.",
           "correctFeedback": "Correct — Subtract 200 each time.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Check the differences between consecutive terms. Subtract the same amount every time; do not change the step or multiply a previous term."
         }
       ],
       "independent": [
@@ -703,7 +703,7 @@
           ],
           "explanation": "The step is subtract 250.",
           "correctFeedback": "Correct — The step is subtract 250.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Check the differences between consecutive terms. Subtract the same amount every time; do not change the step or multiply a previous term."
         },
         {
           "id": "S-D-E2",
@@ -714,7 +714,7 @@
           ],
           "explanation": "Subtract 100 repeatedly.",
           "correctFeedback": "Correct — Subtract 100 repeatedly.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Check the differences between consecutive terms. Subtract the same amount every time; do not change the step or multiply a previous term."
         },
         {
           "id": "S-D-E3",
@@ -726,20 +726,20 @@
           ],
           "explanation": "Subtract 500 for each day.",
           "correctFeedback": "Correct — Subtract 500 for each day.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Check the differences between consecutive terms. Subtract the same amount every time; do not change the step or multiply a previous term."
         }
       ],
       "checks": [
         {
           "id": "S-D-Q1",
-          "prompt": "Write the next two terms: 8,500, 8,250, 8,000.",
+          "prompt": "Continue the pattern with two numbers: 7,600, 7,350, 7,100, ...",
           "answer": [
-            7750,
-            7500
+            6850,
+            6600
           ],
-          "explanation": "Each term is 250 less.",
-          "correctFeedback": "Correct — Each term is 250 less.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "explanation": "Subtract 250 from each term to obtain 6,850 and then 6,600.",
+          "correctFeedback": "Correct — Subtract 250 from each term to obtain 6,850 and then 6,600.",
+          "incorrectFeedback": "Check the differences between consecutive terms. Subtract the same amount every time; do not change the step or multiply a previous term."
         },
         {
           "id": "S-D-Q2",
@@ -750,7 +750,7 @@
           ],
           "explanation": "Step −200.",
           "correctFeedback": "Correct — Step −200.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Check the differences between consecutive terms. Subtract the same amount every time; do not change the step or multiply a previous term."
         },
         {
           "id": "S-D-Q3",
@@ -758,7 +758,7 @@
           "answer": 250,
           "explanation": "Each difference is 250.",
           "correctFeedback": "Correct — Each difference is 250.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Check the differences between consecutive terms. Subtract the same amount every time; do not change the step or multiply a previous term."
         },
         {
           "id": "S-D-Q4",
@@ -769,7 +769,7 @@
           ],
           "explanation": "Subtract 100.",
           "correctFeedback": "Correct — Subtract 100.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Check the differences between consecutive terms. Subtract the same amount every time; do not change the step or multiply a previous term."
         },
         {
           "id": "S-D-Q5",
@@ -777,7 +777,7 @@
           "answer": 3000,
           "explanation": "Subtract 500 again.",
           "correctFeedback": "Correct — Subtract 500 again.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation."
+          "incorrectFeedback": "Check the differences between consecutive terms. Subtract the same amount every time; do not change the step or multiply a previous term."
         }
       ],
       "activity": {
@@ -866,7 +866,7 @@
           "answer": 5525,
           "explanation": "8,000−2,475=KSh 5,525.",
           "correctFeedback": "Correct — 8,000−2,475=KSh 5,525.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Identify the original whole and the amount removed, with matching units. Subtract to find the remainder; verify by adding the removed quantity back.",
           "operands": {
             "minuend": 8000,
             "subtrahend": 2475,
@@ -881,7 +881,7 @@
           "answer": 4420,
           "explanation": "6,540−2,120=4,420 flyers.",
           "correctFeedback": "Correct — 6,540−2,120=4,420 flyers.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Identify the original whole and the amount removed, with matching units. Subtract to find the remainder; verify by adding the removed quantity back.",
           "operands": {
             "minuend": 6540,
             "subtrahend": 2120,
@@ -894,7 +894,7 @@
           "answer": 5550,
           "explanation": "9,000−3,450=5,550 tickets.",
           "correctFeedback": "Correct — 9,000−3,450=5,550 tickets.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Identify the original whole and the amount removed, with matching units. Subtract to find the remainder; verify by adding the removed quantity back.",
           "operands": {
             "minuend": 9000,
             "subtrahend": 3450,
@@ -907,7 +907,7 @@
           "answer": 4415,
           "explanation": "7,650−3,235=KSh 4,415.",
           "correctFeedback": "Correct — 7,650−3,235=KSh 4,415.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Identify the original whole and the amount removed, with matching units. Subtract to find the remainder; verify by adding the removed quantity back.",
           "operands": {
             "minuend": 7650,
             "subtrahend": 3235,
@@ -918,14 +918,14 @@
       "checks": [
         {
           "id": "S-E-Q1",
-          "prompt": "7,600 cards minus 2,350 cards leaves how many?",
-          "answer": 5250,
-          "explanation": "The remainder is 5,250 cards.",
-          "correctFeedback": "Correct — The remainder is 5,250 cards.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "prompt": "A club began with 9,500 tickets and distributed 3,675. How many are left?",
+          "answer": 5825,
+          "explanation": "The starting quantity minus tickets distributed is 9,500−3,675=5,825.",
+          "correctFeedback": "Correct — The starting quantity minus tickets distributed is 9,500−3,675=5,825.",
+          "incorrectFeedback": "Identify the original whole and the amount removed, with matching units. Subtract to find the remainder; verify by adding the removed quantity back.",
           "operands": {
-            "minuend": 7600,
-            "subtrahend": 2350,
+            "minuend": 9500,
+            "subtrahend": 3675,
             "kind": "exact"
           }
         },
@@ -935,7 +935,7 @@
           "answer": 5525,
           "explanation": "The money remaining is KSh 5,525.",
           "correctFeedback": "Correct — The money remaining is KSh 5,525.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Identify the original whole and the amount removed, with matching units. Subtract to find the remainder; verify by adding the removed quantity back.",
           "operands": {
             "minuend": 8000,
             "subtrahend": 2475,
@@ -948,7 +948,7 @@
           "answer": 4420,
           "explanation": "Subtract distribution from stock.",
           "correctFeedback": "Correct — Subtract distribution from stock.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Identify the original whole and the amount removed, with matching units. Subtract to find the remainder; verify by adding the removed quantity back.",
           "operands": {
             "minuend": 6540,
             "subtrahend": 2120,
@@ -961,7 +961,7 @@
           "answer": 5550,
           "explanation": "Unsold = printed−sold.",
           "correctFeedback": "Correct — Unsold = printed−sold.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Identify the original whole and the amount removed, with matching units. Subtract to find the remainder; verify by adding the removed quantity back.",
           "operands": {
             "minuend": 9000,
             "subtrahend": 3450,
@@ -974,7 +974,7 @@
           "answer": 4415,
           "explanation": "The answer is KSh 4,415.",
           "correctFeedback": "Correct — The answer is KSh 4,415.",
-          "incorrectFeedback": "Try drawing four place-value columns and checking the inverse operation.",
+          "incorrectFeedback": "Identify the original whole and the amount removed, with matching units. Subtract to find the remainder; verify by adding the removed quantity back.",
           "operands": {
             "minuend": 7650,
             "subtrahend": 3235,
