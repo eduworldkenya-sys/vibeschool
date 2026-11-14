@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import {listMyAssessmentAssignments,type LearnerAssessmentAssignment} from '@/lib/assessment/discovery'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
 import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
 import LearningFeedback, { playLearningSound, useLearningFeedback } from '@/components/student/LearningFeedback'
@@ -65,6 +66,7 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
   const router=useRouter()
   const {play}=useLearningFeedback()
   const [topics,setTopics]=useState<Topic[]>([])
+  const [otherPractice,setOtherPractice]=useState<LearnerAssessmentAssignment[]>([])
   const [workspace,setWorkspace]=useState<AttemptWorkspace|null>(null)
   const topicCards=useMemo(()=>{
     const groups=new Map<string,Topic[]>()
@@ -98,6 +100,10 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
   },[grade])
   useEffect(()=>{
     let cancelled=false
+    // Learner-scoped fallback; question counts are not implied by a practice label.
+    void listMyAssessmentAssignments().then(items=>{
+      if(!cancelled)setOtherPractice(items.filter(x=>x.assessmentType==='practice'&&x.timeLimitMinutes===null && (x.canStart||x.attemptStatus==='in_progress')))
+    }).catch(()=>{if(!cancelled)setOtherPractice([])})
     setLoading(true)
     void fetchTopics(grade).then(list=>{if(!cancelled)setTopics(list)})
       .catch(cause=>{if(!cancelled)setError(cause instanceof Error?cause.message:'Topics could not be loaded.')})
@@ -201,6 +207,7 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
     {!loading && !workspace && topics.length===0 && <section style={card}>
       <h2 style={{fontSize:18,margin:'0 0 10px'}}>Looking for an assessment?</h2>
       <p style={muted}>Topic Practice only shows certified five-question untimed sessions. Timed and longer practice assessments are available in Exams, without changing their saved attempts or results.</p>
+      {otherPractice.length>0&&<div style={{display:'grid',gap:9,marginTop:12}}><strong>Other available untimed assessments</strong><p style={muted}>These are separate assignments. Their question counts can differ from a five-question Topic Practice session.</p>{otherPractice.map(assessment=><button key={assessment.assignmentId} type='button' style={{...secondary,textAlign:'left'}} onClick={()=>router.push('/student/assessment/'+encodeURIComponent(assessment.assignmentId))}>{assessment.title} · {assessment.attemptStatus==='in_progress'?'Continue assessment':'Open assessment'}</button>)}</div>}
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
         <button style={button} onClick={()=>router.push('/student/vibelearn/exams')}>Browse Exams</button>
         <button style={secondary} onClick={()=>router.push('/student/study')}>Return to Learn</button>
