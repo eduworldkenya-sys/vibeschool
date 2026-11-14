@@ -61,6 +61,8 @@ export default function VibeSphereStudio(){
  const [tab,setTab]=useState<'matchup'|'stage'|'motion'|'effects'|'record'>('matchup')
  const [phase,setPhase]=useState<Phase>('idle')
  const [rotation,setRotation]=useState(0)
+ const [tilt,setTilt]=useState(0)
+ const dragRef=useRef<{x:number;y:number;rotation:number;tilt:number;moved:boolean}|null>(null)
  const [winner,setWinner]=useState<Side|null>(null)
  const [seconds,setSeconds]=useState(3)
  const [showMode,setShowMode]=useState(false)
@@ -102,7 +104,7 @@ export default function VibeSphereStudio(){
  useEffect(()=>{
   if(frameRef.current!==null)cancelAnimationFrame(frameRef.current)
   if(countdownRef.current!==null)clearInterval(countdownRef.current)
-  winnerRef.current=null;setWinner(null);setRotation(0);setStagePhase('idle');setNotice('')
+  winnerRef.current=null;setWinner(null);setRotation(0);setTilt(0);setStagePhase('idle');setNotice('')
  },[selectedId])
  const update=(patch:Partial<Setup>)=>{setSetups(a=>a.map(s=>s.id===selectedId?{...s,...patch}:s))}
  const editOutcome=(side:Side,patch:Partial<Outcome>)=>{if(setup)update({[side]:{...setup[side],...patch}})}
@@ -171,6 +173,8 @@ export default function VibeSphereStudio(){
   if(frameRef.current!==null)cancelAnimationFrame(frameRef.current)
   if(countdownRef.current!==null)clearInterval(countdownRef.current)
   const choice=randomSide()
+  setTilt(0) // Lock the equator at the fixed pointer before every result spin.
+  dragRef.current=null
   setWinner(null);winnerRef.current=choice
   if(!setup.countdown){animate(choice);return}
   setSeconds(3);setStagePhase('countdown')
@@ -188,7 +192,7 @@ export default function VibeSphereStudio(){
   if(frameRef.current!==null)cancelAnimationFrame(frameRef.current)
   if(countdownRef.current!==null)clearInterval(countdownRef.current)
   countdownRef.current=null;frameRef.current=null;winnerRef.current=null
-  setWinner(null);setRotation(0);setStagePhase('idle')
+  setWinner(null);setRotation(0);setTilt(0);setStagePhase('idle')
  }
  const startRecording=async()=>{
   if(capturing)return
@@ -210,6 +214,32 @@ export default function VibeSphereStudio(){
  }
  const stopRecording=()=>{if(recorderRef.current?.state==='recording')recorderRef.current.stop()}
  const stageTap=()=>{if(!showMode)return;if(stagePhaseRef.current==='idle'||stagePhaseRef.current==='reveal')start()}
+ const canRotate=phase==='idle'||phase==='reveal'
+ const changeAxis=(nextYaw:number,nextTilt:number)=>{
+  if(!canRotate)return
+  setRotation(nextYaw)
+  setTilt(Math.max(-75,Math.min(75,nextTilt)))
+  if(phase==='reveal'){setWinner(null);winnerRef.current=null;setStagePhase('idle')}
+ }
+ const beginDrag=(e:React.PointerEvent<HTMLDivElement>)=>{
+  if(!canRotate||e.button!==0)return
+  dragRef.current={x:e.clientX,y:e.clientY,rotation,tilt,moved:false}
+  e.currentTarget.setPointerCapture(e.pointerId)
+ }
+ const moveDrag=(e:React.PointerEvent<HTMLDivElement>)=>{
+  const d=dragRef.current
+  if(!d)return
+  const dx=e.clientX-d.x,dy=e.clientY-d.y
+  if(Math.abs(dx)+Math.abs(dy)>4)d.moved=true
+  if(d.moved)changeAxis(d.rotation+dx*.65,d.tilt-dy*.45)
+ }
+ const endDrag=(e:React.PointerEvent<HTMLDivElement>)=>{
+  const d=dragRef.current
+  dragRef.current=null
+  if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId)
+  if(d&&!d.moved&&showMode)stageTap()
+ }
+
  const uploadRow=(side:Side)=>{
   if(!setup)return null
   const item=setup[side]
@@ -262,7 +292,22 @@ export default function VibeSphereStudio(){
        <label>Spin duration · {setup.duration}s<input type="range" min="4" max="14" step="1" value={setup.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
        <label>Number of revolutions · {4+Math.max(0,Math.round(setup.amplitude/15))}<input type="range" min="15" max="90" step="15" value={setup.amplitude} onChange={e=>update({amplitude:Number(e.target.value)})}/></label>
        <label className={styles.check}><input type="checkbox" checked={setup.countdown} onChange={e=>update({countdown:e.target.checked})}/> Three-beat countdown before spin</label>
-       <p className={styles.help}>The ball rotates on its vertical axis while a stationary pointer marks the visible face. A and B occupy opposite sides of the sphere. The face shown at the exact stop is always the announced result. The choice is random entertainment, not an actual match forecast.</p>
+       <h3>Free axis positioning</h3>
+       <p className={styles.help}>Drag the sphere horizontally to rotate left/right, or vertically to tip it up/down. The pointer remains fixed. Manual positioning is separate from the random result spin.</p>
+       <label>Vertical-axis rotation · {Math.round(((rotation%360)+360)%360)}°
+        <input type="range" min="0" max="360" step="1" value={((rotation%360)+360)%360} disabled={!canRotate} onChange={e=>changeAxis(Number(e.target.value),tilt)}/>
+       </label>
+       <label>Horizontal-axis tilt · {Math.round(tilt)}°
+        <input type="range" min="-75" max="75" step="1" value={tilt} disabled={!canRotate} onChange={e=>changeAxis(rotation,Number(e.target.value))}/>
+       </label>
+       <div className={styles.axisButtons}>
+        <button disabled={!canRotate} onClick={()=>changeAxis(rotation-30,tilt)} aria-label="Rotate sphere left">↶ Left</button>
+        <button disabled={!canRotate} onClick={()=>changeAxis(rotation+30,tilt)} aria-label="Rotate sphere right">Right ↷</button>
+        <button disabled={!canRotate} onClick={()=>changeAxis(rotation,tilt+15)} aria-label="Tilt sphere up">Tilt up</button>
+        <button disabled={!canRotate} onClick={()=>changeAxis(rotation,tilt-15)} aria-label="Tilt sphere down">Tilt down</button>
+       </div>
+       <button disabled={!canRotate} onClick={()=>changeAxis(0,0)}>Centre sphere axes</button>
+       <p className={styles.help}>The sphere resets horizontal tilt to 0° before a result spin, ensuring the fixed pointer identifies the announced face. The outcome is random entertainment, not an actual match forecast.</p>
       </>}
       {tab==='effects'&&<>
        <h2>Sound & reveal effects</h2>
@@ -293,8 +338,12 @@ export default function VibeSphereStudio(){
        <div className={styles.heading}><div className={styles.headingPill}>THE TWO-CHOICE CHALLENGE</div><h2>{setup.title}</h2><p>WHICH FACE WILL THE POINTER PICK?</p></div>
        <div className={styles.sphereArena} style={focalStyle(director,revealed?'reveal':phase==='swinging'?'action':'idle')}>
         <div className={styles.sphereShadow} aria-hidden="true"/>
-        <div className={styles.orbPerspective}>
-         <SphereSurface rotation={rotation} left={setup.left} right={setup.right} showNames={setup.showNames} showLogos={setup.showLogos} className={styles.sphereCanvas}/>
+        <div className={styles.orbPerspective} role="group" aria-label="Drag the sphere to rotate it along vertical and horizontal axes"
+         onPointerDown={beginDrag} onPointerMove={moveDrag} onPointerUp={endDrag}
+         onPointerCancel={()=>{dragRef.current=null}} onClick={e=>e.stopPropagation()}
+         style={{cursor:canRotate?'grab':'default'}}>
+         
+         <SphereSurface rotation={rotation} tilt={tilt} left={setup.left} right={setup.right} showNames={setup.showNames} showLogos={setup.showLogos} className={styles.sphereCanvas}/>
          <div className={styles.orbGlass} aria-hidden="true"/>
          <div className={styles.pointerAssembly} aria-hidden="true">
           <div className={styles.pointerMount}/><div className={styles.pointerNeedle}/><span>FIXED POINTER · FRONT FACE</span>
