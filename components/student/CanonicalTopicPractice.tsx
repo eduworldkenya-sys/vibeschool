@@ -223,6 +223,7 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
         ? <div style={{padding:'18px 4px',display:'grid',gap:10,justifyItems:'start'}}>
           <BookOpen size={29} color="var(--vs-accent)" aria-hidden="true"/>
           <strong>{topics.length?'No topics match this filter.':'Practice topics are being prepared'}</strong>
+          <p style={{...muted,margin:0}}>Longer or timed assessments stay in Exams.</p>
           <p style={{...muted,margin:0}}>{topics.length?'Try another subject to see available topics.':'Published five-question, untimed sets will appear here automatically. You can continue learning while they are prepared.'}</p>
           {topics.length>0 && <button type="button" style={secondary} onClick={()=>{setSubjectFilter('');router.replace('/student/vibelearn/topic-practice')}}>Show all topics</button>}
           {topics.length===0 && <><button type="button" style={secondary} onClick={()=>void refresh().catch(cause=>setError(cause instanceof Error?cause.message:'Could not reload topics.'))}>Check again</button><button type="button" style={secondary} onClick={()=>router.push('/student/vibelearn/exams')}>Browse Exams</button></>}
