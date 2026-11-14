@@ -256,7 +256,7 @@ export default function VibeSphereStudio(){
  }
  if(!loaded||!setup)return <main className={styles.page}>Loading VibeSphere…</main>
  const revealed=winner!==null&&phase==='reveal'
- return <main className={styles.page}>
+ return <><main className={styles.page}>
   <div className={[styles.shell,showMode?styles.showShell:''].join(' ')}>
    {!showMode&&<header className={styles.header}>
     <div><p className={styles.kicker}>VIBESCHOOL ORIGINALS / CREATOR LAB</p><h1>Vibe<span>Sphere</span><b>3D</b></h1><p>Two faces. One fixed pointer. A cinematic choice.</p></div>
@@ -387,5 +387,5 @@ export default function VibeSphereStudio(){
    {!showMode&&<footer className={styles.footer}>VIBESPHERE · A VIBESCHOOL ORIGINAL <span>For entertainment. A random sphere result is not a sports forecast, poll or endorsement.</span></footer>}
   </div>
  </main>
-  <DiscoveryInvitation/>
+  <DiscoveryInvitation/></>
 }
