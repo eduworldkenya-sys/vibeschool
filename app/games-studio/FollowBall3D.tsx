@@ -18,7 +18,7 @@ export default function FollowBall3D({onFinish,reducedMotion,disco,lasers,theme}
  const [swaps,setSwaps]=useState(8)
  const [view,setView]=useState<View>("front")
  const [angle,setAngle]=useState({x:54,z:0})
- const [skin,setSkin]=useState("luxury")
+ const [skin,setSkin]=useState(theme==="neon"||theme==="disco"?"neon":theme==="stadium"?"football":theme==="mystery"?"mystery":theme==="minimal"?"minimal":"luxury")
  const [phase,setPhase]=useState<Phase>("ready")
  const [positions,setPositions]=useState<number[]>(START_CUPS)
  const [ballCup,setBallCup]=useState(0)
