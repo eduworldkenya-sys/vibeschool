@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Users, GraduationCap, ArrowRight, RefreshCw, Video, MessageCircle } from "lucide-react";
+import { CalendarDays, Users, GraduationCap, ArrowRight, RefreshCw, Video, MessageCircle, BookOpen, ClipboardCheck, ChartNoAxesColumn, NotebookPen, UserPlus } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 import { tuitionLessonState } from "@/lib/vibetutor/lessonLifecycle";
 
@@ -88,15 +88,22 @@ export default function TeacherTutoringPage() {
   const firstName = professionalName.split(/\s+/)[0] || "Tutor";
   const greeting = nairobiHour === null ? "Welcome" : nairobiHour < 12 ? "Good morning" : nairobiHour < 17 ? "Good afternoon" : "Good evening";
   const tools = [
-    { label: "My Students", detail: students === null ? "Your connected learners" : `${students.length} connected ${students.length === 1 ? "learner" : "learners"}`, href: "/teacher/tutoring/students", icon: Users },
-    { label: "Lessons", detail: "Schedule & timetable", href: "/teacher/tutoring/students?tool=lessons", icon: CalendarDays },
+    { label: "My learners", detail: students === null ? "Your connected learners" : `${students.length} connected ${students.length === 1 ? "learner" : "learners"}`, href: "/teacher/tutoring/students", icon: Users },
+    { label: "Sessions", detail: "Schedule private lessons", href: "/teacher/tutoring/students?tool=lessons", icon: CalendarDays },
      { label: "Messages", detail: "Private conversations", href: "/teacher/tutoring/students?tool=messages", icon: MessageCircle },
+  ];
+  const sharedTools = [
+    { label: "Curriculum & subjects", detail: "Canonical curriculum", href: "/teacher/subjecthub", icon: BookOpen },
+    { label: "Scheme of work", detail: "Plan learning progression", href: "/teacher/scheme", icon: ClipboardCheck },
+    { label: "Lesson planner", detail: "Prepare lessons and activities", href: "/teacher/lessonplan", icon: NotebookPen },
+    { label: "Assessments", detail: "Use the existing assessment engine", href: "/teacher/assessment", icon: GraduationCap },
+    { label: "Progress & feedback", detail: "Shared teacher reporting tools", href: "/teacher/progress", icon: ChartNoAxesColumn },
   ];
   return <div style={{ width: "100%", maxWidth: 900, margin: "0 auto", padding: "20px 14px 100px", display: "grid", gap: 16, color: "var(--teacher-ink, #1c2923)" }}>
     <header>
       <span style={{ color: green, fontSize: 12, fontWeight: 750, letterSpacing: ".05em" }}>VIBESCHOOL · MY TUTORING</span>
       <h1 style={{ fontSize: "clamp(24px, 3vw, 30px)", margin: "7px 0 4px" }}>{greeting}, {firstName}</h1>
-      <p style={{ margin: 0, fontSize: 13, color: muted }}>Manage your private teaching</p>
+      <p style={{ margin: 0, fontSize: 13, color: muted }}>Set up learners, sessions and feedback. Teach with your existing Teacher OS tools.</p>
     </header>
     {state === "loading" && <section role="status" style={panel}>Loading your tutoring details…</section>}
     {state === "error" && <section role="alert" style={panel}>We could not load your tutoring details. <button type="button" onClick={() => void load()} style={{ padding: 10, marginLeft: 8, cursor: "pointer" }}><RefreshCw size={15} aria-hidden="true" /> Retry</button></section>}
@@ -122,8 +129,13 @@ export default function TeacherTutoringPage() {
           <Link href={tuitionLessonState(nextLesson) === "joinable" ? "/tuition/lessons/" + nextLesson.id : "/teacher/tutoring/students?tool=lessons"} style={{ ...linkStyle, display: "flex", width: "100%" }}>{tuitionLessonState(nextLesson) === "joinable" ? "Join classroom" : "View lesson details"} <ArrowRight size={16} aria-hidden="true" /></Link>
         </> : <p style={{ color: muted, margin: "10px 0 0", fontSize: 14 }}>No upcoming lessons. Schedule one with a connected student.</p>}
       </section>
+      {students?.length === 0 && <section aria-label="Get started with tutoring" style={{ ...panel, display: "grid", gap: 10 }}>
+        <h2 style={{ fontSize: 17, margin: 0 }}>Start with your first learner</h2>
+        <p style={{ color: muted, fontSize: 13, margin: 0 }}>No school or public listing required. Invite a learner privately; their VibeSchool account stays the same. Guardian approval applies where required.</p>
+        <Link href="/teacher/tutoring/students" style={linkStyle}><UserPlus size={17} aria-hidden="true" /> Add a learner <ArrowRight size={16} aria-hidden="true" /></Link>
+      </section>}
       <section aria-label="Teaching tools">
-        <h2 style={{ fontSize: 17, margin: "0 0 11px" }}>Teaching tools</h2>
+        <h2 style={{ fontSize: 17, margin: "0 0 11px" }}>Tutoring management</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
           {tools.map(tool => {
             const Icon = tool.icon;
@@ -141,9 +153,24 @@ export default function TeacherTutoringPage() {
 
         </div>
       </section>
+      <section aria-label="Shared Teacher OS tools">
+        <h2 style={{ fontSize: 17, margin: "0 0 5px" }}>Teach with Teacher OS</h2>
+        <p style={{ fontSize: 12, color: muted, margin: "0 0 11px" }}>Use the same curriculum, teaching content and assessments. No duplicated engines.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+          {sharedTools.map(tool => {
+            const Icon = tool.icon;
+            return <Link key={tool.label} href={tool.href} style={{ ...panel, display: "grid", alignContent: "start", gap: 5, minWidth: 0, minHeight: 106, padding: 14, color: "inherit", textDecoration: "none" }}>
+              <Icon size={21} color={green} aria-hidden="true" />
+              <strong style={{ fontSize: 14 }}>{tool.label}</strong>
+              <span style={{ fontSize: 12, color: muted }}>{tool.detail}</span>
+            </Link>;
+          })}
+        </div>
+        <p style={{ color: muted, fontSize: 12, margin: "10px 0 0" }}>School-class workflows stay school-scoped. Tutoring learner access requires an accepted private connection.</p>
+      </section>
       <section aria-label="My tutor listing" style={{ ...panel, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div style={{ minWidth: 0, flex: "1 1 210px" }}>
-          <h2 style={{ margin: 0, fontSize: 16 }}>My tutor listing {listing && <span style={{ fontSize: 11, color: listing.status === "published" ? "#047857" : "#92400e", marginLeft: 8 }}>{listing.status === "published" ? "Published" : "Paused"}</span>}</h2>
+          <h2 style={{ margin: 0, fontSize: 16 }}>Optional public tutor listing {listing && <span style={{ fontSize: 11, color: listing.status === "published" ? "#047857" : "#92400e", marginLeft: 8 }}>{listing.status === "published" ? "Published" : "Paused"}</span>}</h2>
           <p style={{ margin: "6px 0 0", fontSize: 12, color: muted }}>{listing ? [subjects.join(", "), days.join(", "), listing.rate_kes ? `KSh ${listing.rate_kes}/hour` : ""].filter(Boolean).join(" · ") || "Complete your listing" : "Create your tutor listing"}</p>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
