@@ -103,7 +103,7 @@ export default function PendulumStudio(){
  },[selectedId])
  const update=(patch:Partial<Setup>)=>{setSetups(a=>a.map(s=>s.id===selectedId?{...s,...patch}:s))}
  const editOutcome=(side:Side,patch:Partial<Outcome>)=>{if(setup)update({[side]:{...setup[side],...patch}})}
- const useTemplate=(i:number)=>{
+ const applyTemplate=(i:number)=>{
   const t=templates[i];if(!t)return
   const fresh=defaultSetup()
   fresh.title=t.title;fresh.left.name=t.left;fresh.right.name=t.right;fresh.left.color=t.colors[0];fresh.right.color=t.colors[1]
@@ -235,7 +235,7 @@ export default function PendulumStudio(){
        <div className={styles.sectionHead}><h2>Matchup creator</h2><button onClick={duplicate}>Save as new</button></div>
        <label>Saved versions<select value={selectedId} onChange={e=>setSelectedId(e.target.value)}>{setups.map(x=><option key={x.id} value={x.id}>{x.title}</option>)}</select></label>
        <label>Episode title<input value={setup.title} maxLength={110} onChange={e=>update({title:e.target.value})}/></label>
-       <div className={styles.templateGrid}>{templates.map((t,i)=><button key={t.label} onClick={()=>useTemplate(i)}>{t.label}</button>)}</div>
+       <div className={styles.templateGrid}>{templates.map((t,i)=><button key={t.label} onClick={()=>applyTemplate(i)}>{t.label}</button>)}</div>
        <p className={styles.help}>Presets create editable copies. Your originals stay available.</p>
        {uploadRow('left')}{uploadRow('right')}
        <button onClick={()=>{if(setups.length>1){const rest=setups.filter(x=>x.id!==setup.id);setSetups(rest);setSelectedId(rest[0].id)}}} disabled={setups.length<2}>Delete current version</button>
