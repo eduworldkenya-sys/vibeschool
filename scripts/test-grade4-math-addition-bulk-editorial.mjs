@@ -44,4 +44,22 @@ const round10 = n => Math.round(n / 10) * 10
 const estimated = batch.packets.find(p => p.outcomeCode === '1.2(c)').worked
 assert.equal(round10(estimated.a) + round10(estimated.b), estimated.estimate)
 assert.equal(estimated.a + estimated.b, estimated.answer)
+
+const diagrams = [
+  ['1.2(b)', 'grade4-addition-1.2b-double-exchange.svg', '3,825'],
+  ['1.2(c)', 'grade4-addition-1.2c-round-nearest-ten.svg', '3,790'],
+  ['1.2(d)', 'grade4-addition-1.2d-pattern.svg', '1,650'],
+  ['1.2(e)', 'grade4-addition-1.2e-combined-quantities.svg', '3,775'],
+]
+for (const [outcome, filename, answer] of diagrams) {
+  assert.ok(batch.packets.some(p => p.outcomeCode === outcome), 'Missing ' + outcome)
+  const svg = readFileSync('content/curriculum/production/visuals/' + filename, 'utf8')
+  assert.match(svg, /<svg[^>]*role="img"[^>]*aria-labelledby="title desc"/)
+  assert.match(svg, /<title[^>]*>.+<\/title>/)
+  assert.match(svg, /<desc[^>]*>.+<\/desc>/)
+  assert.ok(svg.includes(answer), filename + ' must show the correct result')
+}
+assert.ok(batch.packets.every(p => p.source.url === 'https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf'))
+assert.ok(batch.packets.every(p => p.canonicalStatus === 'SOURCE_OBSERVED_NOT_PROMOTED'))
+assert.ok(batch.packets.every(p => p.assessmentStatus === 'PRIVATE_EDITORIAL_ITEMS_NOT_IN_CANONICAL_BANK'))
 console.log('G4 Addition editorial batch structure and arithmetic checks passed: 4 outcomes, 20 formative questions, 12 independent exercises.')
