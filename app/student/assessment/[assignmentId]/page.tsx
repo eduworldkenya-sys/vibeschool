@@ -95,6 +95,7 @@ export default function LearnerAssessmentPage() {
   const [exiting, setExiting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<SubmitAttemptResult | null>(null)
+  const [resultDialogOpen,setResultDialogOpen]=useState(true)
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [showReview, setShowReview] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -625,7 +626,20 @@ export default function LearnerAssessmentPage() {
   if (!workspace) return null
 
   if (result) {
-    return <div className={styles.runner} style={shell}><section style={{ ...card, maxWidth: 620, margin: '0 auto', borderColor: '#6ee7b7' }}>
+    return <div className={styles.runner} style={shell}>
+      {resultDialogOpen&&result.scoreReleased&&result.percentage!==null&&result.score!==null&&result.maxScore!==null&&<div role="presentation" style={{position:"fixed",inset:0,zIndex:1100,background:"rgba(10,20,30,.65)",display:"grid",placeItems:"center",padding:18}}>
+        <section role="dialog" aria-modal="true" aria-labelledby="instant-result-title" aria-describedby="instant-result-copy" style={{...card,width:"min(100%,410px)",padding:22,boxShadow:"0 16px 54px rgba(0,0,0,.22)"}}>
+          <div style={{fontSize:11,fontWeight:800,color:"var(--vs-accent)",letterSpacing:1}}>EXAM RESULT</div>
+          <h2 id="instant-result-title" style={{margin:"8px 0"}}>Your result is ready</h2>
+          <div style={{fontSize:38,fontWeight:900,color:"var(--vs-accent)"}}>{result.percentage.toFixed(1)}%</div>
+          <p id="instant-result-copy" style={{fontSize:14,lineHeight:1.6}}>You earned {result.score} of {result.maxScore} marks. {skippedAtSubmission.length} question{skippedAtSubmission.length===1?" was":"s were"} skipped. Your answers are saved.</p>
+          <div style={{display:"grid",gap:8}}>
+            <button autoFocus type="button" style={primaryButton} onClick={()=>router.push(`/student/results/${workspace.attemptId}`)}>View detailed feedback</button>
+            <button type="button" style={secondaryButton} onClick={()=>setResultDialogOpen(false)}>Close summary</button>
+          </div>
+        </section>
+      </div>}
+      <section style={{ ...card, maxWidth: 620, margin: '0 auto', borderColor: '#6ee7b7' }}>
       <h1 style={{ marginTop: 0, color: '#065f46' }}>Assessment submitted ✓</h1>
       {result.scoreReleased && result.score !== null && result.maxScore !== null && result.percentage !== null
         ? <><p style={{ fontSize: 30, fontWeight: 800, margin: '12px 0' }}>{result.score}/{result.maxScore}</p><p>{result.percentage.toFixed(1)}%</p></>
