@@ -9,6 +9,7 @@ import { loadActiveClassTimetable } from "@/lib/timetable/engine";
 import { useStudent } from "@/lib/student-context";
 import { readCache, writeCache } from "@/lib/student-cache";
 import Skel from "@/components/student/Skel";
+import TasksPage from "@/app/student/tasks/page";
 
 interface Slot {
   id:         string;
@@ -144,6 +145,9 @@ export default function TimetablePage() {
         </p>
       </div>
 
+      <section aria-label="Personal calendar, schedule and reminders" style={{marginBottom:22}}><TasksPage mode="day" /></section>
+
+      <h2 style={{fontSize:17,fontWeight:800,margin:"20px 0 12px"}}>School & tuition timetable</h2>
       <div role="group" aria-label="Schedule context" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         {(["all", "school", "tuition"] as const).map(option => <button key={option} type="button" onClick={() => setContext(option)}
           aria-pressed={context === option} style={{ borderRadius: 16, padding: "8px 14px", minHeight: 40, border: "1px solid var(--vs-border)", background: context === option ? "var(--vs-accent)" : "var(--vs-card)", color: context === option ? "#fff" : "var(--vs-text)", fontWeight: 750 }}>

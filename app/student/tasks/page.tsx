@@ -34,7 +34,8 @@ const input: React.CSSProperties = { minWidth:0, width:'100%', minHeight:44, bor
 const button: React.CSSProperties = { minHeight:44, border:'none',borderRadius:10,padding:'10px 14px',background:'var(--vs-accent)',color:'#fff',fontWeight:700,cursor:'pointer' }
 const secondary: React.CSSProperties = { ...button, background:'var(--vs-accent-soft)',color:'var(--vs-text)',border:'1px solid var(--vs-border)' }
 
-export default function TasksPage() {
+export default function TasksPage({mode='tasks'}:{mode?:'tasks'|'day'}) {
+  const isDay=mode==='day'
   const { play } = useLearningFeedback()
   const router=useRouter()
   const {identity,loading:identityLoading}=useStudent()
@@ -43,7 +44,7 @@ export default function TasksPage() {
   const [assignedError,setAssignedError]=useState(false)
   const [privateTutorTasks,setPrivateTutorTasks]=useState<Array<{id:string;invitation_id:string;title:string;status:string;tutor_feedback:string}>>([])
   const [privateTutorError,setPrivateTutorError]=useState(false)
-  const [tab,setTab]=useState<PlannerTab>('today')
+  const [tab,setTab]=useState<PlannerTab>(mode==='day'?'calendar':'today')
   const [selected,setSelected]=useState(()=>new Date())
   const [month,setMonth]=useState(()=>new Date(new Date().getFullYear(),new Date().getMonth(),1))
   const [editing,setEditing]=useState<string|null>(null)
@@ -138,9 +139,10 @@ export default function TasksPage() {
   if(identityLoading||!identity) return <p style={{padding:20}}>Loading your learner workspace…</p>
   return <div className="planner" style={{display:'grid',gap:16,color:'var(--vs-text)'}}>
     <header className="planner-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-      <div><h1 style={{fontSize:26,margin:0}}>My Tasks</h1><p style={{fontSize:13,color:'var(--vs-muted)',margin:'4px 0 0'}}>Homework, classwork, exercises, projects and your personal study plan</p></div>
-      <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> Add personal task</button>
+      <div><h1 style={{fontSize:26,margin:0}}>{isDay?'My calendar & schedule':'My Tasks'}</h1><p style={{fontSize:13,color:'var(--vs-muted)',margin:'4px 0 0'}}>{isDay?'Personal planning, reminders and scheduled study from the same task records':'Homework, classwork, exercises, projects and your personal study plan'}</p></div>
+      <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> {isDay?'Schedule activity':'Add personal task'}</button>
     </header>
+    {!isDay&&<>
     <section aria-label="Task summary" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:9}}>
       {([{value:pending+actionable.length+privateTutorTasks.filter(item=>item.status==='assigned').length,label:"To do"},{value:dueSoon,label:"Due soon"},{value:completed,label:"Personal tasks done"}] as const).map(entry=><div key={entry.label} style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:"12px 10px"}}><strong style={{fontSize:25}}>{entry.value}</strong><div style={{fontSize:11,color:"var(--vs-muted)"}}>{entry.label}</div></div>)}
     </section>
@@ -170,14 +172,16 @@ export default function TasksPage() {
         </>}
       {(awaiting>0||results>0)&&<p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>{awaiting>0&&`${awaiting} awaiting marking`}{awaiting>0&&results>0?' · ':''}{results>0&&`${results} results available`} · <Link href="/student/homework">View homework and feedback</Link></p>}
     </section>
-    <h2 style={{fontSize:17,margin:0}}>My personal plan</h2>
-    <section className="planner-stats" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:9}}>
+    </>}
+    {!isDay&&<h2 style={{fontSize:17,margin:0}}>My personal plan</h2>}
+    {!isDay&&<section className="planner-stats" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:9}}>
       {[['To do',pending],['Done',completed],['Scheduled',schedules.length]].map(([label,value])=><div key={label} style={{border:'1px solid var(--vs-border)',borderRadius:12,background:'var(--vs-card)',padding:12}}><strong style={{fontSize:22,display:'block'}}>{value}</strong><span style={{fontSize:12,color:'var(--vs-muted)'}}>{label}</span></div>)}
-    </section>
-    <section style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap',background:'var(--vs-card)',padding:12,border:'1px solid var(--vs-border)',borderRadius:12}}><div style={{display:'flex',alignItems:'center',gap:8}}><Bell size={18} color="var(--vs-accent)"/><span style={{fontSize:13}}>Study reminders</span></div>{notificationPermission==='default'?<button type="button" style={secondary} onClick={async()=>{const result=await Notification.requestPermission();setNotificationPermission(result)}}>Enable browser alerts</button>:<span style={{fontSize:12,color:'var(--vs-muted)'}}>{notificationPermission==='granted'?'Browser alerts enabled':notificationPermission==='denied'?'Browser alerts blocked in browser settings':'In-app reminders available'}</span>}</section>
-    <nav aria-label="Planner views" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7}}>
+    </section>}
+    {isDay&&<section style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap',background:'var(--vs-card)',padding:12,border:'1px solid var(--vs-border)',borderRadius:12}}><div style={{display:'flex',alignItems:'center',gap:8}}><Bell size={18} color="var(--vs-accent)"/><span style={{fontSize:13}}>Study reminders</span></div>{notificationPermission==='default'?<button type="button" style={secondary} onClick={async()=>{const result=await Notification.requestPermission();setNotificationPermission(result)}}>Enable browser alerts</button>:<span style={{fontSize:12,color:'var(--vs-muted)'}}>{notificationPermission==='granted'?'Browser alerts enabled':notificationPermission==='denied'?'Browser alerts blocked in browser settings' :'In-app reminders available'}</span>}</section>}
+    {isDay&&<p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>Dated tasks created in My Tasks appear here automatically. Open My Tasks to complete them.</p>}
+    {isDay&&<nav aria-label="Planner views" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7}}>
       {([{id:'today',label:'Today',Icon:ListTodo},{id:'calendar',label:'Calendar',Icon:CalendarDays},{id:'schedule',label:'Schedule',Icon:Clock3}] as const).map(({id,label,Icon})=><button key={id} type="button" onClick={()=>setTab(id)} aria-current={tab===id?'page':undefined} style={{...secondary,background:tab===id?'var(--vs-accent-soft)':'#fff',borderColor:tab===id?'var(--vs-accent)':'var(--vs-border)',color:tab===id?'var(--vs-accent)':'var(--vs-text)',padding:'10px 5px',display:'flex',gap:5,alignItems:'center',justifyContent:'center'}}><Icon size={16}/>{label}</button>)}
-    </nav>
+    </nav>}
     {error&&<div role="alert" style={{background:'#fff1f2',border:'1px solid #fecdd3',borderRadius:12,padding:12,color:'#9f1239'}}>{error}<button type="button" style={{...secondary,marginLeft:8}} onClick={()=>setError('')}>Dismiss</button></div>}
     {showForm&&<form onSubmit={e=>void save(e)} style={{background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:16,padding:16,display:'grid',gap:12}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><h2 style={{fontSize:18,margin:0}}>{editing?'Edit activity':'Add activity'}</h2><button type="button" aria-label="Close editor" style={secondary} onClick={()=>setShowForm(false)}><X size={18}/></button></div>
@@ -196,18 +200,18 @@ export default function TasksPage() {
       <label style={fields}>Notes (optional)<textarea style={input} rows={3} maxLength={2000} value={draft.notes} onChange={e=>setDraft(p=>({...p,notes:e.target.value}))}/></label>
       <button type="submit" disabled={saving} style={{...button,opacity:saving?.6:1}}>{saving?'Saving…':'Save activity'}</button>
     </form>}
-    {loading?<p role="status">Loading activities…</p>:tab==='today'?<section style={{display:'grid',gap:10}}>
+    {loading?<p role="status">Loading activities…</p>:(!isDay||tab==='today')?<section style={{display:'grid',gap:10}}>
       <h2 style={{fontSize:17,margin:0}}>{selected.toLocaleDateString('en-KE',{weekday:'long',month:'long',day:'numeric'})}</h2>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" style={secondary} onClick={()=>setSelected(new Date(selected.getFullYear(),selected.getMonth(),selected.getDate()-1))}><ChevronLeft size={16}/></button><button type="button" style={secondary} onClick={()=>setSelected(new Date())}>Today</button><button type="button" style={secondary} onClick={()=>setSelected(new Date(selected.getFullYear(),selected.getMonth(),selected.getDate()+1))}><ChevronRight size={16}/></button></div>
-      {[...selectedItems,...undated.filter(item=>!selectedItems.some(row=>row.id===item.id))].length===0?<p style={{background:'var(--vs-card)',padding:24,borderRadius:14,color:'var(--vs-muted)'}}>Nothing planned. Add your first activity.</p>:[...selectedItems,...undated.filter(item=>!selectedItems.some(row=>row.id===item.id))].map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)}/>)}
-      {completed>0&&<details><summary style={{cursor:'pointer',padding:8}}>Completed ({completed})</summary><div style={{display:'grid',gap:9,marginTop:8}}>{items.filter(item=>item.completed_at).map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)}/>)}</div></details>}
+      {[...selectedItems,...undated.filter(item=>!selectedItems.some(row=>row.id===item.id))].length===0?<p style={{background:'var(--vs-card)',padding:24,borderRadius:14,color:'var(--vs-muted)'}}>Nothing planned. Add your first activity.</p>:[...selectedItems,...undated.filter(item=>!selectedItems.some(row=>row.id===item.id))].map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)} allowComplete={!isDay}/>)}
+      {!isDay&&completed>0&&<details><summary style={{cursor:'pointer',padding:8}}>Completed ({completed})</summary><div style={{display:'grid',gap:9,marginTop:8}}>{items.filter(item=>item.completed_at).map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)}/>)}</div></details>}
     </section>:tab==='calendar'?<section style={{background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:15,padding:12,display:'grid',gap:12}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}><button type="button" aria-label="Previous month" style={secondary} onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}><ChevronLeft size={18}/></button><h2 style={{fontSize:17,margin:0}}>{month.toLocaleDateString('en-KE',{month:'long',year:'numeric'})}</h2><button type="button" aria-label="Next month" style={secondary} onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}><ChevronRight size={18}/></button></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:4}}>{['M','T','W','T','F','S','S'].map((day,i)=><span key={i} style={{textAlign:'center',fontSize:12,color:'var(--vs-muted)'}}>{day}</span>)}{calendarCells.map(date=>{const count=items.filter(item=>!item.completed_at&&occurOn(item,date)).length;const active=dayKey(date)===dayKey(selected);return <button type="button" key={dayKey(date)} aria-label={date.toDateString()+', '+count+' activities'} onClick={()=>{setSelected(date);setTab('today')}} style={{minWidth:0,minHeight:48,border:'1px solid '+(active?'var(--vs-accent)':'var(--vs-border)'),borderRadius:8,background:active?'var(--vs-accent-soft)':'#fff',color:date.getMonth()===month.getMonth()?'var(--vs-text)':'#94a3b8',cursor:'pointer',fontWeight:active?800:500}}>{date.getDate()}{count>0&&<span style={{display:'block',fontSize:10,color:'var(--vs-accent)'}}>{count} •</span>}</button>})}</div>
       <p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>Select a date to see its planned activities.</p>
     </section>:<section style={{display:'grid',gap:10}}>
       <h2 style={{fontSize:17,margin:0}}>My study schedule</h2>
-      {schedules.length===0?<p style={{background:'var(--vs-card)',padding:24,borderRadius:14,color:'var(--vs-muted)'}}>No sessions scheduled. Add a study session to create your timetable.</p>:schedules.map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)}/>)}
+      {schedules.length===0?<p style={{background:'var(--vs-card)',padding:24,borderRadius:14,color:'var(--vs-muted)'}}>No sessions scheduled. Add a study session to create your timetable.</p>:schedules.map(item=><Activity key={item.id} item={item} onEdit={()=>edit(item)} onDelete={()=>void remove(item)} onComplete={()=>void complete(item)} allowComplete={!isDay}/>)}
     </section>}
     {!showForm&&<button type="button" aria-label="Add personal task or reminder" title="Add personal task" onClick={()=>edit()} className="planner-floating-add" style={{position:"fixed",right:18,bottom:"calc(88px + env(safe-area-inset-bottom, 0px))",zIndex:350,border:0,borderRadius:999,width:54,height:54,background:"var(--vs-accent)",color:"var(--vs-on-accent)",boxShadow:"0 6px 20px rgba(0,0,0,.18)",display:"grid",placeItems:"center",cursor:"pointer"}}><Plus size={24}/></button>}
     <style>{`
@@ -221,10 +225,10 @@ export default function TasksPage() {
   </div>
 }
 
-function Activity({item,onEdit,onDelete,onComplete}:{item:PlannerItem;onEdit:()=>void;onDelete:()=>void;onComplete:()=>void}){
+function Activity({item,onEdit,onDelete,onComplete,allowComplete=true}:{item:PlannerItem;onEdit:()=>void;onDelete:()=>void;onComplete:()=>void;allowComplete?:boolean}){
   const repeating=item.repeat_rule!=='none'
   return <article style={{background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:13,padding:14,display:'flex',alignItems:'flex-start',gap:10,minWidth:0}}>
-    {item.kind==='task'&&!repeating?<button type="button" onClick={onComplete} aria-label={item.completed_at?'Mark incomplete':'Mark complete'} style={{...secondary,minWidth:44,padding:10,background:item.completed_at?'#dcfce7':'var(--vs-soft)'}}><Check size={18} color={item.completed_at?'#15803d':'#94a3b8'}/></button>:<Clock3 size={20} color="var(--vs-accent)" style={{marginTop:11,flexShrink:0}}/>}
+    {allowComplete&&item.kind==='task'&&!repeating?<button type="button" onClick={onComplete} aria-label={item.completed_at?'Mark incomplete':'Mark complete'} style={{...secondary,minWidth:44,padding:10,background:item.completed_at?'#dcfce7':'var(--vs-soft)'}}><Check size={18} color={item.completed_at?'#15803d':'#94a3b8'}/></button>:<Clock3 size={20} color="var(--vs-accent)" style={{marginTop:11,flexShrink:0}}/>}
     <div style={{flex:1,minWidth:0,overflowWrap:'anywhere'}}><strong style={{textDecoration:item.completed_at?'line-through':'none'}}>{item.title}</strong><p style={{fontSize:12,color:'var(--vs-muted)',margin:'5px 0'}}>{item.starts_at?new Date(item.starts_at).toLocaleString('en-KE',{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):item.due_at?'Due '+new Date(item.due_at).toLocaleDateString('en-KE'):'Any time'}{item.duration_minutes?' · '+item.duration_minutes+' min':''}{repeating?' · '+item.repeat_rule:''}</p>{item.reminder_minutes!==null && item.reminder_minutes!==undefined && <p style={{fontSize:11,color:'var(--vs-accent)',margin:'4px 0'}}><Bell size={12} style={{verticalAlign:'middle'}}/> {item.reminder_minutes===0?'At scheduled time':item.reminder_minutes===1440?'1 day before':item.reminder_minutes+' min before'}</p>}{item.notes&&<p style={{fontSize:12,color:'#475569',margin:0}}>{item.notes}</p>}</div>
     <div style={{display:'flex',gap:4}}><button type="button" onClick={onEdit} style={{...secondary,padding:9}} aria-label={'Edit '+item.title}><Pencil size={16}/></button><button type="button" onClick={onDelete} style={{...secondary,padding:9}} aria-label={'Delete '+item.title}><Trash2 size={16}/></button></div>
   </article>
