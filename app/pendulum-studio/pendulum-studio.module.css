@@ -175,3 +175,12 @@
 @media(max-width:760px){.sphereArena{--orb-size:clamp(195px,55vw,325px)}}
 @media(max-width:440px){.sphereArena{--orb-size:clamp(190px,64vw,265px);min-height:235px;margin:1% 0}.pointerMount{width:49px;height:12px}.pointerNeedle{border-left-width:12px;border-right-width:12px;border-top-width:25px}.pointerAssembly span{font-size:6px}.orbFace{border-width:3px}.orbSurface{gap:4px}.orbName{font-size:16px}.orbLogo{width:55px;height:55px}.arenaBase span{font-size:7px}}
 @media(prefers-reduced-motion:reduce){.orbRotor{will-change:auto}}
+
+
+/* Result appears in its own stage row instead of covering the moving sphere. */
+.sphereResultInline{width:100%;position:relative;z-index:9;margin:2px 0 8px;padding:10px 12px;border:1px solid var(--accent);background:#07142bdc;border-radius:12px;box-shadow:0 0 20px var(--glow);display:grid;gap:3px;justify-items:center;text-align:center;animation:revealIn .55s ease-out}
+.sphereResultInline small{font-size:10px;letter-spacing:.14em;font-weight:950;color:var(--accent)}
+.sphereResultInline strong{font-size:clamp(15px,2vw,24px);line-height:1.1;white-space:pre-line;overflow-wrap:anywhere}
+.sphereResultInline p{font-size:9px;color:#c5ddea;margin:0}
+.stage.landscape .sphereResultInline{padding:5px 8px;margin:0}
+@media(prefers-reduced-motion:reduce){.sphereResultInline{animation:none}}
