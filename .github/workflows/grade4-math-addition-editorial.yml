@@ -1,0 +1,33 @@
+name: Grade 4 Mathematics Addition Editorial Quality
+
+on:
+  pull_request:
+    paths:
+      - 'content/curriculum/production/grade4-mathematics-addition-1.2-b-to-e.v1.editorial.json'
+      - 'scripts/test-grade4-math-addition-bulk-editorial.mjs'
+      - '.github/workflows/grade4-math-addition-editorial.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/curriculum/production/grade4-mathematics-addition-1.2-b-to-e.v1.editorial.json'
+      - 'scripts/test-grade4-math-addition-bulk-editorial.mjs'
+      - '.github/workflows/grade4-math-addition-editorial.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  editorial-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Verify scope, safe draft status and mathematics
+        run: node scripts/test-grade4-math-addition-bulk-editorial.mjs
