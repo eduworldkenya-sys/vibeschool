@@ -10,6 +10,7 @@ const TABS = [
   { label: 'Exams', href: '/student/vibelearn/exams' },
   { label: 'Revision', href: '/student/vibelearn/revision' },
   { label: 'Mistakes', href: '/student/vibelearn/mistakes' },
+  { label: 'Progress', href: '/student/marks' },
 ] as const
 
 function isActive(pathname: string, href: string): boolean {
@@ -29,6 +30,6 @@ export default function VibeLearnSubnav() {
   })}</nav>
 }
 
-const navStyle: React.CSSProperties = { display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 0 12px', marginBottom: 4, scrollbarWidth: 'none' }
-const tabStyle: React.CSSProperties = { flex: '0 0 auto', border: '1px solid #e2e8f0', background: 'var(--vs-card)', color: 'var(--vs-muted)', borderRadius: 999, padding: '9px 13px', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
+const navStyle: React.CSSProperties = { display: 'flex', gap: 8, overflowX: 'auto', padding: '10px', marginBottom: 10, background: 'var(--vs-card)', borderRadius: 15, scrollbarWidth: 'thin' }
+const tabStyle: React.CSSProperties = { flex: '0 0 auto', border: '1px solid var(--vs-border)', background: 'var(--vs-card)', color: 'var(--vs-muted)', borderRadius: 999, padding: '9px 13px', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
 const activeTabStyle: React.CSSProperties = { borderColor: 'var(--vs-accent)', background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)' }

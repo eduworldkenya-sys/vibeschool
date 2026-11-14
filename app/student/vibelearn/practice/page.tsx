@@ -62,6 +62,7 @@ export default function VibeLearnPracticePage() {
   const [assignmentError, setAssignmentError] = useState('')
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
   const [practiceSubject, setPracticeSubject] = useState('')
+  const [practiceView, setPracticeView] = useState<'available' | 'in_progress' | 'completed'>('available')
   const [questions, setQuestions] = useState<PracticeQuestion[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
@@ -156,7 +157,10 @@ export default function VibeLearnPracticePage() {
   const selectedPracticeSubject = practiceSubject || requestedSubject
   const filteredPracticeAssignments = practiceAssignments.filter(item => {
     const title = item.title.toLowerCase()
-    return (!selectedPracticeSubject || title.includes(selectedPracticeSubject.toLowerCase())) &&
+    const active = item.attemptStatus === 'in_progress' && (!item.attemptExpiresAt || Date.parse(item.attemptExpiresAt) > Date.now())
+    const completed = Boolean(item.attemptId && (item.resultStatus === 'released' || (item.resultStatus === 'marked' && item.showScorePolicy === 'immediate')))
+    const matchesView = practiceView === 'in_progress' ? active : practiceView === 'completed' ? completed : (item.canStart || active || completed)
+    return matchesView && (!selectedPracticeSubject || title.includes(selectedPracticeSubject.toLowerCase())) &&
       (!requestedTopic || title.includes(requestedTopic.toLowerCase()))
   })
   const showLegacyBank = !hasReaderSource && /^form\s*[1-4]$/i.test(identity?.className?.trim() ?? '')
@@ -193,26 +197,28 @@ export default function VibeLearnPracticePage() {
   function nextQuestion() { setIndex(value => value + 1); setSelected(null); setTextAnswer(''); setSubmitted(false); setAnswerCorrect(null); setExpectedAnswer(null); setBankExplanation(null); setReviewUrl(null); setShowHint(false); startedAtRef.current = Date.now() }
   function restart() { setIndex(0); setCorrect(0); setSelected(null); setTextAnswer(''); setSubmitted(false); setAnswerCorrect(null); setExpectedAnswer(null); setBankExplanation(null); setReviewUrl(null); setShowHint(false); startedAtRef.current = Date.now(); sessionIdRef.current = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : null }
 
-  return <main style={shell}><div style={{ maxWidth: 760, margin: '0 auto' }}>
+  return <main style={shell}><div style={{ maxWidth: 1120, margin: '0 auto' }}>
     <VibeLearnSubnav />
-    <button style={backButton} onClick={() => router.push(backUrl)}>← {sourceContext ? 'Back to unit' : 'VibeLearn'}</button>
-    <section style={hero}><div style={eyebrow}>Practice mode</div><h1 style={{ margin: '7px 0 4px' }}>{practiceTitle} practice</h1><p style={{ margin: 0, color: 'var(--vs-border)' }}>Every checked answer strengthens your personal revision plan and mistake notebook. No AI tutor is active during scoring.</p></section>
+    {sourceContext && <button style={backButton} onClick={() => router.push(backUrl)}>← Back to unit</button>}
+    <section style={hero}><div style={eyebrow}>My learning · Practice</div><h1 style={{ margin: '7px 0 4px', fontSize: 25 }}>{hasReaderSource ? `${practiceTitle} practice` : 'Topic Practice'}</h1><p style={{ margin: 0, color: 'var(--vs-muted)' }}>{hasReaderSource ? 'Answer questions from this published learning unit.' : 'Choose a subject. Practise. See what you have learned.'}</p></section>
 
     {sourceContext && <section style={{ ...card, borderColor: 'var(--vs-border)', background: 'var(--vs-accent-soft)' }}><div style={eyebrowDark}>Exact learning source</div><strong style={{ display: 'block', margin: '6px 0 3px' }}>{sourceContext.publicationTitle} · {sourceContext.chapterTitle}</strong><p style={muted}>{[sourceContext.grade, sourceContext.subject].filter(Boolean).join(' · ') || 'VibeTextbook'} · {sourceContext.assessableBlockCount} assessable blocks · {sourceContext.verifiedOutcomeCount} verified outcomes</p><p style={{ ...muted, marginTop: 8 }}>Questions come from authored assessable blocks in this exact unit. Answers are scored by the server, and mistakes retain a link back to their source section.</p></section>}
     {assignmentError && <section role="alert" style={{ ...card, color: '#b91c1c' }}>{assignmentError}</section>}
     {!hasReaderSource && <section style={card} aria-label="Available practice assessments">
-      <div style={eyebrowDark}>{identity?.className || 'Your grade'} · Approved practice</div>
-      <h2 style={{ fontSize: 19, margin: '7px 0 8px' }}>Choose a subject and practise</h2>
-      <p style={{ ...muted, lineHeight: 1.6 }}>Only practice available to your learner account appears here. School linkage is optional for public practice. Marks and attempts stay in your existing assessment history.</p>
+      <div style={eyebrowDark}>{identity?.className || 'Your grade'} · Published practice</div>
+      <h2 style={{ fontSize: 16, margin: '7px 0 8px' }}>Your subjects</h2>
       {practiceSubjects.length > 1 && <div aria-label="Practice subjects" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
         <button type="button" aria-pressed={!selectedPracticeSubject} onClick={() => setPracticeSubject('')} style={secondaryButton}>All subjects</button>
         {practiceSubjects.map(subject => <button type="button" key={subject} aria-pressed={selectedPracticeSubject.toLowerCase() === subject.toLowerCase()} onClick={() => setPracticeSubject(subject)} style={{ ...secondaryButton, background: selectedPracticeSubject.toLowerCase() === subject.toLowerCase() ? 'var(--vs-border)' : 'var(--vs-accent-soft)' }}>{subject}</button>)}
       </div>}
+      <div role="group" aria-label="Practice status" style={{ display: 'flex', gap: 6, padding: 5, borderRadius: 12, background: 'var(--vs-soft)', marginTop: 14 }}>
+        {(['available', 'in_progress', 'completed'] as const).map(view => <button type="button" key={view} aria-pressed={practiceView === view} onClick={() => setPracticeView(view)} style={{ ...viewButton, background: practiceView === view ? 'var(--vs-card)' : 'transparent', color: practiceView === view ? 'var(--vs-text)' : 'var(--vs-muted)' }}>{view === 'in_progress' ? 'In progress' : view === 'completed' ? 'Completed' : 'Available'}</button>)}
+      </div>
       {assignmentError ? <p role="alert" style={{ color: '#b91c1c', marginTop: 12 }}>{assignmentError}</p>
         : identityLoading || assignmentsLoading ? <p role="status" style={{ ...muted, marginTop: 12 }}>Checking your available practice…</p>
         : filteredPracticeAssignments.length === 0 ? <div style={{ marginTop: 14 }}>
-          <strong>{requestedTopic ? 'No approved practice for this topic yet' : 'No practice sets available for this selection yet'}</strong>
-          <p style={{ ...muted, marginTop: 6 }}>Only approved questions are offered. Explore available exams or read published units while more topic sets are prepared.</p>
+          <strong>{practiceView === 'in_progress' ? 'No practice in progress' : practiceView === 'completed' ? 'No completed practice for this selection' : requestedTopic ? 'No approved practice for this topic yet' : 'No practice sets available for this selection yet'}</strong>
+          <p style={{ ...muted, marginTop: 6 }}>Your published practice and saved attempts appear here automatically.</p>
           <button style={{ ...secondaryButton, marginTop: 10 }} onClick={() => router.push('/student/vibelearn/exams')}>Explore available assessments</button>
         </div> : <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
         {filteredPracticeAssignments.map(item => {
@@ -224,8 +230,12 @@ export default function VibeLearnPracticePage() {
               <strong style={{ fontSize: 15 }}>{item.title}</strong>
               <span style={pill}>{active ? 'In progress' : resultReady ? 'Completed' : item.canStart ? 'New practice' : item.availability.replaceAll('_', ' ')}</span>
             </div>
-            <p style={{ ...muted, marginTop: 8 }}>Approved practice set · {item.timeLimitMinutes ? `${item.timeLimitMinutes} min · ` : ''}Up to {item.maxAttempts} attempt{item.maxAttempts === 1 ? '' : 's'}{item.attemptNumber ? ` · Attempt ${item.attemptNumber} used` : ''}</p>
-            <p style={{ ...muted, marginTop: 5 }}>Use the published assessment to answer, submit and review permitted results. A topic-specific drill will appear when verified topic questions are published.</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
+              <div style={stat}><strong>{item.attemptNumber ?? 0}</strong><span>Attempts used</span></div>
+              <div style={stat}><strong>{item.maxAttempts}</strong><span>Maximum attempts</span></div>
+              <div style={stat}><strong>{active ? 'Resume' : resultReady ? 'Completed' : item.canStart ? 'Ready' : 'Unavailable'}</strong><span>Practice status</span></div>
+            </div>
+            {item.timeLimitMinutes ? <p style={{ ...muted, marginTop: 9 }}>Time limit: {item.timeLimitMinutes} minutes</p> : null}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginTop: 12 }}>
               <button type="button" style={{ ...primaryButton, opacity: canLaunch ? 1 : 0.5 }} disabled={!canLaunch}
                 onClick={() => router.push(`/student/assessment/${encodeURIComponent(item.assignmentId)}`)}>
@@ -255,13 +265,15 @@ export default function VibeLearnPracticePage() {
   </div></main>
 }
 
-const shell: React.CSSProperties = { minHeight: '100vh', background: 'var(--vs-soft)', padding: '18px 14px 90px', color: 'var(--vs-text)', fontFamily: "'Plus Jakarta Sans', sans-serif" }
-const hero: React.CSSProperties = { background: 'linear-gradient(135deg,var(--vs-text),var(--vs-text))', color:'#fff', borderRadius:20, padding:20, marginBottom:12 }
+const shell: React.CSSProperties = { minHeight: '100vh', background: 'var(--vs-soft)', padding: '18px clamp(12px, 3vw, 32px) 90px', color: 'var(--vs-text)', fontFamily: "'Plus Jakarta Sans', sans-serif" }
+const hero: React.CSSProperties = { background: 'transparent', color:'var(--vs-text)', borderRadius:16, padding:'16px 4px', marginBottom:8 }
 const card: React.CSSProperties = { background:'#fff', border:'1px solid var(--vs-border)', borderRadius:16, padding:16, marginBottom:12 }
 const eyebrow: React.CSSProperties = { fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.1, color:'var(--vs-accent)' }
 const eyebrowDark: React.CSSProperties = { fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.1, color:'var(--vs-accent)' }
 const muted: React.CSSProperties = { fontSize:12, color:'var(--vs-muted)', margin:0 }
 const backButton: React.CSSProperties = { border:'none', background:'transparent', color:'var(--vs-accent)', fontWeight:800, marginBottom:10, cursor:'pointer', fontFamily:'inherit' }
+const viewButton: React.CSSProperties = { flex: 1, minWidth: 0, border: 0, borderRadius: 9, padding: '10px 4px', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }
+const stat: React.CSSProperties = { flex: '1 1 115px', display: 'flex', flexDirection: 'column', gap: 4, padding: '12px', background: 'var(--vs-soft)', borderRadius: 11, fontSize: 13 }
 const pill: React.CSSProperties = { width:'fit-content', background:'var(--vs-accent-soft)', color:'var(--vs-accent)', borderRadius:999, padding:'4px 8px', fontSize:10, fontWeight:800 }
 const progressTrack: React.CSSProperties = { height:6, borderRadius:999, background:'var(--vs-border)', overflow:'hidden', margin:'12px 0 16px' }
 const progressFill: React.CSSProperties = { height:'100%', background:'var(--vs-accent)' }
