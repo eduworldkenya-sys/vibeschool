@@ -4,6 +4,7 @@ import Link from "next/link";
 import { isAuthSessionMissingError } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabase";
 import PrivateTuitionTools from "@/components/vibetutor/PrivateTuitionTools";
+import PrivateTutorTasks from "@/components/vibetutor/PrivateTutorTasks";
 
 type Invite = { id: string; tutor: string; status: string; created_at: string };
 type Preview = { available: boolean; tutor?: string };
@@ -19,7 +20,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 export default function StudentTuition() {
   const [rows, setRows] = useState<Invite[]>([]);
-  const [tab, setTab] = useState<"overview" | "lessons" | "messages">("overview");
+  const [tab, setTab] = useState<"overview" | "lessons" | "messages" | "tasks">("overview");
   const [token, setToken] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -120,7 +121,7 @@ export default function StudentTuition() {
     </section>}
 
     <nav aria-label="My Tutors sections" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      {([["overview", "My tutors"], ["lessons", "Sessions"], ["messages", "Messages"]] as const).map(([key, label]) =>
+      {([["overview", "My tutors"], ["lessons", "Sessions"], ["messages", "Messages"], ["tasks", "Tasks & feedback"]] as const).map(([key, label]) =>
         <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)}
           style={{ ...action, background: tab === key ? "var(--vs-accent, #087451)" : "var(--vs-surface, #fff)",
             color: tab === key ? "#fff" : "var(--vs-text, #17251c)", border: "1px solid var(--vs-border, #dcdce8)" }}>{label}</button>)}
@@ -170,6 +171,14 @@ export default function StudentTuition() {
             <strong>{row.tutor}</strong>
             <PrivateTuitionTools invitationId={row.id} isTutor={false} section="messages" />
           </div>)}
+      </section>}
+      {tab === "tasks" && <section style={panel} aria-label="Private tutor tasks">
+        <h2 style={{ marginTop: 0 }}>Tutoring tasks & feedback</h2>
+        {approved.length === 0 ? <p>Connect with an approved tutor to receive private tasks.</p> :
+          approved.map(row => <section key={row.id} style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+            <h3 style={{ fontSize: 15, margin: 0 }}>{row.tutor}</h3>
+            <PrivateTutorTasks invitationId={row.id} isTutor={false}/>
+          </section>)}
       </section>}
       <p style={{ fontSize: 12, opacity: .75 }}>Private tuition only. School records stay separate. Under-18 connections require guardian approval.</p>
     </>}
