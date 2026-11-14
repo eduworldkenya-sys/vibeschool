@@ -1,0 +1,153 @@
+{
+  "release_key": "g4-mathematics-place-value-topic-practice-001",
+  "title": "Grade 4 Mathematics — Place Value & Total Value",
+  "grade": "Grade 4",
+  "subject": "Mathematics",
+  "strand": "Numbers",
+  "sub_strand": "Whole Numbers",
+  "topic": "Place Value & Total Value",
+  "status": "awaiting_curriculum_verification",
+  "canonical_assessment_engine": "EXQ assessment_definitions → assessment_items → assessment_assignments → assessment_attempts → assessment_responses",
+  "assessment_type": "practice",
+  "audience": "public_practice",
+  "time_limit_minutes": null,
+  "question_count": 5,
+  "show_score_policy": "immediate",
+  "show_explanations": true,
+  "outcome_candidate": {
+    "id": "c600f693-6242-45b3-b6f2-0211447e579c",
+    "code": "VS-G4-MA-1.1-01",
+    "status": "active",
+    "source_type": "creator_claimed",
+    "verified_at": null,
+    "binding_allowed": false
+  },
+  "release_gate": "Do not publish unless the source authority and canonical outcome are verified, existing EXQ schema/permissions have been inspected, and a learner end-to-end test passes.",
+  "questions": [
+    {
+      "id": "PV001-Q1",
+      "prompt": "In 4,582, which place does the digit 5 occupy?",
+      "options": [
+        {
+          "value": "A",
+          "label": "Ones"
+        },
+        {
+          "value": "B",
+          "label": "Tens"
+        },
+        {
+          "value": "C",
+          "label": "Hundreds"
+        },
+        {
+          "value": "D",
+          "label": "Thousands"
+        }
+      ],
+      "correct_answer": "C",
+      "explanation": "Count from the right: 2 ones, 8 tens, 5 hundreds, 4 thousands.",
+      "difficulty": "easy"
+    },
+    {
+      "id": "PV001-Q2",
+      "prompt": "What is the total value of the digit 7 in 7,304?",
+      "options": [
+        {
+          "value": "A",
+          "label": "7"
+        },
+        {
+          "value": "B",
+          "label": "70"
+        },
+        {
+          "value": "C",
+          "label": "700"
+        },
+        {
+          "value": "D",
+          "label": "7,000"
+        }
+      ],
+      "correct_answer": "D",
+      "explanation": "The 7 occupies the thousands place, so 7 × 1,000 = 7,000.",
+      "difficulty": "easy"
+    },
+    {
+      "id": "PV001-Q3",
+      "prompt": "Which number has the digit 6 in the tens place?",
+      "options": [
+        {
+          "value": "A",
+          "label": "6,241"
+        },
+        {
+          "value": "B",
+          "label": "3,462"
+        },
+        {
+          "value": "C",
+          "label": "2,614"
+        },
+        {
+          "value": "D",
+          "label": "4,126"
+        }
+      ],
+      "correct_answer": "B",
+      "explanation": "3,462 has 2 ones and 6 tens. The tens digit is second from the right.",
+      "difficulty": "medium"
+    },
+    {
+      "id": "PV001-Q4",
+      "prompt": "A school has 12,450 exercise books. What is the total value of the digit 2?",
+      "options": [
+        {
+          "value": "A",
+          "label": "2"
+        },
+        {
+          "value": "B",
+          "label": "20"
+        },
+        {
+          "value": "C",
+          "label": "200"
+        },
+        {
+          "value": "D",
+          "label": "2,000"
+        }
+      ],
+      "correct_answer": "D",
+      "explanation": "The 2 is in the thousands place, so its total value is 2,000.",
+      "difficulty": "medium"
+    },
+    {
+      "id": "PV001-Q5",
+      "prompt": "A learner says that the total value of the digit 3 in 13,625 is 300. What is the correct total value?",
+      "options": [
+        {
+          "value": "A",
+          "label": "3"
+        },
+        {
+          "value": "B",
+          "label": "30"
+        },
+        {
+          "value": "C",
+          "label": "300"
+        },
+        {
+          "value": "D",
+          "label": "3,000"
+        }
+      ],
+      "correct_answer": "D",
+      "explanation": "The 3 is in the thousands place. Its total value is 3,000, not 300.",
+      "difficulty": "medium"
+    }
+  ]
+}
