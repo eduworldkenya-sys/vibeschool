@@ -85,3 +85,15 @@
 @keyframes vibespinScene{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:scale(1)}}
 @media(max-width:640px){.productionMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.popupPortrait{width:40px;height:40px}.brandScene{gap:7px}.brandSceneMark{font-size:clamp(36px,11vw,54px)}}
 @media(prefers-reduced-motion:reduce){.brandScene{animation:none}}
+
+
+/* Political wheel quick-start: editing stays visible beside a live stage. */
+.politicalStarter{display:grid;gap:9px;padding:13px;border:1px solid #37bba98c;border-radius:13px;background:linear-gradient(140deg,#10364b,#112038)}
+.politicalStarter strong{font-size:14px;color:#e6fff9}
+.politicalStarter p{font-size:12px;line-height:1.5;color:#adc6d7}
+.politicalStarter a,.politicalNote a{color:#61e9da;text-decoration:underline;text-underline-offset:3px}
+.politicalStarter .starterButton{background:linear-gradient(115deg,#36dbc2,#40a0e5);color:#07192a;border:0;padding:12px 14px;font-size:13px;font-weight:900}
+.politicalNote{width:100%;max-width:850px;display:flex;flex-direction:column;gap:7px;padding:11px 13px;background:#0c2539;border:1px solid #396779;border-radius:12px;color:#cae5eb;font-size:12px;line-height:1.45}
+.politicalNote strong{color:#f1ffff;font-size:13px}
+.politicalNote button{align-self:flex-start}
+.politicalStageDisclaimer{font-size:clamp(8px,1vw,12px);letter-spacing:.09em;font-weight:900;color:#e9fff9;background:#07162bc7;border:1px solid #ffffff45;border-radius:7px;padding:5px 9px;max-width:96%;line-height:1.3}
