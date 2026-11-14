@@ -7,11 +7,12 @@ import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
 import { readCache, writeCache } from "@/lib/student-cache";
 import Skel from "@/components/student/Skel";
+import LearnerProgressReport from "@/components/student/LearnerProgressReport";
 import { getLearnerAssessmentHub } from "@/lib/assessment/integration";
 
 interface ExamResult {
   id: string; subject: string; marks: number; total_marks: number;
-  grade: string; term: number; academic_year: number; exam_name: string; source?: "school" | "assessment";
+  grade: string; term: number; academic_year: number; exam_name: string; source?: "school" | "assessment"; occurredAt?: string | null;
 }
 interface CBCAssessment {
   id: string; subjectName: string; sub_strand: string;
@@ -73,7 +74,6 @@ function letterGrade(percentage: number): string {
 
 export default function MarksPage() {
   const { identity, loading: idLoading } = useStudent();
-  const [tab,        setTab]        = useState<Tab>("exams");
   const [exams,      setExams]      = useState<ExamResult[]>([]);
   const [cbc,        setCbc]        = useState<CBCAssessment[]>([]);
   const [grades,     setGrades]     = useState<TraditionalGrade[]>([]);
@@ -162,6 +162,7 @@ export default function MarksPage() {
         grade: letterGrade(row.percentage ?? pct(row.score!, row.maxScore!)),
         term: 0,
         academic_year: row.releasedAt ? new Date(row.releasedAt).getFullYear() : 0,
+        occurredAt: row.releasedAt,
       }));
       const allExams = [...canonicalResults, ...examData];
 
@@ -209,17 +210,11 @@ export default function MarksPage() {
     </div>
   );
 
-  const TABS = [
-    { id: "exams",  label: "Exams",   icon: <IconChart />, count: exams.length  },
-    { id: "cbc",    label: "CBC",     icon: <IconStar />,  count: cbc.length    },
-    { id: "grades", label: "Grades",  icon: <IconCheck />, count: grades.length },
-  ] as const;
-
   return (
     <div style={{ animation: "slideIn 0.22s ease" }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--vs-text)", fontFamily: "'Bricolage Grotesque', sans-serif" }}>My Progress</h1>
-        <p style={{ fontSize: 12, color: "var(--vs-muted)", marginTop: 2 }}>Your released results and assessments. A score is not a complete measure of subject mastery.</p>
+        <p style={{ fontSize: 12, color: "var(--vs-muted)", marginTop: 2 }}>Full report, personal targets and reflections. All released evidence appears below without extra tabs.</p>
       </div>
 
       <section aria-label="What to do after receiving results" style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:15,marginBottom:16}}>
@@ -233,25 +228,10 @@ export default function MarksPage() {
         </nav>
       </section>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as Tab)}
-            style={{
-              flex: 1, padding: "10px 4px", borderRadius: 12, cursor: "pointer", fontFamily: "inherit",
-              border:      tab === t.id ? "none" : "1px solid var(--vs-border)",
-              background:  tab === t.id ? "var(--vs-accent)" : "var(--vs-card)",
-              color:       tab === t.id ? "#fff" : "var(--vs-muted)",
-              fontWeight:  tab === t.id ? 800 : 500, fontSize: 12, textAlign: "center",
-            }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>{t.icon}{t.label}</div>
-            <div style={{ fontSize: 10, marginTop: 2, opacity: 0.7 }}>{t.count} record{t.count !== 1 ? "s" : ""}</div>
-          </button>
-        ))}
-      </div>
-
+      <LearnerProgressReport studentId={identity?.studentId ?? ""} exams={exams} grades={grades} competencies={cbc} />
+      <h2 style={{fontSize:18,margin:"24px 0 12px"}}>Assessment history</h2>
       {/* Exams */}
-      {tab === "exams" && (
+      {(
         exams.length === 0 ? (
           <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "40px 24px", textAlign: "center" }}>
             <div style={{ fontSize: 13, color: "var(--vs-muted)" }}>No released exam results yet. Try a practice activity or check again after marking.</div>
@@ -282,8 +262,9 @@ export default function MarksPage() {
         )
       )}
 
+      <h2 style={{fontSize:18,margin:"24px 0 12px"}}>Competency evidence</h2>
       {/* CBC */}
-      {tab === "cbc" && (
+      {(
         cbc.length === 0 ? (
           <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "40px 24px", textAlign: "center" }}>
             <div style={{ fontSize: 13, color: "var(--vs-muted)" }}>No CBC assessments yet</div>
@@ -308,8 +289,9 @@ export default function MarksPage() {
         )
       )}
 
+      <h2 style={{fontSize:18,margin:"24px 0 12px"}}>Recorded grades</h2>
       {/* Traditional grades */}
-      {tab === "grades" && (
+      {(
         grades.length === 0 ? (
           <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "40px 24px", textAlign: "center" }}>
             <div style={{ fontSize: 13, color: "var(--vs-muted)" }}>No grades recorded yet</div>

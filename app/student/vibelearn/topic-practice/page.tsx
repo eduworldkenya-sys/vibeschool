@@ -211,7 +211,7 @@ export default function TopicPracticePage() {
   return <main style={shell}>
     <button style={plain} onClick={() => router.push('/student/study')}>← Learn</button>
     <h1 style={{margin:'12px 0 6px',fontSize:26}}>Topic Practice</h1>
-    <p style={muted}>Five questions. No timer or class code. Answers, review and progress use your existing learner account.</p>
+    <p style={muted}>Practice is for improvement, not a formal exam. Get feedback after each question, review mistakes, and continue at your pace.</p>
     {!session && <StudentLearningFeatureLinks mode="practice" grade={grade} subject={requestedSubject}/>}
     {!grade && <section style={card}><h2 style={heading}>Choose your grade once</h2><div style={grid}>{[4,5,6,7,8,9].map(n => <button key={n} style={button} onClick={() => void selectGrade('Grade '+n)}>Grade {n}</button>)}</div></section>}
     {grade && <p style={{...muted,marginTop:12}}>{grade} <button style={plain} onClick={() => void selectGrade('')}>Change</button></p>}
@@ -219,7 +219,9 @@ export default function TopicPracticePage() {
     {grade && loading && <section style={card}>Loading available topics…</section>}
     {grade && !loading && session?.finished && <section style={card}>
       <h2 style={heading}>Practice session finished</h2><p style={muted}>Finishing a session does not prove mastery. Use the scored answers below to decide what to practise again.</p>
-      <p style={{fontSize:18,fontWeight:800}}>{results.correct} correct · {results.incorrect} incorrect · {results.skipped} skipped</p>
+      <p role='status' style={{fontSize:18,fontWeight:800}}>{results.correct} correct · {results.incorrect} incorrect · {results.skipped} skipped</p>
+      <div aria-label='Practice accuracy based on this session only' style={{height:12,background:'var(--vs-border)',borderRadius:20,overflow:'hidden',margin:'10px 0 14px'}}><div style={{width:(results.correct/TARGET*100)+'%',height:'100%',background:'var(--vs-accent)'}}/></div>
+      <p style={muted}>Session accuracy: {Math.round(results.correct/TARGET*100)}%. Practising a skill is not the same as formal examination performance.</p>
       <button style={button} onClick={() => { setReviewQuestionId('all'); setReviewResult(null) }}>Review mistakes</button>
       <button style={secondary} onClick={() => remember(null)}>Choose another topic</button>
       <button style={secondary} onClick={() => router.push('/student/study')}>Return to Learn</button>
@@ -232,7 +234,8 @@ export default function TopicPracticePage() {
       })}</div>}
     </section>}
     {grade && !loading && session && !session.finished && <section style={card}>
-      <p style={muted}>{session.subject} · {session.topic}</p>
+      <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center',flexWrap:'wrap'}}><p style={muted}>{session.subject} · {session.topic}</p><button type='button' style={{...secondary,marginLeft:0}} onClick={()=>router.push('/student/study')}>Save & exit</button></div>
+      <div role='progressbar' aria-label='Practice questions completed' aria-valuemin={0} aria-valuemax={TARGET} aria-valuenow={completed} style={{height:8,background:'var(--vs-border)',borderRadius:20,overflow:'hidden',marginBottom:12}}><div style={{height:'100%',width:(completed/TARGET*100)+'%',background:'var(--vs-accent)'}} /></div>
       <div style={{display:'flex',justifyContent:'space-between',gap:8,margin:'8px 0 18px'}}><strong>Question {session.index+1} of {TARGET}</strong><span>{completed} answered or skipped</span></div>
       {currentQuestion ? <>
         <h2 style={{...heading,fontSize:19,lineHeight:1.5}}>{currentQuestion.question}</h2>
