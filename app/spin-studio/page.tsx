@@ -323,7 +323,7 @@ export default function SpinStudio() {
       countdownRef.current=window.setTimeout(()=>{
         if(wheel.countdown===0){
           setShowPhase(wheel.automatic?'reveal':'countdown');setSeconds(0)
-          if(wheel.automatic){setReveal(true);soundEffect('win',wheel.sound,wheel.volumes?.reveal??75)}
+          if(wheel.automatic){setReveal(true);soundEffect('win',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.reveal??75)}
         }else{setShowPhase('countdown');setSeconds(wheel.countdown)}
       },Math.max(0,Math.min(5000,wheel.popup?.questionDelay??750)))
     },wheel.duration*1000)
@@ -331,7 +331,7 @@ export default function SpinStudio() {
   const doVerdict=(v:'correct'|'wrong')=>{
     if(result===null || spinning)return
     setVerdict(v);setReveal(true);setShowPhase('reveal');setSeconds(null)
-    soundEffect(v==='correct'?'win':'fail',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)
+    soundEffect(v==='correct'?'win':'fail',Boolean(wheel?.sound)&&popup.playSound,wheel?.volumes?.reveal??75)
   }
   const revealNow=()=>{
     if(result===null || spinning)return
@@ -641,7 +641,7 @@ export default function SpinStudio() {
             <label>Result popup title<input maxLength={70} value={popup.revealTitle} onChange={e=>editPopup({revealTitle:e.target.value})}/></label>
             <label>Delay after spin: {(popup.questionDelay/1000).toFixed(2)}s<input type="range" min="0" max="5000" step="250" value={popup.questionDelay} onChange={e=>editPopup({questionDelay:Number(e.target.value)})}/></label>
             <label>Delay before automatic answer: {(popup.revealDelay/1000).toFixed(2)}s<input type="range" min="0" max="5000" step="250" value={popup.revealDelay} onChange={e=>editPopup({revealDelay:Number(e.target.value)})}/></label>
-            <label>Tap during question<select value={popup.tapAction} onChange={e=>editPopup({tapAction:e.target.value as PopupSettings['tapAction']})}><option value="reveal">Reveal answer</option><option value="next">Skip to next</option><option value="off">Disable stage taps</option></select></label>
+            <label>Tap during question<select value={popup.tapAction} onChange={e=>editPopup({tapAction:e.target.value as PopupSettings['tapAction']})}><option value="reveal">Reveal answer</option><option value="next">Skip to next</option><option value="off">Do not advance by tapping popup</option></select></label>
             <p className={styles.hint}>Test the popup without spinning. This preview does not change the recorded spin outcome.</p>
             <div className={styles.row}>
               <button onClick={()=>setPopupDemo('question')} disabled={entries.length===0}>Preview question</button>
@@ -729,10 +729,11 @@ export default function SpinStudio() {
               </div>}
               {popupVisible && displayEntry && <>
                 {popup.dimBackdrop && <div className={styles.popupBackdrop} aria-hidden="true"/>}
-                <div className={[styles.challengePopup,displayPhase==='reveal'?styles.popupReveal:'',styles['popupPosition'+popup.position],styles['popupStyle'+popup.style],reducedMotion?styles.popupAnimnone:styles['popupAnim'+popup.animation]].join(' ')} style={{width:popup.size+'%',maxHeight:popup.position==='center'?'46%':'35%',backgroundColor:'rgba(8,22,48,'+(popup.opacity/100)+')'}} role="status" aria-live="polite">
+                <div className={[styles.challengePopup,displayPhase==='reveal'?styles.popupReveal:'',styles['popupPosition'+popup.position],styles['popupStyle'+popup.style],reducedMotion?styles.popupAnimnone:styles['popupAnim'+popup.animation]].join(' ')} style={{width:popup.size+'%',maxHeight:popup.position==='center'?'46%':'35%',background:'rgba(8,22,48,'+(popup.opacity/100)+')'}} role="status" aria-live="polite">
                 {popup.showTitle&&<div className={styles.popupEyebrow}>{displayPhase==='reveal'?(popup.revealTitle||(selectedIsReward?'RANDOM RESULT':'ANSWER REVEALED')):(popup.title||'THE WHEEL HAS CHOSEN')}</div>}
                 {popup.showPhoto && displayEntry.image && <img className={styles.popupPortrait} src={displayEntry.image} alt={'Selected '+displayEntry.label}/>}
-                {popup.showName && <strong className={styles.popupLabel}>{displayPhase==='reveal' && !selectedIsReward && popup.showAnswer?(displayEntry.answer||selectedDisplayName):selectedDisplayName}</strong>}
+                {popup.showName&&(displayPhase!=='reveal'||selectedIsReward)&&<strong className={styles.popupLabel}>{selectedDisplayName}</strong>}
+                {displayPhase==='reveal'&&!selectedIsReward&&popup.showAnswer&&<strong className={styles.popupLabel}>{displayEntry.answer||selectedDisplayName}</strong>}
                 {displayPhase!=='reveal'&&popup.showQuestion&&<p className={styles.popupQuestion}>{displayEntry.question||'Your challenge starts now!'}</p>}
                 {displayPhase==='countdown'&&popup.showCountdown&&<div className={styles.popupTimer}>{previewEntry?'5':seconds===0?'TIME!':seconds}</div>}
                 {displayPhase==='reveal'&&popup.showFact&&<p className={styles.popupFact}>{selectedIsReward?'Random entertainment selection — not a prediction or endorsement.':displayEntry.question}</p>}
