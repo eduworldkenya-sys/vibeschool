@@ -14,7 +14,7 @@ import sys
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-SOURCE_URL = "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf"
+SOURCE_URL = "https://drive.google.com/uc?export=download&id=1o5tDq16yC0Jj1h6zb9mo3dsxtjqXUk4G"\nKICD_LISTING = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-four-designs/"\nHISTORICAL_URL = "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf"
 ADAPTED_SOURCE = "https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-4-MATHEMATICS.pdf"
 MAX_BYTES = 30 * 1024 * 1024
 MIN_BYTES = 30 * 1024
@@ -32,7 +32,7 @@ def main() -> int:
     try:
         with urlopen(request, timeout=25, context=ssl.create_default_context()) as response:
             final_url = response.geturl()
-            if final_url != SOURCE_URL:
+            if not (final_url.startswith("https://drive.google.com/") or final_url.startswith("https://drive.usercontent.google.com/") or ".googleusercontent.com/" in final_url):
                 raise RuntimeError("Source URL redirected; authority identity requires separate review: " + final_url)
             while True:
                 chunk = response.read(64 * 1024)
@@ -52,7 +52,7 @@ def main() -> int:
         return 4
     evidence = {
         "schema": "vibeschool.kicd.readonly-source-observation.v1",
-        "url": SOURCE_URL,
+        "url": SOURCE_URL,\n        "origin_listing": KICD_LISTING,\n        "historical_kicd_url": HISTORICAL_URL,\n        "historical_pdf_equivalence": "NOT_VERIFIED",
         "target": "KICD Grade 4 regular Mathematics, revised 2024",
         "sha256_of_retrieved_bytes": digest.hexdigest(),
         "size_bytes": nbytes,
