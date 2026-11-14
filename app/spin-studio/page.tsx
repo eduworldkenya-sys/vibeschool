@@ -304,10 +304,10 @@ export default function SpinStudio() {
     return ()=>window.clearTimeout(timer)
   },[electionMode,electionPaused,showPhase,spinning,spinCount,remaining])
   useEffect(()=>{
-    if(!electionMode||!electionFinished||showPhase!=='reveal'||electionFinale)return
+    if(!electionMode||!electionFinished||showPhase!=='reveal'||electionFinale||electionPaused)return
     const timer=window.setTimeout(()=>{setElectionFinale(true);setShowOverlay(false);soundEffect('win',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)},Math.max(1,wheel?.revealHold??3)*1000)
     return ()=>window.clearTimeout(timer)
-  },[electionMode,electionFinished,showPhase,electionFinale,wheel])
+  },[electionMode,electionFinished,showPhase,electionFinale,electionPaused,wheel])
   useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);if(sceneRef.current!==null)window.clearTimeout(sceneRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop());const audio=musicRef.current;if(audio){audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}});void audio.ctx.close().catch(()=>{})}},[])
   useEffect(()=>{
     const media=window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -878,7 +878,7 @@ export default function SpinStudio() {
                   {reveal && !electionMode && <div className={styles.answer}><span>{selectedIsReward?'RANDOM SELECTION':verdict==='correct'?'★ CORRECT ANSWER':verdict==='wrong'?'✦ THE ANSWER':'✦ ANSWER REVEAL'}</span><strong>{selectedIsReward?selected.label:(selected.answer||selected.label)}</strong></div>}
                 </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>{electionMode?'Start the wheel to reveal each randomly selected name.': 'One spin. One question. Can you get it right?'}</p></>}
               </div>
-              {electionMode&&<div aria-live="polite" style={{background:'rgba(4,15,32,.9)',border:'1px solid #ffffff44',borderRadius:12,padding:10,margin:'8px 0',color:'white',textAlign:'center'}}>
+              {electionMode&&<div aria-live="polite" className={electionFinale?styles.electionFinale:styles.electionRoundStatus}>
 {!electionFinale?<div style={{fontSize:12,fontWeight:800}}>{electionFinished?'FINAL NAME REVEAL':'ROUND '+(spinCount===0?1:spinCount)+' OF '+electionTotal+' · NAME REVEAL'}</div>:
 <div style={{padding:'10px 0'}}>
 <div style={{fontSize:12,letterSpacing:2,fontWeight:800,color:'#7ef5cf'}}>FINAL RANDOM DRAW RESULT</div>
