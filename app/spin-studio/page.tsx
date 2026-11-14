@@ -17,9 +17,11 @@ type PopupSettings = {
  style:'glass'|'solid'|'outline'; animation:'pop'|'slide'|'fade'|'none';
  showTitle:boolean; showName:boolean; showPhoto:boolean; showQuestion:boolean; showCountdown:boolean; showAnswer:boolean; showFact:boolean;
  title:string; revealTitle:string; questionDelay:number; revealDelay:number;
+ countdownStyle:'number'|'ring'|'bar'; countdownLabel:string; countdownColor:string;
+ countdownScale:number; countdownTick:boolean; countdownInterval:number; countdownZeroText:string;
  tapAction:'reveal'|'next'|'off'; vibrate:boolean; playSound:boolean; dimBackdrop:boolean;
 }
-const DEFAULT_POPUP:PopupSettings={enabled:true,position:'bottom',size:88,opacity:96,style:'glass',animation:'pop',showTitle:true,showName:true,showPhoto:true,showQuestion:true,showCountdown:true,showAnswer:true,showFact:true,title:'THE WHEEL HAS CHOSEN',revealTitle:'THE RESULT',questionDelay:750,revealDelay:0,tapAction:'reveal',vibrate:false,playSound:true,dimBackdrop:false}
+const DEFAULT_POPUP:PopupSettings={enabled:true,position:'bottom',size:88,opacity:96,style:'glass',animation:'pop',showTitle:true,showName:true,showPhoto:true,showQuestion:true,showCountdown:true,showAnswer:true,showFact:true,title:'THE WHEEL HAS CHOSEN',revealTitle:'THE RESULT',questionDelay:750,revealDelay:0,tapAction:'reveal',vibrate:false,playSound:true,dimBackdrop:false,countdownStyle:'number',countdownLabel:'TIME LEFT',countdownColor:'#71f1e6',countdownScale:100,countdownTick:true,countdownInterval:1000,countdownZeroText:'TIME!'}
 type Wheel = { popup?:Partial<PopupSettings>; showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
@@ -235,7 +237,7 @@ export default function SpinStudio() {
   },[selectedId])
   useEffect(()=>{
     if(seconds===null || seconds<=0 || spinning || showPhase!=='countdown')return
-    const timer=window.setTimeout(()=>{setSeconds(value=>value===null?null:Math.max(0,value-1));soundEffect('tick',Boolean(wheel?.sound),Math.round((wheel?.volumes?.spin??55)*.5))},1000)
+    const timer=window.setTimeout(()=>{setSeconds(value=>value===null?null:Math.max(0,value-1));if(wheel?.popup?.countdownTick!==false)soundEffect('tick',Boolean(wheel?.sound)&&(wheel?.popup?.playSound??true),Math.round((wheel?.volumes?.spin??55)*.5))},Math.max(400,Math.min(2000,wheel?.popup?.countdownInterval??1000)))
     return ()=>window.clearTimeout(timer)
   },[seconds,spinning,showPhase,wheel])
   useEffect(()=>{
@@ -632,6 +634,24 @@ export default function SpinStudio() {
                 ['vibrate','Haptic vibration'],['dimBackdrop','Dim the wheel behind popup']
               ] as const).map(([key,label])=><label key={key} className={styles.check}><input type="checkbox" checked={popup[key]} onChange={e=>editPopup({[key]:e.target.checked})}/>{label}</label>)}
             </div>
+            <h3>Countdown director</h3>
+            <label>Countdown seconds: {wheel.countdown}
+              <input type="range" min="0" max="30" step="1" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/>
+            </label>
+            <label>Display style<select value={popup.countdownStyle} onChange={e=>editPopup({countdownStyle:e.target.value as PopupSettings['countdownStyle']})}>
+              <option value="number">Large numbers</option><option value="ring">Countdown ring</option><option value="bar">Progress bar</option>
+            </select></label>
+            <label>Label above countdown<input value={popup.countdownLabel} maxLength={34} onChange={e=>editPopup({countdownLabel:e.target.value})}/></label>
+            <label>Finished text<input value={popup.countdownZeroText} maxLength={34} onChange={e=>editPopup({countdownZeroText:e.target.value})}/></label>
+            <label>Countdown colour<input type="color" value={popup.countdownColor} onChange={e=>editPopup({countdownColor:e.target.value})}/></label>
+            <label>Countdown size: {popup.countdownScale}%
+              <input type="range" min="60" max="160" value={popup.countdownScale} onChange={e=>editPopup({countdownScale:Number(e.target.value)})}/>
+            </label>
+            <label>Beat speed: {(popup.countdownInterval/1000).toFixed(1)} seconds
+              <input type="range" min="400" max="2000" step="100" value={popup.countdownInterval} onChange={e=>editPopup({countdownInterval:Number(e.target.value)})}/>
+            </label>
+            <label className={styles.check}><input type="checkbox" checked={popup.countdownTick} onChange={e=>editPopup({countdownTick:e.target.checked})}/> Sound on each countdown beat</label>
+            <p className={styles.hint}>Set seconds to 0 to skip the countdown. Choose ring, bar or numbers and preview instantly. Changes save with this wheel only.</p>
             <label>Popup position<select value={popup.position} onChange={e=>editPopup({position:e.target.value as PopupSettings['position']})}><option value="bottom">Bottom (wheel visible)</option><option value="center">Centre</option><option value="top">Top</option></select></label>
             <label>Popup size: {popup.size}%<input type="range" min="40" max="96" value={popup.size} onChange={e=>editPopup({size:Number(e.target.value)})}/></label>
             <label>Background opacity: {popup.opacity}%<input type="range" min="40" max="100" value={popup.opacity} onChange={e=>editPopup({opacity:Number(e.target.value)})}/></label>
@@ -735,7 +755,13 @@ export default function SpinStudio() {
                 {popup.showName&&(displayPhase!=='reveal'||selectedIsReward)&&<strong className={styles.popupLabel}>{selectedDisplayName}</strong>}
                 {displayPhase==='reveal'&&!selectedIsReward&&popup.showAnswer&&<strong className={styles.popupLabel}>{displayEntry.answer||selectedDisplayName}</strong>}
                 {displayPhase!=='reveal'&&popup.showQuestion&&<p className={styles.popupQuestion}>{displayEntry.question||'Your challenge starts now!'}</p>}
-                {displayPhase==='countdown'&&popup.showCountdown&&<div className={styles.popupTimer}>{previewEntry?'5':seconds===0?'TIME!':seconds}</div>}
+                {displayPhase==='countdown'&&popup.showCountdown&&<div className={[styles.countdownDirector,styles['countdown'+popup.countdownStyle]].join(' ')} style={{color:popup.countdownColor,fontSize:(popup.countdownScale/100)+'em'}}>
+                  {popup.countdownLabel&&<span className={styles.countdownHeading}>{popup.countdownLabel}</span>}
+                  <div className={styles.countdownMeter} style={{'--countdown-ratio':Math.round(100*(previewEntry?Math.max(1,wheel.countdown):Math.max(0,seconds??0))/Math.max(1,wheel.countdown))+'%','--countdown-accent':popup.countdownColor} as React.CSSProperties}>
+                    {popup.countdownStyle==='bar'&&<div className={styles.countdownFill}/>}
+                    <strong>{previewEntry?Math.max(1,wheel.countdown):(seconds===0?popup.countdownZeroText:seconds)}</strong>
+                  </div>
+                </div>}
                 {displayPhase==='reveal'&&popup.showFact&&<p className={styles.popupFact}>{selectedIsReward?'Random entertainment selection — not a prediction or endorsement.':displayEntry.question}</p>}
                 {displayPhase==='reveal'&&wheel.celebration==='glow'&&<div className={styles.popupGlow} aria-hidden="true"/>}
                 </div>
@@ -745,7 +771,7 @@ export default function SpinStudio() {
                   <span className={styles.resultKicker}>{spinning?'THE WHEEL IS SPINNING':'THE WHEEL CHOSE'}</span>
                   <strong className={styles.resultLabel}>{selected.label}</strong>
                   <p className={styles.question}>{selected.question||'Your challenge starts now!'}</p>
-                  {!reveal && seconds!==null && <div className={styles.countdown}>{seconds===0?'TIME!':seconds}</div>}
+                  {!reveal && seconds!==null && popup.showCountdown && <div className={styles.countdown}>{seconds===0?popup.countdownZeroText:seconds}</div>}
                   {reveal && <div className={styles.answer}><span>{selectedIsReward?'RANDOM SELECTION':verdict==='correct'?'★ CORRECT ANSWER':verdict==='wrong'?'✦ THE ANSWER':'✦ ANSWER REVEAL'}</span><strong>{selectedIsReward?selected.label:(selected.answer||selected.label)}</strong></div>}
                 </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>One spin. One question. Can you get it right?</p></>}
               </div>

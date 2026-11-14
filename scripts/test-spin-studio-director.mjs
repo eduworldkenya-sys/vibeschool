@@ -124,3 +124,15 @@ test('names can be split across lines without changing the original segment labe
   assert.match(page,/<tspan key=\{j\}/)
   assert.match(page,/white-space:pre-line|selectedDisplayName/)
 })
+
+test('countdown director supports editable numbers, rings, bars, beat timing and preview',()=>{
+  assert.match(page,/countdownStyle:'number'/)
+  assert.match(page,/countdownInterval/)
+  assert.match(page,/countdownZeroText/)
+  assert.match(page,/Countdown seconds:/)
+  assert.match(page,/Countdown colour/)
+  assert.match(page,/Countdown size:/)
+  assert.match(page,/countdownMeter/)
+  assert.match(css,/\.countdownring/)
+  assert.match(css,/\.countdownbar/)
+})
