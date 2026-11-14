@@ -88,7 +88,8 @@ export default function RevisionStudioPage() {
         {screen==='home'&&<span style={{fontSize:12,color:'var(--vs-muted)'}}>{today()}</span>}
       </div>
       {screen==='home'&&<><h1 style={{fontSize:'clamp(25px,4vw,36px)',margin:'0 0 6px',letterSpacing:'-.04em'}}>Remember more. Every day.</h1>
-        <p style={{...style.muted,margin:0}}>Return to previous learning, recall what you know and strengthen the parts that need attention.</p></>}
+        <p style={{...style.muted,margin:0}}>Return to previous learning, recall what you know and strengthen the parts that need attention.</p>
+        {workspace && workspace.revisionMode.daysRemaining > 0 && <p style={{...style.muted,margin:'10px 0 0'}}>Exam in {workspace.revisionMode.daysRemaining} days · {workspace.revisionMode.message}</p>}</>}
     </header>
     {error&&<div role="alert" style={{...style.card,color:'var(--vs-danger, #a73434)'}}>{error} <button type="button" style={style.secondary} onClick={()=>void load()}>Retry</button></div>}
     {identityLoading||loading?<section style={style.card} aria-live="polite">Preparing your personal revision…</section>:
