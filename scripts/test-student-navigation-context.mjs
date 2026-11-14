@@ -18,7 +18,7 @@ assert.match(progress,/completed_attempts/,'Progress exposes recorded attempt co
 assert.match(progress,/resultStatus==='released'/,'Progress respects formal result release')
 assert.match(progress,/from=topic-practice/,'Topic Practice result preserves return owner')
 assert.match(canonical,/from=topic-practice/,'Canonical completion retains practice return owner')
-assert.match(revision,/router\.push\('\/student\/vibelearn\/topic-practice'\)/,'Revision fallback opens canonical Topic Practice')
+assert.match(revision,/RevisionTopicStarter/,'Revision uses the authorized topic starter rather than redirecting to unrelated practice')
 assert.match(revision,/searchParams\.get\('subject'\)/,'Revision reads subject context')
 assert.match(practice,/from=practice/,'Legacy practice result retains its return context')
 assert.match(marks,/from=progress-report/,'Overall report result retains return context')
