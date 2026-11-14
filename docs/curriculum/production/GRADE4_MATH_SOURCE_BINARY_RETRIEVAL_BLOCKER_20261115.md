@@ -19,3 +19,11 @@ Date: 2026-11-14 (Nairobi). Scope: source evidence, no curriculum promotion.
 **Evidence labels**: `PUBLIC_SOURCE_TEXT_OBSERVED`; `KICD_LINKED_DRIVE_PREVIEW_IDENTIFIED`; `PDF_BYTES_UNAVAILABLE`; `SHA256_UNAVAILABLE`; `CANONICAL_APPROVAL_NOT_PERFORMED`; `PUBLISH_BLOCKED`.
 
 No copyrighted PDF was uploaded to GitHub. No source registry, curriculum outcome, resource, exam or learner data was mutated.
+
+## 15 November continuation — exact existing intake parity and tested boundary
+
+The source-download script was changed to use the **same direct Google Drive usercontent URL form** as VibeSchool's existing `curriculum-authority-intake/index.ts` (commit `694ddc52`). GitHub Actions run `43642726447` retrieved `text/html`, **1,820 bytes**, not `%PDF-`; it exited 4 with `SOURCE_NOT_PDF` and did not calculate a false PDF hash. This is direct evidence that direct-download transport is not usable from this CI runner.
+
+The *existing* Edge Function has a supported fallback, `fetchGoogleDriveViewerEvidence()`, that obtains the Drive viewer manifest, page count, and individually hashed PNG pages and stores a separate `google_drive_viewer_page_bundle_v1` artifact. That artifact is **not byte-identical to the original PDF**; the Edge Function already records `source_byte_identical: false` for a viewer bundle. This functionality requires a real, previously approved source ID and an authenticated platform-owner request. It cannot be replaced by a public CI download or a service-role SQL mutation.
+
+**Recovery is now narrow and verified:** use the existing owner-authenticated source intake on the exact KICD-catalogue-linked `/file/d/…/preview` URL, let the canonical function handle non-PDF transport through its viewer fallback, and retain the correct evidence-kind distinction. Do not add another downloader, scraper, independent curriculum-authority table, or falsely green source proof. Source approval and snapshot promotion remain separate protected actions.
