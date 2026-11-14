@@ -388,6 +388,13 @@ export default function SpinStudio() {
   }
   const spin=()=>{
     if(locked||!wheel||pendingSpin.current)return
+    if(electionMode){
+      const names=entries.map(entry=>entry.label.trim().toLocaleLowerCase())
+      if(names.some(name=>!name)||new Set(names).size!==names.length){
+        setFeedback('Political Championship requires a distinct, non-empty name for each candidate. Edit candidates before starting.')
+        return
+      }
+    }
     if(countdownRef.current!==null){window.clearTimeout(countdownRef.current);countdownRef.current=null}
     const chosen=available[uniformSpinIndex(available.length)]
     if(!chosen)return
