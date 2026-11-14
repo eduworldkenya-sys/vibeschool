@@ -159,9 +159,7 @@ export default function TasksPage({mode='tasks'}:{mode?:'tasks'|'day'}) {
           </Link>)}
     </section>
     <p style={{fontSize:12,color:"var(--vs-muted)",margin:0}}>Assigned work opens in its original tool. Only personal tasks can be marked complete here; submitting assigned work requires its own submission flow.</p>
-    <nav aria-label="Learning priorities" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-      {([['Homework','/student/homework'],['Classwork','/student/assessment'],['Exercises','/student/exercises'],['Projects',identity?.classId?'/student/projects':'/student/projects/independent'],['Practice','/student/vibelearn/topic-practice'],['Exams','/student/vibelearn/exams'],['Revision','/student/vibelearn/revision']] as const).map(([label,href])=><Link key={href} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
-    </nav>
+
     <section aria-labelledby="assigned-work-heading" style={{background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:14,padding:14,display:'grid',gap:10}}>
       <div><h2 id="assigned-work-heading" style={{fontSize:18,margin:'0 0 4px'}}>Assigned work {actionable.length>0&&`(${actionable.length})`}</h2><p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>All assigned work stays together here, including homework, classwork, exercises, assessments and projects. Open it in its original workspace.</p></div>
       {assignedError ? <p role="status" style={{fontSize:13,margin:0}}>Assigned work is unavailable right now. <Link href="/student/homework">Check homework</Link> or retry by reloading this page. Your personal plan is still available.</p>
