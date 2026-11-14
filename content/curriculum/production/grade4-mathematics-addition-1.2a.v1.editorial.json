@@ -151,55 +151,55 @@
       {
         "id": "G04-MA-1.2-A-Q01",
         "type": "numeric",
-        "prompt": "What is 3,418 + 2,257?",
-        "operandA": 3418,
-        "operandB": 2257,
-        "answer": 5675,
-        "explanation": "Add ones 8 + 7 = 15, regroup one ten, then 1 + 5 + 1 = 7 tens; 4 + 2 = 6 hundreds; 3 + 2 = 5 thousands.",
-        "mistakeFeedback": "If you got 5,665, you may have forgotten the carried ten."
+        "prompt": "Calculate 4,326 + 2,517 without looking at the worked example.",
+        "operandA": 4326,
+        "operandB": 2517,
+        "answer": 6843,
+        "explanation": "Six ones plus seven ones make 13. Write 3 ones, carry one ten, and then add the remaining columns.",
+        "mistakeFeedback": "Rebuild the ones as a group of ten plus leftover ones. Add the exchanged ten to the tens column once; then check by subtraction."
       },
       {
         "id": "G04-MA-1.2-A-Q02",
         "type": "numeric",
-        "prompt": "What is 2,413 + 1,258?",
-        "operandA": 2413,
-        "operandB": 1258,
-        "answer": 3671,
-        "explanation": "11 ones becomes 1 one and 1 carried ten, so the tens are 1 + 5 + 1 = 7.",
-        "mistakeFeedback": "If you got 3,661, you may have omitted the regrouped ten."
+        "prompt": "A book club collected 5,218 cards and later received 1,635. How many cards does it have now?",
+        "operandA": 5218,
+        "operandB": 1635,
+        "answer": 6853,
+        "explanation": "Eight and five ones make 13. The total includes the one ten exchanged from the ones column.",
+        "mistakeFeedback": "Rebuild the ones as a group of ten plus leftover ones. Add the exchanged ten to the tens column once; then check by subtraction."
       },
       {
         "id": "G04-MA-1.2-A-Q03",
         "type": "numeric",
-        "prompt": "What is 5,608 + 2,145?",
-        "operandA": 5608,
-        "operandB": 2145,
-        "answer": 7753,
-        "explanation": "Exchange 13 ones for 1 ten and 3 ones; the tens column becomes 5.",
-        "mistakeFeedback": "Count the carried ten once in the tens column."
+        "prompt": "Find 6,047 + 1,826. Which place-value column requires exchanging?",
+        "operandA": 6047,
+        "operandB": 1826,
+        "answer": 7873,
+        "explanation": "Seven ones plus six ones make 13, so exchange once in the ones column; no other column needs an exchange.",
+        "mistakeFeedback": "Rebuild the ones as a group of ten plus leftover ones. Add the exchanged ten to the tens column once; then check by subtraction."
       },
       {
         "id": "G04-MA-1.2-A-Q04",
         "type": "numeric",
-        "prompt": "What is 4,526 + 1,307?",
-        "operandA": 4526,
-        "operandB": 1307,
-        "answer": 5833,
-        "explanation": "Exchange 13 ones into 1 ten and 3 ones, then finish each column.",
-        "mistakeFeedback": "Align digits before adding; check that 3 is in the tens place."
+        "prompt": "What is the sum of 7,136 and 1,457?",
+        "operandA": 7136,
+        "operandB": 1457,
+        "answer": 8593,
+        "explanation": "Six plus seven gives 13 ones; after the carry the tens give 9 tens. Align the four columns carefully.",
+        "mistakeFeedback": "Rebuild the ones as a group of ten plus leftover ones. Add the exchanged ten to the tens column once; then check by subtraction."
       },
       {
         "id": "G04-MA-1.2-A-Q05",
         "type": "numeric",
-        "prompt": "What is 6,412 + 1,269?",
-        "operandA": 6412,
-        "operandB": 1269,
-        "answer": 7681,
-        "explanation": "11 ones means carry one ten; tens are 1 + 6 + 1 = 8.",
-        "mistakeFeedback": "If your answer has 7 tens, revisit regrouping."
+        "prompt": "Two groups counted 3,527 and 2,146 seeds. Find their combined number of seeds.",
+        "operandA": 3527,
+        "operandB": 2146,
+        "answer": 5673,
+        "explanation": "Seven and six ones give 13 ones. One ten is carried into tens, giving 7 tens in the final sum.",
+        "mistakeFeedback": "Rebuild the ones as a group of ten plus leftover ones. Add the exchanged ten to the tens column once; then check by subtraction."
       }
     ],
-    "reflection": "Explain in your own words why exchanging ten ones for one ten does not change the total."
+    "reflection": "Show one new four-digit addition with exactly one exchange. Explain which ten lower-place units become one higher-place unit, and check the sum using subtraction."
   },
   "revision": {
     "flashcards": [
@@ -213,8 +213,8 @@
       }
     ],
     "recall": {
-      "prompt": "Without using the worked example, solve 3,418 + 2,257 and explain the exchange.",
-      "answer": "5,675; 15 ones become 5 ones and 1 ten."
+      "prompt": "After finishing the lesson and without opening the worked example, solve 4,619 + 2,174. Identify the column that needs an exchange and explain why.",
+      "answer": "6,793; 9+4=13 ones, so write 3 ones and carry one ten. Tens: 1+7+1=9; hundreds: 6+1=7; thousands: 4+2=6."
     },
     "remedial": "First practise combining 8 and 7 counters into a group of ten and five left over. Then work with three-digit sums before returning to four-digit sums.",
     "enrichment": "Invent two four-digit numbers whose sum is below 10,000 and that need exactly one regrouping. Solve, then prove it with a column table.",
