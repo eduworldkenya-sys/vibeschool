@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, ClipboardCheck, ChartNoAxesColumn, PencilLine, ArrowUpRight, BookMarked, CalendarDays, LibraryBig } from 'lucide-react'
+import { BookOpen, ClipboardCheck, ChartNoAxesColumn, PencilLine, ArrowUpRight, BookMarked, CalendarDays, LibraryBig, BrainCircuit, Eraser } from 'lucide-react'
 import './student-home.css'
 import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
 import { loadActiveClassTimetable, timetableSlotsForDay } from '@/lib/timetable/engine'
@@ -199,9 +199,9 @@ function Metric({ label: text, value }: { label: string; value: string | number 
 function Empty({ title, body: text }: { title: string; body: string }) { return <div style={{ padding: 14, textAlign: 'center' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={body}>{text}</p></div> }
 function Quick({ title, note, onClick }: { title: string; note: string; onClick: () => void }) {
   const Icon = title === 'Learn' ? BookOpen : title === 'Exams' ? ClipboardCheck : title === 'Progress' ? ChartNoAxesColumn : title === 'Workspace' ? BookMarked : title === 'Stories' ? LibraryBig : title === 'My Day' ? CalendarDays : PencilLine
-  const object = ({Learn:'📖',Practise:'✏️',Exams:'📝',Revision:'🗂️',Mistakes:'📒',Progress:'📊'} as Record<string,string>)[title]
+  const Illustration = ({Learn:BookOpen,Practise:PencilLine,Exams:ClipboardCheck,Revision:BrainCircuit,Mistakes:Eraser,Progress:ChartNoAxesColumn} as Record<string,typeof BookOpen>)[title]
   return <button onClick={onClick} style={{ ...quick, display: 'flex' }} aria-label={title + ': ' + note}>
-    <span className="student-home-quick-icon">{object ? <span className="student-home-real-object" aria-hidden="true">{object}</span> : <Icon size={20} aria-hidden="true" />}</span>
+    <span className="student-home-quick-icon">{Illustration ? <Illustration className="student-home-tool-svg" size={42} strokeWidth={1.7} aria-hidden="true" focusable="false" /> : <Icon size={24} aria-hidden="true" focusable="false" />}</span>
     <span className="student-home-quick-copy"><strong>{title}</strong><small>{note}</small></span>
     <ArrowUpRight size={16} aria-hidden="true" className="student-home-quick-arrow" />
   </button>
