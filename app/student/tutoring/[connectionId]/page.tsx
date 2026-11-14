@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
 import PrivateTuitionTools from "@/components/vibetutor/PrivateTuitionTools";
+import PrivateTutorTasks from "@/components/vibetutor/PrivateTutorTasks";
 
 type Invite = { id: string; tutor: string; status: string };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -38,6 +39,7 @@ export default function StudentTutorDetail() {
         <p style={{ margin: 0, color: "#087451" }}>Connected tutor</p>
       </header>
       <PrivateTuitionTools invitationId={tutor.id} isTutor={false} />
+      <PrivateTutorTasks invitationId={tutor.id} isTutor={false} />
     </>}
   </main>;
 }
