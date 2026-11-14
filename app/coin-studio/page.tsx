@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { DirectorControls, DirectorStageEffects, focalStyle, useShowDirector } from '../../components/games/ShowDirector'
 import styles from './coin-studio.module.css'
 
@@ -80,7 +80,7 @@ function ping(type: 'tick' | 'toss' | 'win', volume: number) {
   } catch { /* audio is optional */ }
 }
 export default function CoinStudio() {
-  const { settings: director, patch: updateDirector } = useShowDirector('spin')
+  const { settings: director, patch: updateDirector } = useShowDirector('coin')
   const [setups,setSetups] = useState<Setup[]>([])
   const [selectedId,setSelectedId] = useState('')
   const [loaded,setLoaded] = useState(false)
@@ -119,7 +119,14 @@ export default function CoinStudio() {
         }
       }
     } catch { /* corrupt or blocked browser storage */ }
-    const setup = initial(); setSetups([setup]); setSelectedId(setup.id); setLoaded(true)
+    const setup = initial(); const params = new URLSearchParams(window.location.search)
+    if (params.has('a') && params.has('b')) {
+      setup.heads.name = (params.get('a') || setup.heads.name).slice(0,46)
+      setup.tails.name = (params.get('b') || setup.tails.name).slice(0,46)
+      setup.headline = (params.get('hook') || setup.headline).slice(0,100)
+      setup.name = setup.heads.name+' vs '+setup.tails.name
+    }
+    setSetups([setup]); setSelectedId(setup.id); setLoaded(true)
   },[])
   useEffect(() => { if (!loaded) return; try { localStorage.setItem(STORE,JSON.stringify({setups,selectedId})) } catch { setNotice('Browser storage unavailable. Export the setup to keep a backup.') } },[setups,selectedId,loaded])
   useEffect(() => {
@@ -138,10 +145,13 @@ export default function CoinStudio() {
     cancel(); setWinner(null); setSeconds(null)
     const choice = randomSide()
     const finish = () => {
-      setPhase('flipping'); setFlipKey(i => i+1)
+      setPhase('flipping'); setRotation(0); setFlipKey(i => i+1)
       const turns = 5 + Math.floor(Math.random()*3)
       // CSS front face is heads at 0deg, reverse is tails at 180deg.
-      setRotation(turns * 360 + (choice === 'heads' ? 0 : 180))
+      const targetAngle = turns * 360 + (choice === 'heads' ? 0 : 180)
+      // Two animation frames ensure the freshly mounted coin paints its starting face.
+      if (reduceMotion) setRotation(targetAngle)
+      else window.requestAnimationFrame(() => window.requestAnimationFrame(() => setRotation(targetAngle)))
       if (current.sound) ping('toss',current.volume)
       schedule(() => {
         setWinner(choice); setPhase('reveal')
@@ -207,11 +217,13 @@ export default function CoinStudio() {
   const share = async () => {
     if(!current)return
     const url = new URL(window.location.href)
-    url.searchParams.set('template',current.heads.name+' vs '+current.tails.name)
-    try { await navigator.clipboard.writeText(url.toString());setNotice('Studio link copied. Local customizations remain on your device.') }
+    url.searchParams.set('a',current.heads.name)
+    url.searchParams.set('b',current.tails.name)
+    url.searchParams.set('hook',current.headline)
+    try { await navigator.clipboard.writeText(url.toString());setNotice('Studio link copied. Matchup names and headline are in the URL; images and other settings stay in this browser.') }
     catch {setNotice(url.toString())}
   }
-  const InputOption = ({side}:{side:Side}) => {
+  const renderOption = (side:Side) => {
     if(!current)return null
     const option=current[side]
     return <div className={styles.optionEditor}><div className={styles.optionTitle}><span className={styles.sideDot} style={{background:option.color}}/>{side==='heads'?'SIDE A · HEADS':'SIDE B · TAILS'}</div>
@@ -244,7 +256,7 @@ export default function CoinStudio() {
               <label>Choose a starter scene<select value="" onChange={e=>applyTemplate(Number(e.target.value))}><option value="" disabled>Pick a template…</option>{templates.map((t,i)=><option value={i} key={t.title}>{t.title}</option>)}</select></label>
               <label>Episode title<input maxLength={90} value={current.name} onChange={e=>patch({name:e.target.value})}/></label>
               <label>Big opening hook<input maxLength={100} value={current.headline} onChange={e=>patch({headline:e.target.value})}/></label>
-              <InputOption side="heads"/><InputOption side="tails"/>
+              {renderOption('heads')}{renderOption('tails')}
               <label>Closing call to action<input maxLength={110} value={current.cta} onChange={e=>patch({cta:e.target.value})}/></label>
             </>}
             {tab==='appearance' && <>
@@ -296,7 +308,7 @@ export default function CoinStudio() {
               {current.showBrand && <div className={styles.brand}><span className={styles.brandMark}>V</span><span><strong>VIBECOIN</strong><small>BY VIBESCHOOL</small></span><em>EP {String(current.episode).padStart(2,'0')}</em></div>}
               <div className={styles.hero}><span className={styles.heroEyebrow}>THE ULTIMATE 50/50 CHALLENGE</span><h2>{current.headline}</h2><p>{current.name}</p></div>
               <div className={styles.duel}>
-                {(['heads','tails'] as const).map(side=><div key={side} className={[styles.challenger,winner===side&&phase==='reveal'?styles.chosen:''].join(' ')} style={{'--accent':current[side].color} as React.CSSProperties}>
+                {(['heads','tails'] as const).map(side=><div key={side} className={[styles.challenger,winner===side&&phase==='reveal'?styles.chosen:''].join(' ')} style={{'--accent':current[side].color} as CSSProperties}>
                   {current.showLogos&&current[side].logo?<img src={current[side].logo} alt="" className={styles.challengerLogo}/>:<span className={styles.challengerSymbol}>{current[side].symbol || (side==='heads'?'H':'T')}</span>}
                   <small>{current[side].subtitle}</small><strong>{current[side].name}</strong>
                   {winner===side&&phase==='reveal'&&<b className={styles.winLabel}>SELECTED</b>}
