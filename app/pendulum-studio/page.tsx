@@ -259,7 +259,7 @@ export default function VibeSphereStudio(){
   <div className={[styles.shell,showMode?styles.showShell:''].join(' ')}>
    {!showMode&&<header className={styles.header}>
     <div><p className={styles.kicker}>VIBESCHOOL ORIGINALS / CREATOR LAB</p><h1>Vibe<span>Sphere</span><b>3D</b></h1><p>Two faces. One fixed pointer. A cinematic choice.</p></div>
-    <div className={styles.headButtons}><span>UNLISTED STUDIO · SAVED IN YOUR BROWSER</span><button className={styles.primary} onClick={()=>setShowMode(true)}>Launch show ↗</button></div>
+    <div className={styles.headButtons}><a href="/marketing-studio" style={{color:'#80f3d8',fontWeight:850,fontSize:12}}>All Marketing Studio tools</a><span>UNLISTED STUDIO · SAVED IN YOUR BROWSER</span><button className={styles.primary} onClick={()=>setShowMode(true)}>Launch show ↗</button></div>
    </header>}
    <div className={styles.workspace}>
     {!showMode&&<aside className={styles.sidebar}>

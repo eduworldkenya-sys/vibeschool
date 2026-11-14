@@ -348,7 +348,7 @@ export default function CoinStudio() {
     <div className={styles.shell}>
       {!showMode && <header className={styles.header}>
         <div><span className={styles.kicker}>VIBESCHOOL ORIGINALS / GAME CREATOR</span><h1>Vibe<span>Coin</span><em>STUDIO</em></h1><p>Two sides. One unforgettable reveal.</p></div>
-        <div className={styles.headActions}><span>UNLISTED · SAVED IN YOUR BROWSER</span><button className={styles.primary} onClick={()=>setShowMode(true)}>Launch show ↗</button></div>
+        <div className={styles.headActions}><a href="/marketing-studio" style={{color:'#80f3d8',fontWeight:850,fontSize:12}}>All Marketing Studio tools</a><span>UNLISTED · SAVED IN YOUR BROWSER</span><button className={styles.primary} onClick={()=>setShowMode(true)}>Launch show ↗</button></div>
       </header>}
       <div className={showMode?styles.showLayout:styles.layout}>
         {!showMode && <aside className={styles.sidebar}>

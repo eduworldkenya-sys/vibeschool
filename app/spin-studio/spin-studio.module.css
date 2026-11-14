@@ -131,3 +131,17 @@
 .countdownring .countdownMeter:before{content:"";position:absolute;inset:6px;border-radius:100%;background:#09172e}
 .countdownbar .countdownMeter{min-height:65px;padding-bottom:10px;box-sizing:border-box}
 .countdownFill{position:absolute;bottom:0;left:0;width:var(--countdown-ratio);height:8px;max-width:100%;border-radius:100px;background:var(--countdown-accent);box-shadow:0 0 15px var(--countdown-accent);transition:width .2s ease}
+
+
+/* Manual wheel-axis editor: the wheel tilts while the selector remains fixed. */
+.wheelSvg{touch-action:none;user-select:none;-webkit-user-select:none;transform-style:preserve-3d;transition:filter .18s ease}
+.wheelArea{perspective:820px}
+.wheelFixedPointer{position:absolute;z-index:4;top:0;left:50%;transform:translateX(-50%);width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-top:39px solid #f7fcff;filter:drop-shadow(0 2px 3px #000d);pointer-events:none}
+.axisButtons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.axisButtons button{min-height:36px}
+.studioBack{font-size:12px;font-weight:800;color:#80f7e0;text-decoration:none;border:1px solid #5adcc655;padding:10px 12px;border-radius:10px}
+.studioBack:hover{text-decoration:underline}
+@media(max-width:640px){.wheelFixedPointer{border-left-width:13px;border-right-width:13px;border-top-width:29px}}
+
+.wheelOrbitWrapper{position:relative;display:grid;place-items:center;aspect-ratio:1;width:min(100%,62vh);max-height:100%;flex:none}
+.wheelOrbitWrapper .wheelSvg{height:100%;width:100%;max-width:100%;max-height:100%}
