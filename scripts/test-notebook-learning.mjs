@@ -30,12 +30,14 @@ assert.match(ui, /getNotebookGuidance\(subject, stage\)/)
 assert.doesNotMatch(ui, /supabase|\.rpc\(|onClick=|onChange=|localStorage|sessionStorage|setState|useState/i,
   'Notebook encouragement must not record self-reported learning or score anything')
 
+const revisionPage = read('../app/student/vibelearn/revision/page.tsx')
+assert.match(revisionPage, /<RevisionTopicStarter/, 'Revision provides its own approved recall experience')
+
 const placements = [
   ['../components/learn/Grade4TimeContentReader.tsx', /<LearningNotebookPrompt subject="Mathematics" stage="learn"/],
   ['../components/learn/Grade4TimeOutcomePackage.tsx', /<LearningNotebookPrompt subject="Mathematics" stage="practice"/],
   ['../components/learn/Grade4TimeOutcomePackage.tsx', /stage=\{audience === 'teacher' \? 'teacher' : 'learn'\}/],
   ['../app/student/vibelearn/practice/page.tsx', /<LearningNotebookPrompt.*stage="practice"/],
-  ['../app/student/vibelearn/revision/page.tsx', /<LearningNotebookPrompt stage="revision"/],
   ['../app/student/vibelearn/recovery/page.tsx', /<LearningNotebookPrompt stage="recovery"/],
   ['../app/student/vibelearn/topic-practice/page.tsx', /<LearningNotebookPrompt subject=\{session.subject\} stage="practice"/],
   ['../components/student/CanonicalTopicPractice.tsx', /<LearningNotebookPrompt subject=\{workspace.title\} stage="practice"/],
