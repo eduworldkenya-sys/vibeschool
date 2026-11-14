@@ -20,7 +20,7 @@ assert.match(read('app/student/study/page.tsx'), /getVibeLearnWorkstation/, 'per
 assert.doesNotMatch(layout, /identity\.independent \|\| pathname/, 'no grade-based independent exclusion')
 assert.doesNotMatch(middleware, /independentReadingRoute/, 'no reading-only independent route restriction')
 assert.doesNotMatch(studentHome, /if \(!identityLoading && identity\?\.independent\)/, 'same Home for both learner types')
-assert.match(bottomNav, /const tabs = TABS/, 'same navigation for both learner types')
+assert.match(bottomNav, /PRIMARY\.map\(/, 'same canonical primary navigation for both learner types')
 assert.match(studentContext, /studentId: home\.studentId/, 'independent login uses canonical student ID')
 assert.match(gradeRoute, /ensure_independent_learner_student/, 'registration provisions canonical student')
 assert.match(lookupRoute, /studentId: school!\[0\]\.id/, 'authenticated lookup returns canonical student ID')
