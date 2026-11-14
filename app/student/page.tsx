@@ -37,6 +37,7 @@ export default function StudentHomePage() {
   const [loading, setLoading] = useState(true)
   const [launchingTaskId, setLaunchingTaskId] = useState<string | null>(null)
   const [continueReading, setContinueReading] = useState<ResumeReading | null>(null)
+  const [tutoringSummary, setTutoringSummary] = useState<{ accepted: number; pending: number } | null>(null)
   const [error, setError] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -76,6 +77,23 @@ export default function StudentHomePage() {
     return () => { active = false }
   }, [identity?.studentId, data?.brief])
 
+
+  // Read only the authenticated learner's owner-scoped tutor inbox.
+  // Fail closed: unavailable data is not presented as zero tutors.
+  useEffect(() => {
+    if (!identity?.studentId) { setTutoringSummary(null); return }
+    let active = true
+    void supabase.rpc('vibetutor_student_inbox').then(({ data, error }) => {
+      if (!active) return
+      if (error || !Array.isArray(data)) { setTutoringSummary(null); return }
+      const rows = data as Array<{ status?: string }>
+      setTutoringSummary({
+        accepted: rows.filter(row => row.status === 'accepted').length,
+        pending: rows.filter(row => row.status === 'invited' || row.status === 'pending_guardian').length,
+      })
+    }).catch(() => { if (active) setTutoringSummary(null) })
+    return () => { active = false }
+  }, [identity?.studentId])
 
   async function openTask(task: StudentTask) { if (launchingTaskId) return; setLaunchingTaskId(task.taskId); setError(''); try { const launch = await resolveTaskLaunch(task.taskId); router.push(launch.actionUrl) } catch (cause) { setError(cause instanceof Error ? cause.message : 'This task could not be opened.'); await load() } finally { setLaunchingTaskId(null) } }
   async function acknowledgeChanges() { setSaving(true); try { await acknowledgeStudentHomeChanges(); await load() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Updates could not be acknowledged.') } finally { setSaving(false) } }
@@ -142,12 +160,23 @@ export default function StudentHomePage() {
     <section style={card} aria-label="Learning destinations"><SectionHeader title="Explore learning" /><div className="student-home-quick-grid"><Quick title="Learn" note="Lessons and reading" onClick={() => router.push('/student/study')} /><Quick title="Practise" note="Questions and exercises" onClick={() => router.push('/student/vibelearn/topic-practice')} /><Quick title="Exams" note="Tests and assessments" onClick={() => router.push('/student/vibelearn/exams')} /><Quick title="Results" note="Marks and feedback" onClick={() => router.push('/student/marks')} /></div></section>
     </div>
 
+    <section style={card} aria-label="Your private tutors">
+      <SectionHeader title="My Tutors" action="Open" onClick={() => router.push('/student/tutoring')} />
+      <p style={body}>{tutoringSummary
+        ? tutoringSummary.accepted > 0
+          ? `${tutoringSummary.accepted} connected ${tutoringSummary.accepted === 1 ? 'tutor' : 'tutors'}${tutoringSummary.pending ? ` · ${tutoringSummary.pending} awaiting action or approval` : ''}. View your sessions and messages.`
+          : tutoringSummary.pending > 0 ? `${tutoringSummary.pending} tutoring ${tutoringSummary.pending === 1 ? 'invitation' : 'invitations'} awaiting action or approval.`
+          : 'Your tutors and private lessons will appear here when you connect.'
+        : 'Manage private tutors, session invitations and messages.'}</p>
+      <Link href="/student/tutoring" style={{ color: 'var(--vs-accent)', fontWeight: 750, fontSize: 13 }}>Open My Tutors →</Link>
+    </section>
+
     <section style={card} aria-label="Your learning tools">
       <SectionHeader title="Your tools" action="Personalise" onClick={() => router.push('/student/settings')} />
       <div className="student-home-secondary-grid">
         <Quick title="Workspace" note="Notes and saved study material" onClick={() => router.push('/student/workspace')} />
         <Quick title="Stories" note="Books and series" onClick={() => router.push('/learn/stories')} />
-        <Quick title="My Day" note="Timetable and study plan" onClick={() => router.push('/student/timetable')} />
+        <Quick title="My Day" note="School and tutoring timetable" onClick={() => router.push('/student/timetable')} />
       </div>
     </section>
 
