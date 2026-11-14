@@ -52,8 +52,8 @@ function tone(freq:number,volume:number,duration=.14){
   o.onended=()=>{void ctx.close()}
  }catch{/* audio can be restricted */}
 }
-export default function PendulumStudio(){
- const {settings:director,patch:updateDirector}=useShowDirector('pendulum')
+export default function VibeSphereStudio(){
+ const {settings:director,patch:updateDirector}=useShowDirector('pendulum') // Preserve creator preferences from the former pendulum stage
  const [setups,setSetups]=useState<Setup[]>([])
  const [selectedId,setSelectedId]=useState('')
  const [loaded,setLoaded]=useState(false)
@@ -161,7 +161,7 @@ export default function PendulumStudio(){
    frameRef.current=null
    setRotation(destination);setWinner(target);setStagePhase('reveal')
    if(setup.sound){tone(740,setup.volume,.3);window.setTimeout(()=>tone(980,setup.volume,.35),130)}
-   setHistory(h=>[{title:setup.title,winner:setup[target].name.replace(/\\s+/g,' '),time:new Date().toLocaleString()},...h].slice(0,20))
+   setHistory(h=>[{title:setup.title,winner:setup[target].name.replace(/\s+/g,' '),time:new Date().toLocaleString()},...h].slice(0,20))
   }
   frameRef.current=requestAnimationFrame(tick)
  }
@@ -232,7 +232,7 @@ export default function PendulumStudio(){
    </header>}
    <div className={styles.workspace}>
     {!showMode&&<aside className={styles.sidebar}>
-     <nav className={styles.tabs} aria-label="VibePendulum editor">
+     <nav className={styles.tabs} aria-label="VibeSphere editor">
       {(['matchup','stage','motion','effects','record'] as const).map(x=><button key={x} className={x===tab?styles.tabActive:''} onClick={()=>setTab(x)}>{x==='matchup'?'Matchup':x==='stage'?'Stage':x==='motion'?'Motion':x==='effects'?'Effects':'Record'}</button>)}
      </nav>
      <div className={styles.controls}>
@@ -259,7 +259,7 @@ export default function PendulumStudio(){
       {tab==='motion'&&<>
        <h2>Spinning sphere controls</h2>
        <label>Spin duration · {setup.duration}s<input type="range" min="4" max="14" step="1" value={setup.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
-       <label>Spin intensity · {setup.amplitude}<input type="range" min="24" max="60" step="1" value={setup.amplitude} onChange={e=>update({amplitude:Number(e.target.value)})}/></label>
+       <label>Number of revolutions · {4+Math.max(0,Math.round(setup.amplitude/15))}<input type="range" min="15" max="90" step="15" value={setup.amplitude} onChange={e=>update({amplitude:Number(e.target.value)})}/></label>
        <label className={styles.check}><input type="checkbox" checked={setup.countdown} onChange={e=>update({countdown:e.target.checked})}/> Three-beat countdown before spin</label>
        <p className={styles.help}>The ball rotates on its vertical axis while a stationary pointer marks the visible face. A and B occupy opposite sides of the sphere. The face shown at the exact stop is always the announced result. The choice is random entertainment, not an actual match forecast.</p>
       </>}
@@ -327,7 +327,7 @@ export default function PendulumStudio(){
        </div>
        <div className={styles.sceneBottom}><span>SPIN. SLOW. SELECT.</span><span>ENTERTAINMENT · RANDOM SELECTION</span></div>
        {phase==='countdown'&&<div className={styles.countdown}><small>READY TO SPIN?</small><b>{seconds}</b></div>}
-       {revealed&&winner&&<div className={styles.reveal}>
+       {revealed&&winner&&<div className={styles.sphereResultInline}>
         <small>{setup.resultText}</small><strong>{setup[winner].name}</strong><p>Random entertainment result · Not a match prediction</p>
        </div>}
        {revealed&&setup.confetti&&<div className={styles.particles} aria-hidden="true">{Array.from({length:26},(_,i)=><i key={i} style={{left:((i*37)%99)+'%',animationDelay:((i%7)*.11)+'s',background:i%2?setup.left.color:setup.right.color}}/>)}</div>}
