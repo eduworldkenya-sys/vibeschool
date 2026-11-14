@@ -12,7 +12,19 @@
     "contentSha256": null,
     "privateArtifactStorageLocator": null,
     "approvedSourceId": null,
-    "approvedSnapshotId": null
+    "approvedSnapshotId": null,
+    "audience": "Regular Grade 4 Mathematics (general primary curriculum), NOT the separate adapted Mathematics curriculum for learners with physical impairment",
+    "excludedAdaptedSource": {
+      "url": "https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-4-MATHEMATICS.pdf",
+      "audience": "Learners with physical impairment",
+      "reason": "KICD separately publishes an adapted revised 2024 Grade 4 Mathematics design under this URL; it is not interchangeable with the regular design and has a different curriculum strand structure."
+    },
+    "sourceIdentityRules": [
+      "Exact KICD document URL required for this general-primary batch",
+      "Reject adapted/SNE design substituted by filename, revised-year, or Mathematics title",
+      "No checksum may be attached until the exact regular source PDF bytes have been acquired and verified",
+      "Any future adapted-material authoring must use its own explicit source/audience authority and approved outcome crosswalk"
+    ]
   },
   "scope": {
     "grade": "Grade 4",
