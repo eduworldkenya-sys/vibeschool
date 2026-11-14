@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 import Link from 'next/link'
+import { createSpinPlan, uniformSpinIndex, type SpinPlan, type SpinDirection, type SpinMotion } from './spin-brain'
 import { useShowDirector, DirectorControls, DirectorStageEffects, focalStyle } from '../../components/games/ShowDirector'
 
 type Entry = { id: string; label: string; question: string; answer: string; image?: string; symbol?: string; displayName?: string }
@@ -24,7 +25,7 @@ type PopupSettings = {
  tapAction:'reveal'|'next'|'off'; vibrate:boolean; playSound:boolean; dimBackdrop:boolean;
 }
 const DEFAULT_POPUP:PopupSettings={enabled:true,position:'bottom',size:88,opacity:96,style:'glass',animation:'pop',showTitle:true,showName:true,showPhoto:true,showQuestion:true,showCountdown:true,showAnswer:true,showFact:true,title:'THE WHEEL HAS CHOSEN',revealTitle:'THE RESULT',questionDelay:750,revealDelay:0,tapAction:'reveal',vibrate:false,playSound:true,dimBackdrop:false,countdownStyle:'number',countdownLabel:'TIME LEFT',countdownColor:'#71f1e6',countdownScale:100,countdownTick:true,countdownInterval:1000,countdownZeroText:'TIME!'}
-type Wheel = { popup?:Partial<PopupSettings>; showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; electionMode?: boolean; electionSpinTotal?: number; electionPointsPerSpin?: number; electionWinnerTitle?: string; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
+type Wheel = { popup?:Partial<PopupSettings>; showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; electionMode?: boolean; electionSpinTotal?: number; electionPointsPerSpin?: number; electionWinnerTitle?: string; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; spinDirection?: SpinDirection; spinMotion?: SpinMotion; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
 type Format = 'portrait' | 'landscape' | 'square'
 type Saved = { wheels: Wheel[]; selectedId: string }
 const STORAGE = 'vibeschool.spin-studio.v1'
@@ -145,6 +146,8 @@ export default function SpinStudio() {
   const [used,setUsed]=useState<string[]>([])
   const [spinCount,setSpinCount]=useState(0)
   const [electionVotes,setElectionVotes]=useState<string[]>([])
+  const [electionSnapshot,setElectionSnapshot]=useState<{wheelId:string;entries:Entry[];total:number;points:number}|null>(null)
+  const [activeSpinPlan,setActiveSpinPlan]=useState<SpinPlan|null>(null)
   const [electionPaused,setElectionPaused]=useState(false)
   const [electionFinale,setElectionFinale]=useState(false)
   const [seconds,setSeconds]=useState<number|null>(null)
@@ -158,6 +161,7 @@ export default function SpinStudio() {
   const pastRef=useRef<Wheel[]>([])
   const futureRef=useRef<Wheel[]>([])
   const pendingSpin=useRef(false)
+  const pendingPlan=useRef<SpinPlan|null>(null)
   const countdownRef=useRef<number|null>(null)
   const sceneRef=useRef<number|null>(null)
   const recorderRef=useRef<MediaRecorder|null>(null)
@@ -199,10 +203,11 @@ export default function SpinStudio() {
       setMusicPlaying(true)
     }catch{setFeedback('Background audio is unavailable in this browser.')}
   }
-  const entries=wheel?.entries || []
   const electionMode=wheel?.showFormat==='political' && (wheel.electionMode??true)
-  const electionTotal=Math.max(1,Math.min(9999,wheel?.electionSpinTotal || entries.length*2))
-  const electionPoints=Math.max(1,Math.min(10,wheel?.electionPointsPerSpin??1))
+  const activeSnapshot=electionMode&&electionSnapshot?.wheelId===wheel?.id?electionSnapshot:null
+  const entries=activeSnapshot?.entries ?? wheel?.entries ?? []
+  const electionTotal=activeSnapshot?.total??Math.max(1,Math.min(9999,wheel?.electionSpinTotal || entries.length*2))
+  const electionPoints=activeSnapshot?.points??Math.max(1,Math.min(10,wheel?.electionPointsPerSpin??1))
   const electionWinnerTitle=(wheel?.electionWinnerTitle?.trim() || 'CHAMPION').slice(0,55)
   const electionScores=entries.map(entry=>({id:entry.id,name:entry.label,score:electionVotes.filter(id=>id===entry.id).length*electionPoints}))
   const lastElectionVote=electionVotes[electionVotes.length-1]??null
@@ -212,7 +217,7 @@ export default function SpinStudio() {
   const batchMode=electionMode || (wheel?.batchMode??false)
   const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>electionMode || !wheel?.noRepeat || !used.includes(entry.id))
   const remaining=electionMode?Math.max(0,electionTotal-spinCount):wheel?.maxSpins ? Math.max(0,wheel.maxSpins-spinCount) : null
-  const locked=spinning || showPhase==='question' || showPhase==='countdown' || (electionMode&&electionPaused) || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
+  const locked=spinning || showPhase==='question' || showPhase==='countdown' || (electionMode&&(electionPaused||showPhase!=='idle')) || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
   const axisEditable=!spinning && (showPhase==='idle'||showPhase==='reveal')
   const moveWheelAxes=(nextAngle:number,nextX:number,nextY:number)=>{
     if(!axisEditable)return
@@ -273,7 +278,7 @@ export default function SpinStudio() {
     if(spinTimer.current!==null)window.clearTimeout(spinTimer.current)
     if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
     if(sceneRef.current!==null)window.clearTimeout(sceneRef.current)
-    pendingSpin.current=false
+    pendingSpin.current=false;pendingPlan.current=null;setActiveSpinPlan(null);setElectionSnapshot(null)
     setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setElectionVotes([]);setElectionPaused(false);setElectionFinale(false);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
   },[selectedId])
   useEffect(()=>{
@@ -353,36 +358,48 @@ export default function SpinStudio() {
   const resetRun=()=>{
     if(spinning)return
     if(countdownRef.current!==null)clearTimeout(countdownRef.current)
+    pendingPlan.current=null;setActiveSpinPlan(null);setElectionSnapshot(null);pendingSpin.current=false
     setUsed([]);setSpinCount(0);setElectionVotes([]);setElectionPaused(false);setElectionFinale(false);setEpisodeLog([]);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
   }
+  const completeSpin=(id:string|undefined)=>{
+    const plan=pendingPlan.current
+    if(!plan||plan.id!==id)return
+    pendingPlan.current=null
+    if(spinTimer.current!==null){window.clearTimeout(spinTimer.current);spinTimer.current=null}
+    setRotation(plan.settledAngle);setSpinning(false);setActiveSpinPlan(null)
+    setResult(plan.selectedIndex);setUsed(old=>[...old,plan.selectedId])
+    setSpinCount(n=>n+1)
+    if(electionMode)setElectionVotes(old=>[...old,plan.selectedId])
+    pendingSpin.current=false
+    setShowOverlay(wheel.popup?.enabled??true);setShowPhase('question')
+    const landed=entries[plan.selectedIndex]
+    if(landed)setEpisodeLog(old=>electionMode?[...old,landed.label]:[...old,landed.label].slice(-150))
+    soundEffect('tick',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.spin??55)
+    if(wheel.popup?.vibrate&&navigator.vibrate)navigator.vibrate(40)
+    countdownRef.current=window.setTimeout(()=>{
+      if(wheel.countdown===0||electionMode){
+        setShowPhase((electionMode||wheel.automatic)?'reveal':'countdown');setSeconds(0)
+        if(electionMode||wheel.automatic){setReveal(true);soundEffect('win',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.reveal??75)}
+      }else{setShowPhase('countdown');setSeconds(wheel.countdown)}
+    },Math.max(0,Math.min(5000,wheel.popup?.questionDelay??750)))
+  }
   const spin=()=>{
-    if(locked || !wheel || pendingSpin.current)return
-    if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}
-    const chosen=available[Math.floor(Math.random()*available.length)]
+    if(locked||!wheel||pendingSpin.current)return
+    if(countdownRef.current!==null){window.clearTimeout(countdownRef.current);countdownRef.current=null}
+    const chosen=available[uniformSpinIndex(available.length)]
     if(!chosen)return
-    pendingSpin.current=true
+    const plan=createSpinPlan({
+      selectedId:chosen.entry.id,selectedIndex:chosen.index,segmentCount:entries.length,
+      currentAngle:rotation,round:spinCount,durationSeconds:wheel.duration,
+      direction:wheel.spinDirection??'clockwise',motion:wheel.spinMotion??'cinematic'
+    })
+    if(electionMode&&spinCount===0)setElectionSnapshot({wheelId:wheel.id,entries:entries.map(entry=>({...entry})),total:electionTotal,points:electionPoints})
+    pendingSpin.current=true;pendingPlan.current=plan;setActiveSpinPlan(plan)
     wheelDragRef.current=null;setWheelTiltX(0);setWheelTiltY(0)
     setSpinning(true);setShowPhase('spinning');setShowOverlay(false);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setFeedback('')
-    const step=360/entries.length, target=(360-(chosen.index+.5)*step)%360
-    const current=((rotation%360)+360)%360
-    const delta=((target-current+360)%360)
-    const next=rotation+360*(5+Math.floor(wheel.duration/2))+delta
-    setRotation(next)
+    setRotation(plan.endAngle)
     soundEffect('tick',wheel.sound,wheel.volumes?.spin??55)
-    spinTimer.current=window.setTimeout(()=>{
-      setSpinning(false);setResult(chosen.index);setUsed(old=>[...old,chosen.entry.id])
-      setSpinCount(n=>n+1);if(electionMode)setElectionVotes(old=>[...old,chosen.entry.id]);pendingSpin.current=false
-      setShowOverlay(wheel.popup?.enabled??true);setShowPhase('question')
-      setEpisodeLog(old=>electionMode?[...old,chosen.entry.label]:[...old,chosen.entry.label].slice(-150))
-      soundEffect('tick',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.spin??55)
-      if(wheel.popup?.vibrate && navigator.vibrate)navigator.vibrate(40)
-      countdownRef.current=window.setTimeout(()=>{
-        if(wheel.countdown===0||electionMode){
-          setShowPhase((electionMode||wheel.automatic)?'reveal':'countdown');setSeconds(0)
-          if(electionMode||wheel.automatic){setReveal(true);soundEffect('win',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.reveal??75)}
-        }else{setShowPhase('countdown');setSeconds(wheel.countdown)}
-      },Math.max(0,Math.min(5000,wheel.popup?.questionDelay??750)))
-    },wheel.duration*1000)
+    spinTimer.current=window.setTimeout(()=>completeSpin(plan.id),reducedMotion?40:plan.durationMs+350)
   }
   const doVerdict=(v:'correct'|'wrong')=>{
     if(result===null || spinning)return
@@ -397,6 +414,7 @@ export default function SpinStudio() {
   const nextChallenge=()=>{if(spinning)return;if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
   const advanceStage=()=>{
     if(!recording || spinning || (electionMode && (electionPaused || electionFinale)))return
+    if(electionMode){if(showPhase==='idle'&&spinCount===0)spin();return}
     if(showPhase==='intro'||showPhase==='outro'){if(sceneRef.current!==null)clearTimeout(sceneRef.current);setShowPhase('idle');return}
     if(showPhase==='question'||showPhase==='countdown'){
       if(popup.tapAction==='off')return
@@ -750,8 +768,10 @@ export default function SpinStudio() {
               <button disabled={!axisEditable} onClick={()=>moveWheelAxes(rotation,wheelTiltX-10,wheelTiltY)}>Tilt down</button>
             </div>
             <button disabled={!axisEditable} onClick={()=>moveWheelAxes(0,0,0)}>Centre wheel and axes</button>
-            <label>Spin duration: {wheel.duration} seconds<input aria-label="Spin duration" type="range" min="3" max="10" value={wheel.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
-            <label>Answer countdown: {wheel.countdown} seconds<input aria-label="Answer countdown" type="range" min="0" max="15" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/></label>
+            <label>Spin duration: {wheel.duration} seconds<input aria-label="Spin duration" type="range" min="2" max="15" value={wheel.duration} onChange={e=>update({duration:Number(e.target.value)})}/></label>
+            <label>Spinning personality<select aria-label="Spinning personality" value={wheel.spinMotion??'cinematic'} disabled={spinning} onChange={e=>update({spinMotion:e.target.value as SpinMotion})}><option value="cinematic">Cinematic suspense</option><option value="classic">Classic mechanical</option><option value="rapid">Rapid fire</option><option value="party">Party energy</option></select></label>
+              <label>Spin direction<select aria-label="Spin direction" value={wheel.spinDirection??'clockwise'} disabled={spinning} onChange={e=>update({spinDirection:e.target.value as SpinDirection})}><option value="clockwise">Clockwise</option><option value="counterclockwise">Anticlockwise</option><option value="alternate">Alternate direction</option><option value="random">Random direction</option></select></label>
+              <label>Answer countdown: {wheel.countdown} seconds<input aria-label="Answer countdown" type="range" min="0" max="15" value={wheel.countdown} onChange={e=>update({countdown:Number(e.target.value)})}/></label>
             {showFormat==='political'&&<div className={styles.politicalNote}><strong>Election Championship · Default On</strong>
 <label className={styles.check}><input type="checkbox" checked={electionMode} disabled={spinning||spinCount>0} onChange={e=>{update({electionMode:e.target.checked,noRepeat:e.target.checked?false:wheel.noRepeat,countdown:e.target.checked?0:wheel.countdown});resetRun()}}/> Enable automatic election championship</label>
 <label>Number of candidates (2–24)<input aria-label="Number of election candidates" type="number" min="2" max="24" value={entries.length} disabled={spinning||spinCount>0} onChange={e=>{const count=Math.max(2,Math.min(24,Number(e.target.value)||2));update({entries:Array.from({length:count},(_,i)=>entries[i]??{id:uid(),label:'Candidate '+(i+1),question:'Random entertainment selection',answer:'No prediction'})})}}/></label>
@@ -811,7 +831,7 @@ export default function SpinStudio() {
                  onPointerCancel={()=>{wheelDragRef.current=null}}
                  style={{transform:'perspective(820px) rotateX('+wheelTiltX+'deg) rotateY('+wheelTiltY+'deg)',cursor:axisEditable?'grab':'default'}}>
                   <circle cx="200" cy="200" r="198" fill="#08152c" stroke="rgba(255,255,255,.32)" strokeWidth="3"/>
-                  {segmented.length>0 && <g style={{transform:'rotate('+rotation+'deg)',transformOrigin:'200px 200px',transition:spinning?'transform '+wheel.duration+'s cubic-bezier(.12,.78,.08,1)':'none'}}>
+                  {segmented.length>0 && <g onTransitionEnd={event=>{if(event.target===event.currentTarget&&event.propertyName==='transform')completeSpin(pendingPlan.current?.id)}} style={{transform:'rotate('+rotation+'deg)',transformOrigin:'200px 200px',transition:spinning&&!reducedMotion?'transform '+(activeSpinPlan?.durationMs??wheel.duration*1000)+'ms '+(activeSpinPlan?.easing??'ease-out'):'none'}}>
                     {segmented.map(({entry,index,path,degree})=><g key={entry.id}>
                       <path d={path} fill={colors[wheel.theme][index%8]} stroke="#121836" strokeWidth="1.8"/>
                       {entry.image && wheel.segmentStyle!=='text' && entries.length<=24 && <>
