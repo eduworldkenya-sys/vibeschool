@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { DirectorControls, DirectorStageEffects, focalStyle, useShowDirector } from '../../components/games/ShowDirector'
 import styles from './coin-studio.module.css'
+import DiscoveryInvitation, {recordMarketingGameCompletion} from '../../components/games/DiscoveryInvitation'
 
 type Side = 'heads' | 'tails'
 type Phase = 'idle' | 'countdown' | 'flipping' | 'ready' | 'reveal'
@@ -155,7 +156,7 @@ export default function CoinStudio() {
   const selectSetup = (id: string) => { reset(); setSelectedId(id); setHistory([]) }
   const revealChoice = (choice: Side) => {
     if (!current || pendingRef.current !== choice) return
-    setWinner(choice); setPhase('reveal')
+    setWinner(choice); setPhase('reveal'); recordMarketingGameCompletion()
     setHistory(old => [{side:choice,name:current[choice].name},...old].slice(0,60))
     if (current.sound) ping('win',current.volume)
     pendingRef.current = null
@@ -477,4 +478,5 @@ export default function CoinStudio() {
       </div>
     </div>
   </main>
+  <DiscoveryInvitation/>
 }
