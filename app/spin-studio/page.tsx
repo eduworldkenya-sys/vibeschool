@@ -145,6 +145,8 @@ export default function SpinStudio() {
   const [used,setUsed]=useState<string[]>([])
   const [spinCount,setSpinCount]=useState(0)
   const [electionVotes,setElectionVotes]=useState<string[]>([])
+  const [electionPaused,setElectionPaused]=useState(false)
+  const [electionFinale,setElectionFinale]=useState(false)
   const [seconds,setSeconds]=useState<number|null>(null)
   const [paste,setPaste]=useState('')
   const [showBulk,setShowBulk]=useState(false)
@@ -203,13 +205,14 @@ export default function SpinStudio() {
   const electionPoints=Math.max(1,Math.min(10,wheel?.electionPointsPerSpin??1))
   const electionWinnerTitle=(wheel?.electionWinnerTitle?.trim() || 'CHAMPION').slice(0,55)
   const electionScores=entries.map(entry=>({id:entry.id,name:entry.label,score:electionVotes.filter(id=>id===entry.id).length*electionPoints}))
+  const lastElectionVote=electionVotes[electionVotes.length-1]??null
   const electionTop=Math.max(0,...electionScores.map(candidate=>candidate.score))
   const electionWinners=electionScores.filter(candidate=>candidate.score===electionTop)
   const electionFinished=electionMode && spinCount>=electionTotal && entries.length>=2
   const batchMode=electionMode || (wheel?.batchMode??false)
   const available=entries.map((entry,index)=>({entry,index})).filter(({entry})=>electionMode || !wheel?.noRepeat || !used.includes(entry.id))
   const remaining=electionMode?Math.max(0,electionTotal-spinCount):wheel?.maxSpins ? Math.max(0,wheel.maxSpins-spinCount) : null
-  const locked=spinning || showPhase==='question' || showPhase==='countdown' || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
+  const locked=spinning || showPhase==='question' || showPhase==='countdown' || (electionMode&&electionPaused) || entries.length<2 || (remaining!==null && remaining===0) || available.length===0
   const axisEditable=!spinning && (showPhase==='idle'||showPhase==='reveal')
   const moveWheelAxes=(nextAngle:number,nextX:number,nextY:number)=>{
     if(!axisEditable)return
@@ -271,7 +274,7 @@ export default function SpinStudio() {
     if(countdownRef.current!==null)window.clearTimeout(countdownRef.current)
     if(sceneRef.current!==null)window.clearTimeout(sceneRef.current)
     pendingSpin.current=false
-    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setElectionVotes([]);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
+    setRotation(0);setSpinning(false);setResult(null);setReveal(false);setUsed([]);setSpinCount(0);setElectionVotes([]);setElectionPaused(false);setElectionFinale(false);setEpisodeLog([]);setSeconds(null);setVerdict(null);setShowOverlay(false);setShowPhase('idle')
   },[selectedId])
   useEffect(()=>{
     if(seconds===null || seconds<=0 || spinning || showPhase!=='countdown')return
@@ -288,18 +291,23 @@ export default function SpinStudio() {
     return ()=>window.clearTimeout(timer)
   },[seconds,showPhase,wheel])
   useEffect(()=>{
-    if(showPhase!=='reveal'||!(electionMode || wheel?.automatic)||!batchMode||remaining===0)return
+    if(showPhase!=='reveal'||!(electionMode || wheel?.automatic)||!batchMode||remaining===0||electionPaused)return
     const timer=window.setTimeout(()=>{
       setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false)
       if(!electionMode)window.setTimeout(()=>nextRef.current(),60)
     },Math.max(1,wheel.revealHold??3)*1000)
     return ()=>clearTimeout(timer)
-  },[showPhase,wheel,batchMode,electionMode,remaining])
+  },[showPhase,wheel,batchMode,electionMode,remaining,electionPaused])
   useEffect(()=>{
-    if(!electionMode || showPhase!=='idle' || spinning || spinCount===0 || remaining===0)return
+    if(!electionMode || electionPaused || showPhase!=='idle' || spinning || spinCount===0 || remaining===0)return
     const timer=window.setTimeout(()=>spinRef.current(),80)
     return ()=>window.clearTimeout(timer)
-  },[electionMode,showPhase,spinning,spinCount,remaining])
+  },[electionMode,electionPaused,showPhase,spinning,spinCount,remaining])
+  useEffect(()=>{
+    if(!electionMode||!electionFinished||showPhase!=='reveal'||electionFinale)return
+    const timer=window.setTimeout(()=>{setElectionFinale(true);setShowOverlay(false);soundEffect('win',Boolean(wheel?.sound),wheel?.volumes?.reveal??75)},Math.max(1,wheel?.revealHold??3)*1000)
+    return ()=>window.clearTimeout(timer)
+  },[electionMode,electionFinished,showPhase,electionFinale,wheel])
   useEffect(()=>()=>{if(spinTimer.current!==null)window.clearTimeout(spinTimer.current);if(countdownRef.current!==null)window.clearTimeout(countdownRef.current);if(sceneRef.current!==null)window.clearTimeout(sceneRef.current);captureStreamRef.current?.getTracks().forEach(t=>t.stop());const audio=musicRef.current;if(audio){audio.oscillators.forEach(osc=>{try{osc.stop()}catch{}});void audio.ctx.close().catch(()=>{})}},[])
   useEffect(()=>{
     const media=window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -322,6 +330,7 @@ export default function SpinStudio() {
     setWheels(all=>all.map(w=>w.id===selectedId?{...w,...patch}:w))
   },[selectedId,wheels])
   const undoEdit=()=>{
+    if(electionMode&&(spinCount>0||spinning))return
     const previous=pastRef.current.pop()
     if(!previous||previous.id!==selectedId)return
     const current=wheels.find(w=>w.id===selectedId)
@@ -330,6 +339,7 @@ export default function SpinStudio() {
     setUndoCount(pastRef.current.length);setRedoCount(futureRef.current.length)
   }
   const redoEdit=()=>{
+    if(electionMode&&(spinCount>0||spinning))return
     const next=futureRef.current.pop()
     if(!next||next.id!==selectedId)return
     const current=wheels.find(w=>w.id===selectedId)
@@ -339,11 +349,11 @@ export default function SpinStudio() {
   }
   const editPopup=(patch:Partial<PopupSettings>)=>update({popup:{...popup,...patch}})
   const resetPopup=()=>update({popup:{...DEFAULT_POPUP}})
-  const editEntry=(id:string,patch:Partial<Entry>)=>update({entries:entries.map(e=>e.id===id?{...e,...patch}:e)})
+  const editEntry=(id:string,patch:Partial<Entry>)=>{if(electionMode&&(spinCount>0||spinning))return;update({entries:entries.map(e=>e.id===id?{...e,...patch}:e)})}
   const resetRun=()=>{
     if(spinning)return
     if(countdownRef.current!==null)clearTimeout(countdownRef.current)
-    setUsed([]);setSpinCount(0);setElectionVotes([]);setEpisodeLog([]);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
+    setUsed([]);setSpinCount(0);setElectionVotes([]);setElectionPaused(false);setElectionFinale(false);setEpisodeLog([]);setResult(null);setReveal(false);setVerdict(null);setSeconds(null);setShowOverlay(false);setShowPhase('idle');setFeedback('Spin session reset.')
   }
   const spin=()=>{
     if(locked || !wheel || pendingSpin.current)return
@@ -363,7 +373,7 @@ export default function SpinStudio() {
       setSpinning(false);setResult(chosen.index);setUsed(old=>[...old,chosen.entry.id])
       setSpinCount(n=>n+1);if(electionMode)setElectionVotes(old=>[...old,chosen.entry.id]);pendingSpin.current=false
       setShowOverlay(wheel.popup?.enabled??true);setShowPhase('question')
-      setEpisodeLog(old=>[...old,chosen.entry.label].slice(-150))
+      setEpisodeLog(old=>electionMode?[...old,chosen.entry.label]:[...old,chosen.entry.label].slice(-150))
       soundEffect('tick',wheel.sound&&(wheel.popup?.playSound??true),wheel.volumes?.spin??55)
       if(wheel.popup?.vibrate && navigator.vibrate)navigator.vibrate(40)
       countdownRef.current=window.setTimeout(()=>{
@@ -386,7 +396,7 @@ export default function SpinStudio() {
   }
   const nextChallenge=()=>{if(spinning)return;if(countdownRef.current!==null){clearTimeout(countdownRef.current);countdownRef.current=null}setShowOverlay(false);setShowPhase('idle');setResult(null);setReveal(false);setSeconds(null);setVerdict(null)}
   const advanceStage=()=>{
-    if(!recording || spinning)return
+    if(!recording || spinning || (electionMode && (electionPaused || electionFinale)))return
     if(showPhase==='intro'||showPhase==='outro'){if(sceneRef.current!==null)clearTimeout(sceneRef.current);setShowPhase('idle');return}
     if(showPhase==='question'||showPhase==='countdown'){
       if(popup.tapAction==='off')return
@@ -458,7 +468,7 @@ export default function SpinStudio() {
     }
   }
   const showOutro=()=>{
-    if(spinning)return
+    if(spinning || electionMode&&spinCount>0&&!electionFinale)return
     if(countdownRef.current!==null)clearTimeout(countdownRef.current)
     if(sceneRef.current!==null)clearTimeout(sceneRef.current)
     setShowOverlay(false);setShowPhase('outro')
@@ -531,7 +541,7 @@ export default function SpinStudio() {
     setPaste('');setShowBulk(false);setFeedback('Entries added. Maximum 100 per wheel.')
   }
   const exportSession=()=>{
-    const rows=['spin,label',...episodeLog.map((label,i)=>[i+1,'"'+label.replaceAll('"','""')+'"'].join(','))]
+    const rows=electionMode?['round,candidate_id,name,points',...electionVotes.map((id,i)=>{const entry=entries.find(e=>e.id===id);return [i+1,id,'"'+(entry?.label??'Unknown').replaceAll('"','""')+'"',electionPoints].join(',')})]:['spin,label',...episodeLog.map((label,i)=>[i+1,'"'+label.replaceAll('"','""')+'"'].join(','))]
     const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'})
     const url=URL.createObjectURL(blob),anchor=document.createElement('a')
     anchor.href=url;anchor.download='spin-session-'+Date.now()+'.csv';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
@@ -578,7 +588,7 @@ export default function SpinStudio() {
       </header>}
       <div className={recording?styles.recordLayout:styles.layout}>
         {!recording && <aside className={styles.controls}>
-          <div className={styles.historyControls}><button disabled={!undoCount} onClick={undoEdit}>↶ Undo</button><button disabled={!redoCount} onClick={redoEdit}>↷ Redo</button><span>Changes saved locally</span></div>
+          <div className={styles.historyControls}><button disabled={!undoCount||(electionMode&&spinCount>0)} onClick={undoEdit}>↶ Undo</button><button disabled={!redoCount||(electionMode&&spinCount>0)} onClick={redoEdit}>↷ Redo</button><span>Changes saved locally</span></div>
           <nav className={styles.setupTabs} aria-label="Spin Studio setup">
             {(['wheels','content','appearance','effects','popup','settings','production'] as const).map(tab=><button key={tab} type="button" className={setupTab===tab?styles.activeTab:''} aria-current={setupTab===tab?'page':undefined} onClick={()=>setSetupTab(tab)}>{tab==='wheels'?'Wheels':tab==='content'?'Content':tab==='appearance'?'Appearance':tab==='effects'?'Effects':tab==='popup'?'Popup':tab==='production'?'Production':'Settings'}</button>)}
           </nav>
@@ -608,6 +618,7 @@ export default function SpinStudio() {
             <div className={styles.templateGrid}>{templates.map((t,i)=><button key={t.name} onClick={()=>loadTemplate(i)}>{t.name}</button>)}</div>
           </div>}
           {setupTab==='content' && <div className={styles.panel}>
+            <fieldset disabled={electionMode&&(spinCount>0||spinning)} style={{border:0,padding:0,margin:0,minWidth:0}}>
             <div className={styles.panelTitle}><h2>Wheel entries <span className={styles.muted}>{entries.length}/100</span></h2><button className={styles.smallButton} disabled={entries.length>=100} onClick={()=>update({entries:[...entries,{id:uid(),label:'New item',question:'',answer:''}]})}>+ Add</button></div>
             <p className={styles.hint}>Type a name below and watch the wheel change immediately. Add, rename or remove names. Your edits auto-save in this browser; use “Save as new version” to keep another copy.</p>
             {showFormat==='political'&&<div className={styles.politicalNote}><strong>Kenya 2027 · editable names</strong><p>These are publicly reported figures, not an official ballot. A wheel spin does not predict an election result.</p><button onClick={restorePoliticalNames}>Add missing example names (keep mine)</button><a href={politicalPresetUrl} target="_blank" rel="noopener noreferrer">Check current public listings</a></div>}
@@ -632,6 +643,7 @@ export default function SpinStudio() {
             </div>)}</div>
             <button onClick={()=>setShowBulk(v=>!v)}>{showBulk?'Close bulk editor':'+ Paste multiple entries'}</button>
             {showBulk && <div className={styles.bulk}><p className={styles.hint}>One line per segment: Label | Question | Answer</p><textarea rows={5} value={paste} onChange={e=>setPaste(e.target.value)} placeholder={'Brazil | What is its capital? | Brasília\nFractions | What is 1/2 + 1/4? | 3/4'}/><button onClick={importRows} disabled={!paste.trim()}>Add entries</button></div>}
+            </fieldset>
           </div>}
           {setupTab==='appearance' && <div className={styles.panel}>
             <h2>Appearance & backgrounds</h2>
@@ -746,7 +758,7 @@ export default function SpinStudio() {
 <label>Total spins (0 = automatic 2×)<input aria-label="Total election spins" type="number" min="0" max="9999" value={wheel.electionSpinTotal??0} disabled={spinning||spinCount>0} onChange={e=>update({electionSpinTotal:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>
 <label>Points added per landing (1–10)<input aria-label="Election points per spin" type="number" min="1" max="10" value={electionPoints} disabled={spinning||spinCount>0} onChange={e=>update({electionPointsPerSpin:Math.max(1,Math.min(10,Number(e.target.value)||1))})}/></label>
 <label>Final announcement title<input aria-label="Election winner announcement title" maxLength={55} value={wheel.electionWinnerTitle??'CHAMPION'} onChange={e=>update({electionWinnerTitle:e.target.value})}/></label>
-<p><b>{entries.length} candidates · {electionTotal} spins · +{electionPoints} point{electionPoints===1?'':'s'} per landing</b>. Press Spin Now once. Each round reveals only the selected name; scores are counted privately. After the last spin, the final random-draw result is announced. Ties are shown without inventing a winner.</p>
+<p><b>{entries.length} candidates · {electionTotal} spins · +{electionPoints} point{electionPoints===1?'':'s'} per landing</b>. Press Spin Now once. Every round reveals the selected name while the adjacent tally builds live. The final random-draw result is announced after the last reveal. Ties are shown without inventing a winner.</p>
 <p className={styles.hint}>Use Reset before changing candidates or scoring during a run. This random game is not a poll or election forecast.</p></div>}
 {!electionMode&&<label>Maximum spins (0 = unlimited)<input type="number" min="0" max="9999" value={wheel.maxSpins} onChange={e=>update({maxSpins:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>}
             {!electionMode&&<label className={styles.check}><input type="checkbox" checked={wheel.noRepeat} onChange={e=>update({noRepeat:e.target.checked})}/> Do not repeat a segment in this session</label>}
@@ -791,7 +803,7 @@ export default function SpinStudio() {
               <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span><b>VIBESPIN</b> by VIBESCHOOL</span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
               <div className={electionMode?styles.electionArena:styles.wheelOnlyArena}>
-              <div className={styles.wheelArea} style={focalStyle(director,showPhase==='reveal'?'reveal':spinning?'action':'idle',reducedMotion)}>
+              <div className={[styles.wheelArea,electionMode&&spinning?styles.electionSpinDrama:''].join(' ')} style={focalStyle(director,showPhase==='reveal'?'reveal':spinning?'action':'idle',reducedMotion)}>
                 <div className={styles.wheelHalo}/>
                 <div className={styles.wheelOrbitWrapper}>
                 <svg role="img" aria-label="Drag wheel to rotate and tilt along its axes" className={styles.wheelSvg} viewBox="0 0 400 400"
@@ -823,9 +835,10 @@ export default function SpinStudio() {
               </div>
               {electionMode&&<aside className={styles.electionTally} aria-label="Live random spin tally" aria-live="polite">
                 <div className={styles.electionTallyHead}><strong>LIVE TALLY</strong><span>{spinCount}/{electionTotal}</span></div>
-                {[...electionScores].sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)).map((candidate,index)=><div key={candidate.id} className={styles.electionTallyRow}>
+                {[...electionScores].sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)).map((candidate,index)=><div key={candidate.id} className={[styles.electionTallyRow,candidate.id===lastElectionVote&&showPhase!=='spinning'?styles.electionTallyPulse:''].join(' ')}>
                   <span className={styles.electionTallyRank}>{index+1}</span>
                   <span className={styles.electionTallyName}>{candidate.name}</span>
+                  <div className={styles.electionScoreTrack}><div className={styles.electionScoreFill} style={{width:(electionTop?candidate.score/electionTop*100:0)+'%'}}/></div>
                   <b className={styles.electionTallyScore}>{candidate.score}</b>
                 </div>)}
                 <div className={styles.electionTallyFoot}>{electionFinished?'FINAL TALLY':'+'+electionPoints+' PER SPIN · RANDOM DRAW'}</div>
@@ -866,7 +879,7 @@ export default function SpinStudio() {
                 </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>{electionMode?'Start the wheel to reveal each randomly selected name.': 'One spin. One question. Can you get it right?'}</p></>}
               </div>
               {electionMode&&<div aria-live="polite" style={{background:'rgba(4,15,32,.9)',border:'1px solid #ffffff44',borderRadius:12,padding:10,margin:'8px 0',color:'white',textAlign:'center'}}>
-{!electionFinished?<div style={{fontSize:12,fontWeight:800}}>ROUND {spinCount===0?1:spinCount} OF {electionTotal} · NAME REVEAL</div>:
+{!electionFinale?<div style={{fontSize:12,fontWeight:800}}>{electionFinished?'FINAL NAME REVEAL':'ROUND '+(spinCount===0?1:spinCount)+' OF '+electionTotal+' · NAME REVEAL'}</div>:
 <div style={{padding:'10px 0'}}>
 <div style={{fontSize:12,letterSpacing:2,fontWeight:800,color:'#7ef5cf'}}>FINAL RANDOM DRAW RESULT</div>
 <div style={{marginTop:8,fontSize:24,lineHeight:1.2,fontWeight:950}}>{electionWinners.length===1?electionWinnerTitle+': '+electionWinners[0].name:'TIE — '+electionWinners.map(c=>c.name).join(' / ')}</div>
@@ -879,11 +892,13 @@ export default function SpinStudio() {
           <div className={styles.playBar}>
             <div className={styles.playStatus}><span>{electionMode?'ELECTION AUTO':(wheel.automatic??true?'AUTO SHOW':'MANUAL SHOW')} · {batchMode?'BATCH ON':'SINGLE'}</span><span>SPINS <b>{spinCount}{remaining!==null?' / '+(electionMode?electionTotal:wheel.maxSpins):''}</b></span><span>{wheel.noRepeat?'UNIQUE LEFT '+available.length:'RANDOM MODE'}</span></div>
             <div className={styles.playButtons}>
-              <button className={styles.spinButton} disabled={locked} onClick={spin}>{spinning?'SPINNING…':available.length===0?'ALL SEGMENTS USED':remaining===0?'SPIN LIMIT REACHED':'✦ SPIN NOW'}</button>
-              <button disabled={spinning || result===null} onClick={()=>{if(reveal){setReveal(false);setShowPhase('question');setSeconds(null)}else revealNow();setVerdict(null)}}>{reveal?'Hide answer':'Reveal answer'}</button>
+              <button className={styles.spinButton} disabled={locked||electionFinale} onClick={spin}>{spinning?'SPINNING…':available.length===0?'ALL SEGMENTS USED':remaining===0?'SPIN LIMIT REACHED':'✦ SPIN NOW'}</button>
+              {!electionMode&&<button disabled={spinning || result===null} onClick={()=>{if(reveal){setReveal(false);setShowPhase('question');setSeconds(null)}else revealNow();setVerdict(null)}}>{reveal?'Hide answer':'Reveal answer'}</button>
               <button disabled={spinning || result===null} onClick={()=>doVerdict('correct')}>✓ Correct</button>
               <button disabled={spinning || result===null} onClick={()=>doVerdict('wrong')}>✕ Wrong</button>
-              <button onClick={nextChallenge} disabled={spinning || result===null}>Next</button><button onClick={resetRun} disabled={spinning}>Reset</button>
+              <button onClick={nextChallenge} disabled={spinning || result===null}>Next</button>}
+              {electionMode&&<button type="button" disabled={!spinCount||electionFinale} onClick={()=>setElectionPaused(v=>!v)}>{electionPaused?'Resume show':'Pause show'}</button>}
+              <button onClick={resetRun} disabled={spinning}>Reset</button>
             </div>
           </div>
           {recording && <div className={styles.recordBar}><span>VibeSpin · Tap to spin / reveal / next · Press N for next · 9:16 safe-zone ready</span><div>
