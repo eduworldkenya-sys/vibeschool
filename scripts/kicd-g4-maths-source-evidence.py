@@ -54,7 +54,10 @@ def main() -> int:
         return 4
     evidence = {
         "schema": "vibeschool.kicd.readonly-source-observation.v1",
-        "url": SOURCE_URL,\n        "origin_listing": KICD_LISTING,\n        "historical_kicd_url": HISTORICAL_URL,\n        "historical_pdf_equivalence": "NOT_VERIFIED",
+        "url": SOURCE_URL,
+        "origin_listing": KICD_LISTING,
+        "historical_kicd_url": HISTORICAL_URL,
+        "historical_pdf_equivalence": "NOT_VERIFIED",
         "target": "KICD Grade 4 regular Mathematics, revised 2024",
         "sha256_of_retrieved_bytes": digest.hexdigest(),
         "size_bytes": nbytes,
