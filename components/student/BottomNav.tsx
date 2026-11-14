@@ -17,7 +17,8 @@ type TabId = typeof TABS[number]["id"]
 function activeTab(path: string): TabId | null {
   if (path === "/student" || path === "/student/") return "home"
   if (path.startsWith("/student/vibelearn/topic-practice")) return "practise"
-  if (path.startsWith("/student/vibelearn/practice") || path.startsWith("/student/vibelearn/revision") || path.startsWith("/student/vibelearn/mistakes") || path.startsWith("/student/vibelearn/recovery") || path.startsWith("/student/vibelearn/topic")) return "practise"
+  if (path.startsWith("/student/vibelearn/revision") || path.startsWith("/student/vibelearn/mistakes") || path.startsWith("/student/vibelearn/recovery")) return null
+  if (path.startsWith("/student/vibelearn/practice") || path.startsWith("/student/vibelearn/topic")) return "practise"
   // Formal exams have their own owner and do not impersonate Learn or Practice.
   if (path.startsWith("/student/vibelearn/exams") || path.startsWith("/student/vibelearn/kcse")) return null
   if (path.startsWith("/student/exercises") || path.startsWith("/student/projects")) return "tasks"
@@ -40,6 +41,8 @@ const ICONS: Record<TabId, ({ active }: { active: boolean }) => React.ReactNode>
 const QUICK_LINKS = [
   { href: "/student/vibelearn/practice", label: "Practice Sets", Icon: BookOpenCheck },
   { href: "/student/vibelearn/exams", label: "Exams", Icon: GraduationCap },
+  { href: "/student/vibelearn/revision", label: "Revision", Icon: CalendarDays },
+  { href: "/student/vibelearn/mistakes", label: "My Mistakes", Icon: BookOpenCheck },
   { href: "/student/workspace", label: "Workspace", Icon: BookOpenCheck },
   { href: "/learn/stories", label: "Stories", Icon: BookOpenCheck },
   { href: "/student/timetable", label: "My Day", Icon: CalendarDays },
