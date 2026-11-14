@@ -354,6 +354,12 @@ export default function ParentStudentsPage() {
               />
             ))}
 
+            <section aria-label="Parent controls" style={{background:'#fff',padding:16,borderRadius:16,border:'1px solid #e5e7eb',marginBottom:14}}>
+              <strong>Parent Controls</strong>
+              <p style={{fontSize:12,color:'#6b7280'}}>Guide study routines, privacy and age-appropriate preferences for each linked learner.</p>
+              {children.map(child => <button key={child.student_id} type="button" onClick={()=>router.push(`/parent/child/${child.student_id}/controls`)} style={{display:'block',width:'100%',textAlign:'left',padding:12,marginTop:8,border:'1px solid #e5e7eb',background:'#f8fafc',borderRadius:12,cursor:'pointer'}}>Manage {child.name}&apos;s controls →</button>)}
+            </section>
+
             {/* Love card */}
             <LoveCard />
 
