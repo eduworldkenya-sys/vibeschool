@@ -7,6 +7,20 @@ import { useRouter } from 'next/navigation'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import { useStudent } from '@/lib/student-context'
 import { getRevisionWorkspace, isCurrentGradeMistake, type MistakeNotebookItem, type RevisionWorkspace } from '@/lib/student/vibelearn'
+import { supabase } from '@/lib/supabase'
+
+type ReleasedMiss = { recovery_key:string; attempt_id:string|null; assessment_item_id:string|null; reason:'incorrect'|'skipped'; prompt:string; context_title:string; identity_state:'verified'|'outcome_unlinked'|'outcome_not_verified'; outcome_code:string|null }
+function parseReleasedMisses(value:unknown):ReleasedMiss[] {
+  if (!value || typeof value!=='object' || Array.isArray(value)) throw new Error('Invalid released assessment evidence.')
+  const row=value as Record<string,unknown>
+  if(row.ok!==true || !Array.isArray(row.cases))throw new Error('Invalid released assessment evidence.')
+  return row.cases.flatMap((entry:unknown)=>{
+    if(!entry || typeof entry!=='object' || Array.isArray(entry))return []
+    const e=entry as Record<string,unknown>
+    if(e.origin!=='released_assessment'||typeof e.recovery_key!=='string'||typeof e.prompt!=='string'||typeof e.context_title!=='string'||!['incorrect','skipped'].includes(String(e.reason)))return []
+    return [{recovery_key:e.recovery_key,attempt_id:typeof e.attempt_id==='string'?e.attempt_id:null,assessment_item_id:typeof e.assessment_item_id==='string'?e.assessment_item_id:null,reason:e.reason as 'incorrect'|'skipped',prompt:e.prompt,context_title:e.context_title,identity_state:['verified','outcome_unlinked','outcome_not_verified'].includes(String(e.identity_state))?e.identity_state as ReleasedMiss['identity_state']:'outcome_unlinked',outcome_code:typeof e.outcome_code==='string'?e.outcome_code:null}]
+  })
+}
 
 /**
  * My Mistakes is a learner-owned repair queue, not a second assessment engine.
@@ -17,6 +31,8 @@ export default function VibeLearnMistakesPage() {
   const router = useRouter()
   const { identity } = useStudent()
   const [workspace, setWorkspace] = useState<RevisionWorkspace | null>(null)
+  const [released, setReleased] = useState<ReleasedMiss[]>([])
+  const [releasedError,setReleasedError]=useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'needs' | 'all' | 'reviewed'>('needs')
@@ -25,9 +41,17 @@ export default function VibeLearnMistakesPage() {
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
-    try { setWorkspace(await getRevisionWorkspace()) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load your learning records.') }
-    finally { setLoading(false) }
+    const [notebook,canonical]=await Promise.allSettled([
+      getRevisionWorkspace(),
+      supabase.rpc('student_get_exact_learning_recovery' as never,{p_attempt_id:null,p_limit:80})
+    ])
+    if(notebook.status==='fulfilled')setWorkspace(notebook.value)
+    else setError(notebook.reason instanceof Error?notebook.reason.message:'Could not load your learning records.')
+    if(canonical.status==='fulfilled' && !canonical.value.error){
+      try{setReleased(parseReleasedMisses(canonical.value.data));setReleasedError('')}
+      catch(cause){setReleasedError(cause instanceof Error?cause.message:'Could not read released assessment mistakes.')}
+    }else setReleasedError(canonical.status==='rejected'?String(canonical.reason):canonical.value.error?.message??'Could not read released assessment mistakes.')
+    setLoading(false)
   }, [])
   useEffect(() => { void load() }, [load])
 
@@ -64,7 +88,22 @@ export default function VibeLearnMistakesPage() {
 
     {error && <section style={card} role="alert"><strong>We could not load your mistakes.</strong><p style={muted}>{error}</p><button style={secondary} onClick={() => void load()}>Try again</button></section>}
     {loading ? <section style={card} role="status">Loading your learning records…</section>
-    : error ? null : <>
+    : error && released.length===0 ? null : <>
+      <section style={card} aria-label="Mistakes from released assessments">
+        <div style={sectionHead}><div><div style={kicker}>CANONICAL ASSESSMENT EVIDENCE</div><h2 style={heading}>Missed and skipped questions</h2></div><span style={counter}>{released.length} recent records</span></div>
+        <p style={muted}>These are drawn from your own released assessment responses, even when a curriculum link is awaiting verification. They are not a claim of verified mastery or a second score.</p>
+        {releasedError && <p role="alert" style={muted}>Released assessment evidence unavailable: {releasedError}</p>}
+        {released.length===0 && !releasedError && <p style={muted}>No missed released answers found in the recent recovery window.</p>}
+        {released.length>0 && <div style={{display:'grid',gap:10}}>{released.map(entry=><article key={entry.recovery_key} style={itemCard}>
+          <div style={sectionHead}><strong>{entry.context_title}</strong><span style={tag}>{entry.reason==='skipped'?'Skipped':'Incorrect'}</span></div>
+          <p style={{fontSize:14,lineHeight:1.55,margin:'8px 0'}}>{entry.prompt}</p>
+          <p style={muted}>{entry.identity_state==='verified'?'Verified outcome link':entry.outcome_code?'Outcome '+entry.outcome_code+' · verification pending':'Curriculum outcome link pending'}</p>
+          <div style={actions}>
+            {entry.attempt_id && <button style={primarySmall} onClick={()=>router.push('/student/vibelearn/recovery?attempt='+encodeURIComponent(entry.attempt_id!)+(entry.assessment_item_id?'&item='+encodeURIComponent(entry.assessment_item_id):''))}>Review exact mistake →</button>}
+            {entry.attempt_id && <button style={secondary} onClick={()=>router.push('/student/results/'+encodeURIComponent(entry.attempt_id!))}>View original result</button>}
+          </div>
+        </article>)}</div>}
+      </section>
       <section aria-label="Your repair overview" style={stats}>
         <Metric value={needs.length} title="Need fixing" detail="Current grade" />
         <Metric value={eligible.filter(item => item.status === 'practising').length} title="Practising" detail="Still needs proof" />
@@ -79,8 +118,8 @@ export default function VibeLearnMistakesPage() {
         {next.explanation && <details style={{margin:'12px 0'}}><summary style={summary}>Read recorded explanation</summary><p style={muted}>{next.explanation}</p></details>}
         <button style={primary} onClick={() => recovery(next)}>Fix this mistake →</button>
       </section> : <section style={card}>
-        <h2 style={heading}>No current-grade repairs waiting</h2>
-        <p style={muted}>Incorrect or skipped answers from supported scored activities appear here once recorded. Reviewed answers remain below; mastery still requires verified evidence.</p>
+        <h2 style={heading}>No verified notebook repairs waiting</h2>
+        <p style={muted}>Notebook recommendations need verified grade provenance. Your released assessment mistakes are shown separately above, even if their curriculum links are still pending verification.</p>
         <button style={secondary} onClick={() => router.push('/student/vibelearn/topic-practice')}>Open Topic Practice</button>
       </section>}
 

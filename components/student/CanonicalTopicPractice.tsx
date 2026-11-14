@@ -194,14 +194,14 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
   return <main style={shell}>
     <header style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center',flexWrap:'wrap'}}>
       <button type="button" style={{...secondary,display:'inline-flex',alignItems:'center',gap:7}} onClick={()=>{if(workspace){setWorkspace(null);setFinished(null);setFeedback([])}else router.push('/student/study')}}>
-        <ArrowLeft size={16} aria-hidden="true" />{workspace?'Save & exit':'Back to Learn'}
+        <ArrowLeft size={16} aria-hidden="true" />{workspace?(finished?'Choose topic':'Save & exit'):'Back to Learn'}
       </button>
       <span style={{...muted,display:'inline-flex',alignItems:'center',gap:6}}><Clock3 size={15} aria-hidden="true"/> Untimed · {grade}</span>
     </header>
     <div style={{margin:'22px 0 18px'}}>
       <p style={{...muted,fontSize:12,fontWeight:800,letterSpacing:1,textTransform:'uppercase',margin:'0 0 6px'}}>VibeLearn / Practise</p>
-      <h1 style={{fontSize:'clamp(25px,4vw,34px)',letterSpacing:'-.035em',margin:'0 0 8px'}}>{workspace ? 'Keep going' : 'Ready to practise?'}</h1>
-      <p style={{...muted,fontSize:14,margin:0}}>{workspace?'Your answers are saved as you go. Complete all five questions at your own pace.':'Choose a topic, answer five questions and learn from every answer.'}</p>
+      <h1 style={{fontSize:'clamp(25px,4vw,34px)',letterSpacing:'-.035em',margin:'0 0 8px'}}>{finished?'Practice finished':workspace ? 'Keep going' : 'Ready to practise?'}</h1>
+      <p style={{...muted,fontSize:14,margin:0}}>{finished?'Your result is saved. Review your answers or choose another topic.':workspace?'Your answers are saved as you go. Complete all five questions at your own pace.':'Choose a topic, answer five questions and learn from every answer.'}</p>
     </div>
     {error && <div role="alert" style={{...card,borderColor:'#fda4af',color:'#be123c',display:'flex',flexWrap:'wrap',gap:10,alignItems:'center'}}>
       <span style={{flex:1}}>{error}</span>
@@ -221,9 +221,10 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
         ? <div style={{padding:'18px 4px',display:'grid',gap:10,justifyItems:'start'}}>
           <BookOpen size={29} color="var(--vs-accent)" aria-hidden="true"/>
           <strong>{topics.length?'No topics match this filter.':'Practice topics are being prepared'}</strong>
-          <p style={{...muted,margin:0}}>{topics.length?'Try another subject to see available topics.':'Published five-question, untimed sets will appear here automatically. You can continue learning while they are prepared.'}</p>
+          <p style={{...muted,margin:0}}>{topics.length?'Try another subject to see available topics.':'Published five-question, untimed sets will appear here automatically. You can continue learning while they are prepared. Longer or timed assessments stay in Exams.'}</p>
           {topics.length>0 && <button type="button" style={secondary} onClick={()=>{setSubjectFilter('');router.replace('/student/vibelearn/topic-practice')}}>Show all topics</button>}
           {topics.length===0 && <button type="button" style={secondary} onClick={()=>void refresh().catch(cause=>setError(cause instanceof Error?cause.message:'Could not reload topics.'))}>Check again</button>}
+          {topics.length===0 && <button type="button" style={secondary} onClick={()=>router.push('/student/vibelearn/exams')}>Browse Exams</button>}
         </div>
         : <div style={{display:'grid',gap:10}}>{topicCards.map(card=><button key={card.key} type="button" disabled={busy||card.remaining===0}
           onClick={()=>void open(card.preferred)} style={{...topicTile,opacity:card.remaining===0?.65:1}}>

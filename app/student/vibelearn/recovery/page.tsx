@@ -156,13 +156,14 @@ export default function ExactLearningRecoveryPage() {
         </div>
         <h2 style={{fontSize:18,margin:'12px 0'}}>{item.prompt}</h2>
         <div style={outcome}>
-          <strong>Exact learning outcome</strong>
+          <strong>{verified?'Verified learning outcome':'Curriculum outcome awaiting verification'}</strong>
           <p style={{margin:'5px 0 0'}}>{item.outcome_text || 'No verified curriculum outcome is attached yet.'}</p>
           {item.outcome_code && <small>Outcome {item.outcome_code}</small>}
         </div>
         {!verified ? <div style={notice}>
           <strong>Curriculum verification required</strong>
-          <p style={{margin:'5px 0 0'}}>This question does not yet have a verified learning-outcome link. VibeSchool will not guess from its subject or topic, or recommend unrelated content.</p>
+          <p style={{margin:'5px 0 0'}}>The recorded outcome has not passed curriculum source verification. The saved assessment question and marking remain available for review; VibeSchool will not invent teaching resources or claim mastery.</p>
+          {item.attempt_id && <button style={{...secondary,marginTop:10}} onClick={()=>router.push('/student/results/'+encodeURIComponent(item.attempt_id!))}>Review original answer and explanation</button>}
         </div> : <>
           <LearningNotebookPrompt stage="recovery" compact />
           <div style={steps}>
