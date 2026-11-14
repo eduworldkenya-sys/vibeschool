@@ -38,6 +38,7 @@ test("Private tasks are visible from the canonical learner task screen",()=>{
   assert.match(tasks,/student\/tutoring/);
   assert.match(student,/PrivateTutorTasks/);
   assert.match(tutor,/PrivateTutorTasks/);
+  assert.match(tutor,/Tasks & feedback/);
   assert.match(tutor,/PrivateTutorGroups/);
   assert.match(ui,/vibetutor_review_private_task/);
   assert.match(groups,/vibetutor_assign_private_group_task/);
