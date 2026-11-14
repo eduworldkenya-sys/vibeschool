@@ -65,7 +65,7 @@ export default function VibeLearnExamsPage() {
   const [subject, setSubject] = useState('All subjects')
   const [examType, setExamType] = useState('All types')
   const [layout, setLayout] = useState<'grid' | 'list'>('grid')
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+
 
   const reload = useCallback(() => {
     let mounted = true
@@ -202,12 +202,11 @@ export default function VibeLearnExamsPage() {
     </article>
   }
 
-  return <main className={`vs-exams vs-exams-command vs-exams-theme-${theme}`}>
+  return <main className="vs-exams vs-exams-command">
     <div className="vs-exams-container">
       <div className="vs-command-topbar">
         <button type="button" className="vs-command-brand" onClick={() => router.push('/student')}><span className="vs-command-brand-icon" aria-hidden="true">V</span><span><strong>VibeSchool</strong><small>EXAM COMMAND CENTRE</small></span></button>
         <div className="vs-command-actions">
-          <button type="button" className="vs-exams-refresh" onClick={() => setTheme(old => old === 'dark' ? 'light' : 'dark')} aria-label="Toggle examination dashboard theme">{theme === 'dark' ? '☀ Light' : '☾ Dark'}</button>
           <button type="button" className="vs-exams-refresh" onClick={() => reload()} disabled={loading}>Refresh</button>
         </div>
       </div>
