@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, RotateCcw, Save, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, RotateCcw, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
-import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
 import LearningFeedback, { playLearningSound, useLearningFeedback } from '@/components/student/LearningFeedback'
 import { saveResponse, startOrResumeAttempt, submitAttempt } from '@/lib/assessment/engine'
 import type { AttemptWorkspace, SubmitAttemptResult } from '@/lib/assessment/types'
