@@ -194,14 +194,14 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
   return <main style={shell}>
     <header style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center',flexWrap:'wrap'}}>
       <button type="button" style={{...secondary,display:'inline-flex',alignItems:'center',gap:7}} onClick={()=>{if(workspace){setWorkspace(null);setFinished(null);setFeedback([])}else router.push('/student/study')}}>
-        <ArrowLeft size={16} aria-hidden="true" />{workspace?'Save & exit':'Back to Learn'}
+        <ArrowLeft size={16} aria-hidden="true" />{workspace?(finished?'Choose topic':'Save & exit'):'Back to Learn'}
       </button>
       <span style={{...muted,display:'inline-flex',alignItems:'center',gap:6}}><Clock3 size={15} aria-hidden="true"/> Untimed · {grade}</span>
     </header>
     <div style={{margin:'22px 0 18px'}}>
       <p style={{...muted,fontSize:12,fontWeight:800,letterSpacing:1,textTransform:'uppercase',margin:'0 0 6px'}}>VibeLearn / Practise</p>
-      <h1 style={{fontSize:'clamp(25px,4vw,34px)',letterSpacing:'-.035em',margin:'0 0 8px'}}>{workspace ? 'Keep going' : 'Ready to practise?'}</h1>
-      <p style={{...muted,fontSize:14,margin:0}}>{workspace?'Your answers are saved as you go. Complete all five questions at your own pace.':'Choose a topic, answer five questions and learn from every answer.'}</p>
+      <h1 style={{fontSize:'clamp(25px,4vw,34px)',letterSpacing:'-.035em',margin:'0 0 8px'}}>{finished?'Practice finished':workspace ? 'Keep going' : 'Ready to practise?'}</h1>
+      <p style={{...muted,fontSize:14,margin:0}}>{finished?'Your result is saved. Review your answers or choose another topic.':workspace?'Your answers are saved as you go. Complete all five questions at your own pace.':'Choose a topic, answer five questions and learn from every answer.'}</p>
     </div>
     {error && <div role="alert" style={{...card,borderColor:'#fda4af',color:'#be123c',display:'flex',flexWrap:'wrap',gap:10,alignItems:'center'}}>
       <span style={{flex:1}}>{error}</span>
