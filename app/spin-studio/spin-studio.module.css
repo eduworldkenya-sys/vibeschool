@@ -235,3 +235,52 @@
  .playButtons{grid-template-columns:minmax(0,1fr)}
  .header h1{font-size:27px}
 }
+
+/* Political broadcast stage: use one deterministic stack, never the generic
+   landscape two-column grid (which made the title, wheel and results overlap). */
+.politicalStage .stageContent{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:space-between;
+  gap:clamp(3px,.8vh,9px);
+  padding:clamp(9px,1.8%,20px);
+}
+.politicalStage .brand{flex:0 0 auto;justify-content:center}
+.politicalStage .titleBlock{flex:0 0 auto;align-self:center;max-width:94%}
+.politicalStage .titleBlock h2{font-size:clamp(17px,2.2vw,28px);line-height:1.12;max-width:100%;margin:0 auto;letter-spacing:-.025em}
+.politicalStage .questionArea{display:none}
+.politicalStage .electionArena{flex:1 1 auto;min-height:0;min-width:0;width:100%;align-items:center}
+.politicalStage .wheelArea{min-height:0;min-width:0;height:100%;display:flex;justify-content:center;align-items:center;grid-column:auto;grid-row:auto}
+.politicalStage .wheelOrbitWrapper{
+  width:min(var(--wheel-size,330px),100%);
+  height:min(var(--wheel-size,330px),100%);
+  max-height:100%;max-width:100%;
+  transform:translate(var(--wheel-x,0px),var(--wheel-y,0px));
+}
+.politicalStage .electionTally{max-height:100%;max-width:100%;align-self:stretch}
+.politicalStage .electionRoundStatus{flex:0 0 auto;padding:5px 9px;margin:0;font-size:12px}
+.politicalStage .electionFinale{flex:0 0 auto;margin:0;padding:7px 12px}
+.politicalStage .electionFinale>div{padding:0!important}
+.politicalStage .electionFinale>div>div:nth-child(2){font-size:clamp(16px,2.5vw,24px)!important;margin-top:4px!important}
+.politicalStage .politicalStageDisclaimer{flex:0 0 auto;margin:0!important;font-size:10px;line-height:1.2;padding:3px 8px}
+.politicalStage.landscape .electionArena{display:grid;grid-template-columns:minmax(0,1fr) minmax(155px,min(var(--tally-width,240px),44%));grid-template-rows:minmax(0,1fr);gap:clamp(8px,1.8vw,22px)}
+.politicalStage.landscape .electionArenabottom{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+.politicalStage.landscape .electionArenafloating{grid-template-columns:minmax(0,1fr)}
+.politicalStage.landscape .electionTallyfloating{align-self:auto}
+.politicalStage .electionTallyHead{position:sticky}
+.stage:fullscreen.politicalStage.landscape .stageContent{width:min(100%,1200px);height:100%;margin:auto}
+.stage:fullscreen.politicalStage.landscape .wheelOrbitWrapper{height:min(var(--wheel-size,330px),100%);width:min(var(--wheel-size,330px),100%)}
+.stage:fullscreen.politicalStage.landscape .wheelSvg{max-height:100%}
+@media(max-width:640px){
+ .politicalStage .titleBlock h2{font-size:clamp(13px,3vw,22px)}
+ .politicalStage.landscape .electionArena{grid-template-columns:minmax(0,1fr) minmax(92px,38%);gap:5px}
+ .politicalStage .electionTallyRow{font-size:clamp(8px,2vw,12px)}
+ .politicalStage .electionTally{padding:5px}
+ .politicalStage .electionTallyScore{font-size:10px;padding:2px}
+ .politicalStage .electionRoundStatus{padding:2px 5px;font-size:10px}
+ .politicalStage .politicalStageDisclaimer{font-size:8px}
+ .politicalStage .wheelOrbitWrapper{transform:none}
+ .politicalStage .electionTallyfloating{position:static;transform:none;width:100%;max-height:110px}
+ .politicalStage.landscape .electionArenafloating{grid-template-rows:minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr)}
+}
