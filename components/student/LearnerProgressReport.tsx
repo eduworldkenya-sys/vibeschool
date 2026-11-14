@@ -1,8 +1,10 @@
 "use client"
 
 import {useEffect,useMemo,useState} from "react"
+import {supabase} from "@/lib/supabase"
+import {useStudent} from "@/lib/student-context"
 
-type Score = {id:string;subject:string;marks:number;total_marks:number;exam_name?:string;academic_year?:number;term?:number}
+type Score = {id:string;subject:string;marks:number;total_marks:number;exam_name?:string;academic_year?:number;term?:number;occurredAt?:string|null}
 type Competency = {id:string;subjectName:string;performance:string}
 type Props = {studentId:string;exams:Score[];grades:Score[];competencies:Competency[]}
 type Module = "trend"|"subjects"|"composition"|"activity"|"goals"|"reflection"
@@ -21,6 +23,8 @@ export default function LearnerProgressReport({studentId,exams,grades,competenci
   const [reflection,setReflection]=useState("")
   const [customise,setCustomise]=useState(false)
   const [ready,setReady]=useState(false)
+  const {identity}=useStudent()
+  const [taskDates,setTaskDates]=useState<string[]>([])
   useEffect(()=>{
     setReady(false)
     try {
@@ -36,9 +40,20 @@ export default function LearnerProgressReport({studentId,exams,grades,competenci
     setReady(true)
   },[studentId])
   useEffect(()=>{if(!ready)return;try{localStorage.setItem("vs:report-preferences:"+studentId,JSON.stringify({visible,format,goal,reflection}))}catch{}},[studentId,ready,visible,format,goal,reflection])
+  useEffect(()=>{
+    if(!identity?.profileId){setTaskDates([]);return}
+    let cancelled=false
+    void supabase.from("student_personal_planner").select("completed_at").eq("owner_user_id",identity.profileId).not("completed_at","is",null).limit(500)
+      .then(({data,error})=>{if(!cancelled)setTaskDates(error?[]:(data??[]).map(x=>x.completed_at).filter((x):x is string=>typeof x==="string"))})
+    return ()=>{cancelled=true}
+  },[identity?.profileId])
   const all=useMemo(()=>[...exams.map(x=>({...x,kind:"Exams"})),...grades.map(x=>({...x,kind:"Grades"}))],[exams,grades])
   const subjects=useMemo(()=>Array.from(new Set(all.map(x=>x.subject))).sort(),[all])
   const selected=all.filter(x=>subject==="All subjects"||x.subject===subject)
+  const dated=selected.filter(x=>x.occurredAt && Number.isFinite(Date.parse(x.occurredAt))).sort((a,b)=>Date.parse(a.occurredAt!)-Date.parse(b.occurredAt!))
+    .map(x=>({...x,pct:safePct(x.marks,x.total_marks)})).filter((x):x is typeof x & {pct:number}=>x.pct!==null)
+  const activityDays=new Set(taskDates.map(x=>new Date(x).toLocaleDateString("en-CA")))
+  const heatmapDays=Array.from({length:28},(_,i)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-27+i);return {key:d.toLocaleDateString("en-CA"),label:d.toLocaleDateString("en-KE",{weekday:"short",day:"numeric",month:"short"})}})
   const scored=selected.map(x=>({...x,pct:safePct(x.marks,x.total_marks)})).filter((x):x is typeof x & {pct:number}=>x.pct!==null)
   const average=scored.length?Math.round(scored.reduce((s,x)=>s+x.pct,0)/scored.length):null
   const bySubject=subjects.map(name=>{
@@ -77,9 +92,14 @@ export default function LearnerProgressReport({studentId,exams,grades,competenci
       <div style={panel}><div style={{fontSize:12,color:"var(--vs-muted)"}}>Competency observations</div><strong style={{fontSize:26}}>{subject==="All subjects"?competencies.length:competencies.filter(x=>x.subjectName===subject).length}</strong></div>
     </div>
     {ordered.map(({id,name})=><article key={id} style={panel}><h3 style={{fontSize:16,margin:"0 0 10px"}}>{name}</h3>
-      {id==="trend"&&(scored.length<2?<p style={{fontSize:13,color:"var(--vs-muted)"}}>At least two comparable dated assessments are needed for a reliable trend.</p>:<>
-        {visual&&<div style={{display:"flex",alignItems:"end",gap:5,height:125,borderBottom:"1px solid var(--vs-border)"}}>{scored.slice(0,16).map((item,i)=><div key={item.id+":"+i} title={item.subject+": "+Math.round(item.pct)+"%"} style={{flex:1,maxWidth:45,height:item.pct+"%",background:"var(--vs-accent)",borderRadius:"5px 5px 0 0"}}/>)}</div>}
-        {explanatory("These are recorded results in feed order, not a verified time-series. Select a result in the assessment history below for its details. Do not treat different exams as directly comparable without checking difficulty and coverage.")}
+      {id==="trend"&&(dated.length<2?<p style={{fontSize:13,color:"var(--vs-muted)"}}>A dated trend appears after at least two released assessments. Undated school grades remain in the history below.</p>:<>
+        {visual&&<svg role="img" aria-label="Dated released assessment scores" viewBox="0 0 640 190" preserveAspectRatio="xMidYMid meet" style={{width:"100%",height:"auto",maxHeight:230}}>
+          {[0,25,50,75,100].map(level=><g key={level}><line x1="44" x2="620" y1={165-level*1.35} y2={165-level*1.35} stroke="currentColor" strokeOpacity=".15"/><text x="38" y={169-level*1.35} textAnchor="end" fontSize="11" fill="currentColor">{level}</text></g>)}
+          <polyline fill="none" stroke="var(--vs-accent)" strokeWidth="3" strokeLinejoin="round" points={dated.slice(-12).map((x,i,a)=>(44+i*(576/Math.max(1,a.length-1)))+","+(165-x.pct*1.35)).join(" ")}/>
+          {dated.slice(-12).map((x,i,a)=><g key={x.id+":"+i}><circle cx={44+i*(576/Math.max(1,a.length-1))} cy={165-x.pct*1.35} r="6" fill="var(--vs-accent)"><title>{x.exam_name||x.subject}: {Math.round(x.pct)}% · {new Date(x.occurredAt!).toLocaleDateString("en-KE")}</title></circle></g>)}
+        </svg>}
+        {words&&<div style={{display:"grid",gap:6}}>{dated.slice(-5).map(x=><div key={x.id} style={{fontSize:12,display:"flex",justifyContent:"space-between",gap:8}}><span>{x.exam_name||x.subject} · {new Date(x.occurredAt!).toLocaleDateString("en-KE")}</span><strong>{Math.round(x.pct)}%</strong></div>)}</div>}
+        {explanatory("Each point is a released assessment with a verified release date. Differences in difficulty and topic coverage mean this is a score history, not a guaranteed mastery trend.")}
       </>)}
       {id==="subjects"&&(bySubject.length===0?<p style={{fontSize:13,color:"var(--vs-muted)"}}>Subject comparisons will appear once results have been released.</p>:bySubject.map(x=><div key={x.name} style={{marginBottom:12,fontSize:13}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:12}}><strong>{x.name}</strong><span>{x.mean}% · {x.count} record{x.count===1?"":"s"}</span></div>
@@ -87,13 +107,21 @@ export default function LearnerProgressReport({studentId,exams,grades,competenci
       </div>))}
       {id==="subjects"&&explanatory("The bars compare averages of available scored records, not mastered curriculum skills.")}
       {id==="composition"&&<>
-        {visual&&<div aria-label="Distribution of evidence types" style={{display:"flex",height:18,overflow:"hidden",borderRadius:12,background:"var(--vs-border)"}}>
-          {all.length>0&&<><div title={"Exam results: "+exams.length} style={{width:exams.length/all.length*100+"%",background:"#168b72"}}/><div title={"Traditional grades: "+grades.length} style={{width:grades.length/all.length*100+"%",background:"#6383c5"}}/></>}
+        {visual&&all.length>0&&<div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}>
+          <div role="img" aria-label={exams.length+" exam records and "+grades.length+" grade records"} style={{width:128,height:128,borderRadius:"50%",background:`conic-gradient(#168b72 0% ${exams.length/all.length*100}%, #6383c5 ${exams.length/all.length*100}% 100%)`,display:"grid",placeItems:"center",flexShrink:0}}>
+            <div style={{width:76,height:76,borderRadius:"50%",background:"var(--vs-card)",display:"grid",placeItems:"center",fontWeight:800}}>{all.length}</div>
+          </div>
+          <div style={{display:"grid",gap:8,fontSize:13}}><span><span style={{color:"#168b72"}}>●</span> Exam results: {exams.length}</span><span><span style={{color:"#6383c5"}}>●</span> Traditional grades: {grades.length}</span></div>
         </div>}
-        <p style={{fontSize:13}}>Exam results: {exams.length} · Traditional grades: {grades.length} · Competency observations: {competencies.length}</p>
-        {explanatory("This shows the distribution of records, not how well you performed.")}
+        {words&&<p style={{fontSize:13}}>Exam results: {exams.length} · Traditional grades: {grades.length} · Competency observations: {competencies.length}</p>}
+        {all.length===0&&<p style={{fontSize:13,color:"var(--vs-muted)"}}>No released scored evidence yet.</p>}
+        {explanatory("This shows proportions of assessment records, not how well you performed. Competency observations are separate because they are not scored grades.")}
       </>}
-      {id==="activity"&&<><p style={{fontSize:13,color:"var(--vs-muted)"}}>A learning heatmap requires dated completed activities from Tasks, Learn and Practice. This report does not invent study days from exam marks.</p>{explanatory("When dated activity evidence is connected, show a calendar of actual work completed, with an accessible text alternative.")}</>}
+      {id==="activity"&&<>
+        {visual&&<div style={{display:"grid",gridTemplateColumns:"repeat(7,minmax(0,1fr))",gap:5,maxWidth:440}}>{heatmapDays.map(day=><div key={day.key} title={day.label+(activityDays.has(day.key)?" · personal task completed":" · no completed personal task recorded")} style={{minHeight:32,borderRadius:6,background:activityDays.has(day.key)?"var(--vs-accent)":"var(--vs-border)"}}/>)}</div>}
+        {words&&<p style={{fontSize:13}}>{heatmapDays.filter(day=>activityDays.has(day.key)).length} days with at least one completed personal task in the last 28 days.</p>}
+        {explanatory("Only checked-off personal tasks from the last 28 days are represented. An empty cell is not proof that no learning happened; schoolwork and practice data are not yet connected to this heatmap.")}
+      </>}
       {id==="goals"&&<div style={{display:"grid",gap:8}}>
         <label htmlFor="vs-goal" style={{fontSize:13,fontWeight:700}}>My next assessment target: {goal}%</label>
         <input id="vs-goal" type="range" min="50" max="100" step="5" value={goal} onChange={e=>setGoal(Number(e.target.value))}/>
