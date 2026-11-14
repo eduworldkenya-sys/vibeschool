@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 const page=fs.readFileSync(new URL('../app/pendulum-studio/page.tsx',import.meta.url),'utf8')
 const css=fs.readFileSync(new URL('../app/pendulum-studio/pendulum-studio.module.css',import.meta.url),'utf8')
+const surface=fs.readFileSync(new URL('../app/pendulum-studio/SphereSurface.tsx',import.meta.url),'utf8')
+const gamesCss=fs.readFileSync(new URL('../app/games-studio/games-studio.module.css',import.meta.url),'utf8')
 const layout=fs.readFileSync(new URL('../app/pendulum-studio/layout.tsx',import.meta.url),'utf8')
 const robots=fs.readFileSync(new URL('../app/robots.ts',import.meta.url),'utf8')
 test('unlisted SEO-blocked VibePendulum creator route',()=>{
@@ -36,18 +38,29 @@ test('local storage and screen capture cleanups are present',()=>{
  assert.match(page,/URL\.revokeObjectURL/)
 })
 
-test('VibeSphere pointer always selects one of two opposing 3D faces',()=>{
- assert.match(page,/const choice=randomSide\(\)/)
+test('VibeSphere projects a genuine round GPU-lit surface, not two flat CSS discs',()=>{
+ assert.match(page,/SphereSurface rotation=\{rotation\}/)
+ assert.match(surface,/getContext\('webgl'/)
+ assert.match(surface,/sqrt\(max\(0\.0,1\.0-d\)\)/)
+ assert.match(surface,/atan\(n\.x,n\.z\)\+uRotation/)
+ assert.match(surface,/latitude=asin/)
+ assert.match(surface,/pow\(max\(0\.0/)
+ assert.match(surface,/texture2D\(uAtlas/)
+ assert.match(css,/\.sphereCanvas/)
+})
+test('pointer maps winner to displayed spherical longitude',()=>{
  assert.match(page,/const finish=360\*loops\+\(target==='left'\?0:180\)/)
- assert.match(page,/rotateY\('/)
- assert.match(page,/styles\.orbFront/)
- assert.match(page,/styles\.orbBack/)
+ assert.match(page,/const destination=base\+finish/)
  assert.match(page,/styles\.pointerNeedle/)
- assert.match(css,/\.orbPerspective/)
- assert.match(css,/\.orbFace/)
- assert.match(css,/backface-visibility:hidden/)
- assert.match(css,/\.pointerAssembly/)
- assert.match(css,/\.sphereResultInline/)
+ assert.match(surface,/longitude\/6\.28318530718/)
+ assert.match(surface,/A is centred at longitude 0°/)
+ assert.match(surface,/B at longitude 180°/)
+ assert.match(page,/FIXED POINTER · FRONT FACE/)
+})
+test('Vercel build-blocking scratch CSS stays scoped to a CSS module class',()=>{
+ assert.match(gamesCss,/\.page :global\(\.scratchSurface\)/)
+ assert.match(gamesCss,/\.page :global\(\.scratchBoard\)/)
+ assert.doesNotMatch(gamesCss,/(?:^|\n):global\(\.scratch/m)
 })
 test('former pendulum link and saved matchups are retained',()=>{
  assert.match(page,/vibeschool\.vibependulum\.studio\.v1/)
