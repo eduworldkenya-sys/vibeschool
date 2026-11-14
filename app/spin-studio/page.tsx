@@ -790,6 +790,7 @@ export default function SpinStudio() {
             <div className={styles.stageContent}>
               <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span><b>VIBESPIN</b> by VIBESCHOOL</span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
+              {electionMode&&<div className={styles.electionArena}>
               <div className={styles.wheelArea} style={focalStyle(director,showPhase==='reveal'?'reveal':spinning?'action':'idle',reducedMotion)}>
                 <div className={styles.wheelHalo}/>
                 <div className={styles.wheelOrbitWrapper}>
@@ -820,6 +821,16 @@ export default function SpinStudio() {
                 </div>
                 {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
+              {electionMode&&<aside className={styles.electionTally} aria-label="Live random spin tally" aria-live="polite">
+                <div className={styles.electionTallyHead}><strong>LIVE TALLY</strong><span>{spinCount}/{electionTotal}</span></div>
+                {[...electionScores].sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)).map((candidate,index)=><div key={candidate.id} className={styles.electionTallyRow}>
+                  <span className={styles.electionTallyRank}>{index+1}</span>
+                  <span className={styles.electionTallyName}>{candidate.name}</span>
+                  <b className={styles.electionTallyScore}>{candidate.score}</b>
+                </div>)}
+                <div className={styles.electionTallyFoot}>{electionFinished?'FINAL TALLY':'+'+electionPoints+' PER SPIN · RANDOM DRAW'}</div>
+              </aside>}
+              {electionMode&&</div>}
               {(showPhase==='intro'||showPhase==='outro')&&<div className={styles.brandScene} role="status" aria-live="polite">
                 <div className={styles.brandSceneMark}>VibeSpin</div>
                 <div className={styles.brandSceneBy}>by VibeSchool</div>
