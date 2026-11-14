@@ -38,7 +38,16 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
   useEffect(()=>{if(!active?.can_read)return;const root=document.getElementById("reader-active-unit");if(!root)return;const sb=createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);let last=Math.max(0,active.progress_percent??0);let timer:number|undefined;const update=()=>{window.clearTimeout(timer);timer=window.setTimeout(()=>{const rect=root.getBoundingClientRect();const rootTop=window.scrollY+rect.top;const readBottom=Math.max(0,window.scrollY+window.innerHeight-rootTop);const pct=Math.max(0,Math.min(100,Math.round(readBottom/Math.max(root.scrollHeight,1)*100)));if(pct>=Math.min(100,last+5)||pct>=98){last=Math.max(last,pct);void sb.rpc("record_reading_progress",{publication_id_input:payload.publication.id,chapter_id_input:active.id,progress_percent_input:last})}},180)};window.addEventListener("scroll",update,{passive:true});update();return()=>{window.removeEventListener("scroll",update);window.clearTimeout(timer)}},[payload.publication.id,active?.id,active?.can_read]);
 
   function go(i:number){if(!chapters[i])return;narrator.stop();setIndex(i);setContents(false);setSheet(null);window.history.replaceState(window.history.state,"",`/read/textbook/${publicationId}/${encodeURIComponent(chapters[i].id)}`);setTimeout(()=>document.getElementById("reader-active-unit")?.scrollIntoView({behavior:"smooth",block:"start"}),20)}
-  function openPractice(){window.dispatchEvent(new Event("vibe:reader-open-practice"));setSheet(null)}
+  function openPractice(){
+    if(!active?.can_read)return;
+    // Include the exact active chapter with the event: do not rely on a
+    // potentially stale chapter-change listener during fast navigation.
+    const nextChapterId=chapters.slice(index+1).find(chapter=>chapter.can_read&&chapter.status==="published")?.id??null;
+    window.dispatchEvent(new CustomEvent("vibe:reader-open-practice",{detail:{
+      publicationId,chapterId:active.id,nextChapterId,
+    }}));
+    setSheet(null);
+  }
 
   const pub=payload.publication;const path=[active?.curriculum.grade&&cap(active.curriculum.grade),active?.curriculum.subject&&cap(active.curriculum.subject),active?.curriculum.strand].filter(Boolean).join(" · ");const filtered=chapters.filter(c=>!query.trim()||`${c.number} ${c.title??""}`.toLowerCase().includes(query.toLowerCase()));
 

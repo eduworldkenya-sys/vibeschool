@@ -54,6 +54,12 @@ export default function VibeLearnPracticePage() {
   const requestedTopic = params.get('topic')?.replaceAll('-', ' ') ?? ''
   const requestedPublicationId = params.get('publication') ?? ''
   const requestedChapterId = params.get('chapter') ?? ''
+  // A reader-provided next unit is navigation only, never proof of mastery.
+  // Accept a chapter ID only in its expected UUID form; reader access is checked
+  // again by the canonical textbook route.
+  const requestedNextChapterId = params.get('next') ?? ''
+  const validNextChapterId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedNextChapterId)
+    && requestedNextChapterId !== requestedChapterId
   const hasReaderSource = Boolean(requestedPublicationId && requestedChapterId)
 
   const [sourceContext, setSourceContext] = useState<GroundedPracticeSource | null>(null)
@@ -163,7 +169,13 @@ export default function VibeLearnPracticePage() {
       (!requestedTopic || title.includes(requestedTopic.toLowerCase()))
   })
   const showLegacyBank = !hasReaderSource && /^form\s*[1-4]$/i.test(identity?.className?.trim() ?? '')
-  const backUrl = sourceContext ? `/read/textbook/${sourceContext.publicationId}?chapter=${sourceContext.chapterId}` : '/student/vibelearn'
+  const backUrl = sourceContext
+    ? `/read/textbook/${encodeURIComponent(sourceContext.publicationId)}/${encodeURIComponent(sourceContext.chapterId)}`
+    : '/student/study'
+  const nextUrl = sourceContext && validNextChapterId
+    ? `/read/textbook/${encodeURIComponent(sourceContext.publicationId)}/${encodeURIComponent(requestedNextChapterId)}`
+    : '/student/study'
+  const needsReview = correct < questions.length
 
   async function checkAnswer() {
     if (!question || submitted || saving) return
@@ -250,7 +262,7 @@ export default function VibeLearnPracticePage() {
       </div>}
     </section>}
     {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
-    {!hasReaderSource && !showLegacyBank ? null : loading ? <section style={card}>Loading questions…</section> : questions.length === 0 ? <section style={card}><strong>No grounded questions available</strong><p style={muted}>{sourceContext ? 'This unit is readable, but it has no authored, markable question blocks yet. Review the unit or choose another practice set.' : identity && !/^form\s*[1-4]$/i.test(identity.className.trim()) ? `Verified ${identity.className} practice questions are not available yet. You can continue with your assigned class exercises.` : 'No verified question-bank drills are available for this selection yet.'}</p>{!sourceContext && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}><button style={primaryButton} onClick={() => router.push('/student/vibelearn/reading')}>Browse published learning units</button>{identity?.classId && <button style={secondaryButton} onClick={() => router.push('/student/exercises')}>Open class exercises</button>}</div>}</section> : finished ? <section style={card}><div style={eyebrowDark}>Session complete</div><h2 style={{ fontSize: 28, margin: '8px 0' }}>{scoreLabel}</h2><p style={muted}>Your answers and grounded mistakes are now part of your learning journey and revision evidence.</p><div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}><button style={primaryButton} onClick={restart}>Try again</button>{sourceContext && <button style={secondaryButton} onClick={() => router.push(backUrl)}>Review this unit</button>}<button style={secondaryButton} onClick={() => router.push('/student/vibelearn/mistakes')}>Open mistakes</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open revision plan</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/exams')}>Open exams</button></div></section> : question && <>
+    {!hasReaderSource && !showLegacyBank ? null : loading ? <section style={card}>Loading questions…</section> : questions.length === 0 ? <section style={card}><strong>No grounded questions available</strong><p style={muted}>{sourceContext ? 'This unit is readable, but it has no authored, markable question blocks yet. Review the unit or choose another practice set.' : identity && !/^form\s*[1-4]$/i.test(identity.className.trim()) ? `Verified ${identity.className} practice questions are not available yet. You can continue with your assigned class exercises.` : 'No verified question-bank drills are available for this selection yet.'}</p>{hasReaderSource && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}><button style={secondaryButton} onClick={() => router.push(`/read/textbook/${encodeURIComponent(requestedPublicationId)}/${encodeURIComponent(requestedChapterId)}`)}>Review this unit</button><button style={primaryButton} onClick={() => router.push(nextUrl)}>Continue learning →</button></div>}{!sourceContext && !hasReaderSource && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}><button style={primaryButton} onClick={() => router.push('/student/vibelearn/reading')}>Browse published learning units</button>{identity?.classId && <button style={secondaryButton} onClick={() => router.push('/student/exercises')}>Open class exercises</button>}</div>}</section> : finished ? <section style={card}><div style={eyebrowDark}>Session complete</div><h2 style={{ fontSize: 28, margin: '8px 0' }}>{scoreLabel}</h2><p style={muted}>{needsReview ? 'Some answers need another look. Review the explanation and retry when ready.' : 'All answers were correct in this practice. This is useful evidence, not certified mastery.'}</p><div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>{sourceContext && needsReview && <button style={primaryButton} onClick={() => router.push(backUrl)}>Review this unit</button>}<button style={sourceContext && !needsReview ? primaryButton : secondaryButton} onClick={() => sourceContext && !needsReview ? router.push(nextUrl) : restart()}>{sourceContext && !needsReview ? 'Continue learning →' : 'Try again'}</button>{sourceContext && !needsReview && <button style={secondaryButton} onClick={() => router.push(backUrl)}>Review this unit</button>}{sourceContext && needsReview && <button style={secondaryButton} onClick={() => router.push(nextUrl)}>Continue learning →</button>}<button style={secondaryButton} onClick={() => router.push('/student/vibelearn/mistakes')}>Open mistakes</button>{!sourceContext && <button style={secondaryButton} onClick={() => router.push('/student/study')}>Back to Learn</button>}</div></section> : question && <>
       <section style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}><div style={eyebrowDark}>Question {index + 1} of {questions.length}</div><div style={pill}>{question.kind === 'grounded' ? 'From this unit' : (question.topic ?? question.subject)}</div></div>
         <div style={progressTrack}><div style={{ ...progressFill, width: `${progress}%` }} /></div>
