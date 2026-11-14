@@ -62,6 +62,8 @@ end $$;
 revoke all on function public.vibetutor_invite_student_by_code(text) from public,anon;
 grant execute on function public.vibetutor_invite_student_by_code(text) to authenticated;
 
+-- access: service-only public.vibetutor_private_tasks
+-- authorization-test: public.vibetutor_private_tasks has RLS enabled, no direct authenticated/anon table grants; only accepted-connection-authorised RPCs access these rows.
 create table public.vibetutor_private_tasks (
   id uuid primary key default gen_random_uuid(),
   invitation_id uuid not null references public.vibetutor_student_invitations(id) on delete cascade,
@@ -141,6 +143,8 @@ end $$;
 
 -- Group metadata is separate from school classes. Membership can only refer
 -- to accepted private connections owned by the same tutor.
+-- access: service-only public.vibetutor_private_groups
+-- authorization-test: public.vibetutor_private_groups has RLS enabled, no direct authenticated/anon table grants; only accepted-connection-authorised RPCs access these rows.
 create table public.vibetutor_private_groups (
   id uuid primary key default gen_random_uuid(),
   tutor_id uuid not null references public.profiles(id) on delete cascade,
@@ -148,6 +152,8 @@ create table public.vibetutor_private_groups (
   created_at timestamptz not null default now(),
   unique (id,tutor_id)
 );
+-- access: service-only public.vibetutor_private_group_members
+-- authorization-test: public.vibetutor_private_group_members has RLS enabled, no direct authenticated/anon table grants; only accepted-connection-authorised RPCs access these rows.
 create table public.vibetutor_private_group_members (
   group_id uuid not null references public.vibetutor_private_groups(id) on delete cascade,
   invitation_id uuid not null references public.vibetutor_student_invitations(id) on delete cascade,
