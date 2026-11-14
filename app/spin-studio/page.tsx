@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './spin-studio.module.css'
 
 type Entry = { id: string; label: string; question: string; answer: string; image?: string; symbol?: string }
-type ShowFormat = 'challenge' | 'lucky' | 'trending' | 'learn'
+type ShowFormat = 'challenge' | 'lucky' | 'trending' | 'learn' | 'political'
 type SegmentStyle = 'text' | 'photo' | 'both'
 type ProductionStatus = 'idea' | 'recorded' | 'edited' | 'scheduled' | 'published' | 'reviewed'
 type ProductionItem = { id:string; wheelId:string; title:string; platform:string; status:ProductionStatus; plannedDate:string; url:string; views:number; likes:number; shares:number; comments:number; followers:number; notes:string }
 const PRODUCTION_STORAGE='vibeschool.vibespin.production.v1'
-const formatNames:Record<ShowFormat,string>={challenge:'VibeSpin Challenge',lucky:'VibeSpin Lucky Draw',trending:'VibeSpin Trending',learn:'VibeSpin Learn'}
+const formatNames:Record<ShowFormat,string>={challenge:'VibeSpin Challenge',lucky:'VibeSpin Lucky Draw',trending:'VibeSpin Trending',learn:'VibeSpin Learn',political:'VibeSpin Political'}
 const socialPlatforms=['YouTube Shorts','TikTok','Facebook Reels','Instagram Reels','WhatsApp Status','Other']
 const initialProduction=():ProductionItem=>({id:uid(),wheelId:'',title:'',platform:'YouTube Shorts',status:'idea',plannedDate:'',url:'',views:0,likes:0,shares:0,comments:0,followers:0,notes:''})
 type Wheel = { showFormat?: ShowFormat; segmentStyle?: SegmentStyle; introEnabled?: boolean; outroEnabled?: boolean; introDuration?: number; outroDuration?: number; musicEnabled?: boolean; musicStyle?: 'ambient' | 'pulse' | 'suspense' | 'comedy' | 'calm'; musicVolume?: number; batchMode?: boolean; logoImage?: string; automatic?: boolean; revealHold?: number; stageBackground?: string; backgroundImage?: string; fontStyle?: 'modern' | 'classic' | 'playful'; celebration?: 'confetti' | 'glow' | 'none'; volumes?: { spin:number; reveal:number }; episode?: number; id: string; name: string; entries: Entry[]; maxSpins: number; noRepeat: boolean; duration: number; countdown: number; sound: boolean; theme: 'electric' | 'sunset' | 'neon'; headline: string; cta: string }
@@ -23,11 +23,15 @@ const stageThemes: Record<string,string> = {
   midnight:'radial-gradient(ellipse at 50% 25%, #49339d 0%, #09152f 70%, #040716 100%)',
   clean:'linear-gradient(145deg,#1c4968 0%,#08172c 100%)'
 }
-const templates: {name:string; entries:[string,string,string][]; format?:ShowFormat}[] = [
+const politicalPresetNames=['Boniface Mwangi','David Maraga','Edwin Sifuna','Fred Matiang’i','Jimi Wanjigi','Kalonzo Musyoka','Martha Karua','Rigathi Gachagua','William Ruto']
+const politicalPresetSource='Publicly reported presidential figures as at 14 November 2026. Not an IEBC-cleared candidate list. Sources: vote.ke and The Star.'
+const politicalPresetUrl='https://www.vote.ke/presidents/2027'
+const templates: {name:string; entries:[string,string,string][]; format?:ShowFormat; headline?:string; cta?:string}[] = [
   {name:'African Capitals',entries:[['Kenya','What is the capital of Kenya?','Nairobi'],['Uganda','What is the capital of Uganda?','Kampala'],['Tanzania','What is the capital of Tanzania?','Dodoma'],['Rwanda','What is the capital of Rwanda?','Kigali'],['Ghana','What is the capital of Ghana?','Accra'],['Nigeria','What is the capital of Nigeria?','Abuja']]},
   {name:'Mental Maths',entries:[['12 × 8','What is 12 multiplied by 8?','96'],['15 + 27','What is 15 plus 27?','42'],['3/4','What is 3/4 of 20?','15'],['25%','What is 25% of 200?','50']]},
   {name:'Science Quiz',entries:[['Mars','Which planet is called the Red Planet?','Mars'],['Plants','How do green plants make food?','Photosynthesis'],['Water','What is the chemical formula for water?','H₂O'],['Gravity','Which force attracts objects towards Earth?','Gravity']],format:'learn'},
   {name:'Trending topic · Add names',entries:[],format:'trending'},
+  {name:'Kenya President 2027 · Example',entries:politicalPresetNames.map(name=>[name,'Publicly discussed figure — random wheel only','No prediction']),format:'political',headline:'KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK?',cta:'Entertainment only • Not a poll, prediction or endorsement'},
   {name:'Lucky draw · Add entries',entries:[],format:'lucky'}
 ]
 const colors = {
@@ -369,7 +373,8 @@ export default function SpinStudio() {
   const setShowFormat=(kind:ShowFormat)=>{
     if(!wheel)return
     const patch:Partial<Wheel>={showFormat:kind}
-    if(kind==='lucky'){patch.countdown=0;patch.celebration='confetti';patch.cta='VibeSpin by VibeSchool • See published giveaway rules'}
+    if(kind==='political'){patch.countdown=3;patch.headline='KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK?';patch.cta='Random entertainment • Not a poll, prediction or endorsement'}
+    else if(kind==='lucky'){patch.countdown=0;patch.celebration='confetti';patch.cta='VibeSpin by VibeSchool • See published giveaway rules'}
     else if(kind==='trending'){patch.countdown=3;patch.cta='Random selection for entertainment • Not a poll or prediction'}
     else if(kind==='learn'){patch.countdown=5;patch.cta='How did you do? Learn more with VibeSchool'}
     else{patch.countdown=5;patch.cta='Comment your answer • Follow VibeSchool'}
@@ -418,8 +423,8 @@ export default function SpinStudio() {
   }
   const loadTemplate=(index:number)=>{
     const t=templates[index];if(!t)return
-    const fresh:Wheel={...starter(),id:uid(),name:t.name,showFormat:t.format??'challenge',cta:t.format==='trending'?'Random selection for entertainment • Not a poll or prediction':t.format==='lucky'?'See the official giveaway rules': 'How did you do? Follow VibeSchool',entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
-    setWheels(all=>[...all,fresh]);setSelectedId(fresh.id);setSetupTab('content')
+    const fresh:Wheel={...starter(),id:uid(),name:t.name,headline:t.headline??'SPIN WITH VIBESCHOOL!',showFormat:t.format??'challenge',cta:t.cta??(t.format==='trending'?'Random selection for entertainment • Not a poll or prediction':t.format==='lucky'?'See the official giveaway rules':'How did you do? Follow VibeSchool'),entries:t.entries.map(([label,question,answer])=>({id:uid(),label,question,answer}))}
+    setWheels(all=>[...all,fresh]);setSelectedId(fresh.id);setSetupTab('content');setFeedback('Editable copy created. Original preset is preserved.')
   }
   const uploadBackground=(file:File|undefined,kind:'background'|'logo'='background')=>{
     if(!file)return
@@ -435,7 +440,15 @@ export default function SpinStudio() {
   const duplicateWheel=()=>{
     if(!wheel)return
     const w={...wheel,id:uid(),name:wheel.name+' Copy',entries:wheel.entries.map(e=>({...e,id:uid()}))}
-    setWheels(all=>[...all,w]);setSelectedId(w.id)
+    setWheels(all=>[...all,w]);setSelectedId(w.id);setFeedback('Copy saved separately. Original wheel is unchanged.')
+  }
+  const restorePoliticalNames=()=>{
+    if(!wheel)return
+    const existing=new Set(wheel.entries.map(e=>e.label.trim().toLowerCase()))
+    const missing=politicalPresetNames.filter(name=>!existing.has(name.toLowerCase())).map(label=>({id:uid(),label,question:'Publicly discussed figure — random wheel only',answer:'No prediction'}))
+    if(missing.length===0){setFeedback('All example names are already present.');return}
+    update({entries:[...wheel.entries,...missing].slice(0,100)})
+    setFeedback(missing.length+' example names added without deleting your edits.')
   }
   const removeWheel=()=>{
     if(!wheel || wheels.length===1)return
@@ -481,7 +494,7 @@ export default function SpinStudio() {
   }
   const selected=result===null?null:entries[result]
   const showFormat=wheel?.showFormat??'challenge'
-  const selectedIsReward=showFormat==='lucky'||showFormat==='trending'
+  const selectedIsReward=showFormat==='lucky'||showFormat==='trending'||showFormat==='political'
   const segmented=useMemo(()=>entries.map((entry,index)=>({entry,index,path:wedge(index,entries.length),degree:(index+.5)*360/entries.length})),[entries])
   if(!loaded || !wheel)return <main className={styles.page}><p>Loading Spin Studio…</p></main>
   return <main className={styles.page}>
