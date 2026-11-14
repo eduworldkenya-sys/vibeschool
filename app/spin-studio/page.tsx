@@ -31,7 +31,7 @@ const templates: {name:string; entries:[string,string,string][]; format?:ShowFor
   {name:'Mental Maths',entries:[['12 × 8','What is 12 multiplied by 8?','96'],['15 + 27','What is 15 plus 27?','42'],['3/4','What is 3/4 of 20?','15'],['25%','What is 25% of 200?','50']]},
   {name:'Science Quiz',entries:[['Mars','Which planet is called the Red Planet?','Mars'],['Plants','How do green plants make food?','Photosynthesis'],['Water','What is the chemical formula for water?','H₂O'],['Gravity','Which force attracts objects towards Earth?','Gravity']],format:'learn'},
   {name:'Trending topic · Add names',entries:[],format:'trending'},
-  {name:'Kenya President 2027 · Example',entries:politicalPresetNames.map(name=>[name,'Publicly discussed figure — random wheel only','No prediction']),format:'political',headline:'KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK?',cta:'Entertainment only • Not a poll, prediction or endorsement'},
+  {name:'Kenya President 2027 · Example',entries:politicalPresetNames.map((name):[string,string,string]=>[name,'Publicly discussed figure — random wheel only','No prediction']),format:'political',headline:'KENYA PRESIDENT 2027: WHO WILL THE WHEEL PICK?',cta:'Entertainment only • Not a poll, prediction or endorsement'},
   {name:'Lucky draw · Add entries',entries:[],format:'lucky'}
 ]
 const colors = {
