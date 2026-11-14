@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, RotateCcw, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
+import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
 import LearningFeedback, { playLearningSound, useLearningFeedback } from '@/components/student/LearningFeedback'
 import { saveResponse, startOrResumeAttempt, submitAttempt } from '@/lib/assessment/engine'
 import type { AttemptWorkspace, SubmitAttemptResult } from '@/lib/assessment/types'
@@ -192,6 +193,7 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
     finally{setBusy(false)}
   }
   return <main style={shell}>
+    {!workspace && <StudentLearningFeatureLinks mode="practice" grade={grade} subject={subject}/>}
     <header style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center',flexWrap:'wrap'}}>
       <button type="button" style={{...secondary,display:'inline-flex',alignItems:'center',gap:7}} onClick={()=>{if(workspace){setWorkspace(null);setFinished(null);setFeedback([])}else router.push('/student/study')}}>
         <ArrowLeft size={16} aria-hidden="true" />{workspace?'Save & exit':'Back to Learn'}
