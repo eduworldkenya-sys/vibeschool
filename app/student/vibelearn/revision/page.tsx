@@ -210,9 +210,7 @@ export default function RevisionStudioPage(){
          {onHome&&workspace && workspace.revisionMode.daysRemaining > 0&&<p style={{...muted,textAlign:'center'}}>Exam in {workspace.revisionMode.daysRemaining} days · {workspace.revisionMode.message}</p>}
        </>}
      </div>
-     <nav aria-label="Revision Studio navigation" style={{borderTop:'1px solid var(--vs-border)',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',background:colors.canvas,padding:'12px 6px'}}>
-       {[{label:'Home',Icon:House,href:'/student'},{label:'Learn',Icon:BookOpen,href:'/student/study'},{label:'Revision',Icon:BrainCircuit,href:'/student/vibelearn/revision'},{label:'Progress',Icon:ChartNoAxesColumn,href:'/student/marks'}].map(({label,Icon,href})=><button type="button" key={label} onClick={()=>{if(label==='Revision'){setScreen('home');return}router.push(href)}} aria-current={label==='Revision'?'page':undefined} style={{...basic,display:'grid',placeItems:'center',gap:6,padding:6,minHeight:50,border:0,background:'transparent',color:label==='Revision'?colors.accent:colors.muted,fontWeight:label==='Revision'?850:550,fontSize:11}}><Icon size={19}/>{label}</button>)}
-     </nav>
+
    </div>
  </main>
 }
