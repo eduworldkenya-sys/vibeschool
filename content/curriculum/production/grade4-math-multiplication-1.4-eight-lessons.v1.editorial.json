@@ -1,0 +1,473 @@
+{
+  "schema": "vibeschool.original.grade4.mult-eight-lesson.v1",
+  "status": "DRAFT_NOT_IMPORTED_NOT_CERTIFIED_NOT_PUBLISHED",
+  "source": {
+    "authority": "KICD",
+    "edition": "Grade 4 Mathematics regular revised 2024",
+    "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+    "location": "1.0 Numbers → 1.4 Multiplication, printed pp. 8–9 (PDF 16–17)",
+    "suggestedLessons": 8,
+    "approved": false,
+    "sourceSha256": null
+  },
+  "scope": "Eight editorial lesson candidates covering five Multiplication outcome scopes; official KICD suggests eight lessons, not certified implementation.",
+  "existing": {
+    "catalog": "lib/teaching/grade4MathematicsCatalog.mjs#1.4",
+    "legacyCurriculumRow": "d5bed71b-4569-447b-9dec-493fb641ddcf",
+    "reuseNote": "Preserve legacy Operations row. No multiplication-specific certified learning resources found in scoped production search."
+  },
+  "lessons": [
+    {
+      "id": "VS-G04-MA-1.4-S01",
+      "sourceOutcome": "1.4(a)",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "title": "Multiply by ten",
+      "goal": "Use place value to explain multiplication of a two-digit number by 10.",
+      "explanation": "Twenty-four groups of ten equal 240; each ones unit becomes ten times as large.",
+      "worked": {
+        "mode": "product",
+        "operands": [
+          24,
+          10
+        ],
+        "answer": 240,
+        "steps": [
+          "Represent 24 as 2 tens and 4 ones.",
+          "Scale each group tenfold: 20×10=200 and 4×10=40.",
+          "Combine 200+40=240; compare with 24 equal ten-bundles."
+        ]
+      },
+      "guidedActivity": {
+        "materials": [
+          "Pencil-drawn number cards or locally available counters"
+        ],
+        "steps": [
+          "Model the worked calculation with equal groups or an area drawing.",
+          "Explain each step and why the method conserves the correct number of objects.",
+          "Solve the independent problem and check with a second representation."
+        ]
+      },
+      "independent": {
+        "mode": "product",
+        "operands": [
+          36,
+          10
+        ],
+        "prompt": "Find 36 × 10",
+        "answer": 360,
+        "feedback": "Twenty-four groups of ten equal 240; each ones unit becomes ten times as large."
+      },
+      "remedial": "Do not rely on writing a zero without explaining why the places change.",
+      "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
+      "teacher": "Ask the learner how they know the answer makes sense; check equal-groups meaning and representation.",
+      "visual": {
+        "brief": "Two base-ten groups and four one-unit groups scaled by ten.",
+        "status": "BRIEF_ONLY_UNCERTIFIED"
+      },
+      "officialOutcomeId": null,
+      "publicationStatus": "EDITORIAL_CANDIDATE_ONLY"
+    },
+    {
+      "id": "VS-G04-MA-1.4-S02",
+      "sourceOutcome": "1.4(a)",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "title": "Multiply by multiples of ten",
+      "goal": "Multiply a two-digit number by 20, 30 or 40 using factorisation.",
+      "explanation": "23×30 equals 23×3×10, making 69 tens or 690.",
+      "worked": {
+        "mode": "product",
+        "operands": [
+          23,
+          30
+        ],
+        "answer": 690,
+        "steps": [
+          "Rewrite 30 as 3×10.",
+          "Compute 23×3 = 20×3+3×3 =69.",
+          "Multiply 69 by ten to get 690 and check an approximate result."
+        ]
+      },
+      "guidedActivity": {
+        "materials": [
+          "Pencil-drawn number cards or locally available counters"
+        ],
+        "steps": [
+          "Model the worked calculation with equal groups or an area drawing.",
+          "Explain each step and why the method conserves the correct number of objects.",
+          "Solve the independent problem and check with a second representation."
+        ]
+      },
+      "independent": {
+        "mode": "product",
+        "operands": [
+          14,
+          40
+        ],
+        "prompt": "Find 14 × 40",
+        "answer": 560,
+        "feedback": "23×30 equals 23×3×10, making 69 tens or 690."
+      },
+      "remedial": "Treat the factor 30 as three tens, not simply three.",
+      "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
+      "teacher": "Ask the learner how they know the answer makes sense; check equal-groups meaning and representation.",
+      "visual": {
+        "brief": "Twenty-three bundles each containing three tens.",
+        "status": "BRIEF_ONLY_UNCERTIFIED"
+      },
+      "officialOutcomeId": null,
+      "publicationStatus": "EDITORIAL_CANDIDATE_ONLY"
+    },
+    {
+      "id": "VS-G04-MA-1.4-S03",
+      "sourceOutcome": "1.4(b)",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "title": "Two-digit factors without regrouping",
+      "goal": "Use distributive multiplication without carrying.",
+      "explanation": "32×12=32×(10+2)=320+64=384, because the tens and ones parts cover the whole rectangle.",
+      "worked": {
+        "mode": "product",
+        "operands": [
+          32,
+          12
+        ],
+        "answer": 384,
+        "steps": [
+          "Split 12 into ten and two.",
+          "Calculate 32×10=320 and 32×2=64.",
+          "Join 320+64=384 and verify on an area model."
+        ]
+      },
+      "guidedActivity": {
+        "materials": [
+          "Pencil-drawn number cards or locally available counters"
+        ],
+        "steps": [
+          "Model the worked calculation with equal groups or an area drawing.",
+          "Explain each step and why the method conserves the correct number of objects.",
+          "Solve the independent problem and check with a second representation."
+        ]
+      },
+      "independent": {
+        "mode": "product",
+        "operands": [
+          21,
+          13
+        ],
+        "prompt": "Find 21 × 13",
+        "answer": 273,
+        "feedback": "32×12=32×(10+2)=320+64=384, because the tens and ones parts cover the whole rectangle."
+      },
+      "remedial": "Avoid treating the tens digit of 12 as one unit.",
+      "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
+      "teacher": "Ask the learner how they know the answer makes sense; check equal-groups meaning and representation.",
+      "visual": {
+        "brief": "32×12 rectangle divided into 32×10 and 32×2 sections.",
+        "status": "BRIEF_ONLY_UNCERTIFIED"
+      },
+      "officialOutcomeId": null,
+      "publicationStatus": "EDITORIAL_CANDIDATE_ONLY"
+    },
+    {
+      "id": "VS-G04-MA-1.4-S04",
+      "sourceOutcome": "1.4(b)",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "title": "Two-digit multiplication with regrouping",
+      "goal": "Explain exchanging ten ones for a ten while multiplying.",
+      "explanation": "24×13=24×10+24×3=240+72=312; in 4×3=12, 10 ones exchange for one ten.",
+      "worked": {
+        "mode": "product",
+        "operands": [
+          24,
+          13
+        ],
+        "answer": 312,
+        "steps": [
+          "Partition 13 as ten and three.",
+          "Calculate 24×3=72 using 4×3=12 and exchange ten ones for one ten.",
+          "Add 24×10=240 to 72 for a total of 312."
+        ]
+      },
+      "guidedActivity": {
+        "materials": [
+          "Pencil-drawn number cards or locally available counters"
+        ],
+        "steps": [
+          "Model the worked calculation with equal groups or an area drawing.",
+          "Explain each step and why the method conserves the correct number of objects.",
+          "Solve the independent problem and check with a second representation."
+        ]
+      },
+      "independent": {
+        "mode": "product",
+        "operands": [
+          27,
+          14
+        ],
+        "prompt": "Find 27 × 14",
+        "answer": 378,
+        "feedback": "24×13=24×10+24×3=240+72=312; in 4×3=12, 10 ones exchange for one ten."
+      },
+      "remedial": "The 1 in 13 represents one ten; 24×1 is not the tens partial product.",
+      "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
+      "teacher": "Ask the learner how they know the answer makes sense; check equal-groups meaning and representation.",
+      "visual": {
+        "brief": "Area model with 24×10 and 24×3; label the exchange.",
+        "status": "BRIEF_ONLY_UNCERTIFIED"
+      },
+      "officialOutcomeId": null,
+      "publicationStatus": "EDITORIAL_CANDIDATE_ONLY"
+    },
+    {
+      "id": "VS-G04-MA-1.4-S05",
+      "sourceOutcome": "1.4(c)",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "title": "Estimate products using nearest tens",
+      "goal": "Round two factors to nearest tens and estimate a product not exceeding 1,000.",
+      "explanation": "24 rounds to 20 and 36 to 40; 20×40=800, close to the exact product 864.",
+      "worked": {
+        "mode": "estimate",
+        "operands": [
+          24,
+          36
+        ],
+        "answer": 800,
+        "steps": [
+          "Round 24 to 20 because 4 is below 5.",
+          "Round 36 to 40 because 6 is at least 5.",
+          "Compute estimated 20×40=800 and compare with exact 864."
+        ]
+      },
+      "guidedActivity": {
+        "materials": [
+          "Pencil-drawn number cards or locally available counters"
+        ],
+        "steps": [
+          "Model the worked calculation with equal groups or an area drawing.",
+          "Explain each step and why the method conserves the correct number of objects.",
+          "Solve the independent problem and check with a second representation."
+        ]
+      },
+      "independent": {
+        "mode": "estimate",
+        "operands": [
+          33,
+          21
+        ],
+        "prompt": "Find the nearest-ten estimate of 33 × 21",
+        "answer": 600,
+        "feedback": "24 rounds to 20 and 36 to 40; 20×40=800, close to the exact product 864."
+      },
+      "remedial": "An estimate is approximate; do not label the unrounded product as the estimate.",
+      "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
+      "teacher": "Ask the learner how they know the answer makes sense; check equal-groups meaning and representation.",
+      "visual": {
+        "brief": "Two labelled number lines showing 24→20 and 36→40.",
+        "status": "BRIEF_ONLY_UNCERTIFIED"
+      },
+      "officialOutcomeId": null,
+      "publicationStatus": "EDITORIAL_CANDIDATE_ONLY"
+    },
+    {
+      "id": "VS-G04-MA-1.4-S06",
+      "sourceOutcome": "1.4(d)",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "title": "Recognise multiplication patterns",
+      "goal": "Build and extend multiples-based patterns, with products at most 100.",
+      "explanation": "Each additional group of twelve adds twelve more, producing 12, 24, 36, 48 and 60.",
+      "worked": {
+        "mode": "pattern",
+        "operands": [
+          12,
+          [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        ],
+        "answer": [
+          12,
+          24,
+          36,
+          48,
+          60
+        ],
+        "steps": [
+          "Start with one group of 12.",
+          "Add one equal group each time to make 12,24,36,48,60.",
+          "Check all differences are +12 and all products are at most 100."
+        ]
+      },
+      "guidedActivity": {
+        "materials": [
+          "Pencil-drawn number cards or locally available counters"
+        ],
+        "steps": [
+          "Model the worked calculation with equal groups or an area drawing.",
+          "Explain each step and why the method conserves the correct number of objects.",
+          "Solve the independent problem and check with a second representation."
+        ]
+      },
+      "independent": {
+        "mode": "pattern",
+        "operands": [
+          9,
+          [
+            2,
+            3,
+            4,
+            5
+          ]
+        ],
+        "prompt": "Find all products for 9 multiplied by 2, 3, 4, 5",
+        "answer": [
+          18,
+          27,
+          36,
+          45
+        ],
+        "feedback": "Each additional group of twelve adds twelve more, producing 12, 24, 36, 48 and 60."
+      },
+      "remedial": "Add a constant group amount rather than multiplying the previous term.",
+      "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
+      "teacher": "Ask the learner how they know the answer makes sense; check equal-groups meaning and representation.",
+      "visual": {
+        "brief": "Five numbered cards linked by equal +12 arrows.",
+        "status": "BRIEF_ONLY_UNCERTIFIED"
+      },
+      "officialOutcomeId": null,
+      "publicationStatus": "EDITORIAL_CANDIDATE_ONLY"
+    },
+    {
+      "id": "VS-G04-MA-1.4-S07",
+      "sourceOutcome": "1.4(d)",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "title": "Create a multiplication pattern",
+      "goal": "Create a pattern that follows a multiplication table and prove its step.",
+      "explanation": "Increasing the second factor by one adds eight to each product, yielding 24,32,40,48,56.",
+      "worked": {
+        "mode": "pattern",
+        "operands": [
+          8,
+          [
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        ],
+        "answer": [
+          24,
+          32,
+          40,
+          48,
+          56
+        ],
+        "steps": [
+          "Write 8×3 through 8×7.",
+          "Find products 24,32,40,48,56.",
+          "Check each adjacent difference equals eight and stays at most 100."
+        ]
+      },
+      "guidedActivity": {
+        "materials": [
+          "Pencil-drawn number cards or locally available counters"
+        ],
+        "steps": [
+          "Model the worked calculation with equal groups or an area drawing.",
+          "Explain each step and why the method conserves the correct number of objects.",
+          "Solve the independent problem and check with a second representation."
+        ]
+      },
+      "independent": {
+        "mode": "pattern",
+        "operands": [
+          7,
+          [
+            3,
+            4,
+            5,
+            6
+          ]
+        ],
+        "prompt": "Find all products for 7 multiplied by 3, 4, 5, 6",
+        "answer": [
+          21,
+          28,
+          35,
+          42
+        ],
+        "feedback": "Increasing the second factor by one adds eight to each product, yielding 24,32,40,48,56."
+      },
+      "remedial": "Use equal groups to confirm the multiplier increases by exactly one.",
+      "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
+      "teacher": "Ask the learner how they know the answer makes sense; check equal-groups meaning and representation.",
+      "visual": {
+        "brief": "An 8-times pattern on a number line with +8 labelled arrows.",
+        "status": "BRIEF_ONLY_UNCERTIFIED"
+      },
+      "officialOutcomeId": null,
+      "publicationStatus": "EDITORIAL_CANDIDATE_ONLY"
+    },
+    {
+      "id": "VS-G04-MA-1.4-S08",
+      "sourceOutcome": "1.4(e)",
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "title": "Use multiplication in everyday planning",
+      "goal": "Choose multiplication to solve an equal-groups word problem and label units.",
+      "explanation": "Twenty-four rows with twelve seedlings each contain 24×12=288 seedlings; repeated addition gives the same total.",
+      "worked": {
+        "mode": "product",
+        "operands": [
+          24,
+          12
+        ],
+        "answer": 288,
+        "steps": [
+          "Identify 24 equal rows containing 12 seedlings each.",
+          "Split 12 into 10 and 2; 24×10=240 and 24×2=48.",
+          "Combine to 288 seedlings; compare with a reasonable estimate."
+        ]
+      },
+      "guidedActivity": {
+        "materials": [
+          "Pencil-drawn number cards or locally available counters"
+        ],
+        "steps": [
+          "Model the worked calculation with equal groups or an area drawing.",
+          "Explain each step and why the method conserves the correct number of objects.",
+          "Solve the independent problem and check with a second representation."
+        ]
+      },
+      "independent": {
+        "mode": "product",
+        "operands": [
+          18,
+          14
+        ],
+        "prompt": "Find 18 × 14",
+        "answer": 252,
+        "feedback": "Twenty-four rows with twelve seedlings each contain 24×12=288 seedlings; repeated addition gives the same total."
+      },
+      "remedial": "If the learner adds the two factors, explain why equal groups require repeated addition or multiplication.",
+      "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
+      "teacher": "Ask the learner how they know the answer makes sense; check equal-groups meaning and representation.",
+      "visual": {
+        "brief": "School garden rectangle with 24 rows and 12 seedlings per row.",
+        "status": "BRIEF_ONLY_UNCERTIFIED"
+      },
+      "officialOutcomeId": null,
+      "publicationStatus": "EDITORIAL_CANDIDATE_ONLY"
+    }
+  ]
+}
