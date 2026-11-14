@@ -75,7 +75,7 @@
       "subject": "Mathematics",
       "title": "Multiply by multiples of ten",
       "goal": "Multiply a two-digit number by 20, 30 or 40 using factorisation.",
-      "explanation": "23×30 equals 23×3×10, making 69 tens or 690.",
+      "explanation": "Twenty-three groups of thirty mean 23 × (3 × 10). First 23 × 3 gives 69, then 69 tens make 690. The value of each ten-bundle is preserved.",
       "worked": {
         "mode": "product",
         "operands": [
