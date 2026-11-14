@@ -1,6 +1,6 @@
 -- VibeSchool Revision Studio: learner-owned spaced recall, independent of formal exam marking.
 create table if not exists public.student_revision_memory (
-  student_id uuid not null references public.profiles(id) on delete cascade,
+  student_id uuid not null references public.students(id) on delete cascade,
   mistake_id uuid not null references public.student_mistake_notebook(id) on delete cascade,
   recall_count integer not null default 0 check (recall_count >= 0),
   interval_days integer not null default 1 check (interval_days between 1 and 60),
