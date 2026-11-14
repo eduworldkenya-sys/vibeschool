@@ -746,7 +746,7 @@ export default function SpinStudio() {
 <label>Total spins (0 = automatic 2×)<input aria-label="Total election spins" type="number" min="0" max="9999" value={wheel.electionSpinTotal??0} disabled={spinning||spinCount>0} onChange={e=>update({electionSpinTotal:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>
 <label>Points added per landing (1–10)<input aria-label="Election points per spin" type="number" min="1" max="10" value={electionPoints} disabled={spinning||spinCount>0} onChange={e=>update({electionPointsPerSpin:Math.max(1,Math.min(10,Number(e.target.value)||1))})}/></label>
 <label>Final announcement title<input aria-label="Election winner announcement title" maxLength={55} value={wheel.electionWinnerTitle??'CHAMPION'} onChange={e=>update({electionWinnerTitle:e.target.value})}/></label>
-<p><b>{entries.length} candidates · {electionTotal} spins · +{electionPoints} point{electionPoints===1?'':'s'} per landing</b>. Press Spin Now once; tally and leaderboard update after each round. Highest score wins. Ties are announced honestly.</p>
+<p><b>{entries.length} candidates · {electionTotal} spins · +{electionPoints} point{electionPoints===1?'':'s'} per landing</b>. Press Spin Now once. Each round reveals only the selected name; scores are counted privately. After the last spin, the final random-draw result is announced. Ties are shown without inventing a winner.</p>
 <p className={styles.hint}>Use Reset before changing candidates or scoring during a run. This random game is not a poll or election forecast.</p></div>}
 {!electionMode&&<label>Maximum spins (0 = unlimited)<input type="number" min="0" max="9999" value={wheel.maxSpins} onChange={e=>update({maxSpins:Math.max(0,Math.min(9999,Number(e.target.value)||0))})}/></label>}
             {!electionMode&&<label className={styles.check}><input type="checkbox" checked={wheel.noRepeat} onChange={e=>update({noRepeat:e.target.checked})}/> Do not repeat a segment in this session</label>}
@@ -847,17 +847,20 @@ export default function SpinStudio() {
               </>}
               <div className={styles.questionArea} aria-live="polite">
                 {selected ? <>
-                  <span className={styles.resultKicker}>{spinning?'THE WHEEL IS SPINNING':'THE WHEEL CHOSE'}</span>
+                  <span className={styles.resultKicker}>{spinning?'THE WHEEL IS SPINNING':electionMode?'SELECTED THIS ROUND':'THE WHEEL CHOSE'}</span>
                   <strong className={styles.resultLabel}>{selected.label}</strong>
-                  <p className={styles.question}>{selected.question||'Your challenge starts now!'}</p>
+                  {!electionMode&&<p className={styles.question}>{selected.question||'Your challenge starts now!'}</p>}
                   {!reveal && seconds!==null && popup.showCountdown && <div className={styles.countdown}>{seconds===0?popup.countdownZeroText:seconds}</div>}
-                  {reveal && <div className={styles.answer}><span>{selectedIsReward?'RANDOM SELECTION':verdict==='correct'?'★ CORRECT ANSWER':verdict==='wrong'?'✦ THE ANSWER':'✦ ANSWER REVEAL'}</span><strong>{selectedIsReward?selected.label:(selected.answer||selected.label)}</strong></div>}
-                </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>One spin. One question. Can you get it right?</p></>}
+                  {reveal && !electionMode && <div className={styles.answer}><span>{selectedIsReward?'RANDOM SELECTION':verdict==='correct'?'★ CORRECT ANSWER':verdict==='wrong'?'✦ THE ANSWER':'✦ ANSWER REVEAL'}</span><strong>{selectedIsReward?selected.label:(selected.answer||selected.label)}</strong></div>}
+                </> : <><span className={styles.resultKicker}>READY WHEN YOU ARE</span><p className={styles.readyText}>{electionMode?'Start the wheel to reveal each randomly selected name.': 'One spin. One question. Can you get it right?'}</p></>}
               </div>
-              {electionMode&&<div aria-live="polite" style={{background:'rgba(4,15,32,.9)',border:'1px solid #ffffff44',borderRadius:12,padding:10,margin:'8px 0',color:'white'}}>
-<div style={{display:'flex',justifyContent:'space-between',fontSize:12,fontWeight:900}}><span>{electionFinished?'FINAL RESULTS':'LIVE CHAMPIONSHIP'}</span><span>{spinCount}/{electionTotal} SPINS</span></div>
-{[...electionScores].sort((a,b)=>b.score-a.score).map(candidate=><div key={candidate.id} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',gap:12,borderBottom:'1px solid #ffffff22'}}><span>{candidate.name}</span><b>{candidate.score}</b></div>)}
-{electionFinished&&<div style={{marginTop:8,textAlign:'center',color:'#7ef5cf',fontWeight:900}}>{electionWinners.length===1?electionWinnerTitle+': '+electionWinners[0].name:'TIE: '+electionWinners.map(c=>c.name).join(' / ')} · {electionTop} POINTS</div>}
+              {electionMode&&<div aria-live="polite" style={{background:'rgba(4,15,32,.9)',border:'1px solid #ffffff44',borderRadius:12,padding:10,margin:'8px 0',color:'white',textAlign:'center'}}>
+{!electionFinished?<div style={{fontSize:12,fontWeight:800}}>ROUND {spinCount} OF {electionTotal} · NAME REVEAL</div>:
+<div style={{padding:'10px 0'}}>
+<div style={{fontSize:12,letterSpacing:2,fontWeight:800,color:'#7ef5cf'}}>FINAL RANDOM DRAW RESULT</div>
+<div style={{marginTop:8,fontSize:24,lineHeight:1.2,fontWeight:950}}>{electionWinners.length===1?electionWinnerTitle+': '+electionWinners[0].name:'TIE — '+electionWinners.map(c=>c.name).join(' / ')}</div>
+<div style={{fontSize:12,marginTop:8}}>{electionWinners.length===1?electionTop+' points after '+electionTotal+' spins':'Equal top scores after '+electionTotal+' spins'}</div>
+</div>}
 </div>}<p className={styles.cta}>{wheel.cta}</p>
               {showFormat==='political'&&<p className={styles.politicalStageDisclaimer}>RANDOM SPIN · NOT A POLL OR ELECTION FORECAST</p>}
             </div>
