@@ -22,7 +22,7 @@ assert.match(lib,/student_get_my_mistake_source_grades/,'provenance is scoped to
 assert.match(lib,/sourceVerified: provenance\.get/,'unverified sources are not current-grade recommendations')
 assert.match(mistakes,/historicMistakes\.map/,'history stays reviewable, never deleted')
 assert.match(mistakes,/currentMistakes\.map/,'current-grade recovery excludes historical questions')
-assert.match(revision,/historicalOnlyKeys/,'historical-only topics cannot be promoted')
+assert.match(revision,/\.filter\(m=>isCurrentGradeMistake\(m,identity\?\.className\)\)/,'historical and unverified mistakes cannot enter the revision queue')
 assert.doesNotMatch(practice,/\|\| 'Other'/,'misleading Other filter is removed')
 assert.match(sql,/m\.student_id=v_student/,'source-grade lookup is learner-owned')
 assert.match(sql,/grant execute on function public\.student_get_my_mistake_source_grades/,'authenticated only')
