@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import styles from './marketing-studio.module.css'
+import DiscoverySettings from '../../components/games/DiscoverySettings'
 
 type Group='all'|'selection'|'challenge'|'arcade'
 type Tool={id:string;name:string;subtitle:string;group:Exclude<Group,'all'>;href:string;symbol:string;count:string;description:string;features:string[];theme:string}
@@ -64,6 +65,7 @@ export default function MarketingStudio(){
       </article>)}
     </div>
    </section>
+   <DiscoverySettings/>
    <section className={styles.bottomPanel}><div><span className={styles.kicker}>WORKFLOW</span><h2>One studio. Separate engines.</h2><p>Open a creator, customise the game, launch its show mode and capture a video. Return here to switch tools. Existing browser storage stays in the original creator, not in a new duplicate.</p></div><div className={styles.steps}><span><b>01</b> Choose a game</span><span><b>02</b> Make it yours</span><span><b>03</b> Play or record</span><span><b>04</b> Publish your content</span></div></section>
    <footer className={styles.footer}><span>VIBESCHOOL ORIGINALS · MARKETING STUDIO</span><span>Chance-based results are entertainment, not real-world forecasts. Projects are stored locally in their respective creators.</span></footer>
   </div>
