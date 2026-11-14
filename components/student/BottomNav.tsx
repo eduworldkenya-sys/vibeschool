@@ -32,7 +32,8 @@ function activeSection(path: string): string {
   if (path.startsWith("/student/vibelearn/topic-practice") || path.startsWith("/student/vibelearn/practice") || path.startsWith("/student/vibelearn/recovery") || path.startsWith("/student/vibelearn/mistakes") || path.startsWith("/student/vibelearn/revision") || path.startsWith("/student/vibelearn/topic")) return "Practice";
   if (path.startsWith("/student/tasks") || path.startsWith("/student/homework") || path.startsWith("/student/exercises") || path.startsWith("/student/projects") || path.startsWith("/student/timetable")) return "Tasks";
   if (path.startsWith("/student/marks") || path.startsWith("/student/results")) return "Progress";
-  // Formal examinations are not Topic Practice and must not be labelled as such.
+  // Formal exams keep their own owner and cannot appear as Topic Practice.
+  if (path.startsWith("/student/vibelearn/exams")) return "";
   return "";
 }
 
