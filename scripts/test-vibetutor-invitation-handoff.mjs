@@ -35,6 +35,7 @@ async function run(authResult) {
       if (name === '@supabase/supabase-js') return { isAuthSessionMissingError };
       if (name === '@/lib/supabase') return { getSupabaseClient: () => db };
       if (name === '@/components/vibetutor/PrivateTuitionTools') return { default: () => null };
+      if (name === '@/components/vibetutor/PrivateTutorTasks') return { default: () => null };
       throw new Error('Unexpected import: ' + name);
     },
   });
