@@ -769,6 +769,7 @@ export default function SpinStudio() {
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
               <div className={styles.wheelArea} style={focalStyle(director,showPhase==='reveal'?'reveal':spinning?'action':'idle',reducedMotion)}>
                 <div className={styles.wheelHalo}/>
+                <div className={styles.wheelOrbitWrapper}>
                 <svg role="img" aria-label="Drag wheel to rotate and tilt along its axes" className={styles.wheelSvg} viewBox="0 0 400 400"
                  onPointerDown={onWheelPointerDown} onPointerMove={onWheelPointerMove} onPointerUp={onWheelPointerEnd}
                  onPointerCancel={()=>{wheelDragRef.current=null}}
@@ -793,6 +794,7 @@ export default function SpinStudio() {
                   <circle cx="200" cy="200" r="195" fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="5" strokeDasharray="2 13"/>
                 </svg>
                 <div className={styles.wheelFixedPointer} aria-hidden="true"/>
+                </div>
                 {(verdict==='correct'||(reveal&&wheel.automatic)) && wheel.celebration==='confetti' && !reducedMotion && <div className={styles.confetti} aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{left:(i*41)%100+'%',animationDelay:(i%6)*.09+'s',background:colors[wheel.theme][i%8]}}/>)}</div>}
               </div>
               {(showPhase==='intro'||showPhase==='outro')&&<div className={styles.brandScene} role="status" aria-live="polite">
