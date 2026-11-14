@@ -14,7 +14,9 @@ import sys
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-SOURCE_URL = "https://drive.google.com/uc?export=download&id=1o5tDq16yC0Jj1h6zb9mo3dsxtjqXUk4G"\nKICD_LISTING = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-four-designs/"\nHISTORICAL_URL = "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf"
+SOURCE_URL = "https://drive.google.com/uc?export=download&id=1o5tDq16yC0Jj1h6zb9mo3dsxtjqXUk4G"
+KICD_LISTING = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-four-designs/"
+HISTORICAL_URL = "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf"
 ADAPTED_SOURCE = "https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-4-MATHEMATICS.pdf"
 MAX_BYTES = 30 * 1024 * 1024
 MIN_BYTES = 30 * 1024
