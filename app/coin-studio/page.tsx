@@ -25,7 +25,7 @@ const initial = (): Setup => ({
   id: makeId(), name: 'The Football Coin Toss', headline: 'ARSENAL OR MAN UNITED?', cta: 'Did the coin agree with you? Comment below.',
   heads: { name: 'ARSENAL', subtitle: 'HEADS', logo: '', symbol: 'A', color: '#ed5366' },
   tails: { name: 'MANCHESTER UNITED', subtitle: 'TAILS', logo: '', symbol: 'M', color: '#4fb8ed' },
-  theme: 'royal', coinStyle: 'gold', aspect: 'portrait', tossAxis: 'vertical', autoStart: false, duration: 4, countdown: 2,
+  theme: 'royal', coinStyle: 'gold', aspect: 'portrait', tossAxis: 'vertical', autoStart: true, duration: 4, countdown: 2,
   automatic: true, batch: false, hold: 3, sound: true, volume: 65, confetti: true,
   spotlight: true, showBrand: true, showLogos: true, showSafeArea: false, episode: 1, backgroundImage: ''
 })
@@ -59,7 +59,7 @@ const safe = (s: Setup): Setup => ({
   ...s, duration: Math.max(2,Math.min(9,s.duration)), countdown: Math.max(0,Math.min(10,s.countdown)),
   hold: Math.max(1,Math.min(12,s.hold)), volume: Math.max(0,Math.min(100,s.volume)),
   episode: Math.max(1,Math.min(9999,s.episode)), batch: Boolean(s.batch), confetti: Boolean(s.confetti),
-  spotlight: Boolean(s.spotlight), tossAxis: s.tossAxis === 'horizontal' ? 'horizontal' : 'vertical', autoStart: s.autoStart === true, showBrand: s.showBrand !== false,
+  spotlight: Boolean(s.spotlight), tossAxis: s.tossAxis === 'horizontal' ? 'horizontal' : 'vertical', autoStart: s.autoStart !== false, showBrand: s.showBrand !== false,
   showLogos: s.showLogos !== false, showSafeArea: Boolean(s.showSafeArea),
   backgroundImage: typeof s.backgroundImage === 'string' && s.backgroundImage.length < 350000 ? s.backgroundImage : ''
 })
@@ -386,7 +386,8 @@ export default function CoinStudio() {
                 </div>)}
               </div>
               <div className={styles.coinArea} style={focalStyle(director,phaseStyle,reduceMotion)}>
-                <div className={styles.coinHalo}/>
+                <div className={styles.coinHalo} style={{background:'radial-gradient(circle,'+current.heads.color+'44 0%,'+current.tails.color+'45 42%,transparent 72%)'}}/>
+                {phase==='flipping'&&!reduceMotion&&<div className={styles.launchStreak} aria-hidden="true"/>}
                 <div ref={flightRef} className={styles.tossTrajectory}>
                   <div ref={coinRef} className={[styles.coin,styles[current.coinStyle],current.tossAxis==='horizontal'?styles.horizontal:''].join(' ')} style={{transform:(current.tossAxis==='horizontal'?'rotateY(':'rotateX(')+showRotation+'deg)'}}>
                     <div className={[styles.face,styles.front].join(' ')} style={{background:'radial-gradient(circle at 24% 16%,#ffffffb0,'+current.heads.color+' 45%,#091528 100%)',color:'#fff'}}>
@@ -400,6 +401,7 @@ export default function CoinStudio() {
                   </div>
                 </div>
                 <div className={styles.coinShadow}/>
+                {phase==='reveal'&&!reduceMotion&&<div className={styles.landingRipple} aria-hidden="true"/>}
               </div>
               {phase==='countdown'&&<div className={styles.timer}><span>READY?</span><strong>{seconds}</strong></div>}
               {phase==='reveal'&&winner&&<div className={styles.reveal} role="status" aria-live="polite"><small>THE COIN HAS CHOSEN</small><strong>{current[winner].name}</strong><span>{winner.toUpperCase()} · RANDOM 50/50 RESULT</span></div>}
