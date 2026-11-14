@@ -145,3 +145,22 @@
 
 .wheelOrbitWrapper{position:relative;display:grid;place-items:center;aspect-ratio:1;width:min(100%,62vh);max-height:100%;flex:none}
 .wheelOrbitWrapper .wheelSvg{height:100%;width:100%;max-width:100%;max-height:100%}
+
+/* Political championship: readable live tally beside the wheel on wide screens,
+   stacked under the wheel for narrow portrait video recording. */
+.wheelOnlyArena{display:contents}
+.electionArena{flex:1;min-height:0;width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(132px,.62fr);align-items:stretch;gap:10px}
+.electionArena .wheelArea{min-width:0;min-height:0;width:100%}
+.electionArena .wheelOrbitWrapper{max-width:100%;max-height:100%}
+.electionTally{z-index:2;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;border:1px solid #ffffff45;border-radius:14px;background:linear-gradient(145deg,#0a2444eb,#041126ee);padding:9px 8px;color:#fff;text-align:left;box-shadow:0 10px 28px #0005;scrollbar-width:thin}
+.electionTallyHead{position:sticky;top:-9px;display:flex;align-items:center;justify-content:space-between;gap:5px;background:#0a2444;padding:5px 2px 8px;font-size:clamp(9px,1.2vw,13px);letter-spacing:.08em;font-weight:900;color:#8cf8df}
+.electionTallyRow{display:grid;grid-template-columns:19px minmax(0,1fr) auto;align-items:center;gap:5px;padding:6px 0;border-bottom:1px solid #ffffff25;font-size:clamp(9px,1vw,13px)}
+.electionTallyRank{color:#9bb5d0;font-variant-numeric:tabular-nums}
+.electionTallyName{overflow-wrap:anywhere;font-weight:750;line-height:1.2}
+.electionTallyScore{border-radius:7px;min-width:24px;text-align:center;padding:4px;background:#1e557a;color:#ffffff;font-size:clamp(11px,1.6vw,16px);font-variant-numeric:tabular-nums}
+.electionTallyFoot{font-size:9px;letter-spacing:.05em;color:#9ddfd4;padding-top:9px;text-align:center}
+.portrait .electionArena,.square .electionArena{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:5px}
+.portrait .electionTally,.square .electionTally{max-height:clamp(86px,22vh,175px);padding:5px 7px}
+.portrait .electionTallyHead,.square .electionTallyHead{padding:3px 2px 5px}
+.portrait .electionTallyRow,.square .electionTallyRow{padding:3px 0}
+@media(max-width:520px){.electionArena{gap:5px}.electionTallyRow{font-size:10px}.electionTallyScore{font-size:12px}}
