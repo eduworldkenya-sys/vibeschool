@@ -161,9 +161,11 @@
     "approved_item_count": 5,
     "assignment_status": "open",
     "time_limit_minutes": null,
-    "max_attempts": 3,
+    "max_attempts": 1000,
     "show_score_policy": "immediate",
     "learner_e2e": "not_verified",
-    "source": "Supabase production readback 2026-11-14"
+    "source": "Supabase production readback 2026-11-14",
+    "attempt_limit_note": "1000 is a pragmatic cap, not unlimited. Updated from 3 following 3 completed attempts disabling the topic.",
+    "attempt_limit_fix_verified": true
   }
 }
