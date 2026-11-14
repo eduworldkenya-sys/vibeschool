@@ -71,10 +71,16 @@ export default function RevisionStudioPage(){
  const load=useCallback(async()=>{
    setLoading(true);setError('')
    try{
-     const [w,m]=await Promise.all([getRevisionWorkspace(),getMyRevisionMemory()])
-     setWorkspace(w);setMemory(m)
-   }catch(e){setError(e instanceof Error?e.message:'Your revision history could not be loaded.')}
-   finally{setLoading(false)}
+     // The revision workspace must remain usable when optional recall memory is unavailable.
+     const [workspaceResult,memoryResult]=await Promise.allSettled([getRevisionWorkspace(),getMyRevisionMemory()])
+     if(workspaceResult.status==='fulfilled')setWorkspace(workspaceResult.value)
+     else setError(workspaceResult.reason instanceof Error?workspaceResult.reason.message:'Your revision workspace could not be loaded.')
+     if(memoryResult.status==='fulfilled')setMemory(memoryResult.value)
+     else{
+       setMemory([])
+       if(workspaceResult.status==='fulfilled')setError('Your saved recall schedule is temporarily unavailable. You can still review your mistakes; saved recall status may be incomplete.')
+     }
+   }finally{setLoading(false)}
  },[])
  useEffect(()=>{if(!identityLoading&&identity)void load();else if(!identityLoading)setLoading(false)},[identity,identityLoading,load])
  useEffect(()=>{if(requestedSubject){const tile=subjectTiles.find(t=>t.name.toLowerCase()===requestedSubject.toLowerCase());if(tile)setSubject(tile.name)}},[requestedSubject])
