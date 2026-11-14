@@ -83,7 +83,7 @@ export default function StudentHomePage() {
   useEffect(() => {
     if (!identity?.studentId) { setTutoringSummary(null); return }
     let active = true
-    void supabase.rpc('vibetutor_student_inbox').then(({ data, error }) => {
+    void Promise.resolve(supabase.rpc('vibetutor_student_inbox')).then(({ data, error }) => {
       if (!active) return
       if (error || !Array.isArray(data)) { setTutoringSummary(null); return }
       const rows = data as Array<{ status?: string }>

@@ -142,3 +142,45 @@
 .catchBracket small{font-size:7px;font-weight:850;letter-spacing:.04em}
 .catchActive{background:linear-gradient(140deg,#5dcfb6,#15596a);border-color:#dffdf6;box-shadow:0 0 30px var(--accent),0 8px 20px #000b}
 @media(max-width:440px){.catchBracket{top:62%;min-width:40px;padding:5px 2px}.catchLeft{left:15%}.catchRight{right:15%}.catchBracket small{font-size:6px}}
+
+
+/* VibeSphere: fixed top pointer and rotating two-face globe. The static glass/rim layer
+   keeps the silhouette spherical while the artwork moves as a 3D rotor. */
+.sphereArena{--orb-size:clamp(200px,48vw,340px);position:relative;flex:1;min-height:260px;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;isolation:isolate;transform-style:preserve-3d;perspective:950px;overflow:visible;margin:4% 0 2%}
+.pointerAssembly{position:absolute;z-index:9;top:3%;left:50%;transform:translateX(-50%);display:grid;justify-items:center;gap:0;filter:drop-shadow(0 6px 8px #000a);pointer-events:none}
+.pointerMount{width:70px;height:17px;border-radius:8px 8px 3px 3px;border:2px solid #bce2f1;background:linear-gradient(90deg,#20394d,#f2fbff 42%,#647e97);box-shadow:0 0 20px var(--glow)}
+.pointerNeedle{width:0;height:0;border-left:17px solid transparent;border-right:17px solid transparent;border-top:36px solid var(--accent);filter:drop-shadow(0 4px 8px #000e)}
+.pointerAssembly span{font-size:8px;font-weight:950;letter-spacing:.12em;color:#e9ffff;white-space:nowrap;background:#09152acc;padding:4px 7px;border-radius:6px;margin-top:4px}
+.orbPerspective{position:relative;z-index:4;width:var(--orb-size);height:var(--orb-size);perspective:950px;transform-style:preserve-3d;filter:drop-shadow(12px 17px 22px #000b)}
+.orbRotor{position:absolute;inset:0;border-radius:50%;transform-style:preserve-3d;will-change:transform}
+.orbFace{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;border:5px solid #eaf8ff9c;box-shadow:inset -20px -17px 45px #000b,inset 12px 9px 35px #ffffff70,0 0 28px var(--glow);background:radial-gradient(circle at 31% 20%,#ffffffa6 0%,#ffffff2b 15%,transparent 35%),radial-gradient(circle at 34% 30%,var(--face-accent) 5%,#1c3855 82%,#07172c 100%)}
+.orbFront{transform:translateZ(2px)}
+.orbBack{transform:rotateY(180deg) translateZ(2px)}
+.orbSurface{height:76%;width:79%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;text-shadow:0 3px 9px #000c;overflow:hidden}
+.orbId{font-size:clamp(11px,1.2vw,16px);font-weight:950;letter-spacing:.16em;opacity:.85}
+.orbLogo{width:clamp(45px,10vw,100px);height:clamp(45px,10vw,100px);object-fit:contain;filter:drop-shadow(0 5px 9px #0009)}
+.orbName{font-size:clamp(16px,2.5vw,27px);line-height:1.08;font-weight:1000;white-space:pre-line;overflow-wrap:anywhere;max-width:100%}
+.orbSurface small{font-size:clamp(9px,1.1vw,13px);font-weight:800;opacity:.9}
+.orbGlass{position:absolute;z-index:7;inset:0;border:3px solid #ffffff64;border-radius:50%;box-shadow:inset 15px 13px 28px #ffffff36,inset -22px -20px 30px #000a,0 0 50px var(--glow);background:radial-gradient(ellipse at 25% 17%,#ffffff55,transparent 33%),linear-gradient(110deg,#ffffff0c,transparent 37%,#0000004d 92%);pointer-events:none}
+.sphereShadow{position:absolute;z-index:0;bottom:4%;width:65%;height:8%;border-radius:50%;background:#0009;filter:blur(14px);box-shadow:0 0 30px var(--glow)}
+.arenaBase{position:absolute;bottom:0;z-index:2;width:75%;height:11px;border-radius:50%;background:linear-gradient(90deg,#21334d,var(--frame),#18273c);box-shadow:0 0 24px var(--glow),0 10px 17px #0009;display:grid;place-items:center}
+.arenaBase span{position:absolute;top:12px;white-space:nowrap;font-size:9px;letter-spacing:.15em;font-weight:850;color:#b8d8e6}
+.stage.landscape .sphereArena{--orb-size:clamp(130px,20vw,245px);min-height:145px;margin:0}
+.stage.square .sphereArena{--orb-size:clamp(165px,32vw,270px);min-height:190px;margin:0}
+.stage.landscape .pointerAssembly,.stage.square .pointerAssembly{top:0}
+.stage.landscape .orbSurface{gap:2px}
+.stage.landscape .orbLogo{width:45px;height:45px}
+.stage.landscape .orbName{font-size:15px}
+.stage.landscape .arenaBase span{display:none}
+@media(max-width:760px){.sphereArena{--orb-size:clamp(195px,55vw,325px)}}
+@media(max-width:440px){.sphereArena{--orb-size:clamp(190px,64vw,265px);min-height:235px;margin:1% 0}.pointerMount{width:49px;height:12px}.pointerNeedle{border-left-width:12px;border-right-width:12px;border-top-width:25px}.pointerAssembly span{font-size:6px}.orbFace{border-width:3px}.orbSurface{gap:4px}.orbName{font-size:16px}.orbLogo{width:55px;height:55px}.arenaBase span{font-size:7px}}
+@media(prefers-reduced-motion:reduce){.orbRotor{will-change:auto}}
+
+
+/* Result appears in its own stage row instead of covering the moving sphere. */
+.sphereResultInline{width:100%;position:relative;z-index:9;margin:2px 0 8px;padding:10px 12px;border:1px solid var(--accent);background:#07142bdc;border-radius:12px;box-shadow:0 0 20px var(--glow);display:grid;gap:3px;justify-items:center;text-align:center;animation:revealIn .55s ease-out}
+.sphereResultInline small{font-size:10px;letter-spacing:.14em;font-weight:950;color:var(--accent)}
+.sphereResultInline strong{font-size:clamp(15px,2vw,24px);line-height:1.1;white-space:pre-line;overflow-wrap:anywhere}
+.sphereResultInline p{font-size:9px;color:#c5ddea;margin:0}
+.stage.landscape .sphereResultInline{padding:5px 8px;margin:0}
+@media(prefers-reduced-motion:reduce){.sphereResultInline{animation:none}}
