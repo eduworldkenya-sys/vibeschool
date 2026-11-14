@@ -1,0 +1,744 @@
+{
+  "schema": "vibeschool.originals.grade4-addition-bulk-editorial.v1",
+  "status": "EDITORIAL_DRAFT_NOT_IMPORTED_NOT_CERTIFIED_NOT_PUBLISHED",
+  "scope": "Four distinct outcomes 1.2(b)–(e), complementing existing draft for (a). Eight lessons is official sub-strand allocation, not four new lessons guaranteed.",
+  "createdAt": "2026-11-14",
+  "producer": "ChatGPT-led VibeSchool editorial",
+  "copyright": "All learner materials written originally, not the KICD source wording; source remains a cited authority.",
+  "existingFirstOutcome": {
+    "path": "content/curriculum/production/grade4-mathematics-addition-1.2a.v1.editorial.json",
+    "branch": "content/g4-math-addition-1-2a-editorial-20261114",
+    "pr": 1691,
+    "mergeStatus": "not_verified"
+  },
+  "qualityChecks": {
+    "authoring": "Automated arithmetic and structure checked",
+    "independent": "NOT_PERFORMED",
+    "officialCurriculumSource": "PUBLIC_KICD_TEXT_OBSERVED",
+    "canonicalSourcePromotion": "NOT_PERFORMED",
+    "learnerDelivery": "NOT_TESTED"
+  },
+  "packets": [
+    {
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "strand": "1.0 Numbers",
+      "subStrand": "1.2 Addition",
+      "outcomeCode": "1.2(b)",
+      "goal": "Add two four-digit numbers with two exchanges accurately and explain each exchange.",
+      "source": {
+        "publisher": "Kenya Institute of Curriculum Development",
+        "document": "Grade 4 Mathematics curriculum design",
+        "revision": "2024",
+        "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "locator": "Strand 1.0 Numbers; sub-strand 1.2 Addition; printed pp. 4–5 (PDF pages 12–13)",
+        "editionEvidence": "KICD PDF text inspected, PDF page screenshot retrieval failed; source intake and checksum not authenticated",
+        "scopeStatus": "OFFICIAL_SCOPE_OBSERVED_ONLY; CANONICAL_APPROVAL_PENDING"
+      },
+      "officialOutcomeId": null,
+      "canonicalStatus": "SOURCE_OBSERVED_NOT_PROMOTED",
+      "contentStatus": "EDITORIAL_DRAFT_NOT_PUBLISHED",
+      "assessmentStatus": "PRIVATE_EDITORIAL_ITEMS_NOT_IN_CANONICAL_BANK",
+      "reusedExisting": [
+        "lib/teaching/grade4MathematicsCatalog.mjs#1.2",
+        "content/curriculum/production/grade4-original-first-lessons.v1.json#VS-G04-MA-1.1-L01"
+      ],
+      "accessibility": "Use large-print and clear high-contrast column headings, spoken steps, tactile counters or pencil-drawn diagrams; never rely on colour or printing.",
+      "releaseGate": "Requires authenticated KICD source promotion, stable outcome identity, independent checking, canonical version certification, authorised publishing and learner read-back.",
+      "id": "VS-G04-MA-1.2-B-L01",
+      "title": "Adding with two regroupings",
+      "vocabulary": [
+        [
+          "exchange",
+          "Replace ten of one place-value unit with one unit of the next place"
+        ],
+        [
+          "carry",
+          "Record an exchanged unit to include in the next column"
+        ]
+      ],
+      "explanation": "Adding digits in columns works because each column represents equal-sized units. Start from ones. When a column totals ten or more, retain its ones digit and exchange ten units for one unit in the column to the left. A problem with two regroupings needs two such exchanges; count each carried unit exactly once.",
+      "worked": {
+        "prompt": "A school collected 2,478 bottle tops on Monday and 1,347 on Tuesday. Find the total.",
+        "a": 2478,
+        "b": 1347,
+        "answer": 3825,
+        "regroupCount": 2,
+        "steps": [
+          [
+            "Align the thousands, hundreds, tens and ones.",
+            "Each column now contains like units."
+          ],
+          [
+            "8 ones + 7 ones = 15 ones. Write 5 ones and carry 1 ten.",
+            "Ten ones have the same value as one ten."
+          ],
+          [
+            "7 tens + 4 tens + 1 carried ten = 12 tens. Write 2 tens and carry 1 hundred.",
+            "Ten tens have the same value as one hundred."
+          ],
+          [
+            "4 hundreds + 3 hundreds + 1 carried hundred = 8 hundreds; thousands 2 + 1 = 3.",
+            "No further exchange is needed."
+          ],
+          [
+            "Read 3,825, then subtract 1,347 from 3,825 to confirm 2,478.",
+            "An inverse operation checks the answer."
+          ]
+        ]
+      },
+      "guided": [
+        {
+          "id": "B-G1",
+          "prompt": "Use a chart to solve 3,659 + 1,248. Explain the two exchanges.",
+          "answer": 4907,
+          "explanation": "9+8=17 ones, carry one ten; 5+4+1=10 tens, carry one hundred; hundreds 6+2+1=9; thousands 3+1=4.",
+          "incorrectFeedback": "Look for the exchange in both ones and tens."
+        }
+      ],
+      "independent": [
+        {
+          "id": "B-E1",
+          "prompt": "Calculate 4,387 + 2,526.",
+          "answer": 6913,
+          "explanation": "7+6=13 ones; 8+2+1=11 tens; 3+5+1=9 hundreds; 4+2=6 thousands.",
+          "incorrectFeedback": "Two carried units are needed.",
+          "a": 4387,
+          "b": 2526,
+          "regroupCount": 2
+        },
+        {
+          "id": "B-E2",
+          "prompt": "Calculate 5,278 + 2,447.",
+          "answer": 7725,
+          "explanation": "8+7=15 ones; 7+4+1=12 tens; 2+4+1=7 hundreds; 5+2=7 thousands.",
+          "incorrectFeedback": "Start with ones; do not forget the second exchange.",
+          "a": 5278,
+          "b": 2447,
+          "regroupCount": 2
+        },
+        {
+          "id": "B-E3",
+          "prompt": "Calculate 3,871 + 2,645.",
+          "answer": 6516,
+          "explanation": "1+5=6 ones; 7+4=11 tens, carry a hundred; 8+6+1=15 hundreds, carry a thousand; 3+2+1=6 thousands.",
+          "incorrectFeedback": "Regrouping can happen in tens and hundreds even without an ones exchange.",
+          "a": 3871,
+          "b": 2645,
+          "regroupCount": 2
+        }
+      ],
+      "formative": [
+        {
+          "id": "B-Q1",
+          "prompt": "3,659 + 1,248 = ?",
+          "answer": 4907,
+          "explanation": "17 ones and 10 tens require two exchanges.",
+          "incorrectFeedback": "If you got 4,807, check the carried hundred.",
+          "a": 3659,
+          "b": 1248,
+          "regroupCount": 2
+        },
+        {
+          "id": "B-Q2",
+          "prompt": "2,478 + 1,347 = ?",
+          "answer": 3825,
+          "explanation": "The 15 ones and then 12 tens each produce one exchange.",
+          "incorrectFeedback": "Carry from ones and tens.",
+          "a": 2478,
+          "b": 1347,
+          "regroupCount": 2
+        },
+        {
+          "id": "B-Q3",
+          "prompt": "4,387 + 2,526 = ?",
+          "answer": 6913,
+          "explanation": "13 ones give 3 ones and a ten; 11 tens give 1 ten and a hundred.",
+          "incorrectFeedback": "The result has 1 in the tens place.",
+          "a": 4387,
+          "b": 2526,
+          "regroupCount": 2
+        },
+        {
+          "id": "B-Q4",
+          "prompt": "5,278 + 2,447 = ?",
+          "answer": 7725,
+          "explanation": "15 ones, 12 tens; retain 5 ones and 2 tens.",
+          "incorrectFeedback": "Do not put the carried units in the answer twice.",
+          "a": 5278,
+          "b": 2447,
+          "regroupCount": 2
+        },
+        {
+          "id": "B-Q5",
+          "prompt": "3,871 + 2,645 = ?",
+          "answer": 6516,
+          "explanation": "The two exchanges occur in the tens and hundreds columns.",
+          "incorrectFeedback": "Check every column for totals of at least ten.",
+          "a": 3871,
+          "b": 2645,
+          "regroupCount": 2
+        }
+      ],
+      "activity": {
+        "materials": [
+          "Place-value chart",
+          "Pencil-drawn groups or number cards"
+        ],
+        "steps": [
+          "Represent 2,478 and 1,347 in four columns.",
+          "Bundle 15 ones into a ten and five ones; exchange 12 tens into a hundred and two tens.",
+          "Write 3,825 and explain that two trades conserved the total.",
+          "Swap the numbers and verify addition gives the same result."
+        ]
+      },
+      "revision": {
+        "recall": "Why can a sum require a carry in the tens column after a carry in ones?",
+        "answer": "The carried ten joins existing tens and may make ten or more tens.",
+        "remedial": "Practise one exchange before showing two exchanges with physical or drawn bundles.",
+        "enrichment": "Invent a pair with regrouping in the hundreds and tens but not ones and justify the carries."
+      },
+      "teacher": {
+        "guide": "Move from place-value apparatus to a drawn chart to written algorithm; check each exchange visually.",
+        "diagnostic": "Learner writes 3,715 instead of 3,825 because carried tens/hundreds were omitted.",
+        "reflection": "Ask the learner to point to both exchanges and explain each in groups of ten."
+      },
+      "visual": {
+        "kind": "two-exchange chart",
+        "brief": "Four columns with 15 ones and 12 tens; arrows show two separate bundles of ten exchanging to next column; label each exchange in text."
+      }
+    },
+    {
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "strand": "1.0 Numbers",
+      "subStrand": "1.2 Addition",
+      "outcomeCode": "1.2(c)",
+      "goal": "Estimate an addition result by rounding each number to the nearest ten and evaluate the estimate against an exact total.",
+      "source": {
+        "publisher": "Kenya Institute of Curriculum Development",
+        "document": "Grade 4 Mathematics curriculum design",
+        "revision": "2024",
+        "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "locator": "Strand 1.0 Numbers; sub-strand 1.2 Addition; printed pp. 4–5 (PDF pages 12–13)",
+        "editionEvidence": "KICD PDF text inspected, PDF page screenshot retrieval failed; source intake and checksum not authenticated",
+        "scopeStatus": "OFFICIAL_SCOPE_OBSERVED_ONLY; CANONICAL_APPROVAL_PENDING"
+      },
+      "officialOutcomeId": null,
+      "canonicalStatus": "SOURCE_OBSERVED_NOT_PROMOTED",
+      "contentStatus": "EDITORIAL_DRAFT_NOT_PUBLISHED",
+      "assessmentStatus": "PRIVATE_EDITORIAL_ITEMS_NOT_IN_CANONICAL_BANK",
+      "reusedExisting": [
+        "lib/teaching/grade4MathematicsCatalog.mjs#1.2",
+        "content/curriculum/production/grade4-original-first-lessons.v1.json#VS-G04-MA-1.1-L01"
+      ],
+      "accessibility": "Use large-print and clear high-contrast column headings, spoken steps, tactile counters or pencil-drawn diagrams; never rely on colour or printing.",
+      "releaseGate": "Requires authenticated KICD source promotion, stable outcome identity, independent checking, canonical version certification, authorised publishing and learner read-back.",
+      "id": "VS-G04-MA-1.2-C-L01",
+      "title": "Estimate sums using nearest tens",
+      "vocabulary": [
+        [
+          "estimate",
+          "A useful approximate answer"
+        ],
+        [
+          "round",
+          "Replace a number by a nearby multiple of ten"
+        ],
+        [
+          "exact sum",
+          "The result from adding the original unrounded values"
+        ]
+      ],
+      "explanation": "To estimate a sum, round each number to the nearest ten and add the rounded numbers. Check the ones digit: 0–4 round down, 5–9 round up. An estimate is not the exact answer. It helps you decide whether a calculation makes sense.",
+      "worked": {
+        "prompt": "A library has 2,463 books in one room and 1,328 in another. Estimate the total to the nearest tens and then find the exact total.",
+        "a": 2463,
+        "b": 1328,
+        "answer": 3791,
+        "estimate": 3790,
+        "steps": [
+          [
+            "Round 2,463 to 2,460.",
+            "The ones digit 3 is less than 5, so round down."
+          ],
+          [
+            "Round 1,328 to 1,330.",
+            "The ones digit 8 is at least 5, so round up."
+          ],
+          [
+            "Add 2,460 + 1,330 = 3,790.",
+            "The rounded numbers produce a quick estimate."
+          ],
+          [
+            "Add the original amounts: 2,463 + 1,328 = 3,791.",
+            "The exact sum uses the original values."
+          ],
+          [
+            "Compare 3,791 and 3,790: they differ by 1.",
+            "The small difference shows this estimate is sensible."
+          ]
+        ]
+      },
+      "guided": [
+        {
+          "id": "C-G1",
+          "prompt": "Round 3,147 and 2,456 to the nearest ten. What estimated total do you get?",
+          "answer": 5610,
+          "explanation": "3,147 → 3,150 and 2,456 → 2,460; 3,150 + 2,460 = 5,610.",
+          "incorrectFeedback": "Check ones digits before rounding."
+        }
+      ],
+      "independent": [
+        {
+          "id": "C-E1",
+          "prompt": "Estimate 4,236 + 1,328 by rounding both numbers to the nearest ten.",
+          "answer": 5570,
+          "explanation": "4,236 → 4,240; 1,328 → 1,330; total 5,570.",
+          "incorrectFeedback": "Round each addend, not the final sum."
+        },
+        {
+          "id": "C-E2",
+          "prompt": "Estimate 2,814 + 3,162 to the nearest tens.",
+          "answer": 5970,
+          "explanation": "2,814 → 2,810; 3,162 → 3,160; total 5,970.",
+          "incorrectFeedback": "Four rounds down; two rounds down."
+        },
+        {
+          "id": "C-E3",
+          "prompt": "Find the exact total of 2,463 + 1,328 to compare with an estimate of 3,790.",
+          "answer": 3791,
+          "explanation": "2,463 + 1,328 = 3,791, just one away from the estimate.",
+          "incorrectFeedback": "Use the original numbers for the exact sum."
+        }
+      ],
+      "formative": [
+        {
+          "id": "C-Q1",
+          "prompt": "Estimate 2,463 + 1,328 to the nearest tens.",
+          "answer": 3790,
+          "explanation": "2,460 + 1,330 = 3,790.",
+          "incorrectFeedback": "Use the rounded addends."
+        },
+        {
+          "id": "C-Q2",
+          "prompt": "Estimate 3,147 + 2,456 to the nearest tens.",
+          "answer": 5610,
+          "explanation": "3,150 + 2,460 = 5,610.",
+          "incorrectFeedback": "Round 7 and 6 upward."
+        },
+        {
+          "id": "C-Q3",
+          "prompt": "Estimate 4,236 + 1,328 to the nearest tens.",
+          "answer": 5570,
+          "explanation": "4,240 + 1,330 = 5,570.",
+          "incorrectFeedback": "6 and 8 round upward."
+        },
+        {
+          "id": "C-Q4",
+          "prompt": "Estimate 2,814 + 3,162 to the nearest tens.",
+          "answer": 5970,
+          "explanation": "2,810 + 3,160 = 5,970.",
+          "incorrectFeedback": "4 and 2 round downward."
+        },
+        {
+          "id": "C-Q5",
+          "prompt": "What is the exact sum 2,463 + 1,328?",
+          "answer": 3791,
+          "explanation": "The exact answer differs from 3,790 by one.",
+          "incorrectFeedback": "Exact answers are not always multiples of ten."
+        }
+      ],
+      "activity": {
+        "materials": [
+          "Written market prices and school stock counts"
+        ],
+        "steps": [
+          "Write 2,463 and 1,328 on two cards.",
+          "Look at each ones digit and round each amount separately.",
+          "Add rounded amounts to estimate without a calculator.",
+          "Add exact amounts, then explain why the estimate was close."
+        ]
+      },
+      "revision": {
+        "recall": "What happens when the ones digit is exactly 5?",
+        "answer": "Round up to the next multiple of ten.",
+        "remedial": "Use a 0-to-100 number line and round two-digit values first.",
+        "enrichment": "Find two four-digit addends whose estimated sum differs from the exact sum by 9 and explain why."
+      },
+      "teacher": {
+        "guide": "Accept a reasonable estimate only when its rounding method is clearly stated; do not mark an estimate as exact.",
+        "diagnostic": "Learner rounds 3,147 to 3,140 rather than 3,150.",
+        "reflection": "Ask which ones digits caused rounding up or down, and why an estimate is useful."
+      },
+      "visual": {
+        "kind": "two number lines",
+        "brief": "Show 2,463 between 2,460 and 2,470 and 1,328 between 1,320 and 1,330, labelled distances, with arrows to selected multiples."
+      }
+    },
+    {
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "strand": "1.0 Numbers",
+      "subStrand": "1.2 Addition",
+      "outcomeCode": "1.2(d)",
+      "goal": "Create and extend addition patterns with totals up to 10,000 and explain a constant step.",
+      "source": {
+        "publisher": "Kenya Institute of Curriculum Development",
+        "document": "Grade 4 Mathematics curriculum design",
+        "revision": "2024",
+        "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "locator": "Strand 1.0 Numbers; sub-strand 1.2 Addition; printed pp. 4–5 (PDF pages 12–13)",
+        "editionEvidence": "KICD PDF text inspected, PDF page screenshot retrieval failed; source intake and checksum not authenticated",
+        "scopeStatus": "OFFICIAL_SCOPE_OBSERVED_ONLY; CANONICAL_APPROVAL_PENDING"
+      },
+      "officialOutcomeId": null,
+      "canonicalStatus": "SOURCE_OBSERVED_NOT_PROMOTED",
+      "contentStatus": "EDITORIAL_DRAFT_NOT_PUBLISHED",
+      "assessmentStatus": "PRIVATE_EDITORIAL_ITEMS_NOT_IN_CANONICAL_BANK",
+      "reusedExisting": [
+        "lib/teaching/grade4MathematicsCatalog.mjs#1.2",
+        "content/curriculum/production/grade4-original-first-lessons.v1.json#VS-G04-MA-1.1-L01"
+      ],
+      "accessibility": "Use large-print and clear high-contrast column headings, spoken steps, tactile counters or pencil-drawn diagrams; never rely on colour or printing.",
+      "releaseGate": "Requires authenticated KICD source promotion, stable outcome identity, independent checking, canonical version certification, authorised publishing and learner read-back.",
+      "id": "VS-G04-MA-1.2-D-L01",
+      "title": "Build addition number patterns",
+      "vocabulary": [
+        [
+          "pattern",
+          "Numbers arranged according to a rule"
+        ],
+        [
+          "rule",
+          "The repeatable change from one term to the next"
+        ],
+        [
+          "term",
+          "One number in a sequence"
+        ]
+      ],
+      "explanation": "An addition pattern grows by a consistent amount. First subtract two neighbouring terms to discover how much was added. Repeat that addition to continue the pattern. Every term must stay within the task's stated limit.",
+      "worked": {
+        "prompt": "Start at 1,150 and add 125 each time. Write five terms.",
+        "start": 1150,
+        "step": 125,
+        "answer": [
+          1150,
+          1275,
+          1400,
+          1525,
+          1650
+        ],
+        "steps": [
+          [
+            "Begin with 1,150.",
+            "This is the first term."
+          ],
+          [
+            "Add 125: 1,150 + 125 = 1,275.",
+            "The rule increases the term by the same amount each time."
+          ],
+          [
+            "Add 125 again: 1,275 + 125 = 1,400.",
+            "Keep the step constant."
+          ],
+          [
+            "Continue: 1,400 + 125 = 1,525; then 1,525 + 125 = 1,650.",
+            "The third, fourth and fifth terms use the same rule."
+          ],
+          [
+            "Check consecutive differences are 125.",
+            "Repeating the same difference confirms the pattern."
+          ]
+        ]
+      },
+      "guided": [
+        {
+          "id": "D-G1",
+          "prompt": "Continue 2,400, 2,650, 2,900, ... with the next two terms.",
+          "answer": [
+            3150,
+            3400
+          ],
+          "explanation": "Each new term adds 250.",
+          "incorrectFeedback": "Check 2,650−2,400 and 2,900−2,650."
+        }
+      ],
+      "independent": [
+        {
+          "id": "D-E1",
+          "prompt": "Find the next three terms: 1,250, 1,450, 1,650, ...",
+          "answer": [
+            1850,
+            2050,
+            2250
+          ],
+          "explanation": "Each step adds 200.",
+          "incorrectFeedback": "Compare differences between adjacent terms."
+        },
+        {
+          "id": "D-E2",
+          "prompt": "Find the next two terms: 3,125, 3,250, 3,375, ...",
+          "answer": [
+            3500,
+            3625
+          ],
+          "explanation": "Add 125 each time.",
+          "incorrectFeedback": "Write each term below 10,000."
+        },
+        {
+          "id": "D-E3",
+          "prompt": "A school saves 500 shillings each week. If the savings start at KSh 2,000, list the next four totals.",
+          "answer": [
+            2500,
+            3000,
+            3500,
+            4000
+          ],
+          "explanation": "The savings grow by KSh 500 each time.",
+          "incorrectFeedback": "Include KSh 500 every week."
+        }
+      ],
+      "formative": [
+        {
+          "id": "D-Q1",
+          "prompt": "Give the next two terms after 1,150, 1,275, 1,400.",
+          "answer": [
+            1525,
+            1650
+          ],
+          "explanation": "Add 125 twice.",
+          "incorrectFeedback": "A pattern needs the same step."
+        },
+        {
+          "id": "D-Q2",
+          "prompt": "Give the next two terms after 2,400, 2,650, 2,900.",
+          "answer": [
+            3150,
+            3400
+          ],
+          "explanation": "Add 250 twice.",
+          "incorrectFeedback": "Check the difference."
+        },
+        {
+          "id": "D-Q3",
+          "prompt": "Give the next two terms after 1,250, 1,450, 1,650.",
+          "answer": [
+            1850,
+            2050
+          ],
+          "explanation": "Add 200 twice.",
+          "incorrectFeedback": "Do not add a changing number."
+        },
+        {
+          "id": "D-Q4",
+          "prompt": "What is the step in 3,125, 3,250, 3,375?",
+          "answer": 125,
+          "explanation": "Subtract neighbouring terms: 3,250−3,125 = 125.",
+          "incorrectFeedback": "Find the common difference."
+        },
+        {
+          "id": "D-Q5",
+          "prompt": "What comes next after 2,000, 2,500, 3,000, 3,500?",
+          "answer": 4000,
+          "explanation": "Add 500 to 3,500.",
+          "incorrectFeedback": "The rule stays the same."
+        }
+      ],
+      "activity": {
+        "materials": [
+          "Number cards or a homemade number line"
+        ],
+        "steps": [
+          "Create a five-number pattern starting at 1,150 with step 125.",
+          "Swap patterns with a partner or family member who identifies the rule.",
+          "Check the rule using subtraction between each pair.",
+          "Write a practical scenario matching the pattern, such as saving or collecting bottles."
+        ]
+      },
+      "revision": {
+        "recall": "How can subtraction help check an addition pattern?",
+        "answer": "Subtract neighbouring terms; the difference should equal the step.",
+        "remedial": "Build patterns by tens on a hundred chart before using three- and four-digit values.",
+        "enrichment": "Make two different five-term patterns that both finish at 5,000 and explain the starting values and steps."
+      },
+      "teacher": {
+        "guide": "Check reasoning with differences, not only memorised next numbers; use both forward and backward pattern discussion.",
+        "diagnostic": "Learner changes the step each time instead of repeating the original addition.",
+        "reflection": "Have the learner explain how a pattern can describe repeated savings."
+      },
+      "visual": {
+        "kind": "five-step number-line",
+        "brief": "Five points labelled 1,150, 1,275, 1,400, 1,525, 1,650 connected by four identical +125 arrows."
+      }
+    },
+    {
+      "grade": "Grade 4",
+      "subject": "Mathematics",
+      "strand": "1.0 Numbers",
+      "subStrand": "1.2 Addition",
+      "outcomeCode": "1.2(e)",
+      "goal": "Recognise and explain how addition of whole numbers helps solve everyday problems.",
+      "source": {
+        "publisher": "Kenya Institute of Curriculum Development",
+        "document": "Grade 4 Mathematics curriculum design",
+        "revision": "2024",
+        "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+        "locator": "Strand 1.0 Numbers; sub-strand 1.2 Addition; printed pp. 4–5 (PDF pages 12–13)",
+        "editionEvidence": "KICD PDF text inspected, PDF page screenshot retrieval failed; source intake and checksum not authenticated",
+        "scopeStatus": "OFFICIAL_SCOPE_OBSERVED_ONLY; CANONICAL_APPROVAL_PENDING"
+      },
+      "officialOutcomeId": null,
+      "canonicalStatus": "SOURCE_OBSERVED_NOT_PROMOTED",
+      "contentStatus": "EDITORIAL_DRAFT_NOT_PUBLISHED",
+      "assessmentStatus": "PRIVATE_EDITORIAL_ITEMS_NOT_IN_CANONICAL_BANK",
+      "reusedExisting": [
+        "lib/teaching/grade4MathematicsCatalog.mjs#1.2",
+        "content/curriculum/production/grade4-original-first-lessons.v1.json#VS-G04-MA-1.1-L01"
+      ],
+      "accessibility": "Use large-print and clear high-contrast column headings, spoken steps, tactile counters or pencil-drawn diagrams; never rely on colour or printing.",
+      "releaseGate": "Requires authenticated KICD source promotion, stable outcome identity, independent checking, canonical version certification, authorised publishing and learner read-back.",
+      "id": "VS-G04-MA-1.2-E-L01",
+      "title": "Use addition in real situations",
+      "vocabulary": [
+        [
+          "combined total",
+          "The amount obtained when two quantities are joined"
+        ],
+        [
+          "addends",
+          "The quantities being combined"
+        ],
+        [
+          "reasonable answer",
+          "An answer consistent with the size of the quantities"
+        ]
+      ],
+      "explanation": "Addition is useful when two quantities of the same unit are combined, such as books and books or shillings and shillings. Identify the two amounts, check that the units match, add carefully, and explain how the answer helps someone make a decision. Some problems are solved better with subtraction, so explain why addition is appropriate.",
+      "worked": {
+        "prompt": "A school garden collected 2,450 seed packets in one term and 1,325 in another. How many packets altogether?",
+        "a": 2450,
+        "b": 1325,
+        "answer": 3775,
+        "steps": [
+          [
+            "Identify the two amounts: 2,450 and 1,325 packets.",
+            "They have matching units and are being combined."
+          ],
+          [
+            "Write an addition equation: 2,450 + 1,325.",
+            "Altogether signals a combined total in this context."
+          ],
+          [
+            "Add ones 0+5=5, tens 5+2=7, hundreds 4+3=7, thousands 2+1=3.",
+            "Adding equal place values gives 3,775."
+          ],
+          [
+            "Answer with units: 3,775 packets.",
+            "An unlabelled number would not fully answer the problem."
+          ],
+          [
+            "Estimate: 2,500 + 1,300 ≈ 3,800 packets.",
+            "The estimate shows 3,775 is sensible."
+          ]
+        ]
+      },
+      "guided": [
+        {
+          "id": "E-G1",
+          "prompt": "A shop had 3,210 exercise books and received 1,875 more. What total does it now have?",
+          "answer": 5085,
+          "explanation": "3,210 + 1,875 = 5,085 exercise books.",
+          "incorrectFeedback": "The new delivery increases the total."
+        }
+      ],
+      "independent": [
+        {
+          "id": "E-E1",
+          "prompt": "Two classes planted 2,450 and 1,325 seedlings. Find the total.",
+          "answer": 3775,
+          "explanation": "Add the groups: 2,450 + 1,325 = 3,775 seedlings.",
+          "incorrectFeedback": "Write units with your answer."
+        },
+        {
+          "id": "E-E2",
+          "prompt": "A youth group collected KSh 3,210 and KSh 1,875. What amount was collected altogether?",
+          "answer": 5085,
+          "explanation": "3,210 + 1,875 = KSh 5,085.",
+          "incorrectFeedback": "Use addition because both donations are combined."
+        },
+        {
+          "id": "E-E3",
+          "prompt": "A library counted 1,432 storybooks and 2,546 science books. How many books were counted?",
+          "answer": 3978,
+          "explanation": "1,432 + 2,546 = 3,978 books.",
+          "incorrectFeedback": "Both quantities are books, so units match."
+        }
+      ],
+      "formative": [
+        {
+          "id": "E-Q1",
+          "prompt": "A class has 2,450 pencils and receives 1,325 more. Find the new total.",
+          "answer": 3775,
+          "explanation": "2,450 + 1,325 = 3,775 pencils.",
+          "incorrectFeedback": "The word 'more' indicates addition here."
+        },
+        {
+          "id": "E-Q2",
+          "prompt": "A cooperative recorded 3,210 and 1,875 mangoes. How many mangoes together?",
+          "answer": 5085,
+          "explanation": "The combined total is 5,085 mangoes.",
+          "incorrectFeedback": "Retain the unit."
+        },
+        {
+          "id": "E-Q3",
+          "prompt": "A school has 1,432 exercise books and 2,546 storybooks. How many books total?",
+          "answer": 3978,
+          "explanation": "1,432 + 2,546 = 3,978 books.",
+          "incorrectFeedback": "The combined quantities are both books."
+        },
+        {
+          "id": "E-Q4",
+          "prompt": "A farmer has 1,120 red flowers and 2,340 yellow flowers. How many flowers altogether?",
+          "answer": 3460,
+          "explanation": "1,120 + 2,340 = 3,460 flowers.",
+          "incorrectFeedback": "Join like units."
+        },
+        {
+          "id": "E-Q5",
+          "prompt": "A community group receives KSh 4,125 and KSh 1,305. Find the total.",
+          "answer": 5430,
+          "explanation": "4,125 + 1,305 = KSh 5,430.",
+          "incorrectFeedback": "Write the final result in shillings."
+        }
+      ],
+      "activity": {
+        "materials": [
+          "Original local produce or stationery scenario cards"
+        ],
+        "steps": [
+          "Choose two quantities measured in the same unit.",
+          "Write a question that requires combining them, and identify the operation.",
+          "Use a place-value table to solve and estimate the answer.",
+          "Exchange problems with another learner and check answers by a different method."
+        ]
+      },
+      "revision": {
+        "recall": "When is addition useful in a story problem?",
+        "answer": "When two compatible quantities are combined to find a total.",
+        "remedial": "Sort picture problems into 'join two quantities' and 'take away a quantity' before calculating.",
+        "enrichment": "Write a two-sentence story with two amounts and explain why addition, rather than subtraction, solves it."
+      },
+      "teacher": {
+        "guide": "Require learners to state the units, identify the action and verify the operation; assess reasoning as well as arithmetic.",
+        "diagnostic": "Learner adds numbers from incompatible units or mistakes a remaining-quantity problem for addition.",
+        "reflection": "Ask learners to describe a home or school situation in which knowing a total is useful."
+      },
+      "visual": {
+        "kind": "two-group bar model",
+        "brief": "Two adjacent labelled bars: 2,450 packets and 1,325 packets, combined under a brace labelled 3,775 packets."
+      }
+    }
+  ]
+}
