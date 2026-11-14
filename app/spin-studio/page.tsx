@@ -790,7 +790,7 @@ export default function SpinStudio() {
             <div className={styles.stageContent}>
               <div className={styles.brand}>{wheel.logoImage?<img className={styles.logoImage} src={wheel.logoImage} alt="Creator logo"/>:<span className={styles.brandMark}>V</span>}<span><b>VIBESPIN</b> by VIBESCHOOL</span><span className={styles.episode}>EP. {String(wheel.episode??1).padStart(2,'0')}</span></div>
               <div className={styles.titleBlock}><div className={styles.livePill}>✦ {formatNames[showFormat].toUpperCase()} ✦</div><h2>{wheel.headline||'SPIN & TAKE THE CHALLENGE'}</h2><p>{wheel.name}</p></div>
-              {electionMode&&<div className={styles.electionArena}>
+              <div className={electionMode?styles.electionArena:styles.wheelOnlyArena}>
               <div className={styles.wheelArea} style={focalStyle(director,showPhase==='reveal'?'reveal':spinning?'action':'idle',reducedMotion)}>
                 <div className={styles.wheelHalo}/>
                 <div className={styles.wheelOrbitWrapper}>
@@ -830,7 +830,7 @@ export default function SpinStudio() {
                 </div>)}
                 <div className={styles.electionTallyFoot}>{electionFinished?'FINAL TALLY':'+'+electionPoints+' PER SPIN · RANDOM DRAW'}</div>
               </aside>}
-              {electionMode&&</div>}
+              </div>
               {(showPhase==='intro'||showPhase==='outro')&&<div className={styles.brandScene} role="status" aria-live="polite">
                 <div className={styles.brandSceneMark}>VibeSpin</div>
                 <div className={styles.brandSceneBy}>by VibeSchool</div>
