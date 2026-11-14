@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
  ArrowLeft, ArrowRight, Bell, BookOpen, BookOpenCheck, BrainCircuit, Calculator,
- CalendarDays, ChartNoAxesColumn, CheckCircle2, ChevronRight, Clock3, Flame,
+ CalendarDays, ChartNoAxesColumn, CheckCircle2, ChevronRight, Clock3,
  FlaskConical, House, Languages, Layers3, Lightbulb, RefreshCcw, RotateCcw, X
 } from 'lucide-react'
 import { useStudent } from '@/lib/student-context'
@@ -84,15 +84,16 @@ export default function RevisionStudioPage(){
  const selectedTopic=available.find(t=>dateDue(t.nextReviewAt))??available[0]??null
  const dueTopics=topics.filter(t=>dateDue(t.nextReviewAt))
  const reviewedTopics=topics.filter(t=>t.recallCount>0)
- const recalledTopics=topics.filter(t=>t.recallCount>0&&!dateDue(t.nextReviewAt))
- const needReviewTopics=topics.filter(t=>t.recallCount>0&&dateDue(t.nextReviewAt))
+ const recalledTopics=topics.filter(t=>t.recallCount>0&&t.lastRemembered===true)
+ const needReviewTopics=topics.filter(t=>t.recallCount>0&&t.lastRemembered===false)
  const dueMistakes=verified.filter(m=>dateDue(memoryById.get(m.id)?.nextReviewAt??null))
  const memoryHealth={
    remembered:recalledTopics.length+memory.filter(m=>m.lastRemembered===true&&verified.some(v=>v.id===m.mistakeId)).length,
    due:dueTopics.length+dueMistakes.length,
    needs:needReviewTopics.length+memory.filter(m=>m.lastRemembered===false&&verified.some(v=>v.id===m.mistakeId)).length,
  }
- const dailyGoal=Math.min(3,reviewedTopics.filter(t=>!dateDue(t.nextReviewAt)).length)
+ const todayNairobi=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Africa/Nairobi'}).format(new Date())
+ const dailyGoal=Math.min(3,reviewedTopics.filter(t=>t.lastRecalledAt&&new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Africa/Nairobi'}).format(new Date(t.lastRecalledAt))===todayNairobi).length)
  const selectedItem=dueMistakes.find(m=>m.subject.toLowerCase()===subject.toLowerCase())??dueMistakes[0]??null
  const weekTopics=topics.filter(t=>t.nextReviewAt&&!dateDue(t.nextReviewAt)&&new Date(t.nextReviewAt).getTime()<=Date.now()+7*86400000)
  function begin(m:MistakeNotebookItem, selectedMode:Mode='Recall'){
@@ -135,7 +136,7 @@ export default function RevisionStudioPage(){
          <span style={{width:37,height:37,display:'grid',placeItems:'center',background:colors.goal,color:'#10213b',borderRadius:13}}><BrainCircuit size={21}/></span>
          <div style={{flex:1,minWidth:0}}><strong style={{fontSize:16,color:colors.heroText}}>vibeschool</strong><div style={{fontSize:9,letterSpacing:.6,opacity:.83}}>REVISION STUDIO</div></div>
          <button type="button" onClick={()=>router.push('/student/tasks')} aria-label="My reminders" style={{...basic,color:colors.heroText,background:'rgba(255,255,255,.1)',border:0,borderRadius:999,width:34,height:34,display:'grid',placeItems:'center'}}><Bell size={16}/></button>
-         <span aria-label="Learner account" style={{width:35,height:35,borderRadius:999,display:'grid',placeItems:'center',background:'var(--vs-accent-soft, #e9d2a1)',color:'var(--vs-accent, #10213b)',fontSize:13,fontWeight:850}}>{identity?.studentName?.slice(0,1).toUpperCase()??'S'}</span>
+         <span aria-label="Learner account" style={{width:35,height:35,borderRadius:999,display:'grid',placeItems:'center',background:'var(--vs-accent-soft, #e9d2a1)',color:'var(--vs-accent, #10213b)',fontSize:13,fontWeight:850}}>{identity?.firstName?.slice(0,1).toUpperCase()??'S'}</span>
        </div>
        {onHome?<div>
          <div style={{fontSize:11,letterSpacing:.55,color:'var(--vs-goal-fill, #c8f3aa)',fontWeight:700}}>TODAY · REVISION SPACE</div>
