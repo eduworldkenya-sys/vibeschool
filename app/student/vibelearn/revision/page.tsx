@@ -22,6 +22,8 @@ const style = {
   primary: {background:'var(--vs-accent)',color:'var(--vs-on-accent, #fff)',border:0,borderRadius:12,padding:'13px 18px',fontWeight:800,cursor:'pointer',fontFamily:'inherit'} as React.CSSProperties,
   secondary: {background:'var(--vs-accent-soft)',color:'var(--vs-accent)',border:'1px solid var(--vs-border)',borderRadius:12,padding:'12px 15px',fontWeight:750,cursor:'pointer',fontFamily:'inherit'} as React.CSSProperties,
 } as const
+const actionRow: React.CSSProperties = {width:'100%',display:'flex',alignItems:'center',gap:12,border:0,borderBottom:'1px solid var(--vs-border)',background:'transparent',color:'var(--vs-text)',padding:'14px 18px',cursor:'pointer',fontFamily:'inherit'}
+const actionIcon: React.CSSProperties = {width:40,height:40,borderRadius:11,display:'grid',placeItems:'center',flexShrink:0}
 function priority(item:MistakeNotebookItem) {return item.repeatCount > 1 ? 'Needs another look' : 'Ready to recall'}
 function dateDue(date:string) {return new Date(date).getTime()<=Date.now()}
 function prettyDate(date:string) {return dayTitle(date)}
@@ -35,6 +37,7 @@ export default function RevisionStudioPage() {
   const [saving,setSaving]=useState(false)
   const [error,setError]=useState('')
   const [subject,setSubject]=useState('All subjects')
+  const [queuePeriod,setQueuePeriod]=useState<'today'|'week'>('today')
   const [mode,setMode]=useState<Mode>('Recall')
   const [screen,setScreen]=useState<Screen>('home')
   const [item,setItem]=useState<MistakeNotebookItem|null>(null)
@@ -62,6 +65,10 @@ export default function RevisionStudioPage() {
   }),[verified,subject,memoryById])
   const due=filtered.filter(m=>{const date=memoryById.get(m.id)?.nextReviewAt;return !date||dateDue(date)})
   const completeCount=filtered.length-due.length
+  const weekQueue=filtered.filter(m=>{const date=memoryById.get(m.id)?.nextReviewAt;return !date||new Date(date).getTime()<=Date.now()+7*86400000})
+  const visibleQueue=queuePeriod==='today'?due:weekQueue
+  const rememberedCount=memory.filter(m=>m.lastRemembered===true&&verified.some(v=>v.id===m.mistakeId)).length
+  const needReviewCount=memory.filter(m=>m.lastRemembered===false&&verified.some(v=>v.id===m.mistakeId)).length
   const selectedItem=due[0]??null
   function begin(m:MistakeNotebookItem, selectedMode:Mode='Recall') {
     setItem(m);setMode(selectedMode);setRevealed(false);setRemembered(null);setNextReview(null);setError('');setScreen('recall')
@@ -96,51 +103,46 @@ export default function RevisionStudioPage() {
     {identityLoading||loading?<section style={style.card} aria-live="polite">Preparing your personal revision…</section>:
     !identity?<section style={style.card}><h2>Sign in to revise</h2><p style={style.muted}>Your revision history belongs to your learner account.</p><button style={style.primary} onClick={()=>router.push('/student')}>Go to learner home</button></section>:
     screen==='home'?<>
-      <RevisionTopicStarter className={identity.className ?? ''}/>
-      <section style={{...style.card,background:'var(--vs-card, #fff)'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
-          <div><div style={{color:'var(--vs-accent)',fontSize:11,fontWeight:800,textTransform:'uppercase',letterSpacing:1}}>Your next revision</div>
-          <h2 style={{margin:'6px 0',fontSize:24}}>{selectedItem?.topic??'Start building your memory'}</h2>
-          <p style={{...style.muted,margin:0}}>{selectedItem?selectedItem.subject+' · '+priority(selectedItem):'Revise an available subject to start collecting your learning history.'}</p></div>
-          <div style={{borderRadius:16,background:'var(--vs-accent-soft)',padding:18,color:'var(--vs-accent)'}}><BookOpenCheck size={32}/></div>
+      <section style={{...style.card,background:'var(--vs-card)',padding:0,overflow:'hidden'}}>
+        <div style={{padding:'24px 22px',background:'var(--vs-hero-bg, #10213b)',color:'var(--vs-hero-text, #fff)'}}>
+          <div style={{fontSize:11,fontWeight:850,letterSpacing:1,opacity:.78}}>TODAY · REVISION SPACE</div>
+          <h1 style={{fontSize:'clamp(26px,4vw,36px)',letterSpacing:'-.035em',margin:'10px 0 7px',lineHeight:1.12}}>A little today.<br/>Stronger tomorrow.</h1>
+          <p style={{fontSize:13,opacity:.84,margin:'0 0 22px'}}>Everything you need to remember, all in one place.</p>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,fontWeight:800,marginBottom:7}}><span>Today's revision goal</span><span>{Math.min(3,completeCount)}/3</span></div>
+          <div role="progressbar" aria-valuenow={Math.min(3,completeCount)} aria-valuemin={0} aria-valuemax={3} aria-label="Daily revision goal" style={{background:'rgba(255,255,255,.2)',height:7,borderRadius:99,overflow:'hidden'}}><div style={{height:'100%',width:`${Math.min(100,completeCount/3*100)}%`,background:'var(--vs-goal-fill, #b9f58c)',borderRadius:99}}/></div>
         </div>
-        <div style={{display:'flex',gap:9,flexWrap:'wrap',marginTop:18}}>
-          <button style={style.primary} onClick={()=>selectedItem?begin(selectedItem):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}>
-            {selectedItem?'Start revision':'Choose a revision topic'} <ArrowRight size={16} style={{verticalAlign:'middle',marginLeft:6}}/>
-          </button>
-          <button style={style.secondary} onClick={()=>router.push('/student/study')}>Open Learn</button>
-        </div>
-      </section>
-      <section style={style.card}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
-          <div><h2 style={{margin:'0 0 4px',fontSize:20}}>Your subjects</h2><p style={{...style.muted,margin:0}}>Only evidence from your current grade is recommended.</p></div>
-          <Target color="var(--vs-accent)" size={22}/>
-        </div>
-        <div style={{display:'flex',gap:8,overflowX:'auto',padding:'14px 0 3px'}}>
-          {subjects.map(s=><button key={s} onClick={()=>setSubject(s)} aria-pressed={subject===s} style={{...(subject===s?style.primary:style.secondary),flexShrink:0,padding:'10px 13px'}}>{s}</button>)}
-        </div>
-      </section>
-      <section style={style.card}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}><h2 style={{margin:0,fontSize:20}}>Revision queue</h2><span style={{fontSize:12,color:'var(--vs-muted)'}}>{due.length} due · {completeCount} reviewed</span></div>
-        {filtered.length===0?<div style={{padding:'20px 0'}}><p style={style.muted}>No eligible mistakes to revisit yet. Use the approved topic cards above to revise independently.</p><button style={style.secondary} onClick={()=>document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}>Choose an approved topic <ChevronRight size={15} style={{verticalAlign:'middle'}}/></button></div>:
-        <div style={{display:'grid',gap:9,marginTop:14}}>{filtered.slice(0,12).map(m=>{
-          const record=memoryById.get(m.id),isDue=!record||dateDue(record.nextReviewAt)
-          return <div key={m.id} style={{border:'1px solid var(--vs-border)',borderRadius:14,padding:13,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
-            <div style={{minWidth:0}}><strong style={{fontSize:14}}>{m.topic}</strong><div style={style.muted}>{m.subject} · {isDue?'Ready now':'Next '+prettyDate(record.nextReviewAt)}</div></div>
-            <button style={{...style.secondary,whiteSpace:'nowrap'}} onClick={()=>begin(m)}>{isDue?'Revise':'Review'} <ChevronRight size={14} style={{verticalAlign:'middle'}}/></button>
+        <div style={{padding:'20px 22px',display:'grid',gap:12}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><h2 style={{fontSize:18,margin:0}}>Your next revision</h2><span style={{fontSize:11,padding:'5px 9px',borderRadius:99,background:'var(--vs-accent-soft)',color:'var(--vs-accent)',fontWeight:800}}>{selectedItem?'Ready':'Choose a topic'}</span></div>
+          <div style={{padding:14,borderRadius:14,background:'var(--vs-soft)',display:'flex',gap:12,alignItems:'center'}}>
+            <span style={{padding:12,borderRadius:12,background:'var(--vs-accent-soft)',color:'var(--vs-accent)'}}><BookOpenCheck size={22}/></span>
+            <div style={{minWidth:0}}><div style={{fontSize:12,color:'var(--vs-muted)'}}>{selectedItem?.subject??'Curriculum revision'}</div><strong style={{fontSize:19}}>{selectedItem?.topic??'Choose an approved topic'}</strong><p style={{...style.muted,margin:'4px 0 0'}}>{selectedItem?'Refresh what you already know':'You can begin without an exam or previous mistakes.'}</p></div>
           </div>
-        })}</div>}
+          <button type="button" style={{...style.primary,width:'100%',minHeight:46}} onClick={()=>selectedItem?begin(selectedItem):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}>{selectedItem?'Start revision':'Browse revision topics'} <ArrowRight size={16} style={{verticalAlign:'middle'}}/></button>
+        </div>
       </section>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(205px,1fr))',gap:12}}>
-        <button style={{...style.card,textAlign:'left',cursor:'pointer',fontFamily:'inherit',color:'inherit'}} onClick={()=>selectedItem?begin(selectedItem,'Flashcards'):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}><Layers3 size={24} color="var(--vs-accent)"/><h3 style={{margin:'12px 0 5px'}}>Quick recall</h3><span style={style.muted}>Remember before revealing an explanation.</span></button>
-        <button style={{...style.card,textAlign:'left',cursor:'pointer',fontFamily:'inherit',color:'inherit'}} onClick={()=>router.push('/student/vibelearn/mistakes')}><RefreshCcw size={24} color="var(--vs-accent)"/><h3 style={{margin:'12px 0 5px'}}>Mistake notebook</h3><span style={style.muted}>Review the source and retry difficult ideas.</span></button>
-        <button style={{...style.card,textAlign:'left',cursor:'pointer',fontFamily:'inherit',color:'inherit'}} onClick={()=>document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}><Sparkles size={24} color="var(--vs-accent)"/><h3 style={{margin:'12px 0 5px'}}>Choose a topic</h3><span style={style.muted}>Practise independently when nothing is due.</span></button>
-      </div>
-      <section style={style.card}><div style={{display:'flex',gap:10,alignItems:'center'}}><CalendarDays size={20} color="var(--vs-accent)"/><h2 style={{fontSize:18,margin:0}}>Coming up</h2></div>
-        {memory.filter(m=>verified.some(v=>v.id===m.mistakeId)&&!dateDue(m.nextReviewAt)).length===0?
-          <p style={style.muted}>Your future reviews will appear here after you finish a recall session.</p>:
-          <div style={{display:'grid',gap:8,marginTop:12}}>{memory.filter(m=>verified.some(v=>v.id===m.mistakeId)&&!dateDue(m.nextReviewAt)).sort((a,b)=>a.nextReviewAt.localeCompare(b.nextReviewAt)).slice(0,5).map(m=><div key={m.mistakeId} style={{display:'flex',justifyContent:'space-between',gap:12,padding:'9px 0',borderBottom:'1px solid var(--vs-border)'}}><span>{verified.find(v=>v.id===m.mistakeId)?.topic}</span><span style={style.muted}>{prettyDate(m.nextReviewAt)}</span></div>)}</div>}
+      <section style={{...style.card,padding:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center',marginBottom:12}}><h2 style={{margin:0,fontSize:18}}>Subjects</h2><span style={style.muted}>Select to revise</span></div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(115px,1fr))',gap:9}}>
+          {subjects.map(s=><button key={s} type="button" aria-pressed={subject===s} onClick={()=>setSubject(s)} style={{...style.secondary,background:subject===s?'var(--vs-accent-soft)':'var(--vs-card)',border:subject===s?'2px solid var(--vs-accent)':'1px solid var(--vs-border)',color:'var(--vs-text)',display:'grid',justifyItems:'center',gap:7,minHeight:70}}><BookOpenCheck size={19} color="var(--vs-accent)"/><span style={{fontSize:12}}>{s==='All subjects'?'All subjects':s}</span></button>)}
+        </div>
       </section>
+      <section style={{...style.card,padding:0,overflow:'hidden'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'17px 18px 10px',gap:10,flexWrap:'wrap'}}><h2 style={{margin:0,fontSize:18}}>Your revision</h2><div style={{display:'flex',gap:6}}>{(['today','week'] as const).map(t=><button key={t} type="button" aria-pressed={queuePeriod===t} onClick={()=>setQueuePeriod(t)} style={{border:0,borderRadius:9,padding:'8px 10px',cursor:'pointer',background:queuePeriod===t?'var(--vs-accent-soft)':'transparent',color:queuePeriod===t?'var(--vs-accent)':'var(--vs-muted)',fontWeight:750}}>{t==='today'?'Today':'This week'}</button>)}</div></div>
+        <button type="button" onClick={()=>router.push('/student/vibelearn/mistakes')} style={{...actionRow,borderTop:'1px solid var(--vs-border)'}}><span style={{...actionIcon,background:'#fff0df'}}><RefreshCcw size={18} color="#ad6c34"/></span><span style={{flex:1,textAlign:'left'}}><strong style={{display:'block'}}>Review mistakes</strong><small style={{display:'block',color:'var(--vs-muted)'}}>Return to questions you missed</small></span><ChevronRight size={17}/></button>
+        <button type="button" onClick={()=>selectedItem?begin(selectedItem,'Flashcards'):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})} style={actionRow}><span style={{...actionIcon,background:'#e7edff'}}><Layers3 size={18} color="#6379c7"/></span><span style={{flex:1,textAlign:'left'}}><strong style={{display:'block'}}>Quick flashcards</strong><small style={{display:'block',color:'var(--vs-muted)'}}>Recall definitions and concepts</small></span><ChevronRight size={17}/></button>
+        <button type="button" onClick={()=>selectedItem?begin(selectedItem):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})} style={actionRow}><span style={{...actionIcon,background:'#e3f5e8'}}><BrainCircuit size={18} color="#38875d"/></span><span style={{flex:1,textAlign:'left'}}><strong style={{display:'block'}}>Memory check</strong><small style={{display:'block',color:'var(--vs-muted)'}}>See what you still remember</small></span><ChevronRight size={17}/></button>
+        {visibleQueue.length>0&&<div style={{padding:'12px 18px',borderTop:'1px solid var(--vs-border)'}}><strong style={{fontSize:13}}>{queuePeriod==='today'?'Ready today':'Ready this week'} · {visibleQueue.length}</strong>{visibleQueue.slice(0,4).map(m=><button key={m.id} onClick={()=>begin(m)} style={{...actionRow,padding:'10px 0'}}><span style={{flex:1,textAlign:'left'}}><strong style={{display:'block'}}>{m.topic}</strong><small style={{display:'block',color:'var(--vs-muted)'}}>{m.subject}</small></span><ChevronRight size={16}/></button>)}</div>}
+      </section>
+      <section style={{...style.card,padding:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}><strong style={{fontSize:16}}>Memory health</strong><span style={{fontSize:11,color:'var(--vs-muted)'}}>Your saved recalls</span></div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',textAlign:'center',gap:8,marginTop:16}}>
+          <div><strong style={{fontSize:23,color:'var(--vs-accent)'}}>{rememberedCount}</strong><div style={style.muted}>Remembered</div></div>
+          <div><strong style={{fontSize:23}}>{due.length}</strong><div style={style.muted}>Due now</div></div>
+          <div><strong style={{fontSize:23}}>{needReviewCount}</strong><div style={style.muted}>Needs review</div></div>
+        </div>
+      </section>
+      <RevisionTopicStarter className={identity.className ?? ''}/>
+      <section style={style.card}><h2 style={{margin:'0 0 12px',fontSize:18}}>Coming up</h2>{memory.filter(m=>verified.some(v=>v.id===m.mistakeId)&&!dateDue(m.nextReviewAt)).length===0?<p style={style.muted}>Your next review dates appear here after you finish recalling.</p>:memory.filter(m=>verified.some(v=>v.id===m.mistakeId)&&!dateDue(m.nextReviewAt)).sort((a,b)=>a.nextReviewAt.localeCompare(b.nextReviewAt)).slice(0,5).map(m=><div key={m.mistakeId} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'10px 0',borderBottom:'1px solid var(--vs-border)'}}><span>{verified.find(v=>v.id===m.mistakeId)?.topic}</span><span style={style.muted}>{prettyDate(m.nextReviewAt)}</span></div>)}</section>
     </>:
     screen==='recall'&&item?<section style={style.card}>
       <div style={{display:'flex',justifyContent:'space-between',gap:8}}><span style={{fontWeight:850,color:'var(--vs-accent)',fontSize:12}}>{mode.toUpperCase()} · {item.subject}</span><button style={{background:'transparent',border:0,color:'var(--vs-muted)',cursor:'pointer'}} aria-label="Exit revision" onClick={()=>setScreen('home')}><X size={19}/></button></div>
