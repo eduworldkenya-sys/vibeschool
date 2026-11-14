@@ -101,7 +101,7 @@ export default function CoinStudio() {
   const coinRef = useRef<HTMLDivElement>(null)
   const flightRef = useRef<HTMLDivElement>(null)
   const motionRef = useRef<Animation[]>([])
-  const dragRef = useRef<{pointerId:number;start:number;angle:number;moved:boolean}|null>(null)
+  const dragRef = useRef<{pointerId:number;startX:number;startY:number;angle:number;moved:boolean}|null>(null)
   const suppressClickRef = useRef(false)
   const pendingRef = useRef<Side | null>(null)
   const timers = useRef<number[]>([])
@@ -163,15 +163,16 @@ export default function CoinStudio() {
   const onCoinPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (phase==='flipping' || phase==='countdown' || phase==='ready') return
     e.currentTarget.setPointerCapture(e.pointerId)
-    dragRef.current = {pointerId:e.pointerId,start:current?.tossAxis==='horizontal'?e.clientX:e.clientY,angle:rotation,moved:false}
+    dragRef.current = {pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,angle:rotation,moved:false}
     suppressClickRef.current=false
     setDragging(true)
   }
   const onCoinPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag=dragRef.current
     if (!drag || drag.pointerId!==e.pointerId) return
-    const position=current?.tossAxis==='horizontal'?e.clientX:e.clientY
-    const delta=position-drag.start
+    const dx=e.clientX-drag.startX, dy=e.clientY-drag.startY
+    // Both horizontal and vertical swipes work in either toss direction.
+    const delta=Math.abs(dx)>Math.abs(dy)?dx:dy
     if(Math.abs(delta)>5) drag.moved=true
     if(drag.moved) {
       e.preventDefault()
@@ -429,7 +430,7 @@ export default function CoinStudio() {
                 </div>)}
               </div>
               <div className={styles.coinArea} style={focalStyle(director,phaseStyle,reduceMotion)}>
-                <div className={styles.dragHint}>DRAG {current.tossAxis==='horizontal'?'← →':'↑ ↓'} TO TURN THE COIN</div>
+                <div className={styles.dragHint}>DRAG ← → OR ↑ ↓ TO TURN · HEADS / TAILS</div>
                 <div className={styles.coinHalo} style={{background:'radial-gradient(circle,'+current.heads.color+'44 0%,'+current.tails.color+'45 42%,transparent 72%)'}}/>
                 {phase==='flipping'&&!reduceMotion&&<div className={styles.launchStreak} aria-hidden="true"/>}
                 <div ref={flightRef} className={styles.tossTrajectory} onPointerDown={onCoinPointerDown} onPointerMove={onCoinPointerMove} onPointerUp={onCoinPointerEnd} onPointerCancel={onCoinPointerEnd} onClick={event=>{event.stopPropagation();if(showMode&&!suppressClickRef.current)tossRef.current();suppressClickRef.current=false}} role="slider" tabIndex={0} aria-label="Rotate the two-sided coin; drag to show heads or tails" aria-valuemin={0} aria-valuemax={359} aria-valuenow={Math.round(((rotation%360)+360)%360)} onKeyDown={event=>{if(event.key==='ArrowRight'||event.key==='ArrowUp'||event.key==='ArrowLeft'||event.key==='ArrowDown'){event.preventDefault();setRotation(angle=>angle+(event.key==='ArrowRight'||event.key==='ArrowUp'?30:-30))}}} data-dragging={dragging?'true':'false'}>
