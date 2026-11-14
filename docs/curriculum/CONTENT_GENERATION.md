@@ -1,5 +1,18 @@
 # VibeSchool Originals — Single Canonical Content Generation Playbook
 
+## Owner decision — ChatGPT-operated content production without mandatory HQ login (14 November 2026)
+
+For the one-day launch-production initiative, cover **Grade 1 through Grade 9 plus legacy Form 1 through Form 4**, with separate official curriculum identities and applicable source editions. Do not treat the 8-4-4 Form curriculum as a continuation of the current CBC/CBE grade series, and do not claim full coverage from an index, a curriculum map, or a sample lesson.
+
+**Owner role:** select commercial priorities and review concise exceptions and release evidence; no routine owner login to HQ, spreadsheet filling, or manual content-entry task. **ChatGPT role:** through actually connected, authorised tools, discover canonical curriculum/Content Engine data, inventory real gaps, construct scoped batches, write original outcome packages, inspect factual accuracy and answers, prepare and perform permitted integration and publication operations, test learner read-back, and report measured outcomes. The HQ coverage interface is an optional view, not the work queue or an additional human approval requirement.
+
+Run the existing canonical sequence: source-verified outcome identity → reusable library lookup → Core + Supplementary + Revision + Teacher Support package → visual/answer/subject checks → authenticated existing publication and independent assurance gates → independent learner verification. Record distinct states **MAPPED / DRAFTED / EDITORIALLY_CHECKED / CERTIFIED / PUBLISHED / LEARNER_TESTED**, never collapse them.
+
+**One-day objective:** complete an evidence-based inventory across the 13 grade/form levels, prioritise subjects, generate reviewable batches, and publish only packages that clear existing gates. This is not a promise to finish all 13 levels in a day. ChatGPT runs within active turns or a separately approved automation; ordinary chat does not initiate unattended work. If an HQ-only protected action has no authorised connector, classify it BLOCKED_AUTHORITY and continue all other legitimate work. Do not impersonate owners, bypass access controls, create competing data stores, or weaken Cyborg/independent release governance.
+
+**Visual operating map:** [ChatGPT-operated Content Factory](./CHATGPT_OPERATED_FACTORY.md).
+
+
 **Version:** 1.3 — 12 November 2026
 **Owner-approved educational direction:** Top-class, VibeSchool-original, KICD-aligned learning that demonstrates learner understanding and genuinely helps teachers teach.
 **Applies to:** ChatGPT-led generation and material revision for Grades 1–9, all subjects, outcomes, terms, teacher resources, learner materials, exercises and revision. Other grades require their own applicable official curriculum authority.
