@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
+import { BrainCircuit, BookOpen, CheckCheck, ChevronRight, CircleCheck, ClipboardList, Hash, Pencil, RotateCcw, Settings2, SlidersHorizontal, Target, AlertCircle } from 'lucide-react'
 import { useStudent } from '@/lib/student-context'
 import { getRevisionWorkspace, isCurrentGradeMistake, type MistakeNotebookItem, type RevisionWorkspace } from '@/lib/student/vibelearn'
 import { supabase } from '@/lib/supabase'
@@ -34,7 +35,9 @@ export default function VibeLearnMistakesPage() {
   const [releasedError,setReleasedError]=useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'needs' | 'all' | 'reviewed'>('needs')
+  const [view, setView] = useState<'fix' | 'reviewed' | 'history'>('fix')
+  const [showPreferences,setShowPreferences] = useState(false)
+  const [expandSkills,setExpandSkills] = useState(false)
   const [subject, setSubject] = useState('all')
 
   const load = useCallback(async () => {
@@ -71,155 +74,165 @@ export default function VibeLearnMistakesPage() {
   }), [eligible])
   const subjects = useMemo(() => [...new Set(eligible.map(item => item.subject))].sort(), [eligible])
   const visible = ordered.filter(item =>
-    (filter === 'all' || (filter === 'needs' ? item.status !== 'resolved' : item.status === 'resolved')) &&
+    (view === 'reviewed' ? item.status === 'resolved' : item.status !== 'resolved') &&
     (subject === 'all' || item.subject === subject)
   )
   const next = ordered.find(item => item.status !== 'resolved')
   const recovery = (item: MistakeNotebookItem) => router.push('/student/vibelearn/recovery?mistake=' + encodeURIComponent(item.id))
 
-  // Assessment evidence stays authoritative. The dashboard presents one actionable
-  // record first, instead of forcing learners through a long, repeated list.
+
   const spotlight = released.find(item => Boolean(item.attempt_id))
-  const releasedGroups = Array.from(released.reduce((groups, item) => {
-    const key = item.context_title
-    groups.set(key, [...(groups.get(key) ?? []), item])
+  const releaseGroups = Array.from(released.reduce((groups,item) => {
+    // A single assessment can have many misses. Preserve exact item URLs.
+    const key=item.context_title
+    groups.set(key,[...(groups.get(key)??[]),item])
     return groups
-  }, new Map<string, ReleasedMiss[]>()).entries())
+  },new Map<string,ReleasedMiss[]>()).entries())
+  const jumpToReleased = (item:ReleasedMiss) => {
+    if(!item.attempt_id)return
+    router.push('/student/vibelearn/recovery?attempt='+encodeURIComponent(item.attempt_id)+(item.assessment_item_id?'&item='+encodeURIComponent(item.assessment_item_id):''))
+  }
+  const allSubjects=[...new Set([...subjects,...released.map(item=>{
+    const match=item.context_title.match(/(?:Grade|Form)\s+\d+\s+(.+?)\s+[—–-]/i)
+    return match?.[1]?.trim()??''
+  }).filter(Boolean)])].sort()
 
   return <main style={shell}><div className="vs-learn-page" style={container}>
-    <header style={{...hero,background:'linear-gradient(125deg,var(--vs-card) 0%,var(--vs-accent-soft) 100%)',padding:'clamp(22px,4vw,36px)'}}>
-      <div style={kicker}>MY LEARNING / SKILL RECOVERY</div>
-      <h1 style={{fontSize:'clamp(30px,5vw,44px)',letterSpacing:'-.045em',lineHeight:1.1,margin:'10px 0'}}>Make your next answer better.</h1>
-      <p style={{...muted,maxWidth:580,margin:'0 0 16px'}}>My Mistakes helps you understand what went wrong, revisit the skill and try again. Your marks stay with the original assessment.</p>
-      <button type="button" style={secondary} onClick={() => void load()}>Refresh my mistakes</button>
+    <div style={topline}>
+      <div style={{display:'flex',alignItems:'center',gap:11}}>
+        <span style={brandMark}><BrainCircuit size={23} aria-hidden="true"/></span>
+        <div><div style={eyebrow}>VIBESCHOOL</div><h1 style={{margin:0,fontSize:23,letterSpacing:'-.03em'}}>Recovery Studio</h1></div>
+      </div>
+      <button type="button" aria-label="Recovery Studio settings" aria-expanded={showPreferences} onClick={()=>setShowPreferences(value=>!value)} style={iconButton}><Settings2 size={19}/></button>
+    </div>
+    {showPreferences&&<section style={{...surface,marginBottom:12}} aria-label="Recovery preferences">
+      <strong>Recovery tools</strong>
+      <p style={muted}>Your results are always marked by the existing assessment system. Update the evidence or open the original records whenever you need to.</p>
+      <button type="button" style={lightButton} onClick={()=>void load()}><RotateCcw size={15}/> Refresh learning records</button>
+    </section>}
+
+    <header style={hero} aria-label="Recovery Studio introduction">
+      <span style={heroBadge}>YOUR LEARNING COMEBACK</span>
+      <h2 style={{fontSize:'clamp(25px,4vw,34px)',lineHeight:1.16,letterSpacing:'-.035em',margin:'18px 0 11px'}}>Every mistake is a chance to improve.</h2>
+      <p style={{fontSize:14,lineHeight:1.6,color:'#E9D8CE',margin:'0 0 17px'}}>Understand the difficult skills. Practise them again. See what you've improved.</p>
+      <span style={{display:'flex',alignItems:'center',gap:8,color:'#F6C29E',fontSize:13,fontWeight:700}}><Target size={17}/> Focus on one skill at a time</span>
     </header>
 
-    {error && <section style={card} role="alert"><strong>Learning notebook unavailable</strong><p style={muted}>{error}</p><button style={secondary} onClick={() => void load()}>Try again</button></section>}
-    {releasedError && <section style={card} role="alert"><strong>Assessment mistakes could not be loaded</strong><p style={muted}>{releasedError}</p><button style={secondary} onClick={() => void load()}>Retry</button></section>}
-    {loading ? <section style={card} role="status">Loading your learning evidence…</section> : <>
-      <section aria-label="Your mistake recovery snapshot" style={stats}>
-        <Metric value={released.length} title="Recent misses" detail="Incorrect or skipped assessment responses" />
-        <Metric value={needs.length} title="Skills to repair" detail="Current-grade learning notebook" />
-        <Metric value={reviewed.length} title="Reviewed skills" detail="Still subject to verification" />
+    {error&&<div role="alert" style={alert}><AlertCircle size={17}/> Notebook unavailable: {error} <button style={linkButton} onClick={()=>void load()}>Retry</button></div>}
+    {releasedError&&<div role="alert" style={alert}><AlertCircle size={17}/> Assessment history unavailable: {releasedError} <button style={linkButton} onClick={()=>void load()}>Retry</button></div>}
+    {loading ? <section role="status" style={surface}>Loading your recovery studio…</section>:<>
+      <section aria-label="Your recovery summary" style={metricGrid}>
+        <RecoveryMetric icon={<ClipboardList size={17}/>} value={released.length} title="Recorded" description="Recent incorrect or skipped answers"/>
+        <RecoveryMetric icon={<Target size={17}/>} value={needs.length} title="Need work" description="Current-grade skills requiring review"/>
+        <RecoveryMetric icon={<CircleCheck size={17}/>} value={reviewed.length} title="Reviewed" description="Not automatically mastered"/>
       </section>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,310px),1fr))',gap:14,alignItems:'start',marginBottom:14}}>
-        <section style={{...feature,marginBottom:0}} aria-labelledby="mistake-next">
-          <div style={featureHead}><span style={kicker}>YOUR NEXT ACTION</span><span style={tag}>Start here</span></div>
-          <h2 id="mistake-next" style={{fontSize:23,letterSpacing:'-.035em',margin:'11px 0 7px'}}>Fix one mistake</h2>
-          {next ? <>
-            <p style={{...muted,margin:'0 0 9px'}}>{next.subject} · {next.topic} · missed {next.repeatCount} {next.repeatCount===1?'time':'times'}</p>
-            <div style={question}>{next.prompt}</div>
-            {next.explanation && <details style={{marginTop:12}}><summary style={summary}>See the recorded explanation</summary><p style={muted}>{next.explanation}</p></details>}
-            <button style={{...primary,marginTop:15,width:'100%'}} onClick={() => recovery(next)}>Review and retry this skill</button>
-          </> : spotlight ? <>
-            <p style={{...muted,margin:'0 0 9px'}}>{spotlight.context_title} · {spotlight.reason==='skipped'?'Skipped question':'Incorrect answer'}</p>
-            <div style={question}>{spotlight.prompt}</div>
-            <p style={{...muted,margin:'10px 0'}}>{spotlight.identity_state==='verified'?'Linked to a verified outcome':'Outcome verification pending; no mastery claim'}</p>
-            <button style={{...primary,marginTop:8,width:'100%'}} onClick={() => router.push('/student/vibelearn/recovery?attempt='+encodeURIComponent(spotlight.attempt_id!)+(spotlight.assessment_item_id?'&item='+encodeURIComponent(spotlight.assessment_item_id):''))}>Review and retry this question</button>
-          </> : <>
-            <p style={muted}>No recorded mistakes are ready to repair. You can keep learning and return after a marked assessment.</p>
-            <button style={secondary} onClick={() => router.push('/student/vibelearn/topic-practice')}>Open Topic Practice</button>
-          </>}
-        </section>
-        <section style={{...card,marginBottom:0}} aria-labelledby="mistake-how">
-          <div style={kicker}>HOW RECOVERY WORKS</div>
-          <h2 id="mistake-how" style={{...heading,marginTop:9}}>Understand. Try. Verify.</h2>
-          <div style={{display:'grid',gap:13}}>
-            {[
-              ['01','Understand','Read the explanation or return to the exact learning source.'],
-              ['02','Try again','Answer a new question using the existing assessment engine.'],
-              ['03','Check your progress','See recorded feedback. Mastery is never awarded just for opening a page.'],
-            ].map(([number,title,description])=><div key={number} style={{display:'flex',gap:12}}>
-              <span aria-hidden="true" style={{...tag,height:30,minWidth:35,textAlign:'center'}}>{number}</span>
-              <span><strong style={{fontSize:14}}>{title}</strong><p style={{...muted,margin:'3px 0'}}>{description}</p></span>
-            </div>)}
+      <section aria-labelledby="next-challenge" style={{...surface,padding:18,marginBottom:20}}>
+        <div style={split}><span style={eyebrow}>YOUR NEXT CHALLENGE</span>{(next||spotlight)&&<span style={priorityBadge}>Needs attention</span>}</div>
+        {next||spotlight ? <>
+          <div style={{display:'flex',gap:14,alignItems:'center',margin:'15px 0 13px'}}>
+            <span style={skillIcon}><Hash size={23}/></span>
+            <div style={{minWidth:0,flex:1}}>
+              <h2 id="next-challenge" style={{fontSize:19,letterSpacing:'-.02em',margin:'0 0 4px'}}>{next?next.topic:spotlight!.context_title}</h2>
+              <div style={{fontSize:12,color:'var(--vs-muted)',marginBottom:6}}>{next?next.subject:spotlight!.reason==='skipped'?'Skipped assessment response':'Incorrect assessment response'}</div>
+              <p style={{fontSize:13,margin:0,lineHeight:1.5,color:'var(--vs-text)'}}>{next?'Review the linked skill, then prove your understanding with another question.':'Review the exact missed question, then follow the available recovery steps.'}</p>
+            </div>
           </div>
-        </section>
-      </div>
+          <div style={steps}>
+            <div style={step}><BookOpen size={17}/><span>1. Understand</span></div><ChevronRight size={14} color="var(--vs-muted)"/>
+            <div style={step}><Pencil size={17}/><span>2. Retry</span></div><ChevronRight size={14} color="var(--vs-muted)"/>
+            <div style={step}><CheckCheck size={17}/><span>3. Verify</span></div>
+          </div>
+          <button type="button" style={startButton} onClick={()=>next?recovery(next):jumpToReleased(spotlight!)}>Start recovery <ChevronRight size={18}/></button>
+        </>:<>
+          <h2 id="next-challenge" style={{fontSize:20,margin:'14px 0 6px'}}>Nothing waiting for repair</h2>
+          <p style={muted}>After you complete a marked assessment, missed questions will appear here automatically.</p>
+          <button type="button" style={startButton} onClick={()=>router.push('/student/vibelearn/topic-practice')}>Open Topic Practice <ChevronRight size={18}/></button>
+        </>}
+      </section>
 
-      <section style={card} aria-labelledby="mistake-skills">
-        <div style={sectionHead}><div><div style={kicker}>MY SKILL RECOVERY</div><h2 id="mistake-skills" style={heading}>Skills that need another look</h2></div><span style={counter}>{visible.length} matching</span></div>
-        <div style={controls}>
-          <div role="group" aria-label="Filter skills by recovery state" style={tabs}>
-            {([['needs','Needs work'],['reviewed','Reviewed'],['all','All skills']] as const).map(([value,label])=>
-              <button key={value} type="button" aria-pressed={filter===value} onClick={()=>setFilter(value)} style={{...tab,...(filter===value?selectedTab:{})}}>{label}</button>)}
-          </div>
-          <label style={{fontSize:12,fontWeight:700,color:'var(--vs-muted)'}}>Subject{' '}
-            <select aria-label="Filter by subject" value={subject} onChange={e=>setSubject(e.target.value)} style={select}>
-              <option value="all">All subjects</option>
-              {subjects.map(value=><option key={value} value={value}>{value}</option>)}
-            </select>
-          </label>
+      <section aria-labelledby="recovery-library">
+        <div style={{...split,marginBottom:14}}>
+          <h2 id="recovery-library" style={{fontSize:21,letterSpacing:'-.03em',margin:0}}>My Recovery Library</h2>
+          <button type="button" aria-label="Toggle subject filter" onClick={()=>setShowPreferences(value=>!value)} style={iconButton}><SlidersHorizontal size={18}/></button>
         </div>
-        {visible.length===0?<p style={muted}>No current-grade skills match this view. Assessment mistakes can still be reviewed in the history below.</p>:
-          <div style={{display:'grid',gap:9}}>{visible.slice(0,4).map(item=><article key={item.id} style={itemCard}>
-            <div style={sectionHead}><div><strong>{item.subject} · {item.topic}</strong><p style={{...muted,margin:'4px 0'}}>{item.status==='resolved'?'Reviewed — verify retention':item.status==='practising'?'Practising':'Needs correction'} · {item.repeatCount} {item.repeatCount===1?'miss':'misses'}</p></div><span style={tag}>{item.status==='resolved'?'Reviewed':'To practise'}</span></div>
-            <p style={{fontSize:14,lineHeight:1.55,margin:'9px 0'}}>{item.prompt}</p>
-            <div style={actions}><button style={primarySmall} onClick={()=>recovery(item)}>Work on this skill</button>{item.reviewUrl&&<button style={secondary} onClick={()=>router.push(item.reviewUrl!)}>Read lesson</button>}</div>
-          </article>)}</div>}
-        {visible.length>4&&<details style={{marginTop:14}}><summary style={summary}>Show {visible.length-4} more skills</summary>
-          <div style={{display:'grid',gap:9,marginTop:12}}>{visible.slice(4).map(item=><article key={item.id} style={itemCard}>
-            <strong>{item.subject} · {item.topic}</strong><p style={muted}>{item.prompt}</p>
-            <button style={secondary} onClick={()=>recovery(item)}>Review skill</button>
-          </article>)}</div></details>}
+        <div role="tablist" aria-label="Recovery library views" style={tabRow}>
+          {([['fix','To Fix'],['reviewed','Reviewed'],['history','History']] as const).map(([id,label])=>
+            <button type="button" key={id} role="tab" aria-selected={view===id} onClick={()=>{setView(id);setExpandSkills(false)}} style={{...tabButton,...(view===id?activeTab:{})}}>{label}</button>)}
+        </div>
+        <label style={{display:'block',margin:'12px 0'}}>
+          <span style={visuallyHidden}>Filter recovery by subject</span>
+          <select value={subject} onChange={event=>setSubject(event.target.value)} style={subjectSelect}>
+            <option value="all">All subjects</option>
+            {allSubjects.map(value=><option key={value} value={value}>{value}</option>)}
+          </select>
+        </label>
+        {view==='history'?<section role="tabpanel" aria-label="Assessment mistake history" style={surface}>
+          <div style={split}><div><div style={eyebrow}>ORIGINAL ASSESSMENTS</div><h3 style={subheading}>Missed & skipped questions</h3></div><span style={muted}>{released.length} recent</span></div>
+          <p style={muted}>Open an assessment to see its exact recorded answers. Original scores remain unchanged.</p>
+          {releaseGroups.filter(([name])=>subject==='all'||name.toLowerCase().includes(subject.toLowerCase())).length===0?
+            <p style={muted}>No released mistakes match this subject.</p>:
+            releaseGroups.filter(([name])=>subject==='all'||name.toLowerCase().includes(subject.toLowerCase())).map(([name,items])=>
+              <details key={name} style={historyGroup}><summary style={historySummary}><strong>{name}</strong><span style={historyCount}>{items.length} questions</span></summary>
+                {items.map(item=><div key={item.recovery_key} style={{borderTop:'1px solid var(--vs-border)',padding:'12px 0'}}>
+                  <div style={split}><strong style={{fontSize:13}}>{item.prompt}</strong><span style={muted}>{item.reason==='skipped'?'Skipped':'Incorrect'}</span></div>
+                  <p style={muted}>{item.identity_state==='verified'?'Verified outcome link':'Outcome verification pending'}</p>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    {item.attempt_id&&<button type="button" style={lightButton} onClick={()=>jumpToReleased(item)}>Review mistake <ChevronRight size={14}/></button>}
+                    {item.attempt_id&&<button type="button" style={lightButton} onClick={()=>router.push('/student/results/'+encodeURIComponent(item.attempt_id!))}>Original result</button>}
+                  </div>
+                </div>)}
+              </details>)}
+          {historical.length>0&&<details style={historyGroup}><summary style={historySummary}>Earlier or unverified notebook records ({historical.length})</summary>{historical.map(item=><p key={item.id} style={muted}>{item.subject} · {item.topic} — {item.prompt}</p>)}</details>}
+        </section>:<section role="tabpanel" aria-label={view==='fix'?'Skills to practise':'Reviewed skills'} style={surface}>
+          <div style={split}><div style={{display:'flex',gap:9,alignItems:'center'}}><SlidersHorizontal size={17}/><h3 style={subheading}>{view==='fix'?'Skills to practise':'Reviewed skills'}</h3></div><span style={muted}>{view==='fix'?'Prioritised':'Review evidence'}</span></div>
+          {visible.length===0?<div style={{padding:'15px 0'}}><p style={muted}>{view==='fix'?'No verified current-grade skills to repair in this selection. You can still review released mistakes under History.':'No reviewed skills match this selection.'}</p><button type="button" style={lightButton} onClick={()=>setView('history')}>Open history <ChevronRight size={15}/></button></div>:
+            (expandSkills?visible:visible.slice(0,5)).map(item=><button type="button" key={item.id} style={skillRow} onClick={()=>recovery(item)}>
+              <span style={libraryIcon}><Hash size={19}/></span>
+              <span style={{flex:1,minWidth:0,textAlign:'left'}}><strong style={{display:'block',fontSize:14}}>{item.topic}</strong><small style={{display:'block',color:'var(--vs-muted)',marginTop:4}}>{item.subject} · {item.status==='resolved'?'Reviewed · check retention':item.status==='practising'?'Practising':'Needs review'} · {item.repeatCount} {item.repeatCount===1?'miss':'misses'}</small></span>
+              <ChevronRight size={18} color="var(--vs-muted)"/>
+            </button>)}
+          {visible.length>5&&<button style={{...lightButton,marginTop:12}} type="button" onClick={()=>setExpandSkills(value=>!value)}>{expandSkills?'Show fewer skills':`Show all ${visible.length} skills`}</button>}
+        </section>}
       </section>
-
-      <section style={card} aria-labelledby="mistake-history">
-        <div style={sectionHead}><div><div style={kicker}>ASSESSMENT HISTORY</div><h2 id="mistake-history" style={heading}>Missed and skipped questions</h2></div><span style={counter}>{released.length} recent responses</span></div>
-        <p style={muted}>Grouped by assessment to keep this screen focused. These are your released responses, not new scores. An outcome awaiting verification stays unverified.</p>
-        {releasedGroups.length===0 ? <p style={muted}>No released missed or skipped answers were found in the recent window.</p> :
-          <div style={{display:'grid',gap:9,marginTop:14}}>{releasedGroups.map(([name,items])=>
-            <details key={name} style={itemCard}><summary style={{...summary,color:'var(--vs-text)',display:'flex',justifyContent:'space-between',gap:12}}>
-              <strong>{name}</strong><span style={tag}>{items.length} {items.length===1?'question':'questions'}</span>
-            </summary>
-            <div style={{display:'grid',gap:9,marginTop:13}}>{items.map(entry=><article key={entry.recovery_key} style={{padding:'12px 0',borderTop:'1px solid var(--vs-border)'}}>
-              <div style={sectionHead}><strong style={{fontSize:13,lineHeight:1.6}}>{entry.prompt}</strong><span style={counter}>{entry.reason==='skipped'?'Skipped':'Incorrect'}</span></div>
-              <p style={{...muted,margin:'7px 0'}}>{entry.identity_state==='verified'?'Verified outcome link':entry.outcome_code?'Outcome '+entry.outcome_code+' · verification pending':'Curriculum link pending'}</p>
-              <div style={actions}>
-                {entry.attempt_id&&<button style={primarySmall} onClick={()=>router.push('/student/vibelearn/recovery?attempt='+encodeURIComponent(entry.attempt_id!)+(entry.assessment_item_id?'&item='+encodeURIComponent(entry.assessment_item_id):''))}>Review mistake</button>}
-                {entry.attempt_id&&<button style={secondary} onClick={()=>router.push('/student/results/'+encodeURIComponent(entry.attempt_id!))}>Original result</button>}
-              </div>
-            </article>)}</div>
-          </details>)}</div>}
-      </section>
-
-      {historical.length>0&&<section style={card}><details><summary style={summary}>Earlier or unverified notebook records ({historical.length})</summary>
-        <p style={muted}>Preserved for reference only. These cannot be treated as verified current-grade recovery.</p>
-        {historical.map(item=><div key={item.id} style={{...itemCard,marginTop:8}}><strong>{item.subject} · {item.topic}</strong><p style={muted}>{item.prompt}</p></div>)}
-      </details></section>}
-      <p style={{...muted,textAlign:'center'}}>Your original scores remain unchanged. Only the existing learning and assessment systems determine progress.</p>
+      <p style={{...muted,textAlign:'center',marginTop:20}}>Only verified assessment evidence can establish progress. Reviewing a mistake does not change your original marks.</p>
     </>}
   </div></main>
 }
 
-function Metric({value,title,detail}:{value:number;title:string;detail:string}) {
-  return <div style={metric}><strong style={{fontSize:28,letterSpacing:'-.04em',fontVariantNumeric:'tabular-nums'}}>{value}</strong>
-    <span style={{fontWeight:800,fontSize:13}}>{title}</span><span style={{fontSize:11,color:'var(--vs-muted)'}}>{detail}</span></div>
+function RecoveryMetric({icon,value,title,description}:{icon:React.ReactNode;value:number;title:string;description:string}){
+  return <div style={metric}><span style={{color:'var(--vs-muted)'}}>{icon}</span><strong style={{fontSize:24,fontVariantNumeric:'tabular-nums'}}>{value}</strong><span style={{fontSize:12,fontWeight:750}}>{title}</span><span style={{...muted,fontSize:10}}>{description}</span></div>
 }
-const shell:CSSProperties={minHeight:'100vh',background:'var(--vs-soft)',padding:'16px 14px 90px',color:'var(--vs-text)',fontFamily:"'Plus Jakarta Sans', sans-serif"}
-const container:CSSProperties={maxWidth:980,margin:'0 auto'}
-const hero:CSSProperties={background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:22,padding:'clamp(20px,4vw,30px)',marginBottom:14}
-const card:CSSProperties={background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:18,padding:'clamp(14px,3vw,22px)',marginBottom:14}
-const feature:CSSProperties={...card,border:'2px solid var(--vs-accent)'}
-const kicker:CSSProperties={fontSize:10,fontWeight:900,letterSpacing:1.1,color:'var(--vs-accent)'}
-const muted:CSSProperties={fontSize:13,lineHeight:1.6,color:'var(--vs-muted)'}
-const stats:CSSProperties={display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:9,marginBottom:14}
-const metric:CSSProperties={background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:16,padding:'14px 10px',display:'flex',flexDirection:'column',gap:3}
-const featureHead:CSSProperties={display:'flex',gap:10,justifyContent:'space-between',alignItems:'center',flexWrap:'wrap'}
-const sectionHead:CSSProperties={display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}
-const heading:CSSProperties={fontSize:20,letterSpacing:'-.025em',margin:'5px 0 14px'}
-const tag:CSSProperties={fontSize:11,padding:'6px 10px',fontWeight:800,background:'var(--vs-accent-soft)',color:'var(--vs-accent)',borderRadius:20}
-const question:CSSProperties={background:'var(--vs-soft)',border:'1px solid var(--vs-border)',borderRadius:12,padding:13,fontSize:15,lineHeight:1.55}
-const controls:CSSProperties={display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:16}
-const tabs:CSSProperties={display:'flex',gap:5,flexWrap:'wrap'}
-const tab:CSSProperties={border:'1px solid var(--vs-border)',borderRadius:9,padding:'9px 11px',background:'var(--vs-card)',color:'var(--vs-text)',cursor:'pointer',fontWeight:750}
-const selectedTab:CSSProperties={background:'var(--vs-accent-soft)',color:'var(--vs-accent)',borderColor:'var(--vs-accent)'}
-const select:CSSProperties={border:'1px solid var(--vs-border)',borderRadius:8,padding:9,background:'var(--vs-card)',color:'var(--vs-text)',maxWidth:180}
-const itemCard:CSSProperties={background:'var(--vs-soft)',border:'1px solid var(--vs-border)',borderRadius:13,padding:14}
-const counter:CSSProperties={fontSize:11,fontWeight:750,color:'var(--vs-muted)',whiteSpace:'nowrap'}
-const summary:CSSProperties={cursor:'pointer',fontSize:13,fontWeight:750,color:'var(--vs-accent)',padding:'4px 0'}
-const actions:CSSProperties={display:'flex',flexWrap:'wrap',gap:8,marginTop:12}
-const primary:CSSProperties={border:0,background:'var(--vs-accent)',color:'var(--vs-on-accent)',borderRadius:10,padding:'12px 15px',minHeight:44,fontWeight:800,cursor:'pointer'}
-const primarySmall:CSSProperties={...primary,padding:'9px 12px'}
-const secondary:CSSProperties={border:'1px solid var(--vs-border)',background:'var(--vs-accent-soft)',color:'var(--vs-text)',borderRadius:10,padding:'9px 12px',minHeight:40,fontWeight:750,cursor:'pointer'}
+
+const shell:CSSProperties={minHeight:'100vh',background:'var(--vs-soft)',padding:'20px clamp(12px,3vw,28px) 100px',color:'var(--vs-text)',fontFamily:"'Plus Jakarta Sans',sans-serif"}
+const container:CSSProperties={maxWidth:850,margin:'0 auto'}
+const topline:CSSProperties={display:'flex',justifyContent:'space-between',alignItems:'center',gap:14,marginBottom:17}
+const brandMark:CSSProperties={width:44,height:44,borderRadius:12,background:'var(--vs-accent)',color:'var(--vs-on-accent,#fff)',display:'grid',placeItems:'center'}
+const eyebrow:CSSProperties={fontSize:10,fontWeight:800,letterSpacing:'.07em',color:'var(--vs-muted)'}
+const iconButton:CSSProperties={width:38,height:38,display:'grid',placeItems:'center',background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:999,color:'var(--vs-text)',cursor:'pointer'}
+const hero:CSSProperties={background:'#342B28',color:'#fff',borderRadius:19,padding:'clamp(18px,4vw,29px)',marginBottom:14}
+const heroBadge:CSSProperties={display:'inline-block',fontSize:11,fontWeight:800,padding:'5px 9px',borderRadius:999,background:'#68554E',color:'#fff'}
+const metricGrid:CSSProperties={display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:10,marginBottom:14}
+const metric:CSSProperties={background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:16,padding:'14px 12px',minWidth:0,display:'flex',flexDirection:'column',gap:5}
+const surface:CSSProperties={background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:17,padding:16,marginBottom:14}
+const split:CSSProperties={display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}
+const priorityBadge:CSSProperties={background:'var(--vs-accent-soft)',color:'var(--vs-accent)',fontSize:11,fontWeight:700,padding:'5px 9px',borderRadius:999}
+const skillIcon:CSSProperties={width:52,height:52,flexShrink:0,background:'var(--vs-accent-soft)',color:'var(--vs-accent)',borderRadius:13,display:'grid',placeItems:'center'}
+const steps:CSSProperties={display:'flex',alignItems:'center',gap:7,marginBottom:13}
+const step:CSSProperties={display:'flex',flex:1,minWidth:0,alignItems:'center',justifyContent:'center',gap:6,flexWrap:'wrap',background:'var(--vs-soft)',borderRadius:11,padding:'12px 5px',fontSize:11,fontWeight:750}
+const startButton:CSSProperties={border:0,background:'#171717',color:'#fff',borderRadius:999,width:'100%',minHeight:45,padding:'11px 16px',fontWeight:800,fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:9}
+const tabRow:CSSProperties={display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}
+const tabButton:CSSProperties={border:'none',background:'transparent',color:'var(--vs-muted)',borderRadius:999,fontFamily:'inherit',fontWeight:700,fontSize:13,padding:'9px 16px',cursor:'pointer'}
+const activeTab:CSSProperties={background:'var(--vs-card)',color:'var(--vs-text)',boxShadow:'0 1px 4px #00000012'}
+const subjectSelect:CSSProperties={background:'var(--vs-card)',color:'var(--vs-text)',border:'1px solid var(--vs-border)',borderRadius:999,padding:'12px 16px',width:'100%',fontSize:13,fontFamily:'inherit'}
+const subheading:CSSProperties={fontSize:16,margin:'4px 0 9px'}
+const skillRow:CSSProperties={display:'flex',gap:12,alignItems:'center',textAlign:'left',width:'100%',background:'transparent',border:0,borderBottom:'1px solid var(--vs-border)',padding:'15px 0',cursor:'pointer',color:'var(--vs-text)',fontFamily:'inherit'}
+const libraryIcon:CSSProperties={width:43,height:43,display:'grid',placeItems:'center',flexShrink:0,background:'var(--vs-soft)',borderRadius:12}
+const muted:CSSProperties={fontSize:12,color:'var(--vs-muted)',lineHeight:1.6}
+const historyGroup:CSSProperties={border:'1px solid var(--vs-border)',borderRadius:12,padding:'12px 14px',marginTop:10}
+const historySummary:CSSProperties={display:'flex',justifyContent:'space-between',gap:10,cursor:'pointer',fontSize:13,alignItems:'center'}
+const historyCount:CSSProperties={flexShrink:0,fontSize:11,color:'var(--vs-accent)',fontWeight:800}
+const lightButton:CSSProperties={border:'1px solid var(--vs-border)',background:'var(--vs-accent-soft)',color:'var(--vs-text)',fontFamily:'inherit',cursor:'pointer',borderRadius:10,padding:'9px 12px',fontSize:12,fontWeight:750,display:'inline-flex',alignItems:'center',gap:6}
+const linkButton:CSSProperties={border:0,background:'transparent',color:'var(--vs-accent)',textDecoration:'underline',cursor:'pointer'}
+const alert:CSSProperties={display:'flex',alignItems:'center',flexWrap:'wrap',gap:8,background:'var(--vs-card)',color:'var(--vs-text)',padding:14,border:'1px solid var(--vs-border)',borderRadius:12,marginBottom:14}
+const visuallyHidden:CSSProperties={position:'absolute',width:1,height:1,padding:0,margin:-1,overflow:'hidden',clip:'rect(0,0,0,0)',whiteSpace:'nowrap',border:0}
