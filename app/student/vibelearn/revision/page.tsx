@@ -1,182 +1,218 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ArrowRight, BookOpenCheck, BrainCircuit, CalendarDays, CheckCircle2, ChevronRight, Clock3, Layers3, Lightbulb, RefreshCcw, RotateCcw, Sparkles, Target, X } from 'lucide-react'
+import {
+ ArrowLeft, ArrowRight, Bell, BookOpen, BookOpenCheck, BrainCircuit, Calculator,
+ CalendarDays, ChartNoAxesColumn, CheckCircle2, ChevronRight, Clock3,
+ FlaskConical, House, Languages, Layers3, Lightbulb, RefreshCcw, RotateCcw, X
+} from 'lucide-react'
 import { useStudent } from '@/lib/student-context'
 import { useLearningFeedback } from '@/components/learn/LearningFeedback'
-import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
-import RevisionTopicStarter from '@/components/student/RevisionTopicStarter'
+import RevisionTopicStarter, { type RevisionStarterHandle } from '@/components/student/RevisionTopicStarter'
 import { getRevisionWorkspace, isCurrentGradeMistake, type MistakeNotebookItem, type RevisionWorkspace } from '@/lib/student/vibelearn'
 import { getMyRevisionMemory, recordRevisionRecall, type RevisionMemoryRecord } from '@/lib/student/revisionMemory'
+import type { RevisionTopic } from '@/lib/student/revisionTopic'
 
 type Screen = 'home' | 'recall' | 'feedback' | 'finished'
 type Mode = 'Recall' | 'Flashcards'
-const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date())
-const dayTitle = (date: string) => new Intl.DateTimeFormat('en-KE',{weekday:'short',month:'short',day:'numeric',timeZone:'Africa/Nairobi'}).format(new Date(date))
-const style = {
-  shell: { minHeight:'100vh',background:'var(--vs-soft)',color:'var(--vs-text)',padding:'18px 14px 100px',fontFamily:"'Plus Jakarta Sans', sans-serif" } as React.CSSProperties,
-  card: {background:'var(--vs-card, #fff)',border:'1px solid var(--vs-border)',borderRadius:18,padding:18} as React.CSSProperties,
-  muted: {color:'var(--vs-muted)',fontSize:13,lineHeight:1.55} as React.CSSProperties,
-  primary: {background:'var(--vs-accent)',color:'var(--vs-on-accent, #fff)',border:0,borderRadius:12,padding:'13px 18px',fontWeight:800,cursor:'pointer',fontFamily:'inherit'} as React.CSSProperties,
-  secondary: {background:'var(--vs-accent-soft)',color:'var(--vs-accent)',border:'1px solid var(--vs-border)',borderRadius:12,padding:'12px 15px',fontWeight:750,cursor:'pointer',fontFamily:'inherit'} as React.CSSProperties,
-} as const
-const actionRow: React.CSSProperties = {width:'100%',display:'flex',alignItems:'center',gap:12,border:0,borderBottom:'1px solid var(--vs-border)',background:'transparent',color:'var(--vs-text)',padding:'14px 18px',cursor:'pointer',fontFamily:'inherit'}
-const actionIcon: React.CSSProperties = {width:40,height:40,borderRadius:11,display:'grid',placeItems:'center',flexShrink:0}
-function priority(item:MistakeNotebookItem) {return item.repeatCount > 1 ? 'Needs another look' : 'Ready to recall'}
-function dateDue(date:string) {return new Date(date).getTime()<=Date.now()}
-function prettyDate(date:string) {return dayTitle(date)}
-export default function RevisionStudioPage() {
-  const router=useRouter()
-  const searchParams=useSearchParams()
-  const requestedSubject=searchParams.get('subject')?.trim()??''
-  const {identity,loading:identityLoading}=useStudent()
-  const {play}=useLearningFeedback()
-  const [workspace,setWorkspace]=useState<RevisionWorkspace|null>(null)
-  const [memory,setMemory]=useState<RevisionMemoryRecord[]>([])
-  const [loading,setLoading]=useState(true)
-  const [saving,setSaving]=useState(false)
-  const [error,setError]=useState('')
-  const [subject,setSubject]=useState('All subjects')
-  const [queuePeriod,setQueuePeriod]=useState<'today'|'week'>('today')
-  const [mode,setMode]=useState<Mode>('Recall')
-  const [screen,setScreen]=useState<Screen>('home')
-  const [item,setItem]=useState<MistakeNotebookItem|null>(null)
-  const [revealed,setRevealed]=useState(false)
-  const [remembered,setRemembered]=useState<boolean|null>(null)
-  const [nextReview,setNextReview]=useState<string|null>(null)
-  const load=useCallback(async()=>{
-    setLoading(true);setError('')
-    try {
-      const [w,m]=await Promise.all([getRevisionWorkspace(),getMyRevisionMemory()])
-      setWorkspace(w);setMemory(m)
-    } catch(e) {setError(e instanceof Error?e.message:'Revision is unavailable right now.')}
-    finally {setLoading(false)}
-  },[])
-  useEffect(()=>{if(!identityLoading&&identity)void load();else if(!identityLoading)setLoading(false)},[load,identityLoading,identity])
-  const verified=useMemo(()=> (workspace?.mistakes??[]).filter(m=>isCurrentGradeMistake(m,identity?.className)),[workspace,identity?.className])
-  const memoryById=useMemo(()=>new Map(memory.map(m=>[m.mistakeId,m])),[memory])
-  const subjects=useMemo(()=>['All subjects',...Array.from(new Set(verified.map(m=>m.subject)))],[verified])
-  useEffect(()=>{const match=subjects.find(s=>s.toLowerCase()===requestedSubject.toLowerCase());if(match)setSubject(match)},[requestedSubject,subjects])
-  const filtered=useMemo(()=>verified.filter(m=>subject==='All subjects'||m.subject===subject).sort((a,b)=>{
-    const ad=memoryById.get(a.id)?.nextReviewAt
-    const bd=memoryById.get(b.id)?.nextReviewAt
-    const adue=!ad||dateDue(ad),bdue=!bd||dateDue(bd)
-    if(adue!==bdue)return adue?-1:1
-    return b.repeatCount-a.repeatCount
-  }),[verified,subject,memoryById])
-  const due=filtered.filter(m=>{const date=memoryById.get(m.id)?.nextReviewAt;return !date||dateDue(date)})
-  const completeCount=filtered.length-due.length
-  const weekQueue=filtered.filter(m=>{const date=memoryById.get(m.id)?.nextReviewAt;return !date||new Date(date).getTime()<=Date.now()+7*86400000})
-  const visibleQueue=queuePeriod==='today'?due:weekQueue
-  const rememberedCount=memory.filter(m=>m.lastRemembered===true&&verified.some(v=>v.id===m.mistakeId)).length
-  const needReviewCount=memory.filter(m=>m.lastRemembered===false&&verified.some(v=>v.id===m.mistakeId)).length
-  const selectedItem=due[0]??null
-  function begin(m:MistakeNotebookItem, selectedMode:Mode='Recall') {
-    setItem(m);setMode(selectedMode);setRevealed(false);setRemembered(null);setNextReview(null);setError('');setScreen('recall')
-  }
-  async function submitRecall(value:boolean) {
-    if(!item||saving)return
-    setSaving(true);setError('')
-    try {
-      const result=await recordRevisionRecall(item.id,value)
-      setNextReview(result.nextReviewAt)
-      setRemembered(value)
-      setMemory(prev=>[...prev.filter(m=>m.mistakeId!==item.id),{mistakeId:item.id,nextReviewAt:result.nextReviewAt,lastRemembered:value,recallCount:(memoryById.get(item.id)?.recallCount??0)+1}])
-      play(value?'correct':'saved',value?'Recall recorded':'Review scheduled')
-      setScreen('feedback')
-    } catch(e) {play('error');setError(e instanceof Error?e.message:'Could not save your revision. Please try again.')}
-    finally {setSaving(false)}
-  }
-  return <main style={style.shell}><div style={{maxWidth:980,margin:'0 auto',display:'grid',gap:14}}>
-    <VibeLearnSubnav/>
-    <header style={{...style.card,background:'var(--vs-card, #fff)',padding:20}}>
-      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:screen==='home'?16:0}}>
-        {screen!=='home' && <button type="button" onClick={()=>setScreen('home')} aria-label="Back to revision" style={{...style.secondary,padding:10}}><ArrowLeft size={18}/></button>}
-        <div style={{background:'var(--vs-accent-soft)',color:'var(--vs-accent)',padding:10,borderRadius:13}}><BrainCircuit size={22}/></div>
-        <div style={{flex:1}}><div style={{fontSize:11,color:'var(--vs-muted)',letterSpacing:1,fontWeight:850}}>VIBESCHOOL · REVISION</div><strong style={{fontSize:18}}>Revision Studio</strong></div>
-        {screen==='home'&&<span style={{fontSize:12,color:'var(--vs-muted)'}}>{today()}</span>}
-      </div>
-      {screen==='home'&&<><h1 style={{fontSize:'clamp(25px,4vw,36px)',margin:'0 0 6px',letterSpacing:'-.04em'}}>Remember more. Every day.</h1>
-        <p style={{...style.muted,margin:0}}>Return to previous learning, recall what you know and strengthen the parts that need attention.</p>
-        {workspace && workspace.revisionMode.daysRemaining > 0 && <p style={{...style.muted,margin:'10px 0 0'}}>Exam in {workspace.revisionMode.daysRemaining} days · {workspace.revisionMode.message}</p>}</>}
-    </header>
-    {error&&<div role="alert" style={{...style.card,color:'var(--vs-danger, #a73434)'}}>{error} <button type="button" style={style.secondary} onClick={()=>void load()}>Retry</button></div>}
-    {identityLoading||loading?<section style={style.card} aria-live="polite">Preparing your personal revision…</section>:
-    !identity?<section style={style.card}><h2>Sign in to revise</h2><p style={style.muted}>Your revision history belongs to your learner account.</p><button style={style.primary} onClick={()=>router.push('/student')}>Go to learner home</button></section>:
-    screen==='home'?<>
-      <section style={{...style.card,background:'var(--vs-card)',padding:0,overflow:'hidden'}}>
-        <div style={{padding:'24px 22px',background:'var(--vs-hero-bg, #10213b)',color:'var(--vs-hero-text, #fff)'}}>
-          <div style={{fontSize:11,fontWeight:850,letterSpacing:1,opacity:.78}}>TODAY · REVISION SPACE</div>
-          <h1 style={{fontSize:'clamp(26px,4vw,36px)',letterSpacing:'-.035em',margin:'10px 0 7px',lineHeight:1.12}}>A little today.<br/>Stronger tomorrow.</h1>
-          <p style={{fontSize:13,opacity:.84,margin:'0 0 22px'}}>Everything you need to remember, all in one place.</p>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,fontWeight:800,marginBottom:7}}><span>Today's revision goal</span><span>{Math.min(3,completeCount)}/3</span></div>
-          <div role="progressbar" aria-valuenow={Math.min(3,completeCount)} aria-valuemin={0} aria-valuemax={3} aria-label="Daily revision goal" style={{background:'rgba(255,255,255,.2)',height:7,borderRadius:99,overflow:'hidden'}}><div style={{height:'100%',width:`${Math.min(100,completeCount/3*100)}%`,background:'var(--vs-goal-fill, #b9f58c)',borderRadius:99}}/></div>
-        </div>
-        <div style={{padding:'20px 22px',display:'grid',gap:12}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><h2 style={{fontSize:18,margin:0}}>Your next revision</h2><span style={{fontSize:11,padding:'5px 9px',borderRadius:99,background:'var(--vs-accent-soft)',color:'var(--vs-accent)',fontWeight:800}}>{selectedItem?'Ready':'Choose a topic'}</span></div>
-          <div style={{padding:14,borderRadius:14,background:'var(--vs-soft)',display:'flex',gap:12,alignItems:'center'}}>
-            <span style={{padding:12,borderRadius:12,background:'var(--vs-accent-soft)',color:'var(--vs-accent)'}}><BookOpenCheck size={22}/></span>
-            <div style={{minWidth:0}}><div style={{fontSize:12,color:'var(--vs-muted)'}}>{selectedItem?.subject??'Curriculum revision'}</div><strong style={{fontSize:19}}>{selectedItem?.topic??'Choose an approved topic'}</strong><p style={{...style.muted,margin:'4px 0 0'}}>{selectedItem?'Refresh what you already know':'You can begin without an exam or previous mistakes.'}</p></div>
-          </div>
-          <button type="button" style={{...style.primary,width:'100%',minHeight:46}} onClick={()=>selectedItem?begin(selectedItem):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})}>{selectedItem?'Start revision':'Browse revision topics'} <ArrowRight size={16} style={{verticalAlign:'middle'}}/></button>
-        </div>
-      </section>
-      <section style={{...style.card,padding:16}}>
-        <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center',marginBottom:12}}><h2 style={{margin:0,fontSize:18}}>Subjects</h2><span style={style.muted}>Select to revise</span></div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(115px,1fr))',gap:9}}>
-          {subjects.map(s=><button key={s} type="button" aria-pressed={subject===s} onClick={()=>setSubject(s)} style={{...style.secondary,background:subject===s?'var(--vs-accent-soft)':'var(--vs-card)',border:subject===s?'2px solid var(--vs-accent)':'1px solid var(--vs-border)',color:'var(--vs-text)',display:'grid',justifyItems:'center',gap:7,minHeight:70}}><BookOpenCheck size={19} color="var(--vs-accent)"/><span style={{fontSize:12}}>{s==='All subjects'?'All subjects':s}</span></button>)}
-        </div>
-      </section>
-      <section style={{...style.card,padding:0,overflow:'hidden'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'17px 18px 10px',gap:10,flexWrap:'wrap'}}><h2 style={{margin:0,fontSize:18}}>Your revision</h2><div style={{display:'flex',gap:6}}>{(['today','week'] as const).map(t=><button key={t} type="button" aria-pressed={queuePeriod===t} onClick={()=>setQueuePeriod(t)} style={{border:0,borderRadius:9,padding:'8px 10px',cursor:'pointer',background:queuePeriod===t?'var(--vs-accent-soft)':'transparent',color:queuePeriod===t?'var(--vs-accent)':'var(--vs-muted)',fontWeight:750}}>{t==='today'?'Today':'This week'}</button>)}</div></div>
-        <button type="button" onClick={()=>router.push('/student/vibelearn/mistakes')} style={{...actionRow,borderTop:'1px solid var(--vs-border)'}}><span style={{...actionIcon,background:'#fff0df'}}><RefreshCcw size={18} color="#ad6c34"/></span><span style={{flex:1,textAlign:'left'}}><strong style={{display:'block'}}>Review mistakes</strong><small style={{display:'block',color:'var(--vs-muted)'}}>Return to questions you missed</small></span><ChevronRight size={17}/></button>
-        <button type="button" onClick={()=>selectedItem?begin(selectedItem,'Flashcards'):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})} style={actionRow}><span style={{...actionIcon,background:'#e7edff'}}><Layers3 size={18} color="#6379c7"/></span><span style={{flex:1,textAlign:'left'}}><strong style={{display:'block'}}>Quick flashcards</strong><small style={{display:'block',color:'var(--vs-muted)'}}>Recall definitions and concepts</small></span><ChevronRight size={17}/></button>
-        <button type="button" onClick={()=>selectedItem?begin(selectedItem):document.getElementById('revision-topics')?.scrollIntoView({behavior:'smooth'})} style={actionRow}><span style={{...actionIcon,background:'#e3f5e8'}}><BrainCircuit size={18} color="#38875d"/></span><span style={{flex:1,textAlign:'left'}}><strong style={{display:'block'}}>Memory check</strong><small style={{display:'block',color:'var(--vs-muted)'}}>See what you still remember</small></span><ChevronRight size={17}/></button>
-        {visibleQueue.length>0&&<div style={{padding:'12px 18px',borderTop:'1px solid var(--vs-border)'}}><strong style={{fontSize:13}}>{queuePeriod==='today'?'Ready today':'Ready this week'} · {visibleQueue.length}</strong>{visibleQueue.slice(0,4).map(m=><button key={m.id} onClick={()=>begin(m)} style={{...actionRow,padding:'10px 0'}}><span style={{flex:1,textAlign:'left'}}><strong style={{display:'block'}}>{m.topic}</strong><small style={{display:'block',color:'var(--vs-muted)'}}>{m.subject}</small></span><ChevronRight size={16}/></button>)}</div>}
-      </section>
-      <section style={{...style.card,padding:16}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}><strong style={{fontSize:16}}>Memory health</strong><span style={{fontSize:11,color:'var(--vs-muted)'}}>Your saved recalls</span></div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',textAlign:'center',gap:8,marginTop:16}}>
-          <div><strong style={{fontSize:23,color:'var(--vs-accent)'}}>{rememberedCount}</strong><div style={style.muted}>Remembered</div></div>
-          <div><strong style={{fontSize:23}}>{due.length}</strong><div style={style.muted}>Due now</div></div>
-          <div><strong style={{fontSize:23}}>{needReviewCount}</strong><div style={style.muted}>Needs review</div></div>
-        </div>
-      </section>
-      <RevisionTopicStarter className={identity.className ?? ''}/>
-      <section style={style.card}><h2 style={{margin:'0 0 12px',fontSize:18}}>Coming up</h2>{memory.filter(m=>verified.some(v=>v.id===m.mistakeId)&&!dateDue(m.nextReviewAt)).length===0?<p style={style.muted}>Your next review dates appear here after you finish recalling.</p>:memory.filter(m=>verified.some(v=>v.id===m.mistakeId)&&!dateDue(m.nextReviewAt)).sort((a,b)=>a.nextReviewAt.localeCompare(b.nextReviewAt)).slice(0,5).map(m=><div key={m.mistakeId} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'10px 0',borderBottom:'1px solid var(--vs-border)'}}><span>{verified.find(v=>v.id===m.mistakeId)?.topic}</span><span style={style.muted}>{prettyDate(m.nextReviewAt)}</span></div>)}</section>
-    </>:
-    screen==='recall'&&item?<section style={style.card}>
-      <div style={{display:'flex',justifyContent:'space-between',gap:8}}><span style={{fontWeight:850,color:'var(--vs-accent)',fontSize:12}}>{mode.toUpperCase()} · {item.subject}</span><button style={{background:'transparent',border:0,color:'var(--vs-muted)',cursor:'pointer'}} aria-label="Exit revision" onClick={()=>setScreen('home')}><X size={19}/></button></div>
-      <div style={{height:5,background:'var(--vs-accent-soft)',borderRadius:999,margin:'17px 0 20px'}}><div style={{width:revealed?'100%':'45%',height:'100%',background:'var(--vs-accent)',borderRadius:999}}/></div>
-      <div style={{display:'flex',alignItems:'center',gap:7,color:'var(--vs-muted)',fontSize:12}}><Clock3 size={15}/> Think before you reveal</div>
-      <h2 style={{fontSize:'clamp(20px,3vw,28px)',lineHeight:1.4,margin:'14px 0 20px'}}>{item.prompt}</h2>
-      {!revealed?<><p style={style.muted}>Try recalling the answer in your own words. There is no timer or penalty.</p>
-        <button style={{...style.primary,width:'100%',marginTop:12}} onClick={()=>setRevealed(true)}>Reveal explanation <Lightbulb size={16} style={{verticalAlign:'middle',marginLeft:6}}/></button>
-        {item.reviewUrl&&<button style={{...style.secondary,width:'100%',marginTop:9}} onClick={()=>router.push(item.reviewUrl!)}>Revisit the lesson</button>}
-      </>:<><div style={{background:'var(--vs-accent-soft)',borderRadius:14,padding:16}}><strong>Remember this</strong><p style={{...style.muted,margin:'8px 0 0',color:'var(--vs-text)'}}>{item.explanation??item.hint??'Use the linked lesson to verify your understanding before marking this review.'}</p></div>
-        <h3 style={{fontSize:17,margin:'20px 0 10px'}}>Did you remember it?</h3>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:9}}>
-          <button disabled={saving} style={style.primary} onClick={()=>void submitRecall(true)}><CheckCircle2 size={16} style={{verticalAlign:'middle',marginRight:7}}/>Yes, I did</button>
-          <button disabled={saving} style={style.secondary} onClick={()=>void submitRecall(false)}><RotateCcw size={16} style={{verticalAlign:'middle',marginRight:7}}/>Not yet</button>
-        </div>
-        <p style={style.muted}>Your response schedules another review; it does not change a formal exam result or automatically mark a mistake as resolved.</p>
-      </>}
-    </section>:
-    screen==='feedback'&&item?<section style={{...style.card,textAlign:'center',padding:24}}>
-      <div style={{display:'inline-flex',padding:16,borderRadius:999,background:'var(--vs-accent-soft)',color:'var(--vs-accent)'}}>{remembered?<CheckCircle2 size={32}/>:<Lightbulb size={32}/>}</div>
-      <h2 style={{fontSize:26}}>{remembered?'Well remembered!':'You can strengthen this.'}</h2>
-      <p style={style.muted}>{remembered?'Good recall. We will revisit the idea later.':'Revisit the explanation and retry the concept. Another review is scheduled.'}</p>
-      {nextReview&&<div style={{...style.card,margin:'14px 0',background:'var(--vs-soft)'}}><span style={style.muted}>Next review</span><div style={{fontWeight:850,marginTop:5}}>{prettyDate(nextReview)}</div></div>}
-      <button style={{...style.primary,width:'100%'}} onClick={()=>setScreen('finished')}>Finish session <ArrowRight size={16} style={{verticalAlign:'middle'}}/></button>
-      {item.reviewUrl&&<button style={{...style.secondary,width:'100%',marginTop:9}} onClick={()=>router.push(item.reviewUrl!)}>Read explanation in Learn</button>}
-    </section>:
-    <section style={{...style.card,textAlign:'center',padding:30}}>
-      <div style={{display:'inline-flex',padding:18,borderRadius:999,background:'var(--vs-accent-soft)',color:'var(--vs-accent)'}}><CheckCircle2 size={34}/></div>
-      <h2 style={{fontSize:27}}>Revision saved</h2>
-      <p style={style.muted}>Your recall has been recorded for your account. Pick another item when you are ready.</p>
-      <button style={style.primary} onClick={()=>{setScreen('home');void load()}}>Back to Revision Studio <ArrowRight size={16} style={{verticalAlign:'middle'}}/></button>
-    </section>}
-  </div></main>
+type Period = 'today' | 'week'
+
+const subjectTiles = [
+ {name:'Mathematics',Icon:Calculator},
+ {name:'English',Icon:BookOpen},
+ {name:'Kiswahili',Icon:Languages},
+ {name:'Science',Icon:FlaskConical},
+] as const
+const colors={
+ navy:'var(--vs-hero-bg, #10213b)',
+ heroText:'var(--vs-hero-text, #fff)',
+ goal:'var(--vs-goal-fill, #b9f58c)',
+ canvas:'color-mix(in srgb, var(--vs-card) 94%, var(--vs-text) 6%)',
+ panel:'var(--vs-card)',
+ ink:'var(--vs-text)',
+ muted:'var(--vs-muted)',
+ border:'var(--vs-border)',
+ accent:'var(--vs-accent)',
+ accentSoft:'var(--vs-accent-soft)',
+}
+const basic:React.CSSProperties={fontFamily:'inherit',cursor:'pointer'}
+const card:React.CSSProperties={padding:15,border:'1px solid var(--vs-border)',borderRadius:16,background:colors.panel}
+const muted:React.CSSProperties={fontSize:12,lineHeight:1.5,color:colors.muted}
+const primary:React.CSSProperties={...basic,minHeight:44,border:0,borderRadius:999,padding:'11px 18px',fontSize:13,fontWeight:850,background:'color-mix(in srgb, var(--vs-hero-bg, #10213b) 25%, #000 75%)',color:'#fff'}
+const secondary:React.CSSProperties={...basic,minHeight:42,borderRadius:12,padding:'10px 14px',border:'1px solid var(--vs-border)',fontWeight:750,fontSize:13,background:colors.accentSoft,color:colors.accent}
+const dateDue=(date:string|null)=>!date||new Date(date).getTime()<=Date.now()
+const dateLabel=(date:string)=>new Intl.DateTimeFormat('en-KE',{month:'short',day:'numeric',timeZone:'Africa/Nairobi'}).format(new Date(date))
+
+export default function RevisionStudioPage(){
+ const router=useRouter()
+ const searchParams=useSearchParams()
+ const requestedSubject=searchParams.get('subject')?.trim()??''
+ const {identity,loading:identityLoading}=useStudent()
+ const {play}=useLearningFeedback()
+ const launcher=useRef<RevisionStarterHandle>(null)
+ const [workspace,setWorkspace]=useState<RevisionWorkspace|null>(null)
+ const [memory,setMemory]=useState<RevisionMemoryRecord[]>([])
+ const [topics,setTopics]=useState<RevisionTopic[]>([])
+ const [subject,setSubject]=useState('Mathematics')
+ const [queuePeriod,setQueuePeriod]=useState<Period>('today')
+ const [topicActive,setTopicActive]=useState(false)
+ const [launching,setLaunching]=useState(false)
+ const [screen,setScreen]=useState<Screen>('home')
+ const [item,setItem]=useState<MistakeNotebookItem|null>(null)
+ const [mode,setMode]=useState<Mode>('Recall')
+ const [revealed,setRevealed]=useState(false)
+ const [remembered,setRemembered]=useState<boolean|null>(null)
+ const [nextReview,setNextReview]=useState<string|null>(null)
+ const [saving,setSaving]=useState(false)
+ const [loading,setLoading]=useState(true)
+ const [error,setError]=useState('')
+ const load=useCallback(async()=>{
+   setLoading(true);setError('')
+   try{
+     const [w,m]=await Promise.all([getRevisionWorkspace(),getMyRevisionMemory()])
+     setWorkspace(w);setMemory(m)
+   }catch(e){setError(e instanceof Error?e.message:'Your revision history could not be loaded.')}
+   finally{setLoading(false)}
+ },[])
+ useEffect(()=>{if(!identityLoading&&identity)void load();else if(!identityLoading)setLoading(false)},[identity,identityLoading,load])
+ useEffect(()=>{if(requestedSubject){const tile=subjectTiles.find(t=>t.name.toLowerCase()===requestedSubject.toLowerCase());if(tile)setSubject(tile.name)}},[requestedSubject])
+ const verified=useMemo(()=> (workspace?.mistakes??[]).filter(m=>isCurrentGradeMistake(m,identity?.className)),[workspace,identity?.className])
+ const memoryById=useMemo(()=>new Map(memory.map(m=>[m.mistakeId,m])),[memory])
+ const available=useMemo(()=>topics.filter(t=>t.subject.toLowerCase()===subject.toLowerCase()),[topics,subject])
+ const selectedTopic=available.find(t=>dateDue(t.nextReviewAt))??available[0]??null
+ const dueTopics=topics.filter(t=>dateDue(t.nextReviewAt))
+ const reviewedTopics=topics.filter(t=>t.recallCount>0)
+ const recalledTopics=topics.filter(t=>t.recallCount>0&&t.lastRemembered===true)
+ const needReviewTopics=topics.filter(t=>t.recallCount>0&&t.lastRemembered===false)
+ const dueMistakes=verified.filter(m=>dateDue(memoryById.get(m.id)?.nextReviewAt??null))
+ const memoryHealth={
+   remembered:recalledTopics.length+memory.filter(m=>m.lastRemembered===true&&verified.some(v=>v.id===m.mistakeId)).length,
+   due:dueTopics.length+dueMistakes.length,
+   needs:needReviewTopics.length+memory.filter(m=>m.lastRemembered===false&&verified.some(v=>v.id===m.mistakeId)).length,
+ }
+ const todayNairobi=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Africa/Nairobi'}).format(new Date())
+ const dailyGoal=Math.min(3,reviewedTopics.filter(t=>t.lastRecalledAt&&new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Africa/Nairobi'}).format(new Date(t.lastRecalledAt))===todayNairobi).length)
+ const selectedItem=dueMistakes.find(m=>m.subject.toLowerCase()===subject.toLowerCase())??dueMistakes[0]??null
+ const weekTopics=topics.filter(t=>t.nextReviewAt&&!dateDue(t.nextReviewAt)&&new Date(t.nextReviewAt).getTime()<=Date.now()+7*86400000)
+ function begin(m:MistakeNotebookItem, selectedMode:Mode='Recall'){
+   setItem(m);setMode(selectedMode);setRevealed(false);setRemembered(null);setNextReview(null);setError('');setScreen('recall')
+ }
+ async function submitRecall(value:boolean){
+   if(!item||saving)return
+   setSaving(true);setError('')
+   try{
+     const result=await recordRevisionRecall(item.id,value)
+     setNextReview(result.nextReviewAt);setRemembered(value)
+     setMemory(prev=>[...prev.filter(m=>m.mistakeId!==item.id),{mistakeId:item.id,nextReviewAt:result.nextReviewAt,lastRemembered:value,recallCount:(memoryById.get(item.id)?.recallCount??0)+1}])
+     play(value?'correct':'saved',value?'Recall recorded':'Review scheduled')
+     setScreen('feedback')
+   }catch(e){play('error');setError(e instanceof Error?e.message:'Could not save your revision.')}
+   finally{setSaving(false)}
+ }
+ async function launchTopic(assignmentId?:string, wantedSubject?:string){
+   setError('');setLaunching(true)
+   try{
+     const started=assignmentId?await launcher.current?.startTopic(assignmentId)
+       :await launcher.current?.startFirst(wantedSubject??subject)
+     if(!started)setError('No approved recall cards are available for this subject yet.')
+   }finally{setLaunching(false)}
+ }
+ function openMistakes(){router.push('/student/vibelearn/mistakes')}
+ function startRevision(){
+   if(selectedTopic)void launchTopic(selectedTopic.assignmentId)
+   else if(selectedItem)begin(selectedItem)
+   else setError('No approved revision cards for this subject yet. Try Mathematics or open Learn.')
+ }
+ const activityIcon:React.CSSProperties={width:43,height:43,borderRadius:12,display:'grid',placeItems:'center',flexShrink:0}
+ const rowStyle:React.CSSProperties={...basic,width:'100%',display:'flex',alignItems:'center',gap:13,padding:'14px 13px',border:0,borderBottom:'1px solid var(--vs-border)',background:'transparent',textAlign:'left',color:colors.ink}
+ const onHome=screen==='home'&&!topicActive
+ return <main style={{padding:'16px 12px 80px',background:colors.canvas,color:colors.ink,minHeight:'100vh'}}>
+   <div style={{maxWidth:770,margin:'0 auto',border:'1px solid var(--vs-border)',borderRadius:22,overflow:'hidden',background:colors.panel,boxShadow:'0 12px 35px rgba(0,0,0,.055)'}}>
+     <header style={{padding:'15px 15px 18px',background:colors.navy,color:colors.heroText}}>
+       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:onHome?18:8}}>
+         {!onHome&&<button type="button" aria-label="Back to Revision" style={{...basic,border:0,color:'inherit',background:'transparent',padding:5}} onClick={()=>{setScreen('home');launcher.current?.close();setTopicActive(false)}}><ArrowLeft size={20}/></button>}
+         <span style={{width:37,height:37,display:'grid',placeItems:'center',background:colors.goal,color:'#10213b',borderRadius:13}}><BrainCircuit size={21}/></span>
+         <div style={{flex:1,minWidth:0}}><strong style={{fontSize:16,color:colors.heroText}}>vibeschool</strong><div style={{fontSize:9,letterSpacing:.6,opacity:.83}}>REVISION STUDIO</div></div>
+         <button type="button" onClick={()=>router.push('/student/tasks')} aria-label="My reminders" style={{...basic,color:colors.heroText,background:'rgba(255,255,255,.1)',border:0,borderRadius:999,width:34,height:34,display:'grid',placeItems:'center'}}><Bell size={16}/></button>
+         <span aria-label="Learner account" style={{width:35,height:35,borderRadius:999,display:'grid',placeItems:'center',background:'var(--vs-accent-soft, #e9d2a1)',color:'var(--vs-accent, #10213b)',fontSize:13,fontWeight:850}}>{identity?.firstName?.slice(0,1).toUpperCase()??'S'}</span>
+       </div>
+       {onHome?<div>
+         <div style={{fontSize:11,letterSpacing:.55,color:'var(--vs-goal-fill, #c8f3aa)',fontWeight:700}}>TODAY · REVISION SPACE</div>
+         <h1 style={{fontSize:'clamp(25px,4.6vw,32px)',lineHeight:1.16,letterSpacing:'-.03em',margin:'11px 0 8px',fontWeight:800,color:colors.heroText}}>A little today.<span style={{display:'block'}}>Stronger tomorrow.</span></h1>
+         <p style={{fontSize:13,margin:'0 0 24px',color:'rgba(255,255,255,.86)'}}>Everything you need to remember, all in one place.</p>
+         <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',marginBottom:7,fontSize:12}}><span>Daily revision goal</span><strong>{dailyGoal}/3</strong></div>
+         <div role="progressbar" aria-label="Daily revision goal" aria-valuenow={dailyGoal} aria-valuemin={0} aria-valuemax={3} style={{height:7,background:'rgba(255,255,255,.2)',borderRadius:99,overflow:'hidden'}}><div style={{width:(dailyGoal/3*100)+'%',height:'100%',borderRadius:99,background:colors.goal}}/></div>
+       </div>:<div style={{padding:'8px 0 5px',fontSize:18,fontWeight:800}}>{topicActive?'Your recall session':screen==='recall'?'Remember this':'Your revision'}</div>}
+     </header>
+     <div style={{background:colors.canvas,padding:'12px 13px 18px',display:'grid',gap:14}}>
+       {error&&<div role="alert" style={{...card,color:'var(--vs-danger, #b12e2e)',fontSize:13}}>{error} <button style={{...secondary,marginLeft:8}} onClick={()=>void load()}>Retry</button></div>}
+       {(identityLoading||loading)&&<div style={card} role="status">Preparing your revision…</div>}
+       {!identityLoading&&!loading&&!identity&&<div style={card}><strong>Sign in to revise</strong><p style={muted}>Revision progress belongs to your learner account.</p><button type="button" style={primary} onClick={()=>router.push('/student')}>Learner home</button></div>}
+       {identity&&!identityLoading&&!loading&&<>
+         {onHome&&<>
+           <section aria-label="Your next revision" style={{...card,background:'var(--vs-soft)',border:'0',padding:0}}>
+             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0 0 9px',gap:8}}>
+               <h2 style={{fontSize:17,margin:0}}>Your next revision</h2>
+               {selectedTopic&&<span style={{fontSize:11,fontWeight:800,color:'var(--vs-accent)',background:colors.accentSoft,padding:'4px 9px',borderRadius:99}}>Ready</span>}
+             </div>
+             <div style={{background:colors.panel,borderRadius:16,padding:12,display:'grid',gap:12}}>
+               <div style={{display:'flex',alignItems:'center',gap:12}}>
+                 <span style={{width:62,height:62,background:'var(--vs-accent-soft)',color:colors.accent,display:'grid',placeItems:'center',borderRadius:15,flexShrink:0}}><BookOpenCheck size={25}/></span>
+                 <div><span style={muted}>{subject} · Quick revision</span><h3 style={{fontSize:19,margin:'3px 0 5px'}}>{selectedTopic?.topic??selectedItem?.topic??'Choose a topic'}</h3><div style={muted}>Refresh what you already know</div></div>
+               </div>
+               <div style={{display:'flex',alignItems:'center',gap:14,color:colors.muted,fontSize:12}}><span style={{display:'inline-flex',alignItems:'center',gap:5}}><Clock3 size={14}/> 5–10 min</span><span style={{display:'inline-flex',alignItems:'center',gap:5}}><BrainCircuit size={14}/> Memory recall</span></div>
+               <button type="button" onClick={startRevision} disabled={launching} style={{...primary,width:'100%',borderRadius:999}}>{launching?'Opening…':'Start revision'} <ArrowRight size={15} style={{verticalAlign:'middle',marginLeft:5}}/></button>
+             </div>
+           </section>
+           <section aria-label="Choose a revision subject">
+             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:10}}><h2 style={{fontSize:18,margin:0}}>Subjects</h2><span style={muted}>Select to revise</span></div>
+             <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
+               {subjectTiles.map(({name,Icon})=><button key={name} type="button" aria-pressed={subject===name} onClick={()=>{setSubject(name);setError('')}} style={{...basic,minWidth:0,display:'grid',placeItems:'center',gap:6,padding:'12px 3px',minHeight:66,borderRadius:15,border:subject===name?'2px solid var(--vs-accent)':'1px solid var(--vs-border)',background:subject===name?'var(--vs-accent-soft)':colors.panel,color:colors.ink}}>
+                 <Icon size={19} strokeWidth={1.8}/><span style={{fontSize:'clamp(9px,1.6vw,12px)',fontWeight:subject===name?850:650,overflowWrap:'anywhere'}}>{name}</span>
+               </button>)}
+             </div>
+           </section>
+           <section aria-label="Your revision activities">
+             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:10}}>
+               <h2 style={{fontSize:18,margin:0}}>Your revision</h2>
+               <div style={{display:'flex',gap:12}}>{(['today','week'] as const).map(period=><button key={period} type="button" onClick={()=>setQueuePeriod(period)} aria-pressed={queuePeriod===period} style={{...basic,fontSize:13,fontWeight:800,border:0,background:'transparent',padding:'7px 0',color:queuePeriod===period?colors.ink:colors.muted}}>{period==='today'?'Today':'This week'}</button>)}</div>
+             </div>
+             <div style={{background:colors.panel,border:'1px solid var(--vs-border)',borderRadius:17,overflow:'hidden'}}>
+               {queuePeriod==='today'?<>
+                 <button type="button" style={rowStyle} onClick={openMistakes}><span style={{...activityIcon,background:'var(--vs-accent-soft)'}}><RefreshCcw size={19}/></span><span style={{flex:1}}><strong style={{fontSize:15}}>Review mistakes</strong><small style={{...muted,display:'block',marginTop:3}}>Return to questions you missed</small></span><ChevronRight size={18} color="var(--vs-muted)"/></button>
+                 <button type="button" style={rowStyle} onClick={()=>void launchTopic(selectedTopic?.assignmentId)}><span style={{...activityIcon,background:'var(--vs-accent-soft)'}}><Layers3 size={19}/></span><span style={{flex:1}}><strong style={{fontSize:15}}>Quick flashcards</strong><small style={{...muted,display:'block',marginTop:3}}>Recall definitions and concepts</small></span><ChevronRight size={18} color="var(--vs-muted)"/></button>
+                 <button type="button" style={{...rowStyle,borderBottom:0}} onClick={startRevision}><span style={{...activityIcon,background:'var(--vs-accent-soft)'}}><BrainCircuit size={19}/></span><span style={{flex:1}}><strong style={{fontSize:15}}>Memory check</strong><small style={{...muted,display:'block',marginTop:3}}>See what you still remember</small></span><ChevronRight size={18} color="var(--vs-muted)"/></button>
+               </>:<>
+                 {(weekTopics.length?weekTopics:topics.slice(0,3)).map(t=><button type="button" key={t.assignmentId} style={rowStyle} onClick={()=>void launchTopic(t.assignmentId)}><span style={{...activityIcon,background:colors.accentSoft}}><CalendarDays size={18}/></span><span style={{flex:1}}><strong style={{fontSize:14}}>{t.topic}</strong><small style={{...muted,display:'block'}}>{t.nextReviewAt?dateLabel(t.nextReviewAt):'Revise anytime'} · {t.subject}</small></span><ChevronRight size={17}/></button>)}
+                 {!topics.length&&<p style={{...muted,padding:12}}>More topics will appear as approved revision content becomes available.</p>}
+               </>}
+             </div>
+           </section>
+           <section aria-label="Memory health" style={{background:colors.panel,borderRadius:16,padding:'15px 12px'}}>
+             <div style={{display:'flex',alignItems:'center',gap:9}}><ChartNoAxesColumn size={17}/><h2 style={{fontSize:16,margin:0}}>Memory health</h2><span style={{marginLeft:'auto',fontSize:11,background:colors.accentSoft,color:colors.accent,padding:'4px 9px',borderRadius:99}}>Saved activity</span></div>
+             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',textAlign:'center',gap:7,marginTop:16}}>
+               {[{label:'Remembered',value:memoryHealth.remembered},{label:'Due soon',value:memoryHealth.due},{label:'Needs review',value:memoryHealth.needs}].map((m,i)=><div key={m.label}><strong style={{fontSize:23,color:i===0?'var(--vs-accent)':colors.ink}}>{m.value}</strong><div style={{...muted,fontSize:11,marginTop:4}}>{m.label}</div></div>)}
+             </div>
+           </section>
+         </>}
+         {screen==='recall'&&item&&<section style={card}>
+           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><strong style={{fontSize:12,color:colors.accent}}>{mode} · {item.subject}</strong><button type="button" aria-label="Exit recall" style={{...basic,border:0,background:'transparent'}} onClick={()=>setScreen('home')}><X size={18}/></button></div>
+           <div style={{height:5,background:colors.accentSoft,borderRadius:99,margin:'17px 0'}}><div style={{height:'100%',width:revealed?'100%':'45%',background:colors.accent,borderRadius:99}}/></div>
+           <h2 style={{fontSize:23,lineHeight:1.35}}>{item.prompt}</h2>
+           {!revealed?<><p style={muted}>Think of the answer before looking.</p><button type="button" style={primary} onClick={()=>setRevealed(true)}>Reveal answer <Lightbulb size={16}/></button></>:
+             <><div style={{background:colors.accentSoft,padding:15,borderRadius:12}}>{item.explanation??item.hint??'Read the linked lesson to review this idea.'}</div><h3>Did you remember it?</h3><div style={{display:'flex',gap:8}}><button disabled={saving} style={primary} onClick={()=>void submitRecall(true)}>Yes, I did</button><button disabled={saving} style={secondary} onClick={()=>void submitRecall(false)}>Not yet</button></div></>}
+         </section>}
+         {screen==='feedback'&&item&&<section style={{...card,textAlign:'center'}}><CheckCircle2 size={35} color={colors.accent}/><h2>{remembered?'Well remembered!':'Keep practising'}</h2><p style={muted}>Your recall has been saved.</p>{nextReview&&<p>Next review: {dateLabel(nextReview)}</p>}<button type="button" style={primary} onClick={()=>setScreen('finished')}>Finish session</button></section>}
+         {screen==='finished'&&<section style={{...card,textAlign:'center'}}><CheckCircle2 size={35} color={colors.accent}/><h2>Revision complete</h2><p style={muted}>Your next revision will appear automatically.</p><button type="button" style={primary} onClick={()=>{setScreen('home');void load()}}>Back to Revision Studio</button></section>}
+         <RevisionTopicStarter ref={launcher} className={identity.className??''} embedded onTopicsChange={setTopics} onActiveChange={setTopicActive} onCompleted={()=>void load()}/>
+         {onHome&&workspace && workspace.revisionMode.daysRemaining > 0&&<p style={{...muted,textAlign:'center'}}>Exam in {workspace.revisionMode.daysRemaining} days · {workspace.revisionMode.message}</p>}
+       </>}
+     </div>
+     <nav aria-label="Revision Studio navigation" style={{borderTop:'1px solid var(--vs-border)',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',background:colors.canvas,padding:'12px 6px'}}>
+       {[{label:'Home',Icon:House,href:'/student'},{label:'Learn',Icon:BookOpen,href:'/student/study'},{label:'Revision',Icon:BrainCircuit,href:'/student/vibelearn/revision'},{label:'Progress',Icon:ChartNoAxesColumn,href:'/student/marks'}].map(({label,Icon,href})=><button type="button" key={label} onClick={()=>{if(label==='Revision'){setScreen('home');return}router.push(href)}} aria-current={label==='Revision'?'page':undefined} style={{...basic,display:'grid',placeItems:'center',gap:6,padding:6,minHeight:50,border:0,background:'transparent',color:label==='Revision'?colors.accent:colors.muted,fontWeight:label==='Revision'?850:550,fontSize:11}}><Icon size={19}/>{label}</button>)}
+     </nav>
+   </div>
+ </main>
 }

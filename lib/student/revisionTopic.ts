@@ -6,6 +6,8 @@ export type RevisionTopic = {
   topic: string
   nextReviewAt: string | null
   recallCount: number
+  lastRecalledAt: string | null
+  lastRemembered: boolean | null
 }
 export type RevisionCard = { id: string; prompt: string; answer: string; explanation: string }
 
@@ -23,7 +25,7 @@ export async function listRevisionTopics(grade: string): Promise<RevisionTopic[]
   const catalog = objects(data).filter(row => typeof row.assignment_id === 'string' &&
     typeof row.topic === 'string' && typeof row.subject === 'string' && row.question_count === 5)
   const {data:memory,error:memoryError} = await supabase.from('student_revision_topic_memory')
-    .select('assignment_id,next_review_at,recall_count').limit(200)
+    .select('assignment_id,next_review_at,recall_count,last_recalled_at,last_remembered').limit(200)
   if(memoryError) throw new Error(memoryError.message)
   const byId = new Map(objects(memory).filter(row => typeof row.assignment_id === 'string')
     .map(row => [row.assignment_id, row]))
@@ -32,7 +34,9 @@ export async function listRevisionTopics(grade: string): Promise<RevisionTopic[]
     return {
       assignmentId: row.assignment_id as string, subject: row.subject as string, topic: row.topic as string,
       nextReviewAt: typeof prior?.next_review_at === 'string' ? prior.next_review_at : null,
-      recallCount: typeof prior?.recall_count === 'number' ? prior.recall_count : 0
+      recallCount: typeof prior?.recall_count === 'number' ? prior.recall_count : 0,
+      lastRecalledAt: typeof prior?.last_recalled_at === 'string' ? prior.last_recalled_at : null,
+      lastRemembered: typeof prior?.last_remembered === 'boolean' ? prior.last_remembered : null
     }
   })
 }
