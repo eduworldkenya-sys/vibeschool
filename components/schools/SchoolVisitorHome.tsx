@@ -51,7 +51,7 @@ function FollowSchool({ slug }: { slug: string }) {
       const { data: auth, error: authError } = await db.auth.getUser()
       if (authError && !isAuthSessionMissingError(authError)) { setFeedback('Could not verify your account.'); return }
       if (!auth.user) {
-        window.location.assign('/login/global?redirect=' + encodeURIComponent('/school/' + slug))
+        window.location.assign('/login/parent?redirect=' + encodeURIComponent('/school/' + slug))
         return
       }
       const result = following
