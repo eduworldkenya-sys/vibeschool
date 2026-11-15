@@ -144,7 +144,7 @@ export default function VibeTwinLearningOS() {
     setNoteStatus('Saving…')
     const subject = now?.subject ?? 'Learning'
     const topic = cleanLearningText(practice?.outcomeText ?? weakest?.outcomeText ?? now?.title ?? 'Current learning')
-    const { error: noteError } = await rpc<Json>('student_save_topic_note', { p_subject: subject, p_topic: topic, p_note_text: value })
+    const { error: noteError } = await supabase.rpc('student_save_topic_note' as never, { p_subject: subject, p_topic: topic, p_note_text: value } as never)
     setNoteStatus(noteError ? 'Could not save note.' : 'Saved to your learning notebook.')
     if (!noteError) setNote('')
   }
