@@ -124,6 +124,42 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const requiredRole = requiredRoleForPath(pathname)
 
+  // The education path is an account-scoped preference, not a new identity.
+  // Enforce the selected post-secondary workspace before any school-grade
+  // learner UI is served. Public school readers still remain public when signed out.
+  const collegeRoute = pathname === '/student/college' || pathname.startsWith('/student/college/')
+  const studentRoute = pathname === '/student' || pathname.startsWith('/student/')
+  const schoolLearnRoute = pathname.startsWith('/learn') &&
+    !((pathname === '/learn' && request.nextUrl.searchParams.get('view') === 'courses') ||
+      pathname === '/learn/kasneb-cpa' || pathname.startsWith('/learn/kasneb-cpa/'))
+  // Legacy school textbook/offline entrypoints must not bypass the college home.
+  const schoolReaderRoute = pathname.startsWith('/read/textbook/') ||
+    pathname === '/offline/books' || pathname.startsWith('/offline/books/')
+  if (user && (studentRoute || schoolLearnRoute || schoolReaderRoute)) {
+    const { data: education, error: educationError } = await supabase
+      .from('learner_education_paths')
+      .select('education_stage')
+      .eq('user_id', user.id).maybeSingle()
+    if (educationError) {
+      const unavailable = copyAuthState(NextResponse.json({ error: 'Learning pathway temporarily unavailable' }, { status: 503 }))
+      unavailable.headers.set('Cache-Control', 'private, no-store')
+      return unavailable
+    }
+    const isCollege = education?.education_stage === 'post_secondary'
+    if (isCollege && ((studentRoute && !collegeRoute) || schoolLearnRoute || schoolReaderRoute)) {
+      const target = request.nextUrl.clone()
+      target.pathname = '/student/college'
+      target.search = ''
+      return redirectWithAuth(target)
+    }
+    if (!isCollege && collegeRoute) {
+      const target = request.nextUrl.clone()
+      target.pathname = '/student'
+      target.search = ''
+      return redirectWithAuth(target)
+    }
+  }
+
   if (requiredRole && !user) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'

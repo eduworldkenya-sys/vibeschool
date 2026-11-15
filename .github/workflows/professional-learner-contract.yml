@@ -1,0 +1,31 @@
+name: Professional learner college contract
+on:
+  push:
+    paths:
+      - 'app/student/college/**'
+      - 'app/student/layout.tsx'
+      - 'middleware.ts'
+      - 'lib/supabase.ts'
+      - 'supabase/migrations/20261115114000_canonical_post_secondary_learner_path.sql'
+      - 'scripts/test-professional-learner-contract.mjs'
+      - '.github/workflows/professional-learner-contract.yml'
+  pull_request:
+    paths:
+      - 'app/student/college/**'
+      - 'app/student/layout.tsx'
+      - 'middleware.ts'
+      - 'lib/supabase.ts'
+      - 'supabase/migrations/20261115114000_canonical_post_secondary_learner_path.sql'
+      - 'scripts/test-professional-learner-contract.mjs'
+      - '.github/workflows/professional-learner-contract.yml'
+jobs:
+  college-contract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/test-professional-learner-contract.mjs
