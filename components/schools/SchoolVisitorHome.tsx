@@ -58,6 +58,8 @@ function FollowSchool({ slug }: { slug: string }) {
         : await db.from('school_follows').insert({ school_slug: slug, follower_id: auth.user.id })
       if (result.error) { setFeedback('Could not update. Try again.'); return }
       setFollowing(value => !value)
+    } catch {
+      setFeedback('Could not update. Try again.')
     } finally {
       setBusy(false)
     }
