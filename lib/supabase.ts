@@ -116,6 +116,73 @@ type LiveTeacherSwapReport = {
   Relationships: [{ foreignKeyName: "teacher_swap_reports_listing_id_fkey"; columns: ["listing_id"]; isOneToOne: false; referencedRelation: "teacher_swap_listings"; referencedColumns: ["id"] }]
 }
 
+// Versioned KASNEB course and paper metadata, introduced by the canonical
+// 20261115134500 catalogue migration. Keep types at this shared boundary.
+type GeneratedCourses = Database['public']['Tables']['courses']
+type GeneratedModules = Database['public']['Tables']['modules']
+type ProfessionalCourseFields = {
+  qualification_code: string | null
+  qualifying_body: string | null
+  syllabus_source_url: string | null
+  syllabus_checked_on: string | null
+}
+type ProfessionalModuleFields = {
+  qualification_level: string | null
+  qualification_requirement: string | null
+}
+type LiveCourses = {
+  Row: GeneratedCourses['Row'] & ProfessionalCourseFields
+  Insert: GeneratedCourses['Insert'] & Partial<ProfessionalCourseFields>
+  Update: GeneratedCourses['Update'] & Partial<ProfessionalCourseFields>
+  Relationships: GeneratedCourses['Relationships']
+}
+type LiveModules = {
+  Row: GeneratedModules['Row'] & ProfessionalModuleFields
+  Insert: GeneratedModules['Insert'] & Partial<ProfessionalModuleFields>
+  Update: GeneratedModules['Update'] & Partial<ProfessionalModuleFields>
+  Relationships: GeneratedModules['Relationships']
+}
+
+type LiveLearnerEducationPath = {
+  Row: {
+    user_id: string
+    education_stage: 'post_secondary'
+    programme_family: 'professional_studies' | 'college' | 'university' | 'tvet'
+    qualification_code: string
+    examining_body: string | null
+    qualification_level: string | null
+    paper_code: string | null
+    institution_name: string | null
+    created_at: string
+    updated_at: string
+  }
+  Insert: {
+    user_id: string
+    education_stage: 'post_secondary'
+    programme_family: 'professional_studies' | 'college' | 'university' | 'tvet'
+    qualification_code: string
+    examining_body?: string | null
+    qualification_level?: string | null
+    paper_code?: string | null
+    institution_name?: string | null
+    created_at?: string
+    updated_at?: string
+  }
+  Update: {
+    user_id?: string
+    education_stage?: 'post_secondary'
+    programme_family?: 'professional_studies' | 'college' | 'university' | 'tvet'
+    qualification_code?: string
+    examining_body?: string | null
+    qualification_level?: string | null
+    paper_code?: string | null
+    institution_name?: string | null
+    created_at?: string
+    updated_at?: string
+  }
+  Relationships: []
+}
+
 type LiveDatabase = Omit<Database, 'public'> & {
   public: Omit<Database['public'], 'Tables' | 'Functions'> & {
     Functions: Database['public']['Functions'] & {
@@ -157,8 +224,11 @@ type LiveDatabase = Omit<Database, 'public'> & {
       start_unscheduled_teaching: { Args: { p_draft_id: string }; Returns: { id: string; unscheduled_plan_id: string; occurrence_date: string; school_id: string; teacher_id: string; class_id: string; subject_id: string; timetable_slot_id: null; lifecycle: string } }
       complete_unscheduled_teaching: { Args: { p_occurrence_id: string; p_coverage: string; p_what_taught: string; p_reflection: string; p_attendance_reason: string; p_evidence_reason: string; p_next_steps?: string | null }; Returns: { id: string; lifecycle: string; completed_at: string | null } }
     }
-    Tables: Omit<Database['public']['Tables'], 'homework' | 'timetable_slots' | 'teaching_occurrences' | 'school_periods'> & {
+    Tables: Omit<Database['public']['Tables'], 'homework' | 'timetable_slots' | 'teaching_occurrences' | 'school_periods' | 'courses' | 'modules'> & {
       homework: LiveHomeworkTable
+      courses: LiveCourses
+      modules: LiveModules
+      learner_education_paths: LiveLearnerEducationPath
       timetable_slots: LiveTimetableSlots
       teaching_occurrences: LiveTeachingOccurrences
       school_periods: LiveSchoolPeriods

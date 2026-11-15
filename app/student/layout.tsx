@@ -14,10 +14,10 @@ import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student
 import { DEFAULT_LEARNER_APPEARANCE, LEARNER_APPEARANCE_EVENT, readLearnerAppearance, saveLearnerAppearance, readLearnerWallpaperPhoto, learnerWallpaperBackground, resolvedLearnerDisplayMode, isSocialDestination, learnerAppearanceStyle, type LearnerStudyMode } from "@/lib/student-appearance";
 import { useToast } from "@/components/student/StudentUiContext";
 
-function TopBar({ name, className, schoolName, focused = false, studyMode, onModeToggle }: { name: string; className: string; schoolName: string; focused?: boolean; studyMode:LearnerStudyMode; onModeToggle:()=>void }) {
+function TopBar({ name, className, schoolName, homeHref = "/student", profileHref = "/student/profile", focused = false, studyMode, onModeToggle }: { name: string; className: string; schoolName: string; homeHref?: string; profileHref?: string; focused?: boolean; studyMode:LearnerStudyMode; onModeToggle:()=>void }) {
   const router   = useRouter();
   const pathname = usePathname();
-  const isRoot   = pathname === "/student" || pathname === "/student/";
+  const isRoot   = pathname === homeHref || pathname === homeHref + "/";
   const initials = name.trim().split(" ").filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("") || "S";
 
   return (
@@ -42,7 +42,7 @@ function TopBar({ name, className, schoolName, focused = false, studyMode, onMod
             ‹
           </button>
         )}
-        <button type="button" aria-label="Open Student Home" onClick={() => router.push("/student")}
+        <button type="button" aria-label="Open Student Home" onClick={() => router.push(homeHref)}
           style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", border: "none", background: "transparent", color: "inherit", padding: 0 }}
         >
           <div style={{
@@ -80,7 +80,7 @@ function TopBar({ name, className, schoolName, focused = false, studyMode, onMod
         </button>}
 
         {!focused && <button type="button" aria-label="Open learner profile"
-          onClick={() => router.push("/student/profile")}
+          onClick={() => router.push(profileHref)}
           style={{
             width: 44, height: 44, borderRadius: "50%", border: "none",
             background: "var(--vs-accent)",
@@ -124,6 +124,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   const { identity, loading, error, retry } = useStudent();
   const pathname = usePathname();
   const focusedAssessment = /^\/student\/assessment\/[^/]+\/?$/.test(pathname);
+  const isCollege = pathname === "/student/college" || pathname.startsWith("/student/college/");
   const showToast=useToast().showToast;
   const [appearance,setAppearance] = useState(DEFAULT_LEARNER_APPEARANCE);
   const [wallpaperPhoto,setWallpaperPhoto]=useState<string|null>(null);
@@ -193,6 +194,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="student-app" onClickCapture={guardSocialLinks}
       data-study-mode={studyMode}
+      data-college={isCollege ? "true" : undefined}
       data-learner-font={appearance.font}
       data-learner-italics={appearance.italicHeadings ? "true" : "false"}
       data-learner-compact={appearance.compact ? "true" : "false"}
@@ -200,8 +202,10 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       style={{ minHeight: '100dvh', background: 'var(--vs-bg)', color: 'var(--vs-text)', ...learnerAppearanceStyle(appearance,systemDark) }}>
       <TopBar
         name={identity?.name ?? ""}
-        className={identity?.className ?? ""}
-        schoolName={identity?.schoolName ?? ""}
+        className={isCollege ? "Professional Studies" : identity?.className ?? ""}
+        schoolName={isCollege ? "College & Professional Studies" : identity?.schoolName ?? ""}
+        homeHref={isCollege ? "/student/college" : "/student"}
+        profileHref={isCollege ? "/student/college/profile" : "/student/profile"}
         focused={focusedAssessment}
         studyMode={studyMode}
         onModeToggle={toggleFocus}
@@ -227,8 +231,8 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       }}>
         {children}
       </main>
-      {!focusedAssessment && <StudentPlannerReminders quiet={studyMode!=='normal'||!appearance.remindersEnabled} />}
-      {!focusedAssessment && <BottomNav />}
+      {!focusedAssessment && !isCollege && <StudentPlannerReminders quiet={studyMode!=='normal'||!appearance.remindersEnabled} />}
+      {!focusedAssessment && !isCollege && <BottomNav />}
     </div>
   );
 }
@@ -302,7 +306,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
           .student-app[data-reduce-motion="true"] *, .student-app[data-reduce-motion="true"] *::before { animation:none !important; transition:none !important; }
           @media(min-width:1024px) {
-            .student-app .student-content:not(.assessment-focus) {
+            .student-app:not([data-college='true']) .student-content:not(.assessment-focus) {
               margin:0 0 0 220px !important;
               width:calc(100% - 220px) !important;
               max-width:none !important;
