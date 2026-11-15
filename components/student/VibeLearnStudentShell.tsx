@@ -88,18 +88,18 @@ export default function VibeLearnStudentShell({
         </button>
 
         <h1 style={{
-          color: '#CCFF00',
-          fontSize: '14px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.1em',
+          color: '#FFFFFF',
+          fontSize: 'clamp(17px, 3vw, 20px)',
+          fontWeight: 800,
+          textTransform: 'none',
+          letterSpacing: '-0.025em',
           margin: 0
         }}>
           {title}
         </h1>
 
         {/* Balanced spacer matching button minWidth */}
-        <div style={{ minWidth: '80px' }} />
+        <div aria-hidden="true" style={{ width: '64px', flexShrink: 0 }} />
 
       </header>
 
