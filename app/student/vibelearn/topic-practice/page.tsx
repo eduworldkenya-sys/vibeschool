@@ -54,7 +54,7 @@ export default function TopicPracticePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [initialised, setInitialised] = useState(false)
-  const storageKey = identity?.studentId ? STORAGE + identity.studentId : ''
+  const storageKey = identity?.studentId ? STORAGE + identity.studentId + (identity.universalTest ? ':' + (searchParams.get('grade') ?? '') : '') : ''
   useEffect(() => {
     if (identityLoading || !identity || initialised) return
     // StudentProvider includes the optional school stream in className
@@ -62,10 +62,20 @@ export default function TopicPracticePage() {
     const classLabel = identity.className.trim()
     const gradeMatch = classLabel.match(/^(Grade\s*(?:[1-9]|1[0-2])|Form\s*[1-4])(?:\s+.+)?$/i)
     const profileGrade = gradeMatch ? gradeMatch[1].replace(/\s+/g,' ').replace(/^grade/i,'Grade').replace(/^form/i,'Form') : ''
-    setGrade(profileGrade || window.localStorage.getItem(STORAGE + identity.studentId + ':grade') || '')
-    setSession(readSession(STORAGE + identity.studentId))
+    const qaRequestedGrade = identity.universalTest ? searchParams.get('grade')?.trim() ?? '' : ''
+    const qaGrade = /^(?:Grade\s*(?:[1-9]|1[0-2])|Form\s*[1-4])$/i.test(qaRequestedGrade) ? qaRequestedGrade.replace(/\s+/g,' ').replace(/^grade/i,'Grade').replace(/^form/i,'Form') : ''
+    setGrade(qaGrade || profileGrade || window.localStorage.getItem(STORAGE + identity.studentId + ':grade') || '')
+    setSession(readSession(storageKey))
     setInitialised(true)
-  }, [identityLoading, identity, initialised])
+  }, [identityLoading, identity, initialised, searchParams, storageKey])
+  // Client-side navigation to another QA grade must reload that grade's session.
+  useEffect(() => {
+    if (!initialised || !identity?.universalTest) return
+    const requested = searchParams.get('grade')?.trim() ?? ''
+    if (!/^(?:Grade\s*(?:[1-9]|1[0-2])|Form\s*[1-4])$/i.test(requested)) return
+    const next = requested.replace(/\s+/g,' ').replace(/^grade/i,'Grade').replace(/^form/i,'Form')
+    if (next !== grade) { setGrade(next); setSession(readSession(storageKey)); setQuestions([]) }
+  }, [identity?.universalTest, initialised, grade, searchParams, storageKey])
   useEffect(() => {
     if (!initialised || !grade || !storageKey || /^grade\s*9$/i.test(grade)) { setLoading(false); return }
     let cancelled = false

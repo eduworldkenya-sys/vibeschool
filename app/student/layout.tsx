@@ -14,7 +14,7 @@ import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student
 import { DEFAULT_LEARNER_APPEARANCE, LEARNER_APPEARANCE_EVENT, readLearnerAppearance, saveLearnerAppearance, readLearnerWallpaperPhoto, learnerWallpaperBackground, resolvedLearnerDisplayMode, isSocialDestination, learnerAppearanceStyle, type LearnerStudyMode } from "@/lib/student-appearance";
 import { useToast } from "@/components/student/StudentUiContext";
 
-function TopBar({ name, className, schoolName, homeHref = "/student", profileHref = "/student/profile", focused = false, homeLabel = "Student", studyMode, onModeToggle }: { name: string; className: string; schoolName: string; homeHref?: string; profileHref?: string; focused?: boolean; homeLabel?: string; studyMode:LearnerStudyMode; onModeToggle:()=>void }) {
+function TopBar({ name, className, schoolName, homeHref = "/student", profileHref = "/student/profile", focused = false, homeLabel = "Student", studyMode, onModeToggle, universalTest = false }: { name: string; className: string; schoolName: string; homeHref?: string; profileHref?: string; focused?: boolean; homeLabel?: string; studyMode:LearnerStudyMode; onModeToggle:()=>void; universalTest?:boolean }) {
   const router   = useRouter();
   const pathname = usePathname();
   const isRoot   = pathname === homeHref || pathname === homeHref + "/";
@@ -63,6 +63,8 @@ function TopBar({ name, className, schoolName, homeHref = "/student", profileHre
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {!focused && universalTest && <button type="button" aria-label="Universal QA levels" onClick={() => router.push('/student/qa')}
+          style={{border:'1px solid var(--vs-border)',borderRadius:11,minHeight:40,padding:'7px 9px',fontSize:11,fontWeight:800,background:'var(--vs-accent-soft)',color:'var(--vs-accent)',cursor:'pointer'}}>All levels</button>}
         {!focused && <button type="button" aria-label={studyMode==='normal'?'Turn on Focus Mode':'Exit study mode'}
           onClick={onModeToggle} style={{border:'1px solid var(--vs-border)',borderRadius:11,minHeight:40,
           padding:'7px 10px',fontSize:11,fontWeight:800,cursor:'pointer',
@@ -211,6 +213,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
         focused={focusedAssessment}
         studyMode={studyMode}
         onModeToggle={toggleFocus}
+        universalTest={identity?.universalTest === true}
       />
       <OfflineBar />
       {!focusedAssessment&&studyMode!=='normal'&&<div role="status" style={{display:'flex',gap:10,

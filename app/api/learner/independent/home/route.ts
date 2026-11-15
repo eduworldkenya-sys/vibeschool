@@ -21,20 +21,29 @@ export async function GET(req: NextRequest) {
   const { data: { user }, error: authError } = await admin.auth.getUser(bearer.slice(7).trim())
   if (authError || !user) return NextResponse.json({ error: 'Sign in again' }, { status: 401, headers })
 
-  const [{ data: identity, error: identityError }, { data: profile, error: profileError }, { data: school, error: schoolError }] = await Promise.all([
+  const [{ data: identity, error: identityError }, { data: profile, error: profileError }, { data: school, error: schoolError }, { data: qaGrant, error: qaError }] = await Promise.all([
     admin.from('independent_learner_identities')
       .select('account_state,learner_email_verified_at,grade_label')
       .eq('user_id', user.id).maybeSingle(),
     admin.from('profiles').select('role,full_name,account_status,is_anonymized')
       .eq('id', user.id).maybeSingle(),
     admin.from('students').select('id,class_id,name').eq('profile_id', user.id).is('deleted_at', null).limit(2),
+    admin.from('profile_entitlements').select('entitlement_key,source,granted_until')
+      .eq('profile_id', user.id).eq('entitlement_key', 'qa_universal_learner').maybeSingle(),
   ])
-  if (identityError || profileError || schoolError || !profile) {
+  if (identityError || profileError || schoolError || qaError || !profile) {
     return NextResponse.json({ error: 'Could not verify learner identity' }, { status: 503, headers })
   }
-  if (!identity) return NextResponse.json({ kind: 'other' }, { headers })
+  // This flag enables only QA navigation. It NEVER changes school enrollment,
+  // teacher authority, assignment eligibility, RLS or the learner's real grade.
+  const universalTest = !!qaGrant && qaGrant.source === 'owner_qa' &&
+    (!qaGrant.granted_until || Date.parse(qaGrant.granted_until) > Date.now()) &&
+    profile.account_status === 'active' && !profile.is_anonymized &&
+    (school?.length ?? 0) === 1 && !!user.email_confirmed_at &&
+    (profile.role === 'student' || profile.role === null)
+  if (!identity) return NextResponse.json({ kind: 'other', universalTest }, { headers })
   // A verified later school link takes the standard student/Twin path.
-  if (profile.role === 'student') return NextResponse.json({ kind: 'other' }, { headers })
+  if (profile.role === 'student') return NextResponse.json({ kind: 'other', universalTest }, { headers })
 
   // These checks mirror the canonical restricted independent identity boundary.
   // No school record is created, and no school-scoped Twin authority is granted.
@@ -50,5 +59,6 @@ export async function GET(req: NextRequest) {
     name: learnerDisplayName(profile.full_name, school?.[0]?.name, user.user_metadata?.full_name, user.user_metadata?.name),
     grade: identity.grade_label,
     studentId: school![0].id,
+    universalTest,
   }, { headers })
 }

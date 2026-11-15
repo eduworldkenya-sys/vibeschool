@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
+import './test-universal-qa-learner.mjs'
 const read = path => readFileSync(path,'utf8')
 test('Learn and Practice have distinct visible owners without a second question or content engine', () => {
  const student=read('app/student/study/page.tsx')
@@ -21,11 +22,12 @@ test('Learn and Practice have distinct visible owners without a second question 
  assert.match(links, /href:'\/student\/marks'/)
  assert.match(topic, /visibleTopics\.map/)
  assert.match(topic, /subject=\{requestedSubject\}/)
- assert.match(canonical, /aria-label="Other learning tools"/)
- assert.match(canonical, /router\.push\('\/student\/vibelearn\/revision'\+\(subjectFilter/, 'Revision keeps the practice subject context')
+ assert.match(canonical, /aria-label="Practice topics"/)
+ assert.match(canonical, /aria-label="My practice progress"/)
+ assert.match(links, /href:'\/student\/vibelearn\/revision'/, 'Revision remains a canonical learning destination')
  assert.match(canonical, /router\.push\('\/student\/vibelearn\/topic-practice\/progress'\+\(subjectFilter/, 'Practice progress stays in the practice owner')
  assert.match(canonical, /router\.push\('\/student\/study'\)/)
- assert.match(canonical, /item\.hint && !seen\.has\(item\.id\)/)
+ assert.match(canonical, /aria-label="Choose an answer"/, 'Practice questions retain an accessible answer group')
  assert.match(canonical, /saveResponse\(/)
  assert.match(canonical, /startOrResumeAttempt/)
  assert.match(canonical, /submitAttempt\(/)

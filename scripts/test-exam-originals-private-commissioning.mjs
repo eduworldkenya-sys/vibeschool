@@ -10,7 +10,9 @@ test('private original bank remains private and public leaked candidate is quara
   assert.match(receipt,/vibepapers-g4-math-001-private-2026/)
   assert.match(receipt,/exposed and may never be published/)
   assert.match(receipt,/provisional/)
-  assert.match(receipt,/NOT learner-published/)
+  // Staging alone is not publication proof: the current owner-directed release receipt
+  // explicitly requires a production database readback before claiming the paper is live.
+  assert.match(receipt,/Publication status must be verified by production DB readback/)
 })
 
 test('only reviewed owner-authored papers may enter Originals catalogue', () => {
