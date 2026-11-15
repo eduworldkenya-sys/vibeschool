@@ -1,4 +1,5 @@
 'use client'
+import StudentIntro from "@/components/student/StudentIntro";
 export const dynamic = 'force-dynamic'
 
 import {useEffect,useState,type ChangeEvent} from 'react'
@@ -91,7 +92,7 @@ export default function LearnerSettingsPage(){
   if(loading||!identity)return <div className={styles.page} role="status">Opening learner settings…</div>
   return <main className={styles.page}>
     <header className={styles.header}><span className={styles.eyebrow}>Personalisation</span><h1 className={styles.title}>Make VibeSchool yours.</h1>
-      <p className={styles.muted}>Change how the app looks and feels. Your lessons, tasks and exams stay exactly where they are.</p></header>
+      <StudentIntro feature="settings-overview"><p>Personalise how VibeSchool looks and feels without changing your lessons or exams.</p></StudentIntro></header>
     <nav className={styles.tabs} aria-label="Learner settings sections">
       {([['appearance','Themes'],['reading','Reading'],['study','Study Mode'],['permissions','Permissions']] as const).map(([id,label])=>
         <button type="button" role="tab" aria-selected={tab===id} key={id} onClick={()=>setTab(id)}>{label}</button>)}
