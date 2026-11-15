@@ -3,63 +3,96 @@ import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
-const grades = [
-  'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6',
-  'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12',
-  'Form 1', 'Form 2', 'Form 3', 'Form 4',
-]
-const src = readFileSync('components/learner/LearnerGradePicker.tsx', 'utf8')
-const code = ts.transpileModule(src, { compilerOptions: {
+const read = file => readFileSync(file, 'utf8')
+const js = (file, jsx = false) => ts.transpileModule(read(file), { compilerOptions: {
   module: ts.ModuleKind.CommonJS,
   target: ts.ScriptTarget.ES2022,
-  jsx: ts.JsxEmit.ReactJSX,
+  jsx: jsx ? ts.JsxEmit.ReactJSX : undefined,
 } }).outputText
 
-const jsx = (type, props) => ({ type, props })
-const exports = {}
-runInNewContext(code, {
-  exports,
-  require: name => {
-    if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    if (name === '@/lib/learner/independent-grade') return { LEARNER_GRADES: grades }
-    if (name === './LearnerGradePicker.module.css') return { default: { fieldset: 'fieldset', legend: 'legend', grid: 'grid', option: 'option' } }
-    throw Error('Unexpected import: ' + name)
+const moduleExports = {}
+runInNewContext(js('lib/learner/learning-levels.ts'), { exports:moduleExports })
+const { LEARNING_LEVELS, resolveLearningSelection } = moduleExports
+assert.equal(LEARNING_LEVELS.length, 8)
+assert.deepEqual(LEARNING_LEVELS.map(group=>group.id), [
+  'pre-primary','primary','junior','senior','secondary','college','university','professional',
+])
+for(const group of LEARNING_LEVELS) {
+  assert.ok(group.choices.length > 0, group.id)
+  for(const choice of group.choices) assert.ok(resolveLearningSelection(group.id, choice), group.id+':'+choice)
+}
+assert.equal(resolveLearningSelection('professional','CPA').gradeLabel, 'Professional Studies')
+assert.equal(resolveLearningSelection('professional','CPA').pathway.qualification_code, 'CPA')
+assert.equal(resolveLearningSelection('professional','CS').pathway.examining_body, 'KASNEB')
+assert.equal(resolveLearningSelection('college','Diploma').pathway.programme_family, 'tvet')
+assert.equal(resolveLearningSelection('university','Postgraduate').gradeLabel, 'University')
+assert.equal(resolveLearningSelection('pre-primary','PP2').gradeLabel, 'PP2')
+assert.equal(resolveLearningSelection('junior','Grade 8').gradeLabel, 'Grade 8')
+for(const [level,choice] of [['senior','Grade 2'],['professional','Grade 12'],['college','CPA'],['teacher','admin'],['primary',''],['__proto__','CPA']]) {
+  assert.equal(resolveLearningSelection(level,choice), null, 'reject mismatched or forged level')
+}
+const jsx = (type,props)=>({type,props})
+const picker = {}
+runInNewContext(js('components/learner/LearningLevelSelect.tsx',true),{
+  exports:picker,
+  require:name=>{
+    if(name==='react/jsx-runtime')return {jsx,jsxs:jsx}
+    if(name==='@/lib/learner/learning-levels')return {LEARNING_LEVELS}
+    throw Error('Unexpected import: '+name)
   },
 })
-let picked = null
-const root = exports.default({ value: 'Grade 4', onChange: value => { picked = value } })
-const nodes = []
-function visit(node) {
-  if (!node || typeof node !== 'object') return
-  if (Array.isArray(node)) { node.forEach(visit); return }
-  nodes.push(node)
-  visit(node.props?.children)
+function visit(node,output=[]) {
+  if(Array.isArray(node)){node.forEach(child=>visit(child,output));return output}
+  if(!node||typeof node!=='object')return output
+  output.push(node)
+  visit(node.props?.children,output)
+  return output
 }
-visit(root)
-
-assert.equal(root.type, 'fieldset')
-assert.equal(nodes.find(x => x.type === 'legend')?.props.children, 'Your grade or form')
-const buttons = nodes.filter(x => x.type === 'button')
-assert.equal(buttons.length, grades.length, 'All 16 grade and form choices must be displayed at once')
-assert.deepEqual(buttons.map(x => x.props.children), grades)
-assert(buttons.every(x => x.props.type === 'button'), 'Grade choices must not submit the form')
-assert.equal(buttons.filter(x => x.props['aria-pressed']).length, 1)
-assert.equal(buttons.find(x => x.props['aria-pressed']).props.children, 'Grade 4')
-buttons.find(x => x.props.children === 'Grade 7').props.onClick()
-assert.equal(picked, 'Grade 7', 'Selecting a grade must update the parent-controlled value')
-assert.equal(nodes.filter(x => x.type === 'select').length, 0, 'Never fall back to unreadable native dropdown')
-
-for (const filename of [
+let updatedLevel='',updatedChoice='not-reset'
+const root=picker.default({level:'professional',choice:'CPA',
+  onLevelChange:value=>updatedLevel=value,onChoiceChange:value=>updatedChoice=value})
+const nodes=visit(root)
+const selects=nodes.filter(node=>node.type==='select')
+assert.equal(selects.length,2,'compact design has exactly two dropdowns')
+const levelOptions=visit(selects[0]).filter(node=>node.type==='option')
+assert.equal(levelOptions.length,9,'all eight education levels plus placeholder')
+const choices=visit(selects[1]).filter(node=>node.type==='option').map(node=>node.props.children)
+assert.deepEqual(choices,['Choose','CPA','CS'])
+selects[0].props.onChange({target:{value:'primary'}})
+assert.equal(updatedLevel,'primary')
+assert.equal(updatedChoice,'','changing level clears stale choice')
+for(const page of [
   'app/signup/student/independent/page.tsx',
   'app/signup/student/email/EmailSignupForm.tsx',
 ]) {
-  const page = readFileSync(filename, 'utf8')
-  assert.match(page, /<LearnerGradePicker value=\{grade\} onChange=\{setGrade\}/)
-  assert.doesNotMatch(page, /<select/, filename + ' must use the accessible visible picker')
+  assert.match(read(page),/<LearningLevelSelect/)
+  assert.doesNotMatch(read(page),/<LearnerGradePicker/)
+  assert.match(read(page),/data-auth-theme=\{appearance\}/)
 }
-const css = readFileSync('components/learner/LearnerGradePicker.module.css', 'utf8')
-assert.match(css, /min-height:\s*46px/)
-assert.match(css, /\.option\[aria-pressed="true"\]/)
-assert.match(css, /\.option:focus-visible/)
-
-console.log('Independent learner grade picker visibility, selection, and integration passed.')
+const route=read('app/api/learner/independent/grade/route.ts')
+assert.match(route,/resolveLearningSelection/)
+assert.match(route,/learner_email_verified_at/)
+assert.match(route,/getUser\(/)
+assert.match(route,/ensure_independent_learner_student/)
+assert.match(route,/learner_education_paths/)
+assert.match(route,/existingPath/)
+assert.match(route,/restoreGrade/)
+assert.doesNotMatch(route,/claim_my_initial_role|school_members|student_classes.*insert/)
+const emailActions=read('app/signup/student/email/actions.ts')
+assert.match(emailActions,/resolveLearningSelection/)
+assert.match(emailActions,/ensure_independent_learner_student/)
+assert.match(emailActions,/learner_education_paths/)
+const migration=read('supabase/migrations/20261115174000_independent_learning_level_paths.sql')
+for(const grade of ['PP1','PP2','College','University','Professional Studies','Grade 12','Form 4']) {
+  assert.ok(migration.includes("'"+grade+"'"),'missing DB grade label '+grade)
+}
+assert.doesNotMatch(migration,/grant|role|school_id|create table/i)
+for(const page of ['app/login/[role]/page.tsx','app/signup/student/SchoolSignupForm.tsx','app/join/JoinForm.tsx']) {
+  assert.match(read(page),/useAuthAppearance/)
+  assert.match(read(page),/data-auth-theme=\{appearance\}/)
+}
+assert.match(read('app/auth/useAuthAppearance.ts'),/readTheme\(\)/)
+assert.match(read('app/student/college/page.tsx'),/otherPath/)
+assert.match(read('app/student/college/page.tsx'),/qualification_code !== 'CPA'/)
+assert.match(read('app/student/college/profile/page.tsx'),/study\.qualification_code/)
+console.log('PASS: all eight level choices, two-dropdown UX, invalid paths, theme and verified account routing')
