@@ -31,6 +31,7 @@ type Props = {
   topic?: string
   tools?: readonly TeachingToolSpec[]
   showTeachingTools?: boolean
+  presentation?: 'lesson' | 'book'
   renderBody?: (section: UniversalLearnSection, index: number) => ReactNode
   afterSection?: (section: UniversalLearnSection, index: number) => ReactNode
   /** Immutable source context from the existing authorised released read. */
@@ -46,12 +47,13 @@ type Props = {
  */
 export default function UniversalLearnReader({
   subject, sections, title, goal, anchorPrefix = 'learn',
-  topic = '', tools, showTeachingTools = true,
+  topic = '', tools, showTeachingTools = true, presentation = 'lesson',
   renderBody, afterSection, toolContext, visualContext,
 }: Props) {
   const mode = learnSubjectMode(subject)
   // Full-reader pages have an h2 lesson title; outcome pages supply an h3 title.
-  const SectionHeading = title ? 'h4' : 'h3'
+  const ReaderHeading = presentation === 'book' ? 'h1' : 'h3'
+  const SectionHeading = presentation === 'book' ? 'h2' : title ? 'h4' : 'h3'
   const anchor = (section: UniversalLearnSection, index: number) =>
     `${anchorPrefix}-${index}-${section.id.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`
   const validSections = sections.filter(section =>
@@ -67,12 +69,12 @@ export default function UniversalLearnReader({
     getLearningToolSectionBinding(toolContext, section, index))
   if (!validSections.length) return <p role="status">No released lesson sections are available.</p>
 
-  return <div className={styles.reader} data-subject-mode={mode}>
+  return <div className={styles.reader} data-subject-mode={mode} data-presentation={presentation}>
     {(title || goal) && <header className={styles.heading}>
-      {title && <h3 id={`${anchorPrefix}-title`} tabIndex={-1}>{title}</h3>}
+      {title && <ReaderHeading id={`${anchorPrefix}-title`} tabIndex={-1}>{title}</ReaderHeading>}
       {goal && <p><strong>What you will learn:</strong> {goal}</p>}
     </header>}
-    {validSections.length > 1 && <nav className={styles.navigation} aria-label="Lesson sections">
+    {presentation === 'lesson' && validSections.length > 1 && <nav className={styles.navigation} aria-label="Lesson sections">
       {validSections.map((section, index) =>
         <a key={anchor(section, index)} href={`#${anchor(section, index)}`}>{section.title || 'Section ' + (index + 1)}</a>)}
     </nav>}
@@ -83,7 +85,7 @@ export default function UniversalLearnReader({
         const tone = ['learn', 'example', 'explore', 'practice', 'feedback', 'support', 'challenge', 'reflect'].includes(section.tone ?? '')
           ? section.tone : 'learn'
         if (section.id === 'feedback') return <details id={id} key={id} className={styles.feedback}>
-          <summary>Review all explanations</summary>
+          <summary>{presentation === 'book' ? section.title : 'Review all explanations'}</summary>
           <div className={styles.feedbackBody}>
             {renderBody?.(section, index) ?? (section.blocks?.length
               ? <LearningBlockRenderer blocks={section.blocks} /> : <VisualRichText body={section.body} />)}

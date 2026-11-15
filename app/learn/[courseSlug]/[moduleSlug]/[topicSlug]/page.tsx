@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic"
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import UniversalLearnReader from '@/components/learn/UniversalLearnReader'
+import { adaptCanonicalLearnSections } from '@/lib/learn/learningBlockContract'
 import { ensureCourseLearnerProfile } from '@/lib/learn/ensure-course-learner-profile'
 
 const BLUE = '#1A1AFF'
@@ -316,7 +318,12 @@ export default function TopicDetailPage() {
 
   const tipLabel = TIP_LABEL_BY_DOMAIN[course?.domain ?? ''] ?? '💡 Practical Tip'
 
-  const tabs: { key: TabKey; label: string }[] = [
+  const chapterSections = adaptCanonicalLearnSections(topic?.concept_tab)
+  const isBookChapter = chapterSections.length > 0
+  const tabs: { key: TabKey; label: string }[] = isBookChapter ? [
+    { key: 'concept', label: 'Read' },
+    { key: 'practice', label: 'Practice' },
+  ] : [
     { key: 'concept',  label: '💡 Concept' },
     { key: 'kenya',    label: '🇰🇪 Kenya Context' },
     { key: 'practice', label: '📝 Practice' },
@@ -357,8 +364,8 @@ export default function TopicDetailPage() {
           <span>›</span>
           <span>{module.title}</span>
         </div>
-        <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{topic.title}</div>
-        {topic.subtitle && (
+        {(!isBookChapter || activeTab === 'practice') && <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{topic.title}</div>}
+        {!isBookChapter && topic.subtitle && (
           <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>{topic.subtitle}</div>
         )}
       </div>
@@ -369,7 +376,9 @@ export default function TopicDetailPage() {
         borderBottom: '1px solid #ecebf3',
       }}>
         {tabs.map((tab) => (
-          <div
+          <button
+            type="button"
+            aria-pressed={activeTab === tab.key}
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             style={{
@@ -381,13 +390,17 @@ export default function TopicDetailPage() {
             }}
           >
             {tab.label}
-          </div>
+          </button>
         ))}
       </div>
 
       {/* TAB CONTENT */}
       <div style={{ padding: 16 }}>
-        {activeTab === 'concept' && <ConceptBlocks blocks={topic.concept_tab} />}
+        {activeTab === 'concept' && (isBookChapter ? (
+          <UniversalLearnReader subject={module.title} title={topic.title}
+            sections={chapterSections} presentation="book" showTeachingTools={false}
+            anchorPrefix={topic.slug} />
+        ) : <ConceptBlocks blocks={topic.concept_tab} />)}
         {activeTab === 'kenya' && <ConceptBlocks blocks={topic.kenya_context_tab} />}
         {activeTab === 'practice' && <QuizPanel topicId={topic.id} />}
         {activeTab === 'errors' && <ConceptBlocks blocks={topic.common_errors_tab} />}

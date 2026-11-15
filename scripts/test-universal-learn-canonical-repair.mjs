@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { adaptCanonicalLearnSections } from '../lib/learn/learningBlockContract.ts'
 
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8')
@@ -91,4 +91,27 @@ test('catalogue failure cannot block already released outcome and paging is link
   assert.match(outcome,/setTab\('core'\)/)
   assert.match(outcome,/chooseLesson\(lessons\[selectedIndex \+ 1\]\.lesson_order\)/)
   assert.match(outcome,/setSelectedLesson\(ordered\.some/)
+})
+
+
+test('published CA11 book chapters keep prose, accounting columns and feedback in the shared reader', () => {
+  const migrations = readdirSync(new URL('../supabase/migrations/', import.meta.url))
+    .filter(name => name.endsWith('_ca11_unit02_book_format.sql'))
+  assert.equal(migrations.length, 1)
+  const migration = read('../supabase/migrations/' + migrations[0])
+  const chapters = JSON.parse(migration.split('$chapters$')[1])
+  const topic = read('../app/learn/[courseSlug]/[moduleSlug]/[topicSlug]/page.tsx')
+  const canonical = Object.values(chapters).map(sections => adaptCanonicalLearnSections(sections))
+  assert.deepEqual(canonical.map(chapter => chapter.length), [3, 2, 4])
+  assert.ok(canonical.every(chapter => chapter[0].blocks[0].kind === 'paragraph'))
+  const ledger = canonical[1].flatMap(section => section.blocks).find(block => block.caption?.startsWith('Bank T-account'))
+  assert.deepEqual(ledger.columns, ['Debit details', 'Debit', 'Credit details', 'Credit'])
+  const trialBalance = canonical[2][0].blocks.find(block => block.kind === 'table')
+  assert.deepEqual(trialBalance.rows.at(-1), ['Total', '47,000', '47,000'])
+  assert.match(canonical[2].at(-1).title, /27-mark guide/)
+  assert.equal(canonical[2].at(-1).id, 'feedback')
+  assert.match(reader, /if \(section\.id === 'feedback'\) return <details/)
+  assert.match(topic, /presentation="book"/)
+  assert.match(topic, /activeTab === 'practice' && <QuizPanel topicId=\{topic\.id\}/)
+  assert.match(topic, /window\.location\.hash === '#practice'/)
 })
