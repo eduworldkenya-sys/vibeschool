@@ -7,6 +7,7 @@
   <title>VibeSchool — Offline</title>
   <style>
     *,*::before,*::after{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#07111f;color:#fff}body{min-height:100dvh;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.card{width:min(100%,430px);padding:30px 24px;border:1px solid #2b3747;border-radius:22px;background:#0d1929;box-shadow:0 24px 70px rgba(0,0,0,.34)}.logo{display:block;width:min(210px,68%);height:auto;filter:brightness(0) invert(1)}.eyebrow{margin:26px 0 8px;color:#d0b154;font-size:11px;font-weight:800;letter-spacing:.14em}h1{margin:0 0 10px;font-size:30px;line-height:1.08;letter-spacing:-.03em}p{margin:0;color:#c1cad5;font-size:14px;line-height:1.65}button{width:100%;min-height:48px;margin-top:24px;padding:12px 16px;border:0;border-radius:11px;background:#d0b154;color:#07111f;font-weight:850;font-size:14px;cursor:pointer}button:focus-visible{outline:3px solid #fff;outline-offset:3px}.hint{margin-top:14px;font-size:12px;color:#8e9aa8;line-height:1.55}
+a{color:#78ead5;text-decoration:underline}nav p{margin:6px 0}
   </style>
 </head>
 <body>
@@ -14,9 +15,9 @@
     <img class="logo" src="/icons/vibeschool-logo.png" alt="VibeSchool" />
     <div class="eyebrow">CONNECTION LOST</div>
     <h1>You’re offline.</h1>
-    <p>Reconnect to use live learning, Pathways data and accounts. Your account data is not stored in the offline cache. VibeSchool does not cache private learner or school records in this shared offline page.</p>
+    <p>Reconnect to use live learning, Pathways data and accounts. Private learner, teacher and school records are not saved in the shared offline page. Previously downloaded public games may still work.</p>
     <button type="button" onclick="location.reload()">Try again</button>
-    <div class="hint">Some previously visited public VibeSchool information may remain available from the safe public cache.</div>
+    <nav aria-label="Offline games" class="hint"><p>Downloaded games:</p><p><a href="/marketing-studio">Marketing Studio</a> · <a href="/spin-studio">VibeSpin</a> · <a href="/coin-studio">VibeCoin</a> · <a href="/pendulum-studio">VibeSphere</a> · <a href="/games-studio">VibeGames</a></p></nav><div class="hint">Open Marketing Studio online and select “Save games for offline” before disconnecting. Features requiring accounts, fresh data or payments still need internet.</div>
   </main>
 </body>
 </html>
