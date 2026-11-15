@@ -175,6 +175,7 @@ export default function LearnerStudyDesk() {
         </section>
         <section className={styles.card} aria-label="Your learning path">
           <h2>Your learning path</h2>
+          <details><summary style={{cursor:"pointer",fontSize:12,color:"var(--vs-muted)"}}>How recommendations work</summary><p className={styles.muted}>Build foundation first when earlier ideas need more practice. VibeLearn does not invent a weakness when evidence is missing.</p></details>
           
           {!learningPath || learningPath.path.length===0
             ? <p className={styles.muted}>Your verified learning priorities will appear when there is sufficient evidence.</p>
