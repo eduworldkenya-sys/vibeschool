@@ -1,4 +1,5 @@
 'use client'
+import StudentIntro from "@/components/student/StudentIntro";
 
 export const dynamic = 'force-dynamic'
 
@@ -220,8 +221,8 @@ export default function VibeTwinLearningOS() {
       <section style={learnHero}><div><div style={eyebrow}>PRACTISE A SKILL</div><h2 style={heroTitle}>{cleanLearningText(practice?.outcomeText ?? weakest?.outcomeText) || 'Build your skills through practice'}</h2><p style={heroBody}>Choose a question, try it and request a hint. Verified answers help Twin improve future learning guidance.</p></div><button style={primary} onClick={() => void startPractice()}>{busy ? 'Preparing…' : practice ? 'New question' : 'Start adaptive practice'}</button></section>
 
       <section style={card}>
-        <div style={sectionHead}><div><div style={eyebrowDark}>LEARN YOUR WAY</div><h2 style={sectionTitle}>Same material. A format that clicks.</h2></div><span style={muted}>Source grounded · personalized · cached</span></div>
-        <p style={body}>Turn an authorized textbook unit, assigned homework, teacher material, VibeLearn lesson or public resource into an immersive explanation, simpler version, mind map, flashcards, quiz, worked examples, visual steps, audio lesson, story or revision sheet.</p>
+        <div style={sectionHead}><div><div style={eyebrowDark}>LEARN YOUR WAY</div><h2 style={sectionTitle}>Same material. A format that clicks.</h2></div></div>
+        <StudentIntro feature="twin-learning-formats"><p>Choose a learning source to explore another approved explanation or format.</p></StudentIntro>
         {sourcesError && <div style={degraded}>{sourcesError}</div>}
         {sourcesLoading ? <div style={sourceLoading}>Finding your learning materials…</div> : sources.length === 0 ? <div style={sourceLoading}>Open a textbook or receive assigned learning material and it will appear here.</div> : <div style={sourceGrid}>{sources.slice(0,12).map(source => <button key={`${source.sourceType}:${source.sourceId}`} onClick={() => learnSource(source)} style={sourceCard}><div style={sourceType}>{source.sourceType.replaceAll('_',' ')}</div><strong>{cleanLearningText(source.title)}</strong>{source.subtitle && <span>{cleanLearningText(source.subtitle)}</span>}<small>Learn this another way →</small></button>)}</div>}
       </section>
@@ -244,7 +245,7 @@ export default function VibeTwinLearningOS() {
         </div>
       </section>
 
-      <section style={grid2}>
+      <details style={{...card,marginTop:8}}><summary style={{cursor:'pointer',fontWeight:800,minHeight:42}}>Detailed learning evidence and Twin insights</summary><div style={{display:'grid',gap:14,marginTop:12}}><section style={grid2}>
         <div style={card}><div style={eyebrowDark}>MASTERY MAP</div><Signal label="Needs attention" value={cleanLearningText(weakest?.outcomeText) || 'Building'} meta={weakest ? `${Math.round(weakest.effectiveMastery)}% mastery · ${Math.round(weakest.confidence * 100)}% confidence · ${weakest.evidenceCount} evidence signals` : 'More evidence needed'} /><Signal label="Strongest" value={cleanLearningText(strongest?.outcomeText) || 'Building'} meta={strongest ? `${Math.round(strongest.effectiveMastery)}% mastery · ${strongest.evidenceCount} evidence signals` : 'More evidence needed'} /><Signal label="Review before forgetting" value={cleanLearningText(forgetting?.outcomeText) || 'No urgent review'} meta={forgetting ? `${Math.round(forgetting.forgettingRisk * 100)}% forgetting risk · ${forgetting.daysSinceEvidence == null ? 'evidence timing unavailable' : `${forgetting.daysSinceEvidence} days since evidence`}` : 'Twin will schedule recall as evidence ages'} /></div>
         <div style={card}><div style={eyebrowDark}>WHAT TWIN REMEMBERS</div>{(state?.memory.claims ?? []).slice(0,4).map(claim => <div key={claim.id} style={memoryRow}><strong>{cleanLearningText(claim.claim)}</strong><span style={muted}>{claim.evidenceCount} signals · {Math.round(claim.confidence * 100)}% confidence · {claim.permanence === 'durable' || claim.permanence === 'historical' ? 'kept until stronger evidence changes it' : 'can change as new evidence arrives'}</span></div>)}{(state?.memory.claims.length ?? 0) === 0 && <p style={body}>Twin only forms durable memory when evidence supports it.</p>}</div>
       </section>
@@ -274,6 +275,7 @@ export default function VibeTwinLearningOS() {
         <div style={evidenceSummary}><span>{state?.evidence.competencyEvidenceCount ?? 0} competency evidence records</span><span>{state?.learning.unresolvedExposures ?? 0} learning approaches awaiting later proof</span><span>{hasEvidence ? `${Math.round((state?.evidence.stateConfidence ?? 0) * 100)}% state confidence` : 'Insufficient evidence for confidence'}</span></div>
       </section>
 
+      </div></details>
       <section style={card}><div style={eyebrowDark}>REVISION TIMELINE</div>{(summary?.revisionPlan ?? []).slice(0,5).map(item => <button key={item.id} style={timelineItem} onClick={() => router.push(item.actionUrl)}><div><strong>{cleanLearningText(item.topic)}</strong><div style={muted}>{item.subject} · {item.targetMinutes} min</div></div><span>→</span></button>)}{(summary?.revisionPlan.length ?? 0) === 0 && <p style={body}>Your spaced-revision timeline will appear as Twin gathers enough evidence.</p>}</section>
     </div>}
 
