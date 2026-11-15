@@ -24,7 +24,7 @@ async function verify() {
       page.on('pageerror', error => pageErrors.push(error.message));
       await page.goto(ORIGIN + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
       const mobile = size.width <= 1040;
-      if (mobile) await page.locator('header details summary').click();
+      if (mobile) await page.locator('header details summary[aria-label="Open public navigation"]').click();
       const schoolLink = mobile
         ? page.locator('header nav[aria-label="Mobile public navigation"] a[href="/schools"]')
         : page.locator('header nav[aria-label="Public navigation"] a[href="/schools"]');
