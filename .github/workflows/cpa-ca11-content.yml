@@ -2,13 +2,13 @@ name: CPA CA11 Foundation Content Contract
 on:
   pull_request:
     paths:
-      - 'supabase/migrations/20261115115000_stage_cpa_ca11_intro_foundation.sql'
+      - 'supabase/migrations/20261115124103_stage_cpa_ca11_intro_foundation.sql'
       - 'scripts/test-cpa-ca11-content.mjs'
       - '.github/workflows/cpa-ca11-content.yml'
   push:
     branches: [main]
     paths:
-      - 'supabase/migrations/20261115115000_stage_cpa_ca11_intro_foundation.sql'
+      - 'supabase/migrations/20261115124103_stage_cpa_ca11_intro_foundation.sql'
       - 'scripts/test-cpa-ca11-content.mjs'
 jobs:
   verify-ca11-unit-one:
