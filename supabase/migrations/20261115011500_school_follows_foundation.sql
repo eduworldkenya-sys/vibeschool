@@ -1,5 +1,5 @@
 -- access: private owner-scoped public.school_follows
--- authorization-test: scripts/test-school-follows-contract.mjs
+-- authorization-test: public.school_follows scripts/test-school-follows-contract.mjs
 -- School interest is not school membership, staff authorization or a claim.
 -- Reference the already-curated public URL identity, never an unverified name.
 create table public.school_follows (
