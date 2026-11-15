@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Bell, BellPlus, CalendarDays, Check, ClipboardList, Info, Megaphone, Share2, Shirt, Wallet } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase'
+import { isAuthSessionMissingError } from '@supabase/supabase-js'
 import styles from './SchoolVisitorHome.module.css'
 
 type Tab = 'home' | 'updates' | 'information'
@@ -29,7 +30,7 @@ function FollowSchool({ slug }: { slug: string }) {
       const db = getSupabaseClient()
       const { data: auth, error: authError } = await db.auth.getUser()
       if (!active) return
-      if (authError) { setFeedback('Sign in to follow this school.'); setLoaded(true); return }
+      if (authError && !isAuthSessionMissingError(authError)) { setFeedback('Following is temporarily unavailable.'); setLoaded(true); return }
       if (!auth.user) { setLoaded(true); return }
       const result = await db.from('school_follows').select('school_slug')
         .eq('school_slug', slug).eq('follower_id', auth.user.id).maybeSingle()
@@ -48,7 +49,7 @@ function FollowSchool({ slug }: { slug: string }) {
     try {
       const db = getSupabaseClient()
       const { data: auth, error: authError } = await db.auth.getUser()
-      if (authError) { setFeedback('Could not verify your account.'); return }
+      if (authError && !isAuthSessionMissingError(authError)) { setFeedback('Could not verify your account.'); return }
       if (!auth.user) {
         window.location.assign('/login/global?redirect=' + encodeURIComponent('/school/' + slug))
         return
