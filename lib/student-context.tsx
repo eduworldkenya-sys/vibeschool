@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core"
+import { learnerDisplayName } from "@/lib/student/learner-welcome"
 
 export interface StudentIdentity {
   independent?: boolean
@@ -68,10 +69,10 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         const home = await homeResponse.json() as { kind?: string; name?: string; grade?: string; studentId?: string }
         if (home.kind === 'independent') {
           if (!home.studentId) throw new Error('Your learner identity needs to be completed. Please retry.')
-          const name = home.name?.trim() || 'Learner'
+          const name = learnerDisplayName(home.name)
           if (!cancelled) setIdentity({
             independent: true, profileId: session.user.id, studentId: home.studentId, classId: null, schoolId: null,
-            name, firstName: name.split(/\s+/)[0] || 'Learner', admissionNo: '',
+            name: name || 'Learner', firstName: name.split(/\s+/)[0] || '', admissionNo: '',
             className: home.grade ?? '', schoolName: '',
           })
           return
@@ -158,8 +159,9 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
           schoolName = school?.name ?? ""
         }
 
-        const fullName  = student.name?.trim() || profile.full_name?.trim() || "Student"
-        const firstName = fullName.split(/\s+/)[0] || "Student"
+        const resolvedName = learnerDisplayName(student.name, profile.full_name)
+        const fullName = resolvedName || "Student"
+        const firstName = resolvedName.split(/\s+/)[0] || ""
 
         if (!cancelled) {
           setIdentity({
