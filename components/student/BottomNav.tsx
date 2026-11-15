@@ -20,6 +20,7 @@ const MORE = [
   { label: "My Tutors", href: "/student/tutoring", Icon: UsersRound, group: "Planning & tuition" },
   { label: "Practice Sets", href: "/student/vibelearn/practice", Icon: BookOpenCheck, group: "Practice & exams" },
   { label: "Books & Stories", href: "/learn/stories", Icon: LibraryBig, group: "Reading & study" },
+  { label: "Offline Books", href: "/offline/books", Icon: BookOpenCheck, group: "Reading & study" },
   { label: "My Workspace", href: "/student/workspace", Icon: NotebookPen, group: "Reading & study" },
   { label: "My Day", href: "/student/timetable", Icon: CalendarDays, group: "Planning & tuition" },
   { label: "Profile", href: "/student/profile", Icon: UserRound, group: "My account" },
@@ -62,6 +63,7 @@ export default function BottomNav() {
 
   const navigate = (href: string) => {
     setMoreOpen(false);
+    if (href === "/offline/books") { window.location.assign(href); return; }
     router.push(href);
   };
 

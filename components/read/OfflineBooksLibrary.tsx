@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { OfflineBook } from '@/lib/read/offlinePublicBooks'
 import { deleteOfflineBook, listOfflineBooks } from '@/lib/read/offlinePublicBooks'
 import { ContentBlockEditor } from '@/components/global/publish/ContentBlockEditor'
+import OfflineStorageStatus from '@/components/read/OfflineStorageStatus'
 
 const card:React.CSSProperties={border:'1px solid #344053',background:'#121c2c',borderRadius:16,padding:16}
 const button:React.CSSProperties={border:'1px solid #4e667c',background:'#20324a',color:'#fff',padding:'10px 12px',borderRadius:10,minHeight:42,cursor:'pointer'}
@@ -30,6 +31,7 @@ export default function OfflineBooksLibrary(){
         <a href="/student/study" style={{color:'#9eeede'}}>Back to learning (online)</a>
       </header>
       <p style={{fontSize:13,color:'#b5c5d5'}}>Books downloaded on this device can be read without internet. The offline library currently contains only publicly readable free chapters. New books and online learning tools require a connection.</p>
+      <OfflineStorageStatus/>
       {error&&<p role="alert" style={{color:'#ffa5a5'}}>{error}</p>}
       {loading?<p>Loading saved books…</p>:!book?<>
         {!books.length?<section style={card}><h2 style={{fontSize:18}}>No books downloaded yet</h2><p>While online, open a VibeSchool textbook and select “Download for offline”. Then return here to read it without data.</p></section>:null}
