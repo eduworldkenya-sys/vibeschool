@@ -326,7 +326,8 @@ begin
       ) returning id into v_assessment_item;
 
       insert into public.assessment_item_outcomes(assessment_item_id,outcome_id,weight)
-      values (v_assessment_item,v_outcome,1);
+      values (v_assessment_item,v_outcome,1)
+      on conflict (assessment_item_id,outcome_id) do nothing;
     end loop;
 
     if (select count(*) from public.assessment_items
