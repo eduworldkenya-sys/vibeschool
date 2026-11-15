@@ -1,11 +1,13 @@
 // Public offline foundation. Never cache authenticated, user-specific or API data.
-const CACHE_NAME = 'vibeschool-v8-public-offline'
+const CACHE_NAME = 'vibeschool-v9-offline-reading'
 const STATIC_ROUTES = ['/offline.html']
 const SAFE_PUBLIC_ROUTES = ['/', '/about', '/contact', '/careers', '/institutions', '/sandbox', '/trust', '/legal']
 const OFFLINE_GAME_ROUTES = ['/marketing-studio', '/spin-studio', '/coin-studio', '/pendulum-studio', '/games-studio']
-const SAFE_PUBLIC_PATHS = new Set([...SAFE_PUBLIC_ROUTES, ...OFFLINE_GAME_ROUTES])
+const OFFLINE_BOOK_ROUTE = '/offline/books'
+const SAFE_PUBLIC_PATHS = new Set([...SAFE_PUBLIC_ROUTES, ...OFFLINE_GAME_ROUTES, OFFLINE_BOOK_ROUTE])
 const PUBLIC_ASSET_PREFIXES = ['/_next/static/', '/icons/', '/pwa-icons/', '/fonts/']
 const OFFLINE_PREPARE = 'PREPARE_OFFLINE_GAMES'
+const OFFLINE_PREPARE_BOOKS = 'PREPARE_OFFLINE_BOOK_READER'
 const isPublicAsset = (path) => PUBLIC_ASSET_PREFIXES.some(prefix => path.startsWith(prefix))
 const safeSameOrigin = (value) => {
   const url = new URL(value, self.location.origin)
@@ -30,14 +32,16 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') { self.skipWaiting(); return }
-  if (event.data?.type !== OFFLINE_PREPARE) return
+  if (event.data?.type !== OFFLINE_PREPARE && event.data?.type !== OFFLINE_PREPARE_BOOKS) return
   const port = event.ports && event.ports[0]
   if (!port) return
   event.waitUntil((async () => {
     try {
       const cache = await caches.open(CACHE_NAME)
       let files = 0
-      for (const route of OFFLINE_GAME_ROUTES) {
+      const preparingBooks = event.data.type === OFFLINE_PREPARE_BOOKS
+      const routes = preparingBooks ? [OFFLINE_BOOK_ROUTE] : OFFLINE_GAME_ROUTES
+      for (const route of routes) {
         const response = await fetch(route, { credentials: 'omit', redirect: 'error', cache: 'no-store' })
         if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) throw new Error('Could not prepare '+route)
         const html = await response.clone().text()
@@ -58,9 +62,9 @@ self.addEventListener('message', event => {
           files++
         }
       }
-      port.postMessage({ type: 'OFFLINE_GAMES_READY', routes: OFFLINE_GAME_ROUTES.length, files })
+      port.postMessage({ type: preparingBooks ? 'OFFLINE_BOOK_READER_READY' : 'OFFLINE_GAMES_READY', routes: routes.length, files })
     } catch (error) {
-      port.postMessage({ type: 'OFFLINE_GAMES_ERROR', message: error instanceof Error ? error.message : 'Offline download failed' })
+      port.postMessage({ type: event.data.type === OFFLINE_PREPARE_BOOKS ? 'OFFLINE_BOOK_READER_ERROR' : 'OFFLINE_GAMES_ERROR', message: error instanceof Error ? error.message : 'Offline download failed' })
     }
   })())
 })
