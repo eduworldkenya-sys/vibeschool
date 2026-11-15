@@ -191,6 +191,10 @@ export default function CollegeLearnerHome() {
         : <p style={{fontSize:13,color:'var(--vs-muted)',lineHeight:1.7}}>
             Learning materials for this paper are in preparation. You can save your paper now and return when lessons are published. School-grade lessons are not part of this study space.
           </p>}
+      <Link href="/student/college/practice" style={{display:'inline-flex',padding:'12px 16px',
+        color:'var(--vs-accent)',fontWeight:800}}>
+        CPA Practice
+      </Link>
       {courseLive && savedPaperLive &&
         <Link href="/learn/kasneb-cpa" style={{display:'inline-flex',padding:'12px 16px',borderRadius:11,
           background:'var(--vs-accent)',color:'var(--vs-on-accent)',textDecoration:'none',fontWeight:800}}>

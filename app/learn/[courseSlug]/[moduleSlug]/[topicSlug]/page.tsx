@@ -228,6 +228,10 @@ export default function TopicDetailPage() {
   const [completionError, setCompletionError] = useState('')
 
   useEffect(() => {
+    setActiveTab(courseSlug === 'kasneb-cpa' && window.location.hash === '#practice' ? 'practice' : 'concept')
+  }, [courseSlug, moduleSlug, topicSlug])
+
+  useEffect(() => {
     async function load() {
       const { data: courseData, error: courseErr } = await supabase
         .from('courses')
