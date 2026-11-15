@@ -13,6 +13,7 @@ function contracts(source) {
   assert(source.includes(".eq('follower_id', auth.user.id)"), 'reads and deletes must be account-scoped')
   assert(source.includes('follower_id: auth.user.id'), 'inserts must use signed-in identity')
   assert(source.includes("window.location.assign('/login/global?redirect='"), 'unauthenticated users must sign in before following')
+  assert(source.includes('isAuthSessionMissingError'), 'a missing session must enter login, not a permanent auth error')
   assert(source.includes("role=\"status\""), 'changes and errors require accessible status feedback')
   assert(!/window\.localStorage|document\.cookie/.test(source), 'follow relationships must not be client-only')
   assert(!/KSh\s*\d+|official school notice:[^\n]*/i.test(source), 'do not invent fees or announcements')
