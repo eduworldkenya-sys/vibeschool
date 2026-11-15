@@ -11,6 +11,7 @@ on:
       - 'lib/homework/**'
       - 'supabase/migrations/**'
       - 'scripts/test-student-core-journey-pilot.mjs'
+      - 'scripts/test-learner-welcome-state.mjs'
       - '.github/workflows/student-core-journey-pilot.yml'
   workflow_dispatch:
 
@@ -23,6 +24,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify learner first-visit and greeting regression
+        run: node --experimental-strip-types --test scripts/test-learner-welcome-state.mjs
       - name: Enforce Task 5 pilot contract
         run: node scripts/test-student-core-journey-pilot.mjs
       - name: Verify learner navigation and first-use guidance
