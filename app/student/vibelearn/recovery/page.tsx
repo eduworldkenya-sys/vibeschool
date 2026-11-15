@@ -140,7 +140,7 @@ export default function ExactLearningRecoveryPage() {
     <header style={hero}>
       <div style={kicker}>Exact learning recovery</div>
       <h1 id="recovery-heading" style={{margin:'6px 0'}}>Understand. Practise. Prove it.</h1>
-      nullment evidence.</p>
+      <StudentIntro feature="recovery-overview"><p>Review missed questions, revisit the linked lesson and check your learning with fresh questions.</p></StudentIntro>
     </header>
     {error && <section role="alert" style={card}><strong>Recovery could not be loaded.</strong><p style={muted}>Your recorded attempts are safe. Please retry to load your learning steps.</p><button style={secondary} onClick={() => { setLoading(true); setError(''); void load().catch(cause => setError(cause instanceof Error ? cause.message : 'Could not load recovery.')).finally(() => setLoading(false)) }}>Retry recovery</button></section>}
     {loading ? <section style={card}>Checking your recorded learning evidence…</section>
