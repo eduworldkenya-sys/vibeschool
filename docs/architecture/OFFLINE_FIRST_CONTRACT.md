@@ -57,3 +57,9 @@ Do not indiscriminately cache dynamic routes or authorization-bearing responses.
 6. Remove the current free-only public-book snapshot admission for paid material and replace it with a separate protected-reader storage and runtime authority path. **Do not switch on the payment gate or paid offline downloads until these prerequisites pass.**
 
 Content remains free and accessible offline in the current release; the above future lock is a documented requirement, not activated code.
+
+## Offline reader usability and device-storage safeguards
+- Student navigation contains a single **Offline Books** destination, using full document navigation so a service worker can load the cached HTML when internet is absent. The same destination is reachable from the canonical VibeTextbook reader and offline fallback.
+- The public offline reader exposes network state, available storage estimate when supported, and a **user-initiated** request for persistent browser storage. Browsers may decline storage persistence, and user-cleared data remains unrecoverable until content is downloaded again.
+- Content remains an anonymous-public-only local snapshot. Do not infer that media, interactive third-party embeds, practice submissions or a student's private records are available offline merely because a book page was saved.
+- The existing free-now/24-hour-entitlement-before-charging rule is unchanged; do not silently activate subscription gating or download paid/locked chapters into the public library.
