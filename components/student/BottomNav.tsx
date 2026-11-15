@@ -14,24 +14,24 @@ const PRIMARY = [
 ] as const;
 
 const MORE = [
-  { label: "My Exams", href: "/student/vibelearn/exams", Icon: ClipboardCheck },
-  { label: "My Mistakes", href: "/student/vibelearn/mistakes", Icon: Eraser },
-  { label: "Revision", href: "/student/vibelearn/revision", Icon: BrainCircuit },
-  { label: "My Tutors", href: "/student/tutoring", Icon: UsersRound },
-  { label: "Practice Sets", href: "/student/vibelearn/practice", Icon: BookOpenCheck },
-  { label: "Books & Stories", href: "/learn/stories", Icon: LibraryBig },
-  { label: "My Workspace", href: "/student/workspace", Icon: NotebookPen },
-  { label: "My Day", href: "/student/timetable", Icon: CalendarDays },
-  { label: "Profile", href: "/student/profile", Icon: UserRound },
-  { label: "Settings", href: "/student/settings", Icon: Settings },
+  { label: "My Exams", href: "/student/vibelearn/exams", Icon: ClipboardCheck, group: "Practice & exams" },
+  { label: "My Mistakes", href: "/student/vibelearn/mistakes", Icon: Eraser, group: "Practice & exams" },
+  { label: "Revision", href: "/student/vibelearn/revision", Icon: BrainCircuit, group: "Practice & exams" },
+  { label: "My Tutors", href: "/student/tutoring", Icon: UsersRound, group: "Planning & tuition" },
+  { label: "Practice Sets", href: "/student/vibelearn/practice", Icon: BookOpenCheck, group: "Practice & exams" },
+  { label: "Books & Stories", href: "/learn/stories", Icon: LibraryBig, group: "Reading & study" },
+  { label: "My Workspace", href: "/student/workspace", Icon: NotebookPen, group: "Reading & study" },
+  { label: "My Day", href: "/student/timetable", Icon: CalendarDays, group: "Planning & tuition" },
+  { label: "Profile", href: "/student/profile", Icon: UserRound, group: "My account" },
+  { label: "Settings", href: "/student/settings", Icon: Settings, group: "My account" },
 ] as const;
 
 // One list owns every destination; groups organise More without creating routes.
 const MORE_GROUPS = [
-  { label: "Practice & exams", items: [MORE[0], MORE[1], MORE[2], MORE[4]] },
-  { label: "Reading & study", items: [MORE[5], MORE[6]] },
-  { label: "Planning & tuition", items: [MORE[7], MORE[3]] },
-  { label: "My account", items: [MORE[8], MORE[9]] },
+  { label: "Practice & exams", items: MORE.filter(item => item.group === "Practice & exams") },
+  { label: "Reading & study", items: MORE.filter(item => item.group === "Reading & study") },
+  { label: "Planning & tuition", items: MORE.filter(item => item.group === "Planning & tuition") },
+  { label: "My account", items: MORE.filter(item => item.group === "My account") },
 ] as const;
 
 function isToolActive(pathname: string, href: string): boolean {
