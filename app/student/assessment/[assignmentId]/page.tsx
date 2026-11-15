@@ -747,10 +747,16 @@ export default function LearnerAssessmentPage() {
                 </button>
               })}
             </div>
-          : <textarea aria-label="Your written answer" disabled={locked} value={answer?.text ?? ''}
-              onChange={event => updateText(item, event.target.value)} onBlur={() => void persistAnswer(item)}
-              rows={item.questionType === 'structured' ? 5 : 3} placeholder="Write your answer here"
-              className={styles.answerInput} />}
+          : item.questionType === 'numeric'
+            ? <input type="text" inputMode="decimal" autoComplete="off" aria-label="Your numerical answer"
+                disabled={locked} value={answer?.text ?? ''}
+                onChange={event => updateText(item, event.target.value)}
+                onBlur={() => void persistAnswer(item)}
+                placeholder="Enter the number" className={styles.answerInput} />
+            : <textarea aria-label="Your written answer" disabled={locked} value={answer?.text ?? ''}
+                onChange={event => updateText(item, event.target.value)} onBlur={() => void persistAnswer(item)}
+                rows={item.questionType === 'structured' ? 5 : 3} placeholder="Write your answer here"
+                className={styles.answerInput} />}
       <p className={styles.saveStatus} data-dirty={Boolean(answer?.dirty)} role="status" aria-live="polite">
         {answer?.saving ? 'Saving your answer…'
           : answer?.dirty ? 'Saved on this device — syncing…'
