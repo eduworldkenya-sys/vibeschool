@@ -40,3 +40,10 @@ The SQL material belongs under existing `courses -> modules -> topics` and `quiz
 
 ## Change recovery
 Staging is additive and leaves all existing student data and public publication status untouched. If production staging is commissioned after exact-head CI, rollback should be by a reviewed, targeted removal of only the three unpublished topic identities and their own quiz rows, without touching learner data or other course modules. Do not run a broad rollback against future learner content.
+
+
+## Release follow-up — 15 November 2026 (supersedes initial launch hold)
+
+The initial launch blockers above describe **the pre-repair state**. They were addressed in merged PR #1753 by an owner-scoped private catalogue RPC, lazy legacy `learner_profiles` row creation with the existing auth identity, the existing server-side quiz checking functions and a fail-closed publication migration. All 27 GitHub checks passed on the exact candidate; Vercel reported the corresponding main commit READY before the final production release migration was applied. Production SQL confirms 3 CA11 topics `published`, 12 practice questions and `kasneb-cpa` live; other CPA papers have no published lessons. Browser role raw-question SELECT remains denied. The production records were preserved. Detailed current migration ledger and release-security evidence are in `docs/curriculum/CPA_CA11_MIGRATION_LEDGER_RECONCILIATION_20261115.md`.
+
+**Outstanding:** A genuine signed-in device login, paper choice, first question, save/resume and mobile/offline experience have not been independently walked end-to-end. Do not claim those were tested by SQL-only checks. The full CA11 syllabus is not complete.
