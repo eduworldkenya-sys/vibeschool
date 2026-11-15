@@ -1,0 +1,36 @@
+name: School Public Content Security
+on:
+  pull_request:
+    paths:
+      - 'app/schools/components/SchoolPublicBoard*'
+      - 'app/schools/components/SchoolProfile.tsx'
+      - 'app/schools/components/DirectorySchool.tsx'
+      - 'app/schools/components/SchoolSection.tsx'
+      - 'app/hq/schools/**'
+      - 'supabase/migrations/*school_public_content*.sql'
+      - 'scripts/test-school-public-content*'
+      - '.github/workflows/school-public-content-security.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/schools/components/SchoolPublicBoard*'
+      - 'app/schools/components/SchoolProfile.tsx'
+      - 'app/schools/components/DirectorySchool.tsx'
+      - 'app/schools/components/SchoolSection.tsx'
+      - 'app/hq/schools/**'
+      - 'supabase/migrations/*school_public_content*.sql'
+      - 'scripts/test-school-public-content*'
+      - '.github/workflows/school-public-content-security.yml'
+permissions:
+  contents: read
+jobs:
+  school-public-content-authority:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --prefix "$RUNNER_TEMP/school-content-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8
+      - run: SCHOOL_URL_PGLITE_MODULE="$RUNNER_TEMP/school-content-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-school-public-content-contract.mjs
+      - run: node scripts/test-school-public-content-ui.mjs
