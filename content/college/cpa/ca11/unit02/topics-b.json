@@ -1,9 +1,9 @@
 [
   {
     "slug": "trial-balance-from-ledgers",
-    "title": "Prove the ledger totals",
-    "subtitle": "Section 2.4 · Balance accounts and prepare a trial balance",
-    "sequence_number": 7,
+    "title": "Rebuild and challenge a trial balance",
+    "subtitle": "Applied workshop 4 · Balance accounts and prepare a trial balance",
+    "sequence_number": 10,
     "week_number": null,
     "concept_tab": [
       {
@@ -76,9 +76,9 @@
   },
   {
     "slug": "statements-from-the-trial-balance",
-    "title": "Turn balances into a business report",
-    "subtitle": "Section 2.5 · Profit or loss and financial position from the trial balance",
-    "sequence_number": 8,
+    "title": "Present August's results to the owner",
+    "subtitle": "Applied workshop 5 · Profit or loss and financial position from the trial balance",
+    "sequence_number": 11,
     "week_number": null,
     "concept_tab": [
       {
