@@ -142,10 +142,22 @@ returns table(id uuid, school_slug text, school_name text, kind text, title text
 language sql stable security definer set search_path=public,pg_temp
 as $$
  select p.id,p.school_slug,s.school_name,p.kind,p.title,p.body,p.details,p.publisher_kind,p.published_at
- from public.school_follows f
- join public.school_public_posts p on p.school_slug=f.school_slug and p.status='published'
- join lateral public.schools_resolve_url_public_v1(f.school_slug,null,null) s on true
- where (select auth.uid()) is not null and f.follower_id=(select auth.uid())
+ from (
+   select school_slug as slug from public.school_follows where follower_id=(select auth.uid())
+   union
+   select u.slug from public.school_members sm join public.school_public_urls u on u.school_id=sm.school_id
+     where sm.profile_id=(select auth.uid())
+   union
+   select u.slug from public.students st join public.student_schools ss on ss.student_id=st.id
+     join public.school_public_urls u on u.school_id=ss.school_id
+     where st.profile_id=(select auth.uid()) and st.deleted_at is null
+   union
+   select u.slug from public.parent_student_links pl join public.school_public_urls u on u.school_id=pl.school_id
+     where pl.parent_id=(select auth.uid())
+ ) f
+ join public.school_public_posts p on p.school_slug=f.slug and p.status='published'
+ join lateral public.schools_resolve_url_public_v1(f.slug,null,null) s on true
+ where (select auth.uid()) is not null
  order by p.published_at desc, p.id desc
  limit least(greatest(coalesce(p_limit,40),1),100);
 $$;
