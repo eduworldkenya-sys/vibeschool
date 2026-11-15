@@ -1,0 +1,184 @@
+{
+  "id": "vibeschool-originals-cpa-ca11-unit02b-applied-workshops-v1",
+  "title": "Accounting Process — Applied Workshops",
+  "qualification": "KASNEB CPA",
+  "paper": "CA11 Financial Accounting",
+  "level": "Foundation",
+  "unit": "02B",
+  "source_version": "2024-06",
+  "syllabus_section": "2. The Accounting Process and Systems",
+  "coverage": [
+    "2.1",
+    "2.2",
+    "2.3",
+    "2.4",
+    "2.5"
+  ],
+  "release_state": "in_review",
+  "review_method": "Original case-based applied learning following the three existing published CA11 Accounting Process core lessons. KASNEB source-scope mapping, recalculated ledger and statement arithmetic, answer-key checks and adversarial contract tests. No independent human CPA endorsement claimed.",
+  "sources": [
+    {
+      "authority": "KASNEB",
+      "url": "https://www.kasneb.or.ke/wp-content/uploads/2024/09/CPA-Syllabus-Reviewed-June-2024.pdf",
+      "locator": "Foundation Paper No. 1, printed page 1, syllabus section 2.1–2.5",
+      "purpose": "primary course outcome and examinable scope"
+    },
+    {
+      "authority": "KASNEB",
+      "url": "https://www.kasneb.or.ke/sites/default/files/2026-04/QUALIFICATIONS%20BOOKLET.pdf",
+      "locator": "Foundation Level CA11",
+      "purpose": "current dated paper identity (2026)"
+    },
+    {
+      "authority": "ACCA",
+      "url": "https://www.accaglobal.com/gb/en/student/exam-support-resources/foundation-level-study-resources/fa2/fa2-technical-articles/a-matter-of-principle.html",
+      "locator": "Duality section",
+      "purpose": "external technical check of debit/credit concepts"
+    },
+    {
+      "authority": "ACCA",
+      "url": "https://www.accaglobal.com/africa/en/student/exam-support-resources/foundation-level-study-resources/fa1/technical-articles/sales-comp-acc-system.html",
+      "locator": "Sales and purchases in a computerised accounting system",
+      "purpose": "modern journal, customer and subsidiary-ledger recording"
+    },
+    {
+      "authority": "IFRS Foundation",
+      "url": "https://www.ifrs.org/issued-standards/list-of-standards/conceptual-framework/",
+      "locator": "Elements and objective of financial statements",
+      "purpose": "financial-reporting conceptual guardrails"
+    }
+  ],
+  "learning_goals": [
+    "Explain and trace source documentation before journal entry",
+    "Distinguish credit sales/purchases journals, returns, cash books, general journal and petty cash imprest",
+    "Record and post basic double entries with correct account classifications",
+    "Extract and verify debit and credit ledger balances in a trial balance",
+    "Prepare and reconcile introductory profit-or-loss and position statements without claiming full-framework compliance"
+  ],
+  "originality": "VibeSchool-written original teaching scenarios, exercises, model feedback and examples; syllabus headings are only used as scope references.",
+  "assumptions": [
+    "August 2026 scenario is fictional; Nuru Repair Studio is a sole-trader service enterprise.",
+    "Opening ledger balances are zero.",
+    "No VAT, income tax, depreciation, inventories, other adjustments or regulatory statutory filing is calculated.",
+    "Advertising services are used entirely in August and are a period expense.",
+    "KSh 9,000 quotation enquiry is not recorded as a transaction.",
+    "Simple statement example is introductory, not a complete IFRS annual financial statement."
+  ],
+  "case_transactions": [
+    {
+      "id": 1,
+      "event": "Owner capital paid into bank",
+      "debit": "bank",
+      "credit": "capital",
+      "amount": 180000
+    },
+    {
+      "id": 2,
+      "event": "Equipment purchased by bank",
+      "debit": "equipment",
+      "credit": "bank",
+      "amount": 60000
+    },
+    {
+      "id": 3,
+      "event": "Repairs completed on credit",
+      "debit": "receivables",
+      "credit": "revenue",
+      "amount": 35000
+    },
+    {
+      "id": 4,
+      "event": "Completed repair fees banked",
+      "debit": "bank",
+      "credit": "revenue",
+      "amount": 45000
+    },
+    {
+      "id": 5,
+      "event": "August rent paid from bank",
+      "debit": "rent",
+      "credit": "bank",
+      "amount": 12000
+    },
+    {
+      "id": 6,
+      "event": "Advertising delivered on supplier credit",
+      "debit": "advertising",
+      "credit": "payables",
+      "amount": 8000
+    },
+    {
+      "id": 7,
+      "event": "Earlier customer debt partly collected",
+      "debit": "bank",
+      "credit": "receivables",
+      "amount": 20000
+    },
+    {
+      "id": 8,
+      "event": "Advertising payable partly settled",
+      "debit": "payables",
+      "credit": "bank",
+      "amount": 5000
+    },
+    {
+      "id": 9,
+      "event": "Owner drawings paid from bank",
+      "debit": "drawings",
+      "credit": "bank",
+      "amount": 4000
+    }
+  ],
+  "case_unposted_event": {
+    "date": "2026-08-27",
+    "event": "Customer requests quotation for future repairs",
+    "quoted_amount": 9000,
+    "reason": "No work done and no binding transaction assumed; no recognised event."
+  },
+  "expected_balances": {
+    "bank": 164000,
+    "equipment": 60000,
+    "receivables": 15000,
+    "rent": 12000,
+    "advertising": 8000,
+    "drawings": 4000,
+    "capital": -180000,
+    "revenue": -80000,
+    "payables": -3000
+  },
+  "expected_totals": {
+    "trial_debits": 263000,
+    "trial_credits": 263000,
+    "monthly_revenue": 80000,
+    "monthly_expenses": 20000,
+    "monthly_profit": 60000,
+    "assets": 239000,
+    "liabilities": 3000,
+    "equity": 236000
+  },
+  "covered_first_unit": [
+    "1.1",
+    "1.2",
+    "1.3",
+    "1.4",
+    "1.5"
+  ],
+  "future_out_of_scope": "Later CA11 sections 3–12, year-end adjustments, accruals, depreciation, cash-flow preparation, company and partnership statements, bank reconciliation and public-sector accounting.",
+  "publication_boundary": "Preserve all six previously published CA11 lessons, their 26 questions, existing learner progress and other CPA papers. Publish only the new five workshop topics at positions 7–11 with their 30 original questions. Never replace a published core lesson in place.",
+  "learning_position": "Optional extended skills practice after the published three-topic CA11 accounting-process core. These are separate worked cases and error investigations, not a duplicate replacement of previously released records.",
+  "existing_core_topics": [
+    {
+      "slug": "source-documents-and-books",
+      "sequence_number": 4
+    },
+    {
+      "slug": "double-entry-and-ledgers",
+      "sequence_number": 5
+    },
+    {
+      "slug": "trial-balance-and-statements",
+      "sequence_number": 6
+    }
+  ],
+  "existing_core_question_count": 14
+}
