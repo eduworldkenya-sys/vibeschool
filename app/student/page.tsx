@@ -151,8 +151,7 @@ export default function StudentHomePage() {
     (data?.twin.evidence.learningEventCount ?? 0) > 0 ||
     (data?.twin.evidence.competencyEvidenceCount ?? 0) > 0 ||
     (data?.twin.evidence.taskReceiptCount ?? 0) > 0 ||
-    (feed?.counts.results ?? 0) > 0 ||
-    (brief?.recentChanges.length ?? 0) > 0
+    (feed?.counts.results ?? 0) > 0
   )
 
   const suggestedAction = hasLearningEvidence ? data?.twin.decision.now : null
