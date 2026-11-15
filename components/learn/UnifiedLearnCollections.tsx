@@ -16,6 +16,9 @@ type Publication = {
   cbc_subject: string | null
   genre: string
   series_name: string | null
+  tags: string[] | null
+  publication_name: string | null
+  cbc_aligned: boolean | null
 }
 type Course = {
   id: string
@@ -77,7 +80,7 @@ export default function UnifiedLearnCollections({view}:{view:'reading'|'courses'
           const size=200
           for(let page=0;page<25;page++){
             const {data,error}=await supabase.from('vibe_publications')
-              .select('id,title,description,format,cbc_grade,cbc_subject,genre,series_name')
+              .select('id,title,description,format,cbc_grade,cbc_subject,genre,series_name,tags,publication_name,cbc_aligned')
               .eq('status','published')
               .order('id',{ascending:true})
               .range(page*size,(page+1)*size-1)
