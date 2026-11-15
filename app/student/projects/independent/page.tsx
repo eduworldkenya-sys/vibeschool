@@ -1,4 +1,5 @@
 "use client";
+import StudentIntro from "@/components/student/StudentIntro";
 
 import { useCallback, useEffect, useState } from "react";
 import { useLearningFeedback } from "@/components/learn/LearningFeedback";
@@ -125,7 +126,7 @@ export default function IndependentProjects() {
     <header style={{ margin: "12px 0 20px" }}>
       <ClipboardList size={28} strokeWidth={1.8} aria-hidden="true" />
       <h1 style={{ fontSize: 26, margin: "8px 0" }}>My Independent Projects</h1>
-      <p style={{ color: "var(--vs-muted, #64748b)", margin: 0, lineHeight: 1.5 }}>Choose a question, investigate it and save your own findings. No teacher assignment is required. These projects are personal learning activities, not teacher-marked assessments.</p>
+      <StudentIntro feature="independent-projects-overview"><p>Choose a question, investigate it and save your findings. Personal projects are not teacher-marked assessments.</p></StudentIntro>
     </header>
     {error && <p role="alert" style={{ background: "#fef2f2", borderRadius: 10, padding: 12, color: "#991b1b" }}>{error}</p>}
     <section style={{ border: "1px solid var(--vs-border, #e2e8f0)", background: "var(--vs-card, #fff)", borderRadius: 16, padding: 16, marginBottom: 18 }}>
