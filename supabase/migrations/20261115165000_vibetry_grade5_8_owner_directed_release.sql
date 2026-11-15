@@ -313,7 +313,7 @@ begin
       ) values (
         v_assessment,v_block,v_qtype,
         v_item->>'prompt',v_options,
-        case when v_qtype='numeric' then v_item->'accepted_answers' else null end,
+        case when v_qtype='numeric' then coalesce(v_item->'accepted_answers','[]'::jsonb) else '[]'::jsonb end,
         to_jsonb(v_choice_key),v_guide,
         v_item->>'explanation',v_item->>'explanation',
         1,v_item->>'difficulty',v_item->>'bloom_level',
