@@ -175,7 +175,7 @@ test('Originals companion authenticated progress retains exact viewer and free p
   assert.match(sql,/not coalesce\(v_publication\.cbc_aligned,false\)/)
   assert.match(sql,/v_publication\.format not in \('ebook','vibechronicles'\)/)
   assert.match(sql,/v_publication\.pricing->>'type',''\) <> 'free'/)
-  assert.match(sql,/chapter_id_input and status='published'/)
+  assert.match(sql,/chapter_id_input and publication_id=publication_id_input and status='published'/)
   assert.match(sql,/completion_evidence_required/)
   assert.match(sql,/viewer_id=v_viewer/)
   assert.doesNotMatch(sql,/disable row level security|create table|drop table|auth\.uid\(\)\s*:=/i)
