@@ -114,14 +114,21 @@ begin
     new.revision := 1;
   end if;
   new.updated_at := now();
-  if new.status = 'published' then
-    if tg_op = 'INSERT' or old.status is distinct from 'published' then
-      new.published_at := now();
-      if new.content_kind = 'fees' then
-        if not public.is_platform_owner() then raise exception 'fees_require_hq_verification'; end if;
-        new.reviewed_by := auth.uid();
-        new.reviewed_at := now();
-      end if;
+  if tg_op = 'INSERT' then
+    new.published_at := null;
+    new.reviewed_by := null;
+    new.reviewed_at := null;
+  else
+    new.published_at := old.published_at;
+    new.reviewed_by := old.reviewed_by;
+    new.reviewed_at := old.reviewed_at;
+  end if;
+  if new.status = 'published' and (tg_op = 'INSERT' or old.status is distinct from 'published') then
+    new.published_at := now();
+    if new.content_kind = 'fees' then
+      if not public.is_platform_owner() then raise exception 'fees_require_hq_verification'; end if;
+      new.reviewed_by := auth.uid();
+      new.reviewed_at := now();
     end if;
   elsif new.status = 'draft' then
     new.published_at := null;
