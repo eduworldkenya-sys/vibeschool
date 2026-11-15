@@ -1,4 +1,5 @@
 "use client";
+import StudentIntro from "@/components/student/StudentIntro";
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
@@ -400,7 +401,7 @@ export default function StudyWorkspacePage() {
         </button>
 
         <section aria-label="Personal study background" style={{
-          minHeight:150,margin:"16px 0",borderRadius:20,overflow:"hidden",padding:18,
+          minHeight:92,margin:"10px 0",borderRadius:20,overflow:"hidden",padding:18,
           background:appearance.wallpaper==="photo"&&wallpaperPhoto
             ? 'center / cover no-repeat url("'+wallpaperPhoto+'")'
             :appearance.wallpaper==="paper"?"linear-gradient(135deg,#f6e9d9,#e9ddd0)"
@@ -410,16 +411,14 @@ export default function StudyWorkspacePage() {
           display:"flex",alignItems:"flex-end"
         }}>
           <div style={{background:"rgba(255,255,255,.94)",color:"#183d2c",padding:15,borderRadius:14,width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-            <div><span style={{fontSize:10,fontWeight:800,letterSpacing:1,textTransform:"uppercase"}}>My study corner</span><h1 style={{fontFamily:"Georgia,serif",fontStyle:appearance.italicHeadings?"italic":"normal",fontSize:22,margin:"5px 0 0",letterSpacing:"-.03em"}}>A place to focus.</h1></div>
+            <div><span style={{fontSize:10,fontWeight:800,letterSpacing:1,textTransform:"uppercase"}}>My study corner</span><h1 style={{fontFamily:"Georgia,serif",fontStyle:appearance.italicHeadings?"italic":"normal",fontSize:22,margin:"5px 0 0",letterSpacing:"-.03em"}}>My Workspace</h1></div>
             <button type="button" onClick={()=>router.push("/student/settings")} style={{border:"1px solid #b9d3c3",background:"#fff",color:"#176d49",padding:"10px 13px",borderRadius:11,minHeight:44,fontWeight:800,cursor:"pointer"}}>Customise</button>
           </div>
         </section>
         <h2 style={{ color: C.text, fontSize: 23, margin: "18px 0 4px" }}>
           My Study Workspace
         </h2>
-        <p style={{ color: C.muted, fontSize: 13, margin: "0 0 18px" }}>
-          Open assigned chapters, continue reading and keep your study material together.
-        </p>
+        <StudentIntro feature="workspace-overview"><p>Open assignments, continue reading and manage your saved notes in one place.</p></StudentIntro>
 
         <div
           style={{
