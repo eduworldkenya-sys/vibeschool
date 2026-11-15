@@ -18,7 +18,7 @@ These are VibeSchool-authored originals, never presented as official KNEC papers
 
 Reuse existing `assessment_definitions`, `assessment_items`, `assessment_assignments`, `assessment_attempts`, `assessment_responses`, `assessment_item_outcomes`, marking authority, learner result/release policy and gradebook. Do not create a parallel exam engine or duplicate assessment/result authorities.
 
-This first slice adds a **read-only catalogue** via `lib/assessment/exam-originals.ts`. An assignment displays in an Originals series only if its approved title explicitly begins with that series name; otherwise it stays in the existing Exam Library. Naming alone **does not certify question quality**. This is a compatibility fallback pending approved, explicit series metadata in the existing assessment contract.
+This first slice adds a **read-only catalogue** via `lib/assessment/exam-originals.ts`. An assignment displays in an Originals series only when canonical learner-assignment discovery returns a recognised **server-authoritative `original_product_series` code**. The current RPC does not yet return this code, so the new series show honest empty states until approved Originals inventory and its guarded metadata contract are shipped. Legacy assessments remain available in All exams. A matching title alone **must never certify authorship or quality**.
 
 Never mint inventory or show a fictional 'ready' paper. Only learner-authorized discoverable assignments are shown. Unbranded legacy exams remain accessible.
 
