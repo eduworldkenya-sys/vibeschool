@@ -52,7 +52,7 @@ test('Task, progress and navigation keep canonical destinations and clear guidan
   for(const route of ['/student/vibelearn/mistakes','/student/vibelearn/revision','/student/vibelearn/topic-practice','/student/study']){
     assert.ok(marks.includes('href="'+route+'"'),route+' should appear in the next step panel')
   }
-  assert.match(layout,/aria-label="Open Student Home"/)
+  assert.match(layout,/aria-label=\{`Open \$\{homeLabel\} Home`\}/)
   assert.match(layout,/aria-label="Open learner profile"/)
   assert.match(layout,/aria-label="Open notifications"/)
   assert.match(layout,/aria-label="Go back"/)
