@@ -71,10 +71,12 @@ assert.equal((await read('select * from public.school_follows')).length,0)
 await db.exec('reset role')
 assert.equal((await read('select count(*)::integer as count from public.school_follows'))[0].count,0)
 
-// Negative control: a publicly readable roster would be exposed by this test.
+// Negative control: loosening the follower roster policy must make this test fail.
+await db.exec(`insert into public.school_follows(school_slug,follower_id) values ('gilgiltownship','${one}')`)
 await db.exec('grant select on public.school_follows to anon')
+await db.exec('create policy insecure_control on public.school_follows for select to anon using (true)')
 await db.exec('set role anon')
-assert.equal((await read('select * from public.school_follows')).length,0)
+assert.equal((await read('select * from public.school_follows')).length,1)
 await db.exec('reset role')
 console.log('PASS: school follow ACL, own-only RLS, nonmembership, no cross-user writes/deletes, unknown-slug rejection and duplicate safety')
 await db.close()
