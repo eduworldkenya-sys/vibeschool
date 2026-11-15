@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import polish from './VibeTutorPolish.module.css'
@@ -17,7 +16,7 @@ const TABS: { href: string; label: string; icon: IconName; match: (p: string) =>
 
 export default function Nav() {
   const path = usePathname() ?? ''
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light')
 
   useEffect(() => {
     const saved = window.localStorage.getItem('vibetutor-theme')
@@ -62,9 +61,9 @@ export default function Nav() {
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
           <Link href="/vibetutor" className={styles.brand} aria-label="VibeTutor home">
-            <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={124} height={32} priority className={styles.brandLogo} />
+            <span className={styles.brandParent}>VibeSchool</span>
             <span className={styles.brandDivider} aria-hidden="true" />
-            <span>VibeTutor</span>
+            <strong className={styles.brandProduct}>VibeTutor</strong>
           </Link>
           <div className={styles.navActions}>
             <label className={styles.themeControl}>
