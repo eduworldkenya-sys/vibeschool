@@ -5,7 +5,7 @@ const publicUi = get('app/schools/components/SchoolPublicContent.tsx')
 const feed = get('app/schools/following/page.tsx')
 const hq = get('app/hq/schools/publications/page.tsx')
 const admin = get('app/admin/school-publications/page.tsx')
-const sql = get('supabase/migrations/20261115071000_school_public_home_publishing.sql')
+const sql = get('supabase/migrations/20261115035827_school_public_home_publishing.sql')
 const requireFragments = (content, fragments, scope) => {
   for (const fragment of fragments) assert.ok(content.includes(fragment), scope + ' must include ' + fragment)
 }
