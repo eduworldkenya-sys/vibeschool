@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { requiredRoleForPath, roleCanVisit } from "../lib/auth-routing.ts";
 import { REPORTED_COUNTY_ALLOCATIONS, reportedAllocation } from "../lib/teacher/tsc2026CountyAllocations.ts";
 import { meetsTscRecruitmentMinimum } from "../lib/teacher/tscSandboxMatching.ts";
+import { tsc2026MockScore } from "../lib/teacher/tsc2026MockScore.ts";
 
 assert.equal(requiredRoleForPath("/teacher/marketplace/sandbox"), null, "public recruitment guide");
 assert.equal(requiredRoleForPath("/teacher/marketplace/sandbox/"), null, "trailing slash public");
@@ -48,6 +49,29 @@ assert.ok(discovery.indexOf('href="/teacher/marketplace/sandbox"') < discovery.i
 for (const citizen of [false,true]) for (const qualification of [false,true]) for (const registration of [false,true]) {
   assert.equal(meetsTscRecruitmentMinimum({citizen,qualification,registration}), citizen && qualification && registration);
 }
+const primaryMock = {level: "primary", qualification: "p1-6-28", ageBand: "primary-50", qualifyingYear: 2010, internship: ""};
+const postMock = {level: "secondary", qualification: "degree-top", ageBand: "post-50", qualifyingYear: 2010, internship: "12-plus"};
+assert.deepEqual(tsc2026MockScore(primaryMock), {
+  qualification: 5, age: 20, qualifyingYear: 75, internship: 0,
+  maxQualification: 5, maxAge: 20, maxQualifyingYear: 75, maxInternship: 0,
+  total: 100, maximum: 100,
+}, "2026 TSC primary maximum 5+20+75");
+assert.deepEqual(tsc2026MockScore(postMock), {
+  qualification: 3, age: 7, qualifyingYear: 20, internship: 70,
+  maxQualification: 3, maxAge: 7, maxQualifyingYear: 20, maxInternship: 70,
+  total: 100, maximum: 100,
+}, "2026 TSC post-primary maximum 3+7+20+70");
+assert.equal(tsc2026MockScore({...primaryMock, qualification:"p1-29-50",ageBand:"primary-44-46",qualifyingYear:2019}).total, 51, "primary 2019 score: 3+10+38");
+assert.equal(tsc2026MockScore({...primaryMock, qualifyingYear:2026}).qualifyingYear, 10);
+assert.equal(tsc2026MockScore({...primaryMock, qualifyingYear:2011}).qualifyingYear, 70);
+assert.equal(tsc2026MockScore({...postMock,qualification:"degree-middle",ageBand:"post-44",qualifyingYear:2019,internship:"under-12"}).total, 66, "post-primary 2+3+11+50");
+assert.equal(tsc2026MockScore({...postMock,internship:"none"}).internship, 0);
+assert.equal(tsc2026MockScore({...postMock,qualifyingYear:2026}).qualifyingYear, 4);
+assert.equal(tsc2026MockScore({...postMock,level:"junior"}).total, 100, "junior uses post-primary rules");
+assert.equal(tsc2026MockScore({...postMock,qualification:"p1-6-28"}), null, "P1 alone is not post-primary scoring qualification");
+assert.equal(tsc2026MockScore({...postMock,qualifyingYear:2027}), null, "no future year scores");
+assert.equal(tsc2026MockScore({...postMock,internship:""}), null, "missing experience is not zero");
+assert.equal(tsc2026MockScore({...primaryMock,ageBand:"post-50"}), null, "age bands differ by level");
 assert.equal(REPORTED_COUNTY_ALLOCATIONS.length, 47);
 assert.equal(new Set(REPORTED_COUNTY_ALLOCATIONS.map(row => row.county)).size, 47);
 assert.equal(REPORTED_COUNTY_ALLOCATIONS.reduce((a,row) => a + row.primary, 0), 5609);
@@ -64,13 +88,22 @@ const view = fs.readFileSync("app/teacher/marketplace/sandbox/VacancyMatchSandbo
 const dataModule = fs.readFileSync("lib/teacher/tscSandboxMatching.ts", "utf8");
 const css = fs.readFileSync("app/teacher/marketplace/sandbox/sandbox.module.css", "utf8");
 assert.match(root, /index: false/);
-assert.match(view, /if \(minimumMet\) setStep\("vacancies"\)/, "completing required checks must auto-open vacancies");
+assert.match(view, /if \(minimumMet && county\) setStep\("vacancies"\)/, "county and completed requirements auto-open vacancies");
+assert.match(view, /county && <fieldset className=\{styles\.minimumChecks\}>/, "county must come before minimum checkbox selection");
+assert.match(view, /id="tsc-pick-county"/, "county is searchable before qualification checkboxes");
+assert.match(view, /pickerVisible\.map/, "county list must be rendered");
+assert.match(view, /tsc2026MockScore\(/, "mock score must use canonical pure function");
+assert.match(view, /Calculate mock score/, "mock results require applicant action");
+assert.match(view, /County and sub-county preference is considered separately/, "no invented county marks");
+assert.match(view, /Separate score sheets may apply for teachers with disabilities/, "do not confuse standard mock with PWD scores");
+assert.match(view, /disabled=\{!county \|\| !minimumMet\}/, "mock unavailable until county and minimum requirements selected");
 assert.match(view, /meetsTscRecruitmentMinimum\(minimumChecks\)/);
 assert.match(view, /qualification: false \}\)\)/, "changing teaching level rechecks qualification");
 assert.match(view, /window\.setTimeout\(\(\) => setShowNotice\(false\), 2000\)/, "disclaimer dismisses after two seconds");
 assert.match(view, /aria-label="Close recruitment notice"/, "disclaimer has a close button");
 assert.match(view, /hidden=\{step !== "requirements"\}/);
 assert.match(view, /hidden=\{step !== "vacancies"\}/);
+assert.match(view, /hidden=\{step !== "mock"\}/);
 assert.match(view, /type="checkbox"/);
 
 assert.match(view, /real recruitment figures, not fictional school vacancies/i);
@@ -82,6 +115,8 @@ assert.match(view, /OFFICIAL_TSC_ADVERTS/);
 assert.match(view, /applications are free/i);
 assert.match(view, /aria-live="polite"/);
 assert.match(css, /max-width:480px/);
+assert.match(css, /\.pickerList/, "county picker keeps compact mobile grid");
+assert.match(css, /\.mockFields/, "mock selection layout exists");
 assert.match(view, /const \[countyQuery, setCountyQuery\]/, "county search input must be controlled");
 assert.match(view, /rankedCounties/, "county counts must be sorted by the selected teaching level");
 assert.match(view, /visibleCounties\.map/, "ranked counties must actually be rendered");
