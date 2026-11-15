@@ -18,6 +18,7 @@ type Paper = {
   has_published_lessons: boolean
 }
 type Path = {
+  programme_family: string
   education_stage: string
   qualification_code: string
   qualification_level: string | null
@@ -38,6 +39,7 @@ export default function CollegeLearnerHome() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [courseLive, setCourseLive] = useState(false)
+  const [otherPath, setOtherPath] = useState<Path | null>(null)
   const [papers, setPapers] = useState<Paper[]>([])
   const [level, setLevel] = useState<Level | ''>('')
   const [selectedPaper, setSelectedPaper] = useState('')
@@ -50,16 +52,18 @@ export default function CollegeLearnerHome() {
     setError('')
     void (async () => {
       try {
-        const [profileResult, catalogueResult] = await Promise.all([
-          supabase.from('learner_education_paths')
-            .select('education_stage,qualification_code,qualification_level,paper_code')
-            .eq('user_id', identity.profileId).maybeSingle(),
-          supabase.rpc('get_my_cpa_paper_catalogue'),
-        ])
-        if (profileResult.error) throw new Error('Your professional study profile could not be opened.')
+        const profileResult = await supabase.from('learner_education_paths')
+          .select('education_stage,programme_family,qualification_code,qualification_level,paper_code')
+          .eq('user_id', identity.profileId).maybeSingle()
+        if (profileResult.error) throw new Error('Your study profile could not be opened.')
         const profile = profileResult.data as Path | null
-        if (!profile || profile.education_stage !== 'post_secondary' || profile.qualification_code !== 'CPA')
-          throw new Error('Your CPA study pathway needs verification.')
+        if (!profile || profile.education_stage !== 'post_secondary')
+          throw new Error('Your study pathway needs verification.')
+        if (profile.qualification_code !== 'CPA' || profile.programme_family !== 'professional_studies') {
+          if (active) setOtherPath(profile)
+          return
+        }
+        const catalogueResult = await supabase.rpc('get_my_cpa_paper_catalogue')
         if (catalogueResult.error || !catalogueResult.data ||
           !Array.isArray(catalogueResult.data.papers))
           throw new Error('The KASNEB CPA catalogue is temporarily unavailable.')
@@ -89,6 +93,23 @@ export default function CollegeLearnerHome() {
     })()
     return () => { active = false }
   }, [identity?.profileId])
+
+  if (otherPath) {
+    const label = otherPath.qualification_code === 'CS' ? 'CS'
+      : otherPath.programme_family === 'tvet' ? 'College / TVET'
+      : otherPath.programme_family === 'university' ? 'University' : 'Professional Studies'
+    return <div className={compact.screen}>
+      <h1>{label} study space</h1>
+      <section className={compact.panel}>
+        <h2>{otherPath.qualification_code.replaceAll('_',' ')}</h2>
+        <p className={compact.muted}>Lessons in preparation</p>
+      </section>
+      <div className={compact.grid}>
+        <Link className={compact.action} href="/student/college/tasks">Study tasks</Link>
+        <Link className={compact.action} href="/student/college/profile">My profile</Link>
+      </div>
+    </div>
+  }
 
   const availablePapers = papers.filter(paper => paper.qualification_level === level)
   const chosen = availablePapers.find(paper => paperCode(paper) === selectedPaper)

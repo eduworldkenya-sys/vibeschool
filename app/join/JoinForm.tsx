@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '@/lib/supabase'
 import { roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
+import { useAuthAppearance } from '@/app/auth/useAuthAppearance'
 
 type AdultRole = 'teacher' | 'parent'
 type AccessState = { role?: unknown; account_status?: unknown; is_anonymized?: unknown; reason_code?: unknown }
@@ -10,6 +11,7 @@ type OnboardingState = { state?: unknown; destination?: unknown }
 
 export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
   const role = initialRole
+  const appearance = useAuthAppearance()
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [sent, setSent] = useState(false)
@@ -115,12 +117,11 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
   }
 
   return (
-    <main className="shell">
+    <main className="shell vs-auth" data-auth-theme={appearance}>
       <section className="panel">
         <a href="/" className="brand">Vibe<span>School</span></a>
         <p className="eyebrow">JOIN VIBESCHOOL</p>
         <h1>One account. Start right away.</h1>
-        <p className="muted">Use your email or Google account. You can connect a school later.</p>
 
         {!sent && <button className="google" type="button" disabled={busy} onClick={() => void withGoogle()}>
           Continue with Google
@@ -166,6 +167,17 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
         .learner,.alternate{display:block;color:#e9d189;margin-top:19px;font-size:14px;font-weight:750}
         .foot,.legal{margin:17px 0 0;text-align:center;font-size:12px;color:#a3a3b4}
         .foot a,.legal a{color:#e9d189}
+
+        .shell{background:var(--auth-bg);color:var(--auth-text)}
+        .panel{background:var(--auth-panel);border:1px solid var(--auth-border);border-radius:18px;padding:26px;box-shadow:0 12px 36px rgba(0,0,0,.06)}
+        .brand{color:var(--auth-text)}.brand span,.eyebrow,.foot a,.legal a,.learner,.alternate,.reset{color:var(--auth-accent)}
+        .muted,.foot,.legal,form label{color:var(--auth-muted)}
+        form input{background:var(--auth-input);color:var(--auth-text);border-color:var(--auth-border)}
+        .divider{border-color:var(--auth-border)}
+        .primary{background:var(--auth-accent);color:var(--auth-on-accent)}
+        .message{background:var(--auth-soft);color:var(--auth-text)}
+        @media(max-width:480px){.panel{padding:23px 18px}}
+
       `}</style>
     </main>
   )
