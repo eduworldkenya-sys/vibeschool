@@ -37,3 +37,12 @@ test('VibePro browser application is syntactically valid and has working module 
   assert.match(html, /function persist\(/)
   assert.match(html, /reset-demo/)
 })
+
+test('VibePro preview is isolated from VibeSchool identity and network services', () => {
+  const nextConfig = readFileSync(resolve(root, 'next.config.js'), 'utf8')
+  assert.match(nextConfig, /source: '\/vibepro\/demo\.html'/)
+  assert.match(nextConfig, /sandbox allow-scripts allow-downloads allow-modals/)
+  assert.doesNotMatch(nextConfig, /sandbox[^"\n]*allow-same-origin/)
+  assert.match(nextConfig, /connect-src 'none'/)
+  assert.match(nextConfig, /form-action 'none'/)
+})
