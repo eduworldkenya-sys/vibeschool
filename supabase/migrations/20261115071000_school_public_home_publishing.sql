@@ -21,7 +21,7 @@ create index school_public_posts_latest_idx on public.school_public_posts(school
 create index school_public_posts_feed_idx on public.school_public_posts(published_at desc) where status='published';
 alter table public.school_public_posts enable row level security;
 revoke all on public.school_public_posts from public, anon, authenticated;
-grant select on public.school_public_posts to anon, authenticated;
+grant select(id, school_slug, kind, title, body, details, status, publisher_kind, published_at) on public.school_public_posts to anon, authenticated;
 create policy school_public_posts_read_published on public.school_public_posts
  for select to anon, authenticated
  using (status='published' and exists(
