@@ -113,13 +113,22 @@ try {
   })
 
   assert(offlineCache, 'offline fallback is not present in Cache Storage')
-  assert(offlineCache.cacheName === 'vibeschool-v7', `unexpected offline cache generation: ${offlineCache.cacheName}`)
+  assert(offlineCache.cacheName === 'vibeschool-v8-public-offline', `unexpected offline cache generation: ${offlineCache.cacheName}`)
   assert(offlineCache.text.includes('You’re offline'), 'cached offline fallback is missing offline message')
   assert(offlineCache.text.includes('/icons/vibeschool-logo.png'), 'cached offline fallback lost official VibeSchool branding')
   assert(
-    offlineCache.text.includes('Your account data is not stored in the offline cache.'),
+    offlineCache.text.includes('Private learner, teacher and school records are not saved'),
     'cached offline fallback lost its private-data safety message'
   )
+
+  stage('download public games and cold navigate offline')
+  await page.goto(`${BASE}/marketing-studio`, { waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Save games for offline' }).click()
+  await page.getByText('Saved public games on this device.', { exact:false }).waitFor({ timeout: 120000 })
+  await context.setOffline(true)
+  await page.goto(`${BASE}/spin-studio`, { waitUntil: 'domcontentloaded', timeout: 30000 })
+  assert((await page.locator('body').innerText()).includes('VibeSpin'), 'downloaded VibeSpin did not render offline')
+  await context.setOffline(false)
 
   stage('verify normal navigation recovery')
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
