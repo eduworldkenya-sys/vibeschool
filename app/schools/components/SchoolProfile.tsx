@@ -10,13 +10,15 @@ import styles from '@/app/schools/schools.module.css'
 import { SchoolCover } from '@/app/schools/components/SchoolCover'
 import { SchoolFacts } from '@/app/schools/components/SchoolPublicFacts'
 import { SchoolMap } from '@/app/schools/components/SchoolMap'
+import SchoolVisitorHome from '@/components/schools/SchoolVisitorHome'
 
 type ProfileRow={school_id:string;school_name:string;county:string|null;sub_county:string|null;school_category:string|null;ownership_type:string|null;gender_type:string|null;accommodation_type:string|null;cluster:string|null;knec_code:string|null;pathway_slug:string|null;pathway_name:string|null;combination_slug:string|null;combination_name:string|null;verified_at:string|null;source_authority:string|null;source_name:string|null;source_url:string|null;source_reference:string|null;source_observed_at:string|null}
 type TrustRow={school_id:string;verified_claim_count:number;profile_completeness:number;trust_state:'canonical_identity'|'verified_claims';last_verified_at:string|null}
 
-export default function SchoolProfilePage({schoolIdOverride,schoolBaseOverride}:{schoolIdOverride?:string;schoolBaseOverride?:string}={}){
+export default function SchoolProfilePage({schoolIdOverride,schoolBaseOverride,schoolSlugOverride}:{schoolIdOverride?:string;schoolBaseOverride?:string;schoolSlugOverride?:string}={}){
  const params=useParams<{schoolId:string;slug?:string}>();const schoolId=schoolIdOverride??params.schoolId
  const pathname=usePathname()
+ const schoolSlug=schoolSlugOverride??params.slug
  const schoolBase=schoolBaseOverride??(pathname.startsWith('/school/')?'/school/'+params.slug:'/schools/'+schoolId)
  const [rows,setRows]=useState<ProfileRow[]>([]);const [trust,setTrust]=useState<TrustRow|null>(null);const [loading,setLoading]=useState(true);const [error,setError]=useState('')
  const [showCorrection,setShowCorrection]=useState(false);const [notes,setNotes]=useState('');const [showClaim,setShowClaim]=useState(false);const [claimRole,setClaimRole]=useState('');const [claimEvidence,setClaimEvidence]=useState('');const [claimPhone,setClaimPhone]=useState('');const [saving,setSaving]=useState(false);const [feedback,setFeedback]=useState('')
@@ -38,7 +40,8 @@ export default function SchoolProfilePage({schoolIdOverride,schoolBaseOverride}:
  <p className={styles.canonicalLocation}>⌖ {[school.sub_county,school.county].filter(Boolean).join(', ')}</p>
  <div className={styles.canonicalChips}>{[school.school_category,school.ownership_type,school.accommodation_type&&school.accommodation_type+' school'].filter(Boolean).map(v=><span key={v}>{String(v).toLowerCase().replace(/^./,c=>c.toUpperCase())}</span>)}</div>
  </section>
- <nav className={styles.schoolPageNav} aria-label="School pages">{[['Home',''],['About','about'],['Academics','academics'],['News','news'],['Contact','contact']].map(([label,slug])=><Link key={label} aria-current={!slug?'page':undefined} href={schoolBase+(slug?'/'+slug:'')}>{label}</Link>)}</nav><div className={styles.canonicalBody}>
+ {schoolSlug?<SchoolVisitorHome slug={schoolSlug} facts={([['Education level',school.school_category],['Ownership',school.ownership_type],['Accommodation',school.accommodation_type],['Gender',school.gender_type],['County',school.county],['Sub-county',school.sub_county],['KNEC code',school.knec_code]] as [string,string|null][])} />:<nav className={styles.schoolPageNav} aria-label="School pages">{[['Home',''],['About','about'],['Academics','academics'],['News','news'],['Contact','contact']].map(([label,slug])=><Link key={label} aria-current={!slug?'page':undefined} href={schoolBase+(slug?'/'+slug:'')}>{label}</Link>)}</nav>}<div className={styles.canonicalBody}>
+ {schoolSlug&&<details className={styles.schoolVisitorMore}><summary>More school details</summary>}
  <section className={styles.canonicalSection}><h2>About the school</h2><p>{school.school_name} is a {school.ownership_type?.toLowerCase()||''} {school.school_category?.toLowerCase()||''} {school.accommodation_type?.toLowerCase()||''} school located in {[school.sub_county,school.county,'Kenya'].filter(Boolean).join(', ')}.</p></section>
  <SchoolFacts facts={([['Education level',school.school_category],['Ownership',school.ownership_type],['Accommodation',school.accommodation_type],['Gender',school.gender_type],['County',school.county],['Sub-county',school.sub_county],['KNEC code',school.knec_code]] as [string,string|null][])} />
  {offerings.length>0&&<section className={styles.canonicalSection}><h2>Academics</h2><div className={styles.siteOfferings}>{offerings.map((o,index)=><article className={styles.offering} key={o.pathway_slug+'-'+(o.combination_slug??index)}><h3>{o.pathway_name}</h3>{o.combination_name&&<p>{o.combination_name}</p>}{o.source_url&&<a href={o.source_url} target="_blank" rel="noreferrer noopener">View source</a>}</article>)}</div></section>}
@@ -49,6 +52,7 @@ export default function SchoolProfilePage({schoolIdOverride,schoolBaseOverride}:
  <iframe title="Approximate location of Gilgil Township Primary School" className={styles.schoolApproxMapFrame} loading="lazy" referrerPolicy="no-referrer" src="https://www.openstreetmap.org/export/embed.html?bbox=36.310000%2C-0.511000%2C36.338000%2C-0.492000&layer=mapnik&marker=-0.501556%2C36.323889" />
  <div className={styles.schoolApproxMapLinks}><a target="_blank" rel="noopener noreferrer" href="https://www.openstreetmap.org/?mlat=-0.501556&mlon=36.323889#map=16/-0.501556/36.323889">View larger map</a><a href="https://data.afro.co.ke/schools/gilgil-township-pri-sch/" target="_blank" rel="noopener noreferrer">Historical location source</a></div>
  </div>}</section>
+ {schoolSlug&&</details>}
  <div className={styles.canonicalManage}><div><strong>Manage this school?</strong><p>Request access as an authorised representative.</p></div><button type="button" className={styles.secondary} onClick={()=>{setShowClaim(v=>!v);setShowCorrection(false);setFeedback('')}}>{showClaim?'Close':'Claim school'}</button></div>
  <p className={styles.canonicalNote}>VibeSchool school profile · Public information may be updated after review</p>
  <button type="button" className={styles.canonicalCorrection} onClick={()=>{setShowCorrection(v=>!v);setShowClaim(false);setFeedback('')}}>Suggest a correction</button>
