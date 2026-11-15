@@ -1,7 +1,7 @@
 'use client'
 import StudentIntro from "@/components/student/StudentIntro";
 import { ClipboardCheck, PlayCircle, CalendarDays, BookOpenCheck, GraduationCap } from 'lucide-react'
-import { EXAM_ORIGINALS, examOriginalKeyFromTitle, type ExamOriginalKey } from '@/lib/assessment/exam-originals'
+import { EXAM_ORIGINALS, type ExamOriginalKey } from '@/lib/assessment/exam-originals'
 
 export const dynamic = 'force-dynamic'
 
@@ -161,7 +161,7 @@ export default function VibeLearnExamsPage() {
     && (examType === 'All types' || item.assessmentType.replaceAll('_', ' ') === examType)
     && (item.title + ' ' + item.assessmentType).toLowerCase().includes(query.trim().toLowerCase())
   const belongsToSelectedSeries = (item: LearnerAssessmentAssignment) =>
-    originalSeries === 'all' || examOriginalKeyFromTitle(item.title) === originalSeries
+    originalSeries === 'all' || item.originalSeries === originalSeries
   const filteredFresh = groups.fresh.filter(item => filterExam(item) && belongsToSelectedSeries(item))
   const filteredRetakes = groups.retakes.filter(item => filterExam(item) && belongsToSelectedSeries(item))
   const activeSeriesName = EXAM_ORIGINALS.find(series => series.key === originalSeries)?.name ?? null
@@ -264,7 +264,7 @@ export default function VibeLearnExamsPage() {
           <div className="vs-originals-grid">
             {EXAM_ORIGINALS.map(series => {
               const Icon = ORIGINAL_ICONS[series.key]
-              const ready = groups.fresh.filter(item => examOriginalKeyFromTitle(item.title) === series.key).length
+              const ready = groups.fresh.filter(item => item.originalSeries === series.key).length
               return <button type="button" key={series.key} data-series={series.key}
                 className="vs-originals-product" aria-pressed={originalSeries === series.key}
                 onClick={() => setOriginalSeries(current => current === series.key ? 'all' : series.key)}>
