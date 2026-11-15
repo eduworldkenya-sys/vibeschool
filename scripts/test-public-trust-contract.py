@@ -282,7 +282,7 @@ for fragment in ['SAFE_PUBLIC_ROUTES','/offline.html','/institutions','/trust','
     if fragment not in sw: errors.append(f'PWA public resilience missing: {fragment}')
 for forbidden in ["'/student/'","'/teacher/'","'/parent/'","'/admin/'"]:
     if forbidden in sw: errors.append(f'private route must not be in shared public cache: {forbidden}')
-for fragment in ['You’re offline.','private learner or school records','Try again']:
+for fragment in ['You’re offline.','Private learner, teacher and school records','Try again']:
     if fragment not in offline: errors.append(f'offline UX missing: {fragment}')
 
 governance_path = ROOT / 'config/public-content-governance.json'
