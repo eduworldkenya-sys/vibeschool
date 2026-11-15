@@ -2,14 +2,36 @@ import type { VibePublication } from '@/lib/publishTypes'
 
 export type StoryPublication = Pick<VibePublication,
   'id' | 'title' | 'subtitle' | 'description' | 'cover_url' | 'format' |
-  'genre' | 'series_name' | 'series_number' | 'published_at' | 'pricing' | 'chapter_count'>
+  'genre' | 'series_name' | 'series_number' | 'published_at' | 'pricing' | 'chapter_count' | 'tags' | 'publication_name'>
 
 const FICTION_GENRES = new Set(['fiction','children','romance','thriller','fantasy','mystery','adventure'])
 
 /** Story identity belongs to the publication, never to a hard-coded route or book ID. */
-export function isStoryPublication(p: {format:string;genre:string|null;series_name:string|null}) {
+/** Companion guides in the VibeSchool Originals imprint use the existing books reader.
+ * This does not classify generic self-help publications or curriculum books as stories. */
+export function isOriginalsCompanion(p: {
+  format:string; genre:string|null; publication_name?:string|null; tags?:readonly string[]|null;
+  cbc_aligned?:boolean|null;
+}) {
+  return p.format === 'ebook'
+    && String(p.genre).toLowerCase() === 'self_help'
+    && p.publication_name?.trim() === 'VibeSchool Originals'
+    && Array.isArray(p.tags)
+    && p.tags.includes('VibeSchool Originals')
+    && p.cbc_aligned !== true
+}
+
+/** Story identity belongs to the canonical publication, not a hard-coded book ID. */
+export function isStoryPublication(p: {
+  format:string; genre:string|null; series_name:string|null; publication_name?:string|null;
+  tags?:readonly string[]|null; cbc_aligned?:boolean|null;
+}) {
   return p.format === 'vibechronicles'
-    || (p.format === 'ebook' && (Boolean(p.series_name?.trim()) || FICTION_GENRES.has(String(p.genre).toLowerCase())))
+    || (p.format === 'ebook' && (
+      Boolean(p.series_name?.trim())
+      || FICTION_GENRES.has(String(p.genre).toLowerCase())
+      || isOriginalsCompanion(p)
+    ))
 }
 
 export function storyLandingHref(id: string) {
