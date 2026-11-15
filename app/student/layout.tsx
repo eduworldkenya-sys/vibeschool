@@ -124,6 +124,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   const { identity, loading, error, retry } = useStudent();
   const pathname = usePathname();
   const focusedAssessment = /^\/student\/assessment\/[^/]+\/?$/.test(pathname);
+  const compactTopicPractice = pathname === "/student/vibelearn/topic-practice";
   const isCollege = pathname === "/student/college" || pathname.startsWith("/student/college/");
   const showToast=useToast().showToast;
   const [appearance,setAppearance] = useState(DEFAULT_LEARNER_APPEARANCE);
@@ -225,8 +226,8 @@ function StudentShell({ children }: { children: React.ReactNode }) {
         maxWidth:      focusedAssessment ? 960 : 1120,
         margin:        "0 auto",
         padding:       "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
-        paddingBottom: focusedAssessment ? 24 : 160,
-        minHeight:     "calc(100dvh - 120px)",
+        paddingBottom: compactTopicPractice ? 0 : focusedAssessment ? 24 : 160,
+        minHeight:     compactTopicPractice ? 0 : "calc(100dvh - 120px)",
         ...(showWallpaper?learnerWallpaperBackground(appearance.wallpaper,wallpaperPhoto,resolvedMode):{}),
       }}>
         {children}
