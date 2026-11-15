@@ -92,3 +92,24 @@ test('student marks remain separate and hidden answers stay hidden', () => {
   assert.match(canonical, /item_rec\.auto_marking_mode='numeric_tolerance'/)
   assert.match(canonical, /awarded:=case when abs/)
 })
+
+test('submitted practice has its own locked-answer marking journey, never a formal exam release', () => {
+  const sql = read('supabase/migrations/20261115073000_exq_practice_post_submit_self_review.sql')
+  const page = read('app/student/assessment/self-review/[attemptId]/page.tsx')
+  const runner = read('app/student/assessment/[assignmentId]/page.tsx')
+  for (const guard of [
+    /v_attempt\.submitted_at is not null/,
+    /v_assignment\.show_score_policy='immediate'/,
+    /v_assignment\.answer_review_policy='after_release'/,
+    /d\.assessment_type='practice'/,
+    /v_attempt\.status='released' and v_attempt\.result_status='released'/,
+    /s\.profile_id=auth\.uid\(\)/,
+  ]) assert.match(sql, guard)
+  assert.doesNotMatch(sql, /update public\.assessment_attempts|update public\.assessment_gradebook_entries/i)
+  assert.match(sql, /'response_text', ar\.response_text/)
+  assert.match(sql, /'prompt', ai\.prompt/)
+  assert.match(page, /Your submitted answer/)
+  assert.match(page, /SelfReviewPanel/)
+  assert.match(runner, /workspace\.assessmentType === 'practice'/)
+  assert.match(runner, /Check my written answers/)
+})
