@@ -295,7 +295,7 @@ export default function VibeLearnExamsPage() {
           {filteredFresh.length ? <div className={`vs-exams-card-list vs-command-card-${layout}`}>{filteredFresh.map(item => examCard(item, 'new'))}</div>
             : <div className="vs-exams-next" role="status">
                 <strong>{activeSeriesName ? `No ${activeSeriesName} papers available to you yet` : groups.fresh.length ? 'No exams match your filters' : "You're up to date with new exams"}</strong>
-                <p>{activeSeriesName ? 'Choose another series or browse the existing exams. Only released, assigned papers appear here.' : groups.fresh.length ? 'Change your filters to find an available assessment.' : 'Use your previous results to choose what to improve next.'}</p>
+                <p>{activeSeriesName ? 'Choose another series or browse the existing exams. Only exams available to your account appear here.' : groups.fresh.length ? 'Change your filters to find an available assessment.' : 'Use your previous results to choose what to improve next.'}</p>
                 <div className="vs-exams-next-actions">
                   {activeSeriesName && <button type="button" className="vs-exam-button" onClick={() => setOriginalSeries('all')}>Browse all exams</button>}
                   {reviewFirst && <button type="button" className="vs-exam-button" onClick={() => viewResult(reviewFirst.attemptId)}>Review previous mistakes</button>}
