@@ -34,7 +34,7 @@
     "test:pendulum-studio": "node --test scripts/test-vibependulum-studio.mjs",
     "test:coin-studio": "node --test scripts/test-vibecoin-studio.mjs",
     "test:student-theme": "node --test scripts/test-student-unified-theme.mjs",
-    "test:student-journey": "node --test scripts/test-student-learning-journey.mjs scripts/test-student-learn-practice-roles.mjs && node --test scripts/test-learner-2-design-contract.mjs && node --test scripts/test-learner-focus-themes.mjs && node --import ./scripts/register-typescript.mjs --test scripts/test-learner-welcome-state.mjs"
+    "test:student-journey": "node --test scripts/test-student-learning-journey.mjs scripts/test-student-learn-practice-roles.mjs scripts/test-canonical-topic-practice-compact-ui.mjs && node --test scripts/test-learner-2-design-contract.mjs && node --test scripts/test-learner-focus-themes.mjs && node --import ./scripts/register-typescript.mjs --test scripts/test-learner-welcome-state.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
