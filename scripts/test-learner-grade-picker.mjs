@@ -14,7 +14,7 @@ const moduleExports = {}
 runInNewContext(js('lib/learner/learning-levels.ts'), { exports:moduleExports })
 const { LEARNING_LEVELS, resolveLearningSelection } = moduleExports
 assert.equal(LEARNING_LEVELS.length, 8)
-assert.deepEqual(LEARNING_LEVELS.map(group=>group.id), [
+assert.deepEqual(Array.from(LEARNING_LEVELS, group=>group.id), [
   'pre-primary','primary','junior','senior','secondary','college','university','professional',
 ])
 for(const group of LEARNING_LEVELS) {
@@ -56,7 +56,7 @@ const selects=nodes.filter(node=>node.type==='select')
 assert.equal(selects.length,2,'compact design has exactly two dropdowns')
 const levelOptions=visit(selects[0]).filter(node=>node.type==='option')
 assert.equal(levelOptions.length,9,'all eight education levels plus placeholder')
-const choices=visit(selects[1]).filter(node=>node.type==='option').map(node=>node.props.children)
+const choices=Array.from(visit(selects[1]).filter(node=>node.type==='option'),node=>node.props.children)
 assert.deepEqual(choices,['Choose','CPA','CS'])
 selects[0].props.onChange({target:{value:'primary'}})
 assert.equal(updatedLevel,'primary')
