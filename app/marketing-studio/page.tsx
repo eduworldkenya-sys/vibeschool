@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import styles from './marketing-studio.module.css'
 import DiscoverySettings from '../../components/games/DiscoverySettings'
+import OfflineGamesPack from '../../components/pwa/OfflineGamesPack'
 
 type Group='all'|'selection'|'challenge'|'arcade'
 type Tool={id:string;name:string;subtitle:string;group:Exclude<Group,'all'>;href:string;symbol:string;count:string;description:string;features:string[];theme:string}
@@ -25,7 +26,7 @@ export default function MarketingStudio(){
   <div className={styles.wrap}>
    <header className={styles.top}>
     <Link href="/" className={styles.identity}><span className={styles.mark}>V</span><span><strong>VIBESCHOOL</strong><small>ORIGINALS</small></span></Link>
-    <div className={styles.topRight}><span className={styles.unlisted}>CREATOR WORKSPACE · UNLISTED</span><Link href="/games-studio" className={styles.topLink}>Open game creator <span aria-hidden="true">↗</span></Link></div>
+    <div className={styles.topRight}><span className={styles.unlisted}>CREATOR WORKSPACE · UNLISTED</span><a href="/games-studio" className={styles.topLink}>Open game creator <span aria-hidden="true">↗</span></a></div>
    </header>
    <section className={styles.hero}>
     <div className={styles.heroCopy}>
@@ -34,7 +35,7 @@ export default function MarketingStudio(){
      <p className={styles.lead}>One home for every VibeSchool game creator. Build a challenge, stage the suspense, record the reveal and take it to your audience.</p>
      <div className={styles.heroActions}>
       <a href="#tools" className={styles.primary}>Explore creator tools <span aria-hidden="true">↘</span></a>
-      {tool&&<Link href={tool.href} onClick={()=>opened(tool.id)} className={styles.secondary}>Continue {tool.name} <span aria-hidden="true">↗</span></Link>}
+      {tool&&<a href={tool.href} onClick={()=>opened(tool.id)} className={styles.secondary}>Continue {tool.name} <span aria-hidden="true">↗</span></a>}
      </div>
      <div className={styles.metrics}><span><strong>4</strong> Creator suites</span><span><strong>14</strong> Quiz & arcade formats</span><span><strong>1</strong> Unified workspace</span></div>
     </div>
@@ -60,11 +61,12 @@ export default function MarketingStudio(){
         <div className={styles.cardEyebrow}><span>{x.subtitle}</span><span>{x.count}</span></div>
         <h3>{x.name}</h3><p>{x.description}</p>
         <div className={styles.chips}>{x.features.map(f=><span key={f}>{f}</span>)}</div>
-        <Link className={styles.openTool} href={x.href} onClick={()=>opened(x.id)}>Open {x.name} <span aria-hidden="true">↗</span></Link>
+        <a className={styles.openTool} href={x.href} onClick={()=>opened(x.id)}>Open {x.name} <span aria-hidden="true">↗</span></a>
        </div>
       </article>)}
     </div>
    </section>
+   <OfflineGamesPack/>
    <DiscoverySettings/>
    <section className={styles.bottomPanel}><div><span className={styles.kicker}>WORKFLOW</span><h2>One studio. Separate engines.</h2><p>Open a creator, customise the game, launch its show mode and capture a video. Return here to switch tools. Existing browser storage stays in the original creator, not in a new duplicate.</p></div><div className={styles.steps}><span><b>01</b> Choose a game</span><span><b>02</b> Make it yours</span><span><b>03</b> Play or record</span><span><b>04</b> Publish your content</span></div></section>
    <footer className={styles.footer}><span>VIBESCHOOL ORIGINALS · MARKETING STUDIO</span><span>Chance-based results are entertainment, not real-world forecasts. Projects are stored locally in their respective creators.</span></footer>
