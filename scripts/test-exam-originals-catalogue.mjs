@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { EXAM_ORIGINALS, examOriginalKeyFromTitle } from '../lib/assessment/exam-originals.ts'
+import ts from 'typescript'
+
+// CI uses Node versions where node:module.registerHooks is unavailable.
+// Compile this small pure registry in memory; do not change app source.
+const registrySource = readFileSync(new URL('../lib/assessment/exam-originals.ts', import.meta.url), 'utf8')
+const compiled = ts.transpileModule(registrySource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
+}).outputText
+const { EXAM_ORIGINALS, examOriginalKeyFromTitle } = await import(
+  'data:text/javascript;base64,' + Buffer.from(compiled).toString('base64')
+)
 
 const expected = ['VibeCAT', 'VibeTry', 'VibeTerm', 'VibePapers', 'VibeMock']
 assert.deepEqual(EXAM_ORIGINALS.map(series => series.name), expected, 'Five agreed brands must remain unique and ordered')
