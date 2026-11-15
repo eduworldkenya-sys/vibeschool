@@ -36,7 +36,7 @@ for(const migration of [
  'supabase/migrations/20261105122128_school_public_urls.sql',
  'supabase/migrations/20261105122401_school_public_url_lookup_performance.sql',
  'supabase/migrations/20261105122509_school_public_url_indexed_resolution.sql',
- 'supabase/migrations/20261115011500_school_follows_foundation.sql',
+ 'supabase/migrations/20261115023253_school_follows_foundation.sql',
 ])await db.exec(readFileSync(migration,'utf8'))
 
 const one='11111111-1111-4111-8111-111111111111'

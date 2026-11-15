@@ -1,0 +1,12 @@
+.followControl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.button, .active { min-height: 44px; padding: 10px 16px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.button { color: #fff; background: #087451; border: 1px solid #087451; }
+.button:hover:not(:disabled) { background: #086047; }
+.active { color: #075940; background: #e6f6ed; border: 1px solid #86bda2; }
+.active:hover:not(:disabled) { background: #d6f0e2; }
+.button:focus-visible, .active:focus-visible { outline: 3px solid #60a5fa; outline-offset: 2px; }
+.button:disabled, .active:disabled { cursor: wait; opacity: .65; }
+.error { color: #991b1b; font-size: 12px; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 420px) { .button, .active { min-width: 150px; } }
