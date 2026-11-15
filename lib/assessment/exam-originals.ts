@@ -2,9 +2,9 @@
  * Exam Originals is a catalogue layer over canonical assessment assignments.
  * It NEVER creates a second attempt, scoring, or question-bank authority.
  *
- * An existing assignment belongs to a series only when its approved title
- * explicitly carries the series name. Legacy assessments remain unbranded.
- * A future governed catalogue metadata contract may supersede this fallback.
+ * A paper belongs to an Originals series only when the server's learner
+ * discovery contract explicitly returns its trusted product code.
+ * Legacy and teacher-authored assessments remain unbranded.
  */
 export const EXAM_ORIGINALS = [
   {
@@ -47,13 +47,10 @@ export const EXAM_ORIGINALS = [
 export type ExamOriginalKey = (typeof EXAM_ORIGINALS)[number]['key']
 
 /**
- * Explicit naming only: a quiz named "CAT practice" or a generic "mock"
- * is NOT silently marketed as a certified VibeSchool Original.
+ * Accept only a structured classification supplied by the authoritative
+ * learner-assignment discovery RPC. A title alone is NEVER evidence of
+ * VibeSchool authorship or a certified Original paper.
  */
-export function examOriginalKeyFromTitle(title: string): ExamOriginalKey | null {
-  const normalized = title.trim()
-  const match = EXAM_ORIGINALS.find(({ name }) =>
-    new RegExp('^' + name + '(?:\\s|[-–—:]|$)', 'i').test(normalized),
-  )
-  return match?.key ?? null
+export function parseExamOriginalKey(value: unknown): ExamOriginalKey | null {
+  return EXAM_ORIGINALS.find(series => series.key === value)?.key ?? null
 }
