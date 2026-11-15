@@ -4,6 +4,7 @@ import StudentIntro from "@/components/student/StudentIntro";
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useStudent } from '@/lib/student-context'
+import { studyDeskHeading } from '@/lib/student/learner-welcome'
 import { supabase } from '@/lib/supabase'
 import { ArrowRight, BookOpen, ClipboardList, CalendarDays, PencilLine, RotateCcw, FolderOpen, Users, CheckCircle2 } from 'lucide-react'
 import {
@@ -117,7 +118,7 @@ export default function LearnerStudyDesk() {
       <Link href="/learn" className={styles.back}>← Browse lesson library</Link>
       <header className={styles.hero}>
         <div><div className={styles.kicker}>My learning · {identity.className}</div>
-          <h1>Continue where you left off</h1>
+          <h1>{studyDeskHeading(loading || Boolean(error), workspace?.continueLearning.length ?? 0)}</h1>
           <StudentIntro feature="learn-overview"><p>Read lessons, resume saved reading and find your next learning activity.</p></StudentIntro>
         </div>
         <Link className={styles.primary} href="/learn"><BookOpen size={18}/> Browse lessons</Link>
