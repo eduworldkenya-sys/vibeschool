@@ -5,6 +5,8 @@ export interface SelfReviewCriterion {
 }
 export interface SelfReviewItem {
   assessmentItemId: string
+  prompt: string
+  responseText: string | null
   criteria: SelfReviewCriterion[]
   maxScore: number
   selfReviewScore: number | null
@@ -67,6 +69,8 @@ export function parseSelfReviewItems(value: unknown): SelfReviewItem[] {
       ? item.self_review_score : null
     return [{
       assessmentItemId: item.assessment_item_id,
+      prompt: typeof item.prompt === 'string' ? item.prompt : '',
+      responseText: typeof item.response_text === 'string' ? item.response_text : null,
       criteria,
       maxScore,
       selfReviewScore: score,
