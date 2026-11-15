@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic"
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { ensureCourseLearnerProfile } from '@/lib/learn/ensure-course-learner-profile'
 
 const BLUE = '#1A1AFF'
 const INK = '#0A0A0F'
@@ -57,6 +58,7 @@ export default function CourseRoadmapPage() {
 
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [enrolling, setEnrolling] = useState(false)
+  const [enrollmentError, setEnrollmentError] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -99,7 +101,7 @@ export default function CourseRoadmapPage() {
       ])
 
       const moduleRows = (modulesResult.data ?? []) as ModuleRow[]
-      setModules(moduleRows)
+      if (courseSlug !== 'kasneb-cpa') setModules(moduleRows)
 
       const completed = new Set(
         ((progressResult.data ?? []) as ProgressRow[])
@@ -120,6 +122,7 @@ export default function CourseRoadmapPage() {
 
         if (topicErr) {
           console.error('CourseRoadmapPage topics fetch error:', topicErr)
+          if (courseSlug === 'kasneb-cpa') setModules([])
         } else if (topicData) {
           const grouped: Record<string, TopicRow[]> = {}
           for (const topic of topicData as TopicRow[]) {
@@ -127,6 +130,9 @@ export default function CourseRoadmapPage() {
             grouped[topic.module_id].push(topic)
           }
           setTopicsByModule(grouped)
+          // Only show the published CPA papers in Learn; the College selector
+          // remains the full, source-versioned KASNEB catalogue.
+          if (courseSlug === 'kasneb-cpa') setModules(moduleRows.filter(m => (grouped[m.id]?.length ?? 0) > 0))
         }
       }
 
@@ -138,27 +144,31 @@ export default function CourseRoadmapPage() {
   async function lockCourse() {
     if (!course || enrolling || isEnrolled) return
     setEnrolling(true)
+    setEnrollmentError('')
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setEnrolling(false)
-      router.push('/auth/callback')
-      return
-    }
+      // The older course progress FK points to learner_profiles.id (itself
+      // linked to auth.users.id), not to the school-student identity.
+      await ensureCourseLearnerProfile(user.id)
 
-    const { error } = await supabase
-      .from('course_enrollments')
-      .upsert(
-        { learner_id: user.id, course_id: course.id },
-        { onConflict: 'learner_id,course_id' }
-      )
-
-    if (error) {
-      console.error('lockCourse error:', error)
-    } else {
+      const { error } = await supabase
+        .from('course_enrollments')
+        .upsert(
+          { learner_id: user.id, course_id: course.id },
+          { onConflict: 'learner_id,course_id', ignoreDuplicates: true }
+        )
+      if (error) throw new Error('Your course could not be added. Please try again.')
       setIsEnrolled(true)
+    } catch (cause) {
+      setEnrollmentError(cause instanceof Error ? cause.message : 'Could not save your course. Please retry.')
+    } finally {
+      setEnrolling(false)
     }
-    setEnrolling(false)
   }
 
   function moduleProgress(moduleId: string): { done: number; total: number } {
@@ -252,6 +262,7 @@ export default function CourseRoadmapPage() {
         >
           {isEnrolled ? '🔒 Course locked in' : enrolling ? 'Locking in...' : 'Lock this course'}
         </div>
+        {enrollmentError && <p role="alert" style={{ color: '#c0392b', fontSize: 12, textAlign: 'center' }}>{enrollmentError}</p>}
         {!isEnrolled && (
           <div style={{ fontSize: 11, color: MUTED, marginTop: 6, textAlign: 'center' }}>
             Commit to this course to track it as part of your learning path
