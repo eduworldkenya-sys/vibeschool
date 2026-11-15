@@ -111,3 +111,10 @@
 .directoryFilters select:focus-visible{outline:2px solid #638bb5;outline-offset:2px}
 .directoryFilters select:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:600px){.directoryFilters{grid-template-columns:1fr 1fr}.directoryFilters label:first-child{grid-column:1/-1}}
+
+/* Secondary school-profile source material, kept out of the first-visit action flow. */
+.schoolVisitorMore{background:#fff;border:1px solid #e0e6ec;border-top:0;border-radius:0 0 18px 18px;padding:12px 28px;color:#294454;font-size:14px}
+.schoolVisitorMore summary{cursor:pointer;font-weight:700;min-height:42px;padding:12px 0}
+.schoolVisitorMore:focus-within{outline-offset:2px}
+.schoolVisitorMore .canonicalNote{padding-bottom:14px}
+@media(max-width:600px){.schoolVisitorMore{padding:8px 18px;border-left:0;border-right:0;border-radius:0}}

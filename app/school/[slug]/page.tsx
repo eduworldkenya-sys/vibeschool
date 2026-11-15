@@ -12,5 +12,5 @@ export default async function PublicSchoolPage({params}:{params:{slug:string}}){
  const school=await resolveSchoolAddress('slug',params.slug)
  if(!school)notFound()
  if(params.slug!==school.slug)permanentRedirect(schoolUrl(school.slug))
- return school.source_kind==='canonical'?<SchoolProfile schoolIdOverride={school.source_id} schoolBaseOverride={schoolUrl(school.slug)}/>:<DirectorySchool school={school}/>
+ return school.source_kind==='canonical'?<SchoolProfile schoolIdOverride={school.source_id} schoolBaseOverride={schoolUrl(school.slug)} schoolSlugOverride={school.slug}/>:<DirectorySchool school={school}/>
 }
