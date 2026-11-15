@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check,
@@ -61,27 +61,70 @@ const requirements: Record<TeachingLevel, string> = {
   secondary: "At least a Diploma in Education",
 };
 
+
+type QuickAnswer = "yes" | "no" | null;
+type QuickKey =
+  | "citizen" | "registration" | "qualification" | "id" | "kcpe"
+  | "kcse" | "teachingCertificate" | "transcript" | "schoolLeaving" | "previousTsc";
+const initialAnswers: Record<QuickKey, QuickAnswer> = {
+  citizen: null, registration: null, qualification: null,
+  id: null, kcpe: null, kcse: null, teachingCertificate: null,
+  transcript: null, schoolLeaving: null, previousTsc: null,
+};
+const documentKeys: QuickKey[] = ["id", "kcpe", "kcse", "teachingCertificate", "transcript", "schoolLeaving"];
+const kcseGrades = ["A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "E"] as const;
+
+function QuickYesNo({ label, value, onChange }: {
+  label: string;
+  value: QuickAnswer;
+  onChange: (answer: QuickAnswer) => void;
+}) {
+  return (
+    <div className={styles.quickRow} role="group" aria-label={label}>
+      <span>{label}</span>
+      <div className={styles.quickToggle}>
+        {(["yes", "no"] as const).map(answer => (
+          <button key={answer} type="button" aria-pressed={value === answer}
+            className={value === answer ? (answer === "yes" ? styles.quickYes : styles.quickNo) : styles.quickChoice}
+            onClick={() => onChange(answer)}>
+            {answer === "yes" ? "Yes" : "No"}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function VacancyMatchSandbox() {
   const [level, setLevel] = useState<TeachingLevel>("secondary");
   const [county, setCounty] = useState("");
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const [countyQuery, setCountyQuery] = useState("");
   const [showAllCounties, setShowAllCounties] = useState(false);
-  const [step, setStep] = useState<"requirements" | "vacancies" | "mock">("requirements");
-  const stepStartRef = useRef<HTMLDivElement>(null);
   const [showNotice, setShowNotice] = useState(true);
-  const [minimumChecks, setMinimumChecks] = useState({ citizen: false, qualification: false, registration: false });
-  const [documentsReady, setDocumentsReady] = useState(false);
-  const minimumMet = meetsTscRecruitmentMinimum(minimumChecks);
-  const checkedMinimumCount = Object.values(minimumChecks).filter(Boolean).length;
+  const [answers, setAnswers] = useState<Record<QuickKey, QuickAnswer>>(initialAnswers);
+  const [kcseGrade, setKcseGrade] = useState("");
   const [mockQualification, setMockQualification] = useState<QualificationBand | "">("");
   const [mockAge, setMockAge] = useState<AgeBand | "">("");
   const [mockYear, setMockYear] = useState<number | null>(null);
   const [mockInternship, setMockInternship] = useState<InternshipBand | "">("");
-  const [mockRevealed, setMockRevealed] = useState(false);
-  const mockScore = tsc2026MockScore({
-    level, qualification: mockQualification, ageBand: mockAge, qualifyingYear: mockYear, internship: mockInternship,
-  });
+  const updateAnswer = (key: QuickKey, value: QuickAnswer) => {
+    setAnswers(current => ({ ...current, [key]: value }));
+    if (key === "kcse" && value !== "yes") setKcseGrade("");
+    if (key === "qualification" && value !== "yes") setMockQualification("");
+  };
+  const minimumChecks = {
+    citizen: answers.citizen === "yes",
+    qualification: answers.qualification === "yes",
+    registration: answers.registration === "yes",
+  };
+  const minimumMet = meetsTscRecruitmentMinimum(minimumChecks);
+  const checkedMinimumCount = Object.values(minimumChecks).filter(Boolean).length;
+  const documentsReadyCount = documentKeys.filter(key => answers[key] === "yes").length;
+  const mockScore = county && minimumMet ? tsc2026MockScore({
+    level, qualification: mockQualification, ageBand: mockAge,
+    qualifyingYear: mockYear, internship: mockInternship,
+  }) : null;
   const { countyNames, error: countyError } = useKenyaCounties();
 
   useEffect(() => {
@@ -95,15 +138,6 @@ export default function VacancyMatchSandbox() {
     const timer = window.setTimeout(() => setShowNotice(false), 2000);
     return () => window.clearTimeout(timer);
   }, []);
-
-  // Both selected county and completed eligibility declarations lead to the existing vacancies view.
-  useEffect(() => {
-    if (minimumMet && county) setStep("vacancies");
-  }, [minimumMet, county]);
-
-  useEffect(() => {
-    if (step !== "requirements") stepStartRef.current?.scrollIntoView({ block: "start" });
-  }, [step]);
 
   const fallbackCounties = useMemo(
     () => REPORTED_COUNTY_ALLOCATIONS.map(item => item.county), []
@@ -138,9 +172,10 @@ export default function VacancyMatchSandbox() {
     setCounty(name);
     setCountyQuery("");
     setShowAllCounties(false);
+    setMockInternship(""); // Internship score depends on applying sub-county.
   };
   const resetMock = () => {
-    setMockQualification(""); setMockAge(""); setMockYear(null); setMockInternship(""); setMockRevealed(false);
+    setMockQualification(""); setMockAge(""); setMockYear(null); setMockInternship("");
   };
 
   return (
@@ -185,27 +220,13 @@ export default function VacancyMatchSandbox() {
         </div>
       )}
 
-      <div ref={stepStartRef} className={styles.stepTabs} aria-label="Recruitment steps">
-        <button type="button" className={step === "requirements" ? styles.stepTabActive : styles.stepTab} aria-pressed={step === "requirements"} onClick={() => setStep("requirements")}>
-          01 · County & checks {minimumMet && county && <Check aria-hidden="true" size={15} />}
-        </button>
-        <button type="button" className={step === "vacancies" ? styles.stepTabActive : styles.stepTab} aria-pressed={step === "vacancies"} onClick={() => setStep("vacancies")}>
-          02 · Vacancies <ArrowRight aria-hidden="true" size={15} />
-        </button>
-        <button type="button" className={step === "mock" ? styles.stepTabActive : styles.stepTab} aria-pressed={step === "mock"}
-          disabled={!county || !minimumMet} onClick={() => setStep("mock")}>
-          03 · Mock score
-        </button>
-      </div>
-
-      <div className={[styles.workspace, styles.stepWorkspace].join(" ")}>
-        <section className={styles.filtersCard} aria-labelledby="choose-heading" hidden={step !== "requirements"}>
+      <div className={[styles.workspace, county ? styles.quickWorkspace : styles.stepWorkspace].join(" ")}>
+        <section className={styles.filtersCard} aria-labelledby="choose-heading">
           <div className={styles.sectionTop}>
             <span className={styles.step}>01 · YOUR SEARCH</span>
             <button type="button" className={styles.reset} onClick={() => {
               setLevel("secondary"); setCounty(""); setCountyQuery(""); setShowAllCounties(false);
-              setMinimumChecks({ citizen: false, qualification: false, registration: false });
-              setDocumentsReady(false); resetMock(); setStep("requirements");
+              setAnswers({ ...initialAnswers }); setKcseGrade(""); resetMock();
             }}>
               <RotateCcw aria-hidden="true" size={14} /> Reset
             </button>
@@ -224,7 +245,7 @@ export default function VacancyMatchSandbox() {
                     if (value !== level) {
                       setLevel(value);
                       setCounty(""); setCountyQuery(""); setShowAllCounties(false);
-                      setMinimumChecks(current => ({ ...current, qualification: false }));
+                      setAnswers(current => ({ ...current, qualification: null }));
                       resetMock();
                     }
                   }}
@@ -240,7 +261,7 @@ export default function VacancyMatchSandbox() {
           <div className={styles.countyPicker}>
             <div className={styles.pickerTitle}>
               <strong>Choose county</strong>
-              {county && <button type="button" onClick={() => { setCounty(""); setStep("requirements"); }}>Change county</button>}
+              {county && <button type="button" onClick={() => setCounty("")}>Change county</button>}
             </div>
             {county ? (
               <p className={styles.selectedCounty}><MapPin size={17} aria-hidden="true" /> {county}
@@ -268,33 +289,94 @@ export default function VacancyMatchSandbox() {
             )}
           </div>
 
-          {county && <fieldset className={styles.minimumChecks}>
-            <legend>Minimum requirements</legend>
-            <label className={styles.checkRow}>
-              <input type="checkbox" checked={minimumChecks.citizen}
-                onChange={event => setMinimumChecks(current => ({ ...current, citizen: event.target.checked }))} />
-              I am a Kenyan citizen
-            </label>
-            <label className={styles.checkRow}>
-              <input type="checkbox" checked={minimumChecks.qualification}
-                onChange={event => setMinimumChecks(current => ({ ...current, qualification: event.target.checked }))} />
-              I hold {requirements[level]} or a TSC-accepted equivalent
-            </label>
-            <label className={styles.checkRow}>
-              <input type="checkbox" checked={minimumChecks.registration}
-                onChange={event => setMinimumChecks(current => ({ ...current, registration: event.target.checked }))} />
-              I am registered with TSC
-            </label>
-          </fieldset>}
-          {county && <p className={styles.checkProgress} role="status">{checkedMinimumCount}/3 minimum requirements met{minimumMet ? " · Opening vacancies" : ""}</p>}
-          {county && <label className={[styles.checkRow, styles.documentCheck].join(" ")}>
-            <input type="checkbox" checked={documentsReady} onChange={event => setDocumentsReady(event.target.checked)} />
-            I have my original certificates ready for verification
-          </label>}
-          {county && <p className={styles.help}>Self-check only. TSC confirms eligibility.</p>}
+
+          {county && (
+            <div className={styles.quickFlow}>
+              <h3>Quick eligibility check</h3>
+              <div className={styles.quickGrid} aria-label="Minimum requirements">
+                <QuickYesNo label="Kenyan citizen?" value={answers.citizen} onChange={v => updateAnswer("citizen", v)} />
+                <QuickYesNo label="TSC registered / number?" value={answers.registration} onChange={v => updateAnswer("registration", v)} />
+                <QuickYesNo label="Teaching qualification?" value={answers.qualification} onChange={v => updateAnswer("qualification", v)} />
+              </div>
+              <p className={styles.checkProgress} role="status">
+                {checkedMinimumCount}/3 minimum requirements met{minimumMet ? " · Vacancies available below" : ""}
+              </p>
+
+              <div className={styles.quickDocuments}>
+                <div className={styles.pickerTitle}>
+                  <strong>Documents</strong>
+                  <span className={styles.quickCount}>{documentsReadyCount}/6 ready</span>
+                </div>
+                <div className={styles.quickGrid}>
+                  <QuickYesNo label="National ID?" value={answers.id} onChange={v => updateAnswer("id", v)} />
+                  <QuickYesNo label="KCPE certificate?" value={answers.kcpe} onChange={v => updateAnswer("kcpe", v)} />
+                  <QuickYesNo label="KCSE certificate?" value={answers.kcse} onChange={v => updateAnswer("kcse", v)} />
+                  <QuickYesNo label="Teaching certificate?" value={answers.teachingCertificate} onChange={v => updateAnswer("teachingCertificate", v)} />
+                  <QuickYesNo label="Official transcripts?" value={answers.transcript} onChange={v => updateAnswer("transcript", v)} />
+                  <QuickYesNo label="School leaving certificates?" value={answers.schoolLeaving} onChange={v => updateAnswer("schoolLeaving", v)} />
+                </div>
+                {answers.kcse === "yes" && (
+                  <label className={styles.quickGrade} htmlFor="tsc-kcse-grade">KCSE mean grade
+                    <select id="tsc-kcse-grade" value={kcseGrade} onChange={event => setKcseGrade(event.target.value)}>
+                      <option value="">Select grade</option>
+                      {kcseGrades.map(grade => <option key={grade} value={grade}>{grade}</option>)}
+                    </select>
+                  </label>
+                )}
+                <QuickYesNo label="Previously employed by TSC?" value={answers.previousTsc} onChange={v => updateAnswer("previousTsc", v)} />
+                {answers.previousTsc === "yes" && <p className={styles.help}>Disclose previous employment as required in the official recruitment process.</p>}
+                <p className={styles.help}>Self-declared only. No ID or certificate numbers are collected here.</p>
+              </div>
+              {minimumMet && (
+                <div className={styles.quickMockInputs}>
+                  <h3>Mock score · fills automatically</h3>
+                  <div className={styles.mockFields}>
+                    <label htmlFor="tsc-mock-qualification">Qualification grade
+                      <select id="tsc-mock-qualification" value={mockQualification} onChange={event => {
+                        setMockQualification(event.target.value as QualificationBand | "");
+                      }}>
+                        <option value="">Choose qualification and grade</option>
+                        {qualificationOptions.filter(option => level === "primary" || !option.primaryOnly).map(option =>
+                          <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </label>
+                    <label htmlFor="tsc-mock-age">Age
+                      <select id="tsc-mock-age" value={mockAge} onChange={event => {
+                        setMockAge(event.target.value as AgeBand | "");
+                      }}>
+                        <option value="">Choose age bracket</option>
+                        {(level === "primary" ? primaryAgeOptions : postAgeOptions).map(option =>
+                          <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </label>
+                    <label htmlFor="tsc-mock-year">Year qualified as a teacher
+                      <select id="tsc-mock-year" value={mockYear ?? ""} onChange={event => {
+                        setMockYear(event.target.value ? Number(event.target.value) : null);
+                      }}>
+                        <option value="">Choose graduation year</option>
+                        <option value="2010">2010 and before</option>
+                        {Array.from({ length: 16 }, (_, i) => 2011 + i).map(year =>
+                          <option key={year} value={year}>{year}</option>)}
+                      </select>
+                    </label>
+                    {level !== "primary" && <label htmlFor="tsc-mock-internship">TSC internship · applying sub-county
+                      <select id="tsc-mock-internship" value={mockInternship} onChange={event => {
+                        setMockInternship(event.target.value as InternshipBand | "");
+                      }}>
+                        <option value="">Choose internship experience</option>
+                        <option value="none">None</option>
+                        <option value="under-12">Continuous, under 12 months</option>
+                        <option value="12-plus">Continuous, 12+ months</option>
+                      </select>
+                    </label>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
-        <section className={styles.matchesCard} aria-labelledby="matches-heading" hidden={step !== "vacancies"}>
+        {county && <section className={styles.matchesCard} aria-labelledby="matches-heading">
           <div className={styles.sectionTop}>
             <span className={styles.step}>02 · ADVERTISED POSTS</span>
             <span className={styles.demoLabel}>PUBLISHED FIGURES</span>
@@ -306,9 +388,32 @@ export default function VacancyMatchSandbox() {
           </div>
           <div className={styles.pickerSummary}>
             <span><MapPin size={15} aria-hidden="true" /> {county || "All of Kenya"}</span>
-            <button type="button" onClick={() => { setCounty(""); setStep("requirements"); }}>Change county</button>
+            <button type="button" onClick={() => setCounty("")}>Change county</button>
           </div>
 
+
+          <section className={styles.liveScore} aria-live="polite" aria-label="Automatically calculated TSC mock score">
+            <div className={styles.liveScoreHeading}>
+              <span>2026 TSC mock score</span>
+              <strong>{mockScore ? `${mockScore.total}/100` : "— / 100"}</strong>
+            </div>
+            {mockScore ? (
+              <div className={styles.mockRows}>
+                <div><span>Academic / professional</span><strong>{mockScore.qualification}/{mockScore.maxQualification}</strong></div>
+                <div><span>Age</span><strong>{mockScore.age}/{mockScore.maxAge}</strong></div>
+                <div><span>Years since qualifying</span><strong>{mockScore.qualifyingYear}/{mockScore.maxQualifyingYear}</strong></div>
+                {level !== "primary" && <div><span>TSC internship</span><strong>{mockScore.internship}/{mockScore.maxInternship}</strong></div>}
+              </div>
+            ) : (
+              <p className={styles.help}>{minimumMet
+                ? "Choose qualification grade, age, graduation year and internship (if applicable) to see your mock score."
+                : "Complete the three minimum checks to start your mock."}</p>
+            )}
+            <p className={styles.help}>Simulated marks only; no KCSE grade or county bonus marks. Not an official TSC result. Separate scoring sheets may apply to applicants with disabilities.</p>
+            <a href={level === "primary" ? primaryScoreGuideHref : postScoreGuideHref} target="_blank" rel="noopener noreferrer" className={styles.mockPortalLink}>
+              View scoring source <ArrowUpRight aria-hidden="true" size={13} />
+            </a>
+          </section>
           <section className={styles.allocationPanel} aria-label="Reported recruitment allocation" aria-live="polite">
             <div className={styles.allocationHeading}>
               <span>VACANCIES FOR 2026</span>
@@ -348,90 +453,16 @@ export default function VacancyMatchSandbox() {
               </article>
             </div>
           </div>
-          <button type="button" className={styles.mockLaunch} onClick={() => setStep("mock")}>
-            Run TSC mock score <ArrowRight aria-hidden="true" size={17} />
-          </button>
           <div className={styles.sourceFoot}>
             <ShieldCheck aria-hidden="true" size={19} />
             <p><strong>School and subject verification:</strong> VibeSchool does not currently hold a reconciled school-by-school list. County totals are not subject-specific matches. For a named school or subject combination, consult the complete original TSC appendices.</p>
           </div>
-        </section>
-        <section className={styles.matchesCard} aria-labelledby="mock-heading" hidden={step !== "mock"}>
-          <div className={styles.sectionTop}>
-            <span className={styles.step}>03 · MOCK SCORING</span>
-            <span className={styles.demoLabel}>SIMULATION · NOT TSC</span>
-          </div>
-          <h2 id="mock-heading">Your TSC 2026 mock score</h2>
-          <p className={styles.supportText}>{levelNames[level]} · {county} · maximum 100 marks</p>
-          <div className={styles.mockFields}>
-            <label htmlFor="tsc-mock-qualification">Academic and professional qualifications
-              <select id="tsc-mock-qualification" value={mockQualification} onChange={event => {
-                setMockQualification(event.target.value as QualificationBand | ""); setMockRevealed(false);
-              }}>
-                <option value="">Select your qualification and grade</option>
-                {qualificationOptions.filter(option => level === "primary" || !option.primaryOnly).map(option =>
-                  <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-            <label htmlFor="tsc-mock-age">Age
-              <select id="tsc-mock-age" value={mockAge} onChange={event => {
-                setMockAge(event.target.value as AgeBand | ""); setMockRevealed(false);
-              }}>
-                <option value="">Select age bracket</option>
-                {(level === "primary" ? primaryAgeOptions : postAgeOptions).map(option =>
-                  <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-            <label htmlFor="tsc-mock-year">Length of stay since qualifying as a teacher
-              <select id="tsc-mock-year" value={mockYear ?? ""} onChange={event => {
-                setMockYear(event.target.value ? Number(event.target.value) : null); setMockRevealed(false);
-              }}>
-                <option value="">Select year you qualified</option>
-                <option value="2010">2010 and before</option>
-                {Array.from({ length: 16 }, (_, i) => 2011 + i).map(year =>
-                  <option key={year} value={year}>{year}</option>)}
-              </select>
-            </label>
-            {level !== "primary" && <label htmlFor="tsc-mock-internship">Experience · continuous TSC internship in the applying sub-county
-              <select id="tsc-mock-internship" value={mockInternship} onChange={event => {
-                setMockInternship(event.target.value as InternshipBand | ""); setMockRevealed(false);
-              }}>
-                <option value="">Select internship experience</option>
-                <option value="none">No qualifying TSC internship</option>
-                <option value="under-12">Below 12 months, continuously</option>
-                <option value="12-plus">12 months and above, continuously</option>
-              </select>
-            </label>}
-          </div>
-          <button type="button" className={styles.mockLaunch} disabled={!mockScore} onClick={() => setMockRevealed(true)}>
-            Calculate mock score <ArrowRight aria-hidden="true" size={17} />
-          </button>
-          {mockRevealed && mockScore && (
-            <div className={styles.mockResult} role="status" aria-live="polite">
-              <div className={styles.mockTotal}>
-                <div><span>YOUR MOCK SCORE</span><strong>{mockScore.total}<small>/100</small></strong></div>
-                <span>Self-reported, not a TSC panel result</span>
-              </div>
-              <div className={styles.mockRows}>
-                <div><span>Academic and professional qualifications</span><strong>{mockScore.qualification} / {mockScore.maxQualification}</strong></div>
-                <div><span>Age</span><strong>{mockScore.age} / {mockScore.maxAge}</strong></div>
-                <div><span>Length of stay since qualifying as a teacher</span><strong>{mockScore.qualifyingYear} / {mockScore.maxQualifyingYear}</strong></div>
-                {level !== "primary" && <div><span>Experience · TSC internship</span><strong>{mockScore.internship} / {mockScore.maxInternship}</strong></div>}
-              </div>
-              <p>County and sub-county preference is considered separately; no county bonus marks are added. This does not predict selection or ranking.</p>
-            </div>
-          )}
-          <div className={styles.sourceFoot}>
-            <ShieldCheck size={19} aria-hidden="true" />
-            <p>Based on the 2026/2027 {level === "primary" ? "primary circular scoring summary" : "post-primary TSC Appendix I(a)"}. Separate score sheets may apply for teachers with disabilities. TSC verifies final qualifications and marks.
-              {" "}<a href={level === "primary" ? primaryScoreGuideHref : postScoreGuideHref} target="_blank" rel="noopener noreferrer">View scoring source <ArrowUpRight size={13} aria-hidden="true" /></a>
-            </p>
-          </div>
-          <a href={portalHref} target="_blank" rel="noopener noreferrer" className={styles.mockPortalLink}>Official TSC application <ArrowUpRight size={16} aria-hidden="true" /></a>
-        </section>
+        </section>}
       </div>
 
-      <div hidden={step !== "vacancies"}>
+      <div hidden={!county}>
+      <details className={styles.countyDetails}>
+        <summary>Compare allocations across all counties</summary>
       <section className={styles.countyBoard} aria-labelledby="county-board-title">
         <div className={styles.countyBoardHeading}>
           <div>
@@ -494,6 +525,7 @@ export default function VacancyMatchSandbox() {
           <a href={COUNTY_ALLOCATION_SOURCE} target="_blank" rel="noopener noreferrer">View source <ArrowUpRight size={13} aria-hidden="true" /></a>
         </p>
       </section>
+      </details>
 
       <section className={styles.next} aria-labelledby="next-heading">
         <div className={styles.nextText}>
