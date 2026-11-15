@@ -2,7 +2,7 @@ import type { VibePublication } from '@/lib/publishTypes'
 
 export type StoryPublication = Pick<VibePublication,
   'id' | 'title' | 'subtitle' | 'description' | 'cover_url' | 'format' |
-  'genre' | 'series_name' | 'series_number' | 'published_at' | 'pricing' | 'chapter_count' | 'tags' | 'publication_name'>
+  'genre' | 'series_name' | 'series_number' | 'published_at' | 'pricing' | 'chapter_count' | 'tags' | 'publication_name' | 'cbc_aligned'>
 
 const FICTION_GENRES = new Set(['fiction','children','romance','thriller','fantasy','mystery','adventure'])
 
