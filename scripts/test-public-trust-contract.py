@@ -35,8 +35,29 @@ footer = text('components/public/PublicFooter.tsx')
 shell_css = text('components/public/PublicShell.module.css')
 for fragment in ['Skip to content','aria-label="Public navigation"','/product','/pathways','/institutions','/about','/contact','/login/global','PublicJourneyTracker']:
     if fragment not in header: errors.append(f'PublicHeader missing: {fragment}')
-for fragment in ['@vibeschoolkenya','wa.me/254728232157','/legal/privacy','/legal/terms','/legal/aup','/careers','/institutions','/trust']:
+for fragment in ['@vibeschoolkenya','officialWhatsAppHref','/legal/privacy','/legal/terms','/legal/aup','/careers','/institutions','/trust']:
     if fragment not in footer: errors.append(f'PublicFooter missing: {fragment}')
+# Official support contact is configured once and is never printed on screen.
+wa_config = text('lib/public/whatsapp.ts')
+if "OFFICIAL_WHATSAPP_NUMBER = '254720614664'" not in wa_config:
+    errors.append('official WhatsApp contact configuration is incorrect')
+if 'encodeURIComponent(message)' not in wa_config:
+    errors.append('official WhatsApp message must be encoded')
+for rel in [
+    'app/contact/page.tsx', 'app/careers/CareerInterest.tsx',
+    'app/schools/components/SchoolFooter.tsx', 'app/teacher/creators/page.tsx',
+    'components/success-wishes/LostRecoveryLink.tsx',
+    'components/public/PublicFooter.tsx', 'app/admin/pending/page.tsx',
+    'app/admin/signup/page.tsx',
+]:
+    support_surface = text(rel)
+    if '254728232157' in support_surface or '0728 232 157' in support_surface:
+        errors.append(f'{rel}: old VibeSchool WhatsApp destination is still present')
+    if '254720614664' in support_surface:
+        errors.append(f'{rel}: official WhatsApp digits must not be repeated in UI source')
+    if 'OFFICIAL_WHATSAPP_NUMBER' not in support_surface and 'officialWhatsAppHref' not in support_surface:
+        errors.append(f'{rel}: WhatsApp contact must use canonical shared configuration')
+
 for fragment in [':focus-visible','@media(max-width:640px)','min-height:44px','prefers-reduced-motion']:
     if fragment not in shell_css: errors.append(f'PublicShell accessibility/responsive contract missing: {fragment}')
 
@@ -261,7 +282,7 @@ for fragment in ['SAFE_PUBLIC_ROUTES','/offline.html','/institutions','/trust','
     if fragment not in sw: errors.append(f'PWA public resilience missing: {fragment}')
 for forbidden in ["'/student/'","'/teacher/'","'/parent/'","'/admin/'"]:
     if forbidden in sw: errors.append(f'private route must not be in shared public cache: {forbidden}')
-for fragment in ['You’re offline.','private learner or school records','Try again']:
+for fragment in ['You’re offline.','Private learner, teacher and school records','Try again']:
     if fragment not in offline: errors.append(f'offline UX missing: {fragment}')
 
 governance_path = ROOT / 'config/public-content-governance.json'

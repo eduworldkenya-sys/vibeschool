@@ -3,9 +3,10 @@ import { useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { TrackedLink } from './TrackedLink'
+import { officialWhatsAppHref } from '@/lib/public/whatsapp'
 import styles from './PublicShell.module.css'
 
-const WHATSAPP_URL = 'https://wa.me/254728232157?text=Hello%20VibeSchool'
+const WHATSAPP_URL = officialWhatsAppHref('Hello VibeSchool')
 const TIKTOK_URL = 'https://www.tiktok.com/@vibeschoolkenya'
 
 export function PublicFooter({ compact = false, hideSupport = false, focused = false }: { compact?: boolean; hideSupport?: boolean; focused?: boolean } = {}) {

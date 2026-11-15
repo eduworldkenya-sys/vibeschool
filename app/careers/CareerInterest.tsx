@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { TrackedLink } from '@/components/public/TrackedLink'
 import { focusAreas } from './careerContent'
+import { officialWhatsAppHref } from '@/lib/public/whatsapp'
 import styles from './careers.module.css'
 
 type FocusId = (typeof focusAreas)[number]['id']
@@ -11,7 +12,7 @@ export function CareerInterest() {
   const [focusId, setFocusId] = useState<FocusId>('curriculum')
   const area = focusAreas.find(item => item.id === focusId) ?? focusAreas[0]
   const whatsappHref = useMemo(
-    () => 'https://wa.me/254728232157?text=' + encodeURIComponent(
+    () => officialWhatsAppHref(
       `Hello VibeSchool. I'd like to introduce myself. My work is in ${area.name}.\n\nA little about my experience and a relevant example of my work:\n`
     ),
     [area.name]

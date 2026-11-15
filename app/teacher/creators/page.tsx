@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { TrackedLink } from "@/components/public/TrackedLink";
+import { officialWhatsAppHref } from '@/lib/public/whatsapp';
 
 export const metadata = { title: "Founding Teacher Creators | VibeSchool", description: "Help shape a responsible creator pathway for Kenyan teacher expertise." };
 
-const creatorWhatsApp = "https://wa.me/254728232157?text=" + encodeURIComponent("Hello VibeSchool. I am interested in joining the Founding Teacher Creator programme. My subject/level is: ");
+const creatorWhatsApp = officialWhatsAppHref("Hello VibeSchool. I am interested in joining the Founding Teacher Creator programme. My subject/level is: ");
 
 export default function FoundingCreators() {
   return <main style={{ minHeight:"100vh", background:"#f7f8f5", color:"#17211b" }}>

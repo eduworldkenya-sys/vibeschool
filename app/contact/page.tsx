@@ -7,9 +7,9 @@ import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { TrackedLink } from '@/components/public/TrackedLink'
 import { trackPublicEvent } from '@/lib/publicTelemetry'
+import { officialWhatsAppHref } from '@/lib/public/whatsapp'
 import styles from './contact.module.css'
 
-const WHATSAPP_NUMBER = '254728232157'
 const topics = [
   { key: 'general', label: 'A general question', detail: 'About VibeSchool and how it works' },
   { key: 'school', label: 'Schools & partnerships', detail: 'Schools, organisations and collaborations' },
@@ -39,7 +39,7 @@ const whatsappIntroductions: Record<'general' | 'school' | 'account' | 'safety',
 }
 
 function whatsappLink(topic: keyof typeof whatsappIntroductions) {
-  return 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(whatsappIntroductions[topic])
+  return officialWhatsAppHref(whatsappIntroductions[topic])
 }
 
 export default function ContactPage() {
@@ -149,7 +149,6 @@ export default function ContactPage() {
                   <h2 id="contact-next" aria-live="polite">Ask us directly.</h2>
                   <p>Have a question about VibeSchool? Start a WhatsApp conversation. You don’t need an account.</p>
                   <TrackedLink className={styles.primaryAction} href={whatsappLink('general')} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">Chat on WhatsApp <span aria-hidden="true">↗</span></TrackedLink>
-                  <p className={styles.contactNumber}>WhatsApp · 0728 232 157</p>
                 </>
               )}
 
@@ -158,7 +157,6 @@ export default function ContactPage() {
                   <h2 id="contact-next" aria-live="polite">Tell us about your school or idea.</h2>
                   <p>Exploring VibeSchool for a school, institution, government programme or partnership? Start with a short WhatsApp message.</p>
                   <TrackedLink className={styles.primaryAction} href={whatsappLink('school')} event="public_institution_contact" external target="_blank" rel="noopener noreferrer">Start the conversation <span aria-hidden="true">↗</span></TrackedLink>
-                  <p className={styles.contactNumber}>WhatsApp · 0728 232 157</p>
                 </>
               )}
 
