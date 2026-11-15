@@ -82,7 +82,7 @@ const emailActions=read('app/signup/student/email/actions.ts')
 assert.match(emailActions,/resolveLearningSelection/)
 assert.match(emailActions,/ensure_independent_learner_student/)
 assert.match(emailActions,/learner_education_paths/)
-const migration=read('supabase/migrations/20261115174000_independent_learning_level_paths.sql')
+const migration=read('supabase/migrations/20261115151020_independent_learning_level_paths.sql')
 for(const grade of ['PP1','PP2','College','University','Professional Studies','Grade 12','Form 4']) {
   assert.ok(migration.includes("'"+grade+"'"),'missing DB grade label '+grade)
 }
