@@ -12,3 +12,12 @@
 .primary:focus-visible,.secondary:focus-visible,.back:focus-visible,.card input:focus-visible{outline:2px solid #e9cc76;outline-offset:3px}
 .card .error{color:#ffc7c7}
 .address{overflow-wrap:anywhere}
+
+/* Shared app appearance, overriding legacy dark-only email styling. */
+.shell{background:var(--auth-bg);color:var(--auth-text)}
+.card{background:var(--auth-panel);border:1px solid var(--auth-border);border-radius:18px;padding:24px;display:grid;gap:14px;box-shadow:0 12px 36px rgba(0,0,0,.06)}
+.card p{color:var(--auth-muted)}
+.card input:not([type=hidden]){background:var(--auth-input);border-color:var(--auth-border);color:var(--auth-text)}
+.primary{background:var(--auth-accent);color:var(--auth-on-accent)}
+.secondary,.back{color:var(--auth-accent)}
+.card .error{color:var(--auth-error)}
