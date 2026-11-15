@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
+import './test-universal-qa-learner.mjs'
 const read = path => readFileSync(path,'utf8')
 test('Learn and Practice have distinct visible owners without a second question or content engine', () => {
  const student=read('app/student/study/page.tsx')
