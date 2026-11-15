@@ -68,6 +68,12 @@ export default function BottomNav() {
   // Route changes, Escape, scroll lock and keyboard focus are shared across mobile routes.
   useEffect(() => { setMoreOpen(false); }, [pathname]);
   useEffect(() => {
+    const desktop = window.matchMedia("(min-width:1024px)");
+    const closeOnDesktop = () => { if (desktop.matches) setMoreOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
+  useEffect(() => {
     if (!moreOpen) return;
     const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
