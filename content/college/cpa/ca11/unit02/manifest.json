@@ -1,10 +1,10 @@
 {
-  "id": "vibeschool-originals-cpa-ca11-unit02-accounting-process-v1",
-  "title": "From Evidence to Financial Statements",
+  "id": "vibeschool-originals-cpa-ca11-unit02b-applied-workshops-v1",
+  "title": "Accounting Process — Applied Workshops",
   "qualification": "KASNEB CPA",
   "paper": "CA11 Financial Accounting",
   "level": "Foundation",
-  "unit": "02",
+  "unit": "02B",
   "source_version": "2024-06",
   "syllabus_section": "2. The Accounting Process and Systems",
   "coverage": [
@@ -15,7 +15,7 @@
     "2.5"
   ],
   "release_state": "in_review",
-  "review_method": "Original educational authorship; source-scope mapping, technical ledger recalculation, question/answer-key integrity tests, editorial challenge and fail-closed publication checks. Independent human-professional sign-off not claimed.",
+  "review_method": "Original case-based applied learning following the three existing published CA11 Accounting Process core lessons. KASNEB source-scope mapping, recalculated ledger and statement arithmetic, answer-key checks and adversarial contract tests. No independent human CPA endorsement claimed.",
   "sources": [
     {
       "authority": "KASNEB",
@@ -164,5 +164,21 @@
     "1.5"
   ],
   "future_out_of_scope": "Later CA11 sections 3–12, year-end adjustments, accruals, depreciation, cash-flow preparation, company and partnership statements, bank reconciliation and public-sector accounting.",
-  "publication_boundary": "Retain existing published CA11 Unit 01 identities, authorisation policies, source evidence, learner progress and other CPA papers; only exact new five-topic set may become published after gate."
+  "publication_boundary": "Preserve all six previously published CA11 lessons, their 26 questions, existing learner progress and other CPA papers. Publish only the new five workshop topics at positions 7–11 with their 30 original questions. Never replace a published core lesson in place.",
+  "learning_position": "Optional extended skills practice after the published three-topic CA11 accounting-process core. These are separate worked cases and error investigations, not a duplicate replacement of previously released records.",
+  "existing_core_topics": [
+    {
+      "slug": "source-documents-and-books",
+      "sequence_number": 4
+    },
+    {
+      "slug": "double-entry-and-ledgers",
+      "sequence_number": 5
+    },
+    {
+      "slug": "trial-balance-and-statements",
+      "sequence_number": 6
+    }
+  ],
+  "existing_core_question_count": 14
 }
