@@ -1,4 +1,5 @@
 'use client'
+import StudentIntro from "@/components/student/StudentIntro";
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -117,7 +118,7 @@ export default function LearnerStudyDesk() {
       <header className={styles.hero}>
         <div><div className={styles.kicker}>My learning · {identity.className}</div>
           <h1>Continue where you left off</h1>
-          <p>Read published lessons, follow worked examples and pick up your saved reading. Practice and assessments have their own workspaces.</p>
+          <StudentIntro feature="learn-overview"><p>Read lessons, resume saved reading and find your next learning activity.</p></StudentIntro>
         </div>
         <Link className={styles.primary} href="/learn"><BookOpen size={18}/> Browse lessons</Link>
       </header>

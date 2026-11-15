@@ -1,4 +1,5 @@
 "use client";
+import StudentIntro from "@/components/student/StudentIntro";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { isAuthSessionMissingError } from "@supabase/supabase-js";
@@ -103,7 +104,7 @@ export default function StudentTuition() {
   return <main style={{ maxWidth: 650, margin: "16px auto", display: "grid", gap: 14, padding: "10px 10px 80px", color: "var(--vs-text, #17251c)" }}>
     <Link href="/student">← My Learning</Link>
     <header><h1 style={{ fontSize: 26, margin: "4px 0" }}>My Tutors</h1>
-      <p style={{ fontSize: 13, opacity: .75 }}>Your tutors, private sessions and conversations. Learn, tasks and progress remain in your main learner workspace.</p></header>
+      <StudentIntro feature="tutors-overview"><p>Find your tutors, sessions and messages. Your learning records remain in your main workspace.</p></StudentIntro></header>
     {error && <p role="alert" style={{ color: "#b91c1c" }}>{error}</p>}
     {notice && <p role="status">{notice}</p>}
 

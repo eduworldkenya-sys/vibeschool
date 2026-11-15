@@ -1,4 +1,5 @@
 "use client";
+import StudentIntro from "@/components/student/StudentIntro";
 export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useState } from "react";
@@ -139,7 +140,7 @@ export default function StudentExercisesPage() {
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "20px 16px 100px", fontFamily: "'Plus Jakarta Sans', sans-serif", color: "var(--vs-text)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Exercises</h1>
-      <p style={{ fontSize: 13, color: "var(--vs-muted)", marginBottom: 16 }}>Practice from your teacher. Drafts stay editable until you submit.</p>
+      <StudentIntro feature="exercises-overview"><p>Practise your teacher’s exercises. Drafts remain editable until submission.</p></StudentIntro>
 
       {error && (
         <div role="status" style={{ marginBottom: 14, padding: 12, borderRadius: 12, background: "var(--vs-accent-soft)", color: "var(--vs-text)", fontSize: 12 }}>

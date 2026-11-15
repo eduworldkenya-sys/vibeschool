@@ -1,4 +1,5 @@
 'use client'
+import StudentIntro from "@/components/student/StudentIntro";
 export const dynamic = 'force-dynamic'
 
 import {useEffect,useMemo,useState} from 'react'
@@ -48,7 +49,7 @@ export default function StudentAssessmentsPage(){
     <header style={{marginBottom:19}}>
       <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:1.3,color:'var(--vs-accent)',fontWeight:800}}>Assigned work</div>
       <h1 style={{fontSize:'clamp(24px,3vw,31px)',letterSpacing:'-.04em',margin:'7px 0'}}>Classwork & Quizzes</h1>
-      <p style={{fontSize:13,color:'var(--vs-muted)',lineHeight:1.6}}>Open your classwork in one place. Timed exams, Topic Practice and released results have their own clear destinations.</p>
+      <StudentIntro feature="classwork-overview"><p>Open assigned classwork here. Exams and independent practice have separate workspaces.</p></StudentIntro>
     </header>
     <section aria-label="Available classwork" style={{display:'grid',gap:11}}>
       {loading?<div role="status" style={card}>Loading classwork…</div>:

@@ -1,4 +1,5 @@
 'use client'
+import StudentIntro from "@/components/student/StudentIntro";
 
 export const dynamic = 'force-dynamic'
 
@@ -57,7 +58,7 @@ export default function KcseCandidatePage() {
     <section style={hero}>
       <div style={eyebrow}>KCSE Candidate OS</div>
       <h1 style={{ margin: '8px 0 6px', fontSize: 30 }}>What should I do next to reach my KCSE target?</h1>
-      <p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.6 }}>Vibeschool uses verified evidence, your remaining time and your mistakes. It abstains when authoritative KCSE content or grade thresholds are missing.</p>
+      <StudentIntro feature="kcse-overview"><p>Use your results and available evidence to plan your next KCSE study step.</p></StudentIntro>
     </section>
 
     {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}

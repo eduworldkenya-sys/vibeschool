@@ -1,4 +1,5 @@
 'use client'
+import StudentIntro from "@/components/student/StudentIntro";
 
 export const dynamic = 'force-dynamic'
 
@@ -210,7 +211,7 @@ export default function TopicPracticePage() {
   return <main style={shell}>
     <button style={plain} onClick={() => router.push('/student/study')}>← Learn</button>
     <h1 style={{margin:'12px 0 6px',fontSize:26}}>Topic Practice</h1>
-    <p style={muted}>Practice is for improvement, not a formal exam. Get feedback after each question, review mistakes, and continue at your pace.</p>
+    <StudentIntro feature="topic-practice-overview"><p>Answer five questions, check feedback, and practise again at your own pace.</p></StudentIntro>
 
     {!grade && <section style={card}><h2 style={heading}>Choose your grade once</h2><div style={grid}>{[4,5,6,7,8,9].map(n => <button key={n} style={button} onClick={() => void selectGrade('Grade '+n)}>Grade {n}</button>)}</div></section>}
     {grade && <p style={{...muted,marginTop:12}}>{grade} <button style={plain} onClick={() => void selectGrade('')}>Change</button></p>}

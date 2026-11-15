@@ -1,4 +1,5 @@
 "use client";
+import StudentIntro from "@/components/student/StudentIntro";
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
@@ -214,7 +215,7 @@ export default function MarksPage() {
     <div style={{ animation: "slideIn 0.22s ease" }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--vs-text)", fontFamily: "'Bricolage Grotesque', sans-serif" }}>My Progress</h1>
-        <p style={{ fontSize: 12, color: "var(--vs-muted)", marginTop: 2 }}>Full report, personal targets and reflections. All released evidence appears below without extra tabs.</p>
+        <StudentIntro feature="progress-overview"><p>See released results, learning progress and personal targets here.</p></StudentIntro>
       </div>
 
       <section aria-label="What to do after receiving results" style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:15,marginBottom:16}}>

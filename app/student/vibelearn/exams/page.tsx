@@ -1,4 +1,5 @@
 'use client'
+import StudentIntro from "@/components/student/StudentIntro";
 
 export const dynamic = 'force-dynamic'
 
@@ -212,7 +213,7 @@ export default function VibeLearnExamsPage() {
       </div>
       <header className="vs-exams-heading">
         <div><p className="vs-exams-kicker">● YOUR EXAMINATION SPACE</p><h1>My Exams <span aria-hidden="true">✦</span></h1>
-          <p>Choose your next assessment, resume your work or explore your results.</p></div>
+          <StudentIntro feature="exams-overview"><p>Choose an exam, resume an unfinished attempt or review released results.</p></StudentIntro></div>
       </header>
 
       <section className="vs-exams-overview" aria-label="Exam overview">

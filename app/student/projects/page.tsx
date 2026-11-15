@@ -1,4 +1,5 @@
 "use client";
+import StudentIntro from "@/components/student/StudentIntro";
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
@@ -67,7 +68,7 @@ export default function StudentProjectsPage() {
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px 100px", fontFamily: "'Plus Jakarta Sans', sans-serif", color: "var(--vs-text)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 900, marginBottom: 4, color: "var(--vs-text)" }}>Projects</h1>
-      <p style={{ fontSize: 13, color: "var(--vs-muted)", marginBottom: 20 }}>School-assigned projects and your submission progress.</p>
+      <StudentIntro feature="projects-overview"><p>Find assigned projects and track their submission status.</p></StudentIntro>
 
       <Link href="/student/projects/independent" style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44, padding: "9px 13px", marginBottom: 16, borderRadius: 11, background: "var(--vs-card)", color: "var(--vs-text)", border: "1px solid var(--vs-border)", textDecoration: "none", fontWeight: 700, fontSize: 13 }}><Plus size={17} aria-hidden="true" /> My independent projects</Link>
 

@@ -1,4 +1,5 @@
 "use client";
+import StudentIntro from "@/components/student/StudentIntro";
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from 'react'
@@ -171,7 +172,7 @@ export default function StudentProfilePage() {
         <div style={{ width: 78, height: 78, borderRadius: '50%', overflow: 'hidden', background: '#166d49', border: '3px solid rgba(255,255,255,.3)', display: 'grid', placeItems: 'center', fontSize: 30, flexShrink: 0 }}>{data?.avatarUrl ? <img src={data.avatarUrl} alt="Profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}</div>
         <div style={{ minWidth: 0 }}><div style={{ fontSize: 10, letterSpacing: 1.2, opacity: .65, fontWeight: 800 }}>MY LEARNER PROFILE</div><h1 style={{ margin: '4px 0', fontSize: 22, lineHeight: 1.15 }}>{identity.name}</h1><p style={{ margin: 0, fontSize: 12, opacity: .75 }}>{identity.className || 'Class not assigned'}{identity.schoolName ? ` · ${identity.schoolName}` : ''}</p></div>
       </div>
-      <p style={{ margin: '14px 0 0', fontSize: 11, opacity: .72, lineHeight: 1.55 }}>One learner record: school identity, progress, achievements, journey and Twin evidence. Your parent and teachers see role-appropriate views of the same learner.</p>
+      <StudentIntro feature="profile-overview"><p>Your profile connects your identity, progress and learning records in one account.</p></StudentIntro>
     </section>
 
     <nav aria-label="Learner profile and account controls" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:10,marginBottom:14}}>
