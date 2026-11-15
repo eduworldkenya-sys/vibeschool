@@ -158,7 +158,7 @@
       },
       {
         "title": "Our working case: Nuru Repair Studio",
-        "text": "Assume Nuru Repair Studio begins on 1 August with no opening balances. During August it makes ten simple transactions. For this learning case, ignore VAT, depreciation, tax and further year-end adjustments. Advertising services are fully used in August. These simplifications allow us to follow the bookkeeping mechanics without confusing an unspent asset with an expense."
+        "text": "Nuru Repair Studio opens on 1 August with no opening balances. During August it has nine recordable transactions and one customer enquiry that must not be posted. For this introductory case, ignore VAT, depreciation, tax and other year-end adjustments. The advertising services are fully used in August. The same figures will reappear in the trial balance and financial statements, so follow every amount carefully."
       },
       {
         "title": "Transaction 1 and 2: capital and equipment",
@@ -173,8 +173,8 @@
         "text": "12 August: advertising worth KSh 8,000 is fully delivered and invoiced, payment due later. Debit advertising expense KSh 8,000; credit trade payables KSh 8,000. 18 August: KSh 20,000 of the earlier credit customer balance arrives in the bank. Debit bank KSh 20,000; credit trade receivables KSh 20,000. 22 August: the business pays the advertising supplier KSh 5,000. Debit trade payables KSh 5,000; credit bank KSh 5,000. Neither payment is fresh income or a second expense."
       },
       {
-        "title": "Transactions 9 and 10: final movement",
-        "text": "25 August: the owner withdraws KSh 4,000 from the business bank for home use. Debit drawings KSh 4,000; credit bank KSh 4,000. The tenth transaction is a KSh 0 posting? No: count carefully. The earlier sequence contains only nine transactions; this is a useful audit habit. The business needs a real tenth event rather than a made-up balancing entry. On 27 August a customer enquires about a KSh 9,000 future repair quote, which creates no accounting entry. We deliberately do not post the enquiry: there are nine posted transactions, and one non-transaction to recognise."
+        "title": "The final payment and a non-transaction",
+        "text": "25 August: the owner withdraws KSh 4,000 from the business bank for home use. Debit drawings KSh 4,000; credit bank KSh 4,000. That is the ninth recordable event. On 27 August, a potential customer requests a quotation for repairs priced at KSh 9,000. No work has been performed and no binding transaction is assumed; there is no journal entry for the enquiry. The accountant's job includes recognising when not to post."
       },
       {
         "title": "Post to the bank ledger, not just a journal list",
@@ -209,8 +209,8 @@
         "text": "Customer payment on an already recorded credit invoice reduces receivables and increases bank. If you credit revenue again, sales and profit will be overstated."
       },
       {
-        "title": "Forcing a tenth transaction",
-        "text": "A quote for future work is not a service performed or an invoice that establishes a present claim. Never invent a journal entry just to make a demonstration list look complete."
+        "title": "Recording a quotation as a sale",
+        "text": "An enquiry or price quotation does not itself prove that a service was delivered or income earned. The correct response may be to retain the quotation without posting any ledger entry."
       }
     ],
     "clinical_tip_tab": [
