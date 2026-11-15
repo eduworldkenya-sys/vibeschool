@@ -1,6 +1,4 @@
--- Extend only the existing independent learner's *learning preference* values.
--- The verified identity, school-linking restrictions, and self-owned pathway RLS
--- remain unchanged. Post-secondary selections receive no school enrolment.
+-- Extend only existing independent learning preferences, without changing RLS.
 alter table public.independent_learner_identities
   drop constraint if exists independent_grade_label_valid;
 alter table public.independent_learner_identities
