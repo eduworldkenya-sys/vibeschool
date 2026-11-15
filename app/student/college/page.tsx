@@ -14,6 +14,7 @@ type Paper = {
   qualification_level: string | null
   qualification_requirement: string | null
   sequence_number: number
+  has_published_lessons: boolean
 }
 type Path = {
   education_stage: string
@@ -48,32 +49,31 @@ export default function CollegeLearnerHome() {
     setError('')
     void (async () => {
       try {
-        const [profileResult, courseResult] = await Promise.all([
+        const [profileResult, catalogueResult] = await Promise.all([
           supabase.from('learner_education_paths')
             .select('education_stage,qualification_code,qualification_level,paper_code')
             .eq('user_id', identity.profileId).maybeSingle(),
-          supabase.from('courses')
-            .select('id,status,qualification_code,qualifying_body')
-            .eq('slug', 'kasneb-cpa').maybeSingle(),
+          supabase.rpc('get_my_cpa_paper_catalogue'),
         ])
         if (profileResult.error) throw new Error('Your professional study profile could not be opened.')
         const profile = profileResult.data as Path | null
         if (!profile || profile.education_stage !== 'post_secondary' || profile.qualification_code !== 'CPA')
           throw new Error('Your CPA study pathway needs verification.')
-        if (courseResult.error || !courseResult.data ||
-          courseResult.data.qualification_code !== 'CPA' ||
-          courseResult.data.qualifying_body !== 'KASNEB')
+        if (catalogueResult.error || !catalogueResult.data ||
+          !Array.isArray(catalogueResult.data.papers))
           throw new Error('The KASNEB CPA catalogue is temporarily unavailable.')
-        const moduleResult = await supabase.from('modules')
-          .select('slug,title,qualification_level,qualification_requirement,sequence_number')
-          .eq('course_id', courseResult.data.id)
-          .order('sequence_number', { ascending: true })
-        if (moduleResult.error) throw new Error('The CPA paper catalogue could not be loaded.')
         if (!active) return
-        const listed = (moduleResult.data ?? []) as Paper[]
+        const listed = (catalogueResult.data.papers as Paper[]).filter(paper =>
+          typeof paper.slug === 'string' &&
+          typeof paper.title === 'string' &&
+          typeof paper.sequence_number === 'number' &&
+          (paper.qualification_level === 'Foundation' ||
+            paper.qualification_level === 'Intermediate' ||
+            paper.qualification_level === 'Advanced')
+        )
         if (!listed.length) throw new Error('CPA papers are not yet available to select.')
         setPapers(listed)
-        setCourseLive(courseResult.data.status === 'live')
+        setCourseLive(catalogueResult.data.status === 'live')
         const currentLevel = isLevel(profile.qualification_level) ? profile.qualification_level : ''
         const code = listed.some(paper => paper.qualification_level === currentLevel &&
           paperCode(paper) === profile.paper_code) ? profile.paper_code ?? '' : ''
@@ -93,6 +93,7 @@ export default function CollegeLearnerHome() {
   const chosen = availablePapers.find(paper => paperCode(paper) === selectedPaper)
   const selectedIsValid = !!chosen && !!level && paperCode(chosen) === selectedPaper
   const advanced = level === 'Advanced'
+  const savedPaperLive = papers.some(p => paperCode(p) === savedPaper && p.has_published_lessons)
 
   async function savePaper() {
     if (!identity?.profileId || !level || !selectedIsValid || saving || loading || error) return
@@ -183,15 +184,14 @@ export default function CollegeLearnerHome() {
       <h2 style={{fontSize:19,marginBottom:10}}>
         {savedPaper ? papers.find(paper => paperCode(paper) === savedPaper)?.title ?? 'CPA study' : 'CPA independent study'}
       </h2>
-      {courseLive && savedPaper
+      {courseLive && savedPaperLive
         ? <p style={{fontSize:13,color:'var(--vs-muted)',marginBottom:14}}>
-            Open the available CPA learning materials. Only published lessons are shown.
+            Open your available CPA learning materials. Only released lessons are shown.
           </p>
         : <p style={{fontSize:13,color:'var(--vs-muted)',lineHeight:1.7}}>
-            CPA learning materials and practice examinations are in preparation.
-            You can save your paper now. School-grade lessons are not part of this study space.
+            Learning materials for this paper are in preparation. You can save your paper now and return when lessons are published. School-grade lessons are not part of this study space.
           </p>}
-      {courseLive && savedPaper &&
+      {courseLive && savedPaperLive &&
         <Link href="/learn/kasneb-cpa" style={{display:'inline-flex',padding:'12px 16px',borderRadius:11,
           background:'var(--vs-accent)',color:'var(--vs-on-accent)',textDecoration:'none',fontWeight:800}}>
           Open CPA learning
