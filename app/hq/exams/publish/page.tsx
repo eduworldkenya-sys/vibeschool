@@ -7,6 +7,12 @@ import { hqSupabase } from "@/lib/hq/supabase"
 type PrivateDraft = {
   id: string; grade: string; subject: string; title: string;
   question_count: number; status: string; published: boolean;
+  assignment_id?: string | null;
+  product_series?: "cat" | "try" | "term" | "papers" | "mock" | null;
+  paper_number?: number | null;
+  edition_year?: number | null;
+  certified_series?: string | null;
+  review_mode?: string | null;
 }
 type ReviewItem = { number: number; topic: string; prompt: string; correctAnswer: string; explanation: string; options: { value: string; label: string }[] }
 type ReviewPaper = { id: string; title: string; subject: string; items: ReviewItem[] }
@@ -55,6 +61,8 @@ export default function OriginalExamPublisher() {
   const [privateDrafts, setPrivateDrafts] = useState<PrivateDraft[]>([])
   const [privateDraftError, setPrivateDraftError] = useState("")
   const [approvedPrivateId, setApprovedPrivateId] = useState("")
+  const [certifyId, setCertifyId] = useState("")
+  const [certificationNote, setCertificationNote] = useState("")
   const [reviewDraft, setReviewDraft] = useState<ReviewPaper | null>(null)
   const [reviewConfirmed, setReviewConfirmed] = useState(false)
 
@@ -120,9 +128,38 @@ export default function OriginalExamPublisher() {
       if (!next?.published || !next.assignment_id) throw new Error("Publication not confirmed")
       setResult(next)
       setApprovedPrivateId("")
-      setPrivateDrafts(items => items.map(item => item.id === paper.id ? { ...item, published: true } : item))
+      setPrivateDrafts(items => items.map(item => item.id === paper.id ? { ...item, published: true, assignment_id: next.assignment_id } : item))
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Private publication failed") }
     finally { setBusy(false) }
+  }
+
+  async function certifyPrivatePaper(paper: PrivateDraft) {
+    if (owner !== true || busy || certifyId !== paper.id || !paper.published
+      || !paper.assignment_id || paper.certified_series
+      || !paper.product_series || !paper.paper_number || !paper.edition_year
+      || paper.status !== "reviewed") return
+    setBusy(true)
+    setError("")
+    try {
+      const { data, error: failure } = await api.rpc("hq_certify_exam_original_assignment", {
+        p_assignment_id: paper.assignment_id,
+        p_series_key: paper.product_series,
+        p_edition_year: paper.edition_year,
+        p_paper_number: paper.paper_number,
+      })
+      if (failure) throw new Error(failure.message || "Certification was rejected")
+      const receipt = data as { ok?: boolean; assignment_id?: string; series_key?: string } | null
+      if (receipt?.ok !== true || receipt.assignment_id !== paper.assignment_id
+        || receipt.series_key !== paper.product_series) throw new Error("Certification receipt did not match the paper")
+      setPrivateDrafts(items => items.map(item => item.id === paper.id
+        ? { ...item, certified_series: paper.product_series } : item))
+      setCertificationNote(`${paper.title} is registered as ${paper.product_series} Paper ${paper.paper_number}.`)
+      setCertifyId("")
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Certification was not completed")
+    } finally {
+      setBusy(false)
+    }
   }
 
   const parsed = useMemo(() => {
@@ -184,6 +221,7 @@ export default function OriginalExamPublisher() {
           <h2 style={{ marginTop: 0, fontSize: 20 }}>Private original exam bank</h2>
           <p style={{ color: "#53657c", fontSize: 13 }}>Only independently reviewed original exams can be published. No question text or answer keys are sent to this list.</p>
           {privateDraftError && <p role="alert" style={{ color: "#92400e" }}>{privateDraftError}</p>}
+          {certificationNote && <p role="status" style={{ color: "#166534", fontWeight: 700 }}>{certificationNote}</p>}
           {privateDrafts.filter(paper => paper.status !== "retired").map(paper => <div key={paper.id} style={{ padding: "12px 0", borderTop: "1px solid #e3e8f0" }}>
             <strong>{paper.title}</strong>
             <p style={{ margin: "6px 0", color: "#53657c", fontSize: 13 }}>{paper.subject} · {paper.grade} · {paper.question_count} questions · {paper.published ? "Published" : paper.status === "reviewed" ? "Reviewed" : "Awaiting educational review"}</p>
@@ -194,6 +232,22 @@ export default function OriginalExamPublisher() {
                 I approve this independently reviewed original assessment for learners.
               </label>
               <button type="button" style={{ ...button, opacity: busy || approvedPrivateId !== paper.id ? 0.5 : 1 }} disabled={busy || approvedPrivateId !== paper.id} onClick={()=>void publishPrivateDraft(paper)}>Publish reviewed exam</button>
+            </>}
+            {paper.published && paper.certified_series && <p role="status" style={{ color: "#166534", fontWeight: 750, fontSize: 13 }}>
+              VibeSchool Original · {paper.certified_series} · Paper {paper.paper_number}
+              {paper.review_mode === "owner_directed_automated" ? " · Automated review only · Provisional curriculum" : ""}
+            </p>}
+            {paper.published && paper.status === "reviewed" && !paper.certified_series
+              && paper.assignment_id && paper.product_series && paper.paper_number && paper.edition_year && <>
+              <label style={{ display: "flex", gap: 8, alignItems: "start", marginBottom: 8, fontSize: 13 }}>
+                <input type="checkbox" checked={certifyId === paper.id}
+                  onChange={event => setCertifyId(event.target.checked ? paper.id : "")} />
+                Certify this independently reviewed VibeSchool Original as {paper.product_series} Paper {paper.paper_number}, {paper.edition_year}.
+                Curriculum outcome mapping remains provisional; this is not a KNEC paper.
+              </label>
+              <button type="button" style={{ ...button, opacity: busy || certifyId !== paper.id ? 0.5 : 1 }}
+                disabled={busy || certifyId !== paper.id}
+                onClick={()=>void certifyPrivatePaper(paper)}>Certify Exam Original</button>
             </>}
           </div>)}
           {reviewDraft && <section style={{ ...surface, marginTop: 16, borderColor: "#aabbd1" }} aria-label="Owner exam review">

@@ -13,6 +13,11 @@ on:
       - 'scripts/test-exam-self-review-db.mjs'
       - 'scripts/test-exam-practice-review-db.mjs'
       - 'scripts/test-exam-originals-catalogue-db.mjs'
+      - 'scripts/test-exam-originals-private-certification-db.mjs'
+      - 'scripts/test-exam-vibepapers-autonomous-release.mjs'
+      - 'supabase/migrations/*vibepapers_g4_math001_owner_directed_release*.sql'
+      - 'app/hq/exams/publish/page.tsx'
+      - 'supabase/migrations/*exam_originals_reviewed_paper_provenance*.sql'
       - 'supabase/migrations/*exq_practice_immediate_guided_review*.sql'
       - 'supabase/migrations/*exam_originals_catalogue_identity*.sql'
       - 'supabase/migrations/*exq_learner_self_review*.sql'
@@ -48,6 +53,10 @@ jobs:
         run: WORKBOOK_PGLITE_MODULE="$RUNNER_TEMP/assessment-tests/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-exam-practice-review-db.mjs
       - name: Verify Originals owner-only catalogue in isolated PostgreSQL
         run: WORKBOOK_PGLITE_MODULE="$RUNNER_TEMP/assessment-tests/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-exam-originals-catalogue-db.mjs
+      - name: Verify owner-reviewed private Originals certification and cognition integrity
+        run: WORKBOOK_PGLITE_MODULE="$RUNNER_TEMP/assessment-tests/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-exam-originals-private-certification-db.mjs
+      - name: Verify one-time owner-authorised autonomous paper release boundaries
+        run: node --test scripts/test-exam-vibepapers-autonomous-release.mjs
       - name: Install Chromium for actual-component browser tests
         run: node "$RUNNER_TEMP/assessment-tests/node_modules/playwright/cli.js" install --with-deps chromium
       - name: Verify populated, empty and failed journeys at four viewport widths
