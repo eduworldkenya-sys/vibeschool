@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check,
-  ClipboardCheck, Info, MapPin, RotateCcw, ShieldCheck, Search,
+  ClipboardCheck, Info, MapPin, RotateCcw, ShieldCheck, Search, X,
 } from "lucide-react";
 import { useKenyaCounties } from "@/lib/geography/kenyaCounties";
-import type { TeachingLevel } from "@/lib/teacher/tscSandboxMatching";
+import { meetsTscRecruitmentMinimum, type TeachingLevel } from "@/lib/teacher/tscSandboxMatching";
 import {
   COUNTY_ALLOCATION_SOURCE, OFFICIAL_TSC_ADVERTS,
   REPORTED_COUNTY_ALLOCATIONS, reportedAllocation,
@@ -41,6 +41,12 @@ export default function VacancyMatchSandbox() {
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const [countyQuery, setCountyQuery] = useState("");
   const [showAllCounties, setShowAllCounties] = useState(false);
+  const [step, setStep] = useState<"requirements" | "vacancies">("requirements");
+  const [showNotice, setShowNotice] = useState(true);
+  const [minimumChecks, setMinimumChecks] = useState({ citizen: false, qualification: false, registration: false });
+  const [documentsReady, setDocumentsReady] = useState(false);
+  const minimumMet = meetsTscRecruitmentMinimum(minimumChecks);
+  const checkedMinimumCount = Object.values(minimumChecks).filter(Boolean).length;
   const { countyNames, error: countyError } = useKenyaCounties();
 
   useEffect(() => {
@@ -49,6 +55,16 @@ export default function VacancyMatchSandbox() {
     const timer = window.setInterval(update, 30000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowNotice(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // Completing all three minimum checks opens the next in-page step, never the external TSC portal.
+  useEffect(() => {
+    if (minimumMet) setStep("vacancies");
+  }, [minimumMet]);
 
   const fallbackCounties = useMemo(
     () => REPORTED_COUNTY_ALLOCATIONS.map(item => item.county), []
@@ -89,8 +105,8 @@ export default function VacancyMatchSandbox() {
       <section className={styles.hero} aria-labelledby="sandbox-title">
         <div className={styles.heroCopy}>
           <span className={styles.eyebrow}>TSC RECRUITMENT 2026 / 2027</span>
-          <h1 id="sandbox-title">Find TSC vacancies and prepare your application.</h1>
-          <p>Check recruitment numbers in your preferred county, see the minimum requirements, and follow the official application process.</p>
+          <h1 id="sandbox-title">Teaching vacancies 2026</h1>
+          <p>Primary · Junior School · Secondary</p>
           <div className={styles.heroMeta}>
             <span><BookOpen aria-hidden="true" size={16} /> 7,720 advertised posts nationally</span>
             <span><ClipboardCheck aria-hidden="true" size={16} /> Deadline: 23 Nov 2026, midnight EAT</span>
@@ -106,24 +122,41 @@ export default function VacancyMatchSandbox() {
         </div>
       </section>
 
-      <div className={styles.demoNotice} role="note">
-        <Info aria-hidden="true" size={19} />
-        <div>
-          <strong>Real recruitment figures, not fictional school vacancies.</strong>
-          <p>The nationwide numbers are from the November 2026 TSC recruitment announcement. County totals are from a dated published breakdown. School-by-school and subject-combination matches are not yet verified in VibeSchool; confirm specific openings in TSC's official schedules.</p>
+      {showNotice && (
+        <div className={styles.demoNotice} role="status">
+          <Info aria-hidden="true" size={19} />
+          <div>
+            <strong>Official TSC recruitment · Independent VibeSchool guide</strong>
+            <p>Real recruitment figures, not fictional school vacancies. Applications are free; apply only through TSC.</p>
+          </div>
+          <button type="button" className={styles.noticeClose} aria-label="Close recruitment notice" onClick={() => setShowNotice(false)}>
+            <X aria-hidden="true" size={18} />
+          </button>
         </div>
+      )}
+
+      <div className={styles.stepTabs} aria-label="Recruitment steps">
+        <button type="button" className={step === "requirements" ? styles.stepTabActive : styles.stepTab} aria-pressed={step === "requirements"} onClick={() => setStep("requirements")}>
+          01 · Qualifications {minimumMet && <Check aria-hidden="true" size={15} />}
+        </button>
+        <button type="button" className={step === "vacancies" ? styles.stepTabActive : styles.stepTab} aria-pressed={step === "vacancies"} onClick={() => setStep("vacancies")}>
+          02 · View vacancies <ArrowRight aria-hidden="true" size={15} />
+        </button>
       </div>
 
-      <div className={styles.workspace}>
-        <section className={styles.filtersCard} aria-labelledby="choose-heading">
+      <div className={[styles.workspace, styles.stepWorkspace].join(" ")}>
+        <section className={styles.filtersCard} aria-labelledby="choose-heading" hidden={step !== "requirements"}>
           <div className={styles.sectionTop}>
             <span className={styles.step}>01 · YOUR SEARCH</span>
-            <button type="button" className={styles.reset} onClick={() => { setLevel("secondary"); setCounty(""); }}>
+            <button type="button" className={styles.reset} onClick={() => {
+              setLevel("secondary"); setCounty(""); setCountyQuery(""); setShowAllCounties(false);
+              setMinimumChecks({ citizen: false, qualification: false, registration: false });
+              setDocumentsReady(false); setStep("requirements");
+            }}>
               <RotateCcw aria-hidden="true" size={14} /> Reset
             </button>
           </div>
-          <h2 id="choose-heading">Where would you like to teach?</h2>
-          <p className={styles.supportText}>Select a teaching level and county to review the published figures.</p>
+          <h2 id="choose-heading">Your teaching level</h2>
 
           <fieldset className={styles.fieldset}>
             <legend>Teaching level</legend>
@@ -133,7 +166,12 @@ export default function VacancyMatchSandbox() {
                   key={value}
                   type="button"
                   className={level === value ? styles.levelActive : styles.levelButton}
-                  onClick={() => setLevel(value)}
+                  onClick={() => {
+                    if (value !== level) {
+                      setLevel(value);
+                      setMinimumChecks(current => ({ ...current, qualification: false }));
+                    }
+                  }}
                   aria-pressed={level === value}
                 >
                   {level === value && <Check aria-hidden="true" size={14} />}
@@ -143,40 +181,54 @@ export default function VacancyMatchSandbox() {
             </div>
           </fieldset>
 
-          <div className={styles.countyField}>
-            <label htmlFor="tsc-county"><MapPin aria-hidden="true" size={15} /> Preferred county</label>
-            <select id="tsc-county" value={county} onChange={event => setCounty(event.target.value)}>
-              <option value="">All of Kenya</option>
-              {countyOptions.map(name => <option key={name} value={name}>{name}</option>)}
-            </select>
-            {countyError && <p className={styles.help}>Using the published county list while the county directory is unavailable.</p>}
-            <p className={styles.help}>County totals show advertised allocation, not a personal eligibility decision.</p>
-          </div>
-          <div className={styles.quickExamples}>
-            <p>Minimum qualification for {levelNames[level]}</p>
-            <div className={styles.guidance}>
-              <span><Check aria-hidden="true" size={16} /> {requirements[level]}</span>
-              <span><Check aria-hidden="true" size={16} /> Kenyan citizenship</span>
-              <span><Check aria-hidden="true" size={16} /> TSC teacher registration</span>
-            </div>
-          </div>
+          <fieldset className={styles.minimumChecks}>
+            <legend>Minimum requirements</legend>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={minimumChecks.citizen}
+                onChange={event => setMinimumChecks(current => ({ ...current, citizen: event.target.checked }))} />
+              I am a Kenyan citizen
+            </label>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={minimumChecks.qualification}
+                onChange={event => setMinimumChecks(current => ({ ...current, qualification: event.target.checked }))} />
+              I hold {requirements[level]} or a TSC-accepted equivalent
+            </label>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={minimumChecks.registration}
+                onChange={event => setMinimumChecks(current => ({ ...current, registration: event.target.checked }))} />
+              I am registered with TSC
+            </label>
+          </fieldset>
+          <p className={styles.checkProgress} role="status">{checkedMinimumCount}/3 minimum requirements met{minimumMet ? " · Opening vacancies" : ""}</p>
+          <label className={[styles.checkRow, styles.documentCheck].join(" ")}>
+            <input type="checkbox" checked={documentsReady} onChange={event => setDocumentsReady(event.target.checked)} />
+            I have my original certificates ready for verification
+          </label>
+          <p className={styles.help}>Self-check only. TSC confirms eligibility; original certificates are required if shortlisted.</p>
         </section>
 
-        <section className={styles.matchesCard} aria-labelledby="matches-heading">
+        <section className={styles.matchesCard} aria-labelledby="matches-heading" hidden={step !== "vacancies"}>
           <div className={styles.sectionTop}>
             <span className={styles.step}>02 · ADVERTISED POSTS</span>
             <span className={styles.demoLabel}>PUBLISHED FIGURES</span>
           </div>
           <div className={styles.matchesTitle}>
             <div>
-              <h2 id="matches-heading">Vacancies for {levelNames[level]}</h2>
-              <p className={styles.supportText}>Based on the November 2026 recruitment notice and the published county allocation breakdown.</p>
+              <h2 id="matches-heading">Vacancies for {levelNames[level]} · 2026</h2>
             </div>
+          </div>
+          <div className={styles.countyField}>
+            <label htmlFor="tsc-county"><MapPin aria-hidden="true" size={15} /> County (optional)</label>
+            <select id="tsc-county" value={county} onChange={event => setCounty(event.target.value)}>
+              <option value="">All of Kenya</option>
+              {countyOptions.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+            {countyError && <p className={styles.help}>Using the published county list.</p>}
           </div>
 
           <section className={styles.allocationPanel} aria-label="Reported recruitment allocation" aria-live="polite">
             <div className={styles.allocationHeading}>
-              <span>REPORTED RECRUITMENT ALLOCATION</span>
+              <span>VACANCIES FOR 2026</span>
               <span>{levelNames[level]}</span>
             </div>
             <div className={styles.allocationNumber}>
@@ -206,14 +258,7 @@ export default function VacancyMatchSandbox() {
                     <h3>{county ? "Applying from " + county : "Preparing to apply"}</h3>
                   </div>
                 </div>
-                <p>Before applying, confirm that your qualifications meet TSC requirements and compare any school or subject combination with the original vacancy schedule.</p>
-                <div className={styles.guidance}>
-                  <span><Check aria-hidden="true" size={16} /> Confirm your TSC registration and qualification</span>
-                  <span><Check aria-hidden="true" size={16} /> Read the official vacancy schedule and recruitment guidelines</span>
-                  <span><Check aria-hidden="true" size={16} /> Apply online through TSC before 23 November 2026</span>
-                  <span><Check aria-hidden="true" size={16} /> Retain your reference details and original certificates for verification</span>
-                </div>
-                <p className={styles.supportText}>Applications are free. TSC says to submit only one employment application form. Shortlisted teachers must present original documents for verification.</p>
+                <p className={styles.supportText}>Applications are free. Check TSC schedules, submit one form only, and retain original certificates.</p>
                 <a href={portalHref} className={styles.detailsButton} target="_blank" rel="noopener noreferrer">
                   {applicationClosed ? "Check TSC recruitment updates" : "Continue to official TSC application"} <ArrowRight aria-hidden="true" size={17} />
                 </a>
@@ -227,6 +272,7 @@ export default function VacancyMatchSandbox() {
         </section>
       </div>
 
+      <div hidden={step !== "vacancies"}>
       <section className={styles.countyBoard} aria-labelledby="county-board-title">
         <div className={styles.countyBoardHeading}>
           <div>
@@ -293,13 +339,8 @@ export default function VacancyMatchSandbox() {
       <section className={styles.next} aria-labelledby="next-heading">
         <div className={styles.nextText}>
           <span className={styles.step}>03 · SUBMIT YOUR APPLICATION</span>
-          <h2 id="next-heading">Application checklist</h2>
-          <p>For primary teachers, the minimum requirement is P1. Junior and secondary teachers need at least a Diploma in Education. All applicants must be registered with TSC.</p>
-          <div className={styles.guidance}>
-            <span><Check aria-hidden="true" size={16} /> Confirm you meet the advertised requirements</span>
-            <span><Check aria-hidden="true" size={16} /> Choose opportunities using official TSC schedules</span>
-            <span><Check aria-hidden="true" size={16} /> Submit one application on the official portal</span>
-          </div>
+          <h2 id="next-heading">Apply through TSC</h2>
+          <p>Submit one application form only.</p>
         </div>
         <div className={styles.nextActions}>
           <a href={portalHref} target="_blank" rel="noopener noreferrer" className={styles.apply}>
@@ -309,6 +350,7 @@ export default function VacancyMatchSandbox() {
           <p>Applications are free. VibeSchool never collects your TSC password.</p>
         </div>
       </section>
+      </div>
     </div>
   );
 }
