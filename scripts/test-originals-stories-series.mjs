@@ -66,3 +66,47 @@ test('Simple reader fixes do not create a second reading system or extra gates',
   assert.match(migration,/v_new_percent := greatest/, 'Completion history stays intact')
   assert.doesNotMatch(migration,/create table|drop table|alter table .* disable row level security/i)
 })
+
+
+const tarajiRoot = 'content/originals/taraji/'
+const tarajiParts = ['your-way-forward-01.md','your-way-forward-02.md','your-way-forward-03.md']
+const tarajiManuscript = () => tarajiParts.map(file=>read(tarajiRoot+file)).join('\n\n')
+const chapterNumbers = source => [...source.matchAll(/^## Chapter ([0-9]+): (.+)$/gm)].map(match=>Number(match[1]))
+const assertConsecutiveChapters = (source,expected) => {
+  const numbers=chapterNumbers(source)
+  assert.deepEqual(numbers,Array.from({length:expected},(_,i)=>i+1),
+    'Published chapter order must be complete, distinct and consecutive')
+}
+
+test('Taraji has a complete original text-only 12-chapter novellette with continuous story arc',()=>{
+  const story=tarajiManuscript()
+  assertConsecutiveChapters(story,12)
+  assert.ok(story.trim().endsWith('The end.'))
+  assert.ok(story.split(/\s+/u).length>=6500,'Book One is not merely a book outline')
+  assert.match(story,/Taraji/)
+  assert.match(story,/Tuesday Table/)
+  assert.match(story,/Grace/)
+  assert.match(story,/Nuru/)
+  assert.match(story,/Asha/)
+  assert.doesNotMatch(story,/\bJean\b/,'Retired placeholder character name must not appear in the story')
+  assert.doesNotMatch(story,/!\[[^\]]*\]\([^)]+\)/,'This edition is text-only, no illustrations')
+})
+
+test('CPA welcome companion is substantive, text-only and does not promise unofficial certification',()=>{
+  const welcome=read(tarajiRoot+'welcome-to-your-cpa-student-life.md')
+  assert.ok(welcome.split(/\s+/u).length>=1400,'Companion must contain actual reader guidance')
+  assert.equal((welcome.match(/^## /gm)||[]).length,9)
+  assert.match(welcome,/KASNEB/)
+  assert.match(welcome,/official instructions/)
+  assert.doesNotMatch(welcome,/!\[[^\]]*\]\([^)]+\)/)
+  const metadata=read(tarajiRoot+'README.md')
+  assert.match(metadata,/Canonical platform genre:\*\* `fiction`/)
+  assert.match(metadata,/Canonical platform genre:\*\* `self_help`/)
+  assert.match(metadata,/publication_release_approvals/)
+  assert.match(metadata,/do not create a parallel store/)
+})
+
+test('Taraji publication integrity test detects missing or out-of-order chapters',()=>{
+  assert.throws(()=>assertConsecutiveChapters('## Chapter 2: Missing beginning',2),/consecutive/)
+  assert.throws(()=>assertConsecutiveChapters('## Chapter 1: First\n## Chapter 1: Duplicate',2),/consecutive/)
+})
