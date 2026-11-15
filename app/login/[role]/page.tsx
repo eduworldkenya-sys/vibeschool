@@ -178,6 +178,7 @@ input:focus-visible{border-color:var(--auth-focus);box-shadow:none}
 .primary{background:var(--auth-accent);border-color:var(--auth-accent);color:var(--auth-on-accent)}
 .password-toggle{color:var(--auth-accent)}
 .header{height:72px}
+.vs-auth[data-auth-theme="light"] .header-brand img{filter:brightness(0);opacity:.82}
 @media(max-width:480px){.card{padding:24px 18px;border-radius:16px}}
 
 `
