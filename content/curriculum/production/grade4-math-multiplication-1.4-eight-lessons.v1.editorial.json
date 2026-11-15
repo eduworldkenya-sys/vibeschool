@@ -56,7 +56,7 @@
         ],
         "prompt": "Find 36 × 10",
         "answer": 360,
-        "feedback": "Twenty-four groups of ten equal 240; each ones unit becomes ten times as large."
+        "feedback": "36 × 10 = 360. Each of the 36 units becomes ten times as large: 30×10=300 and 6×10=60."
       },
       "remedial": "Do not rely on writing a zero without explaining why the places change.",
       "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
@@ -107,7 +107,7 @@
         ],
         "prompt": "Find 14 × 40",
         "answer": 560,
-        "feedback": "23×30 equals 23×3×10, making 69 tens or 690."
+        "feedback": "14 × 40 = 14 × 4 × 10 = 56 × 10 = 560. Forty means four tens, not four ones."
       },
       "remedial": "Treat the factor 30 as three tens, not simply three.",
       "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
@@ -158,7 +158,7 @@
         ],
         "prompt": "Find 21 × 13",
         "answer": 273,
-        "feedback": "32×12=32×(10+2)=320+64=384, because the tens and ones parts cover the whole rectangle."
+        "feedback": "21 × 13 = 21×10 + 21×3 = 210+63 = 273. Both partial products must be included."
       },
       "remedial": "Avoid treating the tens digit of 12 as one unit.",
       "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
@@ -209,7 +209,7 @@
         ],
         "prompt": "Find 27 × 14",
         "answer": 378,
-        "feedback": "24×13=24×10+24×3=240+72=312; in 4×3=12, 10 ones exchange for one ten."
+        "feedback": "27 × 14 = 27×10 + 27×4 = 270+108 = 378. The ones product 7×4=28 requires regrouping."
       },
       "remedial": "The 1 in 13 represents one ten; 24×1 is not the tens partial product.",
       "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
@@ -260,7 +260,7 @@
         ],
         "prompt": "Find the nearest-ten estimate of 33 × 21",
         "answer": 600,
-        "feedback": "24 rounds to 20 and 36 to 40; 20×40=800, close to the exact product 864."
+        "feedback": "33 rounds to 30 and 21 rounds to 20; the estimated product is 30×20=600, not the exact product 693."
       },
       "remedial": "An estimate is approximate; do not label the unrounded product as the estimate.",
       "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
@@ -333,7 +333,7 @@
           36,
           45
         ],
-        "feedback": "Each additional group of twelve adds twelve more, producing 12, 24, 36, 48 and 60."
+        "feedback": "The products 9×2, 9×3, 9×4, 9×5 are 18, 27, 36, 45. Each step adds another group of 9."
       },
       "remedial": "Add a constant group amount rather than multiplying the previous term.",
       "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
@@ -406,7 +406,7 @@
           35,
           42
         ],
-        "feedback": "Increasing the second factor by one adds eight to each product, yielding 24,32,40,48,56."
+        "feedback": "The products 7×3, 7×4, 7×5, 7×6 are 21, 28, 35, 42. Each next product increases by 7."
       },
       "remedial": "Use equal groups to confirm the multiplier increases by exactly one.",
       "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
@@ -457,7 +457,7 @@
         ],
         "prompt": "Find 18 × 14",
         "answer": 252,
-        "feedback": "Twenty-four rows with twelve seedlings each contain 24×12=288 seedlings; repeated addition gives the same total."
+        "feedback": "18 × 14 = 18×10 + 18×4 = 180+72 = 252. The two partial products count all fourteen groups."
       },
       "remedial": "If the learner adds the two factors, explain why equal groups require repeated addition or multiplication.",
       "revision": "Explain the group size, number of groups, and how the same result can be represented another way.",
