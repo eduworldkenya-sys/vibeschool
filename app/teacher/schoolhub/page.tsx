@@ -74,6 +74,7 @@ export default function SchoolHubPage(){
   <StudioTools title="Your school tools" tools={[
     {label:'My classes',href:'/teacher/classhub',icon:Users},
     {label:'Timetable',href:'/teacher/timetable',icon:CalendarDays},
+    {label:'School updates',href:'/schools/following',icon:Building2},
     {label:'Change school',href:'/teacher/onboarding/school',icon:Building2},
   ]} />
   {error&&<div role="alert" style={{padding:11,border:'1px solid #fecaca',background:'#fef2f2',borderRadius:12,color:'#b91c1c',fontSize:12}}>{error}<button type="button" className="teacher-btn teacher-btn--secondary" onClick={()=>void load()} style={{marginLeft:8}}>Retry</button></div>}
