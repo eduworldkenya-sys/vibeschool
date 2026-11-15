@@ -4,6 +4,8 @@ on:
     paths:
       - 'supabase/migrations/*school_follows*.sql'
       - 'scripts/test-school-follows-contract.mjs'
+      - 'scripts/test-school-follow-ui.mjs'
+      - 'app/schools/components/**'
       - '.github/workflows/school-follows-security.yml'
   push:
     branches: [main]
@@ -22,4 +24,5 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --prefix "$RUNNER_TEMP/school-follow-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8
+      - run: node scripts/test-school-follow-ui.mjs
       - run: SCHOOL_URL_PGLITE_MODULE="$RUNNER_TEMP/school-follow-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-school-follows-contract.mjs
