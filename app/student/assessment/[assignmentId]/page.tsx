@@ -647,12 +647,19 @@ export default function LearnerAssessmentPage() {
       <p style={{ color: '#6b7280', lineHeight: 1.5 }}>
         {result.submittedDueToExpiry ? 'Time ended and the attempt was submitted automatically. ' : ''}
         {result.manualItems > 0
-          ? `${result.manualItems} written response${result.manualItems === 1 ? '' : 's'} will be reviewed by your teacher.`
+          ? workspace.assessmentType === 'practice' && workspace.showScorePolicy === 'immediate'
+            ? `${result.manualItems} written response${result.manualItems === 1 ? '' : 's'} can be compared with the marking scheme if answer review is allowed. Self-awarded marks are not verified.`
+            : `${result.manualItems} written response${result.manualItems === 1 ? '' : 's'} require review before a formal result can be released.`
           : 'All questions were processed.'}
       </p>
       <p style={{ color: '#374151', fontWeight: 700 }}>{result.submittedDueToExpiry
         ? 'The server has finalised answers saved before the deadline. Any unanswered questions are marked as skipped.'
         : skippedAtSubmission.length === 0 ? 'All questions answered.' : `${skippedAtSubmission.length} skipped question${skippedAtSubmission.length === 1 ? '' : 's'}: ${skippedAtSubmission.join(', ')}. Skipped questions receive 0 marks.`}</p>
+      {result.manualItems > 0 && workspace.assessmentType === 'practice' && workspace.showScorePolicy === 'immediate' &&
+        <button type="button" onClick={() => router.push(`/student/assessment/review/${encodeURIComponent(workspace.attemptId)}`)}
+          style={{ ...primaryButton, marginBottom: 10 }}>
+          Compare and self-mark written answers
+        </button>}
       {result.scoreReleased && <button onClick={() => router.push(`/student/results/${workspace.attemptId}`)} style={{ ...primaryButton, marginBottom: 10 }}>Review answers and skipped questions</button>}
       <button onClick={() => router.push('/student/assessment')} style={secondaryButton}>Done</button>
     </section></div>

@@ -187,7 +187,10 @@ export default function VibeLearnExamsPage() {
   }
 
   function examCard(item: LearnerAssessmentAssignment, kind: ExamState) {
-    const action = kind === 'expired' ? 'Refresh status' : kind === 'in-progress' ? 'Resume exam' : kind === 'new' ? 'Start exam'
+    const canSelfMark = kind === 'awaiting' && Boolean(item.attemptId) &&
+      item.assessmentType === 'practice' && item.showScorePolicy === 'immediate' &&
+      item.resultStatus === 'partially_marked' && Boolean(item.submittedAt)
+    const action = canSelfMark ? 'Review written answers' : kind === 'expired' ? 'Refresh status' : kind === 'in-progress' ? 'Resume exam' : kind === 'new' ? 'Start exam'
       : kind === 'retake' ? 'Retake exam' : kind === 'completed' && item.attemptId ? 'View result' : 'View status'
     const resultAvailable = item.resultStatus === 'released' ||
       (item.assessmentType === 'practice' && item.showScorePolicy === 'immediate' && item.resultStatus === 'marked')
@@ -197,7 +200,9 @@ export default function VibeLearnExamsPage() {
         <h3>{item.title}</h3>
         <p>{item.assessmentType.replaceAll('_', ' ')}{item.timeLimitMinutes ? ` · ${item.timeLimitMinutes} minutes` : ''}</p>
         {item.attemptNumber && <p>Attempt {item.attemptNumber} of {item.maxAttempts}</p>}
-        {kind === 'awaiting' && <p>Your attempt was submitted. Results will appear when released.</p>}
+        {kind === 'awaiting' && <p>{canSelfMark
+          ? 'Practice submitted. Review expected answer points and self-mark your written answers.'
+          : 'Your attempt was submitted. Results will appear when released.'}</p>}
         {kind === 'expired' && <p>Your time has ended. The server must finalize this attempt before any further action.</p>}
         {kind === 'retake' && <p>This creates another attempt. Your previous result stays in History.</p>}
         {kind === 'completed' && resultAvailable && item.percentage !== null &&
@@ -206,7 +211,8 @@ export default function VibeLearnExamsPage() {
       <div className="vs-exam-card-actions">
         <button type="button" className={kind === 'completed' ? 'vs-exam-button vs-exam-button--outline' : 'vs-exam-button'}
           onClick={event => {
-            if (kind === 'retake' && mayRetake(item)) openRetake(item, event.currentTarget)
+            if (canSelfMark && item.attemptId) router.push(`/student/assessment/review/${encodeURIComponent(item.attemptId)}`)
+            else if (kind === 'retake' && mayRetake(item)) openRetake(item, event.currentTarget)
             else if (kind === 'completed' && resultAvailable && item.attemptId) viewResult(item.attemptId)
             else if (kind === 'new' || kind === 'in-progress') start(item)
             else if (kind === 'expired') reload()
