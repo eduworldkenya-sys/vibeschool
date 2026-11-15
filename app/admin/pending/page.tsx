@@ -1,6 +1,7 @@
 'use client'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense } from 'react'
+import { OFFICIAL_WHATSAPP_NUMBER } from '@/lib/public/whatsapp'
 
 function PendingContent() {
   const params     = useSearchParams()
@@ -22,7 +23,7 @@ function PendingContent() {
         </p>
         <p style={{ color:'rgba(255,255,255,0.35)', fontSize:'13px', lineHeight:'1.6', margin:'0 0 32px' }}>Reach out if you need help getting started:</p>
         <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
-          <a href={`https://wa.me/254720614664?text=${waText}`} target="_blank" rel="noopener noreferrer"
+          <a href={`https://wa.me/${OFFICIAL_WHATSAPP_NUMBER}?text=${waText}`} target="_blank" rel="noopener noreferrer"
             style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', background:'#25d366', borderRadius:'10px', padding:'14px', color:'#ffffff', fontSize:'14px', fontWeight:'700', textDecoration:'none' }}>
             <span style={{ fontSize:'18px' }}>💬</span> Chat on WhatsApp
           </a>
