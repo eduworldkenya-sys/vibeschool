@@ -1,0 +1,35 @@
+/* Account entry shares the canonical Student theme palette, without global
+   page overrides. Saved learner preference wins; "auto" follows the device. */
+.vs-auth[data-auth-theme="light"] {
+  --auth-bg:#f5f8f6; --auth-panel:#ffffff; --auth-text:#1b4030;
+  --auth-muted:#597563; --auth-border:#dce9de; --auth-input:#ffffff;
+  --auth-accent:#166d49; --auth-on-accent:#ffffff; --auth-soft:#eef7f0;
+  --auth-error:#b93434; --auth-focus:#166d49; color-scheme:light;
+}
+.vs-auth[data-auth-theme="dark"] {
+  --auth-bg:#101d16; --auth-panel:#1b2c21; --auth-text:#ebf6ee;
+  --auth-muted:#b1cfba; --auth-border:#355542; --auth-input:#14261b;
+  --auth-accent:#79dbaa; --auth-on-accent:#101d16; --auth-soft:#254332;
+  --auth-error:#ff9c9c; --auth-focus:#79dbaa; color-scheme:dark;
+}
+.vs-auth {
+  min-height:100dvh;
+  background:var(--auth-bg);
+  color:var(--auth-text);
+  font-family:var(--font-jakarta),Arial,sans-serif;
+}
+.vs-auth :where(button,a,input,select):focus-visible {
+  outline:3px solid var(--auth-focus); outline-offset:3px;
+}
+.vs-auth :where(input,select) {
+  color:var(--auth-text);
+  background:var(--auth-input);
+  border:1px solid var(--auth-border);
+  min-height:48px;
+  font:inherit;
+  font-size:16px;
+}
+.vs-auth select option {
+  color:var(--auth-text);
+  background:var(--auth-panel);
+}

@@ -1,15 +1,19 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { checkLearnerEmailSession, sendLearnerEmail, signOutLearnerEmail, verifyLearnerEmail, saveIndependentEmailGrade } from './actions'
 import styles from './signup.module.css'
-import LearnerGradePicker from '@/components/learner/LearnerGradePicker'
+import LearningLevelSelect from '@/components/learner/LearningLevelSelect'
+import { useAuthAppearance } from '@/app/auth/useAuthAppearance'
 
 export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean }) {
   const [email, setEmail] = useState('')
   const [signedIn, setSignedIn] = useState(false)
-  const [grade, setGrade] = useState('')
-  const [gradeSaved, setGradeSaved] = useState(false)
+  const [level, setLevel] = useState('')
+  const [choice, setChoice] = useState('')
+  const appearance = useAuthAppearance()
+  const router = useRouter()
   const [checking, setChecking] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(linkFailed ? 'This link could not be verified. Request a new email and open it on this browser.' : '')
@@ -66,14 +70,15 @@ export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean })
   }
 
   async function saveGrade() {
-    if (!grade || busy) return
+    if (!level || !choice || busy) return
     setBusy(true); setError('')
     const data = new FormData()
-    data.set('grade', grade)
+    data.set('level', level)
+    data.set('choice', choice)
     try {
       const result = await saveIndependentEmailGrade(data)
       if (result.error) setError(result.error)
-      else setGradeSaved(true)
+      else if (result.saved) router.replace(result.destination === '/student/college' ? '/student/college' : '/student')
     } catch { setError('Could not save grade. Try again.') }
     finally { setBusy(false) }
   }
@@ -92,16 +97,15 @@ export default function EmailSignupForm({ linkFailed }: { linkFailed: boolean })
     }
   }
 
-  return <main className={styles.shell}><section className={styles.card}>
+  return <main className={`${styles.shell} vs-auth`} data-auth-theme={appearance}><section className={styles.card}>
     <a href="/signup/student" className={styles.back}>← Learner signup</a>
     <h1>{signedIn ? 'Start learning' : 'Sign up with email'}</h1>
-    <p>{signedIn ? 'Your email is verified. Open the reading library to start.' : 'Use an email you can open on this phone.'}</p>
+    {!signedIn && <p>Use your email to continue.</p>}
     {error && <p className={styles.error} role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {checking ? <p role="status">Checking your session…</p> : signedIn ? <>
-      {!gradeSaved && <><LearnerGradePicker value={grade} onChange={setGrade} legend="Choose your grade or form" /><button className={styles.primary} type="button" disabled={!grade || busy} onClick={()=>void saveGrade()}>{busy?'Saving…':'Save grade and continue'}</button></>}
-      {gradeSaved && <a className={styles.primary} href="/global/read">Open reading library</a>}
-      <p>Independent learners can access the reading library. School-only areas are not included in this account yet.</p>
+      <LearningLevelSelect level={level} choice={choice} onLevelChange={setLevel} onChoiceChange={setChoice} disabled={busy}/>
+      <button className={styles.primary} type="button" disabled={!level || !choice || busy} onClick={()=>void saveGrade()}>{busy?'Saving…':'Continue'}</button>
       <button className={styles.secondary} type="button" disabled={busy} onClick={() => void signOut()}>Sign out</button>
     </> : <form key={email ? 'verify' : 'send'} onSubmit={submit}>
       {email ? <>

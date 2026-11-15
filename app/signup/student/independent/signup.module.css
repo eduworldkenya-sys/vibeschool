@@ -1,0 +1,14 @@
+.shell{display:grid;place-items:center;padding:24px 16px}
+.card{width:100%;max-width:400px;background:var(--auth-panel);border:1px solid var(--auth-border);border-radius:18px;padding:clamp(20px,5vw,30px);box-shadow:0 12px 36px rgba(0,0,0,.05);display:grid;gap:22px}
+.brand{color:var(--auth-accent);text-decoration:none;font-size:20px;font-weight:800}
+.heading{font-size:clamp(26px,7vw,32px);line-height:1.13;letter-spacing:-.04em;margin:0}
+.name{display:flex;align-items:center;gap:8px;justify-content:space-between;color:var(--auth-muted);min-width:0}
+.nameText{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.edit{border:0;background:transparent;color:var(--auth-accent);padding:8px;font-size:13px;font-weight:750;cursor:pointer}
+.label{font-size:13px;font-weight:700;display:grid;gap:8px}
+.input{width:100%;border-radius:10px;padding:10px 12px}
+.primary{border:0;background:var(--auth-accent);color:var(--auth-on-accent);min-height:50px;border-radius:11px;padding:12px;font-size:15px;font-weight:800;cursor:pointer}
+.primary:disabled{opacity:.45;cursor:not-allowed}
+.message{color:var(--auth-error);font-size:13px;line-height:1.45}
+.link{color:var(--auth-accent);font-weight:700}
+.status{color:var(--auth-muted);font-size:13px}

@@ -84,7 +84,15 @@ const server = load('server', {
     }
   } },
 }, env)
-const actions = load('actions', { './config': config, './server': server }, env)
+const levelSource = readFileSync('lib/learner/learning-levels.ts', 'utf8')
+const levelJs = ts.transpileModule(levelSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
+const levels = {}
+runInNewContext(levelJs, { exports: levels })
+const actions = load('actions', { './config': config, './server': server, '@/lib/learner/learning-levels': levels }, env)
+const forgedChoice = new FormData()
+forgedChoice.set('level', 'professional')
+forgedChoice.set('choice', 'Grade 12')
+assert.ok((await actions.saveIndependentEmailGrade(forgedChoice)).error, 'do not admit a forged professional choice')
 const form = (address, token = '012345') => {
   const data = new FormData()
   data.set('email', address)

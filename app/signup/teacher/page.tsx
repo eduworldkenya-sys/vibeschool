@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useAuthAppearance } from '@/app/auth/useAuthAppearance'
 
 type OnboardingState = { destination?: unknown }
 
 export default function TeacherSignupPage() {
   const router = useRouter()
+  const appearance = useAuthAppearance()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -52,12 +54,23 @@ export default function TeacherSignupPage() {
     if (error) { setMessage('Google signup could not start.'); setBusy(false) }
   }
 
-  return <main className="shell"><section className="card">
+  return <main className="shell vs-auth" data-auth-theme={appearance}><section className="card">
     <a href="/" className="brand">Vibe<span>School</span></a><p className="eyebrow">TEACHER SETUP</p><h1>Start teaching with VibeSchool.</h1><p className="lead">Create your account now. You can connect a school later.</p>
     {message && <div role="alert" className="message">{message}</div>}
     <label>Full name</label><input autoComplete="name" value={name} onChange={e=>setName(e.target.value)} /><label>Email</label><input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} /><label htmlFor="password">Password</label><div className="password-field"><input id="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" aria-describedby="password-help" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==='Enter') void submit()}} /><button type="button" className="password-toggle" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)}>{showPassword ? 'Hide' : 'Show'}</button></div><p id="password-help" className="password-help">Use at least 8 characters.</p>
     <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy?'Creating account…':'Create teacher account'}</button><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button><p className="signin">Already have an account? <a href="/login">Sign in</a></p><p className="legal">By continuing you agree to our <a href="/legal/terms">Terms</a> and <a href="/legal/privacy">Privacy Policy</a>.</p>
   </section><style jsx>{`
     .shell{min-height:100dvh;background:#05050f;color:#fff;display:grid;place-items:center;padding:28px 16px;font-family:var(--font-jakarta),Arial,sans-serif}.card{width:100%;max-width:420px}.brand{display:block;color:#fff;text-decoration:none;font-family:var(--font-display),Arial,sans-serif;font-size:30px;font-weight:800}.brand span{color:#c8a84b}.eyebrow{color:#c8a84b;font:700 10px var(--font-mono),monospace;letter-spacing:.18em;margin:28px 0 8px}h1{font-family:var(--font-display),Arial,sans-serif;font-size:36px;line-height:1.05;margin:0}.lead{color:rgba(255,255,255,.56);margin:12px 0 22px}.message{background:rgba(255,80,80,.1);color:#ffc7c7;padding:11px;border-radius:9px;margin-bottom:14px;font-size:13px}label{display:block;font-size:12px;color:rgba(255,255,255,.65);margin:14px 0 6px}.password-field{position:relative}.password-field input{padding-right:68px}.password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#c8a84b;font-weight:800;padding:8px;cursor:pointer}.password-toggle:focus-visible{outline:2px solid #c8a84b;outline-offset:1px}.password-help{margin:6px 0 0;color:rgba(255,255,255,.48);font-size:11px}input{width:100%;box-sizing:border-box;background:#0c0c1d;color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:13px 14px;font-size:16px}.primary,.secondary{width:100%;border-radius:9px;padding:14px;font-weight:800;cursor:pointer}.primary{margin-top:20px;background:#c8a84b;color:#05050f;border:0}.secondary{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.18)}button:disabled{opacity:.5;cursor:not-allowed}.or{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.35);font-size:12px;margin:16px 0}.or span{height:1px;background:rgba(255,255,255,.12);flex:1}.signin,.legal{text-align:center;font-size:12px;color:rgba(255,255,255,.45);margin-top:18px}.legal{font-size:10px}.signin a,.legal a{color:#c8a84b}
+.shell{background:var(--auth-bg);color:var(--auth-text)}
+.card{background:var(--auth-panel);border:1px solid var(--auth-border);border-radius:18px;padding:26px;box-shadow:0 12px 36px rgba(0,0,0,.06)}
+.brand{color:var(--auth-text)}.brand span,.eyebrow,.signin a,.switch a,.legal a{color:var(--auth-accent)}
+.lead,.password-help,label,.signin,.switch,.legal,.or{color:var(--auth-muted)}
+input{background:var(--auth-input);color:var(--auth-text);border-color:var(--auth-border)}
+.primary{background:var(--auth-accent);color:var(--auth-on-accent)}
+.secondary{background:var(--auth-panel);border-color:var(--auth-border);color:var(--auth-text)}
+.password-toggle{color:var(--auth-accent)}
+.message{background:var(--auth-soft);color:var(--auth-error)}
+@media(max-width:480px){.card{padding:23px 18px}}
+
   `}</style></main>
 }

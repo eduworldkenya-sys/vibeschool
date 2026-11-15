@@ -34,8 +34,8 @@ test('independent signup persists a verified name and lookup falls back to the p
   const identity = read('lib/student-context.tsx')
   const studentHome = read('app/student/page.tsx')
 
-  assert.match(signup, /id="independent-learner-name"/)
-  assert.match(signup, /JSON\.stringify\(\{ grade, name: name\.trim\(\) \}\)/)
+  assert.match(signup, /id="learner-name"/)
+  assert.match(signup, /JSON\.stringify\(\{level,choice,name:name\.trim\(\)\}\)/)
   assert.match(grade, /learnerDisplayName\(submittedName, profile\.full_name, user\.user_metadata\?\.full_name/)
   assert.match(grade, /\.eq\('id', studentId\)\.eq\('profile_id', user\.id\)/)
   assert.match(home, /learnerDisplayName\(profile\.full_name, school\?\.\[0\]\?\.name, user\.user_metadata\?\.full_name/)
