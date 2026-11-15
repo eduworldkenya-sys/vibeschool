@@ -36,7 +36,7 @@ export function StoriesHub() {
         // Pagination follows the existing Learn catalogue and never substitutes draft content.
         for(let page=0;page<25;page++){
           const {data,error}=await supabase.from('vibe_publications')
-            .select('id,title,subtitle,description,cover_url,format,genre,series_name,series_number,published_at,pricing,chapter_count')
+            .select('id,title,subtitle,description,cover_url,format,genre,series_name,series_number,published_at,pricing,chapter_count,tags,publication_name,cbc_aligned')
             .eq('status','published').in('format',['ebook','vibechronicles'])
             .order('id',{ascending:true}).range(page*200,(page+1)*200-1)
           if(error) throw error
@@ -139,7 +139,7 @@ export function StoriesHub() {
           <strong>{story.title||'Untitled story'}</strong>
           <span>{story.series_name ? story.series_name + (story.series_number?' · Book '+story.series_number:'') : String(story.genre||'Story')}</span>
           <p>{story.description||'Open the book and discover its chapters.'}</p>
-          <span className={css.openLabel}>Open story <ChevronRight size={15}/></span>
+          <span className={css.openLabel}>{story.genre==='self_help'?'Open book':'Open story'} <ChevronRight size={15}/></span>
         </div>
       </Link>)}</div>}
       {!selectedSeries && series.length>0 && <section className={css.seriesSection} aria-labelledby="series-title">
