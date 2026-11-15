@@ -15,7 +15,7 @@ test('first visit offers Start, saved reading offers Continue, and loading is ne
 
 test('greeting uses the verified real first name in Nairobi time', () => {
   assert.equal(learnerGreeting(new Date('2026-11-15T05:00:00Z'), 'Jane Wanjiku'), 'Good morning, Jane')
-  assert.equal(learnerGreeting(new Date('2026-11-15T11:00:00Z'), 'Jean Kibue'), 'Good afternoon, Jean')
+  assert.equal(learnerGreeting(new Date('2026-11-15T11:00:00Z'), 'Amina Njeri'), 'Good afternoon, Amina')
   assert.equal(learnerGreeting(new Date('2026-11-15T19:00:00Z'), 'Jane'), 'Good evening, Jane')
   assert.equal(learnerGreeting(new Date('2026-11-15T05:00:00Z'), ''), 'Good morning')
   assert.equal(learnerGreeting(new Date('2026-11-15T05:00:00Z'), 'Learner'), 'Good morning')
