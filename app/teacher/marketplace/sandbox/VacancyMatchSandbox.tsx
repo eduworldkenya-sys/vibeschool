@@ -101,6 +101,7 @@ export default function VacancyMatchSandbox() {
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const [countyQuery, setCountyQuery] = useState("");
   const [showAllCounties, setShowAllCounties] = useState(false);
+  const [showNotice, setShowNotice] = useState(true);
   const [answers, setAnswers] = useState<Record<QuickKey, QuickAnswer>>(initialAnswers);
   const [kcseGrade, setKcseGrade] = useState("");
   const [mockQualification, setMockQualification] = useState<QualificationBand | "">("");
