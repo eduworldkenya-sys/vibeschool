@@ -1,0 +1,227 @@
+[
+  {
+    "slug": "source-documents-and-evidence",
+    "title": "Audit a real invoice trail",
+    "subtitle": "Applied workshop 1 · Invoices, receipts, statements and a defensible audit trail",
+    "sequence_number": 7,
+    "week_number": null,
+    "concept_tab": [
+      {
+        "title": "Begin at the counter",
+        "text": "This is a second, practical case after the introductory Accounting Process lessons. A customer buys goods on credit for KSh 24,000. The shop issues an invoice; no money changes hands yet. Two weeks later, the customer pays KSh 10,000 by bank transfer. The invoice supports the sale and receivable; the bank credit supports the later collection. If an accountant records the sale as bank cash on the invoice date, the figures no longer describe what happened."
+      },
+      {
+        "title": "The question behind every document",
+        "text": "Before entering any amount, establish five things: who transacted, what was supplied or paid, when the event occurred, what amount is supported, and whether settlement has happened. The reference number helps you connect the document to the journal entry and any subsequent correction. A missing piece is a reason to ask for evidence, not to invent a number."
+      },
+      {
+        "title": "An invoice records a claim or obligation",
+        "text": "A sales invoice describes goods or services supplied to a customer and the amount charged. For a credit transaction, it ordinarily supports a receivable for the seller and a payable for the buyer, subject to the proper recognition rules. Issuing an invoice does not prove cash was received. A purchase invoice is the corresponding evidence viewed from the purchaser's side."
+      },
+      {
+        "title": "A receipt records payment",
+        "text": "A receipt or verified bank transaction provides evidence of settlement. Suppose a customer pays KSh 6,000 against an earlier KSh 16,000 credit invoice. Record the KSh 6,000 as a reduction of the customer's outstanding balance; the remaining receivable is KSh 10,000. Do not report a second sale when the previously recognised invoice is paid."
+      },
+      {
+        "title": "Returns and credit notes",
+        "text": "A customer returns goods that were sold on credit for KSh 3,000. After the return is accepted, a credit note can reduce the original KSh 24,000 amount owed to KSh 21,000. A credit note is not the same as proof that KSh 3,000 was refunded in cash. The accounting effect depends on whether the original sale remains unpaid or had already been settled."
+      },
+      {
+        "title": "Bank, mobile money and supporting records",
+        "text": "Bank statements and mobile-money transaction confirmations help verify the amount, date and counterparty of a transfer. They support reconciliation with the cash book. A payment notification on its own may not establish what goods were purchased or whether a supply was for business rather than the owner's private use. Match the payment to an invoice, agreement or other appropriate evidence."
+      },
+      {
+        "title": "Build an evidence trail you can follow back",
+        "text": "A good accounting record can be traced both ways: from document to entry and from ledger balance back to the underlying documents. Keep source references, transaction dates, supplier or customer identifiers and explanations. Corrections should leave an intelligible history; silently replacing the original record makes later checking more difficult."
+      },
+      {
+        "title": "Try it as the accountant",
+        "text": "An invoice dated 4 July shows KSh 18,000 supplied on credit. A bank statement dated 19 July shows KSh 7,000 received from that customer. You should be able to identify two events, not one. The customer owes KSh 11,000 at 19 July if there are no other invoices, returns or payments. Explain which document supports each event before moving to the next lesson."
+      }
+    ],
+    "kenya_context_tab": [
+      {
+        "title": "A repair workshop's file",
+        "text": "A Nakuru repair workshop invoices a customer KSh 12,500 for completed repairs. A mobile-money confirmation for KSh 5,000 arrives later. The customer ledger should show the original claim, the part-payment and KSh 7,500 still outstanding. Neither the mobile-money reference nor the invoice should be discarded merely because the other exists."
+      },
+      {
+        "title": "Evidence and electronic accounting",
+        "text": "A spreadsheet or accounting app can hold copies of approved source documents and link them to entries. An accountant still checks for duplicates, dates, business purpose and correct allocation. Software speeds up recording; it does not transform an unsupported transaction into reliable evidence."
+      }
+    ],
+    "common_errors_tab": [
+      {
+        "title": "Treating an invoice as a receipt",
+        "text": "A sales invoice supports a sale or claim, not proof of settlement. The cash or bank record changes only when a genuine cash movement occurs, unless another specific accounting treatment applies."
+      },
+      {
+        "title": "Mixing business and personal transactions",
+        "text": "A payment from a business account can still be the owner's drawing. Read the purpose and supporting evidence before deciding to charge an expense to the business."
+      }
+    ],
+    "clinical_tip_tab": [
+      {
+        "title": "A professional challenge",
+        "text": "For any transaction, try answering this without looking at the account names: What happened, when did it happen, how do I know, and what is still unsettled? If the record cannot answer those questions, it needs attention before posting."
+      }
+    ]
+  },
+  {
+    "slug": "books-of-original-entry",
+    "title": "Record a week of business evidence",
+    "subtitle": "Applied workshop 2 · Sales, purchases, cash books, journals and petty cash",
+    "sequence_number": 8,
+    "week_number": null,
+    "concept_tab": [
+      {
+        "title": "Why the first record matters",
+        "text": "Source documents arrive in no particular order: a cash transfer, a supplier invoice, a customer return and a receipt from a debtor may all land on the same desk. Books of original entry organise that evidence before the amounts reach ledger accounts. Whether the system uses paper books or software screens, it must retain the classification and trail."
+      },
+      {
+        "title": "Credit sales of goods",
+        "text": "In a traditional manual system, the sales day book (sales journal) records credit sales of goods held for resale. An invoice for KSh 22,000 of goods sold on credit belongs here. Cash sales go through the cash book; sales of equipment or other non-trading assets are normally handled differently, often through a general journal. Do not enter every invoice blindly into the sales day book."
+      },
+      {
+        "title": "Credit purchases of goods",
+        "text": "The purchases day book records goods bought on credit for resale in the traditional trading-business model. An invoice for KSh 14,000 of resale inventory belongs here. Credit purchase of equipment is not a trading-goods purchase and normally goes through the general journal. Purchases paid for immediately are entered through the cash book or an integrated cash/expense workflow."
+      },
+      {
+        "title": "Returns and adjustments",
+        "text": "Sales returns from customers can be captured in the returns-inwards day book; returns to suppliers in the returns-outwards day book. Link the entry to the credit note and original invoice. In a simple example, returning KSh 2,000 of goods previously bought on credit reduces both the goods purchased and the amount due to the supplier; it does not create cash without a refund."
+      },
+      {
+        "title": "The cash book",
+        "text": "The cash book tracks cash and bank receipts and payments. A customer depositing KSh 10,000 against an outstanding invoice belongs in the bank-receipts side. Paying the electricity bill of KSh 4,500 by bank transfer belongs on the payments side. Cash books can themselves form part of the double-entry system; do not post an extra, duplicate cash entry when moving data to ledgers."
+      },
+      {
+        "title": "The general journal",
+        "text": "A general journal is used for transactions that do not fit the specialised day books, and for many adjustments. Equipment costing KSh 30,000 bought on supplier credit may be recorded as debit equipment, credit trade payable. Explain the entry, date it and reference the supporting invoice. Journal entries are also used by accounting software even where no physical journal book exists."
+      },
+      {
+        "title": "Petty cash: the imprest in action",
+        "text": "A workshop starts a petty-cash float of KSh 5,000. During the week it pays KSh 1,250 for courier charges, KSh 700 for staff refreshments and KSh 850 for stationery. Total vouchers are KSh 2,800; cash remaining is KSh 2,200. Replenishing KSh 2,800 restores the float to KSh 5,000. The spending is recorded as the relevant expenses; topping up the float is not a second expense."
+      },
+      {
+        "title": "From document to posting",
+        "text": "Take the KSh 14,000 credit inventory invoice. Step 1: confirm that the goods are for resale, not equipment. Step 2: record it once in the purchases day book. Step 3: credit the supplier's account for KSh 14,000 and post to the appropriate purchases account under the chosen accounting system. Step 4: use the same invoice number to trace the entry and check that the supplier total agrees."
+      },
+      {
+        "title": "One business, one posting",
+        "text": "Many modern systems post sales, receivables, inventory and bank entries automatically when an invoice or receipt is accepted. The accountant must still know which accounts the software affects. The discipline is the same as in a manual system: each underlying transaction is recognised once, accurately, with a retrievable source and a clear correction trail."
+      }
+    ],
+    "kenya_context_tab": [
+      {
+        "title": "A Kenyan shop's end-of-day review",
+        "text": "At the close of business, a small Kisumu stationery shop reviews credit-sales invoices, bank receipts and two supplier credit notes. The operator checks that each source has the correct date and class before closing the day's journals. This avoids recording a customer bank transfer as a fresh sale merely because money arrived."
+      },
+      {
+        "title": "An electronic petty-cash box",
+        "text": "A team member sends a courier voucher for KSh 1,250 and a supervisor authorises the claim. The cash keeper records the payment, attaches the voucher and updates the float. On replenishment, the keeper reconciles vouchers plus cash in hand to the authorised KSh 5,000 before requesting funds."
+      }
+    ],
+    "common_errors_tab": [
+      {
+        "title": "Credit purchase does not mean any purchase",
+        "text": "Only credit purchases of trading goods belong in the traditional purchases day book. A machine bought on credit needs classification as a non-current asset, not an ordinary resale purchase."
+      },
+      {
+        "title": "Recording a reimbursement twice",
+        "text": "A replenishment of petty cash replaces what was spent; it should not repeat the expenses already captured by the vouchers. A balanced float with duplicate expense entries is still wrong."
+      },
+      {
+        "title": "Modern systems and old terminology",
+        "text": "Computerised books may not literally use separate bound journals. Learn the underlying transaction classification and double-entry effect, rather than treating a menu label as an accounting principle."
+      }
+    ],
+    "clinical_tip_tab": [
+      {
+        "title": "Test the document path",
+        "text": "For each example, name the source first, then the first book or software workflow, and finally the accounts affected. If you cannot say what the credit sale or payment does to a supplier or customer balance, review the transaction before memorising another label."
+      }
+    ]
+  },
+  {
+    "slug": "double-entry-ledgers",
+    "title": "Post the full Nuru Repair Studio ledger",
+    "subtitle": "Applied workshop 3 · Journals, T-accounts and the ledger in practice",
+    "sequence_number": 9,
+    "week_number": null,
+    "concept_tab": [
+      {
+        "title": "Debit and credit are positions, not praise or blame",
+        "text": "A debit is the left side of an account; a credit is the right. Neither word means good, bad, cash in or cash out in every case. The same bank account can be debited when money enters and credited when money leaves. The rules depend on which kind of account changed."
+      },
+      {
+        "title": "The five movements to recognise",
+        "text": "Assets and expenses normally increase with debits. Liabilities, capital and income normally increase with credits. Drawings increase with debits because they reduce the owner's interest. When any of these accounts decreases, use its opposite side. Keep the accounting equation in mind rather than chanting a mnemonic without understanding the event."
+      },
+      {
+        "title": "Our working case: Nuru Repair Studio",
+        "text": "Nuru Repair Studio opens on 1 August with no opening balances. During August it has nine recordable transactions and one customer enquiry that must not be posted. For this introductory case, ignore VAT, depreciation, tax and other year-end adjustments. The advertising services are fully used in August. The same figures will reappear in the trial balance and financial statements, so follow every amount carefully."
+      },
+      {
+        "title": "Transaction 1 and 2: capital and equipment",
+        "text": "1 August: the owner pays KSh 180,000 into the business bank. Debit bank KSh 180,000; credit capital KSh 180,000. The business gains cash and the owner gains an equity interest. 3 August: it buys a repair machine for KSh 60,000 by bank transfer. Debit equipment KSh 60,000; credit bank KSh 60,000. One asset replaces part of another; no operating expense is recognised in this simple purchase entry."
+      },
+      {
+        "title": "Transactions 3 to 5: earning and paying",
+        "text": "5 August: repairs are completed for a customer on credit, KSh 35,000. Debit trade receivables KSh 35,000; credit service revenue KSh 35,000. 7 August: cash repair fees of KSh 45,000 are banked. Debit bank KSh 45,000; credit service revenue KSh 45,000. 10 August: August rent of KSh 12,000 is paid from the bank. Debit rent expense KSh 12,000; credit bank KSh 12,000."
+      },
+      {
+        "title": "Transactions 6 to 8: credit and collection",
+        "text": "12 August: advertising worth KSh 8,000 is fully delivered and invoiced, payment due later. Debit advertising expense KSh 8,000; credit trade payables KSh 8,000. 18 August: KSh 20,000 of the earlier credit customer balance arrives in the bank. Debit bank KSh 20,000; credit trade receivables KSh 20,000. 22 August: the business pays the advertising supplier KSh 5,000. Debit trade payables KSh 5,000; credit bank KSh 5,000. Neither payment is fresh income or a second expense."
+      },
+      {
+        "title": "The final payment and a non-transaction",
+        "text": "25 August: the owner withdraws KSh 4,000 from the business bank for home use. Debit drawings KSh 4,000; credit bank KSh 4,000. That is the ninth recordable event. On 27 August, a potential customer requests a quotation for repairs priced at KSh 9,000. No work has been performed and no binding transaction is assumed; there is no journal entry for the enquiry. The accountant's job includes recognising when not to post."
+      },
+      {
+        "title": "Post to the bank ledger, not just a journal list",
+        "text": "The bank ledger receives debit entries of KSh 180,000 from capital, KSh 45,000 from cash service fees and KSh 20,000 from the customer. Its credits are KSh 60,000 for equipment, KSh 12,000 for rent, KSh 5,000 to the supplier and KSh 4,000 for drawings. Debit total KSh 245,000; credit total KSh 81,000; closing debit bank balance KSh 164,000. Check that figure against the bank records."
+      },
+      {
+        "title": "See what remains after posting",
+        "text": "Equipment has a KSh 60,000 debit balance; trade receivables KSh 15,000 debit; trade payables KSh 3,000 credit. Service revenue totals KSh 80,000 credit, while rent and advertising expenses carry debit balances of KSh 12,000 and KSh 8,000. Owner's capital is KSh 180,000 credit and drawings KSh 4,000 debit. Every one of these balances can be traced to the numbered events, not guessed."
+      },
+      {
+        "title": "What the ledger gives the accountant",
+        "text": "The journal tells you what happened and how it was recorded. The ledger groups all movements by account, so you can answer questions like 'What is still owed to us?' and 'How much bank cash remains?' A posting error may preserve the equality of debits and credits while misclassifying the transaction. Supporting evidence and account reviews are therefore essential."
+      }
+    ],
+    "kenya_context_tab": [
+      {
+        "title": "An independent bookkeeper's assignment",
+        "text": "A Gilgil service business gives you a list of bank movements and invoices. First separate the bank receipt for work already invoiced from the invoice for work newly completed. Then post to receivables, bank and income so that the same customer payment never becomes income twice."
+      },
+      {
+        "title": "Practice without software dependence",
+        "text": "The ledger logic works in a notebook, spreadsheet or production accounting package. A real accountant must recognise that an asset purchase on credit is debit equipment and credit the payable, even if the software generates both entries automatically."
+      }
+    ],
+    "common_errors_tab": [
+      {
+        "title": "Using debit to mean 'money out' everywhere",
+        "text": "A bank payment credits the bank, but the other account may be debited. Expenses increase with debits and income usually increases with credits. Decide which account increased or decreased first."
+      },
+      {
+        "title": "Treating collection as a second sale",
+        "text": "Customer payment on an already recorded credit invoice reduces receivables and increases bank. If you credit revenue again, sales and profit will be overstated."
+      },
+      {
+        "title": "Recording a quotation as a sale",
+        "text": "An enquiry or price quotation does not itself prove that a service was delivered or income earned. The correct response may be to retain the quotation without posting any ledger entry."
+      }
+    ],
+    "clinical_tip_tab": [
+      {
+        "title": "Ledger cross-check",
+        "text": "From the case above, calculate the bank account independently: KSh 180,000 minus 60,000 plus 45,000 minus 12,000 plus 20,000 minus 5,000 minus 4,000 equals KSh 164,000. Record the reason behind each plus or minus, not only the result."
+      },
+      {
+        "title": "Accountant's habit",
+        "text": "When an amount fails to reconcile, return to the source, journal and ledger in that order. Correct the classification or posting. Do not create an unexplained suspense or balancing amount simply because the statement looks untidy."
+      }
+    ]
+  }
+]

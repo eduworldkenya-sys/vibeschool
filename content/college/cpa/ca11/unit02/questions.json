@@ -1,0 +1,842 @@
+[
+  {
+    "topic_slug": "source-documents-and-evidence",
+    "question_text": "A workshop invoices a customer KSh 24,000 for work completed on credit. What is supported immediately by the invoice, under the stated recognition assumptions?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "A new bank receipt of KSh 24,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "A trade receivable and service revenue of KSh 24,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "A reduction in the workshop's cash."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "A trade payable of KSh 24,000 owed by the workshop."
+      }
+    ],
+    "correct_option_id": "b",
+    "explanation": "The customer owes the workshop KSh 24,000 for completed work. The invoice supports a receivable and revenue, but does not show that payment has arrived."
+  },
+  {
+    "topic_slug": "source-documents-and-evidence",
+    "question_text": "A client pays KSh 6,000 against a previously recorded KSh 16,000 credit invoice. With no other movements, how much does the client still owe?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 22,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 6,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 10,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Nothing; paying anything closes an invoice."
+      }
+    ],
+    "correct_option_id": "c",
+    "explanation": "The outstanding claim falls by the amount collected: KSh 16,000 less KSh 6,000 gives KSh 10,000. Do not recognise the collection as a second sale."
+  },
+  {
+    "topic_slug": "source-documents-and-evidence",
+    "question_text": "Goods sold on credit for KSh 24,000 are partly returned, and the seller issues a valid KSh 3,000 credit note. No payments have been made. What remains receivable?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 27,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 3,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 24,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 21,000."
+      }
+    ],
+    "correct_option_id": "d",
+    "explanation": "The accepted return reduces the customer's outstanding balance by KSh 3,000, leaving KSh 21,000. The credit note does not itself show cash was paid."
+  },
+  {
+    "topic_slug": "source-documents-and-evidence",
+    "question_text": "Which document most directly supports the fact that a customer settled an earlier invoice by bank transfer?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "A verified bank transaction record."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "The original credit invoice alone."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "A supplier's quotation."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "A list of next month's expected sales."
+      }
+    ],
+    "correct_option_id": "a",
+    "explanation": "The verified bank transaction supports receipt of funds. The invoice supports the underlying charge; the accountant should link the two, not confuse their purposes."
+  },
+  {
+    "topic_slug": "source-documents-and-evidence",
+    "question_text": "A business pays the owner's private grocery bill from the business bank account. Which classification ordinarily fits a sole trader?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "A business sales return."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "An increase in service revenue."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Owner drawings supported by evidence of a personal payment."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "A trade receivable from a customer."
+      }
+    ],
+    "correct_option_id": "c",
+    "explanation": "The payment is a personal withdrawal, normally drawings for a sole trader. Paying it from the business bank does not make groceries an operating expense."
+  },
+  {
+    "topic_slug": "source-documents-and-evidence",
+    "question_text": "When a customer disputes an invoice, which evidence trail gives the accountant the clearest way to investigate the recorded transaction?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "A bank balance written in the diary."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "A manager's memory of yesterday."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "A list of payments with no references."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "A linked source document, transaction entry, ledger posting and subsequent settlement."
+      }
+    ],
+    "correct_option_id": "d",
+    "explanation": "Traceability joins the evidence to recording and settlement, enabling an independent reviewer to understand and correct the transaction without guessing."
+  },
+  {
+    "topic_slug": "books-of-original-entry",
+    "question_text": "Under the traditional trading-business classification, which transaction belongs in a sales day book?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Cash sale of ordinary goods."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Credit sale of goods held for resale."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Sale of used equipment for cash."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "A customer deposit against an old invoice."
+      }
+    ],
+    "correct_option_id": "b",
+    "explanation": "The sales day book traditionally holds credit sales of trading goods. Cash sales and disposals of non-trading assets use other recording paths."
+  },
+  {
+    "topic_slug": "books-of-original-entry",
+    "question_text": "A retailer acquires a delivery machine costing KSh 30,000 on supplier credit. What is the appropriate underlying general-journal entry?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Debit purchases; credit revenue."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Debit bank; credit equipment."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Debit equipment; credit trade payables."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Debit rent; credit cash."
+      }
+    ],
+    "correct_option_id": "c",
+    "explanation": "A delivery machine used in operations is equipment rather than goods bought for resale. Debit equipment for the resource and credit the supplier payable."
+  },
+  {
+    "topic_slug": "books-of-original-entry",
+    "question_text": "A business transfers KSh 4,500 from its bank to settle an electricity bill. Which first recording path is most suitable in a manual system?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Cash or bank payments book."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Credit sales day book."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Returns-inwards book."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Credit purchases day book for trading goods."
+      }
+    ],
+    "correct_option_id": "a",
+    "explanation": "The cash book records bank payments and receipts. The expense account is also affected under double entry, but the bank movement should not be posted twice."
+  },
+  {
+    "topic_slug": "books-of-original-entry",
+    "question_text": "Petty cash starts at KSh 5,000. Vouchers total KSh 1,250, KSh 700 and KSh 850. What replenishment restores the float?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 5,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 2,200."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 3,500."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 2,800."
+      }
+    ],
+    "correct_option_id": "d",
+    "explanation": "Total petty expenses are KSh 2,800; cash remaining is KSh 2,200. Replacing KSh 2,800 restores the authorised KSh 5,000 float without a second expense."
+  },
+  {
+    "topic_slug": "books-of-original-entry",
+    "question_text": "A shop issues a KSh 2,000 credit note for goods a customer returns from an earlier credit sale. Which specialised record is normally relevant?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Purchases day book."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Returns-inwards day book."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Cash sales record for a new sale."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Capital contributions book."
+      }
+    ],
+    "correct_option_id": "b",
+    "explanation": "Goods returned by customers are sales returns, or returns inwards. The credit note provides support for reducing the earlier credit sale and receivable."
+  },
+  {
+    "topic_slug": "books-of-original-entry",
+    "question_text": "An integrated accounting app posts ledger updates when an invoice is accepted. What remains the accountant's responsibility?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Record the same invoice once more in a manual journal."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Assume every screen label proves the transaction is correct."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Check evidence, classification, account effect and duplicates."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Discard the invoice because the app has a sales total."
+      }
+    ],
+    "correct_option_id": "c",
+    "explanation": "Automatic postings make recording faster, not necessarily correct. The accountant must confirm that the evidence and account treatment match the actual event."
+  },
+  {
+    "topic_slug": "double-entry-ledgers",
+    "question_text": "A sole trader introduces KSh 180,000 into the business bank account. Which entry is correct?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Debit capital; credit bank."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Debit bank; credit capital."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Debit bank; credit revenue."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Debit drawings; credit bank."
+      }
+    ],
+    "correct_option_id": "b",
+    "explanation": "Bank increases as an asset, so debit bank. The owner's introduced capital increases equity, so credit capital for the same KSh 180,000."
+  },
+  {
+    "topic_slug": "double-entry-ledgers",
+    "question_text": "The business buys equipment for KSh 60,000 by bank transfer. Which entry follows?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Debit equipment; credit bank."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Debit bank; credit equipment."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Debit rent expense; credit capital."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Debit trade receivables; credit revenue."
+      }
+    ],
+    "correct_option_id": "a",
+    "explanation": "An equipment asset increases and bank cash falls. Debit equipment and credit bank, both KSh 60,000; no ordinary trading expense is assumed here."
+  },
+  {
+    "topic_slug": "double-entry-ledgers",
+    "question_text": "Nuru Repair Studio completes KSh 35,000 of repairs on credit. Which accounts are affected at initial recognition?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Debit bank; credit payable."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Debit expense; credit revenue."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Debit revenue; credit receivable."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Debit trade receivables; credit service revenue."
+      }
+    ],
+    "correct_option_id": "d",
+    "explanation": "Completed credit work creates a claim against the customer and earned income. Cash is not recorded until the customer settles the invoice."
+  },
+  {
+    "topic_slug": "double-entry-ledgers",
+    "question_text": "The bank starts with KSh 180,000, then movements are −60,000, +45,000, −12,000, +20,000, −5,000 and −4,000. What is the closing bank balance?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 156,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 184,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 164,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 245,000."
+      }
+    ],
+    "correct_option_id": "c",
+    "explanation": "Add receipts of KSh 245,000 and deduct payments totalling KSh 81,000. The closing debit bank balance is KSh 164,000, not gross receipts."
+  },
+  {
+    "topic_slug": "double-entry-ledgers",
+    "question_text": "Advertising services worth KSh 8,000 are used on credit, then KSh 5,000 is paid to the supplier. What remains payable?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 13,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 3,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 8,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Zero because some cash was paid."
+      }
+    ],
+    "correct_option_id": "b",
+    "explanation": "The liability begins at KSh 8,000 when the service is received. Paying KSh 5,000 reduces the payable to KSh 3,000; it does not create a second expense."
+  },
+  {
+    "topic_slug": "double-entry-ledgers",
+    "question_text": "A potential customer asks for a price quotation for future repairs; no work has been done and no binding transaction is assumed. Which posting is justified?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Debit receivables; credit revenue."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Debit cash; credit revenue."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Debit advertising; credit payable."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "No accounting entry yet, but retain the quotation for reference."
+      }
+    ],
+    "correct_option_id": "d",
+    "explanation": "The enquiry does not establish that income was earned or an asset created. Retaining the quote is sound administration, not a double-entry transaction."
+  },
+  {
+    "topic_slug": "trial-balance-from-ledgers",
+    "question_text": "The trial balance lists debit balances of KSh 164,000 bank, 60,000 equipment, 15,000 receivables, 12,000 rent, 8,000 advertising and 4,000 drawings. What is the debit total?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 263,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 259,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 243,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 239,000."
+      }
+    ],
+    "correct_option_id": "a",
+    "explanation": "Adding all six debit balances gives KSh 263,000. Drawings is a debit balance and must be included when extracting the trial balance."
+  },
+  {
+    "topic_slug": "trial-balance-from-ledgers",
+    "question_text": "The same trial balance lists credit balances of KSh 180,000 capital, KSh 80,000 revenue and KSh 3,000 payables. What is the credit total?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 260,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 243,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 263,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 283,000."
+      }
+    ],
+    "correct_option_id": "c",
+    "explanation": "Credits total KSh 180,000 plus KSh 80,000 plus KSh 3,000, or KSh 263,000, matching the independent debit total."
+  },
+  {
+    "topic_slug": "trial-balance-from-ledgers",
+    "question_text": "The bank ledger has KSh 245,000 of debit movements and KSh 81,000 of credit movements. Which figure enters a basic trial balance?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 245,000 on the debit side."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 81,000 on the credit side."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Both totals as separate balances."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 164,000 on the debit side."
+      }
+    ],
+    "correct_option_id": "d",
+    "explanation": "The trial balance uses the net closing balance of the bank account: KSh 245,000 less KSh 81,000 equals KSh 164,000 debit."
+  },
+  {
+    "topic_slug": "trial-balance-from-ledgers",
+    "question_text": "A KSh 5,000 payment to a creditor is accidentally omitted from both the bank and payable ledgers. What may happen to the trial balance?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "It must become KSh 10,000 out of balance."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "It may still balance even though both balances are overstated."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Profit must increase by KSh 5,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Bank must show a KSh 5,000 credit balance."
+      }
+    ],
+    "correct_option_id": "b",
+    "explanation": "Both sides of the omitted transaction are missing, so debit and credit totals may remain equal while bank and creditor balances are both overstated."
+  },
+  {
+    "topic_slug": "trial-balance-from-ledgers",
+    "question_text": "The debit trial-balance column totals KSh 263,000 and the credit column KSh 268,000. What should the accountant do?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Investigate the KSh 5,000 difference by rechecking balances and postings."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Create an unexplained expense of KSh 5,000 immediately."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Assume profit is KSh 5,000 lower."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Delete a credit balance to make the columns agree."
+      }
+    ],
+    "correct_option_id": "a",
+    "explanation": "The KSh 5,000 difference is a clue, not authority to invent an entry. Re-add and trace balances and investigate the source before correcting records."
+  },
+  {
+    "topic_slug": "trial-balance-from-ledgers",
+    "question_text": "Credit repairs of KSh 35,000 are followed by a customer payment of KSh 20,000. What receivable balance enters the trial balance?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 55,000 credit."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 35,000 debit."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 15,000 debit."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 20,000 credit."
+      }
+    ],
+    "correct_option_id": "c",
+    "explanation": "The customer owes the difference, KSh 15,000. The bank receipt reduces the receivable rather than creating new revenue."
+  },
+  {
+    "topic_slug": "statements-from-the-trial-balance",
+    "question_text": "Nuru Repair Studio earns KSh 80,000 revenue and incurs KSh 12,000 rent plus KSh 8,000 advertising expense. What is the period's profit?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 80,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 60,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 72,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 20,000."
+      }
+    ],
+    "correct_option_id": "b",
+    "explanation": "Revenue of KSh 80,000 less total expenses of KSh 20,000 leaves KSh 60,000 profit. The KSh 5,000 supplier payment is not a separate expense."
+  },
+  {
+    "topic_slug": "statements-from-the-trial-balance",
+    "question_text": "Closing assets are bank KSh 164,000, equipment KSh 60,000 and receivables KSh 15,000. What is total assets?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 239,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 224,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 179,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 236,000."
+      }
+    ],
+    "correct_option_id": "a",
+    "explanation": "Add the three recognised assets: KSh 164,000 + 60,000 + 15,000 = KSh 239,000, under this teaching model's stated assumptions."
+  },
+  {
+    "topic_slug": "statements-from-the-trial-balance",
+    "question_text": "The owner introduced KSh 180,000, the business earned KSh 60,000 and the owner withdrew KSh 4,000. What is closing equity?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 244,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 180,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 240,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 236,000."
+      }
+    ],
+    "correct_option_id": "d",
+    "explanation": "Capital plus retained current-period profit minus drawings gives KSh 180,000 + 60,000 − 4,000 = KSh 236,000 closing equity."
+  },
+  {
+    "topic_slug": "statements-from-the-trial-balance",
+    "question_text": "With assets of KSh 239,000 and equity of KSh 236,000, what is the outstanding liability?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "KSh 6,000."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "KSh 60,000."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "KSh 3,000."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "KSh 23,000."
+      }
+    ],
+    "correct_option_id": "c",
+    "explanation": "Liabilities are assets less equity: KSh 239,000 − KSh 236,000 = KSh 3,000, agreeing with the unpaid advertising supplier balance."
+  },
+  {
+    "topic_slug": "statements-from-the-trial-balance",
+    "question_text": "Why is KSh 164,000 bank cash not equal to the KSh 60,000 accounting profit?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Because a trial balance cannot contain bank cash."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "Because cash includes capital and settlements while profit measures earned income less expenses."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "Because every cash withdrawal reduces profit automatically."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "Because the difference must be an accounting error."
+      }
+    ],
+    "correct_option_id": "b",
+    "explanation": "Bank receipts and payments include financing and asset purchases as well as earnings. Profit follows recognised income and expenses, so the two figures answer different questions."
+  },
+  {
+    "topic_slug": "statements-from-the-trial-balance",
+    "question_text": "What is the correct professional description of the teaching statements prepared from this simplified trial balance?",
+    "options": [
+      {
+        "id": "a",
+        "label": "A",
+        "text": "Basic introductory profit-or-loss and position statements requiring further adjustments/disclosures for a complete applicable-framework report."
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "text": "A complete IFRS annual report without notes or comparative figures."
+      },
+      {
+        "id": "c",
+        "label": "C",
+        "text": "A statutory audit opinion on Nuru Repair Studio."
+      },
+      {
+        "id": "d",
+        "label": "D",
+        "text": "The same information as a cash-flow statement because all totals agree."
+      }
+    ],
+    "correct_option_id": "a",
+    "explanation": "The figures demonstrate the reporting link but omit depreciation, tax, other adjustments and full presentation or disclosure requirements. They are not a complete annual IFRS report."
+  }
+]
