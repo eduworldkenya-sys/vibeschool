@@ -1,0 +1,31 @@
+name: CPA Foundation Learner Release Contract
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261115121200_cpa_private_paper_catalogue_and_quiz_gate.sql'
+      - 'supabase/migrations/20261115122500_release_cpa_ca11_intro_unit.sql'
+      - 'lib/learn/ensure-course-learner-profile.ts'
+      - 'app/student/college/page.tsx'
+      - 'app/learn/[courseSlug]/page.tsx'
+      - 'app/learn/[courseSlug]/[moduleSlug]/[topicSlug]/page.tsx'
+      - 'scripts/test-cpa-ca11-release.mjs'
+      - '.github/workflows/cpa-foundation-learner-release.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261115121200_cpa_private_paper_catalogue_and_quiz_gate.sql'
+      - 'supabase/migrations/20261115122500_release_cpa_ca11_intro_unit.sql'
+      - 'scripts/test-cpa-ca11-release.mjs'
+jobs:
+  verify-cpa-learner-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/test-cpa-ca11-content.mjs
+      - run: node scripts/test-cpa-ca11-release.mjs
+      - run: node scripts/test-professional-learner-contract.mjs
