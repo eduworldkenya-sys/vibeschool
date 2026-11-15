@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { getMyResult, type LearnerResultDetail } from '@/lib/assessment/results'
 import styles from './result-feedback.module.css'
+import { getMySelfReview, type SelfReviewItem } from '@/lib/assessment/self-review'
+import SelfReviewPanel from '@/components/student/exams/SelfReviewPanel'
 
 function isSkipped(responseValue: unknown, responseText: string | null): boolean {
   return (responseValue === null || responseValue === undefined) && !responseText?.trim()
@@ -31,6 +33,8 @@ export default function StudentResultDetailPage() {
   const [result, setResult] = useState<LearnerResultDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selfReviews, setSelfReviews] = useState<Record<string, SelfReviewItem>>({})
+  const [selfReviewError, setSelfReviewError] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -38,6 +42,16 @@ export default function StudentResultDetailPage() {
       try {
         const data = await getMyResult(params.attemptId)
         if (!cancelled) setResult(data)
+        if (data.answersRevealed && data.items.some(item =>
+          ['short_answer', 'structured', 'essay', 'drawing', 'practical'].includes(item.questionType)
+        )) {
+          try {
+            const reviews = await getMySelfReview(params.attemptId)
+            if (!cancelled) setSelfReviews(Object.fromEntries(reviews.map(item => [item.assessmentItemId, item])))
+          } catch {
+            if (!cancelled) setSelfReviewError('Guided self-marking is unavailable for this result. Your exam score is unchanged.')
+          }
+        }
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load result.')
       } finally {
@@ -48,9 +62,17 @@ export default function StudentResultDetailPage() {
     return () => { cancelled = true }
   }, [params.attemptId])
 
+  const selfReviewedIds = new Set(Object.keys(selfReviews))
+  const savedSelfReviews = Object.values(selfReviews).filter(item => item.reviewedAt !== null)
+  const selfAwarded = savedSelfReviews.reduce((total, item) => total + (item.selfReviewScore ?? 0), 0)
+  const selfMax = savedSelfReviews.reduce((total, item) => total + item.maxScore, 0)
   const skipped = result?.items.filter(item => isSkipped(item.responseValue, item.responseText)) ?? []
-  const incorrect = result?.items.filter(item => !isSkipped(item.responseValue, item.responseText) && item.finalScore < item.maxScore) ?? []
-  const correct = result?.items.filter(item => !isSkipped(item.responseValue, item.responseText) && item.finalScore === item.maxScore) ?? []
+  const incorrect = result?.items.filter(item =>
+    !isSkipped(item.responseValue, item.responseText) && !selfReviewedIds.has(item.assessmentItemId)
+      && item.finalScore < item.maxScore) ?? []
+  const correct = result?.items.filter(item =>
+    !isSkipped(item.responseValue, item.responseText) && !selfReviewedIds.has(item.assessmentItemId)
+      && item.finalScore === item.maxScore) ?? []
   const reviewItems = result?.items.filter(item => reviewFilter === 'all' || (reviewFilter === 'skipped'
     ? isSkipped(item.responseValue, item.responseText)
     : isSkipped(item.responseValue, item.responseText) || item.finalScore < item.maxScore)) ?? []
@@ -76,6 +98,14 @@ export default function StudentResultDetailPage() {
             </div>
           </div>
           <div style={muted}>Attempt {result.attemptNumber} of {result.maxAttempts}</div>
+          {Object.keys(selfReviews).length > 0 && (
+            <div style={{ ...muted, lineHeight: 1.6 }}>
+              Written questions use guided self-assessment. The displayed exam result is the system-reported score; it does not include your self-awarded marks.
+              {savedSelfReviews.length > 0 && <p style={{ margin: '7px 0 0', fontWeight: 750 }}>
+                Learner self-awarded: {selfAwarded}/{selfMax} marks across {savedSelfReviews.length} reviewed written {savedSelfReviews.length === 1 ? 'answer' : 'answers'} — not independently verified.
+              </p>}
+            </div>
+          )}
           <div style={{ ...muted, color: '#92400e', fontWeight: 700 }}>{skipped.length} skipped / unanswered · 0 marks for each skipped question</div>
           {result.releasedAt && <div style={muted}>Released {new Date(result.releasedAt).toLocaleString('en-KE')}</div>}
           {(skipped.length + incorrect.length) > 0 && (
@@ -101,6 +131,7 @@ export default function StudentResultDetailPage() {
           </section>
         )}
 
+        {selfReviewError && <p role="status" style={{ ...card, color: 'var(--vs-muted)' }}>{selfReviewError}</p>}
         <section style={card} aria-label="Question review filters">
           <p style={{ marginTop: 0, fontWeight: 700 }}>Review: {correct.length} correct · {incorrect.length} incorrect · {skipped.length} skipped</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -118,7 +149,7 @@ export default function StudentResultDetailPage() {
           <section key={item.assessmentItemId} style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <strong>Question {item.orderNum} {isSkipped(item.responseValue, item.responseText) ? '· Skipped' : ''}</strong>
-              <span>{item.finalScore}/{item.maxScore}</span>
+              <span>{selfReviewedIds.has(item.assessmentItemId) ? 'Written · self-review available' : `${item.finalScore}/${item.maxScore}`}</span>
             </div>
             <p style={{ lineHeight: 1.6 }}>{item.prompt}</p>
             <div style={answerBox}>
@@ -139,6 +170,11 @@ export default function StudentResultDetailPage() {
             )}
             {item.explanation && <p style={{ color: '#374151', lineHeight: 1.5 }}><strong>Explanation:</strong> {item.explanation}</p>}
             {item.workedSolution && <p style={{ color: '#374151', lineHeight: 1.5 }}><strong>Worked solution:</strong> {item.workedSolution}</p>}
+            {result.answersRevealed && selfReviews[item.assessmentItemId] && (
+              <SelfReviewPanel attemptId={params.attemptId}
+                review={selfReviews[item.assessmentItemId]}
+                onSaved={updated => setSelfReviews(current => ({ ...current, [updated.assessmentItemId]: updated }))} />
+            )}
             {(isSkipped(item.responseValue, item.responseText) || item.finalScore < item.maxScore) &&
               <button type="button" style={{...secondaryButton,marginTop:10}}
                 onClick={() => router.push(`/student/vibelearn/recovery?attempt=${encodeURIComponent(params.attemptId)}&item=${encodeURIComponent(item.assessmentItemId)}`)}>
