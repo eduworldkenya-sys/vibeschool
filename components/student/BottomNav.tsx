@@ -20,6 +20,7 @@ const MORE = [
   { label: "My Tutors", href: "/student/tutoring", Icon: UsersRound },
   { label: "Practice Sets", href: "/student/vibelearn/practice", Icon: BookOpenCheck },
   { label: "Books & Stories", href: "/learn/stories", Icon: LibraryBig },
+  { label: "Offline Books", href: "/offline/books", Icon: BookOpenCheck },
   { label: "My Workspace", href: "/student/workspace", Icon: NotebookPen },
   { label: "My Day", href: "/student/timetable", Icon: CalendarDays },
   { label: "Profile", href: "/student/profile", Icon: UserRound },
@@ -43,7 +44,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const current = activeSection(pathname);
-  const navigate = (href: string) => { setMoreOpen(false); router.push(href); };
+  const navigate = (href: string) => { setMoreOpen(false); if (href === "/offline/books") { window.location.assign(href); return; } router.push(href); };
   return <>
     <nav className={styles.nav} aria-label="Student primary navigation">
       <div className={styles.heading}>MY LEARNING</div>
