@@ -85,10 +85,13 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
     const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(measure):null
     const app=surfaceRef.current?.closest('.student-app')
     if(app)Array.from(app.children).slice(0,3).forEach(child=>observer?.observe(child))
+    const mutations=app?new MutationObserver(()=>measure()):null
+    if(app)mutations?.observe(app,{childList:true})
     return()=>{
       window.removeEventListener('resize',measure)
       window.visualViewport?.removeEventListener('resize',measure)
       observer?.disconnect()
+      mutations?.disconnect()
     }
   },[])
 
@@ -224,7 +227,12 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
       <div className={styles.eyebrow}>{subjectFilter || (subjects.length===1?subjects[0]:'Topic Practice')}</div>
       <div className={styles.titleRow}>
         <h1 className={styles.heading}>Practice</h1>
-        <span className={styles.count}>{loading?'Loading…':topicCards.length+' topic'+(topicCards.length===1?'':'s')}</span>
+        <span className={styles.titleActions}>
+          <span className={styles.count}>{loading?'Loading…':topicCards.length+' topic'+(topicCards.length===1?'':'s')}</span>
+          <button type="button" className={styles.progressLink} aria-label="My practice progress" title="My practice progress" onClick={()=>router.push('/student/vibelearn/topic-practice/progress'+(subjectFilter?'?subject='+encodeURIComponent(subjectFilter):''))}>
+            <CheckCircle2 size={18} aria-hidden="true"/>
+          </button>
+        </span>
       </div>
       {subjects.length>1 && <div className={styles.filters} aria-label="Filter topics by subject">
         {['',...subjects].map(value=><button key={value||'all'} type="button" aria-pressed={subjectFilter===value} onClick={()=>setSubjectFilter(value)}>{value||'All'}</button>)}
