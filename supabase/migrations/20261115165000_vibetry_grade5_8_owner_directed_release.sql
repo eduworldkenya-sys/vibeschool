@@ -312,7 +312,7 @@ begin
         auto_marking_mode,order_num,status,generated_by,teacher_approved_at,source_exercise_ref
       ) values (
         v_assessment,v_block,v_qtype,
-        v_item->>'prompt',v_options,
+        v_item->>'prompt',coalesce(v_options,'[]'::jsonb),
         case when v_qtype='numeric' then coalesce(v_item->'accepted_answers','[]'::jsonb) else '[]'::jsonb end,
         to_jsonb(v_choice_key),v_guide,
         v_item->>'explanation',v_item->>'explanation',
