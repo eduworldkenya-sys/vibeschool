@@ -2,9 +2,9 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const read = path => readFileSync(path, 'utf8')
-const catalogue = read('supabase/migrations/20261115121200_cpa_private_paper_catalogue_and_quiz_gate.sql')
-const release = read('supabase/migrations/20261115122500_release_cpa_ca11_intro_unit.sql')
-const stage = read('supabase/migrations/20261115115000_stage_cpa_ca11_intro_foundation.sql')
+const catalogue = read('supabase/migrations/20261115124125_cpa_private_paper_catalogue_and_quiz_gate.sql')
+const release = read('supabase/migrations/20261115124726_release_cpa_ca11_intro_unit.sql')
+const stage = read('supabase/migrations/20261115124103_stage_cpa_ca11_intro_foundation.sql')
 const college = read('app/student/college/page.tsx')
 const roadmap = read('app/learn/[courseSlug]/page.tsx')
 const reader = read('app/learn/[courseSlug]/[moduleSlug]/[topicSlug]/page.tsx')
