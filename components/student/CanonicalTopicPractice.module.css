@@ -7,6 +7,8 @@
 .eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:850;color:var(--vs-muted)}
 .heading{font-size:clamp(23px,5.5vw,30px);font-weight:850;line-height:1.14;letter-spacing:-.035em}
 .titleRow{display:flex;justify-content:space-between;align-items:center;gap:9px;margin:10px 0 14px;flex-shrink:0}
+.titleActions{display:flex;align-items:center;gap:7px}
+.progressLink{width:35px;height:35px;display:grid;place-items:center;flex-shrink:0;background:var(--vs-card);color:var(--vs-accent);border:1px solid var(--vs-border);border-radius:10px;cursor:pointer}
 .count{border:1px solid var(--vs-border);border-radius:10px;background:var(--vs-card);padding:7px 10px;color:var(--vs-muted);font-size:12px;white-space:nowrap}
 .filters{display:flex;gap:7px;overflow-x:auto;padding-bottom:5px;flex-shrink:0;scrollbar-width:none}
 .filters button{min-height:34px;white-space:nowrap;border:1px solid var(--vs-border);border-radius:18px;color:var(--vs-text);background:var(--vs-card);font-size:12px;font-weight:700;padding:5px 10px}
