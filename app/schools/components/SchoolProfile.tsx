@@ -11,6 +11,7 @@ import { SchoolCover } from '@/app/schools/components/SchoolCover'
 import { SchoolFacts } from '@/app/schools/components/SchoolPublicFacts'
 import { SchoolMap } from '@/app/schools/components/SchoolMap'
 import SchoolFollowButton from '@/app/schools/components/SchoolFollowButton'
+import SchoolPublicBoard from '@/app/schools/components/SchoolPublicBoard'
 
 type ProfileRow={school_id:string;school_name:string;county:string|null;sub_county:string|null;school_category:string|null;ownership_type:string|null;gender_type:string|null;accommodation_type:string|null;cluster:string|null;knec_code:string|null;pathway_slug:string|null;pathway_name:string|null;combination_slug:string|null;combination_name:string|null;verified_at:string|null;source_authority:string|null;source_name:string|null;source_url:string|null;source_reference:string|null;source_observed_at:string|null}
 type TrustRow={school_id:string;verified_claim_count:number;profile_completeness:number;trust_state:'canonical_identity'|'verified_claims';last_verified_at:string|null}
@@ -41,6 +42,7 @@ export default function SchoolProfilePage({schoolIdOverride,schoolBaseOverride}:
  {schoolBase.startsWith('/school/') && <SchoolFollowButton slug={decodeURIComponent(schoolBase.slice('/school/'.length))}/>}
  </section>
  <nav className={styles.schoolPageNav} aria-label="School pages">{[['Home',''],['About','about'],['Academics','academics'],['News','news'],['Contact','contact']].map(([label,slug])=><Link key={label} aria-current={!slug?'page':undefined} href={schoolBase+(slug?'/'+slug:'')}>{label}</Link>)}</nav><div className={styles.canonicalBody}>
+ {schoolBase.startsWith('/school/') && <SchoolPublicBoard slug={decodeURIComponent(schoolBase.slice('/school/'.length))} schoolId={schoolId}/>} 
  <section className={styles.canonicalSection}><h2>About the school</h2><p>{school.school_name} is a {school.ownership_type?.toLowerCase()||''} {school.school_category?.toLowerCase()||''} {school.accommodation_type?.toLowerCase()||''} school located in {[school.sub_county,school.county,'Kenya'].filter(Boolean).join(', ')}.</p></section>
  <SchoolFacts facts={([['Education level',school.school_category],['Ownership',school.ownership_type],['Accommodation',school.accommodation_type],['Gender',school.gender_type],['County',school.county],['Sub-county',school.sub_county],['KNEC code',school.knec_code]] as [string,string|null][])} />
  {offerings.length>0&&<section className={styles.canonicalSection}><h2>Academics</h2><div className={styles.siteOfferings}>{offerings.map((o,index)=><article className={styles.offering} key={o.pathway_slug+'-'+(o.combination_slug??index)}><h3>{o.pathway_name}</h3>{o.combination_name&&<p>{o.combination_name}</p>}{o.source_url&&<a href={o.source_url} target="_blank" rel="noreferrer noopener">View source</a>}</article>)}</div></section>}
