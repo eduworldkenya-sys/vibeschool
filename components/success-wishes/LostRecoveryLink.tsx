@@ -1,5 +1,6 @@
 'use client'
 import { useState, type FormEvent } from 'react'
+import { officialWhatsAppHref } from '@/lib/public/whatsapp'
 export default function LostRecoveryLink() {
   const [open,setOpen]=useState(false),[name,setName]=useState(''),[phone,setPhone]=useState(''),[year,setYear]=useState('2026')
   const [whatsAppUrl,setWhatsAppUrl]=useState('')
@@ -11,7 +12,7 @@ export default function LostRecoveryLink() {
       const response=await fetch('/api/success-wishes/receiver/lost-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,phone,examYear:year}),cache:'no-store'})
       const result=await response.json()
       if(!response.ok)throw Error(result.error||'Could not record your request.')
-      setMessage('Your request has been recorded. Send the request to support on WhatsApp for review.');setWhatsAppUrl('https://wa.me/254728232157?text='+encodeURIComponent('Hello VibeSchool support. I have submitted a Success Wishes PIN recovery review request. Learner: '+name.trim()+'. Exam year: '+year+'. Phone used for wishes: '+phone.trim()+'. Please advise on identity verification.'))
+      setMessage('Your request has been recorded. Send the request to support on WhatsApp for review.');setWhatsAppUrl(officialWhatsAppHref('Hello VibeSchool support. I have submitted a Success Wishes PIN recovery review request. Learner: '+name.trim()+'. Exam year: '+year+'. Phone used for wishes: '+phone.trim()+'. Please advise on identity verification.'))
     } catch(e) { setError(e instanceof Error?e.message:'Could not record your request.') }
     finally {setBusy(false)}
   }
