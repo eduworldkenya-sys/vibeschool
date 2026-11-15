@@ -117,7 +117,7 @@ type LiveTeacherSwapReport = {
 }
 
 // Versioned KASNEB course and paper metadata, introduced by the canonical
-// 20261115134500 catalogue migration. Keep types at this shared boundary.
+// 20261115111910 catalogue migration. Keep types at this shared boundary.
 type GeneratedCourses = Database['public']['Tables']['courses']
 type GeneratedModules = Database['public']['Tables']['modules']
 type ProfessionalCourseFields = {

@@ -6,7 +6,7 @@ on:
       - 'app/student/layout.tsx'
       - 'middleware.ts'
       - 'lib/supabase.ts'
-      - 'supabase/migrations/20261115114000_canonical_post_secondary_learner_path.sql'
+      - 'supabase/migrations/20261115112112_canonical_post_secondary_learner_path.sql'
       - 'scripts/test-professional-learner-contract.mjs'
       - '.github/workflows/professional-learner-contract.yml'
   pull_request:
@@ -15,7 +15,7 @@ on:
       - 'app/student/layout.tsx'
       - 'middleware.ts'
       - 'lib/supabase.ts'
-      - 'supabase/migrations/20261115114000_canonical_post_secondary_learner_path.sql'
+      - 'supabase/migrations/20261115112112_canonical_post_secondary_learner_path.sql'
       - 'scripts/test-professional-learner-contract.mjs'
       - '.github/workflows/professional-learner-contract.yml'
 jobs:

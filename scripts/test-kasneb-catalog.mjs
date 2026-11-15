@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path'
 import test from 'node:test'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const migration = readFileSync(resolve(root, 'supabase/migrations/20261115134500_seed_kasneb_cpa_cs_learner_catalog.sql'), 'utf8')
+const migration = readFileSync(resolve(root, 'supabase/migrations/20261115111910_seed_kasneb_cpa_cs_learner_catalog.sql'), 'utf8')
 
 const expected = {
   'kasneb-cpa': {
