@@ -74,7 +74,15 @@ begin
   end if;
 
   return query
-  select q.id, q.question_text, q.options, null::text
+  select q.id, q.question_text,
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', option_row.option->>'id',
+        'label', option_row.option->>'label',
+        'text', option_row.option->>'text'
+      ) order by option_row.ordinality)
+      from jsonb_array_elements(q.options) with ordinality as option_row(option, ordinality)
+    ), '[]'::jsonb), null::text
   from public.quiz_questions q
   join public.topics t on t.id = q.topic_id
   join public.modules m on m.id = t.module_id
