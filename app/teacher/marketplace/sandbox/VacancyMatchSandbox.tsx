@@ -408,7 +408,7 @@ export default function VacancyMatchSandbox() {
                 ? "Choose qualification grade, age, graduation year and internship (if applicable) to see your mock score."
                 : "Complete the three minimum checks to start your mock."}</p>
             )}
-            <p className={styles.help}>Simulated marks only; no KCSE grade or county bonus marks. Not an official TSC result.</p>
+            <p className={styles.help}>Simulated marks only; no KCSE grade or county bonus marks. Not an official TSC result. Separate scoring sheets may apply to applicants with disabilities.</p>
             <a href={level === "primary" ? primaryScoreGuideHref : postScoreGuideHref} target="_blank" rel="noopener noreferrer" className={styles.mockPortalLink}>
               View scoring source <ArrowUpRight aria-hidden="true" size={13} />
             </a>
