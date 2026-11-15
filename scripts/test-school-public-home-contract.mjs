@@ -27,7 +27,7 @@ await db.exec([
 "create function public.hq_human_has_permission(id uuid, permission text) returns boolean language sql stable as $$ select id='33333333-3333-4333-8333-333333333333'::uuid and permission='schools.publish' $$;",
 "create function public.is_school_admin(id uuid) returns boolean language sql stable security definer as $$ select exists(select 1 from public.school_members sm where sm.school_id=id and sm.profile_id=auth.uid() and sm.role='admin') $$;",
 ].join('\n'))
-await db.exec(readFileSync('supabase/migrations/20261115071000_school_public_home_publishing.sql','utf8'))
+await db.exec(readFileSync('supabase/migrations/20261115035827_school_public_home_publishing.sql','utf8'))
 await db.exec("select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false); set role authenticated;")
 assert.equal((await rows("select school_can_publish_public_v1('test-school') as allowed"))[0].allowed,false)
 await assert.rejects(()=>rows("select school_publish_public_post_v1('test-school','announcement','Unverified title','Unverified body','{}'::jsonb)"),/Verified school publisher required/)
