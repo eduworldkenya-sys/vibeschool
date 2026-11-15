@@ -24,4 +24,15 @@ assert(client.includes('school_follows: LiveSchoolFollows'), 'browser database c
 
 // Negative control: an implementation that omits account isolation must be rejected.
 assert.throws(()=>contracts(component.replaceAll(".eq('follower_id', auth.user.id)",'')),/account-scoped/)
+const routes = [
+  'app/schools/components/DirectorySchool.tsx',
+  'app/schools/components/SchoolProfile.tsx',
+  'app/schools/components/SchoolSection.tsx',
+]
+for (const path of routes) {
+  assert(readFileSync(path,'utf8').includes('<SchoolVisitorHome'), 'public school must render new home: '+path)
+}
+assert(readFileSync('app/school/[slug]/page.tsx','utf8').includes('schoolSlugOverride={school.slug}'),
+  'canonical school slugs must be passed without guessing name or directory identity')
+
 console.log('School Home UI contract PASS: school-follow identity, auth, visible actions, no invented content, mobile design, negative control')
