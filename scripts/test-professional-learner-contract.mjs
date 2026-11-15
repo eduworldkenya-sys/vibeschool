@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 const read = path => readFileSync(path, 'utf8')
-const migration = read('supabase/migrations/20261115114000_canonical_post_secondary_learner_path.sql')
-const canonical = read('supabase/migrations/20261115134500_seed_kasneb_cpa_cs_learner_catalog.sql')
+const migration = read('supabase/migrations/20261115112112_canonical_post_secondary_learner_path.sql')
+const canonical = read('supabase/migrations/20261115111910_seed_kasneb_cpa_cs_learner_catalog.sql')
 const middleware = read('middleware.ts')
 const layout = read('app/student/layout.tsx')
 const dashboard = read('app/student/college/page.tsx')
