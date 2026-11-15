@@ -152,7 +152,7 @@ export default function TasksPage() {
     <section aria-label="Task summary" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:9}}>
       {([{value:pending+actionable.length+privateTutorTasks.filter(item=>item.status==='assigned').length,label:"To do"},{value:dueSoon,label:"Due soon"},{value:completed,label:"Personal tasks done"}] as const).map(entry=><div key={entry.label} style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:"12px 10px"}}><strong style={{fontSize:25}}>{entry.value}</strong><div style={{fontSize:11,color:"var(--vs-muted)"}}>{entry.label}</div></div>)}
     </section>
-    <details className={compact.panel}><summary>Tutoring tasks &amp; feedback</summary>
+    <details className={compact.panel} aria-label="Private tutoring assignments and feedback"><summary>Tutoring tasks &amp; feedback</summary>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
 
         <Link href="/student/tutoring">My Tutors →</Link>
