@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BookOpen, BookOpenCheck, BrainCircuit, CalendarDays, ChartNoAxesColumn, ChevronRight, ClipboardCheck, Eraser, GraduationCap, Home, LibraryBig, Menu, NotebookPen, PencilLine, Settings, ShieldCheck, UserRound, UsersRound, X, ListTodo } from "lucide-react";
 import styles from "./BottomNav.module.css";
 
@@ -26,6 +26,18 @@ const MORE = [
   { label: "Settings", href: "/student/settings", Icon: Settings },
 ] as const;
 
+// One list owns every destination; groups organise More without creating routes.
+const MORE_GROUPS = [
+  { label: "Practice & exams", items: [MORE[0], MORE[1], MORE[2], MORE[4]] },
+  { label: "Reading & study", items: [MORE[5], MORE[6]] },
+  { label: "Planning & tuition", items: [MORE[7], MORE[3]] },
+  { label: "My account", items: [MORE[8], MORE[9]] },
+] as const;
+
+function isToolActive(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
 function activeSection(path: string): string {
   if (path === "/student" || path === "/student/") return "Home";
   if (path.startsWith("/student/study") || path.startsWith("/student/lesson") || path.startsWith("/student/resources") || path.startsWith("/student/twin") || path.startsWith("/learn")) return "Learn";
@@ -42,8 +54,50 @@ export default function BottomNav() {
   const router = useRouter();
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLElement>(null);
   const current = activeSection(pathname);
-  const navigate = (href: string) => { setMoreOpen(false); router.push(href); };
+  const activeMore = MORE.some(({ href }) => isToolActive(pathname, href));
+
+  const navigate = (href: string) => {
+    setMoreOpen(false);
+    router.push(href);
+  };
+
+  // Route changes, Escape, scroll lock and keyboard focus are shared across mobile routes.
+  useEffect(() => { setMoreOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    document.body.style.overflow = "hidden";
+    closeButton.current?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMoreOpen(false);
+      }
+      if (event.key !== "Tab" || !sheet.current) return;
+      const buttons = Array.from(sheet.current.querySelectorAll<HTMLButtonElement>("button:not([disabled])"));
+      if (!buttons.length) return;
+      const first = buttons[0];
+      const last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+      else moreButton.current?.focus();
+    };
+  }, [moreOpen]);
+
   return <>
     <nav className={styles.nav} aria-label="Student primary navigation">
       <div className={styles.heading}>MY LEARNING</div>
@@ -52,19 +106,27 @@ export default function BottomNav() {
       </button>)}
       <div className={styles.secondary}>
         <div className={styles.heading}>EXPLORE TOOLS</div>
-        {MORE.map(({label,href,Icon}) => <button type="button" key={href} className={pathname.startsWith(href)?styles.quickActive:""} aria-current={pathname.startsWith(href)?"page":undefined} onClick={()=>navigate(href)}>
-          <Icon size={19} aria-hidden="true"/><span>{label}</span>
-        </button>)}
+        {MORE_GROUPS.map(group => <div className={styles.desktopGroup} key={group.label}>
+          <div className={styles.groupHeading}>{group.label}</div>
+          {group.items.map(({label,href,Icon}) => <button type="button" key={href} className={isToolActive(pathname,href)?styles.quickActive:""} aria-current={isToolActive(pathname,href)?"page":undefined} onClick={()=>navigate(href)}>
+            <Icon size={19} aria-hidden="true"/><span>{label}</span>
+          </button>)}
+        </div>)}
       </div>
-      <button type="button" className={styles.mobileMore} aria-expanded={moreOpen} aria-controls="learner-tools-menu" onClick={()=>setMoreOpen(v=>!v)} aria-label={moreOpen?"Close learner tools":"Open all learner tools"}>
+      <button ref={moreButton} type="button" className={styles.mobileMore + (activeMore ? " "+styles.tabActive : "")} aria-expanded={moreOpen} aria-controls="learner-tools-menu" aria-haspopup="dialog" onClick={()=>setMoreOpen(value=>!value)} aria-label={moreOpen?"Close learner tools":"Open all learner tools"}>
         {moreOpen?<X size={20}/>:<Menu size={20}/>}<span>More</span>
       </button>
     </nav>
     {moreOpen && <div className={styles.mobileOverlay} id="learner-tools-menu">
-      <button type="button" className={styles.scrim} aria-label="Close learner tools" onClick={()=>setMoreOpen(false)}/>
-      <section className={styles.sheet} aria-label="All learner tools">
-        <div className={styles.sheetHead}><strong>Explore VibeSchool</strong><button type="button" aria-label="Close menu" onClick={()=>setMoreOpen(false)}><X size={22}/></button></div>
-        <div className={styles.sheetGrid}>{MORE.map(({label,href,Icon})=><button key={href} type="button" onClick={()=>navigate(href)}><Icon size={21} aria-hidden="true"/><span>{label}</span><ChevronRight size={14} aria-hidden="true"/></button>)}</div>
+      <button type="button" className={styles.scrim} aria-label="Close learner tools" tabIndex={-1} onClick={()=>setMoreOpen(false)}/>
+      <section ref={sheet} className={styles.sheet} role="dialog" aria-modal="true" aria-labelledby="learner-tools-title">
+        <div className={styles.sheetHead}><strong id="learner-tools-title">Explore VibeSchool</strong><button ref={closeButton} type="button" aria-label="Close menu" onClick={()=>setMoreOpen(false)}><X size={22}/></button></div>
+        {MORE_GROUPS.map(group => <div className={styles.sheetGroup} key={group.label}>
+          <h2 className={styles.sheetGroupTitle}>{group.label}</h2>
+          <div className={styles.sheetGrid}>{group.items.map(({label,href,Icon})=><button key={href} type="button" aria-current={isToolActive(pathname,href)?"page":undefined} className={isToolActive(pathname,href)?styles.sheetActive:""} onClick={()=>navigate(href)}>
+            <Icon size={21} aria-hidden="true"/><span>{label}</span><ChevronRight size={14} aria-hidden="true"/>
+          </button>)}</div>
+        </div>)}
       </section>
     </div>}
   </>;
