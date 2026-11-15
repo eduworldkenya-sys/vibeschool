@@ -158,6 +158,7 @@ export default function RevisionStudioPage(){
        {(identityLoading||loading)&&<div style={card} role="status">Preparing your revision…</div>}
        {!identityLoading&&!loading&&!identity&&<div style={card}><strong>Sign in to revise</strong><p style={muted}>Revision progress belongs to your learner account.</p><button type="button" style={primary} onClick={()=>router.push('/student')}>Learner home</button></div>}
        {identity&&!identityLoading&&!loading&&<>
+         {onHome&&<StudentIntro feature="revision-overview"><p>Choose a topic, recall what you know and revisit what needs practice.</p></StudentIntro>}
          {onHome&&<>
            <section aria-label="Your next revision" style={{...card,background:'var(--vs-soft)',border:'0',padding:0}}>
              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0 0 9px',gap:8}}>
