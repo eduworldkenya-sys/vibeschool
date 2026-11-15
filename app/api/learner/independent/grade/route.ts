@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Learner account needs verification' }, { status: 403 })
   }
   const name = learnerDisplayName(submittedName, profile.full_name, user.user_metadata?.full_name, user.user_metadata?.name)
-  if (!name || name.length < 2 || name.length > 80) {
+  if (!name || name.length < 2 || name.length > 80 || !/^[\p{L}\p{M}][\p{L}\p{M}\p{N} .'’\-]*$/u.test(name)) {
     return NextResponse.json({ error: 'Enter your name to continue' }, { status: 400 })
   }
   if (profile.full_name !== name) {
