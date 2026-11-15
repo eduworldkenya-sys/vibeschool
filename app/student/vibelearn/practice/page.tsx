@@ -217,7 +217,7 @@ export default function VibeLearnPracticePage() {
     {!hasReaderSource && <section style={card} aria-label="Available practice assessments">
       <div style={eyebrowDark}>{identity?.className || 'Your grade'} · Published practice</div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div><h2 style={{ fontSize: 20, lineHeight: 1.3, margin: '7px 0 5px' }}>Published practice sets</h2><p style={muted}>Choose a subject below or open five-question Topic Practice.</p></div>
+        <div><h2 style={{ fontSize: 20, lineHeight: 1.3, margin: '7px 0 5px' }}>Published practice sets</h2></div>
         <button type="button" style={secondaryButton} onClick={() => router.push('/student/vibelearn/topic-practice')}>Open Topic Practice →</button>
       </div>
       {practiceSubjects.length > 1 && <div aria-label="Practice subjects" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
