@@ -8,6 +8,7 @@ import LearnYourWayReaderBridge from '@/components/student/LearnYourWayReaderBri
 import PwaInstallPrompt from '@/components/pwa/PwaInstallPrompt'
 import PwaServiceWorker from '@/components/pwa/PwaServiceWorker'
 import './globals.css'
+import './auth/auth-theme.css'
 // Serve the existing bundled OFL fonts instead of fetching Google Fonts while building.
 // Network font responses previously broke deterministic Linux CI with next/font loader errors.
 const jost=localFont({src:'../public/fonts/teacher-studio/manrope-latin.woff2',weight:'400 800',display:'swap',variable:'--font-display'});
