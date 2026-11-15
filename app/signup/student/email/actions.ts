@@ -1,6 +1,7 @@
 'use server'
 
 import { emailPilotEnabled, pilotEmail } from './config'
+import { resolveLearningSelection } from '@/lib/learner/learning-levels'
 import { canUsePilot, finishPilotSignup, hasRestrictedIdentity, pilotClient, pilotAdminClient } from './server'
 
 const unavailable = 'Email signup is unavailable for this address.'
@@ -64,20 +65,50 @@ export async function signOutLearnerEmail() {
 }
 
 export async function saveIndependentEmailGrade(form: FormData) {
-  const grade = form.get('grade')
-  if (typeof grade !== 'string' || !/^(Grade (?:[1-9]|1[0-2])|Form [1-4])$/.test(grade)) return { error: 'Choose your grade.' }
+  const selection = resolveLearningSelection(form.get('level'), form.get('choice'))
+  if (!selection) return { error: 'Choose a valid learning level and programme.' }
   try {
     const { client, commit } = pilotClient()
     const { data: { user }, error } = await client.auth.getUser()
     if (error || !user || !await canUsePilot(client, user) || !await hasRestrictedIdentity(user.id)) {
       return { error: 'Sign in with your verified email first.' }
     }
-    const { error: writeError } = await pilotAdminClient().from('independent_learner_identities')
-      .update({ grade_label: grade, updated_at: new Date().toISOString() }).eq('user_id', user.id)
-    if (writeError) return { error: 'Could not save your grade.' }
+    const admin = pilotAdminClient()
+    const { data: identity, error: identityError } = await admin.from('independent_learner_identities')
+      .select('grade_label').eq('user_id', user.id).maybeSingle()
+    const { data: existingPath, error: pathError } = await admin.from('learner_education_paths')
+      .select('education_stage,programme_family,qualification_code').eq('user_id', user.id).maybeSingle()
+    if (identityError || !identity || pathError) return { error: 'Could not check your study pathway.' }
+    if (existingPath && (!selection.pathway || existingPath.education_stage !== 'post_secondary' ||
+      existingPath.programme_family !== selection.pathway.programme_family ||
+      existingPath.qualification_code !== selection.pathway.qualification_code)) {
+      return { error: 'Your existing study pathway must be changed in your profile.' }
+    }
+    const restoreGrade = async () => {
+      await admin.from('independent_learner_identities')
+        .update({ grade_label: identity.grade_label, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id).eq('grade_label', selection.gradeLabel)
+    }
+    const { error: writeError } = await admin.from('independent_learner_identities')
+      .update({ grade_label: selection.gradeLabel, updated_at: new Date().toISOString() }).eq('user_id', user.id)
+    if (writeError) return { error: 'Could not save your learning level.' }
+    const { data: studentId, error: studentError } = await admin.rpc('ensure_independent_learner_student', { p_user_id: user.id })
+    if (studentError || !studentId) {
+      await restoreGrade()
+      return { error: 'Could not prepare your learner profile.' }
+    }
+    if (selection.pathway && !existingPath) {
+      const { error: pathwayError } = await admin.from('learner_education_paths').insert({
+        user_id:user.id,education_stage:'post_secondary',...selection.pathway,
+      })
+      if (pathwayError) {
+        await restoreGrade()
+        return { error: 'Could not save your study pathway.' }
+      }
+    }
     commit()
-    return { saved: true }
+    return { saved: true, destination: selection.pathway ? '/student/college' : '/student' }
   } catch {
-    return { error: 'Could not save your grade. Try again.' }
+    return { error: 'Could not save your learning level. Try again.' }
   }
 }
