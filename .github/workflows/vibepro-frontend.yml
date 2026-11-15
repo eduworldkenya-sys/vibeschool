@@ -1,0 +1,31 @@
+name: VibePro Frontend Preview
+
+on:
+  pull_request:
+    paths:
+      - 'app/vibepro/**'
+      - 'public/vibepro/**'
+      - 'scripts/test-vibepro-demo.mjs'
+      - '.github/workflows/vibepro-frontend.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/vibepro/**'
+      - 'public/vibepro/**'
+      - 'scripts/test-vibepro-demo.mjs'
+      - '.github/workflows/vibepro-frontend.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  demo-contract:
+    name: VibePro Demo Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate preview javascript, route and isolation
+        run: node --test scripts/test-vibepro-demo.mjs
