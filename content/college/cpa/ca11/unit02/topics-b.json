@@ -1,0 +1,156 @@
+[
+  {
+    "slug": "trial-balance-from-ledgers",
+    "title": "Rebuild and challenge a trial balance",
+    "subtitle": "Applied workshop 4 · Balance accounts and prepare a trial balance",
+    "sequence_number": 10,
+    "week_number": null,
+    "concept_tab": [
+      {
+        "title": "What the trial balance actually checks",
+        "text": "The trial balance lists the debit and credit balances in the general ledger at a particular date. Total debits should equal total credits when every double-entry posting has been made consistently. It is a useful arithmetic checkpoint, not a certificate that every transaction was genuine or classified correctly. Start with ledger balances, not the amounts printed on every invoice."
+      },
+      {
+        "title": "Bring forward the same business case",
+        "text": "At 31 August, Nuru Repair Studio has completed the nine recordable transactions from the previous lesson. The bank ledger shows KSh 164,000 debit. Equipment shows KSh 60,000 debit. Customers owe KSh 15,000; suppliers are owed KSh 3,000. Its service income totals KSh 80,000 credit, while rent, advertising and drawings have debit balances. There are no opening balances or further month-end adjustments in this exercise."
+      },
+      {
+        "title": "Debit balances: work down the accounts",
+        "text": "Enter the debit balances in the trial balance: bank KSh 164,000; equipment KSh 60,000; trade receivables KSh 15,000; rent expense KSh 12,000; advertising expense KSh 8,000; drawings KSh 4,000. Add them in order: 164,000 + 60,000 = 224,000; +15,000 = 239,000; +12,000 = 251,000; +8,000 = 259,000; +4,000 = KSh 263,000."
+      },
+      {
+        "title": "Credit balances: an independent total",
+        "text": "Enter the credit balances: owner's capital KSh 180,000; service revenue KSh 80,000; trade payables KSh 3,000. Add 180,000 + 80,000 + 3,000 = KSh 263,000. The debit total of KSh 263,000 agrees with the credit total. The agreement follows from the entries, not from inserting an amount to make the columns look equal."
+      },
+      {
+        "title": "An account balance is not a total of transactions",
+        "text": "The bank ledger received KSh 245,000 of debits and KSh 81,000 of credits during the month. Its balance brought into the trial balance is KSh 164,000 debit, not KSh 245,000. Similarly, trade receivables started at KSh 35,000 but KSh 20,000 was collected, so the receivable balance is KSh 15,000. The trial balance contains the net account balances."
+      },
+      {
+        "title": "When the totals disagree",
+        "text": "If debit balances sum to KSh 263,000 and credit balances to KSh 268,000, investigate the KSh 5,000 difference. Re-add each column, verify that the ledger balances were copied once to the correct side, inspect individual postings and confirm that both sides of each entry reached the appropriate accounts. Do not immediately enter KSh 5,000 in an invented expense account."
+      },
+      {
+        "title": "Equal totals can still hide mistakes",
+        "text": "Suppose the business's KSh 5,000 payment to its advertising supplier is omitted from both the bank and payable ledgers. The trial balance can still agree: bank and payables are each KSh 5,000 too high. No arithmetic mismatch points to the omission. A second check against the bank record and supplier statement is required to find it."
+      },
+      {
+        "title": "Know what comes next",
+        "text": "Once the ledger balances have been extracted and reviewed, the accountant uses income and expense accounts to calculate performance and asset, liability and equity balances to present the financial position. A trial balance is a bridge to statements, not the final report and not a replacement for any necessary adjustments."
+      },
+      {
+        "title": "Check your own reconstruction",
+        "text": "Without looking back, calculate trade receivables after a KSh 35,000 credit invoice and KSh 20,000 customer payment. Then calculate trade payables after KSh 8,000 of advertising services on credit and KSh 5,000 paid. You should arrive at KSh 15,000 debit and KSh 3,000 credit. Explain why both balances matter to the owner."
+      }
+    ],
+    "kenya_context_tab": [
+      {
+        "title": "A month-end review in Kenya",
+        "text": "A self-employed accountant in Eldoret receives a bank statement, customer account list and supplier statements. The first trial balance agrees. Before reporting, the accountant checks whether all bank transactions and supplier settlements were actually posted. Equality of debit and credit totals cannot replace that independent source reconciliation."
+      },
+      {
+        "title": "When software reports a green check",
+        "text": "An accounting platform may automatically keep debit and credit totals equal. That does not prove an invoice was posted to the right customer or an owner's withdrawal was coded as drawings. Source-to-ledger testing remains part of the accountant's responsibility."
+      }
+    ],
+    "common_errors_tab": [
+      {
+        "title": "Entering both sides of a ledger account",
+        "text": "The trial balance normally shows the closing net balance of an account, not all of its debit and credit movements. Recording both figures would distort the total and conceal what remains."
+      },
+      {
+        "title": "Thinking equality proves accuracy",
+        "text": "A complete omission or an equally balanced incorrect journal can preserve equality. Use the trial balance to find certain errors, then use reconciliation and document checks to test completeness and classification."
+      }
+    ],
+    "clinical_tip_tab": [
+      {
+        "title": "Find the error before choosing a correction",
+        "text": "If a trial balance is out by KSh 5,000, begin with the KSh 5,000 difference, but do not assume the error is a single KSh 5,000 transaction. The cause may be one-sided posting, a transcription mistake or several errors whose effects combine."
+      },
+      {
+        "title": "A useful supervisor's question",
+        "text": "When a report balances, ask what still has not been checked. If you can identify an evidence test outside the ledger, you are acting as an accountant rather than simply operating a calculator."
+      }
+    ]
+  },
+  {
+    "slug": "statements-from-the-trial-balance",
+    "title": "Present August's results to the owner",
+    "subtitle": "Applied workshop 5 · Profit or loss and financial position from the trial balance",
+    "sequence_number": 11,
+    "week_number": null,
+    "concept_tab": [
+      {
+        "title": "Make the report answer a question",
+        "text": "The owner of Nuru Repair Studio wants two answers: Did the business earn a profit in August, and what does it own and owe at the end of the month? Those are different questions, so we prepare two different summaries from the same ledger balances. In a real set of financial statements, the reporting framework may also require cash-flow information, changes in equity and notes."
+      },
+      {
+        "title": "Statement of profit or loss: start with income",
+        "text": "The August service revenue account has a credit balance of KSh 80,000, made up of KSh 35,000 earned on credit and KSh 45,000 received for completed cash services. Add both because income reflects services earned, not only cash received. There are no opening balances, returns or other income in this simplified exercise."
+      },
+      {
+        "title": "Deduct the expenses that belong to August",
+        "text": "Rent used during the month was KSh 12,000. Advertising services delivered and used during the month cost KSh 8,000, even though KSh 3,000 remains payable. Total expenses are 12,000 + 8,000 = KSh 20,000. Profit for August is KSh 80,000 − KSh 20,000 = KSh 60,000. The advertising supplier payment of KSh 5,000 is not an additional expense."
+      },
+      {
+        "title": "Statement of financial position: establish assets",
+        "text": "At 31 August the business has KSh 164,000 in the bank, equipment with a simplified carrying amount of KSh 60,000 and trade receivables of KSh 15,000. Total assets are 164,000 + 60,000 + 15,000 = KSh 239,000. The equipment value here ignores depreciation only because this introductory model deliberately excludes that later adjustment."
+      },
+      {
+        "title": "Liabilities and the owner's remaining interest",
+        "text": "The advertising supplier is still owed KSh 3,000. The owner introduced KSh 180,000 of capital, the business earned KSh 60,000 and the owner withdrew KSh 4,000. Closing equity is 180,000 + 60,000 − 4,000 = KSh 236,000. Check the statement: assets KSh 239,000 = liabilities KSh 3,000 + equity KSh 236,000."
+      },
+      {
+        "title": "Why profit, equity and bank balance differ",
+        "text": "Profit is KSh 60,000, the bank holds KSh 164,000 and equity is KSh 236,000. These figures are not competing versions of the same amount. The bank reflects receipts and payments, profit reflects recognised income and expenses, and equity includes owner capital, profit and drawings. The KSh 60,000 equipment purchase changed which asset the business owns, not its immediate operating profit."
+      },
+      {
+        "title": "Do not add the customer payment to income twice",
+        "text": "Of KSh 35,000 of repairs invoiced on credit, KSh 20,000 is collected later. The full KSh 35,000 was included in August earned revenue when the work was completed under the stated assumptions. The subsequent collection moves KSh 20,000 from receivables to bank. Recognising another KSh 20,000 of revenue would inflate profit and make the statement misleading."
+      },
+      {
+        "title": "A reporting cycle without pretending it is complete IFRS",
+        "text": "This lesson demonstrates how a basic trial balance feeds two introductory statements. A complete set of financial statements prepared under an applicable framework requires appropriate recognition, measurement, adjustments, presentation, comparative figures and disclosures. Subsequent CA11 units will address adjustments and more complex entities; do not call this short teaching example a complete IFRS-compliant annual report."
+      },
+      {
+        "title": "Hand over a result someone can trust",
+        "text": "Before sending the report to the owner, confirm that the period is labelled, all balances come from the verified ledger, profit reconciles to the movement in equity, and assets equal liabilities plus equity. State any simplifying assumptions. An accountant earns trust by making the figures explainable and the limitations visible, not by suppressing an awkward question."
+      }
+    ],
+    "kenya_context_tab": [
+      {
+        "title": "Advice to a business owner",
+        "text": "A Meru workshop owner sees KSh 164,000 in the bank and wants to withdraw KSh 100,000. The accountant explains that a bank balance is not the whole story: there are supplier obligations, future operating needs and equipment-related costs. This lesson's statements are a starting point for that conversation, not a cash budget or a licence to withdraw."
+      },
+      {
+        "title": "An accounting-system handover",
+        "text": "A computerised ledger may produce the trial balance and draft statements immediately after entries post. Your job is to compare the reports to the underlying events and check the classification. The software does not decide whether an owner's private withdrawal is a normal business expense."
+      }
+    ],
+    "common_errors_tab": [
+      {
+        "title": "Calling collections revenue twice",
+        "text": "Cash collected from a customer who already owes the business normally reduces the receivable. It is not another completed service, so the same transaction cannot be counted as a new sale."
+      },
+      {
+        "title": "Profit is not the same as closing cash",
+        "text": "A business may make a profit while waiting for customers to pay; it may also have substantial bank funds from new owner capital or a loan. Use the performance and position reports together."
+      },
+      {
+        "title": "Forgetting drawings in closing equity",
+        "text": "A personal withdrawal reduces the owner's interest but is not deducted from service profit as rent or advertising would be. It belongs in the movement from opening capital and earnings to closing equity."
+      }
+    ],
+    "clinical_tip_tab": [
+      {
+        "title": "The three-number cross-check",
+        "text": "For the August case, say these aloud and explain each: KSh 60,000 profit; KSh 236,000 closing equity; KSh 239,000 assets. If you cannot explain why the numbers differ, trace the capital contribution, credit sale, supplier balance and drawings again."
+      },
+      {
+        "title": "Think beyond the statement",
+        "text": "A professional does not simply supply a profit figure. She should be able to tell the owner which customers still owe money, which supplier still needs payment and what assumptions were made when preparing the report."
+      }
+    ]
+  }
+]
