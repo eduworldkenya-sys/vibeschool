@@ -1,14 +1,14 @@
 [
   {
     "slug": "source-documents-and-evidence",
-    "title": "A transaction begins with evidence",
-    "subtitle": "Section 2.1 · Invoices, receipts, statements and a defensible audit trail",
-    "sequence_number": 4,
+    "title": "Audit a real invoice trail",
+    "subtitle": "Applied workshop 1 · Invoices, receipts, statements and a defensible audit trail",
+    "sequence_number": 7,
     "week_number": null,
     "concept_tab": [
       {
         "title": "Begin at the counter",
-        "text": "A customer buys goods on credit for KSh 24,000. The shop issues an invoice; no money changes hands yet. Two weeks later, the customer pays KSh 10,000 by bank transfer. The invoice supports the sale and receivable. The bank credit supports the later collection. If an accountant records the sale as bank cash on the invoice date, the figures stop describing what actually happened."
+        "text": "This is a second, practical case after the introductory Accounting Process lessons. A customer buys goods on credit for KSh 24,000. The shop issues an invoice; no money changes hands yet. Two weeks later, the customer pays KSh 10,000 by bank transfer. The invoice supports the sale and receivable; the bank credit supports the later collection. If an accountant records the sale as bank cash on the invoice date, the figures no longer describe what happened."
       },
       {
         "title": "The question behind every document",
@@ -68,9 +68,9 @@
   },
   {
     "slug": "books-of-original-entry",
-    "title": "Choose the right first record",
-    "subtitle": "Section 2.2 · Sales, purchases, cash books, journals and petty cash",
-    "sequence_number": 5,
+    "title": "Record a week of business evidence",
+    "subtitle": "Applied workshop 2 · Sales, purchases, cash books, journals and petty cash",
+    "sequence_number": 8,
     "week_number": null,
     "concept_tab": [
       {
@@ -143,9 +143,9 @@
   },
   {
     "slug": "double-entry-ledgers",
-    "title": "Make each transaction balance",
-    "subtitle": "Section 2.3 · Journals, T-accounts and the ledger in practice",
-    "sequence_number": 6,
+    "title": "Post the full Nuru Repair Studio ledger",
+    "subtitle": "Applied workshop 3 · Journals, T-accounts and the ledger in practice",
+    "sequence_number": 9,
     "week_number": null,
     "concept_tab": [
       {
