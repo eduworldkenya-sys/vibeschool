@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic"
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { ensureCourseLearnerProfile } from '@/lib/learn/ensure-course-learner-profile'
 
 const BLUE = '#1A1AFF'
 const INK = '#0A0A0F'
@@ -53,7 +54,6 @@ interface QuizQuestionRow {
   id: string
   question_text: string
   options: QuizOption[]
-  correct_option_id: string
   explanation: string | null
 }
 
@@ -96,126 +96,114 @@ function ConceptBlocks({ blocks }: { blocks: ContentBlock[] | null }) {
   )
 }
 
+type QuizFeedback = { is_correct: boolean; explanation: string | null }
+
 function QuizPanel({ topicId }: { topicId: string }) {
   const [questions, setQuestions] = useState<QuizQuestionRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState('')
   const [selectedByQuestion, setSelectedByQuestion] = useState<Record<string, string>>({})
+  const [feedbackByQuestion, setFeedbackByQuestion] = useState<Record<string, QuizFeedback>>({})
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
 
   useEffect(() => {
+    let active = true
     async function load() {
-      const { data, error } = await supabase
-        .from('quiz_questions')
-        .select('id, question_text, options, correct_option_id, explanation')
-        .eq('topic_id', topicId)
-
+      const { data, error } = await supabase.rpc('get_public_quiz_questions', {
+        p_topic_id: topicId,
+      })
+      if (!active) return
       if (error) {
-        console.error('QuizPanel fetch error:', error)
-      } else if (data) {
-        const parsedQuestions: QuizQuestionRow[] = data.map(row => {
+        setFetchError('Practice could not be opened. Please return and try again.')
+      } else {
+        const parsedQuestions: QuizQuestionRow[] = (Array.isArray(data) ? data : []).map(row => {
           const options: QuizOption[] = Array.isArray(row.options)
-            ? row.options.reduce<QuizOption[]>((parsed, option) => {
-                if (!isQuizOption(option)) return parsed
-
-                parsed.push({
-                  id: option.id,
-                  label: option.label,
-                  text: option.text,
-                })
-
-                return parsed
-              }, [])
+            ? row.options.filter(isQuizOption)
             : []
-
           return {
             id: row.id,
             question_text: row.question_text,
             options,
-            correct_option_id: row.correct_option_id,
-            explanation: row.explanation,
+            explanation: null,
           }
         })
-
         setQuestions(parsedQuestions)
       }
       setLoading(false)
     }
-    load()
+    void load()
+    return () => { active = false }
   }, [topicId])
 
-  function selectOption(questionId: string, optionId: string) {
+  async function selectOption(questionId: string, optionId: string) {
+    if (feedbackByQuestion[questionId] || pendingQuestion) return
+    setPendingQuestion(questionId)
+    setFetchError('')
+    const { data, error } = await supabase.rpc('submit_quiz_answer', {
+      p_question_id: questionId,
+      p_option_id: optionId,
+    })
+    setPendingQuestion(null)
+    const result = Array.isArray(data) ? data[0] : null
+    if (error || !result || typeof result.is_correct !== 'boolean') {
+      setFetchError('Your answer was not checked. Please try again.')
+      return
+    }
     setSelectedByQuestion(prev => ({ ...prev, [questionId]: optionId }))
+    setFeedbackByQuestion(prev => ({ ...prev, [questionId]: {
+      is_correct: result.is_correct,
+      explanation: typeof result.explanation === 'string' ? result.explanation : null,
+    } }))
   }
 
-  if (loading) {
-    return <div style={{ fontSize: 13, color: MUTED }}>Loading practice questions...</div>
-  }
-
-  if (questions.length === 0) {
+  if (loading) return <div role="status" style={{ fontSize: 13, color: MUTED }}>Loading practice questions...</div>
+  if (questions.length === 0 && !fetchError)
     return <div style={{ fontSize: 13, color: MUTED }}>Practice questions coming soon.</div>
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {questions.map((q) => {
+      {fetchError && <p role="alert" style={{ color: '#c0392b', fontSize: 13 }}>{fetchError}</p>}
+      {questions.map(q => {
         const selectedId = selectedByQuestion[q.id]
-        const hasAnswered = Boolean(selectedId)
-        const isCorrect = selectedId === q.correct_option_id
-
+        const result = feedbackByQuestion[q.id]
         return (
-          <div key={q.id}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: INK, marginBottom: 12, lineHeight: 1.5 }}>
+          <section key={q.id} aria-label="Practice question">
+            <p style={{ fontSize: 14, fontWeight: 600, color: INK, marginBottom: 12, lineHeight: 1.5 }}>
               {q.question_text}
-            </div>
+            </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {q.options.map((opt) => {
-                const isSelected = selectedId === opt.id
-                const isThisCorrect = opt.id === q.correct_option_id
-                let bg = '#fff'
-                let border = '#ecebf3'
-                if (hasAnswered && isThisCorrect) { bg = HEALTH_BG; border = HEALTH }
-                else if (hasAnswered && isSelected && !isThisCorrect) { bg = '#fef2f2'; border = '#ef4444' }
-
+              {q.options.map(opt => {
+                const chosen = selectedId === opt.id
+                const wrong = chosen && result && !result.is_correct
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={opt.id}
-                    onClick={() => !hasAnswered && selectOption(q.id, opt.id)}
+                    disabled={!!result || !!pendingQuestion}
+                    onClick={() => void selectOption(q.id, opt.id)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
+                      display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
                       padding: '12px 14px', borderRadius: 12,
-                      border: `1.5px solid ${border}`, background: bg,
-                      cursor: hasAnswered ? 'default' : 'pointer',
+                      border: '1.5px solid ' + (wrong ? '#ef4444' : chosen ? HEALTH : '#ecebf3'),
+                      background: chosen && result?.is_correct ? HEALTH_BG : wrong ? '#fef2f2' : '#fff',
+                      cursor: result ? 'default' : 'pointer', opacity: pendingQuestion && pendingQuestion !== q.id ? .7 : 1,
                     }}
                   >
-                    <div style={{
-                      width: 24, height: 24, borderRadius: 8, background: CANVAS,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, fontWeight: 700, color: INK, flexShrink: 0,
-                    }}>
-                      {opt.label}
-                    </div>
-                    <span style={{ fontSize: 13, color: INK }}>{opt.text}</span>
-                  </div>
+                    <span style={{ fontWeight: 700, color: INK }}>{opt.label}</span>
+                    <span style={{ color: INK, fontSize: 13 }}>{opt.text}</span>
+                  </button>
                 )
               })}
             </div>
-
-            {hasAnswered && (
-              <div style={{
-                marginTop: 12, padding: 14, borderRadius: 12,
-                background: isCorrect ? HEALTH_BG : '#fef2f2',
-                borderLeft: `4px solid ${isCorrect ? HEALTH : '#ef4444'}`,
-              }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: isCorrect ? '#007a5a' : '#c0392b' }}>
-                  {isCorrect ? '✓ Correct!' : '✗ Not quite.'}
-                </div>
-                {q.explanation && (
-                  <div style={{ fontSize: 12, color: MUTED, marginTop: 6, lineHeight: 1.6 }}>
-                    {q.explanation}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+            {pendingQuestion === q.id && <p role="status" style={{ fontSize: 12 }}>Checking your answer…</p>}
+            {result && <div role="status" style={{
+              marginTop: 12, padding: 14, borderRadius: 12,
+              background: result.is_correct ? HEALTH_BG : '#fef2f2',
+            }}>
+              <strong>{result.is_correct ? 'Correct.' : 'Not quite.'}</strong>
+              {result.explanation && <p style={{ marginTop: 6, lineHeight: 1.6, fontSize: 13 }}>{result.explanation}</p>}
+            </div>}
+          </section>
         )
       })}
     </div>
@@ -237,6 +225,7 @@ export default function TopicDetailPage() {
   const [notFound, setNotFound] = useState(false)
   const [markingDone, setMarkingDone] = useState(false)
   const [isDone, setIsDone] = useState(false)
+  const [completionError, setCompletionError] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -299,29 +288,26 @@ export default function TopicDetailPage() {
   }, [courseSlug, moduleSlug, topicSlug])
 
   async function markComplete() {
-    if (!topic || markingDone) return
+    if (!topic || markingDone || isDone) return
     setMarkingDone(true)
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setMarkingDone(false)
-      router.push('/auth/callback')
-      return
-    }
-
-    const { error } = await supabase
-      .from('learner_progress')
-      .upsert(
-        { learner_id: user.id, topic_id: topic.id, completed_at: new Date().toISOString() },
-        { onConflict: 'learner_id,topic_id' }
-      )
-
-    if (error) {
-      console.error('markComplete error:', error)
-    } else {
+    setCompletionError('')
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+      await ensureCourseLearnerProfile(user.id)
+      const { error } = await supabase
+        .from('learner_progress')
+        .upsert(
+          { learner_id: user.id, topic_id: topic.id, completed_at: new Date().toISOString() },
+          { onConflict: 'learner_id,topic_id' }
+        )
+      if (error) throw new Error('Your progress could not be saved. Please retry.')
       setIsDone(true)
+    } catch (cause) {
+      setCompletionError(cause instanceof Error ? cause.message : 'Could not save your progress.')
+    } finally {
+      setMarkingDone(false)
     }
-    setMarkingDone(false)
   }
 
   const tipLabel = TIP_LABEL_BY_DOMAIN[course?.domain ?? ''] ?? '💡 Practical Tip'
@@ -406,8 +392,9 @@ export default function TopicDetailPage() {
 
       {/* MARK COMPLETE */}
       <div style={{ padding: '0 16px 16px' }}>
-        <div
-          onClick={markComplete}
+        {completionError && <p role="alert" style={{ color: '#c0392b', fontSize: 12 }}>{completionError}</p>}
+        <button type="button" disabled={markingDone || isDone}
+          onClick={() => void markComplete()}
           style={{
             textAlign: 'center', padding: '14px', borderRadius: 14,
             background: isDone ? HEALTH_BG : BLUE,
@@ -416,7 +403,7 @@ export default function TopicDetailPage() {
           }}
         >
           {isDone ? '✓ Topic completed' : markingDone ? 'Saving...' : 'Mark as complete'}
-        </div>
+        </button>
       </div>
     </div>
   )
