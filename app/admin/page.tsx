@@ -260,6 +260,10 @@ export default function AdminHomePage() {
       </section>
 
       <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+        <button onClick={() => router.push("/admin/school-publications")} style={cardStyle}>
+          <strong>Public school home</strong>
+          <div style={{ color: "#64748b", fontSize: 13, marginTop: 5 }}>Publish news, verified fees, uniforms and admissions.</div>
+        </button>
         <button onClick={() => router.push("/admin/communication")} style={cardStyle}>
           <strong>School communications</strong>
           <div style={{ color: "#64748b", fontSize: 13, marginTop: 5 }}>{state.notices} notice{state.notices === 1 ? "" : "s"} sent today · open messages and circulars.</div>

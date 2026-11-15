@@ -51,7 +51,7 @@ export default function SchoolsDirectoryPage(){
  return <div className={styles.page}>
   <PublicHeader product="Schools"/>
   <main id="main-content" className={styles.directoryMain}>
-   <h1 className={styles.directoryTitle}>Find a school</h1>
+   <h1 className={styles.directoryTitle}>Find a school</h1><p><Link href="/schools/following" style={{color:'#087451',fontWeight:750}}>My followed schools</Link></p>
    <div className={styles.directorySearch}>
     <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
     <input disabled={!ready} aria-label="Search schools" type="search" autoComplete="off" placeholder="Search school name..." value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/>

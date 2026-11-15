@@ -165,6 +165,8 @@ export default function StudentHomePage() {
       <div style={{ marginTop: 14 }}><div style={{ ...splitSmall, fontSize: 13, fontWeight: 700 }}><span>{goal && goal.completed >= goal.target ? 'Daily goal reached' : 'Daily learning goal'}</span><strong>{goal && goal.completed >= goal.target ? `${goal.completed} activities completed` : `${goal?.completed ?? 0} of ${goal?.target ?? 1} activities`}</strong></div><div style={heroTrack}><div style={{ width: `${goalRate}%`, height: '100%', background: '#168153', borderRadius: 999 }} /></div></div>
     </section>
 
+    <p style={{margin:'3px 0 14px',fontSize:13}}><Link href="/schools/following" style={{color:'var(--vs-accent)',fontWeight:800}}>School updates</Link></p>
+
     {continueReading && nextTask && <section className="student-home-resume" aria-label="Resume your learning">
       <div>
         <span className="student-home-resume-kicker">Your saved place</span>
