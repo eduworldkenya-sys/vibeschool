@@ -10,6 +10,7 @@ import styles from '@/app/schools/schools.module.css'
 import { SchoolCover } from '@/app/schools/components/SchoolCover'
 import { SchoolFacts } from '@/app/schools/components/SchoolPublicFacts'
 import { SchoolMap } from '@/app/schools/components/SchoolMap'
+import SchoolFollowButton from '@/app/schools/components/SchoolFollowButton'
 
 type ProfileRow={school_id:string;school_name:string;county:string|null;sub_county:string|null;school_category:string|null;ownership_type:string|null;gender_type:string|null;accommodation_type:string|null;cluster:string|null;knec_code:string|null;pathway_slug:string|null;pathway_name:string|null;combination_slug:string|null;combination_name:string|null;verified_at:string|null;source_authority:string|null;source_name:string|null;source_url:string|null;source_reference:string|null;source_observed_at:string|null}
 type TrustRow={school_id:string;verified_claim_count:number;profile_completeness:number;trust_state:'canonical_identity'|'verified_claims';last_verified_at:string|null}
@@ -37,6 +38,7 @@ export default function SchoolProfilePage({schoolIdOverride,schoolBaseOverride}:
  <h1 className={styles.canonicalTitle}>{school.school_name}</h1>
  <p className={styles.canonicalLocation}>⌖ {[school.sub_county,school.county].filter(Boolean).join(', ')}</p>
  <div className={styles.canonicalChips}>{[school.school_category,school.ownership_type,school.accommodation_type&&school.accommodation_type+' school'].filter(Boolean).map(v=><span key={v}>{String(v).toLowerCase().replace(/^./,c=>c.toUpperCase())}</span>)}</div>
+ {schoolBase.startsWith('/school/') && <SchoolFollowButton slug={decodeURIComponent(schoolBase.slice('/school/'.length))}/>}
  </section>
  <nav className={styles.schoolPageNav} aria-label="School pages">{[['Home',''],['About','about'],['Academics','academics'],['News','news'],['Contact','contact']].map(([label,slug])=><Link key={label} aria-current={!slug?'page':undefined} href={schoolBase+(slug?'/'+slug:'')}>{label}</Link>)}</nav><div className={styles.canonicalBody}>
  <section className={styles.canonicalSection}><h2>About the school</h2><p>{school.school_name} is a {school.ownership_type?.toLowerCase()||''} {school.school_category?.toLowerCase()||''} {school.accommodation_type?.toLowerCase()||''} school located in {[school.sub_county,school.county,'Kenya'].filter(Boolean).join(', ')}.</p></section>
