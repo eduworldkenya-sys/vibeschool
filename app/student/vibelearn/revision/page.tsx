@@ -147,7 +147,7 @@ export default function RevisionStudioPage(){
        {onHome?<div>
          <div style={{fontSize:11,letterSpacing:.55,color:'var(--vs-goal-fill, #c8f3aa)',fontWeight:700}}>TODAY · REVISION SPACE</div>
          <h1 style={{fontSize:'clamp(25px,4.6vw,32px)',lineHeight:1.16,letterSpacing:'-.03em',margin:'11px 0 8px',fontWeight:800,color:colors.heroText}}>A little today.<span style={{display:'block'}}>Stronger tomorrow.</span></h1>
-         <p style={{fontSize:13,margin:'0 0 24px',color:'rgba(255,255,255,.86)'}}>Everything you need to remember, all in one place.</p>
+         
          <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',marginBottom:7,fontSize:12}}><span>Daily revision goal</span><strong>{dailyGoal}/3</strong></div>
          <div role="progressbar" aria-label="Daily revision goal" aria-valuenow={dailyGoal} aria-valuemin={0} aria-valuemax={3} style={{height:7,background:'rgba(255,255,255,.2)',borderRadius:99,overflow:'hidden'}}><div style={{width:(dailyGoal/3*100)+'%',height:'100%',borderRadius:99,background:colors.goal}}/></div>
        </div>:<div style={{padding:'8px 0 5px',fontSize:18,fontWeight:800}}>{topicActive?'Your recall session':screen==='recall'?'Remember this':'Your revision'}</div>}
