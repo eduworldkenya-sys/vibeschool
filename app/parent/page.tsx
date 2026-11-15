@@ -378,6 +378,7 @@ export default function ParentHomePage() {
         <h2 style={{ margin: '4px 0 12px', fontSize: 17 }}>Everything important has a home</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
           <Channel title="Teacher & school messages" detail="Conversations and notices" onClick={() => router.push('/parent/messages')} />
+          <Channel title="Public school updates" detail="News, fees, uniforms & admissions" onClick={() => router.push('/schools/following')} />
           <Channel title="Learning progress" detail="Released assessments" onClick={() => router.push('/parent/assessments')} />
           <Channel title="Official reports" detail="Published report cards" onClick={() => router.push('/parent/report-cards')} />
           <Channel title="Children" detail="Profiles and records" onClick={() => router.push('/parent/students')} />
