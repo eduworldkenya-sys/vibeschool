@@ -1,67 +1,58 @@
-# VibeSchool CPA — CA11 Unit 02 Editorial and Release Record
-**Title:** From Evidence to Financial Statements  
-**Examining body:** KASNEB (curriculum alignment only; VibeSchool is not KASNEB)  
-**Paper:** Foundation CA11 Financial Accounting  
-**Date:** 15 November 2026
+# CA11 Applied Accounting Workshops — Editorial and Release Record
+**VibeSchool Originals | CPA Foundation | CA11 Financial Accounting | 15 November 2026**
 
-## Scope authority
-Official source is KASNEB's *CPA Reviewed Examination Syllabus, June 2024*, printed page 1, **2.1–2.5**, verified against current public syllabus material. The sections are, respectively, source evidence; books of original entry; ledgers and double entry; trial balances; financial statements. The dated April 2026 KASNEB qualification booklet confirms the CA11 paper identity. The conceptual technical cross-check uses ACCA explanatory resources on the double-entry system and computerised sales/purchases, plus the IFRS Foundation Conceptual Framework.
+## Concurrency reconciliation
+While this unit was being authored, another independently reviewed VibeSchool contribution merged as [PR #1756](https://github.com/eduworldkenya-sys/vibeschool/pull/1756). Production confirmed it **already published** the first three Accounting Process core topics at positions 4–6, with 14 new questions. The introductory Unit 01 remains at positions 1–3 with 12 questions.
 
-- Official syllabus: https://www.kasneb.or.ke/wp-content/uploads/2024/09/CPA-Syllabus-Reviewed-June-2024.pdf
-- CA11 paper identity: https://www.kasneb.or.ke/sites/default/files/2026-04/QUALIFICATIONS%20BOOKLET.pdf
-- ACCA on duality: https://www.accaglobal.com/gb/en/student/exam-support-resources/foundation-level-study-resources/fa2/fa2-technical-articles/a-matter-of-principle.html
-- ACCA on computerised sales/purchases: https://www.accaglobal.com/africa/en/student/exam-support-resources/foundation-level-study-resources/fa1/technical-articles/sales-comp-acc-system.html
+That release is the canonical core. This proposal **does not replace, copy, delete or alter** it. The additional material is deliberately positioned as **five applied workshops, positions 7–11**. They teach the same KASNEB subsections through a different practical business file, with sustained work on source verification, account posting, reconciliation and judgement rather than a second competing core syllabus.
+
+No duplicate source-of-truth, second exam engine, school identity, learner enrollment table or user role is introduced.
+
+## Primary and supplementary sources
+- KASNEB *CPA Reviewed Examination Syllabus*, June 2024, Foundation Financial Accounting printed page 1, subsections 2.1–2.5: https://www.kasneb.or.ke/wp-content/uploads/2024/09/CPA-Syllabus-Reviewed-June-2024.pdf
+- KASNEB April 2026 qualifications booklet confirming CA11 Foundation paper: https://www.kasneb.or.ke/sites/default/files/2026-04/QUALIFICATIONS%20BOOKLET.pdf
+- ACCA duality and double-entry explanation: https://www.accaglobal.com/gb/en/student/exam-support-resources/foundation-level-study-resources/fa2/fa2-technical-articles/a-matter-of-principle.html
+- ACCA computerised sales and purchase accounting: https://www.accaglobal.com/africa/en/student/exam-support-resources/foundation-level-study-resources/fa1/technical-articles/sales-comp-acc-system.html
 - IFRS Conceptual Framework: https://www.ifrs.org/issued-standards/list-of-standards/conceptual-framework/
 
-All lesson wording, examples, case transactions and practice questions are VibeSchool-original. Official syllabus labels and ideas identify scope; protected source passages have not been transcribed into student text.
+Authoring is **VibeSchool-original**: no copied official teaching text or exam papers. Syllabus sections establish educational scope.
 
-## Learning content
-The authoring source is the four JSON files under `content/college/cpa/ca11/unit02/`. Publishing uses **the existing Academy spine** `courses → modules → topics → quiz_questions`, not a second reader or exam engine.
+## New workshops
+| Position | Original applied lesson | Syllabus capability | Guided MCQs |
+|---|---|---|---:|
+| 7 | Audit a real invoice trail | 2.1 Source documents, receivables, settlement and evidence | 6 |
+| 8 | Record a week of business evidence | 2.2 Journals, returns, cash and petty cash | 6 |
+| 9 | Post the full Nuru Repair Studio ledger | 2.3 Double entry and account movements | 6 |
+| 10 | Rebuild and challenge a trial balance | 2.4 Account balances, detecting errors | 6 |
+| 11 | Present August's results to the owner | 2.5 Profit and financial position, reporting judgement | 6 |
 
-| Sequence | Subsection | New topic | Practice |
-|---|---|---|---|
-| 4 | 2.1 | A transaction begins with evidence | 6 original MCQs |
-| 5 | 2.2 | Choose the right first record | 6 |
-| 6 | 2.3 | Make each transaction balance | 6 |
-| 7 | 2.4 | Prove the ledger totals | 6 |
-| 8 | 2.5 | Turn balances into a business report | 6 |
+The new authoring files are under `content/college/cpa/ca11/unit02/` and contain **45 substantial teaching sections, thirty question/answer pairs**, contextual examples, misconceptions and guided checks. The three earlier Accounting Process lessons remain the first step; these are practical extensions, not repeated core links.
 
-Forty-five substantive teaching sections plus Kenyan contextual examples, common-error interventions, practice prompts and specific answer explanations support self-directed study.
+## Recalculated accounting model
+The *Nuru Repair Studio* case is an original, separate nine-transaction file. No opening balances, VAT, tax, depreciation, inventory or other adjustments are assumed. August advertising is entirely consumed. A KSh 9,000 request for a future repair quote is **not posted**, because no revenue has yet been earned.
 
-## Accountant's working example: Nuru Repair Studio
-The example uses **nine** recordable August transactions and a separate non-postable customer quotation. Nine journal entries correspond to these source-level events: capital contribution, equipment purchase, completed credit repair, completed banked repair, rent payment, advertising received on credit, credit customer payment, part supplier settlement and owner drawings. A KSh 9,000 request for a quotation is explicitly **not** recognised as earned income.
-
-The entries produce:
-
-| Account | Debit, KSh | Credit, KSh |
+| Account | Debit KSh | Credit KSh |
 |---|---:|---:|
 | Bank | 164,000 | |
 | Equipment | 60,000 | |
 | Trade receivables | 15,000 | |
 | Rent expense | 12,000 | |
 | Advertising expense | 8,000 | |
-| Owner drawings | 4,000 | |
+| Drawings | 4,000 | |
 | Capital | | 180,000 |
 | Service revenue | | 80,000 |
 | Trade payables | | 3,000 |
-| **Total** | **263,000** | **263,000** |
+| **Trial balance** | **263,000** | **263,000** |
 
-From the same balances: profit KSh 60,000; assets KSh 239,000; trade payable KSh 3,000; closing owner equity KSh 236,000. Both totals and the equation `239,000 = 3,000 + 236,000` are derived by independent programmatic computation from the **nine transaction inputs**, not hardcoded only as final claims.
+Profit = KSh 80,000 − 20,000 = **KSh 60,000**. Closing owner equity = 180,000 + 60,000 − 4,000 = **KSh 236,000**. Assets total KSh 239,000, agreeing with liabilities 3,000 + equity 236,000. Tests must reconstruct these figures independently from source transaction entries and reject deliberately incorrect entries or answer keys.
 
-Teaching assumptions: no opening balances, VAT, tax, depreciation or other adjustments; advertising service completely used in August. The statements are instructional, not presented as a complete IFRS annual reporting package.
+## Publication, data protection and scope
+- The reviewed current database baseline is **6 published topics, 26 practice questions**, not the original pre-concurrency 3/12.
+- The new staging SQL expects **exactly 6 existing published topics**, their identifiers/sequences 1–6 and 26 questions, and no other CPA paper content. It adds only **five `in_review` topics and 30 new questions** in the current Academy storage spine.
+- The separate release SQL validates every new question text and corresponding answer key, four options, substantive explanations, exactly five eligible topics at positions 7–11, and original 6/26 unchanged. It publishes **only** the five named workshops.
+- Post-release canonical expected state, if commissioned and verified, is **11 published CA11 topics / 56 questions**, and no new public privilege, authorization, course-status, user-profile or other-paper mutation.
+- Publishing is **not** authorised by a green merge alone. The reviewed exact-head CI/security/blank-rebuild gates and production readback precede commissioning. Do not mutate production if current competing content changes the baseline again.
+- Supabase application assigns ledger versions. Reconcile local migration filenames to those actual versions after any controlled application, without rewriting deployed SQL or altering ledger entries.
+- If the release is blocked, preserve the authored workshop source. Do not force the course counts or silently overwrite existing published material. Rollback/unpublication, if ever required, must target only the new five topic IDs and preserve learning-progress references.
 
-## Adversarial quality gates
-1. The editorial manifest `coverage` must match exactly 2.1–2.5 and no other syllabus portion.
-2. Five immutable original topics with sequence numbers 4–8; six distinct original questions and checkable answer key per topic.
-3. All five lessons require sustained explanation, Kenya-specific application, misconceptions and practice/checking prompts; feedback text is substantive.
-4. Reconstruct the general ledger from nine journal entries and calculate trial balance, profit, equity and financial position; negative tests mutate transactions, syllabus sections, answer keys and invent a tenth posting to ensure failures are detected.
-5. Stage SQL embeds the exact JSON packet and changes only five new `in_review` rows and thirty questions, preserving all three published Unit 01 rows and their twelve questions. No new RLS, grants, account or payment mutation.
-6. Publication SQL fails closed if prior content is missing, a question/answer changes, a unit topic is missing, another CPA paper contains unreviewed topics or numeric question inventory drifts. Only the named five topics can change `in_review → published`.
-7. Required exact-head CI, migration security, blank database reconstruction, source/code consistency and post-release database verification before claiming that the unit is live.
-
-**External human peer review was not performed or claimed.** Automated, adversarial and editorial checks are meaningful but limited. Any unresolved syllabus interpretation or number discrepancy blocks public publication.
-
-## Recovery and rollout
-Migrations are deliberate, ordered production actions, not automatically executed by merging. Use the previously established exact Supabase ledger-version reconciliation after any controlled production application. Each migration is atomic and validates preconditions. A production rollback would require a separately reviewed, narrowly scoped **unpublication** of only the five new topics, never deletion of existing learner progress or Unit 01 rows.
-
-This release is only CA11 Section 2.1–2.5. The remainder of Financial Accounting and advanced registration-code reconciliation stay open in #1745. Signed-in Android/PWA journey verification remains a separate operational gate; SQL success alone cannot certify that interaction.
+No independent human CPA reviewer or full mobile journey is claimed. This contribution strengthens applied independent learning for KASNEB CA11 subsection 2 only; Section 3 onward remains outstanding and official KASNEB qualification is not issued by VibeSchool.
