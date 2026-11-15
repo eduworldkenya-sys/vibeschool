@@ -15,6 +15,9 @@ declare
   v_subject uuid;
   v_assessment uuid;
   v_assignment uuid;
+  v_pub uuid;
+  v_chapter uuid;
+  v_block uuid;
   v_assessment_item uuid;
   v_outcome uuid;
   v_count int;
@@ -178,6 +181,19 @@ begin
     if array_length(v_seen_keys,1)<>12 or v_sum<>12 then
       raise exception 'VibeTry wrong total or incomplete numbering: %',v_draft.paper_id; end if;
 
+    -- Creator-claimed outcomes must be anchored in a real, unpublished source chapter.
+    -- No answer keys are written to learner-readable content blocks.
+    insert into public.vibe_publications(
+      author_id,format,title,description,status,cbc_subject,cbc_grade,cbc_aligned,chapter_count
+    ) values (
+      v_custodian,'ebook',v_title||' — original question sources',
+      'Draft source for owner-directed VibeTry paper; provisional curriculum mapping; no human review',
+      'draft','Mathematics',v_grade,false,1
+    ) returning id into v_pub;
+    insert into public.vibe_chapters(publication_id,title,number,status,alignment_status)
+    values(v_pub,'Original question sources',1,'draft','creator_claimed')
+    returning id into v_chapter;
+
     insert into public.assessment_definitions(
       school_id,teacher_id,class_id,subject_id,assessment_type,title,description,
       instructions,status,total_marks,estimated_minutes,generation_source,
@@ -263,20 +279,39 @@ begin
         end loop;
       end if;
 
+      insert into public.content_blocks(
+        publication_id,chapter_id,block_type,sequence,payload,title,status,is_assessable
+      ) values (
+        v_pub,v_chapter,'question',v_order,
+        jsonb_build_object('prompt',v_item->>'prompt',
+          'topic',v_topic,'bank_key',v_key),
+        v_title||' — '||v_key,'draft',true
+      ) returning id into v_block;
+
       insert into public.curriculum_learning_outcomes(
         outcome_text,outcome_code,source_type,source_ref,status,created_by
       ) values (
         'VibeTry original provisional practice competency: '||v_topic||
         '. KICD specific learning outcome not independently verified. ['||v_key||']',
-        v_key,'creator_claimed','vibetry:'||v_draft.paper_id,'draft',null
+        v_key,'creator_claimed','chapter:'||v_chapter::text,'draft',null
       ) returning id into v_outcome;
 
+      insert into public.chapter_learning_outcome_links(
+        publication_id,chapter_id,outcome_id,alignment_strength,sequence,evidence_note,created_by
+      ) values (
+        v_pub,v_chapter,v_outcome,'supports',v_order,
+        'VibeTry original assessment competency: provisional, KICD outcome not verified',null
+      );
+      insert into public.content_block_outcome_links(
+        publication_id,chapter_id,content_block_id,outcome_id,relationship,created_by
+      ) values (v_pub,v_chapter,v_block,v_outcome,'supports',null);
+
       insert into public.assessment_items(
-        assessment_id,question_type,prompt,options,accepted_answers,correct_answer,
+        assessment_id,source_block_id,question_type,prompt,options,accepted_answers,correct_answer,
         marking_guide,explanation,worked_solution,marks,difficulty,bloom_level,
         auto_marking_mode,order_num,status,generated_by,teacher_approved_at,source_exercise_ref
       ) values (
-        v_assessment,v_qtype,
+        v_assessment,v_block,v_qtype,
         v_item->>'prompt',v_options,
         case when v_qtype='numeric' then v_item->'accepted_answers' else null end,
         to_jsonb(v_choice_key),v_guide,
