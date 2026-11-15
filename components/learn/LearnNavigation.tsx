@@ -74,7 +74,7 @@ function usesLearnBottomNav(pathname: string): boolean {
       && pathname !== '/learn/careers')
 }
 
-function LearnHeader() {
+function LearnHeader({ student }: { student: boolean }) {
   const pathname = usePathname()
   const search = useSearchParams()
   const reading = pathname === '/learn' && search.get('view') === 'reading'
@@ -94,8 +94,8 @@ function LearnHeader() {
       <Link href="/learn" aria-current={subjects ? 'page' : undefined}>School subjects</Link>
       <Link href="/learn?view=reading" aria-current={reading ? 'page' : undefined}>All reading</Link>
       <Link href="/learn/stories" aria-current={stories ? 'page' : undefined}>Stories &amp; Series</Link>
-      <Link href="/learn?view=courses" aria-current={courses ? 'page' : undefined}>College &amp; courses</Link>
-      <Link href="/student/study">My learning</Link>
+      {!student && <Link href="/learn?view=courses" aria-current={courses ? 'page' : undefined}>College &amp; courses</Link>}
+      {student && <Link href="/student/study">My learning</Link>}
     </nav>
   </header>
 }
@@ -147,7 +147,7 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
       <span><strong>{appearance.studyMode==='reading'?'Reading Mode':'Focus Mode'}</strong> is on. Your study preferences are active.</span>
       <button type="button" onClick={exitSharedStudyMode}>Exit</button>
     </div>}
-    {showHeader && <Suspense fallback={null}><LearnHeader/></Suspense>}
+    {showHeader && <Suspense fallback={null}><LearnHeader student={student === true}/></Suspense>}
     {showBottom ? <div className={student ? styles.studentLearnMain : undefined}>{children}</div> : children}
     {showBottom && (student === null
       ? <div className={styles.navReserve} aria-hidden="true"/>

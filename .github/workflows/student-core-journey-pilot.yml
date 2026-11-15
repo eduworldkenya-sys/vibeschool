@@ -25,3 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Enforce Task 5 pilot contract
         run: node scripts/test-student-core-journey-pilot.mjs
+      - name: Verify learner navigation and first-use guidance
+        run: |
+          node scripts/test-student-navigation-context.mjs
+          node --test scripts/test-student-progressive-guidance.mjs

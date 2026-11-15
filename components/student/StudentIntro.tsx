@@ -14,8 +14,17 @@ export default function StudentIntro({ feature, children, label = "How this work
   useEffect(() => {
     setOpen(false);
     if (!key) { setSeen(null); return; }
-    try { setSeen(window.localStorage.getItem(key) === "seen"); }
-    catch { setSeen(false); }
+    const sync = () => {
+      try { setSeen(window.localStorage.getItem(key) === "seen"); }
+      catch { setSeen(false); }
+    };
+    sync();
+    // Dismissals remain learner-scoped across tabs on the same device.
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === key || event.key === null) sync();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, [key]);
   if (seen === null) return null;
   const dismiss = () => {
