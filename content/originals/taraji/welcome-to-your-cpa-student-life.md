@@ -142,7 +142,7 @@ You only need a beginning that belongs to you.
 
 ## Before you go
 
-In *Your Way Forward*, Taraji chooses to prepare for CPA independently. She is outgoing, determined and very capable of turning a small problem into an interesting one. She makes decisions quickly, sometimes too quickly. She learns that freedom brings consequences and that refusing a conventional route does not require refusing other people.
+In Your Way Forward, Taraji chooses to prepare for CPA independently. She is outgoing, determined and very capable of turning a small problem into an interesting one. She makes decisions quickly, sometimes too quickly. She learns that freedom brings consequences and that refusing a conventional route does not require refusing other people.
 
 Taraji is fictional. Her mistakes and friendships belong to her story. Your choices will belong to yours.
 
