@@ -16,7 +16,7 @@ requireFragments(publicUi, [
   ".rpc('school_can_publish_public_v1'",
   ".rpc('school_publish_public_post_v1'",
   ".rpc('school_withdraw_public_post_v1'",
-  "['announcement'",
+  "'announcement'",
   "'fees'",
   "'uniform'",
   "'admissions'",
