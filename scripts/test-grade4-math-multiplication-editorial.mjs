@@ -22,6 +22,9 @@ for(let i=0;i<d.lessons.length;i++){
  assert.ok(l.guidedActivity.steps.length>=3)
  eq(l.worked.answer,calc(l.worked.mode,l.worked.operands))
  eq(l.independent.answer,calc(l.independent.mode,l.independent.operands))
+ assert.notDeepEqual(l.independent.operands,l.worked.operands,'Independent check must use unseen operands')
+ assert.ok(l.independent.feedback.includes(Array.isArray(l.independent.answer)?String(l.independent.answer[0]):String(l.independent.answer)), 'Feedback must explain the actual independent answer')
+ assert.ok(l.independent.feedback.length>=65,'Feedback must give a worked reason')
  if(letter==='c'){assert.ok(l.worked.answer<=1000&&l.independent.answer<=1000)}
  if(letter==='d'){assert.ok(l.worked.answer.every(x=>x<=100)&&l.independent.answer.every(x=>x<=100))}
  assert.ok(l.remedial.length>30&&l.teacher.length>30&&l.visual.brief.length>20)
