@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { requiredRoleForPath, roleCanVisit } from "../lib/auth-routing.ts";
 import { REPORTED_COUNTY_ALLOCATIONS, reportedAllocation } from "../lib/teacher/tsc2026CountyAllocations.ts";
+import { meetsTscRecruitmentMinimum } from "../lib/teacher/tscSandboxMatching.ts";
 
 assert.equal(requiredRoleForPath("/teacher/marketplace/sandbox"), null, "public recruitment guide");
 assert.equal(requiredRoleForPath("/teacher/marketplace/sandbox/"), null, "trailing slash public");
@@ -43,6 +44,10 @@ assert.match(publicOpportunities, /marketplace\/manage\?swap=/);
 assert.ok(gateway.indexOf('href="/teacher/marketplace/sandbox"') < gateway.indexOf('href="/login?redirect=/teacher/pulse"'), "TSC recruitment guide must be the first hero action");
 assert.ok(discovery.indexOf('href="/teacher/marketplace/sandbox"') < discovery.indexOf('href="#listings"'), "recruitment guide before listings");
 
+// All eight combinations of the three advertised minimum checks.
+for (const citizen of [false,true]) for (const qualification of [false,true]) for (const registration of [false,true]) {
+  assert.equal(meetsTscRecruitmentMinimum({citizen,qualification,registration}), citizen && qualification && registration);
+}
 assert.equal(REPORTED_COUNTY_ALLOCATIONS.length, 47);
 assert.equal(new Set(REPORTED_COUNTY_ALLOCATIONS.map(row => row.county)).size, 47);
 assert.equal(REPORTED_COUNTY_ALLOCATIONS.reduce((a,row) => a + row.primary, 0), 5609);
@@ -59,6 +64,15 @@ const view = fs.readFileSync("app/teacher/marketplace/sandbox/VacancyMatchSandbo
 const dataModule = fs.readFileSync("lib/teacher/tscSandboxMatching.ts", "utf8");
 const css = fs.readFileSync("app/teacher/marketplace/sandbox/sandbox.module.css", "utf8");
 assert.match(root, /index: false/);
+assert.match(view, /if \(minimumMet\) setStep\("vacancies"\)/, "completing required checks must auto-open vacancies");
+assert.match(view, /meetsTscRecruitmentMinimum\(minimumChecks\)/);
+assert.match(view, /qualification: false \}\)\)/, "changing teaching level rechecks qualification");
+assert.match(view, /window\.setTimeout\(\(\) => setShowNotice\(false\), 2000\)/, "disclaimer dismisses after two seconds");
+assert.match(view, /aria-label="Close recruitment notice"/, "disclaimer has a close button");
+assert.match(view, /hidden=\{step !== "requirements"\}/);
+assert.match(view, /hidden=\{step !== "vacancies"\}/);
+assert.match(view, /type="checkbox"/);
+
 assert.match(view, /real recruitment figures, not fictional school vacancies/i);
 assert.match(view, /reported recruitment allocation/i);
 assert.match(view, /not subject-specific matches|not a list of schools or subject combinations|not subject-specific matches/i);
