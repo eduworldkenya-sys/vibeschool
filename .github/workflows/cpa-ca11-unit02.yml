@@ -1,0 +1,29 @@
+name: CPA CA11 Unit 02 Content and Release Contract
+on:
+  pull_request:
+    paths:
+      - 'content/college/cpa/ca11/unit02/**'
+      - 'supabase/migrations/*_stage_cpa_ca11_accounting_process_unit02.sql'
+      - 'supabase/migrations/*_release_cpa_ca11_accounting_process_unit02.sql'
+      - 'scripts/test-cpa-ca11-unit02.mjs'
+      - '.github/workflows/cpa-ca11-unit02.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/college/cpa/ca11/unit02/**'
+      - 'supabase/migrations/*_stage_cpa_ca11_accounting_process_unit02.sql'
+      - 'supabase/migrations/*_release_cpa_ca11_accounting_process_unit02.sql'
+      - 'scripts/test-cpa-ca11-unit02.mjs'
+jobs:
+  verify-cpa-unit02:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/test-cpa-ca11-content.mjs
+      - run: node scripts/test-cpa-ca11-release.mjs
+      - run: node scripts/test-cpa-ca11-unit02.mjs
