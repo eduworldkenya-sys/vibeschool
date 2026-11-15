@@ -643,16 +643,22 @@ export default function LearnerAssessmentPage() {
       <h1 style={{ marginTop: 0, color: '#065f46' }}>Assessment submitted ✓</h1>
       {result.scoreReleased && result.score !== null && result.maxScore !== null && result.percentage !== null
         ? <><p style={{ fontSize: 30, fontWeight: 800, margin: '12px 0' }}>{result.score}/{result.maxScore}</p><p>{result.percentage.toFixed(1)}%</p></>
-        : <p style={{ lineHeight: 1.6 }}>Your answers were submitted. Your score will appear when your teacher releases it.</p>}
+        : <p style={{ lineHeight: 1.6 }}>Your answers were submitted. Verified marks will appear only when the result is released.</p>}
       <p style={{ color: '#6b7280', lineHeight: 1.5 }}>
         {result.submittedDueToExpiry ? 'Time ended and the attempt was submitted automatically. ' : ''}
         {result.manualItems > 0
-          ? `${result.manualItems} written response${result.manualItems === 1 ? '' : 's'} will be reviewed by your teacher.`
+          ? workspace.assessmentType === 'practice'
+            ? `${result.manualItems} written response${result.manualItems === 1 ? '' : 's'} can be checked against prepared marking points when available. Your own marks are not verified.`
+            : `${result.manualItems} written response${result.manualItems === 1 ? '' : 's'} await authorised marking.`
           : 'All questions were processed.'}
       </p>
       <p style={{ color: '#374151', fontWeight: 700 }}>{result.submittedDueToExpiry
         ? 'The server has finalised answers saved before the deadline. Any unanswered questions are marked as skipped.'
         : skippedAtSubmission.length === 0 ? 'All questions answered.' : `${skippedAtSubmission.length} skipped question${skippedAtSubmission.length === 1 ? '' : 's'}: ${skippedAtSubmission.join(', ')}. Skipped questions receive 0 marks.`}</p>
+      {result.manualItems > 0 && workspace.assessmentType === 'practice' && (
+        <button type="button" onClick={() => router.push(`/student/assessment/self-review/${workspace.attemptId}`)}
+          style={{ ...primaryButton, marginBottom: 10 }}>Check my written answers</button>
+      )}
       {result.scoreReleased && <button onClick={() => router.push(`/student/results/${workspace.attemptId}`)} style={{ ...primaryButton, marginBottom: 10 }}>Review answers and skipped questions</button>}
       <button onClick={() => router.push('/student/assessment')} style={secondaryButton}>Done</button>
     </section></div>
