@@ -1,0 +1,30 @@
+name: VibeSchool Originals Manuscript Contract
+
+on:
+  pull_request:
+    paths:
+      - 'content/originals/**'
+      - 'scripts/test-originals-stories-series.mjs'
+      - '.github/workflows/originals-manuscript-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/originals/**'
+      - 'scripts/test-originals-stories-series.mjs'
+      - '.github/workflows/originals-manuscript-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  manuscripts:
+    name: Originals manuscripts and reader contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify canonical Originals reader and Taraji manuscripts
+        run: node --test scripts/test-originals-stories-series.mjs
