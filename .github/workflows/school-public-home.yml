@@ -1,0 +1,34 @@
+name: School Public Home Publishing
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/*school_public_home*.sql'
+      - 'scripts/test-school-public-home-*.mjs'
+      - 'app/schools/**'
+      - 'app/school/**'
+      - 'app/hq/schools/**'
+      - 'app/admin/school-publications/**'
+      - 'app/student/page.tsx'
+      - 'app/teacher/schoolhub/page.tsx'
+      - 'app/parent/page.tsx'
+      - '.github/workflows/school-public-home.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*school_public_home*.sql'
+      - 'scripts/test-school-public-home-*.mjs'
+      - 'app/schools/**'
+      - '.github/workflows/school-public-home.yml'
+permissions:
+  contents: read
+jobs:
+  public-school-authority:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --prefix "$RUNNER_TEMP/school-public-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8
+      - run: node scripts/test-school-public-home-ui.mjs
+      - run: SCHOOL_URL_PGLITE_MODULE="$RUNNER_TEMP/school-public-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-school-public-home-contract.mjs
