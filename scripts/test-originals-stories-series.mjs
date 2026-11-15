@@ -78,7 +78,7 @@ const assertConsecutiveChapters = (source,expected) => {
     'Published chapter order must be complete, distinct and consecutive')
 }
 
-test('Taraji has a complete original text-only 12-chapter novellette with continuous story arc',()=>{
+test('Taraji has a complete original text-only 12-chapter narrative with continuous story arc',()=>{
   const story=tarajiManuscript()
   assertConsecutiveChapters(story,12)
   assert.ok(story.trim().endsWith('The end.'))
@@ -88,6 +88,8 @@ test('Taraji has a complete original text-only 12-chapter novellette with contin
   assert.match(story,/Grace/)
   assert.match(story,/Nuru/)
   assert.match(story,/Asha/)
+  assert.match(story,/His name was Biko/,'Biko must have consistent character identity')
+  assert.doesNotMatch(story,/Her name was Biko/)
   assert.doesNotMatch(story,/\bJean\b/,'Retired placeholder character name must not appear in the story')
   assert.doesNotMatch(story,/!\[[^\]]*\]\([^)]+\)/,'This edition is text-only, no illustrations')
 })
