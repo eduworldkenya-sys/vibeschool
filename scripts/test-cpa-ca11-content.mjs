@@ -2,8 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 const sql=readFileSync('supabase/migrations/20261115115000_stage_cpa_ca11_intro_foundation.sql','utf8')
 const chunks=[...sql.matchAll(/\$ca11data\$(\{[\s\S]*?\})\$ca11data\$::jsonb/g)]
-assert.equal(chunks.length,3,'every SQL projection must use the same authoring packet')
-for(const c of chunks) assert.equal(c[1],chunks[0][1],'SQL authoring packets drift')
+assert.equal(chunks.length,1,'single source-of-truth authoring packet must remain in migration')
 const p=JSON.parse(chunks[0][1])
 const check=(p)=>{
  assert.deepEqual(p.metadata.coverage,['1.1','1.2','1.3','1.4','1.5'])
@@ -34,6 +33,8 @@ assert.throws(()=>check({...p, questions:p.questions.map((q,i)=>i===0?{...q,corr
 assert.throws(()=>check({...p, metadata:{...p.metadata,coverage:['1.1']}}))
 assert.match(sql,/status='coming_soon'/)
 assert.match(sql,/content_status='in_review'/)
+assert.match(sql,/create temporary table vibeschool_ca11_packet/)
+assert.match(sql,/on commit drop/)
 assert.doesNotMatch(sql,/(?:set\s+status\s*=\s*'live'|content_status\s*,?\s*'published'|grant\s+select|disable\s+row\s+level\s+security)/i)
 const ownerCapital=120000, laptop=40000, stock=30000, supplierPayment=10000, fees=15000, drawings=5000
 const cash=ownerCapital-laptop-supplierPayment+fees-drawings
