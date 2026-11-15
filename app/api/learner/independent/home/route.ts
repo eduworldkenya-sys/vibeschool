@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { learnerDisplayName } from '@/lib/student/learner-welcome'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
       .eq('user_id', user.id).maybeSingle(),
     admin.from('profiles').select('role,full_name,account_status,is_anonymized')
       .eq('id', user.id).maybeSingle(),
-    admin.from('students').select('id,class_id').eq('profile_id', user.id).is('deleted_at', null).limit(2),
+    admin.from('students').select('id,class_id,name').eq('profile_id', user.id).is('deleted_at', null).limit(2),
   ])
   if (identityError || profileError || schoolError || !profile) {
     return NextResponse.json({ error: 'Could not verify learner identity' }, { status: 503, headers })
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
   }
   return NextResponse.json({
     kind: 'independent',
-    name: profile.full_name?.trim() || 'Learner',
+    name: learnerDisplayName(profile.full_name, school?.[0]?.name, user.user_metadata?.full_name, user.user_metadata?.name),
     grade: identity.grade_label,
     studentId: school![0].id,
   }, { headers })
