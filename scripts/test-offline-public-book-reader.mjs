@@ -1,0 +1,36 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+const read=path=>fs.readFileSync(path,'utf8')
+const store=read('lib/read/offlinePublicBooks.ts')
+const download=read('components/read/OfflineBookSaveButton.tsx')
+const page=read('app/read/textbook/[publicationId]/ReaderClient.tsx')
+const sw=read('public/sw.js')
+const ui=read('components/read/OfflineBooksLibrary.tsx')
+const docs=read('docs/architecture/OFFLINE_FIRST_CONTRACT.md')
+test('only anonymously readable, published, free book chapters are stored',()=>{
+  assert.match(store,/pub\.status !== 'published'/)
+  assert.match(store,/pub\.pricing\.type !== 'free'/)
+  assert.match(store,/c\.status === 'published' && c\.can_read && Array\.isArray\(c\.blocks\)/)
+  assert.doesNotMatch(store,/\bresume\b/)
+  assert.doesNotMatch(store,/\bprogress_percent\b/)
+  assert.match(download,/publicBookSnapshot\(publicPayload\)/)
+  assert.match(page,/publicPayload=\{initialPayload\}/)
+})
+test('offline library and service worker preserve public-only cache policy',()=>{
+  assert.match(sw,/OFFLINE_BOOK_ROUTE = '\/offline\/books'/)
+  assert.match(sw,/PREPARE_OFFLINE_BOOK_READER/)
+  assert.match(sw,/OFFLINE_BOOK_READER_READY/)
+  assert.match(sw,/url\.pathname\.startsWith\('\/auth\/'\)/)
+  assert.match(sw,/url\.pathname\.startsWith\('\/api\/'\)/)
+  assert.match(sw,/SAFE_PUBLIC_PATHS\.has\(url\.pathname\) && !url\.search/)
+  assert.match(ui,/listOfflineBooks\(/)
+  assert.match(ui,/deleteOfflineBook\(/)
+  assert.match(ui,/ContentBlockEditor/)
+})
+test('future paid-subscription rule remains deferred and explicitly gated',()=>{
+  assert.match(docs,/RESERVED \/ MUTED: 24-hour subscription/)
+  assert.match(docs,/DO NOT ENABLE PAID CONTENT OFFLINE/)
+  assert.match(docs,/before charging/i)
+  assert.doesNotMatch(download,/getSubscription|checkEntitlement/)
+})

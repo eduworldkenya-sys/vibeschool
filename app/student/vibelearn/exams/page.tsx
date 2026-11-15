@@ -243,7 +243,7 @@ export default function VibeLearnExamsPage() {
 
       {!loading && view === 'for-you' && <div className="vs-exams-sections">
         <section className="vs-command-explore" aria-label="Search and filter exams">
-          <div className="vs-exams-section-header"><div><h2>Exam library</h2><p className="vs-exams-section-note">Find the right assessment for you.</p></div><div className="vs-command-layout"><button type="button" aria-pressed={layout === 'grid'} onClick={() => setLayout('grid')}>▦ Cards</button><button type="button" aria-pressed={layout === 'list'} onClick={() => setLayout('list')}>☷ List</button></div></div>
+          <div className="vs-exams-section-header"><div><h2>Exam library</h2></div><div className="vs-command-layout"><button type="button" aria-pressed={layout === 'grid'} onClick={() => setLayout('grid')}>▦ Cards</button><button type="button" aria-pressed={layout === 'list'} onClick={() => setLayout('list')}>☷ List</button></div></div>
           <div className="vs-command-filters">
             <label className="vs-command-search"><span>Search exams</span><input type="search" placeholder="Search exam title or type" value={query} onChange={event => setQuery(event.target.value)} /></label>
             <label><span>Subject</span><select value={subject} onChange={event => setSubject(event.target.value)}>{subjects.map(option => <option key={option}>{option}</option>)}</select></label>
@@ -275,14 +275,14 @@ export default function VibeLearnExamsPage() {
         </section>}
         {filteredRetakes.length > 0 && <section aria-labelledby="vs-exams-retakes">
           <h2 id="vs-exams-retakes">Practise again</h2>
-          <p className="vs-exams-section-note">Retakes are optional and keep your previous attempts.</p>
+          
           <div className="vs-exams-card-list">{filteredRetakes.map(item => examCard(item, 'retake'))}</div>
         </section>}
       </div>}
 
       {!loading && view === 'history' && <section className="vs-exams-sections" aria-labelledby="vs-exams-history">
         <h2 id="vs-exams-history">Exam history</h2>
-        <p className="vs-exams-section-note">Released results are saved with their original attempts.</p>
+        
         {!resultsError && results.length === 0 && <div className="vs-exams-message">No released results yet. Completed exams awaiting review will appear after release.</div>}
         <div className="vs-exams-card-list">{results.map(result => <article className="vs-exam-card" key={result.attemptId}>
           <div className="vs-exam-card-main"><span className="vs-exam-status vs-exam-status--completed">Released result</span>
@@ -298,7 +298,7 @@ export default function VibeLearnExamsPage() {
 
       {!loading && view === 'progress' && <section className="vs-exams-sections" aria-labelledby="vs-exams-progress">
         <h2 id="vs-exams-progress">Your progress</h2>
-        <p className="vs-exams-section-note">Released attempts include repeat practice and timed-out attempts. The raw average is not a mastery score or an official exam prediction.</p>
+        <details><summary className="vs-exams-section-note" style={{cursor:'pointer'}}>How averages are calculated</summary><p className="vs-exams-section-note">Released attempts include repeat practice and timed-out attempts. The raw average is not a mastery score or official exam prediction.</p></details>
         <div className="vs-exams-progress-grid">
           <div><span>Released attempts</span><strong>{results.length} across {distinctPapers} paper{distinctPapers === 1 ? '' : 's'}</strong></div>
           <div><span>Raw average across attempts</span><strong>{average === null ? '—' : `${average.toFixed(1)}%`}</strong></div>
@@ -319,7 +319,7 @@ export default function VibeLearnExamsPage() {
               <strong>What to do next</strong>
               <p>{reviewFirst ? `Review ${reviewFirst.assessmentTitle} and check the answers you missed.` : 'Review previous answers and explanations to decide what to revise.'}</p>
               <button type="button" className="vs-exam-button" onClick={() => reviewFirst ? viewResult(reviewFirst.attemptId) : changeView('history')}>{reviewFirst ? 'Review this result' : 'View exam history'}</button>
-              <p className="vs-exams-section-note">Objective-level recommendations will follow verified question-to-curriculum mappings.</p>
+              
             </div>}
         <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => changeView('history')}>View exam history</button>
       </section>}

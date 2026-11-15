@@ -1,4 +1,5 @@
 'use client'
+import StudentIntro from "@/components/student/StudentIntro";
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLearningFeedback } from '@/components/student/LearningFeedback'
@@ -159,7 +160,7 @@ export default function TasksPage() {
             <span><strong style={{display:'block',fontSize:13}}>{item.title}</strong><small style={{color:'var(--vs-muted)'}}>Private tutor · {item.status === 'reviewed' ? 'Feedback ready' : item.status === 'completed' ? 'Awaiting tutor review' : 'To do'}</small></span><span aria-hidden="true">›</span>
           </Link>)}
     </section>
-    <p style={{fontSize:12,color:"var(--vs-muted)",margin:0}}>Assigned work opens in its original tool. Only personal tasks can be marked complete here; submitting assigned work requires its own submission flow.</p>
+    <StudentIntro feature="tasks-assigned-work"><p>Open assigned work to submit it in its original activity. Your personal reminders can be completed here.</p></StudentIntro>
 
     <nav aria-label="Assigned work types" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
       {([['Homework','/student/homework'],['Classwork','/student/assessment'],['Exercises','/student/exercises'],['Projects',identity?.classId?'/student/projects':'/student/projects/independent']] as const).map(([label,href])=><Link key={label} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
@@ -198,7 +199,7 @@ export default function TasksPage() {
         {draft.kind==='study'&&<label style={fields}>Minutes<input style={input} type="number" min={5} max={600} required value={draft.duration} onChange={e=>setDraft(p=>({...p,duration:e.target.value}))}/></label>}
       </div>
       <label style={fields}><span style={{display:'flex',alignItems:'center',gap:7}}><Bell size={16}/> Reminder</span><select style={input} value={draft.reminder} onChange={e=>setDraft(p=>({...p,reminder:e.target.value}))}><option value="">Off</option><option value="0">At the scheduled time</option><option value="5">5 minutes before</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option><option value="1440">1 day before</option></select></label>
-      <p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>In-app reminders appear while VibeSchool is open. Browser alerts require permission and an active browser session.</p>
+      <details><summary style={{cursor:'pointer',fontSize:12}}>About reminders</summary><p style={{fontSize:12,color:'var(--vs-muted)'}}>In-app reminders appear while VibeSchool is open. Browser alerts require permission and an active browser session.</p></details>
       <label style={fields}>Notes (optional)<textarea style={input} rows={3} maxLength={2000} value={draft.notes} onChange={e=>setDraft(p=>({...p,notes:e.target.value}))}/></label>
       <button type="submit" disabled={saving} style={{...button,opacity:saving?.6:1}}>{saving?'Saving…':'Save activity'}</button>
     </form>}

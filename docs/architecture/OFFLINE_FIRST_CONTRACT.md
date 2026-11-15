@@ -40,3 +40,20 @@ Keep the installed PWA useful when offline, save supported work locally and sync
 7. Record exact tested build and supported devices. Never claim 100% offline for a server-owned operation.
 
 Do not indiscriminately cache dynamic routes or authorization-bearing responses. User agreement to offline-first is not permission to weaken privacy/security controls.
+
+## Public textbook offline-reading pilot (2026-11-15)
+- The canonical VibeTextbook reader offers **Download for offline** only for published, free, publicly readable chapters from its **anonymous initial payload**. Authenticated/locked/restricted chapters are never copied into the public offline library.
+- Download saves a minimal publication/chapter/block snapshot to IndexedDB and prepares the standalone `/offline/books` PWA shell (scripts/styles) through the existing service worker. The library lists, reads, navigates and deletes those public book snapshots without internet.
+- This is a **free-content pilot**. No entitlement/payment gate is active; the existing server's locked/nonpublic chapters remain unavailable for offline download. Externally hosted images/audio/interactive/network-driven tools may not work offline and are not certified as downloaded assets. Reading progress in the offline library is not synchronized.
+- Browser storage can be cleared/evicted; no claim of irrevocable storage or full app offline readiness.
+
+## RESERVED / MUTED: 24-hour subscription content controls — REQUIRED BEFORE CHARGING
+**DO NOT ENABLE PAID CONTENT OFFLINE by simply caching the current public reader.** When subscription payments are activated, launch must be blocked until all of the following are implemented and separately independently certified:
+1. Server-confirmed payment → signed, scoped, time-limited offline entitlement linked to subscription, learner/device, publication and server expiration; verify signature and expiration on every local open.
+2. Encrypted account-isolated offline content, tenant separation on shared devices, logout hygiene, local tamper/clock rollback handling, no private payload in Cache Storage shared public cache.
+3. No offline renewal or extension without server-authorized fresh licence; expiry closes access even when downloaded; user-owned progress must remain accessible subject to privacy controls.
+4. Cancellation/revocation is only discoverable online or after offline entitlement expiration; risk bounded by short validity window. Browser/PWA DRM is not tamper-proof.
+5. End-to-end M-PESA reconciliation, authorized entitlement expiry (24 hours measured by server, not device), conflict, device offline/reconnect and abuse tests.
+6. Remove the current free-only public-book snapshot admission for paid material and replace it with a separate protected-reader storage and runtime authority path. **Do not switch on the payment gate or paid offline downloads until these prerequisites pass.**
+
+Content remains free and accessible offline in the current release; the above future lock is a documented requirement, not activated code.

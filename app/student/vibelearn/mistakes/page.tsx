@@ -1,4 +1,5 @@
 'use client'
+import StudentIntro from "@/components/student/StudentIntro";
 
 export const dynamic = 'force-dynamic'
 
@@ -113,11 +114,12 @@ export default function VibeLearnMistakesPage() {
 
     <header style={hero} aria-label="Recovery Studio introduction">
       <span style={heroBadge}>YOUR LEARNING COMEBACK</span>
-      <h2 style={{fontSize:'clamp(25px,4vw,34px)',lineHeight:1.16,letterSpacing:'-.035em',margin:'18px 0 11px'}}>Every mistake is a chance to improve.</h2>
-      <p style={{fontSize:14,lineHeight:1.6,color:'#E9D8CE',margin:'0 0 17px'}}>Understand the difficult skills. Practise them again. See what you've improved.</p>
+      <h2 style={{fontSize:'clamp(25px,4vw,34px)',lineHeight:1.16,letterSpacing:'-.035em',margin:'18px 0 11px'}}>Review and improve</h2>
+      
       <span style={{display:'flex',alignItems:'center',gap:8,color:'#F6C29E',fontSize:13,fontWeight:700}}><Target size={17}/> Focus on one skill at a time</span>
     </header>
 
+    <StudentIntro feature="mistakes-overview"><p>Review a missed question, practise the skill and check your progress.</p></StudentIntro>
     {error&&<div role="alert" style={alert}><AlertCircle size={17}/> Notebook unavailable: {error} <button style={linkButton} onClick={()=>void load()}>Retry</button></div>}
     {releasedError&&<div role="alert" style={alert}><AlertCircle size={17}/> Assessment history unavailable: {releasedError} <button style={linkButton} onClick={()=>void load()}>Retry</button></div>}
     {loading ? <section role="status" style={surface}>Loading your recovery studio…</section>:<>
@@ -195,7 +197,7 @@ export default function VibeLearnMistakesPage() {
           {visible.length>5&&<button style={{...lightButton,marginTop:12}} type="button" onClick={()=>setExpandSkills(value=>!value)}>{expandSkills?'Show fewer skills':`Show all ${visible.length} skills`}</button>}
         </section>}
       </section>
-      <p style={{...muted,textAlign:'center',marginTop:20}}>Only verified assessment evidence can establish progress. Reviewing a mistake does not change your original marks.</p>
+      <details style={{marginTop:12}}><summary style={{cursor:'pointer',fontSize:12,color:'var(--vs-muted)'}}>How progress is recorded</summary><p style={{...muted}}>Only verified assessment evidence establishes progress. Reviewing a mistake does not change original marks.</p></details>
     </>}
   </div></main>
 }
