@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
+import { parseExamOriginalKey, type ExamOriginalKey } from './exam-originals'
 
 export type LearnerAssignmentAvailability =
   | 'upcoming'
@@ -13,6 +14,8 @@ export interface LearnerAssessmentAssignment {
   assessmentId: string
   title: string
   assessmentType: string
+  /** Only populated from trusted server-side product classification. */
+  originalSeries?: ExamOriginalKey | null
   instructions: string | null
   assignmentStatus: string
   opensAt: string | null
@@ -71,6 +74,7 @@ export async function listMyAssessmentAssignments(): Promise<LearnerAssessmentAs
       assessmentId,
       title,
       assessmentType: text(item.assessment_type) ?? 'assessment',
+      originalSeries: parseExamOriginalKey(item.original_product_series),
       instructions: text(item.instructions),
       assignmentStatus: text(item.assignment_status) ?? 'assigned',
       opensAt: text(item.opens_at),
