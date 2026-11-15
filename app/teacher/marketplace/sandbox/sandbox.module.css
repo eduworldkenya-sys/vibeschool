@@ -131,3 +131,21 @@
 @media(max-width:850px){.deadlineClock{min-width:150px}.countyBoardHeading{flex-wrap:wrap}}
 @media(max-width:600px){.deadlineClock{min-width:0}.countyList{grid-template-columns:1fr}.countyPostLabel{display:none}.countyBoardTotal{font-size:11px}}
 @media(max-width:480px){.hero{flex-direction:column;align-items:stretch}.deadlineClock{width:100%;text-align:left;padding:12px 15px;grid-template-columns:1fr auto;align-items:center;gap:5px}.deadlineClock strong{grid-row:1/4;grid-column:2;font-size:29px}.deadlineClock small:last-child{font-size:10px}.countyBoard{padding:18px 14px;margin-top:12px}.countyTools{align-items:stretch;flex-direction:column}.countyTools input,.countyTools button{width:100%}.countyBoardHeading h2{font-size:23px}}
+
+/* Qualification-first navigation reuses the existing TSC recruitment results. */
+.stepTabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:16px 0 14px}
+.stepTab,.stepTabActive{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 12px;border:1px solid #c8d5df;border-radius:11px;background:#fff;color:#284b64;font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.stepTabActive{background:#153e64;border-color:#153e64;color:#fff}
+.stepTabs button:focus-visible,.noticeClose:focus-visible,.checkRow input:focus-visible{outline:3px solid #c79b43;outline-offset:3px}
+.stepWorkspace{grid-template-columns:minmax(0,1fr)}
+.stepWorkspace .filtersCard,.stepWorkspace .matchesCard{max-width:none}
+.minimumChecks{border:0;padding:0;margin:16px 0 0;display:grid;gap:10px}
+.minimumChecks legend{font-size:14px;color:#20384d;font-weight:800;margin-bottom:12px}
+.checkRow{display:flex;align-items:center;gap:11px;border:1px solid #dbe5ec;background:#f8fafb;color:#213d52;border-radius:10px;padding:12px 13px;min-height:52px;font-size:13px;font-weight:700;line-height:1.5;cursor:pointer}
+.checkRow input{width:19px;height:19px;flex:0 0 19px;accent-color:#153e64;cursor:pointer}
+.checkProgress{margin:13px 0;color:#2b5b51;font-size:12px;font-weight:800}
+.documentCheck{margin-top:17px;background:#fff}
+.noticeClose{display:grid;place-items:center;margin-left:auto;flex:0 0 35px;width:35px;height:35px;border:0;border-radius:9px;background:transparent;color:#30536b;cursor:pointer}
+.noticeClose:hover{background:#dce8ef}
+.stepWorkspace .countyField{margin:14px 0}
+@media(max-width:480px){.stepTabs{gap:6px}.stepTab,.stepTabActive{padding:9px 7px;font-size:11px}.checkRow{padding:11px;min-height:48px}}
