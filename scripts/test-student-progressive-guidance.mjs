@@ -37,3 +37,34 @@ test('returning learners can collapse repeated explanations across core screens'
     assert.match(content, /<StudentIntro feature=/);
   }
 });
+
+test('advanced learning evidence stays accessible but not always expanded', () => {
+  const twin = read('app/student/twin/page.tsx');
+  assert.match(twin, /<details[^>]*><summary[^>]*>Detailed learning evidence and Twin insights<\/summary>/);
+  assert.match(twin, /REVISION TIMELINE/);
+  const profile = read('app/student/profile/page.tsx');
+  assert.match(profile, /<details[^>]*><summary[^>]*>Learning insights and achievements<\/summary>/);
+  assert.match(profile, /My school identity/);
+  assert.match(profile, /My support network/);
+});
+test('Learn shortcuts are optional while continue-reading and assigned reading remain available', () => {
+  const learn = read('app/student/study/page.tsx');
+  assert.match(learn, /<summary[^>]*>More reading tools<\/summary>/);
+  assert.match(learn, /<summary[^>]*>Other learning activities<\/summary>/);
+  assert.match(learn, /continueLearning/);
+  assert.match(learn, /Assigned reading/);
+});
+test('remaining guidance and optional explanation surfaces have compact defaults', () => {
+  for (const path of [
+    'app/student/vibelearn/mistakes/page.tsx',
+    'app/student/vibelearn/revision/page.tsx',
+    'app/student/workspace/page.tsx',
+    'app/student/tasks/page.tsx',
+    'app/student/twin/page.tsx',
+    'app/student/projects/independent/page.tsx',
+  ]) {
+    assert.match(read(path), /StudentIntro feature=/, path);
+  }
+  assert.match(read('app/student/vibelearn/exams/page.tsx'), /How averages are calculated/);
+  assert.match(read('app/student/tasks/page.tsx'), /About reminders/);
+});
