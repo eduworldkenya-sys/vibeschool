@@ -6,8 +6,8 @@ const readJSON=file=>JSON.parse(readFileSync(root+file,'utf8'))
 const manifest=readJSON('manifest.json')
 const topics=[...readJSON('topics-a.json'),...readJSON('topics-b.json')]
 const questions=readJSON('questions.json')
-const stage=readFileSync('supabase/migrations/20261115162000_stage_cpa_ca11_accounting_workshops.sql','utf8')
-const release=readFileSync('supabase/migrations/20261115162010_release_cpa_ca11_accounting_workshops.sql','utf8')
+const stage=readFileSync('supabase/migrations/20261115133937_stage_cpa_ca11_accounting_workshops.sql','utf8')
+const release=readFileSync('supabase/migrations/20261115134518_release_cpa_ca11_accounting_workshops.sql','utf8')
 const original=readFileSync('supabase/migrations/20261115124103_stage_cpa_ca11_intro_foundation.sql','utf8')
 
 const expectedSlugs=[
