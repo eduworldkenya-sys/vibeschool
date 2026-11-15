@@ -6,7 +6,11 @@
 @media(max-width:770px){.side{position:fixed;left:-248px;width:235px;transition:left .2s;z-index:14}.side.open{left:0}.overlay.open{display:block;position:fixed;inset:0;background:#0006;z-index:13}.menu-btn{display:grid}.topbar{padding:0 15px;height:63px}.search{display:none}.company-select{max-width:146px}.subcrumb{display:none}.workspace{padding:20px 14px 32px}.intro{padding:17px}.grid2{grid-template-columns:1fr}.shortcuts{grid-template-columns:repeat(4,1fr)}.pagehead h1{font-size:23px}.pagehead{align-items:flex-start}.desktop-hide{display:block}}
 @media(max-width:480px){.grid4{gap:9px}.stat{padding:14px 13px;min-height:117px}.stat strong{font-size:19px;margin:13px 0 3px}.stat-top{font-size:10px}.stat-icon{width:26px;height:26px}.panel{padding:15px}.pagehead{flex-wrap:wrap}.pagehead .actions{justify-content:flex-start;width:100%}.intro .btn{display:none}.intro h2{font-size:15px}.shortcuts{grid-template-columns:repeat(2,1fr)}.modulegrid{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}.topbar-right{gap:5px}.topbar .btn.primary{padding:8px 10px}.company-select{max-width:125px;padding:8px 6px}.crumb{font-size:13px}.brand{padding-top:20px}.twocol{grid-template-columns:1fr}.modal{max-height:94vh}.modal-body{padding:15px}.modal-head{padding:13px 15px}.modal-foot{padding:12px 15px}}
 @media print{.side,.topbar,.pagehead .actions,.footer-note,.btn,.tabbar,.intro,.toast{display:none!important}.workspace{padding:0}.card{box-shadow:none;border:0}.main{width:100%}body{background:white}}
-</style></head><body>
+</style>
+<style>
+.dept-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.dept-group{margin:0 0 20px}.dept-group-title{font-size:11px;color:#626b81;font-weight:800;letter-spacing:.4px;margin:0 0 10px;display:flex;gap:8px;align-items:center}.dept-group-title span{background:#eceefa;padding:3px 7px;border-radius:6px;color:#5b628d}.dept-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.dept-tile{border:1px solid #e6e9f1;border-radius:12px;padding:13px 14px;text-align:left;background:#fff;display:flex;flex-direction:column;gap:10px;min-height:81px;color:#313d54}.dept-tile:hover{border-color:#8e83f6;background:#f9f8ff}.dept-tile-top{display:flex;align-items:start;gap:7px;justify-content:space-between}.dept-tile-top strong{font-size:12px}.dept-tile small{font-size:10px;color:#7a859b}.dept-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.dept-links,.dept-assignees{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.dept-assignees{min-height:38px}@media(max-width:960px){.dept-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.dept-grid,.dept-two{grid-template-columns:1fr}.dept-tile{min-height:67px}.dept-tile-top strong{font-size:12px}}
+</style>
+</head><body>
 <div id="app"><aside class="side" id="side"><div class="brand"><div class="mark">V</div><div><span>vibepro</span><small>BUSINESS OS</small></div></div><div class="slabel">Workspace</div><nav class="nav" id="nav"></nav><div class="sidefoot"><div class="profile"><div class="avatar">JK</div><div><strong>Jean K.</strong><small>Accountant · Demo</small></div></div></div></aside><div class="overlay" id="overlay" data-act="close-menu"></div><div class="main"><header class="topbar"><div class="topbar-left"><button class="icon-btn menu-btn" data-act="menu" aria-label="Open menu">☰</button><div><div class="crumb" id="section-name">Overview</div><div class="subcrumb">Professional workspace · sample records</div></div></div><div class="topbar-right"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="searchBox" placeholder="Search this workspace" aria-label="Search this workspace"></div><select class="company-select" id="companySelect" aria-label="Switch company"></select><button class="btn primary" data-act="new-invoice">+ New</button></div></header><div class="workspace" id="workspace"></div></div></div><div id="modalHost"></div><div id="toastHost"></div>
 <script>
 (function(){'use strict';
@@ -401,6 +405,247 @@ function restrictedAction(act){if(!demoRole.includes('Auditor'))return false;ret
 function proSafeRun(action,el){if(restrictedAction(action))return toast('Read-only auditor preview. Switch back to Accountant or Owner to make changes.');const prev=structuredClone(store);try{handleProAction(action,el)}catch(err){store=prev;persist();render();toast(err.message||'This action could not be completed.')}}
 document.addEventListener('click',e=>{const pro=e.target.closest('[data-pro]');if(pro){e.preventDefault();e.stopImmediatePropagation();proSafeRun(pro.dataset.pro,pro);return;}const tab=e.target.closest('[data-protab]');if(tab){e.preventDefault();e.stopImmediatePropagation();proTab[tab.dataset.protab]=tab.dataset.value;renderPanel();return;}const old=e.target.closest('[data-act]');if(old&&demoRole.includes('Auditor')&&!['menu','close-menu','close-modal','export-report','export-ledger','print-report','open-trial','open-banking','invoice-detail','match-bank'].includes(old.dataset.act)){e.preventDefault();e.stopImmediatePropagation();toast('Audit persona is read-only. Switch back to Accountant to continue.');}},true);
 document.addEventListener('submit',async e=>{const form=e.target.closest('form[data-proform]');if(!form)return;e.preventDefault();e.stopImmediatePropagation();if(demoRole.includes('Auditor'))return toast('Auditor persona is read only');const snapshot=structuredClone(store);try{const d=Object.fromEntries([...new FormData(form).entries()].filter(([k,v])=>typeof v==='string'));await submitPro(form.dataset.proform,d,form)}catch(err){store=snapshot;persist();render();toast(err.message||'Check the form values.')}},true);
+
+
+/* VibePro Company OS: canonical department catalog and connected, fictional workflows */
+const DEPARTMENT_CATALOG=[
+ ['management','Management','Leadership','overview','reports'],
+ ['accounting','Accounting & Finance','Finance','ledger','reports'],
+ ['people','Human Resources','People','hr','payroll'],
+ ['sales-dept','Sales','Commercial','sales','crm'],
+ ['marketing','Marketing','Commercial','crm','automations'],
+ ['buying','Procurement','Operations','procurement','expenses'],
+ ['stores','Inventory & Stores','Operations','stockpro','inventory'],
+ ['operations','Operations','Operations','projects','manufacturing'],
+ ['manufacturing-dept','Manufacturing','Operations','manufacturing','quality'],
+ ['projects-dept','Projects','Delivery','projects','timesheets'],
+ ['customer-service','Customer Service','Delivery','helpdesk','portal'],
+ ['logistics','Logistics','Delivery','fleet','stockpro'],
+ ['information-tech','IT & Systems','Support & Innovation','integrations','audit'],
+ ['legal','Legal & Compliance','Governance','documents','signatures'],
+ ['admin','Administration','People','team','settings'],
+ ['internal-audit','Internal Audit & Risk','Governance','audit','approvals'],
+ ['research','Research & Development','Support & Innovation','projects','quality'],
+ ['business-development','Business Development','Commercial','crm','quotes'],
+ ['facilities','Facilities & Maintenance','Support & Innovation','maintenance','assets'],
+ ['hse','Health, Safety & Environment','Governance','quality','maintenance'],
+ ['security','Security','Governance','audit','team'],
+ ['quality-assurance','Quality Assurance','Operations','quality','manufacturing'],
+ ['field-services','Field Services','Delivery','projects','helpdesk'],
+ ['communications','Corporate Communications','Commercial','automations','website'],
+ ['asset-management','Asset Management','Finance','assets','maintenance'],
+ ['treasury','Treasury','Finance','banking','budgets'],
+ ['business-intelligence','Data & Business Intelligence','Support & Innovation','analytics','reports']
+];
+const DEPARTMENT_DEFAULT_ACTIVE=new Set(['management','accounting','people','sales-dept','buying','stores','operations','projects-dept','customer-service','logistics','admin','business-development','field-services','asset-management','treasury']);
+const DEPARTMENT_GROUPS=['Leadership','Finance','People','Commercial','Operations','Delivery','Governance','Support & Innovation','Custom'];
+let departmentFocus=null,departmentFilter='all';
+function ensureDepartments(c){
+ if(!Array.isArray(c.departments))c.departments=DEPARTMENT_CATALOG.map(function(x){return {id:x[0],name:x[1],group:x[2],primary:x[3],related:x[4],active:DEPARTMENT_DEFAULT_ACTIVE.has(x[0]),parentId:'',mergedInto:''}});
+ if(!Array.isArray(c.departmentWork))c.departmentWork=c.name.indexOf('ApexPlaster')>=0?[
+  {id:'dw-safety',title:'Review site safety checklist',departmentId:'hse',assignedTo:'',priority:'High',status:'Open',history:['Opened by Operations']},
+  {id:'dw-lead',title:'Assess new contractor opportunity',departmentId:'business-development',assignedTo:'',priority:'Normal',status:'Open',history:['Opened by Sales']},
+  {id:'dw-cash',title:'Prepare monthly cash forecast',departmentId:'treasury',assignedTo:'t1',priority:'High',status:'Open',history:['Assigned to Jean K.']}
+ ]:[];
+ if(!c.departmentAssignments||typeof c.departmentAssignments!=='object')c.departmentAssignments={t1:'accounting',t2:'management'};
+ return c;
+}
+function departmentById(c,key){return ensureDepartments(c).departments.find(function(d){return d.id===key})}
+function departmentReady(c,key){const d=departmentById(c,key);if(!d||d.mergedInto)throw Error('Select an available company department.');return d;}
+function activeDepartments(c){return ensureDepartments(c).departments.filter(function(d){return d.active&&!d.mergedInto});}
+function deptItem(name,action,key,kind){
+ return '<button class="btn '+(kind||'small')+'" data-dept-action="'+esc(action)+'" data-id="'+esc(key||'')+'">'+esc(name)+'</button>';
+}
+function departmentMetrics(c,key){
+ const work=c.departmentWork.filter(function(w){return w.departmentId===key&&w.status!=='Done'});
+ const stats={
+  'internal-audit':[c.audit.length,'Audit events',c.approvals.filter(function(x){return x.status==='Pending'}).length,'Approvals pending'],
+  'research':[c.projects.length,'Active projects',c.inspections.length,'Quality inspections'],
+  'business-development':[c.leads.length,'CRM opportunities',c.quotes.length,'Quotations'],
+  'facilities':[c.maintenance.length,'Maintenance orders',c.assets.length,'Registered assets'],
+  'hse':[c.inspections.length,'Inspections',c.maintenance.filter(function(x){return x.status!=='Completed'}).length,'Pending maintenance'],
+  'security':[c.audit.length,'Activity events',c.team.length,'Demo team members'],
+  'quality-assurance':[c.inspections.length,'Quality checks',c.products.length,'Stock products'],
+  'field-services':[c.projects.length,'Projects',c.tickets.length,'Customer requests'],
+  'communications':[c.automationEvents.length,'Message events',c.leads.length,'Customer leads'],
+  'asset-management':[c.assets.length,'Assets',c.maintenance.length,'Maintenance jobs'],
+  'treasury':[c.feed.filter(function(x){return !x.matched}).length,'Unmatched bank lines',c.mpesa.length,'Simulated M-PESA receipts'],
+  'business-intelligence':[c.journals.length,'Ledger postings',c.budgets.length,'Budget targets']
+ };
+ const x=stats[key]||[c.team.length,'Company team members',c.journals.length,'Company journal entries'];
+ return pmetrics([['Open department work',work.length,'Tasks requiring attention'],[x[1],x[0],'Connected company records'],[x[3],x[2],'Shared operational data'],['Team assigned',Object.values(c.departmentAssignments).filter(function(v){return v===key}).length,'Demo members']]);
+}
+function departmentDirectory(c){
+ ensureDepartments(c);
+ const visible=c.departments.filter(function(d){return !d.mergedInto&& (departmentFilter==='all'||(departmentFilter==='active'?d.active:!d.active))});
+ const active=activeDepartments(c).length,custom=c.departments.filter(function(d){return d.group==='Custom'&&!d.mergedInto}).length;
+ const groups=DEPARTMENT_GROUPS.map(function(g){
+  const entries=visible.filter(function(d){return d.group===g});if(!entries.length)return '';
+  return '<div class="dept-group"><div class="dept-group-title">'+esc(g)+' <span>'+entries.length+'</span></div><div class="dept-grid">'+entries.map(function(d){
+   const count=c.departmentWork.filter(function(x){return x.departmentId===d.id&&x.status!=='Done'}).length;
+   return '<button class="dept-tile" data-dept-action="open" data-id="'+esc(d.id)+'"><span class="dept-tile-top"><strong>'+esc(d.name)+'</strong>'+protag(d.active?'Active':'Off')+'</span><small>'+count+' open tasks · '+(c.team.filter(function(t){return c.departmentAssignments[t.id]===d.id}).length)+' staff</small></button>';
+  }).join('')+'</div></div>';
+ }).join('');
+ return phead('Company departments','27 department templates · activate only what your company needs',deptItem('+ New department','create','','primary')+pb('Switch persona','role-change'))+
+  pmetrics([['Department templates',DEPARTMENT_CATALOG.length,'Business-wide catalog'],['Active departments',active,'Company configuration'],['Custom departments',custom,'Created in this demo'],['Open tasks',c.departmentWork.filter(function(x){return x.status!=='Done'}).length,'Across all departments']])+
+  '<div class="dept-filters">'+[['all','All departments'],['active','Active'],['inactive','Inactive']].map(function(o){return '<button class="btn small '+(departmentFilter===o[0]?'primary':'')+'" data-dept-action="filter" data-id="'+o[0]+'">'+o[1]+'</button>';}).join('')+'</div>'+groups+
+  '<div class="notice" style="margin-top:14px">This is a company-level demo directory. Roles, permissions, staffing and approvals are illustrative; real access controls require server enforcement.</div>';
+}
+function departmentDetail(c,d){
+ const people=c.team.filter(function(t){return c.departmentAssignments[t.id]===d.id});
+ const child=c.departments.filter(function(x){return x.parentId===d.id&&!x.mergedInto});
+ const work=c.departmentWork.filter(function(w){return w.departmentId===d.id});
+ const actions=deptItem('← All departments','back')+
+  deptItem('+ Work item','new-work',d.id,'primary')+deptItem('Assign staff','assign',d.id)+
+  deptItem('Rename','rename',d.id)+deptItem('Subdepartment','sub',d.id)+
+  deptItem('Merge','merge',d.id)+deptItem(d.active?'Deactivate':'Activate','toggle',d.id);
+ const workRows=work.slice().reverse().map(function(w){
+  const staff=c.team.find(function(t){return t.id===w.assignedTo});
+  const who=staff?staff.name:'Unassigned';
+  return '<tr><td><strong>'+esc(w.title)+'</strong><div class="muted">'+esc((w.history||[]).slice(-1)[0]||'')+'</div></td><td>'+esc(w.priority)+'</td><td>'+esc(who)+'</td><td>'+protag(w.status)+'</td><td>'+ (w.status==='Done'?'—':deptItem('Complete','done',w.id)+deptItem('Handover','handover',w.id))+'</td></tr>';
+ }).join('');
+ return phead(d.name,esc(d.group)+' · '+(d.active?'Active':'Inactive')+' company department',actions)+
+  departmentMetrics(c,d.id)+
+  '<div class="dept-two">'+
+  card('Connected business tools','<div class="dept-links">'+pnav(d.primary,NAV.find(function(x){return x[0]===d.primary})?.[1]||d.primary)+pnav(d.related,NAV.find(function(x){return x[0]===d.related})?.[1]||d.related)+'</div><p class="hint">Tools operate on shared fictional company records and accounting journals.</p>')+
+  card('Team and structure','<div class="dept-assignees">'+(people.map(function(p){return '<span class="tag gray">'+esc(p.name)+' · '+esc(p.role)+'</span>'}).join('')||'<span class="muted">No assigned team members</span>')+'</div>'+
+  '<div class="hint">Subdepartments: '+(child.map(function(x){return esc(x.name)}).join(', ')||'None')+'</div>')+
+  '</div><div style="height:15px"></div>'+
+  card('Department work and handovers',table(['Task','Priority','Assigned','Status','Actions'],workRows))+
+  (!d.active?'<p class="notice" style="margin-top:12px">Activate this department to accept new work and staff assignments.</p>':'');
+}
+function renderDepartments(c){
+ ensureDepartments(c);
+ const d=departmentFocus&&departmentById(c,departmentFocus);
+ return d&&!d.mergedInto?departmentDetail(c,d):departmentDirectory(c);
+}
+function departmentChoice(c,exclude){
+ return c.departments.filter(function(d){return !d.mergedInto&&d.id!==exclude}).map(function(d){return [d.id,d.name]});
+}
+function departmentModal(c,action,id){
+ const d= id ? departmentById(c,id):null;
+ if(action==='create'||action==='sub'){
+  const parent=action==='sub'?id:'';
+  const opts=[['','Top-level department']].concat(departmentChoice(c));
+  const groupOpts=DEPARTMENT_GROUPS.map(function(x){return [x,x]});
+  return departmentForm('Create department',action,pf('name','Department name','text','','required maxlength="70"')+
+   ps('group','Business area',groupOpts,'Custom')+ps('parent','Parent department',opts,parent),'Create');
+ }
+ if(!d)throw Error('Department not found.');
+ if(action==='rename')return departmentForm('Rename '+d.name,action,pf('id','Department id','hidden',id)+pf('name','New name','text',d.name,'required maxlength="70"'),'Save');
+ if(action==='merge')return departmentForm('Combine departments',action,pf('source','Department id','hidden',id)+ps('target','Merge into',departmentChoice(c,id)),'Merge','Work, staff and child departments move to the destination; the source is archived.');
+ if(action==='assign')return departmentForm('Assign employee',action,pf('id','Department id','hidden',id)+ps('employee','Employee',c.team.map(function(t){return [t.id,t.name+' · '+t.role]})),'Assign','Department assignment changes this demo company only.');
+ if(action==='new-work')return departmentForm('New work item',action,pf('id','Department id','hidden',id)+pf('title','Task / request','text','','required maxlength="120"')+
+   ps('priority','Priority',['Normal','High','Urgent'])+ps('assignee','Assign to',[['','Unassigned']].concat(c.team.map(function(t){return [t.id,t.name]}))),'Save work','Creates a department task linked to the shared company workspace.');
+}
+function departmentForm(title,key,body,label,hint){
+ showModal(title,'<form data-dept-form="'+key+'">'+body+(hint?'<p class="hint">'+esc(hint)+'</p>':'')+
+  '<div class="pro-form-foot"><button type="button" class="btn" data-act="close-modal">Cancel</button><button type="submit" class="btn primary">'+esc(label||'Save')+'</button></div></form>');
+}
+function validateDepartmentName(c,name,self){
+ const value=String(name||'').trim();if(value.length<2||value.length>70)throw Error('Department name must be 2–70 characters.');
+ if(c.departments.some(function(d){return d.id!==self&&!d.mergedInto&&d.name.toLocaleLowerCase()===value.toLocaleLowerCase()}))throw Error('This department already exists.');
+ return value;
+}
+function departmentDescendant(c,source,target){
+ let node=departmentById(c,target),steps=0;
+ while(node&&node.parentId&&steps++<100){if(node.parentId===source)return true;node=departmentById(c,node.parentId);}
+ return false;
+}
+function performDepartmentForm(c,key,data){
+ ensureDepartments(c);
+ let message='Company department updated.';
+ if(key==='create'||key==='sub'){
+  const name=validateDepartmentName(c,data.name),parent=data.parent?departmentReady(c,data.parent):null;
+  const group=parent?parent.group:(DEPARTMENT_GROUPS.includes(data.group)?data.group:'Custom');
+  const d={id:'custom-'+id(),name,group,primary:parent?parent.primary:'projects',related:parent?parent.related:'documents',active:true,parentId:parent?parent.id:'',mergedInto:''};
+  c.departments.push(d);departmentFocus=d.id;message='Department created and activated.';
+ }else if(key==='rename'){
+  const d=departmentReady(c,data.id);d.name=validateDepartmentName(c,data.name,d.id);message='Department renamed.';
+ }else if(key==='merge'){
+  const source=departmentReady(c,data.source),target=departmentReady(c,data.target);
+  if(source.id===target.id||departmentDescendant(c,source.id,target.id))throw Error('Cannot merge a department into itself or a child.');
+  c.departmentWork.forEach(function(w){if(w.departmentId===source.id){w.departmentId=target.id;(w.history||=[]).push('Moved from '+source.name+' to '+target.name);}});
+  for(const [member,dept] of Object.entries(c.departmentAssignments))if(dept===source.id)c.departmentAssignments[member]=target.id;
+  c.departments.forEach(function(d){if(d.parentId===source.id)d.parentId=target.id});
+  source.mergedInto=target.id;source.active=false;departmentFocus=target.id;message='Departments combined; tasks and staff moved.';
+ }else if(key==='assign'){
+  const d=departmentReady(c,data.id),p=c.team.find(function(t){return t.id===data.employee});
+  if(!p||!d.active)throw Error('Activate the department and select a member.');
+  c.departmentAssignments[p.id]=d.id;message=p.name+' assigned to '+d.name+'.';
+ }else if(key==='new-work'){
+  const d=departmentReady(c,data.id);
+  if(!d.active)throw Error('Activate this department before creating work.');
+  const title=String(data.title||'').trim();if(title.length<3||title.length>120)throw Error('Task title must be 3–120 characters.');
+  if(data.assignee&&!c.team.some(function(t){return t.id===data.assignee}))throw Error('Select a valid employee.');
+  if(!['Normal','High','Urgent'].includes(data.priority))throw Error('Select a valid priority.');
+  c.departmentWork.push({id:id(),title,departmentId:d.id,assignedTo:data.assignee||'',priority:data.priority,status:'Open',history:['Created by '+demoRole]});
+  message='Task added to '+d.name+'.';
+ }else if(key==='handover'){
+  const w=c.departmentWork.find(function(w){return w.id===data.id&&w.status!=='Done'});
+  const destination=departmentReady(c,data.target);
+  if(!w||w.departmentId===destination.id||!destination.active)throw Error('Select another active department for the handover.');
+  const source=departmentById(c,w.departmentId);w.departmentId=destination.id;w.assignedTo='';w.status='Open';
+  (w.history||=[]).push('Handed over from '+(source?.name||'Department')+' to '+destination.name+' by '+demoRole);
+  departmentFocus=destination.id;message='Task handed over to '+destination.name+'.';
+ }else throw Error('Unknown department operation.');
+ auditLog(c,'Department activity',message);return message;
+}
+function runDepartmentClick(action,key){
+ const c=ensureDepartments(current());
+ if(action==='open'){departmentFocus=key;view='departments';render();return;}
+ if(action==='back'){departmentFocus=null;renderPanel();return;}
+ if(action==='filter'){departmentFilter=key;departmentFocus=null;renderPanel();return;}
+ if(demoRole.includes('Auditor'))return toast('Auditor preview is read-only.');
+ const structural=['create','sub','rename','merge','toggle','assign'];
+ if(structural.includes(action)&&!demoRole.includes('Owner'))return toast('Switch to the Owner persona in Audit & Security to manage departments.');
+ const snapshot=structuredClone(store);
+ try{
+  if(action==='toggle'){
+   const d=departmentReady(c,key);d.active=!d.active;auditLog(c,'Department activation',d.name+': '+(d.active?'Active':'Inactive'));
+   return save(d.active?'Department activated.':'Department deactivated.');
+  }
+  if(action==='done'){
+   const w=c.departmentWork.find(function(w){return w.id===key});
+   if(!w||w.status==='Done')throw Error('Work item unavailable.');
+   w.status='Done';(w.history||=[]).push('Completed by '+demoRole);auditLog(c,'Department work completed',w.title);return save('Work item completed.');
+  }
+  if(action==='handover'){
+   const w=c.departmentWork.find(function(w){return w.id===key&&w.status!=='Done'});
+   if(!w)throw Error('Work item unavailable.');
+   return departmentForm('Hand over work','handover',pf('id','Work item id','hidden',key)+
+      ps('target','Receiving department',activeDepartments(c).filter(function(d){return d.id!==w.departmentId}).map(function(d){return [d.id,d.name]})),'Transfer');
+  }
+  if(action==='create'||action==='sub'||action==='rename'||action==='merge'||action==='assign'||action==='new-work')return departmentModal(c,action,key);
+  throw Error('Unknown department action.');
+ }catch(error){store=snapshot;render();toast(error.message||'Cannot update department.');}
+}
+const previousVibeProPage=proPage;
+proPage=function(page,c,f){return page==='departments'?renderDepartments(c):previousVibeProPage(page,c,f)};
+PAGES.push(['departments','Company Departments','Administration']);
+NAV.push(['departments','Departments']);ICONS.departments='▦';PRO_ICONS.departments='▦';
+const previousTeamPage=team;
+team=function(c){return previousTeamPage(c)+'<div style="height:15px"></div>'+card('Company departments',pnav('departments','Manage 27 department templates')+'<p class="hint">Assign team members and manage cross-department work in Company Departments.</p>')};
+document.addEventListener('click',function(e){
+ const x=e.target.closest('[data-dept-action]');if(!x){
+  const nav=e.target.closest('[data-nav]');if(nav&&nav.dataset.nav==='departments'&&view!=='departments')departmentFocus=null;
+  return;
+ }
+ e.preventDefault();e.stopImmediatePropagation();runDepartmentClick(x.dataset.deptAction,x.dataset.id||'');
+},true);
+document.addEventListener('submit',function(e){
+ const form=e.target.closest('form[data-dept-form]');if(!form)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(demoRole.includes('Auditor'))return toast('Auditor preview is read-only.');
+ const structural=['create','sub','rename','merge','assign'];
+ if(structural.includes(form.dataset.deptForm)&&!demoRole.includes('Owner'))return toast('Switch to Owner persona to manage departments.');
+ const snapshot=structuredClone(store);
+ try{
+  const data=Object.fromEntries(new FormData(form).entries());const message=performDepartmentForm(current(),form.dataset.deptForm,data);
+  closeModal();save(message);
+ }catch(error){store=snapshot;persist();render();toast(error.message||'Check department information.');}
+},true);
+/* End VibePro company department extension */
 
 proInit();render();})();
 </script></body></html>
