@@ -6,6 +6,7 @@ on:
       - 'app/vibepro/**'
       - 'public/vibepro/**'
       - 'scripts/test-vibepro-demo.mjs'
+      - 'next.config.js'
       - '.github/workflows/vibepro-frontend.yml'
   push:
     branches: [main]
@@ -13,6 +14,7 @@ on:
       - 'app/vibepro/**'
       - 'public/vibepro/**'
       - 'scripts/test-vibepro-demo.mjs'
+      - 'next.config.js'
       - '.github/workflows/vibepro-frontend.yml'
 
 permissions:
