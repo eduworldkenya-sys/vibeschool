@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-const sql=readFileSync('supabase/migrations/20261115115000_stage_cpa_ca11_intro_foundation.sql','utf8')
+const sql=readFileSync('supabase/migrations/20261115124103_stage_cpa_ca11_intro_foundation.sql','utf8')
 const chunks=[...sql.matchAll(/\$ca11data\$(\{[\s\S]*?\})\$ca11data\$::jsonb/g)]
 assert.equal(chunks.length,1,'single source-of-truth authoring packet must remain in migration')
 const p=JSON.parse(chunks[0][1])
