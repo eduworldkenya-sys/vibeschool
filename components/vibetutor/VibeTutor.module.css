@@ -734,3 +734,15 @@
 :global(html[data-vt-theme='dark']) .filterSuggestion{background:#493137;color:#f5d6db;border-color:#94616b}
 :global(html[data-vt-theme='dark']) .filterPanelActions .compactFilterButton{background:#c77b88;color:#201d1d;border-color:#c77b88}
 @media(max-width:560px){.filterSelectGrid{grid-template-columns:minmax(0,1fr)}.filterSearchRow .compactFilterButton{padding:7px 9px}}
+
+/* Product identity stays readable regardless of the VibeSchool wordmark asset or theme. */
+.brandParent { color: var(--vt-muted); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.brandProduct { color: var(--vt-ink); font-size: 19px; font-weight: 800; letter-spacing: -.035em; white-space: nowrap; }
+:global(html[data-vt-theme='dark']) .brandParent { color: #d1c8c3; }
+:global(html[data-vt-theme='dark']) .brandProduct { color: #fff; }
+@media (max-width: 540px) {
+  .brand { gap: 7px; }
+  .brandParent { font-size: 11px; }
+  .brandProduct { font-size: 16px; }
+  .brandDivider { height: 18px; }
+}
