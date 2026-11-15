@@ -366,11 +366,11 @@ He shrugged. "Wouldn't work for me."
 
 "Then don't do it."
 
-The exchange might have ended there, but a woman at the end of the table began laughing.
+The exchange might have ended there, but a man at the end of the table began laughing.
 
 "Finally," she said. "Someone who doesn't need to recruit the whole country into her choices."
 
-Her name was Biko. She attended evening lectures after working mornings at a pharmacy, and she had a way of speaking softly that made other people stop talking to hear her.
+His name was Biko. He attended evening lectures after working mornings at a pharmacy, and she had a way of speaking softly that made other people stop talking to hear her.
 
 The student in the checked shirt, Kelvin, pushed an exercise towards Taraji. "Fine. Solve that one."
 
