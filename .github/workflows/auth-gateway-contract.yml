@@ -17,6 +17,7 @@ on:
       - 'app/auth/useAuthAppearance.ts'
       - 'supabase/migrations/*independent_learning_level_paths.sql'
       - 'scripts/test-learner-grade-picker.mjs'
+      - 'scripts/test-independent-study-pathway-session.mjs'
       - 'app/login/**'
       - 'app/reset-password/**'
       - 'lib/auth-routing.ts'
@@ -47,3 +48,4 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node scripts/test-signup-role-integrity.mjs
       - run: node scripts/test-learner-grade-picker.mjs
+      - run: node scripts/test-independent-study-pathway-session.mjs

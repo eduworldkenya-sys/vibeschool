@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   if (process.env.INDEPENDENT_LEARNER_PUBLIC_GOOGLE_ENABLED !== 'true' ||
-      !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.json({ error: 'Unavailable' }, { status: 503 })
   }
   const authorization = req.headers.get('authorization') ?? ''
@@ -40,8 +40,18 @@ export async function POST(req: NextRequest) {
   if (profileError || !profile || profile.role !== null || profile.account_status !== 'active' || profile.is_anonymized) {
     return NextResponse.json({ error: 'Learner account needs verification' }, { status: 403 })
   }
+  // This table intentionally grants only user-owned RLS access, not service_role
+  // table privileges. Forward the verified bearer token for reads and writes.
+  const pathwayClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: authorization } },
+    },
+  )
   // Never silently discard or reassign an established professional pathway.
-  const { data: existingPath, error: pathLookupError } = await admin.from('learner_education_paths')
+  const { data: existingPath, error: pathLookupError } = await pathwayClient.from('learner_education_paths')
     .select('education_stage,programme_family,qualification_code').eq('user_id', user.id).maybeSingle()
   if (pathLookupError) return NextResponse.json({ error: 'Study pathway check unavailable' }, { status: 503 })
   if (existingPath && (!selected?.pathway || existingPath.education_stage !== 'post_secondary' ||
@@ -80,7 +90,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Could not finish learner profile. Please retry.' }, { status: 503 })
   }
   if (selected?.pathway && !existingPath) {
-    const { error: pathwayError } = await admin.from('learner_education_paths').insert({
+    const { error: pathwayError } = await pathwayClient.from('learner_education_paths').insert({
       user_id: user.id,
       education_stage: 'post_secondary',
       ...selected.pathway,
