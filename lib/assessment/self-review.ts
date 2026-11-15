@@ -49,3 +49,76 @@ export async function saveMySelfReview(input: {
     scoreAuthority: 'learner_self_assessed_not_verified',
   }
 }
+
+
+export interface ImmediatePracticeReviewItem {
+  assessmentItemId: string
+  orderNum: number
+  prompt: string
+  questionType: string
+  responseText: string | null
+  responseValue: Json
+  autoScore: number | null
+  maxScore: number
+  correctAnswer: Json
+  explanation: string | null
+  workedSolution: string | null
+}
+export interface ImmediatePracticeReview {
+  attemptId: string
+  title: string
+  verifiedScore: number
+  verifiedMax: number
+  writtenMax: number
+  items: ImmediatePracticeReviewItem[]
+  reviews: SelfReviewItem[]
+}
+
+function finiteNumber(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new Error('Practice review returned an invalid score.')
+  }
+  return value
+}
+
+export async function getMyPracticeReview(attemptId: string): Promise<ImmediatePracticeReview> {
+  const { data, error } = await rpc<Json>('exq_get_my_practice_self_review', { p_attempt_id: attemptId })
+  if (error) throw new Error(error.message || 'Practice review is not available.')
+  const value = record(data)
+  if (!value || value.ok !== true || value.assessment_type !== 'practice'
+    || value.score_authority !== 'mixed_auto_and_self_assessed'
+    || value.attempt_id !== attemptId || typeof value.title !== 'string'
+    || !Array.isArray(value.items) || !Array.isArray(value.reviews)) {
+    throw new Error('Practice review returned an invalid response.')
+  }
+  const items = value.items.map(raw => {
+    const item = record(raw)
+    if (!item || typeof item.assessment_item_id !== 'string'
+      || typeof item.order_num !== 'number' || typeof item.prompt !== 'string'
+      || typeof item.question_type !== 'string') {
+      throw new Error('Practice review contains an invalid question.')
+    }
+    return {
+      assessmentItemId: item.assessment_item_id,
+      orderNum: item.order_num,
+      prompt: item.prompt,
+      questionType: item.question_type,
+      responseText: typeof item.response_text === 'string' ? item.response_text : null,
+      responseValue: (item.response_value ?? null) as Json,
+      autoScore: typeof item.auto_score === 'number' ? finiteNumber(item.auto_score) : null,
+      maxScore: finiteNumber(item.max_score),
+      correctAnswer: (item.correct_answer ?? null) as Json,
+      explanation: typeof item.explanation === 'string' ? item.explanation : null,
+      workedSolution: typeof item.worked_solution === 'string' ? item.worked_solution : null,
+    } satisfies ImmediatePracticeReviewItem
+  })
+  return {
+    attemptId,
+    title: value.title,
+    verifiedScore: finiteNumber(value.verified_score),
+    verifiedMax: finiteNumber(value.verified_max),
+    writtenMax: finiteNumber(value.written_max),
+    items,
+    reviews: parseSelfReviewItems({ ok: true, items: value.reviews }),
+  }
+}

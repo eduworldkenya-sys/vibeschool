@@ -61,3 +61,17 @@ Released learner-owned attempts may load short **point-form criteria** from the 
 Criterion IDs must be unique; marks positive and the sum not greater than the assessment item's max marks. Legacy string lists and inconsistent marking guides do not enable scoring. New reviews are **learner self-awarded, not verified**. The submitted answer is locked; saved self-score, selected IDs and uncertain status are separate fields on the canonical response, never modifying its `final_score`, the attempt's grade or gradebook.
 
 **Current hard boundary:** The new UI opens from an already **released** learner result. Existing written responses that still await teacher review remain unreleased; this slice does not bypass their release embargo or activate automatic publication. A further separately certified journey is required for learner-only self-review immediately after an otherwise unmarked practice submission. Do not label a partially marked score as verified.
+
+## Learner-only immediate practice and verified catalogue integration (Phase 3)
+
+- A submitted `practice` attempt with `show_score_policy=immediate`, `result_status=partially_marked`, and a permitted answer-review policy may access `exq_get_my_practice_self_review`. Every RPC rechecks canonical learner ownership, submission lock, assessment type and answer visibility.
+- It displays the original response, server-verified objective marks, and a point-form learner self-marking rubric. The learner may save criteria or select 'Not sure' independently; no teacher or AI is required for this **unverified practice feedback**. Formal exams and embargoed answers remain fail-closed.
+- Self-marks are stored on the existing assessment response, never in `final_score`, `assessment_attempts.score`, or the teacher gradebook. Unreviewable free-text items remain unverified; a combined self-assessed score is not displayed until each written response is reviewed.
+- A paper may claim VibeCAT/VibeTry/VibeTerm/VibePapers/VibeMock only through `hq_certify_exam_original_assignment`, which requires an active platform owner, approved items, topic/outcome links, original marking evidence, explanatory content, exact product-specific question counts, and no existing attempts. The separate metadata table has RLS enabled, no direct anon/authenticated grants, and no policies; read access is only through the existing learner-authorized `exq_list_my_assignments` RPC.
+- Default catalogue inventory remains **empty and honest** until an original paper passes full editorial certification and owner registration. No past papers, invented paper links or automatic publishing are enabled by these migrations.
+
+### Deployment order and rollback
+
+Apply the existing, unapplied `20261115040500_exq_learner_self_review.sql`, then `20261115062000_exq_practice_immediate_guided_review.sql`, then `20261115063000_exam_originals_catalogue_identity.sql` (subject to current production migration ledger and exact-head CI). The catalogue migration does not automatically certify any assignment. Deactivation can be achieved by revoking execute on the three new user-facing functions and the owner certification function without touching canonical scores or attempts. Existing self-marks can be retained for provenance.
+
+Production database activation requires separate verification of SQL grants, learner ownership, review embargo, and authenticated UI behaviour. Passing isolated CI does not mean a real learner paper has been published.
