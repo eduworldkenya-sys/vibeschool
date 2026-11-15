@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import compact from '@/components/student/LearnerCompact.module.css'
 import { useStudent } from '@/lib/student-context'
 import { supabase } from '@/lib/supabase'
 
@@ -118,29 +119,32 @@ export default function CollegeLearnerHome() {
     setNotice('Your CPA study paper has been saved.')
   }
 
-  const card = { background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 18, padding: 18 }
-  const control = { width: '100%', minHeight: 48, borderRadius: 12, border: '1px solid var(--vs-border)', background: 'var(--vs-card)', color: 'var(--vs-text)', padding: '10px 12px', fontSize: 14 }
-
-  return <div style={{maxWidth:760,margin:'0 auto',display:'grid',gap:16,padding:'10px 0 30px'}}>
-    <header style={{display:'flex',justifyContent:'space-between',alignItems:'start',gap:12}}>
-      <div>
-        <p style={{fontSize:12,color:'var(--vs-muted)',fontWeight:700}}>College &amp; Professional Studies</p>
-        <h1 style={{fontSize:'clamp(24px,5vw,30px)',margin:'8px 0'}}>Hello, {identity?.firstName || 'there'}</h1>
-        <p style={{color:'var(--vs-muted)',fontSize:14}}>Certified Public Accountants · KASNEB</p>
+  const saved = papers.find(paper => paperCode(paper) === savedPaper)
+  const studyHref = '/learn/kasneb-cpa'
+  const canStudy = courseLive && savedPaperLive
+  return <div className={compact.screen}>
+    <h1>CPA study space</h1>
+    {loading ? <p role="status">Opening CPA catalogue…</p> : <>
+      {error && <p role="alert">{error}</p>}
+      {notice && <p role="status">{notice}</p>}
+      <section className={compact.panel} aria-label="Selected paper">
+        <h2>{saved?.title ?? 'Select a paper'}</h2>
+        {saved?.qualification_level && <p className={compact.muted}>{saved.qualification_level}</p>}
+        {canStudy
+          ? <Link className={compact.primary} href={studyHref}>Open study space <span aria-hidden="true">→</span></Link>
+          : saved && <p className={compact.muted}>Lessons in preparation</p>}
+      </section>
+      <div className={compact.grid}>
+        <Link className={compact.action} href="/student/college/practice">Self-evaluation</Link>
+        {canStudy && <Link className={compact.action} href={studyHref + '?view=progress'}>Progress</Link>}
+        <Link className={compact.action} href="/student/college/tasks">Study tasks</Link>
+        <Link className={compact.action} href="/student/college/profile">My profile</Link>
       </div>
-      <Link href="/student/college/profile" style={{color:'var(--vs-accent)',fontWeight:700,fontSize:13}}>My profile</Link>
-    </header>
-    <section style={card} aria-label="CPA study selection">
-      <h2 style={{fontSize:19,marginBottom:8}}>Choose your CPA paper</h2>
-      <p style={{fontSize:13,lineHeight:1.6,color:'var(--vs-muted)',marginBottom:18}}>
-        Choose the paper you are preparing for. No school grade, class timetable or teacher is required.
-      </p>
-      {loading ? <p role="status">Opening your CPA catalogue…</p> : <>
-        {error && <p role="alert" style={{color:'var(--vs-error)',marginBottom:12}}>{error}</p>}
-        {notice && <p role="status" style={{color:'var(--vs-accent)',marginBottom:12}}>{notice}</p>}
-        <div style={{display:'grid',gap:12}}>
-          <label style={{display:'grid',gap:7,fontSize:13,fontWeight:700}}>CPA level
-            <select style={control} value={level} disabled={!!error} onChange={event => {
+      <details className={compact.panel} open={savedPaper ? undefined : true}>
+        <summary>{savedPaper ? 'Change paper' : 'Choose a CPA paper'}</summary>
+        <div style={{display:'grid',gap:8}}>
+          <label>CPA level
+            <select value={level} disabled={!!error} onChange={event => {
               const next = event.target.value
               setLevel(isLevel(next) ? next : '')
               setSelectedPaper('')
@@ -148,61 +152,25 @@ export default function CollegeLearnerHome() {
             }}>
               <option value="">Choose your level</option>
               {LEVELS.filter(item => papers.some(paper => paper.qualification_level === item))
-                .map(item => <option key={item} value={item}>{item}</option>)}
+                .map(item => <option key={item}>{item}</option>)}
             </select>
           </label>
-          <label style={{display:'grid',gap:7,fontSize:13,fontWeight:700}}>Paper or requirement
-            <select style={control} value={selectedPaper} disabled={!level || !!error}
+          <label>Paper or requirement
+            <select value={selectedPaper} disabled={!level || !!error}
               onChange={event => { setSelectedPaper(event.target.value); setNotice('') }}>
               <option value="">Choose your paper</option>
               {availablePapers.map(paper =>
                 <option key={paper.slug} value={paperCode(paper)}>{paper.title}</option>)}
             </select>
           </label>
-          {advanced && <p style={{fontSize:12,lineHeight:1.55,color:'var(--vs-muted)'}}>
-            Advanced paper codes reflect the dated April 2026 KASNEB qualification booklet.
-            Some codes differ from the undated KASNEB website. Confirm your examination registration code directly with KASNEB.
-          </p>}
+          {advanced && <p className={compact.muted}>Codes follow the April 2026 booklet. Confirm your registration code with KASNEB.</p>}
           {chosen?.qualification_requirement && chosen.qualification_requirement !== 'required' &&
-            <p style={{fontSize:12,lineHeight:1.55,color:'var(--vs-muted)'}}>
-              This is listed as {chosen.qualification_requirement.replaceAll('_',' ')} in the source catalogue.
-              Check your specific qualification requirements before registering.
-            </p>}
-          <button type="button" disabled={!selectedIsValid || saving || !!error}
-            onClick={savePaper} style={{
-              border:0,borderRadius:12,minHeight:48,background:'var(--vs-accent)',
-              color:'var(--vs-on-accent)',fontWeight:800,
-              opacity:!selectedIsValid || saving || !!error ? 0.5 : 1,
-            }}>
-            {saving ? 'Saving…' : savedPaper && savedPaper === selectedPaper ? 'Save this paper' : 'Save my paper'}
+            <p className={compact.muted}>{chosen.qualification_requirement.replaceAll('_', ' ')}</p>}
+          <button className={compact.primary} type="button" disabled={!selectedIsValid || saving || !!error} onClick={savePaper}>
+            {saving ? 'Saving…' : 'Save my paper'}
           </button>
         </div>
-      </>}
-    </section>
-    <section style={card}>
-      <p style={{fontSize:12,fontWeight:750,color:'var(--vs-muted)',marginBottom:8}}>MY STUDY SPACE</p>
-      <h2 style={{fontSize:19,marginBottom:10}}>
-        {savedPaper ? papers.find(paper => paperCode(paper) === savedPaper)?.title ?? 'CPA study' : 'CPA independent study'}
-      </h2>
-      {courseLive && savedPaperLive
-        ? <p style={{fontSize:13,color:'var(--vs-muted)',marginBottom:14}}>
-            Open your available CPA learning materials. Only released lessons are shown.
-          </p>
-        : <p style={{fontSize:13,color:'var(--vs-muted)',lineHeight:1.7}}>
-            Learning materials for this paper are in preparation. You can save your paper now and return when lessons are published. School-grade lessons are not part of this study space.
-          </p>}
-      <Link href="/student/college/practice" style={{display:'inline-flex',padding:'12px 16px',
-        color:'var(--vs-accent)',fontWeight:800}}>
-        CPA Practice
-      </Link>
-      {courseLive && savedPaperLive &&
-        <Link href="/learn/kasneb-cpa" style={{display:'inline-flex',padding:'12px 16px',borderRadius:11,
-          background:'var(--vs-accent)',color:'var(--vs-on-accent)',textDecoration:'none',fontWeight:800}}>
-          Open CPA learning
-        </Link>}
-    </section>
-    <p style={{fontSize:11,color:'var(--vs-muted)',lineHeight:1.6}}>
-      VibeSchool provides independent CPA preparation. It is not an official KASNEB examination centre or awarding body.
-    </p>
+      </details>
+    </>}
   </div>
 }

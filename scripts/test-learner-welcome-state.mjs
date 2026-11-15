@@ -10,7 +10,11 @@ test('first visit offers Start, saved reading offers Continue, and loading is ne
   assert.equal(studyDeskHeading(false, 0), 'Start learning')
   assert.equal(studyDeskHeading(false, 1), 'Continue where you left off')
   assert.equal(studyDeskHeading(false, 3), 'Continue where you left off')
-  assert.match(read('app/student/study/page.tsx'), /studyDeskHeading\(loading \|\| Boolean\(error\), workspace\?\.continueLearning\.length \?\? 0\)/)
+  const study = read('app/student/study/page.tsx')
+  assert.match(study, /<h1>Learn<\/h1>/)
+  assert.match(study, /!loading && savedReading\.length > 0/)
+  assert.match(study, /href="\/learn"[^>]*>.*Browse lessons/)
+  assert.match(study, /<span>Continue<\/span>/)
 })
 
 test('greeting uses the verified real first name in Nairobi time', () => {

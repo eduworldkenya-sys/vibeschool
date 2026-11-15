@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import compact from '@/components/student/LearnerCompact.module.css'
 
 const TOPICS = [
   ['source-documents-and-books', 'Source documents and books of original entry'],
@@ -39,7 +40,6 @@ const MARKING_POINTS = [
   'Trial balance credits are Capital KSh 30,000 and Service Revenue KSh 6,000. Each column totals KSh 36,000.',
 ]
 
-const card = { border: '1px solid var(--vs-border)', borderRadius: 16, padding: 16, background: 'var(--vs-card)' }
 const button = { minHeight: 44, borderRadius: 10, padding: '8px 14px', border: '1px solid var(--vs-border)', background: 'var(--vs-card)', color: 'var(--vs-text)', fontWeight: 700 }
 
 function UnitTest() {
@@ -96,29 +96,28 @@ function PracticalChallenge() {
 }
 
 export default function CpaPracticePage() {
-  return <div style={{ maxWidth: 760, margin: '0 auto', paddingBottom: 30, display: 'grid', gap: 12 }}>
-    <Link href="/student/college">← CPA home</Link>
-    <header>
-      <h1>CPA Practice</h1>
-      <p>VibeSchool CPA Originals · CA11 Financial Accounting</p>
-    </header>
-    <details style={card}>
-      <summary>Topic Check</summary>
-      <ul>{TOPICS.map(([slug, title]) => <li key={slug}>
-        <Link href={`/learn/kasneb-cpa/ca11/${slug}#practice`}>{title}</Link>
-      </li>)}</ul>
+  return <div className={compact.screen}>
+    <h1>Self-evaluation</h1>
+    <section className={compact.panel}>
+      <h2>CA11 · Financial Accounting</h2>
+      <Link className={compact.primary} href="/learn/kasneb-cpa?view=practice">Browse Topic Checks <span aria-hidden="true">→</span></Link>
+    </section>
+    <details className={compact.panel}>
+      <summary>Unit 02 Topic Checks</summary>
+      <div style={{display:'grid',gap:6}}>{TOPICS.map(([slug, title]) =>
+        <Link key={slug} className={compact.action} href={`/learn/kasneb-cpa/ca11/${slug}#practice`}>{title}</Link>)}</div>
     </details>
-    <details style={card}>
+    <details className={compact.panel}>
       <summary>Unit Test</summary>
       <UnitTest />
     </details>
-    <details style={card}>
+    <details className={compact.panel}>
       <summary>Practical Challenge</summary>
       <PracticalChallenge />
     </details>
-    <section style={card}>
+    <section className={compact.panel}>
       <h2>Mock Exam</h2>
-      <p>Full practice paper coming soon.</p>
+      <p className={compact.muted}>Full practice paper coming soon</p>
     </section>
   </div>
 }

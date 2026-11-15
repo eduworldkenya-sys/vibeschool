@@ -70,7 +70,7 @@ function TopBar({ name, className, schoolName, homeHref = "/student", profileHre
           {studyMode==='normal'?'Focus':studyMode==='reading'?'Reading on':'Focus on'}
         </button>}
         {studyMode==='normal' && <FeedbackSoundToggle />}
-        {!focused && studyMode==='normal' && <button type="button" aria-label="Open notifications" onClick={() => router.push("/student/notifications")}
+        {!focused && homeHref==='/student' && studyMode==='normal' && <button type="button" aria-label="Open notifications" onClick={() => router.push("/student/notifications")}
           style={{ cursor: "pointer", color: "var(--vs-accent)", border: "none", background: "transparent", display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center" }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -202,9 +202,9 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       style={{ minHeight: '100dvh', background: 'var(--vs-bg)', color: 'var(--vs-text)', ...learnerAppearanceStyle(appearance,systemDark) }}>
       <TopBar
         name={identity?.name ?? ""}
-        className={isCollege ? "Professional Studies" : identity?.className ?? ""}
+        className={isCollege ? "College · CPA" : identity?.className ?? ""}
         homeLabel={isCollege ? "Learner" : "Student"}
-        schoolName={isCollege ? "CPA Learner" : identity?.schoolName ?? ""}
+        schoolName={isCollege ? "" : identity?.schoolName ?? ""}
         homeHref={isCollege ? "/student/college" : "/student"}
         profileHref={isCollege ? "/student/college/profile" : "/student/profile"}
         focused={focusedAssessment}
@@ -215,8 +215,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       {!focusedAssessment&&studyMode!=='normal'&&<div role="status" style={{display:'flex',gap:10,
         alignItems:'center',justifyContent:'space-between',padding:'10px clamp(12px,3vw,24px)',
         borderBottom:'1px solid var(--vs-border)',background:'var(--vs-accent-soft)',color:'var(--vs-text)'}}>
-        <div style={{fontSize:12}}><strong>{studyMode==='reading'?'Reading Mode':'Focus Mode'} is on.</strong>{' '}
-          {studyMode==='reading'?'Comfortable text and a quiet study space.':'In-app interruptions and social links are paused.'}</div>
+        <div style={{fontSize:12}}><strong>{studyMode==='reading'?'Reading Mode':'Focus Mode'} is on.</strong></div>
         <button type="button" onClick={toggleFocus} style={{border:'1px solid var(--vs-border)',borderRadius:10,
           minHeight:40,padding:'7px 12px',background:'var(--vs-card)',color:'var(--vs-accent)',fontWeight:800,cursor:'pointer'}}>Exit</button>
       </div>}
@@ -232,8 +231,8 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       }}>
         {children}
       </main>
-      {!focusedAssessment && !isCollege && <StudentPlannerReminders quiet={studyMode!=='normal'||!appearance.remindersEnabled} />}
-      {!focusedAssessment && !isCollege && <BottomNav />}
+      {!focusedAssessment && <StudentPlannerReminders quiet={studyMode!=='normal'||!appearance.remindersEnabled} />}
+      {!focusedAssessment && <BottomNav />}
     </div>
   );
 }
@@ -307,7 +306,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
           .student-app[data-reduce-motion="true"] *, .student-app[data-reduce-motion="true"] *::before { animation:none !important; transition:none !important; }
           @media(min-width:1024px) {
-            .student-app:not([data-college='true']) .student-content:not(.assessment-focus) {
+            .student-app .student-content:not(.assessment-focus) {
               margin:0 0 0 220px !important;
               width:calc(100% - 220px) !important;
               max-width:none !important;

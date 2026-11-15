@@ -220,7 +220,7 @@ export default function MarksPage() {
 
       <section aria-label="What to do after receiving results" style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:15,marginBottom:16}}>
         <h2 style={{fontSize:16,fontWeight:800,margin:"0 0 6px",fontFamily:"'Bricolage Grotesque',sans-serif"}}>What next?</h2>
-        <p style={{fontSize:12,color:"var(--vs-muted)",lineHeight:1.6,margin:"0 0 12px"}}>Read explanations, review missed questions and practise again at your pace.</p>
+
         <nav aria-label="Continue learning from results" style={{display:"flex",flexWrap:"wrap",gap:9}}>
           <Link href="/student/vibelearn/mistakes" style={progressAction}>Review mistakes</Link>
           <Link href="/student/vibelearn/revision" style={progressAction}>Revision</Link>

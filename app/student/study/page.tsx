@@ -1,12 +1,12 @@
 'use client'
 import StudentIntro from "@/components/student/StudentIntro";
+import compact from "@/components/student/LearnerCompact.module.css";
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useStudent } from '@/lib/student-context'
-import { studyDeskHeading } from '@/lib/student/learner-welcome'
 import { supabase } from '@/lib/supabase'
-import { ArrowRight, BookOpen, ClipboardList, CalendarDays, PencilLine, RotateCcw, FolderOpen, Users, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, BookOpen, ClipboardList, CalendarDays } from 'lucide-react'
 import {
   getVibeLearnWorkstation, getAssignedReading, getExamReadinessBrief, updateExamReadiness,
   getAdaptiveLearningPath, getAdaptiveResourceRecommendations,
@@ -113,53 +113,47 @@ export default function LearnerStudyDesk() {
   }
 
   if(identityLoading||!identity) return <main className={styles.page} role="status">{identityError||'Opening your learning desk…'}</main>
+  const savedReading = workspace?.continueLearning.slice(0,3) ?? []
   return <main className={styles.page}>
     <div className={styles.wrap}>
-      <Link href="/learn" className={styles.back}>← Browse lesson library</Link>
-      <header className={styles.hero}>
-        <div><div className={styles.kicker}>My learning · {identity.className}</div>
-          <h1>{studyDeskHeading(loading || Boolean(error), workspace?.continueLearning.length ?? 0)}</h1>
-          <StudentIntro feature="learn-overview"><p>Read lessons, resume saved reading and find your next learning activity.</p></StudentIntro>
-        </div>
-        <Link className={styles.primary} href="/learn"><BookOpen size={18}/> Browse lessons</Link>
-      </header>
-
-      {!loading && (workspace?.continueLearning.length??0)>0 && <section className={styles.continuePanel} aria-label="Continue reading from your saved position">
-        <div className={styles.split}>
-          <div><span className={styles.kicker}>Saved to your account</span><h2>Pick up where you stopped</h2></div>
-          <Link className={styles.secondary} href="/student/marks">View progress <ArrowRight size={16}/></Link>
-        </div>
-        <div className={styles.rows}>
-          {workspace!.continueLearning.slice(0,3).map(item=><Link key={item.publicationId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>
-            <span><strong>{item.title}</strong><small>{item.chapterTitle??'Continue reading'} · {item.progressPercent}% read</small></span><ArrowRight size={17}/>
-          </Link>)}
-        </div>
+      <div className={compact.screen}>
+      <h1>Learn</h1>
+      <Link href="/learn" className={compact.primary}><BookOpen size={18}/> Browse lessons <ArrowRight size={16}/></Link>
+      {!loading && savedReading.length > 0 && <section className={compact.panel} aria-label="Continue reading">
+        {savedReading.slice(0,1).map(item => <Link key={item.publicationId} className={compact.action} href={safeInternalRoute(item.actionUrl)}>
+          <span>{item.title}<small className={compact.muted} style={{display:'block'}}>{item.progressPercent}% read</small></span><span>Continue</span>
+        </Link>)}
+        {savedReading.length > 1 && <details>
+          <summary>More saved reading</summary>
+          {savedReading.slice(1).map(item => <Link key={item.publicationId} href={safeInternalRoute(item.actionUrl)} className={compact.action}>{item.title} · {item.progressPercent}%</Link>)}
+        </details>}
       </section>}
-      <details className={styles.card} style={{marginBottom:12}}><summary style={{cursor:'pointer',fontWeight:800,minHeight:40}}>More reading tools</summary><StudentLearningFeatureLinks mode="learn" grade={identity.className}/></details>
-      <details className={styles.card} style={{marginBottom:12}}><summary style={{cursor:'pointer',fontWeight:800,minHeight:40}}>Other learning activities</summary><nav className={styles.shortcuts} aria-label="Assigned work and exams">
-        <Link href="/student/tasks"><ClipboardList size={20}/> My tasks</Link>
-        <Link href="/student/vibelearn/exams"><CalendarDays size={20}/> Exams</Link>
-      </nav></details>
-
+      <section className={compact.grid} aria-label="Learning tools">
+        <Link className={compact.action} href="/student/tasks"><ClipboardList size={16}/> My tasks</Link>
+        <Link className={compact.action} href="/student/vibelearn/exams"><CalendarDays size={16}/> Exams</Link>
+        <Link className={compact.action} href="/student/vibelearn/topic-practice">Topic Practice</Link>
+        <Link className={compact.action} href="/student/marks">Progress</Link>
+      </section>
+      <details className={compact.panel}><summary>More reading tools</summary><StudentLearningFeatureLinks mode="learn" grade={identity.className}/></details>
+      <StudentIntro feature="learn-overview"><p>Open a lesson, continue reading or choose a learning activity.</p></StudentIntro>
       {error&&<p className={styles.alert} role="alert">{error}</p>}
       {loading?<p className={styles.card} role="status">Loading your current learning activities…</p>:
-      <div className={styles.layout}>
+      <div className={compact.grid} style={{alignItems:'start'}}>
+        <details className={compact.panel} aria-label="Assigned learning"><summary>Assigned reading</summary>
 
-        <section className={styles.card} aria-label="Assigned learning">
-          <h2>Assigned reading</h2>
           {assigned.length===0
-            ? <p className={styles.muted}>No assigned reading right now. Any exercises or homework remain in My Tasks.</p>
+            ? <p className={styles.muted}>No assigned reading</p>
             : <div className={styles.rows}>
               {assigned.slice(0,5).map(item=><Link key={item.assignmentId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>
                 <span><strong>{item.title}</strong><small>{item.subjectName??'Reading'} · {item.chapterTitle}</small></span><ArrowRight size={17}/></Link>)}
 
             </div>}
-        </section>
-        <section className={styles.card} aria-label="Live class learning resources">
-          <h2>Learn by subject</h2>
-          
+        </details>
+        <details className={compact.panel}><summary>Learn by subject</summary>
+
+
           {classResources.length===0
-            ? <p className={styles.muted}>No class resource is live yet. Your tasks and published lessons remain available.</p>
+            ? <p className={styles.muted}>No class resources</p>
             : <div className={styles.rows}>
                 {classResources.map(item=>{
                   const href=safeResourceHref(item.url)
@@ -169,44 +163,44 @@ export default function LearnerStudyDesk() {
                   return <a key={item.id} className={styles.item} href={href}
                     target={href.startsWith('/')?undefined:'_blank'}
                     rel={href.startsWith('/')?undefined:'noopener noreferrer'}>
-                    <span><strong>{item.title}</strong><small>{subject}{item.description?' · '+item.description:''}</small></span><ArrowRight size={17}/>
+                    <span><strong>{item.title}</strong><small>{subject}</small></span><ArrowRight size={17}/>
                   </a>
                 })}
               </div>}
-        </section>
-        <section className={styles.card} aria-label="Your learning path">
-          <h2>Your learning path</h2>
+        </details>
+        <details className={compact.panel}><summary>Your learning path</summary>
+
           <details><summary style={{cursor:"pointer",fontSize:12,color:"var(--vs-muted)"}}>How recommendations work</summary><p className={styles.muted}>Build foundation first when earlier ideas need more practice. VibeLearn does not invent a weakness when evidence is missing.</p></details>
-          
+
           {!learningPath || learningPath.path.length===0
-            ? <p className={styles.muted}>Your verified learning priorities will appear when there is sufficient evidence.</p>
+            ? <p className={styles.muted}>No learning priorities yet</p>
             : <div className={styles.rows}>
               {learningPath.path.slice(0,5).map(item=>
                 <div key={item.outcomeId} className={styles.item}>
                   <span><strong>{item.outcomeText}</strong>
-                    <small>{item.prerequisitesReady?'Ready for practice':'Build foundation first'} · Based on verified learning evidence</small></span>
+                    <small>{item.prerequisitesReady?'Ready for practice':'Build foundation first'}</small></span>
                 </div>)}
             </div>}
           <Link className={styles.secondary} href="/student/vibelearn/revision">Open revision <ArrowRight size={16}/></Link>
-        </section>
-        <section className={styles.card} aria-label="Recommended support">
-          <h2>Recommended support</h2>
+        </details>
+        <details className={compact.panel}><summary>Recommended support</summary>
+
           {(!recommendations || recommendations.recommendations.length===0)
-            ? <p className={styles.muted}>No approved support resource is available yet. Your current learning evidence is not treated as a weakness.</p>
+            ? <p className={styles.muted}>No approved support resource is available yet</p>
             : <div className={styles.rows}>
               {recommendations.recommendations.filter(item=>item.certified&&item.actionUrl).slice(0,5).map(item=>
                 <Link key={item.resourceId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>
                   <span><strong>{item.title}</strong><small>{item.outcomeText}</small></span><ArrowRight size={17}/></Link>)}
             </div>}
-        </section>
-        {workspace?.twin.now&&<section className={styles.card} aria-label="Suggested next action">
-          <h2>Your next helpful action</h2>
-          <p className={styles.muted}>{workspace.twin.now.reason||'Based on your available learning evidence.'}</p>
+        </details>
+        {workspace?.twin.now&&<details className={compact.panel}><summary>Next action</summary>
+
+
           <p><strong>{workspace.twin.now.title}</strong></p>
           {workspace.twin.now.actionUrl&&<Link className={styles.secondary} href={safeInternalRoute(workspace.twin.now.actionUrl)}>
             {workspace.twin.now.actionLabel||'Open activity'} <ArrowRight size={16}/></Link>}
-        </section>}
-        {readiness&&<section className={styles.card} aria-label="Exam readiness plan">
+        </details>}
+        {readiness&&<details className={compact.panel}><summary>Study plan</summary>
           <div className={styles.split}><div><h2>{readiness.examName} study plan</h2>
             <p className={styles.muted}>{readiness.psychologyHeadline}</p></div>
             <button type="button" onClick={()=>setEditing(value=>!value)} className={styles.secondary}>{editing?'Close':'Edit plan'}</button>
@@ -222,8 +216,9 @@ export default function LearnerStudyDesk() {
             <button type="button" disabled={saving} className={styles.primary} onClick={()=>void savePlan()}>{saving?'Saving…':'Save plan'}</button>
           </div>}
           <details><summary style={{cursor:'pointer',fontSize:12}}>About this study estimate</summary><p className={styles.muted}>{readiness.predictionDisclaimer}</p></details>
-        </section>}
+        </details>}
       </div>}
+      </div>
     </div>
   </main>
 }

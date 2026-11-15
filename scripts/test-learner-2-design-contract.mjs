@@ -6,7 +6,7 @@ const read=path=>readFileSync(path,'utf8')
 test('learner 2.0 keeps five primary tabs and visible secondary destinations',()=>{
  const nav=read('components/student/BottomNav.tsx')
  const css=read('components/student/BottomNav.module.css')
- assert.equal((nav.match(/label: "(?:Home|Learn|Practice|Tasks|Progress)", href:/g)||[]).length,5)
+ assert.equal((nav.split("const MORE =")[0].match(/label: "(?:Home|Learn|Practice|Tasks|Progress)", href:/g)||[]).length,5)
  for(const route of ['/student/vibelearn/exams','/student/workspace','/learn/stories','/student/timetable','/student/settings']){
   assert.ok(nav.includes(route),'navigation shortcut '+route)
  }
@@ -52,4 +52,22 @@ test('certified Topic Practice is not a second timed exam shelf',()=>{
  assert.match(topic,/startOrResumeAttempt\(/)
  assert.match(topic,/saveResponse\(/)
  assert.match(topic,/submitAttempt\(/)
+})
+
+test('CPA tabs keep their own destinations and use the published quiz and progress readers',()=>{
+ const nav=read('components/student/BottomNav.tsx')
+ const college=nav.split('const COLLEGE_DESTINATIONS =')[1].split('function isToolActive')[0]
+ assert.match(college,/\/student\/college\/tasks/)
+ assert.match(college,/\/student\/college\/practice/)
+ assert.match(college,/\/learn\/kasneb-cpa\?view=progress/)
+ assert.doesNotMatch(college,/\/student\/vibelearn|\/student\/marks|\/learn\/stories/)
+ const tasks=read('app/student/tasks/page.tsx')
+ assert.match(tasks,/if\(isCollege\)\{setLoading\(false\);return\}[\s\S]*listMyTasks\(\)/)
+ assert.match(read('app/student/college/tasks/page.tsx'),/tasks\/page/)
+ const roadmap=read('app/learn/[courseSlug]/page.tsx')
+ assert.match(roadmap,/eq\('content_status', 'published'\)/)
+ assert.match(roadmap,/#practice/)
+ const reader=read('app/learn/[courseSlug]/[moduleSlug]/[topicSlug]/page.tsx')
+ assert.match(reader,/#practice/)
+ assert.match(reader,/submit_quiz_answer/)
 })

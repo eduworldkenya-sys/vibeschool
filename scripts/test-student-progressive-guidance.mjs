@@ -4,14 +4,13 @@ import test from 'node:test';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const guide = read('components/student/StudentIntro.tsx');
-test('first-use guidance is learner-scoped, dismissible and recoverable', () => {
+test('optional guidance stays closed until requested and resets for a different learner or feature', () => {
   assert.match(guide, /identity\?\.studentId/);
-  assert.match(guide, /localStorage\.getItem/);
-  assert.match(guide, /localStorage\.setItem/);
+  assert.match(guide, /useState\(false\)/);
+  assert.match(guide, /setOpen\(false\).*studentId, feature/);
   assert.match(guide, /Got it/);
   assert.match(guide, /setOpen\(true\)/);
-  assert.match(guide, /window\.addEventListener\("storage", onStorage\)/, 'Guidance dismissal syncs across tabs');
-  assert.match(guide, /event\.key === key/, 'Only learner-specific feature keys may update this view');
+  assert.match(guide, /!open/);
 });
 test('feature guidance is not used to hide real assignment instructions', () => {
   for (const path of ['app/student/assessment/[assignmentId]/page.tsx', 'app/student/homework/[id]/page.tsx']) {
@@ -49,10 +48,11 @@ test('advanced learning evidence stays accessible but not always expanded', () =
   assert.match(profile, /My school identity/);
   assert.match(profile, /My support network/);
 });
-test('Learn shortcuts are optional while continue-reading and assigned reading remain available', () => {
+test('Learn puts key shortcuts first and retains optional tools and reading', () => {
   const learn = read('app/student/study/page.tsx');
   assert.match(learn, /<summary[^>]*>More reading tools<\/summary>/);
-  assert.match(learn, /<summary[^>]*>Other learning activities<\/summary>/);
+  assert.match(learn, /aria-label="Learning tools"/);
+  assert.match(learn, /href="\/student\/vibelearn\/exams"/);
   assert.match(learn, /continueLearning/);
   assert.match(learn, /Assigned reading/);
 });

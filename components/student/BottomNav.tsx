@@ -35,6 +35,20 @@ const MORE_GROUPS = [
   { label: "My account", items: MORE.filter(item => item.group === "My account") },
 ] as const;
 
+const COLLEGE_DESTINATIONS = {
+  Home: "/student/college",
+  Learn: "/learn/kasneb-cpa",
+  Practice: "/student/college/practice",
+  Tasks: "/student/college/tasks",
+  Progress: "/learn/kasneb-cpa?view=progress",
+} as const;
+const COLLEGE_PRIMARY = PRIMARY.map(tab => ({ ...tab, href: COLLEGE_DESTINATIONS[tab.label] }));
+
+const COLLEGE_MORE = [{ label: "College", items: [
+  { label: "CPA paper selection", href: "/student/college", Icon: GraduationCap },
+  { label: "Profile", href: "/student/college/profile", Icon: UserRound },
+] }] as const;
+
 function isToolActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/");
 }
@@ -51,15 +65,17 @@ function activeSection(path: string): string {
   return "";
 }
 
-export default function BottomNav() {
+export default function BottomNav({ collegeView }: { collegeView?: "Learn" | "Practice" | "Progress" } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreButton = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const sheet = useRef<HTMLElement>(null);
-  const current = activeSection(pathname);
-  const activeMore = MORE.some(({ href }) => isToolActive(pathname, href));
+  const college = Boolean(collegeView) || pathname === "/student/college" || pathname.startsWith("/student/college/");
+  const current = college ? collegeView ?? (pathname === "/student/college" ? "Home" : pathname === "/student/college/tasks" ? "Tasks" : pathname === "/student/college/practice" ? "Practice" : "") : activeSection(pathname);
+  const groupList = college ? COLLEGE_MORE : MORE_GROUPS;
+  const activeMore = (college ? COLLEGE_MORE[0].items.filter(item => item.href !== "/student/college") : MORE).some(({ href }) => isToolActive(pathname, href));
 
   const navigate = (href: string) => {
     setMoreOpen(false);
@@ -77,6 +93,7 @@ export default function BottomNav() {
   }, []);
   useEffect(() => {
     if (!moreOpen) return;
+    const trigger = moreButton.current;
     const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = "hidden";
@@ -102,21 +119,21 @@ export default function BottomNav() {
       document.removeEventListener("keydown", handleKey);
       document.body.style.overflow = previousOverflow;
       if (previousFocus?.isConnected) previousFocus.focus();
-      else moreButton.current?.focus();
+      else trigger?.focus();
     };
   }, [moreOpen]);
 
   return <>
     <nav className={styles.nav} aria-label="Student primary navigation">
       <div className={styles.heading}>MY LEARNING</div>
-      {PRIMARY.map(({label,href,Icon}) => <button key={href} type="button" className={styles.tab + (current===label ? " "+styles.tabActive:"")} aria-current={current===label?"page":undefined} onClick={()=>navigate(href)}>
+      {(college ? COLLEGE_PRIMARY : PRIMARY).map(({label,href,Icon}) => <button key={href} type="button" className={styles.tab + (current===label ? " "+styles.tabActive:"")} aria-current={current===label?"page":undefined} onClick={()=>navigate(href)}>
         <Icon size={21} aria-hidden="true"/><span className={styles.label}>{label}</span>
       </button>)}
       <div className={styles.secondary}>
         <div className={styles.heading}>EXPLORE TOOLS</div>
-        {MORE_GROUPS.map(group => <div className={styles.desktopGroup} key={group.label}>
+        {groupList.map(group => <div className={styles.desktopGroup} key={group.label}>
           <div className={styles.groupHeading}>{group.label}</div>
-          {group.items.map(({label,href,Icon}) => <button type="button" key={href} className={isToolActive(pathname,href)?styles.quickActive:""} aria-current={isToolActive(pathname,href)?"page":undefined} onClick={()=>navigate(href)}>
+          {group.items.map(({label,href,Icon}) => <button type="button" key={href} className={(href===pathname || (href!=="/student/college" && isToolActive(pathname,href)))?styles.quickActive:""} aria-current={(href===pathname || (href!=="/student/college" && isToolActive(pathname,href)))?"page":undefined} onClick={()=>navigate(href)}>
             <Icon size={19} aria-hidden="true"/><span>{label}</span>
           </button>)}
         </div>)}
@@ -129,9 +146,9 @@ export default function BottomNav() {
       <button type="button" className={styles.scrim} aria-label="Close learner tools" tabIndex={-1} onClick={()=>setMoreOpen(false)}/>
       <section ref={sheet} className={styles.sheet} role="dialog" aria-modal="true" aria-labelledby="learner-tools-title">
         <div className={styles.sheetHead}><strong id="learner-tools-title">Explore VibeSchool</strong><button ref={closeButton} type="button" aria-label="Close menu" onClick={()=>setMoreOpen(false)}><X size={22}/></button></div>
-        {MORE_GROUPS.map(group => <div className={styles.sheetGroup} key={group.label}>
+        {groupList.map(group => <div className={styles.sheetGroup} key={group.label}>
           <h2 className={styles.sheetGroupTitle}>{group.label}</h2>
-          <div className={styles.sheetGrid}>{group.items.map(({label,href,Icon})=><button key={href} type="button" aria-current={isToolActive(pathname,href)?"page":undefined} className={isToolActive(pathname,href)?styles.sheetActive:""} onClick={()=>navigate(href)}>
+          <div className={styles.sheetGrid}>{group.items.map(({label,href,Icon})=><button key={href} type="button" aria-current={(href===pathname || (href!=="/student/college" && isToolActive(pathname,href)))?"page":undefined} className={(href===pathname || (href!=="/student/college" && isToolActive(pathname,href)))?styles.sheetActive:""} onClick={()=>navigate(href)}>
             <Icon size={21} aria-hidden="true"/><span>{label}</span><ChevronRight size={14} aria-hidden="true"/>
           </button>)}</div>
         </div>)}

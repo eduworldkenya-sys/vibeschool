@@ -326,7 +326,7 @@ export default function TopicDetailPage() {
   ] : [
     { key: 'concept',  label: '💡 Concept' },
     { key: 'kenya',    label: '🇰🇪 Kenya Context' },
-    { key: 'practice', label: '📝 Practice' },
+    { key: 'practice', label: courseSlug === 'kasneb-cpa' ? 'Topic Check' : '📝 Practice' },
     { key: 'errors',   label: '⚠️ Common Errors' },
     { key: 'tip',      label: tipLabel },
   ]

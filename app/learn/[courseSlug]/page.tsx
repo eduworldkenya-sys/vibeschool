@@ -2,7 +2,9 @@
 export const dynamic = "force-dynamic"
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+import compact from '@/components/student/LearnerCompact.module.css'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ensureCourseLearnerProfile } from '@/lib/learn/ensure-course-learner-profile'
 
@@ -44,10 +46,26 @@ interface ProgressRow {
   completed_at: string | null
 }
 
+const CA11_UNITS = [
+  { title: 'Unit 01 · Introduction to Accounting', topics: ['why-accounts-matter', 'five-elements-of-financial-statements', 'the-equation-in-action'] },
+  { title: 'Unit 02 · Accounting Process and Systems', topics: ['source-documents-and-books', 'double-entry-and-ledgers', 'trial-balance-and-statements'] },
+]
+
+function cpaUnits(module: ModuleRow, topics: TopicRow[]) {
+  if (module.slug !== 'ca11') return [{ title: module.title, topics }]
+  const named = CA11_UNITS.map(unit => ({
+    title: unit.title,
+    topics: topics.filter(topic => unit.topics.includes(topic.slug)),
+  }))
+  const remaining = topics.filter(topic => !CA11_UNITS.some(unit => unit.topics.includes(topic.slug)))
+  return [...named, { title: 'More topics', topics: remaining }].filter(unit => unit.topics.length)
+}
+
 export default function CourseRoadmapPage() {
   const router = useRouter()
   const params = useParams()
   const courseSlug = params.courseSlug as string
+  const view = useSearchParams().get('view')
 
   const [course, setCourse] = useState<CourseRow | null>(null)
   const [modules, setModules] = useState<ModuleRow[]>([])
@@ -191,6 +209,40 @@ export default function CourseRoadmapPage() {
   const overallDone = Object.values(topicsByModule).flat().filter(t => completedTopicIds.has(t.id)).length
   const overallTotal = Object.values(topicsByModule).flat().length
   const overallPct = overallTotal > 0 ? Math.round((overallDone / overallTotal) * 100) : 0
+
+  if (courseSlug === 'kasneb-cpa') {
+    const isPractice = view === 'practice'
+    const isProgress = view === 'progress'
+    return <main className={compact.screen} style={{padding:'14px 12px'}}>
+      <h1>{isPractice ? 'Self-evaluation' : isProgress ? 'CPA progress' : 'CPA Learn'}</h1>
+      <nav className={compact.grid} aria-label="CPA workspace">
+        <Link className={compact.action} href="/student/college">Study space</Link>
+        <Link className={compact.action} href={isPractice || isProgress ? '/learn/kasneb-cpa' : '/student/college/practice'}>{isPractice || isProgress ? 'Learn' : 'Self-evaluation'}</Link>
+      </nav>
+      {loading ? <p role="status">Loading CPA…</p> : notFound ? <p role="alert">CPA learning is unavailable.</p> : <>
+        {isProgress && <p className={compact.action}>{overallDone} / {overallTotal} topics complete</p>}
+        {modules.length === 0 && <p className={compact.muted}>No published topics</p>}
+        {modules.map(module => {
+          const units = cpaUnits(module, topicsByModule[module.id] ?? [])
+          const next = units.flatMap(unit => unit.topics).find(topic => !completedTopicIds.has(topic.id))
+          return <section key={module.id} className={compact.panel}>
+            <h2>{module.title}</h2>
+            {!isPractice && !isProgress && next && <Link className={compact.primary} href={`/learn/${courseSlug}/${module.slug}/${next.slug}`}>Open next topic <span aria-hidden="true">→</span></Link>}
+            {isPractice && <p className={compact.muted}>CPA Topic Checks</p>}
+            {units.map(unit => <details key={unit.title} className={compact.panel}>
+              <summary>{unit.title}</summary>
+              <div style={{display:'grid',gap:6}}>
+                {unit.topics.map(topic =>
+                  <Link key={topic.id} className={compact.action} href={`/learn/${courseSlug}/${module.slug}/${topic.slug}${isPractice ? '#practice' : ''}`}>
+                    <span>{topic.title}</span><span>{isPractice ? 'Start' : completedTopicIds.has(topic.id) ? 'Complete' : 'Open'}</span>
+                  </Link>)}
+              </div>
+            </details>)}
+          </section>
+        })}
+      </>}
+    </main>
+  }
 
   if (loading) {
     return (

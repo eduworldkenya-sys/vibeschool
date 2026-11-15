@@ -20,7 +20,7 @@ test('Home prioritises one action and resumes only the learner-owned saved readi
 
 test('Learn opens existing chapter actionUrl and preserves canonical tools',()=>{
   const study=read('app/student/study/page.tsx')
-  assert.match(study,/workspace!\.continueLearning\.slice\(0,3\)/)
+  assert.match(study,/workspace\?\.continueLearning\.slice\(0,3\)/)
   assert.match(study,/safeInternalRoute\(item\.actionUrl\)/)
   assert.match(study,/<StudentLearningFeatureLinks mode="learn"/)
   assert.match(read("components/student/StudentLearningFeatureLinks.tsx"),/topicPracticeHref\(subject\)/)
@@ -52,7 +52,7 @@ test('Task, progress and navigation keep canonical destinations and clear guidan
   for(const route of ['/student/vibelearn/mistakes','/student/vibelearn/revision','/student/vibelearn/topic-practice','/student/study']){
     assert.ok(marks.includes('href="'+route+'"'),route+' should appear in the next step panel')
   }
-  assert.match(layout,/aria-label="Open Student Home"/)
+  assert.match(layout,/aria-label=\{`Open \$\{homeLabel\} Home`\}/)
   assert.match(layout,/aria-label="Open learner profile"/)
   assert.match(layout,/aria-label="Open notifications"/)
   assert.match(layout,/aria-label="Go back"/)
