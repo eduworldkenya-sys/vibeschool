@@ -1,18 +1,18 @@
-name: CPA CA11 Unit 02 Content and Release Contract
+name: CPA CA11 Applied Workshop Content Contract
 on:
   pull_request:
     paths:
       - 'content/college/cpa/ca11/unit02/**'
-      - 'supabase/migrations/*_stage_cpa_ca11_accounting_process_unit02.sql'
-      - 'supabase/migrations/*_release_cpa_ca11_accounting_process_unit02.sql'
+      - 'supabase/migrations/*_stage_cpa_ca11_accounting_workshops.sql'
+      - 'supabase/migrations/*_release_cpa_ca11_accounting_workshops.sql'
       - 'scripts/test-cpa-ca11-unit02.mjs'
       - '.github/workflows/cpa-ca11-unit02.yml'
   push:
     branches: [main]
     paths:
       - 'content/college/cpa/ca11/unit02/**'
-      - 'supabase/migrations/*_stage_cpa_ca11_accounting_process_unit02.sql'
-      - 'supabase/migrations/*_release_cpa_ca11_accounting_process_unit02.sql'
+      - 'supabase/migrations/*_stage_cpa_ca11_accounting_workshops.sql'
+      - 'supabase/migrations/*_release_cpa_ca11_accounting_workshops.sql'
       - 'scripts/test-cpa-ca11-unit02.mjs'
 jobs:
   verify-cpa-unit02:
