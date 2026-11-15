@@ -2,8 +2,8 @@ name: CPA Foundation Learner Release Contract
 on:
   pull_request:
     paths:
-      - 'supabase/migrations/20261115121200_cpa_private_paper_catalogue_and_quiz_gate.sql'
-      - 'supabase/migrations/20261115122500_release_cpa_ca11_intro_unit.sql'
+      - 'supabase/migrations/20261115124125_cpa_private_paper_catalogue_and_quiz_gate.sql'
+      - 'supabase/migrations/20261115124726_release_cpa_ca11_intro_unit.sql'
       - 'lib/learn/ensure-course-learner-profile.ts'
       - 'app/student/college/page.tsx'
       - 'app/learn/[courseSlug]/page.tsx'
@@ -13,8 +13,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'supabase/migrations/20261115121200_cpa_private_paper_catalogue_and_quiz_gate.sql'
-      - 'supabase/migrations/20261115122500_release_cpa_ca11_intro_unit.sql'
+      - 'supabase/migrations/20261115124125_cpa_private_paper_catalogue_and_quiz_gate.sql'
+      - 'supabase/migrations/20261115124726_release_cpa_ca11_intro_unit.sql'
       - 'scripts/test-cpa-ca11-release.mjs'
 jobs:
   verify-cpa-learner-release:
