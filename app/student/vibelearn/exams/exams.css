@@ -169,3 +169,32 @@
 .vs-exams-command .vs-command-featured h2,.vs-exams-command .vs-command-featured p{color:var(--vs-text)}
 .vs-exams-command .vs-command-orbit{background:var(--vs-accent-soft)}
 .vs-exams-command .vs-exam-card:focus-within{border-color:var(--vs-accent)}
+
+
+/* Exam Originals: a branded catalogue, not a second assessment player. */
+.vs-originals{display:grid;gap:16px}
+.vs-originals-heading{display:flex;align-items:end;justify-content:space-between;gap:12px}
+.vs-originals-heading h2{margin:4px 0 0;font-size:22px;line-height:1.2;color:var(--vs-text)}
+.vs-originals-kicker{font-size:10px;font-weight:850;letter-spacing:.15em;color:var(--vs-accent)}
+.vs-originals-all{min-height:40px;padding:9px 14px;border:1px solid var(--vs-border);border-radius:11px;background:var(--vs-card);color:var(--vs-text);font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.vs-originals-all[aria-pressed=true]{border-color:var(--vs-accent);background:var(--vs-accent-soft);color:var(--vs-accent)}
+.vs-originals-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.vs-originals-product{--series-tone:var(--vs-accent);display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;min-height:178px;padding:16px 12px 13px;text-align:left;border:1px solid var(--vs-border);border-top:3px solid var(--series-tone);border-radius:14px;background:var(--vs-card);color:var(--vs-text);cursor:pointer;font:inherit;transition:box-shadow .15s ease,border-color .15s ease,transform .15s ease}
+.vs-originals-product[data-series=cat]{--series-tone:#397ac4}
+.vs-originals-product[data-series=try]{--series-tone:#8661cb}
+.vs-originals-product[data-series=term]{--series-tone:#2c987b}
+.vs-originals-product[data-series=papers]{--series-tone:#d3993f}
+.vs-originals-product[data-series=mock]{--series-tone:#b96b71}
+.vs-originals-product:hover{box-shadow:0 8px 22px #0002;transform:translateY(-2px)}
+.vs-originals-product[aria-pressed=true]{border-color:var(--vs-accent);outline:2px solid var(--vs-accent);outline-offset:1px;background:var(--vs-accent-soft)}
+.vs-originals-product:focus-visible,.vs-originals-all:focus-visible{outline:3px solid var(--vs-accent);outline-offset:3px}
+.vs-originals-product-top{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;color:var(--vs-text)}
+.vs-originals-product-top>span{font-size:10px;font-weight:750;color:var(--vs-muted);text-align:right}
+.vs-originals-product strong{font-size:17px;line-height:1.2;color:var(--vs-text)}
+.vs-originals-tagline{font-size:11px;font-weight:750;color:var(--vs-text)}
+.vs-originals-description{font-size:11px;line-height:1.4;color:var(--vs-muted)}
+.vs-originals-available{margin-top:auto;padding-top:8px;font-size:10px;font-weight:750;color:var(--vs-muted)}
+@media(max-width:1050px){.vs-originals-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:640px){.vs-originals-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.vs-originals-product{min-height:166px;padding:13px 11px}.vs-originals-heading h2{font-size:19px}}
+@media(max-width:365px){.vs-originals-grid{grid-template-columns:1fr}.vs-originals-product{min-height:124px}}
+@media(prefers-reduced-motion:reduce){.vs-originals-product{transition:none}.vs-originals-product:hover{transform:none}}
