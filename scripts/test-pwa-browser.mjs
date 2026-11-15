@@ -113,7 +113,7 @@ try {
   })
 
   assert(offlineCache, 'offline fallback is not present in Cache Storage')
-  assert(offlineCache.cacheName === 'vibeschool-v8-public-offline', `unexpected offline cache generation: ${offlineCache.cacheName}`)
+  assert(offlineCache.cacheName === 'vibeschool-v9-offline-reading', `unexpected offline cache generation: ${offlineCache.cacheName}`)
   assert(offlineCache.text.includes('You’re offline'), 'cached offline fallback is missing offline message')
   assert(offlineCache.text.includes('/icons/vibeschool-logo.png'), 'cached offline fallback lost official VibeSchool branding')
   assert(
