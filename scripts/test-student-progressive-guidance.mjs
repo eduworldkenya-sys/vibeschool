@@ -10,6 +10,8 @@ test('first-use guidance is learner-scoped, dismissible and recoverable', () => 
   assert.match(guide, /localStorage\.setItem/);
   assert.match(guide, /Got it/);
   assert.match(guide, /setOpen\(true\)/);
+  assert.match(guide, /window\.addEventListener\("storage", onStorage\)/, 'Guidance dismissal syncs across tabs');
+  assert.match(guide, /event\.key === key/, 'Only learner-specific feature keys may update this view');
 });
 test('feature guidance is not used to hide real assignment instructions', () => {
   for (const path of ['app/student/assessment/[assignmentId]/page.tsx', 'app/student/homework/[id]/page.tsx']) {
