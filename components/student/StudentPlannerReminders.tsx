@@ -67,7 +67,7 @@ export default function StudentPlannerReminders({quiet=false}:{quiet?:boolean}) 
       .eq('id',reminder.item.id).eq('owner_user_id',owner).select('id').single()
     if (saveError || !data) { setError('Could not dismiss this reminder.'); return }
     setDue(previous => previous.filter(row=>!(row.item.id===reminder.item.id && row.occurrence.getTime()===reminder.occurrence.getTime())))
-    if (open) router.push('/student/tasks')
+    if (open) router.push(pathname?.startsWith('/student/college') ? '/student/college/tasks' : '/student/tasks')
   }
 
   // Study reminders remain accessible from Tasks, but must not cover exam choices,

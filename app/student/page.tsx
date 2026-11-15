@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BookOpen, ClipboardCheck, ChartNoAxesColumn, PencilLine, ArrowUpRight, BookMarked, CalendarDays, LibraryBig, BrainCircuit, Eraser } from 'lucide-react'
 import './student-home.css'
+import compact from '@/components/student/LearnerCompact.module.css'
 import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
 import { loadActiveClassTimetable, timetableSlotsForDay } from '@/lib/timetable/engine'
 import { useStudent } from '@/lib/student-context'
@@ -143,7 +144,7 @@ export default function StudentHomePage() {
     }
     return [...grouped.values()].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, 6)
   }, [brief?.recentChanges])
-  const goal = progress?.dailyGoal; const goalRate = goal ? Math.min(100, Math.round((goal.completed / Math.max(1, goal.target)) * 100)) : 0
+  const goal = progress?.dailyGoal
   const nowMinutes = nairobiNowMinutes(); const firstUpcomingId = data?.todaySlots.find(slot => minutes(slot.start) > nowMinutes)?.id ?? null
   const isKcseLearner = /^form\s*4$/i.test(identity?.className.trim() ?? '')
   const hasSchoolEnrollment = Boolean(identity?.schoolId && identity?.classId)
@@ -160,13 +161,29 @@ export default function StudentHomePage() {
   if (!identity) return null
 
   return <div className="student-home" style={{ animation: 'slideIn .22s ease' }}>
-    <section className="student-home-hero" style={hero} aria-label="Your learning overview">
-      <div className="student-home-hero-row" style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}><div style={{minWidth:0, flex:'1 1 210px'}}><div style={eyebrow}>My learning · {new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' })}</div><h1 className="student-home-title" style={{ margin: '8px 0 5px', fontSize: 28 }}>{learnerGreeting(new Date(), identity.firstName)}</h1><p style={heroSub}>{identity.className}{identity.schoolName ? ` · ${identity.schoolName}` : ''}</p></div><div className="student-home-xp"><strong>{progress?.totalXp ?? 0}</strong><span>Verified XP</span></div></div>
-      <div style={heroPanel}><div style={eyebrow}>YOUR NEXT STEP</div><h2 style={{ margin: '5px 0', fontSize: 19 }}>{nextTask?.title ?? (continueReading ? `Continue reading ${continueReading.title}` : suggestedAction?.title) ?? (hasLearningEvidence ? 'Choose your next learning activity' : 'Ready to start learning?')}</h2><p style={{ ...heroSub, lineHeight: 1.5 }}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · Assigned subject: ${nextTask.subject} · ${taskMeta(nextTask)}` : (continueReading ? `${continueReading.chapterTitle ?? 'Your next chapter'} · ${Math.max(0, Math.min(100, Math.round(continueReading.progressPercent)))}% read. Continue from your saved place.` : (suggestedAction?.reason ?? (hasLearningEvidence ? 'Explore learning activities and build on your progress.' : 'Start with reading, practice or an available exam. Your progress will appear as you learn.')))}</p>{nextTask ? <button disabled={launchingTaskId === nextTask.taskId} onClick={() => void openTask(nextTask)} style={heroButton}>{launchingTaskId === nextTask.taskId ? 'Opening…' : nextTask.actionLabel}</button> : <button onClick={() => router.push((continueReading && safeLearningRoute(continueReading.actionUrl)) || (suggestedAction?.actionUrl && safeLearningRoute(suggestedAction.actionUrl)) || '/student/study')} style={heroButton}>{continueReading ? 'Continue reading' : hasLearningEvidence ? 'Open Learn' : 'Start learning'}</button>}</div>
-      <div style={{ marginTop: 14 }}><div style={{ ...splitSmall, fontSize: 13, fontWeight: 700 }}><span>{goal && goal.completed >= goal.target ? 'Daily goal reached' : 'Daily learning goal'}</span><strong>{goal && goal.completed >= goal.target ? `${goal.completed} activities completed` : `${goal?.completed ?? 0} of ${goal?.target ?? 1} activities`}</strong></div><div style={heroTrack}><div style={{ width: `${goalRate}%`, height: '100%', background: '#168153', borderRadius: 999 }} /></div></div>
-    </section>
+    <div className={compact.screen} style={{width:'100%'}}>
+      <h1>{learnerGreeting(new Date(), identity.firstName)}</h1>
+      <section className={compact.panel} aria-label="Next action">
+        <h2>{nextTask?.title ?? continueReading?.title ?? suggestedAction?.title ?? 'Learn'}</h2>
+        {(nextTask || continueReading) && <small className={compact.muted}>{nextTask ? `${nextTask.subject} · ${taskMeta(nextTask)}` : `${continueReading?.progressPercent}% read`}</small>}
+        <button className={compact.primary} disabled={launchingTaskId !== null}
+          onClick={() => nextTask ? void openTask(nextTask) : router.push((continueReading && safeLearningRoute(continueReading.actionUrl)) || (suggestedAction?.actionUrl && safeLearningRoute(suggestedAction.actionUrl)) || '/student/study')}>
+          {launchingTaskId ? 'Opening…' : nextTask?.actionLabel ?? (continueReading ? 'Continue reading' : hasLearningEvidence ? 'Open Learn' : 'Start learning')} <span aria-hidden="true">→</span>
+        </button>
+      </section>
+      <nav className={compact.grid} aria-label="Home shortcuts">
+        <Link className={compact.action} href="/student/tasks">Tasks · {feed?.counts.toDo ?? 0}</Link>
+        <button type="button" className={compact.action} onClick={() => router.push('/student/vibelearn/exams')}>Exams</button>
+        <Link className={compact.action} href="/student/timetable">My Day</Link>
+        <Link className={compact.action} href="/student/marks">Progress</Link>
+      </nav>
+    </div>
 
-    <p style={{margin:'3px 0 14px',fontSize:13}}><Link href="/schools/following" style={{color:'var(--vs-accent)',fontWeight:800}}>School updates</Link></p>
+    {error && <section className={compact.panel} role="alert">{error}<button onClick={() => void load()} className={compact.action}>Retry</button></section>}
+    <details className={compact.panel} style={{width:'100%',maxWidth:760,margin:'0 auto'}}>
+    <summary>Tasks, activity and study tools</summary>
+    <div style={{display:'grid',gap:10}}>
+    <Link href="/schools/following" className={compact.action}>School updates</Link>
 
     {continueReading && nextTask && <section className="student-home-resume" aria-label="Resume your learning">
       <div>
@@ -177,9 +194,8 @@ export default function StudentHomePage() {
       <Link href={safeLearningRoute(continueReading.actionUrl) || '/student/study'}>Resume chapter <ArrowUpRight size={17} aria-hidden="true" /></Link>
     </section>}
 
-    <section className="student-home-pulse" style={pulseGrid}><Metric label="To do" value={feed?.counts.toDo ?? 0} /><Metric label="In progress" value={feed?.counts.inProgress ?? 0} /><Metric label="Streak" value={data?.twin.streak.current ?? progress?.streak.current ?? 0} />{hasSchoolEnrollment && <Metric label="Attendance" value={data?.attendancePct == null ? '—' : `${data.attendancePct}%`} />}</section>
+    <section className="student-home-pulse" style={pulseGrid}><Metric label="Verified XP" value={progress?.totalXp ?? 0} /><Metric label="Daily goal" value={`${goal?.completed ?? 0} / ${goal?.target ?? 1}`} /><Metric label="To do" value={feed?.counts.toDo ?? 0} /><Metric label="In progress" value={feed?.counts.inProgress ?? 0} /><Metric label="Streak" value={data?.twin.streak.current ?? progress?.streak.current ?? 0} />{hasSchoolEnrollment && <Metric label="Attendance" value={data?.attendancePct == null ? '—' : `${data.attendancePct}%`} />}</section>
 
-    {error && <section style={{ ...card, color: '#991b1b', borderColor: '#fecaca' }}>{error}<button onClick={() => void load()} style={linkButton}>Retry</button></section>}
     <div className="student-home-feature-grid">
     <section style={card} aria-label="Next learning tasks">
       <SectionHeader title="What's next?" action="See all tasks" onClick={() => router.push('/student/tasks')} />
@@ -220,6 +236,8 @@ export default function StudentHomePage() {
     {hasSchoolEnrollment && <section style={card}><SectionHeader title="What is happening today?" action="Full timetable" onClick={() => router.push('/student/timetable')} />{(data?.todaySlots.length ?? 0) === 0 ? <Empty title="No lessons scheduled today" body="Use the time for your study session or learning queue." /> : <div style={{ display: 'grid', gap: 8 }}>{data?.todaySlots.map(slot => { const start = minutes(slot.start); const end = minutes(slot.end); const labelText = nowMinutes >= start && nowMinutes < end ? 'NOW' : slot.id === firstUpcomingId ? 'NEXT' : ''; return <div key={slot.id} style={{ ...slotRow, opacity: end <= nowMinutes ? .55 : 1 }}><strong>{slot.start}</strong><span><strong style={{ fontSize: 12 }}>{slot.subject}</strong><div style={muted}>{slot.end}{slot.room ? ` · ${slot.room}` : ''}</div></span>{labelText && <span style={badge}>{labelText}</span>}</div> })}</div>}</section>}
 
 
+    </div>
+    </details>
   </div>
 }
 
@@ -231,18 +249,11 @@ function Quick({ title, note, onClick }: { title: string; note: string; onClick:
   const Illustration = ({Learn:BookOpen,Practise:PencilLine,Exams:ClipboardCheck,Revision:BrainCircuit,Mistakes:Eraser,Progress:ChartNoAxesColumn} as Record<string,typeof BookOpen>)[title]
   return <button onClick={onClick} style={{ ...quick, display: 'flex' }} aria-label={title + ': ' + note}>
     <span className="student-home-quick-icon">{Illustration ? <Illustration className="student-home-tool-svg" size={42} strokeWidth={1.7} aria-hidden="true" focusable="false" /> : <Icon size={24} aria-hidden="true" focusable="false" />}</span>
-    <span className="student-home-quick-copy"><strong>{title}</strong><small>{note}</small></span>
+    <span className="student-home-quick-copy"><strong>{title}</strong></span>
     <ArrowUpRight size={16} aria-hidden="true" className="student-home-quick-arrow" />
   </button>
 }
 
-const hero: React.CSSProperties = { padding: 'clamp(20px,3vw,34px)', borderRadius: 24, color: '#f3fff8', background: 'linear-gradient(130deg, #10291d, #194c35 58%, #226443)', border: '1px solid #285c43', boxShadow: '0 18px 42px rgba(8,55,30,.16)' }
-const heroPanel: React.CSSProperties = { marginTop: 17, padding: 'clamp(17px,2.5vw,24px)', borderRadius: 18, background: 'rgba(255,255,255,.09)', border: '1px solid rgba(232,255,239,.23)', backdropFilter:'blur(6px)' }
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 850, letterSpacing: .9, color: 'var(--vs-accent)', textTransform: 'uppercase' }
-const heroSub: React.CSSProperties = { margin: 0, fontSize: 13, color: 'var(--vs-muted)', lineHeight: 1.6 }
-const heroButton: React.CSSProperties = { marginTop: 13, border: 0, borderRadius: 11, padding: '11px 17px', color: '#153d2b', background: '#b5f3c9', fontFamily: 'inherit', fontSize: 13, fontWeight: 850, cursor: 'pointer', minHeight: 44 }
-const heroTrack: React.CSSProperties = { height: 7, background: 'var(--vs-border)', borderRadius: 999, overflow: 'hidden', marginTop: 8 }
-const splitSmall: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, flexWrap: 'wrap' }
 const card: React.CSSProperties = { padding: 'clamp(16px,2vw,21px)', borderRadius: 16, border: '1px solid var(--vs-border)', background: 'var(--vs-card)', minWidth: 0 }
 const sectionTitle: React.CSSProperties = { margin: 0, fontSize: 18, lineHeight: 1.35, fontWeight: 800, fontFamily: "'Bricolage Grotesque',system-ui,sans-serif", color: 'var(--vs-text)' }
 const body: React.CSSProperties = { margin: '5px 0 0', fontSize: 12, lineHeight: 1.7, color: 'var(--vs-muted)' }

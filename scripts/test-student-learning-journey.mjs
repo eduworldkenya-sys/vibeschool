@@ -20,7 +20,7 @@ test('Home prioritises one action and resumes only the learner-owned saved readi
 
 test('Learn opens existing chapter actionUrl and preserves canonical tools',()=>{
   const study=read('app/student/study/page.tsx')
-  assert.match(study,/workspace!\.continueLearning\.slice\(0,3\)/)
+  assert.match(study,/workspace\?\.continueLearning\.slice\(0,3\)/)
   assert.match(study,/safeInternalRoute\(item\.actionUrl\)/)
   assert.match(study,/<StudentLearningFeatureLinks mode="learn"/)
   assert.match(read("components/student/StudentLearningFeatureLinks.tsx"),/topicPracticeHref\(subject\)/)

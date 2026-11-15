@@ -231,7 +231,7 @@ export default function VibeLearnExamsPage() {
         </div>
       </div>
       <header className="vs-exams-heading">
-        <div><p className="vs-exams-kicker">● YOUR EXAMINATION SPACE</p><h1>My Exams <span aria-hidden="true">✦</span></h1>
+        <div><h1>My Exams</h1>
           <StudentIntro feature="exams-overview"><p>Choose an exam, resume an unfinished attempt or review released results.</p></StudentIntro></div>
       </header>
 

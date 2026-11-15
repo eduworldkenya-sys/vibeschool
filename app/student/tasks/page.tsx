@@ -1,5 +1,6 @@
 'use client'
 import StudentIntro from "@/components/student/StudentIntro";
+import compact from "@/components/student/LearnerCompact.module.css";
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLearningFeedback } from '@/components/student/LearningFeedback'
@@ -37,7 +38,9 @@ const secondary: React.CSSProperties = { ...button, background:'var(--vs-accent-
 
 export default function TasksPage() {
   // The timetable embeds this same learner-owned planner without passing invalid Next.js page props.
-  const isDay=usePathname().startsWith('/student/timetable')
+  const pathname=usePathname()
+  const isDay=pathname.startsWith('/student/timetable')
+  const isCollege=pathname === '/student/college/tasks'
   const { play } = useLearningFeedback()
   const router=useRouter()
   const {identity,loading:identityLoading}=useStudent()
@@ -65,6 +68,7 @@ export default function TasksPage() {
     const {data,error:loadError}=await supabase.from('student_personal_planner').select('*').eq('owner_user_id',owner).order('created_at',{ascending:false}).limit(500)
     if(loadError) setError(loadError.message)
     else setItems((data??[]) as PlannerItem[])
+    if(isCollege){setLoading(false);return}
     // Use the canonical task feed; keep independent planning usable if it is unavailable.
     try { const feed=await listMyTasks(); setAssigned(feed.tasks); setAssignedError(false) }
     catch { setAssigned([]); setAssignedError(true) }
@@ -77,7 +81,7 @@ export default function TasksPage() {
       setPrivateTutorError(false)
     } catch { setPrivateTutorTasks([]); setPrivateTutorError(true) }
     setLoading(false)
-  },[owner])
+  },[owner,isCollege])
   useEffect(()=>{void refresh()},[refresh])
   useEffect(()=>{setNotificationPermission(typeof Notification==='undefined'?'unsupported':Notification.permission)},[])
 
@@ -139,18 +143,18 @@ export default function TasksPage() {
   const calendarCells=useMemo(()=>{const first=new Date(month.getFullYear(),month.getMonth(),1); const offset=(first.getDay()+6)%7;return Array.from({length:Math.ceil((offset+new Date(first.getFullYear(),first.getMonth()+1,0).getDate())/7)*7},(_,index)=>new Date(first.getFullYear(),first.getMonth(),index-offset+1))},[month])
   const schedules=items.filter(item=>item.kind==='study'&&item.starts_at).sort((a,b)=>(a.starts_at??'').localeCompare(b.starts_at??''))
   if(identityLoading||!identity) return <p style={{padding:20}}>Loading your learner workspace…</p>
-  return <div className="planner" style={{display:'grid',gap:16,color:'var(--vs-text)'}}>
+  return <div className={`planner ${compact.screen}`}>
     <header className="planner-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-      <div><h1 style={{fontSize:26,margin:0}}>{isDay?'My calendar & schedule':'My Tasks'}</h1><p style={{fontSize:13,color:'var(--vs-muted)',margin:'4px 0 0'}}>{isDay?'Personal planning, reminders and scheduled study from the same task records':'Homework, classwork, exercises, projects and your personal study plan'}</p></div>
+      <h1>{isDay?'My Day':isCollege?'Study tasks':'My Tasks'}</h1>
       <button type="button" style={button} onClick={()=>edit()}><Plus size={17} style={{verticalAlign:'middle'}}/> {isDay?'Schedule activity':'Add personal task'}</button>
     </header>
-    {!isDay&&<>
+    {!isDay&&!isCollege&&<>
     <section aria-label="Task summary" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:9}}>
       {([{value:pending+actionable.length+privateTutorTasks.filter(item=>item.status==='assigned').length,label:"To do"},{value:dueSoon,label:"Due soon"},{value:completed,label:"Personal tasks done"}] as const).map(entry=><div key={entry.label} style={{background:"var(--vs-card)",border:"1px solid var(--vs-border)",borderRadius:14,padding:"12px 10px"}}><strong style={{fontSize:25}}>{entry.value}</strong><div style={{fontSize:11,color:"var(--vs-muted)"}}>{entry.label}</div></div>)}
     </section>
-    <section aria-label="Private tutoring assignments" style={{display:'grid',gap:10,padding:14,border:'1px solid var(--vs-border)',background:'var(--vs-card)',borderRadius:14}}>
+    <details className={compact.panel}><summary>Tutoring tasks &amp; feedback</summary>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-        <h2 style={{fontSize:17,margin:0}}>Tutoring tasks & feedback</h2>
+
         <Link href="/student/tutoring">My Tutors →</Link>
       </div>
       {privateTutorError ? <p role="status" style={{fontSize:13}}>Tutoring tasks could not be loaded. Use My Tutors or refresh this page.</p>
@@ -159,14 +163,14 @@ export default function TasksPage() {
             style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:52,padding:'10px 12px',border:'1px solid var(--vs-border)',borderRadius:10,color:'var(--vs-text)',textDecoration:'none'}}>
             <span><strong style={{display:'block',fontSize:13}}>{item.title}</strong><small style={{color:'var(--vs-muted)'}}>Private tutor · {item.status === 'reviewed' ? 'Feedback ready' : item.status === 'completed' ? 'Awaiting tutor review' : 'To do'}</small></span><span aria-hidden="true">›</span>
           </Link>)}
-    </section>
+    </details>
     <StudentIntro feature="tasks-assigned-work"><p>Open assigned work to submit it in its original activity. Your personal reminders can be completed here.</p></StudentIntro>
 
     <nav aria-label="Assigned work types" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
       {([['Homework','/student/homework'],['Classwork','/student/assessment'],['Exercises','/student/exercises'],['Projects',identity?.classId?'/student/projects':'/student/projects/independent']] as const).map(([label,href])=><Link key={label} href={href} style={{...secondary,textDecoration:'none',display:'inline-flex',alignItems:'center'}}>{label}</Link>)}
     </nav>
     <section aria-labelledby="assigned-work-heading" style={{background:'var(--vs-card)',border:'1px solid var(--vs-border)',borderRadius:14,padding:14,display:'grid',gap:10}}>
-      <div><h2 id="assigned-work-heading" style={{fontSize:18,margin:'0 0 4px'}}>Assigned work {actionable.length>0&&`(${actionable.length})`}</h2><p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>All assigned work stays together here, including homework, classwork, exercises, assessments and projects. Open it in its original workspace.</p></div>
+      <div><h2 id="assigned-work-heading" style={{fontSize:18,margin:'0 0 4px'}}>Assigned work {actionable.length>0&&`(${actionable.length})`}</h2></div>
       {assignedError ? <p role="status" style={{fontSize:13,margin:0}}>Assigned work is unavailable right now. <Link href="/student/homework">Check homework</Link> or retry by reloading this page. Your personal plan is still available.</p>
        : loading ? <p role="status" style={{fontSize:13,margin:0}}>Loading assigned work…</p>
        : actionable.length===0 ? <p style={{fontSize:13,margin:0,color:'var(--vs-muted)'}}>Nothing assigned for action right now. <Link href="/student/study">Continue learning</Link>.</p>
@@ -180,8 +184,8 @@ export default function TasksPage() {
     {!isDay&&<section className="planner-stats" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:9}}>
       {[['To do',pending],['Done',completed],['Scheduled',schedules.length]].map(([label,value])=><div key={label} style={{border:'1px solid var(--vs-border)',borderRadius:12,background:'var(--vs-card)',padding:12}}><strong style={{fontSize:22,display:'block'}}>{value}</strong><span style={{fontSize:12,color:'var(--vs-muted)'}}>{label}</span></div>)}
     </section>}
-    {isDay&&<section style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap',background:'var(--vs-card)',padding:12,border:'1px solid var(--vs-border)',borderRadius:12}}><div style={{display:'flex',alignItems:'center',gap:8}}><Bell size={18} color="var(--vs-accent)"/><span style={{fontSize:13}}>Study reminders</span></div>{notificationPermission==='default'?<button type="button" style={secondary} onClick={async()=>{const result=await Notification.requestPermission();setNotificationPermission(result)}}>Enable browser alerts</button>:<span style={{fontSize:12,color:'var(--vs-muted)'}}>{notificationPermission==='granted'?'Browser alerts enabled':notificationPermission==='denied'?'Browser alerts blocked in browser settings' :'In-app reminders available'}</span>}</section>}
-    {isDay&&<p style={{fontSize:12,color:'var(--vs-muted)',margin:0}}>Dated tasks created in My Tasks appear here automatically. Open My Tasks to complete them.</p>}
+    {(isDay||isCollege)&&<section style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap',background:'var(--vs-card)',padding:12,border:'1px solid var(--vs-border)',borderRadius:12}}><div style={{display:'flex',alignItems:'center',gap:8}}><Bell size={18} color="var(--vs-accent)"/><span style={{fontSize:13}}>Study reminders</span></div>{notificationPermission==='default'?<button type="button" style={secondary} onClick={async()=>{const result=await Notification.requestPermission();setNotificationPermission(result)}}>Enable browser alerts</button>:<span style={{fontSize:12,color:'var(--vs-muted)'}}>{notificationPermission==='granted'?'Browser alerts enabled':notificationPermission==='denied'?'Browser alerts blocked in browser settings' :'In-app reminders available'}</span>}</section>}
+
     {isDay&&<nav aria-label="Planner views" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7}}>
       {([{id:'today',label:'Today',Icon:ListTodo},{id:'calendar',label:'Calendar',Icon:CalendarDays},{id:'schedule',label:'Schedule',Icon:Clock3}] as const).map(({id,label,Icon})=><button key={id} type="button" onClick={()=>setTab(id)} aria-current={tab===id?'page':undefined} style={{...secondary,background:tab===id?'var(--vs-accent-soft)':'#fff',borderColor:tab===id?'var(--vs-accent)':'var(--vs-border)',color:tab===id?'var(--vs-accent)':'var(--vs-text)',padding:'10px 5px',display:'flex',gap:5,alignItems:'center',justifyContent:'center'}}><Icon size={16}/>{label}</button>)}
     </nav>}

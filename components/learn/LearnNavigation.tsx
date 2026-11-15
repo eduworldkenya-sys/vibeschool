@@ -105,8 +105,15 @@ function LearnPublicBottomNav() {
   return <PublicBottomNav forceVisible mode="learn" activeView={search.get('view')}/>
 }
 
+function CollegeLearnBottomNav() {
+  const search = useSearchParams()
+  const view = search.get('view')
+  return <StudentBottomNav collegeView={view === 'practice' ? 'Practice' : view === 'progress' ? 'Progress' : 'Learn'}/>
+}
+
 export function LearnRouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const collegeCourse = pathname === '/learn/kasneb-cpa' || pathname.startsWith('/learn/kasneb-cpa/')
   const showHeader = isLearnDiscoveryPath(pathname)
   const showBottom = usesLearnBottomNav(pathname) && !isStoryReadingPath(pathname)
   const student = useStudentNavigation(showBottom || isStoryReadingPath(pathname))
@@ -152,7 +159,7 @@ export function LearnRouteShell({ children }: { children: ReactNode }) {
     {showBottom && (student === null
       ? <div className={styles.navReserve} aria-hidden="true"/>
       : student
-        ? <div className={styles.studentNavTheme}><StudentBottomNav/><div className={styles.navReserve} aria-hidden="true"/></div>
+        ? <div className={styles.studentNavTheme}><Suspense fallback={null}>{collegeCourse ? <CollegeLearnBottomNav/> : <StudentBottomNav/>}</Suspense><div className={styles.navReserve} aria-hidden="true"/></div>
         : <Suspense fallback={<div className={styles.navReserve} aria-hidden="true"/>}><LearnPublicBottomNav/></Suspense>)}
   </div>
 }
