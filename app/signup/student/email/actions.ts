@@ -76,7 +76,7 @@ export async function saveIndependentEmailGrade(form: FormData) {
     const admin = pilotAdminClient()
     const { data: identity, error: identityError } = await admin.from('independent_learner_identities')
       .select('grade_label').eq('user_id', user.id).maybeSingle()
-    const { data: existingPath, error: pathError } = await admin.from('learner_education_paths')
+    const { data: existingPath, error: pathError } = await client.from('learner_education_paths')
       .select('education_stage,programme_family,qualification_code').eq('user_id', user.id).maybeSingle()
     if (identityError || !identity || pathError) return { error: 'Could not check your study pathway.' }
     if (existingPath && (!selection.pathway || existingPath.education_stage !== 'post_secondary' ||
@@ -98,7 +98,7 @@ export async function saveIndependentEmailGrade(form: FormData) {
       return { error: 'Could not prepare your learner profile.' }
     }
     if (selection.pathway && !existingPath) {
-      const { error: pathwayError } = await admin.from('learner_education_paths').insert({
+      const { error: pathwayError } = await client.from('learner_education_paths').insert({
         user_id:user.id,education_stage:'post_secondary',...selection.pathway,
       })
       if (pathwayError) {
