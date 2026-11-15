@@ -456,7 +456,6 @@ export default function VacancyMatchSandbox() {
             <ShieldCheck aria-hidden="true" size={19} />
             <p><strong>School and subject verification:</strong> VibeSchool does not currently hold a reconciled school-by-school list. County totals are not subject-specific matches. For a named school or subject combination, consult the complete original TSC appendices.</p>
           </div>
-        </section>
         </section>}
       </div>
 
