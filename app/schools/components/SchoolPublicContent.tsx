@@ -90,6 +90,15 @@ export default function SchoolPublicContent({ slug, initialFilter = 'all', compa
     setSaving(false)
   }
 
+  async function withdraw(postId: string) {
+    if (!canPublish || saving || !window.confirm('Withdraw this public notice?')) return
+    setSaving(true); setMessage('')
+    const { error: revokeError } = await supabase.rpc('school_withdraw_public_post_v1', { p_post_id: postId })
+    if (revokeError) setMessage('Could not withdraw this publication.')
+    else { setMessage('Publication withdrawn.'); await load() }
+    setSaving(false)
+  }
+
   const shown = posts.filter(p => filter === 'all' || p.kind === filter)
   return <section className={styles.section} aria-label="School public information">
     <div className={styles.heading}>
@@ -111,6 +120,7 @@ export default function SchoolPublicContent({ slug, initialFilter = 'all', compa
             <h3>{post.title}</h3>
             {detailsLine(post) && <strong className={styles.detail}>{detailsLine(post)}</strong>}
             <p className={styles.body}>{post.body}</p>
+            {canPublish && <button type="button" className={styles.withdraw} disabled={saving} onClick={() => void withdraw(post.id)}>Withdraw</button>}
           </article>)}
         </div> : <p className={styles.empty}>{empty[filter]}</p>}
     {compact && shown.length > 6 && <Link className={styles.following} href={schoolUrl(slug) + '/news'}>See more updates</Link>}
