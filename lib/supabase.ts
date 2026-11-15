@@ -116,6 +116,13 @@ type LiveTeacherSwapReport = {
   Relationships: [{ foreignKeyName: "teacher_swap_reports_listing_id_fkey"; columns: ["listing_id"]; isOneToOne: false; referencedRelation: "teacher_swap_listings"; referencedColumns: ["id"] }]
 }
 
+type LiveSchoolFollows = {
+  Row: { school_slug: string; follower_id: string; created_at: string }
+  Insert: { school_slug: string; follower_id: string; created_at?: string }
+  Update: { school_slug?: string; follower_id?: string; created_at?: string }
+  Relationships: []
+}
+
 type LiveDatabase = Omit<Database, 'public'> & {
   public: Omit<Database['public'], 'Tables' | 'Functions'> & {
     Functions: Database['public']['Functions'] & {
@@ -166,6 +173,7 @@ type LiveDatabase = Omit<Database, 'public'> & {
       teacher_swap_interests: LiveTeacherSwapInterest
       teacher_swap_messages: LiveTeacherSwapMessage
       teacher_swap_reports: LiveTeacherSwapReport
+      school_follows: LiveSchoolFollows
     }
   }
 }
