@@ -7,6 +7,7 @@ import {supabase} from '@/lib/supabase'
 import {PublicHeader} from '@/components/public/PublicHeader'
 
 import {SchoolCover} from '@/app/schools/components/SchoolCover'
+import SchoolPublicBoard from '@/app/schools/components/SchoolPublicBoard'
 import styles from '@/app/schools/schools.module.css'
 type School={school_name:string;county:string|null;sub_county:string|null;school_category:string|null;ownership_type:string|null;gender_type:string|null;accommodation_type:string|null;knec_code:string|null;pathway_slug:string|null;pathway_name:string|null;combination_name:string|null}
 const pages=['about','academics','news','contact']
@@ -31,7 +32,7 @@ export default function SchoolSubpage({schoolIdOverride,schoolBaseOverride}:{sch
  <div className={styles.canonicalBody}><section className={styles.canonicalSection}><h2>{title==='Contact'?'Contact & location':title==='News'?'News & announcements':title==='About'?'About the school':title}</h2>
  {section==='about'&&<><p>{school.school_name} is located in {[school.sub_county,school.county,'Kenya'].filter(Boolean).join(', ')}.</p><div className={styles.canonicalFacts}>{facts.map(([label,value])=><div key={label} className={styles.canonicalFact}><span>{label}</span><strong>{value}</strong></div>)}</div></>}
  {section==='academics'&&<><p>Education level: {school.school_category||'Not specified'}</p>{rows.some(r=>r.pathway_slug)?rows.filter(r=>r.pathway_slug).map((r,i)=><article key={i}><h3>{r.pathway_name}</h3>{r.combination_name&&<p>{r.combination_name}</p>}</article>):<p>No additional programmes have been confirmed.</p>}</>}
- {section==='news'&&<p>No official announcements have been published here yet.</p>}
+ {section==='news' && (schoolBase.startsWith('/school/') ? <SchoolPublicBoard slug={decodeURIComponent(schoolBase.slice('/school/'.length))} schoolId={schoolId} initialTab='updates'/> : <p>School updates are available on the public school home.</p>)}
  {section==='contact'&&<><p>{[school.sub_county,school.county,'Kenya'].filter(Boolean).join(', ')}</p><p>Official contact details and exact coordinates have not been published.</p></>}
  </section></div></>}
  </main><SchoolFooter name={school?.school_name} location={[school?.sub_county,school?.county].filter(Boolean).join(', ')}/></div>
