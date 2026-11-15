@@ -100,11 +100,16 @@ def main() -> int:
 
     # Changing the offline shell or safe public precache set requires a service-worker
     # generation change so existing installed clients actually receive the new fallback.
-    require(sw, "vibeschool-v7", "service worker")
+    require(sw, "vibeschool-v8-public-offline", "service worker cache generation")
     require(sw, "'/sandbox'", "service worker safe public sandbox")
     require(sw, "url.pathname.startsWith('/api/')", "service worker")
     require(sw, "url.pathname.startsWith('/auth/')", "service worker")
-    require(sw, "url.pathname.startsWith('/pwa-icons/')", "service worker")
+    require(sw, "'/pwa-icons/'", "service worker public asset allowlist")
+    require(sw, "isPublicAsset(url.pathname)", "service worker public asset policy")
+    require(sw, "OFFLINE_GAME_ROUTES", "service worker offline game manifest")
+    require(sw, "credentials: 'omit'", "offline game download anonymous-only")
+    require(sw, "!url.search", "service worker query policy")
+    require(sw, "SAFE_PUBLIC_PATHS.has(url.pathname) && !url.search", "service worker public navigation isolation")
     require(sw, "event.data?.type === 'SKIP_WAITING'", "service worker")
     require(sw, "'/offline.html'", "service worker")
     forbid(sw, "cache.addAll(['/'])", "service worker")
@@ -120,7 +125,7 @@ def main() -> int:
     require(install, "Add to Home Screen", "iOS install path")
 
     require(offline, "/icons/vibeschool-logo.png", "offline page")
-    require(offline, "Your account data is not stored in the offline cache.", "offline page")
+    require(offline, "Private learner, teacher and school records are not saved", "offline page privacy notice")
 
     print("PWA CONTRACT PASSED")
     return 0
