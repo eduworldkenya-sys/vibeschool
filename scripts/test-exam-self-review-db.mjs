@@ -21,6 +21,10 @@ const laterAttempt = uuid(11)
 const assessment = uuid(12)
 const item = uuid(13)
 const response = uuid(14)
+const practiceAttempt = uuid(18)
+const formalAttempt = uuid(19)
+const practiceAssignment = uuid(20)
+const practiceResponse = uuid(21)
 
 try {
   await db.exec(`
@@ -34,15 +38,17 @@ try {
 
     create table students(id uuid primary key, profile_id uuid not null);
     create table assessment_assignments(
-      id uuid primary key, answer_review_policy text, closes_at timestamptz
+      id uuid primary key, answer_review_policy text, closes_at timestamptz,
+      show_score_policy text
     );
+    create table assessment_definitions(id uuid primary key, assessment_type text);
     create table assessment_attempts(
       id uuid primary key, assignment_id uuid, assessment_id uuid,
-      student_id uuid, status text, result_status text
+      student_id uuid, status text, result_status text, submitted_at timestamptz
     );
     create table assessment_items(
       id uuid primary key, assessment_id uuid, question_type text,
-      auto_marking_mode text, marking_guide jsonb, marks numeric, order_num integer
+      auto_marking_mode text, marking_guide jsonb, marks numeric, order_num integer, prompt text
     );
     create table assessment_responses(
       id uuid primary key, attempt_id uuid, assessment_item_id uuid,
@@ -50,27 +56,34 @@ try {
     );
     insert into students values
       ('${student}','${learner}'), ('${otherStudent}','${stranger}');
+    insert into assessment_definitions values ('${assessment}','practice');
     insert into assessment_assignments values
-      ('${assignment}','after_release',null),
-      ('${embargo}','never',null),
-      ('${future}','after_close',now()+interval '3 days');
+      ('${assignment}','after_release',null,'after_release'),
+      ('${embargo}','never',null,'after_release'),
+      ('${future}','after_close',now()+interval '3 days','after_release'),
+      ('${practiceAssignment}','after_release',null,'immediate');
     insert into assessment_attempts values
-      ('${attempt}','${assignment}','${assessment}','${student}','released','released'),
-      ('${otherAttempt}','${assignment}','${assessment}','${otherStudent}','released','released'),
-      ('${pendingAttempt}','${assignment}','${assessment}','${student}','teacher_review','partially_marked'),
-      ('${laterAttempt}','${future}','${assessment}','${student}','released','released');
+      ('${attempt}','${assignment}','${assessment}','${student}','released','released',now()),
+      ('${otherAttempt}','${assignment}','${assessment}','${otherStudent}','released','released',now()),
+      ('${pendingAttempt}','${assignment}','${assessment}','${student}','teacher_review','partially_marked',now()),
+      ('${laterAttempt}','${future}','${assessment}','${student}','released','released',now()),
+      ('${practiceAttempt}','${practiceAssignment}','${assessment}','${student}','teacher_review','partially_marked',now()),
+      ('${formalAttempt}','${assignment}','${assessment}','${student}','teacher_review','partially_marked',now());
     insert into assessment_items values
       ('${item}','${assessment}','structured','none',
-      '{"criteria":[{"id":"evap","label":"Water evaporates","marks":1},{"id":"cloud","label":"Water vapour cools and condenses","marks":1}]}'::jsonb,2,1);
+      '{"criteria":[{"id":"evap","label":"Water evaporates","marks":1},{"id":"cloud","label":"Water vapour cools and condenses","marks":1}]}'::jsonb,2,1,'Describe the water cycle');
     insert into assessment_responses values
       ('${response}','${attempt}','${item}','teacher_review','Water evaporates and rises.',2,0),
       ('${uuid(15)}','${otherAttempt}','${item}','teacher_review','Water rises.',2,0),
       ('${uuid(16)}','${pendingAttempt}','${item}','teacher_review','Water rises.',2,0),
-      ('${uuid(17)}','${laterAttempt}','${item}','teacher_review','Water rises.',2,0);
+      ('${uuid(17)}','${laterAttempt}','${item}','teacher_review','Water rises.',2,0),
+      ('${practiceResponse}','${practiceAttempt}','${item}','teacher_review','Water evaporates.',2,0),
+      ('${uuid(22)}','${formalAttempt}','${item}','teacher_review','Water rises.',2,0);
   `)
 
   const sql = fs.readFileSync('supabase/migrations/20261115040500_exq_learner_self_review.sql','utf8')
   await db.exec(sql)
+  await db.exec(fs.readFileSync('supabase/migrations/20261115073000_exq_practice_post_submit_self_review.sql','utf8'))
 
   async function login(profileId) {
     await db.exec(`reset role; set request.jwt.claim.sub='${profileId}'; set role authenticated`)
@@ -83,12 +96,19 @@ try {
   let got = (await get(attempt)).rows[0].result
   assert.equal(got.items.length,1)
   assert.equal(got.items[0].criteria[0].id,'evap')
+  assert.equal(got.items[0].prompt,'Describe the water cycle')
+  assert.equal(got.items[0].response_text,'Water evaporates and rises.')
 
   await assert.rejects(() => get(otherAttempt), /attempt_not_owned_or_found/)
   await assert.rejects(() => mark(otherAttempt,['evap']), /attempt_not_owned_or_found/)
   await assert.rejects(() => get(pendingAttempt), /result_not_released/)
   await assert.rejects(() => mark(pendingAttempt,['evap']), /result_not_released/)
   await assert.rejects(() => get(laterAttempt), /answer_review_not_available/)
+  await assert.rejects(() => get(formalAttempt), /result_not_released_or_practice_not_submitted/)
+  await assert.rejects(() => mark(formalAttempt,['evap']), /result_not_released_or_practice_not_submitted/)
+  const practice = (await get(practiceAttempt)).rows[0].result
+  assert.equal(practice.items[0].response_text,'Water evaporates.')
+  assert.equal((await mark(practiceAttempt,['evap'])).rows[0].result.self_review_score,1)
 
   let awarded=(await mark(attempt,['evap'])).rows[0].result
   assert.equal(awarded.self_review_score,1)
