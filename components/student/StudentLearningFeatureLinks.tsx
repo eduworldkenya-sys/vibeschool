@@ -42,9 +42,7 @@ export default function StudentLearningFeatureLinks({mode,grade,subject}:Props) 
   const items=mode==='learn'?learn:practice
   return <section aria-label={mode==='learn'?'Learn tools':'Practice tools'} style={shell}>
     <h2 style={{margin:0,fontSize:18,color:'var(--vs-text)'}}>{mode==='learn'?'Learn with the right tools':'Strengthen what you have learned'}</h2>
-    <p style={{...muted,marginTop:6}}>{mode==='learn'
-      ? 'Reading, worked steps, audio and interactive teaching aids live inside approved lessons.'
-      : 'Use the same recorded questions and results to revise. Exams and assigned tasks remain separate.'}</p>
+
     <nav aria-label={mode==='learn'?'Explore learning resources':'Practice support'}>
       <div style={grid}>{items.map(({label,description,href,Icon})=>
         <Link key={label} href={href} style={tile}><Icon size={21} color="var(--vs-accent)" aria-hidden="true" />

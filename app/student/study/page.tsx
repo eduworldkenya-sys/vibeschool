@@ -134,11 +134,11 @@ export default function LearnerStudyDesk() {
           </Link>)}
         </div>
       </section>}
-      <StudentLearningFeatureLinks mode="learn" grade={identity.className}/>
-      <nav className={styles.shortcuts} aria-label="Assigned work and exams">
+      <details className={styles.card} style={{marginBottom:12}}><summary style={{cursor:'pointer',fontWeight:800,minHeight:40}}>More reading tools</summary><StudentLearningFeatureLinks mode="learn" grade={identity.className}/></details>
+      <details className={styles.card} style={{marginBottom:12}}><summary style={{cursor:'pointer',fontWeight:800,minHeight:40}}>Other learning activities</summary><nav className={styles.shortcuts} aria-label="Assigned work and exams">
         <Link href="/student/tasks"><ClipboardList size={20}/> My tasks</Link>
         <Link href="/student/vibelearn/exams"><CalendarDays size={20}/> Exams</Link>
-      </nav>
+      </nav></details>
 
       {error&&<p className={styles.alert} role="alert">{error}</p>}
       {loading?<p className={styles.card} role="status">Loading your current learning activities…</p>:
@@ -156,7 +156,7 @@ export default function LearnerStudyDesk() {
         </section>
         <section className={styles.card} aria-label="Live class learning resources">
           <h2>Learn by subject</h2>
-          <p className={styles.muted}>Live class resources that are linked to your current subject enrolments. Private and unpublished items are not shown.</p>
+          
           {classResources.length===0
             ? <p className={styles.muted}>No class resource is live yet. Your tasks and published lessons remain available.</p>
             : <div className={styles.rows}>
@@ -175,7 +175,8 @@ export default function LearnerStudyDesk() {
         </section>
         <section className={styles.card} aria-label="Your learning path">
           <h2>Your learning path</h2>
-          <p className={styles.muted}>Build foundation first when earlier ideas need more practice. VibeLearn does not invent a weakness when evidence is missing.</p>
+          <details><summary style={{cursor:"pointer",fontSize:12,color:"var(--vs-muted)"}}>How recommendations work</summary><p className={styles.muted}>Build foundation first when earlier ideas need more practice. VibeLearn does not invent a weakness when evidence is missing.</p></details>
+          
           {!learningPath || learningPath.path.length===0
             ? <p className={styles.muted}>Your verified learning priorities will appear when there is sufficient evidence.</p>
             : <div className={styles.rows}>
@@ -219,7 +220,7 @@ export default function LearnerStudyDesk() {
             </select></label>
             <button type="button" disabled={saving} className={styles.primary} onClick={()=>void savePlan()}>{saving?'Saving…':'Save plan'}</button>
           </div>}
-          <p className={styles.muted}>{readiness.predictionDisclaimer}</p>
+          <details><summary style={{cursor:'pointer',fontSize:12}}>About this study estimate</summary><p className={styles.muted}>{readiness.predictionDisclaimer}</p></details>
         </section>}
       </div>}
     </div>
