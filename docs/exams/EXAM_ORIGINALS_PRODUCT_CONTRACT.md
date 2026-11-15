@@ -44,3 +44,20 @@ For explanations, descriptions, diagrams and essays, prepare **short, criterion-
 4. Content: paper 001 verified against the applicable KICD curriculum; then batches of 20 to the 100-paper target, with tests for quality, originality, objective grading and release correctness.
 
 Publication, payments and scheduled generation require separate owner authorisation and evidence. This rollout does not activate them.
+
+## Guided learner review implementation (Phase 2 — scoped)
+
+The learner assessment player supplies a focused numerical input for `numeric` question types while **all scoring remains on the canonical server**. `numeric_tolerance` already exists in the official submission RPC; no arbitrary units or free-text compositions are silently coerced into correct numbers.
+
+Released learner-owned attempts may load short **point-form criteria** from the pre-authored `assessment_items.marking_guide`. Only the existing answer-review policies `after_release` and `after_close` (after close) allow disclosure. A valid scheme uses:
+
+```json
+{"criteria":[
+  {"id":"evaporation","label":"Water evaporates when heated.","marks":1},
+  {"id":"condensation","label":"Water vapour cools and condenses.","marks":1}
+]}
+```
+
+Criterion IDs must be unique; marks positive and the sum not greater than the assessment item's max marks. Legacy string lists and inconsistent marking guides do not enable scoring. New reviews are **learner self-awarded, not verified**. The submitted answer is locked; saved self-score, selected IDs and uncertain status are separate fields on the canonical response, never modifying its `final_score`, the attempt's grade or gradebook.
+
+**Current hard boundary:** The new UI opens from an already **released** learner result. Existing written responses that still await teacher review remain unreleased; this slice does not bypass their release embargo or activate automatic publication. A further separately certified journey is required for learner-only self-review immediately after an otherwise unmarked practice submission. Do not label a partially marked score as verified.
