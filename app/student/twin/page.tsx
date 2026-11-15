@@ -18,7 +18,6 @@ import {
 } from '@/lib/student/twin'
 import { listLearningTransformSources, type LearningTransformSource } from '@/lib/student/learningTransform'
 import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/database.types'
 
 type Layer = 'now' | 'learn' | 'grow'
 type TutorMode = 'explain' | 'practice' | 'homework' | 'revision' | 'exam' | 'challenge'
@@ -26,9 +25,6 @@ type TutorServiceSummary = {
   revisionPlan: Array<{ id: string; planDate: string; subject: string; topic: string; activityType: string; targetMinutes: number; priority: number; reason: string; actionUrl: string; status: string }>
   capabilities: Record<string, boolean>
 }
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 
 function record(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {} }
 function text(value: unknown): string | null { return typeof value === 'string' ? value : null }
@@ -57,7 +53,7 @@ function calibrationLabel(type: string): string {
 }
 
 async function getTutorServiceSummary(): Promise<TutorServiceSummary> {
-  const { data, error } = await rpc<Json>('student_get_adaptive_tutor_service_summary')
+  const { data, error } = await supabase.rpc('student_get_adaptive_tutor_service_summary' as never)
   if (error) throw new Error(error.message || 'Adaptive Tutor services could not be loaded.')
   const row = record(data)
   const revisionPlan = Array.isArray(row.revision_plan) ? row.revision_plan.map(value => {
