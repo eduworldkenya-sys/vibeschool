@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 const read = path => readFileSync(path, 'utf8')
 const migration = read('supabase/migrations/20261115112112_canonical_post_secondary_learner_path.sql')
 const canonical = read('supabase/migrations/20261115111910_seed_kasneb_cpa_cs_learner_catalog.sql')
@@ -47,4 +47,20 @@ assert.match(dashboard, /courseLive && savedPaperLive/)
 assert.match(dashboard, /April 2026 booklet/)
 assert.doesNotMatch(dashboard, /CPA_PAPERS|\/learn\/cpa|Form 4|Grade 4|KCSE/i)
 assert.match(profile, /No age has been assumed/)
+const practice = read('app/student/college/practice/page.tsx')
+const topicReader = read('app/learn/[courseSlug]/[moduleSlug]/[topicSlug]/page.tsx')
+const migrations = 'supabase/migrations'
+const unit02Files = readdirSync(migrations).filter(file => file.endsWith('_release_cpa_ca11_accounting_process.sql'))
+assert.equal(unit02Files.length, 1)
+const unit02 = read(`${migrations}/${unit02Files[0]}`)
+assert.match(dashboard, /href="\/student\/college\/practice"/)
+assert.match(layout, /homeLabel=\{isCollege \? "Learner" : "Student"\}/)
+for (const format of ['Topic Check', 'Unit Test', 'Practical Challenge', 'Mock Exam']) {
+  assert.ok(practice.includes(format), `Missing CPA practice format: ${format}`)
+}
+const linkedTopics = [...practice.matchAll(/^  \['([a-z-]+)',/gm)].map(match => match[1])
+assert.equal(linkedTopics.length, 3)
+for (const slug of linkedTopics) assert.ok(unit02.includes(`"slug": "${slug}"`))
+assert.match(topicReader, /window.location.hash === '#practice'/)
+assert.match(practice, /Full practice paper coming soon/)
 console.log('PASS: one canonical post-secondary learner, source-grounded KASNEB paper catalogue, private CPA path, no lower school learning UI')

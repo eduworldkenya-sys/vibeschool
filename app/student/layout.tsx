@@ -14,7 +14,7 @@ import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student
 import { DEFAULT_LEARNER_APPEARANCE, LEARNER_APPEARANCE_EVENT, readLearnerAppearance, saveLearnerAppearance, readLearnerWallpaperPhoto, learnerWallpaperBackground, resolvedLearnerDisplayMode, isSocialDestination, learnerAppearanceStyle, type LearnerStudyMode } from "@/lib/student-appearance";
 import { useToast } from "@/components/student/StudentUiContext";
 
-function TopBar({ name, className, schoolName, homeHref = "/student", profileHref = "/student/profile", focused = false, studyMode, onModeToggle }: { name: string; className: string; schoolName: string; homeHref?: string; profileHref?: string; focused?: boolean; studyMode:LearnerStudyMode; onModeToggle:()=>void }) {
+function TopBar({ name, className, schoolName, homeHref = "/student", profileHref = "/student/profile", focused = false, homeLabel = "Student", studyMode, onModeToggle }: { name: string; className: string; schoolName: string; homeHref?: string; profileHref?: string; focused?: boolean; homeLabel?: string; studyMode:LearnerStudyMode; onModeToggle:()=>void }) {
   const router   = useRouter();
   const pathname = usePathname();
   const isRoot   = pathname === homeHref || pathname === homeHref + "/";
@@ -42,7 +42,7 @@ function TopBar({ name, className, schoolName, homeHref = "/student", profileHre
             ‹
           </button>
         )}
-        <button type="button" aria-label="Open Student Home" onClick={() => router.push(homeHref)}
+        <button type="button" aria-label={`Open ${homeLabel} Home`} onClick={() => router.push(homeHref)}
           style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", border: "none", background: "transparent", color: "inherit", padding: 0 }}
         >
           <div style={{
@@ -56,7 +56,7 @@ function TopBar({ name, className, schoolName, homeHref = "/student", profileHre
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
             <div style={{ fontSize: 10, color: "var(--vs-muted)", marginTop: -1 }}>
-              {schoolName || className || "Student"}
+              {schoolName || className || homeLabel}
             </div>
           </div>
         </button>
@@ -203,6 +203,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       <TopBar
         name={identity?.name ?? ""}
         className={isCollege ? "College · CPA" : identity?.className ?? ""}
+        homeLabel={isCollege ? "Learner" : "Student"}
         schoolName={isCollege ? "" : identity?.schoolName ?? ""}
         homeHref={isCollege ? "/student/college" : "/student"}
         profileHref={isCollege ? "/student/college/profile" : "/student/profile"}

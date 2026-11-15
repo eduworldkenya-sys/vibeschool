@@ -135,7 +135,7 @@ export default function CollegeLearnerHome() {
           : saved && <p className={compact.muted}>Lessons in preparation</p>}
       </section>
       <div className={compact.grid}>
-        {canStudy && <Link className={compact.action} href={studyHref + '?view=practice'}>Self-evaluation</Link>}
+        <Link className={compact.action} href="/student/college/practice">Self-evaluation</Link>
         {canStudy && <Link className={compact.action} href={studyHref + '?view=progress'}>Progress</Link>}
         <Link className={compact.action} href="/student/college/tasks">Study tasks</Link>
         <Link className={compact.action} href="/student/college/profile">My profile</Link>

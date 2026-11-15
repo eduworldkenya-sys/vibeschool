@@ -38,7 +38,7 @@ const MORE_GROUPS = [
 const COLLEGE_DESTINATIONS = {
   Home: "/student/college",
   Learn: "/learn/kasneb-cpa",
-  Practice: "/learn/kasneb-cpa?view=practice",
+  Practice: "/student/college/practice",
   Tasks: "/student/college/tasks",
   Progress: "/learn/kasneb-cpa?view=progress",
 } as const;
@@ -73,7 +73,7 @@ export default function BottomNav({ collegeView }: { collegeView?: "Learn" | "Pr
   const closeButton = useRef<HTMLButtonElement>(null);
   const sheet = useRef<HTMLElement>(null);
   const college = Boolean(collegeView) || pathname === "/student/college" || pathname.startsWith("/student/college/");
-  const current = college ? collegeView ?? (pathname === "/student/college" ? "Home" : pathname === "/student/college/tasks" ? "Tasks" : "") : activeSection(pathname);
+  const current = college ? collegeView ?? (pathname === "/student/college" ? "Home" : pathname === "/student/college/tasks" ? "Tasks" : pathname === "/student/college/practice" ? "Practice" : "") : activeSection(pathname);
   const groupList = college ? COLLEGE_MORE : MORE_GROUPS;
   const activeMore = (college ? COLLEGE_MORE[0].items.filter(item => item.href !== "/student/college") : MORE).some(({ href }) => isToolActive(pathname, href));
 

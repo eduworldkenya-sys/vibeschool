@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic"
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ensureCourseLearnerProfile } from '@/lib/learn/ensure-course-learner-profile'
 
@@ -216,19 +216,20 @@ export default function TopicDetailPage() {
   const courseSlug = params.courseSlug as string
   const moduleSlug = params.moduleSlug as string
   const topicSlug = params.topicSlug as string
-  const practiceRequested = useSearchParams().get('view') === 'practice' && courseSlug === 'kasneb-cpa'
 
   const [course, setCourse] = useState<CourseRow | null>(null)
   const [module, setModule] = useState<ModuleRow | null>(null)
   const [topic, setTopic] = useState<TopicRow | null>(null)
-  const [activeTab, setActiveTab] = useState<TabKey>(practiceRequested ? 'practice' : 'concept')
+  const [activeTab, setActiveTab] = useState<TabKey>('concept')
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [markingDone, setMarkingDone] = useState(false)
   const [isDone, setIsDone] = useState(false)
   const [completionError, setCompletionError] = useState('')
 
-  useEffect(() => { setActiveTab(practiceRequested ? 'practice' : 'concept') }, [practiceRequested, topicSlug])
+  useEffect(() => {
+    setActiveTab(courseSlug === 'kasneb-cpa' && window.location.hash === '#practice' ? 'practice' : 'concept')
+  }, [courseSlug, moduleSlug, topicSlug])
 
   useEffect(() => {
     async function load() {

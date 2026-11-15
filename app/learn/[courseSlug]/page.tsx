@@ -217,7 +217,7 @@ export default function CourseRoadmapPage() {
       <h1>{isPractice ? 'Self-evaluation' : isProgress ? 'CPA progress' : 'CPA Learn'}</h1>
       <nav className={compact.grid} aria-label="CPA workspace">
         <Link className={compact.action} href="/student/college">Study space</Link>
-        <Link className={compact.action} href={isPractice || isProgress ? '/learn/kasneb-cpa' : '/learn/kasneb-cpa?view=practice'}>{isPractice || isProgress ? 'Learn' : 'Self-evaluation'}</Link>
+        <Link className={compact.action} href={isPractice || isProgress ? '/learn/kasneb-cpa' : '/student/college/practice'}>{isPractice || isProgress ? 'Learn' : 'Self-evaluation'}</Link>
       </nav>
       {loading ? <p role="status">Loading CPA…</p> : notFound ? <p role="alert">CPA learning is unavailable.</p> : <>
         {isProgress && <p className={compact.action}>{overallDone} / {overallTotal} topics complete</p>}
@@ -233,7 +233,7 @@ export default function CourseRoadmapPage() {
               <summary>{unit.title}</summary>
               <div style={{display:'grid',gap:6}}>
                 {unit.topics.map(topic =>
-                  <Link key={topic.id} className={compact.action} href={`/learn/${courseSlug}/${module.slug}/${topic.slug}${isPractice ? '?view=practice' : ''}`}>
+                  <Link key={topic.id} className={compact.action} href={`/learn/${courseSlug}/${module.slug}/${topic.slug}${isPractice ? '#practice' : ''}`}>
                     <span>{topic.title}</span><span>{isPractice ? 'Start' : completedTopicIds.has(topic.id) ? 'Complete' : 'Open'}</span>
                   </Link>)}
               </div>
