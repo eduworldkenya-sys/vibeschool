@@ -14,6 +14,11 @@ on:
       - "scripts/sql/tbl013_tuition_collision_preflight.sql"
       - "scripts/tbl013-assert-tuition-collision-preflight.py"
       - "scripts/test-tbl013-timetable-tuition-preflight.py"
+      - "scripts/sql/tbl013_assignment_homework_preflight.sql"
+      - "scripts/tbl013-assert-assignment-homework-preflight.py"
+      - "scripts/test-tbl013-assignment-homework-preflight.py"
+      - "supabase/migrations/20260819031000_school_admin_teacher_assignment_integrity.sql"
+      - "supabase/migrations/20260903104500_lesson_homework_occurrence_convergence.sql"
       - "supabase/migrations/2026111210*.sql"
       - "supabase/migrations/20261112150000_unified_school_tuition_schedule.sql"
   push:
@@ -30,6 +35,11 @@ on:
       - "scripts/sql/tbl013_tuition_collision_preflight.sql"
       - "scripts/tbl013-assert-tuition-collision-preflight.py"
       - "scripts/test-tbl013-timetable-tuition-preflight.py"
+      - "scripts/sql/tbl013_assignment_homework_preflight.sql"
+      - "scripts/tbl013-assert-assignment-homework-preflight.py"
+      - "scripts/test-tbl013-assignment-homework-preflight.py"
+      - "supabase/migrations/20260819031000_school_admin_teacher_assignment_integrity.sql"
+      - "supabase/migrations/20260903104500_lesson_homework_occurrence_convergence.sql"
       - "supabase/migrations/2026111210*.sql"
       - "supabase/migrations/20261112150000_unified_school_tuition_schedule.sql"
   workflow_dispatch:
@@ -52,6 +62,7 @@ jobs:
           set -euo pipefail
           python3 scripts/test-tbl013-timetable-ledger-stage.py
           python3 scripts/test-tbl013-timetable-tuition-preflight.py
+          python3 scripts/test-tbl013-assignment-homework-preflight.py
           python3 scripts/test-tbl012-live-timetable-schema.py
           python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
           python3 scripts/test-tbl013-live-ledger-audit.py
@@ -147,6 +158,18 @@ jobs:
             --report .tbl013-timetable-readonly/tuition-conflict-verdict.json
           echo 'TUITION PREFLIGHT PASSED — no booking or timetable rows were modified'
 
+      - name: Verify assignment uniqueness and exact homework lineage (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db query --remote --read-only \
+            -f scripts/sql/tbl013_assignment_homework_preflight.sql -o csv \
+            > .tbl013-timetable-readonly/assignment-homework.csv
+          python3 scripts/tbl013-assert-assignment-homework-preflight.py \
+            --csv .tbl013-timetable-readonly/assignment-homework.csv \
+            --report .tbl013-timetable-readonly/assignment-homework-verdict.json
+          echo 'ASSIGNMENT AND HOMEWORK PREFLIGHT PASSED — no rows changed'
+
       - name: Stage approved timetable versions; exclude unrelated repository-only SQL
         run: |
           set -euo pipefail
@@ -165,10 +188,11 @@ jobs:
           assert m['production_mutation'] is False
           expected=Path('.tbl013-timetable-readonly/pending-versions.txt').read_text().split()
           assert set(expected) <= {
+            '20260819031000','20260903104500',
             '20261112101500','20261112101600','20261112101700',
             '20261112101800','20261112150000'
           }
-          assert '20261112150000' in m['approved_worker_engine_versions']
+          assert {'20260819031000','20260903104500','20261112150000'} <= set(m['approved_worker_engine_versions'])
           assert expected
           print('Timetable-only pending versions:', ', '.join(expected))
           PY
