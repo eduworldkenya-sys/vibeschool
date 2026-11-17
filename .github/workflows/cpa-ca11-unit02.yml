@@ -6,6 +6,10 @@ on:
       - 'supabase/migrations/*_stage_cpa_ca11_accounting_workshops.sql'
       - 'supabase/migrations/*_release_cpa_ca11_accounting_workshops.sql'
       - 'scripts/test-cpa-ca11-unit02.mjs'
+      - 'scripts/test-universal-learn-canonical-repair.mjs'
+      - 'lib/learn/learningBlockContract.ts'
+      - 'components/learn/UniversalLearnReader*'
+      - 'app/learn/**/page.tsx'
       - '.github/workflows/cpa-ca11-unit02.yml'
   push:
     branches: [main]
@@ -27,3 +31,4 @@ jobs:
       - run: node scripts/test-cpa-ca11-content.mjs
       - run: node scripts/test-cpa-ca11-release.mjs
       - run: node scripts/test-cpa-ca11-unit02.mjs
+      - run: node --experimental-strip-types --test scripts/test-universal-learn-canonical-repair.mjs

@@ -271,10 +271,10 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
         <div className={styles.questionCard}>
           <div className={styles.questionNumber}>QUESTION {index+1} OF 5</div>
           <h2 className={styles.prompt}>{item.prompt}</h2>
-          {(item.hint || !seen.has(item.id)) && <details className={styles.help}>
+          {!seen.has(item.id) && <details className={styles.help}>
             <summary>Working / Hint</summary>
             <LearningNotebookPrompt subject={workspace.title} stage="practice" compact />
-            {item.hint && <p>{item.hint}</p>}
+            {item.hint && !seen.has(item.id) && <p>{item.hint}</p>}
           </details>}
         </div>
         <div className={styles.options} role="group" aria-label="Choose an answer">
