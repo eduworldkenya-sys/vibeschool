@@ -31,6 +31,8 @@ revoke all on function public.post_secondary_publication_visible(uuid) from publ
 grant execute on function public.post_secondary_publication_visible(uuid) to anon, authenticated, service_role;
 comment on function public.post_secondary_publication_visible(uuid) is 'A visibility intersection only; never grants content access. Preserves school and general reading.';
 
+-- authorization-test: public.course_enrollments (RLS, owner access, restrictive mute)
+-- authorization-test: public.vibe_saved_items (RLS, owner access, restrictive publication mute)
 -- Clean-replay compatibility: production catalog verified 2026-11-17.
 -- These two legacy tables already existed before the recorded live migration.
 -- CREATE IF NOT EXISTS and matching existing policy/index/grant definitions
@@ -1067,6 +1069,16 @@ grant execute on function public.toggle_saved_publication(uuid) to authenticated
 do $assert$
 begin
   if public.post_secondary_public_enabled() then raise exception 'post-secondary gate must start closed'; end if;
+  if exists (
+    select 1 from (values ('course_enrollments'),('vibe_saved_items')) as required(table_name)
+    where not exists (
+      select 1 from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace
+      where n.nspname='public' and c.relname=required.table_name and c.relrowsecurity
+    ) or not exists (
+      select 1 from pg_catalog.pg_policies p where p.schemaname='public' and p.tablename=required.table_name
+      and p.policyname='post_secondary_public_mute' and p.permissive='RESTRICTIVE' and 'authenticated'=any(p.roles)
+    )
+  ) then raise exception 'legacy relation authorization contract missing'; end if;
   if public.post_secondary_publication_visible('51f1052d-2f59-46bb-9186-c1a7937d203a') or public.post_secondary_publication_visible('c0b2a83f-d726-4eed-812e-7d79f57497df') then
     raise exception 'CPA originals must be muted';
   end if;
