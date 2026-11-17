@@ -297,3 +297,7 @@ Database contract: `public.vs_curriculum_package_gate(package_id)` returns `PASS
 First repaired instance: Grade 4 Mathematics / 2.6 Time, `VS-G04-MA-2.6-TIME-20261111`. Seven source requirements (a–g) resolve to the original seven active database outcomes plus two newly required digital-clock/appreciation outcomes. The one-to-many mappings for Time unit conversion and duration computation are explicitly preserved. The public Time reader also checks `PASS` before exposing certified lessons, so corruption of identity links blocks delivery even if a version was certified earlier. This is source alignment, **not** a KICD endorsement or human educational accreditation.
 
 Machine tests: `npm run test:curriculum-identity` for the manuscript, negative fixtures and SQL contract. The runtime acceptance is a production SQL call returning `PASS` with all seven requirements, all ten resource links and ten certified public reader lessons. Existing packages need a deliberate migration of source requirements and aliases before their next platform-authored promotion, not guessed IDs or duplicate engine routes.
+
+## CPA professional textbooks
+
+CPA academic content is subject to the qualification-specific extension in CONTENT_PRODUCTION_STANDARD.md and the same evidence-led production sequence; legacy renderer compatibility is not a release gate or a substitute for manuscript review. Preserve post-secondary access controls and use the existing shared book reader.
