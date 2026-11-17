@@ -15,7 +15,9 @@ assert.match(topic,/CanonicalTopicPractice grade=\{grade\}/,'grade routes reuse 
 assert.match(topic,/\(\?:4\|9\)/,'Grade 4 and Grade 9 use canonical practice without changing other grades')
 assert.doesNotMatch(canonical,/listMyAssessmentAssignments|otherPractice\.map/,'Topic Practice must not duplicate the Exams assessment shelf')
 assert.match(canonical,/Browse Exams/,'empty certified Topic Practice links directly to canonical Exams')
-assert.match(canonical,/Longer or timed assessments stay in Exams/,'different assessment question counts and timing remain in Exams')
+// Check the actual boundary rather than obsolete visible copy removed by the compact learner UI.
+assert.match(canonical,/attempt\.items\.length!==5 \|\| attempt\.timeLimitMinutes!==null/,'Topic Practice accepts only five-question untimed attempts')
+assert.match(canonical,/router\.push\('\/student\/vibelearn\/exams'\)/,'longer and timed assessments retain the canonical Exams destination')
 assert.match(recovery,/: error \? null/,'DB errors must not be rendered as empty recovery')
 assert.match(recovery,/Retry recovery/,'backend errors remain actionable')
 assert.match(lib,/student_get_my_mistake_source_grades/,'provenance is scoped to signed-in learner')
