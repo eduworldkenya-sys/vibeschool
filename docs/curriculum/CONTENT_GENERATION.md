@@ -592,3 +592,7 @@ Use one record per outcome. The chat assembles it as part of the actual work; it
 **Presentation law:** Teachers and learners see educational lesson titles, understandable diagrams, complete notes, useful aids, worked examples, practice, revision and ordinary question numbers — not codes, source-authority names or development terminology. Keep verification and internal identities private and intact.
 
 **Canonical content production law:** **One curriculum truth. One content source. One outcome package. Three integrated learning experiences. One teacher-supported learning journey. One approved assessment authority. Evidence before quality, integration or publication claims.**
+
+## CPA academic content
+
+For every CPA academic chapter, follow the qualification-specific textbook extension in [CONTENT_PRODUCTION_STANDARD.md](./CONTENT_PRODUCTION_STANDARD.md#cpa-academic-textbooks--qualification-specific-extension-issue-1783). Author explicit canonical sections, not legacy title/text cards. Record authoritative outcome mapping, worked calculations, exercise/answer separation and editorial review before release. Preserve CPA mute restrictions.

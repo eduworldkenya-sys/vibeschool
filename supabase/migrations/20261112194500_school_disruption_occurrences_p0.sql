@@ -34,6 +34,7 @@ create index if not exists teaching_occurrences_disruption_exception_idx
   on public.teaching_occurrences(disruption_exception_id)
   where disruption_exception_id is not null;
 
+-- authorization-test: public.school_disruption_audit active school members and school admins may select; other schools and anon denied; authenticated insert/update/delete denied. See school-disruption release integration gates.
 create table if not exists public.school_disruption_audit (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,

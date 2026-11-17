@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
-import { adaptCanonicalLearnSections } from '../lib/learn/learningBlockContract.ts'
+import { adaptCanonicalLearnSections, adaptCpaTextbookSections } from '../lib/learn/learningBlockContract.ts'
 
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8')
 const reader = read('../components/learn/UniversalLearnReader.tsx')
@@ -114,4 +114,30 @@ test('published CA11 book chapters keep prose, accounting columns and feedback i
   assert.match(topic, /presentation="book"/)
   assert.match(topic, /activeTab === 'practice' && <QuizPanel topicId=\{topic\.id\}/)
   assert.match(topic, /window\.location\.hash === '#practice'/)
+})
+
+test('CPA reader preserves all legacy and canonical sections with stable identifiers',()=>{
+  const canonical={id:'book-1',title:'Journal',body:'',blocks:[{kind:'table',columns:['Debit','Credit'],rows:[['200','200']]}]}
+  const feedback={id:'feedback',title:'Answers',body:'Worked solutions.'}
+  const raw={concept_tab:[canonical,{title:'Ledger',text:'Post both entries.'},feedback],
+    kenya_context_tab:[{title:'Kenyan context',text:'Retain the invoice.'}],
+    common_errors_tab:[{title:'Common error',text:'Do not duplicate entries.'}],
+    clinical_tip_tab:[{title:'Professional tip',text:'Check the reference.'}]}
+  const result=adaptCpaTextbookSections(raw)
+  assert.equal(result.complete,true)
+  assert.deepEqual(result.sections.map(x=>x.id),['book-1','legacy-text-2','feedback','legacy-kenya-1','legacy-errors-1','legacy-tip-1'])
+  assert.deepEqual(result.sections[0].blocks[0].rows,[['200','200']])
+  assert.equal(result.sections[1].blocks[0].text,raw.concept_tab[1].text)
+  assert.deepEqual(result,adaptCpaTextbookSections(raw))
+  assert.equal(adaptCpaTextbookSections({...raw,concept_tab:[canonical,canonical]}).complete,false)
+  const invalid=adaptCpaTextbookSections({...raw,concept_tab:[{...canonical,blocks:[...canonical.blocks,{kind:'html',markup:'unsafe'}]},feedback]})
+  assert.equal(invalid.complete,false)
+  assert.ok(invalid.sections.some(x=>x.id==='feedback'))
+  assert.equal(adaptCpaTextbookSections({concept_tab:[]}).complete,false)
+  assert.equal(adaptCpaTextbookSections({...raw,kenya_context_tab:{text:'bad'}}).complete,false)
+  const topic=read('../app/learn/[courseSlug]/[moduleSlug]/[topicSlug]/page.tsx')
+  assert.match(topic,/const isBookChapter = isCpa \|\| chapterSections.length > 0/)
+  assert.match(topic,/isCpa \? 'Topic Check' : 'Practice'/)
+  assert.match(topic,/bookControls=\{isCpa\}/)
+  assert.match(topic,/!adaptCpaTextbookSections\(topic\).complete/)
 })

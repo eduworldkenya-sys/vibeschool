@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
 import styles from './UniversalLearnReader.module.css'
 import TeachingToolShelf from '@/components/learn/tools/TeachingToolShelf'
@@ -32,6 +32,7 @@ type Props = {
   tools?: readonly TeachingToolSpec[]
   showTeachingTools?: boolean
   presentation?: 'lesson' | 'book'
+  bookControls?: boolean
   renderBody?: (section: UniversalLearnSection, index: number) => ReactNode
   afterSection?: (section: UniversalLearnSection, index: number) => ReactNode
   /** Immutable source context from the existing authorised released read. */
@@ -48,9 +49,10 @@ type Props = {
 export default function UniversalLearnReader({
   subject, sections, title, goal, anchorPrefix = 'learn',
   topic = '', tools, showTeachingTools = true, presentation = 'lesson',
-  renderBody, afterSection, toolContext, visualContext,
+  renderBody, afterSection, toolContext, visualContext, bookControls = false,
 }: Props) {
   const mode = learnSubjectMode(subject)
+  const [bookSize, setBookSize] = useState<'standard' | 'large' | 'larger'>('standard')
   // Full-reader pages have an h2 lesson title; outcome pages supply an h3 title.
   const ReaderHeading = presentation === 'book' ? 'h1' : 'h3'
   const SectionHeading = presentation === 'book' ? 'h2' : title ? 'h4' : 'h3'
@@ -69,7 +71,18 @@ export default function UniversalLearnReader({
     getLearningToolSectionBinding(toolContext, section, index))
   if (!validSections.length) return <p role="status">No released lesson sections are available.</p>
 
-  return <div className={styles.reader} data-subject-mode={mode} data-presentation={presentation}>
+  return <div className={styles.reader} data-subject-mode={mode} data-presentation={presentation}
+    data-book-controls={bookControls || undefined} data-book-size={bookSize}>
+    {presentation === 'book' && bookControls && <div className={styles.bookControls}>
+      <label>Text size <select value={bookSize} onChange={event => {
+        const size = event.target.value
+        if (size === 'standard' || size === 'large' || size === 'larger') setBookSize(size)
+      }}>
+        <option value="standard">Standard</option>
+        <option value="large">Large</option>
+        <option value="larger">Extra large</option>
+      </select></label>
+    </div>}
     {(title || goal) && <header className={styles.heading}>
       {title && <ReaderHeading id={`${anchorPrefix}-title`} tabIndex={-1}>{title}</ReaderHeading>}
       {goal && <p><strong>What you will learn:</strong> {goal}</p>}

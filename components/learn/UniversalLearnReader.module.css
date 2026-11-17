@@ -86,3 +86,23 @@
 .reader[data-presentation=book] .feedback { background: #f5f0e5; border-color: #ded8cc; }
 .reader[data-presentation=book] .feedback summary { color: #282720; }
 .reader[data-presentation=book] .feedbackBody { border-color: #ded8cc; }
+
+/* Optional academic reader controls, scoped to the CPA reader. */
+.bookControls{display:flex;justify-content:flex-end;margin-bottom:1rem;font:normal .875rem system-ui,sans-serif}
+.bookControls label{display:flex;align-items:center;gap:.5rem}
+.bookControls select{min-height:44px;max-width:100%;padding:.25rem .5rem;border:1px solid currentColor;border-radius:.4rem;background:transparent;color:inherit;font:inherit}
+.bookControls select:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.reader[data-book-controls=true]{min-width:0;width:100%;overflow-wrap:anywhere}
+.reader[data-book-controls=true][data-book-size=large] .body{font-size:1.3rem}
+.reader[data-book-controls=true][data-book-size=larger] .body{font-size:1.5rem}
+.reader[data-book-controls=true] .tableScroller{min-width:0}
+.reader[data-book-controls=true] .tableScroller td,.reader[data-book-controls=true] .tableScroller th{overflow-wrap:normal}
+@media(prefers-color-scheme:dark){
+  .reader[data-book-controls=true]{background:#1c1d20;color:#f1eee6}
+  .reader[data-book-controls=true] .heading,.reader[data-book-controls=true] .tableScroller td,.reader[data-book-controls=true] .tableScroller th{border-color:#5d5d5d}
+  .reader[data-book-controls=true] .tableScroller th,.reader[data-book-controls=true] .feedback{background:#303137;color:inherit;border-color:#5d5d5d}
+  .reader[data-book-controls=true] .feedback summary{color:inherit}
+  .reader[data-book-controls=true] .feedbackBody{border-color:#5d5d5d}
+  .reader[data-book-controls=true] .formula,.reader[data-book-controls=true] .activity,.reader[data-book-controls=true] .passage{background:#282b30;color:inherit;border-color:#5d5d5d}
+  .reader[data-book-controls=true] .formula figcaption,.reader[data-book-controls=true] .activity strong,.reader[data-book-controls=true] .passage footer{color:inherit}
+}
