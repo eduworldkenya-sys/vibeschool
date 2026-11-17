@@ -13,6 +13,10 @@ Effective from 17 November 2026, only pre-primary through secondary school (incl
 
 Migration `20261117042515_mute_post_secondary_public_scope.sql` is the exact version recorded in the production migration ledger by the governed migration tool. The SQL was tested in a transaction with anonymous/authenticated role assertions and rolled back; it was then applied under explicit owner instruction to suppress the public feature. Post-apply live verification found 0 visible courses/modules/topics/CPA books/CPA chapters from both ordinary database roles, and 15 visible school textbooks on both. The privileged inventory remained: 9 courses, 22 CPA paper modules, 11 published CPA topics, 2 published CPA originals, 1 existing post-secondary pathway.
 
+## Clean migration replay reconciliation
+
+The production migration ledger retains the original applied statements. The repository version adds replay-only prerequisites for `course_enrollments` and `vibe_saved_items` (tables already present in production but absent from earlier clean migration replay). Columns, constraints, indexes, grants and permissive owner policies were checked against the live PostgreSQL catalog. The restrictive policy still applies on both fresh and production databases. The school-path predicate assertion is independent of seed data for clean replay; live positive textbook counts are verified separately above. No further production mutation was performed to reconcile repository replay.
+
 ## Unmuting
 
 The release must be explicitly approved. Do not drop security policies or change historical content status. In a reviewed forward migration replace only `public.post_secondary_public_enabled()` to return true. Re-enable the application flag in the same reviewed release and test the full account, course, assessment, catalogue, publication, existing learner and QA journeys. Reconcile switch state and validate both database and production frontend; neither gate should be considered sufficient on its own. For the next public-only release the two gates must continue to deny by default.

@@ -31,6 +31,43 @@ revoke all on function public.post_secondary_publication_visible(uuid) from publ
 grant execute on function public.post_secondary_publication_visible(uuid) to anon, authenticated, service_role;
 comment on function public.post_secondary_publication_visible(uuid) is 'A visibility intersection only; never grants content access. Preserves school and general reading.';
 
+-- Clean-replay compatibility: production catalog verified 2026-11-17.
+-- These two legacy tables already existed before the recorded live migration.
+-- CREATE IF NOT EXISTS and matching existing policy/index/grant definitions
+-- reconstruct the missing ledger prerequisites without replacing existing data.
+create table if not exists public.course_enrollments (
+  id uuid primary key default gen_random_uuid(),
+  learner_id uuid not null references public.learner_profiles(id) on delete cascade,
+  course_id uuid not null references public.courses(id) on delete cascade,
+  enrolled_at timestamptz not null default now(),
+  unique (learner_id, course_id)
+);
+alter table public.course_enrollments enable row level security;
+revoke all on public.course_enrollments from public;
+grant select, insert, update, delete on public.course_enrollments to anon, authenticated;
+grant all on public.course_enrollments to service_role;
+drop policy if exists "learner inserts own enrollment" on public.course_enrollments;
+create policy "learner inserts own enrollment" on public.course_enrollments for insert with check (auth.uid() = learner_id);
+drop policy if exists "learner reads own enrollment" on public.course_enrollments;
+create policy "learner reads own enrollment" on public.course_enrollments for select using (auth.uid() = learner_id);
+
+create table if not exists public.vibe_saved_items (
+  id uuid primary key default gen_random_uuid(),
+  viewer_id uuid not null references public.profiles(id) on delete cascade,
+  publication_id uuid not null references public.vibe_publications(id) on delete cascade,
+  chapter_id uuid references public.vibe_chapters(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+alter table public.vibe_saved_items enable row level security;
+revoke all on public.vibe_saved_items from public, anon;
+grant select, insert, update, delete on public.vibe_saved_items to authenticated;
+grant all on public.vibe_saved_items to service_role;
+create unique index if not exists uq_vibe_saved_items_book on public.vibe_saved_items(viewer_id, publication_id) where chapter_id is null;
+create unique index if not exists uq_vibe_saved_items_chapter on public.vibe_saved_items(viewer_id, publication_id, chapter_id) where chapter_id is not null;
+create index if not exists idx_vibe_saved_items_viewer on public.vibe_saved_items(viewer_id, created_at desc);
+drop policy if exists vibe_saved_items_owner_select on public.vibe_saved_items;
+create policy vibe_saved_items_owner_select on public.vibe_saved_items for select using (viewer_id=auth.uid());
+
 -- Existing authenticated owners retain their private pathway lookup to route to a
 -- neutral unavailable screen. New pathway inserts and changes are denied at RLS.
 -- Existing owned records are preserved, never silently reclassified.
@@ -1020,6 +1057,12 @@ begin
 end;
 $function$;
 
+-- Explicitly mirror the live legacy RPC execution boundary on a fresh reconstruction.
+revoke all on function public.get_saved_publications(integer) from public, anon, authenticated, service_role;
+grant execute on function public.get_saved_publications(integer) to authenticated, service_role;
+revoke all on function public.toggle_saved_publication(uuid) from public, anon, authenticated, service_role;
+grant execute on function public.toggle_saved_publication(uuid) to authenticated, service_role;
+
 -- Transactional fail-closed assertions; run before considering the release complete.
 do $assert$
 begin
@@ -1027,7 +1070,7 @@ begin
   if public.post_secondary_publication_visible('51f1052d-2f59-46bb-9186-c1a7937d203a') or public.post_secondary_publication_visible('c0b2a83f-d726-4eed-812e-7d79f57497df') then
     raise exception 'CPA originals must be muted';
   end if;
-  if not exists (select 1 from public.vibe_publications where status='published' and format='vibetextbook' and public.post_secondary_publication_visible(id)) then
+  if not public.post_secondary_publication_visible('00000000-0000-0000-0000-000000000001'::uuid) then
     raise exception 'school textbook discovery must remain available';
   end if;
 end $assert$;
