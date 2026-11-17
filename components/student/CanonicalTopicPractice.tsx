@@ -227,8 +227,11 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
       <div className={styles.eyebrow}>{subjectFilter || (subjects.length===1?subjects[0]:'Topic Practice')}</div>
       <div className={styles.titleRow}>
         <h1 className={styles.heading}>Practice</h1>
-        <span className={styles.titleActions}>
+        <span className={styles.titleActions} role="group" aria-label="Other learning tools">
           <span className={styles.count}>{loading?'Loading…':topicCards.length+' topic'+(topicCards.length===1?'':'s')}</span>
+          <button type="button" className={styles.progressLink} aria-label="Revision" title="Revision" onClick={()=>router.push('/student/vibelearn/revision'+(subjectFilter?'?subject='+encodeURIComponent(subjectFilter):''))}>
+            <BookOpen size={18} aria-hidden="true"/>
+          </button>
           <button type="button" className={styles.progressLink} aria-label="My practice progress" title="My practice progress" onClick={()=>router.push('/student/vibelearn/topic-practice/progress'+(subjectFilter?'?subject='+encodeURIComponent(subjectFilter):''))}>
             <CheckCircle2 size={18} aria-hidden="true"/>
           </button>

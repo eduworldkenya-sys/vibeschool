@@ -1,9 +1,8 @@
-// Keep the canonical Node 20 CI runtime and support newer local runtimes.
-// Node 20 has module.register but not module.registerHooks.
+// Preserve canonical Node 20 CI and newer local runtimes.
 import * as moduleApi from 'node:module';
 if (typeof moduleApi.registerHooks === 'function') {
-  const { resolve, load } = await import('./typescript-loader-hooks.mjs');
-  moduleApi.registerHooks({resolve, load});
+  const {resolveSync, load} = await import('./typescript-loader-hooks.mjs');
+  moduleApi.registerHooks({resolve:resolveSync, load});
 } else {
   moduleApi.register('./typescript-loader-hooks.mjs', import.meta.url);
 }
