@@ -1,4 +1,5 @@
 'use client'
+import { isMutedPostSecondaryPublication } from '@/lib/learner/learning-levels'
 import { useEffect, useState } from 'react'
 import type { OfflineBook } from '@/lib/read/offlinePublicBooks'
 import { deleteOfflineBook, listOfflineBooks } from '@/lib/read/offlinePublicBooks'
@@ -14,7 +15,7 @@ export default function OfflineBooksLibrary(){
   const [error,setError]=useState('')
   const [loading,setLoading]=useState(true)
   const refresh=async()=>{
-    try{setBooks(await listOfflineBooks());setError('')}catch(e){setError(e instanceof Error?e.message:'Offline storage unavailable.')}
+    try{setBooks((await listOfflineBooks()).filter(book=>!isMutedPostSecondaryPublication(book.id)));setError('')}catch(e){setError(e instanceof Error?e.message:'Offline storage unavailable.')}
     finally{setLoading(false)}
   }
   useEffect(()=>{void refresh()},[])
