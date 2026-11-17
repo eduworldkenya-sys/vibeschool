@@ -1,4 +1,5 @@
 'use client'
+import { POST_SECONDARY_PUBLIC_ENABLED } from '@/lib/learner/learning-levels'
 
 import { Suspense, useEffect, useState, type ReactNode } from 'react'
 import Image from 'next/image'
@@ -94,7 +95,7 @@ function LearnHeader({ student }: { student: boolean }) {
       <Link href="/learn" aria-current={subjects ? 'page' : undefined}>School subjects</Link>
       <Link href="/learn?view=reading" aria-current={reading ? 'page' : undefined}>All reading</Link>
       <Link href="/learn/stories" aria-current={stories ? 'page' : undefined}>Stories &amp; Series</Link>
-      {!student && <Link href="/learn?view=courses" aria-current={courses ? 'page' : undefined}>College &amp; courses</Link>}
+      {POST_SECONDARY_PUBLIC_ENABLED && !student && <Link href="/learn?view=courses" aria-current={courses ? 'page' : undefined}>College &amp; courses</Link>}
       {student && <Link href="/student/study">My learning</Link>}
     </nav>
   </header>

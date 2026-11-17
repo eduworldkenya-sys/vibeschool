@@ -1,4 +1,5 @@
 'use client'
+import { POST_SECONDARY_PUBLIC_ENABLED } from '@/lib/learner/learning-levels'
 
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -91,7 +92,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const router = useRouter()
   const params = useSearchParams()
   const basePath = '/learn'
-  const collectionView = params.get('view') === 'reading' ? 'reading' : params.get('view') === 'courses' ? 'courses' : null
+  const collectionView = params.get('view') === 'reading' ? 'reading' : POST_SECONDARY_PUBLIC_ENABLED && params.get('view') === 'courses' ? 'courses' : null
   const preferredGrade = recogniseLearnerGrade(learnerGrade) ?? 'Grade 4'
   const urlGrade = params.get('grade')
   const grade = SCHOOL_LEVELS.some(level =>
@@ -297,7 +298,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
             <div className={styles.intro}><div>
               <div className={styles.kicker}>One destination for your learning content</div>
               <h1 className={styles.pageTitle}>What would you like to learn?</h1>
-              <p className={styles.description}>Choose your grade and subject to open released lessons, exercises and textbooks. Browse all published reading and courses from this same library.</p>
+              <p className={styles.description}>Choose your grade and subject to open released lessons, exercises and textbooks. Browse published reading from this same library.</p>
             </div></div>
             <nav className={styles.gradeTabs} aria-label="Choose grade">
               {SCHOOL_LEVELS.find(level => level.id === activeLevel)?.grades.map(item =>

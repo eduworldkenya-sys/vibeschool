@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { learnerDisplayName } from '@/lib/student/learner-welcome'
-import { resolveLearningSelection } from '@/lib/learner/learning-levels'
+import { resolveRegistrationLearningSelection } from '@/lib/learner/learning-levels'
 import LearningLevelSelect from '@/components/learner/LearningLevelSelect'
 import { useAuthAppearance } from '@/app/auth/useAuthAppearance'
 import styles from './signup.module.css'
@@ -35,7 +35,7 @@ export default function IndependentLearnerSignup() {
   },[])
 
   async function continueLearning() {
-    if (!resolveLearningSelection(level,choice)||!name.trim()||busy) return
+    if (!resolveRegistrationLearningSelection(level,choice)||!name.trim()||busy) return
     setBusy(true)
     setMessage('')
     try {
@@ -70,7 +70,7 @@ export default function IndependentLearnerSignup() {
           </div>}
           <LearningLevelSelect level={level} choice={choice} onLevelChange={setLevel}
             onChoiceChange={setChoice} disabled={busy}/>
-          <button className={styles.primary} disabled={!resolveLearningSelection(level,choice)||!name.trim()||busy}
+          <button className={styles.primary} disabled={!resolveRegistrationLearningSelection(level,choice)||!name.trim()||busy}
             type="button" onClick={()=>void continueLearning()}>{busy?'Saving…':'Continue'}</button>
         </>}
       {message && <p className={styles.message} role="alert">{message}</p>}

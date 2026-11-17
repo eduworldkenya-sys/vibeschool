@@ -28,7 +28,7 @@ const chain = (value={error:null}) => {
   return result
 }
 
-async function attempt({existing=null,readError=null,insertError=null,level='professional',choice='CPA',bearer=true}={}) {
+async function attempt({existing=null,readError=null,insertError=null,level='professional',choice='CPA',bearer=true,enabled=true}={}) {
   const operations=[]
   const admin={
     auth:{getUser:async tokenValue=>{operations.push('verified-jwt');assert.equal(tokenValue,token);return {data:{user},error:null}}},
@@ -90,7 +90,7 @@ async function attempt({existing=null,readError=null,insertError=null,level='pro
         return learner
       }}
       if(name==='@/lib/learner/independent-grade')return {validLearnerGrade:()=>false}
-      if(name==='@/lib/learner/learning-levels')return {resolveLearningSelection:(l,c)=>l==='professional'&&c==='CPA'?
+      if(name==='@/lib/learner/learning-levels')return {resolveRegistrationLearningSelection:(l,c)=>enabled&&l==='professional'&&c==='CPA'?
         {gradeLabel:'Professional Studies',pathway:{programme_family:'professional_studies',qualification_code:'CPA',examining_body:'KASNEB'}}:null}
       if(name==='@/lib/student/learner-welcome')return {learnerDisplayName:(name,old)=>name||old}
       throw Error('Unexpected route dependency: '+name)
@@ -104,6 +104,9 @@ async function attempt({existing=null,readError=null,insertError=null,level='pro
   return {response,operations}
 }
 
+const blocked=await attempt({enabled:false})
+assert.equal(blocked.response.status,400)
+assert.deepEqual(blocked.operations,[],'muted CPA request rejects before auth or writes')
 const success=await attempt()
 assert.equal(success.response.status,200)
 assert.equal(success.response.payload.destination,'/student/college')

@@ -64,3 +64,35 @@ for (const slug of linkedTopics) assert.ok(unit02.includes(`"slug": "${slug}"`))
 assert.match(topicReader, /window.location.hash === '#practice'/)
 assert.match(practice, /Full practice paper coming soon/)
 console.log('PASS: one canonical post-secondary learner, source-grounded KASNEB paper catalogue, private CPA path, no lower school learning UI')
+
+
+// School-only rollout preserves the full dormant architecture and intersects every user-facing entry.
+const scope = read('lib/learner/learning-levels.ts')
+assert.match(scope, /POST_SECONDARY_PUBLIC_ENABLED: boolean = false/)
+assert.match(scope, /PUBLIC_LEARNING_LEVELS = LEARNING_LEVELS\.filter/)
+assert.match(scope, /resolveRegistrationLearningSelection/)
+assert.match(read('app/signup/student/email/actions.ts'), /resolveRegistrationLearningSelection/)
+assert.match(read('app/api/learner/independent/grade/route.ts'), /resolveRegistrationLearningSelection/)
+assert.match(read('app/student/qa/page.tsx'), /PUBLIC_LEARNING_LEVELS\.flatMap/)
+assert.match(middleware, /isCollege && !POST_SECONDARY_PUBLIC_ENABLED/)
+assert.match(middleware, /target\.pathname = '\/learning-unavailable'/)
+assert.match(middleware, /pathname\.split\('\/'\)\.some\(isMutedPostSecondaryPublication\)/)
+for (const layoutPath of ['app/learn/[courseSlug]/layout.tsx','app/student/college/layout.tsx']) {
+  assert.match(read(layoutPath), /if \(!POST_SECONDARY_PUBLIC_ENABLED\) notFound\(\)/)
+}
+assert.match(read('components/learn/LearnNavigation.tsx'), /POST_SECONDARY_PUBLIC_ENABLED && !student && <Link/)
+assert.match(read('components/public/PublicBottomNav.tsx'), /POST_SECONDARY_PUBLIC_ENABLED \|\| item\.icon !== 'courses'/)
+assert.match(read('components/learn/SchoolLearnLibrary.tsx'), /POST_SECONDARY_PUBLIC_ENABLED && params\.get\('view'\) === 'courses'/)
+assert.match(read('components/read/OfflineBooksLibrary.tsx'), /filter\(book=>!isMutedPostSecondaryPublication\(book\.id\)\)/)
+const muteSql = read('supabase/migrations/20261117042515_mute_post_secondary_public_scope.sql')
+for (const table of ['courses','modules','topics','course_enrollments','learner_progress','learner_education_paths','vibe_publications','vibe_chapters','content_blocks','vibe_saved_items','vibe_reading_progress','vibe_workspace_items']) {
+  assert.ok(muteSql.includes('on public.'+table+' as restrictive'), 'missing public mute restriction: '+table)
+}
+assert.match(muteSql, /select false/)
+assert.match(muteSql, /where public\.post_secondary_public_enabled\(\) and q\.topic_id/)
+assert.match(muteSql, /where public\.post_secondary_public_enabled\(\) and q\.id/)
+assert.match(muteSql, /not public\.post_secondary_public_enabled\(\) then/)
+for (const id of ['51f1052d-2f59-46bb-9186-c1a7937d203a','c0b2a83f-d726-4eed-812e-7d79f57497df']) {
+  assert.ok(scope.includes(id) && muteSql.includes(id), 'paused book IDs must agree across browser and database')
+}
+console.log('PASS: school-only scope, direct-link denial, registration denial and reversible data restrictions')

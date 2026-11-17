@@ -1,4 +1,5 @@
 'use client'
+import { POST_SECONDARY_PUBLIC_ENABLED } from '@/lib/learner/learning-levels'
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -50,7 +51,7 @@ const PUBLIC_ROOTS = new Set(['/', '/teacher', '/schools', '/product', '/sandbox
 export function PublicBottomNav({ forceVisible = false, mode = 'site', activeView = null }: { forceVisible?: boolean; mode?: 'site' | 'learn'; activeView?: string | null } = {}) {
   const pathname = usePathname()
   if (!forceVisible && !PUBLIC_ROOTS.has(pathname)) return null
-  const displayedItems = mode === 'learn' ? learnItems : items
+  const displayedItems = mode === 'learn' ? learnItems.filter(item => POST_SECONDARY_PUBLIC_ENABLED || item.icon !== 'courses') : items
 
   return (
     <>
@@ -60,7 +61,7 @@ export function PublicBottomNav({ forceVisible = false, mode = 'site', activeVie
         background: 'rgba(255,255,255,.97)', borderTop: '1px solid #e5e7eb',
         boxShadow: '0 -5px 22px rgba(17,24,39,.08)', backdropFilter: 'blur(14px)',
       }}>
-        <div style={{ width: 'min(640px, 100%)', height: 64, margin: '0 auto', display: 'grid', gridTemplateColumns: mode === 'learn' ? 'repeat(5, minmax(0, 1fr))' : 'repeat(6, minmax(0, 1fr))', alignItems: 'center' }}>
+        <div style={{ width: 'min(640px, 100%)', height: 64, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(' + displayedItems.length + ', minmax(0, 1fr))', alignItems: 'center' }}>
           {displayedItems.map((item) => {
             const isActive = mode === 'learn'
               ? item.href === '/learn' ? pathname === '/learn' && !activeView

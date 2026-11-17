@@ -42,6 +42,6 @@ assert.match(bottom,/matchMedia\("\(min-width:1024px\)"\)/,'Desktop transition c
 assert.match(navCss,/\.sheetGroupTitle\{/,'More sections remain discoverable on mobile')
 assert.match(navCss,/\.sheetActive\{/,'Active destinations remain identifiable')
 assert.match(learnChrome,/LearnHeader student=\{student === true\}/,'Learn discovery knows the learner context')
-assert.match(learnChrome,/!student && <Link href="\/learn\?view=courses"/,'Public course destination is not forced onto signed-in learner header')
+assert.match(learnChrome,/POST_SECONDARY_PUBLIC_ENABLED && !student && <Link href="\/learn\?view=courses"/,'Public course destination is not forced onto signed-in learner header')
 assert.match(learnChrome,/student && <Link href="\/student\/study"/,'Signed-in learner can return to their personal Learn')
 console.log('Student navigation ownership and context contracts: PASS')

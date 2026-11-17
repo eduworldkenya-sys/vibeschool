@@ -12,7 +12,7 @@ const js = (file, jsx = false) => ts.transpileModule(read(file), { compilerOptio
 
 const moduleExports = {}
 runInNewContext(js('lib/learner/learning-levels.ts'), { exports:moduleExports })
-const { LEARNING_LEVELS, resolveLearningSelection } = moduleExports
+const { LEARNING_LEVELS, PUBLIC_LEARNING_LEVELS, resolveLearningSelection, resolveRegistrationLearningSelection, POST_SECONDARY_PUBLIC_ENABLED } = moduleExports
 assert.equal(LEARNING_LEVELS.length, 8)
 assert.deepEqual(Array.from(LEARNING_LEVELS, group=>group.id), [
   'pre-primary','primary','junior','senior','secondary','college','university','professional',
@@ -37,7 +37,7 @@ runInNewContext(js('components/learner/LearningLevelSelect.tsx',true),{
   exports:picker,
   require:name=>{
     if(name==='react/jsx-runtime')return {jsx,jsxs:jsx}
-    if(name==='@/lib/learner/learning-levels')return {LEARNING_LEVELS}
+    if(name==='@/lib/learner/learning-levels')return {PUBLIC_LEARNING_LEVELS}
     throw Error('Unexpected import: '+name)
   },
 })
@@ -49,15 +49,28 @@ function visit(node,output=[]) {
   return output
 }
 let updatedLevel='',updatedChoice='not-reset'
-const root=picker.default({level:'professional',choice:'CPA',
+const root=picker.default({level:'primary',choice:'Grade 4',
   onLevelChange:value=>updatedLevel=value,onChoiceChange:value=>updatedChoice=value})
 const nodes=visit(root)
 const selects=nodes.filter(node=>node.type==='select')
 assert.equal(selects.length,2,'compact design has exactly two dropdowns')
 const levelOptions=visit(selects[0]).filter(node=>node.type==='option')
-assert.equal(levelOptions.length,9,'all eight education levels plus placeholder')
+assert.equal(POST_SECONDARY_PUBLIC_ENABLED,false)
+assert.deepEqual(Array.from(PUBLIC_LEARNING_LEVELS,group=>group.id),['pre-primary','primary','junior','senior','secondary'])
+assert.equal(levelOptions.length,6,'five school levels plus placeholder')
+assert.ok(!levelOptions.some(option=>['college','university','professional'].includes(option.props.value)))
+for(const group of LEARNING_LEVELS) for(const choice of group.choices) {
+  const legacy=resolveLearningSelection(group.id,choice)
+  if(legacy.pathway) assert.equal(resolveRegistrationLearningSelection(group.id,choice),null)
+  else assert.ok(resolveRegistrationLearningSelection(group.id,choice))
+  assert.ok(resolveRegistrationLearningSelection(group.id,choice,true),'reviewed unmute preserves all choices')
+}
 const choices=Array.from(visit(selects[1]).filter(node=>node.type==='option'),node=>node.props.children)
-assert.deepEqual(choices,['Choose','CPA','CS'])
+assert.deepEqual(choices,['Choose','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6'])
+const stale=visit(picker.default({level:'professional',choice:'CPA',onLevelChange:()=>{},onChoiceChange:()=>{}})).filter(node=>node.type==='select')
+assert.equal(stale[0].props.value,'')
+assert.equal(stale[1].props.disabled,true)
+assert.equal(stale[1].props.value,'')
 selects[0].props.onChange({target:{value:'primary'}})
 assert.equal(updatedLevel,'primary')
 assert.equal(updatedChoice,'','changing level clears stale choice')
@@ -70,7 +83,7 @@ for(const page of [
   assert.match(read(page),/data-auth-theme=\{appearance\}/)
 }
 const route=read('app/api/learner/independent/grade/route.ts')
-assert.match(route,/resolveLearningSelection/)
+assert.match(route,/resolveRegistrationLearningSelection/)
 assert.match(route,/learner_email_verified_at/)
 assert.match(route,/getUser\(/)
 assert.match(route,/ensure_independent_learner_student/)
@@ -79,7 +92,7 @@ assert.match(route,/existingPath/)
 assert.match(route,/restoreGrade/)
 assert.doesNotMatch(route,/claim_my_initial_role|school_members|student_classes.*insert/)
 const emailActions=read('app/signup/student/email/actions.ts')
-assert.match(emailActions,/resolveLearningSelection/)
+assert.match(emailActions,/resolveRegistrationLearningSelection/)
 assert.match(emailActions,/ensure_independent_learner_student/)
 assert.match(emailActions,/learner_education_paths/)
 const migration=read('supabase/migrations/20261115151020_independent_learning_level_paths.sql')
@@ -95,4 +108,4 @@ assert.match(read('app/auth/useAuthAppearance.ts'),/readTheme\(\)/)
 assert.match(read('app/student/college/page.tsx'),/otherPath/)
 assert.match(read('app/student/college/page.tsx'),/qualification_code !== 'CPA'/)
 assert.match(read('app/student/college/profile/page.tsx'),/study\.qualification_code/)
-console.log('PASS: all eight level choices, two-dropdown UX, invalid paths, theme and verified account routing')
+console.log('PASS: school-only public choices and preserved eight-level catalogue, two-dropdown UX, invalid paths, theme and verified account routing')
