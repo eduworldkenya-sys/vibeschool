@@ -57,6 +57,7 @@ export interface TeachingOccurrenceRow {
   completed_at: string | null
   cancelled_at: string | null
   cancelled_reason: string | null
+  recovered_from_id: string | null
   rescheduled_to_slot_id: string | null
   rescheduled_to_date: string | null
   created_at: string
@@ -242,11 +243,11 @@ function deriveLifecycle(
   slotEndTime: string,
   occurrenceDate: string,
 ): Lifecycle {
-  if (persisted && ['in_progress', 'completed', 'cancelled', 'rescheduled'].includes(persisted.lifecycle)) {
+  // An authoritative missed record must never become 'ready' just because
+  // a teacher has prepared a plan after the missed date.
+  if (persisted && ['in_progress', 'completed', 'cancelled', 'rescheduled', 'missed'].includes(persisted.lifecycle)) {
     return persisted.lifecycle
   }
-  if (lessonPlanId) return 'ready'
-
   // Timetable dates/times are Kenya school time. Parse them with an explicit
   // Africa/Nairobi offset so lifecycle truth is independent of the browser or
   // device timezone. Nairobi is UTC+03:00 year-round (no DST).
@@ -254,6 +255,7 @@ function deriveLifecycle(
   if (!Number.isNaN(slotEnd.getTime()) && Date.now() > slotEnd.getTime()) {
     return 'missed'
   }
+  if (lessonPlanId) return 'ready'
   return 'planned'
 }
 
@@ -266,8 +268,6 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
 
   if (slotErr) throw slotErr
   if (!slot) return null
-  if (slot.effective_from && key.occurrenceDate < slot.effective_from) return null
-  if (slot.effective_until && key.occurrenceDate > slot.effective_until) return null
 
   const [lessonPlanRes, occurrenceRes, expectedEnrollmentRes] = await Promise.all([
     supabase.from('lesson_plans')
@@ -295,6 +295,12 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
 
   const lessonPlanId = lessonPlanRes.data?.id ?? null
   const persistedOccurrence = occurrenceRes.data as { id: string; lifecycle: Lifecycle } | null
+  // A schedule revision may narrow a slot's effective dates. Existing
+  // occurrences remain historical authority and must still reopen; only
+  // never-created candidate dates are excluded by the current slot window.
+  if (!persistedOccurrence &&
+      ((slot.effective_from && key.occurrenceDate < slot.effective_from)
+        || (slot.effective_until && key.occurrenceDate > slot.effective_until))) return null
   const typedSupabase = getSupabaseClient()
 
   const progressQuery = persistedOccurrence
@@ -374,6 +380,7 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
   return {
     key,
     occurrenceId: persistedOccurrence?.id ?? null,
+    persistedLifecycle: persistedOccurrence?.lifecycle ?? null,
     schoolId: slot.school_id,
     teacherId: slot.teacher_id,
     classId: slot.class_id,
