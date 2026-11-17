@@ -15,6 +15,7 @@ on:
       - "scripts/sql/tbl012_core_schema_hashes.sql"
       - "scripts/tbl012-compare-schema-hashes.py"
       - "scripts/test-timetable-reconciliation.mjs"
+      - "scripts/test-school-disruptions.mjs"
       - "app/teacher/timetable/setup/page.tsx"
       - "components/teacher/AddSlotModal.tsx"
       - "scripts/validate-tbl011-clean-rebuild.py"
@@ -43,7 +44,9 @@ jobs:
       - name: Verify timetable reconciliation contracts
         # Node's built-in test runner and Python stdlib need no npm install.
         # This exercises the exact live-baseline and forward-delta guards.
-        run: node --test scripts/test-timetable-reconciliation.mjs
+        run: |
+          node --test scripts/test-timetable-reconciliation.mjs
+          node --test scripts/test-school-disruptions.mjs
 
       - name: Initialize evidence
         shell: bash

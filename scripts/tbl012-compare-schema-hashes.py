@@ -25,6 +25,17 @@ EXPECTED_FIELDS = {
 }
 
 
+# The only additional forward schema changes accepted for the pending school
+# disruption migration. SHA-like fingerprints come from TBL-011 isolated rebuild
+# run 43233363471, artifact 13951158098; never from guessed live DDL.
+DISRUPTION_FORWARD_HASHES = {
+    ("teaching_occurrences", "columns"): "7a7620c8a88a5b91052a63b9f3bb2bf3",
+    ("teaching_occurrences", "constraints"): "d1e26c0cd4c8746e37298833034fcaa7",
+    ("teaching_occurrences", "indexes"): "58a95a92d4ed6ce5d3d9950542194e02",
+    ("teaching_occurrences", "triggers"): "f9d46b391fb98504786741e4fa53e161",
+}
+
+
 class ComparisonFailure(Exception):
     pass
 
@@ -163,44 +174,75 @@ def main() -> int:
                 }:
                     raise ComparisonFailure("forward-delta metadata is incomplete")
                 key = (row["table"], row["section"])
-                # Only the timetable slot trigger structure may differ. Each
-                # claimed forward hash must match the actual isolated rebuild;
-                # the declaration must also name and verify its migrations.
-                # Neither an unknown trigger nor an arbitrary hash is accepted.
-                if key != ("timetable_slots", "triggers") or key in permitted:
+                # Only the specific audited pending migration structures may
+                # differ. Their hashes must match the isolated local rebuild;
+                # all other structures remain fail-closed.
+                if key in permitted or key not in (
+                    {("timetable_slots", "triggers")} | set(DISRUPTION_FORWARD_HASHES)
+                ):
                     raise ComparisonFailure("unexpected or duplicated forward-delta scope")
-                school_period = Path("supabase/migrations/20261112101600_timetable_school_period_authority.sql")
-                if not school_period.is_file():
-                    raise ComparisonFailure("school period migration is absent")
-                school_sql = school_period.read_text(encoding="utf-8").lower()
-                if any(requirement not in school_sql for requirement in (
-                    "create trigger timetable_slot_period_guard",
-                    "effective_from, effective_until",
-                    "public.validate_timetable_slot_period()",
-                )):
-                    raise ComparisonFailure("school period migration does not define reviewed guard")
+                if key == ("timetable_slots", "triggers"):
+                    school_period = Path("supabase/migrations/20261112101600_timetable_school_period_authority.sql")
+                    if not school_period.is_file():
+                        raise ComparisonFailure("school period migration is absent")
+                    school_sql = school_period.read_text(encoding="utf-8").lower()
+                    if any(requirement not in school_sql for requirement in (
+                        "create trigger timetable_slot_period_guard",
+                        "effective_from, effective_until",
+                        "public.validate_timetable_slot_period()",
+                    )):
+                        raise ComparisonFailure("school period migration does not define reviewed guard")
 
-                if row["migration"] == "20261112101600_timetable_school_period_authority.sql":
-                    if row["rebuilt_hash"] != "f5ad5e6b6f5dc8fac89fd5f8d20f39dd":
-                        raise ComparisonFailure("period-guard forward fingerprint changed")
-                elif row["migration"] == "20261112150000_unified_school_tuition_schedule.sql":
-                    tuition = Path("supabase/migrations") / row["migration"]
-                    if not tuition.is_file():
-                        raise ComparisonFailure("unified school/tuition migration is absent")
-                    tuition_sql = tuition.read_text(encoding="utf-8").lower()
-                    if (
-                        row["rebuilt_hash"] != "a7ac9cc47ec44efe0eef1c1802559dac"
-                        or any(requirement not in tuition_sql for requirement in (
-                            "create trigger timetable_guard_tuition_schedule",
-                            "on public.timetable_slots",
-                            "public.timetable_school_tuition_overlap(new, l)",
-                            "vibetutor_guard_cross_schedule",
-                        ))
-                    ):
-                        raise ComparisonFailure("combined forward trigger fingerprint changed")
+                    if row["migration"] == "20261112101600_timetable_school_period_authority.sql":
+                        if row["rebuilt_hash"] != "f5ad5e6b6f5dc8fac89fd5f8d20f39dd":
+                            raise ComparisonFailure("period-guard forward fingerprint changed")
+                    elif row["migration"] == "20261112150000_unified_school_tuition_schedule.sql":
+                        tuition = Path("supabase/migrations") / row["migration"]
+                        if not tuition.is_file():
+                            raise ComparisonFailure("unified school/tuition migration is absent")
+                        tuition_sql = tuition.read_text(encoding="utf-8").lower()
+                        if (
+                            row["rebuilt_hash"] != "a7ac9cc47ec44efe0eef1c1802559dac"
+                            or any(requirement not in tuition_sql for requirement in (
+                                "create trigger timetable_guard_tuition_schedule",
+                                "on public.timetable_slots",
+                                "public.timetable_school_tuition_overlap(new, l)",
+                                "vibetutor_guard_cross_schedule",
+                            ))
+                        ):
+                            raise ComparisonFailure("combined forward trigger fingerprint changed")
+                    else:
+                        raise ComparisonFailure("unreviewed forward timetable migration")
                 else:
-                    raise ComparisonFailure("unreviewed forward timetable migration")
+                    if row["migration"] != "20261112194500_school_disruption_occurrences_p0.sql":
+                        raise ComparisonFailure("unreviewed disruption forward migration")
+                    if row["rebuilt_hash"] != DISRUPTION_FORWARD_HASHES[key]:
+                        raise ComparisonFailure("disruption forward fingerprint changed")
+                    disruption = Path("supabase/migrations") / row["migration"]
+                    if not disruption.is_file():
+                        raise ComparisonFailure("disruption migration is absent")
+                    disruption_sql = disruption.read_text(encoding="utf-8").lower()
+                    required = (
+                        "add column if not exists disruption_exception_id",
+                        "add column if not exists disruption_previous_lifecycle",
+                        "add column if not exists disruption_previous_reason",
+                        "add constraint teaching_occurrences_disruption_previous_check",
+                        "create index if not exists teaching_occurrences_disruption_exception_idx",
+                        "create trigger guard_school_disruption_teaching",
+                        "on public.teaching_occurrences",
+                    )
+                    if any(marker not in disruption_sql for marker in required):
+                        raise ComparisonFailure("disruption migration evidence changed")
                 permitted[key] = row
+
+        # A single migration must not be represented by a selective subset
+        # of its audited columns/constraints/indexes/triggers.
+        disruption_keys = {
+            key for key, row in permitted.items()
+            if row["migration"] == "20261112194500_school_disruption_occurrences_p0.sql"
+        }
+        if disruption_keys and disruption_keys != set(DISRUPTION_FORWARD_HASHES):
+            raise ComparisonFailure("incomplete disruption forward-delta declaration")
 
         differences: list[dict[str, str]] = []
 
@@ -230,7 +272,8 @@ def main() -> int:
         unexplained = [d for d in differences if d["classification"] == "UNEXPLAINED"]
         # Avoid retaining an obsolete production-delta exemption after the
         # authoritative production baseline itself has caught up.
-        stale_exemption = bool(permitted) and not expected_forward
+        acknowledged_keys = {(d["table"], d["section"]) for d in expected_forward}
+        stale_exemption = bool(set(permitted) - acknowledged_keys)
         if stale_exemption:
             raise ComparisonFailure("declared forward-delta exception is stale or changed")
 
