@@ -53,8 +53,9 @@ def rejected(source: dict, migrations: Path, config: Path, root: Path, message: 
 
 def run() -> None:
     approved = set(stage.APPROVED_TIMETABLE_VERSIONS)
-    assert len(approved) == 5
+    assert len(approved) == 7
     assert sorted(approved) == [
+        "20260819031000", "20260903104500",
         "20261112101500", "20261112101600", "20261112101700",
         "20261112101800", "20261112150000",
     ]

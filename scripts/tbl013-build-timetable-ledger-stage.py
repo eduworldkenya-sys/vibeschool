@@ -17,6 +17,8 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 TIMETABLE_MIGRATIONS = {
+    "20260819031000": "20260819031000_school_admin_teacher_assignment_integrity.sql",
+    "20260903104500": "20260903104500_lesson_homework_occurrence_convergence.sql",
     "20261112101500": "20261112101500_timetable_canonical_grades_and_allocations.sql",
     "20261112101600": "20261112101600_timetable_school_period_authority.sql",
     "20261112101700": "20261112101700_timetable_allocation_baseline_and_load.sql",
