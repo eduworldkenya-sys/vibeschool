@@ -129,3 +129,50 @@ export function adaptCanonicalLearnSections(input: unknown): CanonicalLearnSecti
   }
   return sections
 }
+
+/** Compatibility is for existing CPA manuscripts only, not new authoring.
+ * Keep existing canonical IDs and indexes; append the three supplementary
+ * sources in their original order. Never admit unknown block shapes silently.
+ */
+export function adaptCpaTextbookSections(topic: {
+  concept_tab?: unknown
+  kenya_context_tab?: unknown
+  common_errors_tab?: unknown
+  clinical_tip_tab?: unknown
+}): { sections: CanonicalLearnSection[]; complete: boolean } {
+  const sources = [
+    ['legacy-text', topic.concept_tab],
+    ['legacy-kenya', topic.kenya_context_tab],
+    ['legacy-errors', topic.common_errors_tab],
+    ['legacy-tip', topic.clinical_tip_tab],
+  ] as const
+  const sections: CanonicalLearnSection[] = []
+  const seen = new Set<string>()
+  let complete = true
+  for (const [prefix, source] of sources) {
+    if (source == null) continue
+    if (!Array.isArray(source)) { complete = false; continue }
+    for (const [index, value] of source.entries()) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        complete = false; continue
+      }
+      const row = value as Record<string, unknown>
+      const candidate = row.id === undefined && row.blocks === undefined && row.body === undefined &&
+        text(row.title) && text(row.text)
+        ? { id: `${prefix}-${index + 1}`, title: row.title, body: '',
+            blocks: [{ kind: 'paragraph', text: row.text }] }
+        : row
+      const [section] = adaptCanonicalLearnSections([candidate])
+      if (!section || (Array.isArray(candidate.blocks) &&
+          (section.blocks?.length ?? 0) !== candidate.blocks.length) ||
+          (candidate.blocks !== undefined && !Array.isArray(candidate.blocks)) ||
+          seen.has(section.id)) {
+        complete = false; continue
+      }
+      seen.add(section.id)
+      sections.push(section)
+    }
+  }
+  return { sections, complete: complete && Array.isArray(topic.concept_tab) &&
+    topic.concept_tab.length > 0 && sections.length > 0 }
+}

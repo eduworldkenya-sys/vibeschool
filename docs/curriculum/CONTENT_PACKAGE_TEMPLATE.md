@@ -379,3 +379,7 @@ Write one scoped statement grounded in evidence:
 - **Published / learner-visible for [exact scope]:** existing release authority was satisfied and the real consumer journey was verified.
 
 The three statements are **not interchangeable**. An unreviewed manuscript can be content-complete but not publication-ready. A repository policy commit can exist without any learner content being live.
+
+## CPA textbook evidence fields
+
+Record qualification and paper code; syllabus authority/version and outcome mapping; chapter and stable section IDs; original section coverage ledger; calculation inputs/outputs and independent check; journal/ledger/statement checks; progressive exercises and separate marking guide; canonical block validation result; mobile/theme/accessibility evidence; editorial reviewer and release decision. Missing evidence blocks release. No public activation is implied.
