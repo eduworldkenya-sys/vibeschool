@@ -1,7 +1,7 @@
 'use server'
 
 import { emailPilotEnabled, pilotEmail } from './config'
-import { resolveLearningSelection } from '@/lib/learner/learning-levels'
+import { resolveRegistrationLearningSelection } from '@/lib/learner/learning-levels'
 import { canUsePilot, finishPilotSignup, hasRestrictedIdentity, pilotClient, pilotAdminClient } from './server'
 
 const unavailable = 'Email signup is unavailable for this address.'
@@ -65,7 +65,7 @@ export async function signOutLearnerEmail() {
 }
 
 export async function saveIndependentEmailGrade(form: FormData) {
-  const selection = resolveLearningSelection(form.get('level'), form.get('choice'))
+  const selection = resolveRegistrationLearningSelection(form.get('level'), form.get('choice'))
   if (!selection) return { error: 'Choose a valid learning level and programme.' }
   try {
     const { client, commit } = pilotClient()

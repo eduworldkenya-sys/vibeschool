@@ -37,3 +37,24 @@ export function resolveLearningSelection(level: unknown, choice: unknown): Learn
   }
   return { gradeLabel: choice }
 }
+
+/** Public release scope. Keep historical education pathways intact while school-only rollout is active.
+ * Database RLS and RPC gates independently deny post-secondary access until the same reviewed unmute release.
+ */
+export const POST_SECONDARY_PUBLIC_ENABLED: boolean = false
+export const PUBLIC_LEARNING_LEVELS = LEARNING_LEVELS.filter(group =>
+  POST_SECONDARY_PUBLIC_ENABLED || !['college','university','professional'].includes(group.id))
+
+export function resolveRegistrationLearningSelection(level: unknown, choice: unknown, enabled = POST_SECONDARY_PUBLIC_ENABLED): LearningSelection | null {
+  const selected = resolveLearningSelection(level, choice)
+  return selected?.pathway && !enabled ? null : selected
+}
+
+// Existing CPA originals are retained in storage. These IDs also protect stale public links.
+const MUTED_PUBLICATION_IDS = new Set([
+  '51f1052d-2f59-46bb-9186-c1a7937d203a',
+  'c0b2a83f-d726-4eed-812e-7d79f57497df',
+])
+export function isMutedPostSecondaryPublication(id: string): boolean {
+  return !POST_SECONDARY_PUBLIC_ENABLED && MUTED_PUBLICATION_IDS.has(id.toLowerCase())
+}

@@ -1,4 +1,5 @@
 'use client'
+import { POST_SECONDARY_PUBLIC_ENABLED } from '@/lib/learner/learning-levels'
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -25,7 +26,7 @@ export default function StudentLearnLegacyRedirect() {
     const subject = prior.get('subject')
     if (subject && subject.length <= 120) next.set('subject', subject)
     const view = prior.get('view')
-    if (view === 'reading' || view === 'courses') next.set('view', view)
+    if (view === 'reading' || (POST_SECONDARY_PUBLIC_ENABLED && view === 'courses')) next.set('view', view)
     router.replace('/learn' + (next.size ? '?' + next.toString() : ''))
   }, [loading, identity?.className, router])
   return <main role="status" style={{ minHeight:'55vh', display:'grid', placeItems:'center', padding:24, background:'#f5f8f6', color:'#24563e' }}>

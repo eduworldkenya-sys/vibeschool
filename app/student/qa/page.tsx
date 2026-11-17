@@ -3,9 +3,9 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useStudent } from '@/lib/student-context'
-import { LEARNING_LEVELS, resolveLearningSelection } from '@/lib/learner/learning-levels'
+import { PUBLIC_LEARNING_LEVELS, resolveLearningSelection } from '@/lib/learner/learning-levels'
 
-const CHOICES = LEARNING_LEVELS.flatMap(group =>
+const CHOICES = PUBLIC_LEARNING_LEVELS.flatMap(group =>
   group.choices.map(choice => ({ key: group.id + ':' + choice, level: group.id, group: group.label, choice }))
 )
 const STORAGE = 'vibeschool:qa-study-level:v1:'

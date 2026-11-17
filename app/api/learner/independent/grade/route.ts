@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validLearnerGrade } from '@/lib/learner/independent-grade'
-import { resolveLearningSelection } from '@/lib/learner/learning-levels'
+import { resolveRegistrationLearningSelection } from '@/lib/learner/learning-levels'
 import { learnerDisplayName } from '@/lib/student/learner-welcome'
 
 export const runtime = 'nodejs'
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   let input: unknown
   try { input = await req.json() } catch { return NextResponse.json({ error: 'Invalid request' }, { status: 400 }) }
   const payload = input as { grade?: unknown; level?: unknown; choice?: unknown; name?: unknown } | null
-  const selected = resolveLearningSelection(payload?.level, payload?.choice)
+  const selected = resolveRegistrationLearningSelection(payload?.level, payload?.choice)
   // Keep the historic grade-only API contract for registered school-level accounts.
   const grade = selected?.gradeLabel ?? (validLearnerGrade(payload?.grade) ? payload.grade : null)
   const submittedName = payload?.name

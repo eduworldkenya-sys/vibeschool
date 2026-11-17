@@ -1,3 +1,4 @@
+import { POST_SECONDARY_PUBLIC_ENABLED, isMutedPostSecondaryPublication } from '@/lib/learner/learning-levels'
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { AUTH_DASHBOARDS, requiredRoleForPath, roleCanVisit, safeInternalPath, pathnameOnly } from '@/lib/auth-routing'
@@ -15,6 +16,19 @@ export async function middleware(request: NextRequest) {
     canonical.protocol = 'https:'
     canonical.port = ''
     return NextResponse.redirect(canonical, 308)
+  }
+
+  // Do not render or advertise retired public discovery/deep links while muted.
+  if (!POST_SECONDARY_PUBLIC_ENABLED &&
+      ((pathname === '/learn' && request.nextUrl.searchParams.get('view') === 'courses') ||
+       pathname === '/learn/courses' || pathname.startsWith('/learn/courses/') ||
+       pathname.split('/').some(isMutedPostSecondaryPublication))) {
+    const target = request.nextUrl.clone()
+    target.pathname = '/learn'
+    target.search = ''
+    const response = NextResponse.redirect(target, 307)
+    response.headers.set('Cache-Control', 'private, no-store')
+    return response
   }
 
   // Repair links where the query separator was encoded into the pathname.
@@ -146,6 +160,12 @@ export async function middleware(request: NextRequest) {
       return unavailable
     }
     const isCollege = education?.education_stage === 'post_secondary'
+    if (isCollege && !POST_SECONDARY_PUBLIC_ENABLED) {
+      const target = request.nextUrl.clone()
+      target.pathname = '/learning-unavailable'
+      target.search = ''
+      return redirectWithAuth(target)
+    }
     if (isCollege && ((studentRoute && !collegeRoute) || schoolLearnRoute || schoolReaderRoute)) {
       const target = request.nextUrl.clone()
       target.pathname = '/student/college'
@@ -158,6 +178,13 @@ export async function middleware(request: NextRequest) {
       target.search = ''
       return redirectWithAuth(target)
     }
+  }
+
+  if (!POST_SECONDARY_PUBLIC_ENABLED && collegeRoute && !user) {
+    const target = request.nextUrl.clone()
+    target.pathname = '/learn'
+    target.search = ''
+    return redirectWithAuth(target)
   }
 
   if (requiredRole && !user) {
