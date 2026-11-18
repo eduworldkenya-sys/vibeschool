@@ -118,7 +118,11 @@ export default function LearnerStudyDesk() {
     <div className={styles.wrap}>
       <div className={compact.screen}>
       <h1>Learn</h1>
-      <Link href="/learn" className={compact.primary}><BookOpen size={18}/> Browse lessons <ArrowRight size={16}/></Link>
+      <section className={compact.grid} aria-label="Reading destinations">
+        <Link href="/learn" className={compact.primary}><BookOpen size={18}/> Lessons <ArrowRight size={16}/></Link>
+        <Link href="/learn/stories" className={compact.primary}><BookOpen size={18}/> Stories <ArrowRight size={16}/></Link>
+        <Link href="/learn?view=reading" className={compact.action}>Library <ArrowRight size={16}/></Link>
+      </section>
       {!loading && savedReading.length > 0 && <section className={compact.panel} aria-label="Continue reading">
         {savedReading.slice(0,1).map(item => <Link key={item.publicationId} className={compact.action} href={safeInternalRoute(item.actionUrl)}>
           <span>{item.title}<small className={compact.muted} style={{display:'block'}}>{item.progressPercent}% read</small></span><span>Continue</span>
