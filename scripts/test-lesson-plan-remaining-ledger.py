@@ -24,6 +24,7 @@ def forbid(src: str, needle: str, label: str) -> None:
 
 modal = text('components/teacher/LessonPlanModal.tsx')
 modal_code = executable_text(modal)
+notes = executable_text(text('app/teacher/lesson-notes/page.tsx'))
 canonical = text('lib/teaching/canonicalLessonGeneration.ts')
 baseline = text('lib/teaching/lessonGeneration.ts')
 grounding = text('lib/teaching/lessonPlanGrounding.ts')
@@ -47,13 +48,22 @@ for required in (
     'generateCanonicalLessonPlan(',
     'generateLessonPlan({',
     'startLessonOccurrence({',
-    'completeLessonOccurrence({',
+    'function handleCompleteLesson()',
+    'openPreparedTeachMode();',
     'markLessonSchemeCovered(',
     "router.push(`/teacher/lesson-notes?${q.toString()}`)",
     'coveragePromptOccurrenceId',
     'planSchemeIdRef.current',
 ):
     require(modal, required, f'modal boundary {required}')
+# The old complete-only RPC bypassed attendance, reflection, evidence,
+# progress and coverage review. Modal completion must enter Teach Mode.
+require(modal_code, 'function handleCompleteLesson()', 'exact completion entry')
+completion = modal_code.split('function handleCompleteLesson()', 1)[1].split('async function handleMarkCovered', 1)[0]
+require(completion, 'openPreparedTeachMode();', 'modal completion routes through atomic review')
+forbid(modal_code, 'completeLessonOccurrence(', 'no direct complete-only mutation')
+require(notes, 'finalize_teaching_occurrence_v2', 'canonical atomic finalization')
+require(notes, 'finalizedRow?.occurrence_id !== occurrence.id', 'exact occurrence readback')
 forbid(modal_code, ".from('teaching_occurrences').insert", 'modal direct occurrence mutation')
 forbid(modal_code, ".from('scheme_of_work').update", 'modal direct Scheme mutation')
 
