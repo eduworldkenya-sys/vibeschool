@@ -119,7 +119,7 @@ export default function LearnerStudyDesk() {
       <div className={compact.screen}>
       <h1>Learn</h1>
       <section className={compact.grid} aria-label="Reading destinations">
-        <Link href="/learn" className={compact.primary}><BookOpen size={18}/> Lessons <ArrowRight size={16}/></Link>
+        <Link href="/learn" className={compact.primary}><BookOpen size={18}/> Browse lessons <ArrowRight size={16}/></Link>
         <Link href="/learn/stories" className={compact.primary}><BookOpen size={18}/> Stories <ArrowRight size={16}/></Link>
         <Link href="/learn?view=reading" className={compact.action}>Library <ArrowRight size={16}/></Link>
       </section>
