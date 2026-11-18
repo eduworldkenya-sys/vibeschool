@@ -7,6 +7,21 @@ create unique index if not exists vibe_publications_curriculum_shell_identity
  on public.vibe_publications(author_id, cbc_grade, curriculum_shell_key)
  where curriculum_shell_key is not null;
 
+-- Exact labels and a small explicit set of canonical catalogue aliases, not fuzzy subject matching.
+create or replace function public.curriculum_textbook_subject_key(p_label text)
+returns text language sql immutable strict security invoker set search_path = '' as $
+ select case lower(regexp_replace(btrim(p_label),'[[:space:]]+',' ','g'))
+  when 'science & technology' then 'science and technology'
+  when 'creative arts' then 'creative arts and sports'
+  when 'agriculture' then 'agriculture and nutrition'
+  when 'indigenous language' then 'indigenous languages'
+  when 'indigenous language activities' then 'indigenous languages'
+  when 'cre' then 'christian religious education'
+  when 'ire' then 'islamic religious education'
+  when 'hre' then 'hindu religious education'
+  else lower(regexp_replace(btrim(p_label),'[[:space:]]+',' ','g')) end
+$;
+
 -- authorization-test: ensure_curriculum_textbook_shell is SECURITY INVOKER and author-scoped.
 -- A draft may exist with zero chapters and no mapped subject. No release occurs here.
 create or replace function public.ensure_curriculum_textbook_shell(
@@ -40,7 +55,10 @@ begin
  elsif v_grade='playgroup' then v_display_grade := 'Playgroup';
  else raise exception 'invalid_school_grade'; end if;
  if v_subject='' or length(v_subject)>160 then raise exception 'invalid_subject_label'; end if;
- v_key := lower(v_subject);
+ v_key := public.curriculum_textbook_subject_key(v_subject);
+ if lower(v_subject) in ('cre','ire','hre') then
+  v_subject := case lower(v_subject) when 'cre' then 'Christian Religious Education' when 'ire' then 'Islamic Religious Education' else 'Hindu Religious Education' end;
+ end if;
  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_uid::text || ':' || v_grade || ':' || v_key,0));
  select * into v_book from public.vibe_publications
  where author_id=v_uid and cbc_grade=v_grade and curriculum_shell_key=v_key for update;
@@ -50,18 +68,23 @@ begin
   returning * into v_book;
  end if;
  if not p_connect or v_book.status <> 'draft' then
-  return jsonb_build_object('publication_id',v_book.id,'status',v_book.status,'connected',v_book.curriculum_shell_subject_id is not null,'added',0,'chapters',v_book.chapter_count);
+  return jsonb_build_object('publication_id',v_book.id,'status',v_book.status,'connected',exists(select 1 from public.vibe_chapters where publication_id=v_book.id and sub_strand_id is not null),'added',0,'chapters',v_book.chapter_count);
  end if;
  v_subject_id := v_book.curriculum_shell_subject_id;
  if v_subject_id is null then
   -- Never silently map a religious option to generic Religious Education, or guess a subject.
-  select count(*) into v_matching_subjects from public.subjects s where s.school_id is null and lower(regexp_replace(btrim(s.name),'[[:space:]]+',' ','g'))=v_key;
+  select count(*) into v_matching_subjects from public.subjects s where s.school_id is null and public.curriculum_textbook_subject_key(s.name)=v_key;
   if v_matching_subjects=1 then
-   select s.id into v_subject_id from public.subjects s where s.school_id is null and lower(regexp_replace(btrim(s.name),'[[:space:]]+',' ','g'))=v_key;
+   select s.id into v_subject_id from public.subjects s where s.school_id is null and public.curriculum_textbook_subject_key(s.name)=v_key;
   end if;
  end if;
  if v_subject_id is not null then
-  update public.vibe_publications set curriculum_shell_subject_id=v_subject_id where id=v_book.id;
+  if not exists(select 1 from public.subjects s where s.id=v_subject_id and s.school_id is null and public.curriculum_textbook_subject_key(s.name)=v_key) then
+   raise exception 'curriculum_textbook_subject_mismatch';
+  end if;
+  if v_book.curriculum_shell_subject_id is null then
+   update public.vibe_publications set curriculum_shell_subject_id=v_subject_id where id=v_book.id;
+  end if;
   select coalesce(max(number),0) into v_number from public.vibe_chapters where publication_id=v_book.id;
   -- The existing chapter row has one canonical sub-strand FK. Chapters are grouped by cbc_strand.
   -- Unpaced, unique canonical identities only; never invent or choose between duplicate mappings.
@@ -84,7 +107,7 @@ begin
  end if;
  select count(*) into v_count from public.vibe_chapters where publication_id=v_book.id;
  update public.vibe_publications set chapter_count=v_count,updated_at=now() where id=v_book.id;
- return jsonb_build_object('publication_id',v_book.id,'status',v_book.status,'connected',v_subject_id is not null,'added',v_added,'chapters',v_count);
+ return jsonb_build_object('publication_id',v_book.id,'status',v_book.status,'connected',exists(select 1 from public.vibe_chapters where publication_id=v_book.id and sub_strand_id is not null),'added',v_added,'chapters',v_count);
 end $$;
 revoke all on function public.ensure_curriculum_textbook_shell(text,text,boolean,uuid) from public,anon;
 grant execute on function public.ensure_curriculum_textbook_shell(text,text,boolean,uuid) to authenticated;
@@ -108,6 +131,7 @@ begin
  end if;
  return new;
 end $$;
+revoke all on function public.guard_curriculum_textbook_shell() from public,anon,authenticated;
 drop trigger if exists guard_curriculum_textbook_shell on public.vibe_publications;
 create trigger guard_curriculum_textbook_shell before update on public.vibe_publications
  for each row execute function public.guard_curriculum_textbook_shell();

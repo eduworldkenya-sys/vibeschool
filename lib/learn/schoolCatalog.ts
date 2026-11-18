@@ -72,6 +72,10 @@ export function recogniseLearnerGrade(value?: string | null): string | null {
 }
 
 const canonicalAliases: Record<string,string> = {
+  cre: 'christianreligiouseducation',
+  ire: 'islamicreligiouseducation',
+  hre: 'hindureligiouseducation',
+  indigenouslanguage: 'indigenouslanguages',
   scienceandtechnology: 'science&technology',
   creativeartsandsports: 'creativearts',
   agricultureandnutrition: 'agriculture',
