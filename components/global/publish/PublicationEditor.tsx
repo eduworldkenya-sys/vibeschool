@@ -381,6 +381,10 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
 
         <div style={{ borderTop: '1px solid ' + BORDER, marginBottom: 20 }} />
 
+        {chapters.length === 0 && <section aria-label="Empty textbook" style={{color:TEXT, textAlign:'center', padding:24}}>
+          <h2>Empty textbook</h2><p style={{color:MUTED}}>Connect the curriculum from the textbook library to create its chapters.</p>
+          {!publishedReadOnly && <button type="button" onClick={addChapter} style={{background:SURF,color:TEXT,border:'1px solid '+BORDER,borderRadius:8,padding:12}}>Add chapter</button>}
+        </section>}
         {/* Chapter header */}
         {activeChapter && (
           <>

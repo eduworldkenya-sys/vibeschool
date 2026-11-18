@@ -24,7 +24,7 @@ const PUBLICATION_STATUSES: readonly PublicationStatus[] = ['draft','published',
 const CHAPTER_STATUSES: readonly ChapterStatus[] = ['draft','published','locked']
 const PUBLICATION_GENRES: readonly PublicationGenre[] = ['fiction','non_fiction','romance','thriller','biography','self_help','religion','academic','children','poetry','magazine','other']
 const CBC_SUBJECTS: readonly CBCSubject[] = ['mathematics','english','kiswahili','science','biology','chemistry','physics','agriculture','business_studies','history_citizenship','social_studies','creative_arts','physical_education','religious_education','other']
-const CBC_GRADES: readonly CBCGrade[] = ['pp1','pp2','grade1','grade2','grade3','grade4','grade5','grade6','grade7','grade8','grade9','grade10','grade11','grade12','form1','form2','form3','form4']
+const CBC_GRADES: readonly CBCGrade[] = ['playgroup','pp1','pp2','grade1','grade2','grade3','grade4','grade5','grade6','grade7','grade8','grade9','grade10','grade11','grade12','form1','form2','form3','form4']
 const BLOCK_TYPES: readonly BlockType[] = ['paragraph','heading1','heading2','heading3','quote','bulletList','numberedList','image','diagram','table','equation','video','audio','model3d','simulation','divider','callout','definition','example','workedExample','summary','keyPoints','code','activity','experiment','project','question','interactive']
 
 function isRecord(value: unknown): value is Record<string, Json | undefined> {
@@ -104,7 +104,7 @@ export function publicationRowToDraft(row: PublicationRow): VibePublication {
     language: row.language === 'sw' || row.language === 'mixed' ? row.language : 'en',
     status: requireEnumValue(row.status, PUBLICATION_STATUSES, 'publication status'), pricing: parsePricing(row.pricing),
     chapter_count: row.chapter_count, total_reads: row.total_reads ?? 0, total_vibes: row.total_vibes ?? 0, earnings_ksh: row.earnings_ksh ?? 0,
-    cbc_subject: optionalEnumValue(row.cbc_subject, CBC_SUBJECTS, 'subject'), cbc_grade: optionalEnumValue(row.cbc_grade, CBC_GRADES, 'grade'),
+    cbc_subject: row.cbc_subject?.trim() || null, cbc_grade: optionalEnumValue(row.cbc_grade, CBC_GRADES, 'grade'),
     cbc_aligned: row.cbc_aligned ?? false, curriculum_framework: row.curriculum_framework ?? 'CBC', series_name: row.series_name,
     series_number: row.series_number, publication_name: row.publication_name, issue_number: row.issue_number,
     created_at: row.created_at, updated_at: row.updated_at, published_at: row.published_at,
