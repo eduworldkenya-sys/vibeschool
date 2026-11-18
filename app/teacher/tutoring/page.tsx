@@ -88,6 +88,7 @@ export default function TeacherTutoringPage() {
   const firstName = professionalName.split(/\s+/)[0] || "Tutor";
   const greeting = nairobiHour === null ? "Welcome" : nairobiHour < 12 ? "Good morning" : nairobiHour < 17 ? "Good afternoon" : "Good evening";
   const tools = [
+    ...(process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED==='true' ? [{label:"Live Classroom",detail:"Teach connected learners or host an open lesson",href:"/teacher/tutoring/live",icon:Video}] : []),
     { label: "My learners", detail: students === null ? "Your connected learners" : `${students.length} connected ${students.length === 1 ? "learner" : "learners"}`, href: "/teacher/tutoring/students", icon: Users },
     { label: "Sessions", detail: "Schedule private lessons", href: "/teacher/tutoring/students?tool=lessons", icon: CalendarDays },
      { label: "Messages", detail: "Private conversations", href: "/teacher/tutoring/students?tool=messages", icon: MessageCircle },

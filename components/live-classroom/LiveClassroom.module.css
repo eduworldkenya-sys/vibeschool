@@ -9,3 +9,6 @@
 .label{font-size:.8rem;font-weight:700}.content{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}.solution{padding:12px;border:1px solid #087e72;border-radius:8px}.rooms{display:grid;gap:8px}.rooms button{display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left}
 .participants{list-style:none;padding:0;margin:0;display:grid;gap:8px;max-height:260px;overflow:auto}.participants li{display:grid;gap:5px;border-bottom:1px solid color-mix(in srgb,currentColor 15%,transparent);padding:8px 0;overflow-wrap:anywhere}.alert{border:1px solid currentColor;border-radius:10px;padding:10px}
 @media(min-width:600px){.live{padding:20px}}
+
+.panel select{font:inherit;color:inherit;background:var(--vs-surface,transparent);border:1px solid currentColor;border-radius:9px;padding:10px;min-height:44px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tabs button{width:100%}.clock{width:min(100%,180px);height:auto;margin:0 auto}.board{width:100%;max-height:220px;border:1px solid currentColor;border-radius:8px;touch-action:none}.rooms small,.discover small{display:block;font-size:.75rem;font-weight:500;opacity:.8}.discover{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;border:1px solid currentColor;border-radius:9px}.panel h2 small{font-size:.75rem;font-weight:500;opacity:.8}

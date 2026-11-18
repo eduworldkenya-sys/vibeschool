@@ -9,21 +9,37 @@ create role anon; create role authenticated;
 create schema auth;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
 grant usage on schema auth to authenticated,anon;
-create table profiles(id uuid primary key,account_status text,is_anonymized boolean default false);
-create table classes(id uuid primary key,school_id uuid);
+create table profiles(id uuid primary key,account_status text,role text default 'student',is_anonymized boolean default false);
+create table classes(id uuid primary key,school_id uuid,name text);
 create table students(id uuid primary key,profile_id uuid,deleted_at timestamptz,name text);
 create table student_classes(student_id uuid,class_id uuid,school_id uuid,is_current boolean);
 create table teacher_classes(teacher_id uuid,class_id uuid,school_id uuid);
+create table school_members(school_id uuid,profile_id uuid,role text);
+create table independent_learner_identities(user_id uuid,account_state text,learner_email_verified_at timestamptz,grade_label text);
+create table parent_student_links(parent_id uuid,student_id uuid);
+create table vibetutor_tutors(profile_id uuid,status text,display_name text);
+create table vibetutor_student_invitations(id uuid,tutor_id uuid,student_id uuid,status text);
+create table vibetutor_private_groups(id uuid primary key,tutor_id uuid,title text);
+create table vibetutor_private_group_members(group_id uuid,invitation_id uuid);
 create function public.teacher_can_access_class(uuid,uuid,boolean) returns boolean language sql stable security definer set search_path='' as $$ select exists(select 1 from public.teacher_classes where class_id=$1 and teacher_id=auth.uid()) $$;
 create function public.teacher_get_operating_context(uuid) returns jsonb language sql stable security definer set search_path='' as $$ select jsonb_build_object('school_id',school_id) from public.teacher_classes where teacher_id=auth.uid() limit 1 $$;
 `)
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
-const teacher=id(1), a=id(2), b=id(3), outsider=id(4), otherTeacher=id(5), cls=id(10), otherCls=id(11), school=id(20), otherSchool=id(21)
+const parent=id(6), solo=id(7), cpa=id(8), teacher=id(1), a=id(2), b=id(3), outsider=id(4), otherTeacher=id(5), cls=id(10), otherCls=id(11), school=id(20), otherSchool=id(21)
 await db.exec(`
-insert into profiles(id,account_status) values ${[teacher,a,b,outsider,otherTeacher].map(x=>`('${x}','active')`).join(',')};
-insert into classes values ('${cls}','${school}'),('${otherCls}','${otherSchool}');
+insert into profiles(id,account_status) values ${[teacher,a,b,outsider,otherTeacher,parent,solo,cpa].map(x=>`('${x}','active')`).join(',')};
+insert into classes values ('${cls}','${school}','Grade 4'),('${otherCls}','${otherSchool}','Grade 5');
+update profiles set role='teacher' where id in ('${teacher}','${otherTeacher}');
+update profiles set role='parent' where id='${parent}';
+insert into school_members values ('${school}','${teacher}','teacher'),('${otherSchool}','${otherTeacher}','teacher');
 insert into teacher_classes values ('${teacher}','${cls}','${school}'),('${otherTeacher}','${otherCls}','${otherSchool}');
-insert into students values ('${id(30)}','${a}',null,'Learner A'),('${id(31)}','${b}',null,'Learner B'),('${id(32)}','${outsider}',null,'Outsider');
+insert into students values ('${id(30)}','${a}',null,'Learner A'),('${id(31)}','${b}',null,'Learner B'),('${id(32)}','${outsider}',null,'Outsider'),('${id(33)}','${solo}',null,'Homeschool learner'),('${id(34)}','${cpa}',null,'Muted learner');
+insert into independent_learner_identities values ('${solo}','restricted',now(),'Grade 4'),('${cpa}','restricted',now(),'Professional Studies');
+insert into parent_student_links values ('${parent}','${id(33)}');
+insert into vibetutor_tutors values ('${teacher}','published','Verified tutor'),('${otherTeacher}','paused','Other tutor');
+insert into vibetutor_student_invitations values ('${id(40)}','${teacher}','${id(30)}','accepted'),('${id(41)}','${teacher}','${id(33)}','accepted'),('${id(42)}','${teacher}','${id(31)}','pending_guardian'),('${id(43)}','${teacher}','${id(34)}','accepted');
+insert into vibetutor_private_groups values ('${id(50)}','${teacher}','Math group'),('${id(51)}','${otherTeacher}','Private group');
+insert into vibetutor_private_group_members values ('${id(50)}','${id(40)}'),('${id(50)}','${id(41)}');
 insert into student_classes values ('${id(30)}','${cls}','${school}',true),('${id(31)}','${cls}','${school}',true),('${id(32)}','${otherCls}','${otherSchool}',true);
 `)
 await db.exec(readFileSync(new URL('../supabase/migrations/20261118075221_live_classroom_pilot.sql',import.meta.url),'utf8'))
@@ -37,7 +53,7 @@ assert.equal(room.teacher,true);assert.equal(room.status,'active')
 const sid=room.id
 assert.equal((await rpc(teacher,'start',null,null,{title:'Duplicate'})).id,sid)
 assert.equal((await rpc(a,'list'))[0].id,sid)
-await assert.rejects(rpc(outsider,'list'),/live_not_authorized/)
+assert.deepEqual(await rpc(outsider,'list'),[])
 await assert.rejects(rpc(otherTeacher,'get',sid),/live_not_authorized/)
 await assert.rejects(rpc(a,'get',sid),/live_join_required/)
 await assert.rejects(rpc(a,'start',null,null,{title:'Fake'}),/live_teacher_required/)
@@ -67,6 +83,38 @@ room=await rpc(teacher,'resume',sid,room.version)
 room=await rpc(teacher,'reveal',sid,room.version)
 assert.equal((await rpc(a,'get',sid)).prompt.answerKey,'60')
 await assert.rejects(rpc(b,'answer',sid,room.version,{promptId:prompt,body:'60'}),/answer_not_open/)
+// Universal classroom access: shared engine with canonical relationships.
+const unscoped=(who,action,room=null,version=null,payload={})=>rpc(who,action,room,version,payload,null)
+const groups=await unscoped(teacher,'groups')
+assert.deepEqual(groups.map(g=>g.id),[id(50)])
+await assert.rejects(unscoped(teacher,'start',null,null,{mode:'tuition',groupId:id(51),title:'Other group'}),/teacher_required/)
+let tuition=await unscoped(teacher,'start',null,null,{mode:'tuition',groupId:id(50),title:'Group maths'})
+assert.equal(tuition.mode,'tuition')
+assert.equal((await unscoped(solo,'list')).find(x=>x.id===tuition.id).canJoin,true)
+await unscoped(a,'join',tuition.id)
+await unscoped(solo,'join',tuition.id)
+await assert.rejects(unscoped(b,'join',tuition.id),/not_authorized/)
+await assert.rejects(unscoped(cpa,'join',tuition.id),/not_authorized/)
+tuition=await unscoped(teacher,'publish',tuition.id,tuition.version,{kind:'clock',body:'10:30'})
+assert.equal((await unscoped(solo,'get',tuition.id)).prompt.body,'10:30')
+await assert.rejects(unscoped(solo,'answer',tuition.id,tuition.version,{body:'10',promptId:tuition.prompt.id}),/answer_not_open/)
+await db.exec(`update vibetutor_student_invitations set status='revoked' where id='${id(40)}'`)
+await assert.rejects(unscoped(a,'get',tuition.id),/not_authorized/)
+await unscoped(teacher,'end',tuition.id,tuition.version)
+await db.exec(`update vibe_live.sessions set created_at=now()-interval '1 minute' where id='${tuition.id}'`)
+let home=await unscoped(parent,'start',null,null,{mode:'homeschool',title:'Family lesson'})
+await unscoped(solo,'join',home.id)
+await assert.rejects(unscoped(a,'join',home.id),/not_authorized/)
+await assert.rejects(unscoped(parent,'start',null,null,{mode:'open',title:'Unsafe'}),/teacher_required/)
+await unscoped(parent,'end',home.id,home.version)
+let open=await unscoped(teacher,'start',null,null,{mode:'open',title:'Open revision'})
+assert.equal((await unscoped(outsider,'list')).find(x=>x.id===open.id).canJoin,false)
+await assert.rejects(unscoped(outsider,'join',open.id),/not_authorized/)
+await unscoped(solo,'join',open.id)
+await assert.rejects(unscoped(otherTeacher,'start',null,null,{mode:'open',title:'Unlisted tutor'}),/teacher_required/)
+await db.exec(`update vibetutor_tutors set status='paused' where profile_id='${teacher}'`)
+await assert.rejects(unscoped(solo,'get',open.id),/not_authorized/)
+console.log('PASS: tuition group isolation, guardian approval, homeschooling, open discovery, muted learner denial, revocation and shared clock')
 await db.exec(`update student_classes set is_current=false where student_id='${id(31)}'`)
 await assert.rejects(rpc(b,'get',sid),/live_not_authorized/)
 room=await rpc(teacher,'get',sid);assert.equal(room.participants.length,1)

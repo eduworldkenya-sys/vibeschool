@@ -4,6 +4,9 @@ on:
     paths:
       - 'app/student/live/**'
       - 'app/student/page.tsx'
+      - 'app/student/tutoring/**'
+      - 'app/teacher/tutoring/**'
+      - 'app/parent/live/**'
       - 'app/teacher/classhub/**'
       - 'components/live-classroom/**'
       - 'supabase/migrations/*live_classroom*'
@@ -27,6 +30,6 @@ jobs:
         with:
           node-version: '22'
       - name: Install isolated pinned test engine
-        run: npm install --prefix /tmp/live-test --no-audit --no-fund @electric-sql/pglite@0.3.14
+        run: npm install --prefix /tmp/live-test --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.3.14
       - name: Exercise actual SQL migration and adversarial access paths
         run: node scripts/test-live-classroom-pilot.mjs
