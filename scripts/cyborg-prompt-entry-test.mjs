@@ -31,6 +31,16 @@ if(out.action!=='CYBORG_MISSION_STARTED')throw new Error('Repo mode must fail to
 out=json(run('Is signup ready?',{CYBORG_PROMPT_MODE:'passthrough'}))
 if(out.action!=='PASS_THROUGH')throw new Error('Explicit passthrough mode ignored')
 
+// Without a locally configured adapter, a connector host continues the same
+// durable mission through the existing supervisor. It cannot self-certify.
+out=json(run('Build a VibeSchool classroom',{CYBORG_RUN_LOOP:'true',CYBORG_AGENT_ADAPTER:''}))
+if(out.action!=='CYBORG_MISSION_READY'||out.executionMode!=='host-supervisor'||!out.requiresHostContinuation||out.loopStarted)throw new Error('Missing adapter must select host-supervisor continuation')
+if(out.supervisor.missionId!==out.missionId||out.supervisor.nextArgs.join(' ')!=='next '+out.missionId||!out.next)throw new Error('Host continuation must retain canonical mission and next directive')
+const host=(args)=>spawnSync(process.execPath,['scripts/cyborg-supervisor.mjs',...args],{encoding:'utf8',env:baseEnv})
+const next=host(out.supervisor.nextArgs)
+if(next.status!==0||JSON.parse(next.stdout).next.type!==out.next.type)throw new Error('Host cannot resume the same mission')
+const premature=host(['complete',out.missionId])
+if(premature.status===0)throw new Error('Host-supervisor mode must not bypass completion gates')
 const missions=fs.readdirSync(path.join(root,'missions')).filter(x=>x.endsWith('.json'))
 if(missions.length<3)throw new Error('Expected durable missions to be written')
 fs.rmSync(root,{recursive:true,force:true})
