@@ -19,3 +19,30 @@ export function buildTextbookOutline(rows: readonly CurriculumOutlineRow[]) {
   }
   return [...chapters.values()]
 }
+
+export type BookReadingEntry = { id: string; title: string; href: string; subStrandId?: string | null; legacy?: boolean }
+export type BookReadingGroup = { id: string; title: string; topics: { id: string; title: string; entries: BookReadingEntry[] }[] }
+const normalTitle = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase()
+
+/** Attach release routes without inventing a mapping. Multiple editions stay accessible.
+ * A legacy route with no stable ID is matched only to one exact, unambiguous topic.
+ */
+export function connectReadingEntries(rows: readonly CurriculumOutlineRow[], entries: readonly BookReadingEntry[]) {
+  const groups: BookReadingGroup[] = buildTextbookOutline(rows).map(ch => ({
+    ...ch, topics: ch.topics.map(topic => ({ ...topic, entries: [] })),
+  }))
+  const unmatched: BookReadingEntry[] = []
+  const seen = new Set<string>()
+  for (const entry of entries) {
+    if (seen.has(entry.href)) continue
+    seen.add(entry.href)
+    const origin = entry.subStrandId ? rows.find(row => row.id === entry.subStrandId) : null
+    const candidates = groups.flatMap(group => group.topics.filter(topic =>
+      origin?.name && origin.sub_strand
+        ? normalTitle(group.title) === normalTitle(origin.name) && normalTitle(topic.title) === normalTitle(origin.sub_strand)
+        : entry.legacy && !entry.subStrandId && normalTitle(topic.title) === normalTitle(entry.title)))
+    if (candidates.length === 1) candidates[0].entries.push(entry)
+    else unmatched.push(entry)
+  }
+  return { groups, unmatched }
+}
