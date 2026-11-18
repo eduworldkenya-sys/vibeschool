@@ -10,10 +10,10 @@ create unique index if not exists vibe_publications_curriculum_shell_identity
 -- authorization-test: ensure_curriculum_textbook_shell is SECURITY INVOKER and author-scoped.
 -- A draft may exist with zero chapters and no mapped subject. No release occurs here.
 create or replace function public.ensure_curriculum_textbook_shell(
- p_grade text, p_subject text, p_connect boolean default true
+ p_grade text, p_subject text, p_connect boolean default true, p_author_id uuid default null
 ) returns jsonb language plpgsql security invoker set search_path = '' as $$
 declare
- v_uid uuid := auth.uid();
+ v_uid uuid := coalesce(auth.uid(),p_author_id);
  v_grade text := regexp_replace(lower(btrim(coalesce(p_grade,''))), '[[:space:]]+', '', 'g');
  v_display_grade text;
  v_subject text := regexp_replace(btrim(coalesce(p_subject,'')), '[[:space:]]+', ' ', 'g');
@@ -26,6 +26,11 @@ declare
  v_count integer;
  unit record;
 begin
+ -- Existing privileged SQL operators may explicitly identify an eligible author. No browser impersonation.
+ if (auth.uid() is null and current_user <> 'postgres') or
+    (auth.uid() is not null and p_author_id is not null and p_author_id <> auth.uid()) then
+  raise exception 'textbook_author_required' using errcode='42501';
+ end if;
  if v_uid is null or not exists(select 1 from public.profiles where id=v_uid and role in ('teacher','admin')) then
   raise exception 'textbook_author_required' using errcode='42501';
  end if;
@@ -81,8 +86,8 @@ begin
  update public.vibe_publications set chapter_count=v_count,updated_at=now() where id=v_book.id;
  return jsonb_build_object('publication_id',v_book.id,'status',v_book.status,'connected',v_subject_id is not null,'added',v_added,'chapters',v_count);
 end $$;
-revoke all on function public.ensure_curriculum_textbook_shell(text,text,boolean) from public,anon;
-grant execute on function public.ensure_curriculum_textbook_shell(text,text,boolean) to authenticated;
+revoke all on function public.ensure_curriculum_textbook_shell(text,text,boolean,uuid) from public,anon;
+grant execute on function public.ensure_curriculum_textbook_shell(text,text,boolean,uuid) to authenticated;
 
 -- Empty structures cannot become released learning content through the existing all-chapter publication lifecycle.
 -- A shell's identity remains stable; this guard does not change any legacy publication.

@@ -5,6 +5,8 @@ const sql=read('supabase/migrations/20261118160000_persistent_curriculum_textboo
 assert.match(sql,/security invoker set search_path = ''/)
 assert.match(sql,/author_id=v_uid and cbc_grade=v_grade and curriculum_shell_key=v_key/)
 assert.match(sql,/pg_advisory_xact_lock/)
+assert.match(sql,/current_user <> 'postgres'/)
+assert.match(sql,/p_author_id <> auth.uid()/)
 assert.match(sql,/if not p_connect or v_book.status <> 'draft'/)
 assert.match(sql,/c.term is null and c.week is null/)
 assert.match(sql,/publication_id=v_book.id and sub_strand_id=unit.id/)
