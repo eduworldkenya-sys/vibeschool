@@ -9,7 +9,7 @@ create unique index if not exists vibe_publications_curriculum_shell_identity
 
 -- Exact labels and a small explicit set of canonical catalogue aliases, not fuzzy subject matching.
 create or replace function public.curriculum_textbook_subject_key(p_label text)
-returns text language sql immutable strict security invoker set search_path = '' as $
+returns text language sql immutable strict security invoker set search_path = '' as $function$
  select case lower(regexp_replace(btrim(p_label),'[[:space:]]+',' ','g'))
   when 'science & technology' then 'science and technology'
   when 'creative arts' then 'creative arts and sports'
@@ -20,7 +20,7 @@ returns text language sql immutable strict security invoker set search_path = ''
   when 'ire' then 'islamic religious education'
   when 'hre' then 'hindu religious education'
   else lower(regexp_replace(btrim(p_label),'[[:space:]]+',' ','g')) end
-$;
+$function$;
 
 -- authorization-test: ensure_curriculum_textbook_shell is SECURITY INVOKER and author-scoped.
 -- A draft may exist with zero chapters and no mapped subject. No release occurs here.
