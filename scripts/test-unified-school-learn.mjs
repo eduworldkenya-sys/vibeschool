@@ -57,3 +57,5 @@ assert.match(read('components/learn/StudentLearnLegacyRedirect.tsx'), /recognise
 assert.match(courses, /redirect\('\/learn\?view=courses'\)/, 'Retire the competing college catalogue but preserve its route')
 assert.match(catalog, /No invented Playgroup or legacy Form national subject lists/)
 console.log('PASS: school Learn frontend, all grade bands, subject authority, publication gating, existing readers and responsive shared discovery')
+
+await import('./test-universal-textbook-outline.mjs')

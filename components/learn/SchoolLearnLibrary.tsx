@@ -18,6 +18,7 @@ import {
 } from '@/lib/learn/schoolCatalog'
 import styles from './SchoolLearnLibrary.module.css'
 import UnifiedLearnCollections from '@/components/learn/UnifiedLearnCollections'
+import SubjectTextbookOutline from '@/components/learn/SubjectTextbookOutline'
 
 type PublishedBook = {
   id: string
@@ -253,6 +254,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                 )}
               </div>
               {tab === 'lessons' && <section role="tabpanel" aria-label="Lessons and textbooks">
+                <SubjectTextbookOutline grade={grade} subject={activeName} />
                 {activeReaders.length > 0 && <>
                   <div className={styles.sectionHead}><h2>Topics and lessons</h2><span>Existing lesson readers</span></div>
                   <div className={styles.resourceList}>{activeReaders.map(reader =>
