@@ -143,7 +143,7 @@ export async function middleware(request: NextRequest) {
   // learner UI is served. Public school readers still remain public when signed out.
   const collegeRoute = pathname === '/student/college' || pathname.startsWith('/student/college/')
   const studentRoute = pathname === '/student' || pathname.startsWith('/student/')
-  const schoolLearnRoute = pathname.startsWith('/learn') && !isGeneralStoryRoute(pathname) &&
+  const schoolLearnRoute = (pathname === '/learn' || pathname.startsWith('/learn/')) && !isGeneralStoryRoute(pathname) &&
     !((pathname === '/learn' && request.nextUrl.searchParams.get('view') === 'courses') ||
       pathname === '/learn/kasneb-cpa' || pathname.startsWith('/learn/kasneb-cpa/'))
   // Legacy school textbook/offline entrypoints must not bypass the college home.
