@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
 /** Preserve the existing account and study records; do not allocate a false school grade. */
@@ -21,6 +22,7 @@ export default function LearningUnavailablePage() {
     <section style={{maxWidth:380,width:'100%',textAlign:'center',display:'grid',gap:16}}>
       <h1 style={{fontSize:24,margin:0}}>Learning access unavailable</h1>
       <p style={{margin:0}}>Your account and learning records are safe.</p>
+      <Link href="/learn/stories" style={{minHeight:46,display:'grid',placeItems:'center',borderRadius:12,border:'1px solid currentColor'}}>Read stories</Link>
       <button type="button" disabled={busy} onClick={()=>void signOut()} style={{minHeight:46,borderRadius:12,padding:'12px 20px',fontWeight:700}}>{busy?'Signing out…':'Sign out'}</button>
       {error && <p role="alert">Could not sign out. Please retry.</p>}
     </section>
