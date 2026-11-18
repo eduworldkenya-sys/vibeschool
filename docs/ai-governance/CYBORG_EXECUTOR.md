@@ -23,6 +23,10 @@ Every significant repository mission must:
 
 A new chat/model must resume durable Cyborg state and re-check truth rather than restart from conversational memory.
 
+## Execution without a local adapter
+
+The automatic local loop and connected-host execution use the same supervisor, mission ledger, capabilities, leases, evidence rules and completion gates. The local adapter is an automation convenience, not a prerequisite for a capable host. When prompt entry returns `CYBORG_MISSION_READY` with `executionMode: host-supervisor`, the host must follow the returned supervisor next/status commands, perform the authorized work with available tools, record actual evidence, and continue to the terminal boundary. It must not use the test adapter, fabricate evidence, approve itself where independent assurance is required, or skip required checks. If a necessary tool or authorization is genuinely unavailable, record that specific blocker rather than stopping solely because the local adapter is absent.
+
 ## Mission compiler
 
 Broad language is converted into executable requirements. Mission types include QUESTION, AUDIT, READINESS, IMPLEMENTATION, REPAIR, INCIDENT, SECURITY, PERFORMANCE, RELEASE, DATABASE, UX, CONTENT, WORKER_ENGINE and INVESTIGATION.

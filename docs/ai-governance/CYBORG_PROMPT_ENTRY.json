@@ -20,7 +20,7 @@
   "laws": [
     "Repository prompts MUST be compiled or resumed before substantive repository work or a readiness/completion answer.",
     "A host MUST NOT answer a repository prompt directly merely because it arrived as a normal chat prompt.",
-    "Once promoted, the terminal loop continues until COMPLETE or a typed BLOCKED_* boundary.",
+    "Once promoted, adapter-driven or host-supervisor-driven execution continues until COMPLETE or a genuine typed BLOCKED_* boundary. The absence of a local adapter alone is not a blocker; both paths retain all governance gates.",
     "Host/model context is replaceable; durable mission state remains authoritative.",
     "Prompt text is intent, never permission to bypass capability, security, production or owner gates.",
     "Ambiguous prompts in repo mode fail toward mission compilation, not shallow answering."

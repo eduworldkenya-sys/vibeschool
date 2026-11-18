@@ -40,9 +40,13 @@ if(runLoop){
   if(!process.env.CYBORG_AGENT_ADAPTER){
     result.action='CYBORG_MISSION_READY'
     result.next=run('scripts/cyborg-supervisor.mjs',['next',mission.missionId]).next
-    result.reason+='; governed adapter required to execute terminal loop'
+    result.executionMode='host-supervisor'
+    result.reason+='; host must continue with existing supervisor directives (adapter optional)'
+    result.supervisor={script:'scripts/cyborg-supervisor.mjs',missionId:mission.missionId,nextArgs:['next',mission.missionId],statusArgs:['status',mission.missionId]}
+    result.requiresHostContinuation=true
   }else{
     const loop=spawnSync(process.execPath,['scripts/cyborg-loop.mjs',mission.missionId],{encoding:'utf8',env:process.env})
+    result.executionMode='local-adapter'
     result.loopStarted=true
     result.loopExitCode=loop.status
     try{result.terminal=JSON.parse(loop.stdout)}catch{result.terminal={stdout:loop.stdout,stderr:loop.stderr}}

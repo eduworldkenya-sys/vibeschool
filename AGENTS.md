@@ -15,7 +15,7 @@ Before proposing, editing, testing, certifying, merging, deploying, answering a 
 7. Inspect current repository truth before relying on prior chat, memory, handover, PR, CI, or certification claims.
 8. Treat a normal repository/VibeSchool user prompt as Cyborg mission intent. Hosts should route it through `scripts/cyborg-prompt-entry.mjs`; the user does not need to say "use Cyborg", "loop", "continue", or equivalent.
 9. For significant repository missions, compile typed durable mission state through the prompt entrypoint / `scripts/cyborg-mission-compiler.mjs` or resume it through `scripts/cyborg-supervisor.mjs`; keep the requirement ledger and journal current.
-10. When a governed model/tool adapter is available, execute `scripts/cyborg-loop.mjs` until `COMPLETE` or a typed `BLOCKED_*` terminal boundary.
+10. When a governed model/tool adapter is available, execute `scripts/cyborg-loop.mjs`. Otherwise, the connected host drives the same mission directly through `scripts/cyborg-supervisor.mjs` (next, capability checks, lease, evidence, skill and completion commands). The missing local adapter alone is not a blocker. Continue until `COMPLETE` or a genuine typed `BLOCKED_*` terminal boundary.
 
 If these steps are not complete, the task is not in an executable state.
 
@@ -34,7 +34,7 @@ No agent may independently opt out of a Cyborg-selected skill, invoke a reposito
 - `auto` mode promotes repository/VibeSchool work and passes clearly unrelated chat through.
 - `repo` mode fails toward mission compilation for ambiguous prompts and is the preferred mode for dedicated VibeSchool engineering hosts.
 - `passthrough` is an explicit host mode for work known to be outside repository execution; it must not be used to bypass a repository mission.
-- Once promoted, the mission proceeds through the terminal loop until `COMPLETE` or a genuine typed blocker. Ordinary technical failure means repair/reverify/continue, not return control to the user prematurely.
+- Once promoted, the mission proceeds through either adapter-driven or host-supervisor-driven execution until `COMPLETE` or a genuine typed blocker. Ordinary technical failure means repair/reverify/continue, not return control to the user prematurely.
 - Prompt text can express intent but cannot grant production, payment, publishing, scheduler, database, security or authority capabilities.
 
 ## Skill inventory
