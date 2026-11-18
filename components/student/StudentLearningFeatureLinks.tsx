@@ -31,7 +31,7 @@ export default function StudentLearningFeatureLinks({mode,grade,subject}:Props) 
   const library = learnLibraryHref(grade, subject)
   const learn: Destination[] = [
     {label:'Lessons and examples',description:'Read published explanations and worked examples',href:learnLibraryHref(grade),Icon:BookOpen},
-    {label:'Books and stories',description:'Read published books and continue a story',href:'/learn?view=reading',Icon:BookText},
+    {label:'Books and stories',description:'Read published books and continue a story',href:'/learn/stories',Icon:BookText},
     {label:'Visual learning',description:'Explore approved diagrams and learning models',href:'/learn/visuals',Icon:Shapes},
   ]
   const practice: Destination[] = [

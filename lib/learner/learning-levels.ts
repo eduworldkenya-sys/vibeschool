@@ -50,11 +50,16 @@ export function resolveRegistrationLearningSelection(level: unknown, choice: unk
   return selected?.pathway && !enabled ? null : selected
 }
 
-// Existing CPA originals are retained in storage. These IDs also protect stale public links.
+// Professional study guides remain muted. Taraji is general fiction, not CPA tuition.
+// Keep this route-level deny list aligned with the restrictive publication visibility policy.
 const MUTED_PUBLICATION_IDS = new Set([
   '51f1052d-2f59-46bb-9186-c1a7937d203a',
-  'c0b2a83f-d726-4eed-812e-7d79f57497df',
 ])
 export function isMutedPostSecondaryPublication(id: string): boolean {
   return !POST_SECONDARY_PUBLIC_ENABLED && MUTED_PUBLICATION_IDS.has(id.toLowerCase())
+}
+
+/** Public Originals routes only; never exempt arbitrary Learn, academic or API routes. */
+export function isGeneralStoryRoute(pathname: string): boolean {
+  return /^\/learn\/stories(?:\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\/read)?)?\/?$/i.test(pathname)
 }

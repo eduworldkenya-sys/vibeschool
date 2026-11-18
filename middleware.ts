@@ -1,4 +1,4 @@
-import { POST_SECONDARY_PUBLIC_ENABLED, isMutedPostSecondaryPublication } from '@/lib/learner/learning-levels'
+import { POST_SECONDARY_PUBLIC_ENABLED, isMutedPostSecondaryPublication, isGeneralStoryRoute } from '@/lib/learner/learning-levels'
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { AUTH_DASHBOARDS, requiredRoleForPath, roleCanVisit, safeInternalPath, pathnameOnly } from '@/lib/auth-routing'
@@ -143,7 +143,7 @@ export async function middleware(request: NextRequest) {
   // learner UI is served. Public school readers still remain public when signed out.
   const collegeRoute = pathname === '/student/college' || pathname.startsWith('/student/college/')
   const studentRoute = pathname === '/student' || pathname.startsWith('/student/')
-  const schoolLearnRoute = pathname.startsWith('/learn') &&
+  const schoolLearnRoute = (pathname === '/learn' || pathname.startsWith('/learn/')) && !isGeneralStoryRoute(pathname) &&
     !((pathname === '/learn' && request.nextUrl.searchParams.get('view') === 'courses') ||
       pathname === '/learn/kasneb-cpa' || pathname.startsWith('/learn/kasneb-cpa/'))
   // Legacy school textbook/offline entrypoints must not bypass the college home.
@@ -163,6 +163,8 @@ export async function middleware(request: NextRequest) {
     if (isCollege && !POST_SECONDARY_PUBLIC_ENABLED) {
       const target = request.nextUrl.clone()
       target.pathname = '/learning-unavailable'
+      // Existing post-secondary readers may browse public fiction, not school academics.
+      if (pathname === '/learn' || pathname === '/learn/') target.pathname = '/learn/stories'
       target.search = ''
       return redirectWithAuth(target)
     }
