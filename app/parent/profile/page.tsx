@@ -368,7 +368,7 @@ export default function ParentProfilePage() {
               color: '#fff',
               letterSpacing: '-0.5px',
             }}>
-              {profile ? <img src={profile.avatar_url || vibeMePath(defaultCharacter(profile.id))} alt="" width={80} height={80} style={{ borderRadius: '50%', objectFit: 'cover' }} /> : initials(profile?.full_name ?? '?')}
+              {profile ? <img src={profile.avatar_url || vibeMePath(defaultCharacter(profile.id))} alt="" width={80} height={80} style={{ borderRadius: '50%', objectFit: 'cover' }} /> : initials('?')}
             </div>
           )}
 
