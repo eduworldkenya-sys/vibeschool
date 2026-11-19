@@ -8,6 +8,7 @@ import BackToTop from '@/components/vibetutor/BackToTop'
 import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
 import { LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
 import { fetchLiveListings, type LiveListings } from '@/components/vibetutor/listings'
+import { KENYA_DEMO_TUTORS } from '@/components/vibetutor/kenya-demo-tutors'
 
 type View = 'tutors' | 'students'
 type Filters = { q: string; subject: string; level: string; area: string; mode: Mode | ''; priceRange: string }
@@ -51,7 +52,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     return () => { active = false }
   }, [reloadKey])
 
-  const tutorSource: DemoTutor[] = live?.tutors ?? []
+  const tutorSource = useMemo<DemoTutor[]>(() => live ? [...live.tutors, ...KENYA_DEMO_TUTORS] : [], [live])
   const requestSource: DemoRequest[] = live?.requests ?? []
 
   const tutorsFor = (f: Filters) => tutorSource.filter(t =>
@@ -111,14 +112,13 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   return (
     <>
       <h1 className={styles.pageTitle}>Find holiday tuition</h1>
-      {view === 'tutors' && <Link className={styles.cardAction} href="/vibetutor/tuition">Browse VibeSchool online tuition options</Link>}
       <FilterBar priceRange={priceRange} onPriceRange={setPriceRange} view={view} onView={changeView} q={q} onQ={setQ}
         placeholder={view === 'tutors' ? 'Search tutors by name, subject or area' : 'Search requests by subject, level or area'}
         subjects={subjectOptions} subject={subject} onSubject={setSubject}
         levels={levelOptions} level={level} onLevel={value => { setLevel(value); setSubject('') }}
         areas={areaOptions} area={area} onArea={setArea}
         modes={modeOptions} mode={mode} onMode={setMode}
-        resultCount={currentCount} noun={view === 'tutors' ? 'tutor' : 'request'}
+        resultCount={currentCount} noun={view === 'tutors' ? 'listing' : 'request'}
         onClear={clear} busy={busy || loading} />
       <div className={`${styles.list} ${busy || loading ? styles.dim : ''}`} aria-live="polite" aria-busy={loading}>
         {loading && <div className={styles.emptyState}><p className={styles.empty}>Loading live listings…</p></div>}
@@ -156,7 +156,16 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
             {(subject || priceRange || mode || area || q || level) && <button type="button" className={styles.emptyAction} onClick={clear}>Clear all</button>}
           </div>
         </div>}
-        {!loading && !loadError && view === 'tutors' && tutors.map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
+        {!loading && !loadError && view === 'tutors' && <>
+          <p className={styles.meta}>{tutors.filter(t => t.real).length} registered tutor listings · {tutors.filter(t => !t.real).length} fictional examples</p>
+          {tutors.filter(t => t.real).map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
+          <Link className={styles.cardAction} href="/vibetutor/post-request">Request online tuition</Link>
+          {tutors.some(t => !t.real) && <>
+            <h2 className={styles.cardTitle}>Example tutors</h2>
+            <p className={styles.meta}>Fictional profiles and sample prices. These are not available for booking or contact.</p>
+            {tutors.filter(t => !t.real).map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
+          </>}
+        </>
         {!loading && !loadError && view === 'students' && live?.signedIn && requests.map(request => <RequestCard key={request.id} r={request} />)}
       </div>
       <BackToTop />
