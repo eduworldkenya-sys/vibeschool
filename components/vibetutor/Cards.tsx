@@ -18,7 +18,6 @@ export function TutorCard({ t }: { t: DemoTutor }) {
             <h3 className={styles.cardTitle}>{t.name}</h3>
             <p className={styles.muted}><Icon name="pin" size={14} /> {t.area}</p>
           </div>
-          {!t.real && <span className={styles.demo}>Fictional example</span>}
         </div>
         <div className={styles.tags}>{t.subjects.map(s => <span key={s} className={styles.tag}>{s}</span>)}</div>
         <p className={styles.meta}>{t.levels.join(' · ')}</p>
@@ -26,25 +25,24 @@ export function TutorCard({ t }: { t: DemoTutor }) {
           <p className={styles.price}>{t.real ? 'KSh ' : 'Indicative KSh '}{t.rateKes.toLocaleString('en-KE')}<span className={styles.priceUnit}> / hour</span></p>
           <span className={styles.modeText}>{modeLabel(t.mode)}</span>
         </div>
-        <p className={styles.holiday}>{t.real ? (t.holidayAvailable ? 'Holiday tuition' : 'Available days') + ' · ' + summarizeDays(t.days) : 'Tutor to be assigned'}</p>
-        <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>View tutor <Icon name="arrow" size={15} /></button>
+        <p className={styles.holiday}>{t.real ? (t.holidayAvailable ? 'Holiday tuition' : 'Available days') + ' · ' + summarizeDays(t.days) : 'Sample profile · tutor matching'}</p>
+        <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>{t.real ? 'View tutor' : 'View profile'} <Icon name="arrow" size={15} /></button>
       </article>
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
         <section className={styles.detailModal} role="dialog" aria-modal="true" aria-labelledby={`tutor-${t.id}`}>
           <button type="button" className={styles.modalClose} onClick={() => setOpen(false)} aria-label="Close details">×</button>
-          {!t.real && <span className={styles.demo}>Fictional example</span>}
           <h2 id={`tutor-${t.id}`} className={styles.modalTitle}>{t.name}</h2>
           <p className={styles.muted}>{t.area} · {modeLabel(t.mode)}</p>
           {t.real && t.bio.trim() && <p className={styles.modalText}>{t.bio}</p>}
           <div className={styles.tags}>{t.subjects.map(s => <span key={s} className={styles.tag}>{s}</span>)}</div>
           <p className={styles.meta}><strong>Levels:</strong> {t.levels.join(', ')}</p>
           {t.real && t.experience.trim() && <p className={styles.meta}><strong>Experience:</strong> {t.experience}</p>}
-          <p className={styles.meta}><strong>Availability:</strong> {t.real ? summarizeDays(t.days) : 'Tutor to be assigned'}</p>
+          <p className={styles.meta}><strong>Availability:</strong> {t.real ? summarizeDays(t.days) : 'By request'}</p>
           <p className={styles.modalPrice}>{t.real ? 'KSh ' : 'Indicative KSh '}{t.rateKes.toLocaleString('en-KE')} / hour</p>
-          <p className={styles.hint}>{t.real ? 'Sign in to discuss tuition arrangements. Confirm the tutor and lesson details before attending.' : 'Request a real tutor for these subjects.'}</p>
+          <p className={styles.hint}>{t.real ? 'Sign in to discuss tuition arrangements.' : 'Sample profile. Request a matching tutor.'}</p>
           {t.real
             ? <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>
-            : <Link href={'/vibetutor/post-request?example=' + encodeURIComponent(t.id)} className={styles.modalSignIn}>Request tuition</Link>}
+            : <Link href={'/vibetutor/post-request?example=' + encodeURIComponent(t.id)} className={styles.modalSignIn}>Request tutor</Link>}
         </section>
       </div>}
     </>
