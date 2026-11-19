@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import VibeMeStudio from '@/components/vibeme/VibeMeStudio'
 import { useStudent } from '@/lib/student-context'
 import { getLearnerTwinState, type LearnerTwinState } from '@/lib/student/twin'
 import {
@@ -175,6 +176,7 @@ export default function StudentProfilePage() {
       <StudentIntro feature="profile-overview"><p>Your profile connects your identity, progress and learning records in one account.</p></StudentIntro>
     </section>
 
+    <VibeMeStudio key={identity.profileId} profileId={identity.profileId} onSaved={avatarUrl => setData(current => current ? {...current, avatarUrl} : current)} />
     <nav aria-label="Learner profile and account controls" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:10,marginBottom:14}}>
       <button type="button" onClick={()=>router.push('/student/settings')} style={{padding:16,minHeight:76,border:'1px solid var(--vs-border)',borderRadius:15,background:'var(--vs-card)',color:'var(--vs-text)',textAlign:'left',cursor:'pointer'}}>
         <strong style={{display:'block',fontSize:14}}>Appearance & Settings</strong><span style={{display:'block',fontSize:11,marginTop:5,color:'var(--vs-muted)'}}>Themes, fonts, italics and Workspace background</span>
