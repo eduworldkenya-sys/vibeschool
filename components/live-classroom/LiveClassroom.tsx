@@ -52,23 +52,22 @@ function TeacherSticker({prompt,hidden,onHide}:{prompt:Prompt|null|undefined;hid
  useEffect(()=>()=>{request.current++;stream.current?.getTracks().forEach(track=>track.stop());stream.current=null},[])
  useEffect(()=>{if(hidden||mini)stopCamera()},[hidden,mini,stopCamera])
  useEffect(()=>{if(camera&&video.current){video.current.srcObject=stream.current}},[camera])
- function clamp(left:number,top:number,width:number){
+ const clamp=useCallback((left:number,top:number,width:number)=>{
    const parent=box.current?.parentElement
    if(!parent)return {left,top,width}
    const maxWidth=Math.max(64,Math.min(280,parent.clientWidth-16))
    const w=Math.max(Math.min(112,maxWidth),Math.min(maxWidth,width))
    const h=box.current?.offsetHeight??100
    return {left:Math.max(0,Math.min(parent.clientWidth-(mini?64:w),left)),top:Math.max(0,Math.min(parent.clientHeight-h,top)),width:w}
- }
+ },[mini])
  useEffect(()=>{
    const parent=box.current?.parentElement
    if(!parent)return
    const resize=()=>setPosition(p=>p?clamp(p.left,p.top,p.width):p)
+   if(typeof ResizeObserver==='undefined'){window.addEventListener('resize',resize);return ()=>window.removeEventListener('resize',resize)}
    const observer=new ResizeObserver(resize);observer.observe(parent)
    return ()=>observer.disconnect()
- // clamp uses current minimized state and parent size.
- // eslint-disable-next-line react-hooks/exhaustive-deps
- },[hidden,mini])
+ },[hidden,clamp])
  async function toggleCamera(){
    if(camera||pending){stopCamera();return}
    if(!navigator.mediaDevices?.getUserMedia){setCameraError('Camera unavailable on this device.');return}
@@ -119,6 +118,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [redoLines,setRedoLines]=useState<string[]>([])
   const [endConfirm,setEndConfirm]=useState(false)
   const immersiveRef=useRef<HTMLElement>(null)
+  const boardInitialized=useRef(false)
   const drawing=useRef(false)
   const [rooms,setRooms] = useState<Summary[]>([])
   const [search,setSearch]=useState('')
@@ -238,19 +238,33 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const prompt=room?.prompt
   const immersive=!!room&&room.status!=='ended'
   useEffect(()=>{
-    setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setRedoLines([]);setBody('');setKey('')
+    boardInitialized.current=false;setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setRedoLines([]);setBody('');setKey('')
   },[room?.id])
   useEffect(()=>{
     if(!immersive)return
     const previous=document.body.style.overflow
+    const previousFocus=document.activeElement
+    const element=immersiveRef.current
     document.body.style.overflow='hidden'
-    immersiveRef.current?.focus()
-    return ()=>{document.body.style.overflow=previous}
+    element?.focus()
+    const syncFullscreen=()=>{if(document.fullscreenElement!==element)setFocusMode(false)}
+    document.addEventListener('fullscreenchange',syncFullscreen)
+    return ()=>{document.body.style.overflow=previous;document.removeEventListener('fullscreenchange',syncFullscreen);if(previousFocus instanceof HTMLElement&&previousFocus.isConnected)previousFocus.focus()}
   },[immersive])
+  function toggleFocus(){
+    setPanel(null)
+    if(focusMode){
+      setFocusMode(false)
+      if(document.fullscreenElement===immersiveRef.current&&document.exitFullscreen)void document.exitFullscreen().catch(()=>{/* viewport mode remains usable */})
+    }else{
+      setFocusMode(true)
+      if(immersiveRef.current?.requestFullscreen)void immersiveRef.current.requestFullscreen().catch(()=>{/* use viewport focus mode when native fullscreen is unavailable */})
+    }
+  }
   function chooseMode(item:Mode){
     setMode(item);setKey('');setEndConfirm(false)
     if(item==='board'){
-      if(!editingBoard&&prompt?.kind==='board')setBoard(prompt.body)
+      if(!boardInitialized.current){if(prompt?.kind==='board')setBoard(prompt.body);boardInitialized.current=true}
       setEditingBoard(true);setPanel(null)
     }else{setEditingBoard(false);setPanel('compose')}
   }
@@ -264,8 +278,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if(last&&board.length+last.length+1<=3400){setBoard(value=>[value,last].filter(Boolean).join('|'));setRedoLines(items=>items.slice(0,-1))}
   }
   if(immersive&&room){
-    const stage=<main ref={immersiveRef} tabIndex={-1} className={styles.immersive} aria-label="Live classroom" onKeyDown={e=>{if(e.key==='Escape'){if(panel)setPanel(null);else if(focusMode)setFocusMode(false)}if(e.key==='Tab'&&immersiveRef.current){const controls=Array.from(immersiveRef.current.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(el=>el.offsetParent!==null);const first=controls[0],last=controls[controls.length-1];if(first&&last){if(e.shiftKey&&(document.activeElement===first||document.activeElement===immersiveRef.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}}}>
-    <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={()=>{setPanel(null);setFocusMode(v=>!v)}}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button></header>
+    const stage=<main ref={immersiveRef} tabIndex={-1} className={styles.immersive} role="dialog" aria-modal="true" aria-label="Live classroom" onKeyDown={e=>{if(e.key==='Escape'){if(panel)setPanel(null);else if(focusMode)toggleFocus()}if(e.key==='Tab'&&immersiveRef.current){const controls=Array.from(immersiveRef.current.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(el=>el.offsetParent!==null);const first=controls[0],last=controls[controls.length-1];if(first&&last){if(e.shiftKey&&(document.activeElement===first||document.activeElement===immersiveRef.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}}}>
+    <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button></header>
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     <div className={styles.stage}>
       <section className={styles.stageContent} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
