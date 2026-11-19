@@ -22,10 +22,10 @@ export function TutorCard({ t }: { t: DemoTutor }) {
         <div className={styles.tags}>{t.subjects.map(s => <span key={s} className={styles.tag}>{s}</span>)}</div>
         <p className={styles.meta}>{t.levels.join(' · ')}</p>
         <div className={styles.cardFoot}>
-          <p className={styles.price}>KSh {t.rateKes.toLocaleString('en-KE')}<span className={styles.priceUnit}> / hour</span></p>
+          <p className={styles.price}>{t.real ? 'KSh ' : 'Example KSh '}{t.rateKes.toLocaleString('en-KE')}<span className={styles.priceUnit}> / hour</span></p>
           <span className={styles.modeText}>{modeLabel(t.mode)}</span>
         </div>
-        <p className={styles.holiday}>{t.holidayAvailable ? 'Holiday tuition' : 'Available days'} · {summarizeDays(t.days)}</p>
+        <p className={styles.holiday}>{t.real ? (t.holidayAvailable ? 'Holiday tuition' : 'Available days') + ' · ' + summarizeDays(t.days) : 'Illustrative profile · not bookable'}</p>
         <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>View tutor <Icon name="arrow" size={15} /></button>
       </article>
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
@@ -38,10 +38,10 @@ export function TutorCard({ t }: { t: DemoTutor }) {
           <div className={styles.tags}>{t.subjects.map(s => <span key={s} className={styles.tag}>{s}</span>)}</div>
           <p className={styles.meta}><strong>Levels:</strong> {t.levels.join(', ')}</p>
           <p className={styles.meta}><strong>Experience:</strong> {t.experience}</p>
-          <p className={styles.meta}><strong>Availability:</strong> {summarizeDays(t.days)}</p>
-          <p className={styles.modalPrice}>KSh {t.rateKes.toLocaleString('en-KE')} / hour</p>
+          <p className={styles.meta}><strong>Availability:</strong> {t.real ? summarizeDays(t.days) : 'Not available for booking'}</p>
+          <p className={styles.modalPrice}>{t.real ? 'KSh ' : 'Example KSh '}{t.rateKes.toLocaleString('en-KE')} / hour</p>
           <p className={styles.hint}>{t.real ? 'Sign in to discuss tuition arrangements. Confirm the tutor and lesson details before attending.' : 'Example profile only. No tutor is connected to this example.'}</p>
-          <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>
+          {t.real && <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>}
         </section>
       </div>}
     </>
