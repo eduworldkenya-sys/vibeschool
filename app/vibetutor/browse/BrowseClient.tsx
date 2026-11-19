@@ -80,17 +80,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     return () => { active = false }
   }, [reloadKey])
 
-  const tutorSource = useMemo<DemoTutor[]>(() => {
-    if (!live) return []
-    const order = (rows: DemoTutor[]) => sort === 'alphabetical'
-      ? [...rows].sort((a, b) => a.name.localeCompare(b.name, 'en-KE') || a.id.localeCompare(b.id))
-      : rotate(rows, seed)
-    return [...order(live.tutors), ...order(KENYA_DEMO_TUTORS)]
-  }, [live, sort, seed])
-  const requestSource = useMemo<DemoRequest[]>(() => {
-    const rows = rotate(live?.requests ?? [], seed)
-    return sort === 'recent' ? rows.sort((a, b) => a.postedDaysAgo - b.postedDaysAgo) : rows
-  }, [live, sort, seed])
+  const tutorSource = useMemo<DemoTutor[]>(() => live ? [...live.tutors, ...KENYA_DEMO_TUTORS] : [], [live])
+  const requestSource = useMemo<DemoRequest[]>(() => live?.requests ?? [], [live])
 
   const tutorsFor = (f: Filters) => tutorSource.filter(t =>
     (!f.level || t.levels.includes(f.level)) &&
@@ -111,8 +102,17 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     matchesText([r.area, r.level, ...r.subjects], f.q)
   )
 
-  const tutors = useMemo(() => tutorsFor(filters), [q, subject, level, area, mode, priceRange, day, tutorSource])
-  const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode, priceRange, day, requestSource])
+  const tutors = useMemo(() => {
+    const matches = tutorsFor(filters)
+    const order = (rows: DemoTutor[]) => sort === 'alphabetical'
+      ? [...rows].sort((a, b) => a.name.localeCompare(b.name, 'en-KE') || a.id.localeCompare(b.id))
+      : rotate(rows, seed)
+    return [...order(matches.filter(t => t.real)), ...order(matches.filter(t => !t.real))]
+  }, [q, subject, level, area, mode, priceRange, day, tutorSource, sort, seed])
+  const requests = useMemo(() => {
+    const rows = rotate(requestsFor(filters), seed)
+    return sort === 'recent' ? rows.sort((a, b) => a.postedDaysAgo - b.postedDaysAgo) : rows
+  }, [q, subject, level, area, mode, priceRange, day, requestSource, sort, seed])
   const currentCount = view === 'tutors' ? tutors.filter(t => t.real).length : requests.length
 
   // Each facet is calculated without its own current selection.
