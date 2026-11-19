@@ -20,6 +20,13 @@ export const TUITION_SERVICES: TuitionService[] = TUITION_AREA_ALLOCATIONS.flatM
     return { id: 'tuition-' + area.toLowerCase().replace(/ /g, '-') + '-' + (index + 1), area, ...category }
   })
 )
+// Add lower-primary options without changing existing request links or area quotas.
+export const LOWER_PRIMARY_SERVICES: TuitionService[] = TUITION_AREA_ALLOCATIONS.flatMap(([area], areaIndex) =>
+  SUBJECTS_BY_LEVEL['Grade 1–3'].map((subject, subjectIndex) => ({
+    id: 'tuition-lower-' + areaIndex + '-' + subjectIndex, area, level: 'Grade 1–3', subjects: [subject],
+  }))
+)
+export const PUBLIC_TUITION_SERVICES = [...TUITION_SERVICES, ...LOWER_PRIMARY_SERVICES]
 export function findTuitionService(id: string | null): TuitionService | undefined {
-  return TUITION_SERVICES.find(service => service.id === id)
+  return PUBLIC_TUITION_SERVICES.find(service => service.id === id)
 }
