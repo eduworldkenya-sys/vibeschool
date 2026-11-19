@@ -37,3 +37,11 @@ test('v2 is backward compatible and provides independent, finite appearance choi
   assert.equal(parseVibeMe('v2-9999999999999999'),null)
   assert.equal(codeFromAvatar('https://evil.example/api/vibeme/'+adult+'.svg'),null)
 })
+
+test('educational characters use authored static assets only',async()=>{
+  const {adaptCanonicalLearnSections}=await import('../lib/learn/learningBlockContract.ts')
+  const code=defaultCharacter('fictional-student',true)
+  const [section]=adaptCanonicalLearnSections([{id:'demo',title:'Demo',blocks:[{kind:'character',code,altText:'Fictional student'},{kind:'character',code:'https://evil.example',altText:'Not permitted'},{kind:'character',code:code.slice(0,-1)+'2',altText:'Moving illustration'}]}])
+  assert.equal(section.blocks.length,1)
+  assert.equal(section.blocks[0].code,code)
+})
