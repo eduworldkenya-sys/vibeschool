@@ -40,10 +40,13 @@ export function defaultVibeMe(seed: string): string {
   }))
 }
 export type AvatarStyle = 'male' | 'female' | 'custom'
+export function avatarStyleFromPreference(value: unknown): AvatarStyle {
+  return value === 'male' || value === 'female' ? value : 'custom'
+}
 // A missing preference never implies gender from name, email or account ID.
 export function defaultCharacter(_seed:string,learner=false,style:AvatarStyle='custom'):string {
   if (style === 'male' || style === 'female') {
-    const p = characterChoices([3,0,1,2,0,0,0],learner)
+    const p = characterChoices([3,style === 'male' ? 1 : 2,1,2,0,0,0],learner)
     p[7] = style === 'male' ? 1 : 2
     p[11] = learner ? 1 : 2
     return characterCode(p)
