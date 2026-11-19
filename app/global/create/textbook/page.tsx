@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { VibePublication } from '@/lib/publishTypes'
 import { PublicationEditor } from '@/components/global/publish/PublicationEditor'
+import { CurriculumTextbookShell } from '@/components/global/publish/CurriculumTextbookShell'
 
 const BG     = '#090D16'
 const SURF   = '#111827'
@@ -29,7 +30,6 @@ export default function VibeTextbookPage() {
     )
     sb.auth.getUser().then(async ({ data: { user }, error }) => {
       if (error || !user) { router.replace('/'); return }
-      setUserId(user.id)
       const { data: profile } = await sb
         .from('profiles')
         .select('role')
@@ -39,6 +39,7 @@ export default function VibeTextbookPage() {
         router.replace('/')
         return
       }
+      setUserId(user.id)
       const { data } = await sb
         .from('vibe_publications')
         .select('*')
@@ -49,6 +50,13 @@ export default function VibeTextbookPage() {
       setLoadingDrafts(false)
     })
   }, [router])
+
+  async function refreshBooks() {
+    if (!userId) return
+    const sb=createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const {data,error}=await sb.from('vibe_publications').select('*').eq('author_id',userId).eq('format','vibetextbook').order('updated_at',{ascending:false})
+    if(!error) setDrafts((data||[]) as VibePublication[])
+  }
 
   if (!userId) return null
 
@@ -79,6 +87,7 @@ export default function VibeTextbookPage() {
           CBC-aligned ebooks, revision guides and study units — organized into units, taggable by subject and grade.
         </p>
 
+        <CurriculumTextbookShell onChanged={()=>{void refreshBooks()}} onOpen={id=>{setSelectedId(id);setShowEditor(true)}} />
         <button
           onClick={() => { setSelectedId(undefined); setShowEditor(true) }}
           style={{
