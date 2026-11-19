@@ -5,7 +5,7 @@ export function GET(_request: Request, { params }: { params: { code: string } })
   if (!svg) return new Response('Invalid avatar', { status: 404 })
   return new Response(svg, { headers: {
     'Content-Type': 'image/svg+xml; charset=utf-8',
-    'Content-Security-Policy': "default-src 'none'; sandbox",
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
     'X-Content-Type-Options': 'nosniff',
     'Cache-Control': 'public, max-age=31536000, immutable',
   } })

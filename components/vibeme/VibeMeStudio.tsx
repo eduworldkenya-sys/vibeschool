@@ -1,11 +1,14 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
-import { codeFromAvatar, defaultVibeMe, parseVibeMe, vibeMeCode, vibeMePath, VIBEME_OPTIONS } from '@/lib/vibeme'
+import { codeFromAvatar, defaultVibeMe, parseVibeMe, vibeMeCode, vibeMePath } from '@/lib/vibeme'
 
-export default function VibeMeStudio({ profileId, onSaved }: { profileId?: string; onSaved?: (url: string) => void }) {
+import { CHARACTER_OPTIONS, characterChoices } from '@/lib/vibeme-character'
+
+export default function VibeMeStudio({ profileId, onSaved, learner = false }: { profileId?: string; onSaved?: (url: string) => void; learner?: boolean }) {
   const [open, setOpen] = useState(false)
-  const [choices, setChoices] = useState<number[]>([2,0,0,0,0,0,0])
+  const [choices, setChoices] = useState<number[]>(() => characterChoices([2,0,0,0,0,0,0],learner))
+  const [tab,setTab] = useState(0)
   const [owner, setOwner] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -24,14 +27,14 @@ export default function VibeMeStudio({ profileId, onSaved }: { profileId?: strin
         if (result.error || !result.data) throw new Error('Could not load your profile.')
         if (!cancelled) {
           setOwner(data.user.id)
-          setChoices(parseVibeMe(codeFromAvatar(result.data.avatar_url) ?? defaultVibeMe(data.user.id))!)
+          setChoices(characterChoices(parseVibeMe(codeFromAvatar(result.data.avatar_url) ?? defaultVibeMe(data.user.id))!,learner))
         }
       } catch (error) { if (!cancelled) setMessage(error instanceof Error ? error.message : 'Avatar unavailable.') }
       finally { if (!cancelled) setBusy(false) }
     }
     void load()
     return () => { cancelled = true }
-  }, [open, profileId])
+  }, [open, profileId, learner])
   const code = vibeMeCode(choices)
   async function save() {
     if (!owner || busy) return
@@ -53,15 +56,16 @@ export default function VibeMeStudio({ profileId, onSaved }: { profileId?: strin
       <div style={{ display: 'grid', gap: 12, border: '1px solid rgba(127,127,127,.35)', borderRadius: 18, padding: 14, maxWidth: 480 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><strong>VibeMe Studio</strong><button type="button" style={action} disabled={busy} onClick={() => setOpen(false)}>Close</button></div>
         <img src={vibeMePath(code)} alt="Your avatar preview" width={176} height={176} style={{ justifySelf: 'center', display: 'block' }} />
+        <div role="group" aria-label="Customization tabs" style={{display:'flex',gap:6,flexWrap:'wrap'}}>{['Character','Face','Style','Pose'].map((label,i)=><button key={label} type="button" aria-pressed={tab===i} style={{...action,padding:'6px 10px',background:tab===i?'#cdff00':'transparent',color:tab===i?'#20242b':'inherit'}} onClick={()=>setTab(i)}>{label}</button>)}</div>
         <fieldset disabled={busy || !owner} style={{ border: 0, padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-          {VIBEME_OPTIONS.map((option, i) => <label key={option.label} style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700 }}>
-            {option.label}<select value={choices[i]} onChange={e => setChoices(current => current.map((n,j) => j===i ? Number(e.target.value) : n))} style={{ minWidth: 0, minHeight: 40, border: '1px solid #888', borderRadius: 8, padding: 6, color: 'CanvasText', background: 'Canvas' }}>
+          {CHARACTER_OPTIONS.map((option, i) => ([[7,8,9],[0,1,2,3,10],[4,5,6,11,12,13],[14,15]][tab].includes(i)) && <label key={option.label} style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700 }}>
+            {option.label}<select value={choices[i]} onChange={e => { const value=Number(e.target.value); setChoices(current => {const next=current.map((n,j)=>j===i?value:n); if(i===7&&value!==0){next[2]=value===1?2:1;next[1]=value===1?1:2} if(i===8){next[11]=value===0?2:1;if(value!==0)next[10]=0} return next}) }} style={{ minWidth: 0, minHeight: 40, border: '1px solid #888', borderRadius: 8, padding: 6, color: 'CanvasText', background: 'Canvas' }}>
               {option.values.map((value, index) => <option key={value} value={index}>{value}</option>)}
             </select>
           </label>)}
         </fieldset>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" style={action} disabled={busy || !owner} onClick={() => setChoices(VIBEME_OPTIONS.map(o => Math.floor(Math.random()*o.values.length)))}>Surprise me</button>
+          <button type="button" style={action} disabled={busy || !owner} onClick={() => setChoices(CHARACTER_OPTIONS.map((o,i) => i===15?0:Math.floor(Math.random()*o.values.length)))}>Surprise me</button>
           <button type="button" style={{ ...action, background: '#cdff00', color: '#20242b', borderColor: '#20242b' }} disabled={busy || !owner} onClick={() => void save()}>{busy ? 'Please wait…' : 'Save avatar'}</button>
         </div>
       </div>}
