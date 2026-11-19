@@ -11,8 +11,9 @@ export type DemoRequest = {
   budgetKes: number; days: string[]; dayparts: DayPart[]; postedDaysAgo: number; note: string; real?: boolean
 }
 
-export const LEVELS = ['Grade 4–6', 'Grade 7–9', 'Grade 10–12', 'Form 1–4', 'University']
+export const LEVELS = ['Grade 1–3', 'Grade 4–6', 'Grade 7–9', 'Grade 10–12', 'Form 1–4', 'University']
 export const SUBJECTS_BY_LEVEL: Record<string, string[]> = {
+  'Grade 1–3': ['English', 'Kiswahili', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Christian Religious Education', 'Islamic Religious Education', 'Hindu Religious Education', 'Indigenous Languages'],
   'Grade 4–6': ['Mathematics', 'English', 'Kiswahili', 'Science & Technology', 'Social Studies', 'Agriculture', 'Creative Arts', 'Religious Education'],
   'Grade 7–9': ['Mathematics', 'English', 'Kiswahili', 'Integrated Science', 'Social Studies', 'Pre-Technical Studies', 'Agriculture', 'Creative Arts', 'Religious Education'],
   'Grade 10–12': ['Mathematics', 'English', 'Kiswahili', 'Biology', 'Chemistry', 'Physics', 'Geography', 'History', 'Business Studies', 'Computer Studies', 'Agriculture'],

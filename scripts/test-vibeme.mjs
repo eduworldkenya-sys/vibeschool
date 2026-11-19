@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { parseCharacter,characterChoices,characterCode,CHARACTER_OPTIONS } from '../lib/vibeme-character.ts'
-import { codeFromAvatar,defaultCharacter, defaultVibeMe, renderVibeMe, parseVibeMe, vibeMeCode, vibeMePath, VIBEME_OPTIONS } from '../lib/vibeme.ts'
+import { avatarStyleFromPreference,codeFromAvatar,defaultCharacter, defaultVibeMe, renderVibeMe, parseVibeMe, vibeMeCode, vibeMePath, VIBEME_OPTIONS } from '../lib/vibeme.ts'
 test('VibeMe validates bounds and round-trips all settings', () => {
   assert.equal(VIBEME_OPTIONS.reduce((n,o)=>n*o.values.length,1),46656)
   for(const code of ['v1-0000000','v1-5522355','v1-2000000']) {
@@ -44,4 +44,16 @@ test('educational characters use authored static assets only',async()=>{
   const [section]=adaptCanonicalLearnSections([{id:'demo',title:'Demo',blocks:[{kind:'character',code,altText:'Fictional student'},{kind:'character',code:'https://evil.example',altText:'Not permitted'},{kind:'character',code:code.slice(0,-1)+'2',altText:'Moving illustration'}]}])
   assert.equal(section.blocks.length,1)
   assert.equal(section.blocks[0].code,code)
+})
+
+
+test('missing gender preferences use the same neutral character without inferring from names', () => {
+  assert.equal(defaultCharacter('account-a'), defaultCharacter('account-b'))
+  assert.equal(parseCharacter(defaultCharacter('id'))[7], 0)
+  assert.equal(parseCharacter(defaultCharacter('id', false, 'male'))[7], 1)
+  assert.equal(parseCharacter(defaultCharacter('id', false, 'female'))[7], 2)
+  assert.equal(parseCharacter(defaultCharacter('id', true, 'female'))[8], 1)
+  for (const value of ['', null, undefined, 'other', 'unknown']) assert.equal(avatarStyleFromPreference(value), 'custom')
+  assert.equal(avatarStyleFromPreference('male'), 'male')
+  assert.equal(avatarStyleFromPreference('female'), 'female')
 })

@@ -39,9 +39,19 @@ export function defaultVibeMe(seed: string): string {
     return (h >>> 0) % o.values.length
   }))
 }
-export function defaultCharacter(seed:string,learner=false):string {
-  const parts=parseVibeMe(defaultVibeMe(seed))!
-  return characterCode(characterChoices(parts,learner))
+export type AvatarStyle = 'male' | 'female' | 'custom'
+export function avatarStyleFromPreference(value: unknown): AvatarStyle {
+  return value === 'male' || value === 'female' ? value : 'custom'
+}
+// A missing preference never implies gender from name, email or account ID.
+export function defaultCharacter(_seed:string,learner=false,style:AvatarStyle='custom'):string {
+  if (style === 'male' || style === 'female') {
+    const p = characterChoices([3,style === 'male' ? 1 : 2,1,2,0,0,0],learner)
+    p[7] = style === 'male' ? 1 : 2
+    p[11] = learner ? 1 : 2
+    return characterCode(p)
+  }
+  return characterCode([3,1,1,2,0,5,0,0,learner?1:0,0,0,learner?1:2,0,0,0,0])
 }
 export function renderVibeMe(code: string): string | null {
   if(code.startsWith('v2-')) return renderCharacter(code)
