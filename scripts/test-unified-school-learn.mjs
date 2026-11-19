@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import ts from 'typescript'
 const source = readFileSync(new URL('../lib/learn/schoolCatalog.ts', import.meta.url), 'utf8')
 const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText
-const { SCHOOL_LEVELS, fallbackSubjectGroups, groupsForAvailableSubjects,
+const { SCHOOL_LEVELS, fallbackSubjectGroups, groupsForAvailableSubjects, groupsForTextbookShells,
   levelForGrade, readersForSubject, recogniseLearnerGrade, subjectKey } =
   await import('data:text/javascript;base64,' + Buffer.from(compiled).toString('base64'))
 
@@ -61,3 +61,12 @@ console.log('PASS: school Learn frontend, all grade bands, subject authority, pu
 await import('./test-universal-textbook-outline.mjs')
 
 await import('./test-persistent-textbook-shell.mjs')
+
+assert.ok(groupsForTextbookShells('Grade 5',[]).flatMap(g=>g.subjects).includes('Christian Religious Education'))
+const shellNames=groupsForTextbookShells('Grade 4',['Mathematics','CRE','New registered subject']).flatMap(g=>g.subjects)
+assert.ok(shellNames.includes('English')&&shellNames.includes('New registered subject'))
+assert.equal(shellNames.filter(n=>subjectKey(n)===subjectKey('CRE')).length,1)
+assert.equal(groupsForTextbookShells('CPA',['Accounting']).length,0)
+assert.deepEqual(groupsForTextbookShells('Form 1',['Computer Studies']).flatMap(g=>g.subjects),['Computer Studies'])
+assert.match(ui,/get_school_textbook_shell_metadata/)
+assert.match(ui,/'View textbook'/)

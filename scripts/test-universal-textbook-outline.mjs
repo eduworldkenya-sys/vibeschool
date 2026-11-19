@@ -53,3 +53,10 @@ assert.equal(buildPresentationOutline(incomplete).themed,false,'Do not guess a t
 assert.equal(buildPresentationOutline(rows).themed,false)
 assert.match(outline,/source_ref,strand_order,sub_strand_order/)
 console.log('PASS: theme-first and strand-first presentation, compound theme labels, stable linked sections and fail-safe fallback')
+
+assert.match(outline,/get_school_textbook_shell_metadata/)
+const publicShellSql=read('supabase/migrations/20261119053000_public_school_textbook_shell_metadata.sql')
+assert.match(publicShellSql,/s\.school_id is null/)
+assert.match(publicShellSql,/p_grade in \('Playgroup'/)
+assert.match(publicShellSql,/grant execute on function public\.get_school_textbook_shell_metadata\(text,text\) to anon,authenticated/)
+assert.doesNotMatch(publicShellSql,/grant select|vibe_publications|vibe_chapters|learning_outcomes|suggested_experiences|profiles|school_members/)
