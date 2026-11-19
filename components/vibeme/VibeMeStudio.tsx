@@ -41,7 +41,7 @@ export default function VibeMeStudio({ profileId, onSaved }: { profileId?: strin
       const { data, error } = await client.auth.getUser()
       if (error || data.user?.id !== owner || (profileId && profileId !== owner)) throw new Error('Your account changed. Close and reopen VibeMe.')
       const path = vibeMePath(code)
-      const result = await client.from('profiles').update({ avatar_url: path, updated_at: new Date().toISOString() }).eq('id', owner).select('id').single()
+      const result = await client.from('profiles').update({ avatar_url: path }).eq('id', owner).select('id').single()
       if (result.error || !result.data) throw new Error('Avatar not saved. Try again.')
       if (mounted.current) { onSaved?.(path); setMessage('Avatar saved.'); setOpen(false) }
     } catch (error) { if (mounted.current) setMessage(error instanceof Error ? error.message : 'Avatar not saved.') }
