@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import {
-  SCHOOL_LEVELS, fallbackSubjectGroups, groupsForAvailableSubjects,
+  SCHOOL_LEVELS, groupsForTextbookShells,
   levelForGrade, readersForSubject, recogniseLearnerGrade, subjectKey,
   type SchoolLevelId, type SubjectGroup,
 } from '@/lib/learn/schoolCatalog'
@@ -143,14 +143,18 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
     return () => { active = false }
   }, [])
 
-  // Public visitors are not granted direct table access. Signed-in learners
-  // can read the existing effective-dated grade subject authority when allowed.
+  // Public catalogue metadata is isolated from draft, teacher and learner data.
   useEffect(() => {
     let active = true
     setRegisteredSubjects(null)
     void (async () => {
-      // /learn is public; signed-in learners may see their authorized grade
-      // register without creating a second student-only catalogue.
+      const {data:metadata,error:metadataError} = await supabase.rpc('get_school_textbook_shell_metadata',{p_grade:grade})
+      if (!active) return
+      if (!metadataError && metadata && Array.isArray(metadata.subjects)) {
+        setRegisteredSubjects(uniqueNames(metadata.subjects.filter((name:unknown): name is string=>typeof name==='string' && !!name.trim())))
+        return
+      }
+      // Compatibility while the additive database migration is rolling out.
       const auth = await supabase.auth.getUser()
       if (!active || !auth.data.user) return
       const { data, error } = await supabase.from('grade_subject_authority')
@@ -164,7 +168,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
           && (!item.effective_to || item.effective_to >= today))
         .map(item => item.subject_name)
       setRegisteredSubjects(uniqueNames(current))
-    })()
+    })().catch(()=>undefined)
     return () => { active = false }
   }, [grade])
 
@@ -173,10 +177,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const gradeBooks = useMemo(() => books.filter(book => gradeMatches(book.cbc_grade, grade)), [books, grade])
   const subjectGroups: SubjectGroup[] = useMemo(() => {
     const bookSubjects = uniqueNames(gradeBooks.map(book => book.cbc_subject?.trim() || '').filter(Boolean))
-    const fromRegister = registeredSubjects && registeredSubjects.length ? registeredSubjects : null
-    const base = fromRegister
-      ? groupsForAvailableSubjects(grade, fromRegister)
-      : fallbackSubjectGroups(grade)
+    const base = groupsForTextbookShells(grade, registeredSubjects ?? [])
     const existing = new Set(base.flatMap(group => group.subjects).map(subjectKey))
     const extraBooks = bookSubjects.filter(name => !existing.has(subjectKey(name)))
     return extraBooks.length
@@ -295,7 +296,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                     <span className={`${styles.subjectIcon} ${styles[`tone${(index + groupIndex) % 6}`] ?? ''}`}><IconForSubject name={name}/></span>
                     <span className={styles.subjectName}>{name}</span>
                     <span className={styles.subjectDescription}>{subjectDescription(name)}</span>
-                    {(count > 0 || readers > 0) && <span className={styles.subjectAvailability}>{count > 0 ? `${count} published book${count === 1 ? '' : 's'}` : 'Lesson reader available'} <ChevronRight size={13} style={{ verticalAlign: 'middle' }} /></span>}
+                    <span className={styles.subjectAvailability}>{count > 0 || readers > 0 ? 'Read textbook' : 'View textbook'} <ChevronRight size={13} style={{ verticalAlign: 'middle' }} /></span>
                   </Link>
                 })}</div>
               </section>) : <div className={styles.empty}>

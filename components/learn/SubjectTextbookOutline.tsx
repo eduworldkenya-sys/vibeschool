@@ -28,6 +28,10 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
     finish('loading')
     async function load() {
       try {
+        const {data:metadata,error:metadataError}=await supabase.rpc('get_school_textbook_shell_metadata',{p_grade:grade,p_subject:subject})
+        if (!active) return
+        if (!metadataError && metadata && Array.isArray(metadata.rows)) return finish('ready',metadata.rows as CurriculumOutlineRow[])
+        // Existing signed-in metadata lookup during the additive migration rollout.
         const { data: subjects, error: subjectError } = await supabase.from('subjects')
           .select('id,name').is('school_id', null).order('id').limit(1000)
         if (subjectError) throw subjectError

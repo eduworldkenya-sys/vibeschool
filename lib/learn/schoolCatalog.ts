@@ -120,3 +120,17 @@ export function readersForSubject(grade: string, subject: string) {
   return EXISTING_LESSON_READERS.filter(reader =>
     reader.grade === grade && subjectKey(reader.subject) === subjectKey(subject))
 }
+
+/** The existing supported school catalogue and current global register both
+ * remain discoverable, even when no publication exists. No unknown grades
+ * or inferred legacy subject lists. This is discovery, not enrolment authority.
+ */
+export function groupsForTextbookShells(grade:string, registered:readonly string[]): SubjectGroup[] {
+  if (!SCHOOL_LEVELS.some(level=>(level.grades as readonly string[]).includes(grade))) return []
+  const names=new Map<string,string>()
+  for (const name of [...fallbackSubjectGroups(grade).flatMap(group=>group.subjects),...registered]) {
+    const key=subjectKey(name)
+    if(key&&!names.has(key)) names.set(key,name)
+  }
+  return groupsForAvailableSubjects(grade,[...names.values()])
+}
