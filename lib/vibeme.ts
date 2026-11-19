@@ -1,5 +1,6 @@
 // Original VibeSchool vector avatar, version 1. All interpolation is from
 // bounded, validated integer choices, never arbitrary user-supplied SVG.
+import { parseCharacter, characterCode, renderCharacter } from "./vibeme-character"
 export const VIBEME_OPTIONS = [
   { label: 'Skin tone', values: ['Light', 'Honey', 'Warm', 'Brown', 'Deep', 'Rich'] },
   { label: 'Hair', values: ['Coils', 'Fade', 'Braids', 'Locs', 'Bun', 'Bald'] },
@@ -12,11 +13,13 @@ export const VIBEME_OPTIONS = [
 const PREFIX = '/api/vibeme/'
 export const DEFAULT_VIBEME = 'v1-2000000'
 export function parseVibeMe(code: string): number[] | null {
+  if (code.startsWith('v2-')) return parseCharacter(code)
   if (!/^v1-[0-9]{7}$/.test(code)) return null
   const parts = code.slice(3).split('').map(Number)
   return parts.every((n,i) => n < VIBEME_OPTIONS[i].values.length) ? parts : null
 }
 export function vibeMeCode(parts: readonly number[]): string {
+  if (parts.length === 16) return characterCode(parts)
   const code = 'v1-' + parts.join('')
   return parts.length === 7 && parts.every(Number.isInteger) && parseVibeMe(code) ? code : DEFAULT_VIBEME
 }
@@ -25,7 +28,7 @@ export function vibeMePath(code: string): string {
 }
 export function codeFromAvatar(url: string | null | undefined): string | null {
   if (!url) return null
-  const match = /^(?:https:\/\/vibeschool\.co\.ke)?\/api\/vibeme\/(v1-[0-9]{7})\.svg$/.exec(url)
+  const match = /^(?:https:\/\/vibeschool\.co\.ke)?\/api\/vibeme\/(v1-[0-9]{7}|v2-[0-9]{16})\.svg$/.exec(url)
   return match && parseVibeMe(match[1]) ? match[1] : null
 }
 export function defaultVibeMe(seed: string): string {
@@ -37,6 +40,7 @@ export function defaultVibeMe(seed: string): string {
   }))
 }
 export function renderVibeMe(code: string): string | null {
+  if(code.startsWith('v2-')) return renderCharacter(code)
   const parts = parseVibeMe(code)
   if (!parts) return null
   const [s,h,f,e,a,c,b] = parts
