@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import VibeMeStudio from '@/components/vibeme/VibeMeStudio'
 import { LinkedChild } from '@/lib/types'
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
@@ -148,6 +149,7 @@ export default function ParentProfilePage() {
     id: string
     full_name: string
     country_code: string | null
+    avatar_url: string | null
   } | null>(null)
 
   const [parentProfile, setParentProfile] = useState<{
@@ -179,7 +181,7 @@ export default function ParentProfilePage() {
     const [profileRes, parentRes, linksRes] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, full_name, country_code')
+        .select('id, full_name, country_code, avatar_url')
         .eq('id', user.id)
         .single(),
       supabase
@@ -365,10 +367,11 @@ export default function ParentProfilePage() {
               color: '#fff',
               letterSpacing: '-0.5px',
             }}>
-              {initials(profile?.full_name ?? '?')}
+              {profile?.avatar_url ? <img src={profile.avatar_url} alt="" width={80} height={80} style={{ borderRadius: '50%', objectFit: 'cover' }} /> : initials(profile?.full_name ?? '?')}
             </div>
           )}
 
+          {profile && <VibeMeStudio profileId={profile.id} onSaved={avatar_url => setProfile(current => current ? {...current, avatar_url} : current)} />}
           {/* Name */}
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>

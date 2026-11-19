@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import VibeMeStudio from '@/components/vibeme/VibeMeStudio'
 import polish from '@/components/vibetutor/VibeTutorPolish.module.css'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import { Field, Segmented, ToggleChips } from '@/components/vibetutor/Form'
@@ -127,6 +128,7 @@ export default function BecomeTutor() {
         <p className={styles.muted}>{existingListing ? 'Update your teaching details and availability.' : 'Add your teaching details in one simple form.'}</p>
         {signedIn && existingListing && <p className={styles.muted}>Your saved details are loaded automatically. <Link href="/vibetutor/availability">Edit only availability</Link>.</p>}
       </header>
+      {signedIn && <VibeMeStudio />}
       {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
         <div className={polish.wizardMeta}><strong>Profile setup</strong><span>{completion.filter(Boolean).length} of 4 complete</span></div>
         <div className={polish.wizardTrack} role="progressbar" aria-valuenow={completion.filter(Boolean).length} aria-valuemin={0} aria-valuemax={4} aria-label="Form completion"><span style={{ width: `${completion.filter(Boolean).length * 25}%` }} /></div>
