@@ -1,0 +1,19 @@
+# Universal textbook presentation — canonical editorial contract
+
+Owner decision 19 November 2026. Applies to all VibeSchool school subjects, existing and future. This is a presentation and authoring rule, not new curriculum authority or publication permission. Extend the existing VibeTextbook and shared Learn surfaces; no subject-specific reader is required.
+
+## Hierarchy and visibility
+
+- Grade + subject = one logical academic book. Keep the actual edition/publication and chapter identities intact.
+- Use source-defined theme order for a verified thematic curriculum; otherwise use source-defined strand order. Within themes keep strands visible and sub-strands as learning sections. For strand-based books the strand is the chapter and sub-strand is the section. No fixed counts. Never infer an official hierarchy merely from text punctuation, timetable weeks or generic legacy labels.
+- Render a single contents list, with natural chapter and section names, direct links to released sections, and "Coming soon" for unpublished sections. Empty books are valid. No fake published content or inaccessible draft bodies. Legacy released routes must remain reachable.
+- Present learner-friendly objectives at the beginning of authored reading sections, tied to canonical outcome IDs and validated against the exact source. Inquiry questions and suggested experiences become lesson activities as appropriate. Competencies, values and PCIs are integrated into teaching and learning material; retain original detailed metadata for authorized teachers. Never overwrite the original curriculum source or present raw internal reference material as published learner content.
+- ChatGPT-led authoring targets stable chapter/sub-strand/outcome identities. No duplicated manuscript per teacher/student delivery mode. Existing access, quality and publication controls remain in force.
+
+## Grade 4 English acceptance pilot
+
+Official source: https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.ENGLISH.LANGUAGE.pdf (printed pages ix–x and first theme table). The thematic curriculum has 13 themes and four recurring language strands. Production read-only query 19 November 2026: 52 rows with locators VS-CUR-G04-EN-2026#NN-XX, 13 positions, four distinct strands; all 52 have normalized curriculum_learning_outcomes links (156 total). Some unlocated legacy rows coexist. This is structural evidence, not independent verification of every outcome or source edition.
+
+The shared presentation layer recognizes a consistent complete repeated-strand source-locator pattern and common full theme labels already stored in existing curriculum rows. No literal Grade 4 English name or list is embedded in the renderer. It preserves IDs and sorts by recorded order. If the pattern is ambiguous or incomplete, fall back to the existing strand view; retain any unmatched released content. Treat this compatibility projection as temporary until explicit theme metadata is represented in the authoritative curriculum model. Do not delete unrelated legacy rows or modify source wording. For the pilot the expected learner index is 13 groups of four sections, not the older skill-first grouping. Objective wording and publication readiness must be verified separately; no automatic publication.
+
+Regression coverage: synthetic 13×4 fixture, compound theme title containing a colon, missing section, stable-ID release routing, generic strand-based book and empty shell. Actual signed-in browser journey and exact-head CI are separate evidence requirements.

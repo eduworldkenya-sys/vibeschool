@@ -59,3 +59,5 @@ assert.match(catalog, /No invented Playgroup or legacy Form national subject lis
 console.log('PASS: school Learn frontend, all grade bands, subject authority, publication gating, existing readers and responsive shared discovery')
 
 await import('./test-universal-textbook-outline.mjs')
+
+await import('./test-persistent-textbook-shell.mjs')

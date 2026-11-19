@@ -8,12 +8,15 @@
 
 > **Governing rule: Verify KICD against the actual VibeSchool curriculum → repair discrepancies → inspect and reuse canonical libraries → author Core + Supplementary + Revision + Teacher Support together for each outcome → verify answers, media and pedagogy → save and link using existing identities → check actual delivery → advance to the next outcome. The learning product is understanding, not the quantity of content.**
 
+**Textbook-first production:** Create the persistent grade/subject shell and connect canonical curriculum using [Universal Textbook Shells](./UNIVERSAL_TEXTBOOK_SHELLS.md). Empty shells do not require curriculum or content approval; writing and release retain the existing academic gates.
+
 ## 0. One entry point, existing specialist contracts
 
 **Start every content-generation request here.** This document unifies the approved **educational work order and acceptance gates**, rather than replacing technical source-of-truth contracts or GitHub engineering governance.
 
 - **This playbook:** authoritative sequence, content package, cross-library handoff, evidence/status and educational completion criteria for all content-generation chats.
 - [Copy KICD Curriculum — Private Source Transcription Contract](./COPY_KICD_CURRICULUM.md): separate **source-ingestion and word-for-word verification appendix** for the restricted internal KICD reference layer, when permitted; it is **not** a second learner-content workflow, source-of-truth database or publication authorization.
+- [Universal Textbook Presentation](./UNIVERSAL_TEXTBOOK_PRESENTATION.md): mandatory shared learner-book presentation and content-placement rules; follow the actual subject's theme/strand hierarchy, stable section and outcome IDs, learner objectives, and existing release authority. Grade 4 English is the initial thematic acceptance pilot.
 - [Content Production Standard](./CONTENT_PRODUCTION_STANDARD.md): deeper pedagogical examples, subject-specific accuracy and assessment criteria. Use as supporting educational detail, not a different work sequence.
 - [Content Operating Model](./CONTENT_OPERATING_MODEL.md): ChatGPT-led staffing and practical execution/handoffs, subordinate to this playbook's single content-generation loop.
 - [Content Package Template](./CONTENT_PACKAGE_TEMPLATE.md): optional detailed recording format for the **same** outcome package and coverage ledger; not another parallel approval system.
