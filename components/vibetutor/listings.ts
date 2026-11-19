@@ -54,7 +54,11 @@ export async function fetchLiveListings(): Promise<LiveListings> {
       const own = await client.from('vibetutor_requests')
         .select('id,levels,subjects,teaching_mode,area,budget_kes,available_days')
         .eq('requester_id', uid).eq('status', 'open').order('created_at', { ascending: false }).limit(50)
-      if (!own.error) ownRows = own.data ?? []
+      if (!own.error) ownRows = (own.data ?? []).flatMap(row => {
+        const mode = row.teaching_mode
+        return mode === 'online' || mode === 'physical' || mode === 'either'
+          ? [{ ...row, teaching_mode: mode }] : []
+      })
     }
   }
 
