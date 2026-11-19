@@ -8,7 +8,8 @@ import BackToTop from '@/components/vibetutor/BackToTop'
 import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
 import { DAYS, LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
 import { fetchLiveListings, type LiveListings } from '@/components/vibetutor/listings'
-import { KENYA_DEMO_TUTORS } from '@/components/vibetutor/kenya-demo-tutors'
+import { PUBLIC_TUITION_SERVICES } from '@/components/vibetutor/tuitionServices'
+import { compatibility, rankDiscovery, matchesDiscoveryText } from '@/components/vibetutor/discovery'
 
 type View = 'tutors' | 'students'
 type Sort = 'discover' | 'alphabetical' | 'recent'
@@ -45,10 +46,7 @@ function matchesPrice(price: number, range: string) {
   return true
 }
 
-function matchesText(values: string[], q: string) {
-  const term = q.trim().toLowerCase()
-  return !term || values.some(value => value.toLowerCase().includes(term))
-}
+const matchesText = matchesDiscoveryText
 
 export default function BrowseClient({ initialView }: { initialView: View }) {
   const [view, setView] = useState<View>(initialView)
@@ -61,7 +59,6 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const [day, setDay] = useState('')
   const [sort, setSort] = useState<Sort>('discover')
   const [seed, setSeed] = useState(0)
-  const [busy, setBusy] = useState(false)
   const [live, setLive] = useState<LiveListings | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -80,8 +77,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     return () => { active = false }
   }, [reloadKey])
 
-  const tutorSource = useMemo<DemoTutor[]>(() => live ? [...live.tutors, ...KENYA_DEMO_TUTORS] : [], [live])
-  const requestSource = useMemo<DemoRequest[]>(() => live?.requests ?? [], [live])
+  const tutorSource = useMemo<DemoTutor[]>(() => live?.tutors ?? [], [live])
+  const requestSource = useMemo<DemoRequest[]>(() => (live?.requests ?? []).filter(r => !live?.ownRequestIds?.includes(r.id)), [live])
 
   const tutorsFor = (f: Filters) => tutorSource.filter(t =>
     (!f.level || t.levels.includes(f.level)) &&
@@ -90,7 +87,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     (!f.mode || t.mode === f.mode || t.mode === 'either') &&
     (!f.day || t.days.includes(f.day)) &&
     matchesPrice(t.rateKes, f.priceRange) &&
-    matchesText([t.name, t.area, ...t.subjects, ...t.levels], f.q)
+    matchesText([t.name, t.area, t.bio, ...t.subjects, ...t.levels], f.q)
   )
   const requestsFor = (f: Filters) => requestSource.filter(r =>
     (!f.level || r.level === f.level) &&
@@ -104,46 +101,51 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
 
   const tutors = useMemo(() => {
     const matches = tutorsFor(filters)
-    const order = (rows: DemoTutor[]) => sort === 'alphabetical'
-      ? [...rows].sort((a, b) => a.name.localeCompare(b.name, 'en-KE') || a.id.localeCompare(b.id))
-      : rotate(rows, seed)
-    return [...order(matches.filter(t => t.real)), ...order(matches.filter(t => !t.real))]
-  }, [q, subject, level, area, mode, priceRange, day, tutorSource, sort, seed])
+    if (sort === 'alphabetical') return [...matches].sort((a, b) => a.name.localeCompare(b.name, 'en-KE') || a.id.localeCompare(b.id))
+    return rankDiscovery(matches, seed, t => live?.learnerPreference ? compatibility(live.learnerPreference, {
+      subjects: t.subjects, levels: t.levels, days: t.days, area: t.area, mode: t.mode, amount: t.rateKes,
+    }) : 0)
+  }, [q, subject, level, area, mode, priceRange, day, tutorSource, sort, seed, live])
   const requests = useMemo(() => {
-    const rows = rotate(requestsFor(filters), seed)
+    const rows = rankDiscovery(requestsFor(filters), seed, r => live?.tutorPreference ? compatibility({
+      subjects: r.subjects, levels: [r.level], days: r.days, area: r.area, mode: r.mode, amount: r.budgetKes,
+    }, live.tutorPreference) : 0)
     return sort === 'recent' ? rows.sort((a, b) => a.postedDaysAgo - b.postedDaysAgo) : rows
-  }, [q, subject, level, area, mode, priceRange, day, requestSource, sort, seed])
-  const currentCount = view === 'tutors' ? tutors.filter(t => t.real).length : requests.length
+  }, [q, subject, level, area, mode, priceRange, day, requestSource, sort, seed, live])
+  const currentCount = view === 'tutors' ? tutors.length : requests.length
+  const services = useMemo(() => rotate(PUBLIC_TUITION_SERVICES.filter(service =>
+    (!level || service.level === level) &&
+    (!subject || service.subjects.includes(subject)) &&
+    (!area || service.area === area) &&
+    (!mode || mode === 'online') && !day && !priceRange &&
+    matchesText([service.area, service.level, ...service.subjects], q)
+  ), seed), [level, subject, area, mode, day, priceRange, q, seed])
+  const [serviceLimit, setServiceLimit] = useState(12)
+  useEffect(() => { setServiceLimit(12) }, [level, subject, area, mode, day, priceRange, q])
 
   // Each facet is calculated without its own current selection.
   const levelOptions: FilterOption[] = LEVELS.flatMap(value => {
     const f = { ...filters, level: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.levels.includes(value)).length : requestsFor(f).filter(r => r.level === value).length
-    return count || (view === 'tutors' && tutorsFor(f).some(t => !t.real && t.levels.includes(value))) ? [{ value, label: value, count }] : []
+    return count || (view === 'tutors' && PUBLIC_TUITION_SERVICES.some(t => t.level === value)) ? [{ value, label: value, count }] : []
   })
-  const availableLevels = level ? SUBJECTS_BY_LEVEL[level] || [] : []
+  const availableLevels = level ? SUBJECTS_BY_LEVEL[level] || [] : [...new Set(Object.values(SUBJECTS_BY_LEVEL).flat())]
   const subjectOptions: FilterOption[] = availableLevels.flatMap(value => {
     const f = { ...filters, subject: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.subjects.includes(value)).length : requestsFor(f).filter(r => r.subjects.includes(value)).length
-    return count || (view === 'tutors' && tutorsFor(f).some(t => !t.real && t.subjects.includes(value))) ? [{ value, label: value, count }] : []
+    return count || (view === 'tutors' && PUBLIC_TUITION_SERVICES.some(t => (!level || t.level === level) && t.subjects.includes(value))) ? [{ value, label: value, count }] : []
   })
   const areaOptions: FilterOption[] = [...new Set([
-    ...tutorSource.map(t => t.area), ...requestSource.map(r => r.area),
+    ...tutorSource.map(t => t.area), ...requestSource.map(r => r.area), ...PUBLIC_TUITION_SERVICES.map(t => t.area),
   ])].flatMap(value => {
     const f = { ...filters, area: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.area === value).length : requestsFor(f).filter(r => r.area === value).length
-    return count || (view === 'tutors' && tutorsFor(f).some(t => !t.real && t.area === value)) ? [{ value, label: value, count }] : []
+    return count || (view === 'tutors' && PUBLIC_TUITION_SERVICES.some(t => t.area === value)) ? [{ value, label: value, count }] : []
   })
   const modeOptions: FilterOption[] = [
     { value: 'online', label: 'Online', count: 0 },
     { value: 'physical', label: 'In person', count: 0 },
   ]
-
-  useEffect(() => {
-    setBusy(true)
-    const timer = setTimeout(() => setBusy(false), 180)
-    return () => clearTimeout(timer)
-  }, [q, subject, level, area, mode, priceRange, day, sort, view])
 
   const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode(''); setPriceRange(''); setDay('') }
   const changeView = (next: View) => { setView(next); setSort('discover'); clear() }
@@ -152,41 +154,15 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     <>
       <h1 className={styles.pageTitle}>Discover tuition</h1>
       <FilterBar priceRange={priceRange} onPriceRange={setPriceRange} view={view} onView={changeView} q={q} onQ={setQ}
-        placeholder={view === 'tutors' ? 'Search tutors by name, subject or area' : 'Search requests by subject, level or area'}
+        placeholder={view === 'tutors' ? 'Subject, level or tutor' : 'Subject, level or location'}
         subjects={subjectOptions} subject={subject} onSubject={setSubject}
         levels={levelOptions} level={level} onLevel={value => { setLevel(value); setSubject('') }}
         areas={areaOptions} area={area} onArea={setArea}
         modes={modeOptions} mode={mode} onMode={setMode}
         resultCount={currentCount} noun={view === 'tutors' ? 'listing' : 'request'}
-        onClear={clear} busy={busy || loading} />
-      <div className={styles.filterSelectGrid} aria-label="Discovery preferences">
-        <label className={styles.filterSelectField}>
-          <span>Show</span>
-          <select className={styles.select} value={sort} onChange={e => {
-            const next = e.target.value
-            setSort(next === 'alphabetical' || next === 'recent' ? next : 'discover')
-          }}>
-            <option value="discover">Discover</option>
-            {view === 'tutors' ? <option value="alphabetical">Name A–Z</option> : <option value="recent">Recently posted</option>}
-          </select>
-        </label>
-        {view === 'tutors' && <label className={styles.filterSelectField}>
-          <span>Availability</span>
-          <select className={styles.select} value={day} onChange={e => setDay(e.target.value)}>
-            <option value="">Any day</option>
-            {DAYS.map(value => <option key={value} value={value}>{value}</option>)}
-          </select>
-        </label>}
-        {view === 'students' && <label className={styles.filterSelectField}>
-          <span>Preferred day</span>
-          <select className={styles.select} value={day} onChange={e => setDay(e.target.value)}>
-            <option value="">Any day</option>
-            {DAYS.map(value => <option key={value} value={value}>{value}</option>)}
-          </select>
-        </label>}
-      </div>
-      {day && <button type="button" className={styles.clear} onClick={() => setDay('')}>Clear day filter</button>}
-      <div className={`${styles.list} ${busy || loading ? styles.dim : ''}`} aria-live="polite" aria-busy={loading}>
+        onClear={clear} busy={loading} day={day} days={DAYS} onDay={setDay}
+        sort={sort} onSort={setSort} personalized={view === 'tutors' ? !!live?.learnerPreference : !!live?.tutorPreference} />
+      <div className={`${styles.list} ${loading ? styles.dim : ''}`} aria-live="polite" aria-busy={loading}>
         {loading && <div className={styles.emptyState}><p className={styles.empty}>Loading live listings…</p></div>}
         {!loading && loadError && <div className={styles.emptyState} role="alert">
           <p className={styles.empty}>Listings are temporarily unavailable.</p>
@@ -223,13 +199,20 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
           </div>
         </div>}
         {!loading && !loadError && view === 'tutors' && <>
-          <p className={styles.meta}>{tutors.filter(t => t.real).length} registered tutor listings · {tutors.filter(t => !t.real).length} fictional examples</p>
-          {tutors.filter(t => t.real).map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
+          {tutors.map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
           <Link className={styles.cardAction} href="/vibetutor/post-request">Request online tuition</Link>
-          {tutors.some(t => !t.real) && <>
-            <h2 className={styles.cardTitle}>Example tutors</h2>
-            
-            {tutors.filter(t => !t.real).map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
+          {services.length > 0 && <>
+            <h2 className={styles.cardTitle}>Tuition requests by subject</h2>
+            <p className={styles.meta}>Choose a learning area. We will look for a tutor.</p>
+            {services.slice(0, serviceLimit).map(service => <article key={service.id} className={styles.card}>
+              <div className={styles.cardHead}><div className={styles.cardTitleWrap}>
+                <h3 className={styles.cardTitle}>{service.subjects.join(' · ')}</h3>
+                <p className={styles.muted}>{service.area} · Online</p>
+              </div></div>
+              <p className={styles.meta}>{service.level}</p>
+              <Link className={styles.cardAction} href={'/vibetutor/post-request?service=' + encodeURIComponent(service.id)}>Request tutor</Link>
+            </article>)}
+            {serviceLimit < services.length && <button type="button" className={styles.cardAction} onClick={() => setServiceLimit(n => n + 12)}>Show more</button>}
           </>}
         </>}
         {!loading && !loadError && view === 'students' && live?.signedIn && requests.map(request => <RequestCard key={request.id} r={request} />)}

@@ -1,13 +1,13 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
-import { codeFromAvatar, defaultVibeMe, parseVibeMe, vibeMeCode, vibeMePath } from '@/lib/vibeme'
+import { avatarStyleFromPreference, codeFromAvatar, defaultCharacter, parseVibeMe, vibeMeCode, vibeMePath } from '@/lib/vibeme'
 
 import { CHARACTER_OPTIONS, characterChoices } from '@/lib/vibeme-character'
 
 export default function VibeMeStudio({ profileId, onSaved, learner = false }: { profileId?: string; onSaved?: (url: string) => void; learner?: boolean }) {
   const [open, setOpen] = useState(false)
-  const [choices, setChoices] = useState<number[]>(() => characterChoices([2,0,0,0,0,0,0],learner))
+  const [choices, setChoices] = useState<number[]>(() => parseVibeMe(defaultCharacter('',learner))!)
   const [tab,setTab] = useState(0)
   const [owner, setOwner] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -23,11 +23,11 @@ export default function VibeMeStudio({ profileId, onSaved, learner = false }: { 
         const client = getSupabaseClient()
         const { data, error } = await client.auth.getUser()
         if (error || !data.user || (profileId && profileId !== data.user.id)) throw new Error('Sign in to your own account to edit your avatar.')
-        const result = await client.from('profiles').select('avatar_url').eq('id', data.user.id).single()
+        const result = await client.from('profiles').select('avatar_url,gender').eq('id', data.user.id).single()
         if (result.error || !result.data) throw new Error('Could not load your profile.')
         if (!cancelled) {
           setOwner(data.user.id)
-          setChoices(characterChoices(parseVibeMe(codeFromAvatar(result.data.avatar_url) ?? defaultVibeMe(data.user.id))!,learner))
+          setChoices(characterChoices(parseVibeMe(codeFromAvatar(result.data.avatar_url) ?? defaultCharacter(data.user.id,learner,avatarStyleFromPreference(result.data.gender)))!,learner))
         }
       } catch (error) { if (!cancelled) setMessage(error instanceof Error ? error.message : 'Avatar unavailable.') }
       finally { if (!cancelled) setBusy(false) }
@@ -65,7 +65,7 @@ export default function VibeMeStudio({ profileId, onSaved, learner = false }: { 
           </label>)}
         </fieldset>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" style={action} disabled={busy || !owner} onClick={() => setChoices(CHARACTER_OPTIONS.map((o,i) => i===15?0:Math.floor(Math.random()*o.values.length)))}>Surprise me</button>
+          <button type="button" style={action} disabled={busy || !owner} onClick={() => setChoices(current => CHARACTER_OPTIONS.map((o,i) => i===7||i===8 ? current[i] : i===15 ? 0 : i===10 && current[8]!==0 ? 0 : Math.floor(Math.random()*o.values.length)))}>Surprise me</button>
           <button type="button" style={{ ...action, background: '#cdff00', color: '#20242b', borderColor: '#20242b' }} disabled={busy || !owner} onClick={() => void save()}>{busy ? 'Please wait…' : 'Save avatar'}</button>
         </div>
       </div>}

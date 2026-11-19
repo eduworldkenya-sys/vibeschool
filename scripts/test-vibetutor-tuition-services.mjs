@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
-import { TUITION_SERVICES, TUITION_AREA_ALLOCATIONS, findTuitionService } from '../components/vibetutor/tuitionServices.ts'
+import { TUITION_SERVICES, PUBLIC_TUITION_SERVICES, LOWER_PRIMARY_SERVICES, TUITION_AREA_ALLOCATIONS, findTuitionService } from '../components/vibetutor/tuitionServices.ts'
 import { SUBJECTS_BY_LEVEL } from '../components/vibetutor/data.ts'
 
 test('150 distinct service categories follow all 19 area quotas and canonical subjects', () => {
@@ -29,7 +29,9 @@ test('tuition catalogue requests only; existing registered tutor identities rema
   assert.match(browse, /href="\/vibetutor\/post-request"/)
   assert.doesNotMatch(page, /wa\.me|tel:|WhatsApp|Book now|Pay now/)
   assert.doesNotMatch(browse, /href="\/vibetutor\/tuition"/)
-  assert.match(browse, /\[\.\.\.live\.tutors, \.\.\.KENYA_DEMO_TUTORS\]/)
+  assert.doesNotMatch(browse, /KENYA_DEMO_TUTORS/)
+  assert.match(browse, /live\?\.tutors \?\? \[\]/)
+  assert.match(browse, /post-request\?service=/)
   assert.match(request, /findTuitionService\(query.get\('service'\)\)/)
   assert.match(request, /setMode\('online'\)/)
   assert.match(request, /REQUEST_AREAS\.map/)
@@ -59,12 +61,11 @@ test('150 named fictional examples, exact geography, no real contact or booking'
   const browse = readFileSync('app/vibetutor/browse/BrowseClient.tsx', 'utf8')
   assert.ok(cards.includes('? <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>'))
   assert.ok(cards.includes("post-request?example="))
-  assert.ok(cards.includes("Fictional example"))
+  assert.ok(cards.includes("Sample profile"))
   assert.ok(cards.includes("Indicative KSh"))
-  assert.ok(cards.includes("Tutor to be assigned"))
-  assert.ok(browse.includes('registered tutor listings'))
-  assert.ok(browse.includes('fictional examples'))
-  assert.ok(browse.includes('Example tutors'))
+  assert.ok(cards.includes("By request"))
+  assert.ok(browse.includes('Tuition requests by subject'))
+  assert.doesNotMatch(browse, /fictional examples|Example tutors|KENYA_DEMO_TUTORS/)
 })
 
 
@@ -77,4 +78,16 @@ test('example request prefill contains only learning needs, not a fictional tuto
   const page = readFileSync('app/vibetutor/post-request/page.tsx', 'utf8')
   assert.ok(page.includes("findExampleTuitionNeeds(query.get('example'))"))
   assert.ok(page.includes("setMode('online')"))
+})
+
+
+test('lower primary is available as request categories, not tutor identities', () => {
+  assert.equal(LOWER_PRIMARY_SERVICES.length, TUITION_AREA_ALLOCATIONS.length * SUBJECTS_BY_LEVEL['Grade 1–3'].length)
+  assert.equal(new Set(PUBLIC_TUITION_SERVICES.map(s => s.id)).size, PUBLIC_TUITION_SERVICES.length)
+  for (const s of LOWER_PRIMARY_SERVICES) {
+    assert.equal(s.level, 'Grade 1–3')
+    assert.ok(s.subjects.every(subject => SUBJECTS_BY_LEVEL[s.level].includes(subject)))
+    assert.deepEqual(findTuitionService(s.id), s)
+    assert.deepEqual(Object.keys(s).sort(), ['area', 'id', 'level', 'subjects'])
+  }
 })

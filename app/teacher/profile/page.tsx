@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import VibeMeStudio from "@/components/vibeme/VibeMeStudio";
-import { defaultCharacter, vibeMePath } from "@/lib/vibeme";
+import { avatarStyleFromPreference, defaultCharacter, vibeMePath } from "@/lib/vibeme";
 
 type Context = {
   teacher_id: string;
@@ -238,7 +238,7 @@ export default function TeacherProfilePage() {
       <section style={{ background: "var(--teacher-surface, #fff)", borderRadius: 20, border: "1px solid var(--teacher-border, #dfe5de)", padding: 18, color: "var(--teacher-ink, #1c2923)", marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
           <button type="button" onClick={() => fileInput.current?.click()} disabled={uploading} aria-label="Change profile photo" style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 99, border: "3px solid rgba(255,255,255,.65)", overflow: "hidden", background: "var(--teacher-green, #087451)", color: "#fff", fontSize: 25, fontWeight: 750 }}>
-            {form.avatarUrl || profileId ? <img src={form.avatarUrl || vibeMePath(defaultCharacter(profileId))} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (form.fullName.trim()[0]?.toUpperCase() ?? "T")}
+            {form.avatarUrl || profileId ? <img src={form.avatarUrl || vibeMePath(defaultCharacter(profileId, false, avatarStyleFromPreference(form.gender)))} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (form.fullName.trim()[0]?.toUpperCase() ?? "T")}
           </button>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAvatar(file); event.target.value = ""; }} />
           <div style={{ minWidth: 0 }}><div style={{ fontSize: 11, fontWeight: 750, opacity: .72, textTransform: "uppercase", letterSpacing: 1 }}>Teacher profile</div><h1 style={{ margin: "4px 0", fontSize: 23 }}>{form.fullName || "Teacher"}</h1><div style={{ fontSize: 12, opacity: .78 }}>{form.designation || "Teacher"} · {activeSchool}</div><div style={{ marginTop: 4, fontSize: 11, opacity: .68 }}>{email}</div></div>
