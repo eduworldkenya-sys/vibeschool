@@ -3,6 +3,12 @@ import { pathToFileURL } from 'node:url'
 const { PGlite } = await import(pathToFileURL(process.env.LIVE_TEST_ENGINE || '/tmp/live-test/node_modules/@electric-sql/pglite/dist/index.js').href)
 import {readFileSync} from 'node:fs'
 import assert from 'node:assert/strict'
+// Dashboard shortcut must use existing scoped host routes and remain hidden until enabled.
+const teacherToday=readFileSync(new URL('../app/teacher/pulse/page.tsx',import.meta.url),'utf8')
+assert.ok(teacherToday.includes('process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true"'))
+assert.ok(teacherToday.includes('>Go Live</button>'))
+assert.ok(teacherToday.includes('/teacher/classhub/${encodeURIComponent(focusClassId)}/live'))
+assert.ok(teacherToday.includes('/teacher/tutoring/live'))
 const db=new PGlite()
 await db.exec(`
 create role anon; create role authenticated;
