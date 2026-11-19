@@ -18,6 +18,7 @@ function Footer() {
         </div>
         <nav className={styles.footerLinks} aria-label="Footer">
           <Link href="/vibetutor">Find a tutor</Link>
+          <Link href="/vibetutor/examples">Example profiles</Link>
           <Link href="/vibetutor/post-request">Find tuition</Link>
           <Link href="/vibetutor/become-tutor">Become a tutor</Link>
           <Link href="/login">Sign in</Link>
