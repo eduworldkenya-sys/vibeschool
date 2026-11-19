@@ -45,3 +45,11 @@ export const KENYA_DEMO_TUTORS: DemoTutor[] = (() => {
   }
   return examples
 })()
+
+// Resolve example selections to subject needs only; never forward a fictional
+// tutor identity into a real learner request or booking.
+export function findExampleTuitionNeeds(id: string | null): { area: string; level: string; subjects: string[] } | undefined {
+  const example = KENYA_DEMO_TUTORS.find(t => !t.real && t.id === id)
+  if (!example) return undefined
+  return { area: example.area, level: example.levels[0], subjects: [...example.subjects] }
+}

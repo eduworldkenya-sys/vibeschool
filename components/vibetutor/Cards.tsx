@@ -18,31 +18,33 @@ export function TutorCard({ t }: { t: DemoTutor }) {
             <h3 className={styles.cardTitle}>{t.name}</h3>
             <p className={styles.muted}><Icon name="pin" size={14} /> {t.area}</p>
           </div>
-          {!t.real && <span className={styles.demo}>Example</span>}
+          {!t.real && <span className={styles.demo}>Fictional example</span>}
         </div>
         <div className={styles.tags}>{t.subjects.map(s => <span key={s} className={styles.tag}>{s}</span>)}</div>
         <p className={styles.meta}>{t.levels.join(' · ')}</p>
         <div className={styles.cardFoot}>
-          <p className={styles.price}>{t.real ? 'KSh ' : 'Example KSh '}{t.rateKes.toLocaleString('en-KE')}<span className={styles.priceUnit}> / hour</span></p>
+          <p className={styles.price}>{t.real ? 'KSh ' : 'Indicative KSh '}{t.rateKes.toLocaleString('en-KE')}<span className={styles.priceUnit}> / hour</span></p>
           <span className={styles.modeText}>{modeLabel(t.mode)}</span>
         </div>
-        <p className={styles.holiday}>{t.real ? (t.holidayAvailable ? 'Holiday tuition' : 'Available days') + ' · ' + summarizeDays(t.days) : 'Illustrative profile · not bookable'}</p>
+        <p className={styles.holiday}>{t.real ? (t.holidayAvailable ? 'Holiday tuition' : 'Available days') + ' · ' + summarizeDays(t.days) : 'Tutor to be assigned'}</p>
         <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>View tutor <Icon name="arrow" size={15} /></button>
       </article>
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
         <section className={styles.detailModal} role="dialog" aria-modal="true" aria-labelledby={`tutor-${t.id}`}>
           <button type="button" className={styles.modalClose} onClick={() => setOpen(false)} aria-label="Close details">×</button>
-          {!t.real && <span className={styles.demo}>Example profile</span>}
+          {!t.real && <span className={styles.demo}>Fictional example</span>}
           <h2 id={`tutor-${t.id}`} className={styles.modalTitle}>{t.name}</h2>
           <p className={styles.muted}>{t.area} · {modeLabel(t.mode)}</p>
-          <p className={styles.modalText}>{t.bio}</p>
+          {t.real && t.bio.trim() && <p className={styles.modalText}>{t.bio}</p>}
           <div className={styles.tags}>{t.subjects.map(s => <span key={s} className={styles.tag}>{s}</span>)}</div>
           <p className={styles.meta}><strong>Levels:</strong> {t.levels.join(', ')}</p>
-          <p className={styles.meta}><strong>Experience:</strong> {t.experience}</p>
-          <p className={styles.meta}><strong>Availability:</strong> {t.real ? summarizeDays(t.days) : 'Not available for booking'}</p>
-          <p className={styles.modalPrice}>{t.real ? 'KSh ' : 'Example KSh '}{t.rateKes.toLocaleString('en-KE')} / hour</p>
-          <p className={styles.hint}>{t.real ? 'Sign in to discuss tuition arrangements. Confirm the tutor and lesson details before attending.' : 'Example profile only. No tutor is connected to this example.'}</p>
-          {t.real && <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>}
+          {t.real && t.experience.trim() && <p className={styles.meta}><strong>Experience:</strong> {t.experience}</p>}
+          <p className={styles.meta}><strong>Availability:</strong> {t.real ? summarizeDays(t.days) : 'Tutor to be assigned'}</p>
+          <p className={styles.modalPrice}>{t.real ? 'KSh ' : 'Indicative KSh '}{t.rateKes.toLocaleString('en-KE')} / hour</p>
+          <p className={styles.hint}>{t.real ? 'Sign in to discuss tuition arrangements. Confirm the tutor and lesson details before attending.' : 'Request a real tutor for these subjects.'}</p>
+          {t.real
+            ? <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>
+            : <Link href={'/vibetutor/post-request?example=' + encodeURIComponent(t.id)} className={styles.modalSignIn}>Request tuition</Link>}
         </section>
       </div>}
     </>
