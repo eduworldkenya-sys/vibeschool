@@ -165,7 +165,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
             <p className={styles.meta}>Fictional profiles and sample prices. These are not available for booking or contact.</p>
             {tutors.filter(t => !t.real).map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
           </>}
-        </>
+        </>}
         {!loading && !loadError && view === 'students' && live?.signedIn && requests.map(request => <RequestCard key={request.id} r={request} />)}
       </div>
       <BackToTop />
