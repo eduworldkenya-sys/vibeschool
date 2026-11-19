@@ -4,10 +4,13 @@ export const dynamic = "force-dynamic"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import VibeMeStudio from "@/components/vibeme/VibeMeStudio"
 import { getAdminSchoolAuthority } from "@/lib/admin/authority"
 
 export default function AdminProfilePage() {
   const router = useRouter()
+  const [avatar, setAvatar] = useState<string | null>(null)
+  const [profileId, setProfileId] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [phone, setPhone] = useState<string | null>(null)
   const [school, setSchool] = useState("")
@@ -22,11 +25,13 @@ export default function AdminProfilePage() {
     try {
       const authority = await getAdminSchoolAuthority()
       const [profileRes, schoolRes] = await Promise.all([
-        supabase.from("profiles").select("full_name,phone").eq("id", authority.userId).single(),
+        supabase.from("profiles").select("full_name,phone,avatar_url").eq("id", authority.userId).single(),
         supabase.from("schools").select("name").eq("id", authority.schoolId).single(),
       ])
       if (profileRes.error) throw profileRes.error
       if (schoolRes.error) throw schoolRes.error
+      setAvatar(profileRes.data.avatar_url)
+      setProfileId(authority.userId)
       setName(profileRes.data.full_name)
       setPhone(profileRes.data.phone)
       setSchool(schoolRes.data.name)
@@ -50,6 +55,8 @@ export default function AdminProfilePage() {
       <header><h1 style={{ margin: 0, fontSize: 24 }}>My account</h1><p style={{ color: "#64748b", margin: "5px 0 0" }}>Personal identity is separate from school authority.</p></header>
       {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, borderRadius: 12 }}>{error}</div>}
       <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 11 }}>
+        {avatar && <img src={avatar} alt="" width={80} height={80} style={{ borderRadius: "50%", objectFit: "cover" }} />}
+        {profileId && <VibeMeStudio profileId={profileId} onSaved={setAvatar} />}
         <div><div style={{ color: "#64748b", fontSize: 12 }}>Name</div><strong>{name}</strong></div>
         <div><div style={{ color: "#64748b", fontSize: 12 }}>Phone</div><strong>{phone || "Not provided"}</strong></div>
         <div><div style={{ color: "#64748b", fontSize: 12 }}>Authorized school</div><strong>{school}</strong></div>
