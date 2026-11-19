@@ -34,3 +34,22 @@ assert.doesNotMatch(outline,/\.select\([^\n]*blocks/)
 assert.match(outline,/resumed \? 'Continue reading' : 'Start reading'/)
 assert.doesNotMatch(library,/>Topics and lessons<|>Published textbooks<|>Existing lesson readers</)
 console.log('PASS: single book landing, existing reader destinations, owner-only resume, no draft leakage or fabricated linkage')
+
+const {buildPresentationOutline}=await import('data:text/javascript;base64,'+Buffer.from(combined).toString('base64'))
+// Synthetic fixture follows the mapped Grade 4 English source-locator contract.
+const themes=Array.from({length:13},(_,i)=>i===1?'Safety: At Home':'Theme '+(i+1))
+const strands=['Listening and Speaking','Reading','Grammar in Use','Writing']
+const themedRows=themes.flatMap((theme,i)=>strands.map((strand,j)=>({id:i+'-'+j,name:strand,sub_strand:theme+': Skill '+j,strand_order:j+1,sub_strand_order:i+1,source_ref:'VS-CUR-FIXTURE#'+String(i+1).padStart(2,'0')+'-'+['LS','RD','GR','WR'][j]})))
+const themed=buildPresentationOutline([...themedRows.reverse(),{id:'old',name:'Grammar',sub_strand:'Legacy'}])
+assert.equal(themed.themed,true)
+assert.equal(themed.chapters.length,13)
+assert.equal(themed.chapters[1].title,'Safety: At Home')
+assert.deepEqual(themed.chapters[0].topics.map(t=>t.strand),strands)
+assert.equal(themed.chapters.flatMap(c=>c.topics).length,52)
+const released={id:'release',title:'Released',href:'/read/textbook/a/b',subStrandId:'1-2'}
+assert.equal(connectReadingEntries(themedRows,[released]).groups[1].topics[2].entries[0].id,'release')
+const incomplete=themedRows.filter(row=>row.id!=='1-2')
+assert.equal(buildPresentationOutline(incomplete).themed,false,'Do not guess a theme from incomplete metadata')
+assert.equal(buildPresentationOutline(rows).themed,false)
+assert.match(outline,/source_ref,strand_order,sub_strand_order/)
+console.log('PASS: theme-first and strand-first presentation, compound theme labels, stable linked sections and fail-safe fallback')

@@ -37,7 +37,7 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
         const size = 200
         for (let page = 0; ; page++) {
           const { data, error } = await supabase.from('cbc_strands')
-            .select('id,name,sub_strand').eq('grade', grade).eq('subject_id', matches[0].id)
+            .select('id,name,sub_strand,source_ref,strand_order,sub_strand_order').eq('grade', grade).eq('subject_id', matches[0].id)
             .order('name').order('sub_strand').order('id').range(page * size, (page + 1) * size - 1)
           if (!active) return
           if (error) throw error
@@ -128,6 +128,7 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
       {groups.map((group,index)=><details key={group.id} className={styles.bookChapter}>
         <summary><span className={styles.chapterNumber}>{String(index+1).padStart(2,'0')}</span><strong>{group.title}</strong><ChevronRight size={18} aria-hidden="true"/></summary>
         <div className={styles.bookTopics}>{group.topics.map(topic=><div key={topic.id}>
+          {topic.strand && <small className={styles.tinyNote}>{topic.strand}</small>}
           {topic.entries.length ? topic.entries.map((entry,i)=>entryLink(entry,i===0?topic.title:entry.title)) : <div className={styles.bookTopicPending}><span>{topic.title}</span><small>Coming soon</small></div>}
         </div>)}</div>
       </details>)}
