@@ -118,21 +118,21 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   // Each facet is calculated without its own current selection.
   const levelOptions: FilterOption[] = LEVELS.flatMap(value => {
     const f = { ...filters, level: '' }
-    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.levels.includes(value)).length : requestsFor(f).filter(r => r.level === value).length
-    return count ? [{ value, label: value, count }] : []
+    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.levels.includes(value)).length : requestsFor(f).filter(r => r.level === value).length
+    return count || (view === 'tutors' && tutorsFor(f).some(t => !t.real && t.levels.includes(value))) ? [{ value, label: value, count }] : []
   })
   const availableLevels = level ? SUBJECTS_BY_LEVEL[level] || [] : []
   const subjectOptions: FilterOption[] = availableLevels.flatMap(value => {
     const f = { ...filters, subject: '' }
-    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.subjects.includes(value)).length : requestsFor(f).filter(r => r.subjects.includes(value)).length
-    return count ? [{ value, label: value, count }] : []
+    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.subjects.includes(value)).length : requestsFor(f).filter(r => r.subjects.includes(value)).length
+    return count || (view === 'tutors' && tutorsFor(f).some(t => !t.real && t.subjects.includes(value))) ? [{ value, label: value, count }] : []
   })
   const areaOptions: FilterOption[] = [...new Set([
     ...tutorSource.map(t => t.area), ...requestSource.map(r => r.area),
   ])].flatMap(value => {
     const f = { ...filters, area: '' }
-    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.area === value).length : requestsFor(f).filter(r => r.area === value).length
-    return count ? [{ value, label: value, count }] : []
+    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.area === value).length : requestsFor(f).filter(r => r.area === value).length
+    return count || (view === 'tutors' && tutorsFor(f).some(t => !t.real && t.area === value)) ? [{ value, label: value, count }] : []
   })
   const modeOptions: FilterOption[] = [
     { value: 'online', label: 'Online', count: 0 },
@@ -185,6 +185,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
           </select>
         </label>}
       </div>
+      {day && <button type="button" className={styles.clear} onClick={() => setDay('')}>Clear day filter</button>}
       <div className={`${styles.list} ${busy || loading ? styles.dim : ''}`} aria-live="polite" aria-busy={loading}>
         {loading && <div className={styles.emptyState}><p className={styles.empty}>Loading live listings…</p></div>}
         {!loading && loadError && <div className={styles.emptyState} role="alert">
