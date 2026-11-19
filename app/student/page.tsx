@@ -172,6 +172,7 @@ export default function StudentHomePage() {
         </button>
       </section>
       <nav className={compact.grid} aria-label="Home shortcuts">
+        {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED==='true' && <Link className={compact.action} href="/student/live">Join Live</Link>}
         <Link className={compact.action} href="/student/tasks">Tasks · {feed?.counts.toDo ?? 0}</Link>
         <button type="button" className={compact.action} onClick={() => router.push('/student/vibelearn/exams')}>Exams</button>
         <Link className={compact.action} href="/student/timetable">My Day</Link>

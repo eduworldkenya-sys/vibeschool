@@ -27,6 +27,8 @@ async function run(authResult) {
   };
   vm.runInNewContext(javascript, {
     exports, URLSearchParams,
+    // Next.js replaces public build flags; the isolated VM needs the same default-off value.
+    process: { env: { NEXT_PUBLIC_VIBE_LIVE_ENABLED: 'false' } },
     window: { location: { search: '?invite=' + token, assign: url => redirects.push(url) } },
     require(name) {
       if (name === 'react') return react;

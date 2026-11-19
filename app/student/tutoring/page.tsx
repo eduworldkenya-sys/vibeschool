@@ -107,6 +107,7 @@ export default function StudentTuition() {
       <StudentIntro feature="tutors-overview"><p>Find your tutors, sessions and messages. Your learning records remain in your main workspace.</p></StudentIntro></header>
     {error && <p role="alert" style={{ color: "#b91c1c" }}>{error}</p>}
     {notice && <p role="status">{notice}</p>}
+    {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED==='true'&&<Link style={action} href="/student/live">Join Live</Link>}
 
     {token && <section style={panel} aria-label="Shared tuition invitation">
       <h2 style={{ fontSize: 19, marginTop: 0 }}>You're invited to private tuition</h2>

@@ -317,6 +317,7 @@ export default function ParentHomePage() {
         </div>
       </section>
 
+      {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED==='true'&&<button onClick={()=>router.push("/parent/live")} style={{...cardStyle,width:"100%",marginBottom:14,cursor:"pointer",fontWeight:800}}>Homeschool · Live Classroom</button>}
       <section style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '15px 16px 11px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
