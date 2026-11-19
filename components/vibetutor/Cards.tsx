@@ -7,11 +7,20 @@ import Icon from './Icon'
 import { defaultCharacter, vibeMePath } from '@/lib/vibeme'
 import { modeLabel, summarizeDays, summarizeParts, type DemoRequest, type DemoTutor } from './data'
 
-export function TutorCard({ t }: { t: DemoTutor }) {
+export function TutorCard({ t, compact = false, score }: { t: DemoTutor; compact?: boolean; score?: number }) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <article className={styles.card}>
+      {compact ? <button type="button" className={styles.discoveryRow} onClick={() => setOpen(true)}>
+        <span className={styles.discoveryAvatar} aria-hidden="true"><img src={t.avatarUrl ?? vibeMePath(defaultCharacter(t.id))} alt="" /></span>
+        <span className={styles.discoveryCopy}>
+          <strong>{t.name}</strong>
+          <span className={styles.discoveryMeta}>{t.subjects.join(' · ')}</span>
+          <span className={styles.discoveryMeta}>{t.levels.join(' · ')} · {modeLabel(t.mode)}</span>
+          {t.real ? (score !== undefined ? <span className={styles.discoveryMatch}>{score}% match</span> : <span className={styles.discoveryMeta}>{t.area || modeLabel(t.mode)}</span>) : <span className={styles.demo}>Sample profile</span>}
+        </span>
+        <span className={styles.discoveryChevron} aria-hidden="true">›</span>
+      </button> : <article className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.avatar} aria-hidden="true"><img src={t.avatarUrl ?? vibeMePath(defaultCharacter(t.id))} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%" }} /></div>
           <div className={styles.cardTitleWrap}>
@@ -27,7 +36,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
         </div>
         <p className={styles.holiday}>{t.real ? (t.holidayAvailable ? 'Holiday tuition' : 'Available days') + ' · ' + summarizeDays(t.days) : 'Sample profile · tutor matching'}</p>
         <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>{t.real ? 'View tutor' : 'View profile'} <Icon name="arrow" size={15} /></button>
-      </article>
+      </article>}
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
         <section className={styles.detailModal} role="dialog" aria-modal="true" aria-labelledby={`tutor-${t.id}`}>
           <button type="button" className={styles.modalClose} onClick={() => setOpen(false)} aria-label="Close details">×</button>
@@ -49,11 +58,19 @@ export function TutorCard({ t }: { t: DemoTutor }) {
   )
 }
 
-export function RequestCard({ r }: { r: DemoRequest }) {
+export function RequestCard({ r, compact = false, score }: { r: DemoRequest; compact?: boolean; score?: number }) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <article className={styles.card}>
+      {compact ? <button type="button" className={styles.discoveryRow} onClick={() => setOpen(true)}>
+        <span className={styles.discoveryAvatar} aria-hidden="true"><Icon name="user" size={30} /></span>
+        <span className={styles.discoveryCopy}>
+          <strong>{r.subjects.join(' · ')}</strong>
+          <span className={styles.discoveryMeta}>{r.level} · {modeLabel(r.mode)}</span>
+          {r.real ? (score !== undefined ? <span className={styles.discoveryMatch}>{score}% match</span> : <span className={styles.discoveryMeta}>{r.area || modeLabel(r.mode)}</span>) : <span className={styles.demo}>Example request</span>}
+        </span>
+        <span className={styles.discoveryChevron} aria-hidden="true">›</span>
+      </button> : <article className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitleWrap}>
             <h3 className={styles.cardTitle}>{r.subjects.join(', ')}</h3>
@@ -68,7 +85,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
           <span className={styles.modeText}>{r.postedDaysAgo === 1 ? 'Posted yesterday' : `Posted ${r.postedDaysAgo} days ago`}</span>
         </div>
         <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>View request <Icon name="arrow" size={15} /></button>
-      </article>
+      </article>}
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
         <section className={styles.detailModal} role="dialog" aria-modal="true" aria-labelledby={`request-${r.id}`}>
           <button type="button" className={styles.modalClose} onClick={() => setOpen(false)} aria-label="Close details">×</button>

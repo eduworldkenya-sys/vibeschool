@@ -746,3 +746,40 @@
   .brandProduct { font-size: 16px; }
   .brandDivider { height: 18px; }
 }
+
+
+/* Discover: compact, single-column feed scoped to the marketplace browse route. */
+.discoveryPanel{--discover-surface:#fff;--discover-ink:#202124;--discover-muted:#64666a;--discover-line:#e6e6e6;--discover-active:#ededed;--discover-match:#08783c;max-width:680px;margin:0 auto;padding:clamp(16px,4vw,24px);border:1px solid var(--discover-line);border-radius:20px;background:var(--discover-surface);color:var(--discover-ink);display:grid;gap:16px;min-width:0}
+.discoveryHeader{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.discoveryTitle{margin:0;font-family:var(--font-display),'Manrope',Arial,sans-serif;font-size:25px;letter-spacing:-.035em;font-weight:750}
+.discoveryActions{display:flex;gap:2px;align-items:center}
+.discoveryIcon{border:0;background:transparent;color:inherit;padding:6px;min-width:44px;min-height:44px;display:grid;place-items:center;border-radius:50%;cursor:pointer}
+.discoveryIcon[aria-expanded=true]{background:var(--discover-active)}
+.discoveryRole,.discoveryTabs,.discoveryChips{display:flex;align-items:center;gap:5px;min-width:0}
+.discoveryRole{gap:14px;border-bottom:1px solid var(--discover-line);padding-bottom:6px}
+.discoveryRole button,.discoveryTabs button,.discoveryChips button{font:inherit;font-size:13px;color:var(--discover-muted);background:transparent;cursor:pointer;border:0;border-radius:999px;min-height:40px;padding:8px 15px;white-space:nowrap}
+.discoveryRole button{min-height:34px;padding:4px 0;border-radius:0;font-weight:600}
+.discoveryRole button[aria-pressed=true]{color:var(--discover-ink);border-bottom:2px solid currentColor}
+.discoveryTabs button[aria-pressed=true]{background:var(--discover-active);color:var(--discover-ink);font-weight:650}
+.discoveryChips{overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.discoveryChips::-webkit-scrollbar{display:none}
+.discoveryChips button{border:1px solid var(--discover-line);padding:7px 14px;min-height:37px;flex:0 0 auto}
+.discoveryChips button[aria-pressed=true]{background:var(--discover-ink);color:var(--discover-surface);border-color:var(--discover-ink)}
+.discoverySummary{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--discover-muted);font-size:13px}
+.discoverySummary p{margin:0}
+.discoveryList{display:flex;flex-direction:column;min-width:0;gap:0}
+.discoveryList>.card,.discoveryList>.cardAction,.discoveryList>.cardTitle,.discoveryList>.meta{margin-top:12px}
+.discoveryRow{width:100%;box-sizing:border-box;display:flex;align-items:center;gap:12px;text-align:left;border:0;border-bottom:1px solid var(--discover-line);background:transparent;color:var(--discover-ink);font:inherit;padding:20px 0;min-height:110px;cursor:pointer}
+.discoveryRow:hover{background:var(--discover-active)}
+.discoveryAvatar{width:64px;height:64px;border-radius:16px;flex:0 0 64px;display:grid;place-items:center;background:#dce8fa;color:#526079;overflow:hidden}
+.discoveryRow:nth-of-type(3n+2) .discoveryAvatar{background:#f1dfd0}
+.discoveryRow:nth-of-type(3n+3) .discoveryAvatar{background:#ddeadb}
+.discoveryAvatar img{width:100%;height:100%;object-fit:contain}
+.discoveryCopy{min-width:0;flex:1;display:grid;gap:6px}
+.discoveryCopy strong{font-size:16px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.discoveryMeta{font-size:12px;line-height:1.45;color:var(--discover-muted);overflow-wrap:anywhere}
+.discoveryMatch{font-size:12px;color:var(--discover-match);font-weight:600}
+.discoveryChevron{font-size:26px;line-height:1;color:var(--discover-muted);padding:0 4px}
+.discoveryPanel button:focus-visible,.discoveryPanel select:focus-visible,.discoveryPanel input:focus-visible{outline:2px solid var(--discover-match);outline-offset:2px}
+:global(html[data-vt-theme='dark']) .discoveryPanel{--discover-surface:#1c1c1c;--discover-ink:#f5f5f5;--discover-muted:#b3b3b3;--discover-line:#383838;--discover-active:#292929;--discover-match:#53cf82}
+@media(max-width:380px){.discoveryPanel{padding:14px;gap:12px}.discoveryTabs button{padding:8px 12px}.discoveryRow{gap:10px}.discoveryAvatar{width:60px;height:60px;flex-basis:60px}}
