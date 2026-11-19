@@ -2,6 +2,9 @@
 -- existing columns and grants; expose only finite non-identifying avatar codes.
 -- Never expose profile photos, private profiles, or learner account identifiers.
 begin;
+-- Reconcile the already-live presentation field with clean reconstruction.
+alter table public.profiles add column if not exists avatar_url text;
+grant update (avatar_url) on public.profiles to authenticated;
 create or replace view public.vibetutor_public_tutors
   with (security_invoker = false) as
   select t.profile_id, t.display_name, t.levels, t.subjects, t.teaching_mode, t.area,
