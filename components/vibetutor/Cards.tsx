@@ -41,7 +41,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
           <p className={styles.meta}><strong>Availability:</strong> {summarizeDays(t.days)}</p>
           <p className={styles.modalPrice}>KSh {t.rateKes.toLocaleString('en-KE')} / hour</p>
           <p className={styles.hint}>{t.real ? 'Sign in to discuss tuition arrangements. Confirm the tutor and lesson details before attending.' : 'Example profile only. No tutor is connected to this example.'}</p>
-          <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>
+          {t.real && <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>}
         </section>
       </div>}
     </>
