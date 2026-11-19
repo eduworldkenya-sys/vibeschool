@@ -1,5 +1,6 @@
 /** Canonical, read-only lesson blocks supplied by an already-authorised reader. */
 import type { TeachingToolSpec, TeachingToolId } from './teachingToolCatalog'
+import { parseCharacter } from '../vibeme-character'
 export type LearningBlock =
   | { kind: 'paragraph'; text: string }
   | { kind: 'passage'; text: string; attribution?: string }
@@ -8,6 +9,7 @@ export type LearningBlock =
   | { kind: 'table'; columns: readonly string[]; rows: readonly (readonly string[])[]; caption?: string }
   | { kind: 'activity'; instructions: string; materials?: readonly string[] }
   | { kind: 'visual'; id: string; resourceVersionId?: string }
+  | { kind: 'character'; code: string; altText: string; caption?: string }
 
 export type CanonicalLearnSection = {
   id: string
@@ -110,6 +112,13 @@ export function adaptCanonicalLearnSections(input: unknown): CanonicalLearnSecti
         blocks.push({kind:'table',columns:b.columns,rows:b.rows as string[][],caption:text(b.caption)?b.caption:undefined})
       else if (b.kind === 'activity' && text(b.instructions))
         blocks.push({kind:'activity',instructions:b.instructions,materials:strings(b.materials)?b.materials:undefined})
+      else if (b.kind === 'character') {
+        // Only local, fictional SVG choices; never resolve user accounts or external images.
+        const code = typeof b.code === 'string' ? b.code : ''
+        const choices = parseCharacter(code)
+        if (choices && choices[15] === 0 && text(b.altText) && b.altText.length <= 240)
+          blocks.push({kind:'character',code,altText:b.altText,caption:text(b.caption)&&b.caption.length<=500?b.caption:undefined})
+      }
       else if (b.kind === 'visual') {
         // Normalize the exact UUIDs before passing them to the certified resolver.
         const visualId = typeof b.id === 'string' ? b.id.trim() : ''
