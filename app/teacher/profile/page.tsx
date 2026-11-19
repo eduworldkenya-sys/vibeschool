@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import VibeMeStudio from "@/components/vibeme/VibeMeStudio";
+import { defaultVibeMe, vibeMePath } from "@/lib/vibeme";
 
 type Context = {
   teacher_id: string;
@@ -65,6 +67,7 @@ export default function TeacherProfilePage() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [context, setContext] = useState<Context | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [profileId, setProfileId] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -90,6 +93,7 @@ export default function TeacherProfilePage() {
         router.replace("/login");
         return;
       }
+      setProfileId(auth.user.id);
       setEmail(auth.user.email ?? "");
       const [profileRes, teacherRes, ctx] = await Promise.all([
         db.from("profiles").select("id,full_name,phone,bio,gender,date_of_birth,avatar_url,notification_prefs").eq("id", auth.user.id).single(),
@@ -234,12 +238,14 @@ export default function TeacherProfilePage() {
       <section style={{ background: "var(--teacher-surface, #fff)", borderRadius: 20, border: "1px solid var(--teacher-border, #dfe5de)", padding: 18, color: "var(--teacher-ink, #1c2923)", marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
           <button type="button" onClick={() => fileInput.current?.click()} disabled={uploading} aria-label="Change profile photo" style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 99, border: "3px solid rgba(255,255,255,.65)", overflow: "hidden", background: "var(--teacher-green, #087451)", color: "#fff", fontSize: 25, fontWeight: 750 }}>
-            {form.avatarUrl ? <img src={form.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (form.fullName.trim()[0]?.toUpperCase() ?? "T")}
+            {form.avatarUrl || profileId ? <img src={form.avatarUrl || vibeMePath(defaultVibeMe(profileId))} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (form.fullName.trim()[0]?.toUpperCase() ?? "T")}
           </button>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAvatar(file); event.target.value = ""; }} />
           <div style={{ minWidth: 0 }}><div style={{ fontSize: 11, fontWeight: 750, opacity: .72, textTransform: "uppercase", letterSpacing: 1 }}>Teacher profile</div><h1 style={{ margin: "4px 0", fontSize: 23 }}>{form.fullName || "Teacher"}</h1><div style={{ fontSize: 12, opacity: .78 }}>{form.designation || "Teacher"} · {activeSchool}</div><div style={{ marginTop: 4, fontSize: 11, opacity: .68 }}>{email}</div></div>
         </div>
       </section>
+
+      <VibeMeStudio profileId={profileId || undefined} onSaved={avatarUrl => setForm(current => ({ ...current, avatarUrl }))} />
 
       {notice && <div role={notice.kind === "error" ? "alert" : "status"} style={{ borderRadius: 14, padding: 13, marginBottom: 12, fontSize: 13, background: notice.kind === "error" ? "#fef2f2" : "#ecfdf5", color: notice.kind === "error" ? "#991b1b" : "#065f46" }}>{notice.text}</div>}
 
