@@ -162,7 +162,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
           <Link className={styles.cardAction} href="/vibetutor/post-request">Request online tuition</Link>
           {tutors.some(t => !t.real) && <>
             <h2 className={styles.cardTitle}>Example tutors</h2>
-            <p className={styles.meta}>Fictional profiles and sample prices. These are not available for booking or contact.</p>
+            
             {tutors.filter(t => !t.real).map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
           </>}
         </>}

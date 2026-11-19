@@ -30,12 +30,12 @@ test('tuition catalogue requests only; existing registered tutor identities rema
   assert.doesNotMatch(page, /wa\.me|tel:|WhatsApp|Book now|Pay now/)
   assert.doesNotMatch(browse, /href="\/vibetutor\/tuition"/)
   assert.match(browse, /\[\.\.\.live\.tutors, \.\.\.KENYA_DEMO_TUTORS\]/)
-  assert.match(request, /findTuitionService\(new URLSearchParams/)
+  assert.match(request, /findTuitionService\(query.get\('service'\)\)/)
   assert.match(request, /setMode\('online'\)/)
   assert.match(request, /REQUEST_AREAS\.map/)
 })
 
-import { KENYA_DEMO_TUTORS, KENYA_DEMO_COVERAGE } from '../components/vibetutor/kenya-demo-tutors.ts'
+import { KENYA_DEMO_TUTORS, KENYA_DEMO_COVERAGE, findExampleTuitionNeeds } from '../components/vibetutor/kenya-demo-tutors.ts'
 
 test('150 named fictional examples, exact geography, no real contact or booking', () => {
   assert.equal(KENYA_DEMO_TUTORS.length, 150)
@@ -57,9 +57,24 @@ test('150 named fictional examples, exact geography, no real contact or booking'
   }
   const cards = readFileSync('components/vibetutor/Cards.tsx', 'utf8')
   const browse = readFileSync('app/vibetutor/browse/BrowseClient.tsx', 'utf8')
-  assert.ok(cards.includes("{t.real && <Link href=\"/login\" className={styles.modalSignIn}>Sign in to contact</Link>}"))
-  assert.ok(cards.includes('not bookable'))
+  assert.ok(cards.includes('? <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>'))
+  assert.ok(cards.includes("post-request?example="))
+  assert.ok(cards.includes("Fictional example"))
+  assert.ok(cards.includes("Indicative KSh"))
+  assert.ok(cards.includes("Tutor to be assigned"))
   assert.ok(browse.includes('registered tutor listings'))
   assert.ok(browse.includes('fictional examples'))
-  assert.ok(browse.includes('Fictional profiles and sample prices'))
+  assert.ok(browse.includes('Example tutors'))
+})
+
+
+test('example request prefill contains only learning needs, not a fictional tutor identity or booking', () => {
+  for (const example of KENYA_DEMO_TUTORS) {
+    assert.deepEqual(findExampleTuitionNeeds(example.id), { area: example.area, level: example.levels[0], subjects: example.subjects })
+  }
+  assert.equal(findExampleTuitionNeeds(null), undefined)
+  assert.equal(findExampleTuitionNeeds('invalid'), undefined)
+  const page = readFileSync('app/vibetutor/post-request/page.tsx', 'utf8')
+  assert.ok(page.includes("findExampleTuitionNeeds(query.get('example'))"))
+  assert.ok(page.includes("setMode('online')"))
 })
