@@ -1,6 +1,6 @@
 /** Canonical, read-only lesson blocks supplied by an already-authorised reader. */
 import type { TeachingToolSpec, TeachingToolId } from './teachingToolCatalog'
-import { parseCharacter } from '../vibeme-character'
+import { parseCharacter } from '../vibeme-character-contract.mjs'
 export type LearningBlock =
   | { kind: 'paragraph'; text: string }
   | { kind: 'passage'; text: string; attribution?: string }
