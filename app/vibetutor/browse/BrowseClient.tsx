@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar, { type FilterOption } from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
@@ -110,6 +111,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   return (
     <>
       <h1 className={styles.pageTitle}>Find holiday tuition</h1>
+      {view === 'tutors' && <Link className={styles.cardAction} href="/vibetutor/tuition">Browse VibeSchool online tuition options</Link>}
       <FilterBar priceRange={priceRange} onPriceRange={setPriceRange} view={view} onView={changeView} q={q} onQ={setQ}
         placeholder={view === 'tutors' ? 'Search tutors by name, subject or area' : 'Search requests by subject, level or area'}
         subjects={subjectOptions} subject={subject} onSubject={setSubject}
