@@ -3,7 +3,7 @@ export type Mode = 'online' | 'physical' | 'either'
 export type DayPart = 'morning' | 'afternoon' | 'evening' | 'night'
 
 export type DemoTutor = {
-  id: string; name: string; initials: string; subjects: string[]; levels: string[]
+  id: string; name: string; initials: string; avatarUrl?: string; subjects: string[]; levels: string[]
   mode: Mode; area: string; rateKes: number; holidayAvailable: boolean; days: string[]; bio: string; experience: string; formatNote: string; real?: boolean
 }
 export type DemoRequest = {
