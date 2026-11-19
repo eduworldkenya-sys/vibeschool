@@ -8,7 +8,7 @@ import BackToTop from '@/components/vibetutor/BackToTop'
 import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
 import { DAYS, LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
 import { fetchLiveListings, type LiveListings } from '@/components/vibetutor/listings'
-import { TUITION_SERVICES } from '@/components/vibetutor/tuitionServices'
+import { PUBLIC_TUITION_SERVICES } from '@/components/vibetutor/tuitionServices'
 
 type View = 'tutors' | 'students'
 type Sort = 'discover' | 'alphabetical' | 'recent'
@@ -114,7 +114,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     return sort === 'recent' ? rows.sort((a, b) => a.postedDaysAgo - b.postedDaysAgo) : rows
   }, [q, subject, level, area, mode, priceRange, day, requestSource, sort, seed])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
-  const services = useMemo(() => rotate(TUITION_SERVICES.filter(service =>
+  const services = useMemo(() => rotate(PUBLIC_TUITION_SERVICES.filter(service =>
     (!level || service.level === level) &&
     (!subject || service.subjects.includes(subject)) &&
     (!area || service.area === area) &&
@@ -128,20 +128,20 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const levelOptions: FilterOption[] = LEVELS.flatMap(value => {
     const f = { ...filters, level: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.levels.includes(value)).length : requestsFor(f).filter(r => r.level === value).length
-    return count || (view === 'tutors' && TUITION_SERVICES.some(t => t.level === value)) ? [{ value, label: value, count }] : []
+    return count || (view === 'tutors' && PUBLIC_TUITION_SERVICES.some(t => t.level === value)) ? [{ value, label: value, count }] : []
   })
   const availableLevels = level ? SUBJECTS_BY_LEVEL[level] || [] : []
   const subjectOptions: FilterOption[] = availableLevels.flatMap(value => {
     const f = { ...filters, subject: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.subjects.includes(value)).length : requestsFor(f).filter(r => r.subjects.includes(value)).length
-    return count || (view === 'tutors' && TUITION_SERVICES.some(t => t.level === level && t.subjects.includes(value))) ? [{ value, label: value, count }] : []
+    return count || (view === 'tutors' && PUBLIC_TUITION_SERVICES.some(t => t.level === level && t.subjects.includes(value))) ? [{ value, label: value, count }] : []
   })
   const areaOptions: FilterOption[] = [...new Set([
-    ...tutorSource.map(t => t.area), ...requestSource.map(r => r.area), ...TUITION_SERVICES.map(t => t.area),
+    ...tutorSource.map(t => t.area), ...requestSource.map(r => r.area), ...PUBLIC_TUITION_SERVICES.map(t => t.area),
   ])].flatMap(value => {
     const f = { ...filters, area: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.area === value).length : requestsFor(f).filter(r => r.area === value).length
-    return count || (view === 'tutors' && TUITION_SERVICES.some(t => t.area === value)) ? [{ value, label: value, count }] : []
+    return count || (view === 'tutors' && PUBLIC_TUITION_SERVICES.some(t => t.area === value)) ? [{ value, label: value, count }] : []
   })
   const modeOptions: FilterOption[] = [
     { value: 'online', label: 'Online', count: 0 },
