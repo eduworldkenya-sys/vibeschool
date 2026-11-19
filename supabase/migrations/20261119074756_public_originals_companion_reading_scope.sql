@@ -35,5 +35,6 @@ comment on function public.post_secondary_publication_visible(uuid) is 'Visibili
 
 do $$ begin
   if public.post_secondary_public_enabled() then raise exception 'Academic mute must remain enabled'; end if;
-  if not public.post_secondary_publication_visible('c0b2a83f-d726-4eed-812e-7d79f57497df') or not public.post_secondary_publication_visible('51f1052d-2f59-46bb-9186-c1a7937d203a') then raise exception 'Approved Originals must be visible'; end if;
+  -- Fresh databases may not yet contain these manually published books.
+  if exists (select 1 from public.vibe_publications p where p.id in ('c0b2a83f-d726-4eed-812e-7d79f57497df','51f1052d-2f59-46bb-9186-c1a7937d203a') and p.status = 'published' and p.format = 'ebook' and not public.post_secondary_publication_visible(p.id)) then raise exception 'Approved Originals must be visible'; end if;
 end $$;
