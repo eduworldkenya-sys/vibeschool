@@ -100,7 +100,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
         const { data: rawChapters, error: chaptersError } = await sb.from('vibe_chapters').select('*').eq('publication_id', pub.id).order('number', { ascending: true })
         if (chaptersError) throw chaptersError
         let loadedChapters: VibeChapter[] = (rawChapters ?? []).map(chapterRowToDraft)
-        if (loadedChapters.length === 0) {
+        if (loadedChapters.length === 0 && pub.format !== 'vibetextbook' && pub.status === 'draft') {
           const first = emptyChapter(pub.id, 1)
           const { data: insertedChapter, error: chapterInsertError } = await sb.from('vibe_chapters').insert(chapterDraftToInsert(first)).select('*').single()
           if (chapterInsertError) throw chapterInsertError
@@ -109,7 +109,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
         if (!cancelled) {
           setPublication(pub)
           setChapters(loadedChapters)
-          setActiveChapterId(loadedChapters[0].id)
+          setActiveChapterId(loadedChapters[0]?.id ?? null)
           pubRef.current = pub
           chapRef.current = loadedChapters
           if (pub.status === 'published') setError(PUBLISHED_REVISION_MESSAGE)

@@ -8,6 +8,8 @@
 
 > **Governing rule: Verify KICD against the actual VibeSchool curriculum → repair discrepancies → inspect and reuse canonical libraries → author Core + Supplementary + Revision + Teacher Support together for each outcome → verify answers, media and pedagogy → save and link using existing identities → check actual delivery → advance to the next outcome. The learning product is understanding, not the quantity of content.**
 
+**Textbook-first production:** Create the persistent grade/subject shell and connect canonical curriculum using [Universal Textbook Shells](./UNIVERSAL_TEXTBOOK_SHELLS.md). Empty shells do not require curriculum or content approval; writing and release retain the existing academic gates.
+
 ## 0. One entry point, existing specialist contracts
 
 **Start every content-generation request here.** This document unifies the approved **educational work order and acceptance gates**, rather than replacing technical source-of-truth contracts or GitHub engineering governance.

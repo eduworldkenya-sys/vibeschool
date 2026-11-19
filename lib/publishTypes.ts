@@ -64,9 +64,10 @@ export type CBCSubject =
   | 'physical_education'
   | 'religious_education'
   | 'other'
+  | (string & {})
 
 export type CBCGrade =
-  | 'pp1' | 'pp2'
+  | 'playgroup' | 'pp1' | 'pp2'
   | 'grade1' | 'grade2' | 'grade3' | 'grade4'
   | 'grade5' | 'grade6' | 'grade7' | 'grade8' | 'grade9'
   | 'grade10' | 'grade11' | 'grade12'
