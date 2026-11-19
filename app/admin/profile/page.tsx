@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import VibeMeStudio from "@/components/vibeme/VibeMeStudio"
+import { defaultCharacter, vibeMePath } from "@/lib/vibeme"
 import { getAdminSchoolAuthority } from "@/lib/admin/authority"
 
 export default function AdminProfilePage() {
@@ -55,7 +56,7 @@ export default function AdminProfilePage() {
       <header><h1 style={{ margin: 0, fontSize: 24 }}>My account</h1><p style={{ color: "#64748b", margin: "5px 0 0" }}>Personal identity is separate from school authority.</p></header>
       {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, borderRadius: 12 }}>{error}</div>}
       <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 11 }}>
-        {avatar && <img src={avatar} alt="" width={80} height={80} style={{ borderRadius: "50%", objectFit: "cover" }} />}
+        {profileId && <img src={avatar || vibeMePath(defaultCharacter(profileId))} alt="" width={80} height={80} style={{ borderRadius: "50%", objectFit: "cover" }} />}
         {profileId && <VibeMeStudio profileId={profileId} onSaved={setAvatar} />}
         <div><div style={{ color: "#64748b", fontSize: 12 }}>Name</div><strong>{name}</strong></div>
         <div><div style={{ color: "#64748b", fontSize: 12 }}>Phone</div><strong>{phone || "Not provided"}</strong></div>

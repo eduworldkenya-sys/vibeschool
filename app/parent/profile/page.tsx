@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import VibeMeStudio from '@/components/vibeme/VibeMeStudio'
+import { defaultCharacter, vibeMePath } from '@/lib/vibeme'
 import { LinkedChild } from '@/lib/types'
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
@@ -367,7 +368,7 @@ export default function ParentProfilePage() {
               color: '#fff',
               letterSpacing: '-0.5px',
             }}>
-              {profile?.avatar_url ? <img src={profile.avatar_url} alt="" width={80} height={80} style={{ borderRadius: '50%', objectFit: 'cover' }} /> : initials(profile?.full_name ?? '?')}
+              {profile ? <img src={profile.avatar_url || vibeMePath(defaultCharacter(profile.id))} alt="" width={80} height={80} style={{ borderRadius: '50%', objectFit: 'cover' }} /> : initials('?')}
             </div>
           )}
 

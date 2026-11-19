@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import VibeMeStudio from '@/components/vibeme/VibeMeStudio'
+import { defaultCharacter, vibeMePath } from '@/lib/vibeme'
 import { useStudent } from '@/lib/student-context'
 import { getLearnerTwinState, type LearnerTwinState } from '@/lib/student/twin'
 import {
@@ -170,13 +171,13 @@ export default function StudentProfilePage() {
 
     <section style={{ background: C.dark, color: '#fff', borderRadius: 22, padding: 18, marginBottom: 12 }}>
       <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-        <div style={{ width: 78, height: 78, borderRadius: '50%', overflow: 'hidden', background: '#166d49', border: '3px solid rgba(255,255,255,.3)', display: 'grid', placeItems: 'center', fontSize: 30, flexShrink: 0 }}>{data?.avatarUrl ? <img src={data.avatarUrl} alt="Profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}</div>
+        <div style={{ width: 78, height: 78, borderRadius: '50%', overflow: 'hidden', background: '#166d49', border: '3px solid rgba(255,255,255,.3)', display: 'grid', placeItems: 'center', fontSize: 30, flexShrink: 0 }}>{<img src={data?.avatarUrl || vibeMePath(defaultCharacter(identity.profileId,true))} alt="Profile avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}</div>
         <div style={{ minWidth: 0 }}><div style={{ fontSize: 10, letterSpacing: 1.2, opacity: .65, fontWeight: 800 }}>MY LEARNER PROFILE</div><h1 style={{ margin: '4px 0', fontSize: 22, lineHeight: 1.15 }}>{identity.name}</h1><p style={{ margin: 0, fontSize: 12, opacity: .75 }}>{identity.className || 'Class not assigned'}{identity.schoolName ? ` · ${identity.schoolName}` : ''}</p></div>
       </div>
       <StudentIntro feature="profile-overview"><p>Your profile connects your identity, progress and learning records in one account.</p></StudentIntro>
     </section>
 
-    <VibeMeStudio key={identity.profileId} profileId={identity.profileId} onSaved={avatarUrl => setData(current => current ? {...current, avatarUrl} : current)} />
+    <VibeMeStudio learner key={identity.profileId} profileId={identity.profileId} onSaved={avatarUrl => setData(current => current ? {...current, avatarUrl} : current)} />
     <nav aria-label="Learner profile and account controls" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:10,marginBottom:14}}>
       <button type="button" onClick={()=>router.push('/student/settings')} style={{padding:16,minHeight:76,border:'1px solid var(--vs-border)',borderRadius:15,background:'var(--vs-card)',color:'var(--vs-text)',textAlign:'left',cursor:'pointer'}}>
         <strong style={{display:'block',fontSize:14}}>Appearance & Settings</strong><span style={{display:'block',fontSize:11,marginTop:5,color:'var(--vs-muted)'}}>Themes, fonts, italics and Workspace background</span>
