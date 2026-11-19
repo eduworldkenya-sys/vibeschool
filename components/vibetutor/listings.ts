@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase'
+import { codeFromAvatar, vibeMePath, defaultVibeMe } from '@/lib/vibeme'
 import type { DayPart, DemoRequest, DemoTutor, Mode } from './data'
 
 // Live listings only. A failed read is an error, never an empty result or demo fallback.
@@ -6,7 +7,7 @@ import type { DayPart, DemoRequest, DemoTutor, Mode } from './data'
 type TutorRow = {
   profile_id: string; display_name: string; levels: string[]; subjects: string[]
   teaching_mode: Mode; area: string | null; rate_kes: number | null; available_days: string[]
-  dayparts: string[]; holiday_available: boolean; bio: string | null
+  dayparts: string[]; holiday_available: boolean; bio: string | null; avatar_url?: string | null
 }
 type RequestRow = {
   id: string; learner_label: string; note: string | null; levels: string[]; subjects: string[]
@@ -45,7 +46,7 @@ export async function fetchLiveListings(): Promise<LiveListings> {
   }
 
   const tutors: DemoTutor[] = ((tutorsRes.data ?? []) as TutorRow[]).map(row => ({
-    id: row.profile_id, name: row.display_name, initials: initialsOf(row.display_name),
+    id: row.profile_id, name: row.display_name, initials: initialsOf(row.display_name), avatarUrl: vibeMePath(codeFromAvatar(row.avatar_url) ?? defaultVibeMe(row.profile_id)),
     subjects: row.subjects, levels: row.levels, mode: row.teaching_mode, area: row.area ?? '',
     rateKes: row.rate_kes ?? 0, holidayAvailable: row.holiday_available, days: row.available_days,
     bio: row.bio ?? '', experience: '', formatNote: '', real: true,
