@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
-  ArrowRight, BookOpen, BookText, Calculator, ChevronRight, Clock3,
+  ArrowRight, BookOpen, Calculator, ChevronRight,
   FlaskConical, Globe2, GraduationCap, Languages, Layers3, LibraryBig,
   Music2, Palette, School, Search, Sprout,
   Wrench, type LucideIcon,
@@ -209,8 +209,8 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
 
   return (
     <div className={styles.shell}>
-      <div className={collectionView ? styles.collectionsFrame : styles.frame}>
-        {!collectionView && <aside className={styles.sidebar} aria-label="School level navigation">
+      <div className={collectionView || activeName ? styles.collectionsFrame : styles.frame}>
+        {!collectionView && !activeName && <aside className={styles.sidebar} aria-label="School level navigation">
           <div className={styles.sidebarHeading}>Choose school level</div>
           <nav className={styles.levels} aria-label="Browse school levels">
             {SCHOOL_LEVELS.map(level => {
@@ -235,55 +235,18 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                 <ChevronRight size={15} aria-hidden="true" />
                 <span aria-current="page">{activeName}</span>
               </nav>
-              <div className={styles.kicker}>Subject library · {grade}</div>
-              <h1 className={styles.pageTitle}>{activeName}</h1>
-              <p className={styles.description}>{subjectDescription(activeName)}. Choose a published lesson or textbook below.</p>
-              <div className={styles.statsRow}>
-                <div className={styles.stat}><strong>Read</strong><span>Published explanations and books</span></div>
-                <div className={styles.stat}><strong>Explore</strong><span>Worked examples and visual learning aids</span></div>
-                <div className={styles.stat}><strong>Understand</strong><span>Guided demonstrations and short checks inside lessons</span></div>
-              </div>
               <div className={styles.gradeTabs} role="tablist" aria-label="Subject learning activities">
-                {([
-                  ['lessons', 'Learn', BookOpen],
-                  ['resources', 'Resources', LibraryBig],
-                ] as const).map(([id, label, Icon]) =>
+                {([['lessons','Book',BookOpen],['resources','Resources',LibraryBig]] as const).map(([id,label,Icon]) =>
                   <button key={id} type="button" role="tab" aria-selected={tab === id}
                     className={`${styles.gradeButton} ${tab === id ? styles.gradeActive : ''}`}
-                    onClick={() => setTab(id)}><Icon size={15} aria-hidden="true" /> {label}</button>
-                )}
+                    onClick={() => setTab(id)}><Icon size={15} aria-hidden="true"/> {label}</button>)}
               </div>
-              {tab === 'lessons' && <section role="tabpanel" aria-label="Lessons and textbooks">
-                <SubjectTextbookOutline grade={grade} subject={activeName} />
-                {activeReaders.length > 0 && <>
-                  <div className={styles.sectionHead}><h2>Topics and lessons</h2><span>Existing lesson readers</span></div>
-                  <div className={styles.resourceList}>{activeReaders.map(reader =>
-                    <Link className={styles.resource} key={reader.href} href={reader.href}>
-                      <span className={styles.resourceIcon}><Clock3 size={23} aria-hidden="true" /></span>
-                      <span className={styles.resourceBody}><strong>{reader.title}</strong><p>{reader.subtitle}</p>
-                        <span className={styles.resourceMeta}>Open lessons and learning activities</span></span>
-                      <ChevronRight size={19} aria-hidden="true" />
-                    </Link>
-                  )}</div>
-                </>}
-                <div className={styles.sectionHead}><h2>Published textbooks</h2><span>{booksLoading ? 'Loading…' : `${activeBooks.length} available`}</span></div>
-                {booksError && <div className={styles.alert} role="alert">The textbook catalogue could not load. Please try reloading this page.</div>}
-                {booksLoading ? <div className={styles.empty} role="status">Loading published learning materials…</div> :
-                  activeBooks.length ? <div className={styles.resourceList}>{activeBooks.map(book =>
-                    <Link className={styles.resource} href={`/read/textbook/${encodeURIComponent(book.id)}`} key={book.id}>
-                      <span className={styles.resourceIcon}><BookText size={23} aria-hidden="true" /></span>
-                      <span className={styles.resourceBody}><strong>{book.title}</strong>
-                        <p>{book.description || 'Open the published VibeSchool textbook.'}</p>
-                        <span className={styles.resourceMeta}>Read textbook</span></span>
-                      <ChevronRight size={19} aria-hidden="true" />
-                    </Link>
-                  )}</div> : <div className={styles.empty}>
-                    {activeReaders.length
-                      ? 'No additional published textbooks are listed for this subject. Use the available topic reader above.'
-                      : 'No published lessons or textbooks are listed for this subject yet. You can choose another subject or check again after new material is released.'}
-                  </div>}
-                <div className={styles.linksRow} style={{marginTop:16}}>
-                  <Link className={styles.buttonSecondary} href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:activeName}).toString()}>Finished learning? Practise this subject <ArrowRight size={16}/></Link>
+              {tab === 'lessons' && <section role="tabpanel" aria-label="Textbook">
+                <SubjectTextbookOutline grade={grade} subject={activeName}
+                  books={activeBooks.map(book => ({id:book.id,title:book.title,href:`/read/textbook/${encodeURIComponent(book.id)}`}))}
+                  readers={activeReaders} booksLoading={booksLoading} booksError={booksError || catalogueTruncated}/>
+                <div className={styles.linksRow}>
+                  <Link className={styles.buttonSecondary} href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:activeName}).toString()}>Practise <ArrowRight size={16}/></Link>
                 </div>
               </section>}
               {tab === 'resources' && <section role="tabpanel" className={styles.detailPanel} aria-label="Supporting resources">

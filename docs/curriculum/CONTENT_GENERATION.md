@@ -16,6 +16,7 @@
 
 - **This playbook:** authoritative sequence, content package, cross-library handoff, evidence/status and educational completion criteria for all content-generation chats.
 - [Copy KICD Curriculum — Private Source Transcription Contract](./COPY_KICD_CURRICULUM.md): separate **source-ingestion and word-for-word verification appendix** for the restricted internal KICD reference layer, when permitted; it is **not** a second learner-content workflow, source-of-truth database or publication authorization.
+- [Universal Textbook Presentation](./UNIVERSAL_TEXTBOOK_PRESENTATION.md): mandatory shared learner-book presentation and content-placement rules; follow the actual subject's theme/strand hierarchy, stable section and outcome IDs, learner objectives, and existing release authority. Grade 4 English is the initial thematic acceptance pilot.
 - [Content Production Standard](./CONTENT_PRODUCTION_STANDARD.md): deeper pedagogical examples, subject-specific accuracy and assessment criteria. Use as supporting educational detail, not a different work sequence.
 - [Content Operating Model](./CONTENT_OPERATING_MODEL.md): ChatGPT-led staffing and practical execution/handoffs, subordinate to this playbook's single content-generation loop.
 - [Content Package Template](./CONTENT_PACKAGE_TEMPLATE.md): optional detailed recording format for the **same** outcome package and coverage ledger; not another parallel approval system.

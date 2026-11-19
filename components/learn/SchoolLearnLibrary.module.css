@@ -85,3 +85,14 @@
 .collectionsFrame{max-width:1260px;min-height:calc(100vh - 75px);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr)}
 .topLinks [aria-current="page"]{background:#236347;color:#fff;border-color:#78b99a}
 @media(max-width:700px){.collectionsFrame{min-height:calc(100vh - 70px)}.topInner{flex-wrap:wrap}.topLinks{width:100%;min-width:0;overflow-x:auto;white-space:nowrap;max-width:100%;flex-wrap:nowrap;padding:2px 0}.topLink{flex:none;min-height:42px;display:inline-flex;align-items:center}}
+
+/* Storybook-style academic shelf: one cover, one contents list. */
+.subjectBook{max-width:760px;margin:0 auto;color:inherit}
+.bookHero{display:flex;align-items:center;gap:22px;padding:20px 0 24px}
+.bookCover{width:clamp(96px,24vw,150px);aspect-ratio:3/4;flex:none;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;padding:14px;background:linear-gradient(145deg,#255e4b,#103a2b);color:#fff;border-radius:3px 9px 9px 3px;box-shadow:4px 5px 12px #143a2826;overflow:hidden}
+.bookCover span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.bookCover strong{font-size:clamp(12px,3vw,19px);line-height:1.15;overflow-wrap:anywhere}.bookCover small{font-size:12px}
+.bookTitle{min-width:0;flex:1}.bookTitle h1{font-size:clamp(23px,5vw,36px);line-height:1.15;margin:0 0 8px;overflow-wrap:anywhere}.bookTitle p{font-size:13px;color:#61776a;margin:0 0 13px}
+.bookContents{border-top:1px solid #d7e4da;padding:16px 0}.bookContents h2{font-size:18px;margin:0 0 12px;font-weight:850}
+.bookChapter{border-bottom:1px solid #dfe8e1}.bookChapter summary{cursor:pointer;list-style:none;min-height:59px;display:flex;align-items:center;gap:13px;padding:12px 0}.bookChapter summary::-webkit-details-marker{display:none}.bookChapter summary strong{flex:1;min-width:0;font-size:15px}.bookChapter summary svg{flex:none;color:#6b8173}.bookChapter[open] summary svg{transform:rotate(90deg)}
+.chapterNumber{color:#678171;font-size:12px;font-weight:800;min-width:24px;font-variant-numeric:tabular-nums}.bookTopics{padding:0 0 8px 28px}.bookTopicLink,.bookTopicPending{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:10px 0;font-size:14px;color:inherit}.bookTopicLink{text-decoration:none;font-weight:700;border-bottom:1px solid #e6ede7}.bookTopicLink:hover{text-decoration:underline}.bookTopicLink svg{flex:none;color:#25805a}.bookTopicPending{color:#698071}.bookTopicPending small{flex:none;font-size:10px}.bookEmpty{font-size:14px;color:#61776a}
+@media(max-width:620px){.bookHero{gap:14px;padding:7px 0 18px}.bookCover{padding:10px}.bookTitle h1{font-size:23px}.bookTitle .buttonPrimary{padding:9px 12px}.bookTopics{padding-left:20px}.bookContents{padding-top:12px}}
