@@ -746,3 +746,18 @@
   .brandProduct { font-size: 16px; }
   .brandDivider { height: 18px; }
 }
+
+/* Instant discovery: no apply step, full-width search and a compact filter rail. */
+.discoveryControls{display:grid;gap:10px;min-width:0;margin-bottom:12px}
+.discoveryControls>.segment{justify-self:start;max-width:100%}
+.discoveryControls .segmentBtn{min-height:40px}
+.discoveryRail{display:flex;gap:6px;overflow-x:auto;max-width:100%;min-width:0;padding:2px 0 5px;scrollbar-width:thin}
+.discoveryChip,.discoverySort{font:inherit;font-size:13px;color:var(--vt-ink);background:var(--vt-surface);border:1px solid var(--vt-line);border-radius:999px;min-height:38px;padding:6px 9px;cursor:pointer;max-width:180px}
+.discoveryChip{flex:0 0 auto;width:auto}
+.discoveryChipActive{border-color:var(--vt-accent);background:var(--vt-accent-soft);font-weight:650}
+.discoverySummary{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--vt-ink)}
+.discoveryResultCount{color:var(--vt-muted);font-weight:400}
+.discoveryActions{display:flex;gap:8px;align-items:center}
+.discoverySort{min-height:34px;max-width:130px}
+.discoveryChip:focus-visible,.discoverySort:focus-visible{outline:2px solid var(--vt-accent);outline-offset:2px}
+@media(min-width:760px){.discoveryRail{flex-wrap:wrap}}

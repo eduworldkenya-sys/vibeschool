@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '@/lib/supabase'
 import { codeFromAvatar, vibeMePath, defaultCharacter } from '@/lib/vibeme'
 import type { DayPart, DemoRequest, DemoTutor, Mode } from './data'
+import type { DiscoveryProfile } from './discovery'
 
 // Live listings only. A failed read is an error, never an empty result or demo fallback.
 
@@ -23,6 +24,9 @@ export type LiveListings = {
   tutors: DemoTutor[]
   requests: DemoRequest[]
   signedIn: boolean
+  learnerPreference?: DiscoveryProfile
+  tutorPreference?: DiscoveryProfile
+  ownRequestIds?: string[]
 }
 
 export async function fetchLiveListings(): Promise<LiveListings> {
@@ -37,12 +41,21 @@ export async function fetchLiveListings(): Promise<LiveListings> {
 
   const signedIn = !!sessionRes.data.session
   let requestRows: RequestRow[] = []
+  let ownRows: Pick<RequestRow, 'id' | 'levels' | 'subjects' | 'teaching_mode' | 'area' | 'budget_kes' | 'available_days'>[] = []
 
   // The open-requests view is intentionally restricted to authenticated users.
   if (signedIn) {
     const requestsRes = await client.from('vibetutor_open_requests').select('*').order('created_at', { ascending: false })
     if (requestsRes.error) throw new Error('Learner requests could not be loaded.')
     requestRows = (requestsRes.data ?? []) as RequestRow[]
+    const uid = sessionRes.data.session?.user.id
+    if (uid) {
+      // Owner-scoped read, using existing RLS. Never request phone or learner identity.
+      const own = await client.from('vibetutor_requests')
+        .select('id,levels,subjects,teaching_mode,area,budget_kes,available_days')
+        .eq('requester_id', uid).eq('status', 'open').order('created_at', { ascending: false }).limit(50)
+      if (!own.error) ownRows = own.data ?? []
+    }
   }
 
   const tutors: DemoTutor[] = ((tutorsRes.data ?? []) as TutorRow[]).map(row => ({
@@ -58,7 +71,13 @@ export async function fetchLiveListings(): Promise<LiveListings> {
     postedDaysAgo: Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86400000)),
     note: row.note ?? '', real: true,
   }))
-  return { tutors, requests, signedIn }
+  const own = ownRows[0]
+  const myTutor = tutors.find(t => t.id === sessionRes.data.session?.user.id)
+  return {
+    tutors, requests, signedIn, ownRequestIds: ownRows.map(row => row.id),
+    learnerPreference: own ? { subjects: own.subjects, levels: own.levels, days: own.available_days, area: own.area ?? '', mode: own.teaching_mode, amount: own.budget_kes ?? 0 } : undefined,
+    tutorPreference: myTutor ? { subjects: myTutor.subjects, levels: myTutor.levels, days: myTutor.days, area: myTutor.area, mode: myTutor.mode, amount: myTutor.rateKes } : undefined,
+  }
 }
 
 export async function saveTutorListing(input: {
