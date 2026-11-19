@@ -1,6 +1,7 @@
 'use client'
 
 import { VisualLearningAsset, VisualRichText } from '@/components/learn/VisualLearningAsset'
+import { vibeMePath } from '@/lib/vibeme'
 import type { LearningBlock } from '@/lib/learn/learningBlockContract'
 import styles from './UniversalLearnReader.module.css'
 
@@ -34,6 +35,10 @@ export default function LearningBlockRenderer({ blocks }: { blocks: readonly Lea
         {block.materials?.length ? <p>Materials: {block.materials.join(', ')}</p> : null}
         <VisualRichText body={block.instructions}/>
       </aside>
+      if (block.kind === 'character') return <figure key={key} style={{margin:'12px 0',textAlign:'center'}}>
+        <img src={vibeMePath(block.code)} alt={block.altText} loading="lazy" style={{maxWidth:'100%',width:220,height:'auto'}} />
+        {block.caption && <figcaption>{block.caption}</figcaption>}
+      </figure>
       if (block.kind === 'visual') return <VisualLearningAsset key={key}
         id={block.id} resourceVersionId={block.resourceVersionId}/>
       return null
