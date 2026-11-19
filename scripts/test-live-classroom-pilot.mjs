@@ -14,6 +14,22 @@ const liveUi=readFileSync(new URL('../components/live-classroom/LiveClassroom.ts
 assert.ok(liveUi.includes("act('join',sharedId)"))
 assert.ok(liveUi.includes('Find live lessons'))
 assert.ok(liveUi.includes('Share lesson'))
+const liveCss=readFileSync(new URL('../components/live-classroom/LiveClassroom.module.css',import.meta.url),'utf8')
+// Static contract checks complement the scoped RPC tests below; not browser proof.
+assert.ok(liveUi.includes('createPortal(stage,document.body)'))
+assert.ok(liveUi.includes('requestFullscreen()'))
+assert.ok(liveUi.includes('aria-label="Move teacher preview"'))
+assert.ok(liveUi.includes('aria-label="Resize preview"'))
+assert.ok(liveUi.includes("audio:false"))
+assert.ok(liveUi.includes('getTracks().forEach(track=>track.stop())'))
+assert.ok(liveUi.includes('Learner preview'))
+assert.ok(liveUi.includes("act('publish',null,{kind:'board'"))
+assert.ok(liveUi.includes("act('ack',null,{studentId:p.studentId})"))
+assert.ok(liveUi.includes('Confirm end'))
+assert.match(liveCss,/\.immersive\{position:fixed;inset:0;/)
+assert.match(liveCss,/\.stageContent\{[^}]*overflow:auto/)
+assert.match(liveCss,/\.toolRow\{display:grid;/)
+
 assert.ok(teacherToday.includes('/teacher/tutoring/live'))
 const db=new PGlite()
 await db.exec(`
