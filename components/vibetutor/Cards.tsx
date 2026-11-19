@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import styles from './VibeTutor.module.css'
 import Icon from './Icon'
+import { defaultVibeMe, vibeMePath } from '@/lib/vibeme'
 import { modeLabel, summarizeDays, summarizeParts, type DemoRequest, type DemoTutor } from './data'
 
 export function TutorCard({ t }: { t: DemoTutor }) {
@@ -12,7 +13,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
     <>
       <article className={styles.card}>
         <div className={styles.cardHead}>
-          <div className={styles.avatar} aria-hidden="true">{t.initials}</div>
+          <div className={styles.avatar} aria-hidden="true"><img src={t.avatarUrl ?? vibeMePath(defaultVibeMe(t.id))} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%" }} /></div>
           <div className={styles.cardTitleWrap}>
             <h3 className={styles.cardTitle}>{t.name}</h3>
             <p className={styles.muted}><Icon name="pin" size={14} /> {t.area}</p>
