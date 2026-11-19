@@ -41,6 +41,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [tab,setTab]=useState<'present'|'learners'>('present')
   const drawing=useRef(false)
   const [rooms,setRooms] = useState<Summary[]>([])
+  const [search,setSearch]=useState('')
+  const [scope,setScope]=useState<'all'|ClassroomMode>('all')
+  const [sharedId,setSharedId]=useState('')
+  const [shareLink,setShareLink]=useState('')
   const [room,setRoom] = useState<Room|null>(null)
   const [error,setError] = useState('')
   const [loading,setLoading] = useState(true)
@@ -106,6 +110,14 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     return ()=>{mounted.current=false;generation.current++;window.clearInterval(timer)}
   },[refresh])
   useEffect(()=>{if(!teacher||classId||hostMode!=='tuition')return;let cancelled=false;void call('groups').then(data=>{if(!cancelled)setGroups(data as {id:string;title:string}[])}).catch(()=>{if(!cancelled)setGroups([])});return()=>{cancelled=true}},[teacher,classId,hostMode,call])
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search)
+    const requested=params.get('mode')
+    if(!classId&&teacher&&(requested==='tuition'||requested==='open')&&hostModeKey.split(',').includes(requested))setHostMode(requested)
+    const id=params.get('room')
+    if(!teacher&&id&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))setSharedId(id)
+  },[classId,teacher,hostModeKey])
+  useEffect(()=>{setShareLink('')},[room?.id])
   useEffect(()=>{setAnswer('');setAnswerFor(room?.prompt?.id??'')},[room?.prompt?.id])
   async function act(action:string,id:string|null=null,payload:Record<string,unknown>={}) {
     if(mutating.current) return
@@ -138,6 +150,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   function drawStop(){drawing.current=false}
   const content=mode==='clock'?clock:mode==='board'?board:body
   const participants=room?.participants??[]
+  const visibleRooms=rooms.filter(item=>teacher||((scope==='all'||item.mode===scope)&&(!search.trim()||item.title.toLowerCase().includes(search.trim().toLowerCase())))).sort((a,b)=>Number(b.id===sharedId)-Number(a.id===sharedId))
   const prompt=room?.prompt
   return <main className={styles.live}>
     <header className={styles.header}><Link href={back}>Back</Link><h1>Live Classroom</h1>{room&&<span className={styles.status}>{room.status==='active'?'Live':room.status==='paused'?'Paused':'Ended'}</span>}</header>
@@ -151,7 +164,12 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         <label>Lesson title<input required maxLength={120} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Grade 4 · Mathematics"/></label>
         <button className={styles.primary} disabled={busy||!title.trim()}>Go Live</button>
       </form>}
-      {rooms.length>0?<div className={styles.rooms}>{rooms.map(item=>teacher||item.canJoin?<button key={item.id} disabled={busy} onClick={()=>void act(teacher?'get':'join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>{teacher?'Resume': 'Join Live'}</span></button>:<div key={item.id} className={styles.discover}><strong>{item.title}<small>Open class</small></strong><Link href="/student/tutoring">Connect to tutor</Link></div>)}</div>:<p>{teacher?'No active session':'Waiting for your teacher to go live.'}</p>}
+      {!teacher&&<div className={styles.controls}>
+        <label>Find live lessons<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search lesson title"/></label>
+        <label>Audience<select value={scope} onChange={e=>setScope(e.target.value as 'all'|ClassroomMode)}><option value="all">All lessons</option>{Object.entries(classroomLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+        {sharedId&&!rooms.some(item=>item.id===sharedId)&&<button disabled={busy} onClick={()=>void act('join',sharedId)}>Join shared lesson</button>}
+      </div>}
+      {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>teacher||item.canJoin?<button key={item.id} disabled={busy} onClick={()=>void act(teacher?'get':'join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>{teacher?'Resume': 'Join Live'}</span></button>:<div key={item.id} className={styles.discover}><strong>{item.title}<small>Open class</small></strong><Link href="/student/tutoring">Connect to tutor</Link></div>)}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
     </section>}
     {room&&<><section className={styles.panel}><h2>{room.title} <small>{classroomLabels[room.mode]}</small></h2>
       {room.status==='ended'?<><p>This session has ended.</p><button onClick={leave}>Return to live lessons</button></>:<>
@@ -167,6 +185,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       </>}
     </section>
     {teacher&&room.status!=='ended'&&<>
+      <div className={styles.controls}>
+        <button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button>
+        {shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}
+      </div>
       <nav className={styles.tabs}><button aria-pressed={tab==='present'} onClick={()=>setTab('present')}>Present</button><button aria-pressed={tab==='learners'} onClick={()=>setTab('learners')}>Learners · {participants.length}</button></nav>
       {tab==='present'&&<section className={styles.panel}><h2>Present</h2>
         <div className={styles.controls}>{modes.map(item=><button key={item} aria-pressed={mode===item} onClick={()=>{setMode(item);setKey('')}}>{labels[item]}</button>)}</div>
