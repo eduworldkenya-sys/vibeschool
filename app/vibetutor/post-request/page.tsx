@@ -9,6 +9,9 @@ import { AREAS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetu
 import { getSupabaseClient } from '@/lib/supabase'
 import { clearDraft, readDraft, saveDraft } from '@/components/vibetutor/handoff'
 import { saveLearnerRequest } from '@/components/vibetutor/listings'
+import { findTuitionService, TUITION_AREA_ALLOCATIONS } from '@/components/vibetutor/tuitionServices'
+
+const REQUEST_AREAS = [...new Set([...AREAS, ...TUITION_AREA_ALLOCATIONS.map(([name]) => name)])]
 
 const DRAFT_KEY = 'vibetutor:learner-request:v1'
 
@@ -49,6 +52,11 @@ export default function PostRequest() {
       setLearner(draft.learner); setSubjects(draft.subjects); setLevel(draft.level)
       setMode(draft.mode); setArea(draft.area); setDays(draft.days)
       setBudget(draft.budget); setPhone(normalizedPhone(draft.phone)); setTouched(true)
+    }
+    const service = findTuitionService(new URLSearchParams(window.location.search).get('service'))
+    if (service) {
+      setLevel(service.level); setSubjects([...service.subjects]); setArea(service.area)
+      setMode('online'); setTouched(true)
     }
     setReady(true)
   }, [])
@@ -103,7 +111,7 @@ export default function PostRequest() {
         <Field label="Level" required><select className={styles.input} value={level} onChange={e => { setTouched(true); setLevel(e.target.value); setSubjects([]) }}><option value="">Choose level</option>{LEVELS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Subjects" required>{level && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
         <Field label="Teaching format"><Segmented<Mode> label="Teaching format" value={mode} onChange={value => { setTouched(true); setMode(value) }} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
-        <Field label="Area" required><select className={styles.input} value={area} onChange={e => { setTouched(true); setArea(e.target.value) }}><option value="">Choose area</option>{AREAS.map(item => <option key={item}>{item}</option>)}</select></Field>
+        <Field label="Area" required><select className={styles.input} value={area} onChange={e => { setTouched(true); setArea(e.target.value) }}><option value="">Choose area</option>{REQUEST_AREAS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Budget per hour (KSh)"><input className={styles.input} inputMode="numeric" value={budget} onChange={e => { setTouched(true); setBudget(e.target.value.replace(/[^0-9]/g, '')) }} placeholder="Optional" /></Field>
         <Field label="Days available" required><SchedulePicker days={days} onDays={value => { setTouched(true); setDays(value) }} /></Field>
         {signedIn && <p className={polish.prefillNote}>Account contact details prefilled where available. You can edit them.</p>}
