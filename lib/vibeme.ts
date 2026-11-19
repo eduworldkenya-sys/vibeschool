@@ -1,6 +1,6 @@
 // Original VibeSchool vector avatar, version 1. All interpolation is from
 // bounded, validated integer choices, never arbitrary user-supplied SVG.
-import { parseCharacter, characterCode, renderCharacter } from "./vibeme-character"
+import { parseCharacter, characterCode, renderCharacter, characterChoices } from "./vibeme-character"
 export const VIBEME_OPTIONS = [
   { label: 'Skin tone', values: ['Light', 'Honey', 'Warm', 'Brown', 'Deep', 'Rich'] },
   { label: 'Hair', values: ['Coils', 'Fade', 'Braids', 'Locs', 'Bun', 'Bald'] },
@@ -38,6 +38,10 @@ export function defaultVibeMe(seed: string): string {
     h = Math.imul(h ^ (h >>> 15), 2246822519)
     return (h >>> 0) % o.values.length
   }))
+}
+export function defaultCharacter(seed:string,learner=false):string {
+  const parts=parseVibeMe(defaultVibeMe(seed))!
+  return characterCode(characterChoices(parts,learner))
 }
 export function renderVibeMe(code: string): string | null {
   if(code.startsWith('v2-')) return renderCharacter(code)
