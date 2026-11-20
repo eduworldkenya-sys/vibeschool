@@ -8,6 +8,7 @@ on:
       - "supabase/config.toml"
       - "scripts/sql/task2_database_integrity_verify.sql"
       - "scripts/sql/task2_database_failure_injection.sql"
+      - "scripts/sql/teacher_employment_authorization.sql"
       - "scripts/task2_extract_application_db_contracts.py"
       - "lib/database.types.ts"
       - "lib/supabase.ts"
@@ -97,6 +98,10 @@ jobs:
           set -o pipefail
           supabase db reset --local --no-seed \
             2>&1 | tee .task2-artifacts/db-reset.log
+
+      - name: Verify teacher employment and CV authorization
+        shell: bash
+        run: PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/teacher_employment_authorization.sql
 
       - name: Verify repository and local migration ledgers agree
         shell: bash

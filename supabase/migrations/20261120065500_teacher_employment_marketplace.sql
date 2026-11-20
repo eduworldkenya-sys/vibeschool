@@ -1,3 +1,6 @@
+-- authorization-test: public.teacher_employment_listings — scripts/sql/teacher_employment_authorization.sql
+-- authorization-test: public.teacher_employment_requests — scripts/sql/teacher_employment_authorization.sql
+-- authorization-test: public.teacher_employment_shortlists — scripts/sql/teacher_employment_authorization.sql
 -- Issue #1824. New opt-in public directory, separate private ownership and recruitment requests.
 -- Credential assertions are self-declared; no school authority is derived from them.
 create table public.teacher_employment_listings (
@@ -26,10 +29,10 @@ grant insert(teacher_id,levels,subjects,qualification,experience,registration,co
 grant update(levels,subjects,qualification,experience,registration,counties,employment_types,availability,bio,education,work_history,status,consented_at) on public.teacher_employment_listings to authenticated;
 create policy employment_owner_read on public.teacher_employment_listings for select to authenticated using (teacher_id=(select auth.uid()));
 create policy employment_owner_insert on public.teacher_employment_listings for insert to authenticated with check (
- teacher_id=(select auth.uid()) and exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active' and not coalesce(p.is_anonymized,false))
+ teacher_id=(select auth.uid()) and exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active' and not coalesce(p.is_anonymized,false)) and counties <@ array(select display_name from public.list_kenya_counties())
 );
 create policy employment_owner_update on public.teacher_employment_listings for update to authenticated using (teacher_id=(select auth.uid())) with check (
- teacher_id=(select auth.uid()) and exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active' and not coalesce(p.is_anonymized,false))
+ teacher_id=(select auth.uid()) and exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active' and not coalesce(p.is_anonymized,false)) and counties <@ array(select display_name from public.list_kenya_counties())
 );
 create policy employment_owner_delete on public.teacher_employment_listings for delete to authenticated using (teacher_id=(select auth.uid()));
 create index teacher_employment_published_idx on public.teacher_employment_listings(published_at desc,id) where status='published';
