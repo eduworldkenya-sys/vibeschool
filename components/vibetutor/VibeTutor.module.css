@@ -783,3 +783,12 @@
 .discoveryPanel button:focus-visible,.discoveryPanel select:focus-visible,.discoveryPanel input:focus-visible{outline:2px solid var(--discover-match);outline-offset:2px}
 :global(html[data-vt-theme='dark']) .discoveryPanel{--discover-surface:#1c1c1c;--discover-ink:#f5f5f5;--discover-muted:#b3b3b3;--discover-line:#383838;--discover-active:#292929;--discover-match:#53cf82}
 @media(max-width:380px){.discoveryPanel{padding:14px;gap:12px}.discoveryTabs button{padding:8px 12px}.discoveryRow{gap:10px}.discoveryAvatar{width:60px;height:60px;flex-basis:60px}}
+
+/* Independent parent/product navigation using the canonical wordmarks. */
+.brandHome { display: inline-flex; align-items: center; min-height: 44px; flex-shrink: 0; }
+.brandLogoDark { display: none; width: 112px; height: auto; }
+.brandProduct { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
+.brandHome:focus-visible, .brandProduct:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 4px; }
+:global(html[data-vt-theme='dark']) .brandHome .brandLogo { display: none; }
+:global(html[data-vt-theme='dark']) .brandHome .brandLogoDark { display: block; }
+@media (max-width: 480px) { .brandLogo, .brandLogoDark { width: 88px; } .topbarInner { gap: 8px; padding-inline: 10px; } }
