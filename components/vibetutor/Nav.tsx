@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import polish from './VibeTutorPolish.module.css'
 import styles from './VibeTutor.module.css'
@@ -60,11 +61,14 @@ export default function Nav() {
     <>
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
-          <Link href="/vibetutor" className={styles.brand} aria-label="VibeTutor home">
-            <span className={styles.brandParent}>VibeSchool</span>
+          <div className={styles.brand}>
+            <Link href="/" className={styles.brandHome} aria-label="VibeSchool home">
+              <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={620} height={160} className={styles.brandLogo} />
+              <Image src="/brand/vibeschool-wordmark-dark.svg" alt="" aria-hidden="true" width={620} height={160} className={styles.brandLogoDark} />
+            </Link>
             <span className={styles.brandDivider} aria-hidden="true" />
-            <strong className={styles.brandProduct}>VibeTutor</strong>
-          </Link>
+            <Link href="/vibetutor" className={styles.brandProduct} aria-label="VibeTutor home">VibeTutor</Link>
+          </div>
           <div className={styles.navActions}>
             <label className={styles.themeControl}>
               <span className={styles.themeLabel}>Theme</span>
