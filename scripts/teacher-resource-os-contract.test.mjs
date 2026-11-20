@@ -72,7 +72,8 @@ assert.ok(teachMode.includes('disabled={!resource.available || !onOpenResource}'
 
 for (const needle of [
   'Now teaching',
-  "sections[step.key]",
+  "projectLessonDelivery(sections).steps",
+  "step.teacherContent",
   "sections.differentiation",
   "Private scratchpad",
   "Use in reflection",

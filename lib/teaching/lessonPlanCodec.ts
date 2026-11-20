@@ -156,3 +156,57 @@ export function serializeLessonPlanBody(
     )
     .join('\n\n')
 }
+
+
+// Delivery-neutral v1 projection of the canonical, teacher-authored plan.
+// A step key is scoped to its plan revision; it is NOT an occurrence ID.
+export const LESSON_DELIVERY_PHASES = [
+  { key: 'objectives', label: 'Objectives', timed: false, kind: 'objectives' },
+  { key: 'introduction', label: 'Introduction', timed: true, kind: 'discussion' },
+  { key: 'development', label: 'Development', timed: true, kind: 'instruction' },
+  { key: 'consolidation', label: 'Consolidation', timed: true, kind: 'recap' },
+  { key: 'assessmentHook', label: 'Check learning', timed: true, kind: 'assessment' },
+] as const
+
+export type LessonDeliveryPhase = typeof LESSON_DELIVERY_PHASES[number]
+export type LessonDeliveryStep = LessonDeliveryPhase & {
+  id: string
+  durationMinutes: number | null
+  teacherContent: string
+  // Learner-facing content must be separately admitted by its existing
+  // publication/assessment authority. Never derive it from teacher prose.
+  learnerContent: null
+}
+
+export interface LessonDeliveryProjection {
+  schema: 'vibeschool.lesson-delivery-projection.v1'
+  audience: 'teacher'
+  steps: LessonDeliveryStep[]
+}
+
+/**
+ * Lossless teacher-only projection of a legacy plan. No UUID, approved outcome,
+ * resource, question, publication, or completion authority is inferred.
+ * Does not mutate the eight-section persisted format or issue any DB command.
+ */
+export function projectLessonDelivery(sections: LessonPlanSections): LessonDeliveryProjection {
+  const steps: LessonDeliveryStep[] = []
+  for (const phase of LESSON_DELIVERY_PHASES) {
+    const teacherContent = sections[phase.key]
+    if (!teacherContent.trim()) continue
+    const match = phase.timed
+      ? teacherContent.match(/^Timing:[^\n]*\((\d+)\s*min\)/im)
+      : null
+    const minutes = match ? Number(match[1]) : null
+    const durationMinutes = minutes !== null && Number.isSafeInteger(minutes) && minutes > 0
+      ? minutes : null
+    steps.push({
+      ...phase,
+      id: 'legacy:' + phase.key,
+      durationMinutes,
+      teacherContent,
+      learnerContent: null,
+    })
+  }
+  return { schema: 'vibeschool.lesson-delivery-projection.v1', audience: 'teacher', steps }
+}
