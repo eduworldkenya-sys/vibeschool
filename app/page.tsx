@@ -36,7 +36,7 @@ export default function HomePage() {
   return <div className={styles.page} >
     <PublicHeader />
     <SuccessWishesFloatingOffer homepage />
-    <main id="main-content">
+    <main id="main-content" tabIndex={-1}>
       <section className={styles.hero}>
         <div className={styles.heroInner}>
           <p className={styles.eyebrow}>VIBESCHOOL · BUILT FOR KENYAN EDUCATION</p>
