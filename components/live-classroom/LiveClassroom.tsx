@@ -129,6 +129,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [groups,setGroups]=useState<{id:string;title:string}[]>([])
   const [clock,setClock]=useState('10:30')
   const [board,setBoard]=useState('')
+  const [boardPages,setBoardPages]=useState<string[]>([''])
+  const [boardPage,setBoardPage]=useState(0)
   const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|null>(null)
   const [slides,setSlides]=useState<{title:string;body:string}[]>([{title:'',body:''}])
   const [slideIndex,setSlideIndex]=useState(0)
@@ -236,7 +238,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       const next=await call(action,id??room?.id??null,room?.version??null,payload) as Room
       if(!mounted.current||generation.current!==stamp)return
       accept(next)
-      if(action==='publish'){setBody('');setKey('');setPanel(null);setEditingBoard(false)}
+      if(action==='publish'){setBody('');setKey('');setPanel(null);if(payload.kind!=='board')setEditingBoard(false)}
     } catch(e) {
       if(mounted.current&&generation.current===stamp){
         if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){active.current=null;setRoom(null);setRooms([]);setError('Classroom access is no longer available.')}
@@ -325,7 +327,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const prompt=room?.prompt
   const immersive=!!room&&room.status!=='ended'
   useEffect(()=>{
-    boardInitialized.current=false;setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;touches.current.clear();pinch.current=null;touchDraft.current=null;setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
+    boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;touches.current.clear();pinch.current=null;touchDraft.current=null;setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
   },[room?.id])
   useEffect(()=>{
     if(!immersive)return
@@ -355,6 +357,33 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       setEditingBoard(true);setPanel(null)
     }else{setEditingBoard(false);setPanel('compose')}
   }
+  function switchBoardPage(index:number,add=false){
+    if(drawing.current||touches.current.size||busy)return
+    const pages=boardPages.map((value,i)=>i===boardPage?board:value)
+    if(add){if(pages.length>=30)return;pages.push('')}
+    if(index<0||index>=pages.length)return
+    setBoardPages(pages);setBoardPage(index);setBoard(pages[index])
+    setUndoBoards([]);setRedoBoards([]);setBoardZoom(1)
+  }
+  function exportBoard(){
+    const pages=boardPages.map((value,i)=>i===boardPage?board:value)
+    const pageHeight=244
+    // Only validated numeric coordinates enter the SVG. No markup or remote resources.
+    const content=pages.map((value,i)=>{
+      const paths=value.split('|').slice(0,100).map(line=>{
+        const pts=line.split(';').filter(point=>/^\d{1,3},\d{1,3}$/.test(point)).slice(0,500)
+        if(!pts.length)return ''
+        if(pts.length===1){const [x,y]=pts[0].split(',');return '<circle cx="'+x+'" cy="'+y+'" r="1.25" fill="#111827"/>'}
+        return '<polyline points="'+pts.join(' ')+'" stroke="#111827" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+      }).join('')
+      return '<g transform="translate(0 '+i*pageHeight+')"><text x="8" y="16" font-size="10" fill="#475569">Page '+(i+1)+'</text><g transform="translate(0 20)">'+paths+'</g></g>'
+    }).join('')
+    const height=pages.length*pageHeight
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="320" height="'+height+'" viewBox="0 0 320 '+height+'"><rect width="320" height="'+height+'" fill="white"/>'+content+'</svg>'
+    const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}))
+    const link=document.createElement('a');link.href=url;link.download='vibeschool-whiteboard.svg';document.body.appendChild(link);link.click();link.remove()
+    window.setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }
   function undoBoard(){
     if(undoBoards.length){setRedoBoards(items=>[...items.slice(-29),board]);setBoard(undoBoards[undoBoards.length-1]);setUndoBoards(items=>items.slice(0,-1))}
   }
@@ -372,7 +401,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     <div className={styles.stage}>
       <section className={styles.stageContent} data-board-edit={editingBoard&&teacher} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
-        {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser&&shapeTool==='pen'} onClick={()=>{setEraser(false);setShapeTool('pen')}}>Pen</button><label><span className={styles.srOnly}>Geometry tool</span><select aria-label="Geometry tool" value={eraser?'pen':shapeTool} onChange={e=>{setEraser(false);setShapeTool(e.target.value as ShapeTool)}}><option value="pen">Shapes</option><option value="line">Line</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option><option value="ellipse">Ellipse</option></select></label><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear</button></div><div className={styles.boardTools}><button aria-label="Zoom out" disabled={boardZoom<=1} onClick={()=>setBoardZoom(v=>Math.max(1,v-.25))}>−</button><button aria-label="Reset board zoom" onClick={()=>setBoardZoom(1)}>{Math.round(boardZoom*100)}%</button><button aria-label="Zoom in" disabled={boardZoom>=2} onClick={()=>setBoardZoom(v=>Math.min(2,v+.25))}>+</button><small role="status">{board.length>=3200||board.split('|').length>=95?'Board nearly full — erase or clear before continuing.':`${Math.round(board.length/BOARD_LIMIT*100)}% used`}</small></div><BoardView value={board} zoom={boardZoom} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={prompt}/>}
+        {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser&&shapeTool==='pen'} onClick={()=>{setEraser(false);setShapeTool('pen')}}>Pen</button><label><span className={styles.srOnly}>Geometry tool</span><select aria-label="Geometry tool" value={eraser?'pen':shapeTool} onChange={e=>{setEraser(false);setShapeTool(e.target.value as ShapeTool)}}><option value="pen">Shapes</option><option value="line">Line</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option><option value="ellipse">Ellipse</option></select></label><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear</button></div><div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">{boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button><button onClick={exportBoard}>Export SVG</button></div><div className={styles.boardTools}><button aria-label="Zoom out" disabled={boardZoom<=1} onClick={()=>setBoardZoom(v=>Math.max(1,v-.25))}>−</button><button aria-label="Reset board zoom" onClick={()=>setBoardZoom(1)}>{Math.round(boardZoom*100)}%</button><button aria-label="Zoom in" disabled={boardZoom>=2} onClick={()=>setBoardZoom(v=>Math.min(2,v+.25))}>+</button><small role="status">{board.length>=3200||board.split('|').length>=95?'Board nearly full — erase or clear before continuing.':`${Math.round(board.length/BOARD_LIMIT*100)}% used`}</small></div><BoardView value={board} zoom={boardZoom} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={prompt}/>}
       </section>
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker||!!panel||(focusMode&&!focusDock)} onHide={()=>setShowSticker(false)}/>}
       {teacher&&panel&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'Classroom tools'}>
