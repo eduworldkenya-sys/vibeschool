@@ -150,7 +150,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
       const rotated = rotate(rows, seed)
       return discovery === 'for-you' ? rotated.sort((a, b) => (preferenceScore(b, preferred) ?? 0) - (preferenceScore(a, preferred) ?? 0)) : rotated
     }
-    return [...order(matches.filter(t => t.real)), ...order(matches.filter(t => !t.real))]
+    return order(matches.filter(t => t.real))
   }, [q, subject, level, area, mode, priceRange, day, tutorSource, discovery, nearbyArea, preferred, seed])
   const requests = useMemo(() => {
     const rows = rotate(requestsFor(filters), seed)

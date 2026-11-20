@@ -11,7 +11,6 @@ import { clearDraft, readDraft, saveDraft } from '@/components/vibetutor/handoff
 import { saveLearnerRequest } from '@/components/vibetutor/listings'
 import { findTuitionService, TUITION_AREA_ALLOCATIONS } from '@/components/vibetutor/tuitionServices'
 
-import { findExampleTuitionNeeds } from '@/components/vibetutor/kenya-demo-tutors'
 
 const REQUEST_AREAS = [...new Set([...AREAS, ...TUITION_AREA_ALLOCATIONS.map(([name]) => name)])]
 
@@ -57,7 +56,7 @@ export default function PostRequest() {
       setBudget(draft.budget); setPhone(normalizedPhone(draft.phone)); setTouched(true)
     }
     const query = new URLSearchParams(window.location.search)
-    const service = findTuitionService(query.get('service')) ?? findExampleTuitionNeeds(query.get('example'))
+    const service = findTuitionService(query.get('service'))
     if (service) {
       setLevel(service.level); setSubjects([...service.subjects]); setArea(service.area)
       setMode('online'); setTouched(true)
