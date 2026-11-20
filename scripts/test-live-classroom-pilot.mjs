@@ -64,7 +64,7 @@ assert.match(liveCss,/\.toolRow\{display:grid;/)
 assert.ok(teacherToday.includes('/teacher/tutoring/live'))
 const db=new PGlite()
 await db.exec(`
-create role anon; create role authenticated;
+create role anon; create role authenticated; create role service_role;
 create schema auth;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
 grant usage on schema auth to authenticated,anon;
@@ -102,6 +102,8 @@ insert into vibetutor_private_group_members values ('${id(50)}','${id(40)}'),('$
 insert into student_classes values ('${id(30)}','${cls}','${school}',true),('${id(31)}','${cls}','${school}',true),('${id(32)}','${otherCls}','${otherSchool}',true);
 `)
 await db.exec(readFileSync(new URL('../supabase/migrations/20261118075221_live_classroom_pilot.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261120104500_live_lesson_history_candidate.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261120104501_live_learner_tools_candidate.sql',import.meta.url),'utf8'))
 async function rpc(who,action,room=null,version=null,payload={},classId=cls,role='authenticated') {
  await db.exec(`set role ${role}; select set_config('request.jwt.claim.sub','${who||''}',false)`)
  try {return (await db.query('select public.vibe_live_command($1,$2,$3,$4,$5::jsonb) as out',[action,classId,room,version,JSON.stringify(payload)])).rows[0].out}
@@ -119,6 +121,43 @@ await assert.rejects(rpc(a,'start',null,null,{title:'Fake'}),/live_teacher_requi
 await assert.rejects(rpc(null,'list',null,null,{},cls,'anon'),/permission denied/)
 assert.equal((await rpc(a,'join',sid)).teacher,false)
 await rpc(a,'join',sid); await rpc(b,'join',sid)
+assert.deepEqual((await rpc(a,'get',sid)).history,[])
+const noteA='Learner A private note',noteB='Learner B private note'
+assert.equal((await rpc(a,'note',sid,null,{body:noteA})).ownNote,noteA)
+assert.equal((await rpc(b,'get',sid)).ownNote,'')
+assert.equal((await rpc(b,'note',sid,null,{body:noteB})).ownNote,noteB)
+assert.equal((await rpc(a,'get',sid)).ownNote,noteA)
+assert.equal((await rpc(teacher,'get',sid)).ownNote,undefined)
+await assert.rejects(rpc(outsider,'note',sid,null,{body:'unauthorized'}),/live_not_authorized/)
+await assert.rejects(rpc(teacher,'note',sid,null,{body:'not a learner'}),/live_learner_required/)
+const qa={body:'Question A',requestId:id(200)},qb={body:'Question B',requestId:id(201)}
+const questionA=(await rpc(a,'ask',sid,null,qa)).questions[0]
+assert.ok(questionA.id)
+assert.equal((await rpc(a,'ask',sid,null,qa)).questions.length,1)
+await assert.rejects(rpc(a,'ask',sid,null,{...qa,body:'changed request'}),/live_request_id_reused/)
+assert.deepEqual((await rpc(b,'get',sid)).questions,[])
+const questionB=(await rpc(b,'ask',sid,null,qb)).questions[0]
+assert.notEqual(questionA.id,questionB.id)
+assert.deepEqual((await rpc(a,'get',sid)).questions.map(q=>q.id),[questionA.id])
+assert.deepEqual((await rpc(b,'get',sid)).questions.map(q=>q.id),[questionB.id])
+assert.equal((await rpc(teacher,'get',sid)).questions.length,2)
+await assert.rejects(rpc(a,'reply',sid,null,{questionId:questionB.id,body:'unauthorized'}),/live_teacher_required/)
+await assert.rejects(rpc(otherTeacher,'reply',sid,null,{questionId:questionA.id,body:'unauthorized'}),/live_not_authorized/)
+await assert.rejects(rpc(outsider,'ask',sid,null,{body:'unauthorized',requestId:id(202)}),/live_not_authorized/)
+await rpc(teacher,'reply',sid,null,{questionId:questionA.id,body:'Teacher reply A'})
+assert.equal((await rpc(a,'get',sid)).questions[0].reply,'Teacher reply A')
+assert.equal((await rpc(b,'get',sid)).questions[0].reply,null)
+for(const role of ['authenticated','anon','service_role']){
+ await db.exec(`set role ${role}`)
+ try {
+  for(const table of ['learner_notes','learner_questions']){
+   await assert.rejects(db.query(`select * from vibe_live.${table}`),/permission denied/)
+   await assert.rejects(db.query(`delete from vibe_live.${table}`),/permission denied/)
+  }
+ } finally {await db.exec('reset role')}
+}
+console.log('PASS: owner-only learner notes/questions, direct role denial, two-learner isolation, scoped teacher reply and retry')
+
 room=await rpc(teacher,'publish',sid,room.version,{kind:'quiz',body:'How many minutes in one hour?',answerKey:'60'})
 // Slide deck uses the already authorized text publication contract.
 const slideRoom=await rpc(teacher,'publish',sid,room.version,{kind:'teach',body:'Time\n\n60 minutes = 1 hour'})
@@ -133,6 +172,8 @@ await assert.rejects(rpc(outsider,'get',sid),/live_not_authorized/)
 await assert.rejects(rpc(a,'publish',sid,geometryRoom.version,{kind:'board',body:geometryBoard}),/live_teacher_required/)
 await assert.rejects(rpc(teacher,'publish',sid,geometryRoom.version,{kind:'board',body:'1,1;'.repeat(876)}),/live_invalid_board/)
 room=await rpc(teacher,'publish',sid,geometryRoom.version,{kind:'quiz',body:'How many minutes in one hour?',answerKey:'60'})
+assert.deepEqual((await rpc(a,'get',sid)).history.map(p=>p.position),[1,2,3,4])
+assert.equal((await rpc(a,'get',sid)).history[0].answerKey,null)
 const prompt=room.prompt.id
 assert.equal(room.participants.length,2)
 assert.equal((await rpc(a,'get',sid)).prompt.answerKey,null)
@@ -190,8 +231,14 @@ console.log('PASS: tuition group isolation, guardian approval, homeschooling, op
 await db.exec(`update student_classes set is_current=false where student_id='${id(31)}'`)
 await assert.rejects(rpc(b,'get',sid),/live_not_authorized/)
 room=await rpc(teacher,'get',sid);assert.equal(room.participants.length,1)
+assert.deepEqual(room.questions.map(q=>q.id),[questionA.id])
+await assert.rejects(rpc(b,'note',sid,null,{body:'revoked learner'}),/live_not_authorized/)
+await assert.rejects(rpc(teacher,'reply',sid,null,{questionId:questionB.id,body:'revoked learner'}),/live_not_authorized/)
 room=await rpc(teacher,'end',sid,room.version)
 assert.equal((await rpc(a,'get',sid)).status,'ended')
+assert.equal((await rpc(a,'get',sid)).ownNote,noteA)
+assert.equal((await rpc(a,'get',sid)).history.length,4)
+await assert.rejects(rpc(a,'note',sid,null,{body:'ended session mutation'}),/live_session_closed/)
 await assert.rejects(rpc(a,'join',sid),/session_closed/)
 await db.exec('set role authenticated')
 await assert.rejects(db.query('select * from vibe_live.prompts'),/permission denied/)
