@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import TeachingJobs from "@/app/teacher/TeachingJobs";
 import { PublicSwap, SWAP_SELECT, swapListing, swapLifecycle, validListingId, provided } from "@/lib/public/teacherListings";
 import ListingDetailDialog from "./ListingDetailDialog";
+import HireTeachers from "./HireTeachers";
 import ListingTabs from "./ListingTabs";
 import FeaturedSwapStrip from "./FeaturedSwapStrip";
 import CommunitySwapLeads from "./CommunitySwapLeads";
@@ -67,16 +68,16 @@ function PublicSwaps() {
 }
 
 export default function TeacherOpportunities() {
-  const [tab, setTab] = useState<"jobs" | "swap">("jobs");
+  const [tab, setTab] = useState<"jobs" | "swap" | "hire">("jobs");
   useEffect(() => {
-    const sync = () => { const params = new URLSearchParams(window.location.search); setTab(params.has("swap") || params.get("tab") === "swap" ? "swap" : "jobs"); };
+    const sync = () => { const params = new URLSearchParams(window.location.search); setTab(params.has("swap") || params.get("tab") === "swap" ? "swap" : params.get("tab") === "hire" ? "hire" : "jobs"); };
     sync(); window.addEventListener("popstate", sync); return () => window.removeEventListener("popstate", sync);
   }, []);
-  function choose(next: "jobs" | "swap") {
+  function choose(next: "jobs" | "swap" | "hire") {
     setTab(next); const url = new URL(window.location.href); url.searchParams.delete("job"); url.searchParams.delete("swap"); url.searchParams.set("tab", next); window.history.replaceState(null, "", url);
   }
   return <div>
-    <ListingTabs value={tab} onChange={choose} idPrefix="opportunities" />
-    <section role="tabpanel" id={"opportunities-panel-" + tab} aria-labelledby={"opportunities-tab-" + tab}>{tab === "jobs" ? <TeachingJobs /> : <PublicSwaps />}</section>
+    <ListingTabs value={tab} onChange={choose} idPrefix="opportunities" tabs={["jobs","swap","hire"]} />
+    <section role="tabpanel" id={"opportunities-panel-" + tab} aria-labelledby={"opportunities-tab-" + tab}>{tab === "jobs" ? <TeachingJobs /> : tab === "swap" ? <PublicSwaps /> : <HireTeachers />}</section>
   </div>;
 }
