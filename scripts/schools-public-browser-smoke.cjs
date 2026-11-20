@@ -83,19 +83,42 @@ async function verify() {
     // rather than locally filtering a truncated list of school results.
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(ORIGIN+'/schools',{waitUntil:'domcontentloaded'});
-    const selects=page.locator('main select');
-    assert.equal(await selects.count(),3,'expected county, sub-county and level filters');
-    const county=selects.nth(0);
-    const subCounty=selects.nth(1);
-    const level=selects.nth(2);
+    const county=page.getByRole('combobox',{name:'County',exact:true});
+    const level=page.getByRole('combobox',{name:'Level',exact:true});
+    const filters=page.getByRole('button',{name:/^Filters/});
+    const subCounty=page.getByRole('combobox',{name:'Sub-county',exact:true});
+    await county.waitFor();
+    await level.waitFor();
+    await page.locator('main button[aria-controls="school-more-filters"]:enabled').waitFor({timeout:30000});
+    assert.equal(await filters.getAttribute('aria-expanded'),'false');
+    assert.equal(await subCounty.count(),0,'sub-county must be collapsed by default');
+    await filters.click();
+    await page.locator('#school-more-filters').waitFor({timeout:30000});
+    await subCounty.waitFor();
+    assert.equal(await filters.getAttribute('aria-expanded'),'true');
+    assert.equal(await subCounty.isDisabled(),true,'sub-county requires a county');
     await county.selectOption('Nakuru',{timeout:30000});
     await subCounty.selectOption('Gilgil',{timeout:30000});
     await level.selectOption('Primary',{timeout:30000});
+    await filters.click();
+    assert.equal(await filters.getAttribute('aria-expanded'),'false');
     await page.getByRole('searchbox',{name:/search schools/i}).fill('Gilgil Township');
     await page.locator('a[href="/school/gilgiltownship"]').waitFor({timeout:30000});
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
     assert.ok(overflow<=1,'mobile directory filters overflow '+overflow+'px');
-    console.log('PASS county, sub-county, school-level filters and mobile directory width');
+    await filters.click();
+    assert.equal(await subCounty.inputValue(),'Gilgil','collapsed filters must preserve selection');
+    await page.getByRole('button',{name:'Reset filters'}).click();
+    await filters.click();
+    await page.getByRole('searchbox',{name:/search schools/i}).fill('Kerich');
+    const location=page.getByRole('button',{name:'Kericho County',exact:true});
+    await location.waitFor({timeout:30000});
+    await location.click();
+    assert.equal(await county.inputValue(),'Kericho');
+    assert.equal(await page.getByRole('searchbox',{name:/search schools/i}).inputValue(),'');
+    await page.locator('main article').first().waitFor({timeout:30000});
+    assert.match(await page.locator('main article').first().innerText(),/Kericho/i);
+    console.log('PASS expandable filters, selection persistence, county discovery and mobile directory width');
 
     // A listed directory school with coordinates should show an approximate
     // position, not an assertion that the campus entrance was verified.

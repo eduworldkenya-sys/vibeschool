@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { TrackedLink } from './TrackedLink'
 import { PublicJourneyTracker } from './PublicJourneyTracker'
+import { PublicSkipLink } from './PublicSkipLink'
 import styles from './PublicShell.module.css'
 
 type PublicHeaderProps = { product?: string; compact?: boolean; navigation?: ReadonlyArray<readonly [string, string]> }
@@ -32,7 +33,7 @@ export function PublicHeader({ product, compact = false, navigation }: PublicHea
   const showProductLabel = product && !compact && !primaryNav.some(([, label]) => label === product)
   return <>
     <PublicJourneyTracker />
-    <a href="#main-content" className={styles.skip}>Skip to content</a>
+    <PublicSkipLink className={styles.skip}/>
     <header className={`${styles.header} ${compact ? styles.compactHeader : ''}`}>
       <div className={styles.headerInner}>
         <Link href="/" aria-label="VibeSchool home" className={styles.brand}>

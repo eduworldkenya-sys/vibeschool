@@ -10,6 +10,7 @@ begin
  end loop;
  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='teacher_employment_directory' and column_name in ('teacher_id','phone','email','tsc_number','documents','school_id','consented_at')) then raise exception 'Private fields in public projection'; end if;
  if not has_table_privilege('anon','public.teacher_employment_directory','SELECT') or has_table_privilege('anon','public.teacher_employment_directory','INSERT') then raise exception 'Invalid directory grants'; end if;
+ if has_function_privilege('anon','teacher_employment_private.is_current_teacher()','EXECUTE') then raise exception 'Anonymous teacher authority helper access'; end if;
  if not exists(select 1 from storage.buckets where id='teacher-employment-cvs' and public=false and file_size_limit=5242880) then raise exception 'CV bucket not private/bounded'; end if;
  if has_column_privilege('authenticated','public.teacher_employment_listings','teacher_id','UPDATE') or has_column_privilege('authenticated','public.teacher_employment_requests','school_name','INSERT') or has_column_privilege('authenticated','public.teacher_employment_requests','message','UPDATE') then raise exception 'Identity or message mutation grant'; end if;
 end $$;

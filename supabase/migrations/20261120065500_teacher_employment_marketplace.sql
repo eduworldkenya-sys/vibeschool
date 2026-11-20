@@ -3,6 +3,17 @@
 -- authorization-test: public.teacher_employment_shortlists — scripts/sql/teacher_employment_authorization.sql
 -- Issue #1824. New opt-in public directory, separate private ownership and recruitment requests.
 -- Credential assertions are self-declared; no school authority is derived from them.
+-- Narrow self-authority lookup; never grant wider foundation table access.
+create schema teacher_employment_private;
+revoke all on schema teacher_employment_private from public,anon,authenticated;
+grant usage on schema teacher_employment_private to authenticated;
+create function teacher_employment_private.is_current_teacher() returns boolean
+language sql stable security definer set search_path='' as $
+ select exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id
+ where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active' and not coalesce(p.is_anonymized,false));
+$;
+revoke all on function teacher_employment_private.is_current_teacher() from public,anon,authenticated;
+grant execute on function teacher_employment_private.is_current_teacher() to authenticated;
 create table public.teacher_employment_listings (
  id uuid primary key default gen_random_uuid(),
  teacher_id uuid not null unique references public.profiles(id) on delete cascade,
@@ -29,10 +40,10 @@ grant insert(teacher_id,levels,subjects,qualification,experience,registration,co
 grant update(levels,subjects,qualification,experience,registration,counties,employment_types,availability,bio,education,work_history,status,consented_at) on public.teacher_employment_listings to authenticated;
 create policy employment_owner_read on public.teacher_employment_listings for select to authenticated using (teacher_id=(select auth.uid()));
 create policy employment_owner_insert on public.teacher_employment_listings for insert to authenticated with check (
- teacher_id=(select auth.uid()) and exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active' and not coalesce(p.is_anonymized,false)) and counties <@ array(select display_name from public.list_kenya_counties())
+ teacher_id=(select auth.uid()) and (select teacher_employment_private.is_current_teacher()) and counties <@ array(select display_name from public.list_kenya_counties())
 );
 create policy employment_owner_update on public.teacher_employment_listings for update to authenticated using (teacher_id=(select auth.uid())) with check (
- teacher_id=(select auth.uid()) and exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active' and not coalesce(p.is_anonymized,false)) and counties <@ array(select display_name from public.list_kenya_counties())
+ teacher_id=(select auth.uid()) and (select teacher_employment_private.is_current_teacher()) and counties <@ array(select display_name from public.list_kenya_counties())
 );
 create policy employment_owner_delete on public.teacher_employment_listings for delete to authenticated using (teacher_id=(select auth.uid()));
 create index teacher_employment_published_idx on public.teacher_employment_listings(published_at desc,id) where status='published';
@@ -63,7 +74,7 @@ revoke all on public.teacher_employment_requests from public,anon,authenticated;
 grant select on public.teacher_employment_requests to authenticated;
 grant insert(listing_id,school_id,message) on public.teacher_employment_requests to authenticated;
 grant update(status) on public.teacher_employment_requests to authenticated;
-create function public.teacher_employment_request_school_name() returns trigger language plpgsql security invoker set search_path='' as $$
+create function teacher_employment_private.request_school_name() returns trigger language plpgsql security definer set search_path='' as $$
 begin
  if not public.is_school_admin(new.school_id) then raise exception 'School authorization required'; end if;
  select s.name into new.school_name from public.schools s where s.id=new.school_id and s.status='active' and s.deleted_at is null;
@@ -72,8 +83,8 @@ begin
  if not found then raise exception 'Teacher is not available'; end if;
  return new;
 end $$;
-revoke all on function public.teacher_employment_request_school_name() from public,anon,authenticated;
-create trigger employment_request_name before insert on public.teacher_employment_requests for each row execute function public.teacher_employment_request_school_name();
+revoke all on function teacher_employment_private.request_school_name() from public,anon,authenticated;
+create trigger employment_request_name before insert on public.teacher_employment_requests for each row execute function teacher_employment_private.request_school_name();
 create policy employment_request_sender_read on public.teacher_employment_requests for select to authenticated using (public.is_school_admin(school_id));
 create policy employment_request_receiver_read on public.teacher_employment_requests for select to authenticated using (
  exists(select 1 from public.teacher_employment_listings l where l.id=listing_id and l.teacher_id=(select auth.uid()))
@@ -111,11 +122,11 @@ create policy employment_cv_personal_read on storage.objects for select to authe
  bucket_id='teacher-employment-cvs' and name='personal/'||(select auth.uid())::text||'/cv.pdf'
 );
 create policy employment_cv_personal_insert on storage.objects for insert to authenticated with check (
- bucket_id='teacher-employment-cvs' and name='personal/'||(select auth.uid())::text||'/cv.pdf' and exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active')
+ bucket_id='teacher-employment-cvs' and name='personal/'||(select auth.uid())::text||'/cv.pdf' and (select teacher_employment_private.is_current_teacher())
 );
 create policy employment_cv_personal_update on storage.objects for update to authenticated using (
  bucket_id='teacher-employment-cvs' and name='personal/'||(select auth.uid())::text||'/cv.pdf'
-) with check (bucket_id='teacher-employment-cvs' and name='personal/'||(select auth.uid())::text||'/cv.pdf' and exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active'));
+) with check (bucket_id='teacher-employment-cvs' and name='personal/'||(select auth.uid())::text||'/cv.pdf' and (select teacher_employment_private.is_current_teacher()));
 create policy employment_cv_personal_delete on storage.objects for delete to authenticated using (
  bucket_id='teacher-employment-cvs' and name='personal/'||(select auth.uid())::text||'/cv.pdf'
 );
