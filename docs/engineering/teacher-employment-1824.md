@@ -8,3 +8,6 @@ Candidate implementation. Public gateway and Jobs/Swaps retained; public Hire Te
 
 ## Authorization evidence
 A transaction-rollback role and storage fixture test is included at `scripts/sql/teacher_employment_authorization.sql` and wired into the disposable database reconstruction workflow. It checks grants, RLS, public versus private projection, school impersonation, unrelated users/schools, accepted-request CV access and revocation. Exact-head CI result remains pending.
+
+## Cross-bucket authorization repair
+CI found that the pre-existing homework storage policy queried a foundation table without caller SELECT privileges, preventing all CV reads in a clean reconstruction. The migration retains the exact homework student and current enrollment/teacher/admin predicates in private pinned helpers, and uses the canonical active platform owner predicate for HQ storage. No broader student table grants. This touches shared storage policies and requires isolated negative tests and independent review before release.

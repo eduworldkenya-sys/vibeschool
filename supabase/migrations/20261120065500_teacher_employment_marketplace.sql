@@ -145,3 +145,46 @@ create policy employment_cv_shared_teacher_update on storage.objects for update 
 create policy employment_cv_shared_teacher_delete on storage.objects for delete to authenticated using (
  bucket_id='teacher-employment-cvs' and exists(select 1 from public.teacher_employment_requests r join public.teacher_employment_listings l on l.id=r.listing_id where name='shared/'||r.id::text||'/cv.pdf' and l.teacher_id=(select auth.uid()))
 );
+
+
+-- Storage RLS evaluates all policies on storage.objects, even for other buckets.
+-- Keep the existing exact homework identity/enrollment rules behind narrow private
+-- authorization predicates instead of granting SELECT on student foundation tables.
+create function teacher_employment_private.owns_homework_photo(p_name text) returns boolean
+language sql stable security definer set search_path='' as $$
+ select auth.uid() is not null and exists (
+   select 1 from public.students s where s.profile_id=auth.uid()
+   and s.deleted_at is null and s.id::text=(storage.foldername(p_name))[1]
+ );
+$$;
+create function teacher_employment_private.can_read_homework_photo(p_name text) returns boolean
+language sql stable security definer set search_path='' as $$
+ select auth.uid() is not null and exists (
+   select 1 from public.student_classes sc
+   where sc.is_current=true and sc.student_id::text=split_part(p_name,'/',1)
+   and (public.is_teacher_of_student(sc.student_id) or public.is_school_admin(sc.school_id) or public.is_platform_owner())
+ );
+$$;
+revoke all on function teacher_employment_private.owns_homework_photo(text) from public,anon,authenticated;
+revoke all on function teacher_employment_private.can_read_homework_photo(text) from public,anon,authenticated;
+grant execute on function teacher_employment_private.owns_homework_photo(text) to authenticated;
+grant execute on function teacher_employment_private.can_read_homework_photo(text) to authenticated;
+alter policy homework_photos_staff_read_v2 on storage.objects to authenticated
+ using (bucket_id='homework-photos' and teacher_employment_private.can_read_homework_photo(name));
+alter policy homework_photos_student_insert on storage.objects to authenticated
+ with check (bucket_id='homework-photos' and teacher_employment_private.owns_homework_photo(name));
+alter policy homework_photos_student_select on storage.objects to authenticated
+ using (bucket_id='homework-photos' and teacher_employment_private.owns_homework_photo(name));
+alter policy homework_photos_student_update on storage.objects to authenticated
+ using (bucket_id='homework-photos' and teacher_employment_private.owns_homework_photo(name))
+ with check (bucket_id='homework-photos' and teacher_employment_private.owns_homework_photo(name));
+-- Existing HQ access is tightened to the canonical active platform owner resolver.
+alter policy "hq owners read company library objects" on storage.objects to authenticated
+ using (bucket_id='hq-company-library' and (select public.is_platform_owner()));
+alter policy "hq owners upload company library objects" on storage.objects to authenticated
+ with check (bucket_id='hq-company-library' and (select public.is_platform_owner()));
+alter policy "hq owners update company library objects" on storage.objects to authenticated
+ using (bucket_id='hq-company-library' and (select public.is_platform_owner()))
+ with check (bucket_id='hq-company-library' and (select public.is_platform_owner()));
+alter policy "hq owners delete company library objects" on storage.objects to authenticated
+ using (bucket_id='hq-company-library' and (select public.is_platform_owner()));
