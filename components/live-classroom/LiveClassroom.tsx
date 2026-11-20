@@ -6,6 +6,8 @@ import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList,
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
+import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
+import { BOARD_LIMIT, decodeBoard, encodeBoard } from './LiveBoardProtocol'
 
 type ClassroomMode = 'school' | 'tuition' | 'homeschool' | 'open'
 const classroomLabels: Record<ClassroomMode,string>={school:'School',tuition:'Tuition',homeschool:'Homeschool',open:'Open class'}
@@ -34,7 +36,7 @@ function readDraft(key: string): DraftState | null {
     const raw = sessionStorage.getItem(key)
     if (!raw) return null
     const d = JSON.parse(raw) as DraftState
-    if (!d || typeof d.board !== 'string' || d.board.length > 3400 || !Array.isArray(d.slides) || !d.slides.length || d.slides.length > 30 || !d.slides.every(validSlide) || !Number.isInteger(d.slideIndex) || d.slideIndex < 0 || d.slideIndex >= d.slides.length || !validModes.includes(d.mode) || typeof d.body !== 'string' || d.body.length > 4000 || typeof d.key !== 'string' || d.key.length > 2000 || typeof d.clock !== 'string' || !/^([01]?\d|2[0-3]):[0-5]\d$/.test(d.clock)) return null
+    if (!d || typeof d.board !== 'string' || d.board.length > BOARD_LIMIT || !Array.isArray(d.slides) || !d.slides.length || d.slides.length > 30 || !d.slides.every(validSlide) || !Number.isInteger(d.slideIndex) || d.slideIndex < 0 || d.slideIndex >= d.slides.length || !validModes.includes(d.mode) || typeof d.body !== 'string' || d.body.length > 4000 || typeof d.key !== 'string' || d.key.length > 2000 || typeof d.clock !== 'string' || !/^([01]?\d|2[0-3]):[0-5]\d$/.test(d.clock)) return null
     const clean: Partial<Record<Mode,ComposerDraft>> = {}
     for (const m of validModes) {
       const item = d.composers?.[m]
@@ -49,18 +51,10 @@ function historyFor(room: Room): Prompt[] {
 }
 const labels: Record<Mode,string> = {teach:'Teach',quiz:'Quiz',exercise:'Exercise',poll:'Poll',clock:'Clock',board:'Board'}
 
-type ShapeTool = 'pen' | 'line' | 'rectangle' | 'triangle' | 'ellipse'
-const BOARD_LIMIT=3400
-function shapeStroke(tool:ShapeTool,start:string,end:string){
- const [ax,ay]=start.split(',').map(Number),[bx,by]=end.split(',').map(Number)
- const x=Math.min(ax,bx),y=Math.min(ay,by),r=Math.max(ax,bx),b=Math.max(ay,by)
- const points=tool==='rectangle'?[[x,y],[r,y],[r,b],[x,b],[x,y]]:tool==='triangle'?[[Math.round((x+r)/2),y],[r,b],[x,b],[Math.round((x+r)/2),y]]:tool==='ellipse'?Array.from({length:33},(_,i)=>[Math.round((x+r)/2+(r-x)/2*Math.cos(i*Math.PI/16)),Math.round((y+b)/2+(b-y)/2*Math.sin(i*Math.PI/16))]):[[ax,ay],[bx,by]]
- return points.map(([px,py])=>`${px},${py}`).join(';')+';'
-}
-function appendStroke(board:string,stroke:string){const next=[board,stroke].filter(Boolean).join('|');return next.length<=BOARD_LIMIT&&next.split('|').length<=100?next:board}
-function BoardView({value,zoom=1,onPointerDown,onPointerMove,onPointerUp}:{value:string;zoom?:number;onPointerDown?:(event:PointerEvent<SVGSVGElement>)=>void;onPointerMove?:(event:PointerEvent<SVGSVGElement>)=>void;onPointerUp?:(event:PointerEvent<SVGSVGElement>)=>void}){
+function BoardView({value}:{value:string}){
+ if(decodeBoard(value))return <SharedObjectBoard value={value}/>
  const lines=value.split('|').slice(0,100).map(line=>line.split(';').filter(point=>/^\d{1,3},\d{1,3}$/.test(point)).slice(0,500).join(' ')).filter(Boolean)
- return <svg className={styles.board} viewBox={`${160-160/zoom} ${110-110/zoom} ${320/zoom} ${220/zoom}`} role="img" aria-label="Shared drawing board" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+ return <svg className={styles.board} viewBox="0 0 320 220" role="img" aria-label="Shared drawing board">
   {lines.map((line,i)=>line.includes(' ')?<polyline key={i} points={line} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>:<circle key={i} cx={line.split(',')[0]} cy={line.split(',')[1]} r="1.25" fill="currentColor"/>)}
  </svg>
 }
@@ -188,18 +182,11 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [showSticker,setShowSticker]=useState(true)
   const [undoBoards,setUndoBoards]=useState<string[]>([])
   const [redoBoards,setRedoBoards]=useState<string[]>([])
-  const [eraser,setEraser]=useState(false)
-   const [shapeTool,setShapeTool]=useState<ShapeTool>('pen')
-   const [boardZoom,setBoardZoom]=useState(1)
-   const [focusDock,setFocusDock]=useState(false)
-   const shapeAnchor=useRef<{start:string;base:string}|null>(null)
+  const [focusDock,setFocusDock]=useState(false)
   const [endConfirm,setEndConfirm]=useState(false)
   const immersiveRef=useRef<HTMLElement>(null)
   const boardInitialized=useRef(false)
-  const drawing=useRef(false)
-  const touches=useRef(new Map<number,{x:number;y:number}>())
-  const pinch=useRef<{distance:number;zoom:number}|null>(null)
-  const touchDraft=useRef<{board:string;undo:string[];redo:string[]}|null>(null)
+  const boardUndoByPage=useRef<Record<number,{undo:string[];redo:string[]}>>({})
   const [rooms,setRooms] = useState<Summary[]>([])
   const [search,setSearch]=useState('')
   const [scope,setScope]=useState<'all'|ClassroomMode>('all')
@@ -369,75 +356,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if(mutating.current)return
     generation.current++;lock.current=false;roomUrl(null);active.current=null;setRoom(null);setReviewId(null);setError('');setLoading(true);void refresh()
   }
-  function point(event:PointerEvent<SVGSVGElement>){
-    const svg=event.currentTarget
-    const matrix=svg.getScreenCTM()
-    if(!matrix)return '0,0'
-    const p=svg.createSVGPoint();p.x=event.clientX;p.y=event.clientY
-    const xy=p.matrixTransform(matrix.inverse())
-    return Math.max(0,Math.min(320,Math.round(xy.x)))+','+Math.max(0,Math.min(220,Math.round(xy.y)))
-  }
   function rememberBoard(){setUndoBoards(history=>[...history.slice(-29),board]);setRedoBoards([])}
-  function eraseAt(value:string,xy:string){
-    const [x,y]=xy.split(',').map(Number)
-    return value.split('|').filter(line=>{
-      const pts=line.split(';').filter(Boolean).map(p=>p.split(',').map(Number))
-      if(pts.some(([px,py])=>Math.hypot(px-x,py-y)<=9))return false
-      for(let i=1;i<pts.length;i++){
-        const [ax,ay]=pts[i-1],[bx,by]=pts[i],dx=bx-ax,dy=by-ay
-        const length=dx*dx+dy*dy
-        const t=length?Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/length)):0
-        if(Math.hypot(x-(ax+t*dx),y-(ay+t*dy))<=9)return false
-      }
-      return true
-    }).join('|')
-  }
-  function touchDistance(){
-    const [a,b]=Array.from(touches.current.values())
-    return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0
-  }
-  function drawStart(event:PointerEvent<SVGSVGElement>){
-    if(event.pointerType==='touch'){
-      touches.current.set(event.pointerId,{x:event.clientX,y:event.clientY})
-      event.currentTarget.setPointerCapture(event.pointerId)
-      if(touches.current.size>=2){
-        if(!pinch.current){
-          pinch.current={distance:Math.max(1,touchDistance()),zoom:boardZoom}
-          if(touchDraft.current){const saved=touchDraft.current;setBoard(saved.board);setUndoBoards(saved.undo);setRedoBoards(saved.redo)}
-          drawing.current=false;shapeAnchor.current=null;touchDraft.current=null
-        }
-        return
-      }
-      if(pinch.current)return
-      touchDraft.current={board,undo:undoBoards,redo:redoBoards}
-    }
-    if(drawing.current||!event.isPrimary||event.button!==0)return
-    event.currentTarget.setPointerCapture(event.pointerId);drawing.current=true;rememberBoard()
-    const xy=point(event)
-    if(!eraser&&shapeTool!=='pen'){shapeAnchor.current={start:xy,base:board};return}
-    if(!eraser&&appendStroke(board,xy+';')===board){drawing.current=false;return}
-    setBoard(value=>eraser?eraseAt(value,xy):appendStroke(value,xy+';'))
-  }
-  function drawMove(event:PointerEvent<SVGSVGElement>){
-    if(event.pointerType==='touch'&&touches.current.has(event.pointerId)){
-      touches.current.set(event.pointerId,{x:event.clientX,y:event.clientY})
-      if(pinch.current){
-        if(touches.current.size>=2)setBoardZoom(Math.max(1,Math.min(2,pinch.current.zoom*touchDistance()/pinch.current.distance)))
-        return
-      }
-    }
-    if(!drawing.current||!event.isPrimary)return
-    const xy=point(event),anchor=shapeAnchor.current
-    if(anchor){setBoard(appendStroke(anchor.base,shapeStroke(shapeTool,anchor.start,xy)));return}
-    setBoard(value=>{if(eraser)return eraseAt(value,xy);const last=value.split('|').at(-1)||'';if(!last||last.split(';').filter(Boolean).slice(-1)[0]===xy||last.split(';').length>=501||value.length+xy.length+1>BOARD_LIMIT)return value;return value+xy+';'})
-  }
-  function drawStop(event:PointerEvent<SVGSVGElement>){
-    if(event.pointerType==='touch'){
-      touches.current.delete(event.pointerId)
-      if(!touches.current.size){pinch.current=null;touchDraft.current=null}
-    }
-    drawing.current=false;shapeAnchor.current=null
-  }
+  function changeBoard(value:string){if(value!==board){rememberBoard();setBoard(value)}}
   const content=mode==='clock'?clock:mode==='board'?board:body
   const participants=room?.participants??[]
   const visibleRooms=rooms.filter(item=>teacher||((scope==='all'||item.mode===scope)&&(!search.trim()||item.title.toLowerCase().includes(search.trim().toLowerCase())))).sort((a,b)=>Number(b.id===sharedId)-Number(a.id===sharedId))
@@ -447,7 +367,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const immersive=!!room&&room.status!=='ended'
   const draftLoading=teacher&&!!room&&draftBinding?.roomId!==room.id&&!draftWarning
   useEffect(()=>{
-    setReviewId(null);setDraftBinding(null);draftKey.current=null;composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;touches.current.clear();pinch.current=null;touchDraft.current=null;setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
+    setReviewId(null);setDraftBinding(null);draftKey.current=null;composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);boardUndoByPage.current={};setFocusDock(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
   },[room?.id])
   // Recover only the teacher's private, same-tab draft. Published history is
   // always fetched from the authorized server, never from browser storage.
@@ -462,13 +382,28 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       draftKey.current=key
       const draft=readDraft(key)
       if(draft){
-        setBoard(draft.board);if(Array.isArray(draft.boardPages)&&draft.boardPages.length>0&&draft.boardPages.length<=30&&draft.boardPages.every(p=>typeof p==='string'&&p.length<=3400)&&Number.isInteger(draft.boardPage)&&draft.boardPage!>=0&&draft.boardPage!<draft.boardPages.length){setBoardPages(draft.boardPages);setBoardPage(draft.boardPage!)}boardInitialized.current=true
+        setBoard(draft.board);if(Array.isArray(draft.boardPages)&&draft.boardPages.length>0&&draft.boardPages.length<=30&&draft.boardPages.every(p=>typeof p==='string'&&p.length<=BOARD_LIMIT)&&Number.isInteger(draft.boardPage)&&draft.boardPage!>=0&&draft.boardPage!<draft.boardPages.length){setBoardPages(draft.boardPages);setBoardPage(draft.boardPage!)}boardInitialized.current=true
         setSlides(draft.slides);setSlideIndex(draft.slideIndex);setClock(draft.clock)
         setMode(draft.mode);setBody(draft.body);setKey(draft.key);composerDrafts.current=draft.composers
       }else{
         const latest=active.current
-        const previous=[...(latest?.history??[])].reverse().find(p=>p.kind==='board')
-        if(previous||latest?.prompt?.kind==='board'){setBoard(previous?.body??latest?.prompt?.body??'');boardInitialized.current=true}
+        const published=latest?historyFor(latest):[]
+        const latestBoard=[...published].reverse().find(p=>p.kind==='board')
+        if(latestBoard){
+          const doc=decodeBoard(latestBoard.body)
+          if(doc){
+            const pages=Array<string>(doc.total).fill('')
+            for(const item of published){const b=item.kind==='board'?decodeBoard(item.body):null;if(b&&b.page<=pages.length)pages[b.page-1]=item.body}
+            setBoardPages(pages);setBoardPage(doc.page-1);setBoard(latestBoard.body)
+          }else setBoard(latestBoard.body)
+          boardInitialized.current=true
+        }
+        const latestSlide=[...published].reverse().map(p=>p.kind==='teach'?decodeSlide(p.body):null).find(x=>x!==null)
+        if(latestSlide){
+          const deck=Array.from({length:latestSlide.total},()=>({title:'',body:''} as LiveSlide))
+          for(const item of published){const sl=item.kind==='teach'?decodeSlide(item.body):null;if(sl&&sl.total===deck.length)deck[sl.number-1]={title:sl.title,body:sl.body,diagram:sl.diagram,theme:sl.theme,layout:sl.layout,font:sl.font}}
+          setSlides(deck);setSlideIndex(latestSlide.number-1)
+        }
       }
       setDraftBinding({roomId,key})
     }).catch(()=>{if(!cancelled)setDraftWarning(true)})
@@ -521,31 +456,19 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     }else{setEditingBoard(false);setPanel('compose')}
   }
   function switchBoardPage(index:number,add=false){
-    if(drawing.current||touches.current.size||busy)return
+    if(busy)return
     const pages=boardPages.map((value,i)=>i===boardPage?board:value)
     if(add){if(pages.length>=30)return;pages.push('')}
     if(index<0||index>=pages.length)return
+    boardUndoByPage.current[boardPage]={undo:undoBoards,redo:redoBoards}
     setBoardPages(pages);setBoardPage(index);setBoard(pages[index])
-    setUndoBoards([]);setRedoBoards([]);setBoardZoom(1)
+    setUndoBoards(boardUndoByPage.current[index]?.undo??[]);setRedoBoards(boardUndoByPage.current[index]?.redo??[])
   }
-  function exportBoard(){
-    const pages=boardPages.map((value,i)=>i===boardPage?board:value)
-    const pageHeight=244
-    // Only validated numeric coordinates enter the SVG. No markup or remote resources.
-    const content=pages.map((value,i)=>{
-      const paths=value.split('|').slice(0,100).map(line=>{
-        const pts=line.split(';').filter(point=>/^\d{1,3},\d{1,3}$/.test(point)).slice(0,500)
-        if(!pts.length)return ''
-        if(pts.length===1){const [x,y]=pts[0].split(',');return '<circle cx="'+x+'" cy="'+y+'" r="1.25" fill="#111827"/>'}
-        return '<polyline points="'+pts.join(' ')+'" stroke="#111827" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
-      }).join('')
-      return '<g transform="translate(0 '+i*pageHeight+')"><text x="8" y="16" font-size="10" fill="#475569">Page '+(i+1)+'</text><g transform="translate(0 20)">'+paths+'</g></g>'
-    }).join('')
-    const height=pages.length*pageHeight
-    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="320" height="'+height+'" viewBox="0 0 320 '+height+'"><rect width="320" height="'+height+'" fill="white"/>'+content+'</svg>'
-    const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}))
-    const link=document.createElement('a');link.href=url;link.download='vibeschool-whiteboard.svg';document.body.appendChild(link);link.click();link.remove()
-    window.setTimeout(()=>URL.revokeObjectURL(url),1000)
+  function publishBoard(){
+    const data=decodeBoard(board)
+    const shared=data?encodeBoard({...data,page:boardPage+1,total:boardPages.length}):board
+    if(!shared||!online||busy||room?.status!=='active')return
+    void act('publish',null,{kind:'board',body:shared,answerKey:null})
   }
   function undoBoard(){
     if(undoBoards.length){setRedoBoards(items=>[...items.slice(-29),board]);setBoard(undoBoards[undoBoards.length-1]);setUndoBoards(items=>items.slice(0,-1))}
@@ -617,7 +540,11 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
             {!slideText&&<small role="status">Add content or shorten text to fit the shared slide limit.</small>}
             <small>Session draft · published slides remain in lesson history.</small>
           </div>
-        </div>:editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser&&shapeTool==='pen'} onClick={()=>{setEraser(false);setShapeTool('pen')}}>Pen</button><label><span className={styles.srOnly}>Geometry tool</span><select aria-label="Geometry tool" value={eraser?'pen':shapeTool} onChange={e=>{setEraser(false);setShapeTool(e.target.value as ShapeTool)}}><option value="pen">Shapes</option><option value="line">Line</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option><option value="ellipse">Ellipse</option></select></label><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear draft</button></div><div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">{boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button><button onClick={exportBoard}>Export SVG</button></div><div className={styles.boardTools}><button aria-label="Zoom out" disabled={boardZoom<=1} onClick={()=>setBoardZoom(v=>Math.max(1,v-.25))}>−</button><button aria-label="Reset board zoom" onClick={()=>setBoardZoom(1)}>{Math.round(boardZoom*100)}%</button><button aria-label="Zoom in" disabled={boardZoom>=2} onClick={()=>setBoardZoom(v=>Math.min(2,v+.25))}>+</button><small role="status">{board.length>=3200||board.split('|').length>=95?'Board nearly full — erase or clear before continuing.':`${Math.round(board.length/BOARD_LIMIT*100)}% used`}</small></div><BoardView value={board} zoom={boardZoom} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={viewedPrompt}/>}
+        </div>:editingBoard&&teacher?<>
+          <div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">Board {boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button></div>
+          <ObjectBoard key={boardPage} value={board} page={boardPage+1} total={boardPages.length} onChange={changeBoard} disabled={busy} onUndo={undoBoard} onRedo={redoBoard} canUndo={!!undoBoards.length} canRedo={!!redoBoards.length}/>
+          <button className={styles.primary} disabled={busy||!online||room.status!=='active'||!board.trim()} onClick={publishBoard}>Share board</button>
+        </>:<SharedPrompt prompt={viewedPrompt}/>}
       </section>
       {!teacher&&learnerTool&&<section className={styles.sheet} aria-label={learnerTool==='ask'?'Ask teacher':'My notes'}>
         <div className={styles.sheetTitle}><strong>{learnerTool==='ask'?'Ask teacher':'My notes'}</strong><button type="button" aria-label="Close" onClick={()=>setLearnerTool(null)}><X size={18}/></button></div>
