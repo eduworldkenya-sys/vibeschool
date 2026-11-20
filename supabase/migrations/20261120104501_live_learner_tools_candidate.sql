@@ -1,6 +1,8 @@
 -- Candidate after lesson history. Preserve canonical authorization.
 BEGIN;
 ALTER TABLE vibe_live.participants ADD COLUMN hand_ack_at timestamptz;
+-- access: owner-only vibe_live.learner_notes
+-- authorization-test: vibe_live.learner_notes; scripts/test-live-classroom-pilot.mjs and scripts/test-live-lesson-history-staging.mjs exercise direct denial and learner isolation.
 CREATE TABLE vibe_live.learner_notes (
  session_id uuid NOT NULL, student_id uuid NOT NULL,
  body text NOT NULL CHECK(char_length(body)<=8000),
@@ -8,6 +10,8 @@ CREATE TABLE vibe_live.learner_notes (
  PRIMARY KEY(session_id,student_id),
  FOREIGN KEY(session_id,student_id) REFERENCES vibe_live.participants(session_id,student_id) ON DELETE CASCADE
 );
+-- access: owner-only vibe_live.learner_questions
+-- authorization-test: vibe_live.learner_questions; scripts/test-live-classroom-pilot.mjs and scripts/test-live-lesson-history-staging.mjs exercise direct denial and scoped teacher replies.
 CREATE TABLE vibe_live.learner_questions (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),session_id uuid NOT NULL,student_id uuid NOT NULL,
  request_id uuid NOT NULL,body text NOT NULL CHECK(char_length(body) BETWEEN 1 AND 1000),
@@ -18,7 +22,7 @@ CREATE TABLE vibe_live.learner_questions (
 );
 ALTER TABLE vibe_live.learner_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vibe_live.learner_questions ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON vibe_live.learner_notes,vibe_live.learner_questions FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON vibe_live.learner_notes,vibe_live.learner_questions FROM PUBLIC,anon,authenticated,service_role;
 CREATE INDEX ON vibe_live.learner_questions(session_id,created_at,id);
 DO $migration$
 DECLARE
