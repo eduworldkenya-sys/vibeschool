@@ -72,7 +72,7 @@ export default function SchoolsDirectoryPage(){
      const corrected=await supabase.rpc('schools_discover_public_v1',{...params,p_query:q,p_lat:null,p_lng:null})
      if(cancelled)return
      if(!corrected.error&&corrected.data?.length){
-      setEntries(corrected.data as NearbySchool[]);setHasMore(corrected.data.length===LIMIT);setFuzzy(true);return
+      setEntries((corrected.data as NearbySchool[]).slice(0,10));setHasMore(false);setFuzzy(true);return
      }
     }
     setEntries(merged);setHasMore(merged.length===LIMIT)
