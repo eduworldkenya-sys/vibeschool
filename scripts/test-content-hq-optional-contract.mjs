@@ -54,3 +54,31 @@ test("operator check only reuses canonical suites and a non-mutating contract te
     "npm run test:curriculum-identity && npm run test:outcome-packages && node --test scripts/test-content-hq-optional-contract.mjs");
   assert.doesNotMatch(cmd,/supabase\s+db\s+(push|reset)|migrate|deploy|publish|service_role/);
 });
+
+test("content production explicitly mutes HQ interaction without weakening authority",()=>{
+  for (const doc of [playbook,operating]) {
+    assert.match(doc,/HQ is muted for content production/);
+    assert.match(doc,/non-HQ (?:authorization )?route/);
+    assert.match(doc,/stop controls/);
+  }
+  assert.match(playbook,/Do not send the owner to HQ as a workaround/);
+  assert.match(playbook,/not a grant of privilege/);
+  assert.match(operating,/No new authority is conferred/);
+});
+
+
+test("standing sole platform publisher decision is scoped and does not self-authorize",()=>{
+  for(const doc of [playbook,operating]) {
+    assert.match(doc,/CHATGPT_SOLE_PLATFORM_CONTENT_PUBLISHER/);
+    assert.match(doc,/explicitly superseded by the owner/);
+    assert.match(doc,/revocation/);
+    assert.match(doc,/teacher(?:\/school|-owned|\/school-owned)|school\/teacher-owned/);
+  }
+  assert.match(playbook,/sole operational publisher/);
+  assert.match(playbook,/genuine authenticated, owner-delegated operator identity/);
+  assert.match(playbook,/independent verification where required/);
+  assert.match(playbook,/expired\/revoked grants, stale fingerprints and cross-scope mutations/);
+  assert.match(playbook,/Do not invent an owner JWT, mint a self-grant/);
+  assert.match(playbook,/not yet commissioned/);
+  assert.match(operating,/does not commission it/);
+});
