@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal, Hand, MessageSquare, NotebookPen, History, Wifi, WifiOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
+import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 
 type ClassroomMode = 'school' | 'tuition' | 'homeschool' | 'open'
 const classroomLabels: Record<ClassroomMode,string>={school:'School',tuition:'Tuition',homeschool:'Homeschool',open:'Open class'}
@@ -16,7 +17,7 @@ type Participant = { studentId: string; name: string; needsHelp: boolean; answer
 type LiveQuestion = {id:string;body:string;reply:string|null;name?:string}
 type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean }
 type ComposerDraft = { body: string; key: string }
-type DraftState = { board: string; boardPages?: string[]; boardPage?: number; slides: {title:string;body:string}[]; slideIndex: number; mode: Mode; body: string; key: string; clock: string; composers: Partial<Record<Mode,ComposerDraft>> }
+type DraftState = { board: string; boardPages?: string[]; boardPage?: number; slides: LiveSlide[]; slideIndex: number; mode: Mode; body: string; key: string; clock: string; composers: Partial<Record<Mode,ComposerDraft>> }
 const validModes = ['teach','quiz','exercise','poll','clock','board'] as const
 function roomUrl(id: string | null) {
   const url = new URL(window.location.href)
@@ -33,7 +34,7 @@ function readDraft(key: string): DraftState | null {
     const raw = sessionStorage.getItem(key)
     if (!raw) return null
     const d = JSON.parse(raw) as DraftState
-    if (!d || typeof d.board !== 'string' || d.board.length > 3400 || !Array.isArray(d.slides) || !d.slides.length || d.slides.length > 30 || !d.slides.every(x => typeof x?.title === 'string' && x.title.length <= 120 && typeof x?.body === 'string' && x.body.length <= 3878) || !Number.isInteger(d.slideIndex) || d.slideIndex < 0 || d.slideIndex >= d.slides.length || !validModes.includes(d.mode) || typeof d.body !== 'string' || d.body.length > 4000 || typeof d.key !== 'string' || d.key.length > 2000 || typeof d.clock !== 'string' || !/^([01]?\d|2[0-3]):[0-5]\d$/.test(d.clock)) return null
+    if (!d || typeof d.board !== 'string' || d.board.length > 3400 || !Array.isArray(d.slides) || !d.slides.length || d.slides.length > 30 || !d.slides.every(validSlide) || !Number.isInteger(d.slideIndex) || d.slideIndex < 0 || d.slideIndex >= d.slides.length || !validModes.includes(d.mode) || typeof d.body !== 'string' || d.body.length > 4000 || typeof d.key !== 'string' || d.key.length > 2000 || typeof d.clock !== 'string' || !/^([01]?\d|2[0-3]):[0-5]\d$/.test(d.clock)) return null
     const clean: Partial<Record<Mode,ComposerDraft>> = {}
     for (const m of validModes) {
       const item = d.composers?.[m]
@@ -87,6 +88,8 @@ function LessonNavigation({items,reviewId,onReview,ended=false}:{items:Prompt[];
   </nav>
 }
 function SharedPrompt({prompt}:{prompt:Prompt|null|undefined}){
+ const slide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
+ if(slide)return <SlideCanvas slide={slide} number={slide.number} total={slide.total}/>
  return prompt?<><div className={styles.label}>{labels[prompt.kind]}</div>{prompt.kind==='clock'?<ClockView value={prompt.body}/>:prompt.kind==='board'?<BoardView value={prompt.body}/>:<p className={styles.content}>{prompt.body}</p>}{prompt.revealed&&prompt.answerKey&&<div className={styles.solution}><strong>Answer</strong><p className={styles.content}>{prompt.answerKey}</p></div>}</>:<p className={styles.empty}>Choose a teaching tool to start.</p>
 }
 
@@ -177,8 +180,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [boardPages,setBoardPages]=useState<string[]>([''])
   const [boardPage,setBoardPage]=useState(0)
   const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|null>(null)
-  const [slides,setSlides]=useState<{title:string;body:string}[]>([{title:'',body:''}])
+  const [slides,setSlides]=useState<LiveSlide[]>([{title:'',body:''}])
   const [slideIndex,setSlideIndex]=useState(0)
+  const [deletedSlide,setDeletedSlide]=useState<{slide:LiveSlide;index:number}|null>(null)
   const [focusMode,setFocusMode]=useState(false)
   const [editingBoard,setEditingBoard]=useState(false)
   const [showSticker,setShowSticker]=useState(true)
@@ -344,6 +348,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(action==='publish'){
         pendingPublish.current=null;setReviewId(null)
         if(panel==='compose'){delete composerDrafts.current[mode];setBody('');setKey('')}
+        const presented=next.prompt?.kind==='teach'?decodeSlide(next.prompt.body):null
+        if(presented&&presented.total===slides.length)setSlideIndex(presented.number-1)
         setPanel(null);if(payload.kind!=='board')setEditingBoard(false)
       }
       if(action==='ask'){questionRequest.current=null;setQuestionDraft('')}
@@ -441,7 +447,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const immersive=!!room&&room.status!=='ended'
   const draftLoading=teacher&&!!room&&draftBinding?.roomId!==room.id&&!draftWarning
   useEffect(()=>{
-    setReviewId(null);setDraftBinding(null);draftKey.current=null;composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;touches.current.clear();pinch.current=null;touchDraft.current=null;setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
+    setReviewId(null);setDraftBinding(null);draftKey.current=null;composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;touches.current.clear();pinch.current=null;touchDraft.current=null;setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
   },[room?.id])
   // Recover only the teacher's private, same-tab draft. Published history is
   // always fetched from the authorized server, never from browser storage.
@@ -548,8 +554,33 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if(redoBoards.length){setUndoBoards(items=>[...items.slice(-29),board]);setBoard(redoBoards[redoBoards.length-1]);setRedoBoards(items=>items.slice(0,-1))}
   }
   const slide=slides[slideIndex]
-  const slideText=[slide?.title.trim(),slide?.body.trim()].filter(Boolean).join('\n\n')
-  function editSlide(field:'title'|'body',value:string){setSlides(items=>items.map((s,i)=>i===slideIndex?{...s,[field]:value}:s))}
+  const liveSlide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
+  const slideText=slide?encodeSlide(slide,slideIndex+1,slides.length):''
+  function editSlide(patch:Partial<LiveSlide>){setSlides(items=>items.map((item,i)=>i===slideIndex?{...item,...patch}:item))}
+  function presentSlide(index:number){
+    const item=slides[index];if(!item||busy||!online||room?.status!=='active')return
+    const slideText=encodeSlide(item,index+1,slides.length)
+    if(slideText)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})
+  }
+  function moveSlide(delta:number){
+    const to=slideIndex+delta;if(to<0||to>=slides.length)return
+    setSlides(items=>{const next=[...items];[next[slideIndex],next[to]]=[next[to],next[slideIndex]];return next})
+    setSlideIndex(to)
+  }
+  function addSlide(duplicate=false){
+    if(slides.length>=30)return
+    const item=duplicate&&slide?{...slide}:{title:'',body:''}
+    setSlides(items=>[...items.slice(0,slideIndex+1),item,...items.slice(slideIndex+1)]);setSlideIndex(slideIndex+1)
+  }
+  function deleteSlide(){
+    if(!slide||slides.length<=1)return
+    setDeletedSlide({slide,index:slideIndex});setSlides(items=>items.filter((_,i)=>i!==slideIndex));setSlideIndex(Math.max(0,slideIndex-1))
+  }
+  function undoSlideDelete(){
+    if(!deletedSlide||slides.length>=30)return
+    const index=Math.min(deletedSlide.index,slides.length)
+    setSlides(items=>[...items.slice(0,index),deletedSlide.slide,...items.slice(index)]);setSlideIndex(index);setDeletedSlide(null)
+  }
   function askTeacher(){
     const body=questionDraft.trim();if(!body||busy)return
     if(questionRequest.current?.body!==body)questionRequest.current={body,id:crypto.randomUUID()}
@@ -567,33 +598,48 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {!teacher&&(room.needsHelp||room.handAckAt)&&<div className={styles.handStatus} role="status">{room.needsHelp?'Hand raised — teacher notified':'Teacher acknowledged your hand'}</div>}
     <div className={styles.stage}>
       <section className={styles.stageContent} data-board-edit={editingBoard&&teacher} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
-        {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser&&shapeTool==='pen'} onClick={()=>{setEraser(false);setShapeTool('pen')}}>Pen</button><label><span className={styles.srOnly}>Geometry tool</span><select aria-label="Geometry tool" value={eraser?'pen':shapeTool} onChange={e=>{setEraser(false);setShapeTool(e.target.value as ShapeTool)}}><option value="pen">Shapes</option><option value="line">Line</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option><option value="ellipse">Ellipse</option></select></label><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear draft</button></div><div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">{boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button><button onClick={exportBoard}>Export SVG</button></div><div className={styles.boardTools}><button aria-label="Zoom out" disabled={boardZoom<=1} onClick={()=>setBoardZoom(v=>Math.max(1,v-.25))}>−</button><button aria-label="Reset board zoom" onClick={()=>setBoardZoom(1)}>{Math.round(boardZoom*100)}%</button><button aria-label="Zoom in" disabled={boardZoom>=2} onClick={()=>setBoardZoom(v=>Math.min(2,v+.25))}>+</button><small role="status">{board.length>=3200||board.split('|').length>=95?'Board nearly full — erase or clear before continuing.':`${Math.round(board.length/BOARD_LIMIT*100)}% used`}</small></div><BoardView value={board} zoom={boardZoom} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={viewedPrompt}/>}
+        {teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
+          <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
+          <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length}/>
+          <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
+          <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next</button><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>Present slide</button></div>
+          <div className={styles.slideFields}>
+            <label>Title<input value={slide.title} maxLength={120} disabled={busy} onChange={e=>editSlide({title:e.target.value})}/></label>
+            <label>Content<textarea value={slide.body} maxLength={3878} disabled={busy} onChange={e=>editSlide({body:e.target.value})}/></label>
+            <div className={styles.slideOptions}>
+              <label>Diagram<select disabled={busy} value={slide.diagram??'none'} onChange={e=>editSlide({diagram:e.target.value as SlideDiagram})}>{SLIDE_DIAGRAMS.map(d=><option key={d} value={d}>{diagramLabel(d)}</option>)}</select></label>
+              <label>Theme<select disabled={busy} value={slide.theme??'paper'} onChange={e=>editSlide({theme:e.target.value as SlideTheme})}>{SLIDE_THEMES.map(t=><option key={t}>{t}</option>)}</select></label>
+              <label>Layout<select disabled={busy} value={slide.layout??'wide'} onChange={e=>editSlide({layout:e.target.value==='portrait'?'portrait':'wide'})}><option value="wide">Wide 16:9</option><option value="portrait">Portrait</option></select></label>
+              <label>Text size<select disabled={busy} value={slide.font??'normal'} onChange={e=>editSlide({font:e.target.value==='large'?'large':'normal'})}><option value="normal">Normal</option><option value="large">Large</option></select></label>
+            </div>
+            <label>Presenter notes (private)<textarea maxLength={2000} value={slide.notes??''} disabled={busy} onChange={e=>editSlide({notes:e.target.value})}/></label>
+            <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>moveSlide(-1)}>Move left</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>moveSlide(1)}>Move right</button><button type="button" disabled={busy||slides.length>=30} onClick={()=>addSlide(true)}>Duplicate</button><button type="button" disabled={busy||slides.length<=1} onClick={deleteSlide}>Delete</button>{deletedSlide&&<button type="button" disabled={busy||slides.length>=30} onClick={undoSlideDelete}>Undo delete</button>}</div>
+            {!slideText&&<small role="status">Add content or shorten text to fit the shared slide limit.</small>}
+            <small>Session draft · published slides remain in lesson history.</small>
+          </div>
+        </div>:editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser&&shapeTool==='pen'} onClick={()=>{setEraser(false);setShapeTool('pen')}}>Pen</button><label><span className={styles.srOnly}>Geometry tool</span><select aria-label="Geometry tool" value={eraser?'pen':shapeTool} onChange={e=>{setEraser(false);setShapeTool(e.target.value as ShapeTool)}}><option value="pen">Shapes</option><option value="line">Line</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option><option value="ellipse">Ellipse</option></select></label><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear draft</button></div><div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">{boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button><button onClick={exportBoard}>Export SVG</button></div><div className={styles.boardTools}><button aria-label="Zoom out" disabled={boardZoom<=1} onClick={()=>setBoardZoom(v=>Math.max(1,v-.25))}>−</button><button aria-label="Reset board zoom" onClick={()=>setBoardZoom(1)}>{Math.round(boardZoom*100)}%</button><button aria-label="Zoom in" disabled={boardZoom>=2} onClick={()=>setBoardZoom(v=>Math.min(2,v+.25))}>+</button><small role="status">{board.length>=3200||board.split('|').length>=95?'Board nearly full — erase or clear before continuing.':`${Math.round(board.length/BOARD_LIMIT*100)}% used`}</small></div><BoardView value={board} zoom={boardZoom} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={viewedPrompt}/>}
       </section>
       {!teacher&&learnerTool&&<section className={styles.sheet} aria-label={learnerTool==='ask'?'Ask teacher':'My notes'}>
         <div className={styles.sheetTitle}><strong>{learnerTool==='ask'?'Ask teacher':'My notes'}</strong><button type="button" aria-label="Close" onClick={()=>setLearnerTool(null)}><X size={18}/></button></div>
         {learnerTool==='ask'?<><small>Only you and your teacher can see this conversation.</small><ul className={styles.participants}>{(room.questions??[]).map(q=><li key={q.id}><strong>{q.body}</strong><span>{q.reply??'Awaiting reply'}</span></li>)}</ul><form onSubmit={e=>{e.preventDefault();askTeacher()}}><label>Your question<textarea maxLength={1000} value={questionDraft} disabled={busy} onChange={e=>setQuestionDraft(e.target.value)} required/></label><button className={styles.primary} disabled={busy||!online||!questionDraft.trim()}>Send privately</button></form></>:<form onSubmit={e=>{e.preventDefault();void act('note',null,{body:noteDraft})}}><label>Personal notes<textarea maxLength={8000} value={noteDraft} disabled={busy} onChange={e=>{noteDirty.current=true;setNoteDraft(e.target.value)}}/></label><button className={styles.primary} disabled={busy||!online||!noteDirty.current}>Save notes</button><small>{noteDirty.current?'Unsaved changes':'Notes saved privately'}</small></form>}
       </section>}
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker||!!panel||(focusMode&&!focusDock)} onHide={()=>setShowSticker(false)}/>}
-      {teacher&&panel&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'Classroom tools'}>
-        <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
+      {teacher&&panel&&panel!=='slides'&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':'Classroom tools'}>
+        <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
         {panel==='compose'&&<form onSubmit={e=>{e.preventDefault();void act('publish',null,{kind:mode,body:content,answerKey:mode==='quiz'||mode==='exercise'?key:null})}}>
           {mode==='clock'?<><label>Show time<input type="time" value={clock} onChange={e=>setClock(e.target.value)}/></label><ClockView value={clock}/></>:<label>{mode==='teach'?'Lesson content':'Question or instruction'}<textarea required maxLength={4000} value={body} onChange={e=>setBody(e.target.value)}/></label>}
           {(mode==='quiz'||mode==='exercise')&&<label>Answer (hidden until reveal)<textarea maxLength={2000} value={key} onChange={e=>setKey(e.target.value)}/></label>}
           <button className={styles.primary} disabled={busy||room.status!=='active'||!content.trim()}>Share with class</button>
         </form>}
-        {panel==='slides'&&slide&&<form onSubmit={e=>{e.preventDefault();if(slideText.length<=4000)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})}}>
-          <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><span>{i+1}</span><strong>{item.title.trim()||'Untitled'}</strong><small>{item.body.trim()||'Empty slide'}</small></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>{setSlides(items=>[...items,{title:'',body:''}]);setSlideIndex(slides.length)}}><strong>+ Add</strong></button></div>
-          <div className={styles.controls}><button type="button" disabled={slideIndex===0||busy} onClick={()=>setSlideIndex(i=>i-1)}>Previous</button><strong>{slideIndex+1} / {slides.length}</strong><button type="button" disabled={slideIndex===slides.length-1||busy} onClick={()=>setSlideIndex(i=>i+1)}>Next</button></div>
-          <label>Slide title<input value={slide.title} maxLength={120} onChange={e=>editSlide('title',e.target.value)}/></label>
-          <label>Slide text<textarea value={slide.body} maxLength={3878} onChange={e=>editSlide('body',e.target.value)}/></label>
-          <small>Session draft · text slides only</small>
-          <button className={styles.primary} disabled={busy||room.status!=='active'||!slideText||slideText.length>4000}>Present slide</button>
-          <button type="button" className={styles.subtle} disabled={slides.length<=1||busy} onClick={()=>{setSlides(items=>items.filter((_,i)=>i!==slideIndex));setSlideIndex(i=>Math.max(0,i-1))}}>Remove slide</button>
-        </form>}
         {panel==='learners'&&<><div className={styles.metrics}><span>{(room.questions??[]).filter(q=>!q.reply).length} questions</span><span>{participants.length} joined</span><span>{participants.filter(p=>p.answer!==null).length} answered</span><span>{participants.filter(p=>p.needsHelp).length} need help</span></div>{!participants.length?<p>No learners have joined.</p>:<ul className={styles.participants}>{participants.map(p=><li key={p.studentId}><strong>{p.name}</strong><span>{p.answer??'No answer'}</span>{p.needsHelp&&<button disabled={busy} onClick={()=>void act('ack',null,{studentId:p.studentId})}>Acknowledge hand</button>}</li>)}</ul>}<h3>Private questions</h3>{(room.questions??[]).map(q=><form key={q.id} onSubmit={e=>{e.preventDefault();void act('reply',null,{questionId:q.id,body:replyDrafts[q.id]??''})}}><strong>{q.name??'Learner'}: {q.body}</strong>{q.reply&&<p>{q.reply}</p>}<label>Reply privately<textarea maxLength={1000} value={replyDrafts[q.id]??''} disabled={busy} onChange={e=>setReplyDrafts(items=>({...items,[q.id]:e.target.value}))}/></label><button disabled={busy||!online||!(replyDrafts[q.id]??'').trim()}>Send reply</button></form>)}</>}
         {panel==='more'&&<><div className={styles.controls}><button onClick={()=>chooseMode('clock')}>Clock</button><button onClick={()=>chooseMode('teach')}>Teach text</button><button onClick={()=>setShowSticker(v=>!v)}>{showSticker?'Hide preview':'Show preview'}</button><button disabled={busy||!prompt||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed} onClick={()=>void act('reveal')}>Reveal / close answers</button><button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button></div>{shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}{endConfirm?<div className={styles.controls}><strong>End this session?</strong><button disabled={busy} onClick={()=>void act('end')}>Confirm end</button><button onClick={()=>setEndConfirm(false)}>Cancel</button></div>:null}</>}
       </section>}
     </div>
+    {teacher&&panel===null&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
+      <button type="button" disabled={busy||!online||room.status!=='active'||liveSlide.number<=1||liveSlide.total!==slides.length||!encodeSlide(slides[liveSlide.number-2],liveSlide.number-1,slides.length)} onClick={()=>presentSlide(liveSlide.number-2)}>Previous slide</button>
+      <span>{liveSlide.number} / {liveSlide.total}</span><button type="button" onClick={openSlides}>Edit slides</button>
+      <button type="button" disabled={busy||!online||room.status!=='active'||liveSlide.number>=slides.length||liveSlide.total!==slides.length||!encodeSlide(slides[liveSlide.number],liveSlide.number+1,slides.length)} onClick={()=>presentSlide(liveSlide.number)}>Next slide</button>
+    </div>}
     {!teacher&&reviewId===null&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}><label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label><button className={styles.primary} disabled={busy||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button></form>}</section>}
     {(!focusMode||focusDock)&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} disabled={draftLoading} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button disabled={draftLoading} aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<nav aria-label="Learner tools" className={styles.learnerTools}>
       <button type="button" aria-pressed={!!room.needsHelp} data-raised={!!room.needsHelp} disabled={busy||!online} onClick={()=>void act(room.needsHelp?'lower':'help')}><Hand size={21}/><span>{room.needsHelp?'Lower hand':'Raise hand'}</span></button>
