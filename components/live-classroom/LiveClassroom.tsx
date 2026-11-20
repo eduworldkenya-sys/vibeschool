@@ -53,7 +53,7 @@ function TeacherSticker({prompt,hidden,onHide}:{prompt:Prompt|null|undefined;hid
  const request=useRef(0)
  const gesture=useRef<{kind:'move'|'resize';x:number;y:number;left:number;top:number;width:number}|null>(null)
  const [position,setPosition]=useState<{left:number;top:number;width:number}|null>(null)
- const [mini,setMini]=useState(false)
+ const [mini,setMini]=useState(true)
  const [camera,setCamera]=useState(false)
  const [cameraError,setCameraError]=useState('')
  const [pending,setPending]=useState(false)
@@ -98,7 +98,15 @@ function TeacherSticker({prompt,hidden,onHide}:{prompt:Prompt|null|undefined;hid
    const dx=event.clientX-g.x,dy=event.clientY-g.y
    setPosition(clamp(g.left+(g.kind==='move'?dx:0),g.top+(g.kind==='move'?dy:0),g.width+(g.kind==='resize'?Math.max(dx,dy):0)))
  }
- function stop(){gesture.current=null}
+ function stop(){
+   const kind=gesture.current?.kind;gesture.current=null
+   if(kind!=='move'||!box.current)return
+   const element=box.current,parent=element.parentElement
+   if(!parent)return
+   const left=element.offsetLeft+element.offsetWidth/2<parent.clientWidth/2?8:parent.clientWidth-element.offsetWidth-8
+   const top=element.offsetTop+element.offsetHeight/2<parent.clientHeight/2?8:parent.clientHeight-element.offsetHeight-8
+   setPosition(clamp(left,top,position?.width??element.offsetWidth))
+ }
  if(hidden)return null
  return <div ref={box} className={styles.sticker} data-mini={mini} style={position?{left:position.left,top:position.top,right:'auto',width:mini?64:position.width}:undefined}>
    <div className={styles.stickerHeader}>
@@ -224,7 +232,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       const next=await call(action,id??room?.id??null,room?.version??null,payload) as Room
       if(!mounted.current||generation.current!==stamp)return
       accept(next)
-      if(action==='publish'){setBody('');setKey('');if(panel!=='slides')setPanel(null);setEditingBoard(false)}
+      if(action==='publish'){setBody('');setKey('');setPanel(null);setEditingBoard(false)}
     } catch(e) {
       if(mounted.current&&generation.current===stamp){
         if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){active.current=null;setRoom(null);setRooms([]);setError('Classroom access is no longer available.')}
@@ -328,10 +336,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button>{focusMode&&<button type="button" aria-label={focusDock?'Hide classroom controls':'Show classroom controls'} aria-pressed={focusDock} onClick={()=>setFocusDock(v=>!v)}><MoreHorizontal size={20}/></button>}</header>
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     <div className={styles.stage}>
-      <section className={styles.stageContent} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
+      <section className={styles.stageContent} data-board-edit={editingBoard&&teacher} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
         {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser&&shapeTool==='pen'} onClick={()=>{setEraser(false);setShapeTool('pen')}}>Pen</button><label><span className={styles.srOnly}>Geometry tool</span><select aria-label="Geometry tool" value={eraser?'pen':shapeTool} onChange={e=>{setEraser(false);setShapeTool(e.target.value as ShapeTool)}}><option value="pen">Shapes</option><option value="line">Line</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option><option value="ellipse">Ellipse</option></select></label><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear</button></div><div className={styles.boardTools}><button aria-label="Zoom out" disabled={boardZoom<=1} onClick={()=>setBoardZoom(v=>Math.max(1,v-.25))}>−</button><button aria-label="Reset board zoom" onClick={()=>setBoardZoom(1)}>{Math.round(boardZoom*100)}%</button><button aria-label="Zoom in" disabled={boardZoom>=2} onClick={()=>setBoardZoom(v=>Math.min(2,v+.25))}>+</button><small role="status">{board.length>=3200||board.split('|').length>=95?'Board nearly full — erase or clear before continuing.':`${Math.round(board.length/BOARD_LIMIT*100)}% used`}</small></div><BoardView value={board} zoom={boardZoom} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={prompt}/>}
       </section>
-      {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker} onHide={()=>setShowSticker(false)}/>}
+      {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker||!!panel||(focusMode&&!focusDock)} onHide={()=>setShowSticker(false)}/>}
       {teacher&&panel&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'Classroom tools'}>
         <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
         {panel==='compose'&&<form onSubmit={e=>{e.preventDefault();void act('publish',null,{kind:mode,body:content,answerKey:mode==='quiz'||mode==='exercise'?key:null})}}>
@@ -340,15 +348,16 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <button className={styles.primary} disabled={busy||room.status!=='active'||!content.trim()}>Share with class</button>
         </form>}
         {panel==='slides'&&slide&&<form onSubmit={e=>{e.preventDefault();if(slideText.length<=4000)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})}}>
-          <div className={styles.controls}><button type="button" disabled={slideIndex===0||busy} onClick={()=>setSlideIndex(i=>i-1)}>Previous</button><strong>{slideIndex+1} / {slides.length}</strong><button type="button" disabled={slideIndex===slides.length-1||busy} onClick={()=>setSlideIndex(i=>i+1)}>Next</button><button type="button" disabled={slides.length>=30||busy} onClick={()=>{setSlides(items=>[...items,{title:'',body:''}]);setSlideIndex(slides.length)}}>Add slide</button></div>
+          <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><span>{i+1}</span><strong>{item.title.trim()||'Untitled'}</strong><small>{item.body.trim()||'Empty slide'}</small></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>{setSlides(items=>[...items,{title:'',body:''}]);setSlideIndex(slides.length)}}><strong>+ Add</strong></button></div>
+          <div className={styles.controls}><button type="button" disabled={slideIndex===0||busy} onClick={()=>setSlideIndex(i=>i-1)}>Previous</button><strong>{slideIndex+1} / {slides.length}</strong><button type="button" disabled={slideIndex===slides.length-1||busy} onClick={()=>setSlideIndex(i=>i+1)}>Next</button></div>
           <label>Slide title<input value={slide.title} maxLength={120} onChange={e=>editSlide('title',e.target.value)}/></label>
           <label>Slide text<textarea value={slide.body} maxLength={3878} onChange={e=>editSlide('body',e.target.value)}/></label>
-          <small>Draft deck stays on this device until you leave. Each presented slide is shared through the existing classroom session.</small>
+          <small>Session draft · text slides only</small>
           <button className={styles.primary} disabled={busy||room.status!=='active'||!slideText||slideText.length>4000}>Present slide</button>
-          <button type="button" disabled={slides.length<=1||busy} onClick={()=>{setSlides(items=>items.filter((_,i)=>i!==slideIndex));setSlideIndex(i=>Math.max(0,i-1))}}>Remove draft slide</button>
+          <button type="button" className={styles.subtle} disabled={slides.length<=1||busy} onClick={()=>{setSlides(items=>items.filter((_,i)=>i!==slideIndex));setSlideIndex(i=>Math.max(0,i-1))}}>Remove slide</button>
         </form>}
         {panel==='learners'&&<><div className={styles.metrics}><span>{participants.length} joined</span><span>{participants.filter(p=>p.answer!==null).length} answered</span><span>{participants.filter(p=>p.needsHelp).length} need help</span></div>{!participants.length?<p>No learners have joined.</p>:<ul className={styles.participants}>{participants.map(p=><li key={p.studentId}><strong>{p.name}</strong><span>{p.answer??'No answer'}</span>{p.needsHelp&&<button disabled={busy} onClick={()=>void act('ack',null,{studentId:p.studentId})}>Acknowledge hand</button>}</li>)}</ul>}</>}
-        {panel==='more'&&<><div className={styles.controls}><button onClick={()=>chooseMode('clock')}>Clock</button><button onClick={()=>chooseMode('teach')}>Teach text</button><button onClick={()=>setShowSticker(v=>!v)}>{showSticker?'Hide preview':'Show preview'}</button><button disabled={busy||!prompt||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed} onClick={()=>void act('reveal')}>Reveal / close answers</button><button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button></div>{shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}{endConfirm?<div className={styles.controls}><strong>End this session?</strong><button disabled={busy} onClick={()=>void act('end')}>Confirm end</button><button onClick={()=>setEndConfirm(false)}>Cancel</button></div>:<button className={styles.danger} disabled={busy} onClick={()=>setEndConfirm(true)}>End session</button>}</>}
+        {panel==='more'&&<><div className={styles.controls}><button onClick={()=>chooseMode('clock')}>Clock</button><button onClick={()=>chooseMode('teach')}>Teach text</button><button onClick={()=>setShowSticker(v=>!v)}>{showSticker?'Hide preview':'Show preview'}</button><button disabled={busy||!prompt||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed} onClick={()=>void act('reveal')}>Reveal / close answers</button><button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button></div>{shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}{endConfirm?<div className={styles.controls}><strong>End this session?</strong><button disabled={busy} onClick={()=>void act('end')}>Confirm end</button><button onClick={()=>setEndConfirm(false)}>Cancel</button></div>:null}</>}
       </section>}
     </div>
     {!teacher&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}><label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label><button className={styles.primary} disabled={busy||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button></form>}</section>}
