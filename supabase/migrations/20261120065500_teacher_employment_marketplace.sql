@@ -169,22 +169,43 @@ revoke all on function teacher_employment_private.owns_homework_photo(text) from
 revoke all on function teacher_employment_private.can_read_homework_photo(text) from public,anon,authenticated;
 grant execute on function teacher_employment_private.owns_homework_photo(text) to authenticated;
 grant execute on function teacher_employment_private.can_read_homework_photo(text) to authenticated;
-alter policy homework_photos_staff_read_v2 on storage.objects to authenticated
+-- Reconcile only existing policies: do not introduce authority to buckets or policy
+-- names absent in a clean reconstruction. Production-only policies are preserved.
+do $policy_reconcile$
+begin
+ if exists(select 1 from pg_catalog.pg_policies where schemaname='storage' and tablename='objects' and policyname='homework_photos_staff_read_v2') then
+  alter policy homework_photos_staff_read_v2 on storage.objects to authenticated
  using (bucket_id='homework-photos' and teacher_employment_private.can_read_homework_photo(name));
-alter policy homework_photos_student_insert on storage.objects to authenticated
+ end if;
+ if exists(select 1 from pg_catalog.pg_policies where schemaname='storage' and tablename='objects' and policyname='homework_photos_student_insert') then
+  alter policy homework_photos_student_insert on storage.objects to authenticated
  with check (bucket_id='homework-photos' and teacher_employment_private.owns_homework_photo(name));
-alter policy homework_photos_student_select on storage.objects to authenticated
+ end if;
+ if exists(select 1 from pg_catalog.pg_policies where schemaname='storage' and tablename='objects' and policyname='homework_photos_student_select') then
+  alter policy homework_photos_student_select on storage.objects to authenticated
  using (bucket_id='homework-photos' and teacher_employment_private.owns_homework_photo(name));
-alter policy homework_photos_student_update on storage.objects to authenticated
+ end if;
+ if exists(select 1 from pg_catalog.pg_policies where schemaname='storage' and tablename='objects' and policyname='homework_photos_student_update') then
+  alter policy homework_photos_student_update on storage.objects to authenticated
  using (bucket_id='homework-photos' and teacher_employment_private.owns_homework_photo(name))
  with check (bucket_id='homework-photos' and teacher_employment_private.owns_homework_photo(name));
--- Existing HQ access is tightened to the canonical active platform owner resolver.
-alter policy "hq owners read company library objects" on storage.objects to authenticated
+ end if;
+ if exists(select 1 from pg_catalog.pg_policies where schemaname='storage' and tablename='objects' and policyname='hq owners read company library objects') then
+  alter policy "hq owners read company library objects" on storage.objects to authenticated
  using (bucket_id='hq-company-library' and (select public.is_platform_owner()));
-alter policy "hq owners upload company library objects" on storage.objects to authenticated
+ end if;
+ if exists(select 1 from pg_catalog.pg_policies where schemaname='storage' and tablename='objects' and policyname='hq owners upload company library objects') then
+  alter policy "hq owners upload company library objects" on storage.objects to authenticated
  with check (bucket_id='hq-company-library' and (select public.is_platform_owner()));
-alter policy "hq owners update company library objects" on storage.objects to authenticated
+ end if;
+ if exists(select 1 from pg_catalog.pg_policies where schemaname='storage' and tablename='objects' and policyname='hq owners update company library objects') then
+  alter policy "hq owners update company library objects" on storage.objects to authenticated
  using (bucket_id='hq-company-library' and (select public.is_platform_owner()))
  with check (bucket_id='hq-company-library' and (select public.is_platform_owner()));
-alter policy "hq owners delete company library objects" on storage.objects to authenticated
+ end if;
+ if exists(select 1 from pg_catalog.pg_policies where schemaname='storage' and tablename='objects' and policyname='hq owners delete company library objects') then
+  alter policy "hq owners delete company library objects" on storage.objects to authenticated
  using (bucket_id='hq-company-library' and (select public.is_platform_owner()));
+ end if;
+end;
+$policy_reconcile$;
