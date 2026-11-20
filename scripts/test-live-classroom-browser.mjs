@@ -1,0 +1,170 @@
+import assert from 'node:assert/strict'
+import {createRequire} from 'node:module'
+import {createServer} from 'node:http'
+import {createLiveFixture} from './live-classroom-test-fixture.mjs'
+
+// Same committed SQL and React classroom as the pilot. Test-only identity
+// transport is restricted to loopback; no real Supabase project or credentials.
+const require=createRequire(import.meta.url)
+const testModules='/tmp/live-test/node_modules'
+const {build}=require(testModules+'/esbuild')
+const {chromium}=require(testModules+'/playwright')
+const fixture=await createLiveFixture()
+const identity={teacher:fixture.teacher,learner:fixture.a,'learner-b':fixture.b,outsider:fixture.outsider}
+const result=await build({
+  stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId='"+fixture.cls+"' teacher={role==='teacher'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
+  bundle:true,write:false,outdir:'out',entryNames:'app',jsx:'automatic',platform:'browser',
+  nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"'},
+  plugins:[{name:'loopback-fixture',setup(b){
+    b.onResolve({filter:/^(@\/lib\/supabase|next\/link)$/},args=>({path:args.path,namespace:'fixture'}))
+    b.onLoad({filter:/.*/,namespace:'fixture'},args=>({loader:'jsx',resolveDir:process.cwd(),contents:args.path==='next/link'?
+      "import React from 'react'; export default function Link({children,...props}) {return <a {...props}>{children}</a>}" :
+      "const role=location.pathname.slice(1); const ids="+JSON.stringify(identity)+"; export const supabase={auth:{getUser:async()=>({data:{user:{id:ids[role]}},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},rpc:async(name,params)=>{try { const r=await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,params})});return await r.json()} catch(e){return {data:null,error:{message:'Connection interrupted'}}}}};"}))
+  }}]
+})
+const assets=new Map(result.outputFiles.map(f=>['/'+f.path.split('/').at(-1),f.contents]))
+assert.ok(assets.has('/app.js')&&assets.has('/app.css'),'Actual UI and CSS bundle must exist')
+let queue=Promise.resolve()
+const server=createServer(async(req,res)=>{
+  const path=new URL(req.url,'http://127.0.0.1').pathname
+  if(assets.has(path)){res.writeHead(200,{'Content-Type':path.endsWith('.js')?'text/javascript':'text/css'});return res.end(assets.get(path))}
+  const role=path.slice(1)
+  if(Object.hasOwn(identity,role)&&req.method==='GET'){
+    res.writeHead(200,{'Content-Type':'text/html','Set-Cookie':'role='+role+'; HttpOnly; SameSite=Strict; Path=/'})
+    return res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/app.css"><style>body{margin:0;font-family:system-ui}</style></head><body><div id="root"></div><script src="/app.js"></script></body></html>')
+  }
+  if(path!=='/rpc'||req.method!=='POST'){res.writeHead(404);return res.end()}
+  const userRole=(req.headers.cookie??'').match(/(?:^|;\s*)role=([a-z-]+)(?:;|$)/)?.[1]
+  if(!userRole||!Object.hasOwn(identity,userRole)){res.writeHead(403);return res.end()}
+  let body='';for await(const part of req){body+=part;if(body.length>300000){res.writeHead(413);return res.end()}}
+  const job=async()=>{
+    try{
+      const {name,params:p}=JSON.parse(body)
+      if(name!=='vibe_live_command')throw Error('Unexpected RPC')
+      const data=await fixture.rpc(identity[userRole],p.p_action,p.p_session_id,p.p_version,p.p_payload,p.p_class_id)
+      return {data,error:null}
+    }catch(e){return {data:null,error:{code:e.code,message:e.message}}}
+  }
+  const done=queue.then(job);queue=done.then(()=>undefined,()=>undefined)
+  const response=await done
+  res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(response))
+})
+await new Promise((ok,fail)=>{server.once('error',fail);server.listen(0,'127.0.0.1',ok)})
+const origin='http://127.0.0.1:'+server.address().port
+const browser=await chromium.launch({headless:true})
+const contexts=[],errors=[]
+async function open(role,width=360,height=780,resume=''){
+  const context=await browser.newContext({viewport:{width,height}})
+  contexts.push(context);const page=await context.newPage()
+  page.setDefaultTimeout(18000)
+  page.on('pageerror',e=>errors.push(role+': '+e.message))
+  await page.goto(origin+'/'+role+resume)
+  return {page,context}
+}
+const button=(p,name)=>p.getByRole('button',{name,exact:true})
+const dialog=p=>p.getByRole('dialog',{name:'Live classroom'})
+async function see(p,text){await p.getByText(text,{exact:true}).first().waitFor({state:'visible'})}
+async function noPageOverflow(p){
+ const sizes=await p.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth])
+ assert.ok(sizes[0]<=sizes[1]+1,'Page overflow: '+sizes.join('/'))
+}
+async function join(p){await p.getByRole('button',{name:/Browser lesson/}).click();await dialog(p).waitFor()}
+try{
+ const teacher=await open('teacher',1280,800),t=teacher.page
+ await button(t,'My presentations').click()
+ await button(t,'New presentation').click()
+ await t.getByLabel('Presentation name').fill('Prepared fractions')
+ await t.getByLabel('Slide title').fill('Equivalent fractions')
+ await t.getByLabel('Content',{exact:true}).fill('Two quarters make one half.')
+ await t.getByLabel('Diagram',{exact:true}).selectOption('fraction-bars')
+ await t.getByLabel('Presenter notes (private)').fill('Private presenter fixture')
+ await button(t,'Save & use').click()
+ await t.getByText(/Ready for next lesson: Prepared fractions/).waitFor()
+ await t.getByLabel('Lesson title').fill('Browser lesson')
+ await button(t,'Go Live').click()
+ await dialog(t).waitFor()
+ await button(t,'Slides').click()
+ await t.getByLabel('Title',{exact:true}).waitFor()
+ assert.equal(await t.getByLabel('Title',{exact:true}).inputValue(),'Equivalent fractions')
+ await button(t,'Present slide').click()
+ const learner=await open('learner'),l=learner.page
+ await join(l);await see(l,'Equivalent fractions')
+ assert.equal(await l.getByText('Private presenter fixture',{exact:true}).count(),0)
+ await noPageOverflow(l);await noPageOverflow(t)
+ await button(t,'Edit slides').click()
+ await t.getByRole('button',{name:'Add slide'}).click()
+ await t.getByLabel('Title',{exact:true}).fill('Three quarters')
+ await t.getByLabel('Content',{exact:true}).fill('Three of four equal parts.')
+ await button(t,'Present slide').click()
+ await see(l,'Three quarters')
+ await button(t,'Previous slide').click();await see(l,'Equivalent fractions')
+ await button(t,'Next slide').click();await see(l,'Three quarters')
+ await t.getByText('Draft saved',{exact:true}).waitFor()
+ const sid=new URL(t.url()).searchParams.get('resumeRoom')
+ assert.ok(sid)
+ const recovered=await open('teacher',360,780,'?resumeRoom='+sid)
+ await dialog(recovered.page).waitFor()
+ await button(recovered.page,'Slides').click()
+ assert.equal(await recovered.page.getByLabel('Title',{exact:true}).inputValue(),'Three quarters')
+ await noPageOverflow(recovered.page)
+ await recovered.context.close()
+ await button(t,'Board').click()
+ await t.getByLabel('Board text').fill('2 + 3 = 5')
+ await button(t,'Insert text').click()
+ await button(t,'Share board').click()
+ await l.getByRole('img',{name:'Shared board page 1 of 1'}).waitFor()
+ await see(l,'2 + 3 = 5')
+ await button(l,'Raise hand').click()
+ await see(l,'Hand raised — teacher notified')
+ await t.getByRole('button',{name:/^Learners · /}).click()
+ await button(t,'Acknowledge hand').click()
+ await see(l,'Teacher acknowledged your hand')
+ await t.getByRole('button',{name:'Close tools'}).click()
+ await button(l,'Notes').click()
+ await l.getByLabel('Personal notes').fill('My private learner note')
+ await button(l,'Save notes').click()
+ await see(l,'Notes saved privately')
+ await l.getByRole('button',{name:'Close',exact:true}).click()
+ const second=await open('learner-b',390,844)
+ await join(second.page)
+ await button(second.page,'Notes').click()
+ assert.equal(await second.page.getByLabel('Personal notes').inputValue(),'')
+ await second.context.close()
+ await button(t,'Quiz').click()
+ await t.getByLabel('Question or instruction').fill('How many quarters make one half?')
+ await t.getByLabel('Answer (hidden until reveal)').fill('Two quarters')
+ await button(t,'Share with class').click()
+ await see(l,'How many quarters make one half?')
+ assert.equal(await l.getByText('Two quarters',{exact:true}).count(),0)
+ await l.getByLabel('Your answer').fill('2')
+ await button(l,'Submit').click()
+ await l.getByText(/Submitted:/).waitFor()
+ await button(t,'More').click()
+ await button(t,'Reveal / close answers').click()
+ await see(l,'Two quarters')
+ await l.getByRole('button',{name:'First lesson page'}).click()
+ await see(l,'Equivalent fractions')
+ await button(l,'Return to Live').click()
+ await see(l,'How many quarters make one half?')
+ await learner.context.setOffline(true)
+ await see(l,'How many quarters make one half?')
+ await learner.context.setOffline(false)
+ await noPageOverflow(l)
+ await l.reload();await dialog(l).waitFor();await see(l,'How many quarters make one half?')
+ const denied=await open('outsider',360,780,'?resumeRoom='+sid)
+ await denied.page.getByRole('alert').waitFor()
+ assert.equal(await denied.page.getByRole('dialog',{name:'Live classroom'}).count(),0)
+ await denied.context.close()
+ await button(t,'End').click()
+ await button(t,'Confirm end').click()
+ await see(l,'This session has ended.')
+ await l.getByRole('button',{name:'First lesson page'}).click()
+ await see(l,'Equivalent fractions')
+ assert.deepEqual(errors,[],'Browser runtime errors')
+ console.log('PASS: actual responsive classroom UI with synthetic authenticated RPC transport, separate learner views, library reuse, draft recovery, slide navigation, board, private notes, hand acknowledgement, quiz reveal, offline/reconnect, outsider denial and ended history')
+}catch(e){
+ for(const c of contexts)for(const p of c.pages())console.error(p.url(),(await p.locator('body').innerText().catch(()=>'' )).slice(0,3500))
+ throw e
+}finally{
+ await browser.close();await new Promise(ok=>server.close(ok));await fixture.db.close()
+}
