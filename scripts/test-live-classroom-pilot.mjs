@@ -19,6 +19,11 @@ const liveUi=readFileSync(new URL('../components/live-classroom/LiveClassroom.ts
 assert.ok(liveUi.includes("act('join',sharedId)"))
 assert.ok(liveUi.includes('Find live lessons'))
 assert.ok(liveUi.includes('Share lesson'))
+assert.ok(liveUi.includes('switchBoardPage'))
+assert.ok(liveUi.includes('Previous board page'))
+assert.ok(liveUi.includes('Next board page'))
+assert.ok(liveUi.includes('vibeschool-whiteboard.svg'))
+assert.ok(liveUi.includes("if(payload.kind!=='board')setEditingBoard(false)"))
 const liveCss=readFileSync(new URL('../components/live-classroom/LiveClassroom.module.css',import.meta.url),'utf8')
 // Static contract checks complement the scoped RPC tests below; not browser proof.
 assert.ok(liveUi.includes('createPortal(stage,document.body)'))
