@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { getAdminSchoolAuthority } from "@/lib/admin/authority"
 
@@ -150,7 +151,7 @@ export default function AdminTeachersPage() {
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", display: "grid", gap: 16 }}>
       <header>
-        <h1 style={{ margin: 0, fontSize: 24 }}>Teachers</h1>
+        <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center",flexWrap:"wrap"}}><h1 style={{ margin: 0, fontSize: 24 }}>Teachers</h1><Link href="/admin/recruitment" style={{background:"#176b4e",color:"#fff",borderRadius:10,padding:"10px 14px",fontWeight:700,textDecoration:"none"}}>Recruit teachers</Link></div>
         <p style={{ color: "#64748b", margin: "5px 0 0" }}>Teacher authority comes from canonical school membership; class and subject assignments use stable IDs.</p>
       </header>
       {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, borderRadius: 12 }}>{error}</div>}

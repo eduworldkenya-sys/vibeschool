@@ -1,13 +1,15 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
 import Link from "next/link";
+import {downloadTeacherCv} from "@/lib/public/teacherCvPdf";
 import {supabase} from "@/lib/supabase";
 import {useKenyaCounties} from "@/lib/geography/kenyaCounties";
-import {AVAILABILITY,EMPTY_EMPLOYMENT,EMPLOYMENT_TYPES,EmploymentFields,HIRE_URL,LEVELS,MANAGE_URL,OwnListing,QUALIFICATIONS,REGISTRATION,RecruitmentRequest,REQUEST_FIELDS,splitSubjects,toggleOption} from "@/lib/public/teacherEmployment";
+import {AVAILABILITY,CV_BUCKET,personalCvPath,sharedCvPath,EMPTY_EMPLOYMENT,EMPLOYMENT_TYPES,EmploymentFields,HIRE_URL,LEVELS,MANAGE_URL,OwnListing,QUALIFICATIONS,REGISTRATION,RecruitmentRequest,REQUEST_FIELDS,splitSubjects,toggleOption} from "@/lib/public/teacherEmployment";
 import styles from "@/components/teacher/marketplace/employment.module.css";
 
 export default function EmploymentPage(){
  const {countyNames,error:countyError}=useKenyaCounties();
+ const [cvExists,setCvExists]=useState(false),[cvShared,setCvShared]=useState<string[]>([]);
  const [uid,setUid]=useState(""),[name,setName]=useState(""),[listing,setListing]=useState<OwnListing|null>(null),[form,setForm]=useState<EmploymentFields>(EMPTY_EMPLOYMENT),[subjectText,setSubjectText]=useState(""),[consent,setConsent]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false),[requests,setRequests]=useState<RecruitmentRequest[]>([]);
  const load=useCallback(async()=>{
    setLoading(true);setError("");
@@ -18,8 +20,9 @@ export default function EmploymentPage(){
     if(profile.error||teacher.error||own.error)throw new Error("Could not load your employment profile.");
     setName(profile.data?.full_name??"");const row=own.data as OwnListing|null;setListing(row);
     const fields:EmploymentFields=row?{levels:row.levels,subjects:row.subjects,qualification:row.qualification,experience:row.experience,registration:row.registration,counties:row.counties,employment_types:row.employment_types,availability:row.availability,bio:row.bio,education:row.education,work_history:row.work_history}:{...EMPTY_EMPLOYMENT,subjects:(teacher.data?.subjects_taught??[]) as string[]};
+    const cv=await supabase.storage.from(CV_BUCKET).list("personal/"+id,{limit:5,search:"cv.pdf"});setCvExists(!cv.error&&(cv.data??[]).some(file=>file.name==="cv.pdf"));
     setForm(fields);setSubjectText(fields.subjects.join(", "));setConsent(!!row?.consented_at);
-    if(row){const res=await supabase.from("teacher_employment_requests").select(REQUEST_FIELDS).eq("listing_id",row.id).order("created_at",{ascending:false});if(res.error)throw new Error("Could not load interview requests.");setRequests((res.data??[]) as RecruitmentRequest[])}else setRequests([]);
+    if(row){const res=await supabase.from("teacher_employment_requests").select(REQUEST_FIELDS).eq("listing_id",row.id).order("created_at",{ascending:false});if(res.error)throw new Error("Could not load interview requests.");const incoming=(res.data??[]) as RecruitmentRequest[];setRequests(incoming);const shared=await Promise.all(incoming.filter(r=>r.status==="accepted").map(async r=>{const f=await supabase.storage.from(CV_BUCKET).list("shared/"+r.id,{limit:5,search:"cv.pdf"});return !f.error&&(f.data??[]).some(file=>file.name==="cv.pdf")?r.id:null}));setCvShared(shared.filter((id):id is string=>id!==null))}else setRequests([]);
    }catch(e){setError(e instanceof Error?e.message:"Unable to load employment profile.")}finally{setLoading(false)}
  },[]);
  useEffect(()=>{void load()},[load]);
@@ -40,6 +43,26 @@ export default function EmploymentPage(){
  async function respond(id:string,status:"accepted"|"declined"){
   if(busy)return;setBusy(true);setError("");setNotice("");
   try{const result=await supabase.from("teacher_employment_requests").update({status}).eq("id",id).eq("status","pending").select("id").single();if(result.error)throw new Error("Could not respond to this request.");await load();setNotice("Response saved.")}catch(e){setError(e instanceof Error?e.message:"Unable to respond.")}finally{setBusy(false)}
+ }
+ async function downloadFile(path:string,filename:string){
+  const {data,error:e}=await supabase.storage.from(CV_BUCKET).download(path);if(e||!data)throw new Error("CV unavailable.");
+  const url=URL.createObjectURL(data);const a=document.createElement("a");a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+ }
+ async function uploadCv(file:File){
+  if(busy||!uid)return;setBusy(true);setNotice("");setError("");
+  try{if(file.size>5*1024*1024||file.type!=="application/pdf"||await file.slice(0,5).text()!=="%PDF-")throw new Error("Select a PDF file smaller than 5 MB.");
+   const {error:e}=await supabase.storage.from(CV_BUCKET).upload(personalCvPath(uid),file,{upsert:true,contentType:"application/pdf"});if(e)throw new Error("CV upload failed.");setCvExists(true);setNotice("Private CV uploaded.");
+  }catch(e){setError(e instanceof Error?e.message:"CV upload failed.")}finally{setBusy(false)}
+ }
+ async function removeCv(){
+  if(!uid||busy)return;setBusy(true);setError("");try{const {error:e}=await supabase.storage.from(CV_BUCKET).remove([personalCvPath(uid)]);if(e)throw e;setCvExists(false);setNotice("Private file removed. Previously shared copies must be revoked separately.")}catch{setError("Could not remove your CV.")}finally{setBusy(false)}
+ }
+ async function shareCv(r:RecruitmentRequest,revoke=false){
+  if(!uid||busy||r.status!=="accepted")return;setBusy(true);setError("");setNotice("");
+  try{if(revoke){const {error:e}=await supabase.storage.from(CV_BUCKET).remove([sharedCvPath(r.id)]);if(e)throw e;setCvShared(ids=>ids.filter(id=>id!==r.id));setNotice("The school's access to this shared copy is revoked. Previously downloaded copies cannot be recalled.")}
+   else{const {data,error:e}=await supabase.storage.from(CV_BUCKET).download(personalCvPath(uid));if(e||!data)throw new Error("Upload a private PDF first.");
+    const result=await supabase.storage.from(CV_BUCKET).upload(sharedCvPath(r.id),data,{upsert:true,contentType:"application/pdf"});if(result.error)throw result.error;setCvShared(ids=>[...new Set([...ids,r.id])]);setNotice("CV shared privately with "+r.school_name+".")}
+  }catch(e){setError(e instanceof Error?e.message:"CV sharing failed.")}finally{setBusy(false)}
  }
  if(loading)return <div className={styles.wrap} role="status">Loading employment profile…</div>;
  return <div className={styles.wrap}><div className={styles.panel}>
@@ -63,6 +86,6 @@ export default function EmploymentPage(){
  <label className={styles.check}><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>I consent to publishing my professional profile and confirm the information is accurate.</label>
  <div className={styles.actions}><button type="submit" className={styles.button} disabled={!valid||busy}>{busy?"Saving…":listing?.status==="published"?"Save published profile":"Publish profile"}</button>{listing?.status==="published"&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>void save("paused")}>Hide listing</button>}</div>
  </form>
- <section className={styles.section}><h2>Interview invitations</h2>{requests.length===0?<p className={styles.hint}>No interview invitations yet.</p>:requests.map(r=><article key={r.id} className={styles.request}><strong>{r.school_name}</strong><p>{r.message}</p><span className={styles.status}>{r.status}</span>{r.status==="pending"&&<div className={styles.actions}><button className={styles.button} disabled={busy} onClick={()=>void respond(r.id,"accepted")}>Accept</button><button className={styles.secondary} disabled={busy} onClick={()=>void respond(r.id,"declined")}>Decline</button></div>}</article>)}</section>
+ <section className={styles.section}><h2>My CV</h2><button className={styles.secondary} disabled={!valid} onClick={()=>void downloadTeacherCv(name,{...form,subjects}).catch(()=>setError("Could not generate your digital CV."))}>Download digital CV (PDF)</button><label className={styles.field}>Upload private CV (optional · PDF up to 5 MB)<input type="file" disabled={busy} accept="application/pdf,.pdf" onChange={e=>{const f=e.target.files?.[0];e.target.value="";if(f)void uploadCv(f)}}/></label>{cvExists&&<div className={styles.actions}><button className={styles.secondary} onClick={()=>void downloadFile(personalCvPath(uid),"my-cv.pdf").catch(()=>setError("Could not download your CV."))}>Download uploaded CV</button><button className={styles.secondary} disabled={busy} onClick={()=>void removeCv()}>Remove</button></div>}<p className={styles.hint}>Your uploaded PDF is never public. You decide whether to share a copy with a school after accepting its invitation.</p></section><section className={styles.section}><h2>Interview invitations</h2>{requests.length===0?<p className={styles.hint}>No interview invitations yet.</p>:requests.map(r=><article key={r.id} className={styles.request}><strong>{r.school_name}</strong><p>{r.message}</p><span className={styles.status}>{r.status}</span>{r.status==="pending"&&<div className={styles.actions}><button className={styles.button} disabled={busy} onClick={()=>void respond(r.id,"accepted")}>Accept</button><button className={styles.secondary} disabled={busy} onClick={()=>void respond(r.id,"declined")}>Decline</button></div>}{r.status==="accepted"&&<div className={styles.actions}>{cvExists&&<button className={styles.secondary} disabled={busy} onClick={()=>{if(window.confirm("Share a copy of your PDF CV with "+r.school_name+"?"))void shareCv(r)}}>{cvShared.includes(r.id)?"Replace shared CV":"Share CV with school"}</button>}{cvShared.includes(r.id)&&<button className={styles.secondary} disabled={busy} onClick={()=>void shareCv(r,true)}>Revoke CV access</button>}</div>}</article>)}</section>
  </div></div>
 }
