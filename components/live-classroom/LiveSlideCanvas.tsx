@@ -3,11 +3,11 @@ import styles from './LiveClassroom.module.css'
 
 import { diagramLabel, type SlideDiagram, type LiveSlide } from './LiveSlideProtocol'
 export { encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideProtocol'
-export function TeachingDiagram({diagram}:{diagram:SlideDiagram}){
+export function TeachingDiagram({diagram,embedded=false}:{diagram:SlideDiagram;embedded?:boolean}){
  if(diagram==='none')return null
  const stroke='#2466a4',fill='#70b9ea',ink='#183a56'
  const tick=(x:number,y:number,n:number)=> <g key={n}><path d={`M${x} ${y}v12`} stroke={ink}/><text x={x} y={y+26} textAnchor="middle" fontSize="11" fill={ink}>{n}</text></g>
- return <svg className={styles.slideDiagram} viewBox="0 0 320 180" role="img" aria-label={diagramLabel(diagram)}>
+ return <svg className={embedded?undefined:styles.slideDiagram} width={embedded?320:undefined} height={embedded?180:undefined} viewBox="0 0 320 180" role="img" aria-label={diagramLabel(diagram)}>
   {diagram==='fraction-circle'&&<><circle cx="160" cy="82" r="63" fill="white" stroke={stroke} strokeWidth="2"/><path d="M160 19 A63 63 0 0 1 160 145 Z" fill={fill}/><path d="M160 19V145M97 82H223" stroke={stroke} strokeWidth="2"/><text x="160" y="170" textAnchor="middle" fill={ink}>2/4 = 1/2</text></>}
   {diagram==='fraction-bars'&&<>{[2,4,8].map((n,j)=><g key={n}>{Array.from({length:n},(_,i)=><rect key={i} x={32+i*256/n} y={15+j*48} width={256/n} height="30" fill={i<n/2?fill:'white'} stroke={stroke}/>)}<text x="160" y={58+j*48} fontSize="12" textAnchor="middle" fill={ink}>{n/2}/{n}</text></g>)}</>}
   {diagram==='number-line'&&<><path d="M16 80H304M16 80l9 -5M16 80l9 5M304 80l-9 -5M304 80l-9 5" stroke={ink} strokeWidth="2"/>{Array.from({length:11},(_,i)=>tick(30+i*26,74,i-5))}<circle cx="160" cy="80" r="6" fill={stroke}/></>}
