@@ -88,7 +88,7 @@ BEGIN
  IF (length(src)-length(replace(src,old,'')))/length(old)<>1 THEN RAISE EXCEPTION 'Unexpected action whitelist'; END IF;
  src:=replace(src,old,new);
  old:='pg_column_size(p_payload)>28000';
- new:=$a$pg_column_size(p_payload)>case when p_action='workspace_save' then 245000 when p_action='materials_save' then 185000 else 28000 end$a$;
+ new:=$a$pg_column_size(p_payload)>(case when p_action='workspace_save' then 245000 when p_action='materials_save' then 185000 else 28000 end)$a$;
  IF (length(src)-length(replace(src,old,'')))/length(old)<>1 THEN RAISE EXCEPTION 'Unexpected payload ceiling'; END IF;
  src:=replace(src,old,new);
  old:=$a$ if p_action='groups' then$a$;
