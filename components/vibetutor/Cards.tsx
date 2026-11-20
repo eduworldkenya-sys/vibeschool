@@ -58,15 +58,17 @@ export function TutorCard({ t, compact = false, score }: { t: DemoTutor; compact
   )
 }
 
-export function RequestCard({ r, compact = false, score }: { r: DemoRequest; compact?: boolean; score?: number }) {
-  const [open, setOpen] = useState(false)
+export function RequestCard({ r, compact = false, score, signedIn = false }: { r: DemoRequest; compact?: boolean; score?: number; signedIn?: boolean }) {
+  const [open, setOpen] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('request') === r.id)
   return (
     <>
       {compact ? <button type="button" className={styles.discoveryRow} onClick={() => setOpen(true)}>
         <span className={styles.discoveryAvatar} aria-hidden="true"><Icon name="user" size={30} /></span>
         <span className={styles.discoveryCopy}>
-          <strong>{r.subjects.join(' · ')}</strong>
-          <span className={styles.discoveryMeta}>{r.level} · {modeLabel(r.mode)}</span>
+          <strong>{r.learnerLabel}</strong>
+          <span className={styles.discoveryMeta}>{r.subjects.join(' · ')}</span>
+          <span className={styles.discoveryMeta}>{r.level} · {modeLabel(r.mode)} · {r.area}</span>
+          <span className={styles.discoveryMeta}>{summarizeDays(r.days)} · {summarizeParts(r.dayparts)} · {r.budgetKes > 0 ? `KSh ${r.budgetKes}/hour` : 'Budget negotiable'}</span>
           {r.real ? (score !== undefined ? <span className={styles.discoveryMatch}>{score}% match</span> : <span className={styles.discoveryMeta}>{r.area || modeLabel(r.mode)}</span>) : <span className={styles.demo}>Example request</span>}
         </span>
         <span className={styles.discoveryChevron} aria-hidden="true">›</span>
@@ -92,14 +94,14 @@ export function RequestCard({ r, compact = false, score }: { r: DemoRequest; com
           {!r.real && <span className={styles.demo}>Example request</span>}
           <h2 id={`request-${r.id}`} className={styles.modalTitle}>{r.subjects.join(', ')}</h2>
           <p className={styles.muted}>{r.learnerLabel} · {r.level}</p>
-          <p className={styles.modalText}>{r.note}</p>
+          
           <p className={styles.meta}><strong>Area:</strong> {r.area}</p>
           <p className={styles.meta}><strong>Format:</strong> {modeLabel(r.mode)}</p>
           <p className={styles.meta}><strong>Available days:</strong> {summarizeDays(r.days)}</p>
           <p className={styles.meta}><strong>Preferred time:</strong> {summarizeParts(r.dayparts)}</p>
           <p className={styles.modalPrice}>Budget up to KSh {r.budgetKes.toLocaleString('en-KE')} / hour</p>
           <p className={styles.hint}>{r.real ? 'Sign in to respond. Parent or guardian oversight is required for learners under 18.' : 'Example request only. No learner is connected to this example.'}</p>
-          <Link href="/login" className={styles.modalSignIn}>Sign in to respond</Link>
+          {!signedIn ? <Link href={'/login?redirect=' + encodeURIComponent('/vibetutor/browse?view=students&request=' + r.id)} className={styles.modalSignIn}>Sign in to contact guardian</Link> : <p className={styles.hint}>Guardian messaging is not available yet.</p>}
         </section>
       </div>}
     </>

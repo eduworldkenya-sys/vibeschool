@@ -5,7 +5,7 @@ import polish from '@/components/vibetutor/VibeTutorPolish.module.css'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import { Field, Segmented, ToggleChips } from '@/components/vibetutor/Form'
 import SchedulePicker from '@/components/vibetutor/SchedulePicker'
-import { AREAS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetutor/data'
+import { AREAS, LEVELS, SUBJECTS_BY_LEVEL, type Mode, type DayPart, DAYPARTS } from '@/components/vibetutor/data'
 import { getSupabaseClient } from '@/lib/supabase'
 import { clearDraft, readDraft, saveDraft } from '@/components/vibetutor/handoff'
 import { saveLearnerRequest } from '@/components/vibetutor/listings'
@@ -39,6 +39,8 @@ export default function PostRequest() {
   const [days, setDays] = useState<string[]>([])
   const [budget, setBudget] = useState('')
   const [phone, setPhone] = useState('')
+  const [publicPreview, setPublicPreview] = useState(false)
+  const [dayparts, setDayparts] = useState<DayPart[]>([])
   const [signedIn, setSignedIn] = useState(false)
   const [authStatus, setAuthStatus] = useState<'checking' | 'signed-in' | 'signed-out' | 'error'>('checking')
   const [authRetryKey, setAuthRetryKey] = useState(0)
@@ -110,7 +112,7 @@ export default function PostRequest() {
           </li>)}
         </ol>
       </div>}
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone }); window.location.assign('/login?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); window.location.assign('/vibetutor/browse') } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
+      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone }); window.location.assign('/login?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone, publicPreview, dayparts }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); window.location.assign('/vibetutor/browse') } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
         <Field label="Level" required><select className={styles.input} value={level} onChange={e => { setTouched(true); setLevel(e.target.value); setSubjects([]) }}><option value="">Choose level</option>{LEVELS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Subjects" required>{level && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
         <Field label="Teaching format"><Segmented<Mode> label="Teaching format" value={mode} onChange={value => { setTouched(true); setMode(value) }} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
@@ -118,6 +120,8 @@ export default function PostRequest() {
         <Field label="Budget per hour (KSh)"><input className={styles.input} inputMode="numeric" value={budget} onChange={e => { setTouched(true); setBudget(e.target.value.replace(/[^0-9]/g, '')) }} placeholder="Optional" /></Field>
         <Field label="Days available" required><SchedulePicker days={days} onDays={value => { setTouched(true); setDays(value) }} /></Field>
         {signedIn && <p className={polish.prefillNote}>Account contact details prefilled where available. You can edit them.</p>}
+        <Field label="Preferred time"><div>{DAYPARTS.map(part => <label key={part.id}><input type="checkbox" checked={dayparts.includes(part.id)} onChange={e => setDayparts(previous => e.target.checked ? [...previous, part.id] : previous.filter(p => p !== part.id))} /> {part.label} </label>)}</div></Field>
+        <Field label="Public preview"><label><input type="checkbox" checked={publicPreview} onChange={e => setPublicPreview(e.target.checked)} /> I am the parent or guardian and consent to a public, anonymous preview of the learning request. No child name or contact details will be displayed.</label></Field>
         <Field label="Student name" hint="Optional if you prefer not to share it yet."><input className={styles.input} value={learner} onChange={e => { setTouched(true); setLearner(e.target.value) }} maxLength={60} autoComplete="off" /></Field>
         <Field label="Parent or guardian phone" required><input className={styles.input} type="tel" inputMode="numeric" autoComplete="tel" maxLength={13} pattern="(?:0[17][0-9]{8}|[+]?254[17][0-9]{8})" value={phone} onChange={e => { setTouched(true); setPhone(normalizedPhone(e.target.value)) }}  placeholder="07XXXXXXXX or +2547XXXXXXXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
         <div className={styles.formActions}><button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button><button type="submit" className={styles.btnSubmit} disabled={!validForm || submitting || authStatus === 'checking' || authStatus === 'error'}>{submitting ? 'Posting…' : 'Find a tutor'}</button></div>

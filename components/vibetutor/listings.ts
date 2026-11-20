@@ -38,9 +38,9 @@ export async function fetchLiveListings(): Promise<LiveListings> {
   const signedIn = !!sessionRes.data.session
   let requestRows: RequestRow[] = []
 
-  // The open-requests view is intentionally restricted to authenticated users.
-  if (signedIn) {
-    const requestsRes = await client.from('vibetutor_open_requests').select('*').order('created_at', { ascending: false })
+  // Public projection is restricted in SQL; never expose private request rows.
+  {
+    const requestsRes = await client.from('vibetutor_open_requests').select('id,learner_label,note,levels,subjects,teaching_mode,area,budget_kes,available_days,dayparts,created_at').order('created_at', { ascending: false })
     if (requestsRes.error) throw new Error('Learner requests could not be loaded.')
     requestRows = (requestsRes.data ?? []) as RequestRow[]
   }
@@ -87,7 +87,7 @@ export async function saveTutorListing(input: {
 
 export async function saveLearnerRequest(input: {
   learner: string; levels: string[]; subjects: string[]; mode: Mode; area: string
-  budget: string; days: string[]; phone: string
+  budget: string; days: string[]; phone: string; publicPreview?: boolean; dayparts?: DayPart[]
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const client = getSupabaseClient()
   const { data: userData, error: authError } = await client.auth.getUser()
@@ -97,7 +97,7 @@ export async function saveLearnerRequest(input: {
     requester_id: userData.user.id, learner_label: input.learner.trim() || 'Learner',
     levels: input.levels, subjects: input.subjects, teaching_mode: input.mode,
     area: input.area || null, budget_kes: Number(input.budget) || null,
-    available_days: input.days, phone: input.phone, status: 'open', source: 'vibetutor',
+    available_days: input.days, dayparts: input.dayparts ?? [], public_preview: input.publicPreview === true, phone: input.phone, status: 'open', source: 'vibetutor',
   })
   return error ? { ok: false, error: 'Your request could not be posted. Please try again.' } : { ok: true }
 }
