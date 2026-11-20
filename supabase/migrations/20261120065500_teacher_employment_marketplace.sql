@@ -8,10 +8,10 @@ create schema teacher_employment_private;
 revoke all on schema teacher_employment_private from public,anon,authenticated;
 grant usage on schema teacher_employment_private to authenticated;
 create function teacher_employment_private.is_current_teacher() returns boolean
-language sql stable security definer set search_path='' as $
+language sql stable security definer set search_path='' as $$
  select exists(select 1 from public.profiles p join public.teacher_profiles t on t.profile_id=p.id
  where p.id=(select auth.uid()) and p.role='teacher' and p.account_status='active' and not coalesce(p.is_anonymized,false));
-$;
+$$;
 revoke all on function teacher_employment_private.is_current_teacher() from public,anon,authenticated;
 grant execute on function teacher_employment_private.is_current_teacher() to authenticated;
 create table public.teacher_employment_listings (

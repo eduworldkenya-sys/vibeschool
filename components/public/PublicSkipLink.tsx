@@ -1,5 +1,5 @@
 'use client'
-export function PublicSkipLink({className}:{className:string}){
+export function PublicSkipLink({className,children}:{className:string;children:string}){
  return <a href="#main-content" className={className} onClick={event=>{
   const main=document.getElementById('main-content')
   if(!main)return
@@ -8,5 +8,5 @@ export function PublicSkipLink({className}:{className:string}){
   if(!main.hasAttribute('tabindex'))main.setAttribute('tabindex','-1')
   main.focus({preventScroll:true})
   main.scrollIntoView({block:'start'})
- }}>Skip to content</a>
+ }}>{children}</a>
 }

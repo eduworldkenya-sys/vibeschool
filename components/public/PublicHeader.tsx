@@ -33,7 +33,7 @@ export function PublicHeader({ product, compact = false, navigation }: PublicHea
   const showProductLabel = product && !compact && !primaryNav.some(([, label]) => label === product)
   return <>
     <PublicJourneyTracker />
-    <PublicSkipLink className={styles.skip}/>
+    <PublicSkipLink className={styles.skip}>Skip to content</PublicSkipLink>
     <header className={`${styles.header} ${compact ? styles.compactHeader : ''}`}>
       <div className={styles.headerInner}>
         <Link href="/" aria-label="VibeSchool home" className={styles.brand}>
