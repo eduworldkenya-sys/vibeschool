@@ -65,3 +65,20 @@ test("content production explicitly mutes HQ interaction without weakening autho
   assert.match(playbook,/not a grant of privilege/);
   assert.match(operating,/No new authority is conferred/);
 });
+
+
+test("standing sole platform publisher decision is scoped and does not self-authorize",()=>{
+  for(const doc of [playbook,operating]) {
+    assert.match(doc,/CHATGPT_SOLE_PLATFORM_CONTENT_PUBLISHER/);
+    assert.match(doc,/explicitly superseded by the owner/);
+    assert.match(doc,/revocation/);
+    assert.match(doc,/teacher(?:\/school|-owned|\/school-owned)|school\/teacher-owned/);
+  }
+  assert.match(playbook,/sole operational publisher/);
+  assert.match(playbook,/genuine authenticated, owner-delegated operator identity/);
+  assert.match(playbook,/independent verification where required/);
+  assert.match(playbook,/expired\/revoked grants, stale fingerprints and cross-scope mutations/);
+  assert.match(playbook,/Do not invent an owner JWT, mint a self-grant/);
+  assert.match(playbook,/not yet commissioned/);
+  assert.match(operating,/does not commission it/);
+});
