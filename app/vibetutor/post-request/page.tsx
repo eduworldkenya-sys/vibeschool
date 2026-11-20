@@ -57,7 +57,6 @@ export default function PostRequest() {
       setBudget(draft.budget); setPhone(normalizedPhone(draft.phone)); setTouched(true)
     }
     const query = new URLSearchParams(window.location.search)
-    setPosted(query.get('posted') === '1')
     const service = findTuitionService(query.get('service')) ?? findExampleTuitionNeeds(query.get('example'))
     if (service) {
       setLevel(service.level); setSubjects([...service.subjects]); setArea(service.area)
@@ -95,7 +94,7 @@ export default function PostRequest() {
   const clearForm = () => { setLearner(''); setSubjects([]); setLevel(''); setMode('either'); setArea(''); setDays([]); setBudget(''); setPhone(''); setTouched(false); clearDraft(DRAFT_KEY) }
   const completion = [!!level && subjects.length > 0, !!area, days.length > 0, validKenyanPhone(phone)]
   const validForm = completion.every(Boolean) && validKenyanPhone(phone)
-  if (posted) return <div className={styles.formWrap}><h1 className={styles.formTitle}>Tutor request posted</h1><p role="status">Your request has been submitted.</p><a className={styles.btnSecondary} href="/vibetutor/browse">Browse listings</a><a className={styles.btnSecondary} href="/vibetutor/post-request">Post another request</a></div>
+  if (posted) return <div className={styles.formWrap}><h1 className={styles.formTitle}>Tutor request posted</h1><p role="status">Your request has been submitted.</p><a className={styles.btnSecondary} href="/vibetutor/browse">Browse listings</a><a className={styles.btnSecondary} href="/vibetutor/post-request" onClick={event => { event.preventDefault(); clearForm(); setPosted(false) }}>Post another request</a></div>
   return (
     <div className={styles.formWrap}>
       <header className={styles.formHead}>
@@ -113,7 +112,7 @@ export default function PostRequest() {
           </li>)}
         </ol>
       </div>}
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone }); window.location.assign('/login/student?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); window.location.assign('/vibetutor/post-request?posted=1') } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
+      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone }); window.location.assign('/login/student?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); setTouched(false); setPosted(true) } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
         <Field label="Level" required><select className={styles.input} value={level} onChange={e => { setTouched(true); setLevel(e.target.value); setSubjects([]) }}><option value="">Choose level</option>{LEVELS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Subjects" required>{level && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
         <Field label="Teaching format"><Segmented<Mode> label="Teaching format" value={mode} onChange={value => { setTouched(true); setMode(value) }} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
