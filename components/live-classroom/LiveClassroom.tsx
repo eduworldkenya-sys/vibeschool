@@ -15,10 +15,19 @@ type Participant = { studentId: string; name: string; needsHelp: boolean; answer
 type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean }
 const labels: Record<Mode,string> = {teach:'Teach',quiz:'Quiz',exercise:'Exercise',poll:'Poll',clock:'Clock',board:'Board'}
 
-function BoardView({value,onPointerDown,onPointerMove,onPointerUp}:{value:string;onPointerDown?:(event:PointerEvent<SVGSVGElement>)=>void;onPointerMove?:(event:PointerEvent<SVGSVGElement>)=>void;onPointerUp?:(event:PointerEvent<SVGSVGElement>)=>void}){
+type ShapeTool = 'pen' | 'line' | 'rectangle' | 'triangle' | 'ellipse'
+const BOARD_LIMIT=3400
+function shapeStroke(tool:ShapeTool,start:string,end:string){
+ const [ax,ay]=start.split(',').map(Number),[bx,by]=end.split(',').map(Number)
+ const x=Math.min(ax,bx),y=Math.min(ay,by),r=Math.max(ax,bx),b=Math.max(ay,by)
+ const points=tool==='rectangle'?[[x,y],[r,y],[r,b],[x,b],[x,y]]:tool==='triangle'?[[Math.round((x+r)/2),y],[r,b],[x,b],[Math.round((x+r)/2),y]]:tool==='ellipse'?Array.from({length:33},(_,i)=>[Math.round((x+r)/2+(r-x)/2*Math.cos(i*Math.PI/16)),Math.round((y+b)/2+(b-y)/2*Math.sin(i*Math.PI/16))]):[[ax,ay],[bx,by]]
+ return points.map(([px,py])=>`${px},${py}`).join(';')+';'
+}
+function appendStroke(board:string,stroke:string){const next=[board,stroke].filter(Boolean).join('|');return next.length<=BOARD_LIMIT&&next.split('|').length<=100?next:board}
+function BoardView({value,zoom=1,onPointerDown,onPointerMove,onPointerUp}:{value:string;zoom?:number;onPointerDown?:(event:PointerEvent<SVGSVGElement>)=>void;onPointerMove?:(event:PointerEvent<SVGSVGElement>)=>void;onPointerUp?:(event:PointerEvent<SVGSVGElement>)=>void}){
  const lines=value.split('|').slice(0,100).map(line=>line.split(';').filter(point=>/^\d{1,3},\d{1,3}$/.test(point)).slice(0,500).join(' ')).filter(Boolean)
- return <svg className={styles.board} viewBox="0 0 320 220" role="img" aria-label="Shared drawing board" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-  {lines.map((line,i)=><polyline key={i} points={line} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>)}
+ return <svg className={styles.board} viewBox={`${160-160/zoom} ${110-110/zoom} ${320/zoom} ${220/zoom}`} role="img" aria-label="Shared drawing board" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+  {lines.map((line,i)=>line.includes(' ')?<polyline key={i} points={line} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>:<circle key={i} cx={line.split(',')[0]} cy={line.split(',')[1]} r="1.25" fill="currentColor"/>)}
  </svg>
 }
 function ClockView({value}:{value:string}){
@@ -120,6 +129,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [undoBoards,setUndoBoards]=useState<string[]>([])
   const [redoBoards,setRedoBoards]=useState<string[]>([])
   const [eraser,setEraser]=useState(false)
+   const [shapeTool,setShapeTool]=useState<ShapeTool>('pen')
+   const [boardZoom,setBoardZoom]=useState(1)
+   const [focusDock,setFocusDock]=useState(false)
+   const shapeAnchor=useRef<{start:string;base:string}|null>(null)
   const [endConfirm,setEndConfirm]=useState(false)
   const immersiveRef=useRef<HTMLElement>(null)
   const boardInitialized=useRef(false)
@@ -252,17 +265,24 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if(drawing.current||!event.isPrimary||event.button!==0)return
     event.currentTarget.setPointerCapture(event.pointerId);drawing.current=true;rememberBoard()
     const xy=point(event)
-    setBoard(value=>eraser?eraseAt(value,xy):value.length>3400?value:value+(value?'|':'')+xy+';')
+    if(!eraser&&shapeTool!=='pen'){shapeAnchor.current={start:xy,base:board};return}
+    if(!eraser&&appendStroke(board,xy+';')===board){drawing.current=false;return}
+    setBoard(value=>eraser?eraseAt(value,xy):appendStroke(value,xy+';'))
   }
-  function drawMove(event:PointerEvent<SVGSVGElement>){if(drawing.current&&event.isPrimary){const xy=point(event);setBoard(value=>eraser?eraseAt(value,xy):value.length>3400?value:value+xy+';')}}
-  function drawStop(){drawing.current=false}
+  function drawMove(event:PointerEvent<SVGSVGElement>){
+    if(!drawing.current||!event.isPrimary)return
+    const xy=point(event),anchor=shapeAnchor.current
+    if(anchor){setBoard(appendStroke(anchor.base,shapeStroke(shapeTool,anchor.start,xy)));return}
+    setBoard(value=>{if(eraser)return eraseAt(value,xy);const last=value.split('|').at(-1)||'';if(!last||last.split(';').filter(Boolean).slice(-1)[0]===xy||last.split(';').length>=501||value.length+xy.length+1>BOARD_LIMIT)return value;return value+xy+';'})
+  }
+  function drawStop(){drawing.current=false;shapeAnchor.current=null}
   const content=mode==='clock'?clock:mode==='board'?board:body
   const participants=room?.participants??[]
   const visibleRooms=rooms.filter(item=>teacher||((scope==='all'||item.mode===scope)&&(!search.trim()||item.title.toLowerCase().includes(search.trim().toLowerCase())))).sort((a,b)=>Number(b.id===sharedId)-Number(a.id===sharedId))
   const prompt=room?.prompt
   const immersive=!!room&&room.status!=='ended'
   useEffect(()=>{
-    boardInitialized.current=false;setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
+    boardInitialized.current=false;setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
   },[room?.id])
   useEffect(()=>{
     if(!immersive)return
@@ -281,7 +301,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       setFocusMode(false)
       if(document.fullscreenElement===immersiveRef.current&&document.exitFullscreen)void document.exitFullscreen().catch(()=>{/* viewport mode remains usable */})
     }else{
-      setFocusMode(true)
+      setFocusMode(true);setFocusDock(false)
       if(immersiveRef.current?.requestFullscreen)void immersiveRef.current.requestFullscreen().catch(()=>{/* use viewport focus mode when native fullscreen is unavailable */})
     }
   }
@@ -305,11 +325,11 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
 
   if(immersive&&room){
     const stage=<main ref={immersiveRef} tabIndex={-1} className={styles.immersive} role="dialog" aria-modal="true" aria-label="Live classroom" onKeyDown={e=>{if(e.key==='Escape'){if(panel)setPanel(null);else if(focusMode)toggleFocus()}if(e.key==='Tab'&&immersiveRef.current){const controls=Array.from(immersiveRef.current.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(el=>el.offsetParent!==null);const first=controls[0],last=controls[controls.length-1];if(first&&last){if(e.shiftKey&&(document.activeElement===first||document.activeElement===immersiveRef.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}}}>
-    <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button></header>
+    <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button>{focusMode&&<button type="button" aria-label={focusDock?'Hide classroom controls':'Show classroom controls'} aria-pressed={focusDock} onClick={()=>setFocusDock(v=>!v)}><MoreHorizontal size={20}/></button>}</header>
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     <div className={styles.stage}>
       <section className={styles.stageContent} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
-        {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser} onClick={()=>setEraser(false)}>Pen</button><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear</button></div><BoardView value={board} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={prompt}/>}
+        {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser&&shapeTool==='pen'} onClick={()=>{setEraser(false);setShapeTool('pen')}}>Pen</button><label><span className={styles.srOnly}>Geometry tool</span><select aria-label="Geometry tool" value={eraser?'pen':shapeTool} onChange={e=>{setEraser(false);setShapeTool(e.target.value as ShapeTool)}}><option value="pen">Shapes</option><option value="line">Line</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option><option value="ellipse">Ellipse</option></select></label><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear</button></div><div className={styles.boardTools}><button aria-label="Zoom out" disabled={boardZoom<=1} onClick={()=>setBoardZoom(v=>Math.max(1,v-.25))}>−</button><button aria-label="Reset board zoom" onClick={()=>setBoardZoom(1)}>{Math.round(boardZoom*100)}%</button><button aria-label="Zoom in" disabled={boardZoom>=2} onClick={()=>setBoardZoom(v=>Math.min(2,v+.25))}>+</button><small role="status">{board.length>=3200||board.split('|').length>=95?'Board nearly full — erase or clear before continuing.':`${Math.round(board.length/BOARD_LIMIT*100)}% used`}</small></div><BoardView value={board} zoom={boardZoom} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={prompt}/>}
       </section>
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker} onHide={()=>setShowSticker(false)}/>}
       {teacher&&panel&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'Classroom tools'}>
@@ -332,7 +352,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       </section>}
     </div>
     {!teacher&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}><label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label><button className={styles.primary} disabled={busy||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button></form>}</section>}
-    {!focusMode&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<div className={styles.sessionRow}><button disabled={busy||room.needsHelp} onClick={()=>void act('help')}>{room.needsHelp?'Hand raised':'Raise hand'}</button><button disabled={busy} onClick={leave}>Leave</button></div>}</footer>}
+    {(!focusMode||focusDock)&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<div className={styles.sessionRow}><button disabled={busy||room.needsHelp} onClick={()=>void act('help')}>{room.needsHelp?'Hand raised':'Raise hand'}</button><button disabled={busy} onClick={leave}>Leave</button></div>}</footer>}
     </main>
     return createPortal(stage,document.body)
   }
