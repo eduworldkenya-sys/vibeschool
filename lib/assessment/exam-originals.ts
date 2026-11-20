@@ -25,7 +25,7 @@ export const EXAM_ORIGINALS = [
     key: 'term',
     name: 'VibeTerm',
     tagline: 'Own your term',
-    summary: 'Term 1, 2 and 3 assessments',
+    summary: 'General revision and term assessments',
     length: '50 questions',
   },
   {
@@ -39,7 +39,7 @@ export const EXAM_ORIGINALS = [
     key: 'mock',
     name: 'VibeMock',
     tagline: 'Practise like exam day',
-    summary: 'National assessment simulations',
+    summary: 'Exam-day practice simulations',
     length: 'Paper-specific',
   },
 ] as const
