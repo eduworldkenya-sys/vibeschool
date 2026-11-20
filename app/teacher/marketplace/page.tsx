@@ -24,8 +24,9 @@ export default function PublicTeacherMarketplace() {
               <div>
                 <p className={styles.eyebrow}>TEACHER MARKETPLACE · KENYA</p>
                 <h1 id="marketplace-title">Find teaching opportunities. <span>Explore your options.</span></h1>
-                <p className={styles.lead}>Find TSC recruitment figures and application guidance, plus published school vacancies and station swaps.</p>
+                <p className={styles.lead}>Find TSC recruitment figures and application guidance, plus school vacancies, station swaps and available teachers.</p>
                 <div className={styles.actions}>
+                  <Link href="/teacher/marketplace/employment" className={styles.primary}>List yourself for work <ArrowRight size={17} aria-hidden="true"/></Link>
                   <Link href="/teacher/marketplace/sandbox" className={styles.primary}>Explore TSC vacancies <ArrowRight size={17} aria-hidden="true" /></Link>
                   <a href="#listings" className={styles.secondary}>Browse published vacancies <ArrowRight size={17} aria-hidden="true" /></a>
                 </div>
@@ -48,7 +49,7 @@ export default function PublicTeacherMarketplace() {
                 <p className={styles.sectionLabel}>RECRUITMENT & LISTINGS</p>
                 <h2 id="listings-title">Teacher opportunities</h2>
               </div>
-              <p>Search published school vacancies or browse station swaps. The TSC recruitment advert and official application link appear with the job listings.</p>
+              <p>Search school vacancies, browse station swaps or hire available teachers. The TSC recruitment advert and official application link appear with the job listings.</p>
             </div>
             <TeacherOpportunities />
           </div>

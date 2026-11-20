@@ -20,9 +20,10 @@ export default function TeacherGateway() {
         <div className={`${styles.wrap} ${styles.heroLayout}`}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>TEACHER MARKETPLACE · START HERE</p>
-            <h1 id="teacher-hero-title">Explore current TSC teaching vacancies.</h1>
-            <p className={styles.intro}>Find published vacancy totals by teaching level and county, check the requirements, and continue to the official TSC application.</p>
+            <h1 id="teacher-hero-title">Find your next teaching opportunity.</h1>
+            <p className={styles.intro}>Find jobs, connect with schools or discover available teachers.</p>
             <div className={styles.heroActions}>
+              <a className={styles.primary} href="/teacher/marketplace/employment">List yourself for work <ArrowRight size={18} aria-hidden="true"/></a>
               <TrackedLink className={`${styles.primary} ${styles.matchPrimary}`} event="public_sandbox_open" href="/teacher/marketplace/sandbox">Explore TSC vacancies <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
               <TrackedLink className={styles.secondary} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Open Teacher OS <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
             </div>
@@ -34,7 +35,7 @@ export default function TeacherGateway() {
       <section className={styles.jobs} aria-labelledby="teacher-marketplace-title">
         <div className={styles.wrap}>
           <div className={styles.jobsHeading}><h2 id="teacher-marketplace-title">Teacher marketplace</h2><BriefcaseBusiness size={19} aria-hidden="true"/></div>
-          <p className={styles.demoNote}>Explore recruitment information and published teaching vacancies.</p>
+          <p className={styles.demoNote}>Browse jobs, swaps and available teachers.</p>
           <div className={styles.heroActions}><a className={`${styles.primary} ${styles.matchPrimary}`} href="/teacher/marketplace/sandbox">Explore TSC vacancies <ArrowRight size={18} aria-hidden="true"/></a><a className={styles.secondary} href="/teacher/marketplace">Browse published vacancies <ArrowRight size={18} aria-hidden="true"/></a></div>
           <TeacherOpportunities />
           <p className={styles.demoNote}>Browse school jobs or find a possible station swap.</p>
