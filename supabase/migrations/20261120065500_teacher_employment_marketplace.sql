@@ -41,7 +41,7 @@ create index teacher_employment_levels_idx on public.teacher_employment_listings
 -- Deliberate controlled projection: the underlying rows, owner IDs, and private profile fields are not public.
 -- The view's owner access is necessary to make only the consented projection public. Do not add private fields.
 create view public.teacher_employment_directory with (security_barrier=true) as
- select l.id,p.full_name::text as display_name,case when p.avatar_url ~ '^(https://vibeschool[.]co[.]ke)?/api/vibeme/(v1-[0-9]{7}|v2-[0-9]{16})[.]svg,l.subjects,l.qualification,l.experience,l.registration,l.counties,l.employment_types,l.availability,l.bio,l.education,l.work_history,l.published_at,
+ select l.id,p.full_name::text as display_name,case when p.avatar_url ~ '^(https://vibeschool[.]co[.]ke)?/api/vibeme/(v1-[0-9]{7}|v2-[0-9]{16})[.]svg$' then substring(p.avatar_url from '(v1-[0-9]{7}|v2-[0-9]{16})[.]svg$') else null end as avatar_code,l.levels,l.subjects,l.qualification,l.experience,l.registration,l.counties,l.employment_types,l.availability,l.bio,l.education,l.work_history,l.published_at,
  concat_ws(' ',p.full_name,array_to_string(l.subjects,' '),array_to_string(l.levels,' ')) as search_text
  from public.teacher_employment_listings l join public.profiles p on p.id=l.teacher_id
  where l.status='published' and l.consented_at is not null and p.account_status='active' and p.role='teacher' and not coalesce(p.is_anonymized,false) and length(btrim(p.full_name))>0;
