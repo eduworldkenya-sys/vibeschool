@@ -12,3 +12,56 @@
 
 .panel select{font:inherit;color:inherit;background:var(--vs-surface,transparent);border:1px solid currentColor;border-radius:9px;padding:10px;min-height:44px}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tabs button{width:100%}.clock{width:min(100%,180px);height:auto;margin:0 auto}.board{width:100%;max-height:220px;border:1px solid currentColor;border-radius:8px;touch-action:none}.rooms small,.discover small{display:block;font-size:.75rem;font-weight:500;opacity:.8}.discover{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;border:1px solid currentColor;border-radius:9px}.panel h2 small{font-size:.75rem;font-weight:500;opacity:.8}
+
+/* Immersive classroom: viewport shell with a single independently scrolling teaching stage. */
+.immersive{position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;gap:8px;width:100%;height:100%;height:100dvh;box-sizing:border-box;padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));background:#101e1c;color:#f2f8f5;font-family:inherit;overflow:hidden;outline:none}
+.immersive *{box-sizing:border-box}
+.immersive button{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid #52736b;background:#253d37;color:#f5faf8;font:inherit;font-size:.83rem;font-weight:600;border-radius:9px;padding:8px;min-height:42px;cursor:pointer}
+.immersive button:disabled{opacity:.48;cursor:default}
+.immersive button:focus-visible,.immersive a:focus-visible,.immersive input:focus-visible,.immersive textarea:focus-visible{outline:2px solid #6bdac4;outline-offset:2px}
+.immersive button[aria-pressed=true],.immersive button.primary{background:#087e72;border-color:#087e72;color:white}
+.immersive button.danger{background:#8c3038;border-color:#b9565a;color:#fff}
+.liveTop{display:flex;align-items:center;gap:10px;flex:0 0 auto;min-width:0}
+.liveTop>button{flex:none;width:42px}
+.liveTitle{display:grid;gap:2px;min-width:0;flex:1}
+.liveTitle strong{font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.liveTitle small{color:#bfd8d0;display:flex;align-items:center;gap:6px;font-size:.72rem}
+.liveDot{height:8px;width:8px;background:#f45e66;border-radius:50%;flex:none}.liveDot[data-paused=true]{background:#f0b957}
+.liveAlert{display:flex;align-items:center;justify-content:space-between;gap:6px;max-height:20dvh;overflow:auto;background:#553035;border-radius:8px;padding:8px;font-size:.85rem}
+.stage{position:relative;flex:1 1 0;min-height:0;min-width:0;display:flex;overflow:hidden;background:#f3f8f5;color:#173c35;border-radius:12px;isolation:isolate}
+.stageContent{min-width:0;min-height:0;width:100%;padding:clamp(10px,3vw,24px);display:flex;flex-direction:column;align-items:stretch;gap:10px;overflow:auto;overscroll-behavior:contain}
+.stageContent p{margin:0}.stageContent .label{color:#486d62;flex:none}.stageContent .content{font-size:clamp(1rem,2vw,1.5rem);margin:auto 0;white-space:pre-wrap}
+.stageContent .clock{display:block;width:min(75%,360px);max-height:70%;min-height:80px;flex:1 1 auto;margin:auto;object-fit:contain}
+.stageContent .board{flex:1 1 0;min-height:100px;max-height:none;display:block;background:white;border:1px solid #aac6bd}
+.stageContent .solution{flex:none}.stageContent .solution .content{font-size:1rem}
+.empty{margin:auto!important;text-align:center;max-width:75%;color:#52756b}
+.boardTools{display:flex;align-items:center;flex-wrap:wrap;gap:5px;flex:none}
+.boardTools span{font-size:.8rem;font-weight:700;margin-right:auto}
+.stageContent .boardTools button{min-height:34px;padding:5px 8px;background:#e2efea;color:#173c35;border-color:#a9c7bc}
+.stageContent>button{flex:none}
+.dock{display:grid;gap:7px;flex:0 0 auto}
+.toolRow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.toolRow button{display:flex;flex-direction:column;gap:4px;min-width:0;min-height:48px;padding:5px 1px;font-size:.67rem;border-color:#3e5d54}
+.toolRow button span{line-height:1.2;white-space:nowrap}
+.sessionRow{display:flex;align-items:stretch;gap:6px}
+.sessionRow button{flex:1;min-width:0;white-space:nowrap;padding:5px 6px}
+.sessionRow button:first-child{flex:1.5}
+.sheet{position:absolute;z-index:4;left:0;right:0;bottom:0;max-height:94%;overflow:auto;overscroll-behavior:contain;display:grid;gap:10px;padding:12px;background:#1d322c;color:#f3f8f5;border:1px solid #54796c;border-radius:14px 14px 0 0;box-shadow:0 -12px 30px #0c251c33}
+.sheetTitle{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sheetTitle button{min-height:32px;width:36px}
+.sheet form,.answerPanel form{display:grid;gap:8px}.sheet label,.answerPanel label{display:grid;gap:5px;font-size:.82rem;font-weight:600}
+.sheet input,.sheet textarea,.answerPanel textarea{min-width:0;width:100%;padding:9px;border-radius:8px;background:#14251f;color:white;border:1px solid #688c80;font:inherit}
+.sheet textarea{min-height:65px;resize:vertical}.sheet .clock{max-height:100px}.sheet p{margin:0}.sheet a{color:#b0ffe5}.sheet .participants{max-height:none;overflow:visible}
+.sheet .metrics span{font-size:.72rem;padding:6px}
+.answerPanel{max-height:35dvh;overflow:auto;flex:none;padding:4px 0}.answerPanel p{margin:0}.answerPanel textarea{min-height:46px;resize:vertical}
+.sticker{position:absolute;z-index:2;right:8px;top:8px;width:clamp(112px,31%,168px);border-radius:10px;background:#23453a;color:#f1faf5;border:1px solid #a3cabb;box-shadow:0 4px 15px #173c3533;padding:4px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+.sticker[data-mini=true]{width:64px;border-radius:32px}
+.stickerHeader,.stickerFooter{display:flex;align-items:center;gap:2px;justify-content:space-between}
+.stickerHeader button,.stickerFooter button,.sticker button.resize{width:29px;min-width:0;min-height:28px;padding:4px;border:0;background:transparent;flex:none}
+.stickerFooter span{font-size:.65rem;line-height:1.15;overflow-wrap:anywhere}
+.stickerContent{height:clamp(38px,13dvh,128px);min-width:0;overflow:hidden;display:flex;flex-direction:column;gap:3px;background:#edf5f0;color:#173c35;padding:5px;border-radius:5px}
+.stickerContent video{width:100%;height:100%;object-fit:cover;border-radius:4px}
+.stickerContent .label{font-size:.6rem}.stickerContent .content,.stickerContent .empty{font-size:.69rem;line-height:1.3;margin:0!important}.stickerContent .board,.stickerContent .clock{max-height:100%;min-height:0;flex:1 1 0;width:100%;border:none}.stickerContent .solution{font-size:.65rem;padding:2px}
+.sticker small{font-size:.63rem}.sticker button.drag,.sticker button.resize{touch-action:none;cursor:grab}.sticker button.resize{align-self:flex-end;cursor:nwse-resize;min-height:24px}
+@media(min-width:760px){.immersive{padding:16px;gap:12px}.dock{max-width:900px;width:100%;margin:auto}.toolRow button{font-size:.85rem;min-height:54px}.sheet{left:auto;width:min(440px,90%);border-radius:14px 0 0 0}.stageContent{padding:24px}.sticker{width:180px}}
+@media(max-height:480px) and (orientation:landscape){.immersive{gap:5px;padding:5px max(8px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}.dock{display:flex;gap:8px}.toolRow{flex:2}.sessionRow{flex:1}.toolRow button{min-height:38px;flex-direction:row;gap:3px}.toolRow button svg{width:14px}.sessionRow button{font-size:.72rem}.liveTop>button{min-height:34px}.stickerContent{height:54px}}

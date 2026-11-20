@@ -302,6 +302,7 @@ export default function PulsePage() {
   const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
+  const [showLiveMenu, setShowLiveMenu] = useState(false);
   const [snap, setSnap] = useState<PulseSnapshot | null>(null);
   const [usingCachedSnap, setUsingCachedSnap] = useState(false);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
@@ -511,12 +512,18 @@ export default function PulsePage() {
       />
 
       {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true" && (
-        <section aria-label="VibeSchool Live" style={{ ...surface, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, marginBottom: 12 }}>
-          <div>
+        <section aria-label="VibeSchool Live" style={{ ...surface, padding: 14, marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <strong style={{ color: "var(--teacher-ink, #1c2923)", fontSize: 15 }}>VibeSchool Live</strong>
-            {focusClassId && <button type="button" onClick={() => router.push("/teacher/tutoring/live")} style={{ display: "block", border: 0, background: "transparent", padding: "6px 0", color: "var(--teacher-green, #087451)", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Tuition / open class</button>}
+            <button type="button" aria-expanded={showLiveMenu} onClick={() => setShowLiveMenu(value => !value)} style={{ minHeight: 44, border: 0, borderRadius: 12, padding: "10px 18px", background: "#b91c1c", color: "#fff", fontWeight: 750, cursor: "pointer" }}>Go Live</button>
           </div>
-          <button type="button" onClick={() => router.push(focusClassId ? `/teacher/classhub/${encodeURIComponent(focusClassId)}/live` : "/teacher/tutoring/live")} style={{ minHeight: 44, flexShrink: 0, border: 0, borderRadius: 12, padding: "10px 18px", background: "#b91c1c", color: "#fff", fontWeight: 750, fontFamily: "inherit", cursor: "pointer" }}>Go Live</button>
+          {showLiveMenu && <div aria-label="Choose live audience" style={{ display: "grid", gap: 8, paddingTop: 12 }}>
+            {Array.from(new Map(safeMyClasses.map(item => [item.class_id, item])).values()).map(item => (
+              <button key={item.class_id} type="button" onClick={() => router.push(`/teacher/classhub/${encodeURIComponent(item.class_id)}/live`)}>School · {item.class_name}</button>
+            ))}
+            <button type="button" onClick={() => router.push("/teacher/tutoring/live?mode=tuition")}>Private tuition</button>
+            <button type="button" onClick={() => router.push("/teacher/tutoring/live?mode=open")}>Open class</button>
+          </div>}
         </section>
       )}
 
