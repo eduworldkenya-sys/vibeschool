@@ -302,7 +302,7 @@ export default function PulsePage() {
   const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
-  const [showLiveMenu, setShowLiveMenu] = useState(false);
+  const [liveAudience, setLiveAudience] = useState("");
   const [snap, setSnap] = useState<PulseSnapshot | null>(null);
   const [usingCachedSnap, setUsingCachedSnap] = useState(false);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
@@ -513,17 +513,24 @@ export default function PulsePage() {
 
       {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true" && (
         <section aria-label="VibeSchool Live" style={{ ...surface, padding: 14, marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <strong style={{ color: "var(--teacher-ink, #1c2923)", fontSize: 15 }}>VibeSchool Live</strong>
-            <button type="button" aria-expanded={showLiveMenu} onClick={() => setShowLiveMenu(value => !value)} style={{ minHeight: 44, border: 0, borderRadius: 12, padding: "10px 18px", background: "#b91c1c", color: "#fff", fontWeight: 750, cursor: "pointer" }}>Go Live</button>
-          </div>
-          {showLiveMenu && <div aria-label="Choose live audience" style={{ display: "grid", gap: 8, paddingTop: 12 }}>
-            {Array.from(new Map(safeMyClasses.map(item => [item.class_id, item])).values()).map(item => (
-              <button key={item.class_id} type="button" onClick={() => router.push(`/teacher/classhub/${encodeURIComponent(item.class_id)}/live`)}>School · {item.class_name}</button>
-            ))}
-            <button type="button" onClick={() => router.push("/teacher/tutoring/live?mode=tuition")}>Private tuition</button>
-            <button type="button" onClick={() => router.push("/teacher/tutoring/live?mode=open")}>Open class</button>
-          </div>}
+          <strong style={{ color: "var(--teacher-ink, #1c2923)", fontSize: 15 }}>VibeSchool Live</strong>
+          <form onSubmit={event => {
+            event.preventDefault();
+            const selectedAudience = liveAudience === "tuition" || liveAudience === "open" || safeMyClasses.some(item => item.class_id === liveAudience) ? liveAudience : "";
+            const audience = selectedAudience || (focusClassId && safeMyClasses.some(item => item.class_id === focusClassId) ? focusClassId : "tuition");
+            if (audience === "tuition" || audience === "open") router.push("/teacher/tutoring/live?mode=" + audience);
+            else if (safeMyClasses.some(item => item.class_id === audience)) router.push(`/teacher/classhub/${encodeURIComponent(audience)}/live`);
+          }} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+            <select aria-label="Choose live audience" value={liveAudience && (liveAudience === "tuition" || liveAudience === "open" || safeMyClasses.some(item => item.class_id === liveAudience)) ? liveAudience : ""} onChange={event => setLiveAudience(event.target.value)} style={{ flex: 1, minWidth: 0, minHeight: 44, border: "1px solid var(--teacher-border, #cbd8d1)", borderRadius: 10, padding: "8px", font: "inherit", color: "var(--teacher-ink, #1c2923)", background: "var(--teacher-surface, transparent)" }}>
+              <option value="">Current class · {safeMyClasses.find(item => item.class_id === focusClassId)?.class_name ?? "Private tuition"}</option>
+              {Array.from(new Map(safeMyClasses.map(item => [item.class_id, item])).values()).map(item => (
+                <option key={item.class_id} value={item.class_id}>School · {item.class_name}</option>
+              ))}
+              <option value="tuition">Private tuition</option>
+              <option value="open">Open class</option>
+            </select>
+            <button type="submit" style={{ flexShrink: 0, minHeight: 44, border: 0, borderRadius: 10, padding: "10px 14px", background: "#b91c1c", color: "#fff", fontWeight: 750, cursor: "pointer" }}>Go Live</button>
+          </form>
         </section>
       )}
 
