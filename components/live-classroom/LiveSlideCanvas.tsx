@@ -25,8 +25,10 @@ export function encodeSlide(s:LiveSlide,number:number,total:number):string {
 export function decodeSlide(body:string):PublishedSlide|null {
  if(!body.startsWith(prefix)||body.length>4000)return null
  try{
-  const x=JSON.parse(body.slice(prefix.length))
-  if(!validSlide(x)||x.notes!==undefined||!Number.isInteger(x.number)||!Number.isInteger(x.total)||x.number<1||x.total>30||x.number>x.total)return null
+  const raw:unknown=JSON.parse(body.slice(prefix.length))
+  if(!validSlide(raw)||raw.notes!==undefined)return null
+  const x=raw as PublishedSlide
+  if(!Number.isInteger(x.number)||!Number.isInteger(x.total)||x.number<1||x.total>30||x.number>x.total)return null
   return {title:x.title,body:x.body,diagram:x.diagram,theme:x.theme,layout:x.layout,font:x.font,number:x.number,total:x.total}
  }catch{return null}
 }
