@@ -111,11 +111,15 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [groups,setGroups]=useState<{id:string;title:string}[]>([])
   const [clock,setClock]=useState('10:30')
   const [board,setBoard]=useState('')
-  const [panel,setPanel]=useState<'compose'|'learners'|'more'|null>(null)
+  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|null>(null)
+  const [slides,setSlides]=useState<{title:string;body:string}[]>([{title:'',body:''}])
+  const [slideIndex,setSlideIndex]=useState(0)
   const [focusMode,setFocusMode]=useState(false)
   const [editingBoard,setEditingBoard]=useState(false)
   const [showSticker,setShowSticker]=useState(true)
-  const [redoLines,setRedoLines]=useState<string[]>([])
+  const [undoBoards,setUndoBoards]=useState<string[]>([])
+  const [redoBoards,setRedoBoards]=useState<string[]>([])
+  const [eraser,setEraser]=useState(false)
   const [endConfirm,setEndConfirm]=useState(false)
   const immersiveRef=useRef<HTMLElement>(null)
   const boardInitialized=useRef(false)
@@ -207,7 +211,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       const next=await call(action,id??room?.id??null,room?.version??null,payload) as Room
       if(!mounted.current||generation.current!==stamp)return
       accept(next)
-      if(action==='publish'){setBody('');setKey('');setPanel(null);setEditingBoard(false)}
+      if(action==='publish'){setBody('');setKey('');if(panel!=='slides')setPanel(null);setEditingBoard(false)}
     } catch(e) {
       if(mounted.current&&generation.current===stamp){
         if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){active.current=null;setRoom(null);setRooms([]);setError('Classroom access is no longer available.')}
@@ -229,8 +233,28 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     const xy=p.matrixTransform(matrix.inverse())
     return Math.max(0,Math.min(320,Math.round(xy.x)))+','+Math.max(0,Math.min(220,Math.round(xy.y)))
   }
-  function drawStart(event:PointerEvent<SVGSVGElement>){event.currentTarget.setPointerCapture(event.pointerId);drawing.current=true;setRedoLines([]);const xy=point(event);setBoard(value=>value.length>3400?value:value+(value?'|':'')+xy+';')}
-  function drawMove(event:PointerEvent<SVGSVGElement>){if(drawing.current){const xy=point(event);setBoard(value=>value.length>3400?value:value+xy+';')}}
+  function rememberBoard(){setUndoBoards(history=>[...history.slice(-29),board]);setRedoBoards([])}
+  function eraseAt(value:string,xy:string){
+    const [x,y]=xy.split(',').map(Number)
+    return value.split('|').filter(line=>{
+      const pts=line.split(';').filter(Boolean).map(p=>p.split(',').map(Number))
+      if(pts.some(([px,py])=>Math.hypot(px-x,py-y)<=9))return false
+      for(let i=1;i<pts.length;i++){
+        const [ax,ay]=pts[i-1],[bx,by]=pts[i],dx=bx-ax,dy=by-ay
+        const length=dx*dx+dy*dy
+        const t=length?Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/length)):0
+        if(Math.hypot(x-(ax+t*dx),y-(ay+t*dy))<=9)return false
+      }
+      return true
+    }).join('|')
+  }
+  function drawStart(event:PointerEvent<SVGSVGElement>){
+    if(drawing.current||!event.isPrimary||event.button!==0)return
+    event.currentTarget.setPointerCapture(event.pointerId);drawing.current=true;rememberBoard()
+    const xy=point(event)
+    setBoard(value=>eraser?eraseAt(value,xy):value.length>3400?value:value+(value?'|':'')+xy+';')
+  }
+  function drawMove(event:PointerEvent<SVGSVGElement>){if(drawing.current&&event.isPrimary){const xy=point(event);setBoard(value=>eraser?eraseAt(value,xy):value.length>3400?value:value+xy+';')}}
   function drawStop(){drawing.current=false}
   const content=mode==='clock'?clock:mode==='board'?board:body
   const participants=room?.participants??[]
@@ -238,7 +262,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const prompt=room?.prompt
   const immersive=!!room&&room.status!=='ended'
   useEffect(()=>{
-    boardInitialized.current=false;setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setRedoLines([]);setBody('');setKey('')
+    boardInitialized.current=false;setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
   },[room?.id])
   useEffect(()=>{
     if(!immersive)return
@@ -269,36 +293,46 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     }else{setEditingBoard(false);setPanel('compose')}
   }
   function undoBoard(){
-    const lines=board.split('|').filter(Boolean)
-    const last=lines.pop()
-    if(last){setRedoLines(items=>[...items,last]);setBoard(lines.join('|'))}
+    if(undoBoards.length){setRedoBoards(items=>[...items.slice(-29),board]);setBoard(undoBoards[undoBoards.length-1]);setUndoBoards(items=>items.slice(0,-1))}
   }
   function redoBoard(){
-    const last=redoLines[redoLines.length-1]
-    if(last&&board.length+last.length+1<=3400){setBoard(value=>[value,last].filter(Boolean).join('|'));setRedoLines(items=>items.slice(0,-1))}
+    if(redoBoards.length){setUndoBoards(items=>[...items.slice(-29),board]);setBoard(redoBoards[redoBoards.length-1]);setRedoBoards(items=>items.slice(0,-1))}
   }
+  const slide=slides[slideIndex]
+  const slideText=[slide?.title.trim(),slide?.body.trim()].filter(Boolean).join('\n\n')
+  function editSlide(field:'title'|'body',value:string){setSlides(items=>items.map((s,i)=>i===slideIndex?{...s,[field]:value}:s))}
+  function openSlides(){setEditingBoard(false);setEndConfirm(false);setPanel('slides')}
+
   if(immersive&&room){
     const stage=<main ref={immersiveRef} tabIndex={-1} className={styles.immersive} role="dialog" aria-modal="true" aria-label="Live classroom" onKeyDown={e=>{if(e.key==='Escape'){if(panel)setPanel(null);else if(focusMode)toggleFocus()}if(e.key==='Tab'&&immersiveRef.current){const controls=Array.from(immersiveRef.current.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(el=>el.offsetParent!==null);const first=controls[0],last=controls[controls.length-1];if(first&&last){if(e.shiftKey&&(document.activeElement===first||document.activeElement===immersiveRef.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}}}>
     <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button></header>
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     <div className={styles.stage}>
       <section className={styles.stageContent} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
-        {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button onClick={undoBoard} disabled={!board}>Undo</button><button onClick={redoBoard} disabled={!redoLines.length}>Redo</button><button onClick={()=>{setBoard('');setRedoLines([])}}>Clear</button></div><BoardView value={board} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={prompt}/>}
+        {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser} onClick={()=>setEraser(false)}>Pen</button><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear</button></div><BoardView value={board} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={prompt}/>}
       </section>
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker} onHide={()=>setShowSticker(false)}/>}
-      {teacher&&panel&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':'Classroom tools'}>
-        <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
+      {teacher&&panel&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'Classroom tools'}>
+        <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
         {panel==='compose'&&<form onSubmit={e=>{e.preventDefault();void act('publish',null,{kind:mode,body:content,answerKey:mode==='quiz'||mode==='exercise'?key:null})}}>
           {mode==='clock'?<><label>Show time<input type="time" value={clock} onChange={e=>setClock(e.target.value)}/></label><ClockView value={clock}/></>:<label>{mode==='teach'?'Lesson content':'Question or instruction'}<textarea required maxLength={4000} value={body} onChange={e=>setBody(e.target.value)}/></label>}
           {(mode==='quiz'||mode==='exercise')&&<label>Answer (hidden until reveal)<textarea maxLength={2000} value={key} onChange={e=>setKey(e.target.value)}/></label>}
           <button className={styles.primary} disabled={busy||room.status!=='active'||!content.trim()}>Share with class</button>
         </form>}
+        {panel==='slides'&&slide&&<form onSubmit={e=>{e.preventDefault();if(slideText.length<=4000)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})}}>
+          <div className={styles.controls}><button type="button" disabled={slideIndex===0||busy} onClick={()=>setSlideIndex(i=>i-1)}>Previous</button><strong>{slideIndex+1} / {slides.length}</strong><button type="button" disabled={slideIndex===slides.length-1||busy} onClick={()=>setSlideIndex(i=>i+1)}>Next</button><button type="button" disabled={slides.length>=30||busy} onClick={()=>{setSlides(items=>[...items,{title:'',body:''}]);setSlideIndex(slides.length)}}>Add slide</button></div>
+          <label>Slide title<input value={slide.title} maxLength={120} onChange={e=>editSlide('title',e.target.value)}/></label>
+          <label>Slide text<textarea value={slide.body} maxLength={3878} onChange={e=>editSlide('body',e.target.value)}/></label>
+          <small>Draft deck stays on this device until you leave. Each presented slide is shared through the existing classroom session.</small>
+          <button className={styles.primary} disabled={busy||room.status!=='active'||!slideText||slideText.length>4000}>Present slide</button>
+          <button type="button" disabled={slides.length<=1||busy} onClick={()=>{setSlides(items=>items.filter((_,i)=>i!==slideIndex));setSlideIndex(i=>Math.max(0,i-1))}}>Remove draft slide</button>
+        </form>}
         {panel==='learners'&&<><div className={styles.metrics}><span>{participants.length} joined</span><span>{participants.filter(p=>p.answer!==null).length} answered</span><span>{participants.filter(p=>p.needsHelp).length} need help</span></div>{!participants.length?<p>No learners have joined.</p>:<ul className={styles.participants}>{participants.map(p=><li key={p.studentId}><strong>{p.name}</strong><span>{p.answer??'No answer'}</span>{p.needsHelp&&<button disabled={busy} onClick={()=>void act('ack',null,{studentId:p.studentId})}>Acknowledge hand</button>}</li>)}</ul>}</>}
-        {panel==='more'&&<><div className={styles.controls}><button onClick={()=>chooseMode('clock')}>Clock</button><button onClick={()=>setShowSticker(v=>!v)}>{showSticker?'Hide preview':'Show preview'}</button><button disabled={busy||!prompt||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed} onClick={()=>void act('reveal')}>Reveal / close answers</button><button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button></div>{shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}{endConfirm?<div className={styles.controls}><strong>End this session?</strong><button disabled={busy} onClick={()=>void act('end')}>Confirm end</button><button onClick={()=>setEndConfirm(false)}>Cancel</button></div>:<button className={styles.danger} disabled={busy} onClick={()=>setEndConfirm(true)}>End session</button>}</>}
+        {panel==='more'&&<><div className={styles.controls}><button onClick={()=>chooseMode('clock')}>Clock</button><button onClick={()=>chooseMode('teach')}>Teach text</button><button onClick={()=>setShowSticker(v=>!v)}>{showSticker?'Hide preview':'Show preview'}</button><button disabled={busy||!prompt||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed} onClick={()=>void act('reveal')}>Reveal / close answers</button><button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button></div>{shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}{endConfirm?<div className={styles.controls}><strong>End this session?</strong><button disabled={busy} onClick={()=>void act('end')}>Confirm end</button><button onClick={()=>setEndConfirm(false)}>Cancel</button></div>:<button className={styles.danger} disabled={busy} onClick={()=>setEndConfirm(true)}>End session</button>}</>}
       </section>}
     </div>
     {!teacher&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}><label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label><button className={styles.primary} disabled={busy||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button></form>}</section>}
-    {!focusMode&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:panel==='compose'&&mode===kind} onClick={()=>chooseMode(kind)}><Icon size={18}/><span>{labels[kind]}</span></button>)}<button aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<div className={styles.sessionRow}><button disabled={busy||room.needsHelp} onClick={()=>void act('help')}>{room.needsHelp?'Hand raised':'Raise hand'}</button><button disabled={busy} onClick={leave}>Leave</button></div>}</footer>}
+    {!focusMode&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<div className={styles.sessionRow}><button disabled={busy||room.needsHelp} onClick={()=>void act('help')}>{room.needsHelp?'Hand raised':'Raise hand'}</button><button disabled={busy} onClick={leave}>Leave</button></div>}</footer>}
     </main>
     return createPortal(stage,document.body)
   }
