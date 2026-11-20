@@ -124,3 +124,42 @@
 .handStatus{font-size:12px;text-align:center;padding:4px;flex:none;color:#f0d291}
 .immersive button.helpBanner{flex:none;background:#f0b957;color:#342100;border-color:#f0b957;min-height:36px}
 @media(max-height:480px) and (orientation:landscape){.immersive .learnerTools button{min-height:40px;flex-direction:row;font-size:11px}.learnerTools button svg{width:16px}}
+
+/* Visual presentation: shared canvas occupies the stage; editor never overlays it. */
+.presentationCanvas { --slide-bg:#fff;--slide-ink:#16334a;--slide-accent:#44697e; margin:auto; width:min(100%,900px); aspect-ratio:16/9; min-height:120px;display:flex;flex-direction:column;gap:clamp(4px,1.5vw,12px); padding:clamp(10px,3vw,28px); background:var(--slide-bg);color:var(--slide-ink);border:1px solid color-mix(in srgb,var(--slide-ink) 15%,transparent); border-radius:12px;box-shadow:0 6px 18px #102d3920; overflow:auto;box-sizing:border-box; }
+.presentationCanvas[data-theme=ocean]{--slide-bg:#e5f1ff;--slide-ink:#163d72;--slide-accent:#325785}
+.presentationCanvas[data-theme=forest]{--slide-bg:#e7f5e9;--slide-ink:#184b35;--slide-accent:#37664e}
+.presentationCanvas[data-theme=night]{--slide-bg:#192937;--slide-ink:#f2f7fb;--slide-accent:#c5d7e5}
+.presentationCanvas[data-layout=portrait]{aspect-ratio:3/4;width:min(100%,430px)}
+.presentationKicker{display:flex;justify-content:space-between;gap:8px;font-size:clamp(10px,1.4vw,13px);font-weight:650;color:var(--slide-accent);flex:none}
+.presentationBody{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0;gap:clamp(4px,1.8vw,16px);text-align:center}
+.presentationBody h2{font-size:clamp(20px,4vw,44px);margin:0;line-height:1.15;overflow-wrap:anywhere;letter-spacing:-.025em}
+.presentationBody p{font-size:clamp(15px,2.2vw,27px);line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;margin:0;color:inherit}
+.presentationCanvas[data-font=large] .presentationBody p{font-size:clamp(19px,3vw,34px)}
+.slideDiagram{width:min(100%,360px);height:auto;max-height:30dvh;object-fit:contain;display:block;flex:none;background:#fff;border-radius:8px}
+.slideWorkspace{min-width:0;display:grid;gap:8px}
+.slideWorkspace>.presentationCanvas{width:min(100%,720px);margin:0 auto}
+.slideToolbar,.presentControls{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.slideToolbar strong{margin-right:auto}.slideToolbar span,.presentControls span{font-size:12px;font-variant-numeric:tabular-nums}
+.presentControls{flex:none;justify-content:center}
+.presentControls button{flex:1;min-width:0;font-size:12px}
+.slideFields{display:grid;gap:8px;min-width:0}
+.slideFields label{display:grid;gap:4px;min-width:0;font-size:12px;font-weight:700}
+.slideFields input,.slideFields select,.slideFields textarea{width:100%;min-width:0;font:inherit;color:#173c35;background:#fff;border:1px solid #92b5a8;border-radius:8px;padding:8px}
+.slideFields textarea{min-height:60px;resize:vertical}
+.slideOptions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.slideWorkspace .slideToolbar button{min-height:36px;font-size:12px}
+.immersive .slideStrip button{flex-basis:116px;min-height:68px;padding:3px;justify-content:center}
+.presentationCanvas[data-mini=true]{width:100%;min-height:0;aspect-ratio:16/9;overflow:hidden;padding:4px;border-radius:4px;box-shadow:none;gap:2px}
+.presentationCanvas[data-mini=true] .presentationKicker{font-size:6px}
+.presentationCanvas[data-mini=true] .presentationBody{gap:2px;overflow:hidden}
+.presentationCanvas[data-mini=true] .presentationBody h2{font-size:9px;line-height:1.05;max-height:20px;overflow:hidden}
+.presentationCanvas[data-mini=true] .presentationBody p{font-size:7px;line-height:1.05;max-height:15px;overflow:hidden}
+.presentationCanvas[data-mini=true] .slideDiagram{max-height:28px;width:auto;max-width:100%;border-radius:2px}
+.stickerContent .presentationCanvas{width:100%;min-height:0;height:100%;padding:4px;gap:2px;overflow:hidden}
+.stickerContent .presentationKicker{font-size:6px}.stickerContent .presentationBody h2{font-size:10px}.stickerContent .presentationBody p{font-size:8px}.stickerContent .slideDiagram{max-height:32px}
+.stageContent>.presentationCanvas{animation:slideArrival .16s ease-out}
+@keyframes slideArrival{from{opacity:.7;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.stageContent>.presentationCanvas{animation:none}}
+@media(max-width:420px){.presentationCanvas{aspect-ratio:auto;min-height:190px}.presentationCanvas[data-layout=portrait]{aspect-ratio:3/4}.presentControls button{font-size:11px;padding:4px}.slideWorkspace>.presentationCanvas{min-height:180px}.slideFields .slideToolbar{gap:4px}}
+@media(max-height:480px) and (orientation:landscape){.presentationCanvas{aspect-ratio:auto;min-height:0}.presentationBody h2{font-size:24px}.slideDiagram{max-height:25dvh}.presentControls button{min-height:34px}}
