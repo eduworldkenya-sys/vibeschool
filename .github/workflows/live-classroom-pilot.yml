@@ -12,6 +12,7 @@ on:
       - 'supabase/migrations/*live_classroom*'
       - 'supabase/migrations/*live_lesson_history*'
       - 'supabase/migrations/*live_learner_tools*'
+      - 'supabase/migrations/*live_teacher_workspace*'
       - 'scripts/test-live-classroom-pilot.mjs'
       - '.github/workflows/live-classroom-pilot.yml'
   push:
@@ -21,6 +22,7 @@ on:
       - 'supabase/migrations/*live_classroom*'
       - 'supabase/migrations/*live_lesson_history*'
       - 'supabase/migrations/*live_learner_tools*'
+      - 'supabase/migrations/*live_teacher_workspace*'
       - 'scripts/test-live-classroom-pilot.mjs'
       - '.github/workflows/live-classroom-pilot.yml'
 permissions:
