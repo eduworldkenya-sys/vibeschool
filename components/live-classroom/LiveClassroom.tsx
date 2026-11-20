@@ -273,7 +273,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if(!drawing.current||!event.isPrimary)return
     const xy=point(event),anchor=shapeAnchor.current
     if(anchor){setBoard(appendStroke(anchor.base,shapeStroke(shapeTool,anchor.start,xy)));return}
-    setBoard(value=>{if(eraser)return eraseAt(value,xy);const last=value.split('|').at(-1)||'';if(!last||last.endsWith(xy+';')||last.split(';').length>=501||value.length+xy.length+1>BOARD_LIMIT)return value;return value+xy+';'})
+    setBoard(value=>{if(eraser)return eraseAt(value,xy);const last=value.split('|').at(-1)||'';if(!last||last.split(';').filter(Boolean).slice(-1)[0]===xy||last.split(';').length>=501||value.length+xy.length+1>BOARD_LIMIT)return value;return value+xy+';'})
   }
   function drawStop(){drawing.current=false;shapeAnchor.current=null}
   const content=mode==='clock'?clock:mode==='board'?board:body
