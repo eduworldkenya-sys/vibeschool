@@ -3,6 +3,22 @@ import { pathToFileURL } from 'node:url'
 const { PGlite } = await import(pathToFileURL(process.env.LIVE_TEST_ENGINE || '/tmp/live-test/node_modules/@electric-sql/pglite/dist/index.js').href)
 import {readFileSync} from 'node:fs'
 import assert from 'node:assert/strict'
+import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS} from '../components/live-classroom/LiveSlideProtocol.ts'
+const privateSlide={title:'Fractions',body:'Two quarters make one half.',diagram:'fraction-circle',theme:'forest',layout:'wide',font:'large',notes:'Private answer and presenter reminder'}
+const encodedSlide=encodeSlide(privateSlide,2,5)
+assert.ok(encodedSlide)
+assert.ok(!encodedSlide.includes(privateSlide.notes))
+assert.deepEqual(decodeSlide(encodedSlide),{title:privateSlide.title,body:privateSlide.body,diagram:'fraction-circle',theme:'forest',layout:'wide',font:'large',number:2,total:5})
+assert.equal(decodeSlide('ordinary lesson text'),null)
+assert.equal(decodeSlide('VSLIDE1:{bad json'),null)
+assert.equal(decodeSlide('VSLIDE1:'+JSON.stringify({...privateSlide,number:1,total:1})),null)
+assert.equal(encodeSlide({...privateSlide,body:'x'.repeat(4000)},1,1),'')
+assert.equal(encodeSlide({...privateSlide,diagram:'unsafe'},1,1),'')
+assert.equal(encodeSlide(privateSlide,0,1),'')
+assert.equal(encodeSlide(privateSlide,1,31),'')
+assert.equal(validSlide({title:'a',body:'b',theme:'unsafe'}),false)
+for(const diagram of SLIDE_DIAGRAMS)assert.equal(decodeSlide(encodeSlide({...privateSlide,diagram},1,1)).diagram,diagram)
+console.log('PASS: bounded slide protocol, native diagram identifiers, privacy and malformed input rejection')
 // Dashboard shortcut must use existing scoped host routes and remain hidden until enabled.
 const teacherToday=readFileSync(new URL('../app/teacher/pulse/page.tsx',import.meta.url),'utf8')
 assert.ok(teacherToday.includes('process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true"'))
@@ -43,7 +59,10 @@ assert.ok(liveUi.includes('const [mini,setMini]=useState(true)'))
 assert.match(liveCss,/\.immersive\{font-family:system-ui/)
 assert.match(liveCss,/\.stageContent \.content\{margin:0;/)
 assert.ok(liveUi.includes("kind:'teach',body:slideText,answerKey:null"))
-assert.ok(liveUi.includes('slideText.length>4000'))
+assert.ok(liveUi.includes('encodeSlide(item,index+1,slides.length)'))
+assert.ok(liveUi.includes('styles.slideWorkspace'))
+assert.ok(liveUi.includes('Presenter notes (private)'))
+assert.ok(liveUi.includes('undoSlideDelete'))
 assert.ok(liveUi.includes('Eraser'))
 assert.ok(liveUi.includes('function eraseAt'))
 assert.ok(liveUi.includes('undoBoards'))
@@ -160,8 +179,12 @@ console.log('PASS: owner-only learner notes/questions, direct role denial, two-l
 
 room=await rpc(teacher,'publish',sid,room.version,{kind:'quiz',body:'How many minutes in one hour?',answerKey:'60'})
 // Slide deck uses the already authorized text publication contract.
-const slideRoom=await rpc(teacher,'publish',sid,room.version,{kind:'teach',body:'Time\n\n60 minutes = 1 hour'})
-assert.equal((await rpc(a,'get',sid)).prompt.body,'Time\n\n60 minutes = 1 hour')
+const slideRoom=await rpc(teacher,'publish',sid,room.version,{kind:'teach',body:encodedSlide})
+const learnerSlide=(await rpc(a,'get',sid)).prompt.body
+assert.equal(learnerSlide,encodedSlide)
+assert.equal(decodeSlide(learnerSlide).title,'Fractions')
+assert.equal((await rpc(b,'get',sid)).prompt.body,encodedSlide)
+assert.ok(!JSON.stringify(await rpc(a,'get',sid)).includes(privateSlide.notes))
 await assert.rejects(rpc(outsider,'get',sid),/live_not_authorized/)
 await assert.rejects(rpc(teacher,'publish',sid,slideRoom.version,{kind:'teach',body:'x'.repeat(4001)}),/live_invalid_prompt/)
 const geometryBoard='10,20;80,20;80,70;10,70;10,20;|100,30;160,90;40,90;100,30;'
