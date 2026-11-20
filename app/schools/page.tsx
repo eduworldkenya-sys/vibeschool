@@ -100,18 +100,18 @@ export default function SchoolsDirectoryPage(){
     {query&&<button type="button" className={styles.directoryClear} aria-label="Clear search" onClick={()=>setQuery('')}><X size={18}/></button>}
    </div>
    <div className={styles.directoryFilters}>
-    <label><span className={styles.directorySr}>County</span><select aria-label="County" value={county} onChange={e=>changeCounty(e.target.value)}>
+    <label><span className={styles.directorySr}>County</span><select aria-label="County" disabled={!ready} value={county} onChange={e=>changeCounty(e.target.value)}>
      <option value="">All counties</option>
      {options.filter(o=>o.option_kind==='county').map(o=><option key={o.option_value} value={o.option_value}>{o.option_value}</option>)}
     </select></label>
-    <label><span className={styles.directorySr}>Level</span><select aria-label="Level" value={level} onChange={e=>setLevel(e.target.value)}>
+    <label><span className={styles.directorySr}>Level</span><select aria-label="Level" disabled={!ready} value={level} onChange={e=>setLevel(e.target.value)}>
      <option value="">All levels</option>
      {options.filter(o=>o.option_kind==='level').map(o=><option key={o.option_value} value={o.option_value}>{o.option_value}</option>)}
     </select></label>
-    <button type="button" className={styles.directoryFilterButton} aria-expanded={filtersOpen} aria-controls="school-more-filters" onClick={()=>setFiltersOpen(v=>!v)}><SlidersHorizontal size={16} aria-hidden="true"/> Filters{activeFilters>0&&<span> ({activeFilters})</span>}</button>
+    <button type="button" className={styles.directoryFilterButton} disabled={!ready} aria-expanded={filtersOpen} aria-controls="school-more-filters" onClick={()=>setFiltersOpen(v=>!v)}><SlidersHorizontal size={16} aria-hidden="true"/> Filters{activeFilters>0&&<span> ({activeFilters})</span>}</button>
    </div>
    {filtersOpen&&<div id="school-more-filters" className={styles.directoryExtra}>
-    <label>Sub-county<select value={subCounty} disabled={!county} onChange={e=>setSubCounty(e.target.value)}>
+    <label>Sub-county<select aria-label="Sub-county" value={subCounty} disabled={!county} onChange={e=>setSubCounty(e.target.value)}>
      <option value="">All sub-counties</option>
      {options.filter(o=>o.option_kind==='sub_county').map(o=><option key={o.option_value} value={o.option_value}>{o.option_value}</option>)}
     </select></label>

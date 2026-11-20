@@ -89,9 +89,11 @@ async function verify() {
     const subCounty=page.getByRole('combobox',{name:'Sub-county',exact:true});
     await county.waitFor();
     await level.waitFor();
+    await page.locator('main button[aria-controls="school-more-filters"]:enabled').waitFor({timeout:30000});
     assert.equal(await filters.getAttribute('aria-expanded'),'false');
     assert.equal(await subCounty.count(),0,'sub-county must be collapsed by default');
     await filters.click();
+    await page.locator('#school-more-filters').waitFor({timeout:30000});
     await subCounty.waitFor();
     assert.equal(await filters.getAttribute('aria-expanded'),'true');
     assert.equal(await subCounty.isDisabled(),true,'sub-county requires a county');

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
+import { LESSON_DELIVERY_PHASES, projectLessonDelivery, type LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
 
 type ClassroomContext = {
   lessonPlanId: string
@@ -45,18 +45,9 @@ type Props = {
   onClose: () => void
 }
 
-type TeachStep = { key: keyof LessonPlanSections; label: string; timed: boolean }
 type PackView = 'notes' | 'resources' | 'assessment' | 'homework'
 
-const STEPS: TeachStep[] = [
-  { key: 'objectives', label: 'Objectives', timed: false },
-  { key: 'introduction', label: 'Introduction', timed: true },
-  { key: 'development', label: 'Development', timed: true },
-  { key: 'consolidation', label: 'Consolidation', timed: true },
-  { key: 'assessmentHook', label: 'Check learning', timed: true },
-]
-
-const TIMED_STEPS = STEPS.filter(step => step.timed)
+const TIMED_STEPS = LESSON_DELIVERY_PHASES.filter(step => step.timed)
 
 function parsePositiveMinutes(value: string | undefined): number | null {
   if (!value) return null
@@ -112,7 +103,7 @@ export default function LessonTeachMode({
   const [nextSteps, setNextSteps] = useState('')
 
   const available = useMemo(
-    () => STEPS.filter(step => (sections[step.key] ?? '').trim().length > 0),
+    () => projectLessonDelivery(sections).steps,
     [sections],
   )
   const safeIndex = Math.min(stepIndex, Math.max(available.length - 1, 0))
@@ -348,7 +339,7 @@ export default function LessonTeachMode({
           <div style={{ fontSize:11, fontWeight:750, color:'#d0c5e8', textTransform:'uppercase' }}>
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
           </div>
-          <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
+          <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{step.teacherContent}</div>
           {step.key === 'assessmentHook' && context && (
             <button type="button" style={{ ...actionStyle, marginTop: 12, marginRight: 8 }} onClick={() => openAction('/teacher/assessment')}>Record learner observations</button>
           )}
