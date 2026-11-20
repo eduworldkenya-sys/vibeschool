@@ -30,5 +30,6 @@ begin
  end if;
  select pg_get_functiondef('public.publish_textbook(uuid)'::regprocedure) into actual;
  if position('public.publish_publication(p_publication_id)' in actual)=0 or position('update public.vibe_publications' in lower(actual))>0 then raise exception 'legacy_release_not_canonical'; end if;
+ if has_function_privilege('authenticated','public.ce_capture_publication_revision_internal(uuid,text,uuid)','EXECUTE') or has_function_privilege('anon','public.ce_capture_publication_revision_internal(uuid,text,uuid)','EXECUTE') or has_function_privilege('service_role','public.ce_capture_publication_revision_internal(uuid,text,uuid)','EXECUTE') then raise exception 'private_revision_helper_exposed'; end if;
  if exists(select 1 from public.publication_release_approvals where delegated_publisher_id is not null) then raise exception 'unintended_commissioning'; end if;
 end $$;

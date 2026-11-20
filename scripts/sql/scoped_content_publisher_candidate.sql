@@ -61,6 +61,9 @@ revoke all on function public.ce_require_scoped_release_publisher(uuid,boolean) 
 create or replace function public.ce_guard_scoped_publication_release()
 returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
 begin
+ if old.status='published' and exists(select 1 from public.publication_release_approvals a where a.publication_id=old.id and a.delegated_publisher_id is not null) then
+  if new.status='published' and (to_jsonb(new)-array['total_reads','earnings_ksh','total_vibes','updated_at']) is distinct from (to_jsonb(old)-array['total_reads','earnings_ksh','total_vibes','updated_at']) then raise exception 'scoped_live_publication_requires_revision'; end if;
+ end if;
  if new.status='published' and old.status is distinct from new.status then
   if public.ce_require_scoped_release_publisher(old.id,true) then
    if (to_jsonb(new)-array['status','published_at','updated_at']) is distinct from (to_jsonb(old)-array['status','published_at','updated_at']) then raise exception 'scoped_release_cannot_edit_publication'; end if;
@@ -72,11 +75,15 @@ begin
 end $$;
 revoke all on function public.ce_guard_scoped_publication_release() from public,anon,authenticated,service_role;
 drop trigger if exists ce_guard_scoped_publication_release on public.vibe_publications;
-create trigger ce_guard_scoped_publication_release before update of status on public.vibe_publications for each row execute function public.ce_guard_scoped_publication_release();
+create trigger ce_guard_scoped_publication_release before update on public.vibe_publications for each row execute function public.ce_guard_scoped_publication_release();
 
 create or replace function public.ce_guard_scoped_chapter_release()
 returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
 begin
+ -- Guard changes to already released scoped chapters, including unchanged status.
+ if tg_op='UPDATE' and old.status in ('published','locked') and exists(select 1 from public.publication_release_approvals a where a.publication_id=old.publication_id and a.delegated_publisher_id is not null) then
+  if (to_jsonb(new)-array['status','published_at','updated_at']) is distinct from (to_jsonb(old)-array['status','published_at','updated_at']) then raise exception 'scoped_live_chapter_requires_revision'; end if;
+ end if;
  if new.status in ('published','locked') then
   if tg_op='INSERT' then
    if exists(select 1 from public.publication_release_approvals where publication_id=new.publication_id and delegated_publisher_id is not null) then raise exception 'scoped_release_new_chapter_requires_new_draft'; end if;
@@ -90,7 +97,64 @@ begin
 end $$;
 revoke all on function public.ce_guard_scoped_chapter_release() from public,anon,authenticated,service_role;
 drop trigger if exists ce_guard_scoped_chapter_release on public.vibe_chapters;
-create trigger ce_guard_scoped_chapter_release before insert or update of status,publication_id on public.vibe_chapters for each row execute function public.ce_guard_scoped_chapter_release();
+create trigger ce_guard_scoped_chapter_release before insert or update on public.vibe_chapters for each row execute function public.ce_guard_scoped_chapter_release();
+
+
+-- Reuse existing revision capture; preserve public author-only contract.
+CREATE OR REPLACE FUNCTION public.ce_capture_publication_revision_internal(p_publication_id uuid, p_reason text, p_actor uuid)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_author uuid;
+  v_revision integer;
+  v_snapshot jsonb;
+begin
+  select author_id into v_author
+  from public.vibe_publications
+  where id=p_publication_id
+  for update;
+
+  if not found then raise exception 'Publication not found'; end if;
+  if p_actor is null or p_actor is distinct from (select auth.uid()) then
+    raise exception 'Not authorized';
+  end if;
+
+  select coalesce(max(revision_number),0)+1
+  into v_revision
+  from public.publication_revisions
+  where publication_id=p_publication_id;
+
+  select jsonb_build_object(
+    'publication', to_jsonb(p),
+    'chapters', coalesce((
+      select jsonb_agg(to_jsonb(c) order by c.number)
+      from public.vibe_chapters c
+      where c.publication_id=p_publication_id
+    ), '[]'::jsonb)
+  ) into v_snapshot
+  from public.vibe_publications p
+  where p.id=p_publication_id;
+
+  insert into public.publication_revisions(publication_id, revision_number, snapshot, created_by, reason)
+  values(p_publication_id, v_revision, v_snapshot, p_actor, nullif(btrim(p_reason),''));
+
+  return v_revision;
+end;
+$function$
+;
+revoke all on function public.ce_capture_publication_revision_internal(uuid,text,uuid) from public,anon,authenticated,service_role;
+create or replace function public.ce_capture_publication_revision(p_publication_id uuid,p_reason text default null)
+returns integer language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_author uuid;
+begin
+ select p.author_id into v_author from public.vibe_publications p where p.id=p_publication_id for update;
+ if not found then raise exception 'Publication not found'; end if;
+ if auth.uid() is null or v_author is distinct from auth.uid() then raise exception 'Not authorized'; end if;
+ return public.ce_capture_publication_revision_internal(p_publication_id,p_reason,auth.uid());
+end $$;
 
 CREATE OR REPLACE FUNCTION public.publish_publication(p_publication_id uuid)
  RETURNS TABLE(publication_id uuid, operation text)
@@ -140,7 +204,8 @@ begin
     from public.vibe_chapters vc
    where cb.chapter_id=vc.id and vc.publication_id=p_publication_id
      and cb.status is distinct from case when vc.status='published' then 'published' else 'draft' end;
-  perform public.ce_capture_publication_revision(p_publication_id,'publish');
+  if v_delegated then perform public.ce_capture_publication_revision_internal(p_publication_id,'publish',auth.uid());
+  else perform public.ce_capture_publication_revision(p_publication_id,'publish'); end if;
   if v_format='vibetextbook' then
     if v_delegated then perform public.ce_reconcile_textbook_index_internal(p_publication_id);
     else perform public.sync_vibelearn_textbook_index(p_publication_id); end if;
