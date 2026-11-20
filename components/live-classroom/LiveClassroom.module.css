@@ -110,3 +110,17 @@
 .stickerContent{height:clamp(44px,11dvh,112px)}
 @media(min-width:760px){.immersive{gap:10px;padding:16px}.stageContent{padding:24px}.toolRow button{min-height:48px;font-size:13px}.sticker{width:180px}}
 @media(max-height:480px) and (orientation:landscape){.immersive{gap:4px}.stageContent{padding:8px}.toolRow button,.sessionRow button{min-height:36px}.toolRow button{font-size:10px}.stickerContent{height:50px}}
+
+/* Persistent lesson navigation: compact, touch-friendly, theme-neutral. */
+.lessonHistory { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .375rem; padding: .375rem; flex: 0 0 auto; }
+.lessonHistory button { min-height: 36px; padding: .25rem .55rem; border: 1px solid currentColor; border-radius: .5rem; background: transparent; color: inherit; font: inherit; font-size: .8rem; }
+.lessonHistory button:disabled { opacity: .4; cursor: default; }
+.lessonHistory span { font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.learnerTools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;width:100%;flex:1;min-width:0}
+.immersive .learnerTools button{min-height:52px;min-width:0;flex-direction:column;gap:4px;padding:4px 2px;font-size:11px;line-height:1.15;white-space:nowrap}
+.learnerTools button svg{flex:none}
+.immersive .learnerTools button[data-raised=true]{color:#342100;background:#f0b957;border-color:#f0b957}
+.handStatus{font-size:12px;text-align:center;padding:4px;flex:none;color:#f0d291}
+.immersive button.helpBanner{flex:none;background:#f0b957;color:#342100;border-color:#f0b957;min-height:36px}
+@media(max-height:480px) and (orientation:landscape){.immersive .learnerTools button{min-height:40px;flex-direction:row;font-size:11px}.learnerTools button svg{width:16px}}

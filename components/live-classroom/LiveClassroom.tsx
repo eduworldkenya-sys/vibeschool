@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
-import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal } from 'lucide-react'
+import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal, Hand, MessageSquare, NotebookPen, History, Wifi, WifiOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
 
@@ -11,8 +11,41 @@ const classroomLabels: Record<ClassroomMode,string>={school:'School',tuition:'Tu
 type Summary = { mode: ClassroomMode; canJoin: boolean; id: string; title: string; status: 'active' | 'paused'; own: boolean }
 type Mode = 'teach' | 'quiz' | 'exercise' | 'poll' | 'clock' | 'board'
 type Prompt = { id: string; kind: Mode; body: string; answerKey: string | null; revealed: boolean }
+type HistoryPrompt = Prompt & { position: number; createdAt: string }
 type Participant = { studentId: string; name: string; needsHelp: boolean; answer: string | null }
-type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean }
+type LiveQuestion = {id:string;body:string;reply:string|null;name?:string}
+type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean }
+type ComposerDraft = { body: string; key: string }
+type DraftState = { board: string; boardPages?: string[]; boardPage?: number; slides: {title:string;body:string}[]; slideIndex: number; mode: Mode; body: string; key: string; clock: string; composers: Partial<Record<Mode,ComposerDraft>> }
+const validModes = ['teach','quiz','exercise','poll','clock','board'] as const
+function roomUrl(id: string | null) {
+  const url = new URL(window.location.href)
+  if (id) url.searchParams.set('resumeRoom',id)
+  else url.searchParams.delete('resumeRoom')
+  window.history.replaceState(window.history.state,'',url)
+}
+function recoverRoomId() {
+  const id = new URL(window.location.href).searchParams.get('resumeRoom')
+  return id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null
+}
+function readDraft(key: string): DraftState | null {
+  try {
+    const raw = sessionStorage.getItem(key)
+    if (!raw) return null
+    const d = JSON.parse(raw) as DraftState
+    if (!d || typeof d.board !== 'string' || d.board.length > 3400 || !Array.isArray(d.slides) || !d.slides.length || d.slides.length > 30 || !d.slides.every(x => typeof x?.title === 'string' && x.title.length <= 120 && typeof x?.body === 'string' && x.body.length <= 3878) || !Number.isInteger(d.slideIndex) || d.slideIndex < 0 || d.slideIndex >= d.slides.length || !validModes.includes(d.mode) || typeof d.body !== 'string' || d.body.length > 4000 || typeof d.key !== 'string' || d.key.length > 2000 || typeof d.clock !== 'string' || !/^([01]?\d|2[0-3]):[0-5]\d$/.test(d.clock)) return null
+    const clean: Partial<Record<Mode,ComposerDraft>> = {}
+    for (const m of validModes) {
+      const item = d.composers?.[m]
+      if (item && typeof item.body === 'string' && item.body.length <= 4000 && typeof item.key === 'string' && item.key.length <= 2000) clean[m] = item
+    }
+    return {...d,composers:clean}
+  } catch { return null }
+}
+function removeDraft(key: string | null) { if(key) try { sessionStorage.removeItem(key) } catch {} }
+function historyFor(room: Room): Prompt[] {
+  return room.history ?? (room.prompt ? [room.prompt] : [])
+}
 const labels: Record<Mode,string> = {teach:'Teach',quiz:'Quiz',exercise:'Exercise',poll:'Poll',clock:'Clock',board:'Board'}
 
 type ShapeTool = 'pen' | 'line' | 'rectangle' | 'triangle' | 'ellipse'
@@ -40,6 +73,18 @@ function ClockView({value}:{value:string}){
    {Array.from({length:12},(_,i)=>i+1).map(n=><text key={n} x={100+79*Math.sin(n*Math.PI/6)} y={104-79*Math.cos(n*Math.PI/6)} textAnchor="middle" fill="currentColor" fontSize="14">{n}</text>)}
    <line x1="100" y1="100" x2={hour[0]} y2={hour[1]} stroke="currentColor" strokeWidth="6" strokeLinecap="round"/><line x1="100" y1="100" x2={minute[0]} y2={minute[1]} stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"/><circle cx="100" cy="100" r="4" fill="currentColor"/>
  </svg>
+}
+function LessonNavigation({items,reviewId,onReview,ended=false}:{items:Prompt[];reviewId:string|null;onReview:(id:string|null)=>void;ended?:boolean}) {
+  if (!items.length) return null
+  const selected = reviewId ? items.findIndex(p=>p.id===reviewId) : items.length-1
+  const index = selected < 0 ? items.length-1 : selected
+  return <nav className={styles.lessonHistory} aria-label="Lesson progress">
+    <button type="button" disabled={index===0} onClick={()=>onReview(items[0].id)} aria-label="First lesson page">First</button>
+    <button type="button" disabled={index===0} onClick={()=>onReview(items[index-1].id)} aria-label="Previous lesson page">‹</button>
+    <span aria-live="polite">{index+1} / {items.length}</span>
+    <button type="button" disabled={index===items.length-1} onClick={()=>onReview(items[index+1].id)} aria-label="Next lesson page">›</button>
+    <button type="button" disabled={reviewId===null} onClick={()=>onReview(null)}>{ended?'Latest':'Return to Live'}</button>
+  </nav>
 }
 function SharedPrompt({prompt}:{prompt:Prompt|null|undefined}){
  return prompt?<><div className={styles.label}>{labels[prompt.kind]}</div>{prompt.kind==='clock'?<ClockView value={prompt.body}/>:prompt.kind==='board'?<BoardView value={prompt.body}/>:<p className={styles.content}>{prompt.body}</p>}{prompt.revealed&&prompt.answerKey&&<div className={styles.solution}><strong>Answer</strong><p className={styles.content}>{prompt.answerKey}</p></div>}</>:<p className={styles.empty}>Choose a teaching tool to start.</p>
@@ -171,6 +216,41 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const mounted=useRef(false)
   const active=useRef<Room|null>(null)
   const generation=useRef(0)
+  const [reviewId,setReviewId]=useState<string|null>(null)
+  const [learnerTool,setLearnerTool]=useState<'ask'|'notes'|null>(null)
+  const [questionDraft,setQuestionDraft]=useState('')
+  const questionRequest=useRef<{body:string;id:string}|null>(null)
+  const [noteDraft,setNoteDraft]=useState('')
+  const noteDirty=useRef(false)
+  const [replyDrafts,setReplyDrafts]=useState<Record<string,string>>({})
+  const [online,setOnline]=useState(true)
+  const [lastSync,setLastSync]=useState(0)
+  useEffect(()=>{
+    const status=()=>setOnline(navigator.onLine)
+    status();window.addEventListener('online',status);window.addEventListener('offline',status)
+    return ()=>{window.removeEventListener('online',status);window.removeEventListener('offline',status)}
+  },[])
+  useEffect(()=>{
+    setLearnerTool(null);setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({})
+  },[room?.id])
+  useEffect(()=>{if(!noteDirty.current)setNoteDraft(room?.ownNote??'')},[room?.id,room?.ownNote])
+  const [draftBinding,setDraftBinding]=useState<{roomId:string; key:string}|null>(null)
+  const draftKey=useRef<string|null>(null)
+  const composerDrafts=useRef<Partial<Record<Mode,ComposerDraft>>>({})
+  const pendingPublish=useRef<{fingerprint:string;requestId:string}|null>(null)
+  const [draftWarning,setDraftWarning]=useState(false)
+  const revoke=useCallback(()=>{
+    removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)
+    pendingPublish.current=null;composerDrafts.current={}
+    roomUrl(null);active.current=null;setRoom(null);setRooms([]);setReviewId(null)
+    setError('Classroom access is no longer available.')
+  },[])
+  useEffect(()=>{
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((event)=>{
+      if(event==='SIGNED_OUT'){generation.current++;lock.current=false;mutating.current=false;setBusy(false);setLoading(false);revoke()}
+    })
+    return ()=>subscription.unsubscribe()
+  },[revoke])
   const call=useCallback(async (action:string,id:string|null=null,version:number|null=null,payload:Record<string,unknown>={})=>{
     const {data,error:failure}=await supabase.rpc('vibe_live_command',{p_action:action,p_class_id:classId,p_session_id:id,p_version:version,p_payload:{...payload,host:teacher}})
     if(failure) {
@@ -182,8 +262,16 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   },[classId,teacher])
   const accept=useCallback((next:Room)=>{
     if(next.teacher!==teacher) throw new Error('Choose the correct classroom account.')
+    const old=active.current
+    if(old?.id===next.id){
+      if(next.version<old.version)return
+      if(old.prompt&&!next.prompt)throw new Error('Incomplete lesson sync. Retrying.')
+      if(old.history && (!next.history || old.history.some(p=>!next.history!.some(q=>q.id===p.id)))) throw new Error('Incomplete lesson history. Retrying.')
+    }
     active.current=next
     setRoom(next)
+    setLastSync(Date.now())
+    roomUrl(next.id)
     if(next.status==='ended') setError('')
   },[teacher])
   const refresh=useCallback(async()=>{
@@ -196,19 +284,25 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         const next=await call('get',current.id) as Room
         if(mounted.current&&generation.current===stamp) accept(next)
       } else if(!current) {
+        const resumeId=recoverRoomId()
+        if(resumeId){
+          const next=await call('get',resumeId) as Room
+          if(mounted.current&&generation.current===stamp){accept(next);setError('')}
+          return
+        }
         const list=await call('list') as Summary[]
         if(mounted.current&&generation.current===stamp) setRooms(list.filter(item=>teacher?item.own&&(classId?item.mode==='school':hostModeKey.split(',').includes(item.mode)):!item.own))
       }
       if(mounted.current&&generation.current===stamp) setError('')
     } catch(e) {
       if(mounted.current&&generation.current===stamp) {
-        if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){active.current=null;setRoom(null);setRooms([]);setError('Classroom access is no longer available.')}
+        if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){revoke()}
         else setError(e instanceof Error?e.message:'Connection interrupted. Retrying.')
       }
     } finally {
       if(generation.current===stamp) {lock.current=false;if(mounted.current)setLoading(false)}
     }
-  },[call,accept,teacher,classId,hostModeKey])
+  },[call,accept,teacher,classId,hostModeKey,revoke])
   useEffect(()=>{
     mounted.current=true
     generation.current++
@@ -218,7 +312,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     setRoom(null); setRooms([]); setLoading(true);setBusy(false);setError('')
     void refresh()
     const timer=window.setInterval(()=>void refresh(),4000)
-    return ()=>{mounted.current=false;generation.current++;window.clearInterval(timer)}
+    const wake=()=>{if(document.visibilityState!=='hidden')void refresh()}
+    window.addEventListener('online',wake)
+    document.addEventListener('visibilitychange',wake)
+    return ()=>{mounted.current=false;generation.current++;window.clearInterval(timer);window.removeEventListener('online',wake);document.removeEventListener('visibilitychange',wake)}
   },[refresh])
   useEffect(()=>{if(!teacher||classId||hostMode!=='tuition')return;let cancelled=false;void call('groups').then(data=>{if(!cancelled)setGroups(data as {id:string;title:string}[])}).catch(()=>{if(!cancelled)setGroups([])});return()=>{cancelled=true}},[teacher,classId,hostMode,call])
   useEffect(()=>{
@@ -235,13 +332,27 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     const stamp=++generation.current // discard any earlier poll; never discard the user's click
     mutating.current=true;lock.current=true;setBusy(true);setError('')
     try {
-      const next=await call(action,id??room?.id??null,room?.version??null,payload) as Room
+      let requestPayload=payload
+      if(action==='publish'){
+        const fingerprint=JSON.stringify([room?.id,payload.kind,payload.body,payload.answerKey??null])
+        if(pendingPublish.current?.fingerprint!==fingerprint)pendingPublish.current={fingerprint,requestId:crypto.randomUUID()}
+        requestPayload={...payload,requestId:pendingPublish.current.requestId}
+      }
+      const next=await call(action,id??room?.id??null,active.current?.version??null,requestPayload) as Room
       if(!mounted.current||generation.current!==stamp)return
       accept(next)
-      if(action==='publish'){setBody('');setKey('');setPanel(null);if(payload.kind!=='board')setEditingBoard(false)}
+      if(action==='publish'){
+        pendingPublish.current=null;setReviewId(null)
+        if(panel==='compose'){delete composerDrafts.current[mode];setBody('');setKey('')}
+        setPanel(null);if(payload.kind!=='board')setEditingBoard(false)
+      }
+      if(action==='ask'){questionRequest.current=null;setQuestionDraft('')}
+      if(action==='note'){noteDirty.current=false;setNoteDraft(next.ownNote??'')}
+      if(action==='reply'&&typeof payload.questionId==='string'){const questionId=payload.questionId;setReplyDrafts(items=>({...items,[questionId]:''}))}
+      if(action==='end'){removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)}
     } catch(e) {
       if(mounted.current&&generation.current===stamp){
-        if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){active.current=null;setRoom(null);setRooms([]);setError('Classroom access is no longer available.')}
+        if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){revoke()}
         else setError(e instanceof Error?e.message:'Could not save. Retry.')
       }
     } finally {
@@ -250,7 +361,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   }
   function leave() {
     if(mutating.current)return
-    generation.current++;lock.current=false;active.current=null;setRoom(null);setError('');setLoading(true);void refresh()
+    generation.current++;lock.current=false;roomUrl(null);active.current=null;setRoom(null);setReviewId(null);setError('');setLoading(true);void refresh()
   }
   function point(event:PointerEvent<SVGSVGElement>){
     const svg=event.currentTarget
@@ -325,10 +436,51 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const participants=room?.participants??[]
   const visibleRooms=rooms.filter(item=>teacher||((scope==='all'||item.mode===scope)&&(!search.trim()||item.title.toLowerCase().includes(search.trim().toLowerCase())))).sort((a,b)=>Number(b.id===sharedId)-Number(a.id===sharedId))
   const prompt=room?.prompt
+  const history=room?historyFor(room):[]
+  const viewedPrompt=(reviewId?history.find(p=>p.id===reviewId):null)??prompt
   const immersive=!!room&&room.status!=='ended'
+  const draftLoading=teacher&&!!room&&draftBinding?.roomId!==room.id&&!draftWarning
   useEffect(()=>{
-    boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;touches.current.clear();pinch.current=null;touchDraft.current=null;setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
+    setReviewId(null);setDraftBinding(null);draftKey.current=null;composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;touches.current.clear();pinch.current=null;touchDraft.current=null;setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
   },[room?.id])
+  // Recover only the teacher's private, same-tab draft. Published history is
+  // always fetched from the authorized server, never from browser storage.
+  useEffect(()=>{
+    if(!teacher||!room?.id||room.status==='ended')return
+    const roomId=room.id
+    let cancelled=false
+    void supabase.auth.getUser().then(({data,error})=>{
+      if(cancelled)return
+      if(error||!data.user){setDraftWarning(true);return}
+      const key='vibe-live-draft:v1:'+data.user.id+':'+roomId
+      draftKey.current=key
+      const draft=readDraft(key)
+      if(draft){
+        setBoard(draft.board);if(Array.isArray(draft.boardPages)&&draft.boardPages.length>0&&draft.boardPages.length<=30&&draft.boardPages.every(p=>typeof p==='string'&&p.length<=3400)&&Number.isInteger(draft.boardPage)&&draft.boardPage!>=0&&draft.boardPage!<draft.boardPages.length){setBoardPages(draft.boardPages);setBoardPage(draft.boardPage!)}boardInitialized.current=true
+        setSlides(draft.slides);setSlideIndex(draft.slideIndex);setClock(draft.clock)
+        setMode(draft.mode);setBody(draft.body);setKey(draft.key);composerDrafts.current=draft.composers
+      }else{
+        const latest=active.current
+        const previous=[...(latest?.history??[])].reverse().find(p=>p.kind==='board')
+        if(previous||latest?.prompt?.kind==='board'){setBoard(previous?.body??latest?.prompt?.body??'');boardInitialized.current=true}
+      }
+      setDraftBinding({roomId,key})
+    }).catch(()=>{if(!cancelled)setDraftWarning(true)})
+    return ()=>{cancelled=true}
+  },[teacher,room?.id,room?.status==='ended'])
+  useEffect(()=>{
+    if(!teacher||!room||room.status==='ended'||draftBinding?.roomId!==room.id||draftKey.current!==draftBinding.key)return
+    const draft:DraftState={board,boardPages:boardPages.map((p,i)=>i===boardPage?board:p),boardPage,slides,slideIndex,mode,body,key,clock,composers:{...composerDrafts.current}}
+    // Do not write answer keys to persistent/shared browser storage. Current
+    // teacher-only keys survive switch in memory but must be re-entered on reload.
+    draft.key=''
+    draft.composers=Object.fromEntries(Object.entries(draft.composers).map(([m,d])=>[m,{...d,key:''}]))
+    try { sessionStorage.setItem(draftBinding.key,JSON.stringify(draft)) }
+    catch {setDraftWarning(true)}
+  },[teacher,room?.id,room?.status,draftBinding,board,boardPages,boardPage,slides,slideIndex,mode,body,key,clock])
+  useEffect(()=>{
+    if(room?.status==='ended'){removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)}
+  },[room?.status])
   useEffect(()=>{
     if(!immersive)return
     const previous=document.body.style.overflow
@@ -351,9 +503,14 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     }
   }
   function chooseMode(item:Mode){
-    setMode(item);setKey('');setEndConfirm(false)
+    if(item!==mode){
+      composerDrafts.current[mode]={body,key}
+      const saved=composerDrafts.current[item]
+      setBody(saved?.body??'');setKey(saved?.key??'');setMode(item)
+    }
+    setReviewId(null);setEndConfirm(false)
     if(item==='board'){
-      if(!boardInitialized.current){if(prompt?.kind==='board')setBoard(prompt.body);boardInitialized.current=true}
+      if(!boardInitialized.current){const last=[...history].reverse().find(p=>p.kind==='board');if(last)setBoard(last.body);boardInitialized.current=true}
       setEditingBoard(true);setPanel(null)
     }else{setEditingBoard(false);setPanel('compose')}
   }
@@ -393,16 +550,29 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const slide=slides[slideIndex]
   const slideText=[slide?.title.trim(),slide?.body.trim()].filter(Boolean).join('\n\n')
   function editSlide(field:'title'|'body',value:string){setSlides(items=>items.map((s,i)=>i===slideIndex?{...s,[field]:value}:s))}
-  function openSlides(){setEditingBoard(false);setEndConfirm(false);setPanel('slides')}
+  function askTeacher(){
+    const body=questionDraft.trim();if(!body||busy)return
+    if(questionRequest.current?.body!==body)questionRequest.current={body,id:crypto.randomUUID()}
+    void act('ask',null,{body,requestId:questionRequest.current.id})
+  }
+  function openSlides(){setReviewId(null);setEditingBoard(false);setEndConfirm(false);setPanel('slides')}
 
   if(immersive&&room){
     const stage=<main ref={immersiveRef} tabIndex={-1} className={styles.immersive} role="dialog" aria-modal="true" aria-label="Live classroom" onKeyDown={e=>{if(e.key==='Escape'){if(panel)setPanel(null);else if(focusMode)toggleFocus()}if(e.key==='Tab'&&immersiveRef.current){const controls=Array.from(immersiveRef.current.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(el=>el.offsetParent!==null);const first=controls[0],last=controls[controls.length-1];if(first&&last){if(e.shiftKey&&(document.activeElement===first||document.activeElement===immersiveRef.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}}}>
-    <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button>{focusMode&&<button type="button" aria-label={focusDock?'Hide classroom controls':'Show classroom controls'} aria-pressed={focusDock} onClick={()=>setFocusDock(v=>!v)}><MoreHorizontal size={20}/></button>}</header>
+    <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{!online||error?<WifiOff size={13} aria-hidden="true"/>:<Wifi size={13} aria-hidden="true"/>}{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]} · {!online?'Offline':error?'Reconnecting':lastSync?'Connected':'Syncing'}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button>{focusMode&&<button type="button" aria-label={focusDock?'Hide classroom controls':'Show classroom controls'} aria-pressed={focusDock} onClick={()=>setFocusDock(v=>!v)}><MoreHorizontal size={20}/></button>}</header>
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
+    {draftWarning&&teacher&&<div role="status" className={styles.liveAlert}>Draft recovery unavailable. Shared pages are saved on the server.</div>}
+    <LessonNavigation items={history} reviewId={reviewId} onReview={id=>{setEditingBoard(false);setPanel(null);setReviewId(id)}}/>
+    {teacher&&participants.some(p=>p.needsHelp)&&<button className={styles.helpBanner} type="button" onClick={()=>setPanel('learners')}><Hand size={16}/> {participants.filter(p=>p.needsHelp).length} need help</button>}
+    {!teacher&&(room.needsHelp||room.handAckAt)&&<div className={styles.handStatus} role="status">{room.needsHelp?'Hand raised — teacher notified':'Teacher acknowledged your hand'}</div>}
     <div className={styles.stage}>
       <section className={styles.stageContent} data-board-edit={editingBoard&&teacher} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
-        {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser&&shapeTool==='pen'} onClick={()=>{setEraser(false);setShapeTool('pen')}}>Pen</button><label><span className={styles.srOnly}>Geometry tool</span><select aria-label="Geometry tool" value={eraser?'pen':shapeTool} onChange={e=>{setEraser(false);setShapeTool(e.target.value as ShapeTool)}}><option value="pen">Shapes</option><option value="line">Line</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option><option value="ellipse">Ellipse</option></select></label><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear</button></div><div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">{boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button><button onClick={exportBoard}>Export SVG</button></div><div className={styles.boardTools}><button aria-label="Zoom out" disabled={boardZoom<=1} onClick={()=>setBoardZoom(v=>Math.max(1,v-.25))}>−</button><button aria-label="Reset board zoom" onClick={()=>setBoardZoom(1)}>{Math.round(boardZoom*100)}%</button><button aria-label="Zoom in" disabled={boardZoom>=2} onClick={()=>setBoardZoom(v=>Math.min(2,v+.25))}>+</button><small role="status">{board.length>=3200||board.split('|').length>=95?'Board nearly full — erase or clear before continuing.':`${Math.round(board.length/BOARD_LIMIT*100)}% used`}</small></div><BoardView value={board} zoom={boardZoom} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={prompt}/>}
+        {editingBoard&&teacher?<><div className={styles.boardTools}><span>Board draft</span><button aria-pressed={!eraser&&shapeTool==='pen'} onClick={()=>{setEraser(false);setShapeTool('pen')}}>Pen</button><label><span className={styles.srOnly}>Geometry tool</span><select aria-label="Geometry tool" value={eraser?'pen':shapeTool} onChange={e=>{setEraser(false);setShapeTool(e.target.value as ShapeTool)}}><option value="pen">Shapes</option><option value="line">Line</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option><option value="ellipse">Ellipse</option></select></label><button aria-pressed={eraser} onClick={()=>setEraser(true)}>Eraser</button><button onClick={undoBoard} disabled={!undoBoards.length}>Undo</button><button onClick={redoBoard} disabled={!redoBoards.length}>Redo</button><button disabled={!board} onClick={()=>{rememberBoard();setBoard('')}}>Clear draft</button></div><div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">{boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button><button onClick={exportBoard}>Export SVG</button></div><div className={styles.boardTools}><button aria-label="Zoom out" disabled={boardZoom<=1} onClick={()=>setBoardZoom(v=>Math.max(1,v-.25))}>−</button><button aria-label="Reset board zoom" onClick={()=>setBoardZoom(1)}>{Math.round(boardZoom*100)}%</button><button aria-label="Zoom in" disabled={boardZoom>=2} onClick={()=>setBoardZoom(v=>Math.min(2,v+.25))}>+</button><small role="status">{board.length>=3200||board.split('|').length>=95?'Board nearly full — erase or clear before continuing.':`${Math.round(board.length/BOARD_LIMIT*100)}% used`}</small></div><BoardView value={board} zoom={boardZoom} onPointerDown={drawStart} onPointerMove={drawMove} onPointerUp={drawStop}/><button className={styles.primary} disabled={busy||room.status!=='active'||!board.trim()} onClick={()=>void act('publish',null,{kind:'board',body:board,answerKey:null})}>Share board</button></>:<SharedPrompt prompt={viewedPrompt}/>}
       </section>
+      {!teacher&&learnerTool&&<section className={styles.sheet} aria-label={learnerTool==='ask'?'Ask teacher':'My notes'}>
+        <div className={styles.sheetTitle}><strong>{learnerTool==='ask'?'Ask teacher':'My notes'}</strong><button type="button" aria-label="Close" onClick={()=>setLearnerTool(null)}><X size={18}/></button></div>
+        {learnerTool==='ask'?<><small>Only you and your teacher can see this conversation.</small><ul className={styles.participants}>{(room.questions??[]).map(q=><li key={q.id}><strong>{q.body}</strong><span>{q.reply??'Awaiting reply'}</span></li>)}</ul><form onSubmit={e=>{e.preventDefault();askTeacher()}}><label>Your question<textarea maxLength={1000} value={questionDraft} disabled={busy} onChange={e=>setQuestionDraft(e.target.value)} required/></label><button className={styles.primary} disabled={busy||!online||!questionDraft.trim()}>Send privately</button></form></>:<form onSubmit={e=>{e.preventDefault();void act('note',null,{body:noteDraft})}}><label>Personal notes<textarea maxLength={8000} value={noteDraft} disabled={busy} onChange={e=>{noteDirty.current=true;setNoteDraft(e.target.value)}}/></label><button className={styles.primary} disabled={busy||!online||!noteDirty.current}>Save notes</button><small>{noteDirty.current?'Unsaved changes':'Notes saved privately'}</small></form>}
+      </section>}
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker||!!panel||(focusMode&&!focusDock)} onHide={()=>setShowSticker(false)}/>}
       {teacher&&panel&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'Classroom tools'}>
         <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':panel==='slides'?'Slides':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
@@ -420,12 +590,17 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <button className={styles.primary} disabled={busy||room.status!=='active'||!slideText||slideText.length>4000}>Present slide</button>
           <button type="button" className={styles.subtle} disabled={slides.length<=1||busy} onClick={()=>{setSlides(items=>items.filter((_,i)=>i!==slideIndex));setSlideIndex(i=>Math.max(0,i-1))}}>Remove slide</button>
         </form>}
-        {panel==='learners'&&<><div className={styles.metrics}><span>{participants.length} joined</span><span>{participants.filter(p=>p.answer!==null).length} answered</span><span>{participants.filter(p=>p.needsHelp).length} need help</span></div>{!participants.length?<p>No learners have joined.</p>:<ul className={styles.participants}>{participants.map(p=><li key={p.studentId}><strong>{p.name}</strong><span>{p.answer??'No answer'}</span>{p.needsHelp&&<button disabled={busy} onClick={()=>void act('ack',null,{studentId:p.studentId})}>Acknowledge hand</button>}</li>)}</ul>}</>}
+        {panel==='learners'&&<><div className={styles.metrics}><span>{(room.questions??[]).filter(q=>!q.reply).length} questions</span><span>{participants.length} joined</span><span>{participants.filter(p=>p.answer!==null).length} answered</span><span>{participants.filter(p=>p.needsHelp).length} need help</span></div>{!participants.length?<p>No learners have joined.</p>:<ul className={styles.participants}>{participants.map(p=><li key={p.studentId}><strong>{p.name}</strong><span>{p.answer??'No answer'}</span>{p.needsHelp&&<button disabled={busy} onClick={()=>void act('ack',null,{studentId:p.studentId})}>Acknowledge hand</button>}</li>)}</ul>}<h3>Private questions</h3>{(room.questions??[]).map(q=><form key={q.id} onSubmit={e=>{e.preventDefault();void act('reply',null,{questionId:q.id,body:replyDrafts[q.id]??''})}}><strong>{q.name??'Learner'}: {q.body}</strong>{q.reply&&<p>{q.reply}</p>}<label>Reply privately<textarea maxLength={1000} value={replyDrafts[q.id]??''} disabled={busy} onChange={e=>setReplyDrafts(items=>({...items,[q.id]:e.target.value}))}/></label><button disabled={busy||!online||!(replyDrafts[q.id]??'').trim()}>Send reply</button></form>)}</>}
         {panel==='more'&&<><div className={styles.controls}><button onClick={()=>chooseMode('clock')}>Clock</button><button onClick={()=>chooseMode('teach')}>Teach text</button><button onClick={()=>setShowSticker(v=>!v)}>{showSticker?'Hide preview':'Show preview'}</button><button disabled={busy||!prompt||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed} onClick={()=>void act('reveal')}>Reveal / close answers</button><button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button></div>{shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}{endConfirm?<div className={styles.controls}><strong>End this session?</strong><button disabled={busy} onClick={()=>void act('end')}>Confirm end</button><button onClick={()=>setEndConfirm(false)}>Cancel</button></div>:null}</>}
       </section>}
     </div>
-    {!teacher&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}><label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label><button className={styles.primary} disabled={busy||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button></form>}</section>}
-    {(!focusMode||focusDock)&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<div className={styles.sessionRow}><button disabled={busy||room.needsHelp} onClick={()=>void act('help')}>{room.needsHelp?'Hand raised':'Raise hand'}</button><button disabled={busy} onClick={leave}>Leave</button></div>}</footer>}
+    {!teacher&&reviewId===null&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}><label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label><button className={styles.primary} disabled={busy||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button></form>}</section>}
+    {(!focusMode||focusDock)&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} disabled={draftLoading} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button disabled={draftLoading} aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<nav aria-label="Learner tools" className={styles.learnerTools}>
+      <button type="button" aria-pressed={!!room.needsHelp} data-raised={!!room.needsHelp} disabled={busy||!online} onClick={()=>void act(room.needsHelp?'lower':'help')}><Hand size={21}/><span>{room.needsHelp?'Lower hand':'Raise hand'}</span></button>
+      <button type="button" aria-pressed={learnerTool==='ask'} onClick={()=>setLearnerTool(v=>v==='ask'?null:'ask')}><MessageSquare size={21}/><span>Ask</span></button>
+      <button type="button" aria-pressed={learnerTool==='notes'} onClick={()=>setLearnerTool(v=>v==='notes'?null:'notes')}><NotebookPen size={21}/><span>Notes</span></button>
+      <button type="button" aria-pressed={reviewId!==null} disabled={!history.length} onClick={()=>{setLearnerTool(null);setReviewId(reviewId?null:history[0].id)}}><History size={21}/><span>{reviewId?'Go live':'History'}</span></button>
+    </nav>}</footer>}
     </main>
     return createPortal(stage,document.body)
   }
@@ -448,6 +623,6 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       </div>}
       {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>teacher||item.canJoin?<button key={item.id} disabled={busy} onClick={()=>void act(teacher?'get':'join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>{teacher?'Resume': 'Join Live'}</span></button>:<div key={item.id} className={styles.discover}><strong>{item.title}<small>Open class</small></strong><Link href="/student/tutoring">Connect to tutor</Link></div>)}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
     </section>}
-    {room?.status==='ended'&&<section className={styles.panel}><h2>{room.title}</h2><p>This session has ended.</p><button onClick={leave}>Return to live lessons</button></section>}
+    {room?.status==='ended'&&<section className={styles.panel}><h2>{room.title}</h2><p>This session has ended.</p><LessonNavigation items={history} reviewId={reviewId} onReview={setReviewId} ended/><div aria-label="Saved lesson"><SharedPrompt prompt={viewedPrompt}/></div>{!teacher&&room.ownNote&&<div><h3>My notes</h3><p className={styles.content}>{room.ownNote}</p></div>}<button onClick={leave}>Return to live lessons</button></section>}
   </main>
 }
