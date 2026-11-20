@@ -67,14 +67,16 @@ test("content production explicitly mutes HQ interaction without weakening autho
 });
 
 
-test("standing sole platform publisher decision is scoped and does not self-authorize",()=>{
+test("standing Mumbi2 publisher decision is scoped and does not self-authorize",()=>{
   for(const doc of [playbook,operating]) {
-    assert.match(doc,/CHATGPT_SOLE_PLATFORM_CONTENT_PUBLISHER/);
+    assert.match(doc,/MUMBI2_PLATFORM_CONTENT_PUBLISHER/);
     assert.match(doc,/explicitly superseded by the owner/);
     assert.match(doc,/revocation/);
     assert.match(doc,/teacher(?:\/school|-owned|\/school-owned)|school\/teacher-owned/);
   }
-  assert.match(playbook,/sole operational publisher/);
+  assert.match(playbook,/designated operational publisher/);
+  for(const doc of [playbook,operating]) assert.ok(doc.includes('c49bf987-357f-46bc-98fb-9a326882e437'));
+  assert.match(operating,/No platform-owner role is granted to Mumbi2/);
   assert.match(playbook,/genuine authenticated, owner-delegated operator identity/);
   assert.match(playbook,/independent verification where required/);
   assert.match(playbook,/expired\/revoked grants, stale fingerprints and cross-scope mutations/);
