@@ -138,3 +138,36 @@ assert.ok(notesPage.includes('if (!lessonPlanId) {'), 'Lesson-plan ID is optiona
 assert.ok(notesPage.includes('SubjectLessonHandoff'), 'Prepared lesson handoff remains available')
 assert.ok(!notesPage.includes('Open Lesson Notes from Subjects or a lesson'), 'Old mandatory handoff must be removed')
 console.log('PASS: standalone notes browse, certified versions, personal notes handoff, no timetable requirement')
+
+
+// Universal lesson delivery foundation: legacy plans remain lossless and private.
+const { EMPTY_LESSON_PLAN_SECTIONS, parseLessonPlanBody, serializeLessonPlanBody, projectLessonDelivery } =
+  await import('../lib/teaching/lessonPlanCodec.ts')
+const originalPlan = {
+  ...EMPTY_LESSON_PLAN_SECTIONS,
+  objectives: '1. Read analogue clocks.',
+  introduction: 'Timing: 0–5 min (5 min).\nAsk about daily routines.',
+  development: 'Timing: 5–25 min (20 min).\nPrivate teacher note.\nExpected answer: 3 o’clock.',
+  consolidation: '',
+  assessmentHook: 'Timing: 25–35 min (10 min).\nPrivate answer key.',
+  resources: 'Teacher resource links',
+  homework: 'Private marking guide',
+  differentiation: 'Private learner support',
+}
+const body = serializeLessonPlanBody(originalPlan)
+const parsed = parseLessonPlanBody(body)
+assert.deepEqual(parsed, originalPlan)
+const projection = projectLessonDelivery(parsed)
+assert.equal(projection.schema, 'vibeschool.lesson-delivery-projection.v1')
+assert.equal(projection.audience, 'teacher')
+assert.deepEqual(projection.steps.map(step => step.id), ['legacy:objectives', 'legacy:introduction', 'legacy:development', 'legacy:assessmentHook'])
+assert.deepEqual(projection.steps.map(step => step.durationMinutes), [null, 5, 20, 10])
+assert.equal(projection.steps[2].teacherContent, originalPlan.development)
+assert.ok(projection.steps.every(step => step.learnerContent === null), 'No teacher prose or answer key may be inferred as learner material')
+assert.ok(projection.steps.every(step => !('outcomeId' in step) && !('assessmentId' in step)), 'Legacy projection must not invent canonical identities')
+assert.equal(serializeLessonPlanBody(originalPlan), body)
+assert.deepEqual(projectLessonDelivery(EMPTY_LESSON_PLAN_SECTIONS).steps, [])
+assert.equal(projectLessonDelivery({...originalPlan, introduction: 'Timing: 0–0 min (0 min).' }).steps[1].durationMinutes, null)
+assert.equal(projectLessonDelivery({...originalPlan, introduction: 'An untimed discussion.' }).steps[1].durationMinutes, null)
+assert.equal(readFileSync('components/teacher/LessonTeachMode.tsx', 'utf8').includes('projectLessonDelivery(sections).steps'), true)
+console.log('PASS: delivery-neutral legacy step projection, timing, teacher privacy and Teach Mode consumption')
