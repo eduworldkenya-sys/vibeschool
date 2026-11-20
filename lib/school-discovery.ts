@@ -38,3 +38,9 @@ export function locationSearchCandidate(matches: ReturnType<typeof locationSugge
 export function mergeSchoolMatches<T extends {slug:string}>(names:T[],locations:T[],limit:number){
  return [...new Map([...names,...locations].map(s=>[s.slug,s])).values()].slice(0,limit)
 }
+
+// Approximate device position; do not retain exact coordinates in storage.
+export function roundedSchoolLocation(lat:number,lng:number){
+ if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat< -5||lat>5||lng<33||lng>42)return null
+ return {lat:Math.round(lat*100)/100,lng:Math.round(lng*100)/100}
+}

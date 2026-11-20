@@ -10,6 +10,7 @@ import styles from '@/app/schools/schools.module.css'
 import { SchoolCover } from '@/app/schools/components/SchoolCover'
 import { SchoolFacts, SchoolLocation } from '@/app/schools/components/SchoolPublicFacts'
 import SchoolFollowButton from '@/app/schools/components/SchoolFollowButton'
+import SchoolCorrectionRequest from './SchoolCorrectionRequest'
 import SchoolPublicContent from '@/app/schools/components/SchoolPublicContent'
 
 export default function DirectorySchoolPage({school,section}:{school:PublicSchoolAddress;section?:string}){
@@ -22,7 +23,7 @@ export default function DirectorySchoolPage({school,section}:{school:PublicSchoo
   <>
    <section className={styles.canonicalHero}><SchoolCover name={school.school_name}/><h1 className={styles.canonicalTitle}>{school.school_name}</h1><p className={styles.canonicalLocation}>{[school.sub_county,school.county].filter(Boolean).join(', ')}</p><div className={styles.canonicalChips}>{[school.school_level,school.ownership_type].filter(Boolean).map(value=><span key={value}>{value}</span>)}</div><SchoolFollowButton slug={school.slug}/></section>
    <nav className={styles.schoolPageNav} aria-label="School pages">{[['Home',''],...SCHOOL_SECTIONS.map(v=>[v.charAt(0).toUpperCase()+v.slice(1),v])].map(([label,path])=><Link key={label} aria-current={(section||'')===path?'page':undefined} href={schoolUrl(school.slug)+(path?'/'+path:'')}>{label}</Link>)}</nav>
-   <div className={styles.canonicalBody}>{section&&section!=='about'?<section className={styles.canonicalSection}><h2>{section.charAt(0).toUpperCase()+section.slice(1)}</h2><p>{section==='academics'?`Education level: ${school.school_level||'Not specified'}`:section==='news'?'News and school information':'School contact and location'}</p></section>:null}{(!section || section==='news' || section==='contact') && <SchoolPublicContent slug={school.slug} initialFilter={section==='news'?'announcement':section==='contact'?'contact':'all'} compact={!section}/>}<SchoolFacts facts={facts}/><SchoolLocation county={school.county} subCounty={school.sub_county} kind={school.source_kind} sourceId={school.source_id} name={school.school_name}/><p className={styles.canonicalNote}>VibeSchool directory listing · Information may be updated as additional sources are confirmed</p></div>
+   <div className={styles.canonicalBody}>{section&&section!=='about'?<section className={styles.canonicalSection}><h2>{section.charAt(0).toUpperCase()+section.slice(1)}</h2><p>{section==='academics'?`Education level: ${school.school_level||'Not specified'}`:section==='news'?'News and school information':'School contact and location'}</p></section>:null}{(!section || section==='news' || section==='contact') && <SchoolPublicContent slug={school.slug} initialFilter={section==='news'?'announcement':section==='contact'?'contact':'all'} compact={!section}/>}<SchoolFacts facts={facts}/><SchoolLocation county={school.county} subCounty={school.sub_county} kind={school.source_kind} sourceId={school.source_id} name={school.school_name}/><SchoolCorrectionRequest slug={school.slug}/><p className={styles.canonicalNote}>VibeSchool directory listing · Information may be updated as additional sources are confirmed</p></div>
   </>
  </main><SchoolFooter name={school?.school_name} location={[school?.sub_county,school?.county].filter(Boolean).join(', ')}/></div>
 }

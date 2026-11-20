@@ -2,16 +2,17 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { Search, School, SlidersHorizontal, X, MapPin } from 'lucide-react'
+import { Search, School, SlidersHorizontal, X, MapPin, LocateFixed } from 'lucide-react'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { supabase } from '@/lib/supabase'
 import styles from './schools.module.css'
 import SchoolFollowButton from './components/SchoolFollowButton'
 import { schoolUrl, type PublicSchoolAddress } from '@/lib/school-urls'
-import { locationSuggestions, locationSearchCandidate, mergeSchoolMatches, type FilterOption } from '@/lib/school-discovery'
+import { locationSuggestions, locationSearchCandidate, mergeSchoolMatches, normalizeSchoolQuery, roundedSchoolLocation, type FilterOption } from '@/lib/school-discovery'
 
 const LIMIT=100
+type NearbySchool = PublicSchoolAddress & { distance_km?: number | null }
 type FollowStatus = 'loading'|'visitor'|'following'|'not-following'
 
 export default function SchoolsDirectoryPage(){
@@ -22,7 +23,11 @@ export default function SchoolsDirectoryPage(){
  const [options,setOptions]=useState<FilterOption[]>([])
  const [filtersOpen,setFiltersOpen]=useState(false)
  const [ready,setReady]=useState(false)
- const [entries,setEntries]=useState<PublicSchoolAddress[]>([])
+ const [entries,setEntries]=useState<NearbySchool[]>([])
+ const [nearby,setNearby]=useState<{lat:number;lng:number}|null>(null)
+ const [locating,setLocating]=useState(false)
+ const [locationMessage,setLocationMessage]=useState('')
+ const [fuzzy,setFuzzy]=useState(false)
  const [loading,setLoading]=useState(true)
  const [error,setError]=useState('')
  const [optionsError,setOptionsError]=useState(false)
@@ -44,11 +49,18 @@ export default function SchoolsDirectoryPage(){
  },[county,retry])
  useEffect(()=>{
   let cancelled=false
-  setLoading(true);setError('');setPage(0)
+  setLoading(true);setError('');setFuzzy(false);setPage(0)
   const timer=setTimeout(async()=>{
    try{
     const q=query.trim()
     const params={p_county:county||null,p_sub_county:subCounty||null,p_level:level||null,p_limit:LIMIT}
+    if(nearby){
+     const result=await supabase.rpc('schools_discover_public_v1',{...params,p_query:q||null,p_lat:nearby.lat,p_lng:nearby.lng})
+     if(cancelled)return
+     if(result.error)throw new Error('nearby unavailable')
+     const rows=(result.data||[]) as NearbySchool[]
+     setEntries(rows);setHasMore(rows.length===LIMIT);return
+    }
     const [names,locations]=await Promise.all([
      supabase.rpc('schools_search_urls_public_v2',{...params,p_query:q||null}),
      locationCounty||locationSub?supabase.rpc('schools_search_urls_public_v2',{...params,p_query:null,p_county:locationCounty||params.p_county,p_sub_county:locationSub||params.p_sub_county}):Promise.resolve(null)
@@ -56,13 +68,20 @@ export default function SchoolsDirectoryPage(){
     if(cancelled)return
     if(names.error||locations?.error)throw new Error('search failed')
     const merged=mergeSchoolMatches((names.data||[]) as PublicSchoolAddress[],(locations?.data||[]) as PublicSchoolAddress[],LIMIT)
+    if(!merged.length&&normalizeSchoolQuery(q).length>=4){
+     const corrected=await supabase.rpc('schools_discover_public_v1',{...params,p_query:q,p_lat:null,p_lng:null})
+     if(cancelled)return
+     if(!corrected.error&&corrected.data?.length){
+      setEntries(corrected.data as NearbySchool[]);setHasMore(corrected.data.length===LIMIT);setFuzzy(true);return
+     }
+    }
     setEntries(merged);setHasMore(merged.length===LIMIT)
    }catch{
     if(!cancelled){setError('Could not load schools.');setEntries([]);setHasMore(false)}
    }finally{if(!cancelled)setLoading(false)}
   },query?220:0)
   return()=>{cancelled=true;clearTimeout(timer)}
- },[query,county,subCounty,level,retry,locationCounty,locationSub])
+ },[query,county,subCounty,level,retry,locationCounty,locationSub,nearby])
  // Batch follow status for the result set; avoid one authentication/read call per row.
  useEffect(()=>{
   let active=true
@@ -83,7 +102,19 @@ export default function SchoolsDirectoryPage(){
  const shown=entries.slice(0,(page+1)*25)
  const activeFilters=Number(!!county)+Number(!!subCounty)+Number(!!level)
  const followStatus=(slug:string):FollowStatus=>follow?.rows!==entries?'loading':follow.status==='visitor'?'visitor':follow.slugs.has(slug)?'following':'not-following'
- function changeCounty(value:string){setCounty(value);setSubCounty('');setOptions(items=>items.filter(o=>o.option_kind==='county'||o.option_kind==='level'));setLevel('')}
+ function findNearby(){
+  setLocationMessage('')
+  if(nearby){setNearby(null);return}
+  if(!navigator.geolocation){setLocationMessage('Location is unavailable. Search by county instead.');return}
+  setLocating(true)
+  navigator.geolocation.getCurrentPosition(({coords})=>{
+   const point=roundedSchoolLocation(coords.latitude,coords.longitude)
+   setLocating(false)
+   if(!point){setLocationMessage('Nearby discovery is available within Kenya. Search by county instead.');return}
+   setQuery('');setCounty('');setSubCounty('');setNearby(point)
+  },()=>{setLocating(false);setLocationMessage('Location could not be accessed. Search by county instead.')},{enableHighAccuracy:false,timeout:10000,maximumAge:60000})
+ }
+ function changeCounty(value:string){setNearby(null);setCounty(value);setSubCounty('');setOptions(items=>items.filter(o=>o.option_kind==='county'||o.option_kind==='level'));setLevel('')}
  function chooseLocation(kind:FilterOption['option_kind'],value:string){
   if(kind==='county')changeCounty(value)
   else if(kind==='sub_county')setSubCounty(value)
@@ -118,22 +149,24 @@ export default function SchoolsDirectoryPage(){
     {!county&&<small>Select a county first.</small>}
     <button type="button" onClick={()=>{changeCounty('');setQuery('')}}>Reset filters</button>
    </div>}
+   <div className={styles.directoryNearby}><button type="button" disabled={!ready||locating} aria-pressed={!!nearby} onClick={findNearby}><LocateFixed size={16} aria-hidden="true"/>{locating?'Finding location…':nearby?'Show all schools':'Nearby schools'}</button>{nearby&&<small>Within 30 km · approximate locations</small>}</div>
+   {locationMessage&&<p role="status" className={styles.directoryStatus}>{locationMessage}</p>}
    {optionsError&&<p role="alert" className={styles.directoryStatus}>Filters unavailable. <button onClick={()=>setRetry(v=>v+1)}>Retry</button></p>}
    {suggestions.length>0&&<div className={styles.directorySuggestions} aria-label="Location suggestions">
     {suggestions.map(s=><button type="button" key={s.option_kind+s.option_value} onClick={()=>chooseLocation(s.option_kind,s.option_value)}><MapPin size={15} aria-hidden="true"/>{s.option_value}{s.option_kind==='county'?' County':''}</button>)}
    </div>}
-   <div className={styles.directoryHeading}><h2>{query||activeFilters?'Results':'All schools'}</h2>{!loading&&!error&&<span>{hasMore?LIMIT+'+':entries.length}</span>}</div>
-   {error&&<div role="alert" className={styles.directoryStatus}>{error} <button onClick={()=>setRetry(v=>v+1)}>Retry</button></div>}
+   <div className={styles.directoryHeading}><h2>{nearby?'Nearby schools':fuzzy?'Possible matches':query||activeFilters?'Results':'All schools'}</h2>{!loading&&!error&&<span>{hasMore?LIMIT+'+':entries.length}</span>}</div>
+   {error&&<div role="alert" className={styles.directoryStatus}>{nearby?'Nearby search unavailable.':error} <button onClick={()=>setRetry(v=>v+1)}>Retry</button></div>}
    {loading?<p role="status" className={styles.directoryStatus}>Loading schools…</p>:<>
     {follow?.rows===entries&&follow.status==='error'&&<p role="alert" className={styles.directoryStatus}>Follow status unavailable. <button onClick={()=>setRetry(v=>v+1)}>Retry</button></p>}
     <div className={styles.directoryList}>{shown.map(s=><article className={styles.directoryItem} key={s.slug}>
       <Link className={styles.directorySchoolLink} href={schoolUrl(s.slug)}>
        <span className={styles.directoryIcon} aria-hidden="true"><School size={23}/></span>
-       <span className={styles.directoryInfo}><strong>{s.school_name}</strong><small>{[s.sub_county,s.county,s.school_level,s.ownership_type].filter(Boolean).join(' · ')}</small></span>
+       <span className={styles.directoryInfo}><strong>{s.school_name}</strong><small>{[s.sub_county,s.county,s.school_level,s.ownership_type,nearby&&s.distance_km!=null?'~'+Number(s.distance_km).toFixed(1)+' km':null].filter(Boolean).join(' · ')}</small></span>
       </Link>
       {!(follow?.rows===entries&&follow.status==='error')&&<div className={styles.directoryFollow}><SchoolFollowButton slug={s.slug} compact initialStatus={followStatus(s.slug)}/></div>}
      </article>)}</div>
-    {!entries.length&&!error&&<p className={styles.directoryStatus}>No schools found. Try a different name or location.</p>}
+    {!entries.length&&!error&&<p className={styles.directoryStatus}>{nearby?'No mapped schools found within 30 km. Try county search.':'No schools found. Try a different name or location.'}</p>}
     {shown.length<entries.length&&<button className={styles.directoryMore} onClick={()=>setPage(p=>p+1)}>Show more schools</button>}
     {hasMore&&<p className={styles.directoryStatus}>Refine your search to find more schools.</p>}
    </>}

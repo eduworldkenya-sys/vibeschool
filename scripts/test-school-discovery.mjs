@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
-import {locationSuggestions,locationSearchCandidate,mergeSchoolMatches} from '../lib/school-discovery.ts'
+import {locationSuggestions,locationSearchCandidate,mergeSchoolMatches,roundedSchoolLocation} from '../lib/school-discovery.ts'
 const options=[
  {option_kind:'county',option_value:'Kericho'},
  {option_kind:'county',option_value:'Nakuru'},
@@ -22,4 +22,10 @@ test('sub-county suggestions honor selected county and cap deduplicated results'
  assert.equal(locationSuggestions('Gilg',options,'').length,0)
  assert.equal(locationSearchCandidate(locationSuggestions('Gilg',options,'Nakuru'),'Gilg').option_value,'Gilgil')
  assert.equal(mergeSchoolMatches([{slug:'a'}],[{slug:'a'},{slug:'b'}],1).length,1)
+})
+
+test('nearby location uses rounded in-range coordinates only',()=>{
+ assert.deepEqual(roundedSchoolLocation(-1.23456,36.87654),{lat:-1.23,lng:36.88})
+ assert.equal(roundedSchoolLocation(51,0),null)
+ assert.equal(roundedSchoolLocation(NaN,36),null)
 })
