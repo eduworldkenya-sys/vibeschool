@@ -2,6 +2,12 @@
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
 import assert from 'node:assert/strict'
+import {liveSyncDelay} from '../components/live-classroom/LiveSyncPolicy.ts'
+assert.equal(liveSyncDelay('active',0),1250)
+assert.equal(liveSyncDelay(null,0),4000)
+assert.equal(liveSyncDelay('paused',0),4000)
+assert.equal(liveSyncDelay('ended',0),15000)
+assert.deepEqual([1,2,3,4,100].map(n=>liveSyncDelay('active',n)),[5000,10000,20000,30000,30000])
 import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS} from '../components/live-classroom/LiveSlideProtocol.ts'
 import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS} from '../components/live-classroom/LiveBoardProtocol.ts'
 const shape={id:'fixture-rect',kind:'rectangle',x:20,y:25,w:90,h:60,angle:15,color:'#1865c0',stroke:3,locked:true}
@@ -46,6 +52,12 @@ assert.ok(teacherToday.includes('audience === "tuition" || audience === "open"')
 const liveUi=readFileSync(new URL('../components/live-classroom/LiveClassroom.tsx',import.meta.url),'utf8')
 assert.ok(liveUi.includes("act('join',sharedId)"))
 assert.ok(liveUi.includes('Find live lessons'))
+assert.ok(!liveUi.includes('setInterval(()=>void refresh(),4000)'))
+assert.ok(liveUi.includes('liveSyncDelay(active.current?.status??null,failures)'))
+assert.ok(liveUi.includes('stamp!==sequence'))
+assert.ok(liveUi.includes('Edit as new question'))
+assert.ok(liveUi.includes('You → Teacher'))
+assert.ok(liveUi.includes('Teacher → You'))
 assert.ok(liveUi.includes('Share lesson'))
 assert.ok(liveUi.includes('switchBoardPage'))
 assert.ok(liveUi.includes('Previous board page'))
