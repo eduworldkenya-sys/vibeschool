@@ -139,6 +139,7 @@ insert into student_classes values ('${id(30)}','${cls}','${school}',true),('${i
 await db.exec(readFileSync(new URL('../supabase/migrations/20261118075221_live_classroom_pilot.sql',import.meta.url),'utf8'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20261120104500_live_lesson_history_candidate.sql',import.meta.url),'utf8'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20261120104501_live_learner_tools_candidate.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261120104502_live_teacher_workspace.sql',import.meta.url),'utf8'))
 async function rpc(who,action,room=null,version=null,payload={},classId=cls,role='authenticated') {
  await db.exec(`set role ${role}; select set_config('request.jwt.claim.sub','${who||''}',false)`)
  try {return (await db.query('select public.vibe_live_command($1,$2,$3,$4,$5::jsonb) as out',[action,classId,room,version,JSON.stringify(payload)])).rows[0].out}
@@ -156,6 +157,41 @@ await assert.rejects(rpc(a,'start',null,null,{title:'Fake'}),/live_teacher_requi
 await assert.rejects(rpc(null,'list',null,null,{},cls,'anon'),/permission denied/)
 assert.equal((await rpc(a,'join',sid)).teacher,false)
 await rpc(a,'join',sid); await rpc(b,'join',sid)
+const draftFixture={board:objectBoard,boardPages:['',objectBoard,''],boardPage:1,slides:[privateSlide],slideIndex:0,mode:'teach',body:'private draft',key:'',clock:'10:30',composers:{}}
+assert.deepEqual(await rpc(teacher,'workspace_get',sid),{revision:0,draft:null})
+assert.equal((await rpc(teacher,'workspace_save',sid,null,{revision:0,draft:draftFixture})).revision,1)
+assert.deepEqual((await rpc(teacher,'workspace_get',sid)).draft,draftFixture)
+await assert.rejects(rpc(teacher,'workspace_save',sid,null,{revision:0,draft:draftFixture}),/live_workspace_conflict/)
+await assert.rejects(rpc(teacher,'workspace_save',sid,null,{revision:1,draft:{...draftFixture,key:'secret answer'}}),/live_invalid_workspace/)
+await assert.rejects(rpc(a,'workspace_get',sid),/live_teacher_required/)
+await assert.rejects(rpc(b,'workspace_save',sid,null,{revision:1,draft:draftFixture}),/live_teacher_required/)
+await assert.rejects(rpc(otherTeacher,'workspace_get',sid),/live_not_authorized/)
+assert.equal((await rpc(teacher,'workspace_save',sid,null,{revision:1,draft:{...draftFixture,body:'new draft'}})).revision,2)
+assert.equal((await rpc(a,'get',sid)).draft,undefined)
+assert.ok(!JSON.stringify(await rpc(a,'get',sid)).includes(privateSlide.notes))
+const material=id(350)
+assert.deepEqual((await rpc(teacher,'materials_list')).materials,[])
+const savedMaterial=await rpc(teacher,'materials_save',null,null,{id:material,title:'Prepared fractions',revision:0,slides:[privateSlide]})
+assert.equal(savedMaterial.revision,1)
+assert.deepEqual((await rpc(teacher,'materials_get',null,null,{id:material})).slides,[privateSlide])
+assert.equal((await rpc(teacher,'materials_list')).materials[0].slideCount,1)
+assert.deepEqual((await rpc(otherTeacher,'materials_list')).materials,[])
+await assert.rejects(rpc(otherTeacher,'materials_get',null,null,{id:material}),/live_not_authorized/)
+await assert.rejects(rpc(otherTeacher,'materials_save',null,null,{id:material,title:'Hijack',revision:1,slides:[privateSlide]}),/live_not_authorized/)
+await assert.rejects(rpc(otherTeacher,'materials_delete',null,null,{id:material,revision:1}),/live_not_authorized/)
+await assert.rejects(rpc(a,'materials_list'),/live_not_authorized/)
+await assert.rejects(rpc(teacher,'materials_save',null,null,{id:material,title:'Stale',revision:0,slides:[privateSlide]}),/live_material_conflict/)
+assert.equal((await rpc(teacher,'materials_save',null,null,{id:material,title:'Prepared fractions v2',revision:1,slides:[privateSlide]})).revision,2)
+assert.equal((await rpc(teacher,'materials_get',null,null,{id:material})).title,'Prepared fractions v2')
+assert.equal((await rpc(teacher,'materials_delete',null,null,{id:material,revision:2})).deleted,true)
+assert.deepEqual((await rpc(teacher,'materials_list')).materials,[])
+for(const role of ['authenticated','anon','service_role']){
+ await db.exec(`set role ${role}`)
+ try {for(const table of ['teacher_workspace','teacher_materials']){await assert.rejects(db.query(`select * from vibe_live.${table}`),/permission denied/);await assert.rejects(db.query(`delete from vibe_live.${table}`),/permission denied/)}}
+ finally {await db.exec('reset role')}
+}
+console.log('PASS: server draft recovery, revision conflict, private presenter notes, library ownership, CRUD and direct access denial')
+
 assert.deepEqual((await rpc(a,'get',sid)).history,[])
 const noteA='Learner A private note',noteB='Learner B private note'
 assert.equal((await rpc(a,'note',sid,null,{body:noteA})).ownNote,noteA)
@@ -284,6 +320,7 @@ await assert.rejects(rpc(teacher,'reply',sid,null,{questionId:questionB.id,body:
 room=await rpc(teacher,'end',sid,room.version)
 assert.equal((await rpc(a,'get',sid)).status,'ended')
 assert.equal((await rpc(a,'get',sid)).ownNote,noteA)
+await assert.rejects(rpc(teacher,'workspace_save',sid,null,{revision:2,draft:draftFixture}),/live_session_closed/)
 assert.equal((await rpc(a,'get',sid)).history.length,5)
 await assert.rejects(rpc(a,'note',sid,null,{body:'ended session mutation'}),/live_session_closed/)
 await assert.rejects(rpc(a,'join',sid),/session_closed/)
