@@ -247,7 +247,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                   books={activeBooks.map(book => ({id:book.id,title:book.title,href:`/read/textbook/${encodeURIComponent(book.id)}`}))}
                   readers={activeReaders} booksLoading={booksLoading} booksError={booksError || catalogueTruncated}/>
                 <div className={styles.linksRow}>
-                  <Link className={styles.buttonSecondary} href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:activeName}).toString()}>Practise <ArrowRight size={16}/></Link>
+                  <Link className={styles.buttonSecondary} aria-label="Finished learning? Practise this subject" href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:activeName}).toString()}>Practise <ArrowRight size={16}/></Link>
                 </div>
               </section>}
               {tab === 'resources' && <section role="tabpanel" className={styles.detailPanel} aria-label="Supporting resources">
