@@ -44,6 +44,9 @@ function validateDraft(raw:unknown): DraftState | null {
     return {...d,composers:clean}
   } catch { return null }
 }
+function stableDraftFingerprint(value:unknown):string{
+ return JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().filter(k=>k!=='serverRevision').map(k=>[k,item[k]])):item)
+}
 function readDraft(key:string):DraftState|null{try{const raw=sessionStorage.getItem(key);return raw?validateDraft(JSON.parse(raw)):null}catch{return null}}
 function removeDraft(key: string | null) { if(key) try { sessionStorage.removeItem(key) } catch {} }
 function historyFor(room: Room): Prompt[] {
@@ -240,7 +243,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const pendingPublish=useRef<{fingerprint:string;requestId:string}|null>(null)
   const [draftWarning,setDraftWarning]=useState(false)
   const revoke=useCallback(()=>{
-    removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)
+    removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null);setBeforeLibrary(false);preparedDeck.current=null;setPreparedTitle('');setConflictDraft(null)
     pendingPublish.current=null;composerDrafts.current={}
     roomUrl(null);active.current=null;setRoom(null);setRooms([]);setReviewId(null)
     setError('Classroom access is no longer available.')
@@ -406,13 +409,12 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         if(remote.revision>0&&!server)throw Error('Invalid saved workspace')
         revision=remote.revision
         if(server){
-          const {serverRevision:_,...serverState}=server
-          workspaceSaved.current=JSON.stringify(serverState)
-          if(local&&local.serverRevision!==remote.revision&&JSON.stringify({...local,serverRevision:undefined})!==workspaceSaved.current){setConflictDraft(local);draft=server}
+          workspaceSaved.current=stableDraftFingerprint(server)
+          if(local&&local.serverRevision!==remote.revision&&stableDraftFingerprint(local)!==workspaceSaved.current){setConflictDraft(local);draft=server}
           else draft=local??server
         }
         setWorkspaceStatus(revision>0?'Draft restored from server':'Draft ready to save')
-      }catch(e){if(cancelled)return;setWorkspaceStatus('Local recovery only · server draft unavailable')}
+      }catch(e){if(cancelled)return;if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){revoke();return}setWorkspaceStatus('Local recovery only · server draft unavailable')}
       if(cancelled||draftKey.current!==key)return
       setWorkspaceRevision(revision)
       if(draft){restoreDraft(draft)}
@@ -440,14 +442,15 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       preparedDeck.current=null;setPreparedTitle('');setBeforeLibrary(false);setDraftBinding({roomId,key})
     }).catch(()=>{if(!cancelled)setDraftWarning(true)})
     return ()=>{cancelled=true}
-  },[teacher,room?.id,room?.status==='ended',call,workspaceRetry])
+  },[teacher,room?.id,room?.status==='ended',call,workspaceRetry,revoke])
   useEffect(()=>{
     if(!teacher||!room||room.status==='ended'||draftBinding?.roomId!==room.id||draftKey.current!==draftBinding.key)return
     const binding=draftBinding
     const draft:DraftState={board,boardPages:boardPages.map((p,i)=>i===boardPage?board:p),boardPage,slides,slideIndex,mode,body,key:'',clock,composers:Object.fromEntries(Object.entries(composerDrafts.current).map(([m,d])=>[m,{...d,key:''}]))}
-    const fingerprint=JSON.stringify(draft)
+    const fingerprint=stableDraftFingerprint(draft)
+    if(conflictDraft)return
     try {sessionStorage.setItem(binding.key,JSON.stringify({...draft,serverRevision:workspaceRevision??undefined}))}catch{setDraftWarning(true)}
-    if(workspaceRevision===null||!online||conflictDraft||fingerprint===workspaceSaved.current)return
+    if(workspaceRevision===null||!online||fingerprint===workspaceSaved.current)return
     const timer=window.setTimeout(()=>{
       if(workspaceSaving.current!==null||draftKey.current!==binding.key)return
       workspaceSaving.current=binding.key;setWorkspaceStatus('Saving draft…')
@@ -458,11 +461,12 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         workspaceSaved.current=fingerprint;setWorkspaceRevision(next.revision);setWorkspaceStatus('Draft saved')
       }).catch(e=>{
         if(draftKey.current!==binding.key)return
+        if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){revoke();return}
         setWorkspaceRevision(null);setWorkspaceStatus(e instanceof Error&&e.message.includes('conflict')?'Draft conflict · reload saved version':'Draft saved locally · server save needs retry')
       }).finally(()=>{if(workspaceSaving.current===binding.key)workspaceSaving.current=null})
     },650)
     return ()=>window.clearTimeout(timer)
-  },[teacher,room?.id,room?.status,draftBinding,board,boardPages,boardPage,slides,slideIndex,mode,body,clock,workspaceRevision,online,call,conflictDraft])
+  },[teacher,room?.id,room?.status,draftBinding,board,boardPages,boardPage,slides,slideIndex,mode,body,clock,workspaceRevision,online,call,conflictDraft,revoke])
   useEffect(()=>{
     if(room?.status==='ended'){removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)}
   },[room?.status])
