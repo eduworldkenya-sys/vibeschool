@@ -14,7 +14,7 @@ test('Learn and Practice have distinct visible owners without a second question 
  assert.match(library, /useState<'lessons' \| 'resources'>/)
  assert.doesNotMatch(library, /tab === 'practice'/)
  assert.doesNotMatch(library, /tab === 'revision'/)
- assert.match(library, /Finished learning\? Practise this subject/)
+ assert.match(library, /href=\{'\/student\/vibelearn\/topic-practice\?' \+ new URLSearchParams\(\{subject:activeName\}\)\.toString\(\)\}/, 'Learn links to canonical subject-scoped practice')
  assert.match(links, /readers|Published|published/)
  assert.match(links, /mode==='learn'\?learn:practice/)
  assert.match(links, /href:'\/student\/vibelearn\/mistakes'/)
