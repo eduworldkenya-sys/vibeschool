@@ -1,0 +1,44 @@
+{
+  "schema": "vibeschool.content-as-code-manifest.v1",
+  "manuscript": "content/curriculum/production/grade4-mathematics-whole-numbers-1.1.v2.editorial.json",
+  "editorialBlob": "300e0744699ede89e233d12e39e626b68360b5b9",
+  "scope": {
+    "grade": "Grade 4",
+    "subject": "Mathematics",
+    "unit": "1.1",
+    "subStrandId": "0f130af0-8f3c-433a-a0df-453927dece7f",
+    "resourcePrefix": "vs:g4:mathematics:whole-numbers:",
+    "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+    "officialListing": "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-four-designs/",
+    "alternateViewer": "https://drive.google.com/file/d/1o5tDq16yC0Jj1h6zb9mo3dsxtjqXUk4G/preview",
+    "outcomeCodes": [
+      "G4-MATH-1.1-a",
+      "G4-MATH-1.1-b",
+      "G4-MATH-1.1-c",
+      "G4-MATH-1.1-d",
+      "G4-MATH-1.1-e",
+      "G4-MATH-1.1-f",
+      "G4-MATH-1.1-g",
+      "G4-MATH-1.1-h",
+      "G4-MATH-1.1-i",
+      "G4-MATH-1.1-j",
+      "G4-MATH-1.1-k"
+    ]
+  },
+  "version": 2,
+  "components": {
+    "learner": "8965c364-7223-49a8-9c25-f743f6498374",
+    "practice": "c2763ead-7e12-4844-be5d-286e1ddd596b",
+    "assessment": "ddcaf64d-ee94-43ca-aa7d-01f612bcc533",
+    "marking": "4bde6a41-f15a-45b9-86bf-f68d060933f6",
+    "revision": "5f80b35d-42f4-4fbf-bcce-a9f37b972f44",
+    "teacher": "88684db9-0107-4bbd-9d3a-2bd4d92c1d27"
+  },
+  "expected": {
+    "reader": 11,
+    "practice": 12,
+    "assessment": 11,
+    "marks": 16,
+    "visuals": 4
+  }
+}
