@@ -9,6 +9,7 @@ import { modeLabel, summarizeDays, summarizeParts, type DemoRequest, type DemoTu
 
 export function TutorCard({ t, compact = false, score }: { t: DemoTutor; compact?: boolean; score?: number }) {
   const [open, setOpen] = useState(false)
+  if (!t.real) return null
   return (
     <>
       {compact ? <button type="button" className={styles.discoveryRow} onClick={() => setOpen(true)}>
@@ -49,9 +50,7 @@ export function TutorCard({ t, compact = false, score }: { t: DemoTutor; compact
           <p className={styles.meta}><strong>Availability:</strong> {t.real ? summarizeDays(t.days) : 'By request'}</p>
           <p className={styles.modalPrice}>{t.real ? 'KSh ' : 'Indicative KSh '}{t.rateKes.toLocaleString('en-KE')} / hour</p>
           <p className={styles.hint}>{t.real ? 'Sign in to discuss tuition arrangements.' : 'Sample profile. Request a matching tutor.'}</p>
-          {t.real
-            ? <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>
-            : <Link href={'/vibetutor/post-request?example=' + encodeURIComponent(t.id)} className={styles.modalSignIn}>Request tutor</Link>}
+          <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>
         </section>
       </div>}
     </>
