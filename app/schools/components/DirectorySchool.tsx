@@ -17,7 +17,7 @@ export default function DirectorySchoolPage({school,section}:{school:PublicSchoo
  const facts: [string,string|null][] = school?[
   ['County',school.county],['Sub-county',school.sub_county],['Level',school.school_level],['Ownership',school.ownership_type],['KNEC code',school.knec_code]
  ]:[]
- return <div className={styles.page}><PublicHeader product="Schools"/>
+ return <div className={`${styles.page} ${styles.schoolProfilePage}`}><PublicHeader product="Schools"/>
  <main id="main-content" className={styles.directoryMain}>
   <nav aria-label="Breadcrumb" className={styles.schoolBreadcrumb}><Link href="/schools">Schools</Link><span aria-hidden="true">/</span><span aria-current="page">{school?.school_name||"School"}</span></nav>
   <>

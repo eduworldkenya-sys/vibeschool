@@ -113,7 +113,7 @@
 @media(max-width:600px){.directoryFilters{grid-template-columns:1fr 1fr}.directoryFilters label:first-child{grid-column:1/-1}}
 
 /* Discovery only: consistent page palette (including native form controls), compact mobile layout. */
-.directoryPage{background:var(--school-bg);color:var(--school-text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:light;--school-bg:#f6f8fb;--school-surface:#fff;--school-text:#172435;--school-muted:#536375;--school-border:#dce2ec;--school-accent:#6836c9;--school-soft:#eee8fa}
+.directoryPage,.schoolProfilePage{background:var(--school-bg);color:var(--school-text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:light;--school-bg:#f6f8fb;--school-surface:#fff;--school-text:#172435;--school-muted:#536375;--school-border:#dce2ec;--school-accent:#6836c9;--school-soft:#eee8fa}
 .directoryMain{box-sizing:border-box;padding:20px 16px 48px;min-height:65vh}
 .directoryTop{display:flex;align-items:center;justify-content:space-between}
 .directoryTitle{font:750 clamp(23px,4vw,30px)/1.2 system-ui,sans-serif;letter-spacing:-.035em;margin:0 0 12px}
@@ -153,7 +153,22 @@
 .directoryMore{border-color:var(--school-border);color:var(--school-text)}
 .directorySr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .directoryPage button:focus-visible,.directoryPage a:focus-visible,.directoryPage select:focus-visible{outline:2px solid var(--school-accent);outline-offset:2px}
-@media(prefers-color-scheme:dark){.directoryPage{color-scheme:dark;--school-bg:#161820;--school-surface:#20232c;--school-text:#f3f4f8;--school-muted:#b4bed0;--school-border:#3b4150;--school-accent:#c3a7ff;--school-soft:#302746}.directorySearch input{color:var(--school-text)}.directorySearch input::placeholder{color:var(--school-muted)}}
+@media(prefers-color-scheme:dark){.directoryPage,.schoolProfilePage{color-scheme:dark;--school-bg:#161820;--school-surface:#20232c;--school-text:#f3f4f8;--school-muted:#b4bed0;--school-border:#3b4150;--school-accent:#c3a7ff;--school-soft:#302746}.directorySearch input{color:var(--school-text)}.directorySearch input::placeholder{color:var(--school-muted)}}
 @media(max-width:360px){.directoryMain{padding:14px 12px 40px}.directoryFilters{gap:5px}.directoryFilterButton{padding:7px 5px}.directoryFollow button{padding:7px 8px}.directoryIcon{width:34px;height:34px}.directorySchoolLink{gap:7px}}
 
 .directoryNearby{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0}.directoryNearby button{display:flex;align-items:center;gap:6px;min-height:44px;padding:8px 12px;background:var(--school-surface);border:1px solid var(--school-border);border-radius:12px;color:var(--school-accent);font:inherit;font-size:13px;font-weight:650;cursor:pointer}.directoryNearby button[aria-pressed=true]{background:var(--school-soft)}.directoryNearby small{font-size:12px;color:var(--school-muted)}.schoolCorrectionForm{display:grid;gap:8px;margin:8px 0;max-width:540px}.schoolCorrectionForm textarea{box-sizing:border-box;width:100%;min-height:100px;resize:vertical;border:1px solid #cbd5de;border-radius:10px;padding:10px;font:inherit;color:inherit;background:transparent}.schoolCorrectionForm button{justify-self:start}.schoolCorrectionForm p{font-size:13px;margin:0;overflow-wrap:anywhere}
+
+/* Match the directory's existing device-driven palette on school profiles and forms. */
+.schoolCorrectionForm textarea{border-color:var(--school-border);background:var(--school-surface);color:var(--school-text);color-scheme:inherit}
+.schoolCorrectionForm textarea::placeholder{color:var(--school-muted)}
+.schoolCorrectionForm a{color:var(--school-accent);text-decoration:underline}
+@media(prefers-color-scheme:dark){
+ .schoolProfilePage .canonicalHero,.schoolProfilePage .canonicalBody,.schoolProfilePage .schoolPageNav,.schoolProfilePage .schoolSiteFooter,.schoolProfilePage .panel,.schoolProfilePage .schoolApproxMap{background:var(--school-surface);color:var(--school-text);border-color:var(--school-border)}
+ .schoolProfilePage .canonicalTitle,.schoolProfilePage .canonicalFact strong,.schoolProfilePage .canonicalSection p,.schoolProfilePage .schoolPageNav a{color:var(--school-text)}
+ .schoolProfilePage .canonicalLocation,.schoolProfilePage .canonicalFact span,.schoolProfilePage .canonicalManage p,.schoolProfilePage .canonicalNote,.schoolProfilePage .schoolSiteFooter p,.schoolProfilePage .schoolSiteFooter small,.schoolProfilePage .schoolApproxMap>p,.schoolProfilePage .meta,.schoolProfilePage .field>span,.schoolProfilePage .eyebrow{color:var(--school-muted)}
+ .schoolProfilePage .canonicalChips span,.schoolProfilePage .schoolPageNav a[aria-current=page],.schoolProfilePage .secondary,.schoolProfilePage .schoolCover,.schoolProfilePage .canonicalPlaceholder{background:var(--school-soft);color:var(--school-text)}
+ .schoolProfilePage .canonicalSection,.schoolProfilePage .siteFact,.schoolProfilePage .siteSection{border-color:var(--school-border)}
+ .schoolProfilePage .canonicalCorrection,.schoolProfilePage .schoolApproxMapLinks a,.schoolProfilePage .schoolSiteFooter a{color:var(--school-accent)}
+ .schoolProfilePage .input,.schoolProfilePage .select,.schoolProfilePage .textarea{background:var(--school-bg);color:var(--school-text);border-color:var(--school-border)}
+ .schoolProfilePage .primary{background:var(--school-accent);color:var(--school-bg)}
+}
