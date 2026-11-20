@@ -1,4 +1,5 @@
-import { SLIDE_DIAGRAMS, type SlideDiagram } from './LiveSlideProtocol'
+import type { SlideDiagram } from './LiveSlideProtocol'
+export const BOARD_DIAGRAMS:readonly SlideDiagram[]=['fraction-circle','fraction-bars','number-line','ruler','protractor','coordinate-grid','counters','base-ten','clock','money','solids','handwriting','music']
 export const BOARD_LIMIT=3500
 export const BOARD_COLORS=['#182b3a','#1865c0','#bf3038','#167d58','#a06a05','#7e41b6'] as const
 export const BOARD_KINDS=['pen','highlighter','line','rectangle','triangle','ellipse','arrow','text','diagram'] as const
@@ -17,7 +18,7 @@ export function validBoardObject(o:unknown):o is BoardObject {
  if(path){if(!Array.isArray(x.points)||x.points.length<2||x.points.length>480||x.points.length%2!==0||!x.points.every(n=>integer(n,0,1000)))return false}
  else if(x.points!==undefined)return false
  if(x.kind==='text'){if(typeof x.text!=='string'||!x.text.trim()||x.text.length>180)return false}else if(x.text!==undefined)return false
- if(x.kind==='diagram'){if(!x.diagram||x.diagram==='none'||!SLIDE_DIAGRAMS.includes(x.diagram))return false}else if(x.diagram!==undefined)return false
+ if(x.kind==='diagram'){if(!x.diagram||x.diagram==='none'||!BOARD_DIAGRAMS.includes(x.diagram))return false}else if(x.diagram!==undefined)return false
  return true
 }
 export function validBoard(d:unknown):d is BoardDocument{
