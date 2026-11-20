@@ -10,6 +10,8 @@ on:
       - 'app/teacher/classhub/**'
       - 'components/live-classroom/**'
       - 'supabase/migrations/*live_classroom*'
+      - 'supabase/migrations/*live_lesson_history*'
+      - 'supabase/migrations/*live_learner_tools*'
       - 'scripts/test-live-classroom-pilot.mjs'
       - '.github/workflows/live-classroom-pilot.yml'
   push:
@@ -17,6 +19,8 @@ on:
     paths:
       - 'components/live-classroom/**'
       - 'supabase/migrations/*live_classroom*'
+      - 'supabase/migrations/*live_lesson_history*'
+      - 'supabase/migrations/*live_learner_tools*'
       - 'scripts/test-live-classroom-pilot.mjs'
       - '.github/workflows/live-classroom-pilot.yml'
 permissions:
