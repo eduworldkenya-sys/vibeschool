@@ -73,6 +73,7 @@ function TeacherSticker({prompt,hidden,onHide}:{prompt:Prompt|null|undefined;hid
    const parent=box.current?.parentElement
    if(!parent)return
    const resize=()=>setPosition(p=>p?clamp(p.left,p.top,p.width):p)
+   resize()
    if(typeof ResizeObserver==='undefined'){window.addEventListener('resize',resize);return ()=>window.removeEventListener('resize',resize)}
    const observer=new ResizeObserver(resize);observer.observe(parent)
    return ()=>observer.disconnect()
@@ -145,6 +146,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const immersiveRef=useRef<HTMLElement>(null)
   const boardInitialized=useRef(false)
   const drawing=useRef(false)
+  const touches=useRef(new Map<number,{x:number;y:number}>())
+  const pinch=useRef<{distance:number;zoom:number}|null>(null)
+  const touchDraft=useRef<{board:string;undo:string[];redo:string[]}|null>(null)
   const [rooms,setRooms] = useState<Summary[]>([])
   const [search,setSearch]=useState('')
   const [scope,setScope]=useState<'all'|ClassroomMode>('all')
@@ -269,7 +273,25 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       return true
     }).join('|')
   }
+  function touchDistance(){
+    const [a,b]=Array.from(touches.current.values())
+    return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0
+  }
   function drawStart(event:PointerEvent<SVGSVGElement>){
+    if(event.pointerType==='touch'){
+      touches.current.set(event.pointerId,{x:event.clientX,y:event.clientY})
+      event.currentTarget.setPointerCapture(event.pointerId)
+      if(touches.current.size>=2){
+        if(!pinch.current){
+          pinch.current={distance:Math.max(1,touchDistance()),zoom:boardZoom}
+          if(touchDraft.current){const saved=touchDraft.current;setBoard(saved.board);setUndoBoards(saved.undo);setRedoBoards(saved.redo)}
+          drawing.current=false;shapeAnchor.current=null;touchDraft.current=null
+        }
+        return
+      }
+      if(pinch.current)return
+      touchDraft.current={board,undo:undoBoards,redo:redoBoards}
+    }
     if(drawing.current||!event.isPrimary||event.button!==0)return
     event.currentTarget.setPointerCapture(event.pointerId);drawing.current=true;rememberBoard()
     const xy=point(event)
@@ -278,19 +300,32 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     setBoard(value=>eraser?eraseAt(value,xy):appendStroke(value,xy+';'))
   }
   function drawMove(event:PointerEvent<SVGSVGElement>){
+    if(event.pointerType==='touch'&&touches.current.has(event.pointerId)){
+      touches.current.set(event.pointerId,{x:event.clientX,y:event.clientY})
+      if(pinch.current){
+        if(touches.current.size>=2)setBoardZoom(Math.max(1,Math.min(2,pinch.current.zoom*touchDistance()/pinch.current.distance)))
+        return
+      }
+    }
     if(!drawing.current||!event.isPrimary)return
     const xy=point(event),anchor=shapeAnchor.current
     if(anchor){setBoard(appendStroke(anchor.base,shapeStroke(shapeTool,anchor.start,xy)));return}
     setBoard(value=>{if(eraser)return eraseAt(value,xy);const last=value.split('|').at(-1)||'';if(!last||last.split(';').filter(Boolean).slice(-1)[0]===xy||last.split(';').length>=501||value.length+xy.length+1>BOARD_LIMIT)return value;return value+xy+';'})
   }
-  function drawStop(){drawing.current=false;shapeAnchor.current=null}
+  function drawStop(event:PointerEvent<SVGSVGElement>){
+    if(event.pointerType==='touch'){
+      touches.current.delete(event.pointerId)
+      if(!touches.current.size){pinch.current=null;touchDraft.current=null}
+    }
+    drawing.current=false;shapeAnchor.current=null
+  }
   const content=mode==='clock'?clock:mode==='board'?board:body
   const participants=room?.participants??[]
   const visibleRooms=rooms.filter(item=>teacher||((scope==='all'||item.mode===scope)&&(!search.trim()||item.title.toLowerCase().includes(search.trim().toLowerCase())))).sort((a,b)=>Number(b.id===sharedId)-Number(a.id===sharedId))
   const prompt=room?.prompt
   const immersive=!!room&&room.status!=='ended'
   useEffect(()=>{
-    boardInitialized.current=false;setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
+    boardInitialized.current=false;setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);setEraser(false);setShapeTool('pen');setBoardZoom(1);setFocusDock(false);shapeAnchor.current=null;drawing.current=false;touches.current.clear();pinch.current=null;touchDraft.current=null;setSlides([{title:'',body:''}]);setSlideIndex(0);setBody('');setKey('')
   },[room?.id])
   useEffect(()=>{
     if(!immersive)return
