@@ -1,0 +1,478 @@
+{
+  "schema": "vibeschool.originals.editorial-textbook-unit.v1",
+  "status": "EDITORIAL_CANDIDATE_ONLY_NOT_IMPORTED_NOT_PUBLISHED",
+  "grade": "Grade 4",
+  "subject": "Mathematics",
+  "strand": "Numbers",
+  "unit": "1.1",
+  "title": "Whole Numbers",
+  "source": {
+    "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+    "edition": "2024 revised regular curriculum",
+    "printedPages": [
+      1,
+      2,
+      3
+    ],
+    "observation": "Source text checked, screenshot cache miss; authority source registration and independent acceptance pending."
+  },
+  "manuscript": "https://github.com/eduworldkenya-sys/vibeschool/issues/1814#issuecomment-7016747697",
+  "target": {
+    "proposedPublicationId": "6fc551d7-c9ae-4402-ac52-3d0a46461e87",
+    "existingChapterId": "b23413c2-f7ae-44c2-9f5e-98f3cdeeeb8a",
+    "subStrandId": "0f130af0-8f3c-433a-a0df-453927dece7f",
+    "otherLegacyPublicationId": "2745c031-65be-47de-bd75-1e1db74d4123",
+    "status": "PROPOSED_RECONCILIATION_REQUIRED"
+  },
+  "reader": [
+    {
+      "id": "WN-intro",
+      "title": "Whole Numbers",
+      "markdown": "At a school tree nursery, children count seedlings, label trays and record how many trees are ready for planting. They use whole numbers. Whole numbers start at zero and continue as 0, 1, 2, 3, 4 and so on. They help us answer questions about how many things there are.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-k"
+      ]
+    },
+    {
+      "id": "WN-01",
+      "title": "Place value and total value",
+      "markdown": "The digits 0 to 9 can make many different numbers. The position of a digit tells us its place value. Its total value is the amount that digit contributes.\n\n| Ten thousands | Thousands | Hundreds | Tens | Ones |\n|---:|---:|---:|---:|---:|\n| 1 | 2 | 4 | 5 | 3 |\n\nIn 12,453, the digit 2 is in the thousands place and its total value is 2,000. The digit 5 is in the tens place and its total value is 50. The expanded form is 10,000 + 2,000 + 400 + 50 + 3. In 6,072 the zero holds the hundreds place; there are no hundreds in the number.\n\nActivity: draw five columns and use paper digit cards to form 15,204. Swap the 5 and 2. Explain how the total values have changed. Answer: 5 changes from 5,000 to 500; 2 changes from 200 to 2,000.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-a"
+      ],
+      "learningScope": "through ten-thousands"
+    },
+    {
+      "id": "WN-02",
+      "title": "Reading and writing numerals",
+      "markdown": "A numeral is a symbol used to represent a number. When writing a whole number, fill every place needed, even when the digit is zero. For example, nine thousands, no hundreds, four tens and two ones make 9,042. Ten thousand is written 10,000. A nursery record showing 4,008 seedlings means four thousand and eight seedlings, not 408.\n\nTry: write the numeral for seven thousands, three hundreds and six ones. Answer: 7,306.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-b"
+      ],
+      "learningScope": "up to 10,000 in figures"
+    },
+    {
+      "id": "WN-03",
+      "title": "Writing numbers in words",
+      "markdown": "Read hundreds first, then tens and ones. The numbers 305 and 350 look similar but have different meanings: three hundred and five; three hundred and fifty. Write 746 as seven hundred and forty-six. The number 1,000 is one thousand. Include the hyphen in compound words such as forty-six.\n\nActivity: write three numbers between 100 and 1,000 on cards; exchange cards and write each in words, then check together.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-c"
+      ],
+      "learningScope": "up to 1,000 in words"
+    },
+    {
+      "id": "WN-04",
+      "title": "Ordering numbers",
+      "markdown": "First compare how many digits each number has (ignore any zeros written before the number). A whole number with more digits is greater. For example, 98 has two digits and 102 has three, so 98 is less than 102. If the numbers have the same number of digits, compare from the left. For 482 and 428, the hundreds digits are equal, so compare tens: 8 tens is more than 2 tens. Thus 482 is greater than 428. Ascending order means smallest to largest; descending order reverses it.\n\nExample: order 98, 601, 106, 1,000, 610, 160 from smallest to largest. Answer: 98, 106, 160, 601, 610, 1,000. The symbol < means less than; > means greater than.\n\nActivity: make number cards for 9, 90, 99, 100 and 1,000. Arrange them in ascending and descending order. Explain why 99 comes before 100.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-d"
+      ],
+      "learningScope": "up to 1,000"
+    },
+    {
+      "id": "WN-05",
+      "title": "Rounding to the nearest ten",
+      "markdown": "A rounded number is an estimate. Locate the two neighbouring multiples of ten. For 346 they are 340 and 350. The distances are 6 and 4, so 346 rounds to 350. If the ones digit is 0–4, round down or stay at the same ten; if it is 5–9, round up. Thus 345 rounds to 350 by the usual halfway convention. A number already ending in zero stays unchanged.\n\nNumber-line illustration:\n340 ─ 341 ─ 342 ─ 343 ─ 344 ─ 345 ─ 346 ─ 347 ─ 348 ─ 349 ─ 350\n346 is closer to 350 than 340.\nActivity: a class collected 97 bottle tops for mathematics. Estimate the total to the nearest ten. Answer: 100.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-e"
+      ],
+      "learningScope": "up to 1,000, nearest ten"
+    },
+    {
+      "id": "WN-06",
+      "title": "Factors",
+      "markdown": "A factor divides a whole number exactly, leaving no remainder. Imagine arranging 18 counters in equal rows. The arrangements are 1 × 18, 2 × 9 and 3 × 6. The factors of 18 are 1, 2, 3, 6, 9 and 18. Every positive whole number has 1 and itself as factors.\nTry: arrange 24 counters in all possible rectangular arrays and list the factors. Answer: 1, 2, 3, 4, 6, 8, 12, 24. Do not list a factor twice.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-f"
+      ],
+      "learningScope": "numbers up to 50"
+    },
+    {
+      "id": "WN-07",
+      "title": "Multiples",
+      "markdown": "Multiples are made by multiplying a number by whole numbers. Counting in sixes gives positive multiples of 6: 6, 12, 18, 24, 30, ... . Zero is also a multiple, because 6 × 0 = 0. The factors of 6 divide 6; the multiples of 6 are products of 6. If a pack holds 8 pencils, 4 packs hold 32 pencils, so 32 is a multiple of 8.\nActivity: list the positive multiples of 9 that are less than or equal to 50. Answer: 9, 18, 27, 36, 45.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-g"
+      ],
+      "learningScope": "positive multiples within 100"
+    },
+    {
+      "id": "WN-08",
+      "title": "Even and odd numbers",
+      "markdown": "Make pairs of objects. An even number can be paired with none left over; an odd number has one left over. 8 is even; 9 is odd. Check the last digit of a number. A number ending in 0, 2, 4, 6 or 8 is even. A number ending in 1, 3, 5, 7 or 9 is odd. Zero is even.\nIllustration: 8 counters: ●● ●● ●● ●●; 9 counters: ●● ●● ●● ●● ● (one unpaired).\nActivity: select numbers from 1 to 100 and sort into even and odd groups.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-h"
+      ],
+      "learningScope": "numbers within 100"
+    },
+    {
+      "id": "WN-09",
+      "title": "Number patterns",
+      "markdown": "Look at 12, 14, 16, 18: add 2 each time. Every number is even. Look at 35, 33, 31, 29: subtract 2 each time. Every number is odd. Patterns also help us plan rows, arrange seats and count objects.\nTry: complete 21, 23, __, __, 29. Answer: 25, 27. Explain the rule.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-i"
+      ],
+      "learningScope": "even/odd patterns within 100"
+    },
+    {
+      "id": "WN-10",
+      "title": "Roman numerals",
+      "markdown": "Roman numerals use letters to represent numbers. I stands for one, V for five, and X for ten. When I appears immediately before V it means one less than five (IV), and before X it means one less than ten (IX). After V, I is added.\n\n| Number | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |\n|---|---|---|---|---|---|---|---|---|---|---|\n| Roman | I | II | III | IV | V | VI | VII | VIII | IX | X |\n\nTry: create chapter labels I to X. Which label comes after VIII? IX.",
+      "sourceOutcomeCodes": [
+        "G4-MATH-1.1-j"
+      ],
+      "learningScope": "I to X"
+    }
+  ],
+  "practice": [
+    {
+      "id": "WN-P01",
+      "outcomeCode": "G4-MATH-1.1-a",
+      "prompt": "In 14,263, what is the place of 4?"
+    },
+    {
+      "id": "WN-P02",
+      "outcomeCode": "G4-MATH-1.1-a",
+      "prompt": "What is the total value of 2 in 14,263?"
+    },
+    {
+      "id": "WN-P03",
+      "outcomeCode": "G4-MATH-1.1-b",
+      "prompt": "Write 8 thousands, 0 hundreds, 5 tens and 2 ones as a numeral."
+    },
+    {
+      "id": "WN-P04",
+      "outcomeCode": "G4-MATH-1.1-c",
+      "prompt": "Write 908 in words."
+    },
+    {
+      "id": "WN-P05",
+      "outcomeCode": "G4-MATH-1.1-d",
+      "prompt": "Arrange 89, 712, 217, 721 and 1,000 in ascending order."
+    },
+    {
+      "id": "WN-P06",
+      "outcomeCode": "G4-MATH-1.1-e",
+      "prompt": "Round 675 to the nearest ten."
+    },
+    {
+      "id": "WN-P07",
+      "outcomeCode": "G4-MATH-1.1-f",
+      "prompt": "List the factors of 20."
+    },
+    {
+      "id": "WN-P08",
+      "outcomeCode": "G4-MATH-1.1-g",
+      "prompt": "List the positive multiples of 7 up to 35."
+    },
+    {
+      "id": "WN-P09",
+      "outcomeCode": "G4-MATH-1.1-h",
+      "prompt": "Which are odd: 14, 21, 50, 99?"
+    },
+    {
+      "id": "WN-P10",
+      "outcomeCode": "G4-MATH-1.1-i",
+      "prompt": "Continue 96, 94, 92, __, __."
+    },
+    {
+      "id": "WN-P11",
+      "outcomeCode": "G4-MATH-1.1-j",
+      "prompt": "Write 9 using Roman numerals."
+    },
+    {
+      "id": "WN-P12",
+      "outcomeCode": "G4-MATH-1.1-e",
+      "prompt": "A school has 483 exercise books. Estimate to the nearest ten and explain why the estimate differs from the exact count."
+    }
+  ],
+  "assessment": [
+    {
+      "id": "A01",
+      "marks": 2,
+      "outcomeCode": "G4-MATH-1.1-a",
+      "prompt": "Give the place value and total value of 3 in 13,086."
+    },
+    {
+      "id": "A02",
+      "marks": 1,
+      "outcomeCode": "G4-MATH-1.1-b",
+      "prompt": "Write 6 thousands, 7 hundreds, no tens and 4 ones as a numeral."
+    },
+    {
+      "id": "A03",
+      "marks": 1,
+      "outcomeCode": "G4-MATH-1.1-c",
+      "prompt": "Write 592 in words."
+    },
+    {
+      "id": "A04",
+      "marks": 2,
+      "outcomeCode": "G4-MATH-1.1-d",
+      "prompt": "Arrange 449, 494, 89, 409 and 1,000 in descending order."
+    },
+    {
+      "id": "A05",
+      "marks": 1,
+      "outcomeCode": "G4-MATH-1.1-e",
+      "prompt": "Round 995 to the nearest ten."
+    },
+    {
+      "id": "A06",
+      "marks": 2,
+      "outcomeCode": "G4-MATH-1.1-f",
+      "prompt": "List the factors of 36."
+    },
+    {
+      "id": "A07",
+      "marks": 1,
+      "outcomeCode": "G4-MATH-1.1-g",
+      "prompt": "Give the first four positive multiples of 12."
+    },
+    {
+      "id": "A08",
+      "marks": 1,
+      "outcomeCode": "G4-MATH-1.1-h",
+      "prompt": "Identify the odd numbers in 26, 37, 58, 71."
+    },
+    {
+      "id": "A09",
+      "marks": 2,
+      "outcomeCode": "G4-MATH-1.1-i",
+      "prompt": "Extend 43, 45, 47 by two terms and explain the rule."
+    },
+    {
+      "id": "A10",
+      "marks": 1,
+      "outcomeCode": "G4-MATH-1.1-j",
+      "prompt": "Write the Roman numeral for 6."
+    },
+    {
+      "id": "A11",
+      "marks": 2,
+      "outcomeCode": "G4-MATH-1.1-k",
+      "prompt": "Describe a situation where an exact count and an estimate serve different purposes."
+    }
+  ],
+  "revision": "Place identifies position; value identifies amount. Compare digit counts first, then compare equal-length numbers from left to right. Round using neighbouring tens. Factors divide, multiples are products. Check last digit for parity. Roman numerals I–X. Ask learner to explain one real use for each concept.",
+  "teacherGuide": "Suggested pacing: place/value and numerals; words/order; rounding; factors and multiples; even/odd patterns; Roman numerals and consolidation. This pacing is a VibeSchool suggestion, not an official allocated period count. Use locally available counters, handwritten digit cards, a number line and a chart. Start with a diagnostic comparison of 206 and 260. Demonstrate, pair activity, individual checks, then correction. Invite turn-taking and respectful discussion. Differentiate with three-digit place charts, colour-independent position labels and physical pairing; extend with explanation of multiple vs factor and a learner-created pattern within limits. Remediate rounding with a number line, zeros with empty labelled columns, factors with arrays. Enrich by designing an inventory label or Roman numbered mini-book. Link estimation to distances in Social Studies. Accessible visuals: render labelled place table, number line and paired counters as responsive native blocks with text equivalents; no reliance on colour alone. Assessment feedback maps A01–A11 and WN-P01–12 to the corresponding section above; registry IDs must be joined to verified source-bound outcomes before release. Include a mixed-length comparison such as 99 and 100 before ordering equal-length numerals. For optional digital practice, use an available offline calculator or number game to check multiples and parity; pair learners if devices are limited, and use number cards as an equivalent alternative.",
+  "visualCandidates": [
+    {
+      "id": "WN-V01",
+      "kind": "table",
+      "title": "Place-value chart",
+      "columns": [
+        "Ten thousands",
+        "Thousands",
+        "Hundreds",
+        "Tens",
+        "Ones"
+      ],
+      "rows": [
+        [
+          1,
+          2,
+          4,
+          5,
+          3
+        ]
+      ],
+      "alt": "12,453 consists of one ten thousand, two thousands, four hundreds, five tens and three ones."
+    },
+    {
+      "id": "WN-V02",
+      "kind": "number_line",
+      "title": "Round 346 to the nearest ten",
+      "min": 340,
+      "max": 350,
+      "step": 1,
+      "selected": 346,
+      "alt": "346 is six away from 340 and four away from 350, so round to 350."
+    },
+    {
+      "id": "WN-V03",
+      "kind": "counter_pairs",
+      "title": "Even and odd",
+      "groups": [
+        {
+          "pairs": 4,
+          "leftover": 0,
+          "total": 8
+        },
+        {
+          "pairs": 4,
+          "leftover": 1,
+          "total": 9
+        }
+      ],
+      "alt": "Eight counters make four complete pairs; nine make four pairs with one left over."
+    },
+    {
+      "id": "WN-V04",
+      "kind": "array",
+      "title": "Factor pairs of 18",
+      "dimensions": [
+        [
+          1,
+          18
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          6
+        ]
+      ],
+      "alt": "Eighteen counters can form one row of eighteen, two rows of nine or three rows of six."
+    }
+  ],
+  "editorialIssues": [
+    "Existing place value editorial lesson VS-G04-MA-1.1-L01 remains reusable; do not replicate its questions.",
+    "KICD outcome k is addressed by practical applications across the reader and A11; official IDs remain draft.",
+    "Native visual render, approved authority source, independent review, authenticated integration, and chapter release gates are outstanding.",
+    "Revision 2 repairs mixed-length ordering and adds an optional digital learning experience. Revision 1 remains the exact imported private candidate; do not overwrite or certify it. Separate review, native visual rendering, immutable v2 intake, approval and learner delivery remain required."
+  ],
+  "practiceFeedback": [
+    {
+      "itemId": "WN-P01",
+      "answer": "Thousands",
+      "explanation": "It is the fourth place from the right."
+    },
+    {
+      "itemId": "WN-P02",
+      "answer": "200",
+      "explanation": "It is in the hundreds place."
+    },
+    {
+      "itemId": "WN-P03",
+      "answer": "8,052",
+      "explanation": "Include the zero in the hundreds position."
+    },
+    {
+      "itemId": "WN-P04",
+      "answer": "Nine hundred and eight",
+      "explanation": "There are no tens."
+    },
+    {
+      "itemId": "WN-P05",
+      "answer": "89, 217, 712, 721, 1,000",
+      "explanation": "89 has fewer digits than the three-digit numbers; 1,000 has more. Among three-digit numbers, compare hundreds, then tens."
+    },
+    {
+      "itemId": "WN-P06",
+      "answer": "680",
+      "explanation": "Halfway rounds up."
+    },
+    {
+      "itemId": "WN-P07",
+      "answer": "1, 2, 4, 5, 10, 20",
+      "explanation": "Factor pairs are 1 × 20, 2 × 10 and 4 × 5."
+    },
+    {
+      "itemId": "WN-P08",
+      "answer": "7, 14, 21, 28, 35",
+      "explanation": "Multiply 7 by 1 through 5."
+    },
+    {
+      "itemId": "WN-P09",
+      "answer": "21 and 99",
+      "explanation": "Their ones digits are odd."
+    },
+    {
+      "itemId": "WN-P10",
+      "answer": "90, 88",
+      "explanation": "Subtract 2 each time."
+    },
+    {
+      "itemId": "WN-P11",
+      "answer": "IX",
+      "explanation": "One less than ten."
+    },
+    {
+      "itemId": "WN-P12",
+      "answer": "480",
+      "explanation": "483 is closer to 480 than 490. The exact count is still 483."
+    }
+  ],
+  "assessmentMarkingGuide": [
+    {
+      "itemId": "A01",
+      "answer": "Thousands; 3,000",
+      "rubric": "1 mark each"
+    },
+    {
+      "itemId": "A02",
+      "answer": "6,704",
+      "rubric": "1 mark"
+    },
+    {
+      "itemId": "A03",
+      "answer": "Five hundred and ninety-two",
+      "rubric": "1 mark"
+    },
+    {
+      "itemId": "A04",
+      "answer": "1,000, 494, 449, 409, 89",
+      "rubric": "2 marks all correct; 1 mark if both endpoints are correct but the middle order is incorrect."
+    },
+    {
+      "itemId": "A05",
+      "answer": "1,000",
+      "rubric": "1 mark"
+    },
+    {
+      "itemId": "A06",
+      "answer": "1, 2, 3, 4, 6, 9, 12, 18, 36",
+      "rubric": "2 marks all correct; 1 for at least five correct with no extras"
+    },
+    {
+      "itemId": "A07",
+      "answer": "12, 24, 36, 48",
+      "rubric": "1 mark"
+    },
+    {
+      "itemId": "A08",
+      "answer": "37, 71",
+      "rubric": "1 mark"
+    },
+    {
+      "itemId": "A09",
+      "answer": "49, 51; add 2",
+      "rubric": "1 mark for both numbers; 1 for rule"
+    },
+    {
+      "itemId": "A10",
+      "answer": "VI",
+      "rubric": "1 mark"
+    },
+    {
+      "itemId": "A11",
+      "answer": "For example: exact attendance for the register and rounded count to plan approximate seating.",
+      "rubric": "1 mark each for meaningful exact and estimated use"
+    }
+  ],
+  "deliveryContract": {
+    "reader": "reader only; keep practiceFeedback, assessmentMarkingGuide and teacherGuide out of reader payload",
+    "practice": "prompts with feedback after attempt; resolve stable verified IDs before promotion",
+    "assessment": "prompts only during attempt; marking guide protected until authorized feedback",
+    "visuals": "candidate data, requires native render and visual QA"
+  },
+  "authorChecks": {
+    "type": "deterministic author checks, not independent certification",
+    "checks": [
+      "12 distinct practice IDs and 11 distinct assessment IDs",
+      "16 assessment marks",
+      "Separate learner prompts and marking/feedback collections",
+      "Ten section scope labels and four candidate illustrations",
+      "Factor lists for 20 and 36; rounding 675, 995 and 483",
+      "Mixed-digit-length ordering examples and assessment, including 99 < 100 and 1,000 > 999."
+    ]
+  },
+  "editorialRevision": {
+    "version": 2,
+    "previousFile": "content/curriculum/production/grade4-mathematics-whole-numbers-1.1.v1.editorial.json",
+    "previousBlob": "e128d6c3044832fdf46578995311435b7e9b10c7"
+  }
+}
