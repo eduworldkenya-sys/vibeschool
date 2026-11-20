@@ -99,5 +99,9 @@ export async function saveLearnerRequest(input: {
     area: input.area || null, budget_kes: Number(input.budget) || null,
     available_days: input.days, phone: input.phone, status: 'open', source: 'vibetutor',
   })
-  return error ? { ok: false, error: 'Your request could not be posted. Please try again.' } : { ok: true }
+  if (!error) return { ok: true }
+  if (error.code === '23503') return { ok: false, error: 'Your account profile is incomplete. Complete your VibeSchool profile before posting.' }
+  if (error.code === '42501') return { ok: false, error: 'Your account is not authorized to post this request. Sign in again or contact support.' }
+  if (error.code === '23514' || error.code === '22P02' || error.code === '22003') return { ok: false, error: 'Check your tuition details and budget before posting.' }
+  return { ok: false, error: 'Your request could not be posted. Please try again.' }
 }

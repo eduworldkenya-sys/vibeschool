@@ -110,3 +110,76 @@
 .stickerContent{height:clamp(44px,11dvh,112px)}
 @media(min-width:760px){.immersive{gap:10px;padding:16px}.stageContent{padding:24px}.toolRow button{min-height:48px;font-size:13px}.sticker{width:180px}}
 @media(max-height:480px) and (orientation:landscape){.immersive{gap:4px}.stageContent{padding:8px}.toolRow button,.sessionRow button{min-height:36px}.toolRow button{font-size:10px}.stickerContent{height:50px}}
+
+/* Persistent lesson navigation: compact, touch-friendly, theme-neutral. */
+.lessonHistory { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .375rem; padding: .375rem; flex: 0 0 auto; }
+.lessonHistory button { min-height: 36px; padding: .25rem .55rem; border: 1px solid currentColor; border-radius: .5rem; background: transparent; color: inherit; font: inherit; font-size: .8rem; }
+.lessonHistory button:disabled { opacity: .4; cursor: default; }
+.lessonHistory span { font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.learnerTools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;width:100%;flex:1;min-width:0}
+.immersive .learnerTools button{min-height:52px;min-width:0;flex-direction:column;gap:4px;padding:4px 2px;font-size:11px;line-height:1.15;white-space:nowrap}
+.learnerTools button svg{flex:none}
+.immersive .learnerTools button[data-raised=true]{color:#342100;background:#f0b957;border-color:#f0b957}
+.handStatus{font-size:12px;text-align:center;padding:4px;flex:none;color:#f0d291}
+.immersive button.helpBanner{flex:none;background:#f0b957;color:#342100;border-color:#f0b957;min-height:36px}
+@media(max-height:480px) and (orientation:landscape){.immersive .learnerTools button{min-height:40px;flex-direction:row;font-size:11px}.learnerTools button svg{width:16px}}
+
+/* Visual presentation: shared canvas occupies the stage; editor never overlays it. */
+.presentationCanvas { --slide-bg:#fff;--slide-ink:#16334a;--slide-accent:#44697e; margin:auto; width:min(100%,900px); aspect-ratio:16/9; min-height:120px;display:flex;flex-direction:column;gap:clamp(4px,1.5vw,12px); padding:clamp(10px,3vw,28px); background:var(--slide-bg);color:var(--slide-ink);border:1px solid color-mix(in srgb,var(--slide-ink) 15%,transparent); border-radius:12px;box-shadow:0 6px 18px #102d3920; overflow:auto;box-sizing:border-box; }
+.presentationCanvas[data-theme=ocean]{--slide-bg:#e5f1ff;--slide-ink:#163d72;--slide-accent:#325785}
+.presentationCanvas[data-theme=forest]{--slide-bg:#e7f5e9;--slide-ink:#184b35;--slide-accent:#37664e}
+.presentationCanvas[data-theme=night]{--slide-bg:#192937;--slide-ink:#f2f7fb;--slide-accent:#c5d7e5}
+.presentationCanvas[data-layout=portrait]{aspect-ratio:3/4;width:min(100%,430px)}
+.presentationKicker{display:flex;justify-content:space-between;gap:8px;font-size:clamp(10px,1.4vw,13px);font-weight:650;color:var(--slide-accent);flex:none}
+.presentationBody{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0;gap:clamp(4px,1.8vw,16px);text-align:center}
+.presentationBody h2{font-size:clamp(20px,4vw,44px);margin:0;line-height:1.15;overflow-wrap:anywhere;letter-spacing:-.025em}
+.presentationBody p{font-size:clamp(15px,2.2vw,27px);line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;margin:0;color:inherit}
+.presentationCanvas[data-font=large] .presentationBody p{font-size:clamp(19px,3vw,34px)}
+.slideDiagram{width:min(100%,360px);height:auto;max-height:30dvh;object-fit:contain;display:block;flex:none;background:#fff;border-radius:8px}
+.slideWorkspace{min-width:0;display:grid;gap:8px}
+.slideWorkspace>.presentationCanvas{width:min(100%,720px);margin:0 auto}
+.slideToolbar,.presentControls{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.slideToolbar strong{margin-right:auto}.slideToolbar span,.presentControls span{font-size:12px;font-variant-numeric:tabular-nums}
+.presentControls{flex:none;justify-content:center}
+.presentControls button{flex:1;min-width:0;font-size:12px}
+.slideFields{display:grid;gap:8px;min-width:0}
+.slideFields label{display:grid;gap:4px;min-width:0;font-size:12px;font-weight:700}
+.slideFields input,.slideFields select,.slideFields textarea{width:100%;min-width:0;font:inherit;color:#173c35;background:#fff;border:1px solid #92b5a8;border-radius:8px;padding:8px}
+.slideFields textarea{min-height:60px;resize:vertical}
+.slideOptions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.slideWorkspace .slideToolbar button{min-height:36px;font-size:12px}
+.immersive .slideStrip button{flex-basis:116px;min-height:68px;padding:3px;justify-content:center}
+.presentationCanvas[data-mini=true]{width:100%;min-height:0;aspect-ratio:16/9;overflow:hidden;padding:4px;border-radius:4px;box-shadow:none;gap:2px}
+.presentationCanvas[data-mini=true] .presentationKicker{font-size:6px}
+.presentationCanvas[data-mini=true] .presentationBody{gap:2px;overflow:hidden}
+.presentationCanvas[data-mini=true] .presentationBody h2{font-size:9px;line-height:1.05;max-height:20px;overflow:hidden}
+.presentationCanvas[data-mini=true] .presentationBody p{font-size:7px;line-height:1.05;max-height:15px;overflow:hidden}
+.presentationCanvas[data-mini=true] .slideDiagram{max-height:28px;width:auto;max-width:100%;border-radius:2px}
+.stickerContent .presentationCanvas{width:100%;min-height:0;height:100%;padding:4px;gap:2px;overflow:hidden}
+.stickerContent .presentationKicker{font-size:6px}.stickerContent .presentationBody h2{font-size:10px}.stickerContent .presentationBody p{font-size:8px}.stickerContent .slideDiagram{max-height:32px}
+.stageContent>.presentationCanvas{animation:slideArrival .16s ease-out}
+@keyframes slideArrival{from{opacity:.7;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.stageContent>.presentationCanvas{animation:none}}
+@media(max-width:420px){.presentationCanvas{aspect-ratio:auto;min-height:190px}.presentationCanvas[data-layout=portrait]{aspect-ratio:3/4}.presentControls button{font-size:11px;padding:4px}.slideWorkspace>.presentationCanvas{min-height:180px}.slideFields .slideToolbar{gap:4px}}
+@media(max-height:480px) and (orientation:landscape){.presentationCanvas{aspect-ratio:auto;min-height:0}.presentationBody h2{font-size:24px}.slideDiagram{max-height:25dvh}.presentControls button{min-height:34px}}
+
+/* Native object canvas: keep the document viewport separate from editing controls. */
+.objectBoard{display:flex;flex-direction:column;gap:7px;flex:1;min-height:0}
+.objectBoard .board{min-height:180px;flex:1 0 180px;max-height:min(45dvh,480px);width:100%;touch-action:none}
+.objectBoard .boardTools{justify-content:flex-start}
+.objectBoard .boardTools label{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:650}
+.objectBoard .boardTools input{font:inherit;min-width:0;flex:1;max-width:100%;color:#173c35;background:white;padding:7px;border:1px solid #aac6bd;border-radius:8px}
+.objectBoard .boardTools select{max-width:140px}
+@media(max-width:420px){.objectBoard .boardTools label{flex:1;min-width:45%;justify-content:space-between}.objectBoard .boardTools select{max-width:105px}}
+@media(max-height:480px) and (orientation:landscape){.objectBoard .board{min-height:130px;flex-basis:130px;max-height:260px}}
+
+.workspaceStatus{font-size:11px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;flex:none;color:#b9ded3}
+.immersive .workspaceStatus button{font-size:11px;min-height:27px;padding:3px 5px}
+.teachingLibrary{display:grid;gap:12px;min-width:0}
+.materialList{display:grid;gap:5px}
+.materialList>div{display:flex;align-items:center;gap:6px;padding:8px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:9px;flex-wrap:wrap}
+.materialList>div>div{flex:1;min-width:110px}
+.materialList strong,.materialList small{display:block;overflow-wrap:anywhere}
+.materialList small{font-size:11px;opacity:.75}
+.teachingLibrary .presentationCanvas{width:min(100%,600px)}

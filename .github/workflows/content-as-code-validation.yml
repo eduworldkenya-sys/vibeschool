@@ -1,0 +1,30 @@
+name: Content as Code Validation
+on:
+  pull_request:
+    paths:
+      - 'content/curriculum/production/**'
+      - 'scripts/compile-content-as-code.mjs'
+      - 'scripts/test-content-as-code.mjs'
+      - '.github/workflows/content-as-code-validation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/curriculum/production/**'
+      - 'scripts/compile-content-as-code.mjs'
+      - 'scripts/test-content-as-code.mjs'
+      - '.github/workflows/content-as-code-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate exact source and component contract
+        run: node --test scripts/test-content-as-code.mjs
+      - name: Compile metadata only
+        run: node scripts/compile-content-as-code.mjs content/curriculum/production/grade4-mathematics-whole-numbers-1.1.content-manifest.json
