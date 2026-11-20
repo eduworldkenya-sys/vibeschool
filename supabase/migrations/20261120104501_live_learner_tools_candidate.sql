@@ -24,6 +24,54 @@ ALTER TABLE vibe_live.learner_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vibe_live.learner_questions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON vibe_live.learner_notes,vibe_live.learner_questions FROM PUBLIC,anon,authenticated,service_role;
 CREATE INDEX ON vibe_live.learner_questions(session_id,created_at,id);
+-- Canonical board payload validator. Numeric legacy strokes remain supported.
+CREATE FUNCTION vibe_live.valid_object_board(p_body text) RETURNS boolean
+LANGUAGE plpgsql IMMUTABLE SET search_path='' AS $validator$
+DECLARE d jsonb; o jsonb; k text; v jsonb; seen text[]:=ARRAY[]::text[]; object_id text;
+BEGIN
+ IF p_body IS NULL OR char_length(p_body)>3500 OR left(p_body,8)<>'VBOARD1:' THEN RETURN false; END IF;
+ d:=substr(p_body,9)::jsonb;
+ IF jsonb_typeof(d) IS DISTINCT FROM 'object'
+  OR coalesce(d->>'background','') NOT IN ('plain','grid','ruled')
+  OR jsonb_typeof(d->'page') IS DISTINCT FROM 'number' OR coalesce(d->>'page','') !~ '^[0-9]{1,2}$'
+  OR jsonb_typeof(d->'total') IS DISTINCT FROM 'number' OR coalesce(d->>'total','') !~ '^[0-9]{1,2}$'
+  OR jsonb_typeof(d->'objects') IS DISTINCT FROM 'array' THEN RETURN false; END IF;
+ IF (d->>'page')::integer NOT BETWEEN 1 AND 30 OR (d->>'total')::integer NOT BETWEEN (d->>'page')::integer AND 30 OR jsonb_array_length(d->'objects')>40
+ OR EXISTS(SELECT 1 FROM jsonb_object_keys(d) AS keys(key) WHERE key NOT IN ('background','page','total','objects')) THEN RETURN false; END IF;
+ FOR o IN SELECT value FROM jsonb_array_elements(d->'objects') LOOP
+  IF jsonb_typeof(o) IS DISTINCT FROM 'object' THEN RETURN false; END IF;
+  IF EXISTS(SELECT 1 FROM jsonb_object_keys(o) AS keys(key) WHERE key NOT IN ('id','kind','x','y','w','h','angle','color','stroke','locked','points','text','diagram')) THEN RETURN false; END IF;
+  object_id:=o->>'id';
+  IF jsonb_typeof(o->'id') IS DISTINCT FROM 'string' OR coalesce(object_id,'') !~ '^[-a-zA-Z0-9]{1,40}$' OR object_id=ANY(seen)
+   OR coalesce(o->>'kind','') NOT IN ('pen','highlighter','line','rectangle','triangle','ellipse','arrow','text','diagram')
+   OR coalesce(o->>'color','') NOT IN ('#182b3a','#1865c0','#bf3038','#167d58','#a06a05','#7e41b6')
+   OR (o?'locked' AND jsonb_typeof(o->'locked') IS DISTINCT FROM 'boolean') THEN RETURN false; END IF;
+  seen:=array_append(seen,object_id);
+  FOREACH k IN ARRAY ARRAY['x','y','w','h','angle','stroke'] LOOP
+   IF jsonb_typeof(o->k) IS DISTINCT FROM 'number' OR coalesce(o->>k,'') !~ '^-?[0-9]{1,4}$' THEN RETURN false; END IF;
+  END LOOP;
+  IF (o->>'x')::integer NOT BETWEEN -320 AND 640 OR (o->>'y')::integer NOT BETWEEN -220 AND 440
+   OR (o->>'w')::integer NOT BETWEEN 1 AND 640 OR (o->>'h')::integer NOT BETWEEN 1 AND 440
+   OR (o->>'angle')::integer NOT BETWEEN 0 AND 359 OR (o->>'stroke')::integer NOT BETWEEN 1 AND 12 THEN RETURN false; END IF;
+  IF o->>'kind' IN ('pen','highlighter','line','arrow') THEN
+   IF jsonb_typeof(o->'points') IS DISTINCT FROM 'array' THEN RETURN false; END IF;
+   IF jsonb_array_length(o->'points') NOT BETWEEN 2 AND 480 OR jsonb_array_length(o->'points')%2<>0 THEN RETURN false; END IF;
+   FOR v IN SELECT value FROM jsonb_array_elements(o->'points') LOOP
+    IF jsonb_typeof(v) IS DISTINCT FROM 'number' OR v::text !~ '^[0-9]{1,4}$' OR (v::text)::integer NOT BETWEEN 0 AND 1000 THEN RETURN false; END IF;
+   END LOOP;
+  ELSIF o?'points' THEN RETURN false; END IF;
+  IF o->>'kind'='text' THEN
+   IF jsonb_typeof(o->'text') IS DISTINCT FROM 'string' OR char_length(btrim(coalesce(o->>'text',''))) NOT BETWEEN 1 AND 180 OR char_length(o->>'text')>180 THEN RETURN false; END IF;
+  ELSIF o?'text' THEN RETURN false; END IF;
+  IF o->>'kind'='diagram' THEN
+   IF coalesce(o->>'diagram','') NOT IN ('fraction-circle','fraction-bars','number-line','ruler','protractor','coordinate-grid','counters','base-ten','clock','money','solids','handwriting','music') THEN RETURN false; END IF;
+  ELSIF o?'diagram' THEN RETURN false; END IF;
+ END LOOP;
+ RETURN true;
+EXCEPTION WHEN invalid_text_representation OR numeric_value_out_of_range THEN RETURN false;
+END;
+$validator$;
+REVOKE ALL ON FUNCTION vibe_live.valid_object_board(text) FROM PUBLIC,anon,authenticated,service_role;
 DO $migration$
 DECLARE
  src text:=pg_get_functiondef('vibe_live.command(text,uuid,uuid,integer,jsonb)'::regprocedure);
@@ -84,6 +132,10 @@ BEGIN
        and vibe_live.can_join(q.student_id,room.teacher_id,room.mode,room.class_id,room.school_id,room.group_id);
    if not found then raise exception 'live_not_authorized' using errcode='42501'; end if;$b$;
  IF (length(src)-length(replace(src,old,'')))/length(old)<>1 THEN RAISE EXCEPTION 'Unexpected help block'; END IF;
+ src:=replace(src,old,new);
+ old:=$a$if kind='board' and (body !~ '^[0-9,;| ]+$' or char_length(body)>3500) then raise exception 'live_invalid_board'; end if;$a$;
+ new:=$a$if kind='board' and (char_length(body)>3500 or (body !~ '^[0-9,;| ]+$' and not vibe_live.valid_object_board(body))) then raise exception 'live_invalid_board'; end if;$a$;
+ IF (length(src)-length(replace(src,old,'')))/length(old)<>1 THEN RAISE EXCEPTION 'Unexpected board validation contract'; END IF;
  src:=replace(src,old,new);
  old:=' return result;';
  new:=$b$
