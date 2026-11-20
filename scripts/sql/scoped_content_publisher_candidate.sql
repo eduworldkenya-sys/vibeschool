@@ -15,6 +15,7 @@ declare a public.publication_release_approvals%rowtype; p public.vibe_publicatio
 begin
  if actor is null or not public.is_platform_owner() then raise exception 'authenticated_platform_owner_required'; end if;
  if p_publisher_id is null or p_publisher_id=actor or not public.hq_profile_is_active(p_publisher_id) then raise exception 'distinct_active_publisher_required'; end if;
+ if not exists(select 1 from public.profiles pr where pr.id=p_publisher_id and pr.role='teacher') then raise exception 'publisher_product_access_required'; end if;
  if p_expires_at is null or p_expires_at<=clock_timestamp() or p_expires_at>clock_timestamp()+interval '24 hours' then raise exception 'bounded_publisher_expiry_required'; end if;
  perform pg_advisory_xact_lock(hashtextextended('vs:sole-platform-publisher',0));
  select * into p from public.vibe_publications where id=p_publication_id for update;
@@ -51,6 +52,7 @@ begin
  select * into a from public.publication_release_approvals where publication_id=p_publication_id for update;
  if not found or a.delegated_publisher_id is null then return false; end if;
  if actor is null or actor is distinct from a.delegated_publisher_id or not public.hq_profile_is_active(actor) then raise exception 'scoped_publisher_required'; end if;
+ if not exists(select 1 from public.profiles pr where pr.id=actor and pr.role='teacher') then raise exception 'publisher_product_access_required'; end if;
  if a.delegated_at is null or a.delegated_by is null or a.delegation_expires_at is null or a.delegation_revoked_at is not null or a.delegation_expires_at<=clock_timestamp() then raise exception 'scoped_publisher_expired_or_revoked'; end if;
  if a.status<>'approved' or a.delegation_fingerprint is distinct from a.content_fingerprint or a.content_fingerprint is null then raise exception 'scoped_publisher_approval_stale'; end if;
  if p_check_fingerprint and a.content_fingerprint is distinct from public.publication_release_fingerprint(p_publication_id) then raise exception 'scoped_publisher_approval_stale'; end if;
@@ -183,7 +185,7 @@ begin
   if nullif(btrim(v_title),'') is null then raise exception 'Title is required before publishing'; end if;
   if v_format='vibetextbook' and nullif(btrim(v_subject),'') is null then raise exception 'CBC subject is required before publishing'; end if;
   if v_format='vibetextbook' and nullif(btrim(v_grade),'') is null then raise exception 'CBC grade is required before publishing'; end if;
-  if not exists(select 1 from public.vibe_chapters where publication_id=p_publication_id) then raise exception 'At least one chapter is required before publishing'; end if;
+  if not exists(select 1 from public.vibe_chapters vc where vc.publication_id=p_publication_id) then raise exception 'At least one chapter is required before publishing'; end if;
   v_current_fingerprint:=public.publication_release_fingerprint(p_publication_id);
   select a.content_fingerprint into v_approved_fingerprint from public.publication_release_approvals a where a.publication_id=p_publication_id and a.status='approved' for update;
   if v_approved_fingerprint is null then raise exception 'publication_release_approval_required'; end if;
