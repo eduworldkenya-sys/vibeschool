@@ -106,7 +106,15 @@ end $$;
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','e1824000-0000-4000-8000-000000000001',true),set_config('request.jwt.claims','{"sub":"e1824000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-delete from storage.objects where bucket_id='teacher-employment-cvs' and name='shared/'||current_setting('employment_test.request')||'/cv.pdf';
+-- Transaction-scoped simulation of Storage API deletion for fixture metadata only.
+-- Keep the actual teacher role and RLS in force; no production setting or trigger is changed.
+select set_config('storage.allow_delete_query','true',true);
+do $$declare n int;begin
+ delete from storage.objects where bucket_id='teacher-employment-cvs' and name='shared/'||current_setting('employment_test.request')||'/cv.pdf';
+ get diagnostics n=row_count;
+ if n<>1 then raise exception 'Teacher could not revoke shared CV';end if;
+end $$;
+select set_config('storage.allow_delete_query','false',true);
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','e1824000-0000-4000-8000-000000000003',true),set_config('request.jwt.claims','{"sub":"e1824000-0000-4000-8000-000000000003","role":"authenticated"}',true);
