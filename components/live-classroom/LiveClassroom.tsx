@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
+import { TeachingLibrary } from './LiveTeachingLibrary'
 import { BOARD_LIMIT, decodeBoard, encodeBoard } from './LiveBoardProtocol'
 
 type ClassroomMode = 'school' | 'tuition' | 'homeschool' | 'open'
@@ -19,7 +20,7 @@ type Participant = { studentId: string; name: string; needsHelp: boolean; answer
 type LiveQuestion = {id:string;body:string;reply:string|null;name?:string}
 type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean }
 type ComposerDraft = { body: string; key: string }
-type DraftState = { board: string; boardPages?: string[]; boardPage?: number; slides: LiveSlide[]; slideIndex: number; mode: Mode; body: string; key: string; clock: string; composers: Partial<Record<Mode,ComposerDraft>> }
+type DraftState = { serverRevision?:number; board: string; boardPages?: string[]; boardPage?: number; slides: LiveSlide[]; slideIndex: number; mode: Mode; body: string; key: string; clock: string; composers: Partial<Record<Mode,ComposerDraft>> }
 const validModes = ['teach','quiz','exercise','poll','clock','board'] as const
 function roomUrl(id: string | null) {
   const url = new URL(window.location.href)
@@ -31,11 +32,9 @@ function recoverRoomId() {
   const id = new URL(window.location.href).searchParams.get('resumeRoom')
   return id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null
 }
-function readDraft(key: string): DraftState | null {
+function validateDraft(raw:unknown): DraftState | null {
   try {
-    const raw = sessionStorage.getItem(key)
-    if (!raw) return null
-    const d = JSON.parse(raw) as DraftState
+    const d = raw as DraftState
     if (!d || typeof d.board !== 'string' || d.board.length > BOARD_LIMIT || !Array.isArray(d.slides) || !d.slides.length || d.slides.length > 30 || !d.slides.every(validSlide) || !Number.isInteger(d.slideIndex) || d.slideIndex < 0 || d.slideIndex >= d.slides.length || !validModes.includes(d.mode) || typeof d.body !== 'string' || d.body.length > 4000 || typeof d.key !== 'string' || d.key.length > 2000 || typeof d.clock !== 'string' || !/^([01]?\d|2[0-3]):[0-5]\d$/.test(d.clock)) return null
     const clean: Partial<Record<Mode,ComposerDraft>> = {}
     for (const m of validModes) {
@@ -45,6 +44,7 @@ function readDraft(key: string): DraftState | null {
     return {...d,composers:clean}
   } catch { return null }
 }
+function readDraft(key:string):DraftState|null{try{const raw=sessionStorage.getItem(key);return raw?validateDraft(JSON.parse(raw)):null}catch{return null}}
 function removeDraft(key: string | null) { if(key) try { sessionStorage.removeItem(key) } catch {} }
 function historyFor(room: Room): Prompt[] {
   return room.history ?? (room.prompt ? [room.prompt] : [])
@@ -173,10 +173,19 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [board,setBoard]=useState('')
   const [boardPages,setBoardPages]=useState<string[]>([''])
   const [boardPage,setBoardPage]=useState(0)
-  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|null>(null)
+  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|'library'|null>(null)
   const [slides,setSlides]=useState<LiveSlide[]>([{title:'',body:''}])
   const [slideIndex,setSlideIndex]=useState(0)
   const [deletedSlide,setDeletedSlide]=useState<{slide:LiveSlide;index:number}|null>(null)
+  const [beforeLibrary,setBeforeLibrary]=useState(false)
+  const preparedDeck=useRef<{title:string;slides:LiveSlide[]}|null>(null)
+  const [preparedTitle,setPreparedTitle]=useState('')
+  const [workspaceRevision,setWorkspaceRevision]=useState<number|null>(null)
+  const [workspaceStatus,setWorkspaceStatus]=useState('')
+  const [workspaceRetry,setWorkspaceRetry]=useState(0)
+  const workspaceSaved=useRef('')
+  const workspaceSaving=useRef<string|null>(null)
+  const [conflictDraft,setConflictDraft]=useState<DraftState|null>(null)
   const [focusMode,setFocusMode]=useState(false)
   const [editingBoard,setEditingBoard]=useState(false)
   const [showSticker,setShowSticker]=useState(true)
@@ -367,25 +376,48 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const immersive=!!room&&room.status!=='ended'
   const draftLoading=teacher&&!!room&&draftBinding?.roomId!==room.id&&!draftWarning
   useEffect(()=>{
-    setReviewId(null);setDraftBinding(null);draftKey.current=null;composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);boardUndoByPage.current={};setFocusDock(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
+    setReviewId(null);setDraftBinding(null);draftKey.current=null;setWorkspaceRevision(null);setWorkspaceStatus('');workspaceSaved.current='';workspaceSaving.current=null;setConflictDraft(null);composerDrafts.current={};pendingPublish.current=null;setDraftWarning(false);setMode('teach');setClock('10:30');boardInitialized.current=false;setBoardPages(['']);setBoardPage(0);setPanel(null);setFocusMode(false);setEditingBoard(false);setShowSticker(true);setEndConfirm(false);setBoard('');setUndoBoards([]);setRedoBoards([]);boardUndoByPage.current={};setFocusDock(false);setSlides([{title:'',body:''}]);setSlideIndex(0);setDeletedSlide(null);setBody('');setKey('')
   },[room?.id])
-  // Recover only the teacher's private, same-tab draft. Published history is
-  // always fetched from the authorized server, never from browser storage.
+  function restoreDraft(draft:DraftState){
+    setBoard(draft.board)
+    if(Array.isArray(draft.boardPages)&&draft.boardPages.length>0&&draft.boardPages.length<=30&&draft.boardPages.every(p=>typeof p==='string'&&p.length<=BOARD_LIMIT)&&Number.isInteger(draft.boardPage)&&draft.boardPage!>=0&&draft.boardPage!<draft.boardPages.length){setBoardPages(draft.boardPages);setBoardPage(draft.boardPage!)}
+    boardInitialized.current=true;setSlides(draft.slides);setSlideIndex(draft.slideIndex);setClock(draft.clock)
+    setMode(draft.mode);setBody(draft.body);setKey('');composerDrafts.current=draft.composers
+  }
+  // Private draft recovery is owner-scoped server state plus a same-device
+  // recovery copy. Published history remains authoritative and independent.
   useEffect(()=>{
     if(!teacher||!room?.id||room.status==='ended')return
     const roomId=room.id
     let cancelled=false
-    void supabase.auth.getUser().then(({data,error})=>{
+    void supabase.auth.getUser().then(async({data,error})=>{
       if(cancelled)return
       if(error||!data.user){setDraftWarning(true);return}
       const key='vibe-live-draft:v1:'+data.user.id+':'+roomId
       draftKey.current=key
-      const draft=readDraft(key)
-      if(draft){
-        setBoard(draft.board);if(Array.isArray(draft.boardPages)&&draft.boardPages.length>0&&draft.boardPages.length<=30&&draft.boardPages.every(p=>typeof p==='string'&&p.length<=BOARD_LIMIT)&&Number.isInteger(draft.boardPage)&&draft.boardPage!>=0&&draft.boardPage!<draft.boardPages.length){setBoardPages(draft.boardPages);setBoardPage(draft.boardPage!)}boardInitialized.current=true
-        setSlides(draft.slides);setSlideIndex(draft.slideIndex);setClock(draft.clock)
-        setMode(draft.mode);setBody(draft.body);setKey(draft.key);composerDrafts.current=draft.composers
-      }else{
+      const local=readDraft(key)
+      let draft=local
+      let revision:number|null=null
+      try{
+        const remote=await call('workspace_get',roomId) as {revision:number;draft:unknown}
+        if(cancelled||draftKey.current!==key)return
+        if(!Number.isInteger(remote.revision)||remote.revision<0)throw Error('Invalid workspace response')
+        const server=validateDraft(remote.draft)
+        if(remote.revision>0&&!server)throw Error('Invalid saved workspace')
+        revision=remote.revision
+        if(server){
+          const {serverRevision:_,...serverState}=server
+          workspaceSaved.current=JSON.stringify(serverState)
+          if(local&&local.serverRevision!==remote.revision&&JSON.stringify({...local,serverRevision:undefined})!==workspaceSaved.current){setConflictDraft(local);draft=server}
+          else draft=local??server
+        }
+        setWorkspaceStatus(revision>0?'Draft restored from server':'Draft ready to save')
+      }catch(e){if(cancelled)return;setWorkspaceStatus('Local recovery only · server draft unavailable')}
+      if(cancelled||draftKey.current!==key)return
+      setWorkspaceRevision(revision)
+      if(draft){restoreDraft(draft)}
+      else if(preparedDeck.current){setSlides(preparedDeck.current.slides);setSlideIndex(0)}
+      else{
         const latest=active.current
         const published=latest?historyFor(latest):[]
         const latestBoard=[...published].reverse().find(p=>p.kind==='board')
@@ -405,20 +437,32 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           setSlides(deck);setSlideIndex(latestSlide.number-1)
         }
       }
-      setDraftBinding({roomId,key})
+      preparedDeck.current=null;setPreparedTitle('');setBeforeLibrary(false);setDraftBinding({roomId,key})
     }).catch(()=>{if(!cancelled)setDraftWarning(true)})
     return ()=>{cancelled=true}
-  },[teacher,room?.id,room?.status==='ended'])
+  },[teacher,room?.id,room?.status==='ended',call,workspaceRetry])
   useEffect(()=>{
     if(!teacher||!room||room.status==='ended'||draftBinding?.roomId!==room.id||draftKey.current!==draftBinding.key)return
-    const draft:DraftState={board,boardPages:boardPages.map((p,i)=>i===boardPage?board:p),boardPage,slides,slideIndex,mode,body,key,clock,composers:{...composerDrafts.current}}
-    // Do not write answer keys to persistent/shared browser storage. Current
-    // teacher-only keys survive switch in memory but must be re-entered on reload.
-    draft.key=''
-    draft.composers=Object.fromEntries(Object.entries(draft.composers).map(([m,d])=>[m,{...d,key:''}]))
-    try { sessionStorage.setItem(draftBinding.key,JSON.stringify(draft)) }
-    catch {setDraftWarning(true)}
-  },[teacher,room?.id,room?.status,draftBinding,board,boardPages,boardPage,slides,slideIndex,mode,body,key,clock])
+    const binding=draftBinding
+    const draft:DraftState={board,boardPages:boardPages.map((p,i)=>i===boardPage?board:p),boardPage,slides,slideIndex,mode,body,key:'',clock,composers:Object.fromEntries(Object.entries(composerDrafts.current).map(([m,d])=>[m,{...d,key:''}]))}
+    const fingerprint=JSON.stringify(draft)
+    try {sessionStorage.setItem(binding.key,JSON.stringify({...draft,serverRevision:workspaceRevision??undefined}))}catch{setDraftWarning(true)}
+    if(workspaceRevision===null||!online||conflictDraft||fingerprint===workspaceSaved.current)return
+    const timer=window.setTimeout(()=>{
+      if(workspaceSaving.current!==null||draftKey.current!==binding.key)return
+      workspaceSaving.current=binding.key;setWorkspaceStatus('Saving draft…')
+      void call('workspace_save',binding.roomId,null,{revision:workspaceRevision,draft}).then(result=>{
+        if(draftKey.current!==binding.key)return
+        const next=result as {revision:number}
+        if(!Number.isInteger(next.revision)||next.revision!==workspaceRevision+1)throw Error('Invalid draft save response')
+        workspaceSaved.current=fingerprint;setWorkspaceRevision(next.revision);setWorkspaceStatus('Draft saved')
+      }).catch(e=>{
+        if(draftKey.current!==binding.key)return
+        setWorkspaceRevision(null);setWorkspaceStatus(e instanceof Error&&e.message.includes('conflict')?'Draft conflict · reload saved version':'Draft saved locally · server save needs retry')
+      }).finally(()=>{if(workspaceSaving.current===binding.key)workspaceSaving.current=null})
+    },650)
+    return ()=>window.clearTimeout(timer)
+  },[teacher,room?.id,room?.status,draftBinding,board,boardPages,boardPage,slides,slideIndex,mode,body,clock,workspaceRevision,online,call,conflictDraft])
   useEffect(()=>{
     if(room?.status==='ended'){removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)}
   },[room?.status])
@@ -510,19 +554,24 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     void act('ask',null,{body,requestId:questionRequest.current.id})
   }
   function openSlides(){setReviewId(null);setEditingBoard(false);setEndConfirm(false);setPanel('slides')}
+  function useMaterial(material:{title:string;slides:LiveSlide[]}){
+    if(room&&room.status!=='ended'){if(!window.confirm('Replace the current draft deck? Shared lesson history remains.'))return;setSlides(material.slides);setSlideIndex(0);setDeletedSlide(null);openSlides()}
+    else {preparedDeck.current={title:material.title,slides:material.slides};setPreparedTitle(material.title);setTitle(material.title);setBeforeLibrary(false)}
+  }
 
   if(immersive&&room){
     const stage=<main ref={immersiveRef} tabIndex={-1} className={styles.immersive} role="dialog" aria-modal="true" aria-label="Live classroom" onKeyDown={e=>{if(e.key==='Escape'){if(panel)setPanel(null);else if(focusMode)toggleFocus()}if(e.key==='Tab'&&immersiveRef.current){const controls=Array.from(immersiveRef.current.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(el=>el.offsetParent!==null);const first=controls[0],last=controls[controls.length-1];if(first&&last){if(e.shiftKey&&(document.activeElement===first||document.activeElement===immersiveRef.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}}}>
     <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{!online||error?<WifiOff size={13} aria-hidden="true"/>:<Wifi size={13} aria-hidden="true"/>}{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]} · {!online?'Offline':error?'Reconnecting':lastSync?'Connected':'Syncing'}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button>{focusMode&&<button type="button" aria-label={focusDock?'Hide classroom controls':'Show classroom controls'} aria-pressed={focusDock} onClick={()=>setFocusDock(v=>!v)}><MoreHorizontal size={20}/></button>}</header>
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
-    {draftWarning&&teacher&&<div role="status" className={styles.liveAlert}>Draft recovery unavailable. Shared pages are saved on the server.</div>}
+    {draftWarning&&teacher&&<div role="status" className={styles.liveAlert}>Local recovery unavailable. Shared pages are saved on the server.</div>}
+    {teacher&&workspaceStatus&&<div className={styles.workspaceStatus} role="status">{workspaceStatus}{workspaceRevision===null&&draftBinding&&<button type="button" onClick={()=>{setDraftBinding(null);setWorkspaceRetry(n=>n+1)}}>Retry draft sync</button>}{conflictDraft&&<><button type="button" onClick={()=>{restoreDraft(conflictDraft);setConflictDraft(null)}}>Restore local copy</button><button type="button" onClick={()=>setConflictDraft(null)}>Keep server copy</button></>}</div>}
     <LessonNavigation items={history} reviewId={reviewId} onReview={id=>{setEditingBoard(false);setPanel(null);setReviewId(id)}}/>
     {teacher&&participants.some(p=>p.needsHelp)&&<button className={styles.helpBanner} type="button" onClick={()=>setPanel('learners')}><Hand size={16}/> {participants.filter(p=>p.needsHelp).length} need help</button>}
     {!teacher&&(room.needsHelp||room.handAckAt)&&<div className={styles.handStatus} role="status">{room.needsHelp?'Hand raised — teacher notified':'Teacher acknowledged your hand'}</div>}
     <div className={styles.stage}>
       <section className={styles.stageContent} data-board-edit={editingBoard&&teacher} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
-        {teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
-          <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
+        {teacher&&panel==='library'?<div className={styles.slideWorkspace}><div className={styles.slideToolbar}><strong>My Presentations</strong><button onClick={openSlides}>Back to slides</button></div><TeachingLibrary command={call} currentDeck={slides} onUse={useMaterial}/></div>:teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
+          <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel('library')}>My presentations</button><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
           <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length}/>
           <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
           <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next</button><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>Present slide</button></div>
@@ -538,7 +587,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
             <label>Presenter notes (private)<textarea maxLength={2000} value={slide.notes??''} disabled={busy} onChange={e=>editSlide({notes:e.target.value})}/></label>
             <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>moveSlide(-1)}>Move left</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>moveSlide(1)}>Move right</button><button type="button" disabled={busy||slides.length>=30} onClick={()=>addSlide(true)}>Duplicate</button><button type="button" disabled={busy||slides.length<=1} onClick={deleteSlide}>Delete</button>{deletedSlide&&<button type="button" disabled={busy||slides.length>=30} onClick={undoSlideDelete}>Undo delete</button>}</div>
             {!slideText&&<small role="status">Add content or shorten text to fit the shared slide limit.</small>}
-            <small>Session draft · published slides remain in lesson history.</small>
+            <small>{workspaceStatus||'Draft'} · published slides remain in lesson history.</small>
           </div>
         </div>:editingBoard&&teacher?<>
           <div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">Board {boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button></div>
@@ -551,7 +600,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         {learnerTool==='ask'?<><small>Only you and your teacher can see this conversation.</small><ul className={styles.participants}>{(room.questions??[]).map(q=><li key={q.id}><strong>{q.body}</strong><span>{q.reply??'Awaiting reply'}</span></li>)}</ul><form onSubmit={e=>{e.preventDefault();askTeacher()}}><label>Your question<textarea maxLength={1000} value={questionDraft} disabled={busy} onChange={e=>setQuestionDraft(e.target.value)} required/></label><button className={styles.primary} disabled={busy||!online||!questionDraft.trim()}>Send privately</button></form></>:<form onSubmit={e=>{e.preventDefault();void act('note',null,{body:noteDraft})}}><label>Personal notes<textarea maxLength={8000} value={noteDraft} disabled={busy} onChange={e=>{noteDirty.current=true;setNoteDraft(e.target.value)}}/></label><button className={styles.primary} disabled={busy||!online||!noteDirty.current}>Save notes</button><small>{noteDirty.current?'Unsaved changes':'Notes saved privately'}</small></form>}
       </section>}
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker||!!panel||(focusMode&&!focusDock)} onHide={()=>setShowSticker(false)}/>}
-      {teacher&&panel&&panel!=='slides'&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':'Classroom tools'}>
+      {teacher&&panel&&panel!=='slides'&&panel!=='library'&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':'Classroom tools'}>
         <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
         {panel==='compose'&&<form onSubmit={e=>{e.preventDefault();void act('publish',null,{kind:mode,body:content,answerKey:mode==='quiz'||mode==='exercise'?key:null})}}>
           {mode==='clock'?<><label>Show time<input type="time" value={clock} onChange={e=>setClock(e.target.value)}/></label><ClockView value={clock}/></>:<label>{mode==='teach'?'Lesson content':'Question or instruction'}<textarea required maxLength={4000} value={body} onChange={e=>setBody(e.target.value)}/></label>}
@@ -559,7 +608,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <button className={styles.primary} disabled={busy||room.status!=='active'||!content.trim()}>Share with class</button>
         </form>}
         {panel==='learners'&&<><div className={styles.metrics}><span>{(room.questions??[]).filter(q=>!q.reply).length} questions</span><span>{participants.length} joined</span><span>{participants.filter(p=>p.answer!==null).length} answered</span><span>{participants.filter(p=>p.needsHelp).length} need help</span></div>{!participants.length?<p>No learners have joined.</p>:<ul className={styles.participants}>{participants.map(p=><li key={p.studentId}><strong>{p.name}</strong><span>{p.answer??'No answer'}</span>{p.needsHelp&&<button disabled={busy} onClick={()=>void act('ack',null,{studentId:p.studentId})}>Acknowledge hand</button>}</li>)}</ul>}<h3>Private questions</h3>{(room.questions??[]).map(q=><form key={q.id} onSubmit={e=>{e.preventDefault();void act('reply',null,{questionId:q.id,body:replyDrafts[q.id]??''})}}><strong>{q.name??'Learner'}: {q.body}</strong>{q.reply&&<p>{q.reply}</p>}<label>Reply privately<textarea maxLength={1000} value={replyDrafts[q.id]??''} disabled={busy} onChange={e=>setReplyDrafts(items=>({...items,[q.id]:e.target.value}))}/></label><button disabled={busy||!online||!(replyDrafts[q.id]??'').trim()}>Send reply</button></form>)}</>}
-        {panel==='more'&&<><div className={styles.controls}><button onClick={()=>chooseMode('clock')}>Clock</button><button onClick={()=>chooseMode('teach')}>Teach text</button><button onClick={()=>setShowSticker(v=>!v)}>{showSticker?'Hide preview':'Show preview'}</button><button disabled={busy||!prompt||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed} onClick={()=>void act('reveal')}>Reveal / close answers</button><button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button></div>{shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}{endConfirm?<div className={styles.controls}><strong>End this session?</strong><button disabled={busy} onClick={()=>void act('end')}>Confirm end</button><button onClick={()=>setEndConfirm(false)}>Cancel</button></div>:null}</>}
+        {panel==='more'&&<><div className={styles.controls}><button onClick={()=>chooseMode('clock')}>Clock</button><button onClick={()=>chooseMode('teach')}>Teach text</button><button onClick={()=>{setEditingBoard(false);setPanel('library')}}>My presentations</button><button onClick={()=>setShowSticker(v=>!v)}>{showSticker?'Hide preview':'Show preview'}</button><button disabled={busy||!prompt||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed} onClick={()=>void act('reveal')}>Reveal / close answers</button><button type="button" onClick={()=>setShareLink(new URL('/student/live?room='+encodeURIComponent(room.id),window.location.origin).href)}>Share lesson</button></div>{shareLink&&<><label>Lesson link<input readOnly value={shareLink} onFocus={e=>e.target.select()}/></label><a href={'https://wa.me/?text='+encodeURIComponent(shareLink)} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a></>}{endConfirm?<div className={styles.controls}><strong>End this session?</strong><button disabled={busy} onClick={()=>void act('end')}>Confirm end</button><button onClick={()=>setEndConfirm(false)}>Cancel</button></div>:null}</>}
       </section>}
     </div>
     {teacher&&panel===null&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
@@ -582,6 +631,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {error&&<div role="alert" className={styles.alert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     {loading&&!room&&<p role="status">Connecting…</p>}
     {!room&&!loading&&<section className={styles.panel}>
+      {teacher&&<><button type="button" aria-expanded={beforeLibrary} onClick={()=>setBeforeLibrary(v=>!v)}>My presentations</button>{beforeLibrary&&<TeachingLibrary command={call} currentDeck={null} onUse={useMaterial}/>} {preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
       {teacher&&<form onSubmit={e=>{e.preventDefault();void act('start',null,{title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
         {!classId&&hostModes.length>1&&<div className={styles.controls} aria-label="Classroom type">{hostModes.map(item=><button type="button" key={item} aria-pressed={hostMode===item} onClick={()=>{setHostMode(item);setGroupId('')}}>{classroomLabels[item]}</button>)}</div>}
         {!classId&&hostMode==='tuition'&&<label>Learners<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">All connected learners</option>{groups.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
