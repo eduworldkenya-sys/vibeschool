@@ -8,7 +8,7 @@ import styles from './SchoolFollowButton.module.css'
 
 type FollowState = 'loading' | 'visitor' | 'following' | 'not-following'
 
-export default function SchoolFollowButton({ slug }: { slug: string }) {
+export default function SchoolFollowButton({ slug, initialStatus, compact=false }: { slug: string; initialStatus?: FollowState; compact?: boolean }) {
   const [status, setStatus] = useState<FollowState>('loading')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -17,6 +17,7 @@ export default function SchoolFollowButton({ slug }: { slug: string }) {
     let active = true
     setStatus('loading')
     setError('')
+    if (initialStatus !== undefined) { setStatus(initialStatus); return () => { active = false } }
     void (async () => {
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -35,7 +36,7 @@ export default function SchoolFollowButton({ slug }: { slug: string }) {
       }
     })()
     return () => { active = false }
-  }, [slug])
+  }, [slug, initialStatus])
 
   async function toggleFollow() {
     if (busy || status === 'loading') return
@@ -74,7 +75,7 @@ export default function SchoolFollowButton({ slug }: { slug: string }) {
       disabled={status === 'loading' || busy} aria-pressed={following} aria-label={following ? 'Unfollow school' : 'Follow school'}>
       {busy || status === 'loading' ? <LoaderCircle size={17} aria-hidden="true" className={styles.spin}/>
         : following ? <Check size={17} aria-hidden="true"/> : <BellPlus size={17} aria-hidden="true"/>}
-      <span>{following ? 'Following' : 'Follow school'}</span>
+      <span>{following ? 'Following' : compact ? 'Follow' : 'Follow school'}</span>
     </button>
     {error && <span role="alert" className={styles.error}>{error}</span>}
   </div>
