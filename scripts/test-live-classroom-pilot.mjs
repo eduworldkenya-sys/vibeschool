@@ -107,7 +107,14 @@ const slideRoom=await rpc(teacher,'publish',sid,room.version,{kind:'teach',body:
 assert.equal((await rpc(a,'get',sid)).prompt.body,'Time\n\n60 minutes = 1 hour')
 await assert.rejects(rpc(outsider,'get',sid),/live_not_authorized/)
 await assert.rejects(rpc(teacher,'publish',sid,slideRoom.version,{kind:'teach',body:'x'.repeat(4001)}),/live_invalid_prompt/)
-room=await rpc(teacher,'publish',sid,slideRoom.version,{kind:'quiz',body:'How many minutes in one hour?',answerKey:'60'})
+const geometryBoard='10,20;80,20;80,70;10,70;10,20;|100,30;160,90;40,90;100,30;'
+const geometryRoom=await rpc(teacher,'publish',sid,slideRoom.version,{kind:'board',body:geometryBoard})
+assert.equal((await rpc(a,'get',sid)).prompt.body,geometryBoard)
+assert.equal((await rpc(b,'get',sid)).prompt.body,geometryBoard)
+await assert.rejects(rpc(outsider,'get',sid),/live_not_authorized/)
+await assert.rejects(rpc(a,'publish',sid,geometryRoom.version,{kind:'board',body:geometryBoard}),/live_teacher_required/)
+await assert.rejects(rpc(teacher,'publish',sid,geometryRoom.version,{kind:'board',body:'1,1;'.repeat(876)}),/live_invalid_board/)
+room=await rpc(teacher,'publish',sid,geometryRoom.version,{kind:'quiz',body:'How many minutes in one hour?',answerKey:'60'})
 const prompt=room.prompt.id
 assert.equal(room.participants.length,2)
 assert.equal((await rpc(a,'get',sid)).prompt.answerKey,null)
