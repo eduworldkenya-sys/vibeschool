@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { parseLiveReadingPage, liveReadingBlockType } from '../lib/live/readingPresentation.ts'
 import {
   LIVE_LEARNER_ASSET_KINDS, LIVE_SCHOOL_GRADE_LABELS, liveResourcePages, readableLiveResourceText,
 } from '../lib/live/resourcePresentation.ts'
@@ -70,3 +71,31 @@ for(const token of ['Upload classroom PDF or photo','createSignedUrl(file.object
 for(const token of ['Saved teaching materials','<LiveClassFiles roomId={room.id} teacher={teacher} status="ended"/>',"setLinkedPlan({id:result.data.id",'lessonPlanId={room.mode',"learnerTool==='files'"]) assert.ok(room.includes(token),'Live integration missing '+token)
 assert.ok(lessonNotes.includes('Teach this Lesson Plan in Live'))
 console.log('PASS: exact Lesson Plan linkage, teacher-diagram preview and retained private file access surfaces')
+
+
+// Learner-facing reader: structural rendering must not change the room's
+// authorization or silently discard content. Keep narrative and outcome text.
+const longParagraph = ('The pupils read the analogue clock and explain the minutes. ').repeat(260)
+const narrativePages = liveResourcePages('Reading Time',longParagraph)
+assert.ok(narrativePages.length>1)
+const bodyOf = page => page.replace(/^Reading Time · Page \d+ \/ \d+\n\n/,'')
+assert.equal(narrativePages.map(bodyOf).join(''),longParagraph.trim())
+assert.ok(narrativePages.slice(0,-1).every(page=>/[\s.!?]$/.test(bodyOf(page))),'reading pages should not break an ordinary word')
+const parsed = parseLiveReadingPage("Reading Time · Page 2 / 5\n\nI CAN: Read the clock.\n\nLET'S LEARN\n\nThe short hand gives the hour.\n\nThe long hand gives the minutes.")
+assert.equal(parsed.title,'Reading Time')
+assert.equal(parsed.number,2)
+assert.equal(parsed.total,5)
+assert.deepEqual(parsed.paragraphs,["I CAN: Read the clock.","LET'S LEARN","The short hand gives the hour.","The long hand gives the minutes."])
+assert.equal(liveReadingBlockType(parsed.paragraphs[0]),'outcome')
+assert.equal(liveReadingBlockType(parsed.paragraphs[1]),'section')
+assert.equal(liveReadingBlockType('THE CLOCK'),'heading')
+assert.equal(liveReadingBlockType(parsed.paragraphs[2]),'prose')
+assert.deepEqual(parseLiveReadingPage('A plain teacher paragraph.'),{title:null,number:null,total:null,paragraphs:['A plain teacher paragraph.']})
+const readerUI=readFileSync(new URL('../components/live-classroom/LiveReadingSurface.tsx',import.meta.url),'utf8')
+const readerCSS=readFileSync(new URL('../components/live-classroom/LiveReadingSurface.module.css',import.meta.url),'utf8')
+for(const token of ['LiveReadingSurface','onQuote','aria-label="Reading preferences"','liveReadingBlockType','article.current?.contains','onClick={saveQuote}','setZoom']) assert.ok(readerUI.includes(token),'Reader missing '+token)
+assert.ok(!readerUI.includes('dangerouslySetInnerHTML'),'Untrusted lesson text must never be injected as HTML')
+assert.ok(!readerUI.includes('supabase'),'Reader cannot invent a second resource authority')
+assert.ok(readerCSS.includes('min(100%,840px)')&&readerCSS.includes('overflow-wrap:anywhere'),'Reader must reflow on mobile')
+for(const token of ['<ClockExplorer value={prompt.body}/>','learnerMenu&&','More learner tools','onQuote={!teacher','noteDirty.current=true']) assert.ok(room.includes(token),'Live learner integration missing '+token)
+console.log('PASS: interactive learner reading, structure, no silent content loss, scoped notes and mobile reader contract')
