@@ -2,13 +2,13 @@ name: Independent Content Approval without HQ
 on:
   pull_request:
     paths:
-      - 'supabase/migrations/20261121175000_content_independent_review_no_hq.sql'
+      - 'supabase/migrations/20261121113548_content_independent_review_no_hq.sql'
       - 'scripts/test-content-independent-approval-no-hq.mjs'
       - '.github/workflows/content-independent-approval-no-hq.yml'
   push:
     branches: [main]
     paths:
-      - 'supabase/migrations/20261121175000_content_independent_review_no_hq.sql'
+      - 'supabase/migrations/20261121113548_content_independent_review_no_hq.sql'
       - 'scripts/test-content-independent-approval-no-hq.mjs'
   workflow_dispatch:
 permissions:
