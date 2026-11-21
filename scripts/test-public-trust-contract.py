@@ -147,9 +147,37 @@ for fragment in ['SCHOOL READINESS CHECK','self-assessment','planning aid','not 
 for forbidden in ['email','phone','student_id','school_id','learner_id']:
     if re.search(rf"['\"]{forbidden}['\"]\s*:", readiness, re.I): errors.append(f'readiness assessment must not collect {forbidden}')
 
+# The flagship page keeps the public trust contract, but its presentation and
+# interaction live in an isolated client component instead of an old static
+# marketing page. Protect both the server shell and the real user journeys.
 product = text('app/product/page.tsx')
-for fragment in ['THE VIBESCHOOL PRODUCT','THE CONNECTED LEARNING CHAIN','TEACHERS','LEARNERS','FAMILIES','SCHOOLS','WHY VIBESCHOOL IS DESIGNED DIFFERENTLY','PRODUCT PROOF, WITHOUT FABRICATED CLAIMS','CapabilityStatus','/institutions','/pathways']:
-    if fragment not in product: errors.append(f'product surface missing: {fragment}')
+product_showcase = text('components/public/ProductShowcase.tsx')
+product_styles = text('components/public/ProductShowcase.module.css')
+for fragment in ['ProductShowcase','CapabilityStatus','PublicHeader','PublicFooter','main-content', "canonical: '/product'",'/learn','/sandbox','/contact']:
+    if fragment not in product: errors.append(f'product shell missing: {fragment}')
+for fragment in [
+    'THE VIBESCHOOL PLATFORM', 'EXPERIENCE VIBESCHOOL',
+    'THE VIBESCHOOL DIFFERENCE', 'DISCOVER THE ECOSYSTEM',
+    'Teacher', 'Learner', 'Parent', 'School', 'Curriculum',
+    'Prepare', 'Teach', 'Assess', 'Next', 'Practice',
+    '/sandbox', '/institutions', '/pathways', '/teacher',
+    '/vibetutor', '/schools', '/evidence',
+    'Illustrative preview — no private data',
+    'not a certified KICD outcome', 'authorised relationship',
+    'no class results, school statistics or private student records',
+    'setRole(', 'setTeacherStage(', 'setLearnerView(',
+    'setAnswer(', 'setAnswer(null)', 'answer === 90',
+]:
+    if fragment not in product_showcase: errors.append(f'flagship product contract missing: {fragment}')
+for fragment in [
+    '@media(max-width:760px)', '@media(max-width:420px)',
+    'prefers-color-scheme:dark', 'prefers-reduced-motion:reduce',
+    '.answerCorrect', '.answerIncorrect', '.roleButton[aria-pressed=true]',
+]:
+    if fragment not in product_styles: errors.append(f'flagship product accessibility/theme missing: {fragment}')
+for forbidden in ['fetch(', 'createClient(', 'supabase.', 'student_id', 'school_id', 'localStorage.', 'sessionStorage.']:
+    if forbidden in product_showcase:
+        errors.append(f'public product demo must not access private or persisted data: {forbidden}')
 
 capability = text('components/public/CapabilityStatus.tsx')
 for fragment in ['CAPABILITY STATUS','Available','Validation','Planned','does not publish an invented support or uptime guarantee' if False else 'operational or pilot proof','public_capability_status_view']:
