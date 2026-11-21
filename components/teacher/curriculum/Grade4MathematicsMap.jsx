@@ -21,7 +21,7 @@ export default function Grade4MathematicsMap({
   <div style={{fontSize:11,color:green,fontWeight:800,letterSpacing:'.06em'}}>GRADE 4 · MATHEMATICS · CURRICULUM</div>
   <h2 style={{fontSize:22,color:'#163d2d',margin:'6px 0'}}>What to learn · How to teach</h2>
   <p style={{fontSize:13,lineHeight:1.6,color:'#456252',margin:'0 0 10px'}}>
-   4 strands · 19 sub-strands · 5 Mathematics lessons per week (KICD). {GRADE4_MATHEMATICS_LESSONS} VibeSchool-planned periods across the year. Whole Numbers uses a 20-lesson VibeSchool pacing allocation, not a claimed KICD count. Teaching notes below are original reference summaries; they are not published textbook content or official certification.
+   4 strands · 19 sub-strands · 5 Mathematics lessons per week (KICD). {GRADE4_MATHEMATICS_LESSONS} VibeSchool-planned periods across the year. Whole Numbers uses a 20-lesson VibeSchool pacing allocation, not a claimed KICD count. Teaching notes below are independently authored reference summaries; they are not published textbook content or official certification.
   </p>
   <a href={GRADE4_MATHEMATICS_SOURCE_URL} target="_blank" rel="noreferrer" style={{display:'inline-block',fontWeight:700,fontSize:13,color:green,marginBottom:16}}>
    Read the original KICD curriculum on KICD's website ↗
