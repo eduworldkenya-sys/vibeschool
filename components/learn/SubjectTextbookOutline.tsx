@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { ArrowRight, BookOpen, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { subjectKey } from '@/lib/learn/schoolCatalog'
-import { connectReadingEntries, type BookReadingEntry, type CurriculumOutlineRow } from '@/lib/learn/textbookOutline'
+import { connectReadingEntries, projectGrade4MathOutline, type Grade4MathBinding, type BookReadingEntry, type CurriculumOutlineRow } from '@/lib/learn/textbookOutline'
 import styles from './SchoolLearnLibrary.module.css'
 
 type State = { scope: string; status: 'loading' | 'ready' | 'unavailable'; rows: CurriculumOutlineRow[] }
+type ObjectiveState = { scope: string; canonicalRows: CurriculumOutlineRow[] | null; byUnit: Record<string, string[]> }
 type Book = { id: string; title: string; href: string }
 type Reader = { title: string; href: string }
 type Reading = { scope: string; loading: boolean; entries: BookReadingEntry[]; resume: string | null }
@@ -19,6 +20,7 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
   const bookScope = JSON.stringify(books.map(book => book.id))
   const readingScope = JSON.stringify([scope, bookScope])
   const [state, setState] = useState<State>({ scope, status: 'loading', rows: [] })
+  const [objectives, setObjectives] = useState<ObjectiveState>({ scope: '', canonicalRows: null, byUnit: {} })
   const [reading, setReading] = useState<Reading>({scope:readingScope,loading:true,entries:[],resume:null})
   useEffect(() => {
     let active = true
@@ -54,6 +56,49 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
     void load()
     return () => { active = false }
   }, [grade, subject, scope])
+
+  // Grade 4 Maths has 19 canonical sub-strands alongside older generic headings.
+  // Authenticate before fetching objective text. This preserves the existing
+  // public headings-only shell and never reads unpublished textbook or KICD bytes.
+  useEffect(() => {
+    if (state.scope !== scope || state.status !== 'ready' ||
+        grade !== 'Grade 4' || subjectKey(subject) !== subjectKey('Mathematics')) return
+    let active = true
+    async function loadObjectives() {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (!active || authError || !user) return
+      const { data: bindings, error: bindingError } = await supabase
+        .from('grade4_mathematics_reader_bindings')
+        .select('source_ref,sub_strand_id').eq('status','active')
+        .like('source_ref','VS-CUR-G04-MA-2026#%')
+      if (!active || bindingError) return
+      const canonicalRows = projectGrade4MathOutline(state.rows, (bindings ?? []) as Grade4MathBinding[])
+      if (!canonicalRows) return
+      setObjectives({ scope, canonicalRows, byUnit: {} })
+      const ids = canonicalRows.map(row => row.id)
+      const { data: activeGuides, error: guideError } = await supabase
+        .from('curriculum_learning_outcomes')
+        .select('sub_strand_id,outcome_code,outcome_text')
+        .in('sub_strand_id', ids)
+        .eq('status','active').eq('source_type','creator_claimed').is('created_by',null)
+        .like('source_ref','VS-CUR-G04-MA-2026#%')
+        .order('outcome_code', { ascending: true })
+      if (!active || guideError) return
+      const allowed = new Set(ids)
+      const byUnit: Record<string,string[]> = {}
+      for (const item of activeGuides ?? []) {
+        const unitId = item.sub_strand_id
+        if (!unitId || !allowed.has(unitId)) continue
+        const text = String(item.outcome_text ?? '').trim()
+        if (!text) continue
+        if (!byUnit[unitId]) byUnit[unitId] = []
+        byUnit[unitId].push(text)
+      }
+      setObjectives({ scope, canonicalRows, byUnit })
+    }
+    void loadObjectives()
+    return () => { active = false }
+  }, [state.scope, state.status, state.rows, scope, grade, subject])
 
   // Only published chapter metadata allowed by existing RLS. The reader
   // remains the entitlement authority. No draft or body is requested here.
@@ -110,7 +155,8 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
     ...readers.map(reader=>({id:reader.href,title:reader.title,href:reader.href,legacy:true})),
     ...fallbackBooks.map(book=>({id:book.id,title:book.title,href:book.href})),
   ]
-  const {groups,unmatched} = connectReadingEntries(current.rows, entries)
+  const learnerObjectives = objectives.scope === scope ? objectives : null
+  const {groups,unmatched} = connectReadingEntries(learnerObjectives?.canonicalRows ?? current.rows, entries)
   const first = groups.flatMap(group=>group.topics.flatMap(topic=>topic.entries))[0] ?? unmatched[0]
   const resumed = currentReading.entries.find(entry=>entry.id===currentReading.resume)
   const open = resumed ?? first
@@ -131,10 +177,22 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
       <h2>Contents</h2>
       {groups.map((group,index)=><details key={group.id} className={styles.bookChapter}>
         <summary><span className={styles.chapterNumber}>{String(index+1).padStart(2,'0')}</span><strong>{group.title}</strong><ChevronRight size={18} aria-hidden="true"/></summary>
-        <div className={styles.bookTopics}>{group.topics.map(topic=><div key={topic.id}>
-          {topic.strand && <small className={styles.tinyNote}>{topic.strand}</small>}
-          {topic.entries.length ? topic.entries.map((entry,i)=>entryLink(entry,i===0?topic.title:entry.title)) : <div className={styles.bookTopicPending}><span>{topic.title}</span><small>Coming soon</small></div>}
-        </div>)}</div>
+        <div className={styles.bookTopics}>{group.topics.map(topic=>{
+          const goals = learnerObjectives?.byUnit[topic.id] ?? []
+          return <div key={topic.id} className={styles.bookTopicGroup}>
+            {topic.strand && <small className={styles.tinyNote}>{topic.strand}</small>}
+            {topic.entries.length ? topic.entries.map((entry,i)=>entryLink(entry,i===0?topic.title:entry.title)) : <div className={styles.bookTopicPending}><span>{topic.title}</span><small>Coming soon</small></div>}
+            {goals.length > 0 && <div className={styles.bookObjectivePreview} aria-label={topic.title+' learning objectives'}>
+              <strong>What you'll learn</strong>
+              <p>{goals[0]}</p>
+              {goals.length > 1 && <details className={styles.bookObjectiveMore}>
+                <summary>View all {goals.length} objectives <ChevronRight size={14} aria-hidden="true" /></summary>
+                <ol>{goals.map((goal,i)=><li key={i}>{goal}</li>)}</ol>
+              </details>}
+              <small>VibeSchool curriculum guidance</small>
+            </div>}
+          </div>
+        })}</div>
       </details>)}
       {unmatched.map(entry=>entryLink(entry))}
       {!groups.length && !entries.length && <p className={styles.bookEmpty} role="status">{pending ? 'Loading contents…' : 'Content coming soon'}</p>}
