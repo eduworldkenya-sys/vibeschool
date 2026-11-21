@@ -1,48 +1,32 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
-import { TrackedLink } from "@/components/public/TrackedLink";
-import { ArrowRight, BriefcaseBusiness, ArrowLeftRight } from "lucide-react";
-import styles from "./TeacherGateway.module.css";
-import TeacherOpportunities from "@/components/teacher/marketplace/TeacherOpportunities";
+import PremiumTeacherMarketplace from "@/components/teacher/marketplace/PremiumTeacherMarketplace";
 import TeacherExperiencePreview from "./TeacherExperiencePreview";
+import TeacherOpportunities from "@/components/teacher/marketplace/TeacherOpportunities";
 
-
-export const metadata = {
+export const metadata: Metadata = {
   title: "For Teachers | VibeSchool",
-  description: "Plan lessons, prepare schemes, assess learners and continue your work in VibeSchool Teacher OS.",
+  description: "Find teaching opportunities, online tuition and station swaps, or hire teachers through VibeSchool.",
 };
 
 export default function TeacherGateway() {
-  return <div className={styles.page}>
-    <PublicHeader product="Teachers" />
-    <main id="main-content">
-      <section className={styles.hero} aria-labelledby="teacher-hero-title">
-        <div className={`${styles.wrap} ${styles.heroLayout}`}>
-          <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>TEACHER MARKETPLACE · START HERE</p>
-            <h1 id="teacher-hero-title">Find your next teaching opportunity.</h1>
-            <p className={styles.intro}>Find jobs, connect with schools or discover available teachers.</p>
-            <div className={styles.heroActions}>
-              <a className={styles.primary} href="/teacher/marketplace">Open teacher marketplace <ArrowRight size={18} aria-hidden="true"/></a>
-              <TrackedLink className={`${styles.primary} ${styles.matchPrimary}`} event="public_sandbox_open" href="/teacher/marketplace/sandbox">Explore TSC vacancies <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
-              <TrackedLink className={styles.secondary} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Open Teacher OS <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
-            </div>
-            <p className={styles.matchHint}>School-by-school subject matching is being verified against the original TSC schedules.</p>
-          </div>
-          <div className={styles.heroPreview}><TeacherExperiencePreview /></div>
-        </div>
-      </section>
-      <section className={styles.jobs} aria-labelledby="teacher-marketplace-title">
-        <div className={styles.wrap}>
-          <div className={styles.jobsHeading}><h2 id="teacher-marketplace-title">Teacher marketplace</h2><BriefcaseBusiness size={19} aria-hidden="true"/></div>
-          <p className={styles.demoNote}>Browse jobs, swaps and available teachers.</p>
-          <div className={styles.heroActions}><a className={`${styles.primary} ${styles.matchPrimary}`} href="/teacher/marketplace/sandbox">Explore TSC vacancies <ArrowRight size={18} aria-hidden="true"/></a><a className={styles.secondary} href="/teacher/marketplace">Browse published vacancies <ArrowRight size={18} aria-hidden="true"/></a></div>
-          <TeacherOpportunities />
-          <p className={styles.demoNote}>Browse school jobs or find a possible station swap.</p>
-          <div className={styles.heroActions}><a className={styles.secondary} href="/login?redirect=%2Fteacher%2Fmarketplace%2Fmanage%3Ftab%3Dswap">Post or manage a swap <ArrowLeftRight size={18} aria-hidden="true"/></a></div>
-        </div>
-      </section>
-    </main>
-    <PublicFooter />
-  </div>;
+  return (
+    <>
+      <PublicHeader product="Teachers" />
+      <main id="main-content" tabIndex={-1}>
+        <PremiumTeacherMarketplace />
+        <section aria-label="Teacher OS and additional services" style={{maxWidth:1080,margin:"0 auto",padding:"0 20px 32px",color:"CanvasText",background:"Canvas"}}>
+          <details>
+            <summary style={{cursor:"pointer",fontWeight:700,fontSize:13,minHeight:44,padding:"13px 0"}}>Teacher OS and additional services</summary>
+            <p style={{padding:"12px 0"}}><Link href="/teacher/pulse" style={{fontWeight:700,textDecoration:"underline"}}>Open Teacher OS</Link></p>
+            <TeacherExperiencePreview />
+            <TeacherOpportunities />
+          </details>
+        </section>
+      </main>
+      <PublicFooter />
+    </>
+  );
 }
