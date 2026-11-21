@@ -32,6 +32,7 @@ function voiceSettings(exp: number) {
     enforce_unique_user_ids: true, enable_knocking: false,
     enable_recording: false, enable_chat: false, enable_screenshare: false,
     enable_prejoin_ui: false, start_audio_off: true, start_video_off: true,
+    audio_only: true,
   }
 }
 function validProviderRoom(value: unknown, name: string, exp: number): value is { url: string } {
@@ -44,7 +45,9 @@ function validProviderRoom(value: unknown, name: string, exp: number): value is 
     !!config && config.exp === exp && config.eject_at_room_exp === true &&
     config.max_participants === 80 && config.enforce_unique_user_ids === true &&
     config.enable_knocking === false && [false,''].includes(config.enable_recording as false | '') &&
-    config.enable_screenshare === false && config.enable_chat === false
+    config.enable_screenshare === false && config.enable_chat === false &&
+    config.audio_only === true && config.start_audio_off === true &&
+    config.start_video_off === true && config.enable_prejoin_ui === false
 }
 export async function issueLiveVoiceToken(
   room: VoiceRoom, userId: string, learnerStudentId: string | null, key: string,
