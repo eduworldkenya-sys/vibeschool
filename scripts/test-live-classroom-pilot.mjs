@@ -344,7 +344,7 @@ const prompt=room.prompt.id
 assert.equal(room.participants.length,2)
 assert.equal((await rpc(a,'get',sid)).prompt.answerKey,null)
 await assert.rejects(rpc(a,'publish',sid,room.version,{kind:'teach',body:'bad'}),/live_teacher_required/)
-await assert.rejects(rpc(a,'answer',sid,room.version-1,{promptId:prompt,body:'60'}),/stale/)
+await rpc(a,'answer',sid,room.version-1,{promptId:prompt,body:'60'}) // unrelated version changes cannot erase a valid same-prompt submission
 await assert.rejects(rpc(a,'answer',sid,room.version,{promptId:id(100),body:'60'}),/answer_not_open/)
 await rpc(a,'answer',sid,room.version,{promptId:prompt,body:'60'})
 await rpc(a,'answer',sid,room.version,{promptId:prompt,body:'999'})
