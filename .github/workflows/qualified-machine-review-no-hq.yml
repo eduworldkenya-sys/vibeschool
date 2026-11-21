@@ -1,0 +1,25 @@
+name: Automated Original Content Review Contract
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261121191000_qualified_machine_content_review_no_human_hq.sql'
+      - 'scripts/test-qualified-machine-content-review-no-human-hq.mjs'
+      - 'docs/curriculum/AUTOMATED_REVIEW_NO_HUMAN_KICD_OR_HQ.md'
+      - '.github/workflows/qualified-machine-review-no-hq.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261121191000_qualified_machine_content_review_no_human_hq.sql'
+      - 'scripts/test-qualified-machine-content-review-no-human-hq.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  assurance-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/test-qualified-machine-content-review-no-human-hq.mjs scripts/test-content-independent-approval-no-hq.mjs scripts/test-g4-whole-numbers-quiz-lineage-repair.mjs
