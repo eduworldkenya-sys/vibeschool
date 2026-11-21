@@ -13,12 +13,12 @@ function isTheme(value: unknown): value is VibeSchoolTheme {
 }
 
 /** One theme preference for signed-in users and guests, with no auth dependency. */
-export function ThemeControl({ className = '', native = false }: { className?: string; native?: boolean }) {
+export function ThemeControl({ className = '', native = false, compact = false }: { className?: string; native?: boolean; compact?: boolean }) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   return (
-    <label data-site-theme-host={native ? 'true' : undefined} className={`${styles.control} ${className}`}>
+    <label data-site-theme-host={native ? 'true' : undefined} className={`${styles.control} ${compact ? styles.compact : ''} ${className}`}>
       <SunMoon size={17} aria-hidden="true" />
       <span className={styles.sr}>Appearance</span>
       <select aria-label="VibeSchool appearance" disabled={!mounted}
