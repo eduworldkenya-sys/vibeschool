@@ -10,6 +10,8 @@ import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
 import { TeachingLibrary } from './LiveTeachingLibrary'
 import { LiveResourcePicker } from './LiveResourcePicker'
 import { LiveClassFiles } from './LiveClassFiles'
+import { LiveFilePresentation } from './LiveFilePresentation'
+import { decodeLiveFileRef } from '@/lib/live/filePresentation'
 import { BOARD_LIMIT, decodeBoard, encodeBoard } from './LiveBoardProtocol'
 import { liveSyncDelay } from './LiveSyncPolicy'
 import { LivePrivateChat } from './LivePrivateChat'
@@ -91,7 +93,9 @@ function LessonNavigation({items,reviewId,onReview,ended=false}:{items:Prompt[];
     <button type="button" disabled={reviewId===null} onClick={()=>onReview(null)}>{ended?'Latest':'Return to Live'}</button>
   </nav>
 }
-function SharedPrompt({prompt}:{prompt:Prompt|null|undefined}){
+function SharedPrompt({prompt,roomId}:{prompt:Prompt|null|undefined;roomId?:string}){
+ const sharedFile=prompt?.kind==='teach'?decodeLiveFileRef(prompt.body):null
+ if(sharedFile)return roomId?<LiveFilePresentation roomId={roomId} fileId={sharedFile}/>:<p>Shared PDF or photo</p>
  const slide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
  if(slide)return <SlideCanvas slide={slide} number={slide.number} total={slide.total}/>
  return prompt?<><div className={styles.label}>{labels[prompt.kind]}</div>{prompt.kind==='clock'?<ClockView value={prompt.body}/>:prompt.kind==='board'?<BoardView value={prompt.body}/>:<p className={styles.content}>{prompt.body}</p>}{prompt.revealed&&prompt.answerKey&&<div className={styles.solution}><strong>Answer</strong><p className={styles.content}>{prompt.answerKey}</p></div>}</>:<p className={styles.empty}>Choose a teaching tool to start.</p>
@@ -720,7 +724,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {!teacher&&(room.needsHelp||room.handAckAt)&&<div className={styles.handStatus} role="status"><span>{room.needsHelp?'Hand raised — teacher notified':'Teacher acknowledged your hand'}</span>{!room.needsHelp&&room.handAckAt&&<button type="button" onClick={()=>{setLearnerTool('ask');setReviewId(null)}}>Ask privately</button>}</div>}
     <div className={styles.stage}>
       <section className={styles.stageContent} data-board-edit={editingBoard&&teacher} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
-        {teacher&&panel==='resources'?<div className={styles.resourceWorkspace}><LiveResourcePicker classId={room.mode==='school'?classId:null} lessonPlanId={room.mode==='school'?linkedPlan?.id??null:null} schemeLessonId={room.mode==='school'?linkedPlan?.schemeId??null:null} canPresent={!busy&&online&&room.status==='active'} onPresent={body=>void act('publish',null,{kind:'teach',body,answerKey:null})} onClose={()=>setPanel(null)}/><LiveClassFiles roomId={room.id} teacher status={room.status}/></div>:teacher&&panel==='library'?<div className={styles.slideWorkspace}><div className={styles.slideToolbar}><strong>My Presentations</strong><button onClick={openSlides}>Back to slides</button></div><TeachingLibrary command={call} currentDeck={slides} onUse={useMaterial}/></div>:teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
+        {teacher&&panel==='resources'?<div className={styles.resourceWorkspace}><LiveResourcePicker classId={room.mode==='school'?classId:null} lessonPlanId={room.mode==='school'?linkedPlan?.id??null:null} schemeLessonId={room.mode==='school'?linkedPlan?.schemeId??null:null} canPresent={!busy&&online&&room.status==='active'} onPresent={body=>void act('publish',null,{kind:'teach',body,answerKey:null})} onClose={()=>setPanel(null)}/><LiveClassFiles roomId={room.id} teacher status={room.status} onPresentFile={reference=>{if(!busy&&online&&room.status==='active')void act('publish',null,{kind:'teach',body:reference,answerKey:null})}}/></div>:teacher&&panel==='library'?<div className={styles.slideWorkspace}><div className={styles.slideToolbar}><strong>My Presentations</strong><button onClick={openSlides}>Back to slides</button></div><TeachingLibrary command={call} currentDeck={slides} onUse={useMaterial}/></div>:teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
           <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel('library')}>My presentations</button><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
           <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length}/>
           <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
@@ -743,7 +747,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">Board {boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button></div>
           <ObjectBoard key={boardPage} value={board} page={boardPage+1} total={boardPages.length} onChange={changeBoard} disabled={busy} onUndo={undoBoard} onRedo={redoBoard} canUndo={!!undoBoards.length} canRedo={!!redoBoards.length}/>
           <button className={styles.primary} disabled={busy||!online||room.status!=='active'||!board.trim()} onClick={publishBoard}>Share board</button>
-        </>:<SharedPrompt prompt={viewedPrompt}/>}
+        </>:<SharedPrompt prompt={viewedPrompt} roomId={room.id}/>}
       </section>
       {((teacher&&privateTarget&&panel===null)||(!teacher&&privateOpen&&!learnerTool))&&<LivePrivateChat key={room.id+':'+(privateTarget?.studentId??'self')} roomId={room.id} teacher={teacher} recipient={privateTarget} status={room.status} command={call} onClose={()=>{setPrivateOpen(false);setPrivateTarget(null)}}/>}
       {!teacher&&learnerTool&&<section className={styles.sheet} aria-label={learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':'My notes'}>
@@ -825,8 +829,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     </section>}
     {room?.status==='ended'&&<section className={styles.panel}><h2>{room.title}</h2><p>This session has ended.</p><LessonNavigation items={history} reviewId={reviewId} onReview={setReviewId} ended/>
        <section aria-label="Saved teaching materials" className={styles.savedMaterials}><strong>Lesson materials</strong><p>Review the pages, diagrams and board work your teacher presented. Access still follows your current class or tuition permission.</p>
-       <div className={styles.savedMaterialList}>{history.filter(item=>item.kind==='teach'||item.kind==='board').map(item=><button type="button" key={item.id} aria-pressed={viewedPrompt?.id===item.id} onClick={()=>setReviewId(item.id)}>{item.kind==='board'?'Shared whiteboard':decodeSlide(item.body)?.title??item.body.split('\n')[0]?.slice(0,85)??'Lesson page'}</button>)}</div>
+       <div className={styles.savedMaterialList}>{history.filter(item=>item.kind==='teach'||item.kind==='board').map(item=><button type="button" key={item.id} aria-pressed={viewedPrompt?.id===item.id} onClick={()=>setReviewId(item.id)}>{item.kind==='board'?'Shared whiteboard':decodeLiveFileRef(item.body)?'Shared PDF or photo':decodeSlide(item.body)?.title??item.body.split('\n')[0]?.slice(0,85)??'Lesson page'}</button>)}</div>
        {!history.some(item=>item.kind==='teach'||item.kind==='board')&&<p>No teaching materials were presented in this class.</p>}</section>
-       <div aria-label="Saved lesson"><SharedPrompt prompt={viewedPrompt}/></div><LiveClassFiles roomId={room.id} teacher={teacher} status="ended"/>{!teacher&&room.ownNote&&<div><h3>My notes</h3><p className={styles.content}>{room.ownNote}</p></div>}<button onClick={leave}>Return to live lessons</button></section>}
+       <div aria-label="Saved lesson"><SharedPrompt prompt={viewedPrompt} roomId={room.id}/></div><LiveClassFiles roomId={room.id} teacher={teacher} status="ended"/>{!teacher&&room.ownNote&&<div><h3>My notes</h3><p className={styles.content}>{room.ownNote}</p></div>}<button onClick={leave}>Return to live lessons</button></section>}
   </main>
 }
