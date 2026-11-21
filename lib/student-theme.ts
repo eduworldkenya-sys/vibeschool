@@ -25,6 +25,9 @@ export const STUDENT_THEMES = {
 
 export function readTheme(): StudentTheme {
   try {
+    const shared = localStorage.getItem('vibeschool-theme')
+    if (shared === 'system') return 'auto'
+    if (shared === 'light' || shared === 'dark') return shared
     const stored = localStorage.getItem(THEME_KEY)
     if (stored === "light" || stored === "dark" || stored === "auto") return stored
   } catch {}

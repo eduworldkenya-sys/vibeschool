@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import {useEffect,useState,type ChangeEvent} from 'react'
 import Link from 'next/link'
+import {useTheme as useSiteTheme} from 'next-themes'
 import {useStudent} from '@/lib/student-context'
 import {DEFAULT_LEARNER_APPEARANCE,readLearnerAppearance,saveLearnerAppearance,readLearnerWallpaperPhoto,saveLearnerWallpaperPhoto,type LearnerAppearance,type LearnerFont,type LearnerPalette,type LearnerWallpaper} from '@/lib/student-appearance'
 import styles from './settings.module.css'
@@ -50,6 +51,7 @@ async function compressWallpaper(file:File):Promise<string> {
 }
 export default function LearnerSettingsPage(){
   const {identity,loading}=useStudent()
+  const {setTheme:setSiteTheme}=useSiteTheme()
   const [tab,setTab]=useState<Section>('appearance')
   const [value,setValue]=useState<LearnerAppearance>(DEFAULT_LEARNER_APPEARANCE)
   const [photo,setPhoto]=useState<string|null>(null)
@@ -66,10 +68,17 @@ export default function LearnerSettingsPage(){
   },[identity?.studentId])
   function change(patch:Partial<LearnerAppearance>){
     if(!identity?.studentId)return
+    if(patch.displayMode)setSiteTheme(patch.displayMode==='auto'?'system':patch.displayMode)
     const next={...value,...patch}
     if(!saveLearnerAppearance(identity.studentId,next)){setNotice('Preferences could not be stored on this device.');return}
     setValue(next);setNotice('')
   }
+  useEffect(()=>{
+    if(!identity?.studentId)return
+    const refresh=()=>setValue(readLearnerAppearance(identity.studentId))
+    window.addEventListener('vibeschool:theme-changed',refresh)
+    return()=>window.removeEventListener('vibeschool:theme-changed',refresh)
+  },[identity?.studentId])
   async function upload(event:ChangeEvent<HTMLInputElement>){
     const file=event.target.files?.[0];event.target.value=''
     if(!file||!identity?.studentId)return
