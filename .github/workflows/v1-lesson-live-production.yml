@@ -85,7 +85,7 @@ jobs:
             git fetch origin main
             test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
             cd .v1-lesson-live-stage
-            supabase db push --remote --include-all 2>&1 | tee ../.v1-lesson-live/applied.txt
+            supabase db push --remote --include-all --yes 2>&1 | tee ../.v1-lesson-live/applied.txt
           fi
       - name: Verify production ledger and access contracts
         run: |
