@@ -72,7 +72,7 @@ export async function fetchLiveListings(): Promise<LiveListings> {
     bio: row.bio ?? '', experience: '', formatNote: '', real: true,
   }))
   const requests: DemoRequest[] = requestRows.map(row => ({
-    id: row.id, learnerLabel: ownedNamesById.get(row.id) ?? `${row.levels[0] || 'Learner'} tuition request`, subjects: row.subjects, level: row.levels[0] ?? '',
+    id: row.id, learnerLabel: ownedNamesById.get(row.id) ?? row.learner_label, subjects: row.subjects, level: row.levels[0] ?? '',
     mode: row.teaching_mode, area: row.area ?? '', budgetKes: row.budget_kes ?? 0,
     days: row.available_days, dayparts: row.dayparts as DayPart[],
     postedDaysAgo: Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86400000)),
