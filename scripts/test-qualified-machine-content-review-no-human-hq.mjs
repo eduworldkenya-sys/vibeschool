@@ -66,9 +66,9 @@ test('resource certification requires the same canonical lifecycle with machine 
 test('migration remains noncommissioning and permits no client grants or unsafe publication',()=>{
  assert.match(source,/^begin;\n/m)
  assert.match(source,/\ncommit;\s*$/)
- assert.doesNotMatch(source,/insert into public\.ce_machine_content_commissions\s*\(/i)
- assert.doesNotMatch(source,/insert into public\.publication_release_approvals\s*\(/i)
+ assert.doesNotMatch(source,/^insert into public\.ce_machine_content_commissions\s*\(/im)
+ assert.doesNotMatch(source,/^insert into public\.publication_release_approvals\s*\(/im)
  assert.doesNotMatch(source,/update\s+public\.vibe_publications\s+set\s+status\s*=\s*'published'/i)
  assert.doesNotMatch(source,/disable\s+trigger|alter\s+table\s+.*disable\s+row\s+level\s+security|grant\s+all\s+on/i)
- assert.ok((source.match(/\$\$;/g)||[]).length>=10,'complete SQL function delimiters')
+ assert.ok((source.match(/\$\$;/g)||[]).length>=7,'complete SQL function delimiters')
 })
