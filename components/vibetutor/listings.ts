@@ -33,9 +33,8 @@ export async function fetchLiveListings(): Promise<LiveListings> {
   ])
 
   if (tutorsRes.error) throw new Error('Tutor listings could not be loaded.')
-  if (sessionRes.error) throw new Error('Your sign-in status could not be checked.')
-
-  const signedIn = !!sessionRes.data.session
+  // Public browsing must work even if an old/expired session cannot be checked.
+  const signedIn = !sessionRes.error && !!sessionRes.data.session
   let requestRows: RequestRow[] = []
 
   // This is a narrowly allowlisted public projection; private request rows stay owner-only.

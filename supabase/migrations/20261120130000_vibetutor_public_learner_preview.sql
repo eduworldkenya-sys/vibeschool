@@ -19,6 +19,8 @@ grant select on public.vibetutor_open_requests to anon, authenticated;
 commit;
 
 
+-- access: owner-only public.vibetutor_request_interests
+-- authorization-test: public.vibetutor_request_interests only participants read; verified published teachers create rate-limited enquiries; only the owning parent may accept or decline; revoked and closed requests remove enquiries; anon denied
 -- Interest workflow: a verified published teacher may contact the parent/guardian
 -- through a private, limited inquiry; no guardian contact fields enter public browsing.
 begin;
