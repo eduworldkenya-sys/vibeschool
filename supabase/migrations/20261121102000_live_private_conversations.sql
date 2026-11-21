@@ -79,7 +79,65 @@ BEGIN
      if room.status<>'active' or room.expires_at<=now() then raise exception 'live_message_closed'; end if;
      body:=btrim(coalesce(p_payload->>'body',''));
      if char_length(body) not between 1 and 1000 or
-        coalesce(p_payload->>'requestId','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        coalesce(p_payload->>'requestId','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+       then raise exception 'live_invalid_message'; end if;
+     dm_request:=(p_payload->>'requestId')::uuid;
+     select * into dm_prior from vibe_live.private_messages m
+       where m.session_id=room.id and m.student_id=dm_student and m.sender_role=dm_sender and m.request_id=dm_request;
+     if found then
+       if dm_prior.body<>body then raise exception 'live_request_id_reused'; end if;
+     else
+       if (select count(*) from vibe_live.private_messages m where m.session_id=room.id and m.student_id=dm_student)>=120
+         or (select count(*) from vibe_live.private_messages m where m.session_id=room.id)>=2400
+         then raise exception 'live_message_limit'; end if;
+       insert into vibe_live.private_messages(session_id,student_id,sender_role,request_id,body)
+       values(room.id,dm_student,dm_sender,dm_request,body) on conflict do nothing;
+       select * into dm_prior from vibe_live.private_messages m
+         where m.session_id=room.id and m.student_id=dm_student and m.sender_role=dm_sender and m.request_id=dm_request;
+       if dm_prior.body is distinct from body then raise exception 'live_request_id_reused'; end if;
+     end if;
+   elsif p_action='dm_read' then
+     -- A read receipt is persisted only after the recipient opened this conversation.
+     update vibe_live.private_messages m
+     set read_at=clock_timestamp(),delivered_at=coalesce(m.delivered_at,clock_timestamp())
+     where m.session_id=room.id and m.student_id=dm_student
+       and m.sender_role<>dm_sender and m.read_at is null;
+   else
+     -- Delivered only when the recipient's client actually fetches the thread.
+     update vibe_live.private_messages m set delivered_at=clock_timestamp()
+       where m.session_id=room.id and m.student_id=dm_student
+         and m.sender_role<>dm_sender and m.delivered_at is null;
+   end if;
+   return jsonb_build_object('messages',coalesce((
+     select jsonb_agg(jsonb_build_object(
+       'id',m.id,'body',m.body,'sender',m.sender_role,
+       'createdAt',m.created_at,'deliveredAt',m.delivered_at,'readAt',m.read_at
+     ) order by m.created_at,m.id)
+     from (
+       select id,body,sender_role,created_at,delivered_at,read_at from vibe_live.private_messages
+       where session_id=room.id and student_id=dm_student
+       order by created_at desc,id desc limit 120
+     ) m
+   ),'[]'::jsonb));
+ end if;
+
+$chat$;
+  src:=replace(src,old,replacement||old);
+
+  old := '''name'',s.name,''needsHelp'',p.needs_help';
+  replacement := '''name'',s.name,''unreadDm'',(select count(*) from vibe_live.private_messages m where m.session_id=room.id and m.student_id=p.student_id and m.sender_role=''learner'' and m.read_at is null),''needsHelp'',p.needs_help';
+  IF (length(src)-length(replace(src,old,'')))/length(old)<>1 THEN RAISE EXCEPTION 'Unexpected participant projection'; END IF;
+  src:=replace(src,old,replacement);
+
+  old := '''handAckAt'',(select hand_ack_at from vibe_live.participants where session_id=room.id and student_id=learner),';
+  replacement := '''dmUnread'',(select count(*) from vibe_live.private_messages m where m.session_id=room.id and m.student_id=learner and m.sender_role=''teacher'' and m.read_at is null),'||old;
+  IF (length(src)-length(replace(src,old,'')))/length(old)<>1 THEN RAISE EXCEPTION 'Unexpected learner projection'; END IF;
+  src:=replace(src,old,replacement);
+
+  EXECUTE src;
+END $migration$;
+COMMIT;
+
        then raise exception 'live_invalid_message'; end if;
      dm_request:=(p_payload->>'requestId')::uuid;
      select * into dm_prior from vibe_live.private_messages m
