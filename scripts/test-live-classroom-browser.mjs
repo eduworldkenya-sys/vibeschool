@@ -263,7 +263,7 @@ try{
  // Explicit choices use the authorized prompt and answer RPC, never a shadow poll.
  const beforeChoices=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
  await fixture.rpc(fixture.teacher,'publish',sid,beforeChoices.version,{kind:'poll',body:'How many quarters are in one whole?\nA. Two\nB) Four\nC: Ten'})
- await see(l,'How many quarters are in one whole?')
+ await l.getByLabel('Shared lesson',{exact:true}).getByText(/How many quarters are in one whole\?/).first().waitFor()
  await l.getByRole('radio',{name:'B. Four'}).check()
  await button(l,'Submit').click()
  await l.getByText(/Submitted:/).waitFor()
