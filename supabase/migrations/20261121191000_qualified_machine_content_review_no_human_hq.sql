@@ -4,6 +4,8 @@
 -- Production worker commissioning and actual independent review remain required.
 begin;
 
+-- access: owner-only public.ce_machine_content_commissions
+-- authorization-test: public.ce_machine_content_commissions (commission requires authenticated platform owner; source/grant identities must be real)
 create table if not exists public.ce_machine_content_commissions (
   id uuid primary key default gen_random_uuid(),
   publication_id uuid not null references public.vibe_publications(id) on delete restrict,
@@ -29,6 +31,8 @@ create index if not exists ce_machine_content_commissions_active_idx
  on public.ce_machine_content_commissions(publication_id,reviewer_user_id,expires_at)
  where revoked_at is null;
 
+-- access: service-only public.ce_machine_content_review_receipts
+-- authorization-test: public.ce_machine_content_review_receipts (service-only evidence intake, no client grants)
 create table if not exists public.ce_machine_content_review_receipts (
   id uuid primary key default gen_random_uuid(),
   commission_id uuid not null references public.ce_machine_content_commissions(id) on delete restrict,
@@ -421,7 +425,7 @@ end $function$;
 -- Owner can stop a reviewer without visiting HQ.
 create or replace function public.ce_revoke_machine_content_reviewer(p_commission_id uuid)
 returns boolean language plpgsql security definer set search_path=''
-as $
+as $$
 declare v_owner uuid:=auth.uid(); v_changed integer;
 begin
  if v_owner is null or not public.is_platform_owner() then
@@ -432,7 +436,7 @@ begin
  where id=p_commission_id and revoked_at is null;
  get diagnostics v_changed=row_count;
  return v_changed=1;
-end $;
+end $$;
 revoke all on function public.ce_revoke_machine_content_reviewer(uuid)
  from public,anon,authenticated,service_role;
 grant execute on function public.ce_revoke_machine_content_reviewer(uuid) to authenticated;
