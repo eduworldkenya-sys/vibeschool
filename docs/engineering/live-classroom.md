@@ -102,3 +102,35 @@ than waiting for the next polling interval, but no subsecond p95 latency or
 production WS availability is claimed without a real two-account mobile
 latency trial. Retain the polling fallback, monotonic history, version checks
 and fail-closed permission responses.
+
+
+## Teacher-moderated Live text, private typing and Open-class waiting room
+
+All three features extend the existing authorized `vibe_live_command`; there
+is **no new public messaging endpoint or direct table access**.
+
+- **Open-class waiting:** School-level eligible, authenticated learners with
+  existing tutor/guardian entitlement can request entry, but may not join until
+  that session's teacher explicitly admits them. An unknown learner cannot
+  bypass tutor connections by knowing the room URL. Denied requests remain
+  denied for that session. A teacher sees pending, still-eligible learners and
+  may admit/decline; an admission never overrides current enrollment.
+- **Class chat:** Off by default. The teacher explicitly enables it, may close
+  it immediately and can hide messages without deleting moderation records.
+  Only active-session teacher/joined learners may send, capped in length,
+  volume and rate. Learners may report another participant's message; reports
+  and hidden content remain available only through the authenticated
+  teacher's audited projection. No learner-to-learner direct messages.
+- **Private typing:** The existing teacher/learner conversation reports only
+  a per-peer boolean. Entries expire after 7 seconds without a new heartbeat;
+  the backend suppresses updates faster than 2 seconds. This is not a
+  delivery/read receipt and never exposes other learners' activity.
+- **Transport:** The previously authorized private room Realtime channel sends
+  only `{"invalidate":true}`; it does not carry chat messages, student names,
+  moderation reports, waiting-room identities or typing content. Authorized
+  RPC re-fetches are authoritative; bounded polling remains available.
+- **Privacy:** All new tables enable RLS and deny direct client access,
+  including anonymous and service roles. Role, session, classroom, student,
+  school/tutor and guardian conditions remain fail-closed. Real guardian,
+  mobile and multi-device production acceptance still must be verified;
+  PGlite/Chromium disposable fixtures are not real production attendance.

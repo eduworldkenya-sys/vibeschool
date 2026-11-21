@@ -15,19 +15,21 @@ import { decodeLiveFileRef } from '@/lib/live/filePresentation'
 import { BOARD_LIMIT, decodeBoard, encodeBoard } from './LiveBoardProtocol'
 import { liveSyncDelay } from './LiveSyncPolicy'
 import { LivePrivateChat } from './LivePrivateChat'
+import { LiveClassChat } from './LiveClassChat'
 import { teacherLivePlan } from '@/lib/live/lessonPlanPresentation'
 import type { LessonDeliveryStep } from '@/lib/teaching/lessonPlanCodec'
 
 type ClassroomMode = 'school' | 'tuition' | 'homeschool' | 'open'
 const classroomLabels: Record<ClassroomMode,string>={school:'School',tuition:'Tuition',homeschool:'Homeschool',open:'Open class'}
-type Summary = { mode: ClassroomMode; canJoin: boolean; id: string; title: string; status: 'active' | 'paused'; own: boolean }
+type Summary = { mode: ClassroomMode; canJoin: boolean; id: string; title: string; status: 'active' | 'paused'; own: boolean; waitingStatus?:'pending'|'admitted'|'denied'|null }
 type PastSummary = { id: string; title: string; mode: ClassroomMode; startedAt: string; status: 'ended' }
 type Mode = 'teach' | 'quiz' | 'exercise' | 'poll' | 'clock' | 'board'
 type Prompt = { id: string; kind: Mode; body: string; answerKey: string | null; revealed: boolean }
 type HistoryPrompt = Prompt & { position: number; createdAt: string }
 type Participant = { studentId: string; name: string; needsHelp: boolean; answer: string | null; unreadDm?: number }
+type WaitingRequest = {studentId:string;name:string;requestedAt:string}
 type LiveQuestion = {id:string;body:string;reply:string|null;name?:string}
-type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean; dmUnread?: number }
+type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean; dmUnread?: number; chatEnabled?:boolean; waitingCount?:number }
 type ComposerDraft = { body: string; key: string }
 type DraftState = { serverRevision?:number; board: string; boardPages?: string[]; boardPage?: number; slides: LiveSlide[]; slideIndex: number; mode: Mode; body: string; key: string; clock: string; composers: Partial<Record<Mode,ComposerDraft>> }
 const validModes = ['teach','quiz','exercise','poll','clock','board'] as const
@@ -187,7 +189,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [board,setBoard]=useState('')
   const [boardPages,setBoardPages]=useState<string[]>([''])
   const [boardPage,setBoardPage]=useState(0)
-  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|'library'|'resources'|'plan'|null>(null)
+  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|'library'|'resources'|'plan'|'chat'|null>(null)
   const [slides,setSlides]=useState<LiveSlide[]>([{title:'',body:''}])
   const [slideIndex,setSlideIndex]=useState(0)
   const [deletedSlide,setDeletedSlide]=useState<{slide:LiveSlide;index:number}|null>(null)
@@ -247,6 +249,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [replyDrafts,setReplyDrafts]=useState<Record<string,string>>({})
   const [privateTarget,setPrivateTarget]=useState<{studentId:string;name:string}|null>(null)
   const [privateOpen,setPrivateOpen]=useState(false)
+  const [classChatOpen,setClassChatOpen]=useState(false)
+  const [waitingRequests,setWaitingRequests]=useState<WaitingRequest[]>([])
+  const [waitingError,setWaitingError]=useState('')
   const [online,setOnline]=useState(true)
   const [lastSync,setLastSync]=useState(0)
   useEffect(()=>{
@@ -255,7 +260,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     return ()=>{window.removeEventListener('online',status);window.removeEventListener('offline',status)}
   },[])
   useEffect(()=>{
-    setLearnerTool(null);setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({});setPrivateTarget(null);setPrivateOpen(false)
+    setLearnerTool(null);setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({});setPrivateTarget(null);setPrivateOpen(false);setClassChatOpen(false);setWaitingRequests([]);setWaitingError('')
   },[room?.id])
   useEffect(()=>{if(!noteDirty.current)setNoteDraft(room?.ownNote??'')},[room?.id,room?.ownNote])
   const [draftBinding,setDraftBinding]=useState<{roomId:string; key:string}|null>(null)
@@ -441,6 +446,18 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     void load()
     return()=>{cancelled=true}
   },[teacher,classId])
+  useEffect(()=>{
+    if(!teacher||room?.mode!=='open'||!room.id)return
+    let cancelled=false
+    void call('wait_list',room.id).then(data=>{
+      if(cancelled)return
+      const list=(data as {requests?:unknown})?.requests
+      if(!Array.isArray(list))throw Error('Invalid waiting room')
+      setWaitingRequests(list.filter((v):v is WaitingRequest=>!!v&&typeof v.studentId==='string'&&typeof v.name==='string'&&typeof v.requestedAt==='string'))
+      setWaitingError('')
+    }).catch(()=>{if(!cancelled)setWaitingError('Could not refresh the waiting room.')})
+    return()=>{cancelled=true}
+  },[teacher,room?.id,room?.mode,room?.version,call])
   useEffect(()=>{if(!teacher||classId||hostMode!=='tuition')return;let cancelled=false;void call('groups').then(data=>{if(!cancelled)setGroups(data as {id:string;title:string}[])}).catch(()=>{if(!cancelled)setGroups([])});return()=>{cancelled=true}},[teacher,classId,hostMode,call])
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search)
@@ -463,7 +480,20 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         if(pendingPublish.current?.fingerprint!==fingerprint)pendingPublish.current={fingerprint,requestId:crypto.randomUUID()}
         requestPayload={...payload,requestId:pendingPublish.current.requestId}
       }
-      const next=await call(action,id??room?.id??null,active.current?.version??null,requestPayload) as Room
+      let next: Room
+      try {
+        next=await call(action,id??room?.id??null,active.current?.version??null,requestPayload) as Room
+      } catch(e) {
+        // Participants/chat can advance the session version while the teacher
+        // composes. Only publishing may retry, once, against a fresh authorized
+        // room snapshot. Keep the same request ID for server idempotency.
+        if(action!=='publish'||!(e instanceof Error)||e.message!=='live_stale_version'||!room?.id)throw e
+        const latest=await call('get',room.id) as Room
+        if(!mounted.current||generation.current!==stamp)return
+        accept(latest)
+        if(latest.status!=='active'||!latest.teacher)throw new Error('The lesson is no longer active.')
+        next=await call('publish',room.id,latest.version,requestPayload) as Room
+      }
       if(!mounted.current||generation.current!==stamp)return
       accept(next)
       if(action==='publish'){
@@ -486,6 +516,26 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(generation.current===stamp){mutating.current=false;lock.current=false;if(mounted.current){setBusy(false);setLoading(false)}}
     }
   }
+  async function requestAdmission(sessionId:string){
+    if(busy||!online)return
+    setBusy(true);setError('')
+    try{
+      await call('wait_request',sessionId)
+      await refresh()
+    }catch(e){setError(e instanceof Error?e.message:'Could not request admission. Retry.')}
+    finally{setBusy(false)}
+  }
+  async function decideAdmission(studentId:string,admit:boolean){
+    if(!teacher||!room?.id||room.mode!=='open'||busy||!online)return
+    setBusy(true);setWaitingError('')
+    try{
+      await call('wait_decide',room.id,null,{studentId,admit})
+      setWaitingRequests(list=>list.filter(item=>item.studentId!==studentId))
+      await refresh()
+    }catch(e){setWaitingError(e instanceof Error?e.message:'Could not decide admission.')}
+    finally{setBusy(false)}
+  }
+
   async function togglePastClasses() {
     if (pastOpen) { setPastOpen(false); return }
     setPastOpen(true); setPastLoading(true); setPastError('')
@@ -720,6 +770,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {teacher&&workspaceStatus&&<div className={styles.workspaceStatus} role="status">{workspaceStatus}{workspaceRevision===null&&draftBinding&&<button type="button" onClick={()=>{setDraftBinding(null);setWorkspaceRetry(n=>n+1)}}>Retry draft sync</button>}{conflictDraft&&<><button type="button" onClick={()=>{restoreDraft(conflictDraft);setConflictDraft(null)}}>Restore local copy</button><button type="button" onClick={()=>setConflictDraft(null)}>Keep server copy</button></>}</div>}
     <LessonNavigation items={history} reviewId={reviewId} onReview={id=>{setEditingBoard(false);setPanel(null);setReviewId(id)}}/>
     {!teacher&&Number(room.dmUnread)>0&&!privateOpen&&<button type="button" className={styles.helpBanner} onClick={()=>{setPrivateOpen(true);setLearnerTool(null)}}><MessageSquare size={16}/> {room.dmUnread} private {room.dmUnread===1?'message':'messages'} from your teacher</button>}
+    {teacher&&room.mode==='open'&&Number(room.waitingCount)>0&&<button type="button" className={styles.helpBanner} onClick={()=>setPanel('learners')}>Waiting room · {room.waitingCount} request{room.waitingCount===1?'':'s'}</button>}
     {teacher&&participants.some(p=>p.needsHelp)&&<button className={styles.helpBanner} type="button" onClick={()=>setPanel('learners')}><Hand size={16}/> {participants.filter(p=>p.needsHelp).length} need help</button>}
     {!teacher&&(room.needsHelp||room.handAckAt)&&<div className={styles.handStatus} role="status"><span>{room.needsHelp?'Hand raised — teacher notified':'Teacher acknowledged your hand'}</span>{!room.needsHelp&&room.handAckAt&&<button type="button" onClick={()=>{setLearnerTool('ask');setReviewId(null)}}>Ask privately</button>}</div>}
     <div className={styles.stage}>
@@ -750,19 +801,20 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         </>:<SharedPrompt prompt={viewedPrompt} roomId={room.id}/>}
       </section>
       {((teacher&&privateTarget&&panel===null)||(!teacher&&privateOpen&&!learnerTool))&&<LivePrivateChat key={room.id+':'+(privateTarget?.studentId??'self')} roomId={room.id} teacher={teacher} recipient={privateTarget} status={room.status} command={call} onClose={()=>{setPrivateOpen(false);setPrivateTarget(null)}}/>}
+      {((teacher&&panel==='chat')||(!teacher&&classChatOpen&&!learnerTool))&&<LiveClassChat key={room.id} roomId={room.id} version={room.version} teacher={teacher} status={room.status} command={call} onClose={()=>{if(teacher)setPanel(null);else setClassChatOpen(false)}}/>}
       {!teacher&&learnerTool&&<section className={styles.sheet} aria-label={learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':'My notes'}>
         <div className={styles.sheetTitle}><strong>{learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':'My notes'}</strong><button type="button" aria-label="Close" onClick={()=>setLearnerTool(null)}><X size={18}/></button></div>
         {learnerTool==='ask'?<><small>Only you and your teacher can see this conversation.</small><ul className={styles.participants}>{(room.questions??[]).map(q=><li key={q.id} className={styles.messageExchange}><div className={styles.messageBubble} data-own="true"><small>You → Teacher</small><span>{q.body}</span><small>Sent · {q.reply?'Replied':'Awaiting reply'}</small></div>{q.reply&&<div className={styles.messageBubble}><small>Teacher → You</small><span>{q.reply}</span></div>}</li>)}</ul><form onSubmit={e=>{e.preventDefault();askTeacher()}}><label>Your question<textarea maxLength={1000} value={questionDraft} disabled={busy} onChange={e=>setQuestionDraft(e.target.value)} required/></label><button className={styles.primary} disabled={busy||!online||!questionDraft.trim()}>Send privately</button></form></>:learnerTool==='files'?<LiveClassFiles roomId={room.id} teacher={false} status={room.status}/>:<form onSubmit={e=>{e.preventDefault();void act('note',null,{body:noteDraft})}}><label>Personal notes<textarea maxLength={8000} value={noteDraft} disabled={busy} onChange={e=>{noteDirty.current=true;setNoteDraft(e.target.value)}}/></label><button className={styles.primary} disabled={busy||!online||!noteDirty.current}>Save notes</button><small>{noteDirty.current?'Unsaved changes':'Notes saved privately'}</small></form>}
       </section>}
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker||!!panel||(focusMode&&!focusDock)} onHide={()=>setShowSticker(false)}/>}
-      {teacher&&panel&&panel!=='slides'&&panel!=='library'&&panel!=='resources'&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':'Classroom tools'}>
+      {teacher&&panel&&panel!=='slides'&&panel!=='library'&&panel!=='resources'&&panel!=='chat'&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':'Classroom tools'}>
         <div className={styles.sheetTitle}><strong>{panel==='compose'?labels[mode]:panel==='learners'?'Learners':'More tools'}</strong><button aria-label="Close tools" onClick={()=>{setPanel(null);setEndConfirm(false)}}><X size={19}/></button></div>
         {panel==='compose'&&<form onSubmit={e=>{e.preventDefault();void act('publish',null,{kind:mode,body:content,answerKey:mode==='quiz'||mode==='exercise'?key:null})}}>
           {mode==='clock'?<><label>Show time<input type="time" value={clock} onChange={e=>setClock(e.target.value)}/></label><ClockView value={clock}/></>:<label>{mode==='teach'?'Lesson content':'Question or instruction'}<textarea required maxLength={4000} value={body} onChange={e=>setBody(e.target.value)}/></label>}
           {(mode==='quiz'||mode==='exercise')&&<label>Answer (hidden until reveal)<textarea maxLength={2000} value={key} onChange={e=>setKey(e.target.value)}/></label>}
           <button className={styles.primary} disabled={busy||room.status!=='active'||!content.trim()}>Share with class</button>
         </form>}
-        {panel==='learners'&&<><div className={styles.metrics}><span>{(room.questions??[]).filter(q=>!q.reply).length} questions</span><span>{participants.length} joined</span><span>{participants.filter(p=>p.answer!==null).length} answered</span><span>{participants.filter(p=>p.needsHelp).length} need help</span></div>{!participants.length?<p>No learners have joined.</p>:<ul className={styles.participants}>{participants.map(p=><li key={p.studentId}><strong>{p.name}</strong><span>{p.answer??'No answer'}</span><button type="button" disabled={busy} onClick={()=>{setPrivateTarget({studentId:p.studentId,name:p.name});setPanel(null);setReviewId(null);setEditingBoard(false)}}>Message privately{p.unreadDm? ' · '+p.unreadDm+' new':''}</button>{p.needsHelp&&<button disabled={busy} onClick={()=>void act('ack',null,{studentId:p.studentId})}>Acknowledge hand</button>}</li>)}</ul>}<h3>Private questions</h3>{(room.questions??[]).map(q=><form key={q.id} onSubmit={e=>{e.preventDefault();void act('reply',null,{questionId:q.id,body:replyDrafts[q.id]??''})}}><div className={styles.messageExchange}><div className={styles.messageBubble}><small>{q.name??'Learner'} → You</small><span>{q.body}</span></div>{q.reply&&<div className={styles.messageBubble} data-own="true"><small>You → {q.name??'Learner'}</small><span>{q.reply}</span><small>Sent</small></div>}</div>{!q.reply?<><label>Reply privately<textarea maxLength={1000} value={replyDrafts[q.id]??''} disabled={busy} onChange={e=>setReplyDrafts(items=>({...items,[q.id]:e.target.value}))}/></label><button disabled={busy||!online||!(replyDrafts[q.id]??'').trim()}>Send reply</button></>:<small>Reply saved. Start another private conversation through the learner list.</small>}</form>)}</>}
+        {panel==='learners'&&<><div className={styles.metrics}><span>{(room.questions??[]).filter(q=>!q.reply).length} questions</span><span>{participants.length} joined</span><span>{participants.filter(p=>p.answer!==null).length} answered</span><span>{participants.filter(p=>p.needsHelp).length} need help</span></div>{!participants.length?<p>No learners have joined.</p>:<ul className={styles.participants}>{participants.map(p=><li key={p.studentId}><strong>{p.name}</strong><span>{p.answer??'No answer'}</span><button type="button" disabled={busy} onClick={()=>{setPrivateTarget({studentId:p.studentId,name:p.name});setPanel(null);setReviewId(null);setEditingBoard(false)}}>Message privately{p.unreadDm? ' · '+p.unreadDm+' new':''}</button>{p.needsHelp&&<button disabled={busy} onClick={()=>void act('ack',null,{studentId:p.studentId})}>Acknowledge hand</button>}</li>)}</ul>}{room.mode==='open'&&<section aria-label="Waiting room" className={styles.waitingRoom}><h3>Waiting room · {waitingRequests.length}</h3><small>Only eligible learners can request entry. The teacher approves admission.</small>{waitingError&&<p role="alert">{waitingError}</p>}{!waitingRequests.length?<p>No pending requests.</p>:<ul className={styles.participants}>{waitingRequests.map(w=><li key={w.studentId}><strong>{w.name}</strong><div className={styles.waitingActions}><button type="button" disabled={busy||!online} onClick={()=>void decideAdmission(w.studentId,true)}>Admit</button><button type="button" disabled={busy||!online} onClick={()=>void decideAdmission(w.studentId,false)}>Decline</button></div></li>)}</ul>}</section>}<h3>Private questions</h3>{(room.questions??[]).map(q=><form key={q.id} onSubmit={e=>{e.preventDefault();void act('reply',null,{questionId:q.id,body:replyDrafts[q.id]??''})}}><div className={styles.messageExchange}><div className={styles.messageBubble}><small>{q.name??'Learner'} → You</small><span>{q.body}</span></div>{q.reply&&<div className={styles.messageBubble} data-own="true"><small>You → {q.name??'Learner'}</small><span>{q.reply}</span><small>Sent</small></div>}</div>{!q.reply?<><label>Reply privately<textarea maxLength={1000} value={replyDrafts[q.id]??''} disabled={busy} onChange={e=>setReplyDrafts(items=>({...items,[q.id]:e.target.value}))}/></label><button disabled={busy||!online||!(replyDrafts[q.id]??'').trim()}>Send reply</button></>:<small>Reply saved. Start another private conversation through the learner list.</small>}</form>)}</>}
         {panel==='plan'&&<div className={styles.planGuide}>
           <strong>Lesson Plan · {linkedPlan?.title}</strong>
           <small>Private teaching guidance. Nothing on this panel is shared with learners.</small>
@@ -786,12 +838,13 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       <button type="button" disabled={busy||!online||room.status!=='active'||liveSlide.number>=slides.length||liveSlide.total!==slides.length||!encodeSlide(slides[liveSlide.number],liveSlide.number+1,slides.length)} onClick={()=>presentSlide(liveSlide.number)}>Next slide</button>
     </div>}
     {!teacher&&reviewId===null&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}><label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label><button className={styles.primary} disabled={busy||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button></form>}</section>}
-    {(!focusMode||focusDock)&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} disabled={draftLoading} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button type="button" disabled={draftLoading} aria-pressed={panel==='resources'} onClick={()=>{setReviewId(null);setEditingBoard(false);setPanel(panel==='resources'?null:'resources')}}><BookOpen size={18}/><span>Resources</span></button><button disabled={draftLoading} aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}{participants.some(p=>Number(p.unreadDm)>0)?' · '+participants.reduce((n,p)=>n+Number(p.unreadDm??0),0)+' new':''}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<nav aria-label="Learner tools" className={styles.learnerTools}>
+    {(!focusMode||focusDock)&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} disabled={draftLoading} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button type="button" disabled={draftLoading} aria-pressed={panel==='resources'} onClick={()=>{setReviewId(null);setEditingBoard(false);setPanel(panel==='resources'?null:'resources')}}><BookOpen size={18}/><span>Resources</span></button><button disabled={draftLoading} aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}{participants.some(p=>Number(p.unreadDm)>0)?' · '+participants.reduce((n,p)=>n+Number(p.unreadDm??0),0)+' new':''}</button><button type="button" aria-pressed={panel==='chat'} onClick={()=>{setEditingBoard(false);setPanel(panel==='chat'?null:'chat')}}><MessageSquare size={16}/> Chat{room.chatEnabled?' · On':''}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<nav aria-label="Learner tools" className={styles.learnerTools}>
       <button type="button" aria-pressed={!!room.needsHelp} data-raised={!!room.needsHelp} disabled={busy||!online} onClick={()=>void act(room.needsHelp?'lower':'help')}><Hand size={21}/><span>{room.needsHelp?'Lower hand':'Raise hand'}</span></button>
-      <button type="button" aria-pressed={learnerTool==='ask'} onClick={()=>{setPrivateOpen(false);setLearnerTool(v=>v==='ask'?null:'ask')}}><MessageSquare size={21}/><span>Ask</span></button>
-      <button type="button" aria-pressed={privateOpen} onClick={()=>{setLearnerTool(null);setPrivateOpen(v=>!v)}}><MessageSquare size={21}/><span>Messages{Number(room.dmUnread)>0?' · '+room.dmUnread:''}</span></button>
-      <button type="button" aria-pressed={learnerTool==='notes'} onClick={()=>setLearnerTool(v=>v==='notes'?null:'notes')}><NotebookPen size={21}/><span>Notes</span></button>
-       <button type="button" aria-pressed={learnerTool==='files'} onClick={()=>{setPrivateOpen(false);setLearnerTool(v=>v==='files'?null:'files')}}><BookOpen size={21}/><span>Files</span></button>
+      <button type="button" aria-pressed={learnerTool==='ask'} onClick={()=>{setClassChatOpen(false);setPrivateOpen(false);setLearnerTool(v=>v==='ask'?null:'ask')}}><MessageSquare size={21}/><span>Ask</span></button>
+      <button type="button" aria-pressed={privateOpen} onClick={()=>{setClassChatOpen(false);setLearnerTool(null);setPrivateOpen(v=>!v)}}><MessageSquare size={21}/><span>Messages{Number(room.dmUnread)>0?' · '+room.dmUnread:''}</span></button>
+      <button type="button" aria-pressed={learnerTool==='notes'} onClick={()=>{setClassChatOpen(false);setLearnerTool(v=>v==='notes'?null:'notes')}}><NotebookPen size={21}/><span>Notes</span></button>
+       <button type="button" aria-pressed={learnerTool==='files'} onClick={()=>{setClassChatOpen(false);setPrivateOpen(false);setLearnerTool(v=>v==='files'?null:'files')}}><BookOpen size={21}/><span>Files</span></button>
+       <button type="button" aria-pressed={classChatOpen} onClick={()=>{setLearnerTool(null);setPrivateOpen(false);setClassChatOpen(v=>!v)}}><MessageSquare size={21}/><span>Chat{room.chatEnabled?' · On':''}</span></button>
       <button type="button" aria-pressed={reviewId!==null} disabled={!history.length} onClick={()=>{setLearnerTool(null);setReviewId(reviewId?null:history[0].id)}}><History size={21}/><span>{reviewId?'Go live':'History'}</span></button>
     </nav>}</footer>}
     </main>
@@ -815,7 +868,14 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         <label>Audience<select value={scope} onChange={e=>setScope(e.target.value as 'all'|ClassroomMode)}><option value="all">All lessons</option>{Object.entries(classroomLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
         {sharedId&&!rooms.some(item=>item.id===sharedId)&&<button disabled={busy} onClick={()=>void act('join',sharedId)}>Join shared lesson</button>}
       </div>}
-      {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>teacher||item.canJoin?<button key={item.id} disabled={busy} onClick={()=>void act(teacher?'get':'join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>{teacher?'Resume': 'Join Live'}</span></button>:<div key={item.id} className={styles.discover}><strong>{item.title}<small>Open class</small></strong><Link href="/student/tutoring">Connect to tutor</Link></div>)}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
+      {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>
+        teacher?<button type="button" key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>Resume</span></button>
+        :!item.canJoin?<div key={item.id} className={styles.discover}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><Link href="/student/tutoring">Connect to tutor</Link></div>
+        :item.mode==='open'&&item.waitingStatus!=='admitted'?<div key={item.id} className={styles.discover}><strong>{item.title}<small>Teacher-controlled Open class</small></strong>
+          {item.waitingStatus==='pending'?<span role="status">Waiting for teacher approval</span>:item.waitingStatus==='denied'?<span>Admission declined</span>:<button type="button" disabled={busy||!online} onClick={()=>void requestAdmission(item.id)}>Request admission</button>}
+        </div>
+        :<button type="button" key={item.id} disabled={busy} onClick={()=>void act('join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>Join Live</span></button>
+      )}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
       {pastAvailable&&<button type="button" aria-expanded={pastOpen} disabled={pastLoading} onClick={()=>void togglePastClasses()}>{pastOpen?'Hide Past Classes':'Past Classes'}</button>}
       {pastAvailable&&pastOpen&&<section aria-label="Past Classes">
         {pastLoading&&<p role="status">Loading saved lessons…</p>}

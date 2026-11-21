@@ -21,7 +21,7 @@ export default function LiveLearnerNotice({ studentId }: { studentId: string }) 
     let timer: number | undefined
     const schedule = () => {
       if (timer !== undefined) window.clearTimeout(timer)
-      if (!cancelled) timer = window.setTimeout(() => void refresh(), 20000)
+      if (!cancelled) timer = window.setTimeout(() => void refresh(), 12000)
     }
     const refresh = async () => {
       if (cancelled) return

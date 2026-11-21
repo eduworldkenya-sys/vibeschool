@@ -58,6 +58,7 @@ await db.exec(readFileSync(new URL('../supabase/migrations/20261120104502_live_t
 await db.exec(readFileSync(new URL('../supabase/migrations/20261121084500_live_past_classes.sql',import.meta.url),'utf8'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20261121102000_live_private_conversations.sql',import.meta.url),'utf8'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20261121121000_live_private_realtime_invalidation.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261121141000_live_moderated_chat_waiting_typing.sql',import.meta.url),'utf8'))
 async function rpc(who,action,room=null,version=null,payload={},classId=cls,role='authenticated') {
  await db.exec(`set role ${role}; select set_config('request.jwt.claim.sub','${who||''}',false)`)
  try {return (await db.query('select public.vibe_live_command($1,$2,$3,$4,$5::jsonb) as out',[action,classId,room,version,JSON.stringify(payload)])).rows[0].out}
