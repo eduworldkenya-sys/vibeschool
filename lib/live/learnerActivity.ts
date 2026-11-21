@@ -9,7 +9,7 @@ export type LiveAnswerChoice = {letter:string; text:string; value:string}
  */
 export function liveAnswerChoices(body:string):LiveAnswerChoice[]{
   if(typeof body!=='string'||body.length>4000)return []
-  const matches=body.split(/\r?\n/).map(line=>line.match(/^\s*([A-Fa-f])[.):]\s*(\S.{0,139})\s*$/)).filter((match):match is RegExpMatchArray=>match!==null)
+  const matches=body.split(/\r?\n/).map(line=>line.match(/^\s*([A-Za-z])[.):]\s*(\S.{0,139})\s*$/)).filter((match):match is RegExpMatchArray=>match!==null)
   if(matches.length<2||matches.length>6)return []
   const letters=matches.map(match=>match[1].toUpperCase())
   if(letters.some((letter,index)=>letter!==String.fromCharCode(65+index)))return []
