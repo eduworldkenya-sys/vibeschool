@@ -16,6 +16,9 @@ type ResourceChoice = {
   pinnedVersionId?: string | null
 }
 type Selected = { item: ResourceChoice; pages: string[]; version: string | null }
+type SchemeRow = { id: string; topic: string | null }
+type SchemeLink = { scheme_lesson_id: string | null; resource_id: string | null; resource_version_id: string | null }
+type ReleasedRoot = { id: string; title: string; subject: string | null; grade: string | null }
 
 export function LiveResourcePicker({
   classId, canPresent, onPresent, onClose,
@@ -79,15 +82,15 @@ export function LiveResourcePicker({
               .select('id,topic').eq('teacher_id', auth.data.user.id)
               .eq('class_id', classId).limit(150)
             if (schemeResult.error) throw schemeResult.error
-            const schemes = schemeResult.data ?? []
+            const schemes = (schemeResult.data ?? []) as SchemeRow[]
             if (schemes.length) {
               const linksResult = await supabase.from('teaching_resource_links')
                 .select('scheme_lesson_id,resource_id,resource_version_id')
                 .eq('target_type', 'scheme_lesson')
                 .in('scheme_lesson_id', schemes.map(s => s.id)).limit(300)
               if (linksResult.error) throw linksResult.error
-              const links = linksResult.data ?? []
-              const ids = [...new Set(links.map(l => l.resource_id))]
+              const links = (linksResult.data ?? []) as SchemeLink[]
+              const ids = [...new Set(links.flatMap(l => l.resource_id ? [l.resource_id] : []))]
               const roots = ids.length
                 ? await supabase.from('learning_resources')
                     .select('id,title,subject,grade,asset_kind')
@@ -96,10 +99,12 @@ export function LiveResourcePicker({
                     .in('grade', LIVE_SCHOOL_GRADE_LABELS)
                 : { data: [], error: null }
               if (roots.error) throw roots.error
-              const byId = new Map((roots.data ?? []).map(r => [r.id, r]))
-              const byScheme = new Map(schemes.map(s => [s.id, s]))
+              const released = (roots.data ?? []) as ReleasedRoot[]
+              const byId = new Map<string, ReleasedRoot>(released.map(r => [r.id, r] as const))
+              const byScheme = new Map<string, SchemeRow>(schemes.map(s => [s.id, s] as const))
               const seen = new Set<string>()
               for (const link of links) {
+                if (!link.resource_id || !link.scheme_lesson_id) continue
                 const root = byId.get(link.resource_id), scheme = byScheme.get(link.scheme_lesson_id)
                 if (!root || !scheme) continue
                 const key = link.scheme_lesson_id + ':' + link.resource_id + ':' + (link.resource_version_id ?? '')
