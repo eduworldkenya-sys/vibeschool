@@ -28,6 +28,7 @@ export function buildTextbookOutline(rows: readonly CurriculumOutlineRow[]) {
 export type Grade4MathBinding = { source_ref: string; sub_strand_id: string }
 export function projectGrade4MathOutline(rows: readonly CurriculumOutlineRow[], bindings: readonly Grade4MathBinding[]): CurriculumOutlineRow[] | null {
   const expected = [8, 7, 3, 1]
+  const strandNames = ['Numbers', 'Measurement', 'Geometry', 'Data Handling']
   if (bindings.length !== 19) return null
   const byId = new Map(rows.map(row => [row.id, row]))
   const seenIds = new Set<string>()
