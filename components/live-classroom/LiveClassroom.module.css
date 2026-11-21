@@ -231,6 +231,12 @@
 .learnerTools{grid-template-columns:repeat(6,minmax(0,1fr))}
 .resourceWorkspace{display:grid;gap:12px;width:100%;min-width:0;max-height:100%;overflow:auto}
 @media(max-width:420px){.learnerTools button{font-size:10px;min-width:0}.learnerTools button span{overflow:hidden;text-overflow:ellipsis;max-width:100%}}
+/* Presenter location is a compact status row: the actual document remains
+   independently scrollable on all learner phones. */
+.followBar{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:34px;flex:none;font-size:12px;color:#d5eee5}
+.followBar button{min-height:32px;padding:4px 10px;border:1px solid #68998a;border-radius:9px;background:#203b33;color:inherit}
+.followBar [role=status]{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:420px){.followBar{font-size:11px}.followBar button{font-size:11px}}
 
 /* Learner-first controls preserve the reading stage on narrow Android screens. */
 .learnerTools{grid-template-columns:repeat(5,minmax(0,1fr))}

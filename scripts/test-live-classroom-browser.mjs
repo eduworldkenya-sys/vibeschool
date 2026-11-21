@@ -132,6 +132,7 @@ try{
  assert.match(await l.getByLabel('Personal notes').inputValue(),/One quarter means one of four equal parts/)
  await button(l,'Save notes').click()
  await l.getByRole('button',{name:'Close',exact:true}).click()
+
  await button(t,'Resources').click()
  await noPageOverflow(t)
  await button(t,'Return to lesson').click()
@@ -251,6 +252,47 @@ try{
  await see(l,'Two quarters')
  await button(l,'Return to Live').click()
  await see(l,'How many quarters make one whole?')
+ // Publish a genuinely scrollable teaching document through the same
+ // authoritative room. Multiple mobile viewports follow a normalized offset.
+ const longText='Live reading guide.\n'+Array.from({length:72},(_,i)=>'Step '+(i+1)+': Read the analogue clock carefully.').join('\n')
+ const beforeLong=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ await fixture.rpc(fixture.teacher,'publish',sid,beforeLong.version,{kind:'teach',body:longText})
+ const hostStage=t.getByLabel('Shared lesson',{exact:true})
+ const pupilStage=l.getByLabel('Shared lesson',{exact:true})
+ await t.getByText(/Live reading guide/).first().waitFor()
+ await l.getByText(/Live reading guide/).waitFor()
+ await t.getByRole('button',{name:'Previous lesson page'}).click()
+ await l.getByText('How many quarters make one whole?',{exact:true}).first().waitFor()
+ await t.getByRole('button',{name:'Return to Live'}).click()
+ await l.getByText(/Live reading guide/).waitFor()
+ await hostStage.evaluate(element=>{
+   if(element.scrollHeight<=element.clientHeight+100)throw Error('Teacher reading area must be scrollable')
+   element.scrollTop=(element.scrollHeight-element.clientHeight)*0.7
+   element.dispatchEvent(new Event('scroll',{bubbles:true}))
+ })
+ await l.waitForFunction(()=>{
+   const element=document.querySelector('[aria-label="Shared lesson"]')
+   return element&&element.scrollHeight>element.clientHeight+100&&
+     element.scrollTop/(element.scrollHeight-element.clientHeight)>0.5
+ },null,{timeout:18000})
+ await pupilStage.evaluate(element=>{
+   element.dispatchEvent(new WheelEvent('wheel',{deltaY:-150,bubbles:true}))
+   element.scrollTop=0
+ })
+ await l.getByText('Browsing independently',{exact:true}).waitFor()
+ await hostStage.evaluate(element=>{
+   element.scrollTop=(element.scrollHeight-element.clientHeight)*0.25
+   element.dispatchEvent(new Event('scroll',{bubbles:true}))
+ })
+ // Teacher updates must not hijack a learner who chose independent browsing.
+ await l.waitForTimeout(1500)
+ assert.equal(await pupilStage.evaluate(element=>element.scrollTop),0)
+ await button(l,'Jump to teacher').click()
+ await l.waitForFunction(()=>{
+   const element=document.querySelector('[aria-label="Shared lesson"]')
+   const max=element.scrollHeight-element.clientHeight
+   return max>0&&Math.abs(element.scrollTop/max-0.25)<0.14
+ },null,{timeout:18000})
  await button(t,'End').click()
  await button(t,'Confirm end').click()
  await see(l,'This session has ended.')

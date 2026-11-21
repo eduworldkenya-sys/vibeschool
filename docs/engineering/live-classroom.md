@@ -192,3 +192,34 @@ not authorize activation of the media service.
   privacy and latency evidence, independent security assurance and explicit
   governed production activation. Rollback: disable either feature flag
   immediately; remove active provider rooms via authorized API if necessary.
+
+## Teacher-followed reading and learner independent scroll (21 November 2026)
+
+- The canonical `vibe_live.command` adds a teacher-only `present` action;
+  there is no new URL, unauthenticated publish path or direct browser table access.
+  A scoped presenter update contains only the authorized session's existing
+  prompt ID, the current-prompt snapshot ID and a scroll fraction (0–1).
+  The client emits bounded position writes, serializes in-flight requests and
+  the database rejects malformed or foreign-session prompt IDs.
+- On publishing a new lesson page, the presenter pointer resets atomically to
+  that page and position zero. A delayed scroll from a previous current prompt
+  is ignored. Presenting an older page remains possible without duplicating
+  its content or resetting lesson history.
+- Joined learners follow the teacher by default; **Browse freely** suspends
+  automatic navigation. Their own touch, wheel, keyboard scrolling or lesson
+  history selection likewise detaches. **Jump to teacher** restores sync at
+  the exact authorized presenter page and proportional position. Ratios avoid
+  pixel mismatch across teacher desktops and learner Android phones.
+- The private Realtime channel broadcasts only `invalidate:true`, which
+  prompts a canonical scoped RPC re-read; bounded polling remains the fallback.
+  Teacher controls do not override learner scroll, and learners cannot control
+  another learner's viewport. Paused, ended, unauthorized and revoked rooms
+  cannot accept presenter updates.
+- Native long-text lesson content and shared teaching resource text use the
+  classroom `stageContent` scroll container. The PDF iframe is an isolated
+  browser PDF viewer: its **internal PDF scroll cannot currently be read** or
+  synchronized by this feature; do not claim PDF page-by-page follow support.
+  An accessible page-aware PDF renderer would be separate work.
+- The migration must pass disposable SQL authorization and actual Chromium
+  multi-account tests, independent security assurance and production rollout.
+  A GitHub PR is not evidence of deployed synchronization.

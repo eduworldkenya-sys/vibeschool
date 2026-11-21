@@ -29,9 +29,10 @@ type Mode = 'teach' | 'quiz' | 'exercise' | 'poll' | 'clock' | 'board'
 type Prompt = { id: string; kind: Mode; body: string; answerKey: string | null; revealed: boolean }
 type HistoryPrompt = Prompt & { position: number; createdAt: string }
 type Participant = { studentId: string; name: string; needsHelp: boolean; answer: string | null; unreadDm?: number }
+type PresenterPosition = {roomId:string;promptId:string;currentPromptId:string;ratio:number}
 type WaitingRequest = {studentId:string;name:string;requestedAt:string}
 type LiveQuestion = {id:string;body:string;reply:string|null;name?:string}
-type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean; dmUnread?: number; chatEnabled?:boolean; waitingCount?:number }
+type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean; dmUnread?: number; chatEnabled?:boolean; waitingCount?:number; presentedPromptId?:string|null; presentedScrollRatio?:number; presentedSeq?:number }
 type ComposerDraft = { body: string; key: string }
 type DraftState = { serverRevision?:number; board: string; boardPages?: string[]; boardPage?: number; slides: LiveSlide[]; slideIndex: number; mode: Mode; body: string; key: string; clock: string; composers: Partial<Record<Mode,ComposerDraft>> }
 const validModes = ['teach','quiz','exercise','poll','clock','board'] as const
@@ -263,6 +264,11 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const active=useRef<Room|null>(null)
   const generation=useRef(0)
   const [reviewId,setReviewId]=useState<string|null>(null)
+  const [followingTeacher,setFollowingTeacher]=useState(true)
+  const stageScrollRef=useRef<HTMLElement|null>(null)
+  const presenterTimer=useRef<number|null>(null)
+  const presenterPending=useRef<PresenterPosition|null>(null)
+  const presenterChain=useRef<Promise<void>>(Promise.resolve())
   const [learnerTool,setLearnerTool]=useState<'ask'|'notes'|'files'|null>(null)
   const [learnerMenu,setLearnerMenu]=useState(false)
   const [questionDraft,setQuestionDraft]=useState('')
@@ -283,6 +289,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     return ()=>{window.removeEventListener('online',status);window.removeEventListener('offline',status)}
   },[])
   useEffect(()=>{
+    setFollowingTeacher(true)
+    presenterPending.current=null
+    if(presenterTimer.current!==null){window.clearTimeout(presenterTimer.current);presenterTimer.current=null}
     setLearnerTool(null);setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({});setPrivateTarget(null);setPrivateOpen(false);setClassChatOpen(false);setLearnerMenu(false);setWaitingRequests([]);setWaitingError('')
   },[room?.id])
   useEffect(()=>{if(!noteDirty.current)setNoteDraft(room?.ownNote??'')},[room?.id,room?.ownNote])
@@ -312,11 +321,44 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if(data===null||typeof data!=='object') throw new Error('Invalid classroom response.')
     return data
   },[classId,teacher])
+  // Position metadata follows the existing authorized RPC; never broadcast
+  // document contents or grant browsers write access to the Realtime topic.
+  const queuePresenter=useCallback((promptId:string,ratio:number,immediate=false)=>{
+    const current=active.current
+    if(!teacher||!current||current.status!=='active'||!current.prompt||
+       typeof current.presentedSeq!=='number')return
+    const position:PresenterPosition={roomId:current.id,promptId,
+      currentPromptId:current.prompt.id,ratio:Math.min(1,Math.max(0,Number.isFinite(ratio)?ratio:0))}
+    presenterPending.current=position
+    if(presenterTimer.current!==null)window.clearTimeout(presenterTimer.current)
+    presenterTimer.current=window.setTimeout(()=>{
+      presenterTimer.current=null
+      const next=presenterPending.current
+      presenterPending.current=null
+      if(!next)return
+      // Serial submission avoids an older scroll overtaking a newer page.
+      presenterChain.current=presenterChain.current.catch(()=>{}).then(async()=>{
+        if(!mounted.current||active.current?.id!==next.roomId||
+           active.current.status!=='active')return
+        try{
+          await call('present',next.roomId,null,{
+            promptId:next.promptId,currentPromptId:next.currentPromptId,
+            ratio:next.ratio.toFixed(6),
+          })
+        }catch{
+          if(mounted.current&&active.current?.id===next.roomId)
+            setError('Reading position could not sync. Learners can still navigate independently.')
+        }
+      })
+    },immediate?0:450)
+  },[teacher,call])
   const accept=useCallback((next:Room)=>{
     if(next.teacher!==teacher) throw new Error('Choose the correct classroom account.')
     const old=active.current
     if(old?.id===next.id){
       if(next.version<old.version)return
+      if(next.version===old.version&&typeof old.presentedSeq==='number'&&
+        typeof next.presentedSeq==='number'&&next.presentedSeq<old.presentedSeq)return
       if(old.prompt&&!next.prompt)throw new Error('Incomplete lesson sync. Retrying.')
       if(old.history && (!next.history || old.history.some(p=>!next.history!.some(q=>q.id===p.id)))) throw new Error('Incomplete lesson history. Retrying.')
     }
@@ -604,6 +646,25 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const prompt=room?.prompt
   const history=room?historyFor(room):[]
   const viewedPrompt=(reviewId?history.find(p=>p.id===reviewId):null)??prompt
+  // Learners follow the teacher by default, but are never locked to the
+  // presenter. The same ratio adapts to different Android screen heights.
+  useEffect(()=>{
+    if(teacher||!followingTeacher||!room||room.status==='ended'||
+       typeof room.presentedSeq!=='number')return
+    const desired=room.presentedPromptId??room.prompt?.id
+    if(!desired||!history.some(item=>item.id===desired))return
+    if(viewedPrompt?.id!==desired){
+      setReviewId(desired===room.prompt?.id?null:desired)
+      return
+    }
+    const element=stageScrollRef.current
+    if(!element)return
+    const max=Math.max(0,element.scrollHeight-element.clientHeight)
+    const ratio=Math.min(1,Math.max(0,Number(room.presentedScrollRatio??0)))
+    const target=max*ratio
+    if(Math.abs(element.scrollTop-target)>3)element.scrollTop=target
+  },[teacher,followingTeacher,room?.id,room?.status,room?.presentedSeq,
+     room?.presentedPromptId,room?.presentedScrollRatio,viewedPrompt?.id])
   const immersive=!!room&&room.status!=='ended'
   const draftLoading=teacher&&!!room&&draftBinding?.roomId!==room.id&&!draftWarning
   useEffect(()=>{
@@ -806,13 +867,37 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {draftWarning&&teacher&&<div role="status" className={styles.liveAlert}>Local recovery unavailable. Shared pages are saved on the server.</div>}
     {teacher&&linkedPlanError&&<div role="alert" className={styles.liveAlert}>{linkedPlanError}</div>}
     {teacher&&workspaceStatus&&<div className={styles.workspaceStatus} role="status">{workspaceStatus}{workspaceRevision===null&&draftBinding&&<button type="button" onClick={()=>{setDraftBinding(null);setWorkspaceRetry(n=>n+1)}}>Retry draft sync</button>}{conflictDraft&&<><button type="button" onClick={()=>{restoreDraft(conflictDraft);setConflictDraft(null)}}>Restore local copy</button><button type="button" onClick={()=>setConflictDraft(null)}>Keep server copy</button></>}</div>}
-    <LessonNavigation items={history} reviewId={reviewId} onReview={id=>{setEditingBoard(false);setPanel(null);setReviewId(id)}}/>
+    <LessonNavigation items={history} reviewId={reviewId} onReview={id=>{
+      setEditingBoard(false);setPanel(null);setReviewId(id)
+      if(stageScrollRef.current)stageScrollRef.current.scrollTop=0
+      if(teacher){if(room.status==='active'&&(id??prompt?.id))queuePresenter(id??prompt!.id,0,true)}
+      else setFollowingTeacher(id===null)
+    }}/>
+    {!teacher&&typeof room.presentedSeq==='number'&&<div className={styles.followBar} role="group" aria-label="Reading position">
+      <span role="status">{followingTeacher?'Following teacher':'Browsing independently'}</span>
+      <button type="button" aria-pressed={followingTeacher} onClick={()=>setFollowingTeacher(value=>!value)}>
+        {followingTeacher?'Browse freely':'Jump to teacher'}</button>
+    </div>}
     {!teacher&&Number(room.dmUnread)>0&&!privateOpen&&<button type="button" className={styles.helpBanner} onClick={()=>{setPrivateOpen(true);setLearnerTool(null)}}><MessageSquare size={16}/> {room.dmUnread} private {room.dmUnread===1?'message':'messages'} from your teacher</button>}
     {teacher&&room.mode==='open'&&Number(room.waitingCount)>0&&<button type="button" className={styles.helpBanner} onClick={()=>setPanel('learners')}>Waiting room · {room.waitingCount} request{room.waitingCount===1?'':'s'}</button>}
     {teacher&&participants.some(p=>p.needsHelp)&&<button className={styles.helpBanner} type="button" onClick={()=>setPanel('learners')}><Hand size={16}/> {participants.filter(p=>p.needsHelp).length} need help</button>}
     {!teacher&&(room.needsHelp||room.handAckAt)&&<div className={styles.handStatus} role="status"><span>{room.needsHelp?'Hand raised — teacher notified':'Teacher acknowledged your hand'}</span>{!room.needsHelp&&room.handAckAt&&<button type="button" onClick={()=>{setLearnerTool('ask');setReviewId(null)}}>Ask privately</button>}</div>}
     <div className={styles.stage}>
-      <section className={styles.stageContent} data-board-edit={editingBoard&&teacher} aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}>
+      <section ref={stageScrollRef} className={styles.stageContent}
+        data-board-edit={editingBoard&&teacher}
+        aria-label={editingBoard&&teacher?'Draft drawing board':'Shared lesson'}
+        onScroll={event=>{
+          if(!teacher||panel||editingBoard||room.status!=='active'||!viewedPrompt)return
+          const element=event.currentTarget
+          const max=element.scrollHeight-element.clientHeight
+          queuePresenter(viewedPrompt.id,max>0?element.scrollTop/max:0)
+        }}
+        onWheel={()=>{if(!teacher)setFollowingTeacher(false)}}
+        onTouchMove={()=>{if(!teacher)setFollowingTeacher(false)}}
+        onKeyDown={event=>{
+          if(!teacher&&['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(event.key))
+            setFollowingTeacher(false)
+        }}>
         {teacher&&panel==='resources'?<div className={styles.resourceWorkspace}><LiveResourcePicker classId={room.mode==='school'?classId:null} lessonPlanId={room.mode==='school'?linkedPlan?.id??null:null} schemeLessonId={room.mode==='school'?linkedPlan?.schemeId??null:null} canPresent={!busy&&online&&room.status==='active'} onPresent={body=>void act('publish',null,{kind:'teach',body,answerKey:null})} onClose={()=>setPanel(null)}/><LiveClassFiles roomId={room.id} teacher status={room.status} onPresentFile={reference=>{if(!busy&&online&&room.status==='active')void act('publish',null,{kind:'teach',body:reference,answerKey:null})}}/></div>:teacher&&panel==='library'?<div className={styles.slideWorkspace}><div className={styles.slideToolbar}><strong>My Presentations</strong><button onClick={openSlides}>Back to slides</button></div><TeachingLibrary command={call} currentDeck={slides} onUse={useMaterial}/></div>:teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
           <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel('library')}>My presentations</button><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
           <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length}/>
