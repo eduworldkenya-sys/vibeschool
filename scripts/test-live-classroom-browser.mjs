@@ -280,7 +280,7 @@ try{
  await t.getByText(/Live reading guide/).first().waitFor()
  await l.getByText(/Live reading guide/).waitFor()
  await t.getByRole('button',{name:'Previous lesson page'}).click()
- await l.getByText('How many quarters make one whole?',{exact:true}).first().waitFor()
+ await l.getByLabel('Shared lesson',{exact:true}).getByText(/How many quarters are in one whole\?/).first().waitFor()
  await t.getByRole('button',{name:'Return to Live'}).click()
  await l.getByText(/Live reading guide/).waitFor()
  await hostStage.evaluate(element=>{
