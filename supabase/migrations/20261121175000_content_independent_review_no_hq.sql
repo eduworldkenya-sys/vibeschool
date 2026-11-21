@@ -63,7 +63,7 @@ declare d public.content_derivatives%rowtype; v_work uuid; begin
  update public.content_derivatives set status=case when p_approve then 'approved' else 'archived' end,quality=coalesce(quality,'{}'::jsonb)||jsonb_build_object('reviewed_by',auth.uid(),'reviewed_at',now(),'review_note',p_note,'approved',p_approve),updated_at=now() where id=p_derivative_id returning * into d;
  update public.hq_work_items set status='resolved',acted_at=now(),resolved_at=now(),owner_id=coalesce(owner_id,auth.uid()),verification_status=case when p_approve then 'verified' else 'not_required' end,action_taken=jsonb_build_object('action',case when p_approve then 'approve_teacher_guide' else 'reject_teacher_guide' end,'derivative_id',p_derivative_id,'note',p_note),verification_evidence=jsonb_build_object('derivative_status',d.status),updated_at=now() where source_type='content_derivative' and source_id=p_derivative_id and status in ('open','in_progress','waiting_approval') returning id into v_work;
  return jsonb_build_object('derivative_id',p_derivative_id,'status',d.status,'hq_work_item_id',v_work);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.hq_review_generated_assessment(p_assessment_id uuid, p_approve boolean, p_note text DEFAULT NULL::text)
@@ -92,7 +92,7 @@ declare a public.generated_assessments%rowtype; v_items int; v_missing_source in
  if p_approve then update public.content_assessment_blueprints set status='approved',updated_at=now() where id=a.blueprint_id; end if;
  update public.hq_work_items set status='resolved',acted_at=now(),resolved_at=now(),owner_id=coalesce(owner_id,auth.uid()),verification_status=case when p_approve then 'verified' else 'not_required' end,action_taken=jsonb_build_object('action',case when p_approve then 'approve_assessment' else 'reject_assessment' end,'assessment_id',p_assessment_id,'note',p_note),verification_evidence=jsonb_build_object('assessment_status',a.status,'item_count',v_items,'missing_source',v_missing_source,'missing_answer',v_missing_answer,'total_marks',v_marks),updated_at=now() where source_type='generated_assessment' and source_id=p_assessment_id and status in ('open','in_progress','waiting_approval') returning id into v_work;
  return jsonb_build_object('assessment_id',p_assessment_id,'status',a.status,'item_count',v_items,'total_marks',v_marks,'hq_work_item_id',v_work);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.hq_review_publication_release(p_publication_id uuid, p_approve boolean, p_notes text DEFAULT ''::text)
@@ -154,7 +154,7 @@ begin
     'content_fingerprint',v_fingerprint,
     'reviewed_by',v_uid
   );
-end $function$
+end $function$;
 
 
 revoke all on function public.hq_review_teacher_guide(uuid,boolean,text) from public,anon,service_role;
