@@ -853,7 +853,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       <span role="status">{followingTeacher?'Following teacher':'Browsing independently'}</span>
       <button type="button" aria-pressed={followingTeacher} onClick={()=>setFollowingTeacher(value=>!value)}>
         {followingTeacher?'Browse freely':'Jump to teacher'}</button>
-    </div>
+    </div>}
     {!teacher&&Number(room.dmUnread)>0&&!privateOpen&&<button type="button" className={styles.helpBanner} onClick={()=>{setPrivateOpen(true);setLearnerTool(null)}}><MessageSquare size={16}/> {room.dmUnread} private {room.dmUnread===1?'message':'messages'} from your teacher</button>}
     {teacher&&room.mode==='open'&&Number(room.waitingCount)>0&&<button type="button" className={styles.helpBanner} onClick={()=>setPanel('learners')}>Waiting room · {room.waitingCount} request{room.waitingCount===1?'':'s'}</button>}
     {teacher&&participants.some(p=>p.needsHelp)&&<button className={styles.helpBanner} type="button" onClick={()=>setPanel('learners')}><Hand size={16}/> {participants.filter(p=>p.needsHelp).length} need help</button>}
