@@ -32,8 +32,8 @@ test('tuition catalogue requests only; existing registered tutor identities rema
   assert.doesNotMatch(browse, /KENYA_DEMO_TUTORS/)
   assert.match(browse, /live\?\.tutors \?\? \[\]/)
   // Service categories remain selectable when posting a request, not as tutor identities.
-  assert.doesNotMatch(browse, /post-request\\?service=|PUBLIC_TUITION_SERVICES|services\\.slice|Tuition requests by subject/)
-  assert.match(browse, /tutors\\.map\\(tutor => <TutorCard/)
+  assert.doesNotMatch(browse, /post-request\?service=|PUBLIC_TUITION_SERVICES|services\.slice|Tuition requests by subject/)
+  assert.match(browse, /tutors\.map\(tutor => <TutorCard/)
   assert.match(request, /findTuitionService\(query.get\('service'\)\)/)
   assert.match(request, /setMode\('online'\)/)
   assert.match(request, /REQUEST_AREAS\.map/)
