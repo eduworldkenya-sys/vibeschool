@@ -24,6 +24,9 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
   const connectedUser=useRef<string|null>(null)
   const renewTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
   const connecting=useRef(false)
+  const alive=useRef(false)
+  const currentStatus=useRef(status)
+  currentStatus.current=status
   const moderating=useRef<Set<string>>(new Set())
   const [phase,setPhase]=useState<'idle'|'connecting'|'listening'|'failed'>('idle')
   const [error,setError]=useState('')
@@ -46,7 +49,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
   },[clearAudio])
   // The voice connection is intentionally independent of classroom history,
   // whiteboard and slide state. Unmount or expired authorization stops tracks.
-  useEffect(()=>{return()=>{void stop()}},[stop])
+  useEffect(()=>{alive.current=true;return()=>{alive.current=false;void stop()}},[stop])
   useEffect(()=>{if(status!=='active')void stop()},[status,stop])
   useEffect(()=>{
     const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
@@ -90,7 +93,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     }
   },[teacher])
   const connect=async()=>{
-    if(meeting.current || connecting.current || status!=='active')return
+    if(!alive.current||meeting.current||connecting.current||currentStatus.current!=='active')return
     connecting.current=true
     const generation=++connectGeneration.current
     setPhase('connecting');setError('')
@@ -107,7 +110,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       if(!res.ok)throw Error(typeof data.error==='string'?data.error:'Audio is currently unavailable.')
       if(!data.url||!data.token||data.role!==(teacher?'teacher':'learner'))throw Error('Invalid voice authorization.')
       const {default:Daily}=await import('@daily-co/daily-js')
-      if (generation!==connectGeneration.current)return
+      if (generation!==connectGeneration.current||!alive.current)return
       call=Daily.createCallObject({videoSource:false})
       meeting.current=call
       call.on('participant-joined',sync)
@@ -128,8 +131,8 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       const ttlMs=Number(data.expiresAt)*1000-Date.now()
       if(Number.isFinite(ttlMs)&&ttlMs>45000){
         renewTimer.current=setTimeout(()=>{
-          if(connectGeneration.current!==generation||meeting.current!==call)return
-          void stop().then(()=>{if(status==='active')void connect()})
+          if(connectGeneration.current!==generation||meeting.current!==call||!alive.current)return
+          void stop().then(()=>{if(alive.current&&currentStatus.current==='active')void connect()})
         },Math.max(1000,ttlMs-30000))
       }
     }catch(e){
