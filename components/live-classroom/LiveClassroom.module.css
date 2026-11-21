@@ -117,7 +117,7 @@
 .lessonHistory button:disabled { opacity: .4; cursor: default; }
 .lessonHistory span { font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-.learnerTools{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;width:100%;flex:1;min-width:0}
+.learnerTools{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;width:100%;flex:1;min-width:0}
 .immersive .learnerTools button{min-height:52px;min-width:0;flex-direction:column;gap:4px;padding:4px 2px;font-size:11px;line-height:1.15;white-space:nowrap}
 .learnerTools button svg{flex:none}
 .immersive .learnerTools button[data-raised=true]{color:#342100;background:#f0b957;border-color:#f0b957}
@@ -205,3 +205,18 @@
 .planGuide{display:grid;gap:10px;min-width:0}
 .planGuideBody{white-space:pre-wrap;overflow-wrap:anywhere;max-height:min(42dvh,320px);overflow-y:auto;padding:10px;border:1px solid #53796f;border-radius:8px;background:#132b24;line-height:1.55;font-size:13px}
 .planGuide select{width:100%;color:#f3f8f5;background:#152c25;border:1px solid #6b998a;padding:9px;border-radius:8px}
+
+/* Teacher-controlled admission, moderated room chat and small-screen accessibility. */
+.waitingRoom{display:grid;gap:8px;padding:8px 0;border-top:1px solid #608379}
+.waitingRoom h3{margin:4px 0}
+.waitingRoom small{line-height:1.45;color:#d0e3d9}
+.waitingActions{display:flex;flex-wrap:wrap;gap:8px}
+.waitingActions button{flex:1;min-width:90px}
+.classChatEntry{display:grid;gap:5px;align-self:stretch;min-width:0;padding:9px;border:1px solid #456d62;background:#1d3930;border-radius:10px}
+.classChatEntry p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.45}
+.classChatHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.classChatHeader strong{font-size:12px;overflow-wrap:anywhere}
+.classChatHeader small{flex:none;font-variant-numeric:tabular-nums}
+.classChatEntry button{justify-self:start;display:inline-flex;align-items:center;gap:4px;font-size:11px;min-height:31px}
+.classChatActions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+@media(max-width:370px){.immersive .learnerTools button{font-size:10px;min-width:0}.learnerTools button span{overflow-wrap:anywhere;font-size:10px}}
