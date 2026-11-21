@@ -157,12 +157,15 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   }, [q, subject, level, area, mode, priceRange, day, requestSource, discovery, nearbyArea, preferred, seed])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
   // Each facet is calculated without its own current selection.
-  const levelOptions: FilterOption[] = LEVELS.flatMap(value => {
+  const visibleLevels = [...new Set([...LEVELS, ...requestSource.map(r => r.level)])]
+  const levelOptions: FilterOption[] = visibleLevels.flatMap(value => {
     const f = { ...filters, level: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.levels.includes(value)).length : requestsFor(f).filter(r => r.level === value).length
     return count ? [{ value, label: value, count }] : []
   })
-  const availableLevels = level ? SUBJECTS_BY_LEVEL[level] || [] : [...new Set(Object.values(SUBJECTS_BY_LEVEL).flat())]
+  const availableLevels = level
+    ? SUBJECTS_BY_LEVEL[level] || [...new Set(requestSource.filter(r => r.level === level).flatMap(r => r.subjects))]
+    : [...new Set([...Object.values(SUBJECTS_BY_LEVEL).flat(), ...requestSource.flatMap(r => r.subjects)])]
   const subjectOptions: FilterOption[] = availableLevels.flatMap(value => {
     const f = { ...filters, subject: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.subjects.includes(value)).length : requestsFor(f).filter(r => r.subjects.includes(value)).length
