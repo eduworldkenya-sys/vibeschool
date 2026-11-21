@@ -121,7 +121,7 @@ BEGIN
      if not exists(select 1 from vibe_live.participants p where p.session_id=room.id and p.student_id=learner) then
        insert into vibe_live.waiting_requests(session_id,student_id)
        values(room.id,learner) on conflict(session_id,student_id) do nothing;
-       update vibe_live.sessions set version=version+1 where id=room.id returning * into room;
+       if found then update vibe_live.sessions set version=version+1 where id=room.id returning * into room; end if;
      end if;
      return jsonb_build_object('status',coalesce((select w.status from vibe_live.waiting_requests w
        where w.session_id=room.id and w.student_id=learner),'admitted'));
@@ -163,9 +163,12 @@ $block$;
      if room.status<>'active' or room.expires_at<=now() then raise exception 'live_message_closed'; end if;
      if coalesce(p_payload->>'typing','') not in ('true','false') then raise exception 'live_invalid_typing'; end if;
      if p_payload->>'typing'='true' then
-       insert into vibe_live.dm_typing(session_id,student_id,sender_role)
-       values(room.id,dm_student,dm_sender)
-       on conflict(session_id,student_id,sender_role) do update set touched_at=clock_timestamp();
+       if not exists(select 1 from vibe_live.dm_typing t where t.session_id=room.id and t.student_id=dm_student
+           and t.sender_role=dm_sender and t.touched_at>clock_timestamp()-interval '2 seconds') then
+         insert into vibe_live.dm_typing(session_id,student_id,sender_role)
+         values(room.id,dm_student,dm_sender)
+         on conflict(session_id,student_id,sender_role) do update set touched_at=clock_timestamp();
+       end if;
      else
        delete from vibe_live.dm_typing t where t.session_id=room.id and t.student_id=dm_student and t.sender_role=dm_sender;
      end if;
