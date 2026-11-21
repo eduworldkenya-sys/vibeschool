@@ -10,14 +10,15 @@ const os = require('node:os')
 const path = require('node:path')
 
 const PORT = 3092
-const ROOT = `http://localhost:${PORT}`
+const HOST = '127.0.0.1'
+const ROOT = `http://${HOST}:${PORT}`
 const logFile = path.join(os.tmpdir(), 'success-wishes-ecommerce-browser.log')
 const serverLog = fs.openSync(logFile, 'w')
 const screenshots = process.env.CI ? path.join(process.cwd(),'qa/success-wishes/artifacts') : path.join(os.tmpdir(), 'success-wishes-artifacts')
 const testStore = path.join(process.cwd(), '.success-wishes-test-data.json')
 const hadTestStore = fs.existsSync(testStore)
 fs.mkdirSync(screenshots, { recursive: true })
-const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--port', String(PORT)], {
+const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--hostname', HOST, '--port', String(PORT)], {
   env: {
     ...process.env,
     NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
@@ -86,6 +87,7 @@ async function makeWish(context, { message, theme }) {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(results) })
   })
   const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
+  await page.locator('#wish-composer[data-draft-hydrated="true"]').waitFor()
   const offerClose = page.getByRole('button', { name: 'Close offer details', exact: true })
   if (await offerClose.isVisible().catch(() => false)) await offerClose.click()
   const dismissOffer = page.getByRole('button', { name: 'Dismiss Success Cards advert', exact: true })
