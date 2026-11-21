@@ -57,3 +57,15 @@ test('theme is a visual preference only and has no effect on school, grade or us
     assert.doesNotMatch(text,/service_role|security_definer|adminUser|isTeacher|userRole|schoolId|teacherId|studentId/)
   }
 })
+
+test('canonical public and teacher headers own the switcher; fallback remains elsewhere', () => {
+  const publicHeader = source('components/public/PublicHeader.tsx')
+  const teacherLayout = source('app/teacher/layout.tsx')
+  const control = source('components/theme/ThemeControl.tsx')
+  const css = source('components/theme/ThemeControl.module.css')
+  assert.match(publicHeader, /<ThemeControl native className=\{styles\.appearanceControl\} \/>/)
+  assert.match(teacherLayout, /<ThemeControl native \/>/)
+  assert.match(control, /native \? 'true' : undefined/)
+  assert.match(css, /body:has\(\[data-site-theme-host\]\)/)
+  assert.match(control, /<aside className=\{styles\.floating\}/)
+})
