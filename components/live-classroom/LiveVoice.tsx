@@ -12,8 +12,8 @@ type Props = {
 }
 function canPublishAudio(value:unknown):boolean{
   if (value===true)return true
-  if (Array.isArray(value))return value.includes('audio')
-  if (value instanceof Set)return value.has('audio')
+  if (Array.isArray(value))return value.includes('microphone')
+  if (value instanceof Set)return value.has('microphone')
   return false
 }
 export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}:Props) {
@@ -188,7 +188,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       speaker.current=studentId
       try {
         await call.updateParticipant(target.session_id,{
-          updatePermissions:{canSend:['audio']},setAudio:false,
+          updatePermissions:{canSend:['microphone']},setAudio:false,
         })
       } catch (error) {
         speaker.current=null
