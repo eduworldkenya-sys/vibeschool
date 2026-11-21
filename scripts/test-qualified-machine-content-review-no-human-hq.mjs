@@ -44,6 +44,7 @@ test('all three canonical content approvals accept machine receipts, not an unco
  assert.ok(fn.includes('public.ce_require_machine_review_receipt('))
  assert.ok(fn.includes("'"+stage+"'"))
  assert.ok(fn.includes("MACHINE_REJECTION_REQUIRES_INDEPENDENT_NEGATIVE_REVIEW"))
+ assert.ok(fn.includes("not coalesce(p_approve,false)"),"NULL machine rejection must also fail closed")
  }
 })
 test('KICD is an official reference, not KICD officer endorsement',()=>{
