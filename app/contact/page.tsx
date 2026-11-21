@@ -55,7 +55,9 @@ export default function ContactPage() {
 
   useEffect(() => {
     const requestedTopic = new URLSearchParams(window.location.search).get('support')
-    if (requestedTopic === 'account' || requestedTopic === 'safety') {
+    if (requestedTopic === 'school') {
+      setTopic('school')
+    } else if (requestedTopic === 'account' || requestedTopic === 'safety') {
       setTopic(requestedTopic)
       setCategory(requestedTopic === 'safety' ? 'safety' : 'account')
     }
