@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const sql=readFileSync('supabase/migrations/20261121175000_content_independent_review_no_hq.sql','utf8');
+const sql=readFileSync('supabase/migrations/20261121113548_content_independent_review_no_hq.sql','utf8');
 const body=(name)=>{
  const start=sql.indexOf('CREATE OR REPLACE FUNCTION public.'+name+'(');
  const offset=start>=0?start:sql.indexOf('create or replace function public.'+name+'(');
