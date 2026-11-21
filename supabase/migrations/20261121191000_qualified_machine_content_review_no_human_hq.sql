@@ -437,6 +437,219 @@ revoke all on function public.ce_revoke_machine_content_reviewer(uuid)
  from public,anon,authenticated,service_role;
 grant execute on function public.ce_revoke_machine_content_reviewer(uuid) to authenticated;
 
+
+-- Scope-limited alternative to the previous owner-only source metadata registration.
+-- A machine cannot create a source record without recorded independent evidence.
+create or replace function public.curriculum_authority_register_source(
+  p_authority_name text,
+  p_curriculum_framework text,
+  p_grade text,
+  p_canonical_subject_id uuid,
+  p_source_url text,
+  p_source_version text default '',
+  p_source_published_on date default null,
+  p_metadata jsonb default '{}'::jsonb
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_owner uuid := auth.uid();
+  v_subject public.subjects%rowtype;
+  v_id uuid;
+  v_publication_id uuid;
+  v_scope_count integer;
+begin
+  if v_owner is null then raise exception 'authentication_required'; end if;
+  if nullif(btrim(p_authority_name),'') is null
+     or nullif(btrim(p_curriculum_framework),'') is null
+     or nullif(btrim(p_grade),'') is null
+     or nullif(btrim(p_source_url),'') is null then
+    raise exception 'invalid_source_identity';
+  end if;
+
+  select * into v_subject from public.subjects
+  where id=p_canonical_subject_id;
+  if not found or v_subject.school_id is not null then
+    raise exception 'canonical_global_subject_required';
+  end if;
+
+  -- KICD officer approval is not required for VibeSchool-original textbooks.
+  -- The internal 'approved' source state means traceable official-source identity.
+  -- A commissioned independent MACHINE reviewer may register with an exact
+  -- source SHA receipt; a platform owner remains an existing alternate path.
+  if not public.is_platform_owner() then
+    if p_source_url !~ '^https://kicd[.]ac[.]ke/' or
+       p_metadata->>'source_sha256' !~ '^[a-f0-9]{64}
+  insert into public.curriculum_authority_sources(
+    authority_name,curriculum_framework,grade,canonical_subject_id,subject_label,
+    source_url,source_version,source_published_on,source_status,approved_by,metadata
+  ) values (
+    btrim(p_authority_name),btrim(p_curriculum_framework),btrim(p_grade),
+    p_canonical_subject_id,v_subject.name,btrim(p_source_url),
+    coalesce(btrim(p_source_version),''),p_source_published_on,'approved',v_owner,coalesce(p_metadata,'{}'::jsonb)
+  )
+  on conflict (authority_name,curriculum_framework,grade,canonical_subject_id,source_url,source_version)
+  do update set
+    source_status='approved',
+    source_published_on=coalesce(excluded.source_published_on,public.curriculum_authority_sources.source_published_on),
+    metadata=public.curriculum_authority_sources.metadata || excluded.metadata,
+    approved_by=excluded.approved_by,
+    approved_at=now()
+  returning id into v_id;
+
+  return v_id;
+end
+$;
+
+ or
+       p_metadata->>'source_url' is distinct from p_source_url then
+       raise exception 'KICD_OFFICIAL_SOURCE_EVIDENCE_REQUIRED';
+    end if;
+    select count(distinct c.publication_id),min(c.publication_id)
+      into v_scope_count,v_publication_id
+      from public.ce_machine_content_commissions c
+      join public.vibe_publications p on p.id=c.publication_id
+      where c.reviewer_user_id=v_owner and c.revoked_at is null
+        and c.expires_at>clock_timestamp() and 'curriculum_source'=any(c.stages)
+        and p.status='draft' and p.cbc_grade=p_grade
+        and lower(p.cbc_subject)=lower(v_subject.name);
+    if v_scope_count<>1 then
+       raise exception 'SOURCE_MACHINE_REVIEW_SINGLE_PUBLICATION_SCOPE_REQUIRED';
+    end if;
+    perform public.ce_require_machine_review_receipt(
+       v_publication_id,'curriculum_source',v_publication_id,p_metadata->>'source_sha256');
+    p_metadata := p_metadata || jsonb_build_object(
+       'verified_by','VibeSchool independent machine reviewer',
+       'verification_kind','official-source-reference',
+       'external_kicd_endorsement',false);
+  end if;
+
+  insert into public.curriculum_authority_sources(
+    authority_name,curriculum_framework,grade,canonical_subject_id,subject_label,
+    source_url,source_version,source_published_on,source_status,approved_by,metadata
+  ) values (
+    btrim(p_authority_name),btrim(p_curriculum_framework),btrim(p_grade),
+    p_canonical_subject_id,v_subject.name,btrim(p_source_url),
+    coalesce(btrim(p_source_version),''),p_source_published_on,'approved',v_owner,coalesce(p_metadata,'{}'::jsonb)
+  )
+  on conflict (authority_name,curriculum_framework,grade,canonical_subject_id,source_url,source_version)
+  do update set
+    source_status='approved',
+    source_published_on=coalesce(excluded.source_published_on,public.curriculum_authority_sources.source_published_on),
+    metadata=public.curriculum_authority_sources.metadata || excluded.metadata,
+    approved_by=excluded.approved_by,
+    approved_at=now()
+  returning id into v_id;
+
+  return v_id;
+end
+$;
+
+
+-- The canonical certifier still requires prior verification, genuine rights
+-- clearance, immutable version checks and the curriculum promotion gate.
+create or replace function public.cla_certify_learning_resource_version(
+  p_version_id uuid,
+  p_certification_policy_version text,
+  p_certification_evidence jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_version public.learning_resource_versions%rowtype;
+  v_publication_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception using errcode='42501', message='CLA_AUTHENTICATED_REVIEWER_REQUIRED';
+  end if;
+
+  if p_certification_policy_version is null
+     or btrim(p_certification_policy_version) = '' then
+    raise exception using errcode='22023', message='CLA_CERTIFICATION_POLICY_REQUIRED';
+  end if;
+
+  if p_certification_evidence is null
+     or jsonb_typeof(p_certification_evidence) <> 'object'
+     or p_certification_evidence = '{}'::jsonb then
+    raise exception using errcode='22023', message='CLA_CERTIFICATION_EVIDENCE_REQUIRED';
+  end if;
+
+  select * into v_version
+  from public.learning_resource_versions
+  where id = p_version_id
+  for update;
+
+  if v_version.id is null then
+    raise exception using errcode='P0002', message='CLA_VERSION_NOT_FOUND';
+  end if;
+
+  if not public.is_platform_owner() then
+    select r.publication_id into v_publication_id
+      from public.learning_resources r where r.id=v_version.resource_id;
+    if v_publication_id is null then
+      raise exception using errcode='42501',message='CLA_MACHINE_RESOURCE_PUBLICATION_SCOPE_REQUIRED';
+    end if;
+    perform public.ce_require_machine_review_receipt(
+      v_publication_id,'resource_certification',v_version.id,v_version.content_sha256);
+  end if;
+
+
+  if v_version.lifecycle_status <> 'verified'
+     or v_version.verified_at is null
+     or v_version.verification_policy_version is null
+     or v_version.verification_evidence = '{}'::jsonb then
+    raise exception using errcode='23514', message='CLA_INDEPENDENT_VERIFICATION_REQUIRED';
+  end if;
+
+  if v_version.rights_status <> all(array['cleared','not_applicable']::text[]) then
+    raise exception using errcode='23514', message='CLA_RIGHTS_CLEARANCE_REQUIRED';
+  end if;
+
+  if exists (
+    select 1
+    from public.learning_resource_versions other
+    where other.resource_id = v_version.resource_id
+      and other.lifecycle_status = 'certified'
+      and other.id <> v_version.id
+  ) then
+    raise exception using errcode='23505', message='CLA_CERTIFIED_VERSION_ALREADY_EXISTS';
+  end if;
+
+  update public.learning_resource_versions
+  set lifecycle_status = 'certified',
+      certification_policy_version = p_certification_policy_version,
+      certification_evidence = p_certification_evidence,
+      certified_at = now()
+  where id = p_version_id
+  returning * into v_version;
+
+  return jsonb_build_object(
+    'status','certified',
+    'resource_id',v_version.resource_id,
+    'resource_version_id',v_version.id,
+    'version',v_version.version,
+    'content_sha256',v_version.content_sha256,
+    'certified_at',v_version.certified_at
+  );
+end;
+$;
+
+
+revoke all on function public.curriculum_authority_register_source(text,text,text,uuid,text,text,date,jsonb)
+ from public,anon,authenticated,service_role;
+grant execute on function public.curriculum_authority_register_source(text,text,text,uuid,text,text,date,jsonb)
+ to authenticated;
+revoke all on function public.cla_certify_learning_resource_version(uuid,text,jsonb)
+ from public,anon,service_role;
+grant execute on function public.cla_certify_learning_resource_version(uuid,text,jsonb)
+ to authenticated;
+
 -- Keep historical human reviewer RPCs/API names working.
 -- The following functions are superseded, not the 2026-11-21 migration file.
 revoke all on function public.ce_require_independent_content_approver(uuid,uuid)
