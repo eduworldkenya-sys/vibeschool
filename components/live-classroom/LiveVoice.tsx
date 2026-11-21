@@ -6,12 +6,6 @@ import { supabase } from '@/lib/supabase'
 import styles from './LiveVoice.module.css'
 
 type Learner = { studentId:string; name:string; needsHelp:boolean }
-type VoiceParticipant = {
-  session_id:string; user_id?:string
-  audioTrack?:MediaStreamTrack | null
-  tracks?:{audio?:{persistentTrack?:MediaStreamTrack|null;track?:MediaStreamTrack|null}}
-  permissions?:{canSend?:unknown}
-}
 type Props = {
   roomId:string;classId:string|null;teacher:boolean;status:'active'|'paused'|'ended'
   learners:Learner[];onAcknowledge:(studentId:string)=>Promise<void>
@@ -60,13 +54,13 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
   const sync=useCallback(()=>{
     const call=meeting.current
     if (!call)return
-    const all=call.participants() as unknown as Record<string,VoiceParticipant>
+    const all=call.participants()
     const remotes=Object.values(all).filter(p=>p.session_id && p.session_id!==all.local?.session_id)
     const nextIds:string[]=[]
     for (const p of remotes){
       if (!p.user_id)continue
       nextIds.push(p.user_id)
-      const track=p.tracks?.audio?.persistentTrack??p.tracks?.audio?.track??p.audioTrack
+      const track=p.tracks.audio.persistentTrack??p.audioTrack
       const existing=media.current.get(p.session_id)
       if (!track || track.readyState==='ended'){
         if(existing){existing.pause();existing.srcObject=null;existing.remove();media.current.delete(p.session_id)}
@@ -146,7 +140,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     if(!teacher||!call||busy||!learners.some(p=>p.studentId===studentId&&p.needsHelp))return
     setBusy(true);setError('')
     try{
-      const list=Object.values(call.participants() as unknown as Record<string,VoiceParticipant>)
+      const list=Object.values(call.participants())
       const target=list.find(p=>p.user_id===studentId&&p.session_id)
       if(!target)throw Error('Learner must join audio before speaking.')
       // Revocation goes to the media server, not a cosmetic mute button.
@@ -178,7 +172,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     if(!teacher||!call||!studentId)return
     setBusy(true);setError('')
     try{
-      const p=Object.values(call.participants() as unknown as Record<string,VoiceParticipant>)
+      const p=Object.values(call.participants())
         .find(p=>p.user_id===studentId&&p.session_id)
       if(p)await call.updateParticipant(p.session_id,{updatePermissions:{canSend:false},setAudio:false})
       speaker.current=null;setActiveSpeaker(null)
@@ -186,13 +180,15 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     finally{setBusy(false)}
   }
   useEffect(()=>{
-    if (!teacher||!speaker.current||status!=='active')return
-    if(!learners.some(l=>l.studentId===speaker.current)){
-      // Learner no longer belongs to teacher's authorized roster.
-      void endTurn()
-    }
-  // React to revocation and membership changes; avoid resetting for content.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const call=meeting.current,studentId=speaker.current
+    if(!teacher||!call||!studentId||status!=='active')return
+    if(learners.some(l=>l.studentId===studentId))return
+    // Revoked learner may not retain audio publishing rights after roster loss.
+    const remote=Object.values(call.participants()).find(p=>p.user_id===studentId&&!p.local)
+    speaker.current=null;setActiveSpeaker(null)
+    if(remote)void call.updateParticipant(remote.session_id,{
+      updatePermissions:{canSend:false},setAudio:false,
+    }).catch(()=>setError('Could not revoke learner audio. End the room.'))
   },[learners,teacher,status])
   // Keep Daily audio access in sync with the canonical teacher roster. A
   // removed learner is ejected from the media service, not just hidden in UI.
@@ -201,7 +197,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     const call=meeting.current
     if (!teacher||phase!=='listening'||!call)return
     const allowed=new Set(learners.map(l=>l.studentId))
-    const people=Object.values(call.participants() as unknown as Record<string,VoiceParticipant>)
+    const people=Object.values(call.participants())
     for (const p of people) {
       if (!p.session_id||p.session_id===call.participants().local.session_id)continue
       const unauthorized=!p.user_id||!allowed.has(p.user_id)
