@@ -101,7 +101,39 @@ export function WholeNumbersInteractiveBlock({ block }: { block: ContentBlock })
         <p style={{ color: MUTED, margin: '4px 0 12px' }}>{factorsOf(value).join(', ')}. Each factor divides {value} exactly.</p>
         <strong>First four multiples of {value}</strong>
         <p style={{ color: MUTED, margin: '4px 0 5px' }}>{multiplesOf(value).join(', ')}.</p>
-        <p style={{ color: MUTED, fontSize: 13 }}>An even number makes complete pairs of counters. {value} is <strong>{value % 2 === 0 ? 'even' : 'odd'}</strong>.</p>
+        <p style={{ color: MUTED, fontSize: 13 }}>Factor pairs form rectangles of equal rows. Multiples are different: they are products of this number.</p>
+        <div aria-label={'Factor arrays of ' + value} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
+          {factorPairs.map(pair => <div key={pair.rows} style={{ padding: 9, border: '1px solid ' + BORDER, borderRadius: 12, flex: '1 1 118px', maxWidth: 210 }}>
+            <p style={{ margin: '0 0 7px', fontSize: 12 }}>{pair.rows} × {pair.columns} = {value}</p>
+            <div aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(' + pair.columns + ', minmax(0, 1fr))', gap: 3, maxWidth: 180 }}>
+              {Array.from({length:value}, (_,index) => <span key={index} style={{ width: 8, height: 8, maxWidth: '100%', borderRadius: '50%', background: ACCENT }} />)}
+            </div>
+          </div>)}
+        </div>
+      </div>}
+      {mode === 'pairs' && <div role="status" aria-live="polite" style={{ marginTop: 14, lineHeight: 1.65 }}>
+        <strong>{value} is {value % 2 === 0 ? 'even' : 'odd'}.</strong>
+        <p style={{ color: MUTED, fontSize: 13, margin: '5px 0 10px' }}>{Math.floor(value / 2)} complete pairs; {value % 2} left over. Try changing the number by one.</p>
+        <div aria-label={value + ' counters grouped into pairs'} style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: 9, border: '1px solid ' + BORDER, borderRadius: 12 }}>
+          {Array.from({ length: Math.floor(value / 2) }, (_, index) => <span key={index} aria-hidden="true" style={{ display: 'inline-flex', gap: 2, padding: 3, border: '1px solid ' + BORDER, borderRadius: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: ACCENT }} />
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: ACCENT }} />
+          </span>)}
+          {value % 2 === 1 && <span aria-hidden="true" style={{ padding: 3, border: '2px dashed ' + ACCENT, borderRadius: 6 }}>
+            <span style={{ display: 'block', width: 12, height: 12, borderRadius: '50%', background: ACCENT }} />
+          </span>}
+          {value === 0 && <span style={{ color: MUTED, fontSize: 13 }}>No counters, none left over: 0 is even.</span>}
+        </div>
+      </div>}
+      {mode === 'patterns' && <div role="status" aria-live="polite" style={{ marginTop: 14, lineHeight: 1.65 }}>
+        <p style={{ color: MUTED, fontSize: 13 }}>Start at {value}. Add 2 each time. What stays the same about even or odd?</p>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0' }} aria-label={'Pattern: ' + pattern.join(', ')}>
+          {pattern.map((number, index) => <div key={index} style={{ minWidth: 46, textAlign: 'center', padding: '8px 5px', borderRadius: 9, background: index % 2 ? SUBTLE : 'var(--wn-highlight, #2b3f58)', fontWeight: 750 }}>
+            <span style={{ display: 'block', fontSize: 17 }}>{number}</span>
+            <span style={{ color: MUTED, fontSize: 10 }}>{index ? '+2' : 'Start'}</span>
+          </div>)}
+        </div>
+        <p style={{ color: MUTED, fontSize: 13 }}>All five numbers are {value % 2 ? 'odd' : 'even'}. Adding 2 preserves whether a whole number is even or odd.</p>
       </div>}
       {mode === 'roman' && <div role="status" aria-live="polite" style={{ marginTop: 14, lineHeight: 1.8 }}>
         <strong style={{ fontSize: 27 }}>{romanUpToTen(value)}</strong>
