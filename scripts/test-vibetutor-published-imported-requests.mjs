@@ -28,3 +28,18 @@ test('public request read is anonymized; contacts only signed-in published tutor
  assert.match(sql,/created_at>now\(\)-interval '24 hours'/)
  assert.match(cards,/Sign in to contact request owner/)
 })
+
+test('real learner names are read only from the authenticated request owner’s RLS-scoped rows',()=>{
+ assert.match(listings,/const ownedNamesById = new Map<string, string>\(\)/)
+ assert.match(listings,/auth\.getUser\(\)/)
+ assert.match(listings,/\.from\('vibetutor_requests'\)/)
+ assert.match(listings,/\.select\('id,learner_label'\)/)
+ assert.match(listings,/\.eq\('requester_id', verified\.user\.id\)/)
+ assert.match(listings,/\.eq\('status', 'open'\)/)
+ assert.match(listings,/\.eq\('public_preview', true\)/)
+ assert.match(listings,/learnerLabel: ownedNamesById\.get\(row\.id\) \?\?/)
+ assert.match(listings,/tuition request/)
+ assert.doesNotMatch(listings,/learnerLabel: row\.learner_label/)
+ const view=sql.split('create or replace view public.vibetutor_open_requests')[1].split('revoke all on public.vibetutor_open_requests')[0]
+ assert.doesNotMatch(view,/r\.learner_label|r\.phone|r\.requester_id\s*,/i)
+})
