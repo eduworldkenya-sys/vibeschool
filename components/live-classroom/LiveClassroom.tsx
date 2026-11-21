@@ -358,6 +358,50 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     document.addEventListener('visibilitychange',wake)
     return ()=>{disposed=true;cancel();mounted.current=false;generation.current++;window.removeEventListener('online',wake);window.removeEventListener('offline',wake);document.removeEventListener('visibilitychange',wake)}
   },[refresh])
+  // Private session WebSocket carries only an invalidation signal. All lesson,
+  // roster and answer content is fetched again through the canonical scoped RPC.
+  // The existing bounded adaptive poll remains active during outages, reconnects
+  // and after an access change; no message payload can grant classroom admission.
+  useEffect(()=>{
+    const roomId=room?.id
+    if(!roomId||room?.status==='ended')return
+    let disposed=false
+    let channel:ReturnType<typeof supabase.channel>|null=null
+    let debounce:number|undefined
+    let inFlight=false
+    let dirty=false
+    const flush=async()=>{
+      debounce=undefined
+      if(disposed||!dirty||inFlight)return
+      dirty=false;inFlight=true
+      try{await refresh()}finally{
+        inFlight=false
+        if(dirty&&!disposed)schedule()
+      }
+    }
+    const schedule=()=>{
+      if(disposed)return
+      dirty=true
+      if(debounce!==undefined||inFlight)return
+      debounce=window.setTimeout(()=>void flush(),75)
+    }
+    void supabase.auth.getSession().then(({data})=>{
+      if(disposed||!data.session?.access_token)return
+      supabase.realtime.setAuth(data.session.access_token)
+      const next=supabase.channel('vibe-live:'+roomId,{config:{private:true}})
+      channel=next.on('broadcast',{event:'refresh'},schedule)
+        .subscribe(status=>{if(status==='SUBSCRIBED')schedule()})
+    }).catch(()=>{/* authorized polling fallback remains active */})
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+      if(event==='TOKEN_REFRESHED'&&session?.access_token)supabase.realtime.setAuth(session.access_token)
+    })
+    return()=>{
+      disposed=true
+      if(debounce!==undefined)window.clearTimeout(debounce)
+      subscription.unsubscribe()
+      if(channel)void supabase.removeChannel(channel)
+    }
+  },[room?.id,room?.status,refresh])
   useEffect(()=>{if(!teacher||classId||hostMode!=='tuition')return;let cancelled=false;void call('groups').then(data=>{if(!cancelled)setGroups(data as {id:string;title:string}[])}).catch(()=>{if(!cancelled)setGroups([])});return()=>{cancelled=true}},[teacher,classId,hostMode,call])
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search)
