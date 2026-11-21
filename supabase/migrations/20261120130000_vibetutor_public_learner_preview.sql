@@ -40,6 +40,7 @@ create index if not exists vibetutor_interests_request_idx on public.vibetutor_r
 alter table public.vibetutor_request_interests enable row level security;
 revoke all on public.vibetutor_request_interests from public,anon,authenticated;
 grant select on public.vibetutor_request_interests to authenticated;
+drop policy if exists vibetutor_interests_participant_read on public.vibetutor_request_interests;
 create policy vibetutor_interests_participant_read
  on public.vibetutor_request_interests for select to authenticated
  using (tutor_id=(select auth.uid()) or exists (
