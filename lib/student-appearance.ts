@@ -46,7 +46,13 @@ export function readLearnerAppearance(studentId:string|null|undefined):LearnerAp
     if(!data||typeof data!=='object'||Array.isArray(data))return {...DEFAULT_LEARNER_APPEARANCE}
     return {
       palette:oneOf(data.palette,palettes,'jade'),
-      displayMode:oneOf(data.displayMode,displayModes,'light'),
+      // Shared appearance overrides the learner's old per-device brightness.
+      // Personal palette, wallpaper and reading preferences remain learner-specific.
+      displayMode:oneOf(
+        localStorage.getItem('vibeschool-theme')==='system'?'auto':
+        localStorage.getItem('vibeschool-theme')==='light'?'light':
+        localStorage.getItem('vibeschool-theme')==='dark'?'dark':data.displayMode,
+        displayModes,'light'),
       font:oneOf(data.font,fonts,'modern'),
       wallpaper:oneOf(data.wallpaper,wallpapers,'sage'),
       wallpaperPlacement:oneOf(data.wallpaperPlacement,placements,'workspace'),

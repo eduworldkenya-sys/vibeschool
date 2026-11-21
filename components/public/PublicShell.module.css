@@ -31,3 +31,37 @@
 .compactFooter{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 24px;max-width:1180px;margin:auto;border-top:1px solid #e5e7eb;padding:16px 24px;background:#0c345c;color:#fff;font-size:12px;color-scheme:light}.compactFooter a{color:inherit;min-height:44px;display:inline-flex;align-items:center;text-underline-offset:3px}.compactFooter a:focus-visible{outline:3px solid #007e79;outline-offset:4px}
 @media(min-width:761px){.compactHeader .nav{display:flex}.compactHeader .mobileMenu{display:none}}
 @media(max-width:760px){.compactHeader .headerInner{justify-content:space-between;gap:12px}.compactHeader .nav{display:none}.compactHeader .mobileMenu{display:block}.compactFooter{padding:10px 20px;gap:0 18px;font-size:11px}}
+
+/* Shared appearance stays in the canonical public header on desktop and mobile. */
+.appearanceControl{flex:0 0 auto;min-width:104px;max-width:124px}
+@media(max-width:1160px) and (min-width:1041px){.headerInner{gap:9px}.nav{gap:8px}.appearanceControl{max-width:108px;padding-inline:4px}}
+@media(max-width:420px){.appearanceControl{max-width:105px;min-width:98px}}
+
+/* Public-header appearance follows the shared brightness selection while the
+   individual product pages retain ownership of their content/illustrations. */
+.logoDark{display:none;width:146px;height:auto;max-width:100%;max-height:38px;object-fit:contain;object-position:left center}
+:global(html[data-vs-theme='dark']) .header{background:rgba(19,24,31,.98);border-color:#3b4350}
+:global(html[data-vs-theme='dark']) .logo{display:none}
+:global(html[data-vs-theme='dark']) .logoDark{display:block}
+:global(html[data-vs-theme='dark']) .brand,
+:global(html[data-vs-theme='dark']) .productName{color:#f6f8fa}
+:global(html[data-vs-theme='dark']) .divider{background:#58606f}
+:global(html[data-vs-theme='dark']) .nav a,
+:global(html[data-vs-theme='dark']) .moreMenu>summary{color:#d2dae3}
+:global(html[data-vs-theme='dark']) .nav a:hover,
+:global(html[data-vs-theme='dark']) .nav a:focus-visible,
+:global(html[data-vs-theme='dark']) .moreMenu>summary:hover{color:#fff}
+:global(html[data-vs-theme='dark']) .signin,
+:global(html[data-vs-theme='dark']) .mobileMenu>summary{background:#26303b;border-color:#52606e;color:#fff!important}
+:global(html[data-vs-theme='dark']) .mobilePanel,
+:global(html[data-vs-theme='dark']) .morePanel{background:#202832;border-color:#52606e}
+:global(html[data-vs-theme='dark']) .mobilePanel a,
+:global(html[data-vs-theme='dark']) .morePanel a{color:#ecf1f6}
+:global(html[data-vs-theme='dark']) .mobilePanel a:hover,
+:global(html[data-vs-theme='dark']) .morePanel a:hover{background:#34414e}
+:global(html[data-vs-theme='dark']) .mobileSection{border-color:#465360;color:#b9cad8}
+@media(max-width:1040px){.logoDark{width:136px;max-height:36px}}
+@media(max-width:640px){.logoDark{width:126px;max-height:33px}}
+@media(max-width:420px){.logoDark{width:118px;max-height:31px}}
+
+@media(max-width:420px){.headerInner{gap:8px}}

@@ -4,6 +4,7 @@ import { TrackedLink } from './TrackedLink'
 import { PublicJourneyTracker } from './PublicJourneyTracker'
 import { PublicSkipLink } from './PublicSkipLink'
 import styles from './PublicShell.module.css'
+import { ThemeControl } from '@/components/theme/ThemeControl'
 
 type PublicHeaderProps = { product?: string; compact?: boolean; navigation?: ReadonlyArray<readonly [string, string]> }
 
@@ -39,6 +40,7 @@ export function PublicHeader({ product, compact = false, navigation }: PublicHea
         <Link href="/" aria-label="VibeSchool home" className={styles.brand}>
           <span className={styles.productLockup}>
             <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={620} height={160} priority className={styles.logo}/>
+            <Image src="/brand/vibeschool-wordmark-dark.svg" alt="" aria-hidden="true" width={620} height={160} className={styles.logoDark}/>
             {showProductLabel ? <><span className={styles.divider} aria-hidden="true"/><span className={styles.productName}>{product}</span></> : null}
           </span>
         </Link>
@@ -52,6 +54,7 @@ export function PublicHeader({ product, compact = false, navigation }: PublicHea
           </details>}
           {!compact && <TrackedLink href="/login/global" event="public_auth_signin" className={styles.signin}>Sign in</TrackedLink>}
         </nav>
+        <ThemeControl native className={styles.appearanceControl} />
         <details className={styles.mobileMenu}>
           <summary aria-label="Open public navigation">Menu</summary>
           <nav className={styles.mobilePanel} aria-label="Mobile public navigation">
