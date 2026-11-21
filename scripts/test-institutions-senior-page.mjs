@@ -43,3 +43,15 @@ test('public institutions page does not claim fake school statistics or expose l
   assert.doesNotMatch(page, /480 learners|18 teachers|12 classes|live enrolment/i)
   assert.match(page, /No real school or learner data displayed/)
 })
+
+test('school adoption disclosures remain visible in the concise experience', () => {
+  for (const label of [
+    'WHAT A SCHOOL CAN BRING TOGETHER',
+    'IMPLEMENTATION PRINCIPLE',
+    'BEFORE ADOPTION',
+    'QUESTIONS A SCHOOL SHOULD ASK BEFORE BUYING',
+    'does not publish an invented support or uptime guarantee',
+  ]) {
+    assert.ok(page.toLowerCase().includes(label.toLowerCase()), label)
+  }
+})
