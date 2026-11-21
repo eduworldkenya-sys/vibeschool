@@ -34,16 +34,23 @@ const publicOpportunities = fs.readFileSync("components/teacher/marketplace/Teac
 assert.match(discovery, /PublicHeader/);
 assert.match(discovery, /PublicFooter/);
 assert.match(discovery, /TeacherOpportunities/);
+assert.match(discovery, /PremiumTeacherMarketplace/);
 assert.match(discovery, /\/teacher\/marketplace\/sandbox/);
-assert.match(discovery, /\/teacher\/marketplace\/manage/);
+const premium = fs.readFileSync("components/teacher/marketplace/PremiumTeacherMarketplace.tsx", "utf8");
+for (const contract of ["teacher_vacancies", "vibetutor_open_requests", "teacher_swap_listings", "teacher_employment_directory", "teacher_employment_requests", "teacher_employment_shortlists", "getAdminSchoolAuthority", "requestUrl(", "swapUrl(", "vacancyApplication(", "/teacher/marketplace/manage", "/teacher/marketplace/sandbox"]) {
+  assert.ok(premium.includes(contract), "Premium marketplace must keep real canonical integration: " + contract);
+}
+assert.match(gateway, /PremiumTeacherMarketplace/);
+assert.ok(discovery.indexOf("<PremiumTeacherMarketplace />") < discovery.indexOf("<TeacherOpportunities />"), "Real premium workspace comes before secondary legacy tools");
+assert.ok(gateway.indexOf("<PremiumTeacherMarketplace />") < gateway.indexOf("<TeacherExperiencePreview />"), "Teacher workspace precedes Teacher OS teaser");
 assert.doesNotMatch(discovery, /getSupabaseClient|\.insert\(|\.update\(|\.delete\(/);
 assert.match(managed, /teacher_swap_interests/);
 assert.match(managed, /teacher_swap_messages/);
-assert.match(gateway, /href="\/teacher\/marketplace"/);
+assert.match(gateway, /PremiumTeacherMarketplace/);
 assert.match(navigation, /href: '\/teacher\/marketplace\/manage'/);
 assert.match(publicOpportunities, /marketplace\/manage\?swap=/);
-assert.ok(gateway.indexOf('href="/teacher/marketplace/sandbox"') < gateway.indexOf('href="/login?redirect=/teacher/pulse"'), "TSC recruitment guide must be the first hero action");
-assert.ok(discovery.indexOf('href="/teacher/marketplace/sandbox"') < discovery.indexOf('href="#listings"'), "recruitment guide before listings");
+assert.ok(premium.includes('/teacher/marketplace/sandbox') && premium.includes('/login?redirect=/teacher/pulse'), "Official recruitment and Teacher OS are available as secondary destinations");
+assert.ok(discovery.includes('TeacherOpportunities') && discovery.includes('PremiumTeacherMarketplace'), "Legacy TSC discovery remains accessible without becoming the primary screen");
 
 // All eight combinations of the three advertised minimum checks.
 for (const citizen of [false,true]) for (const qualification of [false,true]) for (const registration of [false,true]) {
