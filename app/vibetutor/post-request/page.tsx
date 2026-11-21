@@ -16,7 +16,7 @@ const REQUEST_AREAS = [...new Set([...AREAS, ...TUITION_AREA_ALLOCATIONS.map(([n
 
 const DRAFT_KEY = 'vibetutor:learner-request:v1'
 
-type RequestDraft = { learner: string; subjects: string[]; level: string; mode: Mode; area: string; days: string[]; budget: string; phone: string }
+type RequestDraft = { learner: string; subjects: string[]; level: string; mode: Mode; area: string; days: string[]; budget: string; phone: string; publicPreview?: boolean }
 
 const toggle = (list: string[], value: string) => list.includes(value) ? list.filter(x => x !== value) : [...list, value]
 // Limit by numbering format as the user types or pastes; never discard leading zeroes.
@@ -39,7 +39,7 @@ export default function PostRequest() {
   const [budget, setBudget] = useState('')
   const [phone, setPhone] = useState('')
   const [dayparts, setDayparts] = useState<DayPart[]>([])
-  const [publicPreview, setPublicPreview] = useState(false)
+  const [publicPreview, setPublicPreview] = useState(true)
   const [signedIn, setSignedIn] = useState(false)
   const [authStatus, setAuthStatus] = useState<'checking' | 'signed-in' | 'signed-out' | 'error'>('checking')
   const [authRetryKey, setAuthRetryKey] = useState(0)
@@ -47,6 +47,7 @@ export default function PostRequest() {
   const [submitting, setSubmitting] = useState(false)
   const [ready, setReady] = useState(false)
   const [posted, setPosted] = useState(false)
+  const [postedPublic, setPostedPublic] = useState(false)
   const [touched, setTouched] = useState(false)
   const availableSubjects = useMemo(() => SUBJECTS_BY_LEVEL[level] || [], [level])
 
@@ -55,7 +56,7 @@ export default function PostRequest() {
     if (draft) {
       setLearner(draft.learner); setSubjects(draft.subjects); setLevel(draft.level)
       setMode(draft.mode); setArea(draft.area); setDays(draft.days)
-      setBudget(draft.budget); setPhone(normalizedPhone(draft.phone)); setTouched(true)
+      setBudget(draft.budget); setPhone(normalizedPhone(draft.phone)); setPublicPreview(draft.publicPreview !== false); setTouched(true)
     }
     const query = new URLSearchParams(window.location.search)
     const service = findTuitionService(query.get('service'))
@@ -68,8 +69,8 @@ export default function PostRequest() {
 
   useEffect(() => {
     if (!ready || !touched) return
-    saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone })
-  }, [ready, touched, learner, subjects, level, mode, area, days, budget, phone])
+    saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone, publicPreview })
+  }, [ready, touched, learner, subjects, level, mode, area, days, budget, phone, publicPreview])
 
   useEffect(() => {
     let active = true
@@ -92,15 +93,15 @@ export default function PostRequest() {
     return () => { active = false }
   }, [authRetryKey])
 
-  const clearForm = () => { setLearner(''); setSubjects([]); setLevel(''); setMode('either'); setArea(''); setDays([]); setBudget(''); setPhone(''); setDayparts([]); setPublicPreview(false); setTouched(false); clearDraft(DRAFT_KEY) }
+  const clearForm = () => { setLearner(''); setSubjects([]); setLevel(''); setMode('either'); setArea(''); setDays([]); setBudget(''); setPhone(''); setDayparts([]); setPublicPreview(true); setTouched(false); clearDraft(DRAFT_KEY) }
   const completion = [!!level && subjects.length > 0, !!area, days.length > 0, validKenyanPhone(phone)]
   const validForm = completion.every(Boolean) && validKenyanPhone(phone)
-  if (posted) return <div className={styles.formWrap}><h1 className={styles.formTitle}>Tutor request posted</h1><p role="status">Your request has been submitted.</p><a className={styles.btnSecondary} href="/vibetutor/browse?view=students">Browse listings</a><a className={styles.btnSecondary} href="/vibetutor/inquiries">Manage enquiries and privacy</a><a className={styles.btnSecondary} href="/vibetutor/post-request" onClick={event => { event.preventDefault(); clearForm(); setPosted(false) }}>Post another request</a></div>
+  if (posted) return <div className={styles.formWrap}><h1 className={styles.formTitle}>Tutor request posted</h1><p role="status">{postedPublic ? 'Your request is listed anonymously. Your name and phone stay private.' : 'Your tuition request was saved privately. Your contact information is not public.'}</p><a className={styles.btnSecondary} href="/vibetutor/browse?view=students">Browse listings</a><a className={styles.btnSecondary} href="/vibetutor/inquiries">Manage enquiries and privacy</a><a className={styles.btnSecondary} href="/vibetutor/post-request" onClick={event => { event.preventDefault(); clearForm(); setPosted(false) }}>Post another request</a></div>
   return (
     <div className={styles.formWrap}>
       <header className={styles.formHead}>
         <h1 className={styles.formTitle}>Request a tutor</h1>
-        <p className={styles.muted}>Tell us what your learner needs in one simple form.</p>
+        <p className={styles.muted}>Tell us what the learner needs. Public previews do not reveal names or phone numbers.</p>
       </header>
       {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
         <div className={polish.wizardMeta}><strong>Profile setup</strong><span>{completion.filter(Boolean).length} of 4 complete</span></div>
@@ -113,7 +114,7 @@ export default function PostRequest() {
           </li>)}
         </ol>
       </div>}
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone }); window.location.assign('/login?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone, dayparts, publicPreview }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); setTouched(false); setPosted(true) } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
+      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone, publicPreview }); window.location.assign('/login?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone, dayparts, publicPreview }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); setTouched(false); setPostedPublic(publicPreview); setPosted(true) } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
         <Field label="Level" required><select className={styles.input} value={level} onChange={e => { setTouched(true); setLevel(e.target.value); setSubjects([]) }}><option value="">Choose level</option>{LEVELS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Subjects" required>{level && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
         <Field label="Teaching format"><Segmented<Mode> label="Teaching format" value={mode} onChange={value => { setTouched(true); setMode(value) }} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
@@ -122,9 +123,9 @@ export default function PostRequest() {
         <Field label="Days available" required><SchedulePicker days={days} onDays={value => { setTouched(true); setDays(value) }} /></Field>
         {signedIn && <p className={polish.prefillNote}>Account contact details prefilled where available. You can edit them.</p>}
         <Field label="Preferred time"><div>{DAYPARTS.map(part => <label key={part.id} style={{marginRight:12}}><input type="checkbox" checked={dayparts.includes(part.id)} onChange={e => setDayparts(prev => e.target.checked ? [...prev,part.id] : prev.filter(x => x !== part.id))} /> {part.label}</label>)}</div></Field>
-        <Field label="Public listing"><label><input type="checkbox" checked={publicPreview} onChange={e => setPublicPreview(e.target.checked)} /> I am this learner’s parent or guardian, and I agree to an anonymous public preview of the request. The learner’s name and my phone number remain private.</label></Field>
+        <Field label="Visibility"><label><input type="checkbox" checked={publicPreview} onChange={e => { setTouched(true); setPublicPreview(e.target.checked) }} /> Publish an anonymous tuition request</label><p className={styles.hint}>Visible immediately to visitors; no separate guardian approval. Only subjects, level, city, budget and availability are shown. The learner name and your phone stay private. Untick to post privately.</p></Field>
         <Field label="Student name" hint="Optional if you prefer not to share it yet."><input className={styles.input} value={learner} onChange={e => { setTouched(true); setLearner(e.target.value) }} maxLength={60} autoComplete="off" /></Field>
-        <Field label="Parent or guardian phone" required><input className={styles.input} type="tel" inputMode="numeric" autoComplete="tel" maxLength={13} pattern="(?:0[17][0-9]{8}|[+]?254[17][0-9]{8})" value={phone} onChange={e => { setTouched(true); setPhone(normalizedPhone(e.target.value)) }}  placeholder="07XXXXXXXX or +2547XXXXXXXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
+        <Field label="Your contact number (private)" required><input className={styles.input} type="tel" inputMode="numeric" autoComplete="tel" maxLength={13} pattern="(?:0[17][0-9]{8}|[+]?254[17][0-9]{8})" value={phone} onChange={e => { setTouched(true); setPhone(normalizedPhone(e.target.value)) }}  placeholder="07XXXXXXXX or +2547XXXXXXXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
         <div className={styles.formActions}><button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button><button type="submit" className={styles.btnSubmit} disabled={!validForm || submitting || authStatus === 'checking' || authStatus === 'error'}>{submitting ? 'Posting…' : 'Find a tutor'}</button></div>
         {authStatus === 'error' && <p role="alert" className={styles.hint}>We could not verify your sign-in. Check your connection and retry before posting. <button type="button" className={styles.btnSecondary} onClick={() => { setAuthStatus('checking'); setAuthRetryKey(value => value + 1) }}>Retry sign-in check</button></p>}
         {submitError && <p role="alert" className={styles.hint}>{submitError}</p>}

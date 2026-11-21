@@ -92,9 +92,13 @@ export async function saveLearnerRequest(input: {
   const { data: userData, error: authError } = await client.auth.getUser()
   if (authError) return { ok: false, error: 'We could not verify your sign-in. Please try again.' }
   if (!userData.user) return { ok: false, error: 'Sign in to post your request.' }
+  // No separate guardian-approval step. The posting adult owns the request and
+  // receives tutor enquiries; learner names and phone numbers stay private.
   if (input.publicPreview) {
-    const {data:profile,error:profileError} = await client.from('profiles').select('role').eq('id',userData.user.id).maybeSingle()
-    if (profileError || profile?.role !== 'parent') return {ok:false,error:'Use a parent or guardian account to share a learner request publicly.'}
+    const { data: profile, error: profileError } = await client.from('profiles')
+      .select('role').eq('id', userData.user.id).maybeSingle()
+    if (profileError || !['parent', 'teacher'].includes(profile?.role ?? ''))
+      return { ok: false, error: 'Public requests must be posted from a verified parent or teacher account. You can still save a private request.' }
   }
   const { error } = await client.from('vibetutor_requests').insert({
     requester_id: userData.user.id, learner_label: input.learner.trim() || 'Learner',

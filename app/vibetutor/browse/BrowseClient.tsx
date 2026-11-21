@@ -265,8 +265,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
           </div>
         </div>}
         {!loading && !loadError && view === 'students' && requests.length === 0 && (discovery !== 'nearby' || !!nearbyArea) && <div className={styles.emptyState}>
-          <p className={styles.empty}>{requestSource.length === 0 ? 'No guardian-approved learner requests yet.' : 'No requests match these filters.'}</p>
-          <p className={styles.emptyHint}>{requestSource.length === 0 ? 'Parents can post a request anonymously. Learner identities and contact details stay private.' : 'Try a broader search or clear some filters.'}</p>
+          <p className={styles.empty}>{requestSource.length === 0 ? 'No public learner requests yet.' : 'No requests match these filters.'}</p>
+          <p className={styles.emptyHint}>{requestSource.length === 0 ? 'Verified parents and teachers can post anonymously. Learner identities and phone numbers stay private.' : 'Try a broader search or clear some filters.'}</p>
           <div className={styles.emptyActions}>
             {subject && <button type="button" className={styles.emptyAction} onClick={() => setSubject('')}>Clear subject</button>}
             {priceRange && <button type="button" className={styles.emptyAction} onClick={() => setPriceRange('')}>Any budget</button>}
