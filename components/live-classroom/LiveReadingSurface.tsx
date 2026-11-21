@@ -3,31 +3,11 @@
 import { useRef, useState } from 'react'
 import { BookOpen, Minus, Plus, Quote } from 'lucide-react'
 import styles from './LiveReadingSurface.module.css'
+import { parseLiveReadingPage, liveReadingBlockType } from '@/lib/live/readingPresentation'
 
 /** Presentation only. The room's authenticated prompt/history is the authority.
  * Do not query the teacher's source library from a learner or parse arbitrary HTML.
  */
-function parsePage(body: string) {
-  const normalized = body.replace(/\r\n?/g, '\n').trim()
-  const header = normalized.match(/^([^\n]{1,120}) · Page (\d+) \/ (\d+)\n\n/)
-  const content = header ? normalized.slice(header[0].length) : normalized
-  const paragraphs = content.split(/\n\s*\n/).map(value => value.trim()).filter(Boolean)
-  return {
-    title: header?.[1] ?? null,
-    number: header ? Number(header[2]) : null,
-    total: header ? Number(header[3]) : null,
-    paragraphs,
-  }
-}
-
-function paragraphType(text: string) {
-  const first = text.split('\n')[0].trim()
-  if (/^(I CAN\s*[:.]|LEARNING OUTCOME\s*[:.]|OBJECTIVE\s*[:.])/i.test(first)) return 'outcome'
-  if (/^(LET['’]S LEARN|KEY IDEA|REMEMBER|EXAMPLE|WORKED EXAMPLE|ACTIVITY|TRY THIS|EXERCISE|REFLECTION|SUMMARY|DISCUSS|PRACTICE)(\s*[:.\-]|$)/i.test(first)) return 'section'
-  if (text.indexOf('\n') === -1 && first.length < 65 && /^[A-Z][A-Z\d\s,.:;()'’&!?\-]+$/.test(first)) return 'heading'
-  return 'prose'
-}
-
 /** Readable live document, not a new book publishing system.
  * Quote-to-notes is strictly learner-private until the existing notes command saves.
  */
@@ -41,7 +21,7 @@ export function LiveReadingSurface({
   const [zoom, setZoom] = useState(0)
   const [quoted, setQuoted] = useState(false)
   const article = useRef<HTMLElement>(null)
-  const page = parsePage(body)
+  const page = parseLiveReadingPage(body)
   const selectedQuote = () => {
     const selection = window.getSelection()
     if (!selection || selection.isCollapsed || !selection.rangeCount) return ''
@@ -68,7 +48,7 @@ export function LiveReadingSurface({
     </div>}
     <div className={styles.chapters}>
       {page.paragraphs.map((part, index) => {
-        const kind = paragraphType(part)
+        const kind = liveReadingBlockType(part)
         if (kind === 'heading') return <h2 key={index} className={styles.heading}>{part}</h2>
         if (kind === 'section') return <h3 key={index} className={styles.section}>{part}</h3>
         if (kind === 'outcome') return <p key={index} className={styles.outcome}>{part}</p>
