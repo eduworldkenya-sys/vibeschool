@@ -156,7 +156,7 @@ not authorize activation of the media service.
   The teacher is derived from the canonical RPC, not the browser. A learner
   participant ID is resolved from their own protected student identity.
 - The Daily room is private, bounded to the existing session expiry with
-  `eject_at_room_exp`, recording, video, screen sharing and chat disabled.
+  `eject_at_room_exp`, `audio_only`, recording, video, screen sharing and chat disabled.
   Meeting tokens are short-lived. Learners join receive-only; the teacher may
   grant/revoke only audio publication to a currently raised-hand learner.
   The learner must personally switch their microphone on. The UI never turns
@@ -164,12 +164,25 @@ not authorize activation of the media service.
 - Voice has separate client state and media cleanup and MUST NOT reset lesson
   history, slides, whiteboards, answers or notes. On teacher end, attempt
   server-mediated room destruction and remote ejection.
-- The teacher roster is not proof of real-time audio presence. Revoked
-  relationships need an adversarial test against real provider sessions, not
-  just a client disconnection. A revoked learner may have a previously issued
-  provider token or existing media track. Activation requires an independently
-  verified server-side revocation/ejection strategy, including teacher offline
-  and tab-crash cases. The current code is NOT claimed certified for that case.
+- The teacher roster is not proof of real-time audio presence. Each issued
+  Daily token now has a `120-second maximum expiry` and
+  `eject_at_token_exp=true`: Daily must eject an already-connected participant
+  when that token expires, even if the teacher's browser has closed.
+  Connected browsers proactively leave and request a **new canonical Live
+  authorization** before token expiry, then rejoin audio. A revoked learner
+  fails that new authorization, and their previous media admission expires
+  independently of the teacher. This is a **bounded maximum window**, NOT
+  immediate revocation: up to ~120 seconds after the last admitted token.
+  Ordinary reconnects may briefly interrupt audio approximately every 90
+  seconds; this limitation needs a smoother, server-monitored strategy before
+  broad launch. Suspended tabs may need manual reconnection.
+- Client roster reconciliation adds fast-path removal and publishing revocation
+  while the teacher is online. It is **not trusted as the only security
+  mechanism**. Real Daily provider acceptance must prove that the token expiry
+  ejects already-connected callers, teacher participant-admin can grant/revoke
+  **audio-only** permissions without full owner privileges, and unauthorized
+  mobile clients cannot bypass mic restrictions. Direct server-side emergency
+  ejection/revocation and mobile continuity are still acceptance requirements.
 - Run `npm run test:live-voice` and full repository CI, test two different
   authenticated Android devices, browser microphone consent, speaker output,
   teacher approval, hand queue, blocked learner publishing, internet loss,
