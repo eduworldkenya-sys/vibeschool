@@ -15,7 +15,7 @@ const teacher=location.pathname==='/teacher';
 const studentId='${learnerId}';
 function App(){
   const [learners,setLearners]=useState([{studentId,name:'Learner A',needsHelp:true}]);
-  return <LiveVoice roomId='${roomId}' classId={null} teacher={teacher}
+  return <LiveVoice roomId='${roomId}' classId={null} teacher={teacher} enabled={true}
     status='active' learners={teacher?learners:[]}
     onAcknowledge={async id=>{
       if(id!==studentId)throw Error('Bad learner');
