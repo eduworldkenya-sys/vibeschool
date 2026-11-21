@@ -186,9 +186,13 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     // Revoked learner may not retain audio publishing rights after roster loss.
     const remote=Object.values(call.participants()).find(p=>p.user_id===studentId&&!p.local)
     speaker.current=null;setActiveSpeaker(null)
-    if(remote)void call.updateParticipant(remote.session_id,{
-      updatePermissions:{canSend:false},setAudio:false,
-    }).catch(()=>setError('Could not revoke learner audio. End the room.'))
+    if(remote) {
+      try {
+        call.updateParticipant(remote.session_id,{
+          updatePermissions:{canSend:false},setAudio:false,
+        })
+      } catch {setError('Could not revoke learner audio. End the room.')}
+    }
   },[learners,teacher,status])
   // Keep Daily audio access in sync with the canonical teacher roster. A
   // removed learner is ejected from the media service, not just hidden in UI.
@@ -204,11 +208,17 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       const unapprovedMic=canPublishAudio(p.permissions?.canSend)&&speaker.current!==p.user_id
       if ((!unauthorized&&!unapprovedMic)||moderating.current.has(p.session_id))continue
       moderating.current.add(p.session_id)
-      void call.updateParticipant(p.session_id,unauthorized?{eject:true}:{
-        updatePermissions:{canSend:false},setAudio:false,
-      }).catch(()=>{
+      try {
+        // updateParticipant is synchronous in daily-js; it returns DailyCall,
+        // not a Promise. Remote enforcement is confirmed by participant events.
+        call.updateParticipant(p.session_id,unauthorized?{eject:true}:{
+          updatePermissions:{canSend:false},setAudio:false,
+        })
+      } catch {
         setError('Could not enforce audio access. End this class audio and retry.')
-      }).finally(()=>moderating.current.delete(p.session_id))
+      } finally {
+        moderating.current.delete(p.session_id)
+      }
     }
   },[teacher,phase,learners,connectedIds])
   const enableSound=async()=>{
