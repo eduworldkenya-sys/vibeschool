@@ -238,7 +238,7 @@ try{
  await see(l,'How many quarters make one whole?')
  // Publish a genuinely scrollable teaching document through the same
  // authoritative room. Multiple mobile viewports follow a normalized offset.
- const longText='Live reading guide.\\n'+Array.from({length:72},(_,i)=>'Step '+(i+1)+': Read the analogue clock carefully.').join('\\n')
+ const longText='Live reading guide.\n'+Array.from({length:72},(_,i)=>'Step '+(i+1)+': Read the analogue clock carefully.').join('\n')
  const beforeLong=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
  await fixture.rpc(fixture.teacher,'publish',sid,beforeLong.version,{kind:'teach',body:longText})
  const hostStage=t.getByLabel('Shared lesson',{exact:true})
