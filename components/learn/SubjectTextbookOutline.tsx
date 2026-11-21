@@ -80,7 +80,7 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
         .from('curriculum_learning_outcomes')
         .select('sub_strand_id,outcome_code,outcome_text')
         .in('sub_strand_id', ids)
-        .eq('status','active').eq('source_type','creator_claimed')
+        .eq('status','active').eq('source_type','creator_claimed').is('created_by',null)
         .like('source_ref','VS-CUR-G04-MA-2026#%')
         .order('outcome_code', { ascending: true })
       if (!active || guideError) return
