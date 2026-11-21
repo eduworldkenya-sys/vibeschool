@@ -19,3 +19,5 @@
 .error{color:#991b1b;font-weight:600;background:#fff1f0;padding:8px;border-radius:8px}
 @media(max-width:620px){.layout{grid-template-columns:minmax(0,1fr)}.library{max-height:22dvh}.preview article{max-height:24dvh;min-height:80px}.picker{gap:6px}.toolbar span{display:none}}
 @media(max-height:480px) and (orientation:landscape){.library{max-height:44dvh}.layout{grid-template-columns:minmax(155px,.8fr) minmax(0,1.5fr)}.preview article{max-height:34dvh}}
+
+.warning{font-size:12px;color:#5b4d1c;background:#fff7d6;border-radius:8px;padding:8px;margin:0}
