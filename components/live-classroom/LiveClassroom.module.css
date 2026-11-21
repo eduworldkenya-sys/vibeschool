@@ -205,3 +205,9 @@
 .planGuide{display:grid;gap:10px;min-width:0}
 .planGuideBody{white-space:pre-wrap;overflow-wrap:anywhere;max-height:min(42dvh,320px);overflow-y:auto;padding:10px;border:1px solid #53796f;border-radius:8px;background:#132b24;line-height:1.55;font-size:13px}
 .planGuide select{width:100%;color:#f3f8f5;background:#152c25;border:1px solid #6b998a;padding:9px;border-radius:8px}
+
+.savedMaterials{display:grid;gap:6px;padding:10px;border:1px solid color-mix(in srgb,currentColor 28%,transparent);border-radius:12px;margin-block:10px}
+.savedMaterials p{margin:0;font-size:12px;opacity:.8}
+.savedMaterialList{display:flex;gap:6px;flex-wrap:wrap;max-height:180px;overflow:auto}
+.savedMaterialList button{min-height:36px;max-width:100%;overflow-wrap:anywhere;border:1px solid currentColor;border-radius:9px;color:inherit;background:transparent;padding:6px 10px;font-size:12px}
+.savedMaterialList button[aria-pressed=true]{outline:2px solid currentColor;outline-offset:1px}
