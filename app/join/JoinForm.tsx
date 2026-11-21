@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 import { useState, type FormEvent } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -119,7 +120,7 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
   return (
     <main className="shell vs-auth" data-auth-theme={appearance}>
       <section className="panel">
-        <a href="/" className="brand">Vibe<span>School</span></a>
+        <Link href="/" className="brand">Vibe<span>School</span></Link>
         <p className="eyebrow">JOIN VIBESCHOOL</p>
         <h1>One account. Start right away.</h1>
 
@@ -146,7 +147,7 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
           existingRole === 'parent' ? '/parent' : '/login'}>Open your existing account</a>}
         <div className="divider" />
         <a href="/signup/student" className="learner">Create learner account</a>
-        <p className="foot">Already registered? <a href="/login">Sign in</a></p>
+        <p className="foot">Already registered? <Link href="/login">Sign in</Link></p>
         <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
       </section>
       <style jsx>{`

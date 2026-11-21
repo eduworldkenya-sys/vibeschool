@@ -2,15 +2,15 @@ import fs from 'node:fs'
 import assert from 'node:assert/strict'
 
 const middleware = fs.readFileSync('middleware.ts', 'utf8')
-const login = fs.readFileSync('app/login/page.tsx', 'utf8')
 const errorPage = fs.readFileSync('app/auth/error/page.tsx', 'utf8')
+const recoveryActions = fs.readFileSync('app/auth/error/RecoveryActions.tsx', 'utf8')
 const migration = fs.readFileSync('supabase/migrations/20260818201759_auth_onboarding_rpc_schema_visibility_repair.sql', 'utf8')
 
-assert.match(errorPage, /href="\/login"/)
-assert.match(login, /\/login\/teacher/)
-assert.match(login, /\/login\/parent/)
-assert.match(login, /\/login\/student/)
-assert.match(login, /\/login\/global/)
+assert.match(errorPage, /<RecoveryActions signupConflict=/)
+assert.match(errorPage, /href="\/auth\/forgot-password"/)
+assert.match(recoveryActions, /fetch\('\/auth\/logout', \{ method: 'POST'/)
+assert.match(recoveryActions, /window\.location\.assign\(signupConflict \? '\/signup\/student' : '\/login'\)/)
+assert.match(middleware, /pathname === '\/login\/global'/)
 assert.match(middleware, /PUBLIC_AUTH_ROUTES/)
 assert.doesNotMatch(middleware, /pathname === '\/login'[\s\S]{0,240}NextResponse\.rewrite/)
 assert.match(migration, /alter function public\.get_my_onboarding_state\(\) stable/i)

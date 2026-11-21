@@ -4,10 +4,11 @@ import ReaderClient from "../ReaderClient";
 import { findChapter, loadPublicReader, metadataForChapter } from "../readerServer";
 
 type PageProps = {
-  params: { publicationId: string; chapterId: string };
+  params: Promise<{ publicationId: string; chapterId: string }>;
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   const payload = await loadPublicReader(params.publicationId);
   if (!payload) {
     return {
@@ -27,7 +28,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return metadataForChapter(payload, params.publicationId, chapter);
 }
 
-export default async function ChapterPage({ params }: PageProps) {
+export default async function ChapterPage(props: PageProps) {
+  const params = await props.params;
   const payload = await loadPublicReader(params.publicationId);
   if (!payload) notFound();
 

@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import {useMemo,useState} from 'react'
 const fmt=(n:number)=>new Intl.NumberFormat('en-KE',{style:'currency',currency:'KES',maximumFractionDigits:0}).format(n)
 export default function InvestorPage(){
@@ -14,6 +15,6 @@ export default function InvestorPage(){
  <section className="sec"><div className="eye">05 · Capital</div><h2>Investment scales the speed, not the vision.</h2><div className="flow">{[50000,100000,500000,1000000].map(n=><button key={n} className={'btn '+(capital===n?'on':'')} onClick={()=>setCapital(n)}>{fmt(n)}</button>)}</div><div className="card" style={{marginTop:18}}><div className="big">{fmt(capital)}</div><div className="grid" style={{marginTop:16}}><div><b>35% · Product & infrastructure</b><p className="muted">{fmt(capital*.35)}</p></div><div><b>25% · Curriculum & content</b><p className="muted">{fmt(capital*.25)}</p></div><div><b>25% · Distribution & customer proof</b><p className="muted">{fmt(capital*.25)}</p></div><div><b>15% · Operations & reserve</b><p className="muted">{fmt(capital*.15)}</p></div></div></div><p className="note">Illustrative use of funds. Final allocation, investment structure and ownership are agreed separately.</p></section>
  <section className="sec"><div className="eye">06 · What capital must prove</div><h2>Money has a job.</h2><div className="flow">{['Capital','Product readiness','Users','Paying customers','Retention','Scale what works'].map((x,i)=><span key={x} className="flow"><span className="pill">{x}</span>{i<5&&<span className="arrow">→</span>}</span>)}</div></section>
  <section className="sec"><div className="eye">07 · Vision</div><h2>Start with a lesson. Build the infrastructure around learning.</h2><p className="lead">Today: help a teacher teach and a learner learn. Next: connect the parent and school. Long term: make high-quality Kenyan learning accessible wherever the learner is.</p></section>
- <section className="cta"><div className="eye">VibeSchool</div><h2>Built for Kenyan education.</h2><p className="muted">A better learning experience can begin with one teacher, one learner and one lesson.</p><a className="btn on" href="/">Explore the product</a></section>
+ <section className="cta"><div className="eye">VibeSchool</div><h2>Built for Kenyan education.</h2><p className="muted">A better learning experience can begin with one teacher, one learner and one lesson.</p><Link className="btn on" href="/">Explore the product</Link></section>
  </div></main>
 }

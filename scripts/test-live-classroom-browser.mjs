@@ -12,7 +12,7 @@ const {chromium}=require(testModules+'/playwright')
 const fixture=await createLiveFixture()
 const identity={teacher:fixture.teacher,learner:fixture.a,'learner-b':fixture.b,outsider:fixture.outsider}
 const result=await build({
-  stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId='"+fixture.cls+"' teacher={role==='teacher'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
+  stdin:{contents:"import React from 'react'; import {createRoot} from 'react-dom/client'; import LiveClassroom from './components/live-classroom/LiveClassroom'; const role=location.pathname.slice(1); createRoot(document.getElementById('root')).render(<LiveClassroom classId={role==='teacher'?'"+fixture.cls+"':null} teacher={role==='teacher'} back='/'/>);",loader:'tsx',resolveDir:process.cwd()},
   bundle:true,write:false,outdir:'out',entryNames:'app',jsx:'automatic',platform:'browser',
   nodePaths:[testModules],define:{'process.env.NODE_ENV':'"production"'},
   plugins:[{name:'loopback-fixture',setup(b){

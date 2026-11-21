@@ -93,7 +93,7 @@ assert.ok(ui.includes('SCHOOL_DAY_SAMPLES.map(sample => <button'), 'all four bui
 
 assert.ok(!ui.includes('onClick={() => void applyToSchool()} disabled={canApply}'), 'school publishing must stay guarded')
 assert.ok(!setup.includes("useState('08:00')"), 'school day must not be auto-filled from a sample')
-assert.ok(!ui.includes("setDraft(clone(SCHOOL_DAY_SAMPLES[0]")), 'samples may not auto-activate')
+assert.ok(!ui.includes("setDraft(clone(SCHOOL_DAY_SAMPLES[0]"), 'samples may not auto-activate')
 console.log('PASS: optional school-day samples, validation, protected blocks and guarded application')
 
 const classic = fs.readFileSync('components/teacher/ClassicTimetable.tsx', 'utf8')

@@ -11,7 +11,7 @@ export async function sendLearnerEmail(form: FormData) {
   const email = pilotEmail(form.get('email'))
   if (!email) return { error: unavailable }
   try {
-    const { client, commit } = pilotClient()
+    const { client, commit } = await pilotClient()
     const emailRedirectTo = new URL('/signup/student/email/confirm', process.env.NEXT_PUBLIC_SITE_URL || 'https://vibeschool.co.ke').href
     const { error } = await client.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo } })
     if (error) return { error: 'Could not send a verification email. Wait a moment and try again.' }
@@ -29,7 +29,7 @@ export async function verifyLearnerEmail(form: FormData) {
   if (typeof token !== 'string' || !/^\d{6}$/.test(token)) return { error: 'Enter the six-digit code.' }
 
   try {
-    const { client, commit } = pilotClient()
+    const { client, commit } = await pilotClient()
     const { data, error } = await client.auth.verifyOtp({ email, token, type: 'email' })
     if (error || !data.user || !data.session) return { error: 'That code is invalid or expired. Try again or request a new code.' }
     if (pilotEmail(data.user.email) !== email || !await finishPilotSignup(client, data.user)) {
@@ -46,7 +46,7 @@ export async function verifyLearnerEmail(form: FormData) {
 export async function checkLearnerEmailSession() {
   if (!emailPilotEnabled()) return false
   try {
-    const { client, commit } = pilotClient()
+    const { client, commit } = await pilotClient()
     const { data: { user }, error } = await client.auth.getUser()
     if (error || !user || !await canUsePilot(client, user) || !await hasRestrictedIdentity(user.id)) return false
     commit()
@@ -57,7 +57,7 @@ export async function checkLearnerEmailSession() {
 }
 
 export async function signOutLearnerEmail() {
-  const { client, commit } = pilotClient()
+  const { client, commit } = await pilotClient()
   const { error } = await client.auth.signOut({ scope: 'local' })
   if (error) return { error: 'Could not sign out. Try again.' }
   commit()
@@ -68,7 +68,7 @@ export async function saveIndependentEmailGrade(form: FormData) {
   const selection = resolveRegistrationLearningSelection(form.get('level'), form.get('choice'))
   if (!selection) return { error: 'Choose a valid learning level and programme.' }
   try {
-    const { client, commit } = pilotClient()
+    const { client, commit } = await pilotClient()
     const { data: { user }, error } = await client.auth.getUser()
     if (error || !user || !await canUsePilot(client, user) || !await hasRestrictedIdentity(user.id)) {
       return { error: 'Sign in with your verified email first.' }

@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -72,7 +73,7 @@ export default function GuardianConsent() {
     borderRadius: 10, background: '#c8a84b', color: '#111', fontWeight: 800, marginTop: 14 }
   return <main style={{ minHeight: '100dvh', background: '#090912', color: '#fff', padding: '30px 16px' }}>
     <section style={{ maxWidth: 440, margin: '0 auto', padding: 22, borderRadius: 18, background: '#1b1b2a' }}>
-      <a href="/" style={{ color: '#d7bc6a' }}>VibeSchool</a>
+      <Link href="/" style={{ color: '#d7bc6a' }}>VibeSchool</Link>
       <h1>Guardian approval</h1>
       <p>Review consent for personal learning only. This does not approve tutoring, messaging or private school access.</p>
       {message && <p role="status">{message}</p>}

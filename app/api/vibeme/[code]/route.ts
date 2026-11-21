@@ -1,5 +1,6 @@
 import { renderVibeMe } from '@/lib/vibeme'
-export function GET(_request: Request, { params }: { params: { code: string } }) {
+export async function GET(_request: Request, props: { params: Promise<{ code: string }> }) {
+  const params = await props.params;
   const code = params.code.endsWith('.svg') ? params.code.slice(0,-4) : ''
   const svg = renderVibeMe(code)
   if (!svg) return new Response('Invalid avatar', { status: 404 })

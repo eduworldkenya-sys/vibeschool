@@ -3,11 +3,13 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { chapterUrl, findChapter, firstChapter, loadPublicReader, metadataForChapter } from "./readerServer";
 
 type PageProps = {
-  params: { publicationId: string };
-  searchParams?: { chapter?: string };
+  params: Promise<{ publicationId: string }>;
+  searchParams?: Promise<{ chapter?: string }>;
 };
 
-export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const payload = await loadPublicReader(params.publicationId);
   if (!payload) {
     return {
@@ -27,7 +29,9 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   return metadataForChapter(payload, params.publicationId, chapter);
 }
 
-export default async function ReadTextbookPage({ params, searchParams }: PageProps) {
+export default async function ReadTextbookPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const payload = await loadPublicReader(params.publicationId);
   if (!payload) notFound();
 

@@ -43,5 +43,11 @@ async function handle(req: NextRequest, id: string, join: boolean) {
       : json({ error: 'Video is temporarily unavailable. Please retry.' }, 503);
   }
 }
-export const GET = (req: NextRequest, { params }: { params: { lessonId: string } }) => handle(req, params.lessonId, false);
-export const POST = (req: NextRequest, { params }: { params: { lessonId: string } }) => handle(req, params.lessonId, true);
+export const GET = async (req: NextRequest, props: { params: Promise<{ lessonId: string }> }) => {
+  const params = await props.params;
+  return handle(req, params.lessonId, false);
+};
+export const POST = async (req: NextRequest, props: { params: Promise<{ lessonId: string }> }) => {
+  const params = await props.params;
+  return handle(req, params.lessonId, true);
+};
