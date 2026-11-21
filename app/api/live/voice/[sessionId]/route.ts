@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { closeLiveVoiceRoom, issueLiveVoiceToken, LiveVoiceError, validateVoiceRoom, voiceUuid, type VoiceRoom } from '@/lib/live/voice'
+import { closeLiveVoiceRoom, issueLiveVoiceToken, LiveVoiceError, requireLiveVoicePilotUser, validateVoiceRoom, voiceUuid, type VoiceRoom } from '@/lib/live/voice'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,6 +32,14 @@ async function handle(req:NextRequest,id:string,method:'POST'|'DELETE') {
     })
     const {data:{user},error:userError}=await db.auth.getUser(authorization.slice(7))
     if (userError||!user) throw new LiveVoiceError('Sign in to use voice.',401)
+    // Owner-authorized two-account pilot: no other authenticated classroom
+    // member can obtain a Daily token, even when the UI flag is enabled.
+    // Closing an already-ended media room remains possible after pilot expiry.
+    requireLiveVoicePilotUser(user.id,
+      process.env.VIBE_LIVE_VOICE_ACCESS_SCOPE,
+      process.env.VIBE_LIVE_VOICE_PILOT_USER_IDS,
+      process.env.VIBE_LIVE_VOICE_PILOT_UNTIL,
+      Date.now(),method==='DELETE')
     const supplied=method==='POST'?await req.json().catch(()=>null):null
     const rawClassId=(supplied as {classId?:unknown}|null)?.classId
     if (method==='POST' && rawClassId!==null && rawClassId!==undefined && !voiceUuid(rawClassId))
