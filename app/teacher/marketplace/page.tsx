@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import PremiumTeacherMarketplace from "@/components/teacher/marketplace/PremiumTeacherMarketplace";
@@ -19,6 +20,7 @@ export default function PublicTeacherMarketplace() {
         <section aria-label="Additional recruitment services" style={{maxWidth:1080, margin:"0 auto", padding:"0 20px 32px",color:"CanvasText",background:"Canvas"}}>
           <details>
             <summary style={{cursor:"pointer",minHeight:44,padding:"13px 0",fontWeight:700,fontSize:13}}>Additional recruitment details</summary>
+            <p style={{padding:"8px 0"}}><Link href="/teacher/marketplace/sandbox" style={{fontWeight:700,fontSize:13,textDecoration:"underline"}}>TSC recruitment</Link></p>
             <TeacherOpportunities />
           </details>
         </section>
