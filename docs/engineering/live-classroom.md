@@ -156,7 +156,7 @@ not authorize activation of the media service.
   The teacher is derived from the canonical RPC, not the browser. A learner
   participant ID is resolved from their own protected student identity.
 - The Daily room is private, bounded to the existing session expiry with
-  `eject_at_room_exp`, `audio_only`, recording, video, screen sharing and chat disabled.
+  `eject_at_room_exp`, recording, video, screen sharing and chat disabled; audio-only is enforced with meeting-token `canSend=['microphone']` and `canReceive.base.video=false`.
   Meeting tokens are short-lived. Learners join receive-only; the teacher may
   grant/revoke only audio publication to a currently raised-hand learner.
   The learner must personally switch their microphone on. The UI never turns
