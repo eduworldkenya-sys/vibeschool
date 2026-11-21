@@ -2,13 +2,13 @@ name: Whole Numbers Private Candidate Verification
 on:
   pull_request:
     paths:
-      - 'supabase/migrations/20261121235900_g4_whole_numbers_private_candidate_verification_deadlock.sql'
+      - 'supabase/migrations/20261121133015_g4_whole_numbers_private_candidate_verification_deadlock.sql'
       - 'scripts/test-g4-whole-numbers-private-candidate-verification.mjs'
       - '.github/workflows/g4-whole-numbers-private-candidate-verification.yml'
   push:
     branches: [main]
     paths:
-      - 'supabase/migrations/20261121235900_g4_whole_numbers_private_candidate_verification_deadlock.sql'
+      - 'supabase/migrations/20261121133015_g4_whole_numbers_private_candidate_verification_deadlock.sql'
       - 'scripts/test-g4-whole-numbers-private-candidate-verification.mjs'
   workflow_dispatch:
 permissions:
