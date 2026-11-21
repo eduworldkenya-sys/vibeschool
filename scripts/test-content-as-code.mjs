@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './test-g4-whole-numbers-answer-consistency.mjs';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {compileContent,readbackSql} from './compile-content-as-code.mjs';
