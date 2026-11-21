@@ -1,0 +1,10 @@
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.control{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:5px 8px;border:1px solid var(--vs-border,#bcc8c0);border-radius:10px;background:var(--vs-surface,#fff);color:var(--vs-text,#1b4030);font:600 12px/1.2 system-ui,sans-serif;max-width:100%}
+.control select{cursor:pointer;max-width:92px;min-height:30px;border:0;outline:0;background:transparent;color:inherit;font:inherit}
+.control select option{color:#17221c;background:#fff}
+.control:focus-within{outline:3px solid var(--vs-accent,#166d49);outline-offset:2px}
+.control select:disabled{cursor:default;opacity:.7}
+.floating{position:fixed;top:70px;right:max(12px,env(safe-area-inset-right));z-index:6000;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+:global(html[data-vs-theme='dark']) .control{background:#222b2b;color:#f1f7f2;border-color:#596766}
+:global(html[data-vs-theme='dark']) .control select option{background:#222b2b;color:#f1f7f2}
+@media(max-width:380px){.floating{top:64px;right:6px}.control{padding:4px 5px;gap:3px}}
