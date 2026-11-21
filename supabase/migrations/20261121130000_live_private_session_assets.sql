@@ -29,11 +29,11 @@ grant execute on function public.live_asset_room_access(uuid,boolean) to authent
 -- client RLS does not receive SELECT on the private Live room table.
 create or replace function public.live_asset_upload_allowed(p_session uuid)
 returns boolean language sql stable security definer set search_path=''
-as $
+as $$
   select public.live_asset_room_access(p_session,true) and exists(
     select 1 from vibe_live.sessions s where s.id=p_session and s.status in ('active','paused')
   );
-$;
+$$;
 revoke all on function public.live_asset_upload_allowed(uuid) from public,anon;
 grant execute on function public.live_asset_upload_allowed(uuid) to authenticated;
 
