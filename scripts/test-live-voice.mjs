@@ -52,7 +52,7 @@ test('reject incorrect and expired classroom authority before any provider reque
 test('teacher gets bounded audio-only moderation; learner can only receive',async()=>{
   const provider=mockProvider()
   const teacher=await issueLiveVoiceToken(teacherRoom,actor,null,'key',provider.request,now)
-  assert.deepEqual(teacher,{url:roomInfo.url,token:'signed-token',role:'teacher',participantId:actor})
+  assert.deepEqual(teacher,{url:roomInfo.url,token:'signed-token',role:'teacher',participantId:actor,expiresAt:Math.floor(now/1000)+120})
   const tokenRequest=provider.calls.find(c=>c.path==='meeting-tokens').body.properties
   assert.equal(tokenRequest.is_owner,false)
   assert.deepEqual(tokenRequest.permissions.canSend,['audio'])
@@ -62,6 +62,7 @@ test('teacher gets bounded audio-only moderation; learner can only receive',asyn
   assert.equal(tokenRequest.start_video_off,true)
   assert.equal(tokenRequest.start_audio_off,true)
   assert.equal(tokenRequest.exp,Math.floor(now/1000)+120)
+  assert.equal(tokenRequest.eject_at_token_exp,true,'Media server must eject an already connected participant at expiry')
   assert.equal(tokenRequest.permissions.canReceive.base.video,false)
   assert.equal(tokenRequest.permissions.canReceive.base.screenVideo,false)
   const guest=mockProvider()
@@ -70,9 +71,19 @@ test('teacher gets bounded audio-only moderation; learner can only receive',asyn
   assert.equal(result.participantId,learner)
   const learnerToken=guest.calls.find(c=>c.path==='meeting-tokens').body.properties
   assert.equal(learnerToken.is_owner,false)
+  assert.equal(learnerToken.eject_at_token_exp,true,'Learner must be expelled even without an online teacher')
   assert.equal(learnerToken.permissions.canSend,false)
   assert.equal(learnerToken.permissions.canAdmin,false)
   assert.equal(learnerToken.user_id,learner)
+})
+test('token expires and ejects at room deadline, not after',async()=>{
+  const shortRoom={...teacherRoom,expiresAt:new Date(now+65000).toISOString()}
+  const provider=mockProvider({override:{...roomInfo,config:{...roomInfo.config,exp:Math.floor(now/1000)+65}}})
+  const result=await issueLiveVoiceToken(shortRoom,actor,null,'key',provider.request,now)
+  const tokenRequest=provider.calls.find(c=>c.path==='meeting-tokens').body.properties
+  assert.equal(result.expiresAt,Math.floor(now/1000)+65)
+  assert.equal(tokenRequest.exp,Math.floor(now/1000)+65)
+  assert.equal(tokenRequest.eject_at_token_exp,true)
 })
 test('creates only a locked private audio room, rejects mismatched provider room',async()=>{
   const fresh=mockProvider({existing:false})
