@@ -9,7 +9,6 @@ import BackToTop from '@/components/vibetutor/BackToTop'
 import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
 import { DAYS, LEVELS, SUBJECTS_BY_LEVEL, type DemoRequest, type DemoTutor, type Mode } from '@/components/vibetutor/data'
 import { fetchLiveListings, type LiveListings } from '@/components/vibetutor/listings'
-import { PUBLIC_TUITION_SERVICES } from '@/components/vibetutor/tuitionServices'
 
 type View = 'tutors' | 'students'
 type Discovery = 'for-you' | 'nearby' | 'explore'
@@ -157,34 +156,24 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     return discovery === 'for-you' ? rows.sort((a, b) => (preferenceScore(b, preferred) ?? 0) - (preferenceScore(a, preferred) ?? 0)) : rows
   }, [q, subject, level, area, mode, priceRange, day, requestSource, discovery, nearbyArea, preferred, seed])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
-  const services = useMemo(() => rotate(PUBLIC_TUITION_SERVICES.filter(service =>
-    discovery !== 'nearby' && (!level || service.level === level) &&
-    (!subject || service.subjects.includes(subject)) &&
-    (!area || service.area === area) &&
-    (!mode || mode === 'online') && !day && !priceRange &&
-    matchesText([service.area, service.level, ...service.subjects], q)
-  ), seed), [level, subject, area, mode, day, priceRange, q, seed, discovery])
-  const [serviceLimit, setServiceLimit] = useState(12)
-  useEffect(() => { setServiceLimit(12) }, [level, subject, area, mode, day, priceRange, q])
-
   // Each facet is calculated without its own current selection.
   const levelOptions: FilterOption[] = LEVELS.flatMap(value => {
     const f = { ...filters, level: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.levels.includes(value)).length : requestsFor(f).filter(r => r.level === value).length
-    return count || (view === 'tutors' && PUBLIC_TUITION_SERVICES.some(t => t.level === value)) ? [{ value, label: value, count }] : []
+    return count ? [{ value, label: value, count }] : []
   })
   const availableLevels = level ? SUBJECTS_BY_LEVEL[level] || [] : [...new Set(Object.values(SUBJECTS_BY_LEVEL).flat())]
   const subjectOptions: FilterOption[] = availableLevels.flatMap(value => {
     const f = { ...filters, subject: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.subjects.includes(value)).length : requestsFor(f).filter(r => r.subjects.includes(value)).length
-    return count || (view === 'tutors' && PUBLIC_TUITION_SERVICES.some(t => (!level || t.level === level) && t.subjects.includes(value))) ? [{ value, label: value, count }] : []
+    return count ? [{ value, label: value, count }] : []
   })
   const areaOptions: FilterOption[] = [...new Set([
-    ...tutorSource.map(t => t.area), ...requestSource.map(r => r.area), ...PUBLIC_TUITION_SERVICES.map(t => t.area),
+    ...tutorSource.map(t => t.area), ...requestSource.map(r => r.area),
   ])].flatMap(value => {
     const f = { ...filters, area: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.area === value).length : requestsFor(f).filter(r => r.area === value).length
-    return count || (view === 'tutors' && PUBLIC_TUITION_SERVICES.some(t => t.area === value)) ? [{ value, label: value, count }] : []
+    return count ? [{ value, label: value, count }] : []
   })
   const modeOptions: FilterOption[] = [
     { value: 'online', label: 'Online', count: 0 },
@@ -280,19 +269,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
         {!loading && !loadError && view === 'tutors' && (discovery !== 'nearby' || !!nearbyArea) && <>
           {tutors.map(tutor => <TutorCard key={tutor.id} t={tutor} compact score={score(tutor)} />)}
           <Link className={styles.cardAction} href="/vibetutor/post-request">Request online tuition</Link>
-          {services.length > 0 && <>
-            <h2 className={styles.cardTitle}>Tuition requests by subject</h2>
-            <p className={styles.meta}>Choose a learning area. We will look for a tutor.</p>
-            {services.slice(0, serviceLimit).map(service => <article key={service.id} className={styles.card}>
-              <div className={styles.cardHead}><div className={styles.cardTitleWrap}>
-                <h3 className={styles.cardTitle}>{service.subjects.join(' · ')}</h3>
-                <p className={styles.muted}>{service.area} · Online</p>
-              </div></div>
-              <p className={styles.meta}>{service.level}</p>
-              <Link className={styles.cardAction} href={'/vibetutor/post-request?service=' + encodeURIComponent(service.id)}>Request tutor</Link>
-            </article>)}
-            {serviceLimit < services.length && <button type="button" className={styles.cardAction} onClick={() => setServiceLimit(n => n + 12)}>Show more</button>}
-          </>}
+
         </>}
         {!loading && !loadError && view === 'students' && requests.map(request => <RequestCard key={request.id} r={request} compact score={score(request)} signedIn={!!live?.signedIn} />)}
       </div>
