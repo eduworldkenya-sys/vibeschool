@@ -507,7 +507,21 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(action==='ask'){questionRequest.current=null;setQuestionDraft('')}
       if(action==='note'){noteDirty.current=false;setNoteDraft(next.ownNote??'')}
       if(action==='reply'&&typeof payload.questionId==='string'){const questionId=payload.questionId;setReplyDrafts(items=>({...items,[questionId]:''}))}
-      if(action==='end'){removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)}
+      if(action==='end'){
+        removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)
+        if(process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED==='true' && next.teacher){
+          // End-class media ejection is a separate, strictly authorized server
+          // operation. The classroom and saved teaching history remain intact.
+          void supabase.auth.getSession().then(async({data:{session}})=>{
+            if(!session)return
+            const res=await fetch('/api/live/voice/'+encodeURIComponent(next.id),{
+              method:'DELETE',headers:{Authorization:'Bearer '+session.access_token},
+              cache:'no-store',
+            })
+            if(!res.ok && mounted.current)setError('Class ended, but the audio service may still be closing.')
+          }).catch(()=>{if(mounted.current)setError('Class ended; audio closure needs verification.')})
+        }
+      }
     } catch(e) {
       if(mounted.current&&generation.current===stamp){
         if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){revoke()}
