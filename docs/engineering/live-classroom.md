@@ -224,29 +224,10 @@ not authorize activation of the media service.
   multi-account tests, independent security assurance and production rollout.
   A GitHub PR is not evidence of deployed synchronization.
 
-## Quiz responses and microphone visibility repair (21 November 2026)
 
-- Current teacher Learners > Quiz submissions is tied to a selected question, not
-  the last published prompt. The teacher can review answers for all prior
-  quiz/exercise/poll questions, with learner name, answer and submission time.
-  Authorized ended sessions retain the same teacher review. The existing
-  current-question participant projection remains a compatibility fallback until
-  the new migration is applied; this does **not** recover historical submissions.
-- Only the canonical `vibe_live.command` teacher projection includes
-  `responsesByPrompt`. It requires present teacher authority and dynamically
-  revalidates the learner's enrollment/tutor entitlement for each answer.
-  Learners still see only `ownAnswer`; there are no direct response table grants.
-- A learner answer remains permitted when unrelated room version events occur
-  provided that the **same prompt UUID** is current, active and unrevealed,
-  and learner admission still passes. Duplicate submissions remain first-write.
-  A changed, revealed, paused or closed prompt remains denied.
-- Audio controls show a microphone-off status before a user joins voice. When
-  the public voice rollout flag is off, the classroom displays a disabled
-  microphone indicator, **not a working microphone**. Teacher and learner
-  microphone activation is still governed by the existing separate server gate,
-  short-lived authorized media tokens, learner hand approval and actual device
-  consent. Neither this UI change nor a merged PR commissions Daily voice.
-- Required gates: disposable SQL + React browser checks, exact-head CI,
-  independent security review for the migration, authorized Supabase migration
-  deployment, explicit Voice commissioning and real signed-in teacher/learner
-  mobile acceptance. Until these pass, do not claim production correction.
+## Microphone affordance-only release (21 November 2026)
+
+- With `NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED` disabled, Live displays a disabled, clearly labelled microphone-unavailable icon rather than silently hiding it.
+- When voice UI is enabled but a member has not joined authorized audio, the voice dock shows `Mic off` and `Join audio`; mic activation continues to depend on the existing room authorization, teacher approval for learners, and device consent.
+- The teacher quiz-answer-history database repair and its migration are explicitly **not included** in this release; existing quiz submissions and security remain unchanged. A separate independently reviewed change is required before exposing historical answers.
+- This UI-only change does not enable Daily/provider service, change Supabase tables or grants, or represent verified microphone capture.

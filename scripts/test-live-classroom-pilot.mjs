@@ -344,7 +344,7 @@ const prompt=room.prompt.id
 assert.equal(room.participants.length,2)
 assert.equal((await rpc(a,'get',sid)).prompt.answerKey,null)
 await assert.rejects(rpc(a,'publish',sid,room.version,{kind:'teach',body:'bad'}),/live_teacher_required/)
-await rpc(a,'answer',sid,room.version-1,{promptId:prompt,body:'60'}) // unrelated version changes cannot erase a valid same-prompt submission
+await assert.rejects(rpc(a,'answer',sid,room.version-1,{promptId:prompt,body:'60'}),/stale/)
 await assert.rejects(rpc(a,'answer',sid,room.version,{promptId:id(100),body:'60'}),/answer_not_open/)
 await rpc(a,'answer',sid,room.version,{promptId:prompt,body:'60'})
 await rpc(a,'answer',sid,room.version,{promptId:prompt,body:'999'})
@@ -492,48 +492,6 @@ await db.close()
  await f.db.close()
  console.log('PASS: teacher-only per-page scroll, joined follower, past page, stale and malformed denial, pause/end and enrollment revocation')
 }
-
-// Teacher sees every submitted answer by prompt, including previous questions,
-// without broadening learner or revoked-enrolment access.
-{
- const f=await createLiveFixture()
- let live=await f.rpc(f.teacher,'start',null,null,{title:'Teacher answer review'})
- await f.rpc(f.a,'join',live.id)
- await f.rpc(f.b,'join',live.id)
- live=await f.rpc(f.teacher,'publish',live.id,live.version,{kind:'quiz',body:'First quiz',answerKey:'Correct first'})
- const first=live.prompt.id
- await f.rpc(f.a,'answer',live.id,live.version-1,{promptId:first,body:'Learner A first'})
- await f.rpc(f.b,'answer',live.id,live.version,{promptId:first,body:'Learner B first'})
- let teacherRoom=await f.rpc(f.teacher,'get',live.id)
- assert.equal(teacherRoom.responsesByPrompt[first].length,2,'Both answers must reach teacher')
- assert.deepEqual(teacherRoom.responsesByPrompt[first].map(r=>r.body).sort(),['Learner A first','Learner B first'])
- assert.ok(teacherRoom.responsesByPrompt[first].every(r=>r.studentId&&r.name&&r.submittedAt),'Submissions need teacher review metadata')
- const ownA=await f.rpc(f.a,'get',live.id)
- assert.equal(ownA.ownAnswer,'Learner A first')
- assert.equal('responsesByPrompt' in ownA,false,'Never expose another learner answer')
- assert.equal('responsesByPrompt' in await f.rpc(f.b,'get',live.id),false)
- live=await f.rpc(f.teacher,'publish',live.id,live.version,{kind:'quiz',body:'Second quiz',answerKey:'Correct second'})
- const second=live.prompt.id
- teacherRoom=await f.rpc(f.teacher,'get',live.id)
- assert.equal(teacherRoom.responsesByPrompt[first].length,2,'Earlier submitted quiz must remain visible')
- assert.equal(teacherRoom.responsesByPrompt[second],undefined,'No fabricated submissions')
- assert.deepEqual(teacherRoom.participants.map(p=>p.answer),[null,null],'Current-question participants must not be mistaken for history')
- await assert.rejects(f.rpc(f.a,'answer',live.id,live.version-1,{promptId:first,body:'Late first'}),/answer_not_open/,'Old prompt cannot be answered')
- await f.rpc(f.b,'answer',live.id,live.version-1,{promptId:second,body:'Learner B second'})
- teacherRoom=await f.rpc(f.teacher,'get',live.id)
- assert.equal(teacherRoom.responsesByPrompt[second][0].body,'Learner B second','Current answer survives unrelated version change')
- await f.db.exec(`update public.student_classes set is_current=false where student_id='${f.id(31)}'`)
- teacherRoom=await f.rpc(f.teacher,'get',live.id)
- assert.equal(teacherRoom.responsesByPrompt[first].length,1,'Revoked learner data must disappear from live teacher projection')
- assert.equal(teacherRoom.responsesByPrompt[first][0].studentId,f.id(30))
- assert.equal(teacherRoom.responsesByPrompt[second],undefined,'Revoked learner second response must disappear')
- await assert.rejects(f.rpc(f.b,'get',live.id),/not_authorized/)
- await f.rpc(f.teacher,'end',live.id,live.version)
- assert.equal((await f.rpc(f.teacher,'get',live.id)).responsesByPrompt[first].length,1,'Authorized teacher retains saved answer review after ending')
- await f.db.close()
- console.log('PASS: teacher sees per-question quiz history, stale-version same-prompt answer, learner isolation, revocation and ended-class review')
-}
-
 
 // Past Classes are an authorized read-only inventory of sessions that ended.
 // Never let class eligibility alone grant access to sessions not attended.

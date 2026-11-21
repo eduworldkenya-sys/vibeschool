@@ -265,9 +265,3 @@
 .answerChoices label{display:flex;align-items:center;gap:10px;border:1px solid color-mix(in srgb,currentColor 34%,transparent);border-radius:10px;padding:11px;cursor:pointer;line-height:1.4;overflow-wrap:anywhere}
 .answerChoices input{flex:none;width:18px;height:18px;accent-color:var(--vs-accent,#087e72)}
 .answerChoices label:has(input:checked){outline:2px solid currentColor;outline-offset:1px}
-
-.responseReview{display:grid;gap:8px;padding:10px;border:1px solid #54796c;border-radius:10px;background:#203b33}
-.responseReview h3{font-size:14px;margin:0}
-.responseReview select{width:100%;min-width:0;padding:8px;border-radius:8px;background:#14251f;color:#fff;border:1px solid #688c80;font:inherit}
-.responseReview .participants li span{white-space:pre-wrap;overflow-wrap:anywhere}
-.responseReview .participants li small{color:#bfd8d0}

@@ -90,6 +90,7 @@ try{
  await button(t,'Present slide').click()
  const learner=await open('learner'),l=learner.page
  await join(l);await see(l,'Equivalent fractions')
+ await l.getByRole('button',{name:'Microphone unavailable'}).waitFor()
  assert.equal(await l.getByText('Private presenter fixture',{exact:true}).count(),0)
  await noPageOverflow(l);await noPageOverflow(t)
  await button(t,'Edit slides').click()
@@ -230,13 +231,6 @@ try{
  await l.getByLabel('Your answer').fill('2')
  await button(l,'Submit').click()
  await l.getByText(/Submitted:/).waitFor()
- // The teacher sees the submitted response inside the live classroom.
- await t.getByRole('button',{name:/Learners ·/}).click()
- const quizReview=t.getByRole('region',{name:'Quiz submissions'})
- await quizReview.getByText('2',{exact:true}).waitFor()
- await quizReview.getByText('Learner A',{exact:true}).first().waitFor()
- assert.match(await quizReview.innerText(),/1 of \d+ eligible learners submitted/)
- await t.getByRole('button',{name:'Close tools'}).click()
  await button(t,'More').click()
  await button(t,'Reveal / close answers').click()
  await see(l,'Two quarters')
