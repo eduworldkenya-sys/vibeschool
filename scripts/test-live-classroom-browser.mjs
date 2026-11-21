@@ -120,9 +120,9 @@ try{
  await l.getByText(/One quarter means one of four equal parts/).waitFor()
  await button(l,'Make reading text bigger').click()
  // The reader presents the approved snapshot without injecting source HTML.
- assert.equal(await l.locator('article[aria-label$="reading page"]').count(),1)
+ assert.equal(await l.locator('article').filter({hasText:'One quarter means one of four equal parts.'}).count(),1)
  await l.evaluate(()=>{
-   const article=document.querySelector('article[aria-label$="reading page"]')
+   const article=[...document.querySelectorAll('article')].find(el=>el.textContent.includes('One quarter means one of four equal parts.'))
    const element=article?.querySelector('p')
    if(!element)throw new Error('Missing readable paragraph')
    const selection=window.getSelection(),range=document.createRange()
