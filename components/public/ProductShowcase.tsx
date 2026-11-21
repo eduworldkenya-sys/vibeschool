@@ -139,7 +139,7 @@ export function ProductShowcase() {
               <p className={styles.cardEyebrow}>GRADE 4 MATHEMATICS · TIME</p>
               <h3>One lesson. Fully connected.</h3>
               <div className={styles.stageButtons} role="group" aria-label="Explore the teaching journey">
-                {teacherStages.map((item,i) => <button type="button" key={item.label} className={styles.stageButton} aria-pressed={teacherStage === i} onClick={() => setTeacherStage(i)}><span>{String(i+1).padStart(2,'0')}</span>{item.label}</button>)}
+                {teacherStages.map((item,i) => <button type="button" key={item.label} className={styles.stageButton} aria-pressed={teacherStage === i} onClick={() => setTeacherStage(i)}><span>{String(i+1).padStart(2,'0')}</span>{' '}{item.label}</button>)}
               </div>
               <div className={styles.lessonCard} aria-live="polite">
                 <p className={styles.cardEyebrow}>{stage.eyebrow}</p>
