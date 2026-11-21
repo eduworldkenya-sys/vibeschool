@@ -40,7 +40,7 @@ export function projectGrade4MathOutline(rows: readonly CurriculumOutlineRow[], 
     const strand = Number(match[1]), subStrand = Number(match[2])
     if (subStrand > expected[strand - 1]) return null
     const row = byId.get(binding.sub_strand_id)
-    if (!row?.name || !row.sub_strand) return null
+    if (!row?.name || !row.sub_strand || row.name.trim() !== strandNames[strand - 1]) return null
     seenIds.add(row.id)
     seenCodes.add(binding.source_ref)
     projected.push({ ...row, strand_order: strand, sub_strand_order: subStrand })
