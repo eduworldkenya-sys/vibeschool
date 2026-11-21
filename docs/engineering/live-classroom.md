@@ -134,3 +134,61 @@ is **no new public messaging endpoint or direct table access**.
   school/tutor and guardian conditions remain fail-closed. Real guardian,
   mobile and multi-device production acceptance still must be verified;
   PGlite/Chromium disposable fixtures are not real production attendance.
+
+## Audio-only Live Voice candidate (21 November 2026)
+
+**Status: implementation candidate; DISABLED pending exact-head CI, independent
+authorization assurance, real signed-in teacher/learner device testing and
+approved runtime commissioning.** A GitHub merge or READY web deployment does
+not authorize activation of the media service.
+
+- Reuse the existing Daily integration already used for private tuition. Do not
+  add a second SFU provider, classroom enrollment, student identity or lesson
+  state. Provider rooms use the distinct `vs-live-<session UUID>` namespace.
+- Two independent rollout switches, BOTH required:
+  `NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED=true` for the user interface;
+  `VIBE_LIVE_VOICE_SERVER_ENABLED=true` for authenticated media issuance.
+  Both default to off. `DAILY_API_KEY` stays server-side only. Daily usage can
+  incur provider charges even with no new subscription.
+- A user's JWT must be verified afresh. The private token endpoint calls the
+  existing `vibe_live_command(get)` and validates that the session is active,
+  the participant is authorized and the current entitlement allows entry.
+  The teacher is derived from the canonical RPC, not the browser. A learner
+  participant ID is resolved from their own protected student identity.
+- The Daily room is private, bounded to the existing session expiry with
+  `eject_at_room_exp`, recording, video, screen sharing and chat disabled; audio-only is enforced with meeting-token `canSend=['audio']` and `canReceive.base.video=false`.
+  Meeting tokens are short-lived. Learners join receive-only; the teacher may
+  grant/revoke only audio publication to a currently raised-hand learner.
+  The learner must personally switch their microphone on. The UI never turns
+  on a remote microphone.
+- Voice has separate client state and media cleanup and MUST NOT reset lesson
+  history, slides, whiteboards, answers or notes. On teacher end, attempt
+  server-mediated room destruction and remote ejection.
+- The teacher roster is not proof of real-time audio presence. Each issued
+  Daily token now has a `120-second maximum expiry` and
+  `eject_at_token_exp=true`: Daily must eject an already-connected participant
+  when that token expires, even if the teacher's browser has closed.
+  Connected browsers proactively leave and request a **new canonical Live
+  authorization** before token expiry, then rejoin audio. A revoked learner
+  fails that new authorization, and their previous media admission expires
+  independently of the teacher. This is a **bounded maximum window**, NOT
+  immediate revocation: up to ~120 seconds after the last admitted token.
+  Ordinary reconnects may briefly interrupt audio approximately every 90
+  seconds; this limitation needs a smoother, server-monitored strategy before
+  broad launch. Suspended tabs may need manual reconnection.
+- Client roster reconciliation adds fast-path removal and publishing revocation
+  while the teacher is online. It is **not trusted as the only security
+  mechanism**. Real Daily provider acceptance must prove that the token expiry
+  ejects already-connected callers, teacher participant-admin can grant/revoke
+  **audio-only** permissions without full owner privileges, and unauthorized
+  mobile clients cannot bypass mic restrictions. Direct server-side emergency
+  ejection/revocation and mobile continuity are still acceptance requirements.
+- Run `npm run test:live-voice` and full repository CI, test two different
+  authenticated Android devices, browser microphone consent, speaker output,
+  teacher approval, hand queue, blocked learner publishing, internet loss,
+  mobile-data changes, 10–20 listeners, and ending/revoking mid-call. Check
+  provider room configuration and actual provider permission enforcement.
+- Do not enable until operational Daily budget/usage review, real-device
+  privacy and latency evidence, independent security assurance and explicit
+  governed production activation. Rollback: disable either feature flag
+  immediately; remove active provider rooms via authorized API if necessary.

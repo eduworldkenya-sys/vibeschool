@@ -16,6 +16,7 @@ import { BOARD_LIMIT, decodeBoard, encodeBoard } from './LiveBoardProtocol'
 import { liveSyncDelay } from './LiveSyncPolicy'
 import { LivePrivateChat } from './LivePrivateChat'
 import { LiveClassChat } from './LiveClassChat'
+import { LiveVoice } from './LiveVoice'
 import { teacherLivePlan } from '@/lib/live/lessonPlanPresentation'
 import type { LessonDeliveryStep } from '@/lib/teaching/lessonPlanCodec'
 
@@ -506,7 +507,21 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(action==='ask'){questionRequest.current=null;setQuestionDraft('')}
       if(action==='note'){noteDirty.current=false;setNoteDraft(next.ownNote??'')}
       if(action==='reply'&&typeof payload.questionId==='string'){const questionId=payload.questionId;setReplyDrafts(items=>({...items,[questionId]:''}))}
-      if(action==='end'){removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)}
+      if(action==='end'){
+        removeDraft(draftKey.current);draftKey.current=null;setDraftBinding(null)
+        if(process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED==='true' && next.teacher){
+          // End-class media ejection is a separate, strictly authorized server
+          // operation. The classroom and saved teaching history remain intact.
+          void supabase.auth.getSession().then(async({data:{session}})=>{
+            if(!session)return
+            const res=await fetch('/api/live/voice/'+encodeURIComponent(next.id),{
+              method:'DELETE',headers:{Authorization:'Bearer '+session.access_token},
+              cache:'no-store',
+            })
+            if(!res.ok && mounted.current)setError('Class ended, but the audio service may still be closing.')
+          }).catch(()=>{if(mounted.current)setError('Class ended; audio closure needs verification.')})
+        }
+      }
     } catch(e) {
       if(mounted.current&&generation.current===stamp){
         if(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'){revoke()}
@@ -764,6 +779,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   if(immersive&&room){
     const stage=<main ref={immersiveRef} tabIndex={-1} className={styles.immersive} role="dialog" aria-modal="true" aria-label="Live classroom" onKeyDown={e=>{if(e.key==='Escape'){if(panel)setPanel(null);else if(focusMode)toggleFocus()}if(e.key==='Tab'&&immersiveRef.current){const controls=Array.from(immersiveRef.current.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(el=>el.offsetParent!==null);const first=controls[0],last=controls[controls.length-1];if(first&&last){if(e.shiftKey&&(document.activeElement===first||document.activeElement===immersiveRef.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}}}>
     <header className={styles.liveTop}><button type="button" onClick={leave} disabled={busy} aria-label="Leave classroom"><X size={19}/></button><div className={styles.liveTitle}><strong>{room.title}</strong><small><span className={styles.liveDot} data-paused={room.status==='paused'}/>{!online||error?<WifiOff size={13} aria-hidden="true"/>:<Wifi size={13} aria-hidden="true"/>}{room.status==='active'?'LIVE':'PAUSED'} · {classroomLabels[room.mode]} · {!online?'Offline':error?'Reconnecting':lastSync?'Connected':'Syncing'}</small></div><button type="button" aria-label={focusMode?'Exit full screen':'Full screen'} aria-pressed={focusMode} onClick={toggleFocus}>{focusMode?<Minimize size={20}/>:<Maximize size={20}/>}</button>{focusMode&&<button type="button" aria-label={focusDock?'Hide classroom controls':'Show classroom controls'} aria-pressed={focusDock} onClick={()=>setFocusDock(v=>!v)}><MoreHorizontal size={20}/></button>}</header>
+    {process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED==='true'&&<LiveVoice key={room.id} roomId={room.id} classId={classId} teacher={teacher} status={room.status} learners={participants} onAcknowledge={async studentId=>{const next=await call('ack',room.id,null,{studentId}) as Room;accept(next)}}/>}
     {error&&<div role="alert" className={styles.liveAlert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     {draftWarning&&teacher&&<div role="status" className={styles.liveAlert}>Local recovery unavailable. Shared pages are saved on the server.</div>}
     {teacher&&linkedPlanError&&<div role="alert" className={styles.liveAlert}>{linkedPlanError}</div>}
