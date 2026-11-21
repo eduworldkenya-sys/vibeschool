@@ -36,7 +36,6 @@ export function ThemeControl({ className = '' }: { className?: string }) {
 export function PublicThemeControl() {
   const path = usePathname() ?? ''
   if (path === '/vibetutor' || path.startsWith('/vibetutor/') ||
-      path === '/student' || path.startsWith('/student/') ||
-      false) return null
+      path === '/student' || path.startsWith('/student/')) return null
   return <aside className={styles.floating} aria-label="Page appearance"><ThemeControl /></aside>
 }
