@@ -1,0 +1,169 @@
+name: Teacher Employment Production Activation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/teacher-employment-production-activation.yml'
+      - 'scripts/teacher-employment-production-stage.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/teacher-employment-production-activation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: teacher-employment-production-activation
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+  EXPECTED_VERSION: '20261120065500'
+  EXPECTED_FILE: supabase/migrations/20261120065500_teacher_employment_marketplace.sql
+
+jobs:
+  contract:
+    name: Exact migration and immutable release contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verify canonical source and regression coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$EXPECTED_FILE"
+          test "$(find supabase/migrations -maxdepth 1 -type f -name "$EXPECTED_VERSION*.sql" | wc -l | tr -d ' ')" = "1"
+          test "$EXPECTED_FILE" = "supabase/migrations/$EXPECTED_VERSION"_teacher_employment_marketplace.sql
+          test -f scripts/sql/teacher_employment_authorization.sql
+          test -f scripts/teacher-employment-production-stage.py
+          grep -F 'create schema teacher_employment_private' "$EXPECTED_FILE"
+          grep -F 'revoke all on public.teacher_employment_listings from public,anon,authenticated' "$EXPECTED_FILE"
+          grep -F 'create view public.teacher_employment_directory with (security_barrier=true)' "$EXPECTED_FILE"
+          grep -F 'employment_cv_shared_school_read' "$EXPECTED_FILE"
+          grep -F 'alter table public.teacher_employment_requests enable row level security' "$EXPECTED_FILE"
+          grep -F 'alter table public.teacher_employment_shortlists enable row level security' "$EXPECTED_FILE"
+          grep -F 'teacher_employment_directory' scripts/sql/teacher_employment_authorization.sql
+          python3 -m py_compile scripts/teacher-employment-production-stage.py
+          test "$EXPECTED_PROJECT_REF" = 'yauqsxggtuxuykcbrtzf'
+
+  apply:
+    name: Protected exact-version production activation
+    needs: contract
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production-migration-repair
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify production target and current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test -n "${SUPABASE_ACCESS_TOKEN:-}"
+          test "${SUPABASE_PROJECT_ID:-}" = "$EXPECTED_PROJECT_REF"
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          test -f "$EXPECTED_FILE"
+          test -f .github/workflows/teacher-employment-production-activation.yml
+          git diff --quiet
+          git diff --cached --quiet
+          test -z "$(git status --porcelain)"
+          python3 -m py_compile scripts/teacher-employment-production-stage.py
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Link exact production project
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+
+      - name: Capture current remote migration ledger
+        run: |
+          set -o pipefail
+          mkdir -p .teacher-employment-activation
+          supabase migration list --linked 2>&1 | tee .teacher-employment-activation/ledger-before.txt
+
+      - name: Stage exact missing migration
+        id: stage
+        run: |
+          set -euo pipefail
+          python3 scripts/teacher-employment-production-stage.py prepare
+          cat .teacher-employment-activation/status.txt >> "$GITHUB_OUTPUT"
+
+      - name: Link ledger-aligned stage
+        if: steps.stage.outputs.needs_apply == 'true'
+        run: |
+          set -euo pipefail
+          cd .teacher-employment-activation-stage
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+
+      - name: Dry-run production plan — no changes
+        if: steps.stage.outputs.needs_apply == 'true'
+        run: |
+          set -o pipefail
+          cd .teacher-employment-activation-stage
+          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.teacher-employment-activation/dry-run.txt
+
+      - name: Prove exactly one intended migration is planned
+        if: steps.stage.outputs.needs_apply == 'true'
+        run: |
+          set -euo pipefail
+          python3 scripts/worker-engine-assert-dry-run-plan.py \
+            --expected .teacher-employment-activation/expected.txt \
+            --dry-run-output .teacher-employment-activation/dry-run.txt \
+            --report .teacher-employment-activation/dry-run-verified.txt
+          grep -F 'status=PASSED' .teacher-employment-activation/dry-run-verified.txt
+
+      - name: Verify current main has not moved
+        if: steps.stage.outputs.needs_apply == 'true'
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+
+      - name: Apply only certified teacher employment migration
+        if: steps.stage.outputs.needs_apply == 'true'
+        run: |
+          set -o pipefail
+          cd .teacher-employment-activation-stage
+          supabase db push --linked --include-all 2>&1 | tee ../.teacher-employment-activation/apply.txt
+
+      - name: Capture remote ledger after apply
+        run: |
+          set -o pipefail
+          supabase migration list --linked 2>&1 | tee .teacher-employment-activation/ledger-after.txt
+
+      - name: Verify exact ledger change
+        run: |
+          set -euo pipefail
+          python3 scripts/teacher-employment-production-stage.py verify
+          grep -F 'status=PASSED' .teacher-employment-activation/verification.txt
+
+      - name: Retain non-secret release evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: teacher-employment-activation-${{ github.run_id }}
+          path: .teacher-employment-activation/
+          if-no-files-found: warn
+          retention-days: 90
