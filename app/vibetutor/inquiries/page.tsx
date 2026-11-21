@@ -29,7 +29,7 @@ export default function VibeTutorInquiries() {
       ])
       if(req.error||interest.error)throw new Error('Could not load enquiries.')
       setRequests((req.data??[]) as Request[]);setInterests((interest.data??[]) as Interest[])
-      const ids=[...new Set((interest.data??[]).map((row:Interest)=>row.tutor_id))]
+      const ids: string[]=[...new Set<string>(((interest.data??[]) as Interest[]).map(row=>row.tutor_id))]
       if(ids.length){
         const {data:tutors}=await supabase.from('vibetutor_public_tutors').select('profile_id,display_name').in('profile_id',ids)
         setNames(Object.fromEntries(((tutors??[]) as Tutor[]).map(t=>[t.profile_id,t.display_name])))
