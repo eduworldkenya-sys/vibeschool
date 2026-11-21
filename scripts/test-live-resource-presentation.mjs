@@ -36,6 +36,14 @@ for(const required of [
   ".eq('publication_status', 'shared')",
   ".eq('class_id', classId)",
   "if (!classId) throw new Error('School material requires its original class.')",
+  ".from('scheme_of_work')",
+  ".from('teaching_resource_links')",
+  ".eq('target_type', 'scheme_lesson')",
+  ".eq('teacher_id', auth.data.user.id)",
+  ".eq('class_id', classId)",
+  "if (!scheme.data) throw new Error('The Scheme lesson no longer belongs to this class.')",
+  "if (!link.data) throw new Error('This Scheme resource link is no longer available.')",
+  "if (item.pinnedVersionId) versionQuery = versionQuery.eq('id', item.pinnedVersionId)",
   'onPresent(selected.pages[page])',
 ]) assert.ok(code.includes(required),'resource contract missing '+required)
 for(const required of [
@@ -45,5 +53,8 @@ for(const required of [
   "panel!=='resources'",
   '<span>Resources</span>',
 ]) assert.ok(room.includes(required),'Live integration missing '+required)
+assert.ok(code.includes("const preparedIds = new Set(prepared.map(item => item.id))"),'prepared items must be deduplicated against generic resources')
+assert.ok(code.includes("const key = link.scheme_lesson_id + ':' + link.resource_id"),'prepared identity must use the persisted Scheme and resource identifiers')
+assert.ok(code.includes("if (!link.data) throw new Error('This Scheme resource link is no longer available.')"),'stale Scheme links must fail closed')
 assert.ok(!code.includes(".eq('publication_status', 'draft')"),'draft resource leak')
 console.log('PASS: resource pagination, public certified gates, shared class isolation and Live presentation contract')

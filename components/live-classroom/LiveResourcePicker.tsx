@@ -11,8 +11,14 @@ type ResourceChoice = {
   subject: string | null
   grade: string | null
   source: 'certified' | 'class'
+  schemeLessonId?: string
+  schemeTopic?: string
+  pinnedVersionId?: string | null
 }
 type Selected = { item: ResourceChoice; pages: string[]; version: string | null }
+type SchemeRow = { id: string; topic: string | null }
+type SchemeLink = { scheme_lesson_id: string | null; resource_id: string | null; resource_version_id: string | null }
+type ReleasedRoot = { id: string; title: string; subject: string | null; grade: string | null }
 
 export function LiveResourcePicker({
   classId, canPresent, onPresent, onClose,
@@ -27,6 +33,7 @@ export function LiveResourcePicker({
   const [loading, setLoading] = useState(true)
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState('')
+  const [schemeWarning, setSchemeWarning] = useState('')
   const [selected, setSelected] = useState<Selected | null>(null)
   const [page, setPage] = useState(0)
   const request = useRef(0)
@@ -37,6 +44,7 @@ export function LiveResourcePicker({
     setItems([])
     setSelected(null)
     setError('')
+    setSchemeWarning('')
     async function fetchLibrary() {
       try {
         const auth = await supabase.auth.getUser()
@@ -65,7 +73,59 @@ export function LiveResourcePicker({
             id: r.id, title: r.title, subject: r.subject, grade: null, source: 'class' as const,
           })))
         }
-        if (alive) setItems(safe)
+        // Prepared for this exact school class: discover only the teacher's
+        // existing Scheme links. Neither titles nor subjects grant linkage.
+        const prepared: ResourceChoice[] = []
+        if (classId) {
+          try {
+            const schemeResult = await supabase.from('scheme_of_work')
+              .select('id,topic').eq('teacher_id', auth.data.user.id)
+              .eq('class_id', classId).limit(150)
+            if (schemeResult.error) throw schemeResult.error
+            const schemes = (schemeResult.data ?? []) as SchemeRow[]
+            if (schemes.length) {
+              const linksResult = await supabase.from('teaching_resource_links')
+                .select('scheme_lesson_id,resource_id,resource_version_id')
+                .eq('target_type', 'scheme_lesson')
+                .in('scheme_lesson_id', schemes.map(s => s.id)).limit(300)
+              if (linksResult.error) throw linksResult.error
+              const links = (linksResult.data ?? []) as SchemeLink[]
+              const ids = [...new Set(links.flatMap(l => l.resource_id ? [l.resource_id] : []))]
+              const roots = ids.length
+                ? await supabase.from('learning_resources')
+                    .select('id,title,subject,grade,asset_kind')
+                    .in('id', ids).eq('status', 'active').eq('visibility', 'public')
+                    .in('asset_kind', [...LIVE_LEARNER_ASSET_KINDS])
+                    .in('grade', LIVE_SCHOOL_GRADE_LABELS)
+                : { data: [], error: null }
+              if (roots.error) throw roots.error
+              const released = (roots.data ?? []) as ReleasedRoot[]
+              const byId = new Map<string, ReleasedRoot>(released.map(r => [r.id, r] as const))
+              const byScheme = new Map<string, SchemeRow>(schemes.map(s => [s.id, s] as const))
+              const seen = new Set<string>()
+              for (const link of links) {
+                if (!link.resource_id || !link.scheme_lesson_id) continue
+                const root = byId.get(link.resource_id), scheme = byScheme.get(link.scheme_lesson_id)
+                if (!root || !scheme) continue
+                const key = link.scheme_lesson_id + ':' + link.resource_id + ':' + (link.resource_version_id ?? '')
+                if (seen.has(key)) continue
+                seen.add(key)
+                prepared.push({
+                  id: root.id, title: root.title, subject: root.subject,
+                  grade: root.grade, source: 'certified',
+                  schemeLessonId: scheme.id, schemeTopic: scheme.topic?.trim() || 'Linked Scheme lesson',
+                  pinnedVersionId: link.resource_version_id,
+                })
+              }
+            }
+          } catch {
+            // No unsafe fallback to a guessed lesson association. Unlinked
+            // certified resources remain usable through the existing picker.
+            if (alive) setSchemeWarning('Linked Scheme resources are unavailable. You can still browse released materials.')
+          }
+        }
+        const preparedIds = new Set(prepared.map(item => item.id))
+        if (alive) setItems([...prepared, ...safe.filter(item => item.source !== 'certified' || !preparedIds.has(item.id))])
       } catch (reason) {
         if (alive) setError(reason instanceof Error ? reason.message : 'Could not load teaching resources.')
       } finally {
@@ -78,7 +138,7 @@ export function LiveResourcePicker({
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase()
-    return needle ? items.filter(item => [item.title, item.subject ?? '', item.grade ?? '']
+    return needle ? items.filter(item => [item.title, item.subject ?? '', item.grade ?? '', item.schemeTopic ?? '']
       .some(value => value.toLocaleLowerCase().includes(needle))) : items
   }, [items, query])
 
@@ -106,6 +166,25 @@ export function LiveResourcePicker({
         if (!result.data) throw new Error('This class resource is no longer shared.')
         body = result.data.content ?? ''
       } else {
+        if (item.schemeLessonId) {
+          if (!classId) throw new Error('This Scheme resource requires its original school class.')
+          // Fresh authority check: a previous picker snapshot cannot authorize
+          // a stale or replaced Scheme link.
+          const scheme = await supabase.from('scheme_of_work')
+            .select('id').eq('id', item.schemeLessonId)
+            .eq('teacher_id', auth.data.user.id).eq('class_id', classId).maybeSingle()
+          if (scheme.error) throw scheme.error
+          if (!scheme.data) throw new Error('The Scheme lesson no longer belongs to this class.')
+          let linkQuery = supabase.from('teaching_resource_links')
+            .select('resource_id').eq('target_type', 'scheme_lesson')
+            .eq('scheme_lesson_id', item.schemeLessonId).eq('resource_id', item.id)
+          linkQuery = item.pinnedVersionId
+            ? linkQuery.eq('resource_version_id', item.pinnedVersionId)
+            : linkQuery.is('resource_version_id', null)
+          const link = await linkQuery.limit(1).maybeSingle()
+          if (link.error) throw link.error
+          if (!link.data) throw new Error('This Scheme resource link is no longer available.')
+        }
         // Resolve the active public root again; never trust a stale list item.
         const root = await supabase.from('learning_resources')
           .select('id,asset_kind')
@@ -114,13 +193,14 @@ export function LiveResourcePicker({
           .in('grade', LIVE_SCHOOL_GRADE_LABELS).maybeSingle()
         if (root.error) throw root.error
         if (!root.data) throw new Error('The resource is not released for learner presentation.')
-        const result = await supabase.from('learning_resource_versions')
+        let versionQuery = supabase.from('learning_resource_versions')
           .select('id,resource_id,version,payload')
           .eq('resource_id', root.data.id)
           .eq('lifecycle_status', 'certified')
           .in('rights_status', ['cleared', 'not_applicable'])
           .not('certified_at', 'is', null)
-          .order('version', { ascending: false }).limit(1).maybeSingle()
+        if (item.pinnedVersionId) versionQuery = versionQuery.eq('id', item.pinnedVersionId)
+        const result = await versionQuery.order('version', { ascending: false }).limit(1).maybeSingle()
         if (result.error) throw result.error
         if (!result.data) throw new Error('No authorized certified version is available.')
         body = readableLiveResourceText(result.data.payload)
@@ -143,6 +223,7 @@ export function LiveResourcePicker({
       <button type="button" onClick={onClose}>Return to lesson</button>
     </div>
     {error && <p role="alert" className={styles.error}>{error}</p>}
+    {schemeWarning && <p role="status" className={styles.warning}>{schemeWarning}</p>}
     <div className={styles.layout}>
       <div className={styles.library}>
         <label>Search resources
@@ -150,10 +231,10 @@ export function LiveResourcePicker({
         </label>
         {loading ? <p role="status">Loading available resources…</p> :
           filtered.length === 0 ? <p>No released text resources found for this search.</p> :
-          <ul>{filtered.map(item => <li key={item.source + ':' + item.id}>
-            <button type="button" disabled={opening} aria-pressed={selected?.item.id === item.id} onClick={() => void open(item)}>
+          <ul>{filtered.map(item => <li key={item.source + ':' + item.id + ':' + (item.schemeLessonId ?? '')}>
+            <button type="button" disabled={opening} aria-pressed={selected?.item.id === item.id && selected?.item.schemeLessonId === item.schemeLessonId} onClick={() => void open(item)}>
               <strong>{item.title}</strong>
-              <small>{item.source === 'class' ? 'Shared class resource' : 'Certified resource'} · {[item.grade, item.subject].filter(Boolean).join(' · ')}</small>
+              <small>{item.schemeLessonId ? 'Prepared · ' + item.schemeTopic : item.source === 'class' ? 'Shared class resource' : 'Certified resource'} · {[item.grade, item.subject].filter(Boolean).join(' · ')}</small>
             </button>
           </li>)}</ul>}
       </div>
