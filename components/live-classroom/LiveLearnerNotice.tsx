@@ -13,6 +13,8 @@ import { eligibleRoom, type LiveSummary } from './LiveNoticePolicy'
 export default function LiveLearnerNotice({ studentId }: { studentId: string }) {
   const [rooms, setRooms] = useState<LiveSummary[]>([])
   useEffect(() => {
+    // Never carry a previous learner's lesson titles across an identity switch.
+    setRooms([])
     if (!studentId || process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED !== 'true') return
     let cancelled = false
     let running = false
