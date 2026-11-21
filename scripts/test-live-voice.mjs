@@ -132,6 +132,45 @@ test('creates only a locked private audio room, rejects mismatched provider room
     assert.equal(p.calls.filter(c=>c.path==='meeting-tokens').length,0)
   }
 })
+test('Daily room creation 400 is not treated as a racing conflict, and failure is actionable',async()=>{
+  const calls=[]
+  const request=async(url,options)=>{
+    const path=url.replace('https://api.daily.co/v1/','')
+    calls.push(path)
+    if(path.startsWith('rooms/')&&options.method==='GET')return response(404,{})
+    if(path==='rooms'&&options.method==='POST')return response(400,{error:'invalid-request-error'})
+    throw Error('unexpected provider retry')
+  }
+  const logs=[],original=console.error
+  try{
+    console.error=(...args)=>logs.push(args)
+    await assert.rejects(issueLiveVoiceToken(teacherRoom,actor,null,'secret-must-not-log',request,now),
+      /Daily rejected the classroom audio settings/)
+  }finally{console.error=original}
+  assert.deepEqual(calls,['rooms/'+name,'rooms'],'do not make a second GET after invalid room create')
+  assert.equal(logs.length,1)
+  assert.equal(logs[0][0],'vibeschool_live_voice_daily_failure')
+  assert.deepEqual(logs[0][1],{stage:'room-create',status:400})
+  assert.doesNotMatch(JSON.stringify(logs),/secret-must-not-log|signed-token/)
+})
+test('Daily auth failures and rate limits are correctly distinguished without leaking provider responses',async()=>{
+  for (const [status,expected] of [[401,/account authorization failed/],[403,/account authorization failed/],
+    [429,/temporarily limited/],[503,/service did not start/]]){
+    const calls=[]
+    const request=async(url,options)=>{
+      calls.push(url)
+      return response(status,{info:'untrusted provider text: secret'})
+    }
+    const logs=[],previous=console.error
+    try{
+      console.error=(...args)=>logs.push(args)
+      await assert.rejects(issueLiveVoiceToken(teacherRoom,actor,null,'private-value',request,now),expected)
+    }finally{console.error=previous}
+    assert.equal(calls.length,1,'failed room lookup must not create room or request token')
+    assert.deepEqual(logs[0][1],{stage:'room-lookup',status})
+    assert.doesNotMatch(JSON.stringify(logs),/secret|private-value/)
+  }
+})
 test('teacher can terminate exact media room on canonical class end',async()=>{
   const p=mockProvider()
   await closeLiveVoiceRoom(id,'key',p.request)
