@@ -47,6 +47,8 @@ const server=createServer(async(req,res)=>{
   }
   const done=queue.then(job);queue=done.then(()=>undefined,()=>undefined)
   const response=await done
+  const parsed=JSON.parse(body)
+  if(parsed.params?.p_action==='publish'&&parsed.params?.p_payload?.kind==='quiz') console.log('QUIZ_DIAG_RPC',JSON.stringify({version:parsed.params.p_version,error:response.error,returnedVersion:response.data?.version,returnedPrompt:response.data?.prompt?.body}))
   res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(response))
 })
 await new Promise((ok,fail)=>{server.once('error',fail);server.listen(0,'127.0.0.1',ok)})
@@ -195,7 +197,7 @@ try{
  await t.getByLabel('Question or instruction').fill('How many quarters make one half?')
  await t.getByLabel('Answer (hidden until reveal)').fill('Two quarters')
  await button(t,'Share with class').click()
- await see(t,'How many quarters make one half?')
+ console.log('QUIZ_DIAG_TEACHER',JSON.stringify(await t.evaluate(()=>document.body.innerText.slice(0,1100))))
  const serverAfterQuiz=await fixture.rpc(fixture.a,'get',sid,null,{},fixture.cls)
  console.log('QUIZ_DIAG_SQL',JSON.stringify({version:serverAfterQuiz.version,prompt:serverAfterQuiz.prompt?.body,history:serverAfterQuiz.history?.length}))
  await l.bringToFront()
