@@ -148,6 +148,10 @@ begin
        p_expires_at>clock_timestamp()+interval '30 days' then
    raise exception 'MACHINE_REVIEW_QUALIFICATION_EVIDENCE_REQUIRED';
  end if;
+ if lower(regexp_replace(coalesce(p_subject_profile,''),'\s+','','g')) is distinct from
+   (select lower(regexp_replace(coalesce(p.cbc_grade,'')||':'||coalesce(p.cbc_subject,''),'\s+','','g'))
+      from public.vibe_publications p where p.id=p_publication_id)
+ then raise exception 'MACHINE_REVIEW_SUBJECT_QUALIFICATION_MISMATCH'; end if;
  if p_stages is null or array_length(p_stages,1) is null or
     not (p_stages <@ array['teacher_guide','assessment','release','curriculum_source','resource_certification']::text[]) then
    raise exception 'MACHINE_REVIEW_STAGE_SCOPE_REQUIRED';
@@ -197,8 +201,32 @@ begin
  if p_stage='release' and (p_artifact_id<>c.publication_id or
      public.publication_release_fingerprint(c.publication_id) is distinct from p_hash) then
    raise exception 'MACHINE_REVIEW_EXACT_RELEASE_FINGERPRINT_REQUIRED'; end if;
- if p_stage not in ('teacher_guide','assessment','release') then
-   raise exception 'MACHINE_REVIEW_STAGE_NOT_YET_COMMISSIONED';
+ if p_stage='curriculum_source' and (
+     p_artifact_id is distinct from c.publication_id
+     or p_review_evidence->>'verified_host' is distinct from 'kicd.ac.ke'
+     or p_review_evidence->>'official_source_sha256' is distinct from p_hash
+     or coalesce(p_review_evidence->>'retrieval_method','')=''
+     or not exists(
+        select 1 from public.vs_curriculum_package_scopes scope
+        join public.vibe_publications p on p.id=c.publication_id
+        join public.cbc_strands s on s.id=scope.sub_strand_id
+        where scope.source_url=p_review_evidence->>'source_url'
+          and scope.source_url ~ '^https://kicd[.]ac[.]ke/'
+          and s.grade=p.cbc_grade and lower(p.cbc_subject)='mathematics'
+     )
+   ) then raise exception 'MACHINE_REVIEW_OFFICIAL_SOURCE_EVIDENCE_REQUIRED';
+ end if;
+ if p_stage='resource_certification' and not exists(
+   select 1 from public.learning_resource_versions v
+   join public.learning_resources root on root.id=v.resource_id
+   where v.id=p_artifact_id and root.publication_id=c.publication_id
+     and v.version>0 and v.lifecycle_status='verified'
+     and v.rights_status in('cleared','not_applicable')
+     and v.content_sha256=p_hash
+     and v.verified_at is not null
+ ) then raise exception 'MACHINE_REVIEW_RESOURCE_VERSION_PROOF_REQUIRED'; end if;
+ if p_stage not in ('teacher_guide','assessment','release','curriculum_source','resource_certification') then
+   raise exception 'MACHINE_REVIEW_UNKNOWN_STAGE';
  end if;
  if p_quality_score<85 or p_quality_score>100 or
     p_hard_blockers is distinct from '[]'::jsonb or
@@ -263,6 +291,9 @@ declare d public.content_derivatives%rowtype; v_work uuid; begin
      encode(extensions.digest(convert_to(d.body::text,'UTF8'),'sha256'),'hex')
    );
  end if;
+ if not p_approve and not public.ce_is_human_content_approver(auth.uid()) then
+   raise exception 'MACHINE_REJECTION_REQUIRES_INDEPENDENT_NEGATIVE_REVIEW';
+ end if;
  if p_approve then
    if nullif(btrim(p_note),'') is null then raise exception 'INDEPENDENT_REVIEW_NOTE_REQUIRED'; end if;
    if coalesce((public.content_worker_teacher_guide_self_review(d.body,d.quality)->>'passed')::boolean,false) is distinct from true then
@@ -302,6 +333,9 @@ declare a public.generated_assessments%rowtype; v_items int; v_missing_source in
      v_publication,'assessment',a.id,public.ce_machine_assessment_sha256(a.id)
    );
  end if;
+ if not p_approve and not public.ce_is_human_content_approver(auth.uid()) then
+   raise exception 'MACHINE_REJECTION_REQUIRES_INDEPENDENT_NEGATIVE_REVIEW';
+ end if;
  if p_approve and nullif(btrim(p_note),'') is null then raise exception 'INDEPENDENT_REVIEW_NOTE_REQUIRED'; end if;
  if a.status<>'moderation' then raise exception 'Assessment is not in moderation'; end if;
  select count(*),count(*) filter(where source_block_id is null),count(*) filter(where coalesce(answer_key,'{}'::jsonb)='{}'::jsonb),coalesce(sum(marks),0) into v_items,v_missing_source,v_missing_answer,v_marks from public.generated_assessment_items where assessment_id=p_assessment_id;
@@ -331,6 +365,9 @@ begin
       p_publication_id,'release',p_publication_id,
       public.publication_release_fingerprint(p_publication_id)
     );
+  end if;
+  if not coalesce(p_approve,false) and not public.ce_is_human_content_approver(auth.uid()) then
+    raise exception 'MACHINE_REJECTION_REQUIRES_INDEPENDENT_NEGATIVE_REVIEW';
   end if;
   if coalesce(p_approve,false) and nullif(btrim(p_notes),'') is null then
     raise exception 'INDEPENDENT_REVIEW_NOTE_REQUIRED';
@@ -379,6 +416,26 @@ begin
   );
 end $function$;
 
+
+
+-- Owner can stop a reviewer without visiting HQ.
+create or replace function public.ce_revoke_machine_content_reviewer(p_commission_id uuid)
+returns boolean language plpgsql security definer set search_path=''
+as $
+declare v_owner uuid:=auth.uid(); v_changed integer;
+begin
+ if v_owner is null or not public.is_platform_owner() then
+    raise exception 'MACHINE_REVIEW_REVOKE_OWNER_AUTH_REQUIRED';
+ end if;
+ update public.ce_machine_content_commissions
+   set revoked_at=clock_timestamp()
+ where id=p_commission_id and commissioned_by=v_owner and revoked_at is null;
+ get diagnostics v_changed=row_count;
+ return v_changed=1;
+end $;
+revoke all on function public.ce_revoke_machine_content_reviewer(uuid)
+ from public,anon,authenticated,service_role;
+grant execute on function public.ce_revoke_machine_content_reviewer(uuid) to authenticated;
 
 -- Keep historical human reviewer RPCs/API names working.
 -- The following functions are superseded, not the 2026-11-21 migration file.
