@@ -1,0 +1,181 @@
+{
+  "schema": "vibeschool.grade4.math.authority-observation-crosswalk.v1",
+  "status": "SOURCE_TEXT_OBSERVED_NOT_REGISTERED_NOT_PROMOTED",
+  "producedOn": "2026-11-14",
+  "source": {
+    "authority": "Kenya Institute of Curriculum Development",
+    "document": "Grade 4 Mathematics Curriculum Design",
+    "edition": "revised 2024 (first published 2017)",
+    "url": "https://kicd.ac.ke/wp-content/uploads/2024/02/GRADE.4.MATHEMATICS.pdf",
+    "pdfPageCount": 64,
+    "verifiedSourceText": "Public PDF text inspected; page screenshot cache miss. Exact source bytes/hash and owner source-intake not recorded.",
+    "contentSha256": null,
+    "privateArtifactStorageLocator": null,
+    "approvedSourceId": null,
+    "approvedSnapshotId": null,
+    "audience": "Regular Grade 4 Mathematics (general primary curriculum), NOT the separate adapted Mathematics curriculum for learners with physical impairment",
+    "excludedAdaptedSource": {
+      "url": "https://kicd.ac.ke/wp-content/uploads/2024/09/GRADE-4-MATHEMATICS.pdf",
+      "audience": "Learners with physical impairment",
+      "reason": "KICD separately publishes an adapted revised 2024 Grade 4 Mathematics design under this URL; it is not interchangeable with the regular design and has a different curriculum strand structure."
+    },
+    "sourceIdentityRules": [
+      "Exact KICD document URL required for this general-primary batch",
+      "Reject adapted/SNE design substituted by filename, revised-year, or Mathematics title",
+      "No checksum may be attached until the exact regular source PDF bytes have been acquired and verified",
+      "Any future adapted-material authoring must use its own explicit source/audience authority and approved outcome crosswalk"
+    ]
+  },
+  "scope": {
+    "grade": "Grade 4",
+    "subject": "Mathematics",
+    "framework": "CBC revised 2024",
+    "strand": "1.0 Numbers",
+    "subStrands": [
+      {
+        "unit": "1.2",
+        "name": "Addition",
+        "suggestedLessons": 8
+      },
+      {
+        "unit": "1.3",
+        "name": "Subtraction",
+        "suggestedLessons": 8
+      }
+    ],
+    "note": "Suggested lesson numbers do not certify VibeSchool editorial sequences."
+  },
+  "linkedEditorial": {
+    "additionFirstOutcomePR": 1698,
+    "additionRemainingOutcomesPR": 1693,
+    "subtractionPR": 1694,
+    "teachingSequencePR": 1701,
+    "teachingSequencePath": "content/curriculum/production/grade4-mathematics-addition-subtraction-16-lesson-sequence.v1.editorial.json"
+  },
+  "outcomes": [
+    {
+      "unit": "1.2",
+      "sourceOutcomeOrdinal": "a",
+      "sourceLocator": "Numbers 1.2 Addition, printed pp. 4-5 (PDF indices 12-13)",
+      "outcomeIntentOriginalParaphrase": "Add two four-digit numbers with exactly one regrouping, total no more than 10,000.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.2-S01",
+        "VS-G04-MA-1.2-S02"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    },
+    {
+      "unit": "1.2",
+      "sourceOutcomeOrdinal": "b",
+      "sourceLocator": "Numbers 1.2 Addition, printed pp. 4-5 (PDF indices 12-13)",
+      "outcomeIntentOriginalParaphrase": "Add two four-digit numbers with two regroupings, total no more than 10,000.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.2-S03",
+        "VS-G04-MA-1.2-S04"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    },
+    {
+      "unit": "1.2",
+      "sourceOutcomeOrdinal": "c",
+      "sourceLocator": "Numbers 1.2 Addition, printed pp. 4-5 (PDF indices 12-13)",
+      "outcomeIntentOriginalParaphrase": "Estimate addition results by rounding both addends to the nearest ten.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.2-S05"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    },
+    {
+      "unit": "1.2",
+      "sourceOutcomeOrdinal": "d",
+      "sourceLocator": "Numbers 1.2 Addition, printed pp. 4-5 (PDF indices 12-13)",
+      "outcomeIntentOriginalParaphrase": "Create and extend addition patterns with results within 10,000.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.2-S06",
+        "VS-G04-MA-1.2-S07"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    },
+    {
+      "unit": "1.2",
+      "sourceOutcomeOrdinal": "e",
+      "sourceLocator": "Numbers 1.2 Addition, printed pp. 4-5 (PDF indices 12-13)",
+      "outcomeIntentOriginalParaphrase": "Describe and apply addition to everyday quantities.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.2-S08"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    },
+    {
+      "unit": "1.3",
+      "sourceOutcomeOrdinal": "a",
+      "sourceLocator": "Numbers 1.3 Subtraction, printed pp. 6-7 (PDF indices 14-15)",
+      "outcomeIntentOriginalParaphrase": "Subtract up to four-digit numbers without regrouping in practical situations.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.3-S01",
+        "VS-G04-MA-1.3-S02"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    },
+    {
+      "unit": "1.3",
+      "sourceOutcomeOrdinal": "b",
+      "sourceLocator": "Numbers 1.3 Subtraction, printed pp. 6-7 (PDF indices 14-15)",
+      "outcomeIntentOriginalParaphrase": "Subtract up to four-digit numbers with regrouping and explain place-value exchanges.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.3-S03",
+        "VS-G04-MA-1.3-S04"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    },
+    {
+      "unit": "1.3",
+      "sourceOutcomeOrdinal": "c",
+      "sourceLocator": "Numbers 1.3 Subtraction, printed pp. 6-7 (PDF indices 14-15)",
+      "outcomeIntentOriginalParaphrase": "Estimate a subtraction difference by rounding operands to the nearest ten.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.3-S05"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    },
+    {
+      "unit": "1.3",
+      "sourceOutcomeOrdinal": "d",
+      "sourceLocator": "Numbers 1.3 Subtraction, printed pp. 6-7 (PDF indices 14-15)",
+      "outcomeIntentOriginalParaphrase": "Create subtraction patterns using numbers up to 10,000.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.3-S06"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    },
+    {
+      "unit": "1.3",
+      "sourceOutcomeOrdinal": "e",
+      "sourceLocator": "Numbers 1.3 Subtraction, printed pp. 6-7 (PDF indices 14-15)",
+      "outcomeIntentOriginalParaphrase": "Explain and apply subtraction to everyday remainder and comparison problems.",
+      "editorialLessonIds": [
+        "VS-G04-MA-1.3-S07",
+        "VS-G04-MA-1.3-S08"
+      ],
+      "canonicalOutcomeId": null,
+      "sourcePromotion": "NOT_VERIFIED_OR_PROMOTED"
+    }
+  ],
+  "governedNextActions": [
+    "Register one official source through existing authenticated HQ-owner curriculum_authority_register_source; fetch immutable official PDF, verify SHA-256 and retain private artifact",
+    "Stage all ten source-located outcome observations in one canonical snapshot, seal, reconcile and bind verified hierarchy",
+    "Obtain owner-authenticated promotion through existing RPC; no privileged SQL impersonation",
+    "Review maths, source alignment and content rights independently; bind real promoted curriculum outcome IDs",
+    "Assemble versioned canonical learning_resources and outcome packages; publish only with existing checks; then test learner readback"
+  ],
+  "rights": "Original paraphrases only; no KICD endorsement or reproduced source pages."
+}
