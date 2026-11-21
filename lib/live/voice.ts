@@ -11,6 +11,25 @@ export type VoiceRoom = {
 export const voiceUuid = (v: unknown): v is string =>
   typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
 export const dailyVoiceName = (id: string) => 'vs-live-' + id
+// Pilot admission is a separate, fail-closed boundary on top of canonical
+// Live session authorization. No client-supplied ID can bypass it.
+export function requireLiveVoicePilotUser(
+  userId: string, scope: string | undefined, permittedIds: string | undefined,
+  expiresAt: string | undefined, now = Date.now(), roomClosure = false
+): void {
+  if (scope !== 'pilot') throw new LiveVoiceError('Classroom voice is not commissioned.', 503)
+  const ids = (permittedIds ?? '').split(',').map(id => id.trim()).filter(Boolean)
+  if (!voiceUuid(userId) || !ids.length || ids.some(id => !voiceUuid(id)) || !ids.includes(userId)) {
+    throw new LiveVoiceError('Classroom voice is limited to pilot accounts.', 403)
+  }
+  // Allow an authorized pilot teacher to clean up an ended room after timeout.
+  if (!roomClosure) {
+    const deadline = Date.parse(expiresAt ?? '')
+    if (!Number.isFinite(deadline) || now >= deadline) {
+      throw new LiveVoiceError('Classroom voice pilot has expired.', 503)
+    }
+  }
+}
 export function validateVoiceRoom(value: unknown, id: string, now = Date.now()): VoiceRoom {
   if (!voiceUuid(id) || !value || typeof value !== 'object') throw new LiveVoiceError('Invalid classroom.', 400)
   const room = value as Partial<VoiceRoom>
