@@ -63,3 +63,5 @@
 @media(max-width:1040px){.logoDark{width:136px;max-height:36px}}
 @media(max-width:640px){.logoDark{width:126px;max-height:33px}}
 @media(max-width:420px){.logoDark{width:118px;max-height:31px}}
+
+@media(max-width:420px){.headerInner{gap:8px}}
