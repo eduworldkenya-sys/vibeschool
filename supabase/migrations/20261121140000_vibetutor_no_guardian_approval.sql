@@ -1,0 +1,64 @@
+-- VibeTutor: no guardian-approval gate for verified adult poster requests.
+-- Only brand-new app-authored (`source='vibetutor'`) requests explicitly marked public
+-- qualify. Existing HQ import records stay private, regardless of count or source.
+-- No raw learner names, notes, phone numbers, requester identifiers or full timestamps
+-- are exposed to anonymous visitors. No changes to owner-only base-table RLS.
+begin;
+create or replace view public.vibetutor_open_requests with (security_invoker=false, security_barrier=true) as
+select r.id, ('Learner-' || left(r.id::text, 6))::text as learner_label, null::text as note,
+ r.levels, r.subjects, r.teaching_mode, r.area, r.budget_kes, r.available_days, r.dayparts,
+ date_trunc('day', r.created_at) as created_at
+from public.vibetutor_requests r join public.profiles p on p.id=r.requester_id
+where r.status='open' and r.public_preview and r.source='vibetutor' and p.role::text in ('parent','teacher')
+ and r.area = any(array['Nairobi','Mombasa','Nakuru','Eldoret','Kisumu','Thika','Ruiru','Kitengela','Ongata Rongai','Kiambu','Machakos','Meru','Nyeri','Kakamega','Kisii','Naivasha','Bungoma','Kericho','Embu','Online (anywhere)']::text[])
+ and r.levels <@ array['Grade 1–3','Grade 4–6','Grade 7–9','Grade 10–12','Form 1–4','University']::text[] and cardinality(r.levels)>0 and cardinality(r.levels)<=1
+ and r.subjects <@ array['English','Kiswahili','Mathematical Activities','Environmental Activities','Creative Activities','Christian Religious Education','Islamic Religious Education','Hindu Religious Education','Indigenous Languages','Mathematics','Science & Technology','Social Studies','Agriculture','Creative Arts','Religious Education','Integrated Science','Pre-Technical Studies','Biology','Chemistry','Physics','Geography','History','Business Studies','Computer Studies','Statistics','Computer Science','Economics','Accounting','Engineering']::text[] and cardinality(r.subjects)>0 and cardinality(r.subjects)<=6
+ and r.available_days <@ array['Mon','Tue','Wed','Thu','Fri','Sat','Sun']::text[]
+ and r.dayparts <@ array['morning','afternoon','evening','night']::text[]
+ and (r.budget_kes is null or r.budget_kes between 1 and 100000);
+
+revoke all on public.vibetutor_open_requests from public, anon, authenticated;
+grant select on public.vibetutor_open_requests to anon, authenticated;
+-- Interest goes only to the request owner, who can decline or stop sharing.
+create or replace function public.vibetutor_request_interest_send(p_request uuid,p_message text)
+returns uuid language plpgsql security definer set search_path='' as $$
+declare v_user uuid := auth.uid(); v_id uuid;
+begin
+ if v_user is null then raise exception 'Sign in required' using errcode='42501'; end if;
+ if p_message is null or char_length(trim(p_message)) not between 10 and 500 then raise exception 'Invalid enquiry' using errcode='22023'; end if;
+ if not exists (select 1 from public.vibetutor_tutors t join public.profiles p on p.id=t.profile_id
+   where t.profile_id=v_user and t.status='published' and p.role::text='teacher')
+ then raise exception 'Published teacher profile required' using errcode='42501'; end if;
+ if not exists (select 1 from public.vibetutor_requests r join public.profiles p on p.id=r.requester_id
+    where r.id=p_request and r.status='open' and r.public_preview and r.source='vibetutor' and p.role::text in ('parent','teacher') and r.requester_id<>v_user)
+ then raise exception 'This request is not available' using errcode='42501'; end if;
+ if (select count(*) from public.vibetutor_request_interests i where i.tutor_id=v_user
+    and i.created_at>now()-interval '24 hours')>=10
+ then raise exception 'Daily enquiry limit reached' using errcode='42901'; end if;
+ insert into public.vibetutor_request_interests(request_id,tutor_id,message)
+ values (p_request,v_user,trim(p_message)) on conflict (request_id,tutor_id) do nothing returning id into v_id;
+ if v_id is null then raise exception 'Enquiry already sent' using errcode='23505'; end if;
+ return v_id;
+end $$;
+
+revoke all on function public.vibetutor_request_interest_send(uuid,text) from public,anon,authenticated;
+grant execute on function public.vibetutor_request_interest_send(uuid,text) to authenticated;
+create or replace function public.vibetutor_request_interest_reply(p_interest uuid,p_status text,p_reply text)
+returns void language plpgsql security definer set search_path='' as $$
+declare v_user uuid:=auth.uid();
+begin
+ if v_user is null then raise exception 'Sign in required' using errcode='42501'; end if;
+ if p_status not in ('accepted','declined') then raise exception 'Invalid response' using errcode='22023'; end if;
+ if p_status='accepted' and (p_reply is null or char_length(trim(p_reply)) not between 10 and 500)
+ then raise exception 'Reply must be 10-500 characters' using errcode='22023'; end if;
+ update public.vibetutor_request_interests i
+ set status=p_status,guardian_reply=case when p_status='accepted' then trim(p_reply) else null end,updated_at=now()
+ from public.vibetutor_requests r join public.profiles p on p.id=r.requester_id
+ where i.id=p_interest and i.request_id=r.id and i.status='pending'
+   and r.requester_id=v_user and r.public_preview and r.status='open' and r.source='vibetutor' and p.role::text in ('parent','teacher');
+ if not found then raise exception 'Not authorized or enquiry unavailable' using errcode='42501'; end if;
+end $$;
+
+revoke all on function public.vibetutor_request_interest_reply(uuid,text,text) from public,anon,authenticated;
+grant execute on function public.vibetutor_request_interest_reply(uuid,text,text) to authenticated;
+commit;

@@ -62,13 +62,13 @@ export default function VibeTutorInquiries() {
     {loading && <p role="status">Loading…</p>}
     {error && <p role="alert">{error} <button type="button" onClick={()=>void refresh()}>Retry</button></p>}
     {!loading && signedIn && <>
-      {requests.filter(r=>r.public_preview && r.status==='open').map(r=><article className={styles.card} key={r.id}><h2 className={styles.cardTitle}>Public request · {r.learner_label || 'Learner'}</h2><p className={styles.muted}>Visible anonymously to visitors. Your name and phone are not shown.</p><button className={styles.btnSecondary} disabled={saving===r.id} type="button" onClick={()=>void unpublish(r.id)}>Stop public sharing</button></article>)}
+      {requests.filter(r=>r.public_preview && r.status==='open').map(r=><article className={styles.card} key={r.id}><h2 className={styles.cardTitle}>Public request · {r.learner_label || 'Learner'}</h2><p className={styles.muted}>Visible anonymously to visitors with no separate guardian approval. The learner name and contact number are not shown.</p><button className={styles.btnSecondary} disabled={saving===r.id} type="button" onClick={()=>void unpublish(r.id)}>Stop public sharing</button></article>)}
       <h2 className={styles.cardTitle}>Responses</h2>
       {!interests.length && <p className={styles.muted}>No enquiries yet.</p>}
       {interests.map(i=><article className={styles.card} key={i.id}>
         <h3 className={styles.cardTitle}>{mine.has(i.request_id)?(names[i.tutor_id] || 'Tutor enquiry'):'Your tutor enquiry'}</h3>
         <p className={styles.muted}>Status: {i.status}</p><p className={styles.meta}>{i.message}</p>
-        {i.guardian_reply && <p className={styles.meta}>Guardian replied: {i.guardian_reply}</p>}
+        {i.guardian_reply && <p className={styles.meta}>Request owner replied: {i.guardian_reply}</p>}
         {mine.has(i.request_id) && i.status==='pending' && <>
           <label htmlFor={'reply-'+i.id}>Reply privately to this tutor</label>
           <textarea id={'reply-'+i.id} className={styles.input} rows={3} maxLength={500} value={replies[i.id]??''} onChange={e=>setReplies(p=>({...p,[i.id]:e.target.value}))} placeholder="Introduce yourself and agree on safe next steps." />
