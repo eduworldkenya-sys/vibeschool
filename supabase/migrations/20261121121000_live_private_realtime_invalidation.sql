@@ -52,7 +52,10 @@ DECLARE
   sid uuid;
 BEGIN
   IF TG_TABLE_NAME='sessions' THEN sid:=NEW.id;
+  ELSIF TG_TABLE_NAME='responses' THEN
+    SELECT p.session_id INTO sid FROM vibe_live.prompts p WHERE p.id=NEW.prompt_id;
   ELSE sid:=NEW.session_id; END IF;
+  IF sid IS NULL THEN RETURN NEW; END IF;
   BEGIN
     PERFORM realtime.send(
       jsonb_build_object('invalidate',true),
