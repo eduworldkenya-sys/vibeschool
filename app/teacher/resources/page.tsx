@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { nairobiDateStr } from '@/lib/time'
 import { C, Modal } from '@/components/teacher/ui'
 import TeachingLibraryStructure from '@/components/teacher/TeachingLibraryStructure'
+import CertifiedResourceLinks from '@/components/learn/CertifiedResourceLinks'
 import type { CanonicalTeachingLibraryItem } from '@/components/teacher/TeachingLibraryStructure'
 import TeacherResourceEditor from '@/components/teacher/TeacherResourceEditor'
 import type { PersonalResourceRow } from '@/components/teacher/TeacherResourceEditor'
@@ -446,6 +447,7 @@ export default function TeacherResourcesPage() {
           </div>
         </section>
         <TeachingLibraryStructure savedResources={catalogueLibrary} linkedResources={canonicalLibraryItems} onAddPersonalResource={openAdd} />
+        <CertifiedResourceLinks grade="Grade 4" subject="Mathematics" hideWhenEmpty />
         <details style={{ marginBottom: 19, border: '1px solid #e0e7e1', borderRadius: 12, padding: '11px 14px', background: '#fff' }}>
           <summary style={{ cursor: 'pointer', fontWeight: 650, fontSize: 13 }}>Published subject readers</summary>
           <div style={{ display: 'grid', gap: 6, marginTop: 12 }}>
