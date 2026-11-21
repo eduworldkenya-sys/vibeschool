@@ -1,0 +1,24 @@
+name: Whole Numbers Private Candidate Verification
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261121133015_g4_whole_numbers_private_candidate_verification_deadlock.sql'
+      - 'scripts/test-g4-whole-numbers-private-candidate-verification.mjs'
+      - '.github/workflows/g4-whole-numbers-private-candidate-verification.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261121133015_g4_whole_numbers_private_candidate_verification_deadlock.sql'
+      - 'scripts/test-g4-whole-numbers-private-candidate-verification.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate-stage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/test-g4-whole-numbers-private-candidate-verification.mjs scripts/test-content-hq-optional-contract.mjs scripts/test-g4-whole-numbers-quiz-lineage-repair.mjs
