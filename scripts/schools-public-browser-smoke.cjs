@@ -139,6 +139,48 @@ async function verify() {
     assert.match(await page.locator('main').innerText(),/ALLIANCE GIRLS/i);
     console.log('PASS missing coordinates produce no invented map');
 
+    // Mock only the new RPC while the additive database migration is not yet
+    // deployed; the previous browser steps still use real public RPCs.
+    const mockSchool={slug:'gilgiltownship',source_kind:'canonical',source_id:SCHOOL_ID,school_name:'Gilgil Township',county:'Nakuru',sub_county:'Gilgil',school_level:'Primary',ownership_type:'Public',knec_code:null,is_verified:false};
+    await page.route('**/rest/v1/rpc/schools_discover_public_v1',async route=>{
+      const args=route.request().postDataJSON();
+      if(args.p_lat!=null){
+        assert.equal(args.p_lat,-1.28);assert.equal(args.p_lng,36.82);
+      }else assert.equal(args.p_query,'Gilgl Township');
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{...mockSchool,distance_km:args.p_lat!=null?1.2:null}])});
+    });
+    await page.context().grantPermissions(['geolocation']);
+    await page.context().setGeolocation({latitude:-1.28456,longitude:36.82456});
+    await page.goto(ORIGIN+'/schools',{waitUntil:'domcontentloaded'});
+    const nearby=page.getByRole('button',{name:'Nearby schools',exact:true});
+    await nearby.click();
+    await page.getByRole('heading',{name:'Nearby schools',exact:true}).waitFor();
+    await page.getByText('~1.2 km',{exact:false}).waitFor();
+    await page.getByRole('button',{name:'Show all schools',exact:true}).click();
+    await page.getByRole('searchbox',{name:/search schools/i}).fill('Gilgl Township');
+    await page.getByRole('heading',{name:'Possible matches',exact:true}).waitFor();
+    await page.locator('a[href="/school/gilgiltownship"]').waitFor();
+    await page.goto(ORIGIN+'/school/gituamba',{waitUntil:'domcontentloaded'});
+    const correction=page.getByRole('button',{name:'Suggest a correction',exact:true});
+    await page.locator('button[aria-controls="school-correction-form"]:enabled').waitFor({timeout:30000});
+    await correction.click();
+    await page.getByLabel('What information is incorrect?').fill('The street name appears to be incorrect.');
+    await page.getByRole('button',{name:'Submit correction'}).click();
+    await page.locator('#school-correction-form').getByRole('link',{name:'Sign in',exact:true}).waitFor();
+    await page.emulateMedia({colorScheme:'light'});
+    const form=page.locator('#school-correction-form textarea');
+    const light=await form.evaluate(el=>({bg:getComputedStyle(el).backgroundColor,scheme:getComputedStyle(el).colorScheme}));
+    await page.emulateMedia({colorScheme:'dark'});
+    const dark=await form.evaluate(el=>({bg:getComputedStyle(el).backgroundColor,scheme:getComputedStyle(el).colorScheme}));
+    assert.notEqual(light.bg,dark.bg,'correction form follows system palette');
+    assert.equal(light.scheme,'light');assert.equal(dark.scheme,'dark');
+    await page.goto(ORIGIN+'/schools',{waitUntil:'domcontentloaded'});
+    const search=page.getByRole('searchbox',{name:/search schools/i});
+    assert.equal(await search.evaluate(el=>getComputedStyle(el).colorScheme),'dark');
+    await page.emulateMedia({colorScheme:'light'});
+    assert.equal(await search.evaluate(el=>getComputedStyle(el).colorScheme),'light');
+    console.log('PASS device light/dark theme on directory and correction form');
+    console.log('PASS nearby geolocation, typo recovery and visitor correction sign-in (mocked new RPC; no writes)');
     await page.close();
     console.log('PASS invalid-school state');
   } finally {
