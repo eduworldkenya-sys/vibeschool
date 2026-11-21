@@ -114,7 +114,7 @@ BEGIN
        'createdAt',m.created_at,'deliveredAt',m.delivered_at,'readAt',m.read_at
      ) order by m.created_at,m.id)
      from (
-       select id,body,sender_role,created_at,delivered_at,read_at from vibe_live.private_messages
+       select pm.id,pm.body,pm.sender_role,pm.created_at,pm.delivered_at,pm.read_at from vibe_live.private_messages pm
        where session_id=room.id and student_id=dm_student
        order by created_at desc,id desc limit 120
      ) m
