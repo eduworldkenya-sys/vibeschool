@@ -82,7 +82,7 @@ export async function issueLiveVoiceToken(
   if (!validProviderRoom(providerRoom,roomName,expiry)) throw new LiveVoiceError('Voice-room privacy verification failed.',503)
   // A privileged teacher token can moderate, but learners are media-server
   // receive-only. A teacher can grant audio to ONE learner after a raised hand.
-  const canSend = role === 'teacher' ? ['audio'] : false
+  const canSend = role === 'teacher' ? ['microphone'] : false
   const canAdmin = role === 'teacher' ? ['participants'] : false
   const tokenResponse = await api('meeting-tokens',{properties:{
     room_name:roomName,user_id:participantId,
