@@ -5,12 +5,15 @@ import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import PlaceValueResourceStudio, { isPlaceValueStudioPayload } from '@/components/learn/PlaceValueResourceStudio'
+import type { PlaceValueStudioPayload } from '@/components/learn/PlaceValueResourceStudio'
 
 type ReadableResource = {
   title: string
   grade: string | null
   subject: string | null
   body: string
+  interactivePayload: PlaceValueStudioPayload | null
   version: number
   sourceType: string | null
 }
@@ -63,8 +66,9 @@ export default function TeachingLibraryReaderPage() {
         if (!version) throw new Error('The certified version is unavailable or you do not have access.')
 
         const body = readableBody(version.payload)
-        if (!body) throw new Error('This certified resource has no readable text. Open its linked Scheme for another activity.')
-        if (alive) setResource({ title: root.title, grade: root.grade, subject: root.subject, body, version: version.version, sourceType: root.source_type })
+        const interactivePayload = isPlaceValueStudioPayload(version.payload) ? version.payload : null
+        if (!body && !interactivePayload) throw new Error('This certified resource has no supported readable content. Open its linked Scheme for another activity.')
+        if (alive) setResource({ title: root.title, grade: root.grade, subject: root.subject, body, interactivePayload, version: version.version, sourceType: root.source_type })
       } catch (reason) {
         if (alive) setError(reason instanceof Error ? reason.message : 'Unable to open this resource.')
       } finally {
@@ -86,7 +90,7 @@ export default function TeachingLibraryReaderPage() {
             <div style={{ fontSize: 12, color: '#166348', fontWeight: 700 }}>{resource.sourceType === 'platform_authored' ? 'VibeSchool Originals' : 'Certified teaching resource'} · Version {resource.version}</div>
             <h1 style={{ fontSize: 'clamp(22px, 3.5vw, 30px)', lineHeight: 1.25, margin: '10px 0' }}>{resource.title}</h1>
             <p style={{ color: '#64748b', marginBottom: 24, fontSize: 13 }}>{[resource.grade, resource.subject].filter(Boolean).join(' · ')}</p>
-            <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.8, fontSize: 16, color: '#24332b' }}>{resource.body}</div>
+            {resource.interactivePayload ? <PlaceValueResourceStudio payload={resource.interactivePayload} /> : <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.8, fontSize: 16, color: '#24332b' }}>{resource.body}</div>}
           </>
         )}
       </article>
