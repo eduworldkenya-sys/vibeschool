@@ -45,6 +45,20 @@ export function validateVoiceRoom(value: unknown, id: string, now = Date.now()):
 }
 type DailyRequest = typeof fetch
 const API = 'https://api.daily.co/v1/'
+// The upstream API can reject an account credential or room properties.
+// Do not print keys, meeting tokens, body, participant IDs or provider URLs.
+// Only the operation name and HTTP status are logged for support.
+function rejectDailyResponse(stage: 'room-lookup' | 'room-create' | 'room-token', response: Response): never {
+  const status = response.status
+  console.error('vibeschool_live_voice_daily_failure', {stage, status})
+  if (status === 401 || status === 403)
+    throw new LiveVoiceError('Daily account authorization failed. Check the configured provider key.', 503)
+  if (status === 400 || status === 422)
+    throw new LiveVoiceError('Daily rejected the classroom audio settings. Provider configuration needs repair.', 503)
+  if (status === 429)
+    throw new LiveVoiceError('Daily has temporarily limited audio requests. Retry shortly.', 503)
+  throw new LiveVoiceError('Daily voice service did not start. Retry.', 503)
+}
 function voiceSettings(exp: number) {
   return {
     exp, eject_at_room_exp: true, max_participants: 80,
@@ -92,9 +106,13 @@ export async function issueLiveVoiceToken(
   let response = await api('rooms/' + roomName)
   if (response.status === 404) {
     response = await api('rooms',{ name:roomName, privacy:'private',properties })
-    if ([400,409].includes(response.status)) response = await api('rooms/' + roomName)
+    // Only an actual concurrent-create conflict warrants re-reading the room.
+    // An HTTP 400 means invalid settings, never a successful racing create.
+    if (response.status === 409) response = await api('rooms/' + roomName)
+    if (!response.ok) rejectDailyResponse('room-create', response)
+  } else if (!response.ok) {
+    rejectDailyResponse('room-lookup', response)
   }
-  if (!response.ok) throw new LiveVoiceError('Could not start voice. Retry.',503)
   let providerRoom: unknown
   try { providerRoom = await response.json() } catch { throw new LiveVoiceError('Invalid voice provider response.',503) }
   if (!validProviderRoom(providerRoom,roomName,expiry)) throw new LiveVoiceError('Voice-room privacy verification failed.',503)
@@ -113,7 +131,7 @@ export async function issueLiveVoiceToken(
     enable_prejoin_ui:false,enable_screenshare:false,
     permissions:{canSend,canAdmin,canReceive:{base:{audio:true,video:false,screenAudio:false,screenVideo:false,customAudio:{'*':false},customVideo:{'*':false}}}},
   }})
-  if (!tokenResponse.ok) throw new LiveVoiceError('Could not authorize voice.',503)
+  if (!tokenResponse.ok) rejectDailyResponse('room-token',tokenResponse)
   const responseData = await tokenResponse.json().catch(()=>null) as {token?:unknown}|null
   if (typeof responseData?.token !== 'string' || !responseData.token) throw new LiveVoiceError('Invalid audio authorization.',503)
   return { url:providerRoom.url, token:responseData.token, role, participantId,
