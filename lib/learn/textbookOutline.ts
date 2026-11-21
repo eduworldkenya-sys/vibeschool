@@ -20,6 +20,36 @@ export function buildTextbookOutline(rows: readonly CurriculumOutlineRow[]) {
   return [...chapters.values()]
 }
 
+/** The mapped Grade 4 Maths curriculum is the learner's chapter index.
+ * Public shell metadata intentionally includes older, unlocated Maths headings;
+ * the authenticated canonical 19-row binding selects the real sub-strands.
+ * Do not rewrite IDs or turn these headings into released lessons.
+ */
+export type Grade4MathBinding = { source_ref: string; sub_strand_id: string }
+export function projectGrade4MathOutline(rows: readonly CurriculumOutlineRow[], bindings: readonly Grade4MathBinding[]): CurriculumOutlineRow[] | null {
+  const expected = [8, 7, 3, 1]
+  if (bindings.length !== 19) return null
+  const byId = new Map(rows.map(row => [row.id, row]))
+  const seenIds = new Set<string>()
+  const seenCodes = new Set<string>()
+  const projected: CurriculumOutlineRow[] = []
+  for (const binding of bindings) {
+    const match = /^VS-CUR-G04-MA-2026#([1-4])\.([1-9])$/.exec(binding.source_ref)
+    if (!match || !binding.sub_strand_id || seenIds.has(binding.sub_strand_id) || seenCodes.has(binding.source_ref)) return null
+    const strand = Number(match[1]), subStrand = Number(match[2])
+    if (subStrand > expected[strand - 1]) return null
+    const row = byId.get(binding.sub_strand_id)
+    if (!row?.name || !row.sub_strand) return null
+    seenIds.add(row.id)
+    seenCodes.add(binding.source_ref)
+    projected.push({ ...row, strand_order: strand, sub_strand_order: subStrand })
+  }
+  if (expected.some((count, index) => projected.filter(row => row.strand_order === index + 1).length !== count)) return null
+  return projected.sort((a, b) =>
+    (a.strand_order ?? 99) - (b.strand_order ?? 99) ||
+    (a.sub_strand_order ?? 99) - (b.sub_strand_order ?? 99))
+}
+
 export type BookReadingEntry = { id: string; title: string; href: string; subStrandId?: string | null; legacy?: boolean }
 export type BookReadingGroup = { id: string; title: string; topics: { id: string; title: string; strand?: string; entries: BookReadingEntry[] }[] }
 const normalTitle = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase()
