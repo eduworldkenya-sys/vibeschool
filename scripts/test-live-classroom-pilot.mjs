@@ -476,7 +476,7 @@ await db.close()
  follower=await f.rpc(f.a,'get',r.id)
  assert.equal(follower.presentedPromptId,first,'Teacher may revisit an earlier lesson page')
  assert.equal(Number(follower.presentedScrollRatio),0.4)
- await f.rpc(f.teacher,'pause',r.id,r.version)
+ r=await f.rpc(f.teacher,'pause',r.id,r.version)
  await assert.rejects(f.rpc(f.teacher,'present',r.id,null,{
    currentPromptId:second,promptId:first,ratio:'0.8'
  }),/live_paused/)
