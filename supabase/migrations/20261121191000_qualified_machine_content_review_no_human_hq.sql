@@ -429,7 +429,7 @@ begin
  end if;
  update public.ce_machine_content_commissions
    set revoked_at=clock_timestamp()
- where id=p_commission_id and commissioned_by=v_owner and revoked_at is null;
+ where id=p_commission_id and revoked_at is null;
  get diagnostics v_changed=row_count;
  return v_changed=1;
 end $;
@@ -454,7 +454,7 @@ returns uuid
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_owner uuid := auth.uid();
   v_subject public.subjects%rowtype;
@@ -476,35 +476,13 @@ begin
     raise exception 'canonical_global_subject_required';
   end if;
 
-  -- KICD officer approval is not required for VibeSchool-original textbooks.
-  -- The internal 'approved' source state means traceable official-source identity.
-  -- A commissioned independent MACHINE reviewer may register with an exact
-  -- source SHA receipt; a platform owner remains an existing alternate path.
-  if not public.is_platform_owner() then
+  -- An official KICD document is a reference, not an external KICD endorsement.
+  -- A real authenticated independent machine reviewer can verify source identity.
+  if public.is_platform_owner() then
+    perform public.hq_assert_owner();
+  else
     if p_source_url !~ '^https://kicd[.]ac[.]ke/' or
-       p_metadata->>'source_sha256' !~ '^[a-f0-9]{64}
-  insert into public.curriculum_authority_sources(
-    authority_name,curriculum_framework,grade,canonical_subject_id,subject_label,
-    source_url,source_version,source_published_on,source_status,approved_by,metadata
-  ) values (
-    btrim(p_authority_name),btrim(p_curriculum_framework),btrim(p_grade),
-    p_canonical_subject_id,v_subject.name,btrim(p_source_url),
-    coalesce(btrim(p_source_version),''),p_source_published_on,'approved',v_owner,coalesce(p_metadata,'{}'::jsonb)
-  )
-  on conflict (authority_name,curriculum_framework,grade,canonical_subject_id,source_url,source_version)
-  do update set
-    source_status='approved',
-    source_published_on=coalesce(excluded.source_published_on,public.curriculum_authority_sources.source_published_on),
-    metadata=public.curriculum_authority_sources.metadata || excluded.metadata,
-    approved_by=excluded.approved_by,
-    approved_at=now()
-  returning id into v_id;
-
-  return v_id;
-end
-$;
-
- or
+       coalesce(p_metadata->>'source_sha256','') !~ '^[a-f0-9]{64}$' or
        p_metadata->>'source_url' is distinct from p_source_url then
        raise exception 'KICD_OFFICIAL_SOURCE_EVIDENCE_REQUIRED';
     end if;
@@ -546,11 +524,11 @@ $;
 
   return v_id;
 end
-$;
+$$;
 
 
--- The canonical certifier still requires prior verification, genuine rights
--- clearance, immutable version checks and the curriculum promotion gate.
+-- Canonical certification still requires prior verification, rights clearance,
+-- a distinct review receipt and the existing curriculum promotion trigger.
 create or replace function public.cla_certify_learning_resource_version(
   p_version_id uuid,
   p_certification_policy_version text,
@@ -560,7 +538,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_version public.learning_resource_versions%rowtype;
   v_publication_id uuid;
@@ -598,7 +576,6 @@ begin
     perform public.ce_require_machine_review_receipt(
       v_publication_id,'resource_certification',v_version.id,v_version.content_sha256);
   end if;
-
 
   if v_version.lifecycle_status <> 'verified'
      or v_version.verified_at is null
@@ -638,7 +615,7 @@ begin
     'certified_at',v_version.certified_at
   );
 end;
-$;
+$$;
 
 
 revoke all on function public.curriculum_authority_register_source(text,text,text,uuid,text,text,date,jsonb)
