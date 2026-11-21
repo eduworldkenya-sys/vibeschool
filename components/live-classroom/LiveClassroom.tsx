@@ -952,7 +952,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
            {viewedPrompt&&<small>Working on: {viewedPrompt.body.slice(0,160)}</small>}
            <label>My working<textarea aria-label="Private working" maxLength={2000} rows={6} value={workDraft} onChange={e=>updateWorkDraft(e.target.value)} placeholder="Show your steps, draft an explanation or work out a question…"/></label>
            <div className={styles.workpadActions}>
-             <button type="button" disabled={!workDraft.trim()||!prompt||viewedPrompt?.id!==prompt.id||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed||(room.ownAnswer!==null&&room.ownAnswer!==undefined)||room.status!=='active'} onClick={()=>{if(!prompt)return;setAnswer(workDraft.trim());setAnswerFor(prompt.id);setLearnerTool(null)}}>Use as answer</button>
+             <button type="button" disabled={answerChoices.length>0||!workDraft.trim()||!prompt||viewedPrompt?.id!==prompt.id||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed||(room.ownAnswer!==null&&room.ownAnswer!==undefined)||room.status!=='active'} onClick={()=>{if(!prompt)return;setAnswer(workDraft.trim());setAnswerFor(prompt.id);setLearnerTool(null)}}>Use as answer</button>
              <button type="button" disabled={!workDraft.trim()} onClick={moveWorkToNotes}>Add to private notes</button>
              <button type="button" disabled={!workDraft} onClick={()=>updateWorkDraft('')}>Clear work</button>
            </div>
