@@ -64,7 +64,7 @@ test('canonical public and teacher headers own the switcher; fallback remains el
   const control = source('components/theme/ThemeControl.tsx')
   const css = source('components/theme/ThemeControl.module.css')
   assert.match(publicHeader, /<ThemeControl native className=\{styles\.appearanceControl\} \/>/)
-  assert.match(teacherLayout, /<ThemeControl native \/>/)
+  assert.match(teacherLayout, /<ThemeControl native compact \/>/)
   assert.match(control, /native \? 'true' : undefined/)
   assert.match(css, /body:has\(\[data-site-theme-host\]\)/)
   assert.match(control, /<aside className=\{styles\.floating\}/)
