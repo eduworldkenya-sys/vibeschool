@@ -196,3 +196,7 @@
 .chatMessages p{color:#c8ddd4;font-size:13px}
 .sheetTitle strong{display:flex;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}
 @media(max-width:360px){.immersive .learnerTools button{font-size:10px;letter-spacing:-.02em}.learnerTools button span{overflow-wrap:anywhere}}
+
+/* Live adds a seventh dock action without hiding existing lesson tools on phones. */
+.toolRow{grid-template-columns:repeat(7,minmax(0,1fr))}
+@media(max-width:420px){.toolRow button{font-size:10px}.toolRow button span{overflow:hidden;text-overflow:ellipsis;max-width:100%}}

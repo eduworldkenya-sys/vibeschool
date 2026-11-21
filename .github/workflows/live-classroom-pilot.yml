@@ -9,6 +9,8 @@ on:
       - 'app/parent/live/**'
       - 'app/teacher/classhub/**'
       - 'components/live-classroom/**'
+      - 'lib/live/resourcePresentation.ts'
+      - 'scripts/test-live-resource-presentation.mjs'
       - 'supabase/migrations/*live_classroom*'
       - 'supabase/migrations/*live_lesson_history*'
       - 'supabase/migrations/*live_learner_tools*'
@@ -48,6 +50,8 @@ jobs:
 
       - name: Verify eligible learner Live notification and fail-closed filtering
         run: node --experimental-strip-types scripts/test-live-learner-notice.mjs
+      - name: Verify school-only resource sharing and bounded presentation contract
+        run: node --experimental-strip-types scripts/test-live-resource-presentation.mjs
       - name: Install pinned browser test dependencies
         run: |
           mapfile -t ui_packages < <(node -e 'const p=require("./package-lock.json").packages; for(const n of ["react","react-dom","lucide-react"]) { const v=p["node_modules/"+n]?.version; if(!v)throw Error("Missing locked package "+n); console.log(n+"@"+v) }')
