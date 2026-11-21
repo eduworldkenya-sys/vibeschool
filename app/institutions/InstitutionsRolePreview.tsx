@@ -67,6 +67,7 @@ const icons = [LayoutDashboard, CalendarDays, ClipboardCheck, ChartNoAxesCombine
 export function InstitutionsRolePreview() {
   const [activeRole, setActiveRole] = useState<RoleKey>('leadership')
   const current = roleViews[activeRole]
+  const modules: ReadonlyArray<readonly [string, string]> = current.modules
 
   return (
     <div className={styles.rolesExperience}>
@@ -94,7 +95,7 @@ export function InstitutionsRolePreview() {
             <p>{current.description}</p>
           </div>
           <div className={styles.moduleGrid}>
-            {current.modules.map(([title, detail], index) => {
+            {modules.map(([title, detail], index) => {
               const Icon = icons[index]
               return (
                 <div className={styles.moduleCard} key={title}>
