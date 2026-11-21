@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { GRADE4_MATHEMATICS_UNITS as units, GRADE4_MATHEMATICS_LESSONS, GRADE4_MATHEMATICS_OUTCOMES, GRADE4_MATHEMATICS_PREFIX, GRADE4_MATHEMATICS_SOURCE_URL, GRADE4_MATHEMATICS_WEEKLY_ALLOCATION } from '../lib/teaching/grade4MathematicsCatalog.mjs'
 import { buildGrade1AnnualSchemeDraft, termCreativeSchemeRows } from '../lib/teaching/creativeSchemeDraft.mjs'
+import { GRADE4_MATH_KICD_REFERENCE as reference, GRADE4_MATH_KICD_SHARED as shared } from '../lib/teaching/grade4MathematicsKicdReference.mjs'
 
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8')
 const page=read('../app/teacher/scheme/AuthoritySchemePage.jsx')
@@ -17,6 +18,16 @@ assert.equal(GRADE4_MATHEMATICS_WEEKLY_ALLOCATION,5)
 assert.equal(GRADE4_MATHEMATICS_OUTCOMES,110)
 assert.equal(units.reduce((n,u)=>n+u.lessons,0),150)
 assert.equal(units.reduce((n,u)=>n+u.outcomes.length,0),110)
+assert.deepEqual(Object.keys(reference).sort(),units.map(unit=>unit.id).sort(),'Every existing sub-strand needs matching reference guidance')
+for (const unit of units) {
+ const info=reference[unit.id]
+ assert.ok(info.materials.length>10 && info.beyondClass.length>10,'Missing KICD reference resources/non-formal activity: '+unit.id)
+}
+for (const unitId of ['1.1','1.2','1.3','3.1','3.3','4.1'])
+ assert.ok(reference[unitId].competency && reference[unitId].value && reference[unitId].pci && reference[unitId].subjectLink,'Evidence-backed context required: '+unitId)
+assert.equal(shared.levels.length,4)
+assert.ok(shared.officialSourceNotice.includes('not published textbook'))
+
 assert.equal(units.find(u=>u.id==='1.1').lessons,20,'VibeSchool-only planning allocation, disclosed as not officially printed')
 assert.ok(GRADE4_MATHEMATICS_SOURCE_URL.startsWith('https://kicd.ac.ke/'))
 assert.equal(GRADE4_MATHEMATICS_PREFIX,'VS-CUR-G04-MA-2026')
@@ -44,6 +55,10 @@ for(const name of ['isGrade4Mathematics','grade4_mathematics_reader_bindings','<
 assert.ok(hub.includes('grade4MathematicsClass')&&hub.includes('<Grade4MathematicsMap'))
 assert.ok(map.includes('GRADE4_MATHEMATICS_SOURCE_URL')&&map.includes('independently authored'))
 assert.ok(map.includes('20-lesson VibeSchool pacing allocation'))
+for (const fragment of ['Suggested learning experiences','Key inquiry questions','KICD context','Pertinent and contemporary issues','Non-formal learning','Assessment approach','Performance levels','Community Service Learning','official KICD design'])
+ assert.ok(map.includes(fragment),'Missing learner-centred curriculum reference surface '+fragment)
+assert.ok(!map.includes('KICD certified'),'The reference guide must not certify unpublished material')
+
 for(const guard of ['security invoker','SCHEME_INVOKER_AUTHORITY_REQUIRED','grade4_mathematics_reader_bindings','GRADE4_MATH_PERSISTENCE_INCOMPLETE','on conflict(subject_id,grade,name,sub_strand) do nothing',"source_type='creator_claimed'",'on conflict(sub_strand_id) do nothing'])
  assert.ok(sql.includes(guard),'Migration missing '+guard)
 assert.ok(!/delete from public\.cbc_strands|truncate public\.cbc_strands|insert into public\.scheme_of_work/i.test(sql),'Existing curriculum and teacher schemes must never be overwritten')
