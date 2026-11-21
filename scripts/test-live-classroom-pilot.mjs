@@ -2,6 +2,12 @@
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
 import assert from 'node:assert/strict'
+import {liveSyncDelay} from '../components/live-classroom/LiveSyncPolicy.ts'
+assert.equal(liveSyncDelay('active',0),1250)
+assert.equal(liveSyncDelay(null,0),4000)
+assert.equal(liveSyncDelay('paused',0),4000)
+assert.equal(liveSyncDelay('ended',0),15000)
+assert.deepEqual([1,2,3,4,100].map(n=>liveSyncDelay('active',n)),[5000,10000,20000,30000,30000])
 import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS} from '../components/live-classroom/LiveSlideProtocol.ts'
 import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS} from '../components/live-classroom/LiveBoardProtocol.ts'
 const shape={id:'fixture-rect',kind:'rectangle',x:20,y:25,w:90,h:60,angle:15,color:'#1865c0',stroke:3,locked:true}
@@ -46,6 +52,12 @@ assert.ok(teacherToday.includes('audience === "tuition" || audience === "open"')
 const liveUi=readFileSync(new URL('../components/live-classroom/LiveClassroom.tsx',import.meta.url),'utf8')
 assert.ok(liveUi.includes("act('join',sharedId)"))
 assert.ok(liveUi.includes('Find live lessons'))
+assert.ok(!liveUi.includes('setInterval(()=>void refresh(),4000)'))
+assert.ok(liveUi.includes('liveSyncDelay(active.current?.status??null,failures)'))
+assert.ok(liveUi.includes('stamp!==sequence'))
+assert.ok(liveUi.includes('Edit as new question'))
+assert.ok(liveUi.includes('You → Teacher'))
+assert.ok(liveUi.includes('Teacher → You'))
 assert.ok(liveUi.includes('Share lesson'))
 assert.ok(liveUi.includes('switchBoardPage'))
 assert.ok(liveUi.includes('Previous board page'))
@@ -287,3 +299,36 @@ await db.exec(`update teacher_classes set teacher_id='${otherTeacher}' where tea
 await assert.rejects(rpc(teacher,'get',sid),/live_not_authorized/)
 console.log('PASS: private RPC, 2 learners, class scope, independent responses, retry, answer concealment, teacher actions, stale prompt, pause, enrollment revocation, end, anonymous and raw data denial')
 await db.close()
+
+
+// Past Classes are an authorized read-only inventory of sessions that ended.
+// Never let class eligibility alone grant access to sessions not attended.
+{
+ const f=await createLiveFixture()
+ let lesson=await f.rpc(f.teacher,'start',null,null,{title:'Archived Grade 4 lesson'})
+ await f.rpc(f.a,'join',lesson.id)
+ lesson=await f.rpc(f.teacher,'publish',lesson.id,lesson.version,{kind:'quiz',body:'Past class question',answerKey:'Never reveal prematurely'})
+ await f.rpc(f.teacher,'end',lesson.id,lesson.version)
+ const attendeePast=await f.rpc(f.a,'past_list')
+ assert.equal(attendeePast.length,1)
+ assert.equal(attendeePast[0].id,lesson.id)
+ assert.equal(attendeePast[0].status,'ended')
+ assert.equal(attendeePast[0].title,'Archived Grade 4 lesson')
+ assert.ok(Number.isFinite(Date.parse(attendeePast[0].startedAt)))
+ assert.deepEqual(await f.rpc(f.b,'past_list'),[],'Eligible but non-attending student must not see past lesson')
+ assert.deepEqual(await f.rpc(f.outsider,'past_list'),[],'Different-school student must not see past lesson')
+ await assert.rejects(f.rpc(f.cpa,'past_list'),/live_not_authorized/,'Muted professional student must not see school-level archive')
+ assert.equal((await f.rpc(f.teacher,'past_list',null,null,{host:true}))[0].id,lesson.id)
+ const review=await f.rpc(f.a,'get',lesson.id)
+ assert.equal(review.status,'ended')
+ assert.equal(review.history.length,1)
+ assert.equal(review.history[0].answerKey,null,'Unrevealed quiz answer must remain private after class')
+ await assert.rejects(f.rpc(f.b,'get',lesson.id),/live_join_required/)
+ await assert.rejects(f.rpc(f.outsider,'get',lesson.id),/live_not_authorized/)
+ await assert.rejects(f.rpc(null,'past_list',null,null,{},f.cls,'anon'),/permission denied/)
+ await f.db.exec(`delete from public.student_classes where student_id='${f.id(30)}'`)
+ await assert.rejects(f.rpc(f.a,'past_list'),/live_not_authorized/,'Revocation must remove access to the archive')
+ await assert.rejects(f.rpc(f.a,'get',lesson.id),/live_not_authorized/)
+ console.log('PASS: Past Classes are attended-only, read-only, scoped, revoked and do not leak hidden answers')
+ await f.db.close()
+}

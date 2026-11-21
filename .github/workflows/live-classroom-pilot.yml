@@ -16,6 +16,7 @@ on:
       - 'scripts/test-live-classroom-pilot.mjs'
       - 'scripts/live-classroom-test-fixture.mjs'
       - 'scripts/test-live-classroom-browser.mjs'
+      - 'scripts/test-live-learner-notice.mjs'
       - '.github/workflows/live-classroom-pilot.yml'
   push:
     branches: [main]
@@ -28,6 +29,7 @@ on:
       - 'scripts/test-live-classroom-pilot.mjs'
       - 'scripts/live-classroom-test-fixture.mjs'
       - 'scripts/test-live-classroom-browser.mjs'
+      - 'scripts/test-live-learner-notice.mjs'
       - '.github/workflows/live-classroom-pilot.yml'
 permissions:
   contents: read
@@ -44,6 +46,8 @@ jobs:
       - name: Exercise actual SQL migration and adversarial access paths
         run: node scripts/test-live-classroom-pilot.mjs
 
+      - name: Verify eligible learner Live notification and fail-closed filtering
+        run: node --experimental-strip-types scripts/test-live-learner-notice.mjs
       - name: Install pinned browser test dependencies
         run: |
           mapfile -t ui_packages < <(node -e 'const p=require("./package-lock.json").packages; for(const n of ["react","react-dom","lucide-react"]) { const v=p["node_modules/"+n]?.version; if(!v)throw Error("Missing locked package "+n); console.log(n+"@"+v) }')

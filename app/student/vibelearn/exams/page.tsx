@@ -1,7 +1,7 @@
 'use client'
 import StudentIntro from "@/components/student/StudentIntro";
 import { ClipboardCheck, PlayCircle, CalendarDays, BookOpenCheck, GraduationCap } from 'lucide-react'
-import { EXAM_ORIGINALS, type ExamOriginalKey } from '@/lib/assessment/exam-originals'
+import { EXAM_ORIGINALS, parseExamOriginalKey, type ExamOriginalKey } from '@/lib/assessment/exam-originals'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,8 +44,15 @@ function examState(item: LearnerAssessmentAssignment): ExamState {
 }
 
 function subjectFromTitle(title: string): string {
-  const match = title.match(/(?:grade|form)\s*\d+\s+(.+?)\s*[—–-]\s*/i)
-  return match?.[1]?.trim() || 'Assessment'
+  const afterGrade = title.match(/(?:grade|form)\s*\d+\s+(.+?)\s*[—–-]\s*/i)
+  const beforeGrade = title.match(/^Vibe(?:CAT|Try|Term|Papers|Mock)\s+(.+?)\s+(?:grade|form)\s*\d+\b/i)
+  return afterGrade?.[1]?.trim() || beforeGrade?.[1]?.trim() || 'Assessment'
+}
+
+// Display-only labels; access is always determined by the server's assignment list.
+function gradeFromTitle(title: string): string {
+  const match = title.match(/\b(grade|form)\s*(\d+)\b/i)
+  return match ? `${match[1].toLowerCase() === 'grade' ? 'Grade' : 'Form'} ${match[2]}` : 'Other'
 }
 
 const statusText: Record<ExamState, string> = {
@@ -73,9 +80,21 @@ export default function VibeLearnExamsPage() {
   const [retake, setRetake] = useState<LearnerAssessmentAssignment | null>(null)
   const [query, setQuery] = useState('')
   const [subject, setSubject] = useState('All subjects')
+  const [grade, setGrade] = useState('All grades')
   const [examType, setExamType] = useState('All types')
-  const [originalSeries, setOriginalSeries] = useState<ExamOriginalKey | 'all'>('all')
-  const [layout, setLayout] = useState<'grid' | 'list'>('grid')
+  const originalSeries = parseExamOriginalKey(searchParams.get('series')) ?? 'all'
+  const catalogueHeading = useRef<HTMLHeadingElement>(null)
+  const resetFilters = useCallback(() => { setQuery(''); setSubject('All subjects'); setGrade('All grades'); setExamType('All types') }, [])
+  useEffect(() => { resetFilters() }, [originalSeries, resetFilters])
+  useEffect(() => {
+    if (originalSeries !== 'all' && !loading && view === 'for-you') catalogueHeading.current?.focus()
+  }, [originalSeries, loading, view])
+  function setOriginalSeries(series: ExamOriginalKey | 'all') {
+    resetFilters()
+    const path = '/student/vibelearn/exams'
+    router.push(series === 'all' ? path : `${path}?series=${series}`)
+  }
+  const [layout, setLayout] = useState<'grid' | 'list'>('list')
 
 
   const reload = useCallback(() => {
@@ -97,8 +116,8 @@ export default function VibeLearnExamsPage() {
 
   useEffect(() => reload(), [reload])
   useEffect(() => {
-    if (selectedView === 'history' || selectedView === 'progress' || selectedView === 'for-you') {
-      setView(selectedView)
+    if (selectedView === 'history' || selectedView === 'progress' || selectedView === 'for-you' || selectedView === null) {
+      setView(selectedView ?? 'for-you')
     }
   }, [selectedView])
   useEffect(() => {
@@ -130,7 +149,7 @@ export default function VibeLearnExamsPage() {
   }
   function changeView(next: View) {
     setView(next)
-    router.replace(`/student/vibelearn/exams?view=${next}`, { scroll: false })
+    router.replace(`/student/vibelearn/exams?view=${next}${originalSeries === 'all' ? '' : `&series=${originalSeries}`}`, { scroll: false })
   }
   function viewResult(attemptId: string) {
     router.push(`/student/results/${encodeURIComponent(attemptId)}?from=${view}`)
@@ -155,16 +174,23 @@ export default function VibeLearnExamsPage() {
     }
     return { ongoing, fresh, retakes, awaiting, completed }
   }, [assignments])
-  const subjects = useMemo(() => ['All subjects', ...Array.from(new Set(assignments.map(item => subjectFromTitle(item.title)).filter(name => name !== 'Assessment'))).sort()], [assignments])
-  const types = useMemo(() => ['All types', ...Array.from(new Set(assignments.map(item => item.assessmentType.replaceAll('_', ' ')))).sort()], [assignments])
-  const filterExam = (item: LearnerAssessmentAssignment) => (subject === 'All subjects' || subjectFromTitle(item.title) === subject)
-    && (examType === 'All types' || item.assessmentType.replaceAll('_', ' ') === examType)
-    && (item.title + ' ' + item.assessmentType).toLowerCase().includes(query.trim().toLowerCase())
   const belongsToSelectedSeries = (item: LearnerAssessmentAssignment) =>
     originalSeries === 'all' || item.originalSeries === originalSeries
+  const catalogue = assignments.filter(belongsToSelectedSeries)
+  const subjects = ['All subjects', ...Array.from(new Set(catalogue.map(item => subjectFromTitle(item.title)))).sort()]
+  const grades = ['All grades', ...Array.from(new Set(catalogue.map(item => gradeFromTitle(item.title)))).sort((a,b) => a.localeCompare(b, undefined, { numeric: true }))]
+  const types = ['All types', ...Array.from(new Set(catalogue.map(item => item.assessmentType.replaceAll('_', ' ')))).sort()]
+  const filterExam = (item: LearnerAssessmentAssignment) => (subject === 'All subjects' || subjectFromTitle(item.title) === subject)
+    && (grade === 'All grades' || gradeFromTitle(item.title) === grade)
+    && (examType === 'All types' || item.assessmentType.replaceAll('_', ' ') === examType)
+    && (item.title + ' ' + item.assessmentType).toLowerCase().includes(query.trim().toLowerCase())
   const filteredFresh = groups.fresh.filter(item => filterExam(item) && belongsToSelectedSeries(item))
   const filteredRetakes = groups.retakes.filter(item => filterExam(item) && belongsToSelectedSeries(item))
   const activeSeriesName = EXAM_ORIGINALS.find(series => series.key === originalSeries)?.name ?? null
+  const catalogueOngoing = groups.ongoing.filter(belongsToSelectedSeries)
+  const catalogueAwaiting = groups.awaiting.filter(belongsToSelectedSeries)
+  const catalogueCompleted = groups.completed.filter(belongsToSelectedSeries)
+  const seriesHasPapers = assignments.some(belongsToSelectedSeries)
   const featured = groups.ongoing[0] ?? groups.fresh[0] ?? null
   const results = hub?.results ?? []
   const scored = results.filter(r => r.percentage !== null)
@@ -183,7 +209,7 @@ export default function VibeLearnExamsPage() {
 
 
   function start(item: LearnerAssessmentAssignment) {
-    router.push(`/student/assessment/${encodeURIComponent(item.assignmentId)}`)
+    router.push(`/student/assessment/${encodeURIComponent(item.assignmentId)}${item.originalSeries ? `?series=${item.originalSeries}` : ''}`)
   }
 
   function examCard(item: LearnerAssessmentAssignment, kind: ExamState) {
@@ -214,7 +240,8 @@ export default function VibeLearnExamsPage() {
             if (canSelfMark && item.attemptId) router.push(`/student/assessment/review/${encodeURIComponent(item.attemptId)}`)
             else if (kind === 'retake' && mayRetake(item)) openRetake(item, event.currentTarget)
             else if (kind === 'completed' && resultAvailable && item.attemptId) viewResult(item.attemptId)
-            else if (kind === 'new' || kind === 'in-progress') start(item)
+            else if (kind === 'new') openRetake(item, event.currentTarget)
+            else if (kind === 'in-progress') start(item)
             else if (kind === 'expired') reload()
             else changeView('history')
           }}>{action}</button>
@@ -231,22 +258,23 @@ export default function VibeLearnExamsPage() {
         </div>
       </div>
       <header className="vs-exams-heading">
-        <div><h1>My Exams</h1>
-          <StudentIntro feature="exams-overview"><p>Choose an exam, resume an unfinished attempt or review released results.</p></StudentIntro></div>
+        <div>{activeSeriesName && view === 'for-you' && <button type="button" className="vs-exams-refresh" onClick={() => setOriginalSeries('all')}>← All exams</button>}
+          <h1 ref={catalogueHeading} tabIndex={-1}>{view === 'for-you' ? activeSeriesName ?? 'My Exams' : 'My Exams'}</h1>
+          {!activeSeriesName && <StudentIntro feature="exams-overview"><p>Choose an exam, resume an unfinished attempt or review released results.</p></StudentIntro>}</div>
       </header>
 
-      <section className="vs-exams-overview" aria-label="Exam overview">
+      {!activeSeriesName && <section className="vs-exams-overview" aria-label="Exam overview">
         <div><strong>{loading ? '—' : groups.fresh.length}</strong><span>New exams</span></div>
         <div><strong>{loading ? '—' : groups.ongoing.length}</strong><span>In progress</span></div>
         <div><strong>{loading ? '—' : results.length}</strong><span>Results</span></div>
-      </section>
+      </section>}
 
-      {!loading && featured && view === 'for-you' && <section className="vs-command-featured" aria-label="Featured examination">
+      {!activeSeriesName && !loading && featured && view === 'for-you' && <section className="vs-command-featured" aria-label="Featured examination">
         <div className="vs-command-feature-copy">
           <span className="vs-command-feature-kicker">{examState(featured) === 'in-progress' ? '↻ CONTINUE YOUR EXAM' : '✦ NEXT UP · READY FOR YOU'}</span>
           <h2>{featured.title}</h2>
           <p>{featured.assessmentType.replaceAll('_', ' ')}{featured.timeLimitMinutes ? ' · ' + featured.timeLimitMinutes + ' minutes' : ''}</p>
-          <button type="button" className="vs-exam-button" onClick={() => start(featured)}>{examState(featured) === 'in-progress' ? 'Resume examination ↗' : 'Open examination ↗'}</button>
+          <button type="button" className="vs-exam-button" onClick={event => examState(featured) === 'in-progress' ? start(featured) : openRetake(featured, event.currentTarget)}>{examState(featured) === 'in-progress' ? 'Resume examination ↗' : 'Open examination ↗'}</button>
         </div>
         <div className="vs-command-orbit" aria-hidden="true"><div className="vs-command-cube">✓</div><small>ASSESSMENT READY</small></div>
       </section>}
@@ -260,8 +288,8 @@ export default function VibeLearnExamsPage() {
       {!loading && assessmentError && <div className="vs-exams-message vs-exams-error" role="alert">{assessmentError}<button type="button" onClick={() => { setLoading(true); window.location.reload() }}>Retry</button></div>}
       {!loading && resultsError && <div className="vs-exams-message vs-exams-error" role="alert">{resultsError}</div>}
 
-      {!loading && view === 'for-you' && <div className="vs-exams-sections">
-        <section className="vs-originals" aria-labelledby="vs-originals-heading">
+      {!loading && !assessmentError && view === 'for-you' && <div className="vs-exams-sections">
+        {!activeSeriesName && <section className="vs-originals" aria-labelledby="vs-originals-heading">
           <div className="vs-originals-heading">
             <div><span className="vs-originals-kicker">VIBESCHOOL ORIGINALS</span><h2 id="vs-originals-heading">Choose your exam</h2></div>
             <button type="button" className="vs-originals-all" aria-pressed={originalSeries === 'all'}
@@ -271,50 +299,55 @@ export default function VibeLearnExamsPage() {
             {EXAM_ORIGINALS.map(series => {
               const Icon = ORIGINAL_ICONS[series.key]
               const ready = groups.fresh.filter(item => item.originalSeries === series.key).length
+              const ongoing = groups.ongoing.filter(item => item.originalSeries === series.key).length
+              const retakes = groups.retakes.filter(item => item.originalSeries === series.key).length
+              const total = assignments.filter(item => item.originalSeries === series.key).length
               return <button type="button" key={series.key} data-series={series.key}
                 className="vs-originals-product" aria-pressed={originalSeries === series.key}
-                onClick={() => setOriginalSeries(current => current === series.key ? 'all' : series.key)}>
+                onClick={() => setOriginalSeries(series.key)}>
                 <span className="vs-originals-product-top"><Icon size={21} aria-hidden="true" /><span>{series.length}</span></span>
                 <strong>{series.name}</strong>
                 <span className="vs-originals-tagline">{series.tagline}</span>
                 <span className="vs-originals-description">{series.summary}</span>
-                <span className="vs-originals-available">{ready ? `${ready} available` : 'No papers available yet'}</span>
+                <span className="vs-originals-available">{total ? `${ready} new · ${ongoing} ongoing · ${retakes} retakes` : 'No papers available yet'}</span>
               </button>
             })}
           </div>
-        </section>
+        </section>}
         <section className="vs-command-explore" aria-label="Search and filter exams">
           <div className="vs-exams-section-header"><div><h2>{activeSeriesName ?? 'Exam library'}</h2></div><div className="vs-command-layout"><button type="button" aria-pressed={layout === 'grid'} onClick={() => setLayout('grid')}>▦ Cards</button><button type="button" aria-pressed={layout === 'list'} onClick={() => setLayout('list')}>☷ List</button></div></div>
           <div className="vs-command-filters">
             <label className="vs-command-search"><span>Search exams</span><input type="search" placeholder="Search exam title or type" value={query} onChange={event => setQuery(event.target.value)} /></label>
+            {grades.length > 2 && <label><span>Grade</span><select value={grade} onChange={event => setGrade(event.target.value)}>{grades.map(option => <option key={option}>{option}</option>)}</select></label>}
             <label><span>Subject</span><select value={subject} onChange={event => setSubject(event.target.value)}>{subjects.map(option => <option key={option}>{option}</option>)}</select></label>
             <label><span>Exam type</span><select value={examType} onChange={event => setExamType(event.target.value)}>{types.map(option => <option key={option}>{option}</option>)}</select></label>
           </div>
-          <div className="vs-command-filter-summary"><span>{filteredFresh.length} available matching exams</span><button type="button" onClick={() => {setQuery('');setSubject('All subjects');setExamType('All types');setOriginalSeries('all')}}>Clear filters</button></div>
+          <div className="vs-command-filter-summary"><span>{filteredFresh.length} available matching exams</span><button type="button" onClick={resetFilters}>Clear filters</button></div>
         </section>
-        {groups.ongoing.length > 0 && <section aria-labelledby="vs-exams-continue">
+        {catalogueOngoing.length > 0 && <section aria-labelledby="vs-exams-continue">
           <h2 id="vs-exams-continue">Continue your exam</h2>
-          <div className="vs-exams-card-list">{groups.ongoing.map(item => examCard(item, 'in-progress'))}</div>
+          <div className="vs-exams-card-list">{catalogueOngoing.map(item => examCard(item, 'in-progress'))}</div>
         </section>}
         <section aria-labelledby="vs-exams-new">
           <div className="vs-exams-section-header"><h2 id="vs-exams-new">Available examinations</h2><span>{filteredFresh.length} shown</span></div>
           {filteredFresh.length ? <div className={`vs-exams-card-list vs-command-card-${layout}`}>{filteredFresh.map(item => examCard(item, 'new'))}</div>
             : <div className="vs-exams-next" role="status">
-                <strong>{activeSeriesName ? `No ${activeSeriesName} papers available to you yet` : groups.fresh.length ? 'No exams match your filters' : "You're up to date with new exams"}</strong>
-                <p>{activeSeriesName ? 'Choose another series or browse the existing exams. Only exams available to your account appear here.' : groups.fresh.length ? 'Change your filters to find an available assessment.' : 'Use your previous results to choose what to improve next.'}</p>
+                <strong>{activeSeriesName ? (seriesHasPapers ? 'No new papers match this selection' : `No ${activeSeriesName} papers available to you yet`) : groups.fresh.length ? 'No exams match your filters' : "You're up to date with new exams"}</strong>
+                <p>{activeSeriesName ? (seriesHasPapers ? 'Clear filters or continue, retake or review your existing papers below.' : 'No published papers are available for your learner grade. Browse other exam series.') : groups.fresh.length ? 'Change your filters to find an available assessment.' : 'Use your previous results to choose what to improve next.'}</p>
                 <div className="vs-exams-next-actions">
                   {activeSeriesName && <button type="button" className="vs-exam-button" onClick={() => setOriginalSeries('all')}>Browse all exams</button>}
-                  {reviewFirst && <button type="button" className="vs-exam-button" onClick={() => viewResult(reviewFirst.attemptId)}>Review previous mistakes</button>}
-                  {revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={event => openRetake(revisionCandidate, event.currentTarget)}>Practise again</button>}
-                  {!reviewFirst && !revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => results.length ? changeView('history') : router.push('/student/vibelearn')}>{results.length ? 'View exam history' : 'Explore Learn'}</button>}
+                  {!activeSeriesName && reviewFirst && <button type="button" className="vs-exam-button" onClick={() => viewResult(reviewFirst.attemptId)}>Review previous mistakes</button>}
+                  {!activeSeriesName && revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={event => openRetake(revisionCandidate, event.currentTarget)}>Practise again</button>}
+                  {!activeSeriesName && !reviewFirst && !revisionCandidate && <button type="button" className="vs-exam-button vs-exam-button--outline" onClick={() => results.length ? changeView('history') : router.push('/student/vibelearn')}>{results.length ? 'View exam history' : 'Explore Learn'}</button>}
                 </div>
-                {reviewFirst && <p className="vs-exams-section-note">Review suggested from your released score in {reviewFirst.assessmentTitle} ({reviewFirst.percentage?.toFixed(1)}%). This does not identify a specific weak curriculum objective.</p>}
+                {!activeSeriesName && reviewFirst && <p className="vs-exams-section-note">Review suggested from your released score in {reviewFirst.assessmentTitle} ({reviewFirst.percentage?.toFixed(1)}%). This does not identify a specific weak curriculum objective.</p>}
               </div>}
         </section>
-        {groups.awaiting.length > 0 && <section aria-labelledby="vs-exams-awaiting">
+        {catalogueAwaiting.length > 0 && <section aria-labelledby="vs-exams-awaiting">
           <h2 id="vs-exams-awaiting">Waiting for results</h2>
-          <div className="vs-exams-card-list">{groups.awaiting.map(item => examCard(item, examState(item)))}</div>
+          <div className="vs-exams-card-list">{catalogueAwaiting.map(item => examCard(item, examState(item)))}</div>
         </section>}
+        {activeSeriesName && catalogueCompleted.length > 0 && <section aria-label="Completed papers"><h2>Completed papers</h2><div className="vs-exams-card-list">{catalogueCompleted.map(item => examCard(item, 'completed'))}</div></section>}
         {filteredRetakes.length > 0 && <section aria-labelledby="vs-exams-retakes">
           <h2 id="vs-exams-retakes">Practise again</h2>
           
@@ -369,10 +402,14 @@ export default function VibeLearnExamsPage() {
 
     {retake && mayRetake(retake) && <div className="vs-exam-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) closeRetake() }}>
       <section role="alertdialog" aria-modal="true" aria-labelledby="vs-retake-title" aria-describedby="vs-retake-copy" className="vs-exam-modal">
-        <h2 id="vs-retake-title">Retake this exam?</h2>
-        <p id="vs-retake-copy">A new attempt will start. Your previous results will stay in History. You have used {retake.attemptNumber ?? 0} of {retake.maxAttempts} attempts.</p>
+        <h2 id="vs-retake-title">{retake.attemptId ? 'Retake this exam?' : 'Ready to start?'}</h2>
+        <p><strong>{retake.title}</strong></p>
+        <p>{retake.timeLimitMinutes ? `${retake.timeLimitMinutes} minutes · Timer continues after exit` : 'No individual time limit'}{retake.closesAt ? ` · Closes ${new Date(retake.closesAt).toLocaleString('en-KE')}` : ''}</p>
+        {retake.originalSeries && <p>{EXAM_ORIGINALS.find(series => series.key === retake.originalSeries)?.length}</p>}
+        {retake.instructions && <details><summary>Instructions</summary><p>{retake.instructions}</p></details>}
+        <p id="vs-retake-copy">{retake.attemptId ? 'Your previous results will stay in History. ' : ''}You have used {retake.attemptNumber ?? 0} of {retake.maxAttempts} attempts.</p>
         <div className="vs-exam-modal-actions"><button type="button" className="vs-exam-button vs-exam-button--outline" autoFocus onClick={closeRetake}>Cancel</button>
-          <button type="button" className="vs-exam-button" onClick={() => { const item = retake; closeRetake(); start(item) }}>Start retake</button></div>
+          <button type="button" className="vs-exam-button" onClick={() => { const item = retake; closeRetake(); start(item) }}>{retake.attemptId ? 'Start retake' : 'Start exam'}</button></div>
       </section>
     </div>}
   </main>

@@ -38,7 +38,7 @@ export async function fetchLiveListings(): Promise<LiveListings> {
   const signedIn = !!sessionRes.data.session
   let requestRows: RequestRow[] = []
 
-  // Public projection is restricted in SQL; never expose private request rows.
+  // This is a narrowly allowlisted public projection; private request rows stay owner-only.
   {
     const requestsRes = await client.from('vibetutor_open_requests').select('id,learner_label,note,levels,subjects,teaching_mode,area,budget_kes,available_days,dayparts,created_at').order('created_at', { ascending: false })
     if (requestsRes.error) throw new Error('Learner requests could not be loaded.')
@@ -87,17 +87,22 @@ export async function saveTutorListing(input: {
 
 export async function saveLearnerRequest(input: {
   learner: string; levels: string[]; subjects: string[]; mode: Mode; area: string
-  budget: string; days: string[]; phone: string; publicPreview?: boolean; dayparts?: DayPart[]
+  budget: string; days: string[]; phone: string; dayparts?: DayPart[]; publicPreview?: boolean
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const client = getSupabaseClient()
   const { data: userData, error: authError } = await client.auth.getUser()
   if (authError) return { ok: false, error: 'We could not verify your sign-in. Please try again.' }
   if (!userData.user) return { ok: false, error: 'Sign in to post your request.' }
+  if (input.publicPreview) {
+    const {data:profile,error:profileError} = await client.from('profiles').select('role').eq('id',userData.user.id).maybeSingle()
+    if (profileError || profile?.role !== 'parent') return {ok:false,error:'Use a parent or guardian account to share a learner request publicly.'}
+  }
   const { error } = await client.from('vibetutor_requests').insert({
     requester_id: userData.user.id, learner_label: input.learner.trim() || 'Learner',
     levels: input.levels, subjects: input.subjects, teaching_mode: input.mode,
     area: input.area || null, budget_kes: Number(input.budget) || null,
-    available_days: input.days, dayparts: input.dayparts ?? [], public_preview: input.publicPreview === true, phone: input.phone, status: 'open', source: 'vibetutor',
+    available_days: input.days, dayparts: input.dayparts ?? [], public_preview: input.publicPreview === true,
+    phone: input.phone, status: 'open', source: 'vibetutor',
   })
   if (!error) return { ok: true }
   if (error.code === '23503') return { ok: false, error: 'Your account profile is incomplete. Complete your VibeSchool profile before posting.' }

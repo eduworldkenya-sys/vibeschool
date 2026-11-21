@@ -107,7 +107,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
       [view]: { ...previous[view], ...Object.fromEntries(Object.entries(next).filter(([, value]) => !!value)) },
     }))
   }, [view, subject, level, area, mode, priceRange, day, discovery, nearbyArea])
-  useEffect(() => { setSeed(discoverySeed()) }, [])
+  useEffect(() => { setSeed(discoverySeed()); if (new URLSearchParams(window.location.search).get('view') === 'students') setView('students') }, [])
 
   useEffect(() => {
     let active = true
@@ -150,7 +150,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
       const rotated = rotate(rows, seed)
       return discovery === 'for-you' ? rotated.sort((a, b) => (preferenceScore(b, preferred) ?? 0) - (preferenceScore(a, preferred) ?? 0)) : rotated
     }
-    return [...order(matches.filter(t => t.real)), ...order(matches.filter(t => !t.real))]
+    return order(matches.filter(t => t.real))
   }, [q, subject, level, area, mode, priceRange, day, tutorSource, discovery, nearbyArea, preferred, seed])
   const requests = useMemo(() => {
     const rows = rotate(requestsFor(filters), seed)
@@ -205,7 +205,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
       <section className={styles.discoveryPanel} aria-label="Discover tuition">
         <header className={styles.discoveryHeader}>
           <h1 className={styles.discoveryTitle}>Discover</h1>
-          <div className={styles.discoveryActions}>
+          <div className={styles.discoveryActions}><Link className={styles.emptyAction} href="/vibetutor/inquiries">Inbox</Link>
             <button type="button" className={styles.discoveryIcon} aria-label="Search" aria-expanded={searchOpen} onClick={() => setSearchOpen(v => !v)}><Icon name="search" size={25} /></button>
             <button type="button" className={styles.discoveryIcon} aria-label="Filters" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(v => !v)}><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3 6h4m4 0h10M7 3v6M3 12h11m4 0h3m-3-3v6M3 18h4m4 0h10M7 15v6"/></svg></button>
           </div>

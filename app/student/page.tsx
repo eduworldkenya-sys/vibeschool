@@ -17,6 +17,7 @@ import { acknowledgeStudentHomeChanges, getStudentHomeOsBrief, markStudentHomeOp
 import { getLearnerTwinState, type LearnerTwinState } from '@/lib/student/twin'
 import { getVibeLearnWorkstation } from '@/lib/student/vibelearn'
 import { supabase } from '@/lib/supabase'
+import LiveLearnerNotice from '@/components/live-classroom/LiveLearnerNotice'
 
 type TodaySlot = { id: string; subject: string; start: string; end: string; room: string }
 type HomeData = { brief: StudentHomeOsBrief; twin: LearnerTwinState; todaySlots: TodaySlot[]; attendancePct: number | null }
@@ -171,6 +172,7 @@ export default function StudentHomePage() {
           {launchingTaskId ? 'Opening…' : nextTask?.actionLabel ?? (continueReading ? 'Continue reading' : hasLearningEvidence ? 'Open Learn' : 'Start learning')} <span aria-hidden="true">→</span>
         </button>
       </section>
+      {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true' && <LiveLearnerNotice studentId={identity.studentId} />}
       <nav className={compact.grid} aria-label="Home shortcuts">
         {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED==='true' && <Link className={compact.action} href="/student/live">Join Live</Link>}
         <Link className={compact.action} href="/student/tasks">Tasks · {feed?.counts.toDo ?? 0}</Link>
