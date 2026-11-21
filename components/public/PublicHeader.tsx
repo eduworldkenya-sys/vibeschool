@@ -40,6 +40,7 @@ export function PublicHeader({ product, compact = false, navigation }: PublicHea
         <Link href="/" aria-label="VibeSchool home" className={styles.brand}>
           <span className={styles.productLockup}>
             <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={620} height={160} priority className={styles.logo}/>
+            <Image src="/brand/vibeschool-wordmark-dark.svg" alt="" aria-hidden="true" width={620} height={160} className={styles.logoDark}/>
             {showProductLabel ? <><span className={styles.divider} aria-hidden="true"/><span className={styles.productName}>{product}</span></> : null}
           </span>
         </Link>
