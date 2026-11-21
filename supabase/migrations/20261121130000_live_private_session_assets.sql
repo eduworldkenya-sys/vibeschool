@@ -1,6 +1,7 @@
 -- Private VibeSchool Live PDFs/photos. No public bucket or blanket authenticated read.
 -- Original file entitlement is checked against the canonical room/membership every read,
 -- including an ended class; unshared teacher drafts are invisible to learners.
+-- authorization-test: public.live_classroom_assets scripts/test-live-class-assets.mjs (teacher, joined learner, outsider, revocation, ended room)
 begin;
 
 create or replace function public.live_asset_room_access(p_session uuid,p_teacher_only boolean default false)
