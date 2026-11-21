@@ -22,20 +22,17 @@ function initialsOf(name: string) {
 export type LiveListings = {
   tutors: DemoTutor[]
   requests: DemoRequest[]
-  sampleRequests: DemoRequest[]
   signedIn: boolean
 }
 
 export async function fetchLiveListings(): Promise<LiveListings> {
   const client = getSupabaseClient()
-  const [tutorsRes, sessionRes, samplesRes] = await Promise.all([
+  const [tutorsRes, sessionRes] = await Promise.all([
     client.from('vibetutor_public_tutors').select('*').order('created_at', { ascending: false }),
     client.auth.getSession(),
-    client.from('vibetutor_sample_requests').select('id,learner_label,note,levels,subjects,teaching_mode,area,budget_kes,available_days,dayparts,created_at').order('learner_label'),
   ])
 
   if (tutorsRes.error) throw new Error('Tutor listings could not be loaded.')
-  if (samplesRes.error) throw new Error('Sample listings could not be loaded.')
   // Public browsing must work even if an old/expired session cannot be checked.
   const signedIn = !sessionRes.error && !!sessionRes.data.session
   let requestRows: RequestRow[] = []
@@ -60,15 +57,7 @@ export async function fetchLiveListings(): Promise<LiveListings> {
     postedDaysAgo: Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86400000)),
     note: row.note ?? '', real: true,
   }))
-  // Historical HQ imports are display-only sample requests; they never enter
-  // the real contact workflow or appear as confirmed tutoring opportunities.
-  const sampleRequests: DemoRequest[] = ((samplesRes.data ?? []) as RequestRow[]).map(row => ({
-    id: row.id, learnerLabel: row.learner_label, subjects: row.subjects, level: row.levels[0] ?? '',
-    mode: row.teaching_mode, area: row.area ?? '', budgetKes: row.budget_kes ?? 0,
-    days: row.available_days, dayparts: row.dayparts as DayPart[],
-    postedDaysAgo: 0, note: '', real: false,
-  }))
-  return { tutors, requests, sampleRequests, signedIn }
+  return { tutors, requests, signedIn }
 }
 
 export async function saveTutorListing(input: {

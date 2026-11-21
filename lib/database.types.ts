@@ -39,48 +39,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      vibetutor_sample_requests: {
-        Row: {
-          id: string
-          learner_label: string
-          note: string | null
-          levels: string[]
-          subjects: string[]
-          teaching_mode: string
-          area: string | null
-          budget_kes: number | null
-          available_days: string[]
-          dayparts: string[]
-          created_at: string
-        }
-        Insert: {
-          id: string
-          learner_label: string
-          note?: string | null
-          levels: string[]
-          subjects: string[]
-          teaching_mode: string
-          area?: string | null
-          budget_kes?: number | null
-          available_days: string[]
-          dayparts: string[]
-          created_at: string
-        }
-        Update: {
-          id?: string
-          learner_label?: string
-          note?: string | null
-          levels?: string[]
-          subjects?: string[]
-          teaching_mode?: string
-          area?: string | null
-          budget_kes?: number | null
-          available_days?: string[]
-          dayparts?: string[]
-          created_at?: string
-        }
-        Relationships: []
-      }
       vibetutor_requests: {
         Row: {
           available_days: string[]

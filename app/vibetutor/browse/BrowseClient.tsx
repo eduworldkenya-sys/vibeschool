@@ -120,9 +120,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   }, [reloadKey])
 
   const tutorSource = useMemo<DemoTutor[]>(() => live?.tutors ?? [], [live])
-  const samplePreview = !!live && live.requests.length === 0 && live.sampleRequests.length > 0
-  const requestSource = useMemo<DemoRequest[]>(() =>
-    live?.requests.length ? live.requests : live?.sampleRequests ?? [], [live])
+  const requestSource = useMemo<DemoRequest[]>(() => live?.requests ?? [], [live])
 
   const tutorsFor = (f: Filters) => tutorSource.filter(t =>
     (discovery !== 'nearby' || (!!nearbyArea && t.mode !== 'online')) &&
@@ -159,8 +157,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   }, [q, subject, level, area, mode, priceRange, day, requestSource, discovery, nearbyArea, preferred, seed])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
   // Each facet is calculated without its own current selection.
-  const levelValues = [...new Set([...LEVELS, ...requestSource.map(r => r.level)])]
-  const levelOptions: FilterOption[] = levelValues.flatMap(value => {
+  const visibleLevels = [...new Set([...LEVELS, ...requestSource.map(r => r.level)])]
+  const levelOptions: FilterOption[] = visibleLevels.flatMap(value => {
     const f = { ...filters, level: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.real && t.levels.includes(value)).length : requestsFor(f).filter(r => r.level === value).length
     return count ? [{ value, label: value, count }] : []
@@ -187,7 +185,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
 
   const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode(''); setPriceRange(''); setDay(''); setNearbyArea(''); setPreferences(p => ({ ...p, [view]: INITIAL_PREFERENCES })) }
   const changeView = (next: View) => { if (next === view) return; clear(); setView(next); setDiscovery('for-you') }
-  const nearbyOptions = [...new Set((view === 'tutors' ? tutorSource : requestSource).filter(row => (view === 'students' || row.real) && row.mode !== 'online' && row.area && !row.area.toLowerCase().includes('anywhere')).map(row => row.area))].sort((a, b) => a.localeCompare(b))
+  const nearbyOptions = [...new Set((view === 'tutors' ? tutorSource : requestSource).filter(row => row.real && row.mode !== 'online' && row.area && !row.area.toLowerCase().includes('anywhere')).map(row => row.area))].sort((a, b) => a.localeCompare(b))
   const defaultSubjects = ['Mathematics', 'English', 'Science & Technology', 'Integrated Science']
   const subjectChips = [...new Set([...defaultSubjects.filter(s => !level || availableLevels.includes(s)), ...subjectOptions.map(s => s.value), ...(subject ? [subject] : [])])]
   const activeFilters = !!(q || subject || level || area || mode || priceRange || day || nearbyArea)
@@ -235,13 +233,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
           <label className={styles.filterSelectField}><span>Availability</span><select className={styles.select} value={day} onChange={e=>setDay(e.target.value)}><option value="">Any day</option>{DAYS.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
           {(activeFilters || personalized) && <button type="button" className={styles.emptyAction} onClick={clear}>Reset filters and preferences</button>}
         </div>}
-        {view === 'students' && samplePreview && !loading && !loadError && <div className={styles.emptyHint} role="status">
-          <strong>Sample preview only · {live?.sampleRequests.length ?? 0} example requests.</strong>{' '}
-          These imported examples are not real student enquiries. Contact is disabled.{' '}
-          <Link href="/vibetutor/post-request">Post a real request</Link>
-        </div>}
         <div className={styles.discoverySummary}>
-          <p>{samplePreview && view === 'students' ? 'Sample learner requests' : discovery === 'for-you' ? (personalized ? 'Recommended for you' : 'Discover your next match') : discovery === 'nearby' ? 'In your area' : 'Explore all listings'}</p>
+          <p>{discovery === 'for-you' ? (personalized ? 'Recommended for you' : 'Discover your next match') : discovery === 'nearby' ? 'In your area' : 'Explore all listings'}</p>
           {!loading && !!currentCount && <span>{currentCount}</span>}
         </div>
       <div className={styles.discoveryList} aria-live="polite" aria-busy={loading}>
@@ -264,7 +257,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
           </div>
         </div>}
         {!loading && !loadError && view === 'students' && requests.length === 0 && (discovery !== 'nearby' || !!nearbyArea) && <div className={styles.emptyState}>
-          <p className={styles.empty}>{requestSource.length === 0 ? 'No public or sample learner requests yet.' : 'No requests match these filters.'}</p>
+          <p className={styles.empty}>{requestSource.length === 0 ? 'No public learner requests yet.' : 'No requests match these filters.'}</p>
           <p className={styles.emptyHint}>{requestSource.length === 0 ? 'Verified parents and teachers can post anonymously. Learner identities and phone numbers stay private.' : 'Try a broader search or clear some filters.'}</p>
           <div className={styles.emptyActions}>
             {subject && <button type="button" className={styles.emptyAction} onClick={() => setSubject('')}>Clear subject</button>}

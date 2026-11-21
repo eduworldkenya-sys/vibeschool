@@ -120,7 +120,7 @@ export function RequestCard({ r, compact = false, score, signedIn = false }: { r
           <p className={styles.meta}><strong>Preferred time:</strong> {summarizeParts(r.dayparts)}</p>
           <p className={styles.modalPrice}>Budget up to KSh {r.budgetKes.toLocaleString('en-KE')} / hour</p>
           <p className={styles.hint}>{r.real ? 'Sign in to respond. Only verified tutors can send enquiries to the adult who posted this request.' : 'Example request only. No learner is connected to this example.'}</p>
-          {!r.real ? <div className={styles.hint}>This is a demonstration request, not an available learner. Contact is disabled. <Link href="/vibetutor/post-request">Post a real tuition request</Link></div> : !signedIn ? <Link href={'/login?redirect=' + encodeURIComponent('/vibetutor/browse?view=students&request=' + r.id)} className={styles.modalSignIn}>Sign in to contact request owner</Link> :
+          {!signedIn ? <Link href={'/login?redirect=' + encodeURIComponent('/vibetutor/browse?view=students&request=' + r.id)} className={styles.modalSignIn}>Sign in to contact request owner</Link> :
             <div><label htmlFor={'interest-' + r.id}>Introduce yourself to the request owner</label>
               <textarea id={'interest-' + r.id} className={styles.input} value={intro} maxLength={500} rows={3} onChange={e => setIntro(e.target.value)} />
               <button className={styles.modalSignIn} type="button" disabled={sending || sent || intro.trim().length < 10} onClick={() => void sendInterest()}>{sent ? 'Interest sent' : sending ? 'Sending…' : 'Contact request owner'}</button>
