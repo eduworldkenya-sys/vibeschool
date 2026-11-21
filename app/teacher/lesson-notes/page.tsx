@@ -416,6 +416,12 @@ function LessonNotesInner() {
         <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.45 }}>Everything here belongs to this lesson. Teach from it, then return to the lesson flow.</div>
       </section>
 
+      {plan.class_id && process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true" && (
+        <button type="button" onClick={() => router.push(`/teacher/classhub/${encodeURIComponent(plan.class_id!)}/live?lessonPlanId=${encodeURIComponent(plan.id)}`)}
+          style={{ width: "100%", textAlign: "center", padding: "12px 15px", borderRadius: 12, border: "1px solid currentColor", background: "var(--vs-surface,#f7faf8)", color: "var(--teacher-ink,#1c2923)", fontWeight: 800, marginBottom: 12 }}>
+          Teach this Lesson Plan in Live
+        </button>
+      )}
       <section style={{ background: "#fff", borderRadius: 18, padding: 14, marginBottom: 14, border: "1px solid #e5e7eb" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
           <div>
