@@ -8,6 +8,14 @@ export const LIVE_LEARNER_ASSET_KINDS = [
   'learner_notes', 'worked_example', 'revision', 'remedial', 'enrichment',
 ] as const
 
+// The existing Live admission boundary is PP1/PP2, Grades 1–12 and Forms 1–4.
+// Never let muted post-secondary resources enter the presentation picker.
+export const LIVE_SCHOOL_GRADE_LABELS = [
+  'PP1', 'PP2',
+  ...Array.from({ length: 12 }, (_, i) => 'Grade ' + (i + 1)),
+  ...Array.from({ length: 4 }, (_, i) => 'Form ' + (i + 1)),
+]
+
 export function readableLiveResourceText(payload: unknown): string {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return ''
   const row = payload as Record<string, unknown>
