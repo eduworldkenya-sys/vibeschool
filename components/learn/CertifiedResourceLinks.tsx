@@ -6,8 +6,9 @@ import { certifiedResourceHref, useCertifiedInteractiveResources } from '@/lib/l
 import styles from './SchoolLearnLibrary.module.css'
 
 /** Read-only discovery. Uncertified and private content is never a catalogue item. */
-export default function CertifiedResourceLinks({ grade, subject }: { grade: string; subject: string }) {
+export default function CertifiedResourceLinks({ grade, subject, hideWhenEmpty = false }: { grade: string; subject: string; hideWhenEmpty?: boolean }) {
   const { status, resources } = useCertifiedInteractiveResources(grade, subject)
+  if (hideWhenEmpty && (status !== 'ready' || resources.length === 0)) return null
   return <section aria-label="Released interactive resources" style={{ marginTop: 16 }}>
     <h3 style={{ marginBottom: 8 }}>Interactive learning</h3>
     {status === 'loading' && <p className={styles.description} role="status">Checking available activities…</p>}
