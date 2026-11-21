@@ -5,7 +5,7 @@ import ts from 'typescript'
 
 const source=readFileSync('lib/live/voice.ts','utf8')
 const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
-const {LiveVoiceError,validateVoiceRoom,voiceUuid,issueLiveVoiceToken,closeLiveVoiceRoom,dailyVoiceName}=
+const {LiveVoiceError,validateVoiceRoom,voiceUuid,requireLiveVoicePilotUser,issueLiveVoiceToken,closeLiveVoiceRoom,dailyVoiceName}=
   await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'))
 const id='00000000-0000-4000-8000-000000000010'
 const actor='00000000-0000-4000-8000-000000000001'
@@ -36,6 +36,24 @@ function mockProvider({existing=true,override=null,token='signed-token'}={}){
   return {request,calls}
 }
 
+test('pilot fails closed outside two authenticated accounts, before token issuance',()=>{
+  const teacher='00000000-0000-4000-8000-000000000001'
+  const pupil='00000000-0000-4000-8000-000000000030'
+  const outsider='00000000-0000-4000-8000-000000000099'
+  const cutoff=new Date(now+3600000).toISOString()
+  const permitted=teacher+','+pupil
+  assert.doesNotThrow(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted,cutoff,now))
+  assert.doesNotThrow(()=>requireLiveVoicePilotUser(pupil,'pilot',permitted,cutoff,now))
+  assert.throws(()=>requireLiveVoicePilotUser(outsider,'pilot',permitted,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===403)
+  assert.throws(()=>requireLiveVoicePilotUser(teacher,'pilot',undefined,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===403)
+  assert.throws(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted+',invalid',cutoff,now),e=>e instanceof LiveVoiceError&&e.status===403)
+  assert.throws(()=>requireLiveVoicePilotUser(teacher,'public',permitted,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===503)
+  assert.throws(()=>requireLiveVoicePilotUser(teacher,undefined,permitted,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===503)
+  assert.throws(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted,undefined,now),e=>e instanceof LiveVoiceError&&e.status===503)
+  assert.throws(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted,cutoff,now+3600000),e=>e instanceof LiveVoiceError&&e.status===503)
+  assert.doesNotThrow(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted,cutoff,now+3600000,true),'authorized teacher can clean up after expiry')
+  assert.throws(()=>requireLiveVoicePilotUser(outsider,'pilot',permitted,cutoff,now,true),/limited to pilot accounts/)
+})
 test('reject incorrect and expired classroom authority before any provider request',async()=>{
   assert.equal(voiceUuid(id),true)
   assert.equal(voiceUuid('not-a-uuid'),false)
@@ -129,6 +147,10 @@ test('client and route respect feature gate, private credential, real JWT, and c
   assert.match(route,/VIBE_LIVE_VOICE_SERVER_ENABLED/)
   assert.match(route,/sameOrigin\(req\)/)
   assert.match(route,/db\.auth\.getUser/)
+  assert.match(route,/requireLiveVoicePilotUser\(user\.id/)
+  assert.match(route,/VIBE_LIVE_VOICE_ACCESS_SCOPE/)
+  assert.match(route,/VIBE_LIVE_VOICE_PILOT_USER_IDS/)
+  assert.match(route,/VIBE_LIVE_VOICE_PILOT_UNTIL/)
   assert.match(route,/p_action:'get'/)
   assert.match(route,/db\.rpc\('vibe_live_command'/)
   assert.match(route,/students'\)\.select\('id'/)
