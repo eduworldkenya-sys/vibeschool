@@ -1,6 +1,6 @@
 -- Canonical teacher/learner one-to-one text conversation inside an admitted Live session.
 -- access: owner-only vibe_live.private_messages; no client role has table grants.
--- authorization-test: scripts/test-live-classroom-pilot.mjs exercises joined learners,
+-- authorization-test: vibe_live.private_messages; scripts/test-live-classroom-pilot.mjs exercises joined learners,
 -- nonparticipants, cross-teacher denial, revocation, read receipts and direct access denial.
 BEGIN;
 
@@ -33,8 +33,8 @@ BEGIN
   IF (length(src)-length(replace(src,old,'')))/length(old)<>1 THEN RAISE EXCEPTION 'Unexpected Live command declarations'; END IF;
   src := replace(src,old,replacement);
 
-  old := '''materials_delete'')';
-  replacement := '''materials_delete'',''dm_send'',''dm_list'',''dm_read'')';
+  old := '''materials_delete'')'||E'\n or p_payload is null';
+  replacement := '''materials_delete'',''dm_send'',''dm_list'',''dm_read'')'||E'\n or p_payload is null';
   IF (length(src)-length(replace(src,old,'')))/length(old)<>1 THEN RAISE EXCEPTION 'Unexpected Live command actions'; END IF;
   src := replace(src,old,replacement);
 
