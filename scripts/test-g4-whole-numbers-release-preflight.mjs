@@ -15,3 +15,15 @@ test('release preflight covers source, outcomes, rights, sensitive-asset privacy
   assert.match(sql,/content_sha256=encode\(extensions\.digest/)
   assert.match(sql,/coalesce\(s\.promoted_snapshots,0\)=0/)
 })
+
+test('no stale fingerprint approvals, uncleared rights or blocked curriculum pass the ready-to-publish phase',()=>{
+  assert.match(sql,/content_fingerprint=public\.publication_release_fingerprint\(t\.publication_id\)/)
+  assert.match(sql,/ri\.current_fingerprint_approvals=0/)
+  assert.match(sql,/rights_status='cleared'/)
+  assert.match(sql,/rs\.rights_cleared<>6/)
+  assert.match(sql,/curriculum_package_gate_not_pass/)
+  assert.match(sql,/READY_TO_PUBLISH/)
+  assert.match(sql,/ready_to_publish/)
+  assert.match(sql,/catalogue_visibility_verified/)
+  assert.match(sql,/when blockers=ARRAY\['student_catalogue_publication_pending'\]::text\[\] then 'READY_TO_PUBLISH'/)
+})
