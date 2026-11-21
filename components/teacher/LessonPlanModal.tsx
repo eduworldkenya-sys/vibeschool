@@ -1937,6 +1937,11 @@ export default function LessonPlanModal({
           {phase === 'view' && (
             <div>
               <LessonPreparationStudio sections={sections} topic={topic} resourceCount={lessonResources.length} onTeach={openPreparedTeachMode} onEdit={() => { setDraft({ ...sections }); setPhase('edit') }} />
+              {planId && process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true' && <button
+                type="button"
+                className="studio-lesson-modal__action"
+                onClick={() => router.push('/teacher/classhub/' + encodeURIComponent(slot.class_id) + '/live?lessonPlanId=' + encodeURIComponent(planId))}
+              >Teach this plan in Live</button>}
               <details className="studio-lesson-details"><summary>Resources, readiness & delivery</summary>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: suggestionLinked && suggestion ? 8 : 16, fontSize: 12, color: C.textMuted }}>
                 <span style={{ color: C.accent }}>✦</span>
