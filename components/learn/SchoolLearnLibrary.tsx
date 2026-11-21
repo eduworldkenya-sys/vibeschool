@@ -19,6 +19,7 @@ import {
 import styles from './SchoolLearnLibrary.module.css'
 import UnifiedLearnCollections from '@/components/learn/UnifiedLearnCollections'
 import SubjectTextbookOutline from '@/components/learn/SubjectTextbookOutline'
+import CertifiedResourceLinks from '@/components/learn/CertifiedResourceLinks'
 
 type PublishedBook = {
   id: string
@@ -253,6 +254,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
               {tab === 'resources' && <section role="tabpanel" className={styles.detailPanel} aria-label="Supporting resources">
                 <h2>Learning resources</h2>
                 <p className={styles.description}>Diagrams, illustrations, reading support and subject-specific activities appear inside published lesson readers. Only approved resources are displayed.</p>
+                <CertifiedResourceLinks grade={grade} subject={activeName}/>
                 <div className={styles.linksRow}>
                   {activeReaders.map(reader => <Link className={styles.buttonSecondary} key={reader.href} href={reader.href}>Open {reader.title} <ArrowRight size={15} /></Link>)}
                   <Link className={styles.buttonSecondary} href="/student/resources">My shared learning materials <ArrowRight size={15} /></Link>
