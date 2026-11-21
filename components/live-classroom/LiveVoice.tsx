@@ -68,7 +68,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     for (const p of remotes){
       if (!p.user_id)continue
       nextIds.push(p.user_id)
-      const track=p.tracks.audio.persistentTrack??p.audioTrack
+      const track=p.tracks.audio.track??p.tracks.audio.persistentTrack??p.audioTrack
       const existing=media.current.get(p.session_id)
       if (!track || track.readyState==='ended'){
         if(existing){existing.pause();existing.srcObject=null;existing.remove();media.current.delete(p.session_id)}
