@@ -4,8 +4,12 @@
  */
 export function parseLiveReadingPage(body: string) {
   const normalized = body.replace(/\r\n?/g, '\n').trim()
-  const header = normalized.match(/^([^\n]{1,120}) · Page (\d+) \/ (\d+)\n\n/)
-  const content = header ? normalized.slice(header[0].length) : normalized
+  // Live may present a page with one or two separator newlines.
+  // Detect the header on its own line, never by guessing at the first paragraph.
+  const lineEnd = normalized.indexOf('\n')
+  const firstLine = lineEnd < 0 ? normalized : normalized.slice(0,lineEnd)
+  const header = firstLine.match(/^(.{1,120})\s*·\s*Page\s+(\d+)\s*\/\s*(\d+)$/)
+  const content = header && lineEnd >= 0 ? normalized.slice(lineEnd+1).trimStart() : normalized
   const paragraphs = content.split(/\n\s*\n/).map(value => value.trim()).filter(Boolean)
   return {
     title: header?.[1] ?? null,
