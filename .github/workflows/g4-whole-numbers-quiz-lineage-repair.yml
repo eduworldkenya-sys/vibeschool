@@ -1,0 +1,24 @@
+name: Grade 4 Whole Numbers Quiz Source Lineage
+on:
+  pull_request:
+    paths:
+      - 'scripts/sql/g4_whole_numbers_quiz_source_lineage_repair.sql'
+      - 'scripts/test-g4-whole-numbers-quiz-lineage-repair.mjs'
+      - '.github/workflows/g4-whole-numbers-quiz-lineage-repair.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/sql/g4_whole_numbers_quiz_source_lineage_repair.sql'
+      - 'scripts/test-g4-whole-numbers-quiz-lineage-repair.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/test-g4-whole-numbers-quiz-lineage-repair.mjs scripts/test-content-independent-approval-no-hq.mjs

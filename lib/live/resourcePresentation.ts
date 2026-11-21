@@ -33,8 +33,24 @@ export function liveResourcePages(title: string, body: string): string[] {
   const maxPages = 30
   if (content.length > size * maxPages) return []
   const chunks: string[] = []
-  for (let cursor = 0; cursor < content.length; cursor += size) {
-    chunks.push(content.slice(cursor, cursor + size))
+  // Preserve every source character but prefer natural reading boundaries.
+  // A resource page must not cut a word or an activity instruction in half
+  // merely because it reached a fixed character count.
+  for (let cursor = 0; cursor < content.length;) {
+    let end = Math.min(content.length, cursor + size)
+    if (end < content.length) {
+      const window = content.slice(cursor, end)
+      const blankLine = window.lastIndexOf('\n\n')
+      const sentence = window.lastIndexOf('. ')
+      const word = Math.max(window.lastIndexOf(' '), window.lastIndexOf('\n'))
+      const breakAt = blankLine >= size * 0.58 ? blankLine + 2
+        : sentence >= size * 0.72 ? sentence + 2
+        : word >= size * 0.72 ? word + 1 : size
+      end = cursor + breakAt
+    }
+    chunks.push(content.slice(cursor, end))
+    cursor = end
+    if (chunks.length > maxPages) return []
   }
   return chunks.map((part, i) => name + ' · Page ' + (i + 1) + ' / ' + chunks.length + '\n\n' + part)
 }

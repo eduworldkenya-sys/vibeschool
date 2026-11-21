@@ -1,0 +1,51 @@
+.paper{
+  width:min(100%,840px);
+  margin:0 auto;
+  flex:none;
+  color:var(--vs-text-primary,#213d36);
+  background:var(--vs-surface,#fff);
+  border:1px solid color-mix(in srgb,currentColor 12%,transparent);
+  border-radius:14px;
+  box-shadow:0 7px 22px rgb(21 49 38 / 7%);
+  padding:clamp(16px,4vw,42px);
+  --reader-font:clamp(16px,2.2vw,19px);
+  font-family:inherit;
+}
+.paper[data-zoom="-1"]{--reader-font:clamp(14px,1.9vw,17px)}
+.paper[data-zoom="1"]{--reader-font:clamp(19px,2.6vw,23px)}
+.paper[data-zoom="2"]{--reader-font:clamp(21px,3vw,27px)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid color-mix(in srgb,currentColor 10%,transparent);font-size:.8rem;color:inherit}
+.book{display:flex;align-items:center;gap:7px;font-weight:700;min-width:0}
+.book span{overflow-wrap:anywhere}
+.pageNumber{font-variant-numeric:tabular-nums;white-space:nowrap;opacity:.78}
+.actions{
+  position:sticky;top:-12px;z-index:2;
+  display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px;
+  padding:8px 0;
+  font-size:.76rem;
+  background:var(--vs-surface,#fff);
+  border-bottom:1px solid color-mix(in srgb,currentColor 8%,transparent);
+}
+.actions span{margin-right:auto}
+.paper .actions button{
+  display:inline-flex;flex-direction:row;gap:5px;align-items:center;
+  min-height:42px;min-width:42px;padding:7px 9px;
+  background:var(--vs-surface-secondary,#f0f5f2);
+  color:inherit;border:1px solid color-mix(in srgb,currentColor 18%,transparent);
+  font-weight:650;border-radius:9px;font-size:.8rem;
+}
+.paper .actions button:focus-visible{outline:3px solid currentColor;outline-offset:2px}
+.chapters{display:grid;gap:1em;min-width:0;padding-top:clamp(8px,1.5vw,18px)}
+.heading,.section,.outcome,.paragraph{margin:0!important;overflow-wrap:anywhere;white-space:pre-line}
+.heading{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.2;letter-spacing:-.02em;font-weight:750}
+.section{font-size:1.08rem;line-height:1.35;font-weight:750;padding-top:7px}
+.paragraph{font-size:var(--reader-font)!important;line-height:1.65!important;max-width:70ch}
+.outcome{
+  font-size:var(--reader-font)!important;line-height:1.55!important;
+  background:color-mix(in srgb,var(--vs-accent,#087e72) 8%,var(--vs-surface,#fff));
+  border-inline-start:4px solid var(--vs-accent,#087e72);
+  padding:12px 15px;border-radius:5px;
+}
+.saved{font-size:.8rem;margin:16px 0 0;color:inherit}
+@media(max-width:410px){.paper{padding:14px;border-radius:10px}.actions{top:-8px}.actions span{display:none}.paper .actions button{padding:6px 8px}.chapters{gap:.8em}}
+@media(prefers-reduced-motion:reduce){.paper *{scroll-behavior:auto}}
