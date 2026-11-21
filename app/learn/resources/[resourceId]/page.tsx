@@ -91,7 +91,7 @@ export default function CertifiedInteractiveResourcePage() {
             Saved answers, results and mistake recovery belong to VibeSchool's normal topic-practice system.
           </p>
           <nav aria-label="Continue learning" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link style={linkStyle} href="/student/vibelearn/topic-practice?subject=Mathematics&topic=Whole%20Numbers">Topic practice →</Link>
+            <Link style={linkStyle} href="/student/vibelearn/topic-practice?subject=Mathematics&topic=Place%20Value%20%26%20Total%20Value">Topic practice →</Link>
             <Link style={linkStyle} href="/student/vibelearn/mistakes">My Mistakes</Link>
             <Link style={linkStyle} href="/student/vibelearn/topic-practice/progress">My Progress</Link>
           </nav>
