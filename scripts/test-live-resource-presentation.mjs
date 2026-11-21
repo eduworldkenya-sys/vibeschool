@@ -36,6 +36,14 @@ for(const required of [
   ".eq('publication_status', 'shared')",
   ".eq('class_id', classId)",
   "if (!classId) throw new Error('School material requires its original class.')",
+  ".from('scheme_of_work')",
+  ".from('teaching_resource_links')",
+  ".eq('target_type', 'scheme_lesson')",
+  ".eq('teacher_id', auth.data.user.id)",
+  ".eq('class_id', classId)",
+  "if (!scheme.data) throw new Error('The Scheme lesson no longer belongs to this class.')",
+  "if (!link.data) throw new Error('This Scheme resource link is no longer available.')",
+  "if (item.pinnedVersionId) versionQuery = versionQuery.eq('id', item.pinnedVersionId)",
   'onPresent(selected.pages[page])',
 ]) assert.ok(code.includes(required),'resource contract missing '+required)
 for(const required of [
