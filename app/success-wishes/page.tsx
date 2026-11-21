@@ -28,7 +28,8 @@ export const metadata: Metadata = {
   },
 }
 
-export default function SuccessWishesPage({ searchParams }: { searchParams?: { offerPreview?: string } }) {
+export default async function SuccessWishesPage(props: { searchParams?: Promise<{ offerPreview?: string }> }) {
+  const searchParams = await props.searchParams;
   const previewOffer = searchParams?.offerPreview === '1'
   return <>
     <SuccessCardStudio testMode={process.env.NODE_ENV === 'development' && process.env.VIBESCHOOL_SUCCESS_WISHES_TEST_MODE === '1'} />

@@ -8,7 +8,6 @@ const nextConfig = {
   experimental: {
     forceSwcTransforms: false,
   },
-  swcMinify: false,
   // Restrict only the public VibePro preview to an opaque-origin browser sandbox.
   // The business demo is not a trusted app or an authenticated finance workspace.
   async headers() {

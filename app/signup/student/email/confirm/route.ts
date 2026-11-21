@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code')
   if (code && emailPilotEnabled()) {
     try {
-      const { client, commit } = pilotClient()
+      const { client, commit } = await pilotClient()
       const { data, error } = await client.auth.exchangeCodeForSession(code)
       if (!error && data.session && data.user && await finishPilotSignup(client, data.user)) {
         commit()

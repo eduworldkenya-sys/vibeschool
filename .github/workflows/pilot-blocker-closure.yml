@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/20261010180500_repair_custom_scheme_generated_content_status.sql'
+      - 'supabase/migrations/20261121180000_restore_dated_lesson_outcome_attachment.sql'
       - 'scripts/test-pilot-blocker-closure.mjs'
+      - 'scripts/test-dated-lesson-outcome-attachment.mjs'
       - 'app/teacher/attendance/page.tsx'
       - 'app/teacher/classhub/[id]/homework/page.tsx'
       - 'app/teacher/lesson-plans/page.tsx'
@@ -34,4 +36,6 @@ jobs:
       - name: Exercise actual repair SQL and denial paths
         env:
           PILOT_PGLITE_MODULE: ${{ runner.temp }}/pilot-tests/node_modules/@electric-sql/pglite/dist/index.js
-        run: node scripts/test-pilot-blocker-closure.mjs
+        run: |
+          node scripts/test-pilot-blocker-closure.mjs
+          node scripts/test-dated-lesson-outcome-attachment.mjs

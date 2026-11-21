@@ -10,10 +10,8 @@ const variants = {
 
 type Variant = keyof typeof variants
 
-export async function GET(
-  request: Request,
-  { params }: { params: { variant: string } }
-) {
+export async function GET(request: Request, props: { params: Promise<{ variant: string }> }) {
+  const params = await props.params;
   if (!(params.variant in variants)) {
     return new Response('Not found', { status: 404 })
   }

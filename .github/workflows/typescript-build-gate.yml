@@ -83,6 +83,7 @@ jobs:
         uses: ./.github/actions/production-build-contract
         with:
           prebuild_command: |
+            node scripts/validate-next-security-baseline.mjs --self-test
             node scripts/test-strategic-remediation-contract.mjs
             node scripts/test-vacancy-applications.mjs
             node scripts/test-vibetutor-invitation-handoff.mjs

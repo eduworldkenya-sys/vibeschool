@@ -9,7 +9,8 @@ const SITE_URL='https://vibeschool.co.ke'
 
 export function generateStaticParams(){ return listKnowledgeArticles().map(article=>({slug:article.slug})) }
 
-export function generateMetadata({params}:{params:{slug:string}}):Metadata{
+export async function generateMetadata(props:{params: Promise<{slug:string}>}):Promise<Metadata> {
+  const params = await props.params;
   const article=getKnowledgeArticle(params.slug)
   if(!article) return { title:'Kenya Education Guide', robots:{index:false,follow:false} }
   const canonical=`${SITE_URL}/kenya-education/${article.slug}`
@@ -18,7 +19,8 @@ export function generateMetadata({params}:{params:{slug:string}}):Metadata{
 
 const labels={fact:'Official-source fact',guidance:'Practical guidance',boundary:'Important boundary'} as const
 
-export default function KnowledgeArticlePage({params}:{params:{slug:string}}){
+export default async function KnowledgeArticlePage(props:{params: Promise<{slug:string}>}) {
+  const params = await props.params;
   const article=getKnowledgeArticle(params.slug)
   if(!article) notFound()
   const canonical=`${SITE_URL}/kenya-education/${article.slug}`

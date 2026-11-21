@@ -12,8 +12,8 @@ export function pilotAdminClient() {
   })
 }
 
-export function pilotClient() {
-  const jar = cookies()
+export async function pilotClient() {
+  const jar = await cookies()
   const pending = new Map<string, { name: string; value: string; options: CookieOptions }>()
   const client = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,7 +35,7 @@ export function pilotClient() {
   return { client, commit: () => pending.forEach(({ name, value, options }) => jar.set(name, value, options)) }
 }
 
-export async function canUsePilot(client: ReturnType<typeof pilotClient>['client'], user: User) {
+export async function canUsePilot(client: Awaited<ReturnType<typeof pilotClient>>['client'], user: User) {
   if (!user.email_confirmed_at || !pilotEmail(user.email)) return false
 
   const { data, error } = await client.rpc('get_my_auth_access_state')
@@ -54,11 +54,11 @@ export async function hasRestrictedIdentity(userId: string) {
   return !error && data?.account_state === 'restricted' && !!data.learner_email_verified_at
 }
 
-export async function finishPilotSignup(client: ReturnType<typeof pilotClient>['client'], user: User) {
-  if (!await canUsePilot(client, user)) return false
+export async function finishPilotSignup(client: Awaited<ReturnType<typeof pilotClient>>['client'], user: User) {
+  if (!(await canUsePilot(client, user))) return false
   const { error } = await pilotAdminClient().from('independent_learner_identities').upsert({
     user_id: user.id,
     learner_email_verified_at: user.email_confirmed_at,
   }, { onConflict: 'user_id', ignoreDuplicates: true })
-  return !error && await hasRestrictedIdentity(user.id)
+  return !error && (await hasRestrictedIdentity(user.id));
 }

@@ -112,7 +112,7 @@ for (const [target, expected] of [
       throw new Error('Unexpected import ' + name)
     },
   })
-  assert.throws(() => loginModule.default({ searchParams: { redirect: target } }), {
+  await assert.rejects(() => loginModule.default({ searchParams: Promise.resolve({ redirect: target }) }), {
     message: 'redirect:' + expected,
   })
 }

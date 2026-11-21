@@ -3,7 +3,7 @@ import { getPublishedBlogStory } from '@/lib/blogContent'
 export const revalidate = 300
 
 function escapeXml(value: string) {
-  return value.replace(/[<>&'\"]/g, char => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[char] || char)
+  return value.replace(/[<>&'\"]/g, char => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[char] || char);
 }
 
 function wrapTitle(title: string, max = 34) {
@@ -32,7 +32,8 @@ function themeFor(title: string, tags: string[]) {
   return { kicker: 'KENYA EDUCATION', mark: 'V' }
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const story = await getPublishedBlogStory(params.id)
   if (!story) return new Response('Not found', { status: 404 })
 

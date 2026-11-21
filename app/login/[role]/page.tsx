@@ -1,4 +1,5 @@
 "use client"
+import Link from 'next/link'
 
 import { useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
@@ -37,7 +38,7 @@ export default function RoleLoginPage() {
   const [message, setMessage] = useState('')
   const appearance = useAuthAppearance()
 
-  if (!config) return <main className="shell vs-auth" data-auth-theme={appearance}><section className="card"><h1>Choose a valid VibeSchool sign-in.</h1><a href="/">Go home</a><style jsx>{styles}</style></section></main>
+  if (!config) return <main className="shell vs-auth" data-auth-theme={appearance}><section className="card"><h1>Choose a valid VibeSchool sign-in.</h1><Link href="/">Go home</Link><style jsx>{styles}</style></section></main>
 
   async function submit() {
     if (busy) return
@@ -116,7 +117,7 @@ export default function RoleLoginPage() {
   return <main className="shell vs-auth" data-auth-theme={appearance}>
     <div className="ambient" aria-hidden="true" />
     <header className="header">
-      <a className="header-brand" href="/" aria-label="VibeSchool home"><img src="/icons/vibeschool-logo-dark.svg" alt="VibeSchool" /></a>
+      <Link className="header-brand" href="/" aria-label="VibeSchool home"><img src="/icons/vibeschool-logo-dark.svg" alt="VibeSchool" /></Link>
       
     </header>
     <section className="card" aria-labelledby="login-title">

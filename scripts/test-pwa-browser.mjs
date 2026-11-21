@@ -127,7 +127,8 @@ try {
   await page.getByText('Saved public games on this device.', { exact:false }).waitFor({ timeout: 120000 })
   await context.setOffline(true)
   await page.goto(`${BASE}/spin-studio`, { waitUntil: 'domcontentloaded', timeout: 30000 })
-  assert((await page.locator('body').innerText()).includes('VibeSpin'), 'downloaded VibeSpin did not render offline')
+  // The initial offline HTML shows a loading shell until the cached JS hydrates.
+  await page.getByRole('heading', { name: /^VibeSpin Studio/ }).waitFor({ timeout: 10000 })
   await context.setOffline(false)
 
   stage('prepare public offline book shell and cold read without internet')

@@ -1,4 +1,5 @@
 "use client"
+import Link from 'next/link'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -80,7 +81,7 @@ export default function SchoolSignupForm({ emailPilot }: { emailPilot: boolean }
   </section><style jsx>{styles}</style></main>
 
   return <main className="shell vs-auth" data-auth-theme={appearance}><section className="card">
-    <a href="/" className="brand">Vibe<span>School</span></a>
+    <Link href="/" className="brand">Vibe<span>School</span></Link>
     <h1>Start learning</h1>
     <button type="button" className="email-entry google-entry" onClick={()=>void startGoogle()} disabled={googleBusy} aria-label="Continue with Google">{googleBusy ? 'Opening Google…' : <><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M21.35 12.23c0-.71-.06-1.23-.2-1.77H12v3.5h5.37a4.6 4.6 0 0 1-2 3.02v2.5h3.22c1.88-1.74 2.76-4.3 2.76-7.25Z"/><path fill="#34A853" d="M12 21.72c2.7 0 4.97-.89 6.63-2.44l-3.22-2.5c-.89.6-2.03.96-3.41.96-2.62 0-4.84-1.77-5.64-4.14H3.05v2.58A10 10 0 0 0 12 21.72Z"/><path fill="#FBBC05" d="M6.36 13.6a6 6 0 0 1 0-3.2V7.82H3.05a10 10 0 0 0 0 8.36l3.31-2.58Z"/><path fill="#EA4335" d="M12 6.28c1.43 0 2.71.49 3.72 1.45l2.79-2.79A9.5 9.5 0 0 0 12 2.28a10 10 0 0 0-8.95 5.54l3.31 2.58c.8-2.37 3.02-4.12 5.64-4.12Z"/></svg> Continue with Google</>}</button>
     {emailPilot && <a className="email-entry email-alt" href="/signup/student/email">Continue with email</a>}
@@ -98,7 +99,7 @@ export default function SchoolSignupForm({ emailPilot }: { emailPilot: boolean }
     <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create learner account'}</button>
       </div>}
     </section>
-    <p className="switch">Already registered? <a href="/login/student">Sign in</a></p>
+    <p className="switch">Already registered? <Link href="/login/student">Sign in</Link></p>
     <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
 }
