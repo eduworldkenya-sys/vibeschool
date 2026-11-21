@@ -81,6 +81,7 @@ export default function PremiumTeacherMarketplace() {
   const [retry, setRetry] = useState(0);
   const [authority, setAuthority] = useState<SchoolAuthority | null>(null);
   const [schoolChecked, setSchoolChecked] = useState(false);
+  const [schoolError, setSchoolError] = useState("");
   const [shortlisted, setShortlisted] = useState<string[]>([]);
   const [requests, setRequests] = useState<RecruitmentRequest[]>([]);
   const [invite, setInvite] = useState("");
@@ -143,14 +144,23 @@ export default function PremiumTeacherMarketplace() {
     if (role !== "school") return;
     let active = true;
     setSchoolChecked(false);
+    setSchoolError("");
+    setAuthority(null);
     void (async () => {
+      let school: SchoolAuthority;
       try {
         const a = await getAdminSchoolAuthority();
-        if (!active) return;
-        setAuthority({ schoolId: a.schoolId, userId: a.userId });
-        await refreshSchool({ schoolId: a.schoolId, userId: a.userId });
+        school = { schoolId: a.schoolId, userId: a.userId };
       } catch {
-        if (active) { setAuthority(null); setShortlisted([]); setRequests([]) }
+        if (active) { setShortlisted([]); setRequests([]); setSchoolChecked(true) }
+        return;
+      }
+      if (!active) return;
+      setAuthority(school);
+      try {
+        await refreshSchool(school);
+      } catch {
+        if (active) setSchoolError("School recruitment records are unavailable. Try again.");
       } finally { if (active) setSchoolChecked(true) }
     })();
     return () => { active = false };
@@ -164,9 +174,9 @@ export default function PremiumTeacherMarketplace() {
       && (!level || row.level.split(" · ").includes(level));
   }), [allRows, search, county, level]);
   const current = visible.find(row => row.key === selected) ?? visible[0] ?? null;
-  const rowKey = view === "shortlisted" || view === "interviews" ? "teachers" : view;
+  const rowKey = view === "shortlisted" ? "teachers" : view;
   const isLoading = !!loading[rowKey] || (role === "school" && view !== "teachers" && !schoolChecked);
-  const error = errors[rowKey];
+  const error = (role === "school" && view !== "teachers" ? schoolError : "") || errors[rowKey];
   const canManageSchool = !!authority;
 
   function selectRole(next: Role) {
