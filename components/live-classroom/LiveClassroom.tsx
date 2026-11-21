@@ -17,6 +17,7 @@ import { liveSyncDelay } from './LiveSyncPolicy'
 import { LivePrivateChat } from './LivePrivateChat'
 import { LiveClassChat } from './LiveClassChat'
 import { LiveVoice } from './LiveVoice'
+import { LiveReadingSurface } from './LiveReadingSurface'
 import { teacherLivePlan } from '@/lib/live/lessonPlanPresentation'
 import type { LessonDeliveryStep } from '@/lib/teaching/lessonPlanCodec'
 
@@ -84,6 +85,24 @@ function ClockView({value}:{value:string}){
    <line x1="100" y1="100" x2={hour[0]} y2={hour[1]} stroke="currentColor" strokeWidth="6" strokeLinecap="round"/><line x1="100" y1="100" x2={minute[0]} y2={minute[1]} stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"/><circle cx="100" cy="100" r="4" fill="currentColor"/>
  </svg>
 }
+function ClockExplorer({value}:{value:string}){
+  const original=value.match(/^([01]?\\d|2[0-3]):([0-5]\\d)$/)
+  const [hour,setHour]=useState(original?Number(original[1]):9)
+  const [minute,setMinute]=useState(original?Number(original[2]):0)
+  const [checked,setChecked]=useState(false)
+  if(!original)return <ClockView value={value}/>
+  const formatted=String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0')
+  return <div className={styles.clockExplorer} aria-label="Explore the analogue clock">
+    <strong>Try moving the clock hands</strong>
+    <ClockView value={formatted}/>
+    <output aria-live="polite">{formatted}</output>
+    <label>Hour <input type="range" min="0" max="23" value={hour} onChange={e=>{setHour(Number(e.target.value));setChecked(false)}}/></label>
+    <label>Minutes <input type="range" min="0" max="59" step="5" value={minute} onChange={e=>{setMinute(Number(e.target.value));setChecked(false)}}/></label>
+    <button type="button" onClick={()=>setChecked(true)}>Check against teacher's clock</button>
+    {checked&&<p role="status">{formatted===value?'Correct. The clocks match.':'Keep trying. This practice stays on your device.'}</p>}
+    <small>Personal practice only — it will not change the teacher's clock or submit a graded answer.</small>
+  </div>
+}
 function LessonNavigation({items,reviewId,onReview,ended=false}:{items:Prompt[];reviewId:string|null;onReview:(id:string|null)=>void;ended?:boolean}) {
   if (!items.length) return null
   const selected = reviewId ? items.findIndex(p=>p.id===reviewId) : items.length-1
@@ -96,12 +115,12 @@ function LessonNavigation({items,reviewId,onReview,ended=false}:{items:Prompt[];
     <button type="button" disabled={reviewId===null} onClick={()=>onReview(null)}>{ended?'Latest':'Return to Live'}</button>
   </nav>
 }
-function SharedPrompt({prompt,roomId}:{prompt:Prompt|null|undefined;roomId?:string}){
+function SharedPrompt({prompt,roomId,learner=false,onQuote}:{prompt:Prompt|null|undefined;roomId?:string;learner?:boolean;onQuote?:(quote:string)=>void}){
  const sharedFile=prompt?.kind==='teach'?decodeLiveFileRef(prompt.body):null
  if(sharedFile)return roomId?<LiveFilePresentation roomId={roomId} fileId={sharedFile}/>:<p>Shared PDF or photo</p>
  const slide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
  if(slide)return <SlideCanvas slide={slide} number={slide.number} total={slide.total}/>
- return prompt?<><div className={styles.label}>{labels[prompt.kind]}</div>{prompt.kind==='clock'?<ClockView value={prompt.body}/>:prompt.kind==='board'?<BoardView value={prompt.body}/>:<p className={styles.content}>{prompt.body}</p>}{prompt.revealed&&prompt.answerKey&&<div className={styles.solution}><strong>Answer</strong><p className={styles.content}>{prompt.answerKey}</p></div>}</>:<p className={styles.empty}>Choose a teaching tool to start.</p>
+ return prompt?<><div className={styles.label}>{labels[prompt.kind]}</div>{prompt.kind==='clock'?(learner?<ClockExplorer value={prompt.body}/>:<ClockView value={prompt.body}/>):prompt.kind==='board'?<BoardView value={prompt.body}/>:prompt.kind==='teach'?<LiveReadingSurface body={prompt.body} learner={learner} onQuote={onQuote}/>:<p className={styles.content}>{prompt.body}</p>}{prompt.revealed&&prompt.answerKey&&<div className={styles.solution}><strong>Answer</strong><p className={styles.content}>{prompt.answerKey}</p></div>}</>:<p className={styles.empty}>Choose a teaching tool to start.</p>
 }
 
 // Local preview only: no camera stream is transmitted by the classroom pilot.
@@ -814,7 +833,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">Board {boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button></div>
           <ObjectBoard key={boardPage} value={board} page={boardPage+1} total={boardPages.length} onChange={changeBoard} disabled={busy} onUndo={undoBoard} onRedo={redoBoard} canUndo={!!undoBoards.length} canRedo={!!redoBoards.length}/>
           <button className={styles.primary} disabled={busy||!online||room.status!=='active'||!board.trim()} onClick={publishBoard}>Share board</button>
-        </>:<SharedPrompt prompt={viewedPrompt} roomId={room.id}/>}
+        </>:<SharedPrompt prompt={viewedPrompt} roomId={room.id} learner={!teacher} onQuote={!teacher ? quote=>{setNoteDraft(value=>value.trim()?value+'\n\n“'+quote+'”':'“'+quote+'”');noteDirty.current=true;setPrivateOpen(false);setClassChatOpen(false);setLearnerTool('notes')} : undefined}/>}
       </section>
       {((teacher&&privateTarget&&panel===null)||(!teacher&&privateOpen&&!learnerTool))&&<LivePrivateChat key={room.id+':'+(privateTarget?.studentId??'self')} roomId={room.id} teacher={teacher} recipient={privateTarget} status={room.status} command={call} onClose={()=>{setPrivateOpen(false);setPrivateTarget(null)}}/>}
       {((teacher&&panel==='chat')||(!teacher&&classChatOpen&&!learnerTool))&&<LiveClassChat key={room.id} roomId={room.id} version={room.version} teacher={teacher} status={room.status} command={call} onClose={()=>{if(teacher)setPanel(null);else setClassChatOpen(false)}}/>}
