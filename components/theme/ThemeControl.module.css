@@ -8,3 +8,6 @@
 :global(html[data-vs-theme='dark']) .control{background:#222b2b;color:#f1f7f2;border-color:#596766}
 :global(html[data-vs-theme='dark']) .control select option{background:#222b2b;color:#f1f7f2}
 @media(max-width:380px){.floating{top:64px;right:6px}.control{padding:4px 5px;gap:3px}}
+
+/* The fixed fallback is for routes without an app/public header appearance slot. */
+:global(body:has([data-site-theme-host])) .floating{display:none}
