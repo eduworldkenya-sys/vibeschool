@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { LIVE_LEARNER_ASSET_KINDS, liveResourcePages, readableLiveResourceText } from '@/lib/live/resourcePresentation'
+import { LIVE_LEARNER_ASSET_KINDS, LIVE_SCHOOL_GRADE_LABELS, liveResourcePages, readableLiveResourceText } from '@/lib/live/resourcePresentation'
 import styles from './LiveResourcePicker.module.css'
 
 type ResourceChoice = {
@@ -45,6 +45,7 @@ export function LiveResourcePicker({
           .select('id,title,subject,grade,asset_kind')
           .eq('status', 'active').eq('visibility', 'public')
           .in('asset_kind', [...LIVE_LEARNER_ASSET_KINDS])
+          .in('grade', LIVE_SCHOOL_GRADE_LABELS)
           .order('updated_at', { ascending: false }).limit(80)
         if (canonical.error) throw canonical.error
         const safe: ResourceChoice[] = (canonical.data ?? []).map(r => ({
@@ -109,7 +110,8 @@ export function LiveResourcePicker({
         const root = await supabase.from('learning_resources')
           .select('id,asset_kind')
           .eq('id', item.id).eq('status', 'active').eq('visibility', 'public')
-          .in('asset_kind', [...LIVE_LEARNER_ASSET_KINDS]).maybeSingle()
+          .in('asset_kind', [...LIVE_LEARNER_ASSET_KINDS])
+          .in('grade', LIVE_SCHOOL_GRADE_LABELS).maybeSingle()
         if (root.error) throw root.error
         if (!root.data) throw new Error('The resource is not released for learner presentation.')
         const result = await supabase.from('learning_resource_versions')
