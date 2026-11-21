@@ -1,0 +1,25 @@
+name: Independent Content Approval without HQ
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261121175000_content_independent_review_no_hq.sql'
+      - 'scripts/test-content-independent-approval-no-hq.mjs'
+      - '.github/workflows/content-independent-approval-no-hq.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261121175000_content_independent_review_no_hq.sql'
+      - 'scripts/test-content-independent-approval-no-hq.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check non-HQ independence, immutable QA and RPC grants
+        run: node --test scripts/test-content-independent-approval-no-hq.mjs
