@@ -26,14 +26,14 @@ export function classifyContentReleasePreflight(input, expected) {
     && positive(g.approved) && exact(g.source_blocks,expected.chapterBlockCount)
     && exact(e.items,expected.assessmentItemCount) && exact(e.marks,expected.assessmentMarks)
     && e.approved_items >= expected.minimumApprovedAssessmentItems
-    && f.curriculum_gate.state === 'PASS' && positive(a.current_fingerprint_approvals)
+    && f.curriculum_gate.state === 'PASS'
   if (!proof) return failure('release_evidence_incomplete_or_stale',p.blockers)
   const learnerVisible = a.published_chapters > 0 && a.live_catalogue_rows > 0
-  if (p.blockers.length === 0 && p.status === 'RELEASE_VERIFIED' && learnerVisible && f.book_status === 'published') {
+  if (p.blockers.length === 0 && p.status === 'CATALOGUE_VISIBLE' && learnerVisible && f.book_status === 'published' && positive(a.final_release_approvals)) {
     return {state: 'CATALOGUE_VERIFIED',reason:null,blockers:[],mayRequestCanonicalPublish:false,learnerVisible:true}
   }
   if (p.blockers.length === 1 && p.blockers[0] === 'student_catalogue_publication_pending' &&
-      p.status === 'READY_TO_PUBLISH' && f.book_status === 'draft' && f.app_actor_attached_to_this_connection === true && !learnerVisible) {
+      p.status === 'READY_TO_PUBLISH' && f.book_status === 'draft' && positive(a.current_fingerprint_approvals) && f.app_actor_attached_to_this_connection === true && !learnerVisible) {
     return {state:'READY_TO_PUBLISH',reason:null,blockers:p.blockers,mayRequestCanonicalPublish:true,learnerVisible:false}
   }
   return failure('release_gates_pending_or_contradictory',p.blockers)
