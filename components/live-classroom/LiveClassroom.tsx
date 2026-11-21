@@ -17,6 +17,7 @@ import { liveSyncDelay } from './LiveSyncPolicy'
 import { LivePrivateChat } from './LivePrivateChat'
 import { LiveClassChat } from './LiveClassChat'
 import { LiveVoice } from './LiveVoice'
+import { LiveReadingSurface } from './LiveReadingSurface'
 import { teacherLivePlan } from '@/lib/live/lessonPlanPresentation'
 import type { LessonDeliveryStep } from '@/lib/teaching/lessonPlanCodec'
 
@@ -85,6 +86,26 @@ function ClockView({value}:{value:string}){
    <line x1="100" y1="100" x2={hour[0]} y2={hour[1]} stroke="currentColor" strokeWidth="6" strokeLinecap="round"/><line x1="100" y1="100" x2={minute[0]} y2={minute[1]} stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"/><circle cx="100" cy="100" r="4" fill="currentColor"/>
  </svg>
 }
+function ClockExplorer({value}:{value:string}){
+  const original=value.match(/^([01]?\d|2[0-3]):([0-5]\d)$/)
+  const [hour,setHour]=useState(original?Number(original[1]):9)
+  const [minute,setMinute]=useState(original?Number(original[2]):0)
+  const [checked,setChecked]=useState(false)
+  useEffect(()=>{const next=value.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);if(next){setHour(Number(next[1]));setMinute(Number(next[2]));setChecked(false)}},[value])
+  if(!original)return <ClockView value={value}/>
+  const formatted=String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0')
+  const expected=String(Number(original[1])).padStart(2,'0')+':'+original[2]
+  return <div className={styles.clockExplorer} aria-label="Explore the analogue clock">
+    <strong>Try moving the clock hands</strong>
+    <ClockView value={formatted}/>
+    <output aria-live="polite">{formatted}</output>
+    <label>Hour <input type="range" min="0" max="23" value={hour} onChange={e=>{setHour(Number(e.target.value));setChecked(false)}}/></label>
+    <label>Minutes <input type="range" min="0" max="59" step="1" value={minute} onChange={e=>{setMinute(Number(e.target.value));setChecked(false)}}/></label>
+    <button type="button" onClick={()=>setChecked(true)}>Check against teacher's clock</button>
+    {checked&&<p role="status">{formatted===expected?'Correct. The clocks match.':'Keep trying. This practice stays on your device.'}</p>}
+    <small>Personal practice only — it will not change the teacher's clock or submit a graded answer.</small>
+  </div>
+}
 function LessonNavigation({items,reviewId,onReview,ended=false}:{items:Prompt[];reviewId:string|null;onReview:(id:string|null)=>void;ended?:boolean}) {
   if (!items.length) return null
   const selected = reviewId ? items.findIndex(p=>p.id===reviewId) : items.length-1
@@ -97,12 +118,12 @@ function LessonNavigation({items,reviewId,onReview,ended=false}:{items:Prompt[];
     <button type="button" disabled={reviewId===null} onClick={()=>onReview(null)}>{ended?'Latest':'Return to Live'}</button>
   </nav>
 }
-function SharedPrompt({prompt,roomId}:{prompt:Prompt|null|undefined;roomId?:string}){
+function SharedPrompt({prompt,roomId,learner=false,compact=false,onQuote}:{prompt:Prompt|null|undefined;roomId?:string;learner?:boolean;compact?:boolean;onQuote?:(quote:string)=>void}){
  const sharedFile=prompt?.kind==='teach'?decodeLiveFileRef(prompt.body):null
  if(sharedFile)return roomId?<LiveFilePresentation roomId={roomId} fileId={sharedFile}/>:<p>Shared PDF or photo</p>
  const slide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
  if(slide)return <SlideCanvas slide={slide} number={slide.number} total={slide.total}/>
- return prompt?<><div className={styles.label}>{labels[prompt.kind]}</div>{prompt.kind==='clock'?<ClockView value={prompt.body}/>:prompt.kind==='board'?<BoardView value={prompt.body}/>:<p className={styles.content}>{prompt.body}</p>}{prompt.revealed&&prompt.answerKey&&<div className={styles.solution}><strong>Answer</strong><p className={styles.content}>{prompt.answerKey}</p></div>}</>:<p className={styles.empty}>Choose a teaching tool to start.</p>
+ return prompt?<><div className={styles.label}>{labels[prompt.kind]}</div>{prompt.kind==='clock'?(learner?<ClockExplorer value={prompt.body}/>:<ClockView value={prompt.body}/>):prompt.kind==='board'?<BoardView value={prompt.body}/>:prompt.kind==='teach'&&!compact?<LiveReadingSurface body={prompt.body} learner={learner} onQuote={onQuote}/>:<p className={styles.content}>{prompt.body}</p>}{prompt.revealed&&prompt.answerKey&&<div className={styles.solution}><strong>Answer</strong><p className={styles.content}>{prompt.answerKey}</p></div>}</>:<p className={styles.empty}>Choose a teaching tool to start.</p>
 }
 
 // Local preview only: no camera stream is transmitted by the classroom pilot.
@@ -175,7 +196,7 @@ function TeacherSticker({prompt,hidden,onHide}:{prompt:Prompt|null|undefined;hid
      <button type="button" aria-label={mini?'Expand preview':'Minimize preview'} onClick={()=>setMini(v=>!v)}>{mini?<Maximize size={14}/>:<Minimize size={14}/>}</button>
      {!mini&&<button type="button" aria-label="Hide preview" onClick={onHide}><X size={14}/></button>}
    </div>
-   {!mini&&<><div className={styles.stickerContent}>{camera?<video ref={video} autoPlay muted playsInline aria-label="Local camera self-view"/>:<SharedPrompt prompt={prompt}/>}</div>
+   {!mini&&<><div className={styles.stickerContent}>{camera?<video ref={video} autoPlay muted playsInline aria-label="Local camera self-view"/>:<SharedPrompt prompt={prompt} compact/>}</div>
    <div className={styles.stickerFooter}><span>{camera?'You · local only':'Learner preview'}</span><button type="button" aria-label={camera?'Stop local camera':'Start local camera preview'} title="Local camera only" aria-pressed={camera} onClick={()=>void toggleCamera()}><Video size={15}/></button></div>
    {pending&&<small role="status">Opening camera…</small>}{cameraError&&<small role="status">{cameraError}</small>}
    <button type="button" className={styles.resize} aria-label="Resize preview" title="Drag to resize" onPointerDown={e=>start(e,'resize')} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} onKeyDown={e=>{if(box.current&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();setPosition(clamp(box.current.offsetLeft,box.current.offsetTop,box.current.offsetWidth+(['ArrowRight','ArrowDown'].includes(e.key)?12:-12)))}}}><GripHorizontal size={14}/></button></>}
@@ -249,6 +270,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const presenterPending=useRef<PresenterPosition|null>(null)
   const presenterChain=useRef<Promise<void>>(Promise.resolve())
   const [learnerTool,setLearnerTool]=useState<'ask'|'notes'|'files'|null>(null)
+  const [learnerMenu,setLearnerMenu]=useState(false)
   const [questionDraft,setQuestionDraft]=useState('')
   const questionRequest=useRef<{body:string;id:string}|null>(null)
   const [noteDraft,setNoteDraft]=useState('')
@@ -270,7 +292,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     setFollowingTeacher(true)
     presenterPending.current=null
     if(presenterTimer.current!==null){window.clearTimeout(presenterTimer.current);presenterTimer.current=null}
-    setLearnerTool(null);setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({});setPrivateTarget(null);setPrivateOpen(false);setClassChatOpen(false);setWaitingRequests([]);setWaitingError('')
+    setLearnerTool(null);setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({});setPrivateTarget(null);setPrivateOpen(false);setClassChatOpen(false);setLearnerMenu(false);setWaitingRequests([]);setWaitingError('')
   },[room?.id])
   useEffect(()=>{if(!noteDirty.current)setNoteDraft(room?.ownNote??'')},[room?.id,room?.ownNote])
   const [draftBinding,setDraftBinding]=useState<{roomId:string; key:string}|null>(null)
@@ -899,11 +921,19 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <div className={styles.boardTools}><button aria-label="Previous board page" disabled={busy||boardPage===0} onClick={()=>switchBoardPage(boardPage-1)}>‹</button><span aria-live="polite">Board {boardPage+1} / {boardPages.length}</span><button aria-label="Next board page" disabled={busy||boardPage===boardPages.length-1} onClick={()=>switchBoardPage(boardPage+1)}>›</button><button disabled={busy||boardPages.length>=30} onClick={()=>switchBoardPage(boardPages.length,true)}>+ Page</button></div>
           <ObjectBoard key={boardPage} value={board} page={boardPage+1} total={boardPages.length} onChange={changeBoard} disabled={busy} onUndo={undoBoard} onRedo={redoBoard} canUndo={!!undoBoards.length} canRedo={!!redoBoards.length}/>
           <button className={styles.primary} disabled={busy||!online||room.status!=='active'||!board.trim()} onClick={publishBoard}>Share board</button>
-        </>:<SharedPrompt prompt={viewedPrompt} roomId={room.id}/>}
+        </>:<SharedPrompt prompt={viewedPrompt} roomId={room.id} learner={!teacher} onQuote={!teacher ? quote=>{if(noteDraft.length+quote.length+4>8000){setError('Your private notes are full. Shorten them before adding this passage.');return}setNoteDraft(value=>value.trim()?value+'\n\n“'+quote+'”':'“'+quote+'”');noteDirty.current=true;setPrivateOpen(false);setClassChatOpen(false);setLearnerTool('notes')} : undefined}/>}
       </section>
       {((teacher&&privateTarget&&panel===null)||(!teacher&&privateOpen&&!learnerTool))&&<LivePrivateChat key={room.id+':'+(privateTarget?.studentId??'self')} roomId={room.id} teacher={teacher} recipient={privateTarget} status={room.status} command={call} onClose={()=>{setPrivateOpen(false);setPrivateTarget(null)}}/>}
       {((teacher&&panel==='chat')||(!teacher&&classChatOpen&&!learnerTool))&&<LiveClassChat key={room.id} roomId={room.id} version={room.version} teacher={teacher} status={room.status} command={call} onClose={()=>{if(teacher)setPanel(null);else setClassChatOpen(false)}}/>}
-      {!teacher&&learnerTool&&<section className={styles.sheet} aria-label={learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':'My notes'}>
+      {!teacher&&learnerMenu&&<section className={styles.sheet} aria-label="More learner tools">
+         <div className={styles.sheetTitle}><strong>More tools</strong><button type="button" aria-label="Close more tools" onClick={()=>setLearnerMenu(false)}><X size={18}/></button></div>
+         <div className={styles.learnerMenuGrid}>
+           <button type="button" onClick={()=>{setLearnerMenu(false);setLearnerTool(null);setClassChatOpen(false);setPrivateOpen(true)}}><MessageSquare size={19}/> Teacher messages{Number(room.dmUnread)>0?' · '+room.dmUnread+' new':''}</button>
+           <button type="button" onClick={()=>{setLearnerMenu(false);setPrivateOpen(false);setClassChatOpen(false);setLearnerTool('files')}}><BookOpen size={19}/> Shared files</button>
+           <button type="button" disabled={!history.length} onClick={()=>{setLearnerMenu(false);setLearnerTool(null);setReviewId(reviewId?null:history[0].id)}}><History size={19}/> {reviewId?'Go live':'Lesson history'}</button>
+         </div>
+       </section>}
+       {!teacher&&learnerTool&&<section className={styles.sheet} aria-label={learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':'My notes'}>
         <div className={styles.sheetTitle}><strong>{learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':'My notes'}</strong><button type="button" aria-label="Close" onClick={()=>setLearnerTool(null)}><X size={18}/></button></div>
         {learnerTool==='ask'?<><small>Only you and your teacher can see this conversation.</small><ul className={styles.participants}>{(room.questions??[]).map(q=><li key={q.id} className={styles.messageExchange}><div className={styles.messageBubble} data-own="true"><small>You → Teacher</small><span>{q.body}</span><small>Sent · {q.reply?'Replied':'Awaiting reply'}</small></div>{q.reply&&<div className={styles.messageBubble}><small>Teacher → You</small><span>{q.reply}</span></div>}</li>)}</ul><form onSubmit={e=>{e.preventDefault();askTeacher()}}><label>Your question<textarea maxLength={1000} value={questionDraft} disabled={busy} onChange={e=>setQuestionDraft(e.target.value)} required/></label><button className={styles.primary} disabled={busy||!online||!questionDraft.trim()}>Send privately</button></form></>:learnerTool==='files'?<LiveClassFiles roomId={room.id} teacher={false} status={room.status}/>:<form onSubmit={e=>{e.preventDefault();void act('note',null,{body:noteDraft})}}><label>Personal notes<textarea maxLength={8000} value={noteDraft} disabled={busy} onChange={e=>{noteDirty.current=true;setNoteDraft(e.target.value)}}/></label><button className={styles.primary} disabled={busy||!online||!noteDirty.current}>Save notes</button><small>{noteDirty.current?'Unsaved changes':'Notes saved privately'}</small></form>}
       </section>}
@@ -940,14 +970,12 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     </div>}
     {!teacher&&reviewId===null&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}><label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label><button className={styles.primary} disabled={busy||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button></form>}</section>}
     {(!focusMode||focusDock)&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} disabled={draftLoading} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button type="button" disabled={draftLoading} aria-pressed={panel==='resources'} onClick={()=>{setReviewId(null);setEditingBoard(false);setPanel(panel==='resources'?null:'resources')}}><BookOpen size={18}/><span>Resources</span></button><button disabled={draftLoading} aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}{participants.some(p=>Number(p.unreadDm)>0)?' · '+participants.reduce((n,p)=>n+Number(p.unreadDm??0),0)+' new':''}</button><button type="button" aria-pressed={panel==='chat'} onClick={()=>{setEditingBoard(false);setPanel(panel==='chat'?null:'chat')}}><MessageSquare size={16}/> Chat{room.chatEnabled?' · On':''}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<nav aria-label="Learner tools" className={styles.learnerTools}>
-      <button type="button" aria-pressed={!!room.needsHelp} data-raised={!!room.needsHelp} disabled={busy||!online} onClick={()=>void act(room.needsHelp?'lower':'help')}><Hand size={21}/><span>{room.needsHelp?'Lower hand':'Raise hand'}</span></button>
-      <button type="button" aria-pressed={learnerTool==='ask'} onClick={()=>{setClassChatOpen(false);setPrivateOpen(false);setLearnerTool(v=>v==='ask'?null:'ask')}}><MessageSquare size={21}/><span>Ask</span></button>
-      <button type="button" aria-pressed={privateOpen} onClick={()=>{setClassChatOpen(false);setLearnerTool(null);setPrivateOpen(v=>!v)}}><MessageSquare size={21}/><span>Messages{Number(room.dmUnread)>0?' · '+room.dmUnread:''}</span></button>
-      <button type="button" aria-pressed={learnerTool==='notes'} onClick={()=>{setClassChatOpen(false);setLearnerTool(v=>v==='notes'?null:'notes')}}><NotebookPen size={21}/><span>Notes</span></button>
-       <button type="button" aria-pressed={learnerTool==='files'} onClick={()=>{setClassChatOpen(false);setPrivateOpen(false);setLearnerTool(v=>v==='files'?null:'files')}}><BookOpen size={21}/><span>Files</span></button>
-       <button type="button" aria-pressed={classChatOpen} onClick={()=>{setLearnerTool(null);setPrivateOpen(false);setClassChatOpen(v=>!v)}}><MessageSquare size={21}/><span>Chat{room.chatEnabled?' · On':''}</span></button>
-      <button type="button" aria-pressed={reviewId!==null} disabled={!history.length} onClick={()=>{setLearnerTool(null);setReviewId(reviewId?null:history[0].id)}}><History size={21}/><span>{reviewId?'Go live':'History'}</span></button>
-    </nav>}</footer>}
+      <button type="button" aria-label={room.needsHelp?'Lower hand':'Raise hand'} aria-pressed={!!room.needsHelp} data-raised={!!room.needsHelp} disabled={busy||!online} onClick={()=>void act(room.needsHelp?'lower':'help')}><Hand size={21}/><span>{room.needsHelp?'Lower hand':'Hand'}</span></button>
+      <button type="button" aria-pressed={learnerTool==='ask'} onClick={()=>{setLearnerMenu(false);setClassChatOpen(false);setPrivateOpen(false);setLearnerTool(v=>v==='ask'?null:'ask')}}><MessageSquare size={21}/><span>Ask</span></button>
+      <button type="button" aria-pressed={learnerTool==='notes'} onClick={()=>{setLearnerMenu(false);setClassChatOpen(false);setPrivateOpen(false);setLearnerTool(v=>v==='notes'?null:'notes')}}><NotebookPen size={21}/><span>Notes</span></button>
+      <button type="button" aria-label={room.chatEnabled?'Chat · On':'Chat'} aria-pressed={classChatOpen} onClick={()=>{setLearnerMenu(false);setLearnerTool(null);setPrivateOpen(false);setClassChatOpen(v=>!v)}}><MessageSquare size={21}/><span>Chat</span></button>
+      <button type="button" aria-pressed={learnerMenu} aria-expanded={learnerMenu} onClick={()=>{setLearnerTool(null);setClassChatOpen(false);setPrivateOpen(false);setLearnerMenu(v=>!v)}}><MoreHorizontal size={21}/><span>More{Number(room.dmUnread)>0?' · '+room.dmUnread:''}</span></button>
+     </nav>}</footer>}
     </main>
     return createPortal(stage,document.body)
   }

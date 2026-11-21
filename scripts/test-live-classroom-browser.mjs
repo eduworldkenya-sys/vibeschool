@@ -118,6 +118,21 @@ try{
  await t.getByRole('button',{name:/Live fraction reading/}).click()
  await button(t,'Present this page').click()
  await l.getByText(/One quarter means one of four equal parts/).waitFor()
+ await button(l,'Make reading text bigger').click()
+ // The reader presents the approved snapshot without injecting source HTML.
+ assert.equal(await l.locator('article').filter({hasText:'One quarter means one of four equal parts.'}).count(),1)
+ await l.evaluate(()=>{
+   const article=[...document.querySelectorAll('article')].find(el=>el.textContent.includes('One quarter means one of four equal parts.'))
+   const element=[...(article?.querySelectorAll('p')??[])].find(p=>p.textContent?.includes('One quarter means one of four equal parts.'))
+   if(!element)throw new Error('Missing readable paragraph')
+   const selection=window.getSelection(),range=document.createRange()
+   range.selectNodeContents(element);selection.removeAllRanges();selection.addRange(range)
+ })
+ await button(l,'Save selected passage to private notes').click()
+ assert.match(await l.getByLabel('Personal notes').inputValue(),/One quarter means one of four equal parts/)
+ await button(l,'Save notes').click()
+ await l.getByRole('button',{name:'Close',exact:true}).click()
+
  await button(t,'Resources').click()
  await noPageOverflow(t)
  await button(t,'Return to lesson').click()
@@ -135,7 +150,8 @@ try{
  // Teacher starts the private conversation before learner asks anything.
  await button(t,'Message privately').click()
  await t.getByLabel('Private message').fill('Typing to Learner A')
- await l.getByRole('button',{name:/^Messages/}).click()
+ await l.getByRole('button',{name:/^More/}).click()
+ await l.getByRole('button',{name:/^Teacher messages/}).click()
  await see(l,'Teacher is typing…')
  await t.getByLabel('Private message').fill('Can I help you with equivalent fractions?')
  await button(t,'Send privately').click()

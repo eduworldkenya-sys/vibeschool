@@ -237,3 +237,18 @@
 .followBar button{min-height:32px;padding:4px 10px;border:1px solid #68998a;border-radius:9px;background:#203b33;color:inherit}
 .followBar [role=status]{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:420px){.followBar{font-size:11px}.followBar button{font-size:11px}}
+
+/* Learner-first controls preserve the reading stage on narrow Android screens. */
+.learnerTools{grid-template-columns:repeat(5,minmax(0,1fr))}
+.learnerMenuGrid{display:grid;grid-template-columns:1fr;gap:8px}
+.learnerMenuGrid button{width:100%;justify-content:flex-start!important;text-align:left;min-height:48px!important}
+.clockExplorer{display:grid;gap:11px;align-items:center;justify-items:center;margin:auto;width:min(100%,380px);padding:12px;background:var(--vs-surface,#fff);color:var(--vs-text-primary,#173c35);border-radius:12px}
+.clockExplorer strong{font-size:1.1rem;text-align:center}
+.clockExplorer .clock{width:min(65vw,250px);height:auto;max-height:35dvh;flex:none;margin:0 auto}
+.clockExplorer output{font-variant-numeric:tabular-nums;font-weight:750;font-size:1.5rem}
+.clockExplorer label{display:grid;grid-template-columns:70px minmax(0,1fr);gap:8px;align-items:center;width:100%;font-weight:650}
+.clockExplorer input[type=range]{width:100%;accent-color:var(--vs-accent,#087e72)}
+.immersive .clockExplorer button{min-height:44px;padding:10px 12px;background:var(--vs-accent,#087e72);color:white;border:0}
+.clockExplorer small{font-size:.75rem;line-height:1.4;text-align:center;opacity:.8}
+.clockExplorer p{font-size:.85rem;line-height:1.45;margin:0;text-align:center}
+@media(max-width:360px){.immersive .learnerTools button{font-size:10px;gap:2px}.learnerTools button svg{width:18px;height:18px}}
