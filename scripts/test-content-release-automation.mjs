@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { classifyContentReleasePreflight, runAuthorizedContentRelease } from './content-release-automation.mjs'
 
 const E={scope:'Grade 4 Mathematics / Whole Numbers only',packageId:'VS-G04-MA-1.1-WHOLE-NUMBERS-20261120',publicationId:'6fc551d7-c9ae-4402-ac52-3d0a46461e87',publisherId:'c49bf987-357f-46bc-98fb-9a326882e437',outcomeCount:11,resourceCount:6,publicResourceCount:4,privateResourceCount:2,chapterBlockCount:59,assessmentItemCount:11,assessmentMarks:16,minimumApprovedAssessmentItems:6}
-const ready=()=>({scope:E.scope,package_id:E.packageId,publication_id:E.publicationId,no_mutation_performed:true,status:'READY_TO_PUBLISH',blockers:['student_catalogue_publication_pending'],facts:{book_status:'draft',app_actor_attached_to_this_connection:true,official_source:{approved:1,artifacts:1,promoted_snapshots:1},outcomes:{mapped:11,active:11,locator_matches:11},resources:{total:6,verified_payload_hashes:6,certified:6,rights_cleared:6,pending_rights:0,active_roots:6,public_learnable:4,protected_sensitive:2},guide:{approved:1,source_blocks:59},assessment:{items:11,marks:16,approved_items:11},curriculum_gate:{state:'PASS'},release:{current_fingerprint_approvals:1,published_chapters:0,live_catalogue_rows:0}}})
-const live=()=>{const p=ready();p.status='RELEASE_VERIFIED';p.blockers=[];p.facts.book_status='published';p.facts.release.published_chapters=1;p.facts.release.live_catalogue_rows=1;return p}
+const ready=()=>({scope:E.scope,package_id:E.packageId,publication_id:E.publicationId,no_mutation_performed:true,status:'READY_TO_PUBLISH',blockers:['student_catalogue_publication_pending'],facts:{book_status:'draft',app_actor_attached_to_this_connection:true,official_source:{approved:1,artifacts:1,promoted_snapshots:1},outcomes:{mapped:11,active:11,locator_matches:11},resources:{total:6,verified_payload_hashes:6,certified:6,rights_cleared:6,pending_rights:0,active_roots:6,public_learnable:4,protected_sensitive:2},guide:{approved:1,source_blocks:59},assessment:{items:11,marks:16,approved_items:11},curriculum_gate:{state:'PASS'},release:{current_fingerprint_approvals:1,final_release_approvals:1,published_chapters:0,live_catalogue_rows:0}}})
+const live=()=>{const p=ready();p.status='CATALOGUE_VISIBLE';p.blockers=[];p.facts.release.current_fingerprint_approvals=0;p.facts.book_status='published';p.facts.release.published_chapters=1;p.facts.release.live_catalogue_rows=1;return p}
 
 test('exact verified draft reaches only a request to canonical publisher, not claimed live',()=>{
  const r=classifyContentReleasePreflight(ready(),E)
@@ -49,4 +49,12 @@ test('canonical RPC denial stops; catalogue proof requires a fresh readback',asy
  assert.equal(result.state,'CATALOGUE_VERIFIED');assert.equal(seen,2)
  const stillDraft=await runAuthorizedContentRelease({client:mock,loadPreflight:async()=>ready(),expected:E})
  assert.equal(stillDraft.reason,'post_release_catalogue_not_verified')
+})
+
+test('post-release fingerprint differs solely due to lifecycle; historical review still required',()=>{
+ const p=live()
+ assert.equal(p.facts.release.current_fingerprint_approvals,0)
+ assert.equal(classifyContentReleasePreflight(p,E).state,'CATALOGUE_VERIFIED')
+ p.facts.release.final_release_approvals=0
+ assert.equal(classifyContentReleasePreflight(p,E).state,'BLOCKED')
 })
