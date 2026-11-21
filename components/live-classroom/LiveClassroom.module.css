@@ -117,7 +117,7 @@
 .lessonHistory button:disabled { opacity: .4; cursor: default; }
 .lessonHistory span { font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-.learnerTools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;width:100%;flex:1;min-width:0}
+.learnerTools{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;width:100%;flex:1;min-width:0}
 .immersive .learnerTools button{min-height:52px;min-width:0;flex-direction:column;gap:4px;padding:4px 2px;font-size:11px;line-height:1.15;white-space:nowrap}
 .learnerTools button svg{flex:none}
 .immersive .learnerTools button[data-raised=true]{color:#342100;background:#f0b957;border-color:#f0b957}
@@ -189,3 +189,10 @@
 .messageBubble{align-self:flex-start;display:grid;gap:4px;max-width:88%;border:1px solid #52736b;border-radius:12px 12px 12px 3px;padding:9px 11px;background:#253d37;overflow-wrap:anywhere;white-space:pre-wrap}
 .messageBubble[data-own=true]{align-self:flex-end;background:#165b53;border-color:#3f9385;border-radius:12px 12px 3px 12px}
 .messageBubble small{font-size:.72rem;font-weight:600;color:#d5e8e1}
+
+/* Session-scoped one-to-one messages. System theme shell, small-screen first. */
+.chatMessages{display:flex;flex-direction:column;gap:9px;min-height:108px;max-height:min(42dvh,400px);overflow-y:auto;overscroll-behavior:contain;padding:10px 6px;background:#112821;border:1px solid #496d62;border-radius:10px}
+.chatMessages .messageBubble{flex:none;min-width:0}
+.chatMessages p{color:#c8ddd4;font-size:13px}
+.sheetTitle strong{display:flex;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}
+@media(max-width:360px){.immersive .learnerTools button{font-size:10px;letter-spacing:-.02em}.learnerTools button span{overflow-wrap:anywhere}}
