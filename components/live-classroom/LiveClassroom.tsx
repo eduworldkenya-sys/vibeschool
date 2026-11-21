@@ -14,6 +14,7 @@ import { liveSyncDelay } from './LiveSyncPolicy'
 type ClassroomMode = 'school' | 'tuition' | 'homeschool' | 'open'
 const classroomLabels: Record<ClassroomMode,string>={school:'School',tuition:'Tuition',homeschool:'Homeschool',open:'Open class'}
 type Summary = { mode: ClassroomMode; canJoin: boolean; id: string; title: string; status: 'active' | 'paused'; own: boolean }
+type PastSummary = { id: string; title: string; mode: ClassroomMode; startedAt: string; status: 'ended' }
 type Mode = 'teach' | 'quiz' | 'exercise' | 'poll' | 'clock' | 'board'
 type Prompt = { id: string; kind: Mode; body: string; answerKey: string | null; revealed: boolean }
 type HistoryPrompt = Prompt & { position: number; createdAt: string }
@@ -201,6 +202,11 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const boardInitialized=useRef(false)
   const boardUndoByPage=useRef<Record<number,{undo:string[];redo:string[]}>>({})
   const [rooms,setRooms] = useState<Summary[]>([])
+  const [pastRooms,setPastRooms] = useState<PastSummary[]>([])
+  const [pastOpen,setPastOpen] = useState(false)
+  const [pastAvailable,setPastAvailable] = useState(false)
+  const [pastLoading,setPastLoading] = useState(false)
+  const [pastError,setPastError] = useState('')
   const [search,setSearch]=useState('')
   const [scope,setScope]=useState<'all'|ClassroomMode>('all')
   const [sharedId,setSharedId]=useState('')
@@ -309,6 +315,17 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(generation.current===stamp) {lock.current=false;if(mounted.current)setLoading(false)}
     }
   },[call,accept,teacher,classId,hostModeKey,revoke])
+  // Backend capability probing keeps the archive control hidden until the
+  // compatible, independently verified read-only RPC has been commissioned.
+  useEffect(()=>{
+    if(loading){setPastAvailable(false);return}
+    if(room?.id)return
+    let cancelled=false
+    void call('past_list').then(data=>{
+      if(!cancelled)setPastAvailable(Array.isArray(data))
+    }).catch(()=>{if(!cancelled)setPastAvailable(false)})
+    return ()=>{cancelled=true}
+  },[call,loading,room?.id])
   useEffect(()=>{
     mounted.current=true
     generation.current++
@@ -346,6 +363,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if(!teacher&&id&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))setSharedId(id)
   },[classId,teacher,hostModeKey])
   useEffect(()=>{setShareLink('')},[room?.id])
+  useEffect(()=>{if(room?.id)setPastOpen(false)},[room?.id])
   useEffect(()=>{setAnswer('');setAnswerFor(room?.prompt?.id??'')},[room?.prompt?.id])
   async function act(action:string,id:string|null=null,payload:Record<string,unknown>={}) {
     if(mutating.current) return
@@ -380,6 +398,25 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     } finally {
       if(generation.current===stamp){mutating.current=false;lock.current=false;if(mounted.current){setBusy(false);setLoading(false)}}
     }
+  }
+  async function togglePastClasses() {
+    if (pastOpen) { setPastOpen(false); return }
+    setPastOpen(true); setPastLoading(true); setPastError('')
+    try {
+      const data = await call('past_list')
+      if (!Array.isArray(data)) throw new Error('Invalid saved lesson list')
+      const valid = data.filter((item): item is PastSummary => {
+        if (!item || typeof item !== 'object') return false
+        return typeof item.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id)
+          && typeof item.title === 'string' && item.title.length > 0
+          && ['school','tuition','homeschool','open'].includes(item.mode)
+          && item.status === 'ended' && typeof item.startedAt === 'string' && Number.isFinite(Date.parse(item.startedAt))
+      })
+      setPastRooms(valid.slice(0, 30))
+    } catch {
+      setPastRooms([])
+      setPastError('Past classes could not be loaded. Retry when connected.')
+    } finally { setPastLoading(false) }
   }
   function leave() {
     if(mutating.current)return
@@ -679,6 +716,16 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         {sharedId&&!rooms.some(item=>item.id===sharedId)&&<button disabled={busy} onClick={()=>void act('join',sharedId)}>Join shared lesson</button>}
       </div>}
       {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>teacher||item.canJoin?<button key={item.id} disabled={busy} onClick={()=>void act(teacher?'get':'join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>{teacher?'Resume': 'Join Live'}</span></button>:<div key={item.id} className={styles.discover}><strong>{item.title}<small>Open class</small></strong><Link href="/student/tutoring">Connect to tutor</Link></div>)}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
+      {pastAvailable&&<button type="button" aria-expanded={pastOpen} disabled={pastLoading} onClick={()=>void togglePastClasses()}>{pastOpen?'Hide Past Classes':'Past Classes'}</button>}
+      {pastAvailable&&pastOpen&&<section aria-label="Past Classes">
+        {pastLoading&&<p role="status">Loading saved lessons…</p>}
+        {pastError&&<p role="alert">{pastError}</p>}
+        {!pastLoading&&!pastError&&!pastRooms.length&&<p>No previously attended lessons to review.</p>}
+        {!!pastRooms.length&&<div className={styles.rooms}>{pastRooms.map(item=><button key={item.id} type="button" disabled={busy||pastLoading} onClick={()=>void act('get',item.id)}>
+          <strong>{item.title}<small>{classroomLabels[item.mode]} · Started {new Date(item.startedAt).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric',timeZone:'Africa/Nairobi'})}</small></strong>
+          <span>View saved lesson</span>
+        </button>)}</div>}
+      </section>}
     </section>}
     {room?.status==='ended'&&<section className={styles.panel}><h2>{room.title}</h2><p>This session has ended.</p><LessonNavigation items={history} reviewId={reviewId} onReview={setReviewId} ended/><div aria-label="Saved lesson"><SharedPrompt prompt={viewedPrompt}/></div>{!teacher&&room.ownNote&&<div><h3>My notes</h3><p className={styles.content}>{room.ownNote}</p></div>}<button onClick={leave}>Return to live lessons</button></section>}
   </main>
