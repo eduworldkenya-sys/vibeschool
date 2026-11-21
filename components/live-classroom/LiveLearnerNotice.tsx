@@ -4,26 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import compact from '@/components/student/LearnerCompact.module.css'
-
-type LiveSummary = {
-  id: string
-  title: string
-  mode: 'school' | 'tuition' | 'homeschool' | 'open'
-  status: 'active' | 'paused'
-  canJoin: boolean
-  own: boolean
-}
-const ROOM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const MODES = new Set(['school', 'tuition', 'homeschool', 'open'])
-
-function eligibleRoom(value: unknown): value is LiveSummary {
-  if (!value || typeof value !== 'object') return false
-  const room = value as Partial<LiveSummary>
-  return typeof room.id === 'string' && ROOM_ID.test(room.id)
-    && typeof room.title === 'string' && room.title.length > 0 && room.title.length <= 120
-    && room.status === 'active' && room.canJoin === true && room.own === false
-    && typeof room.mode === 'string' && MODES.has(room.mode)
-}
+import { eligibleRoom, type LiveSummary } from './LiveNoticePolicy'
 
 /**
  * An in-app signal based solely on the existing learner-authorized Live list.
