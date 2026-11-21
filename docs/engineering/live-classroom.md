@@ -223,3 +223,11 @@ not authorize activation of the media service.
 - The migration must pass disposable SQL authorization and actual Chromium
   multi-account tests, independent security assurance and production rollout.
   A GitHub PR is not evidence of deployed synchronization.
+
+
+## Microphone affordance-only release (21 November 2026)
+
+- With `NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED` disabled, Live displays a disabled, clearly labelled microphone-unavailable icon rather than silently hiding it.
+- When voice UI is enabled but a member has not joined authorized audio, the voice dock shows `Mic off` and `Join audio`; mic activation continues to depend on the existing room authorization, teacher approval for learners, and device consent.
+- The teacher quiz-answer-history database repair and its migration are explicitly **not included** in this release; existing quiz submissions and security remain unchanged. A separate independently reviewed change is required before exposing historical answers.
+- This UI-only change does not enable Daily/provider service, change Supabase tables or grants, or represent verified microphone capture.
