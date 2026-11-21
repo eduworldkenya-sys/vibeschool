@@ -480,7 +480,20 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         if(pendingPublish.current?.fingerprint!==fingerprint)pendingPublish.current={fingerprint,requestId:crypto.randomUUID()}
         requestPayload={...payload,requestId:pendingPublish.current.requestId}
       }
-      const next=await call(action,id??room?.id??null,active.current?.version??null,requestPayload) as Room
+      let next: Room
+      try {
+        next=await call(action,id??room?.id??null,active.current?.version??null,requestPayload) as Room
+      } catch(e) {
+        // Participants/chat can advance the session version while the teacher
+        // composes. Only publishing may retry, once, against a fresh authorized
+        // room snapshot. Keep the same request ID for server idempotency.
+        if(action!=='publish'||!(e instanceof Error)||e.message!=='live_stale_version'||!room?.id)throw e
+        const latest=await call('get',room.id) as Room
+        if(!mounted.current||generation.current!==stamp)return
+        accept(latest)
+        if(latest.status!=='active'||!latest.teacher)throw new Error('The lesson is no longer active.')
+        next=await call('publish',room.id,latest.version,requestPayload) as Room
+      }
       if(!mounted.current||generation.current!==stamp)return
       accept(next)
       if(action==='publish'){
