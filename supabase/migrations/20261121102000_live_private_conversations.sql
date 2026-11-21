@@ -79,8 +79,7 @@ BEGIN
      if room.status<>'active' or room.expires_at<=now() then raise exception 'live_message_closed'; end if;
      body:=btrim(coalesce(p_payload->>'body',''));
      if char_length(body) not between 1 and 1000 or
-        coalesce(p_payload->>'requestId','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
-       then raise exception 'live_invalid_message'; end if;
+        coalesce(p_payload->>'requestId','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}       then raise exception 'live_invalid_message'; end if;
      dm_request:=(p_payload->>'requestId')::uuid;
      select * into dm_prior from vibe_live.private_messages m
        where m.session_id=room.id and m.student_id=dm_student and m.sender_role=dm_sender and m.request_id=dm_request;
