@@ -87,11 +87,12 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
       const allowed = new Set(ids)
       const byUnit: Record<string,string[]> = {}
       for (const item of activeGuides ?? []) {
-        if (!allowed.has(item.sub_strand_id)) continue
+        const unitId = item.sub_strand_id
+        if (!unitId || !allowed.has(unitId)) continue
         const text = String(item.outcome_text ?? '').trim()
         if (!text) continue
-        if (!byUnit[item.sub_strand_id]) byUnit[item.sub_strand_id] = []
-        byUnit[item.sub_strand_id].push(text)
+        if (!byUnit[unitId]) byUnit[unitId] = []
+        byUnit[unitId].push(text)
       }
       setObjectives({ scope, canonicalRows, byUnit })
     }
