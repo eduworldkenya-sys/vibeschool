@@ -14,6 +14,8 @@ test('illustrated edition remains a separate unreleased original draft', () => {
   assert.deepEqual(edition.practiceFeedback, old.practiceFeedback)
   assert.deepEqual(edition.assessment, old.assessment)
   assert.deepEqual(edition.assessmentMarkingGuide, old.assessmentMarkingGuide)
+  assert.ok(edition.revision.length > 1800 && edition.revision.includes('My mistakes and recovery'))
+  assert.ok(edition.teacherGuide.length > 2500 && edition.teacherGuide.includes('Differentiation'))
   assert.equal(edition.reader.length, 11)
   assert.deepEqual(edition.reader.map(s => s.id), old.reader.map(s => s.id))
   edition.reader.forEach((section, index) => {
