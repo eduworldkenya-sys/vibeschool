@@ -22,6 +22,8 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
   const speaker=useRef<string|null>(null)
   const connectGeneration=useRef(0)
   const connectedUser=useRef<string|null>(null)
+  const renewTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
+  const connecting=useRef(false)
   const moderating=useRef<Set<string>>(new Set())
   const [phase,setPhase]=useState<'idle'|'connecting'|'listening'|'failed'>('idle')
   const [error,setError]=useState('')
@@ -37,6 +39,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
   },[])
   const stop=useCallback(async()=>{
     ++connectGeneration.current
+    if(renewTimer.current){clearTimeout(renewTimer.current);renewTimer.current=null}
     const existing=meeting.current;meeting.current=null;speaker.current=null
     clearAudio();setPhase('idle');setMicOn(false);setPermission(false);setActiveSpeaker(null)
     if (existing){try{if(!existing.isDestroyed())await existing.destroy()}catch{/* already closed */}}
@@ -87,7 +90,8 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     }
   },[teacher])
   const connect=async()=>{
-    if(meeting.current || phase==='connecting' || status!=='active')return
+    if(meeting.current || connecting.current || status!=='active')return
+    connecting.current=true
     const generation=++connectGeneration.current
     setPhase('connecting');setError('')
     let call:DailyCall|null=null
@@ -118,12 +122,22 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       // Daily room start_audio_off is true; microphone permission remains user initiated.
       await call.setLocalAudio(false)
       setPhase('listening');sync()
+      // Daily enforces removal at token expiry even if the teacher goes
+      // offline or this tab stops running timers. Renewal MUST obtain a fresh
+      // canonical Live authorization, never reuse the previous media token.
+      const ttlMs=Number(data.expiresAt)*1000-Date.now()
+      if(Number.isFinite(ttlMs)&&ttlMs>45000){
+        renewTimer.current=setTimeout(()=>{
+          if(connectGeneration.current!==generation||meeting.current!==call)return
+          void stop().then(()=>{if(status==='active')void connect()})
+        },Math.max(1000,ttlMs-30000))
+      }
     }catch(e){
       if(call && !call.isDestroyed())await call.destroy().catch(()=>{})
       if(generation===connectGeneration.current){
         meeting.current=null;setPhase('failed');setError(e instanceof Error?e.message:'Audio unavailable.')
       }
-    }
+    } finally {connecting.current=false}
   }
   const toggleMic=async()=>{
     const call=meeting.current
