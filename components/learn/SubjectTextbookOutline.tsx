@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { subjectKey } from '@/lib/learn/schoolCatalog'
 import { connectReadingEntries, projectGrade4MathOutline, type Grade4MathBinding, type BookReadingEntry, type CurriculumOutlineRow } from '@/lib/learn/textbookOutline'
 import styles from './SchoolLearnLibrary.module.css'
+import { certifiedResourceHref, useCertifiedInteractiveResources } from '@/lib/learn/useCertifiedInteractiveResources'
 
 type State = { scope: string; status: 'loading' | 'ready' | 'unavailable'; rows: CurriculumOutlineRow[] }
 type ObjectiveState = { scope: string; canonicalRows: CurriculumOutlineRow[] | null; byUnit: Record<string, string[]> }
@@ -22,6 +23,7 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
   const [state, setState] = useState<State>({ scope, status: 'loading', rows: [] })
   const [objectives, setObjectives] = useState<ObjectiveState>({ scope: '', canonicalRows: null, byUnit: {} })
   const [reading, setReading] = useState<Reading>({scope:readingScope,loading:true,entries:[],resume:null})
+  const { resources: releasedInteractiveResources } = useCertifiedInteractiveResources(grade, subject)
   useEffect(() => {
     let active = true
     const finish = (status: State['status'], rows: CurriculumOutlineRow[] = []) => {
@@ -179,9 +181,14 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
         <summary><span className={styles.chapterNumber}>{String(index+1).padStart(2,'0')}</span><strong>{group.title}</strong><ChevronRight size={18} aria-hidden="true"/></summary>
         <div className={styles.bookTopics}>{group.topics.map(topic=>{
           const goals = learnerObjectives?.byUnit[topic.id] ?? []
+          const relatedResources = releasedInteractiveResources.filter(item => item.subStrandId === topic.id)
           return <div key={topic.id} className={styles.bookTopicGroup}>
             {topic.strand && <small className={styles.tinyNote}>{topic.strand}</small>}
             {topic.entries.length ? topic.entries.map((entry,i)=>entryLink(entry,i===0?topic.title:entry.title)) : <div className={styles.bookTopicPending}><span>{topic.title}</span><small>Coming soon</small></div>}
+            {relatedResources.length > 0 && <div className={styles.bookObjectivePreview} aria-label={topic.title+' interactive resources'}>
+              <strong>Explore this topic</strong>
+              {relatedResources.map(item => <Link key={item.id} className={styles.bookTopicLink} href={certifiedResourceHref(item)}>{item.title}<ChevronRight size={17} aria-hidden="true"/></Link>)}
+            </div>}
             {goals.length > 0 && <div className={styles.bookObjectivePreview} aria-label={topic.title+' learning objectives'}>
               <strong>What you'll learn</strong>
               <p>{goals[0]}</p>
