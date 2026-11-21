@@ -49,7 +49,7 @@ function validProviderRoom(value: unknown, name: string, exp: number): value is 
 export async function issueLiveVoiceToken(
   room: VoiceRoom, userId: string, learnerStudentId: string | null, key: string,
   request: DailyRequest = fetch, now = Date.now()
-): Promise<{url:string;token:string;role:'teacher'|'learner';participantId:string}> {
+): Promise<{url:string;token:string;role:'teacher'|'learner';participantId:string;expiresAt:number}> {
   if (!key) throw new LiveVoiceError('Voice is not configured.', 503)
   if (!voiceUuid(userId) || (!room.teacher && !voiceUuid(learnerStudentId))) throw new LiveVoiceError('Unverified participant identity.', 403)
   const validated = validateVoiceRoom(room, room.id, now)
@@ -86,6 +86,7 @@ export async function issueLiveVoiceToken(
     user_name:role === 'teacher' ? 'Teacher' : 'Learner',
     is_owner:false, // only participant admin; never a full owner with recording/transcription powers
     exp:Math.min(Math.floor(now/1000)+120,expiry),
+    eject_at_token_exp:true, // server ejects even if teacher, browser or watchdog is offline
     start_audio_off:true,start_video_off:true,
     enable_recording:false,enable_recording_ui:false,start_cloud_recording:false,
     enable_prejoin_ui:false,enable_screenshare:false,
@@ -94,7 +95,8 @@ export async function issueLiveVoiceToken(
   if (!tokenResponse.ok) throw new LiveVoiceError('Could not authorize voice.',503)
   const responseData = await tokenResponse.json().catch(()=>null) as {token?:unknown}|null
   if (typeof responseData?.token !== 'string' || !responseData.token) throw new LiveVoiceError('Invalid audio authorization.',503)
-  return { url:providerRoom.url, token:responseData.token, role, participantId }
+  return { url:providerRoom.url, token:responseData.token, role, participantId,
+    expiresAt:Math.min(Math.floor(now/1000)+120,expiry) }
 }
 export async function closeLiveVoiceRoom(sessionId: string,key: string,request:DailyRequest=fetch) {
   if (!voiceUuid(sessionId) || !key) throw new LiveVoiceError('Invalid voice-room closure.',400)
