@@ -89,7 +89,7 @@ export async function issueLiveVoiceToken(
     start_audio_off:true,start_video_off:true,
     enable_recording:false,enable_recording_ui:false,start_cloud_recording:false,
     enable_prejoin_ui:false,enable_screenshare:false,
-    permissions:{canSend,canAdmin,canReceive:{base:{audio:true,video:false,screenAudio:false,screenVideo:false}}},
+    permissions:{canSend,canAdmin,canReceive:{base:{audio:true,video:false,screenAudio:false,screenVideo:false,customAudio:{'*':false},customVideo:{'*':false}}}},
   }})
   if (!tokenResponse.ok) throw new LiveVoiceError('Could not authorize voice.',503)
   const responseData = await tokenResponse.json().catch(()=>null) as {token?:unknown}|null
