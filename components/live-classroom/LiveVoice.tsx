@@ -28,6 +28,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
   const speaker=useRef<string|null>(null)
   const connectGeneration=useRef(0)
   const connectedUser=useRef<string|null>(null)
+  const moderating=useRef<Set<string>>(new Set())
   const [phase,setPhase]=useState<'idle'|'connecting'|'listening'|'failed'>('idle')
   const [error,setError]=useState('')
   const [micOn,setMicOn]=useState(false)
@@ -116,7 +117,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       call.on('participant-left',sync)
       call.on('track-started',sync)
       call.on('track-stopped',sync)
-      call.on('error',()=>{setError('Audio connection lost. Leave audio and retry.');setPhase('failed')})
+      call.on('error',()=>{if(meeting.current===call)void stop().then(()=>{setError('Audio connection lost. Retry joining.');setPhase('failed')})})
       call.on('left-meeting',()=>{void stop()})
       await call.join({url:data.url,token:data.token})
       if(generation!==connectGeneration.current){if(!call.isDestroyed())await call.destroy();return}
@@ -160,7 +161,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       // belongs to this session and remains eligible for teaching.
       await onAcknowledge(studentId)
       await call.updateParticipant(target.session_id,{
-        updatePermissions:{canSend:new Set(['audio'])},setAudio:false,
+        updatePermissions:{canSend:['audio']},setAudio:false,
       })
       speaker.current=studentId;setActiveSpeaker(studentId)
     }catch(e){setError(e instanceof Error?e.message:'Could not allow voice.')}
@@ -187,6 +188,27 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
   // React to revocation and membership changes; avoid resetting for content.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[learners,teacher,status])
+  // Keep Daily audio access in sync with the canonical teacher roster. A
+  // removed learner is ejected from the media service, not just hidden in UI.
+  // Independent server-side/offline revocation proof is still required.
+  useEffect(()=>{
+    const call=meeting.current
+    if (!teacher||phase!=='listening'||!call)return
+    const allowed=new Set(learners.map(l=>l.studentId))
+    const people=Object.values(call.participants() as unknown as Record<string,VoiceParticipant>)
+    for (const p of people) {
+      if (!p.session_id||p.session_id===call.participants().local.session_id)continue
+      const unauthorized=!p.user_id||!allowed.has(p.user_id)
+      const unapprovedMic=canPublishAudio(p.permissions?.canSend)&&speaker.current!==p.user_id
+      if ((!unauthorized&&!unapprovedMic)||moderating.current.has(p.session_id))continue
+      moderating.current.add(p.session_id)
+      void call.updateParticipant(p.session_id,unauthorized?{eject:true}:{
+        updatePermissions:{canSend:false},setAudio:false,
+      }).catch(()=>{
+        setError('Could not enforce audio access. End this class audio and retry.')
+      }).finally(()=>moderating.current.delete(p.session_id))
+    }
+  },[teacher,phase,learners,connectedIds])
   const enableSound=async()=>{
     const tracks=[...media.current.values()]
     const results=await Promise.allSettled(tracks.map(a=>a.play()))
