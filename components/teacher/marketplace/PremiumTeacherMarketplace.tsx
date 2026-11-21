@@ -274,7 +274,7 @@ export default function PremiumTeacherMarketplace() {
             <input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={role === "teacher" ? "Search subjects, vacancies or counties" : "Search names, subjects or counties"} />
           </label>
           <button type="button" className={styles.filterButton} onClick={() => setFiltersOpen(value => !value)} aria-controls="marketplace-filters" aria-expanded={filtersOpen}>
-            <ListFilter size={17} aria-hidden="true" /> Filters{county || level ? " · " + Number(Boolean(county) + Number(Boolean(level))) : ""}
+            <ListFilter size={17} aria-hidden="true" /> Filters{county || level ? " · " + (Number(Boolean(county)) + Number(Boolean(level))) : ""}
           </button>
           <span className={styles.count}>{isLoading ? "Loading" : visible.length + " results"}</span>
         </div>
