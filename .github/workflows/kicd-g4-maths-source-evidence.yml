@@ -1,0 +1,20 @@
+name: KICD Grade 4 Source Retrieval Evidence
+on:
+  pull_request:
+    paths:
+      - 'scripts/kicd-g4-maths-source-evidence.py'
+      - '.github/workflows/kicd-g4-maths-source-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read-only-source-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exactly this PR candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Verify source PDF bytes and log checksum only
+        run: python3 scripts/kicd-g4-maths-source-evidence.py
