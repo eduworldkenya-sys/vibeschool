@@ -12,7 +12,7 @@ export function parseLiveReadingPage(body: string) {
   const content = header && lineEnd >= 0 ? normalized.slice(lineEnd+1).trimStart() : normalized
   const paragraphs = content.split(/\n\s*\n/).map(value => value.trim()).filter(Boolean)
   return {
-    title: header?.[1] ?? null,
+    title: header ? header[1].trim() : null,
     number: header ? Number(header[2]) : null,
     total: header ? Number(header[3]) : null,
     paragraphs,
