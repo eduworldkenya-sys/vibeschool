@@ -17,7 +17,8 @@ async function handle(req:NextRequest,id:string,method:'POST'|'DELETE') {
   try {
     // No activation from a browser build or a checked-in default. Both
     // switches require explicit production commissioning.
-    if (process.env.VIBE_LIVE_VOICE_SERVER_ENABLED !== 'true')
+    if (process.env.VIBE_LIVE_VOICE_SERVER_ENABLED !== 'true' ||
+        process.env.NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED !== 'true')
       throw new LiveVoiceError('Voice is not active yet.',503)
     if (!voiceUuid(id)) throw new LiveVoiceError('Invalid Live session.',400)
     if (!sameOrigin(req)) throw new LiveVoiceError('Open voice from VibeSchool Live.',403)
