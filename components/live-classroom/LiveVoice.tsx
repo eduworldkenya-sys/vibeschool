@@ -160,10 +160,16 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       // Canonical Live ACK re-checks that the learner really raised a hand,
       // belongs to this session and remains eligible for teaching.
       await onAcknowledge(studentId)
-      await call.updateParticipant(target.session_id,{
-        updatePermissions:{canSend:['audio']},setAudio:false,
-      })
-      speaker.current=studentId;setActiveSpeaker(studentId)
+      speaker.current=studentId
+      try {
+        await call.updateParticipant(target.session_id,{
+          updatePermissions:{canSend:['audio']},setAudio:false,
+        })
+      } catch (error) {
+        speaker.current=null
+        throw error
+      }
+      setActiveSpeaker(studentId)
     }catch(e){setError(e instanceof Error?e.message:'Could not allow voice.')}
     finally{setBusy(false)}
   }
