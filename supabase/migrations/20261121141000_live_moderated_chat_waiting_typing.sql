@@ -51,7 +51,10 @@ CREATE TABLE vibe_live.dm_typing(
  touched_at timestamptz NOT NULL DEFAULT clock_timestamp(),
  PRIMARY KEY(session_id,student_id,sender_role)
 );
-ALTER TABLE vibe_live.class_messages,vibe_live.class_reports,vibe_live.waiting_requests,vibe_live.dm_typing ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vibe_live.class_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vibe_live.class_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vibe_live.waiting_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vibe_live.dm_typing ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON vibe_live.class_messages,vibe_live.class_reports,vibe_live.waiting_requests,vibe_live.dm_typing FROM PUBLIC,anon,authenticated,service_role;
 ALTER TABLE vibe_live.sessions ADD COLUMN chat_enabled boolean NOT NULL DEFAULT false;
 
