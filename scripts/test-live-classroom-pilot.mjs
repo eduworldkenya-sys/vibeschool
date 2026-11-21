@@ -461,3 +461,64 @@ await db.close()
  console.log('PASS: private conversation join-only, pause stop, ended read-only and enrollment revocation')
  await f.db.close()
 }
+
+// Moderated room chat and ephemeral direct typing: actual SQL authorization,
+// no anonymous/other learner access, no replay, no permanent "typing" state.
+{
+ const f=await createLiveFixture()
+ let room=await f.rpc(f.teacher,'start',null,null,{title:'Moderated chat pilot'})
+ const sid=room.id
+ await f.rpc(f.a,'join',sid); await f.rpc(f.b,'join',sid)
+ assert.equal((await f.rpc(f.a,'get',sid)).chatEnabled,false)
+ await assert.rejects(f.rpc(f.a,'chat_send',sid,null,{requestId:f.id(300),body:'Cannot chat while closed'}),/live_chat_closed/)
+ await assert.rejects(f.rpc(f.a,'chat_toggle',sid,null,{enabled:true}),/live_teacher_required/)
+ assert.equal((await f.rpc(f.teacher,'chat_toggle',sid,null,{enabled:true})).enabled,true)
+ assert.equal((await f.rpc(f.a,'get',sid)).chatEnabled,true)
+ await assert.rejects(f.rpc(f.outsider,'chat_list',sid),/live_not_authorized/)
+ await assert.rejects(f.rpc(f.otherTeacher,'chat_hide',sid,null,{messageId:f.id(301)}),/live_not_authorized/)
+ assert.deepEqual((await f.rpc(f.a,'chat_list',sid)).messages,[])
+ const learnerMessage={body:'May we try another fraction?',requestId:f.id(301)}
+ assert.deepEqual(await f.rpc(f.a,'chat_send',sid,null,learnerMessage),{sent:true})
+ assert.deepEqual(await f.rpc(f.a,'chat_send',sid,null,learnerMessage),{sent:true},'same requestId must be idempotent')
+ await assert.rejects(f.rpc(f.a,'chat_send',sid,null,{...learnerMessage,body:'Changed text'}),/live_request_id_reused/)
+ await assert.rejects(f.rpc(f.a,'chat_send',sid,null,{body:'Spam',requestId:f.id(302)}),/live_chat_rate_limit/)
+ let visible=(await f.rpc(f.b,'chat_list',sid)).messages
+ assert.equal(visible.length,1)
+ assert.equal(visible[0].body,learnerMessage.body)
+ assert.equal(visible[0].author,'Learner A')
+ assert.equal(visible[0].hidden,false)
+ const messageId=visible[0].id
+ await f.rpc(f.b,'chat_report',sid,null,{messageId,reason:'Needs moderation'})
+ assert.equal((await f.rpc(f.teacher,'chat_list',sid)).messages[0].reports,1)
+ await assert.rejects(f.rpc(f.a,'chat_hide',sid,null,{messageId}),/live_teacher_required/)
+ assert.deepEqual(await f.rpc(f.teacher,'chat_hide',sid,null,{messageId}),{hidden:true})
+ assert.deepEqual((await f.rpc(f.b,'chat_list',sid)).messages,[],'hidden message no longer visible to learners')
+ assert.equal((await f.rpc(f.teacher,'chat_list',sid)).messages[0].hidden,true,'teacher retains moderation audit')
+ await assert.rejects(f.rpc(f.b,'chat_report',sid,null,{messageId,reason:'Hidden'}),/live_not_authorized/)
+ await f.rpc(f.teacher,'chat_toggle',sid,null,{enabled:false})
+ await assert.rejects(f.rpc(f.a,'chat_send',sid,null,{body:'Closed',requestId:f.id(303)}),/live_chat_closed/)
+ await f.rpc(f.teacher,'dm_typing',sid,null,{studentId:f.id(30),typing:true})
+ assert.equal((await f.rpc(f.a,'dm_list',sid)).peerTyping,true)
+ assert.equal((await f.rpc(f.b,'dm_list',sid)).peerTyping,false,'different learner cannot see another DM typing')
+ await assert.rejects(f.rpc(f.a,'dm_typing',sid,null,{studentId:f.id(31),typing:true}),/live_not_authorized/)
+ await assert.rejects(f.rpc(f.outsider,'dm_typing',sid,null,{typing:true}),/live_not_authorized/)
+ await f.rpc(f.a,'dm_typing',sid,null,{typing:true})
+ assert.equal((await f.rpc(f.teacher,'dm_list',sid,null,{studentId:f.id(30)})).peerTyping,true)
+ await f.db.exec("update vibe_live.dm_typing set touched_at=clock_timestamp()-interval '15 seconds'")
+ assert.equal((await f.rpc(f.a,'dm_list',sid)).peerTyping,false,'typing expires without permanent status')
+ assert.equal((await f.rpc(f.teacher,'dm_list',sid,null,{studentId:f.id(30)})).peerTyping,false)
+ for(const role of ['authenticated','anon','service_role']){
+  await f.db.exec('set role '+role)
+  try{
+   for(const table of ['class_messages','class_reports','waiting_requests','dm_typing']){
+    await assert.rejects(f.db.query('select * from vibe_live.'+table),/permission denied/);
+    await assert.rejects(f.db.query('delete from vibe_live.'+table),/permission denied/);
+   }
+  }finally{await f.db.exec('reset role')}
+ }
+ await f.db.exec("delete from public.student_classes where student_id='"+f.id(30)+"'")
+ await assert.rejects(f.rpc(f.a,'chat_list',sid),/live_not_authorized/)
+ await assert.rejects(f.rpc(f.a,'dm_typing',sid,null,{typing:true}),/live_not_authorized/)
+ console.log('PASS: moderated classroom text chat, truthful reports/hiding, sender rate limits, two-learner isolation and expiring private typing')
+ await f.db.close()
+}
