@@ -486,7 +486,7 @@ begin
        p_metadata->>'source_url' is distinct from p_source_url then
        raise exception 'KICD_OFFICIAL_SOURCE_EVIDENCE_REQUIRED';
     end if;
-    select count(distinct c.publication_id),min(c.publication_id)
+    select count(distinct c.publication_id),(array_agg(distinct c.publication_id))[1]
       into v_scope_count,v_publication_id
       from public.ce_machine_content_commissions c
       join public.vibe_publications p on p.id=c.publication_id
