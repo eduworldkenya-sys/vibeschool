@@ -100,3 +100,21 @@ assert.ok(!readerUI.includes('supabase'),'Reader cannot invent a second resource
 assert.ok(readerCSS.includes('min(100%,840px)')&&readerCSS.includes('overflow-wrap:anywhere'),'Reader must reflow on mobile')
 for(const token of ['<ClockExplorer value={prompt.body}/>','learnerMenu&&','More learner tools','onQuote={!teacher','noteDirty.current=true']) assert.ok(room.includes(token),'Live learner integration missing '+token)
 console.log('PASS: interactive learner reading, structure, no silent content loss, scoped notes and mobile reader contract')
+
+/* Real classroom answers still use the authorized existing RPC.
+   Test explicit options, malformed input, private working bounds and UI wiring. */
+const {liveAnswerChoices,addWorkToPrivateNotes}=await import('../lib/live/learnerActivity.ts')
+assert.deepEqual(liveAnswerChoices('What is the value?\nA. 40\nB) 400\nC: 4000').map(c=>c.value),['A. 40','B. 400','C. 4000'])
+assert.deepEqual(liveAnswerChoices('Explain 3 steps.\n1. First\n2. Second'),[])
+assert.deepEqual(liveAnswerChoices('A. One'),[])
+assert.deepEqual(liveAnswerChoices('A. One\nC. Three'),[])
+assert.deepEqual(liveAnswerChoices('A. One\nA. Other'),[])
+assert.deepEqual(liveAnswerChoices('A. One\nB. Two\nC. Three\nD. Four\nE. Five\nF. Six\nG. Seven'),[])
+assert.equal(addWorkToPrivateNotes('Existing notes',' 2 + 2 = 4 '),'Existing notes\n\nWorking:\n2 + 2 = 4')
+assert.equal(addWorkToPrivateNotes('',''),null)
+assert.equal(addWorkToPrivateNotes('x'.repeat(7990),'working'),null)
+assert.equal(addWorkToPrivateNotes('','x'.repeat(2001)),null)
+for(const expected of ["learnerTool==='work'","liveAnswerChoices(prompt.body)","addWorkToPrivateNotes(noteDraft,workDraft)","setAnswerFor(prompt.id)","Choose your answer","Use as answer","Add to private notes"])assert.ok(room.includes(expected),'Learner activity integration missing '+expected)
+const learnerCss=readFileSync(new URL('../components/live-classroom/LiveClassroom.module.css',import.meta.url),'utf8')
+assert.ok(learnerCss.includes('.answerChoices')&&learnerCss.includes('.workpadActions'))
+console.log('PASS: explicit choice handling and scoped learner working remain private until authorized submission')

@@ -19,6 +19,7 @@ import { LiveClassChat } from './LiveClassChat'
 import { LiveVoice } from './LiveVoice'
 import { LiveReadingSurface } from './LiveReadingSurface'
 import { teacherLivePlan } from '@/lib/live/lessonPlanPresentation'
+import { liveAnswerChoices, addWorkToPrivateNotes } from '@/lib/live/learnerActivity'
 import type { LessonDeliveryStep } from '@/lib/teaching/lessonPlanCodec'
 
 type ClassroomMode = 'school' | 'tuition' | 'homeschool' | 'open'
@@ -269,7 +270,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const presenterTimer=useRef<number|null>(null)
   const presenterPending=useRef<PresenterPosition|null>(null)
   const presenterChain=useRef<Promise<void>>(Promise.resolve())
-  const [learnerTool,setLearnerTool]=useState<'ask'|'notes'|'files'|null>(null)
+  const [learnerTool,setLearnerTool]=useState<'ask'|'notes'|'files'|'work'|null>(null)
+  const [workingByPrompt,setWorkingByPrompt]=useState<Record<string,string>>({})
   const [learnerMenu,setLearnerMenu]=useState(false)
   const [questionDraft,setQuestionDraft]=useState('')
   const questionRequest=useRef<{body:string;id:string}|null>(null)
@@ -292,7 +294,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     setFollowingTeacher(true)
     presenterPending.current=null
     if(presenterTimer.current!==null){window.clearTimeout(presenterTimer.current);presenterTimer.current=null}
-    setLearnerTool(null);setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({});setPrivateTarget(null);setPrivateOpen(false);setClassChatOpen(false);setLearnerMenu(false);setWaitingRequests([]);setWaitingError('')
+    setLearnerTool(null);setWorkingByPrompt({});setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({});setPrivateTarget(null);setPrivateOpen(false);setClassChatOpen(false);setLearnerMenu(false);setWaitingRequests([]);setWaitingError('')
   },[room?.id])
   useEffect(()=>{if(!noteDirty.current)setNoteDraft(room?.ownNote??'')},[room?.id,room?.ownNote])
   const [draftBinding,setDraftBinding]=useState<{roomId:string; key:string}|null>(null)
@@ -646,6 +648,15 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const prompt=room?.prompt
   const history=room?historyFor(room):[]
   const viewedPrompt=(reviewId?history.find(p=>p.id===reviewId):null)??prompt
+  const workPromptId=viewedPrompt?.id??'general'
+  const workDraft=workingByPrompt[workPromptId]??''
+  const answerChoices=prompt&&['quiz','exercise','poll'].includes(prompt.kind)?liveAnswerChoices(prompt.body):[]
+  function updateWorkDraft(text:string){setWorkingByPrompt(items=>({...items,[workPromptId]:text}))}
+  function moveWorkToNotes(){
+    const next=addWorkToPrivateNotes(noteDraft,workDraft)
+    if(next===null){setError('Your workpad is empty or private notes have reached their limit.');return}
+    noteDirty.current=true;setNoteDraft(next);setLearnerTool('notes');setError('')
+  }
   // Learners follow the teacher by default, but are never locked to the
   // presenter. The same ratio adapts to different Android screen heights.
   useEffect(()=>{
@@ -930,12 +941,23 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
          <div className={styles.learnerMenuGrid}>
            <button type="button" onClick={()=>{setLearnerMenu(false);setLearnerTool(null);setClassChatOpen(false);setPrivateOpen(true)}}><MessageSquare size={19}/> Teacher messages{Number(room.dmUnread)>0?' · '+room.dmUnread+' new':''}</button>
            <button type="button" onClick={()=>{setLearnerMenu(false);setPrivateOpen(false);setClassChatOpen(false);setLearnerTool('files')}}><BookOpen size={19}/> Shared files</button>
+            <button type="button" onClick={()=>{setLearnerMenu(false);setPrivateOpen(false);setClassChatOpen(false);setLearnerTool('work')}}><Pencil size={19}/> My workpad</button>
            <button type="button" disabled={!history.length} onClick={()=>{setLearnerMenu(false);setLearnerTool(null);setReviewId(reviewId?null:history[0].id)}}><History size={19}/> {reviewId?'Go live':'Lesson history'}</button>
          </div>
        </section>}
-       {!teacher&&learnerTool&&<section className={styles.sheet} aria-label={learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':'My notes'}>
-        <div className={styles.sheetTitle}><strong>{learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':'My notes'}</strong><button type="button" aria-label="Close" onClick={()=>setLearnerTool(null)}><X size={18}/></button></div>
-        {learnerTool==='ask'?<><small>Only you and your teacher can see this conversation.</small><ul className={styles.participants}>{(room.questions??[]).map(q=><li key={q.id} className={styles.messageExchange}><div className={styles.messageBubble} data-own="true"><small>You → Teacher</small><span>{q.body}</span><small>Sent · {q.reply?'Replied':'Awaiting reply'}</small></div>{q.reply&&<div className={styles.messageBubble}><small>Teacher → You</small><span>{q.reply}</span></div>}</li>)}</ul><form onSubmit={e=>{e.preventDefault();askTeacher()}}><label>Your question<textarea maxLength={1000} value={questionDraft} disabled={busy} onChange={e=>setQuestionDraft(e.target.value)} required/></label><button className={styles.primary} disabled={busy||!online||!questionDraft.trim()}>Send privately</button></form></>:learnerTool==='files'?<LiveClassFiles roomId={room.id} teacher={false} status={room.status}/>:<form onSubmit={e=>{e.preventDefault();void act('note',null,{body:noteDraft})}}><label>Personal notes<textarea maxLength={8000} value={noteDraft} disabled={busy} onChange={e=>{noteDirty.current=true;setNoteDraft(e.target.value)}}/></label><button className={styles.primary} disabled={busy||!online||!noteDirty.current}>Save notes</button><small>{noteDirty.current?'Unsaved changes':'Notes saved privately'}</small></form>}
+       {!teacher&&learnerTool&&<section className={styles.sheet} aria-label={learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':learnerTool==='work'?'Private workpad':'My notes'}>
+        <div className={styles.sheetTitle}><strong>{learnerTool==='ask'?'Ask teacher':learnerTool==='files'?'Class PDF and photos':learnerTool==='work'?'Private workpad':'My notes'}</strong><button type="button" aria-label="Close" onClick={()=>setLearnerTool(null)}><X size={18}/></button></div>
+        {learnerTool==='ask'?<><small>Only you and your teacher can see this conversation.</small><ul className={styles.participants}>{(room.questions??[]).map(q=><li key={q.id} className={styles.messageExchange}><div className={styles.messageBubble} data-own="true"><small>You → Teacher</small><span>{q.body}</span><small>Sent · {q.reply?'Replied':'Awaiting reply'}</small></div>{q.reply&&<div className={styles.messageBubble}><small>Teacher → You</small><span>{q.reply}</span></div>}</li>)}</ul><form onSubmit={e=>{e.preventDefault();askTeacher()}}><label>Your question<textarea maxLength={1000} value={questionDraft} disabled={busy} onChange={e=>setQuestionDraft(e.target.value)} required/></label><button className={styles.primary} disabled={busy||!online||!questionDraft.trim()}>Send privately</button></form></> :learnerTool==='files'?<LiveClassFiles roomId={room.id} teacher={false} status={room.status}/>:learnerTool==='work'?<div className={styles.workpad}>
+           <p>Work privately before answering. Your draft is not shared with the teacher.</p>
+           {viewedPrompt&&<small>Working on: {viewedPrompt.body.slice(0,160)}</small>}
+           <label>My working<textarea aria-label="Private working" maxLength={2000} rows={6} value={workDraft} onChange={e=>updateWorkDraft(e.target.value)} placeholder="Show your steps, draft an explanation or work out a question…"/></label>
+           <div className={styles.workpadActions}>
+             <button type="button" disabled={answerChoices.length>0||!workDraft.trim()||!prompt||viewedPrompt?.id!==prompt.id||!['quiz','exercise','poll'].includes(prompt.kind)||prompt.revealed||(room.ownAnswer!==null&&room.ownAnswer!==undefined)||room.status!=='active'} onClick={()=>{if(!prompt)return;setAnswer(workDraft.trim());setAnswerFor(prompt.id);setLearnerTool(null)}}>Use as answer</button>
+             <button type="button" disabled={!workDraft.trim()} onClick={moveWorkToNotes}>Add to private notes</button>
+             <button type="button" disabled={!workDraft} onClick={()=>updateWorkDraft('')}>Clear work</button>
+           </div>
+           <small>Work remains in this classroom tab until you leave or reload. Save important work in My notes.</small>
+         </div>:<form onSubmit={e=>{e.preventDefault();void act('note',null,{body:noteDraft})}}><label>Personal notes<textarea maxLength={8000} value={noteDraft} disabled={busy} onChange={e=>{noteDirty.current=true;setNoteDraft(e.target.value)}}/></label><button className={styles.primary} disabled={busy||!online||!noteDirty.current}>Save notes</button><small>{noteDirty.current?'Unsaved changes':'Notes saved privately'}</small></form>}
       </section>}
       {teacher&&<TeacherSticker prompt={prompt} hidden={!showSticker||!!panel||(focusMode&&!focusDock)} onHide={()=>setShowSticker(false)}/>}
       {teacher&&panel&&panel!=='slides'&&panel!=='library'&&panel!=='resources'&&panel!=='chat'&&<section className={styles.sheet} aria-label={panel==='compose'?labels[mode]:panel==='learners'?'Learners':'Classroom tools'}>
@@ -968,7 +990,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       <span>{liveSlide.number} / {liveSlide.total}</span><button type="button" onClick={openSlides}>Edit slides</button>
       <button type="button" disabled={busy||!online||room.status!=='active'||liveSlide.number>=slides.length||liveSlide.total!==slides.length||!encodeSlide(slides[liveSlide.number],liveSlide.number+1,slides.length)} onClick={()=>presentSlide(liveSlide.number)}>Next slide</button>
     </div>}
-    {!teacher&&reviewId===null&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}><label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label><button className={styles.primary} disabled={busy||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button></form>}</section>}
+    {!teacher&&reviewId===null&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}>
+       {answerChoices.length?<fieldset className={styles.answerChoices}><legend>Choose your answer</legend>{answerChoices.map(option=><label key={option.letter}><input type="radio" name="live-choice" value={option.value} checked={answerFor===prompt.id&&answer===option.value} onChange={()=>{setAnswerFor(prompt.id);setAnswer(option.value)}} disabled={room.status!=='active'}/><span><strong>{option.letter}.</strong> {option.text}</span></label>)}</fieldset>:<label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label>}
+       <div className={styles.workpadActions}><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!answer.trim()||answerFor!==prompt.id}>Submit</button><button type="button" onClick={()=>{setLearnerMenu(false);setLearnerTool('work')}}>Work it out</button></div>
+     </form>}</section>}
     {(!focusMode||focusDock)&&<footer className={styles.dock}>{teacher?<><nav aria-label="Teaching tools" className={styles.toolRow}>{([{kind:'board',icon:Pencil},{kind:'teach',icon:PanelTop},{kind:'quiz',icon:HelpCircle},{kind:'exercise',icon:ClipboardList},{kind:'poll',icon:BarChart3}] as const).map(({kind,icon:Icon})=><button key={kind} aria-pressed={kind==='board'?editingBoard:kind==='teach'?panel==='slides':panel==='compose'&&mode===kind} disabled={draftLoading} onClick={()=>kind==='teach'?openSlides():chooseMode(kind)}><Icon size={18}/><span>{kind==='teach'?'Slides':labels[kind]}</span></button>)}<button type="button" disabled={draftLoading} aria-pressed={panel==='resources'} onClick={()=>{setReviewId(null);setEditingBoard(false);setPanel(panel==='resources'?null:'resources')}}><BookOpen size={18}/><span>Resources</span></button><button disabled={draftLoading} aria-pressed={panel==='more'} onClick={()=>{setPanel(panel==='more'?null:'more');setEndConfirm(false)}}><MoreHorizontal size={18}/><span>More</span></button></nav><div className={styles.sessionRow}><button aria-pressed={panel==='learners'} onClick={()=>setPanel(panel==='learners'?null:'learners')}><Users size={18}/> Learners · {participants.length}{participants.some(p=>Number(p.unreadDm)>0)?' · '+participants.reduce((n,p)=>n+Number(p.unreadDm??0),0)+' new':''}</button><button type="button" aria-pressed={panel==='chat'} onClick={()=>{setEditingBoard(false);setPanel(panel==='chat'?null:'chat')}}><MessageSquare size={16}/> Chat{room.chatEnabled?' · On':''}</button><button disabled={busy} onClick={()=>void act(room.status==='paused'?'resume':'pause')}>{room.status==='paused'?'Resume':'Pause'}</button><button className={styles.danger} onClick={()=>{setPanel('more');setEndConfirm(true)}}>End</button></div></>:<nav aria-label="Learner tools" className={styles.learnerTools}>
       <button type="button" aria-label={room.needsHelp?'Lower hand':'Raise hand'} aria-pressed={!!room.needsHelp} data-raised={!!room.needsHelp} disabled={busy||!online} onClick={()=>void act(room.needsHelp?'lower':'help')}><Hand size={21}/><span>{room.needsHelp?'Lower hand':'Hand'}</span></button>
       <button type="button" aria-pressed={learnerTool==='ask'} onClick={()=>{setLearnerMenu(false);setClassChatOpen(false);setPrivateOpen(false);setLearnerTool(v=>v==='ask'?null:'ask')}}><MessageSquare size={21}/><span>Ask</span></button>
