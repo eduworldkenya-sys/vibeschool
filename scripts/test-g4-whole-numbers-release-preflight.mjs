@@ -9,7 +9,8 @@ test('single exact-grade Whole Numbers scope; no second approval authority or wr
   assert.match(sql,/no_mutation_performed.*true/)
 })
 test('release preflight covers source, outcomes, rights, sensitive-asset privacy, QA and actual learner visibility',()=>{
-  for(const gate of ['official_source_review_pending','official_source_hierarchy_pending','curriculum_outcomes_not_all_active_and_reconciled','resource_manifest_or_hash_mismatch','original_resource_rights_pending','resource_certification_pending','learner_resource_activation_pending','sensitive_resources_must_remain_private','teacher_guide_independent_approval_pending','assessment_moderation_pending','publication_release_approval_pending','authenticated_publisher_identity_unavailable_in_this_connection','student_catalogue_publication_pending']) assert.ok(sql.includes(gate),gate)
+  for(const gate of ['official_source_review_pending','official_source_hierarchy_pending','curriculum_outcomes_not_all_active_and_reconciled','resource_manifest_or_hash_mismatch','original_resource_rights_pending','resource_certification_pending','learner_resource_activation_pending','sensitive_resources_must_remain_private','teacher_guide_source_lineage_incomplete','teacher_guide_independent_approval_pending','assessment_content_lineage_incomplete','assessment_moderation_pending','publication_release_approval_pending','authenticated_publisher_identity_unavailable_in_this_connection','student_catalogue_publication_pending']) assert.ok(sql.includes(gate),gate)
+  assert.match(sql,/and exists \(select 1 from public\.content_assessment_sources cas/)
   assert.match(sql,/vs_curriculum_package_gate/)
   assert.match(sql,/content_sha256=encode\(extensions\.digest/)
   assert.match(sql,/coalesce\(s\.promoted_snapshots,0\)=0/)

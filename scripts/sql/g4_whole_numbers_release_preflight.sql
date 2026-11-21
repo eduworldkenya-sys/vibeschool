@@ -61,12 +61,13 @@ with target as (
   count(distinct gai.id)::integer items,
   coalesce(sum(gai.marks),0)::integer marks,
   count(distinct gai.id) filter(where ga.status in ('approved','published'))::integer approved_items
- from target t join public.content_assessment_sources cas on true
- join public.learning_resources lr on lr.id=cas.resource_id and lr.sub_strand_id=t.sub_strand_id and lr.canonical_key not like 'vs:g4:mathematics:whole-numbers:%'
- join public.content_assessment_blueprints cab on cab.id=cas.blueprint_id
+ from target t join public.content_assessment_blueprints cab on true
  join public.generated_assessments ga on ga.blueprint_id=cab.id
  join public.generated_assessment_items gai on gai.assessment_id=ga.id
  where cab.title='Whole Numbers — Grade 4 Mathematics (v3 moderation)'
+ and exists (select 1 from public.content_assessment_sources cas join public.learning_resources lr
+   on lr.id=cas.resource_id and lr.chapter_id=t.chapter_id and lr.publication_id=t.publication_id
+   where cas.blueprint_id=cab.id)
 ), rights as (
  select (select count(*) from public.vibelearn_content v join target t on v.vibe_publication_id=t.publication_id and v.status='live')::integer live_catalogue_rows,
  (select count(*) from public.vibe_chapters c join target t on c.publication_id=t.publication_id and c.status='published')::integer published_chapters,
@@ -91,7 +92,9 @@ with target as (
     case when rs.certified<>6 then 'resource_certification_pending' end,
     case when rs.public_learnable<4 then 'learner_resource_activation_pending' end,
     case when rs.protected_sensitive<2 then 'sensitive_resources_must_remain_private' end,
+    case when g.source_blocks<>59 then 'teacher_guide_source_lineage_incomplete' end,
     case when g.approved=0 then 'teacher_guide_independent_approval_pending' end,
+    case when a.items<>11 or a.marks<>16 then 'assessment_content_lineage_incomplete' end,
     case when a.approved_items<6 then 'assessment_moderation_pending' end,
     case when ri.final_release_approvals=0 then 'publication_release_approval_pending' end,
     case when auth.uid() is null then 'authenticated_publisher_identity_unavailable_in_this_connection' end,
