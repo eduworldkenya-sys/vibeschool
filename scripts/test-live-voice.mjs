@@ -18,6 +18,7 @@ const name=dailyVoiceName(id)
 const roomInfo={name,url:'https://education.daily.co/'+name,privacy:'private',config:{
   exp,eject_at_room_exp:true,max_participants:80,enforce_unique_user_ids:true,
   enable_knocking:false,enable_recording:false,enable_screenshare:false,enable_chat:false,
+  audio_only:true,start_audio_off:true,start_video_off:true,enable_prejoin_ui:false,
 }}
 function response(status,body){return {status,ok:status>=200&&status<300,json:async()=>body}}
 function mockProvider({existing=true,override=null,token='signed-token'}={}){
@@ -97,6 +98,9 @@ test('creates only a locked private audio room, rejects mismatched provider room
   assert.equal(create.properties.start_video_off,true)
   assert.equal(create.properties.enable_recording,false)
   assert.equal(create.properties.enable_screenshare,false)
+  assert.equal(create.properties.audio_only,true)
+  assert.equal(create.properties.start_audio_off,true)
+  assert.equal(create.properties.start_video_off,true)
   for(const data of [
     {...roomInfo,privacy:'public'},
     {...roomInfo,name:'vs-other'},
@@ -104,6 +108,8 @@ test('creates only a locked private audio room, rejects mismatched provider room
     {...roomInfo,config:{...roomInfo.config,max_participants:100}},
     {...roomInfo,config:{...roomInfo.config,eject_at_room_exp:false}},
     {...roomInfo,config:{...roomInfo.config,enable_screenshare:true}},
+    {...roomInfo,config:{...roomInfo.config,audio_only:false}},
+    {...roomInfo,config:{...roomInfo.config,start_audio_off:false}},
   ]){
     const p=mockProvider({override:data})
     await assert.rejects(issueLiveVoiceToken(teacherRoom,actor,null,'key',p.request,now),/privacy verification/)
@@ -135,5 +141,10 @@ test('client and route respect feature gate, private credential, real JWT, and c
   assert.match(client,/Daily\.createCallObject/)
   assert.match(client,/setLocalAudio\(false\)/)
   assert.match(client,/setLocalAudio\(!micOn\)/)
+  assert.match(client,/renewTimer\.current=setTimeout/)
+  assert.match(client,/void stop\(\)\.then/)
+  assert.match(client,/currentStatus\.current==='active'/)
+  assert.match(client,/expiresAt/)
+  assert.match(source,/eject_at_token_exp:true/)
   assert.doesNotMatch(client,/setLocalVideo\(true\)|startRecording\(|getDisplayMedia\(/)
 })
