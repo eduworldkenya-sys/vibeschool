@@ -123,11 +123,6 @@ try{
  await button(t,'Message privately').click()
  await t.getByLabel('Private message').fill('Can I help you with equivalent fractions?')
  await button(t,'Send privately').click()
- const dmDiagnostic=await t.evaluate(async ({sid,cls,studentId})=>{
-   const response=await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'vibe_live_command',params:{p_action:'dm_list',p_class_id:cls,p_session_id:sid,p_version:null,p_payload:{host:true,studentId}}})})
-   return response.json()
- },{sid,cls:fixture.cls,studentId:fixture.id(30)})
- console.log('DM_DIAGNOSTIC',JSON.stringify(dmDiagnostic))
  await see(t,'Can I help you with equivalent fractions?')
  await l.getByRole('button',{name:/^Messages/}).click()
  await see(l,'Can I help you with equivalent fractions?')
