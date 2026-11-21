@@ -38,8 +38,26 @@ test('real learner names are read only from the authenticated request owner’s 
  assert.match(listings,/\.eq\('status', 'open'\)/)
  assert.match(listings,/\.eq\('public_preview', true\)/)
  assert.match(listings,/learnerLabel: ownedNamesById\.get\(row\.id\) \?\?/)
- assert.match(listings,/tuition request/)
+ assert.match(listings,/ownedNamesById\.get\(row\.id\) \?\? row\.learner_label/)
  assert.doesNotMatch(listings,/learnerLabel: row\.learner_label/)
  const view=sql.split('create or replace view public.vibetutor_open_requests')[1].split('revoke all on public.vibetutor_open_requests')[0]
  assert.doesNotMatch(view,/r\.learner_label|r\.phone|r\.requester_id\s*,/i)
+})
+
+const consentedPublicName = readFileSync('supabase/migrations/20261121200000_vibetutor_consent_gated_public_first_names.sql', 'utf8')
+test('visitor receives only the first name when parent/guardian name-publication consent was independently verified',()=>{
+ assert.match(consentedPublicName,/create table if not exists public\.vibetutor_request_public_first_name_consents/)
+ assert.match(consentedPublicName,/guardian_consent_evidence_ref text not null/)
+ assert.match(consentedPublicName,/verified_by uuid not null/)
+ assert.match(consentedPublicName,/revoked_at timestamptz/)
+ assert.match(consentedPublicName,/alter table public\.vibetutor_request_public_first_name_consents enable row level security/)
+ assert.match(consentedPublicName,/revoke all on public\.vibetutor_request_public_first_name_consents from public, anon, authenticated/)
+ assert.doesNotMatch(consentedPublicName,/grant (?:all|insert|update|delete) on public\.vibetutor_request_public_first_name_consents to (?:anon|authenticated)/i)
+ const view = consentedPublicName.split('create or replace view public.vibetutor_open_requests')[1].split('revoke all on public.vibetutor_open_requests')[0]
+ assert.match(view,/case when consent\.request_id is not null and consent\.revoked_at is null/)
+ assert.match(view,/then split_part\(btrim\(r\.learner_label\),' ',1\)/)
+ assert.match(view,/else coalesce\(nullif\(r\.levels\[1\],''\),'Learner'\) \|\| ' tuition request'/)
+ assert.doesNotMatch(view,/r\.phone|r\.note|r\.requester_id\s*,|select\s+\*/i)
+ assert.doesNotMatch(consentedPublicName,/update public\.vibetutor_requests\s+set public_preview\s*=\s*true/i)
+ assert.match(listings,/learnerLabel: ownedNamesById\.get\(row\.id\) \?\? row\.learner_label/)
 })
