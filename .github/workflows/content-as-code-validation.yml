@@ -5,6 +5,9 @@ on:
       - 'content/curriculum/production/**'
       - 'scripts/compile-content-as-code.mjs'
       - 'scripts/test-content-as-code.mjs'
+      - 'scripts/test-whole-numbers-illustrated-v4.mjs'
+      - 'components/global/publish/WholeNumbersInteractiveBlock.tsx'
+      - 'app/globals.css'
       - '.github/workflows/content-as-code-validation.yml'
   push:
     branches: [main]
@@ -12,6 +15,9 @@ on:
       - 'content/curriculum/production/**'
       - 'scripts/compile-content-as-code.mjs'
       - 'scripts/test-content-as-code.mjs'
+      - 'scripts/test-whole-numbers-illustrated-v4.mjs'
+      - 'components/global/publish/WholeNumbersInteractiveBlock.tsx'
+      - 'app/globals.css'
       - '.github/workflows/content-as-code-validation.yml'
   workflow_dispatch:
 permissions:
@@ -26,5 +32,7 @@ jobs:
           node-version: '22'
       - name: Validate exact source and component contract
         run: node --test scripts/test-content-as-code.mjs
+      - name: Check illustrated edition, visual accessibility and original assessment invariants
+        run: node --test scripts/test-whole-numbers-illustrated-v4.mjs
       - name: Compile metadata only
         run: node scripts/compile-content-as-code.mjs content/curriculum/production/grade4-mathematics-whole-numbers-1.1.content-manifest.json
