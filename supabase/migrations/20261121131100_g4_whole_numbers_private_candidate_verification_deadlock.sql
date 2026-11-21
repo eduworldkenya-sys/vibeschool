@@ -62,7 +62,7 @@ begin
     -- VERIFIED only if the remaining gate blockers are exactly the two
     -- activation-state requirements, and all identity/alias/rights checks pass.
     -- This is NOT available at the CERTIFIED transition or for other packages.
-    if not (
+    if (
        tg_op = 'UPDATE'
        and old.lifecycle_status = 'candidate'
        and new.lifecycle_status = 'verified'
@@ -118,7 +118,7 @@ begin
          select count(*) from public.learning_resources root
          where root.canonical_key like 'vs:g4:mathematics:whole-numbers:%'
        ) = 6
-    ) then
+    ) is distinct from true then
       raise exception using errcode='23514',
         message='BLOCKED_CURRICULUM_RECONCILIATION',detail=state::text;
     end if;
