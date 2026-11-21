@@ -266,11 +266,11 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       {phase==='idle'||phase==='failed'?
         <button type="button" onClick={()=>void connect()} disabled={status!=='active'}><Volume2 size={15}/> Join audio</button>:
         <button type="button" onClick={()=>void stop()} disabled={phase==='connecting'}><X size={15}/> Leave audio</button>}
-      {phase==='listening'&&<button type="button" onClick={()=>void toggleMic()}
+      {phase==='listening'?<button type="button" onClick={()=>void toggleMic()}
         disabled={busy||(!teacher&&!permission)} aria-pressed={micOn}
         title={!teacher&&!permission?'Raise your hand and wait for teacher approval':'Microphone'}>
         {micOn?<Mic size={15}/>:<MicOff size={15}/>} {micOn?'Mute':teacher?'Speak':permission?'Speak':'Muted'}
-      </button>}
+      </button>:<button type="button" disabled title="Join audio first to use the microphone" aria-label="Microphone off"><MicOff size={15}/> Mic off</button>}
     </div>
     {phase==='listening'&&<div className={styles.detail}>
       {teacher?<>Learners on audio: {connectedIds.length}{speakingName?' · Speaking: '+speakingName:''}</>
