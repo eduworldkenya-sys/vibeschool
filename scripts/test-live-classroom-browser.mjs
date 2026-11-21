@@ -91,7 +91,8 @@ try{
  await button(t,'Present slide').click()
  const learner=await open('learner'),l=learner.page
  await join(l);await see(l,'Equivalent fractions')
- await l.getByRole('button',{name:'Microphone unavailable'}).waitFor()
+ await l.getByRole('button',{name:'Microphone off'}).waitFor()
+ assert.equal(await l.getByRole('button',{name:'Microphone off'}).isDisabled(),true,'Learners cannot unmute without audio commissioning')
  assert.equal(await l.getByText('Private presenter fixture',{exact:true}).count(),0)
  await noPageOverflow(l);await noPageOverflow(t)
  await button(t,'Edit slides').click()
