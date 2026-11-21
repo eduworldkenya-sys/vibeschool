@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassFiles.module.css'
+import {encodeLiveFileRef} from '@/lib/live/filePresentation'
 
 const BUCKET = 'vibe-live-private'
 const MAX_BYTES = 8 * 1024 * 1024
@@ -28,10 +29,11 @@ async function allowedSignature(file: File): Promise<boolean> {
   return false
 }
 
-export function LiveClassFiles({roomId,teacher,status}:{
+export function LiveClassFiles({roomId,teacher,status,onPresentFile}:{
   roomId: string
   teacher: boolean
   status: 'active'|'paused'|'ended'
+  onPresentFile?: (encodedReference:string)=>void
 }) {
   const [files,setFiles] = useState<LiveFile[]>([])
   const [error,setError] = useState('')
@@ -102,6 +104,7 @@ export function LiveClassFiles({roomId,teacher,status}:{
       if(result.error||!result.data)throw new Error(result.error?.message||'File permissions could not be saved.')
       setPreview(null)
       await refresh()
+      if(share&&status==='active'&&onPresentFile){const ref=encodeLiveFileRef(file.id);if(ref)onPresentFile(ref)}
     }catch(e){setError(e instanceof Error?e.message:'File sharing failed.')}
     finally{setBusy(false)}
   }
@@ -150,7 +153,7 @@ export function LiveClassFiles({roomId,teacher,status}:{
         <div><strong>{file.title}</strong><small>{file.mime_type==='application/pdf'?'PDF':'Photo'} · {Math.ceil(file.byte_size/1024)} KB · {file.shared_at?'Shared':'Private draft'}</small></div>
         <div className={styles.actions}>
           <button type="button" disabled={busy} onClick={()=>void open(file)}>View</button>
-          {teacher&&(file.shared_at?<button type="button" disabled={busy} onClick={()=>void changeShare(file,false)}>Unshare</button>:
+          {teacher&&(file.shared_at?<><button type="button" disabled={busy} onClick={()=>void changeShare(file,false)}>Unshare</button>{status==='active'&&onPresentFile&&<button type="button" disabled={busy} onClick={()=>{const ref=encodeLiveFileRef(file.id);if(ref)onPresentFile(ref)}}>Present</button>}</>:
           <><button type="button" disabled={busy||status==='ended'} onClick={()=>void changeShare(file,true)}>Share with class</button>
             <button type="button" disabled={busy} onClick={()=>void deleteDraft(file)}>Remove draft</button></>)}
         </div>
