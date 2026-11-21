@@ -26,7 +26,7 @@ for (const unit of units) {
 for (const unitId of ['1.1','1.2','1.3','3.1','3.3','4.1'])
  assert.ok(reference[unitId].competency && reference[unitId].value && reference[unitId].pci && reference[unitId].subjectLink,'Evidence-backed context required: '+unitId)
 assert.equal(shared.levels.length,4)
-assert.ok(shared.officialSourceNotice.includes('not published textbook'))
+assert.ok(shared.officialSourceNotice.includes('not an officially approved') && shared.officialSourceNotice.includes('learner textbook'))
 
 assert.equal(units.find(u=>u.id==='1.1').lessons,20,'VibeSchool-only planning allocation, disclosed as not officially printed')
 assert.ok(GRADE4_MATHEMATICS_SOURCE_URL.startsWith('https://kicd.ac.ke/'))
