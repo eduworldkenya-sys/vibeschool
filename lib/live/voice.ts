@@ -84,7 +84,7 @@ export async function issueLiveVoiceToken(
   const tokenResponse = await api('meeting-tokens',{properties:{
     room_name:roomName,user_id:participantId,
     user_name:role === 'teacher' ? 'Teacher' : 'Learner',
-    is_owner:role === 'teacher',
+    is_owner:false, // only participant admin; never a full owner with recording/transcription powers
     exp:Math.min(Math.floor(now/1000)+120,expiry),
     start_audio_off:true,start_video_off:true,
     enable_recording:false,enable_recording_ui:false,start_cloud_recording:false,
