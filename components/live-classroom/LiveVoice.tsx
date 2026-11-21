@@ -24,6 +24,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
   const connectedUser=useRef<string|null>(null)
   const renewTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
   const connecting=useRef(false)
+  const micPreference=useRef(false) // explicit teacher decision, persists only across authorized renewals
   const alive=useRef(false)
   const currentStatus=useRef(status)
   currentStatus.current=status
@@ -40,7 +41,8 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     for (const audio of media.current.values()){audio.pause();audio.srcObject=null;audio.remove()}
     media.current.clear();setConnectedIds([]);setSoundBlocked(false)
   },[])
-  const stop=useCallback(async()=>{
+  const stop=useCallback(async(preserveMic=false)=>{
+    if(!preserveMic)micPreference.current=false
     ++connectGeneration.current
     if(renewTimer.current){clearTimeout(renewTimer.current);renewTimer.current=null}
     const existing=meeting.current;meeting.current=null;speaker.current=null
@@ -123,7 +125,13 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       await call.join({url:data.url,token:data.token})
       if(generation!==connectGeneration.current){if(!call.isDestroyed())await call.destroy();return}
       // Daily room start_audio_off is true; microphone permission remains user initiated.
-      await call.setLocalAudio(false)
+      call.setLocalAudio(false)
+      if(teacher&&micPreference.current){
+        // Teacher already opted to speak in this Live session. Restore that
+        // preference only after the new canonical authorization succeeds.
+        call.setLocalAudio(true)
+        setMicOn(true)
+      }
       setPhase('listening');sync()
       // Daily enforces removal at token expiry even if the teacher goes
       // offline or this tab stops running timers. Renewal MUST obtain a fresh
@@ -132,7 +140,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       if(Number.isFinite(ttlMs)&&ttlMs>45000){
         renewTimer.current=setTimeout(()=>{
           if(connectGeneration.current!==generation||meeting.current!==call||!alive.current)return
-          void stop().then(()=>{if(alive.current&&currentStatus.current==='active')void connect()})
+          void stop(true).then(()=>{if(alive.current&&currentStatus.current==='active')void connect()})
         },Math.max(1000,ttlMs-30000))
       }
     }catch(e){
@@ -147,9 +155,15 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     if(!call || (!teacher&&!permission))return
     setBusy(true);setError('')
     try {
-      await call.setLocalAudio(!micOn)
-      setMicOn(Boolean(call.localAudio()))
-    }catch{setError('Could not use microphone. Check device permissions.')}
+      const next=!micPreference.current
+      call.setLocalAudio(next)
+      micPreference.current=next
+      setMicOn(next)
+    }catch{
+      micPreference.current=Boolean(call.localAudio())
+      setMicOn(micPreference.current)
+      setError('Could not use microphone. Check device permissions.')
+    }
     finally{setBusy(false)}
   }
   const allow=async(studentId:string)=>{
