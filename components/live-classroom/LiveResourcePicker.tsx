@@ -75,7 +75,7 @@ export function LiveResourcePicker({
         }
         // Prepared for this exact school class: discover only the teacher's
         // existing Scheme links. Neither titles nor subjects grant linkage.
-        let prepared: ResourceChoice[] = []
+        const prepared: ResourceChoice[] = []
         if (classId) {
           try {
             const schemeResult = await supabase.from('scheme_of_work')
