@@ -75,3 +75,30 @@ This remains teacher-initiated text-page presentation into the existing Live
 history; there is **no new document publication** or direct learner grant.
 Exact lesson-plan occurrence binding, preserved original file links, richer
 diagrams/PDF media, and post-class entitlement follow separately in Issue #1856.
+
+## Private realtime invalidation transport (21 November 2026 candidate)
+
+The existing authorized `vibe_live_command` remains the **only content-read authority**.
+A new `realtime.messages` SELECT-only policy admits the current session host or
+a joined, still-entitled learner to `vibe-live:<session-uuid>`. It rechecks active
+profiles, host authority and learner identity, enrollment/tutor/guardian rules
+through the same canonical `vibe_live.can_join`. The database emits only
+`{"invalidate":true}` on committed room, prompt, answer, hand, question and
+private-message changes; there is no lesson text, answer, roster or DM content
+in broadcast payloads. Browser clients use private authenticated channels to
+request a fresh authorized room snapshot and retain the existing adaptive
+polling on lost connectivity, missed events or token errors. Browser client
+publishing and anonymous channel admission are not granted.
+
+**Security boundary:** Realtime's subscription-policy cache may persist after
+an enrollment revocation until token refresh. Since only an empty invalidation
+signal is broadcast, there is no classroom content disclosure. The subsequent
+canonical RPC enforces current authority or revokes the local room. Do not
+reuse this channel for raw student messages, presence names, media data or
+private lesson content.
+
+**Performance boundary:** An event can trigger immediate RPC refresh rather
+than waiting for the next polling interval, but no subsecond p95 latency or
+production WS availability is claimed without a real two-account mobile
+latency trial. Retain the polling fallback, monotonic history, version checks
+and fail-closed permission responses.
