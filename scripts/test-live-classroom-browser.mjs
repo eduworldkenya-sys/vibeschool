@@ -243,7 +243,7 @@ try{
  await fixture.rpc(fixture.teacher,'publish',sid,beforeLong.version,{kind:'teach',body:longText})
  const hostStage=t.getByLabel('Shared lesson',{exact:true})
  const pupilStage=l.getByLabel('Shared lesson',{exact:true})
- await t.getByText(/Live reading guide/).waitFor()
+ await t.getByText(/Live reading guide/).first().waitFor()
  await l.getByText(/Live reading guide/).waitFor()
  await t.getByRole('button',{name:'Previous lesson page'}).click()
  await l.getByText('How many quarters make one whole?',{exact:true}).first().waitFor()
