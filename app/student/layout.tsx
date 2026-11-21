@@ -10,7 +10,8 @@ import TwinWorkspaceProvider from "@/components/student/VibeTwin/TwinWorkspacePr
 import { ToastContext, ThemeContext } from "@/components/student/StudentUiContext";
 import { FeedbackSoundToggle } from "@/components/student/LearningFeedback";
 import { StudentProvider, useStudent } from "@/lib/student-context";
-import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student-theme";
+import { writeTheme, type StudentTheme } from "@/lib/student-theme";
+import { useTheme as useSiteTheme } from "next-themes";
 import { DEFAULT_LEARNER_APPEARANCE, LEARNER_APPEARANCE_EVENT, readLearnerAppearance, saveLearnerAppearance, readLearnerWallpaperPhoto, learnerWallpaperBackground, resolvedLearnerDisplayMode, isSocialDestination, learnerAppearanceStyle, type LearnerStudyMode } from "@/lib/student-appearance";
 import { useToast } from "@/components/student/StudentUiContext";
 
@@ -243,20 +244,14 @@ function StudentShell({ children }: { children: React.ReactNode }) {
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<string | null>(null);
-  const [theme, setThemeState] = useState<StudentTheme>("light");
-  const [resolved, setResolved] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    const storedTheme = readTheme();
-    setThemeState(storedTheme);
-    setResolved(resolveTheme(storedTheme));
-  }, []);
+  const { theme: selectedSiteTheme, resolvedTheme, setTheme: setSiteTheme } = useSiteTheme();
+  const theme: StudentTheme = selectedSiteTheme === "system" ? "auto" : selectedSiteTheme === "dark" ? "dark" : "light";
+  const resolved: "light" | "dark" = resolvedTheme === "dark" ? "dark" : "light";
 
   const setTheme = useCallback((t: StudentTheme) => {
+    setSiteTheme(t === "auto" ? "system" : t);
     writeTheme(t);
-    setThemeState(t);
-    setResolved(resolveTheme(t));
-  }, []);
+  }, [setSiteTheme]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
