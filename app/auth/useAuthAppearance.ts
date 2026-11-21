@@ -13,9 +13,11 @@ export function useAuthAppearance(): 'light' | 'dark' {
     update()
     media.addEventListener('change', update)
     window.addEventListener('storage', update)
+    window.addEventListener('vibeschool:theme-changed', update)
     return () => {
       media.removeEventListener('change', update)
       window.removeEventListener('storage', update)
+      window.removeEventListener('vibeschool:theme-changed', update)
     }
   }, [])
   return resolved
