@@ -291,7 +291,7 @@ declare d public.content_derivatives%rowtype; v_work uuid; begin
      encode(extensions.digest(convert_to(d.body::text,'UTF8'),'sha256'),'hex')
    );
  end if;
- if not p_approve and not public.ce_is_human_content_approver(auth.uid()) then
+ if not coalesce(p_approve,false) and not public.ce_is_human_content_approver(auth.uid()) then
    raise exception 'MACHINE_REJECTION_REQUIRES_INDEPENDENT_NEGATIVE_REVIEW';
  end if;
  if p_approve then
@@ -333,7 +333,7 @@ declare a public.generated_assessments%rowtype; v_items int; v_missing_source in
      v_publication,'assessment',a.id,public.ce_machine_assessment_sha256(a.id)
    );
  end if;
- if not p_approve and not public.ce_is_human_content_approver(auth.uid()) then
+ if not coalesce(p_approve,false) and not public.ce_is_human_content_approver(auth.uid()) then
    raise exception 'MACHINE_REJECTION_REQUIRES_INDEPENDENT_NEGATIVE_REVIEW';
  end if;
  if p_approve and nullif(btrim(p_note),'') is null then raise exception 'INDEPENDENT_REVIEW_NOTE_REQUIRED'; end if;
