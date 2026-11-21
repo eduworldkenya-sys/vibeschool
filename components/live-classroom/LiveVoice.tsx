@@ -7,7 +7,7 @@ import styles from './LiveVoice.module.css'
 
 type Learner = { studentId:string; name:string; needsHelp:boolean }
 type Props = {
-  roomId:string;classId:string|null;teacher:boolean;status:'active'|'paused'|'ended'
+  roomId:string;classId:string|null;teacher:boolean;enabled:boolean;status:'active'|'paused'|'ended'
   learners:Learner[];onAcknowledge:(studentId:string)=>Promise<void>
 }
 function canPublishAudio(value:unknown):boolean{
@@ -16,7 +16,7 @@ function canPublishAudio(value:unknown):boolean{
   if (value instanceof Set)return value.has('audio')
   return false
 }
-export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}:Props) {
+export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAcknowledge}:Props) {
   const meeting=useRef<DailyCall|null>(null)
   const media=useRef<Map<string,HTMLAudioElement>>(new Map())
   const speaker=useRef<string|null>(null)
@@ -95,7 +95,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     }
   },[teacher])
   const connect=async()=>{
-    if(!alive.current||meeting.current||connecting.current||currentStatus.current!=='active')return
+    if(!enabled||!alive.current||meeting.current||connecting.current||currentStatus.current!=='active')return
     connecting.current=true
     const generation=++connectGeneration.current
     setPhase('connecting');setError('')
@@ -262,16 +262,17 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
     <div className={styles.summary}>
       <Headphones size={17} aria-hidden="true"/>
       <strong>Voice</strong>
-      <span className={styles.phase} role="status">{phase==='idle'?'Off':phase==='connecting'?'Connecting…':phase==='failed'?'Disconnected':teacher?'Connected':'Listening'}</span>
+      <span className={styles.phase} role="status">{!enabled?'Not enabled':phase==='idle'?'Off':phase==='connecting'?'Connecting…':phase==='failed'?'Disconnected':teacher?'Connected':'Listening'}</span>
       {phase==='idle'||phase==='failed'?
-        <button type="button" onClick={()=>void connect()} disabled={status!=='active'}><Volume2 size={15}/> Join audio</button>:
+        <button type="button" onClick={()=>void connect()} disabled={!enabled||status!=='active'} title={!enabled?'Audio has not been activated for this classroom.':undefined}><Volume2 size={15}/> Join audio</button>:
         <button type="button" onClick={()=>void stop()} disabled={phase==='connecting'}><X size={15}/> Leave audio</button>}
-      {phase==='listening'?<button type="button" onClick={()=>void toggleMic()}
+      {phase==='listening'&&enabled?<button type="button" onClick={()=>void toggleMic()}
         disabled={busy||(!teacher&&!permission)} aria-pressed={micOn}
         title={!teacher&&!permission?'Raise your hand and wait for teacher approval':'Microphone'}>
         {micOn?<Mic size={15}/>:<MicOff size={15}/>} {micOn?'Mute':teacher?'Speak':permission?'Speak':'Muted'}
-      </button>:<button type="button" disabled title="Join audio first to use the microphone" aria-label="Microphone off"><MicOff size={15}/> Mic off</button>}
+      </button>:<button type="button" disabled title={!enabled?'Audio has not been activated for this classroom.':'Join audio first to use the microphone.'} aria-label="Microphone off"><MicOff size={15}/> Mic off</button>}
     </div>
+    {!enabled&&<div className={styles.detail} role="status">Audio is unavailable for this class. The microphone cannot be switched on yet.</div>}
     {phase==='listening'&&<div className={styles.detail}>
       {teacher?<>Learners on audio: {connectedIds.length}{speakingName?' · Speaking: '+speakingName:''}</>
         :permission?'Teacher allowed you to speak. Tap Speak to turn on your microphone.':'Listening only · Raise your hand to request speaking.'}
