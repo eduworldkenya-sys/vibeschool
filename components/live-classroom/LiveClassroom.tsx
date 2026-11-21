@@ -855,7 +855,14 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         <label>Audience<select value={scope} onChange={e=>setScope(e.target.value as 'all'|ClassroomMode)}><option value="all">All lessons</option>{Object.entries(classroomLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
         {sharedId&&!rooms.some(item=>item.id===sharedId)&&<button disabled={busy} onClick={()=>void act('join',sharedId)}>Join shared lesson</button>}
       </div>}
-      {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>teacher||item.canJoin?<button key={item.id} disabled={busy} onClick={()=>void act(teacher?'get':'join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>{teacher?'Resume': 'Join Live'}</span></button>:<div key={item.id} className={styles.discover}><strong>{item.title}<small>Open class</small></strong><Link href="/student/tutoring">Connect to tutor</Link></div>)}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
+      {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>
+        teacher?<button type="button" key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>Resume</span></button>
+        :!item.canJoin?<div key={item.id} className={styles.discover}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><Link href="/student/tutoring">Connect to tutor</Link></div>
+        :item.mode==='open'&&item.waitingStatus!=='admitted'?<div key={item.id} className={styles.discover}><strong>{item.title}<small>Teacher-controlled Open class</small></strong>
+          {item.waitingStatus==='pending'?<span role="status">Waiting for teacher approval</span>:item.waitingStatus==='denied'?<span>Admission declined</span>:<button type="button" disabled={busy||!online} onClick={()=>void requestAdmission(item.id)}>Request admission</button>}
+        </div>
+        :<button type="button" key={item.id} disabled={busy} onClick={()=>void act('join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>Join Live</span></button>
+      )}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
       {pastAvailable&&<button type="button" aria-expanded={pastOpen} disabled={pastLoading} onClick={()=>void togglePastClasses()}>{pastOpen?'Hide Past Classes':'Past Classes'}</button>}
       {pastAvailable&&pastOpen&&<section aria-label="Past Classes">
         {pastLoading&&<p role="status">Loading saved lessons…</p>}
