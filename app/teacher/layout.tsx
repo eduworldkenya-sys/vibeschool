@@ -81,7 +81,7 @@ function TopBar({ school, initials, unreadConnect, creditBalance, creditsLoading
       </Link>
     </div>
     <div className="teacher-topbar__actions">
-      <ThemeControl native />
+      <ThemeControl native compact />
       <Link href="/teacher/vibeconnect" className="teacher-icon-button" aria-label={`VibeConnect${unreadConnect ? `, ${unreadConnect} unread messages` : ""}`}><MessageSquare size={20}/>{unreadConnect > 0 && <span className="teacher-counter">{unreadConnect > 9 ? "9+" : unreadConnect}</span>}</Link>
       <Link href="/teacher/credits" className="teacher-topbar__credit" aria-label={`Credits: ${creditBalance ?? (creditsLoading ? "loading" : "balance unavailable")}`} title={creditBalance === null && !creditsLoading ? "Balance unavailable. Open credits to retry." : "View credits"}><Wallet size={18}/><span>{creditBalance ?? (creditsLoading ? "…" : "—")}</span></Link>
       <Avatar initials={initials || "…"} size={44} ariaLabel="Open teacher profile" onClick={() => router.push("/teacher/profile")} />
