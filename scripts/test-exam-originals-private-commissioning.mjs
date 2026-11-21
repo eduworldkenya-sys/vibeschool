@@ -10,7 +10,18 @@ test('private original bank remains private and public leaked candidate is quara
   assert.match(receipt,/vibepapers-g4-math-001-private-2026/)
   assert.match(receipt,/exposed and may never be published/)
   assert.match(receipt,/provisional/)
-  assert.match(receipt,/NOT learner-published/)
+  // The replacement was privately staged, then released by a separately
+  // scoped owner-directed migration. The exposed candidate stays quarantined.
+  assert.match(receipt,/distinct replacement, not the exposed source/)
+  assert.match(receipt,/no plain-text question and answer-key sources/)
+  assert.match(receipt,/owner_directed_automated/)
+  const release=read('supabase/migrations/20261115150000_vibepapers_g4_math001_owner_directed_release.sql')
+  assert.match(release,/paper_id='vibepapers-g4-math-001-private-2026'/)
+  assert.match(release,/and published_at is null/)
+  assert.match(release,/review_evidence->>'public_repository_exposure','false'\)='false'/)
+  assert.match(release,/Private paper changed since owner-directed review; abort release/)
+  assert.match(release,/'human_educational_review','not_performed'/)
+  assert.match(release,/'curriculum_verification','provisional'/)
 })
 
 test('only reviewed owner-authored papers may enter Originals catalogue', () => {

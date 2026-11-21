@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLearningFeedback } from '@/components/learn/LearningFeedback'
 import styles from './assessment-runner.module.css'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { parseExamOriginalKey } from '@/lib/assessment/exam-originals'
 import {
   claimAttemptClient,
   releaseAttemptClient,
@@ -66,10 +67,12 @@ function draftKey(attemptId: string): string {
 }
 function clientId(): string {
   const key = 'vibeschool:assessment-client-id'
-  const existing = sessionStorage.getItem(key)
-  if (existing) return existing
+  try {
+    const existing = sessionStorage.getItem(key)
+    if (existing) return existing
+  } catch { /* Storage can be disabled in a browser. The in-memory lease ID still works. */ }
   const created = crypto.randomUUID()
-  sessionStorage.setItem(key, created)
+  try { sessionStorage.setItem(key, created) } catch { /* Keep the ID for this mounted runner. */ }
   return created
 }
 
@@ -78,6 +81,11 @@ export default function LearnerAssessmentPage() {
   const params = useParams<{ assignmentId: string }>()
   const router = useRouter()
   const assignmentId = params.assignmentId
+  const series = parseExamOriginalKey(useSearchParams().get('series'))
+  const returnPath = `/student/vibelearn/exams${series ? `?series=${series}` : ''}`
+  const [loadRetry, setLoadRetry] = useState(0)
+  const [canRetryOpen, setCanRetryOpen] = useState(true)
+  const [localDraftUnavailable, setLocalDraftUnavailable] = useState(false)
 
   const [workspace, setWorkspace] = useState<AttemptWorkspace | null>(null)
   const [answers, setAnswers] = useState<AnswerState>({})
@@ -131,11 +139,12 @@ export default function LearnerAssessmentPage() {
     async function load() {
       setLoading(true)
       setError('')
+      setCanRetryOpen(true)
       try {
         const loaded = await startOrResumeAttempt(assignmentId)
         if (cancelled) return
 
-        clientIdRef.current = clientId()
+        if (!clientIdRef.current) clientIdRef.current = clientId()
         const owned = await claim(loaded.attemptId)
         if (cancelled) return
 
@@ -152,7 +161,7 @@ export default function LearnerAssessmentPage() {
           const raw = localStorage.getItem(draftKey(loaded.attemptId))
           if (raw) localDraft = JSON.parse(raw) as LocalDraft
         } catch {
-          localStorage.removeItem(draftKey(loaded.attemptId))
+          setLocalDraftUnavailable(true)
         }
 
         const initial = Object.fromEntries(
@@ -194,6 +203,7 @@ export default function LearnerAssessmentPage() {
       } catch (loadError) {
         if (cancelled) return
         if (loadError instanceof ExpiredAssessmentAttemptError) {
+          setCanRetryOpen(false)
           // Only an authorised released result is navigable. Checking the result
           // does not create or consume another attempt.
           try {
@@ -227,7 +237,7 @@ export default function LearnerAssessmentPage() {
       cancelled = true
       Object.values(saveTimers.current).forEach(window.clearTimeout)
     }
-  }, [assignmentId, claim, router])
+  }, [assignmentId, claim, router, loadRetry])
 
   useEffect(() => {
     if (!workspace || activeElsewhere || result) return
@@ -258,7 +268,11 @@ export default function LearnerAssessmentPage() {
       savedAt: new Date().toISOString(),
     }
 
-    localStorage.setItem(draftKey(workspace.attemptId), JSON.stringify(draft))
+    try {
+      localStorage.setItem(draftKey(workspace.attemptId), JSON.stringify(draft))
+    } catch {
+      setLocalDraftUnavailable(true)
+    }
   }, [workspace, answers, currentIndex, result])
 
   useEffect(() => {
@@ -383,6 +397,25 @@ export default function LearnerAssessmentPage() {
       delete inFlightSaves.current[item.id]
     }
   }, [workspace, secondsLeft, activeElsewhere, play])
+
+  useEffect(() => {
+    if (!workspace || result || activeElsewhere || conflict || secondsLeft === 0) return
+    const reconnect = async () => {
+      // The server still checks ownership, revision and deadline on each write.
+      if (workspace.expiresAt && remainingSeconds(workspace.expiresAt) === 0) return
+      try {
+        if (!await claim(workspace.attemptId)) return
+        for (const item of workspace.items) {
+          if (answersRef.current[item.id]?.dirty && !await persistAnswer(item)) return
+        }
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Connection could not be restored.')
+      }
+    }
+    const onOnline = () => { void reconnect() }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [workspace, result, activeElsewhere, conflict, secondsLeft, claim, persistAnswer])
 
   function scheduleSave(
     item: LearnerAssessmentItem,
@@ -516,13 +549,13 @@ export default function LearnerAssessmentPage() {
         }
       }
       await releaseAttemptClient(workspace.attemptId, clientIdRef.current)
-      router.push('/student/vibelearn/exams')
+      router.push(returnPath)
     } catch (exitError) {
       setError(exitError instanceof Error ? exitError.message : 'Could not save all answers. Please try again.')
     } finally {
       setExiting(false)
     }
-  }, [workspace, exiting, submitting, activeElsewhere, conflict, persistAnswer, router])
+  }, [workspace, exiting, submitting, activeElsewhere, conflict, persistAnswer, router, returnPath])
 
   const submit = useCallback(async (expired = false) => {
     if (!workspace || submissionInFlightRef.current || result || activeElsewhere) return
@@ -620,7 +653,7 @@ export default function LearnerAssessmentPage() {
     return <div className={styles.runner} style={shell}><section style={card}>
       <h1 style={{ marginTop: 0 }}>Assessment unavailable</h1>
       <p style={{ color: '#b91c1c' }}>{error}</p>
-      <button type="button" onClick={() => router.push('/student/vibelearn/exams')} style={secondaryButton}>Back to Exams</button>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>{canRetryOpen && <button type="button" onClick={() => setLoadRetry(n => n + 1)} style={primaryButton}>Retry opening</button>}<button type="button" onClick={() => router.push(returnPath)} style={secondaryButton}>Back to Exams</button></div>
     </section></div>
   }
   if (!workspace) return null
@@ -783,6 +816,7 @@ export default function LearnerAssessmentPage() {
         : <button type="button" className={styles.next} disabled={activeElsewhere}
             onClick={() => setShowReview(true)}>Review & finish</button>}
     </div>
+    {localDraftUnavailable && <p role="status" style={{...card}}>Local backup is unavailable on this device. Keep this exam open until your answers are saved to the server.</p>}
     {error && <div role="alert" style={{ ...card, color: 'var(--vs-error)', borderColor: 'var(--vs-error)' }}>{error}</div>}
 
     {showReview && <div style={overlay}><section style={modal}>
