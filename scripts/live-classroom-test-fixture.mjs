@@ -8,6 +8,14 @@ const db=new PGlite()
 await db.exec(`
 create role anon; create role authenticated; create role service_role;
 create schema auth;
+create schema realtime;
+create table realtime.messages(topic text NOT NULL, payload jsonb NOT NULL DEFAULT '{}'::jsonb);
+alter table realtime.messages enable row level security;
+grant usage on schema realtime to anon,authenticated;
+grant select on realtime.messages to anon,authenticated;
+create function realtime.topic() returns text language sql stable as $topic$ select nullif(current_setting('realtime.topic',true),'') $topic$;
+create function realtime.send(jsonb,text,text,boolean) returns void language plpgsql security definer as $sender$ begin insert into realtime.messages(topic,payload) values($3,$1); end $sender$;
+grant execute on function realtime.topic() to anon,authenticated;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
 grant usage on schema auth to authenticated,anon;
 create table profiles(id uuid primary key,account_status text,role text default 'student',is_anonymized boolean default false);
@@ -49,6 +57,7 @@ await db.exec(readFileSync(new URL('../supabase/migrations/20261120104501_live_l
 await db.exec(readFileSync(new URL('../supabase/migrations/20261120104502_live_teacher_workspace.sql',import.meta.url),'utf8'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20261121084500_live_past_classes.sql',import.meta.url),'utf8'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20261121102000_live_private_conversations.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261121121000_live_private_realtime_invalidation.sql',import.meta.url),'utf8'))
 async function rpc(who,action,room=null,version=null,payload={},classId=cls,role='authenticated') {
  await db.exec(`set role ${role}; select set_config('request.jwt.claim.sub','${who||''}',false)`)
  try {return (await db.query('select public.vibe_live_command($1,$2,$3,$4,$5::jsonb) as out',[action,classId,room,version,JSON.stringify(payload)])).rows[0].out}
