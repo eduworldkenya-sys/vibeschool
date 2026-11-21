@@ -101,8 +101,9 @@ with target as (
     case when g.approved=0 then 'teacher_guide_independent_approval_pending' end,
     case when a.items<>11 or a.marks<>16 then 'assessment_content_lineage_incomplete' end,
     case when a.approved_items<6 then 'assessment_moderation_pending' end,
-    case when ri.current_fingerprint_approvals=0 then 'publication_release_approval_pending' end,
-    case when auth.uid() is null then 'authenticated_publisher_identity_unavailable_in_this_connection' end,
+    case when b.status='draft' and ri.current_fingerprint_approvals=0 then 'publication_release_approval_pending' end,
+    case when b.status='published' and ri.final_release_approvals=0 then 'historical_publication_release_approval_missing' end,
+    case when b.status='draft' and auth.uid() is null then 'authenticated_publisher_identity_unavailable_in_this_connection' end,
     case when ri.published_chapters=0 or ri.live_catalogue_rows=0 then 'student_catalogue_publication_pending' end
   ],null)::text[] blockers
  from target t cross join book b cross join chapter c cross join source s cross join outcome o cross join resources rs
@@ -113,10 +114,11 @@ select jsonb_build_object(
  'publication_id',(select publication_id from target),
  'scope','Grade 4 Mathematics / Whole Numbers only',
  'checked_at',clock_timestamp(),
- 'status',case when cardinality(blockers)=0 then 'RELEASE_VERIFIED'
-               when blockers=ARRAY['student_catalogue_publication_pending']::text[] then 'READY_TO_PUBLISH'
+ 'status',case when cardinality(blockers)=0 and state->>'book_status'='published' then 'CATALOGUE_VISIBLE'
+               when blockers=ARRAY['student_catalogue_publication_pending']::text[] and state->>'book_status'='draft' then 'READY_TO_PUBLISH'
                else 'BLOCKED' end,
- 'ready_to_publish',blockers=ARRAY['student_catalogue_publication_pending']::text[],
+ 'ready_to_publish',blockers=ARRAY['student_catalogue_publication_pending']::text[] and state->>'book_status'='draft',
+ 'post_publication_fingerprint_requires_revision_audit',state->>'book_status'='published',
  'catalogue_visibility_verified',coalesce((state->'release'->>'published_chapters')::integer,0)>0
      and coalesce((state->'release'->>'live_catalogue_rows')::integer,0)>0,
  'blockers',to_jsonb(blockers),
