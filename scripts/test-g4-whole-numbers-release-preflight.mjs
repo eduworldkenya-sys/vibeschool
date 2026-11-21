@@ -25,5 +25,5 @@ test('no stale fingerprint approvals, uncleared rights or blocked curriculum pas
   assert.match(sql,/READY_TO_PUBLISH/)
   assert.match(sql,/ready_to_publish/)
   assert.match(sql,/catalogue_visibility_verified/)
-  assert.match(sql,/when blockers=ARRAY\['student_catalogue_publication_pending'\]::text\[\] then 'READY_TO_PUBLISH'/)
+  assert.match(sql,/when blockers=ARRAY\['student_catalogue_publication_pending'\]::text\[\] and state->>'book_status'='draft' then 'READY_TO_PUBLISH'/)
 })
