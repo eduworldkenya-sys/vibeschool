@@ -229,6 +229,7 @@ export function ProductShowcase() {
           <Link href="/teacher" className={styles.serviceCard}><GraduationCap size={23} aria-hidden="true" /><h3>Teaching opportunities</h3><p>Discover teaching tools and professional pathways.</p><span>Explore teachers <ArrowRight size={15} aria-hidden="true" /></span></Link>
           <Link href="/schools" className={styles.serviceCard}><School size={23} aria-hidden="true" /><h3>Schools &amp; Pathways</h3><p>Find schools and explore future learning routes.</p><span>Explore schools <ArrowRight size={15} aria-hidden="true" /></span></Link>
         </div>
+        <p className={styles.pathwaysNote}>Exploring the next stage of school? <Link href="/pathways">Explore Senior School Pathways <ArrowRight size={15} aria-hidden="true" /></Link></p>
       </div>
     </section>
   </div>
