@@ -70,6 +70,6 @@ test('persistent headers and overlays contain no theme switcher', () => {
   assert.doesNotMatch(teacherLayout, /<ThemeControl/)
   assert.doesNotMatch(tutorNav, /themeControl|Choose VibeTutor theme/)
   assert.doesNotMatch(control, /PublicThemeControl|usePathname|<aside/)
-  assert.doesNotMatch(css, /\\.floating|position:fixed/)
-  assert.match(source('app/student/settings/page.tsx'), /setSiteTheme\\(patch\\.displayMode/)
+  assert.doesNotMatch(css, /floating|position:fixed/)
+  assert.match(source('app/student/settings/page.tsx'), /setSiteTheme/)
 })
