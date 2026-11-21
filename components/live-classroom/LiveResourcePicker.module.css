@@ -21,3 +21,7 @@
 @media(max-height:480px) and (orientation:landscape){.library{max-height:44dvh}.layout{grid-template-columns:minmax(155px,.8fr) minmax(0,1.5fr)}.preview article{max-height:34dvh}}
 
 .warning{font-size:12px;color:#5b4d1c;background:#fff7d6;border-radius:8px;padding:8px;margin:0}
+
+.diagramChoice{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:700}
+.diagramChoice select{min-height:36px;flex:1 1 120px;min-width:110px;max-width:100%;color:inherit;background:var(--vs-surface,#fff);border:1px solid currentColor;border-radius:8px;padding:5px 8px}
+.preview article svg{display:block;max-width:100%;height:auto;margin:12px auto}
