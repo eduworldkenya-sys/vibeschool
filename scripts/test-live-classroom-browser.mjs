@@ -123,7 +123,7 @@ try{
  assert.equal(await l.locator('article').filter({hasText:'One quarter means one of four equal parts.'}).count(),1)
  await l.evaluate(()=>{
    const article=[...document.querySelectorAll('article')].find(el=>el.textContent.includes('One quarter means one of four equal parts.'))
-   const element=article?.querySelector('p')
+   const element=[...(article?.querySelectorAll('p')??[])].find(p=>p.textContent?.includes('One quarter means one of four equal parts.'))
    if(!element)throw new Error('Missing readable paragraph')
    const selection=window.getSelection(),range=document.createRange()
    range.selectNodeContents(element);selection.removeAllRanges();selection.addRange(range)
