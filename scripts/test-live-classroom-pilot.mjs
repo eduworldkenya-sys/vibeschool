@@ -147,6 +147,17 @@ assert.equal((await rpc(a,'join',sid)).teacher,false)
 await rpc(a,'join',sid); await rpc(b,'join',sid)
 assert.equal(await canReceive(a),true,'joined learner can now receive room invalidations')
 assert.equal(await canReceive(b),true,'joined second learner can now receive room invalidations')
+await db.exec('set role authenticated')
+try {
+ await db.query('select set_config($1,$2,false)',['request.jwt.claim.sub',a])
+ await db.query('select set_config($1,$2,false)',['realtime.topic',liveTopic])
+ const allowedRows=(await db.query('select payload from realtime.messages')).rows
+ assert.ok(allowedRows.length>0,'actual Realtime RLS SELECT accepts an admitted learner')
+ await db.query('select set_config($1,$2,false)',['request.jwt.claim.sub',outsider])
+ assert.deepEqual((await db.query('select payload from realtime.messages')).rows,[],
+  'actual Realtime RLS SELECT rejects an outsider, even if the topic is known')
+} finally {await db.exec('reset role')}
+
 const preRevokeCount=(await db.query('select count(*)::int as n from realtime.messages')).rows[0].n
 assert.ok(preRevokeCount>liveSignals.length,'join broadcasts a second content-free invalidation')
 
