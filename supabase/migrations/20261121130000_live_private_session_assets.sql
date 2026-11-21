@@ -24,6 +24,18 @@ $$;
 revoke all on function public.live_asset_room_access(uuid,boolean) from public,anon;
 grant execute on function public.live_asset_room_access(uuid,boolean) to authenticated;
 
+-- The status test is kept inside a narrowly scoped, auth-aware function;
+-- client RLS does not receive SELECT on the private Live room table.
+create or replace function public.live_asset_upload_allowed(p_session uuid)
+returns boolean language sql stable security definer set search_path=''
+as $
+  select public.live_asset_room_access(p_session,true) and exists(
+    select 1 from vibe_live.sessions s where s.id=p_session and s.status in ('active','paused')
+  );
+$;
+revoke all on function public.live_asset_upload_allowed(uuid) from public,anon;
+grant execute on function public.live_asset_upload_allowed(uuid) to authenticated;
+
 create table if not exists public.live_classroom_assets (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references vibe_live.sessions(id) on delete cascade,
@@ -53,8 +65,7 @@ create policy live_assets_authorized_read on public.live_classroom_assets
 create policy live_assets_teacher_insert on public.live_classroom_assets
   for insert to authenticated
   with check (uploader_id=(select auth.uid())
-    and public.live_asset_room_access(session_id,true)
-    and exists(select 1 from vibe_live.sessions s where s.id=session_id and s.status in ('active','paused')));
+    and public.live_asset_upload_allowed(session_id));
 create policy live_assets_teacher_update on public.live_classroom_assets
   for update to authenticated
   using (uploader_id=(select auth.uid()) and public.live_asset_room_access(session_id,true))
@@ -101,7 +112,7 @@ create policy live_file_teacher_upload on storage.objects
   with check(bucket_id='vibe-live-private' and exists (
     select 1 from public.live_classroom_assets a
     where a.object_path=name and a.uploader_id=(select auth.uid())
-      and a.shared_at is null and public.live_asset_room_access(a.session_id,true)
+      and a.shared_at is null and public.live_asset_upload_allowed(a.session_id)
   ));
 create policy live_file_authorized_read on storage.objects
   for select to authenticated
