@@ -218,6 +218,14 @@ try{
  await l.bringToFront()
  await see(l,'How many quarters make one half?')
  assert.equal(await l.getByText('Two quarters',{exact:true}).count(),0)
+ // Workpad remains private until an explicit learner action.
+ await button(l,'Work it out').click()
+ await l.getByLabel('Private working').fill('One quarter plus one quarter equals one half.')
+ assert.equal(await t.getByText('One quarter plus one quarter equals one half.',{exact:true}).count(),0)
+ await button(l,'Add to private notes').click()
+ assert.match(await l.getByLabel('Personal notes').inputValue(),/One quarter plus one quarter equals one half/)
+ await button(l,'Save notes').click()
+ await l.getByRole('button',{name:'Close',exact:true}).click()
  await l.getByLabel('Your answer').fill('2')
  await button(l,'Submit').click()
  await l.getByText(/Submitted:/).waitFor()
@@ -252,6 +260,16 @@ try{
  await see(l,'Two quarters')
  await button(l,'Return to Live').click()
  await see(l,'How many quarters make one whole?')
+ // Explicit choices use the authorized prompt and answer RPC, never a shadow poll.
+ const beforeChoices=await fixture.rpc(fixture.teacher,'get',sid,null,{},fixture.cls)
+ await fixture.rpc(fixture.teacher,'publish',sid,beforeChoices.version,{kind:'poll',body:'How many quarters are in one whole?\nA. Two\nB) Four\nC: Ten'})
+ await see(l,'How many quarters are in one whole?')
+ await l.getByRole('radio',{name:'B. Four'}).check()
+ await button(l,'Submit').click()
+ await l.getByText(/Submitted:/).waitFor()
+ await t.getByRole('button',{name:/^Learners · /}).click()
+ await see(t,'B. Four')
+ await t.getByRole('button',{name:'Close tools'}).click()
  // Publish a genuinely scrollable teaching document through the same
  // authoritative room. Multiple mobile viewports follow a normalized offset.
  const longText='Live reading guide.\n'+Array.from({length:72},(_,i)=>'Step '+(i+1)+': Read the analogue clock carefully.').join('\n')
@@ -299,7 +317,7 @@ try{
  await l.getByRole('button',{name:'First lesson page'}).click()
  await see(l,'Equivalent fractions')
  assert.deepEqual(errors,[],'Browser runtime errors')
- console.log('PASS: actual responsive classroom UI with synthetic authenticated RPC transport, separate learner views, library reuse, draft recovery, slide navigation, board, private notes, hand acknowledgement, quiz reveal, offline/reconnect, outsider denial and ended history')
+ console.log('PASS: actual responsive classroom UI with synthetic authenticated RPC transport, separate learner views, library reuse, draft recovery, slide navigation, board, private workpad, one-tap polls, hand acknowledgement, quiz reveal, offline/reconnect, outsider denial and ended history')
 }catch(e){
  for(const c of contexts)for(const p of c.pages())console.error(p.url(),(await p.locator('body').innerText().catch(()=>'' )).slice(0,3500))
  throw e
