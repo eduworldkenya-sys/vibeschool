@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, Minus, Plus, Quote } from 'lucide-react'
 import styles from './LiveReadingSurface.module.css'
 import { parseLiveReadingPage, liveReadingBlockType } from '@/lib/live/readingPresentation'
@@ -22,7 +22,8 @@ export function LiveReadingSurface({
   const [quoted, setQuoted] = useState(false)
   const article = useRef<HTMLElement>(null)
   const pendingQuote = useRef('')
-  const page = parseLiveReadingPage(body)
+  const page = useMemo(() => parseLiveReadingPage(body),[body])
+  useEffect(()=>{setQuoted(false);pendingQuote.current=''},[body])
   const selectedQuote = () => {
     const selection = window.getSelection()
     if (!selection || selection.isCollapsed || !selection.rangeCount) return ''
