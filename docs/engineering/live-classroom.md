@@ -21,3 +21,34 @@ The repository already uses Daily for scheduled private tuition (`lib/vibetutor/
 ## Whiteboard pages and export
 
 The teacher may create up to 30 session-local draft pages and navigate between them; the current page is shared through the existing scoped board prompt. Publishing no longer closes the editor. Each page retains its strokes within the current room visit; undo/redo resets on page changes. SVG export includes all draft pages and uses only validated numeric coordinates. The exported file is local to the teacher. Drafts are not a durable archive and do not survive leaving the room or refreshing. This change preserves the 3,400-character/100-stroke page budget and existing learner authorization. Automatic synchronization, media annotation, shared text and colour, collaborative drawing and durable storage remain separate work.
+
+## Live resources — initial integrated teaching increment (21 November 2026)
+
+The teacher's Live dock now includes **Resources**, using existing libraries rather
+than another textbook or resource authority. The picker shows:
+
+- Active/public `learning_resources` learner-facing asset kinds only, with
+  a directly authorized, rights-cleared, **certified**
+  `learning_resource_versions` payload. Teacher notes, lesson plans, answer
+  schemes, candidate/retired versions, unpublished roots and unsupported rich
+  payloads cannot be presented through this picker.
+- Existing teacher-owned supplementary `resources` only in a school Live
+  session for their **same class**, with `publication_status='shared'`.
+  This does not grant tuition or homeschool sessions access to school files.
+
+A teacher explicitly presents one bounded text page (up to 30 pages per
+resource) through the **existing** classroom `publish(kind='teach')` command.
+The result is a content snapshot in the same ordered, authenticated lesson
+history, visible to admitted participants and recovering after reconnects.
+There is no new RPC, grant, media provider, file-publication path or DB table.
+If material cannot be represented safely as text, the picker declines to
+present it rather than silently truncating or sharing unreviewed data.
+
+**Not yet implemented:** direct embedded PDF/photo/video/diagram presentation,
+durable lesson-plan resource-version reference linking, rich formatting,
+post-session original file availability, tutor-scoped private resource
+grants, and independent resource analytics. These require separate scoped
+authority and delivery contracts. Resource text snapshots do not imply that a
+learner may navigate to the original teacher-only resource.
+The feature remains behind the existing `NEXT_PUBLIC_VIBE_LIVE_ENABLED`
+flag and requires real teacher/learner multi-account verification.
