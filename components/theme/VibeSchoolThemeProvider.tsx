@@ -8,7 +8,7 @@ export const VIBESCHOOL_THEME_KEY = 'vibeschool-theme'
 // Reuse the current appearance preferences instead of resetting a visitor's
 // choice when a VibeTutor or learner visits another VibeSchool workspace.
 function ImportExistingPreference() {
-  const { setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   useEffect(() => {
     try {
       if (window.localStorage.getItem(VIBESCHOOL_THEME_KEY) !== null) return
@@ -25,6 +25,11 @@ function ImportExistingPreference() {
       // when browser storage is blocked.
     }
   }, [setTheme])
+  useEffect(() => {
+    if (!resolvedTheme) return
+    window.dispatchEvent(new Event('vibeschool:theme-changed'))
+    window.dispatchEvent(new Event('vibeschool:learner-appearance-changed'))
+  }, [theme, resolvedTheme])
   return null
 }
 
