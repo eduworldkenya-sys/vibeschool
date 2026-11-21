@@ -4,6 +4,7 @@ import { TrackedLink } from './TrackedLink'
 import { PublicJourneyTracker } from './PublicJourneyTracker'
 import { PublicSkipLink } from './PublicSkipLink'
 import styles from './PublicShell.module.css'
+import { ThemeControl } from '@/components/theme/ThemeControl'
 
 type PublicHeaderProps = { product?: string; compact?: boolean; navigation?: ReadonlyArray<readonly [string, string]> }
 
@@ -52,6 +53,7 @@ export function PublicHeader({ product, compact = false, navigation }: PublicHea
           </details>}
           {!compact && <TrackedLink href="/login/global" event="public_auth_signin" className={styles.signin}>Sign in</TrackedLink>}
         </nav>
+        <ThemeControl className={styles.appearanceControl} />
         <details className={styles.mobileMenu}>
           <summary aria-label="Open public navigation">Menu</summary>
           <nav className={styles.mobilePanel} aria-label="Mobile public navigation">
