@@ -1,14 +1,48 @@
-import type { Metadata } from "next";
-import TeacherMarketplacePage from "./marketplace/page";
+import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicFooter } from "@/components/public/PublicFooter";
+import { TrackedLink } from "@/components/public/TrackedLink";
+import { ArrowRight, BriefcaseBusiness, ArrowLeftRight } from "lucide-react";
+import styles from "./TeacherGateway.module.css";
+import TeacherOpportunities from "@/components/teacher/marketplace/TeacherOpportunities";
+import TeacherExperiencePreview from "./TeacherExperiencePreview";
 
-export const metadata: Metadata = {
+
+export const metadata = {
   title: "For Teachers | VibeSchool",
-  description: "Explore teaching jobs, online tuition and station swaps, or recruit teachers through VibeSchool.",
-  alternates: { canonical: "/teacher/marketplace" },
+  description: "Plan lessons, prepare schemes, assess learners and continue your work in VibeSchool Teacher OS.",
 };
 
-// Keep the existing /teacher public entry, but render the canonical marketplace.
-// Teacher OS remains available through the existing /teacher/pulse route.
 export default function TeacherGateway() {
-  return <TeacherMarketplacePage />;
+  return <div className={styles.page}>
+    <PublicHeader product="Teachers" />
+    <main id="main-content">
+      <section className={styles.hero} aria-labelledby="teacher-hero-title">
+        <div className={`${styles.wrap} ${styles.heroLayout}`}>
+          <div className={styles.heroCopy}>
+            <p className={styles.eyebrow}>TEACHER MARKETPLACE · START HERE</p>
+            <h1 id="teacher-hero-title">Find your next teaching opportunity.</h1>
+            <p className={styles.intro}>Find jobs, connect with schools or discover available teachers.</p>
+            <div className={styles.heroActions}>
+              <a className={styles.primary} href="/teacher/marketplace">Open teacher marketplace <ArrowRight size={18} aria-hidden="true"/></a>
+              <TrackedLink className={`${styles.primary} ${styles.matchPrimary}`} event="public_sandbox_open" href="/teacher/marketplace/sandbox">Explore TSC vacancies <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
+              <TrackedLink className={styles.secondary} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Open Teacher OS <ArrowRight size={18} aria-hidden="true" /></TrackedLink>
+            </div>
+            <p className={styles.matchHint}>School-by-school subject matching is being verified against the original TSC schedules.</p>
+          </div>
+          <div className={styles.heroPreview}><TeacherExperiencePreview /></div>
+        </div>
+      </section>
+      <section className={styles.jobs} aria-labelledby="teacher-marketplace-title">
+        <div className={styles.wrap}>
+          <div className={styles.jobsHeading}><h2 id="teacher-marketplace-title">Teacher marketplace</h2><BriefcaseBusiness size={19} aria-hidden="true"/></div>
+          <p className={styles.demoNote}>Browse jobs, swaps and available teachers.</p>
+          <div className={styles.heroActions}><a className={`${styles.primary} ${styles.matchPrimary}`} href="/teacher/marketplace/sandbox">Explore TSC vacancies <ArrowRight size={18} aria-hidden="true"/></a><a className={styles.secondary} href="/teacher/marketplace">Browse published vacancies <ArrowRight size={18} aria-hidden="true"/></a></div>
+          <TeacherOpportunities />
+          <p className={styles.demoNote}>Browse school jobs or find a possible station swap.</p>
+          <div className={styles.heroActions}><a className={styles.secondary} href="/login?redirect=%2Fteacher%2Fmarketplace%2Fmanage%3Ftab%3Dswap">Post or manage a swap <ArrowLeftRight size={18} aria-hidden="true"/></a></div>
+        </div>
+      </section>
+    </main>
+    <PublicFooter />
+  </div>;
 }
