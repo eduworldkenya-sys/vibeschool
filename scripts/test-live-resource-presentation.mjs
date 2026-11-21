@@ -44,7 +44,12 @@ for(const required of [
   "if (!scheme.data) throw new Error('The Scheme lesson no longer belongs to this class.')",
   "if (!link.data) throw new Error('This Scheme resource link is no longer available.')",
   "if (item.pinnedVersionId) versionQuery = versionQuery.eq('id', item.pinnedVersionId)",
-  'onPresent(selected.pages[page])',
+  'onPresent(raw)',
+  'const shared = encodeSlide(',
+  'lessonPlanId: string | null',
+  ".eq('target_type', 'lesson_plan')",
+  "if (link.error || !link.data) throw new Error('Lesson Plan resource link was removed.')",
+  'if (schemeLessonId && planResult.data.scheme_id !== schemeLessonId)',
 ]) assert.ok(code.includes(required),'resource contract missing '+required)
 for(const required of [
   "panel==='resources'",
@@ -53,8 +58,15 @@ for(const required of [
   "panel!=='resources'",
   '<span>Resources</span>',
 ]) assert.ok(room.includes(required),'Live integration missing '+required)
-assert.ok(code.includes("const preparedIds = new Set(prepared.map(item => item.id))"),'prepared items must be deduplicated against generic resources')
+assert.ok(code.includes("const preparedIds = new Set([...planPrepared,...prepared].map(item => item.id))"),'prepared items must be deduplicated against generic resources')
 assert.ok(code.includes("const key = link.scheme_lesson_id + ':' + link.resource_id"),'prepared identity must use the persisted Scheme and resource identifiers')
 assert.ok(code.includes("if (!link.data) throw new Error('This Scheme resource link is no longer available.')"),'stale Scheme links must fail closed')
 assert.ok(!code.includes(".eq('publication_status', 'draft')"),'draft resource leak')
 console.log('PASS: resource pagination, public certified gates, shared class isolation and Live presentation contract')
+
+const filesUi=readFileSync(new URL('../components/live-classroom/LiveClassFiles.tsx',import.meta.url),'utf8')
+const lessonNotes=readFileSync(new URL('../app/teacher/lesson-notes/page.tsx',import.meta.url),'utf8')
+for(const token of ['Upload classroom PDF or photo','createSignedUrl(file.object_path,60)',".from('live_classroom_assets')",'allowedSignature(file)',"teacher&&status!=='ended'",'Share with class']) assert.ok(filesUi.includes(token),'Private files UI missing '+token)
+for(const token of ['Saved teaching materials','<LiveClassFiles roomId={room.id} teacher={teacher} status="ended"/>',"setLinkedPlan({id:result.data.id",'lessonPlanId={room.mode',"learnerTool==='files'"]) assert.ok(room.includes(token),'Live integration missing '+token)
+assert.ok(lessonNotes.includes('Teach this Lesson Plan in Live'))
+console.log('PASS: exact Lesson Plan linkage, teacher-diagram preview and retained private file access surfaces')
