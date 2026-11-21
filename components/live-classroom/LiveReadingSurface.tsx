@@ -21,6 +21,7 @@ export function LiveReadingSurface({
   const [zoom, setZoom] = useState(0)
   const [quoted, setQuoted] = useState(false)
   const article = useRef<HTMLElement>(null)
+  const pendingQuote = useRef('')
   const page = parseLiveReadingPage(body)
   const selectedQuote = () => {
     const selection = window.getSelection()
@@ -29,7 +30,8 @@ export function LiveReadingSurface({
     return selection.toString().replace(/\s+/g, ' ').trim().slice(0, 360)
   }
   const saveQuote = () => {
-    const quote = selectedQuote()
+    const quote = selectedQuote() || pendingQuote.current
+    pendingQuote.current = ''
     if (!quote || !onQuote) return
     onQuote(quote)
     setQuoted(true)
@@ -44,7 +46,7 @@ export function LiveReadingSurface({
       <span>Text size</span>
       <button type="button" aria-label="Make reading text smaller" disabled={zoom === -1} onClick={() => setZoom(value => Math.max(-1, value - 1))}><Minus size={16}/></button>
       <button type="button" aria-label="Make reading text bigger" disabled={zoom === 2} onClick={() => setZoom(value => Math.min(2, value + 1))}><Plus size={16}/></button>
-      {onQuote && <button type="button" onClick={saveQuote} aria-label="Save selected passage to private notes" title="Select text, then save it to your notes"><Quote size={16}/> Note quote</button>}
+      {onQuote && <button type="button" onPointerDown={() => { pendingQuote.current = selectedQuote() }} onClick={saveQuote} aria-label="Save selected passage to private notes" title="Select text, then save it to your notes"><Quote size={16}/> Note quote</button>}
     </div>}
     <div className={styles.chapters}>
       {page.paragraphs.map((part, index) => {
