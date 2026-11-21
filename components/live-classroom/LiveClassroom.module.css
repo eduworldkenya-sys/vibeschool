@@ -231,3 +231,9 @@
 .learnerTools{grid-template-columns:repeat(6,minmax(0,1fr))}
 .resourceWorkspace{display:grid;gap:12px;width:100%;min-width:0;max-height:100%;overflow:auto}
 @media(max-width:420px){.learnerTools button{font-size:10px;min-width:0}.learnerTools button span{overflow:hidden;text-overflow:ellipsis;max-width:100%}}
+
+.responseReview{display:grid;gap:8px;padding:10px;border:1px solid #54796c;border-radius:10px;background:#203b33}
+.responseReview h3{font-size:14px;margin:0}
+.responseReview select{width:100%;min-width:0;padding:8px;border-radius:8px;background:#14251f;color:#fff;border:1px solid #688c80;font:inherit}
+.responseReview .participants li span{white-space:pre-wrap;overflow-wrap:anywhere}
+.responseReview .participants li small{color:#bfd8d0}
