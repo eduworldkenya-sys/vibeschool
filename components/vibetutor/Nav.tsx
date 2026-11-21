@@ -19,7 +19,7 @@ const TABS: { href: string; label: string; icon: IconName; match: (p: string) =>
 
 export default function Nav() {
   const path = usePathname() ?? ''
-  const { theme, resolvedTheme, setTheme } = useTheme()
+  const { resolvedTheme } = useTheme()
 
   useEffect(() => {
     const resolved = resolvedTheme === 'dark' ? 'dark' : 'light'
@@ -36,10 +36,6 @@ export default function Nav() {
     }
   }, [resolvedTheme])
 
-  function changeTheme(value: 'light' | 'dark' | 'system') {
-    setTheme(value)
-  }
-
   return (
     <>
       <header className={styles.topbar}>
@@ -51,21 +47,6 @@ export default function Nav() {
             </Link>
             <span className={styles.brandDivider} aria-hidden="true" />
             <Link href="/vibetutor" className={styles.brandProduct} aria-label="VibeTutor home">VibeTutor</Link>
-          </div>
-          <div className={styles.navActions}>
-            <label className={styles.themeControl}>
-              <span className={styles.themeLabel}>Theme</span>
-              <select
-                className={styles.themeSelect}
-                aria-label="Choose VibeTutor theme"
-                value={theme === 'light' || theme === 'dark' ? theme : 'system'}
-                onChange={event => changeTheme(event.target.value as 'light' | 'dark' | 'system')}
-              >
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-                <option value="system">System</option>
-              </select>
-            </label>
           </div>
           <nav className={styles.navLinks} aria-label="Main">
             {TABS.map(t => (

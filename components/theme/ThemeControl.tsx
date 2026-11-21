@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { SunMoon } from 'lucide-react'
 import styles from './ThemeControl.module.css'
@@ -30,12 +29,4 @@ export function ThemeControl({ className = '', native = false, compact = false }
       </select>
     </label>
   )
-}
-
-/** Public routes have independent headers; workspaces put the same control in their own top bar. */
-export function PublicThemeControl() {
-  const path = usePathname() ?? ''
-  if (path === '/vibetutor' || path.startsWith('/vibetutor/') ||
-      path === '/student' || path.startsWith('/student/')) return null
-  return <aside className={styles.floating} aria-label="Page appearance"><ThemeControl /></aside>
 }
