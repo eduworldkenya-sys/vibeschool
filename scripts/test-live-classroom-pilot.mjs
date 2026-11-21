@@ -386,3 +386,28 @@ await db.close()
  console.log('PASS: Past Classes are attended-only, read-only, scoped, revoked and do not leak hidden answers')
  await f.db.close()
 }
+
+// Separate, disposable lifecycle proof: only admitted peers communicate, pause
+// blocks sending, ended classes retain read-only transcripts, revocation closes both.
+{
+ const f=await createLiveFixture()
+ let lesson=await f.rpc(f.teacher,'start',null,null,{title:'Private chat lifecycle'})
+ const sid=lesson.id
+ const learnerId=f.id(30)
+ await assert.rejects(f.rpc(f.teacher,'dm_send',sid,null,{studentId:learnerId,requestId:f.id(250),body:'Before join'}),/live_not_authorized/)
+ await f.rpc(f.a,'join',sid)
+ await f.rpc(f.teacher,'dm_send',sid,null,{studentId:learnerId,requestId:f.id(251),body:'Help with today's lesson'})
+ assert.equal((await f.rpc(f.a,'dm_list',sid)).messages.length,1)
+ lesson=await f.rpc(f.teacher,'pause',sid,lesson.version)
+ await assert.rejects(f.rpc(f.a,'dm_send',sid,null,{requestId:f.id(252),body:'Paused message'}),/live_message_closed/)
+ lesson=await f.rpc(f.teacher,'end',sid,lesson.version)
+ assert.equal((await f.rpc(f.teacher,'dm_list',sid,null,{studentId:learnerId})).messages.length,1)
+ assert.equal((await f.rpc(f.a,'dm_list',sid)).messages.length,1)
+ await assert.rejects(f.rpc(f.teacher,'dm_send',sid,null,{studentId:learnerId,requestId:f.id(253),body:'After session'}),/live_session_closed/)
+ await assert.rejects(f.rpc(null,'dm_list',sid,null,{},f.cls,'anon'),/permission denied/)
+ await f.db.exec("delete from public.student_classes where student_id='"+learnerId+"'")
+ await assert.rejects(f.rpc(f.a,'dm_list',sid),/live_not_authorized/)
+ await assert.rejects(f.rpc(f.teacher,'dm_list',sid,null,{studentId:learnerId}),/live_not_authorized/)
+ console.log('PASS: private conversation join-only, pause stop, ended read-only and enrollment revocation')
+ await f.db.close()
+}
