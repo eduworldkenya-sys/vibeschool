@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase, getSupabaseClient } from '@/lib/supabase'
 import Link from 'next/link'
 import styles from './VibeTutor.module.css'
 import Icon from './Icon'
@@ -57,15 +58,36 @@ export function TutorCard({ t, compact = false, score }: { t: DemoTutor; compact
   )
 }
 
-export function RequestCard({ r, compact = false, score }: { r: DemoRequest; compact?: boolean; score?: number }) {
+export function RequestCard({ r, compact = false, score, signedIn = false }: { r: DemoRequest; compact?: boolean; score?: number; signedIn?: boolean }) {
   const [open, setOpen] = useState(false)
+  const [intro, setIntro] = useState('I am available to help with tutoring. Please reply through VibeTutor if you would like to discuss.')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [contactError, setContactError] = useState('')
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('request') === r.id) setOpen(true)
+  }, [r.id])
+  async function sendInterest() {
+    if (sending || sent) return
+    setSending(true); setContactError('')
+    try {
+      const {data:{user},error:authError} = await getSupabaseClient().auth.getUser()
+      if (authError || !user) { setContactError('Sign in before contacting the guardian.'); return }
+      const {error} = await supabase.rpc('vibetutor_request_interest_send',{p_request:r.id,p_message:intro.trim()})
+      if (error) { setContactError('Unable to contact this guardian. Check that you have a published tutor profile or review your existing enquiry.'); return }
+      setSent(true)
+    } catch { setContactError('Could not send your enquiry. Try again.') }
+    finally { setSending(false) }
+  }
   return (
     <>
       {compact ? <button type="button" className={styles.discoveryRow} onClick={() => setOpen(true)}>
         <span className={styles.discoveryAvatar} aria-hidden="true"><Icon name="user" size={30} /></span>
         <span className={styles.discoveryCopy}>
-          <strong>{r.subjects.join(' · ')}</strong>
-          <span className={styles.discoveryMeta}>{r.level} · {modeLabel(r.mode)}</span>
+          <strong>{r.learnerLabel}</strong>
+          <span className={styles.discoveryMeta}>{r.subjects.join(' · ')}</span>
+          <span className={styles.discoveryMeta}>{r.level} · {modeLabel(r.mode)} · {r.area}</span>
+          <span className={styles.discoveryMeta}>{summarizeDays(r.days)} · {summarizeParts(r.dayparts)} · {r.budgetKes ? `KSh ${r.budgetKes}/hr` : 'Budget open'}</span>
           {r.real ? (score !== undefined ? <span className={styles.discoveryMatch}>{score}% match</span> : <span className={styles.discoveryMeta}>{r.area || modeLabel(r.mode)}</span>) : <span className={styles.demo}>Example request</span>}
         </span>
         <span className={styles.discoveryChevron} aria-hidden="true">›</span>
@@ -91,14 +113,20 @@ export function RequestCard({ r, compact = false, score }: { r: DemoRequest; com
           {!r.real && <span className={styles.demo}>Example request</span>}
           <h2 id={`request-${r.id}`} className={styles.modalTitle}>{r.subjects.join(', ')}</h2>
           <p className={styles.muted}>{r.learnerLabel} · {r.level}</p>
-          <p className={styles.modalText}>{r.note}</p>
+
           <p className={styles.meta}><strong>Area:</strong> {r.area}</p>
           <p className={styles.meta}><strong>Format:</strong> {modeLabel(r.mode)}</p>
           <p className={styles.meta}><strong>Available days:</strong> {summarizeDays(r.days)}</p>
           <p className={styles.meta}><strong>Preferred time:</strong> {summarizeParts(r.dayparts)}</p>
           <p className={styles.modalPrice}>Budget up to KSh {r.budgetKes.toLocaleString('en-KE')} / hour</p>
           <p className={styles.hint}>{r.real ? 'Sign in to respond. Parent or guardian oversight is required for learners under 18.' : 'Example request only. No learner is connected to this example.'}</p>
-          <Link href="/login" className={styles.modalSignIn}>Sign in to respond</Link>
+          {!signedIn ? <Link href={'/login?redirect=' + encodeURIComponent('/vibetutor/browse?view=students&request=' + r.id)} className={styles.modalSignIn}>Sign in to contact guardian</Link> :
+            <div><label htmlFor={'interest-' + r.id}>Introduce yourself to the parent or guardian</label>
+              <textarea id={'interest-' + r.id} className={styles.input} value={intro} maxLength={500} rows={3} onChange={e => setIntro(e.target.value)} />
+              <button className={styles.modalSignIn} type="button" disabled={sending || sent || intro.trim().length < 10} onClick={() => void sendInterest()}>{sent ? 'Interest sent' : sending ? 'Sending…' : 'Contact guardian'}</button>
+              {contactError && <p role="alert" className={styles.hint}>{contactError}</p>}
+              {sent && <p role="status" className={styles.hint}>Enquiry sent privately to the guardian. <Link href="/vibetutor/inquiries">View enquiries</Link></p>}
+            </div>}
         </section>
       </div>}
     </>

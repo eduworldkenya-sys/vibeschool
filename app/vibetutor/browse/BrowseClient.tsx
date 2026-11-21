@@ -107,7 +107,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
       [view]: { ...previous[view], ...Object.fromEntries(Object.entries(next).filter(([, value]) => !!value)) },
     }))
   }, [view, subject, level, area, mode, priceRange, day, discovery, nearbyArea])
-  useEffect(() => { setSeed(discoverySeed()) }, [])
+  useEffect(() => { setSeed(discoverySeed()); if (new URLSearchParams(window.location.search).get('view') === 'students') setView('students') }, [])
 
   useEffect(() => {
     let active = true
@@ -141,7 +141,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     (!f.mode || r.mode === f.mode || r.mode === 'either') &&
     (!f.day || r.days.includes(f.day)) &&
     matchesPrice(r.budgetKes, f.priceRange) &&
-    matchesText([r.area, r.level, ...r.subjects], f.q)
+    matchesText([r.learnerLabel, r.area, r.level, ...r.subjects], f.q)
   )
 
   const tutors = useMemo(() => {
@@ -205,7 +205,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
       <section className={styles.discoveryPanel} aria-label="Discover tuition">
         <header className={styles.discoveryHeader}>
           <h1 className={styles.discoveryTitle}>Discover</h1>
-          <div className={styles.discoveryActions}>
+          <div className={styles.discoveryActions}><Link className={styles.emptyAction} href="/vibetutor/inquiries">Inbox</Link>
             <button type="button" className={styles.discoveryIcon} aria-label="Search" aria-expanded={searchOpen} onClick={() => setSearchOpen(v => !v)}><Icon name="search" size={25} /></button>
             <button type="button" className={styles.discoveryIcon} aria-label="Filters" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(v => !v)}><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3 6h4m4 0h10M7 3v6M3 12h11m4 0h3m-3-3v6M3 18h4m4 0h10M7 15v6"/></svg></button>
           </div>
@@ -252,11 +252,6 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
           <p className={styles.emptyHint}>{loadError}</p>
           <button type="button" className={styles.emptyAction} onClick={() => setReloadKey(value => value + 1)}>Try again</button>
         </div>}
-        {!loading && !loadError && view === 'students' && !live?.signedIn && <div className={styles.emptyState}>
-          <p className={styles.empty}>Sign in to view learner requests.</p>
-          <p className={styles.emptyHint}>Learner requests are available to signed-in VibeTutor members.</p>
-          <a className={styles.emptyAction} href="/login?next=%2Fvibetutor%2Fbrowse%3Fview%3Dstudents">Sign in</a>
-        </div>}
         {!loading && !loadError && view === 'tutors' && tutors.length === 0 && (discovery !== 'nearby' || !!nearbyArea) && <div className={styles.emptyState}>
           <p className={styles.empty}>{tutorSource.length === 0 ? 'No tutor listings have been published yet.' : 'No tutors match these filters.'}</p>
           <p className={styles.emptyHint}>{tutorSource.length === 0 ? 'Be the first tutor to publish a listing.' : 'Try a broader search or clear some filters.'}</p>
@@ -269,9 +264,9 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
             {(subject || priceRange || mode || area || q || level || day) && <button type="button" className={styles.emptyAction} onClick={clear}>Clear all</button>}
           </div>
         </div>}
-        {!loading && !loadError && view === 'students' && live?.signedIn && requests.length === 0 && (discovery !== 'nearby' || !!nearbyArea) && <div className={styles.emptyState}>
-          <p className={styles.empty}>{requestSource.length === 0 ? 'No open learner requests yet.' : 'No requests match these filters.'}</p>
-          <p className={styles.emptyHint}>{requestSource.length === 0 ? 'New learner requests will appear here.' : 'Try a broader search or clear some filters.'}</p>
+        {!loading && !loadError && view === 'students' && requests.length === 0 && (discovery !== 'nearby' || !!nearbyArea) && <div className={styles.emptyState}>
+          <p className={styles.empty}>{requestSource.length === 0 ? 'No guardian-approved learner requests yet.' : 'No requests match these filters.'}</p>
+          <p className={styles.emptyHint}>{requestSource.length === 0 ? 'Parents can post a request anonymously. Learner identities and contact details stay private.' : 'Try a broader search or clear some filters.'}</p>
           <div className={styles.emptyActions}>
             {subject && <button type="button" className={styles.emptyAction} onClick={() => setSubject('')}>Clear subject</button>}
             {priceRange && <button type="button" className={styles.emptyAction} onClick={() => setPriceRange('')}>Any budget</button>}
@@ -281,7 +276,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
             {(subject || priceRange || mode || area || q || level || day) && <button type="button" className={styles.emptyAction} onClick={clear}>Clear all</button>}
           </div>
         </div>}
-        {!loading && !loadError && discovery === 'nearby' && !nearbyArea && (view === 'tutors' || live?.signedIn) && <p className={styles.emptyHint}>Choose an area to discover in-person tuition nearby.</p>}
+        {!loading && !loadError && discovery === 'nearby' && !nearbyArea && <p className={styles.emptyHint}>Choose an area to discover in-person tuition nearby.</p>}
         {!loading && !loadError && view === 'tutors' && (discovery !== 'nearby' || !!nearbyArea) && <>
           {tutors.map(tutor => <TutorCard key={tutor.id} t={tutor} compact score={score(tutor)} />)}
           <Link className={styles.cardAction} href="/vibetutor/post-request">Request online tuition</Link>
@@ -299,7 +294,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
             {serviceLimit < services.length && <button type="button" className={styles.cardAction} onClick={() => setServiceLimit(n => n + 12)}>Show more</button>}
           </>}
         </>}
-        {!loading && !loadError && view === 'students' && live?.signedIn && requests.map(request => <RequestCard key={request.id} r={request} compact score={score(request)} />)}
+        {!loading && !loadError && view === 'students' && requests.map(request => <RequestCard key={request.id} r={request} compact score={score(request)} signedIn={!!live?.signedIn} />)}
       </div>
       </section>
       <BackToTop />

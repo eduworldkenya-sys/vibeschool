@@ -51,6 +51,7 @@ export type Database = {
           levels: string[]
           note: string | null
           phone: string | null
+          public_preview: boolean
           requester_id: string
           source: string | null
           status: string
@@ -69,6 +70,7 @@ export type Database = {
           levels?: string[]
           note?: string | null
           phone?: string | null
+          public_preview?: boolean
           requester_id: string
           source?: string | null
           status?: string
@@ -87,6 +89,7 @@ export type Database = {
           levels?: string[]
           note?: string | null
           phone?: string | null
+          public_preview?: boolean
           requester_id?: string
           source?: string | null
           status?: string
