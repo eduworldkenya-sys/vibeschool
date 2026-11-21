@@ -1,0 +1,23 @@
+.picker{display:flex;flex-direction:column;gap:10px;min-height:0;width:100%;color:#173d34;background:#f8fbf9;border:1px solid #cadfd6;border-radius:12px;padding:clamp(8px,2vw,14px);overflow:auto}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.toolbar strong{font-size:1.05rem}
+.toolbar span{font-size:12px;color:#4c6d64;margin-right:auto}
+.layout{display:grid;grid-template-columns:minmax(170px,1fr) minmax(0,1.65fr);gap:12px;min-height:0}
+.library{min-width:0;overflow:auto;max-height:55dvh}
+.library label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700}
+.library input{min-height:38px;border:1px solid #a9c8ba;border-radius:8px;padding:7px 10px;background:white;color:#16362d;width:100%}
+.library ul{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:5px}
+.library li{min-width:0}
+.library li button{display:grid;gap:4px;width:100%;min-height:46px;text-align:left;white-space:normal;background:#fff;color:#173d34;border:1px solid #c7dbd1;border-radius:9px;padding:9px}
+.library li button[aria-pressed=true]{border:2px solid #0e7161;background:#e6f3ee}
+.library li small,.preview small{font-size:11px;color:#4e7065}
+.preview{min-width:0;display:grid;grid-template-rows:auto auto minmax(70px,1fr) auto auto;gap:7px;align-content:start}
+.preview article{font-size:clamp(13px,1.55vw,16px);white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;min-height:90px;max-height:46dvh;padding:12px;background:white;border:1px solid #d0e0d8;border-radius:8px;line-height:1.55}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.actions button{flex:1 1 auto}
+.actions .primary{background:#096e60;color:white;border-color:#096e60;font-weight:700}
+.error{color:#991b1b;font-weight:600;background:#fff1f0;padding:8px;border-radius:8px}
+@media(max-width:620px){.layout{grid-template-columns:minmax(0,1fr)}.library{max-height:22dvh}.preview article{max-height:24dvh;min-height:80px}.picker{gap:6px}.toolbar span{display:none}}
+@media(max-height:480px) and (orientation:landscape){.library{max-height:44dvh}.layout{grid-template-columns:minmax(155px,.8fr) minmax(0,1.5fr)}.preview article{max-height:34dvh}}
+
+.warning{font-size:12px;color:#5b4d1c;background:#fff7d6;border-radius:8px;padding:8px;margin:0}

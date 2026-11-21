@@ -83,12 +83,27 @@ assert.ok(liveUi.includes('Present slide'))
 assert.ok(liveUi.includes('aria-label="Slide thumbnails"'))
 assert.ok(liveUi.includes('hidden={!showSticker||!!panel||(focusMode&&!focusDock)}'))
 assert.ok(liveUi.includes('const [mini,setMini]=useState(true)'))
+assert.ok(liveUi.includes("supabase.channel('vibe-live:'+roomId,{config:{private:true}})"))
+assert.ok(liveUi.includes(".on('broadcast',{event:'refresh'},schedule)"))
+assert.ok(liveUi.includes('if(channel)void supabase.removeChannel(channel)'))
 assert.match(liveCss,/\.immersive\{font-family:system-ui/)
 assert.match(liveCss,/\.stageContent \.content\{margin:0;/)
 assert.ok(liveUi.includes("kind:'teach',body:slideText,answerKey:null"))
 assert.ok(liveUi.includes('encodeSlide(item,index+1,slides.length)'))
 assert.ok(liveUi.includes('styles.slideWorkspace'))
 assert.ok(liveUi.includes('Presenter notes (private)'))
+const privatePlanAdapter=readFileSync(new URL('../lib/live/lessonPlanPresentation.ts',import.meta.url),'utf8')
+const planModal=readFileSync(new URL('../components/teacher/LessonPlanModal.tsx',import.meta.url),'utf8')
+assert.ok(planModal.includes('Teach this plan in Live'))
+assert.ok(planModal.includes('lessonPlanId='))
+assert.ok(privatePlanAdapter.includes('projectLessonDelivery(sections)'))
+assert.ok(!privatePlanAdapter.includes('encodeSlide('),'Plan teacher notes cannot become learner slides by default')
+assert.ok(liveUi.includes("eq('teacher_id',user.id).eq('class_id',classId)"),'Teacher may only load a plan from their original class')
+assert.ok(liveUi.includes('teacherLivePlan(String(result.data.body'))
+assert.ok(liveUi.includes("panel==='plan'"))
+assert.ok(liveUi.includes('Private teaching guidance. Nothing on this panel is shared with learners.'))
+assert.ok(liveUi.includes('Present approved Resources'))
+
 assert.ok(liveUi.includes('undoSlideDelete'))
 assert.ok(liveUi.includes('undoBoards'))
 assert.ok(liveUi.includes('boardUndoByPage.current'))
@@ -113,6 +128,27 @@ let room=await rpc(teacher,'start',null,null,{title:'Maths · Time'})
 assert.equal(room.teacher,true);assert.equal(room.status,'active')
 const sid=room.id
 assert.equal((await rpc(teacher,'start',null,null,{title:'Duplicate'})).id,sid)
+const liveTopic='vibe-live:'+sid
+async function canReceive(who,topic=liveTopic,role='authenticated'){
+ await db.exec('set role '+role)
+ await db.query('select set_config($1,$2,false)', ['request.jwt.claim.sub',who??''])
+ try {
+  return (await db.query('select vibe_live.can_receive_invalidation($1) as allowed',[topic])).rows[0].allowed
+ } finally {await db.exec('reset role')}
+}
+assert.equal(await canReceive(teacher),true,'current host can subscribe to own session invalidations')
+assert.equal(await canReceive(a),false,'an eligible but unjoined learner cannot subscribe')
+assert.equal(await canReceive(b),false,'unjoined second learner cannot subscribe')
+assert.equal(await canReceive(outsider),false,'outsider cannot subscribe')
+assert.equal(await canReceive(otherTeacher),false,'unrelated teacher cannot subscribe')
+assert.equal(await canReceive(teacher,'vibe-live:'+id(888)),false,'room IDs do not permit arbitrary subscriptions')
+assert.equal(await canReceive(teacher,'vibe-live:'+sid+'-other'),false,'malformed topics denied')
+await assert.rejects(canReceive(null,liveTopic,'anon'),/permission denied/);
+const liveSignals=(await db.query('select payload from realtime.messages')).rows
+assert.ok(liveSignals.length>=1,'session creation emits a compact invalidation')
+assert.ok(liveSignals.every(x=>JSON.stringify(x.payload)==='{"invalidate":true}'),
+  'signals cannot leak lesson text, student IDs, answer keys or private content')
+
 assert.equal((await rpc(a,'list'))[0].id,sid)
 assert.deepEqual(await rpc(outsider,'list'),[])
 await assert.rejects(rpc(otherTeacher,'get',sid),/live_not_authorized/)
@@ -121,6 +157,22 @@ await assert.rejects(rpc(a,'start',null,null,{title:'Fake'}),/live_teacher_requi
 await assert.rejects(rpc(null,'list',null,null,{},cls,'anon'),/permission denied/)
 assert.equal((await rpc(a,'join',sid)).teacher,false)
 await rpc(a,'join',sid); await rpc(b,'join',sid)
+assert.equal(await canReceive(a),true,'joined learner can now receive room invalidations')
+assert.equal(await canReceive(b),true,'joined second learner can now receive room invalidations')
+await db.exec('set role authenticated')
+try {
+ await db.query('select set_config($1,$2,false)',['request.jwt.claim.sub',a])
+ await db.query('select set_config($1,$2,false)',['realtime.topic',liveTopic])
+ const allowedRows=(await db.query('select payload from realtime.messages')).rows
+ assert.ok(allowedRows.length>0,'actual Realtime RLS SELECT accepts an admitted learner')
+ await db.query('select set_config($1,$2,false)',['request.jwt.claim.sub',outsider])
+ assert.deepEqual((await db.query('select payload from realtime.messages')).rows,[],
+  'actual Realtime RLS SELECT rejects an outsider, even if the topic is known')
+} finally {await db.exec('reset role')}
+
+const preRevokeCount=(await db.query('select count(*)::int as n from realtime.messages')).rows[0].n
+assert.ok(preRevokeCount>liveSignals.length,'join broadcasts a second content-free invalidation')
+
 const draftFixture={board:objectBoard,boardPages:['',objectBoard,''],boardPage:1,slides:[privateSlide],slideIndex:0,mode:'teach',body:'private draft',key:'',clock:'10:30',composers:{}}
 assert.deepEqual(await rpc(teacher,'workspace_get',sid),{revision:0,draft:null})
 assert.equal((await rpc(teacher,'workspace_save',sid,null,{revision:0,draft:draftFixture})).revision,1)

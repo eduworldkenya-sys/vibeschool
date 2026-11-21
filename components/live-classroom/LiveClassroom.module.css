@@ -196,3 +196,12 @@
 .chatMessages p{color:#c8ddd4;font-size:13px}
 .sheetTitle strong{display:flex;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}
 @media(max-width:360px){.immersive .learnerTools button{font-size:10px;letter-spacing:-.02em}.learnerTools button span{overflow-wrap:anywhere}}
+
+/* Live adds a seventh dock action without hiding existing lesson tools on phones. */
+.toolRow{grid-template-columns:repeat(7,minmax(0,1fr))}
+@media(max-width:420px){.toolRow button{font-size:10px}.toolRow button span{overflow:hidden;text-overflow:ellipsis;max-width:100%}}
+
+/* Linked canonical lesson plans remain teacher-only; learner content uses certified Resources. */
+.planGuide{display:grid;gap:10px;min-width:0}
+.planGuideBody{white-space:pre-wrap;overflow-wrap:anywhere;max-height:min(42dvh,320px);overflow-y:auto;padding:10px;border:1px solid #53796f;border-radius:8px;background:#132b24;line-height:1.55;font-size:13px}
+.planGuide select{width:100%;color:#f3f8f5;background:#152c25;border:1px solid #6b998a;padding:9px;border-radius:8px}
