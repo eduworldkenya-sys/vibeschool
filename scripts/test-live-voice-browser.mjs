@@ -33,14 +33,14 @@ const fakeDaily=`
 class Call{
   constructor(){this.handlers={};this.destroyed=false;this.isAudio=false;
     this.people={local:{local:true,session_id:'self',user_id:'teacher-fixture',
-    tracks:{audio:{persistentTrack:null}},permissions:{canSend:new Set(['microphone'])}}};}
+    tracks:{audio:{persistentTrack:null}},permissions:{canSend:new Set(['audio'])}}};}
   on(name,cb){(this.handlers[name]||=[]).push(cb);return this}
   emit(name){for(const cb of this.handlers[name]||[])cb()}
   participants(){return this.people}
   async join(options){
     if(!options.token)throw Error('Missing auth token');
     const teacher=location.pathname==='/teacher'
-    this.people.local.permissions.canSend=teacher?new Set(['microphone']):false
+    this.people.local.permissions.canSend=teacher?new Set(['audio']):false
     if(teacher)this.people.remote={local:false,session_id:'other',user_id:'${learnerId}',
       tracks:{audio:{persistentTrack:null}},permissions:{canSend:false}}
     window.__joinCount=(window.__joinCount||0)+1
@@ -114,7 +114,7 @@ try{
   assert.equal(await t.evaluate(()=>window.__voiceCall.localAudio()),true)
   await t.getByRole('button',{name:'Allow Learner A to speak'}).click()
   await t.waitForFunction(()=>window.__acks===1)
-  assert.deepEqual(await t.evaluate(()=>Array.from(window.__voiceCall.people.remote.permissions.canSend)),['microphone'])
+  assert.deepEqual(await t.evaluate(()=>Array.from(window.__voiceCall.people.remote.permissions.canSend)),['audio'])
   await t.getByRole('button',{name:'End speaking turn'}).click()
   assert.equal(await t.evaluate(()=>window.__voiceCall.people.remote.permissions.canSend),false)
   // Renewing a token requires leave+new server authorization; the teacher's
@@ -129,7 +129,7 @@ try{
   await l.getByRole('status').getByText('Listening').waitFor()
   assert.equal(await l.getByRole('button',{name:'Muted'}).isDisabled(),true)
   await l.evaluate(()=>{
-    window.__voiceCall.people.local.permissions.canSend=new Set(['microphone'])
+    window.__voiceCall.people.local.permissions.canSend=new Set(['audio'])
     window.__voiceCall.emit('participant-updated')
   })
   await l.getByRole('button',{name:'Speak',exact:true}).waitFor()
