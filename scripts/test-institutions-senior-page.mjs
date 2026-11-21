@@ -55,3 +55,10 @@ test('school adoption disclosures remain visible in the concise experience', () 
     assert.ok(page.toLowerCase().includes(label.toLowerCase()), label)
   }
 })
+
+test('shared public skip link retains native keyboard navigation before hydration', () => {
+  const skipLink = readFileSync(new URL('../components/public/PublicSkipLink.tsx', import.meta.url), 'utf8')
+  assert.match(skipLink, /href="#main-content"/)
+  assert.match(skipLink, /main\.focus\(\{preventScroll:true\}\)/)
+  assert.doesNotMatch(skipLink, /preventDefault\(|history\.pushState\(/)
+})
