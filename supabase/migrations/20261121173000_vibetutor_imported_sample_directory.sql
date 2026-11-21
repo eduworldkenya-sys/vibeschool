@@ -1,6 +1,6 @@
 -- Non-contactable VibeTutor sample preview of the founder's 2026-11-20 batch.
 -- access: public-sanitized-sample public.vibetutor_sample_requests
--- authorization-test: anon/authenticated read only this sanitized sample table;
+-- authorization-test: public.vibetutor_sample_requests: anon/authenticated read only sanitized sample data;
 -- no raw learner names, phones, notes or requester IDs; no insert/update/delete
 -- privileges; sample UUIDs never pass the real request source check in contact RPC.
 -- Imported requests remain private on their owner-only base table.
