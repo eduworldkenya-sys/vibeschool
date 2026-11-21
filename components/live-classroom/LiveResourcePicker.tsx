@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { LIVE_LEARNER_ASSET_KINDS, LIVE_SCHOOL_GRADE_LABELS, liveResourcePages, readableLiveResourceText } from '@/lib/live/resourcePresentation'
 import styles from './LiveResourcePicker.module.css'
+import { TeachingDiagram, SLIDE_DIAGRAMS, diagramLabel, encodeSlide, type SlideDiagram } from './LiveSlideCanvas'
 
 type ResourceChoice = {
   id: string
@@ -13,6 +14,8 @@ type ResourceChoice = {
   source: 'certified' | 'class'
   schemeLessonId?: string
   schemeTopic?: string
+  lessonPlanId?: string
+  planTopic?: string
   pinnedVersionId?: string | null
 }
 type Selected = { item: ResourceChoice; pages: string[]; version: string | null }
@@ -21,9 +24,11 @@ type SchemeLink = { scheme_lesson_id: string | null; resource_id: string | null;
 type ReleasedRoot = { id: string; title: string; subject: string | null; grade: string | null }
 
 export function LiveResourcePicker({
-  classId, canPresent, onPresent, onClose,
+  classId, lessonPlanId, schemeLessonId, canPresent, onPresent, onClose,
 }: {
   classId: string | null
+  lessonPlanId: string | null
+  schemeLessonId: string | null
   canPresent: boolean
   onPresent: (body: string) => void
   onClose: () => void
@@ -36,6 +41,7 @@ export function LiveResourcePicker({
   const [schemeWarning, setSchemeWarning] = useState('')
   const [selected, setSelected] = useState<Selected | null>(null)
   const [page, setPage] = useState(0)
+  const [diagram,setDiagram] = useState<SlideDiagram>('none')
   const request = useRef(0)
 
   useEffect(() => {
@@ -43,6 +49,7 @@ export function LiveResourcePicker({
     setLoading(true)
     setItems([])
     setSelected(null)
+    setDiagram('none')
     setError('')
     setSchemeWarning('')
     async function fetchLibrary() {
@@ -124,8 +131,50 @@ export function LiveResourcePicker({
             if (alive) setSchemeWarning('Linked Scheme resources are unavailable. You can still browse released materials.')
           }
         }
-        const preparedIds = new Set(prepared.map(item => item.id))
-        if (alive) setItems([...prepared, ...safe.filter(item => item.source !== 'certified' || !preparedIds.has(item.id))])
+        const planPrepared: ResourceChoice[] = []
+        if (classId && lessonPlanId) {
+          try {
+            // Only a verified owner/class plan can supply learning materials.
+            const planResult = await supabase.from('lesson_plans')
+              .select('id,topic,scheme_id')
+              .eq('id', lessonPlanId).eq('teacher_id', auth.data.user.id)
+              .eq('class_id', classId).maybeSingle()
+            if (planResult.error || !planResult.data) throw new Error('Lesson Plan access has changed.')
+            if (schemeLessonId && planResult.data.scheme_id !== schemeLessonId) throw new Error('Lesson Plan Scheme was changed.')
+            const linksResult = await supabase.from('teaching_resource_links')
+              .select('lesson_plan_id,resource_id,resource_version_id')
+              .eq('target_type', 'lesson_plan').eq('lesson_plan_id', lessonPlanId)
+              .limit(120)
+            if (linksResult.error) throw linksResult.error
+            const links = (linksResult.data ?? []) as Array<{lesson_plan_id:string|null;resource_id:string|null;resource_version_id:string|null}>
+            const ids = [...new Set(links.flatMap(link => link.resource_id ? [link.resource_id] : []))]
+            if (ids.length) {
+              const released = await supabase.from('learning_resources')
+                .select('id,title,subject,grade,asset_kind')
+                .in('id', ids).eq('status', 'active').eq('visibility', 'public')
+                .in('asset_kind', [...LIVE_LEARNER_ASSET_KINDS]).in('grade', LIVE_SCHOOL_GRADE_LABELS)
+              if (released.error) throw released.error
+              const roots = new Map<string, ReleasedRoot>(((released.data??[]) as ReleasedRoot[]).map(row=>[row.id,row] as const))
+              const seen = new Set<string>()
+              for (const link of links) {
+                if (link.lesson_plan_id !== planResult.data.id || !link.resource_id) continue
+                const root = roots.get(link.resource_id)
+                if (!root) continue
+                const key = root.id+':'+(link.resource_version_id??'')
+                if (seen.has(key)) continue
+                seen.add(key)
+                planPrepared.push({id:root.id,title:root.title,subject:root.subject,grade:root.grade,
+                  source:'certified',lessonPlanId:lessonPlanId,planTopic:planResult.data.topic?.trim()||'Linked Lesson Plan',
+                  pinnedVersionId:link.resource_version_id})
+              }
+            }
+          } catch {
+            if (alive) setSchemeWarning('This Lesson Plan\'s released resources are unavailable. Other approved resources remain available.')
+          }
+        }
+        const preparedIds = new Set([...planPrepared,...prepared].map(item => item.id))
+        if (alive) setItems([...planPrepared, ...prepared.filter(item => !planPrepared.some(plan=>plan.id===item.id)),
+          ...safe.filter(item => item.source !== 'certified' || !preparedIds.has(item.id))])
       } catch (reason) {
         if (alive) setError(reason instanceof Error ? reason.message : 'Could not load teaching resources.')
       } finally {
@@ -134,11 +183,11 @@ export function LiveResourcePicker({
     }
     void fetchLibrary()
     return () => { alive = false; request.current++ }
-  }, [classId])
+  }, [classId,lessonPlanId,schemeLessonId])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase()
-    return needle ? items.filter(item => [item.title, item.subject ?? '', item.grade ?? '', item.schemeTopic ?? '']
+    return needle ? items.filter(item => [item.title, item.subject ?? '', item.grade ?? '', item.schemeTopic ?? '', item.planTopic ?? '']
       .some(value => value.toLocaleLowerCase().includes(needle))) : items
   }, [items, query])
 
@@ -147,6 +196,7 @@ export function LiveResourcePicker({
     setOpening(true)
     setSelected(null)
     setPage(0)
+    setDiagram('none')
     setError('')
     try {
       const auth = await supabase.auth.getUser()
@@ -166,6 +216,21 @@ export function LiveResourcePicker({
         if (!result.data) throw new Error('This class resource is no longer shared.')
         body = result.data.content ?? ''
       } else {
+        if (item.lessonPlanId) {
+          if (!classId || !lessonPlanId || item.lessonPlanId !== lessonPlanId) throw new Error('Resource is no longer linked to this Live lesson.')
+          const planResult = await supabase.from('lesson_plans')
+            .select('id,scheme_id').eq('id', item.lessonPlanId)
+            .eq('teacher_id', auth.data.user.id).eq('class_id', classId).maybeSingle()
+          if (planResult.error || !planResult.data) throw new Error('Lesson Plan access has changed.')
+          if (schemeLessonId && planResult.data.scheme_id !== schemeLessonId) throw new Error('Lesson Plan Scheme was changed.')
+          let linkQuery = supabase.from('teaching_resource_links')
+            .select('id').eq('target_type','lesson_plan')
+            .eq('lesson_plan_id',item.lessonPlanId).eq('resource_id',item.id)
+          linkQuery = item.pinnedVersionId ? linkQuery.eq('resource_version_id',item.pinnedVersionId)
+            : linkQuery.is('resource_version_id',null)
+          const link = await linkQuery.limit(1).maybeSingle()
+          if (link.error || !link.data) throw new Error('Lesson Plan resource link was removed.')
+        }
         if (item.schemeLessonId) {
           if (!classId) throw new Error('This Scheme resource requires its original school class.')
           // Fresh authority check: a previous picker snapshot cannot authorize
@@ -216,6 +281,19 @@ export function LiveResourcePicker({
     }
   }
 
+  function presentCurrent() {
+    if (!selected || !canPresent) return
+    const raw = selected.pages[page]
+    if (!raw) return
+    if (diagram==='none') {onPresent(raw);return}
+    // Use the canonical diagram slide codec; the same viewer and lesson history
+    // work before, during and after Live. No arbitrary SVG or markup is accepted.
+    const idx = raw.indexOf('\n\n')
+    const body = idx >= 0 ? raw.slice(idx+2) : raw
+    const shared = encodeSlide({title:selected.item.title,body,diagram},1,1)
+    if (shared) onPresent(shared)
+  }
+
   return <section className={styles.picker} aria-label="Classroom resources">
     <div className={styles.toolbar}>
       <strong>Resources</strong>
@@ -231,10 +309,10 @@ export function LiveResourcePicker({
         </label>
         {loading ? <p role="status">Loading available resources…</p> :
           filtered.length === 0 ? <p>No released text resources found for this search.</p> :
-          <ul>{filtered.map(item => <li key={item.source + ':' + item.id + ':' + (item.schemeLessonId ?? '')}>
-            <button type="button" disabled={opening} aria-pressed={selected?.item.id === item.id && selected?.item.schemeLessonId === item.schemeLessonId} onClick={() => void open(item)}>
+          <ul>{filtered.map(item => <li key={item.source + ':' + item.id + ':' + (item.schemeLessonId ?? '') + ':' + (item.lessonPlanId??'')}>
+            <button type="button" disabled={opening} aria-pressed={selected?.item.id === item.id && selected?.item.schemeLessonId === item.schemeLessonId && selected?.item.lessonPlanId===item.lessonPlanId} onClick={() => void open(item)}>
               <strong>{item.title}</strong>
-              <small>{item.schemeLessonId ? 'Prepared · ' + item.schemeTopic : item.source === 'class' ? 'Shared class resource' : 'Certified resource'} · {[item.grade, item.subject].filter(Boolean).join(' · ')}</small>
+              <small>{item.lessonPlanId ? 'Lesson Plan · ' + item.planTopic : item.schemeLessonId ? 'Prepared · ' + item.schemeTopic : item.source === 'class' ? 'Shared class resource' : 'Certified resource'} · {[item.grade, item.subject].filter(Boolean).join(' · ')}</small>
             </button>
           </li>)}</ul>}
       </div>
@@ -243,11 +321,16 @@ export function LiveResourcePicker({
           <>
             <strong>{selected.item.title}</strong>
             <small>{selected.version ? 'Pinned certified version · ' : 'Shared class text · '}{page + 1} / {selected.pages.length}</small>
-            <article aria-label="Selected resource page">{selected.pages[page]}</article>
+            <article aria-label="Selected resource page">{selected.pages[page]}{diagram!=='none'&&<TeachingDiagram diagram={diagram} embedded/>}</article>
+            <label className={styles.diagramChoice}>Illustration
+              <select aria-label="Resource diagram" value={diagram} onChange={event=>setDiagram(event.target.value as SlideDiagram)}>
+                {SLIDE_DIAGRAMS.map(value=><option key={value} value={value}>{diagramLabel(value)}</option>)}
+              </select>
+            </label>
             <div className={styles.actions}>
               <button type="button" disabled={page === 0} onClick={() => setPage(n => n - 1)}>Previous</button>
               <button type="button" disabled={page === selected.pages.length - 1} onClick={() => setPage(n => n + 1)}>Next</button>
-              <button type="button" className={styles.primary} disabled={!canPresent} onClick={() => onPresent(selected.pages[page])}>Present this page</button>
+              <button type="button" className={styles.primary} disabled={!canPresent} onClick={presentCurrent}>Present this page</button>
             </div>
             <small>Presentation creates a learner-visible snapshot in Live history. Private drafts and teacher notes are not available here.</small>
           </> :
