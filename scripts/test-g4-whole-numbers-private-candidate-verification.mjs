@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import test from 'node:test'
-const sql=readFileSync('supabase/migrations/20261121131100_g4_whole_numbers_private_candidate_verification_deadlock.sql','utf8')
+const sql=readFileSync('supabase/migrations/20261121235900_g4_whole_numbers_private_candidate_verification_deadlock.sql','utf8')
 const staged=sql.slice(sql.indexOf('    -- A verified CANDIDATE'),sql.indexOf('    -- Status is still VERIFIED only'))
 test('promotion limited to exact Word Numbers private v3 verified transition',()=>{
  for(const token of [
