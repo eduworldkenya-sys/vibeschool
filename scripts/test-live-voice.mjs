@@ -54,7 +54,7 @@ test('teacher gets bounded audio-only moderation; learner can only receive',asyn
   const teacher=await issueLiveVoiceToken(teacherRoom,actor,null,'key',provider.request,now)
   assert.deepEqual(teacher,{url:roomInfo.url,token:'signed-token',role:'teacher',participantId:actor})
   const tokenRequest=provider.calls.find(c=>c.path==='meeting-tokens').body.properties
-  assert.equal(tokenRequest.is_owner,true)
+  assert.equal(tokenRequest.is_owner,false)
   assert.deepEqual(tokenRequest.permissions.canSend,['audio'])
   assert.deepEqual(tokenRequest.permissions.canAdmin,['participants'])
   assert.equal(tokenRequest.enable_recording,false)
