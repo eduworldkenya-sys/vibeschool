@@ -18,7 +18,7 @@ export function ThemeControl({ className = '' }: { className?: string }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   return (
-    <label className={`${styles.control} ${className}`}>
+    <label data-site-theme-host className={`${styles.control} ${className}`}>
       <SunMoon size={17} aria-hidden="true" />
       <span className={styles.sr}>Appearance</span>
       <select aria-label="VibeSchool appearance" disabled={!mounted}
