@@ -12,19 +12,21 @@ import { LiveResourcePicker } from './LiveResourcePicker'
 import { BOARD_LIMIT, decodeBoard, encodeBoard } from './LiveBoardProtocol'
 import { liveSyncDelay } from './LiveSyncPolicy'
 import { LivePrivateChat } from './LivePrivateChat'
+import { LiveClassChat } from './LiveClassChat'
 import { teacherLivePlan } from '@/lib/live/lessonPlanPresentation'
 import type { LessonDeliveryStep } from '@/lib/teaching/lessonPlanCodec'
 
 type ClassroomMode = 'school' | 'tuition' | 'homeschool' | 'open'
 const classroomLabels: Record<ClassroomMode,string>={school:'School',tuition:'Tuition',homeschool:'Homeschool',open:'Open class'}
-type Summary = { mode: ClassroomMode; canJoin: boolean; id: string; title: string; status: 'active' | 'paused'; own: boolean }
+type Summary = { mode: ClassroomMode; canJoin: boolean; id: string; title: string; status: 'active' | 'paused'; own: boolean; waitingStatus?:'pending'|'admitted'|'denied'|null }
 type PastSummary = { id: string; title: string; mode: ClassroomMode; startedAt: string; status: 'ended' }
 type Mode = 'teach' | 'quiz' | 'exercise' | 'poll' | 'clock' | 'board'
 type Prompt = { id: string; kind: Mode; body: string; answerKey: string | null; revealed: boolean }
 type HistoryPrompt = Prompt & { position: number; createdAt: string }
 type Participant = { studentId: string; name: string; needsHelp: boolean; answer: string | null; unreadDm?: number }
+type WaitingRequest = {studentId:string;name:string;requestedAt:string}
 type LiveQuestion = {id:string;body:string;reply:string|null;name?:string}
-type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean; dmUnread?: number }
+type Room = { mode: ClassroomMode; id: string; title: string; version: number; status: 'active' | 'paused' | 'ended'; teacher: boolean; prompt: Prompt | null; history?: HistoryPrompt[]; handAckAt?: string|null; ownNote?:string; questions?:LiveQuestion[]; participants?: Participant[]; ownAnswer?: string | null; needsHelp?: boolean; dmUnread?: number; chatEnabled?:boolean; waitingCount?:number }
 type ComposerDraft = { body: string; key: string }
 type DraftState = { serverRevision?:number; board: string; boardPages?: string[]; boardPage?: number; slides: LiveSlide[]; slideIndex: number; mode: Mode; body: string; key: string; clock: string; composers: Partial<Record<Mode,ComposerDraft>> }
 const validModes = ['teach','quiz','exercise','poll','clock','board'] as const
@@ -182,7 +184,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [board,setBoard]=useState('')
   const [boardPages,setBoardPages]=useState<string[]>([''])
   const [boardPage,setBoardPage]=useState(0)
-  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|'library'|'resources'|'plan'|null>(null)
+  const [panel,setPanel]=useState<'compose'|'learners'|'more'|'slides'|'library'|'resources'|'plan'|'chat'|null>(null)
   const [slides,setSlides]=useState<LiveSlide[]>([{title:'',body:''}])
   const [slideIndex,setSlideIndex]=useState(0)
   const [deletedSlide,setDeletedSlide]=useState<{slide:LiveSlide;index:number}|null>(null)
@@ -242,6 +244,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [replyDrafts,setReplyDrafts]=useState<Record<string,string>>({})
   const [privateTarget,setPrivateTarget]=useState<{studentId:string;name:string}|null>(null)
   const [privateOpen,setPrivateOpen]=useState(false)
+  const [classChatOpen,setClassChatOpen]=useState(false)
+  const [waitingRequests,setWaitingRequests]=useState<WaitingRequest[]>([])
+  const [waitingError,setWaitingError]=useState('')
   const [online,setOnline]=useState(true)
   const [lastSync,setLastSync]=useState(0)
   useEffect(()=>{
@@ -250,7 +255,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     return ()=>{window.removeEventListener('online',status);window.removeEventListener('offline',status)}
   },[])
   useEffect(()=>{
-    setLearnerTool(null);setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({});setPrivateTarget(null);setPrivateOpen(false)
+    setLearnerTool(null);setQuestionDraft('');questionRequest.current=null;setNoteDraft(active.current?.ownNote??'');noteDirty.current=false;setReplyDrafts({});setPrivateTarget(null);setPrivateOpen(false);setClassChatOpen(false);setWaitingRequests([]);setWaitingError('')
   },[room?.id])
   useEffect(()=>{if(!noteDirty.current)setNoteDraft(room?.ownNote??'')},[room?.id,room?.ownNote])
   const [draftBinding,setDraftBinding]=useState<{roomId:string; key:string}|null>(null)
@@ -436,6 +441,18 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     void load()
     return()=>{cancelled=true}
   },[teacher,classId])
+  useEffect(()=>{
+    if(!teacher||room?.mode!=='open'||!room.id)return
+    let cancelled=false
+    void call('wait_list',room.id).then(data=>{
+      if(cancelled)return
+      const list=(data as {requests?:unknown})?.requests
+      if(!Array.isArray(list))throw Error('Invalid waiting room')
+      setWaitingRequests(list.filter((v):v is WaitingRequest=>!!v&&typeof v.studentId==='string'&&typeof v.name==='string'&&typeof v.requestedAt==='string'))
+      setWaitingError('')
+    }).catch(()=>{if(!cancelled)setWaitingError('Could not refresh the waiting room.')})
+    return()=>{cancelled=true}
+  },[teacher,room?.id,room?.mode,room?.version,call])
   useEffect(()=>{if(!teacher||classId||hostMode!=='tuition')return;let cancelled=false;void call('groups').then(data=>{if(!cancelled)setGroups(data as {id:string;title:string}[])}).catch(()=>{if(!cancelled)setGroups([])});return()=>{cancelled=true}},[teacher,classId,hostMode,call])
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search)
@@ -481,6 +498,26 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       if(generation.current===stamp){mutating.current=false;lock.current=false;if(mounted.current){setBusy(false);setLoading(false)}}
     }
   }
+  async function requestAdmission(sessionId:string){
+    if(busy||!online)return
+    setBusy(true);setError('')
+    try{
+      await call('wait_request',sessionId)
+      await refresh()
+    }catch(e){setError(e instanceof Error?e.message:'Could not request admission. Retry.')}
+    finally{setBusy(false)}
+  }
+  async function decideAdmission(studentId:string,admit:boolean){
+    if(!teacher||!room?.id||room.mode!=='open'||busy||!online)return
+    setBusy(true);setWaitingError('')
+    try{
+      await call('wait_decide',room.id,null,{studentId,admit})
+      setWaitingRequests(list=>list.filter(item=>item.studentId!==studentId))
+      await refresh()
+    }catch(e){setWaitingError(e instanceof Error?e.message:'Could not decide admission.')}
+    finally{setBusy(false)}
+  }
+
   async function togglePastClasses() {
     if (pastOpen) { setPastOpen(false); return }
     setPastOpen(true); setPastLoading(true); setPastError('')
