@@ -335,6 +335,8 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     const old=active.current
     if(old?.id===next.id){
       if(next.version<old.version)return
+      if(next.version===old.version&&typeof old.presentedSeq==='number'&&
+        typeof next.presentedSeq==='number'&&next.presentedSeq<old.presentedSeq)return
       if(old.prompt&&!next.prompt)throw new Error('Incomplete lesson sync. Retrying.')
       if(old.history && (!next.history || old.history.some(p=>!next.history!.some(q=>q.id===p.id)))) throw new Error('Incomplete lesson history. Retrying.')
     }
