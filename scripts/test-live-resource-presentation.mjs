@@ -57,7 +57,8 @@ for(const required of [
   "canPresent={!busy&&online&&room.status==='active'}",
   "onPresent={body=>void act('publish',null,{kind:'teach',body,answerKey:null})}",
   "panel!=='resources'",
-  '<span>Resources</span>',
+  '<span>Files</span>',
+  'aria-label="Resources and shared files"',
 ]) assert.ok(room.includes(required),'Live integration missing '+required)
 assert.ok(code.includes("const preparedIds = new Set([...planPrepared,...prepared].map(item => item.id))"),'prepared items must be deduplicated against generic resources')
 assert.ok(code.includes("const key = link.scheme_lesson_id + ':' + link.resource_id"),'prepared identity must use the persisted Scheme and resource identifiers')
