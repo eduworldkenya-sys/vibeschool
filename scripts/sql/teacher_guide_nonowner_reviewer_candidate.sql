@@ -4,10 +4,14 @@ create or replace function public.ce_guard_teacher_guide_approval()
 returns trigger language plpgsql security definer set search_path=public,pg_temp as $guard$
 declare actor uuid:=auth.uid();
 begin
- if old.derivative_type<>'teacher_notes' or old.audience<>'teacher'
- or old.body->>'kind'<>'teacher_guide' then return new; end if;
+ -- Protect teacher-audience reviews even if authors edit their draft metadata.
+ if old.audience<>'teacher' and new.audience<>'teacher' then return new; end if;
+ if new.status='approved' and (new.derivative_type<>'teacher_notes'
+ or new.body->>'kind'<>'teacher_guide') then raise exception 'TEACHER_GUIDE_REVIEW_SHAPE_REQUIRED'; end if;
  if old.status='approved' and new.status='approved'
- and (new.body is distinct from old.body
+ and (new.audience is distinct from old.audience
+ or new.derivative_type is distinct from old.derivative_type
+ or new.body is distinct from old.body
  or new.source_publication_id is distinct from old.source_publication_id
  or new.source_chapter_id is distinct from old.source_chapter_id
  or new.source_resource_id is distinct from old.source_resource_id)
@@ -108,3 +112,53 @@ begin
 end $review$;
 revoke all on function public.hq_review_teacher_guide(uuid,boolean,text) from public,anon;
 grant execute on function public.hq_review_teacher_guide(uuid,boolean,text) to authenticated,service_role;
+
+-- Keep all HQ artifact review types unchanged; require content.approve for teacher-guide decisions including needs_changes.
+CREATE OR REPLACE FUNCTION public.hq_review_publishing_artifact(p_work_item_id uuid, p_action text, p_expected_version text, p_note text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare w public.hq_work_items%rowtype; d public.content_derivatives%rowtype; a public.generated_assessments%rowtype; v_derivative_id uuid; v_result jsonb;
+begin
+ perform public.hq_assert_owner();
+ if p_action not in ('approve','needs_changes','reject') then raise exception 'Invalid review action'; end if;
+ select * into w from public.hq_work_items where id=p_work_item_id for update;
+ if not found or w.status<>'waiting_approval' then raise exception 'Decision is no longer waiting for approval'; end if;
+ if w.work_type='teacher_guide_review' and (auth.uid() is null
+   or not public.hq_profile_is_active(auth.uid())
+   or not exists(select 1 from public.hq_human_members hm
+     where hm.profile_id=auth.uid() and hm.status='active'
+       and (hm.access_expires_at is null or hm.access_expires_at>clock_timestamp())
+       and hm.role in ('reviewer','partner_admin','hq_admin')
+       and 'content.approve'=any(hm.permissions))
+   or exists(select 1 from public.content_derivatives cd
+       where cd.id=w.source_id and cd.created_by=auth.uid()))
+ then raise exception 'CONTENT_APPROVER_AUTH_REQUIRED' using errcode='42501'; end if;
+ if w.work_type in ('teacher_guide_review','content_depth_revision') then v_derivative_id:=case when w.work_type='content_depth_revision' then nullif(w.evidence->>'revision_derivative_id','')::uuid else w.source_id end;
+ elsif w.work_type='vibelab_review' then v_derivative_id:=nullif(w.evidence->>'vibelab_spec_derivative_id','')::uuid; end if;
+ if v_derivative_id is not null then
+   select * into d from public.content_derivatives where id=v_derivative_id for update;
+   if not found then raise exception 'Review artifact is missing'; end if;
+   if d.updated_at::text<>p_expected_version then raise exception 'Artifact changed after this review was opened; reload and review the new version'; end if;
+   if p_action='needs_changes' then
+     update public.hq_work_items set status='open',action_taken=jsonb_build_object('action','needs_changes','artifact_id',d.id,'artifact_version',p_expected_version,'note',p_note),verification_status='pending',updated_at=now() where id=w.id;
+     update public.content_derivatives set quality=coalesce(quality,'{}'::jsonb)||jsonb_build_object('editorial_status','changes_requested','changes_requested_by',auth.uid(),'changes_requested_at',now(),'changes_requested_note',p_note) where id=d.id;
+     return jsonb_build_object('status','changes_requested','work_item_id',w.id,'artifact_id',d.id);
+   end if;
+   if w.work_type='teacher_guide_review' then return public.hq_review_teacher_guide(d.id,p_action='approve',p_note); end if;
+   if w.work_type='vibelab_review' then return public.hq_review_vibelab_spec(d.id,p_action='approve',p_note); end if;
+   if w.work_type='content_depth_revision' then return public.hq_review_chapter_revision(d.id,p_action='approve',p_note); end if;
+ end if;
+ if w.work_type='assessment_moderation' then
+   select * into a from public.generated_assessments where id=w.source_id for update;
+   if not found then raise exception 'Review assessment is missing'; end if;
+   if a.generated_at::text<>p_expected_version then raise exception 'Assessment changed after this review was opened; reload and review the new version'; end if;
+   if p_action='needs_changes' then update public.hq_work_items set status='open',action_taken=jsonb_build_object('action','needs_changes','assessment_id',a.id,'assessment_version',p_expected_version,'note',p_note),verification_status='pending',updated_at=now() where id=w.id; return jsonb_build_object('status','changes_requested','work_item_id',w.id,'assessment_id',a.id); end if;
+   return public.hq_review_generated_assessment(a.id,p_action='approve',p_note);
+ end if;
+ raise exception 'Decision has no reviewable artifact';
+end;
+$function$
+;

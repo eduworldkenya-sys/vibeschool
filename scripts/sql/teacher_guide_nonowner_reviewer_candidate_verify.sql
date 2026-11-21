@@ -25,13 +25,34 @@ begin
   get stacked diagnostics reason=message_text;
   if reason<>'CONTENT_APPROVER_AUTH_REQUIRED' then raise; end if;
  end;
+insert into public.hq_human_members(profile_id,role,status,permissions) values(outsider,'reviewer','active',array['hq.view']);
+ perform set_config('request.jwt.claim.sub',outsider::text,true);
+ begin
+  perform public.hq_review_publishing_artifact(
+    (select id from public.hq_work_items where source_type='content_derivative' and source_id=guide and work_type='teacher_guide_review' and status='waiting_approval' limit 1),
+    'needs_changes',(select updated_at::text from public.content_derivatives where id=guide),
+    'Unauthorized HQ viewer tries to request changes');
+  raise exception 'HQ_VIEW_ONLY_BYPASS';
+ exception when others then
+  get stacked diagnostics reason=message_text;
+  if reason<>'CONTENT_APPROVER_AUTH_REQUIRED' then raise; end if;
+ end;
+ 
  begin update public.content_derivatives set status='approved' where id=guide;
   raise exception 'DIRECT_STATUS_PASSED';
  exception when others then
   get stacked diagnostics reason=message_text;
   if reason<>'TEACHER_GUIDE_REVIEWER_REQUIRED' then raise; end if;
  end;
- perform set_config('request.jwt.claim.sub',reviewer::text,true);
+begin
+  update public.content_derivatives set body=jsonb_set(body,'{kind}','"different_kind"'::jsonb) where id=guide;
+  update public.content_derivatives set status='approved' where id=guide;
+  raise exception 'METADATA_BYPASS';
+ exception when others then
+  get stacked diagnostics reason=message_text;
+  if reason<>'TEACHER_GUIDE_REVIEW_SHAPE_REQUIRED' then raise; end if;
+ end;
+  perform set_config('request.jwt.claim.sub',reviewer::text,true);
  begin update public.content_derivatives set status='approved' where id=guide;
   raise exception 'REVIEWER_DIRECT_STATUS_PASSED';
  exception when others then
@@ -54,7 +75,10 @@ begin
   get stacked diagnostics reason=message_text;
   if reason<>'TEACHER_GUIDE_QUALITY_PENDING' then raise; end if;
  end;
- result:=public.hq_review_teacher_guide(guide,true,'Independent synthetic reviewer validated guide content in rollback-only test');
+ result:=public.hq_review_publishing_artifact(
+  (select id from public.hq_work_items where source_type='content_derivative' and source_id=guide and work_type='teacher_guide_review' and status='waiting_approval' limit 1),
+  'approve',(select updated_at::text from public.content_derivatives where id=guide),
+  'Independent synthetic reviewer validated guide content in rollback-only test');
  if result->>'status'<>'approved' then raise exception 'EXPECTED_APPROVAL_MISSING'; end if;
  if not exists(select 1 from public.hq_work_items where source_id=guide and status='resolved')
  then raise exception 'AUDIT_WORK_ITEM_MISSING'; end if;
