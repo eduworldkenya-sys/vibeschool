@@ -43,6 +43,11 @@ BEGIN
       or coalesce(p_payload->>'ratio','') !~
         '^(0([.][0-9]{1,6})?|1([.]0{1,6})?)$'
       then raise exception 'live_invalid_presentation' using errcode='22023'; end if;
+    if coalesce(p_payload->>'currentPromptId','') is distinct from
+       coalesce(room.current_prompt::text,'') then
+      -- An older in-flight scroll must never override a newly published page.
+      return jsonb_build_object('ignored',true);
+    end if;
     if not exists(
       select 1 from vibe_live.prompts q
       where q.id=(p_payload->>'promptId')::uuid and q.session_id=room.id
