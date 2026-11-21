@@ -131,7 +131,7 @@ export function LiveResourcePicker({
             if (alive) setSchemeWarning('Linked Scheme resources are unavailable. You can still browse released materials.')
           }
         }
-        let planPrepared: ResourceChoice[] = []
+        const planPrepared: ResourceChoice[] = []
         if (classId && lessonPlanId) {
           try {
             // Only a verified owner/class plan can supply learning materials.
