@@ -189,3 +189,7 @@
 .messageBubble{align-self:flex-start;display:grid;gap:4px;max-width:88%;border:1px solid #52736b;border-radius:12px 12px 12px 3px;padding:9px 11px;background:#253d37;overflow-wrap:anywhere;white-space:pre-wrap}
 .messageBubble[data-own=true]{align-self:flex-end;background:#165b53;border-color:#3f9385;border-radius:12px 12px 3px 12px}
 .messageBubble small{font-size:.72rem;font-weight:600;color:#d5e8e1}
+
+/* Live adds a seventh dock action without hiding existing lesson tools on phones. */
+.toolRow{grid-template-columns:repeat(7,minmax(0,1fr))}
+@media(max-width:420px){.toolRow button{font-size:10px}.toolRow button span{overflow:hidden;text-overflow:ellipsis;max-width:100%}}
