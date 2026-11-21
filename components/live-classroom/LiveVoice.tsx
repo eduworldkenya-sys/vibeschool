@@ -74,7 +74,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       const oldTrack=(existing?.srcObject as MediaStream|null)?.getAudioTracks()?.[0]
       if(oldTrack===track)continue
       const audio=existing??document.createElement('audio')
-      audio.autoplay=true;audio.playsInline=true;audio.muted=false
+      audio.autoplay=true;audio.setAttribute('playsinline','');audio.muted=false
       audio.setAttribute('aria-hidden','true')
       if(!existing){audio.style.display='none';document.body.appendChild(audio);media.current.set(p.session_id,audio)}
       audio.srcObject=new MediaStream([track])
@@ -109,7 +109,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       if(!data.url||!data.token||data.role!==(teacher?'teacher':'learner'))throw Error('Invalid voice authorization.')
       const {default:Daily}=await import('@daily-co/daily-js')
       if (generation!==connectGeneration.current)return
-      call=Daily.createCallObject({audioSource:false,videoSource:false})
+      call=Daily.createCallObject({videoSource:false})
       meeting.current=call
       call.on('participant-joined',sync)
       call.on('participant-updated',sync)
@@ -120,7 +120,7 @@ export function LiveVoice({roomId,classId,teacher,status,learners,onAcknowledge}
       call.on('left-meeting',()=>{void stop()})
       await call.join({url:data.url,token:data.token})
       if(generation!==connectGeneration.current){if(!call.isDestroyed())await call.destroy();return}
-      // Always join muted. Clicking microphone is a separate consent action.
+      // Daily room start_audio_off is true; microphone permission remains user initiated.
       await call.setLocalAudio(false)
       setPhase('listening');sync()
     }catch(e){
