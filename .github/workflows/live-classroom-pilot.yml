@@ -9,8 +9,13 @@ on:
       - 'app/parent/live/**'
       - 'app/teacher/classhub/**'
       - 'components/live-classroom/**'
+      - 'supabase/migrations/*live_private_session_assets*'
+      - 'scripts/test-live-class-assets.mjs'
       - 'lib/live/resourcePresentation.ts'
       - 'scripts/test-live-resource-presentation.mjs'
+      - 'scripts/test-live-class-assets.mjs'
+      - 'supabase/migrations/*live_private_session_assets*'
+      - 'app/teacher/lesson-notes/page.tsx'
       - 'supabase/migrations/*live_classroom*'
       - 'supabase/migrations/*live_lesson_history*'
       - 'supabase/migrations/*live_learner_tools*'
@@ -24,6 +29,8 @@ on:
     branches: [main]
     paths:
       - 'components/live-classroom/**'
+      - 'supabase/migrations/*live_private_session_assets*'
+      - 'scripts/test-live-class-assets.mjs'
       - 'supabase/migrations/*live_classroom*'
       - 'supabase/migrations/*live_lesson_history*'
       - 'supabase/migrations/*live_learner_tools*'
@@ -48,6 +55,8 @@ jobs:
       - name: Exercise actual SQL migration and adversarial access paths
         run: node scripts/test-live-classroom-pilot.mjs
 
+      - name: Exercise private classroom file migration, storage and adversarial RLS
+        run: node scripts/test-live-class-assets.mjs
       - name: Verify eligible learner Live notification and fail-closed filtering
         run: node --experimental-strip-types scripts/test-live-learner-notice.mjs
       - name: Verify school-only resource sharing and bounded presentation contract
