@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-const source = readFileSync('supabase/migrations/20261121191000_qualified_machine_content_review_no_human_hq.sql','utf8')
+const source = readFileSync('supabase/migrations/20261121160639_qualified_machine_content_review_no_human_hq.sql','utf8')
 const block=(begin,end)=> {
  const s=source.indexOf(begin),e=source.indexOf(end,s+begin.length)
  assert.ok(s>=0 && e>s,'expected function section: '+begin)

@@ -21,7 +21,7 @@ All new machine authorization tables use RLS with no browser table access. Backe
 
 ## Owner review points
 
-- Code: `supabase/migrations/20261121191000_qualified_machine_content_review_no_human_hq.sql`
+- Code: `supabase/migrations/20261121160639_qualified_machine_content_review_no_human_hq.sql`
 - Regression: `scripts/test-qualified-machine-content-review-no-human-hq.mjs`
 - Existing content governance: `scripts/sql/g4_whole_numbers_release_preflight.sql`
 - Existing Grade 4 Whole Numbers publication: GitHub issue #1814
