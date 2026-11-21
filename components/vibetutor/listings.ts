@@ -44,6 +44,27 @@ export async function fetchLiveListings(): Promise<LiveListings> {
     requestRows = (requestsRes.data ?? []) as RequestRow[]
   }
 
+  // The public listing contains only anonymized labels. Real learner names
+  // are read separately under owner-only RLS, only for the verified signed-in
+  // request owner, and are never written to the anonymous discovery view.
+  const ownedNamesById = new Map<string, string>()
+  if (signedIn && requestRows.length > 0) {
+    const { data: verified, error: identityError } = await client.auth.getUser()
+    if (!identityError && verified.user) {
+      const { data: mine, error: mineError } = await client.from('vibetutor_requests')
+        .select('id,learner_label')
+        .eq('requester_id', verified.user.id)
+        .eq('status', 'open')
+        .eq('public_preview', true)
+      if (!mineError) {
+        for (const request of mine ?? []) {
+          const name = request.learner_label?.trim()
+          if (name) ownedNamesById.set(request.id, name)
+        }
+      }
+    }
+  }
+
   const tutors: DemoTutor[] = ((tutorsRes.data ?? []) as TutorRow[]).map(row => ({
     id: row.profile_id, name: row.display_name, initials: initialsOf(row.display_name), avatarUrl: vibeMePath(codeFromAvatar(row.avatar_url) ?? defaultCharacter(row.profile_id)),
     subjects: row.subjects, levels: row.levels, mode: row.teaching_mode, area: row.area ?? '',
@@ -51,7 +72,7 @@ export async function fetchLiveListings(): Promise<LiveListings> {
     bio: row.bio ?? '', experience: '', formatNote: '', real: true,
   }))
   const requests: DemoRequest[] = requestRows.map(row => ({
-    id: row.id, learnerLabel: row.learner_label, subjects: row.subjects, level: row.levels[0] ?? '',
+    id: row.id, learnerLabel: ownedNamesById.get(row.id) ?? `${row.levels[0] || 'Learner'} tuition request`, subjects: row.subjects, level: row.levels[0] ?? '',
     mode: row.teaching_mode, area: row.area ?? '', budgetKes: row.budget_kes ?? 0,
     days: row.available_days, dayparts: row.dayparts as DayPart[],
     postedDaysAgo: Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86400000)),
