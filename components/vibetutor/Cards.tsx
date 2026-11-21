@@ -72,9 +72,9 @@ export function RequestCard({ r, compact = false, score, signedIn = false }: { r
     setSending(true); setContactError('')
     try {
       const {data:{user},error:authError} = await getSupabaseClient().auth.getUser()
-      if (authError || !user) { setContactError('Sign in before contacting the guardian.'); return }
+      if (authError || !user) { setContactError('Sign in before contacting the request owner.'); return }
       const {error} = await supabase.rpc('vibetutor_request_interest_send',{p_request:r.id,p_message:intro.trim()})
-      if (error) { setContactError('Unable to contact this guardian. Check that you have a published tutor profile or review your existing enquiry.'); return }
+      if (error) { setContactError('Unable to contact this request owner. Check that you have a published tutor profile or review your existing enquiry.'); return }
       setSent(true)
     } catch { setContactError('Could not send your enquiry. Try again.') }
     finally { setSending(false) }
@@ -119,13 +119,13 @@ export function RequestCard({ r, compact = false, score, signedIn = false }: { r
           <p className={styles.meta}><strong>Available days:</strong> {summarizeDays(r.days)}</p>
           <p className={styles.meta}><strong>Preferred time:</strong> {summarizeParts(r.dayparts)}</p>
           <p className={styles.modalPrice}>Budget up to KSh {r.budgetKes.toLocaleString('en-KE')} / hour</p>
-          <p className={styles.hint}>{r.real ? 'Sign in to respond. Parent or guardian oversight is required for learners under 18.' : 'Example request only. No learner is connected to this example.'}</p>
-          {!signedIn ? <Link href={'/login?redirect=' + encodeURIComponent('/vibetutor/browse?view=students&request=' + r.id)} className={styles.modalSignIn}>Sign in to contact guardian</Link> :
-            <div><label htmlFor={'interest-' + r.id}>Introduce yourself to the parent or guardian</label>
+          <p className={styles.hint}>{r.real ? 'Sign in to respond. Only verified tutors can send enquiries to the adult who posted this request.' : 'Example request only. No learner is connected to this example.'}</p>
+          {!signedIn ? <Link href={'/login?redirect=' + encodeURIComponent('/vibetutor/browse?view=students&request=' + r.id)} className={styles.modalSignIn}>Sign in to contact request owner</Link> :
+            <div><label htmlFor={'interest-' + r.id}>Introduce yourself to the request owner</label>
               <textarea id={'interest-' + r.id} className={styles.input} value={intro} maxLength={500} rows={3} onChange={e => setIntro(e.target.value)} />
-              <button className={styles.modalSignIn} type="button" disabled={sending || sent || intro.trim().length < 10} onClick={() => void sendInterest()}>{sent ? 'Interest sent' : sending ? 'Sending…' : 'Contact guardian'}</button>
+              <button className={styles.modalSignIn} type="button" disabled={sending || sent || intro.trim().length < 10} onClick={() => void sendInterest()}>{sent ? 'Interest sent' : sending ? 'Sending…' : 'Contact request owner'}</button>
               {contactError && <p role="alert" className={styles.hint}>{contactError}</p>}
-              {sent && <p role="status" className={styles.hint}>Enquiry sent privately to the guardian. <Link href="/vibetutor/inquiries">View enquiries</Link></p>}
+              {sent && <p role="status" className={styles.hint}>Enquiry sent privately to the request owner. <Link href="/vibetutor/inquiries">View enquiries</Link></p>}
             </div>}
         </section>
       </div>}
