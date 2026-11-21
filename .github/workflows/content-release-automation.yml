@@ -1,0 +1,29 @@
+name: Content Release Automation Safety
+on:
+  pull_request:
+    paths:
+      - 'scripts/sql/g4_whole_numbers_release_preflight.sql'
+      - 'scripts/content-release-automation.mjs'
+      - 'scripts/test-content-release-automation.mjs'
+      - 'scripts/test-g4-whole-numbers-release-preflight.mjs'
+      - '.github/workflows/content-release-automation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/sql/g4_whole_numbers_release_preflight.sql'
+      - 'scripts/content-release-automation.mjs'
+      - 'scripts/test-content-release-automation.mjs'
+      - 'scripts/test-g4-whole-numbers-release-preflight.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source, rights, publisher and exact-fingerprint fail-closed behavior
+        run: node --test scripts/test-content-release-automation.mjs scripts/test-g4-whole-numbers-release-preflight.mjs scripts/test-content-independent-approval-no-hq.mjs
