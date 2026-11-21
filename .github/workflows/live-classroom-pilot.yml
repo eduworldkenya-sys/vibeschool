@@ -12,6 +12,7 @@ on:
       - 'lib/live/voice.ts'
       - 'app/api/live/voice/**'
       - 'scripts/test-live-voice.mjs'
+      - 'scripts/test-live-voice-browser.mjs'
       - 'supabase/migrations/*live_private_session_assets*'
       - 'scripts/test-live-class-assets.mjs'
       - 'lib/live/resourcePresentation.ts'
@@ -76,3 +77,6 @@ jobs:
       - name: Exercise real classroom UI with disposable in-memory SQL fixtures
         timeout-minutes: 8
         run: node scripts/test-live-classroom-browser.mjs
+      - name: Verify voice consent, grants, revocations and token renewal in Chromium
+        timeout-minutes: 4
+        run: node scripts/test-live-voice-browser.mjs
