@@ -45,6 +45,7 @@ with target as (
    count(*) filter(where lifecycle_status='verified' and verified_at is not null)::integer verified,
    count(*) filter(where lifecycle_status='certified' and certified_at is not null)::integer certified,
    count(*) filter(where rights_status='pending')::integer pending_rights,
+   count(*) filter(where rights_status='cleared')::integer rights_cleared,
    count(*) filter(where status='active')::integer active_roots,
    count(*) filter(where visibility='public' and status='active' and lifecycle_status='certified' and asset_kind not in ('marking_scheme','teacher_notes'))::integer public_learnable,
    count(*) filter(where asset_kind in ('marking_scheme','teacher_notes') and visibility='private')::integer protected_sensitive,
@@ -72,7 +73,10 @@ with target as (
  select (select count(*) from public.vibelearn_content v join target t on v.vibe_publication_id=t.publication_id and v.status='live')::integer live_catalogue_rows,
  (select count(*) from public.vibe_chapters c join target t on c.publication_id=t.publication_id and c.status='published')::integer published_chapters,
  (select count(*) from public.publication_release_approvals x join target t on x.publication_id=t.publication_id and x.status='approved')::integer final_release_approvals,
+ (select count(*) from public.publication_release_approvals x join target t on x.publication_id=t.publication_id and x.status='approved' and x.content_fingerprint=public.publication_release_fingerprint(t.publication_id))::integer current_fingerprint_approvals,
  (select count(*) from public.hq_workforce_capability_authority_grants g where g.status='active' and (g.capability_key ilike '%content%' or g.capability_key ilike '%publish%'))::integer active_content_grants
+), package_gate as (
+ select public.vs_curriculum_package_gate(t.package_id) as value from target t
 ), facts as (
  select
   jsonb_build_object('book_status',b.status,'book_format',b.format,'grade',b.cbc_grade,'subject',b.cbc_subject,
@@ -81,14 +85,15 @@ with target as (
     'official_source',to_jsonb(s),'outcomes',to_jsonb(o),'resources',to_jsonb(rs),
     'guide',to_jsonb(g),'assessment',to_jsonb(a),
     'release',to_jsonb(ri),
-    'curriculum_gate',public.vs_curriculum_package_gate(t.package_id),
+    'curriculum_gate',cg.value,
     'app_actor_attached_to_this_connection',auth.uid() is not null) state,
   array_remove(array[
     case when coalesce(s.approved,0)=0 or coalesce(s.artifacts,0)=0 then 'official_source_review_pending' end,
     case when coalesce(s.promoted_snapshots,0)=0 then 'official_source_hierarchy_pending' end,
+    case when coalesce(cg.value->>'state','')<>'PASS' then 'curriculum_package_gate_not_pass' end,
     case when o.mapped<>11 or o.locator_matches<>11 or o.active<>11 then 'curriculum_outcomes_not_all_active_and_reconciled' end,
     case when rs.total<>6 or rs.verified_payload_hashes<>6 then 'resource_manifest_or_hash_mismatch' end,
-    case when rs.pending_rights>0 then 'original_resource_rights_pending' end,
+    case when rs.pending_rights>0 or rs.rights_cleared<>6 then 'original_resource_rights_pending' end,
     case when rs.certified<>6 then 'resource_certification_pending' end,
     case when rs.public_learnable<4 then 'learner_resource_activation_pending' end,
     case when rs.protected_sensitive<2 then 'sensitive_resources_must_remain_private' end,
@@ -96,19 +101,24 @@ with target as (
     case when g.approved=0 then 'teacher_guide_independent_approval_pending' end,
     case when a.items<>11 or a.marks<>16 then 'assessment_content_lineage_incomplete' end,
     case when a.approved_items<6 then 'assessment_moderation_pending' end,
-    case when ri.final_release_approvals=0 then 'publication_release_approval_pending' end,
+    case when ri.current_fingerprint_approvals=0 then 'publication_release_approval_pending' end,
     case when auth.uid() is null then 'authenticated_publisher_identity_unavailable_in_this_connection' end,
     case when ri.published_chapters=0 or ri.live_catalogue_rows=0 then 'student_catalogue_publication_pending' end
   ],null)::text[] blockers
  from target t cross join book b cross join chapter c cross join source s cross join outcome o cross join resources rs
- cross join teacher_guide g cross join assessment a cross join rights ri
+ cross join teacher_guide g cross join assessment a cross join rights ri cross join package_gate cg
 )
 select jsonb_build_object(
  'package_id',(select package_id from target),
  'publication_id',(select publication_id from target),
  'scope','Grade 4 Mathematics / Whole Numbers only',
  'checked_at',clock_timestamp(),
- 'status',case when cardinality(blockers)=0 then 'RELEASE_VERIFIED' else 'BLOCKED' end,
+ 'status',case when cardinality(blockers)=0 then 'RELEASE_VERIFIED'
+               when blockers=ARRAY['student_catalogue_publication_pending']::text[] then 'READY_TO_PUBLISH'
+               else 'BLOCKED' end,
+ 'ready_to_publish',blockers=ARRAY['student_catalogue_publication_pending']::text[],
+ 'catalogue_visibility_verified',coalesce((state->'release'->>'published_chapters')::integer,0)>0
+     and coalesce((state->'release'->>'live_catalogue_rows')::integer,0)>0,
  'blockers',to_jsonb(blockers),
  'facts',state,
  'no_mutation_performed',true
