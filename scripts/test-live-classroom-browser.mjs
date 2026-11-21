@@ -47,8 +47,6 @@ const server=createServer(async(req,res)=>{
   }
   const done=queue.then(job);queue=done.then(()=>undefined,()=>undefined)
   const response=await done
-  const parsed=JSON.parse(body)
-  if(parsed.params?.p_action==='publish'&&parsed.params?.p_payload?.kind==='quiz') console.log('QUIZ_DIAG_RPC',JSON.stringify({version:parsed.params.p_version,error:response.error,returnedVersion:response.data?.version,returnedPrompt:response.data?.prompt?.body}))
   res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(response))
 })
 await new Promise((ok,fail)=>{server.once('error',fail);server.listen(0,'127.0.0.1',ok)})
@@ -197,11 +195,11 @@ try{
  await t.getByLabel('Question or instruction').fill('How many quarters make one half?')
  await t.getByLabel('Answer (hidden until reveal)').fill('Two quarters')
  await button(t,'Share with class').click()
- console.log('QUIZ_DIAG_TEACHER',JSON.stringify(await t.evaluate(()=>document.body.innerText.slice(0,1100))))
+ await t.getByLabel('Question or instruction').waitFor({state:'hidden'})
  const serverAfterQuiz=await fixture.rpc(fixture.a,'get',sid,null,{},fixture.cls)
- console.log('QUIZ_DIAG_SQL',JSON.stringify({version:serverAfterQuiz.version,prompt:serverAfterQuiz.prompt?.body,history:serverAfterQuiz.history?.length}))
+ assert.equal(serverAfterQuiz.prompt?.body,'How many quarters make one half?','Teacher quiz must persist after concurrent chat changes the room version')
+ assert.equal(serverAfterQuiz.history?.length,7,'Successful quiz must extend the ordered lesson history')
  await l.bringToFront()
- console.log('QUIZ_DIAG_CLIENT',JSON.stringify(await l.evaluate(()=>({visibility:document.visibilityState,text:document.body.innerText.slice(0,750)}))))
  await see(l,'How many quarters make one half?')
  assert.equal(await l.getByText('Two quarters',{exact:true}).count(),0)
  await l.getByLabel('Your answer').fill('2')
