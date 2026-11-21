@@ -36,3 +36,30 @@
 .appearanceControl{flex:0 0 auto;min-width:104px;max-width:124px}
 @media(max-width:1160px) and (min-width:1041px){.headerInner{gap:9px}.nav{gap:8px}.appearanceControl{max-width:108px;padding-inline:4px}}
 @media(max-width:420px){.appearanceControl{max-width:105px;min-width:98px}}
+
+/* Public-header appearance follows the shared brightness selection while the
+   individual product pages retain ownership of their content/illustrations. */
+.logoDark{display:none;width:146px;height:auto;max-width:100%;max-height:38px;object-fit:contain;object-position:left center}
+:global(html[data-vs-theme='dark']) .header{background:rgba(19,24,31,.98);border-color:#3b4350}
+:global(html[data-vs-theme='dark']) .logo{display:none}
+:global(html[data-vs-theme='dark']) .logoDark{display:block}
+:global(html[data-vs-theme='dark']) .brand,
+:global(html[data-vs-theme='dark']) .productName{color:#f6f8fa}
+:global(html[data-vs-theme='dark']) .divider{background:#58606f}
+:global(html[data-vs-theme='dark']) .nav a,
+:global(html[data-vs-theme='dark']) .moreMenu>summary{color:#d2dae3}
+:global(html[data-vs-theme='dark']) .nav a:hover,
+:global(html[data-vs-theme='dark']) .nav a:focus-visible,
+:global(html[data-vs-theme='dark']) .moreMenu>summary:hover{color:#fff}
+:global(html[data-vs-theme='dark']) .signin,
+:global(html[data-vs-theme='dark']) .mobileMenu>summary{background:#26303b;border-color:#52606e;color:#fff!important}
+:global(html[data-vs-theme='dark']) .mobilePanel,
+:global(html[data-vs-theme='dark']) .morePanel{background:#202832;border-color:#52606e}
+:global(html[data-vs-theme='dark']) .mobilePanel a,
+:global(html[data-vs-theme='dark']) .morePanel a{color:#ecf1f6}
+:global(html[data-vs-theme='dark']) .mobilePanel a:hover,
+:global(html[data-vs-theme='dark']) .morePanel a:hover{background:#34414e}
+:global(html[data-vs-theme='dark']) .mobileSection{border-color:#465360;color:#b9cad8}
+@media(max-width:1040px){.logoDark{width:136px;max-height:36px}}
+@media(max-width:640px){.logoDark{width:126px;max-height:33px}}
+@media(max-width:420px){.logoDark{width:118px;max-height:31px}}
