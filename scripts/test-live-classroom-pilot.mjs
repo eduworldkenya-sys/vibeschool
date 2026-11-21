@@ -182,6 +182,60 @@ await assert.rejects(rpc(outsider,'ask',sid,null,{body:'unauthorized',requestId:
 await rpc(teacher,'reply',sid,null,{questionId:questionA.id,body:'Teacher reply A'})
 assert.equal((await rpc(a,'get',sid)).questions[0].reply,'Teacher reply A')
 assert.equal((await rpc(b,'get',sid)).questions[0].reply,null)
+
+// Teacher can initiate a direct text thread only with a learner who joined
+// this exact active session and still qualifies for admission.
+const learnerA=id(30),learnerB=id(31),outsiderLearner=id(32);
+const teacherText={studentId:learnerA,body:'Hello Learner A, do you need help?',requestId:id(203)};
+const sent=(await rpc(teacher,'dm_send',sid,null,teacherText)).messages;
+assert.equal(sent.length,1);
+assert.equal(sent[0].sender,'teacher');
+assert.equal(sent[0].deliveredAt,null);
+assert.equal((await rpc(a,'get',sid)).dmUnread,1);
+assert.equal((await rpc(b,'get',sid)).dmUnread,0);
+assert.equal((await rpc(teacher,'get',sid)).participants.find(p=>p.studentId===learnerA).unreadDm,0);
+assert.deepEqual((await rpc(b,'dm_list',sid)).messages,[],'B never sees A private messages');
+const received=(await rpc(a,'dm_list',sid)).messages;
+assert.equal(received[0].body,teacherText.body);
+assert.ok(received[0].deliveredAt,'Delivered is recorded after recipient fetch');
+assert.equal(received[0].readAt,null,'Delivered must not be claimed as read');
+assert.ok((await rpc(teacher,'dm_list',sid,null,{studentId:learnerA})).messages[0].deliveredAt);
+await rpc(a,'dm_read',sid);
+assert.ok((await rpc(teacher,'dm_list',sid,null,{studentId:learnerA})).messages[0].readAt,'Read status requires recipient read command');
+assert.equal((await rpc(a,'get',sid)).dmUnread,0);
+const learnerText={body:'Yes, please show me another example.',requestId:id(204)};
+const replied=(await rpc(a,'dm_send',sid,null,learnerText)).messages;
+assert.equal(replied.length,2);
+assert.equal(replied[1].sender,'learner');
+assert.equal((await rpc(teacher,'get',sid)).participants.find(p=>p.studentId===learnerA).unreadDm,1);
+await rpc(teacher,'dm_list',sid,null,{studentId:learnerA});
+await rpc(teacher,'dm_read',sid,null,{studentId:learnerA});
+assert.equal((await rpc(teacher,'get',sid)).participants.find(p=>p.studentId===learnerA).unreadDm,0);
+assert.ok((await rpc(a,'dm_list',sid)).messages[1].readAt);
+assert.equal((await rpc(teacher,'dm_send',sid,null,teacherText)).messages.length,2,'Retry does not duplicate');
+await assert.rejects(rpc(teacher,'dm_send',sid,null,{...teacherText,body:'Changed request'}),/live_request_id_reused/);
+await assert.rejects(rpc(a,'dm_list',sid,null,{studentId:learnerB}),/live_not_authorized/);
+await assert.rejects(rpc(a,'dm_send',sid,null,{...learnerText,studentId:learnerB}),/live_not_authorized/);
+await assert.rejects(rpc(teacher,'dm_send',sid,null,{...teacherText,requestId:id(205),studentId:outsiderLearner}),/live_not_authorized/);
+await assert.rejects(rpc(otherTeacher,'dm_list',sid,null,{studentId:learnerA}),/live_not_authorized/);
+await assert.rejects(rpc(outsider,'dm_list',sid),/live_not_authorized/);
+await assert.rejects(rpc(a,'dm_list',sid,null,{studentId:'invalid'}),/live_not_authorized/);
+await assert.rejects(rpc(teacher,'dm_send',sid,null,{...teacherText,requestId:id(206),body:''}),/live_invalid_message/);
+await assert.rejects(rpc(teacher,'reply',sid,null,{questionId:questionA.id,body:'Overwrite old answer'}),/live_not_authorized/);
+assert.equal((await rpc(a,'get',sid)).questions[0].reply,'Teacher reply A','Old answer cannot be overwritten');
+// The teacher can separately start a conversation with B without cross-thread leakage.
+await rpc(teacher,'dm_send',sid,null,{studentId:learnerB,body:'Hello Learner B',requestId:id(207)});
+assert.deepEqual((await rpc(a,'dm_list',sid)).messages.map(m=>m.body),[teacherText.body,learnerText.body]);
+assert.deepEqual((await rpc(b,'dm_list',sid)).messages.map(m=>m.body),['Hello Learner B']);
+for(const role of ['authenticated','anon','service_role']){
+  await db.exec('set role '+role);
+  try{
+    await assert.rejects(db.query('select * from vibe_live.private_messages'),/permission denied/);
+    await assert.rejects(db.query('delete from vibe_live.private_messages'),/permission denied/);
+  }finally{await db.exec('reset role')}
+}
+console.log('PASS: teacher-initiated private messages, authentic delivery/read receipts, strict two-learner isolation, retry, immutable question replies and private table denial');
+
 for(const role of ['authenticated','anon','service_role']){
  await db.exec(`set role ${role}`)
  try {
