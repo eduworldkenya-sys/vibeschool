@@ -430,6 +430,69 @@ console.log('PASS: private RPC, 2 learners, class scope, independent responses, 
 await db.close()
 
 
+// A teacher may present an earlier lesson page and a scroll position without
+// publishing a duplicate prompt; only authorized joined learners can observe it.
+{
+ const f=await createLiveFixture()
+ let r=await f.rpc(f.teacher,'start',null,null,{title:'Guided reading'})
+ await f.rpc(f.a,'join',r.id)
+ await f.rpc(f.b,'join',r.id)
+ r=await f.rpc(f.teacher,'publish',r.id,r.version,{kind:'teach',body:'Reading page one'})
+ const first=r.prompt.id
+ assert.equal(r.presentedPromptId,first)
+ assert.equal(Number(r.presentedScrollRatio),0)
+ assert.equal(r.presentedSeq,1)
+ const beforeVersion=r.version
+ const updated=await f.rpc(f.teacher,'present',r.id,null,{
+   currentPromptId:first,promptId:first,ratio:'0.625000'
+ })
+ assert.equal(updated.presentedPromptId,first)
+ assert.equal(Number(updated.presentedScrollRatio),0.625)
+ assert.equal((await f.rpc(f.teacher,'get',r.id)).version,beforeVersion,'Scroll does not disturb publishing locks')
+ let follower=await f.rpc(f.a,'get',r.id)
+ assert.equal(follower.presentedPromptId,first)
+ assert.equal(Number(follower.presentedScrollRatio),0.625)
+ assert.equal(follower.presentedSeq,2)
+ assert.equal('participants' in follower,false)
+ await assert.rejects(f.rpc(f.a,'present',r.id,null,{host:true,currentPromptId:first,promptId:first,ratio:'0.2'}),/live_teacher_required/)
+ await assert.rejects(f.rpc(f.otherTeacher,'present',r.id,null,{currentPromptId:first,promptId:first,ratio:'0.2'}),/not_authorized/)
+ await assert.rejects(f.rpc(f.outsider,'get',r.id),/not_authorized/)
+ for(const ratio of ['-0.1','1.1','Infinity','0.0000001','2','abc']){
+   await assert.rejects(f.rpc(f.teacher,'present',r.id,null,{currentPromptId:first,promptId:first,ratio}),/live_invalid_presentation/)
+ }
+ await assert.rejects(f.rpc(f.teacher,'present',r.id,null,{
+   currentPromptId:first,promptId:f.id(99),ratio:'0.5'
+ }),/live_invalid_presentation/)
+ r=await f.rpc(f.teacher,'publish',r.id,beforeVersion,{kind:'teach',body:'Reading page two'})
+ const second=r.prompt.id
+ assert.equal(r.presentedPromptId,second)
+ assert.equal(Number(r.presentedScrollRatio),0)
+ const stale=await f.rpc(f.teacher,'present',r.id,null,{
+   currentPromptId:first,promptId:first,ratio:'0.9'
+ })
+ assert.equal(stale.ignored,true,'Delayed old scroll cannot pull learners backward')
+ assert.equal((await f.rpc(f.a,'get',r.id)).presentedPromptId,second)
+ await f.rpc(f.teacher,'present',r.id,null,{currentPromptId:second,promptId:first,ratio:'0.4'})
+ follower=await f.rpc(f.a,'get',r.id)
+ assert.equal(follower.presentedPromptId,first,'Teacher may revisit an earlier lesson page')
+ assert.equal(Number(follower.presentedScrollRatio),0.4)
+ await f.rpc(f.teacher,'pause',r.id,r.version)
+ await assert.rejects(f.rpc(f.teacher,'present',r.id,null,{
+   currentPromptId:second,promptId:first,ratio:'0.8'
+ }),/live_paused/)
+ await f.db.exec(`update public.student_classes set is_current=false where student_id='${f.id(30)}'`)
+ await assert.rejects(f.rpc(f.a,'get',r.id),/not_authorized/,'Revoked learner loses presenter state with room access')
+ await assert.rejects(f.rpc(f.a,'present',r.id,null,{
+   currentPromptId:second,promptId:first,ratio:'0.8'
+ }),/not_authorized/)
+ await f.rpc(f.teacher,'end',r.id,r.version)
+ await assert.rejects(f.rpc(f.teacher,'present',r.id,null,{
+   currentPromptId:second,promptId:second,ratio:'0.8'
+ }),/session_closed/)
+ await f.db.close()
+ console.log('PASS: teacher-only per-page scroll, joined follower, past page, stale and malformed denial, pause/end and enrollment revocation')
+}
+
 // Past Classes are an authorized read-only inventory of sessions that ended.
 // Never let class eligibility alone grant access to sessions not attended.
 {
