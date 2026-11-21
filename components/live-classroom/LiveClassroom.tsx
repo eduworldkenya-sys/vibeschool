@@ -90,6 +90,7 @@ function ClockExplorer({value}:{value:string}){
   const [hour,setHour]=useState(original?Number(original[1]):9)
   const [minute,setMinute]=useState(original?Number(original[2]):0)
   const [checked,setChecked]=useState(false)
+  useEffect(()=>{if(original){setHour(Number(original[1]));setMinute(Number(original[2]));setChecked(false)}},[value])
   if(!original)return <ClockView value={value}/>
   const formatted=String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0')
   const expected=String(Number(original[1])).padStart(2,'0')+':'+original[2]
