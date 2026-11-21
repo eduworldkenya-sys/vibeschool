@@ -169,6 +169,7 @@ try{
  await l.getByLabel('Message the class').fill('Can we review this publicly?')
  await button(l,'Send to class').click()
  await see(t,'Can we review this publicly?')
+ t.once('dialog',d=>void d.accept())
  await button(t,'Hide message').click()
  await l.getByText('Can we review this publicly?',{exact:true}).waitFor({state:'hidden'})
  await l.getByRole('button',{name:'Close class chat'}).click()
