@@ -1,75 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, BriefcaseBusiness, ShieldCheck } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
+import PremiumTeacherMarketplace from "@/components/teacher/marketplace/PremiumTeacherMarketplace";
 import TeacherOpportunities from "@/components/teacher/marketplace/TeacherOpportunities";
-import styles from "./publicMarketplace.module.css";
 
 export const metadata: Metadata = {
-  title: "Teacher Marketplace | TSC Recruitment & School Jobs",
-  description: "Browse the VibeSchool Teacher Marketplace and explore TSC recruitment information and apply directly through official recruitment channels.",
+  title: "Teacher Marketplace | VibeSchool",
+  description: "Find teaching opportunities, online tuition requests and station swaps, or recruit teachers for your school in Kenya.",
   alternates: { canonical: "/teacher/marketplace" },
 };
 
 export default function PublicTeacherMarketplace() {
   return (
-    <div className={styles.page}>
+    <>
       <PublicHeader product="Teacher Marketplace" />
-      <main id="main-content">
-        <section className={styles.hero} aria-labelledby="marketplace-title">
-          <div className={styles.wrap}>
-            <Link href="/teacher" className={styles.breadcrumb}>Teachers <span aria-hidden="true">/</span> Marketplace</Link>
-            <div className={styles.heroGrid}>
-              <div>
-                <p className={styles.eyebrow}>TEACHER MARKETPLACE · KENYA</p>
-                <h1 id="marketplace-title">Find teaching opportunities. <span>Explore your options.</span></h1>
-                <p className={styles.lead}>Find TSC recruitment figures and application guidance, plus school vacancies, station swaps and available teachers.</p>
-                <div className={styles.actions}>
-                  <Link href="/teacher/marketplace/employment" className={styles.primary}>List yourself for work <ArrowRight size={17} aria-hidden="true"/></Link>
-                  <Link href="/teacher/marketplace/sandbox" className={styles.primary}>Explore TSC vacancies <ArrowRight size={17} aria-hidden="true" /></Link>
-                  <a href="#listings" className={styles.secondary}>Browse published vacancies <ArrowRight size={17} aria-hidden="true" /></a>
-                </div>
-              </div>
-              <div className={styles.tscInfo}>
-                <p className={styles.tscLabel}>TSC RECRUITMENT</p>
-                <h2>Check your options before applying.</h2>
-                <p>View county recruitment totals, confirm the qualifications and prepare your TSC application.</p>
-                <Link className={styles.tscLink} href="/teacher/marketplace/sandbox">View TSC recruitment details <ArrowRight size={16} aria-hidden="true" /></Link>
-                <p className={styles.tscNote}>County figures are reported totals, not school-by-subject vacancy matches. Applications go directly to TSC.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="listings" className={styles.listings} aria-labelledby="listings-title">
-          <div className={styles.wrap}>
-            <div className={styles.listingHeading}>
-              <div>
-                <p className={styles.sectionLabel}>RECRUITMENT & LISTINGS</p>
-                <h2 id="listings-title">Teacher opportunities</h2>
-              </div>
-              <p>Search school vacancies, browse station swaps or hire available teachers. The TSC recruitment advert and official application link appear with the job listings.</p>
-            </div>
+      <main id="main-content" tabIndex={-1}>
+        <PremiumTeacherMarketplace />
+        <section aria-label="Additional recruitment services" style={{maxWidth:1080, margin:"0 auto", padding:"0 20px 32px",color:"CanvasText",background:"Canvas"}}>
+          <details>
+            <summary style={{cursor:"pointer",minHeight:44,padding:"13px 0",fontWeight:700,fontSize:13}}>Additional recruitment details</summary>
+            <p style={{padding:"8px 0"}}><Link href="/teacher/marketplace/sandbox" style={{fontWeight:700,fontSize:13,textDecoration:"underline"}}>TSC recruitment</Link></p>
             <TeacherOpportunities />
-          </div>
-        </section>
-
-        <section className={styles.accountSection} aria-labelledby="account-title">
-          <div className={styles.wrap}>
-            <div className={styles.accountRow}>
-              <div>
-                <p className={styles.sectionLabel}>FOR REGISTERED TEACHERS</p>
-                <h2 id="account-title">Post or manage a station swap</h2>
-                <p>Public browsing stays open. Your own listings, private interest requests and conversations require a teacher account.</p>
-              </div>
-              <Link href="/teacher/marketplace/manage?tab=swap" className={styles.manageLink}>Manage my swaps <ArrowRight size={17} aria-hidden="true" /></Link>
-            </div>
-            <p className={styles.footnote}><ShieldCheck size={15} aria-hidden="true" /> TSC applications and transfer approvals happen on official channels, not inside VibeSchool.</p>
-          </div>
+          </details>
         </section>
       </main>
       <PublicFooter />
-    </div>
+    </>
   );
 }
