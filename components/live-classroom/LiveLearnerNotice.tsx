@@ -42,7 +42,7 @@ export default function LiveLearnerNotice({ studentId }: { studentId: string }) 
           setRooms([])
           return
         }
-        setRooms((data as unknown[]).filter(eligibleRoom).slice(0, 3))
+        setRooms(data.filter(eligibleRoom).slice(0, 3))
       } catch {
         if (!cancelled) setRooms([])
       } finally {
