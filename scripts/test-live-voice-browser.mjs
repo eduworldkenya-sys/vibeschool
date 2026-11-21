@@ -109,8 +109,8 @@ try{
   const t=await open('teacher',true)
   await t.getByRole('button',{name:'Join audio'}).click()
   await t.getByRole('status').getByText('Connected').waitFor()
-  assert.equal(await t.getByRole('button',{name:'Speak'}).isEnabled(),true)
-  await t.getByRole('button',{name:'Speak'}).click()
+  assert.equal(await t.getByRole('button',{name:'Speak',exact:true}).isEnabled(),true)
+  await t.getByRole('button',{name:'Speak',exact:true}).click()
   assert.equal(await t.evaluate(()=>window.__voiceCall.localAudio()),true)
   await t.getByRole('button',{name:'Allow Learner A to speak'}).click()
   await t.waitForFunction(()=>window.__acks===1)
@@ -132,8 +132,8 @@ try{
     window.__voiceCall.people.local.permissions.canSend=new Set(['audio'])
     window.__voiceCall.emit('participant-updated')
   })
-  await l.getByRole('button',{name:'Speak'}).waitFor()
-  await l.getByRole('button',{name:'Speak'}).click()
+  await l.getByRole('button',{name:'Speak',exact:true}).waitFor()
+  await l.getByRole('button',{name:'Speak',exact:true}).click()
   assert.equal(await l.evaluate(()=>window.__voiceCall.localAudio()),true)
   await l.evaluate(()=>{
     window.__voiceCall.people.local.permissions.canSend=false
