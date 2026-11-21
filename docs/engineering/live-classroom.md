@@ -52,3 +52,26 @@ authority and delivery contracts. Resource text snapshots do not imply that a
 learner may navigate to the original teacher-only resource.
 The feature remains behind the existing `NEXT_PUBLIC_VIBE_LIVE_ENABLED`
 flag and requires real teacher/learner multi-account verification.
+
+## Scheme-linked Live Resources (Stage 2 candidate, Issue #1856)
+
+For an authorized **school** Live class, the Resources picker also reads the
+teacher's exact class-scoped `scheme_of_work` rows and existing
+`teaching_resource_links` with `target_type='scheme_lesson'`. It queries
+only **active/public, school-level, learner-presentable** canonical resources,
+and verifies the current Scheme link, root eligibility and exact certified,
+rights-cleared `learning_resource_versions.id` again on each open.
+
+- Prepared material is prioritized with the actual linked Scheme topic, never
+  matched from titles or AI guesses.
+- When a link pins `resource_version_id`, no "newest" fallback is allowed.
+  Missing, retired or inaccessible pins fail closed. Legacy unpinned links
+  resolve a certified version through the existing RLS and explicit gate.
+- If Scheme discovery is unavailable, the picker gives a warning and retains
+  existing generic resource browsing; no bogus prepared-status is inferred.
+- Non-school Live sessions never query teacher school Scheme links.
+
+This remains teacher-initiated text-page presentation into the existing Live
+history; there is **no new document publication** or direct learner grant.
+Exact lesson-plan occurrence binding, preserved original file links, richer
+diagrams/PDF media, and post-class entitlement follow separately in Issue #1856.
