@@ -40,6 +40,8 @@ export function LivePrivateChat({roomId,teacher,recipient,status,command,onClose
   const [error,setError]=useState('')
   const [sending,setSending]=useState(false)
   const [online,setOnline]=useState(true)
+  const [peerTyping,setPeerTyping]=useState(false)
+  const lastTyping=useRef(0)
   const pending=useRef<{body:string;requestId:string}|null>(null)
   const refreshing=useRef(false)
   const studentId=teacher?recipient?.studentId:null
@@ -54,17 +56,18 @@ export function LivePrivateChat({roomId,teacher,recipient,status,command,onClose
     let cancelled=false
     refreshing.current=false
     pending.current=null
-    setMessages([]);setDraft('');setError('')
+    setMessages([]);setDraft('');setError('');setPeerTyping(false);lastTyping.current=0
     const payload:Record<string,unknown>=teacher?{studentId}:{}
     const refresh=async()=>{
       if(cancelled||refreshing.current||document.visibilityState==='hidden'||!navigator.onLine)return
       refreshing.current=true
       try{
-        const result=await command('dm_list',roomId,null,payload) as {messages?:unknown}
+        const result=await command('dm_list',roomId,null,payload) as {messages?:unknown;peerTyping?:boolean}
         if(!Array.isArray(result.messages))throw new Error('Private messages are unavailable.')
         let items=result.messages.filter(validMessage)
         if(cancelled)return
         setMessages(items)
+        setPeerTyping(result.peerTyping===true)
         const me=teacher?'teacher':'learner'
         if(items.some(item=>item.sender!==me&&!item.readAt)){
           const read=await command('dm_read',roomId,null,payload) as {messages?:unknown}
@@ -100,9 +103,22 @@ export function LivePrivateChat({roomId,teacher,recipient,status,command,onClose
       if(!Array.isArray(data.messages))throw new Error('Message not saved')
       setMessages(data.messages.filter(validMessage))
       pending.current=null;setDraft('')
+      void command('dm_typing',roomId,null,teacher?{studentId,typing:false}:{typing:false}).catch(()=>{})
     }catch(e){
       setError(e instanceof Error&&e.message==='LIVE_ACCESS_REVOKED'?'Classroom access is no longer available.':'Not sent. Check your connection and retry.')
     }finally{setSending(false)}
+  }
+
+  function announceTyping(value:string){
+    if(status!=='active'||!online)return
+    const now=Date.now()
+    if(value.trim()&&now-lastTyping.current>=2600){
+      lastTyping.current=now
+      void command('dm_typing',roomId,null,teacher?{studentId,typing:true}:{typing:true}).catch(()=>{})
+    }else if(!value.trim()&&lastTyping.current>0){
+      lastTyping.current=0
+      void command('dm_typing',roomId,null,teacher?{studentId,typing:false}:{typing:false}).catch(()=>{})
+    }
   }
 
   const myRole=teacher?'teacher':'learner'
@@ -120,10 +136,11 @@ export function LivePrivateChat({roomId,teacher,recipient,status,command,onClose
         {m.sender===myRole&&<small>{m.readAt?'Read':m.deliveredAt?'Delivered':'Sent'}</small>}
       </div>)}
     </div>
+    {peerTyping&&<small role="status">{teacher?recipient?.name??'Learner':'Teacher'} is typing…</small>}
     {error&&<p role="alert">{error}</p>}
     {status==='ended'?<small>This class has ended. Messages are available for review only.</small>:
       <form onSubmit={e=>{e.preventDefault();void send()}}>
-        <label>Private message<textarea maxLength={1000} required value={draft} disabled={sending||!online||status!=='active'} onChange={e=>setDraft(e.target.value)} placeholder="Write a private message…"/></label>
+        <label>Private message<textarea maxLength={1000} required value={draft} disabled={sending||!online||status!=='active'} onChange={e=>{setDraft(e.target.value);announceTyping(e.target.value)}} placeholder="Write a private message…"/></label>
         <button className={styles.primary} disabled={sending||!online||status!=='active'||!draft.trim()}>{sending?'Sending…':'Send privately'}</button>
         {status==='paused'&&<small>Messages can be sent when the class resumes.</small>}
       </form>}
