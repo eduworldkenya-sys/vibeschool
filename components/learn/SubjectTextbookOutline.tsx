@@ -32,6 +32,15 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
     finish('loading')
     async function load() {
       try {
+        // Public Grade 4 curriculum is served by the same Learn textbook outline.
+        // This avoids a separate, unstyled reader and keeps guest access read-only.
+        if (grade === 'Grade 4' && ['christianreligiouseducation','creativearts'].includes(subjectKey(subject))) {
+          const response = await fetch('/api/learn/grade4-curriculum?subject=' + encodeURIComponent(subjectKey(subject)))
+          if (!response.ok) throw new Error('Public curriculum unavailable')
+          const payload = await response.json() as { rows: CurriculumOutlineRow[] }
+          if (active) finish('ready', payload.rows)
+          return
+        }
         const {data:metadata,error:metadataError}=await supabase.rpc('get_school_textbook_shell_metadata',{p_grade:grade,p_subject:subject})
         if (!active) return
         if (!metadataError && metadata && Array.isArray(metadata.rows)) return finish('ready',metadata.rows as CurriculumOutlineRow[])
@@ -109,7 +118,20 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
     if (state.scope !== scope || state.status !== 'ready' ||
         (grade === 'Grade 4' && subjectKey(subject) === subjectKey('Mathematics'))) return
     let active = true
-    const ids = [...new Set(state.rows.map(row => row.id).filter(Boolean))]
+    if (grade === 'Grade 4' && ['christianreligiouseducation','creativearts'].includes(subjectKey(subject))) {
+      let active = true
+      void (async () => {
+        const response = await fetch('/api/learn/grade4-curriculum?subject=' + encodeURIComponent(subjectKey(subject)))
+        if (!response.ok) return
+        const payload = await response.json() as { rows: Array<{id:string;learning_outcomes:string[]}> }
+        if (!active) return
+        const byUnit: Record<string,string[]> = {}
+        for (const row of payload.rows) byUnit[row.id] = row.learning_outcomes ?? []
+        setObjectives({scope,canonicalRows:null,byUnit})
+      })().catch(() => undefined)
+      return () => { active = false }
+    }
+        const ids = [...new Set(state.rows.map(row => row.id).filter(Boolean))]
     if (!ids.length) {
       setObjectives({scope,canonicalRows:null,byUnit:{}})
       return
