@@ -2,6 +2,45 @@
 -- existing canonical sub-strand and explicit active VibeSchool outcomes.
 -- This is planning, NOT source/KICD certification, publication or a timetable.
 -- No new curriculum identity or duplicated curriculum rows are created.
+-- Existing RLS only exposes verified outcomes and creator_claimed catalogues to
+-- authenticated teachers. These 129 + 64 owner-authored ACTIVE outcomes use
+-- different source types and would otherwise display as empty in the teacher
+-- Curriculum Map. Expose ONLY the two exact, source-scoped Grade 4 catalogues.
+-- Draft outcomes are intentionally excluded; this does not grant UPDATE/INSERT.
+drop policy if exists grade4_cre_ca_active_outcomes_read on public.curriculum_learning_outcomes;
+create policy grade4_cre_ca_active_outcomes_read
+on public.curriculum_learning_outcomes
+for select to authenticated
+using (
+  status='active'
+  and created_by is null
+  and (
+    (
+      source_type='publisher'
+      and source_ref='owner-approved:grade4-cre:2026-11-22'
+      and exists (
+        select 1 from public.cbc_strands c
+        where c.id=curriculum_learning_outcomes.sub_strand_id
+          and c.subject_id='8165d513-035b-4019-9fdb-5b86a27335a1'::uuid
+          and c.grade='Grade 4'
+          and c.source_ref='owner-approved:grade4-cre:2026-11-22'
+      )
+    )
+    or
+    (
+      source_type='generated'
+      and source_ref='https://cbcelimu.com/wp-content/uploads/2024/12/Grade-4-Creative-Arts-Curriculum-Design-May-2024-final.pdf#vibeschool-paraphrase-2026-11-22'
+      and exists (
+        select 1 from public.cbc_strands c
+        where c.id=curriculum_learning_outcomes.sub_strand_id
+          and c.subject_id='6d68b57c-565d-4a04-879d-c77f588d6404'::uuid
+          and c.grade='Grade 4'
+          and c.source_ref like '%#owner-paraphrase-2026-11-22'
+      )
+    )
+  )
+);
+
 create or replace function public.commit_grade4_cre_ca_scheme_lesson(
   p_class_id uuid,
   p_subject_id uuid,
