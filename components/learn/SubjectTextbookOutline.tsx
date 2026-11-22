@@ -161,7 +161,15 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
   const {groups,unmatched} = connectReadingEntries(learnerObjectives?.canonicalRows ?? current.rows, entries)
   const first = groups.flatMap(group=>group.topics.flatMap(topic=>topic.entries))[0] ?? unmatched[0]
   const resumed = currentReading.entries.find(entry=>entry.id===currentReading.resume)
-  const open = resumed ?? first
+  // A one-objective pilot is the first step for Grade 4 Mathematics, not a second
+  // publication authority. Preserve published chapter links and resume history.
+  const isGrade4Maths = grade === 'Grade 4' && subjectKey(subject) === subjectKey('Mathematics')
+  const pilotLesson: BookReadingEntry | null = isGrade4Maths ? {
+    id: 'g4-math-place-value-lesson-1-open-preview',
+    title: 'Lesson 1 · Place Value and Total Value',
+    href: '/learn/grade-4/mathematics/place-value',
+  } : null
+  const open = resumed ?? pilotLesson ?? first
   const pending = booksLoading || currentReading.loading || current.status === 'loading'
   const entryLink = (entry: BookReadingEntry, label = entry.title) =>
     <Link className={styles.bookTopicLink} key={entry.href} href={entry.href}><span>{label}</span><ChevronRight size={17} aria-hidden="true"/></Link>
@@ -171,7 +179,7 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
       <div className={styles.bookCover} aria-hidden="true"><span>VibeSchool</span><BookOpen size={28}/><strong>{subject}</strong><small>{grade}</small></div>
       <div className={styles.bookTitle}><div className={styles.kicker}>VibeSchool Originals</div><h1>{subject}</h1>
         <p>{grade} · Textbook</p>
-        {open ? <Link className={styles.buttonPrimary} href={open.href}>{resumed ? 'Continue reading' : 'Start reading'} <ArrowRight size={16}/></Link>
+        {open ? <Link className={styles.buttonPrimary} href={open.href}>{resumed ? 'Continue reading' : open === pilotLesson ? 'Start Lesson 1' : 'Start reading'} <ArrowRight size={16}/></Link>
           : <p role="status">{pending ? 'Opening book…' : 'Content coming soon'}</p>}
       </div>
     </header>
@@ -182,14 +190,15 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
         <div className={styles.bookTopics}>{group.topics.map(topic=>{
           const goals = learnerObjectives?.byUnit[topic.id] ?? []
           const relatedResources = releasedInteractiveResources.filter(item => item.subStrandId === topic.id)
+          const isPilotTopic = isGrade4Maths && topic.id === '0f130af0-8f3c-433a-a0df-453927dece7f'
           return <div key={topic.id} className={styles.bookTopicGroup}>
             {topic.strand && <small className={styles.tinyNote}>{topic.strand}</small>}
-            {topic.entries.length ? topic.entries.map((entry,i)=>entryLink(entry,i===0?topic.title:entry.title)) : <div className={styles.bookTopicPending}><span>{topic.title}</span><small>Coming soon</small></div>}
-            {grade.replace(/\s/g,'').toLowerCase()==='grade4' && subject.toLowerCase()==='mathematics' && topic.id==='0f130af0-8f3c-433a-a0df-453927dece7f' && <div className={styles.bookObjectivePreview} aria-label="Place Value first objective preview">
-              <strong>Place Value and Total Value</strong>
-              <Link className={styles.bookTopicLink} href="/learn/grade-4/mathematics/place-value">Read first objective · Open preview <ChevronRight size={17} aria-hidden="true"/></Link>
-              <small>Preview reading only · Official chapter review continues</small>
+            {isPilotTopic && <div className={styles.bookObjectivePreview} aria-label="Lesson 1 Place Value preview">
+              <strong>Lesson 1 · Place Value and Total Value</strong>
+              <Link className={styles.bookTopicLink} href="/learn/grade-4/mathematics/place-value">Read Lesson 1 · Open preview <ChevronRight size={17} aria-hidden="true"/></Link>
+              <small>One learning objective · Read, try and practise · Preview answers are not saved</small>
             </div>}
+            {topic.entries.length ? topic.entries.map((entry,i)=>entryLink(entry,isPilotTopic && i===0?'Published topic reading':i===0?topic.title:entry.title)) : !isPilotTopic ? <div className={styles.bookTopicPending}><span>{topic.title}</span><small>Coming soon</small></div> : null}
             {relatedResources.length > 0 && <div className={styles.bookObjectivePreview} aria-label={topic.title+' interactive resources'}>
               <strong>Explore this topic</strong>
               {relatedResources.map(item => <Link key={item.id} className={styles.bookTopicLink} href={certifiedResourceHref(item)}>{item.title}<ChevronRight size={17} aria-hidden="true"/></Link>)}
