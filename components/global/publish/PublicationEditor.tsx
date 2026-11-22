@@ -33,9 +33,10 @@ interface Props {
   authorId:       string
   format:         PublicationFormat
   publicationId?: string
+  simpleMode?: boolean
 }
 
-export function PublicationEditor({ authorId, format, publicationId }: Props) {
+export function PublicationEditor({ authorId, format, publicationId, simpleMode = false }: Props) {
   const router = useRouter()
   const meta   = FORMAT_META[format]
 
@@ -54,6 +55,9 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
   const [outcomesOpen,   setOutcomesOpen]   = useState(false)
   const [publishing,     setPublishing]     = useState(false)
   const [titleError,     setTitleError]     = useState(false)
+  const [checksOpen, setChecksOpen] = useState(false)
+  const [previewMode, setPreviewMode] = useState(false)
+  const [moreToolsOpen, setMoreToolsOpen] = useState(false)
 
   // Quick setup modal state
   const [quickSetup,     setQuickSetup]     = useState(false)
@@ -66,7 +70,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
 
   // Auto-open quick setup on first load for new publications
   useEffect(() => {
-    if (!loading && publication && !publicationId && !publication.title) {
+    if (!simpleMode && !loading && publication && !publicationId && !publication.title) {
       setQuickSetup(true)
     }
   }, [loading, publication, publicationId])
@@ -97,6 +101,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
     : 'Draft'
 
   const handlePublish = async () => {
+    // The replacement teacher interface cannot invoke legacy publishing.
+    if (simpleMode) return
     if (!publication?.title?.trim()) {
       setTitleError(true)
       titleInputRef.current?.focus()
@@ -131,6 +137,16 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
   }
 
   const activeChapter = chapters.find(c => c.id === activeChapterId) ?? null
+  const documentChecks = [
+    { label: 'Document title', ok: Boolean(publication?.title?.trim()), detail: 'Title required' },
+    { label: 'Curriculum fields', ok: format !== 'vibetextbook' || Boolean(publication?.cbc_subject?.trim() && publication?.cbc_grade?.trim()), detail: 'Choose subject and grade in Details' },
+    { label: 'Written content', ok: chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), detail: 'Write at least one content block' },
+    { label: 'Media and rights', ok: false, detail: 'Awaiting server verification' },
+    { label: 'Assessments and answers', ok: false, detail: 'Awaiting server verification' },
+    { label: 'Publishing authority', ok: false, detail: 'Duncan activation pending' },
+    { label: 'Learn visibility', ok: false, detail: 'Verified only after publication' },
+  ]
+  const checkedCount = documentChecks.filter(check => check.ok).length
 
   if (loading) return (
     <div style={{
@@ -191,6 +207,16 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
       minHeight: '100dvh', background: BG,
       display: 'flex', flexDirection: 'column',
       fontFamily: 'system-ui,-apple-system,sans-serif',
+      ...(simpleMode ? ({
+        '--publication-canvas': '#f6f7fa',
+        '--publication-surface': '#ffffff',
+        '--publication-text': '#152238',
+        '--publication-muted': '#64748b',
+        '--publication-accent': '#2563eb',
+        '--publication-on-accent': '#ffffff',
+        '--publication-border': '#e2e8f0',
+        '--publication-accent-border': '#93c5fd',
+      } as React.CSSProperties) : {}),
     }}>
 
       {/* ── Quick Setup Modal ── */}
@@ -279,14 +305,14 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         position: 'sticky', top: 0, zIndex: 100,
         background: 'var(--publication-surface, rgba(9,13,22,0.95))', backdropFilter: 'blur(12px)',
         borderBottom: '1px solid ' + BORDER,
-        padding: '0 16px', height: 52,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '8px 16px', minHeight: 52, boxSizing: 'border-box',
+        display: 'flex', flexWrap: simpleMode ? 'wrap' : 'nowrap', gap: 8, alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div onClick={() => router.back()} style={{
+          <button type="button" aria-label="Back" onClick={() => router.back()} style={{
             fontSize: 22, color: TEXT, cursor: 'pointer',
             fontWeight: 300, lineHeight: 1, padding: '4px 8px',
-          }}>‹</div>
+          }}>‹</button>
           <button onClick={() => setSidebarOpen(true)} style={{
             background: SURF, border: '1px solid ' + BORDER,
             borderRadius: 8, padding: '5px 10px',
@@ -294,7 +320,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
             <span>{meta.icon}</span>
-            <span>{chapters.length} {meta.chapterPlural}</span>
+            <span>{simpleMode ? 'Pages' : `${chapters.length} ${meta.chapterPlural}`}</span>
           </button>
         </div>
 
@@ -302,6 +328,14 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
           <span style={{ fontSize: 11, color: saving ? ACCENT : MUTED, fontWeight: 600 }}>
             {publishedReadOnly ? 'Published · read only' : saveLabel}
           </span>
+          {simpleMode && <>
+            <button type="button" onClick={() => setChecksOpen(value => !value)} aria-expanded={checksOpen} style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 9, padding: '7px 9px', color: TEXT, cursor: 'pointer', fontSize: 12 }}>
+              Checks {checkedCount}/{documentChecks.length}
+            </button>
+            <button type="button" onClick={() => setPreviewMode(value => !value)} style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 9, padding: '7px 9px', color: TEXT, cursor: 'pointer', fontSize: 12 }}>
+              {previewMode ? 'Edit' : 'Preview'}
+            </button>
+          </>}
           <button
             onClick={() => { if (!publishedReadOnly) setSetupOpen(true) }}
             disabled={publishedReadOnly}
@@ -312,18 +346,25 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
               cursor: publishedReadOnly ? 'default' : 'pointer',
             }}
           >
-            {publishedReadOnly ? 'Live' : 'Setup'}
+            {publishedReadOnly ? 'Live' : simpleMode ? 'Details' : 'Setup'}
           </button>
-          <button onClick={handlePublish} disabled={publishing || publishedReadOnly} style={{
-            background: publishing || publishedReadOnly ? 'var(--publication-accent-disabled, rgba(204,255,0,0.35))' : ACCENT,
-            color: 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
+          <button onClick={handlePublish} disabled={publishing || publishedReadOnly || simpleMode} title={simpleMode ? 'Publishing awaits Duncan activation and server checks' : undefined} style={{
+            background: publishing || publishedReadOnly || simpleMode ? '#e2e8f0' : ACCENT,
+            color: simpleMode ? '#475569' : 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
             padding: '7px 16px', fontSize: 13, fontWeight: 800,
             cursor: publishing || publishedReadOnly ? 'default' : 'pointer',
           }}>
-            {publishedReadOnly ? 'Published' : publishing ? 'Publishing…' : 'Publish'}
+            {publishedReadOnly ? 'Published' : publishing ? 'Publishing…' : simpleMode ? 'Publish · Locked' : 'Publish'}
           </button>
         </div>
       </header>
+
+      {simpleMode && checksOpen && <section aria-label="Document checks" style={{ background: SURF, borderBottom: '1px solid ' + BORDER, padding: '12px 16px', color: TEXT }}>
+        <p style={{ fontSize: 12, margin: '0 0 8px', color: MUTED }}>Draft checks are local only. Publication, security and Learn checks await verified server results.</p>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
+          {documentChecks.map(check => <li key={check.label} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13 }}><span aria-hidden="true">{check.ok ? '✓' : '○'}</span><strong>{check.label}</strong><span style={{ marginLeft: 'auto', color: MUTED }}>{check.ok ? 'Checked' : check.detail}</span></li>)}
+        </ul>
+      </section>}
 
       {error && (
         <div style={{
@@ -332,11 +373,23 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         }}>{error}</div>
       )}
 
+      {simpleMode && !publishedReadOnly && !previewMode && <nav aria-label="Insert content" style={{ display: 'flex', gap: 8, padding: '10px max(16px, calc((100% - 900px)/2))', alignItems: 'center', flexWrap: 'wrap', background: SURF, borderBottom: '1px solid ' + BORDER }}>
+        {([{label:'Text',type:'paragraph'}, {label:'Heading',type:'heading2'}, {label:'Image',type:'image'}, {label:'Table',type:'table'}, {label:'Question',type:'question'}] as const).map(action => <button key={action.type} type="button" onClick={() => addBlock(action.type, focusedBlockId ?? undefined)} style={{ background: '#f8fafc', color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>+ {action.label}</button>)}
+        <button type="button" aria-expanded={moreToolsOpen} onClick={() => setMoreToolsOpen(value => !value)} style={{ background: '#f8fafc', color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>More {moreToolsOpen ? '−' : '+'}</button>
+        {moreToolsOpen && <div style={{ flexBasis: '100%', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+          {([{label:'Activity',type:'activity'}, {label:'Worked example',type:'workedExample'}, {label:'Bullets',type:'bulletList'}, {label:'Diagram',type:'diagram'}, {label:'Interactive',type:'interactive'}] as const).map(action => <button key={action.type} type="button" onClick={() => {addBlock(action.type, focusedBlockId ?? undefined);setMoreToolsOpen(false)}} style={{ background: SURF, color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>{action.label}</button>)}
+        </div>}
+      </nav>}
+      {simpleMode && previewMode && <p role="status" style={{ textAlign: 'center', color: MUTED, fontSize: 12, margin: '10px 16px 0' }}>Page preview — editing paused. This is not a verified public Learn page.</p>}
       {/* Main */}
       <main style={{
-        flex: 1, padding: '16px',
-        paddingBottom: 160,
-        maxWidth: 680, margin: '0 auto',
+        flex: 1, padding: simpleMode ? '28px 24px' : '16px',
+        paddingBottom: simpleMode ? 80 : 160,
+        maxWidth: simpleMode ? 900 : 680, margin: simpleMode ? '20px auto' : '0 auto',
+        background: simpleMode ? SURF : 'transparent',
+        border: simpleMode ? '1px solid ' + BORDER : 'none',
+        borderRadius: simpleMode ? 12 : 0,
+        boxShadow: simpleMode ? '0 6px 26px rgba(15,23,42,.04)' : 'none',
         width: '100%', boxSizing: 'border-box',
       }}>
 
@@ -344,7 +397,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         <input
           ref={titleInputRef}
           value={publication.title || ''}
-          readOnly={publishedReadOnly}
+          readOnly={publishedReadOnly || previewMode}
           onChange={e => {
             updatePublication({ title: e.target.value })
             if (e.target.value.trim()) setTitleError(false)
@@ -368,7 +421,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
 
         <input
           value={publication.subtitle || ''}
-          readOnly={publishedReadOnly}
+          readOnly={publishedReadOnly || previewMode}
           onChange={e => updatePublication({ subtitle: e.target.value })}
           placeholder="Subtitle (optional)"
           style={{
@@ -393,7 +446,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
             </div>
             <input
               value={activeChapter.title || ''}
-              readOnly={publishedReadOnly}
+              readOnly={publishedReadOnly || previewMode}
               onChange={e => updateChapterTitle(activeChapter.id, e.target.value)}
               placeholder={`${meta.chapterLabel} title`}
               style={{
@@ -440,7 +493,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
                   key={block.id}
                   block={block}
                   format={format}
-                  readOnly={publishedReadOnly}
+                  readOnly={publishedReadOnly || previewMode}
+                  simpleMode={simpleMode}
                   isFocused={focusedBlockId === block.id}
                   onFocus={() => setFocusedBlockId(block.id)}
                   onUpdate={updated => updateBlock(updated.id, updated.content, updated.meta)}
@@ -454,7 +508,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         )}
       </main>
 
-      {!publishedReadOnly && (
+      {!publishedReadOnly && !simpleMode && !previewMode && (
         <BlockToolbar
           format={format}
           onAddBlock={type => addBlock(type, focusedBlockId ?? undefined)}
@@ -480,7 +534,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
           isOpen={setupOpen}
           onClose={() => setSetupOpen(false)}
           onUpdate={updatePublication}
-          onPublish={async () => { const ok = await publishPublication(); return ok }}
+          onPublish={async () => { if (simpleMode) return false; const ok = await publishPublication(); return ok }}
+          publishDisabled={simpleMode}
         />
       )}
 

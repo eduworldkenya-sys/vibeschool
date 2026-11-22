@@ -25,5 +25,5 @@ export default function ContentStudioEditorPage() {
   }, [router])
 
   if (!userId) return null
-  return <PublicationEditor authorId={userId} format={format} publicationId={publicationId} />
+  return <PublicationEditor authorId={userId} format={format} publicationId={publicationId} simpleMode />
 }
