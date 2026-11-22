@@ -29,7 +29,7 @@ const grade4CreOutline = [
 
 // Each summary is original VibeSchool wording based on the cited KICD sub-strand outcomes.
 // The KICD document, not this summary, is the authority for exact wording.
-const grade4CreLearningGoals: readonly (readonly string[])[] = [
+const grade4CreLearningGoals: readonly (readonly (readonly string[])[])[] = [
   [
     ['Say your name and explain how God made each person unique.', 'Recognise God as Creator and value yourself.'],
     ['Identify positive thoughts and feelings.', 'Use Philippians 4:4 and Ephesians 4:26 to handle emotions.'],
