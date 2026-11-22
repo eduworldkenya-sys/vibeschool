@@ -22,6 +22,7 @@ interface Props {
   onClose:     () => void
   onUpdate:    (patch: Partial<VibePublication>) => void
   onPublish:   () => Promise<boolean>
+  publishDisabled?: boolean
 }
 
 const GENRES: { value: PublicationGenre; label: string }[] = [
@@ -72,7 +73,7 @@ const CBC_GRADES: { value: CBCGrade; label: string }[] = [
   { value: 'form4',  label: 'Form 4'  },
 ]
 
-export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate, onPublish }: Props) {
+export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate, onPublish, publishDisabled = false }: Props) {
   const [publishing,    setPublishing]    = useState(false)
   const [success,       setSuccess]       = useState(false)
   const [uploadingCover,setUploadingCover]= useState(false)
@@ -161,6 +162,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
   const wasAlreadyLive = publication.status === 'published'
 
   const handlePublish = async () => {
+    if (publishDisabled) return
     if (!publication.title?.trim()) {
       setValidErr('Title is required')
       return
@@ -374,12 +376,12 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                   onChange={e => setTagInput(e.target.value)} onKeyDown={addTag} />
               </div>
 
-              <button onClick={handlePublish} disabled={publishing || uploadingCover} style={{
+              <button onClick={handlePublish} disabled={publishing || uploadingCover || publishDisabled} style={{
                 marginTop: 6, background: ACCENT, color: 'var(--publication-on-accent, #090D16)', border: 'none',
                 borderRadius: 12, padding: '13px 18px', fontSize: 14, fontWeight: 850,
                 cursor: publishing || uploadingCover ? 'default' : 'pointer',
-                opacity: publishing || uploadingCover ? 0.55 : 1,
-              }}>{publishing ? 'Publishing…' : wasAlreadyLive ? 'Update publication' : 'Publish'}</button>
+                opacity: publishing || uploadingCover || publishDisabled ? 0.55 : 1,
+              }}>{publishDisabled ? 'Publishing locked — Duncan activation pending' : publishing ? 'Publishing…' : wasAlreadyLive ? 'Update publication' : 'Publish'}</button>
             </div>
           </>
         )}
