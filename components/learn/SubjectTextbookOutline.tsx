@@ -185,7 +185,7 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
           return <div key={topic.id} className={styles.bookTopicGroup}>
             {topic.strand && <small className={styles.tinyNote}>{topic.strand}</small>}
             {topic.entries.length ? topic.entries.map((entry,i)=>entryLink(entry,i===0?topic.title:entry.title)) : <div className={styles.bookTopicPending}><span>{topic.title}</span><small>Coming soon</small></div>}
-            {grade.replace(/\\s/g,'').toLowerCase()==='grade4' && subject.toLowerCase()==='mathematics' && topic.id==='0f130af0-8f3c-433a-a0df-453927dece7f' && <div className={styles.bookObjectivePreview} aria-label="Place Value first objective preview">
+            {grade.replace(/\s/g,'').toLowerCase()==='grade4' && subject.toLowerCase()==='mathematics' && topic.id==='0f130af0-8f3c-433a-a0df-453927dece7f' && <div className={styles.bookObjectivePreview} aria-label="Place Value first objective preview">
               <strong>Place Value and Total Value</strong>
               <Link className={styles.bookTopicLink} href="/learn/grade-4/mathematics/place-value">Read first objective · Open preview <ChevronRight size={17} aria-hidden="true"/></Link>
               <small>Preview reading only · Official chapter review continues</small>
