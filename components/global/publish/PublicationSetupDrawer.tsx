@@ -381,7 +381,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                 borderRadius: 12, padding: '13px 18px', fontSize: 14, fontWeight: 850,
                 cursor: publishing || uploadingCover ? 'default' : 'pointer',
                 opacity: publishing || uploadingCover || publishDisabled ? 0.55 : 1,
-              }}>{publishDisabled ? 'Publishing locked — Duncan activation pending' : publishing ? 'Publishing…' : wasAlreadyLive ? 'Update publication' : 'Publish'}</button>
+              }}>{publishDisabled ? 'Publishing restricted — sign in as Mumbi2' : publishing ? 'Publishing…' : wasAlreadyLive ? 'Update publication' : 'Publish'}</button>
             </div>
           </>
         )}
