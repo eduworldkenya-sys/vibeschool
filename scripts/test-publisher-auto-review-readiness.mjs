@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs'
 const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8')
 const sql = read('supabase/migrations/20261122214000_publisher_auto_review_readiness.sql')
 const hook = read('hooks/usePublicationDraft.ts')
+const typedClient = read('lib/supabase.ts')
 
 test('author-scoped readiness cannot expose commissions to arbitrary readers', () => {
   assert.match(sql, /v_actor uuid := auth\.uid\(\)/)
@@ -31,6 +32,8 @@ test('publisher sees exact missing commissioning instead of human approval instr
   assert.match(hook, /publication_release_approval_required/)
   assert.match(hook, /publication_release_approval_stale/)
   assert.match(hook, /ce_get_publication_auto_review_state/)
+  assert.match(typedClient, /ce_get_publication_auto_review_state/)
+  assert.match(hook, /p_publication_id: originalPub.id/)
   assert.match(hook, /No human sign-off is required/)
   assert.match(hook, /qualified independent machine reviewer must be authorized/)
   assert.match(hook, /draft is saved and private/)
