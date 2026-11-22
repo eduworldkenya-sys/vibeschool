@@ -1,0 +1,43 @@
+/* Grade 4 Time's canonical light lesson shell is imported by the reader.
+   This file styles only released Place Value blocks inside that shell. */
+.blockBody{font-size:16px;line-height:1.83;color:#294537;overflow-wrap:anywhere}
+.blockBody > * + *{margin-top:16px}
+.richText{font-size:inherit;line-height:inherit;max-width:100%;overflow-x:auto}
+.richText p{margin:0 0 13px}
+.richText p:last-child{margin-bottom:0}
+.richText strong,.richText b{font-weight:800}
+.richText ul,.richText ol{margin:10px 0 16px;padding-left:26px}
+.richText li{margin:5px 0}
+.richText table{width:100%;border-collapse:collapse;min-width:350px;margin:12px 0 18px;font-size:14px;background:#fff}
+.richText th,.richText td{border:1px solid #dbe9de;padding:9px 11px;text-align:left;vertical-align:top}
+.richText th{background:#e7f4eb;color:#1c5137;font-weight:800}
+.richText a{color:#126745;text-decoration:underline}
+.richText img{display:block;max-width:100%;height:auto}
+.subheading{font:850 clamp(18px,2.6vw,22px)/1.35 'Bricolage Grotesque',system-ui,sans-serif;color:#1b5239;letter-spacing:-.35px;margin:20px 0 12px}
+.smallHeading{font-size:16px;line-height:1.5;font-weight:850;color:#29563c;margin:15px 0 9px}
+.list{padding-left:25px;margin:9px 0 16px}
+.list li{padding:3px 0}
+.question{padding:15px 17px;background:#fff;border:1px solid #d9e4ee;border-left:4px solid #4c89c5;border-radius:0 12px 12px 0;color:#234a6f;line-height:1.7}
+.question strong{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#285c8e}
+.question p{margin:6px 0 0;font-weight:740;font-size:16px}
+.rule{height:1px;background:#e2ebdf;border:0;margin:20px 0}
+.answerReveal{border:1px solid #cbe4d1;background:#f7fbf8;border-radius:12px;overflow:hidden;margin-top:18px}
+.answerReveal summary{min-height:46px;padding:13px 16px;cursor:pointer;font-weight:800;font-size:14px;color:#176b49}
+.answerReveal summary:focus-visible{outline:3px solid #72bd91;outline-offset:-3px}
+.answerBody{border-top:1px solid #dae9df;padding:15px 17px}
+.goalList{padding-left:21px;margin:5px 0 0;color:#1b4c34;font-size:14px;font-weight:680;line-height:1.72}
+.goalList li{margin:3px 0}
+.chartWrap{margin:17px 0 8px;padding:0 clamp(12px,2vw,21px)}
+.chartWrap :global(.chart){background:#f5f9f6}
+.lessonCurrent{text-decoration:none;cursor:pointer}
+.fullReaderLink{display:flex;align-items:flex-start;gap:7px;color:#547262;font-size:12px;line-height:1.7;margin:12px 0 0}
+.fullReaderLink svg{flex:none;margin-top:2px}
+.fullReaderLink a{color:#11613f;font-weight:850;text-underline-offset:2px}
+.largeType .blockBody{font-size:19px;line-height:1.95}
+.largeType .question p{font-size:19px}
+.largeType .richText table{font-size:17px}
+.largeType .goalList{font-size:16px}
+@media(max-width:700px){.chartWrap{padding:0 10px}.blockBody{font-size:16px}.richText table{min-width:330px}}
+@media(max-width:450px){.fullReaderLink{display:block}.fullReaderLink svg{display:inline;vertical-align:-3px;margin-right:5px}.goalList{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.lessonCurrent{scroll-behavior:auto}}
+@media print{.chartWrap,.fullReaderLink{display:none}}
