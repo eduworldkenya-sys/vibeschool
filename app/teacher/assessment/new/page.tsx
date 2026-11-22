@@ -9,6 +9,7 @@ import { addDraftItem, completeLessonAssessmentGeneration, failLessonAssessmentG
 import type { AutoMarkingMode, QuestionType } from '@/lib/assessment'
 import { resolveLessonOutcomeAuthority } from '@/lib/teaching/lessonOutcomeAuthority'
 import type { LessonOutcomeRef } from '@/lib/teaching/lessonOutcomeAuthority'
+import { parseLessonPlanBody } from '@/lib/teaching/lessonPlanCodec'
 
 type StudioType = 'exercise' | 'quiz' | 'homework' | 'test'
 type LessonTruth = { body: string; classId: string; subjectId: string; outcomes: LessonOutcomeRef[] }
@@ -22,23 +23,33 @@ async function rpc<T>(name: string, args: Record<string, unknown>): Promise<RpcR
 
 const LABEL: Record<StudioType, string> = { exercise: 'Class Exercise', quiz: 'Quick Quiz', homework: 'Homework', test: 'CAT' }
 const SPEC: Record<StudioType, { minutes: number | null; purpose: string }> = {
-  exercise: { minutes: 25, purpose: 'Guided practice on today’s taught outcomes.' },
-  quiz: { minutes: 15, purpose: 'A short independent mastery check.' },
+  exercise: { minutes: 25, purpose: 'The class exercise saved in this lesson.' },
+  quiz: { minutes: 15, purpose: 'The quick assessment saved in this lesson.' },
   homework: { minutes: null, purpose: 'Independent reinforcement using a certified homework task.' },
   test: { minutes: 40, purpose: 'Formal cumulative assessment across completed teaching.' },
 }
 
-function section(body: string, name: string): string { return body.match(new RegExp(`<${name}>([\\s\\S]*?)<\\/${name}>`, 'i'))?.[1]?.trim() ?? '' }
-function question(prompt: string, marks: number, bloomLevel: string, difficulty: 'easy' | 'medium' | 'hard', outcomes: string[]): DraftQuestion { return { prompt, marks, questionType: 'structured', autoMarkingMode: 'none', difficulty, bloomLevel, outcomeTexts: outcomes } }
+function question(prompt: string, marks: number, bloomLevel: string, difficulty: 'easy' | 'medium' | 'hard', outcomes: string[]): DraftQuestion {
+  return { prompt, marks, questionType: 'structured', autoMarkingMode: 'none', difficulty, bloomLevel, outcomeTexts: outcomes }
+}
 
+/**
+ * Never manufacture an exercise by converting an outcome statement into a question.
+ * The task text is copied from the saved lesson's appropriate teaching section.
+ * Teacher review is still required before learners receive it.
+ */
 function questionsFor(type: StudioType, body: string, outcomeRefs: LessonOutcomeRef[]): DraftQuestion[] {
-  const outcomes = outcomeRefs.map(outcome => outcome.text)
-  if (!outcomes.length || type === 'test') return []
-  if (type === 'exercise') return outcomes.map((outcome, index) => question(`${outcome} Use relevant lesson evidence or an example where appropriate.`, index === 0 ? 2 : 4, index === 0 ? 'understand' : 'apply', index === 0 ? 'easy' : 'medium', [outcome]))
-  if (type === 'quiz') return outcomes.slice(0, 3).map((outcome, index) => question(outcome, index === 0 ? 2 : 3, index === 0 ? 'remember' : 'understand', index === 0 ? 'easy' : 'medium', [outcome]))
-  const homework = section(body, 'homework')
-  if (!homework || /no certified homework task|do not invent/i.test(homework)) return []
-  return [question(homework, 10, 'apply', 'medium', outcomes)]
+  if (type === 'test' || outcomeRefs.length === 0) return []
+  const sections = parseLessonPlanBody(body)
+  if (!sections) return []
+  const task = (type === 'exercise'
+    ? sections.consolidation
+    : type === 'quiz'
+      ? sections.assessmentHook
+      : sections.homework).trim()
+  if (!task || /no certified homework task|do not invent/i.test(task)) return []
+  const marks = type === 'homework' ? 10 : type === 'quiz' ? 5 : 10
+  return [question(task, marks, 'apply', 'medium', outcomeRefs.map(outcome => outcome.text))]
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -106,8 +117,8 @@ function Studio() {
     setSaving(true); setError(''); let assessmentId: string | null = null
     try {
       const outcomeRefs = lesson.outcomes
-      const metadata = { generator_version: 'curriculum-outcome-assessment-v4', ai_used: false, source: 'authoritative_lesson_body', authority: 'linked_scheme_curriculum_learning_outcomes', blueprint: { question_count: questions.length, estimated_minutes: SPEC[type].minutes, outcome_count: outcomeRefs.length, difficulty_progression: questions.map(item => item.difficulty), bloom_distribution: questions.map(item => item.bloomLevel) } }
-      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_grounded_lesson_assessment', { p_lesson_plan_id: lessonPlanId, p_assessment_type: type, p_request_key: `lesson:${lessonPlanId}:${type}:v4`, p_title: `${LABEL[type]} — lesson outcomes`, p_generation_metadata: metadata })
+      const metadata = { generator_version: 'curriculum-outcome-assessment-v4', ai_used: false, source: 'authoritative_lesson_body', source_section: type === 'exercise' ? 'consolidation' : type === 'quiz' ? 'assessmentHook' : 'homework', authority: 'linked_scheme_curriculum_learning_outcomes', blueprint: { question_count: questions.length, estimated_minutes: SPEC[type].minutes, outcome_count: outcomeRefs.length, difficulty_progression: questions.map(item => item.difficulty), bloom_distribution: questions.map(item => item.bloomLevel) } }
+      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_grounded_lesson_assessment', { p_lesson_plan_id: lessonPlanId, p_assessment_type: type, p_request_key: `lesson:${lessonPlanId}:${type}:v4:lesson-task`, p_title: `${LABEL[type]} — saved lesson task`, p_generation_metadata: metadata })
       if (prepareError) throw new Error(prepareError.message ?? 'Assessment preparation failed.')
       const prepared = record(data, 'Grounded assessment preparation')
       if (typeof prepared.assessment_id !== 'string') throw new Error('Grounded assessment preparation did not return an assessment ID.')
@@ -118,7 +129,7 @@ function Studio() {
           const itemId = await addDraftItem({ assessmentId, questionType: item.questionType, prompt: item.prompt, marks: item.marks, orderNum: index + 1, acceptedAnswers: [], correctAnswer: null, autoMarkingMode: item.autoMarkingMode, difficulty: item.difficulty, bloomLevel: item.bloomLevel, generatedBy: 'curriculum_outcome_material' })
           await linkItemOutcomes(itemId, item.outcomeTexts, outcomeRefs)
         }
-        await completeLessonAssessmentGeneration({ assessmentId, itemCount: questions.length, totalMarks, estimatedMinutes: SPEC[type].minutes, generationMetadata: { ...metadata, generated_from: 'authoritative_lesson_body', teacher_review_required: true } })
+        await completeLessonAssessmentGeneration({ assessmentId, itemCount: questions.length, totalMarks, estimatedMinutes: SPEC[type].minutes, generationMetadata: { ...metadata, generated_from: 'saved_lesson_task', teacher_review_required: true } })
       }
       router.push(advanced ? `/teacher/assessment/builder/${assessmentId}` : `/teacher/assessment/review/${assessmentId}`)
     } catch (cause) {
@@ -128,16 +139,16 @@ function Studio() {
   }
 
   if (!lessonPlanId) return <section style={page}><section style={card}><h1>Lesson Materials</h1><p>Open materials from a saved lesson plan.</p></section></section>
-  const blocked = authorityMessage || (type === 'homework' ? 'No certified homework is attached. VibeSchool will not invent one.' : type === 'test' ? 'CAT is cumulative. It is built from outcomes across completed teaching, not cloned from this one lesson.' : 'Automatic generation is blocked because authoritative lesson outcomes are unavailable.')
+  const blocked = authorityMessage || (type === 'homework' ? 'No certified homework task is saved in this lesson. Add one to the lesson first.' : type === 'exercise' ? 'No exercise is saved in Check understanding. Add an exercise to this lesson first.' : type === 'quiz' ? 'No question is saved in Quick assessment. Add a question to this lesson first.' : 'CAT uses several completed lessons, not one lesson.')
   return <section style={page}><div style={{ maxWidth: 760, margin: '0 auto' }}>
     <button type="button" onClick={() => router.back()} style={secondary}>← Back to lesson</button>
     <section style={card}>
-      <div style={eyebrow}>{lesson ? 'Prepared assessment pack · No AI' : 'Assessment setup required'}</div>
-      <h1>{lesson ? 'Ready from authoritative lesson outcomes' : 'Assessment not ready yet'}</h1>
+      <div style={eyebrow}>{lesson ? 'Lesson work · No AI' : 'Assessment setup required'}</div>
+      <h1>{lesson ? 'From this lesson' : 'Assessment not ready yet'}</h1>
       <p style={{ color: "var(--teacher-muted, #627168)" }}>
         {lesson
-          ? 'Curriculum outcomes—not activity labels—drive generated work. Advanced authoring is optional.'
-          : 'This lesson must have verified Scheme → curriculum → learning outcome authority before VibeSchool can generate assessed work.'}
+          ? 'Uses the saved lesson task, not a question invented from its objectives. Review before assigning.'
+          : 'Open a saved lesson with linked learning outcomes and a suitable exercise or question.'}
       </p>
     </section>
     <section style={card}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>{(Object.keys(LABEL) as StudioType[]).map(materialType => <button key={materialType} type="button" onClick={() => setType(materialType)} style={{ padding: 14, borderRadius: 12, border: type === materialType ? '2px solid #4338ca' : '1px solid #d1d5db', background: type === materialType ? '#eef2ff' : '#fff', fontWeight: 800 }}>{LABEL[materialType]}</button>)}</div></section>
