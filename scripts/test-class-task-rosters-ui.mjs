@@ -90,7 +90,7 @@ for(const [label,entry,list] of [
  await waitFor(()=>assert(screen.getByText('Investigation')))
  if(label==='exercises'){
    const color=window.getComputedStyle(screen.getByRole('button',{name:/Delete/})).color
-   const channels=color.match(/[\\d.]+/g).slice(0,3).map(Number).map(value=>{const c=value/255;return c<=0.04045?c/12.92:((c+0.055)/1.055)**2.4})
+   const channels=color.match(/[\d.]+/g).slice(0,3).map(Number).map(value=>{const c=value/255;return c<=0.04045?c/12.92:((c+0.055)/1.055)**2.4})
    const luminance=channels[0]*0.2126+channels[1]*0.7152+channels[2]*0.0722
    assert(1.05/(luminance+0.05)>=4.5,'Delete text must meet WCAG AA contrast on its white card')
  }
