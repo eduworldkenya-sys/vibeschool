@@ -63,6 +63,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
 
   const firstBlockFocused = useRef(false)
   const titleInputRef     = useRef<HTMLInputElement>(null)
+  const checklistRef = useRef<HTMLDetailsElement>(null)
 
   // Auto-open quick setup on first load for new publications
   useEffect(() => {
@@ -96,7 +97,17 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
     ? 'Saved ' + lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : 'Draft'
 
+  const showIncompleteChecks = () => {
+    if (checklistRef.current) {
+      checklistRef.current.open = true
+      checklistRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   const handlePublish = async () => {
+    if (!publication?.title?.trim() || (publication.format === 'vibetextbook' && (!publication.cbc_subject?.trim() || !publication.cbc_grade?.trim())) || chapters.length === 0 || chapters.some(chapter => !chapter.title?.trim() || !chapter.blocks.some(block => Boolean(block.content?.trim())))) {
+      showIncompleteChecks()
+    }
     if (!publication?.title?.trim()) {
       setTitleError(true)
       titleInputRef.current?.focus()
@@ -120,7 +131,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
     setPublishing(true)
     const ok = await publishPublication()
     setPublishing(false)
-    if (ok) router.push('/global/creator/' + authorId)
+    if (ok) router.push('/teacher/studio')
   }
 
   const handleQuickSetupDone = () => {
@@ -194,7 +205,11 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
       { label: 'Grade', complete: Boolean(publication.cbc_grade?.trim()), action: () => setSetupOpen(true) },
     ] : []),
     { label: 'Chapter', complete: chapters.length > 0, action: () => { if (!publishedReadOnly) addChapter() } },
-    { label: 'Content', complete: chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), action: () => { if (!publishedReadOnly && activeChapter) addBlock('paragraph') } },
+    { label: 'Chapter titles', complete: chapters.length > 0 && chapters.every(chapter => Boolean(chapter.title?.trim())), action: () => { const incomplete = chapters.find(chapter => !chapter.title?.trim()); if (incomplete) setActiveChapterId(incomplete.id) } },
+    { label: 'Content in every chapter', complete: chapters.length > 0 && chapters.every(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), action: () => {
+      const incomplete = chapters.find(chapter => !chapter.blocks.some(block => Boolean(block.content?.trim())))
+      if (incomplete) setActiveChapterId(incomplete.id)
+    } },
   ]
   const completedCreationChecks = creationChecks.filter(check => check.complete).length
 
@@ -346,7 +361,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
 
       {/* Compact creation checklist: checked states come from actual editor data. */}
       <section aria-label="Content creation checklist" style={{ maxWidth: 680, width: '100%', margin: '12px auto 0', padding: '0 16px', boxSizing: 'border-box' }}>
-        <details style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 12, padding: '10px 12px' }}>
+        <details ref={checklistRef} style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 12, padding: '10px 12px' }}>
           <summary style={{ cursor: 'pointer', color: TEXT, fontSize: 13, fontWeight: 750 }}>
             Content checks · {completedCreationChecks}/{creationChecks.length} complete
           </summary>
@@ -358,7 +373,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
                 {!check.complete && !publishedReadOnly && <button type="button" onClick={check.action} style={{ border: '1px solid ' + BORDER, background: SURF, color: TEXT, borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 12 }}>Fix</button>}
               </div>
             ))}
-            <small style={{ color: MUTED }}>Publishing may require additional automatic checks.</small>
+            <small style={{ color: MUTED }}>This checks your draft. The publisher also checks content quality and access automatically.</small>
           </div>
         </details>
       </section>
