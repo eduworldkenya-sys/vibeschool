@@ -69,6 +69,13 @@ async function noPageOverflow(p){
  assert.ok(sizes[0]<=sizes[1]+1,'Page overflow: '+sizes.join('/'))
 }
 async function join(p){await p.getByRole('button',{name:/Browser lesson/}).click();await dialog(p).waitFor()}
+async function assertStageUsesViewport(p,minHeightRatio){
+ const bounds=await p.getByLabel('Shared lesson',{exact:true}).evaluate(el=>{
+   const r=el.getBoundingClientRect();return {width:r.width,height:r.height,viewportWidth:innerWidth,viewportHeight:innerHeight}
+ })
+ assert.ok(bounds.width/bounds.viewportWidth>0.93,'Reading stage must use the device width: '+JSON.stringify(bounds))
+ assert.ok(bounds.height/bounds.viewportHeight>minHeightRatio,'Reading stage must dominate the device height: '+JSON.stringify(bounds))
+}
 try{
  const teacher=await open('teacher',1280,800),t=teacher.page
  await button(t,'My presentations').click()
@@ -85,6 +92,9 @@ try{
  await dialog(t).waitFor()
  await t.getByRole('button',{name:'Microphone off'}).waitFor()
  assert.equal(await t.getByRole('button',{name:'Microphone off'}).isDisabled(),true,'Voice feature gate must keep the mic unavailable')
+ await assertStageUsesViewport(t,0.68)
+ assert.equal(await button(t,'Slides').count(),0,'Optional tools should be closed until requested')
+ await button(t,'Tools').click()
  await button(t,'Slides').click()
  await t.getByLabel('Title',{exact:true}).waitFor()
  assert.equal(await t.getByLabel('Title',{exact:true}).inputValue(),'Equivalent fractions')
@@ -103,11 +113,13 @@ try{
  await see(l,'Three quarters')
  await button(t,'Previous slide').click();await see(l,'Equivalent fractions')
  await button(t,'Next slide').click();await see(l,'Three quarters')
- await t.getByText('Draft saved',{exact:true}).waitFor()
+ await t.getByRole('status').filter({hasText:'Draft saved'}).waitFor({state:'attached'})
  const sid=new URL(t.url()).searchParams.get('resumeRoom')
  assert.ok(sid)
  const recovered=await open('teacher',360,780,'?resumeRoom='+sid)
  await dialog(recovered.page).waitFor()
+ await assertStageUsesViewport(recovered.page,0.62)
+ await button(recovered.page,'Tools').click()
  await button(recovered.page,'Slides').click()
  assert.equal(await recovered.page.getByLabel('Title',{exact:true}).inputValue(),'Three quarters')
  await noPageOverflow(recovered.page)
