@@ -369,7 +369,22 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
         try { await persist() } catch { /* preserve the original error below */ }
         try { await rollbackPromotedMedia(sb, promoted) } catch { /* orphan cleanup can be retried independently */ }
       }
-      setError(publishError instanceof Error ? publishError.message : 'Publication failed')
+      const reason = publishError instanceof Error ? publishError.message : 'Publication failed'
+      if (reason.includes('publication_release_approval_required') || reason.includes('publication_release_approval_stale')) {
+        // Publisher-facing status comes from the current server, not a fictitious
+        // human HQ approval or a fabricated machine-review receipt.
+        const { data: reviewState, error: statusError } = await sb.rpc('ce_get_publication_auto_review_state', {
+          p_publication_id: preparedPub.id,
+        })
+        const machineReady = !statusError && reviewState && typeof reviewState === 'object'
+          && !Array.isArray(reviewState) && 'machine_review_commissioned' in reviewState
+          && reviewState.machine_review_commissioned === true
+        setError(machineReady
+          ? 'Independent automated review is still pending for this exact textbook version. No human sign-off is required. The draft is safe and private until review passes.'
+          : 'Automated publishing review is not commissioned for this textbook. No human sign-off is required, but a qualified independent machine reviewer must be authorized before release. This draft is saved and private.')
+      } else {
+        setError(reason)
+      }
       return false
     }
   }, [forceSave, persist])
