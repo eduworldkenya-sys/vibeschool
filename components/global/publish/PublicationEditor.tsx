@@ -60,6 +60,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
   const [moreToolsOpen, setMoreToolsOpen] = useState(false)
   const [blockerHelp, setBlockerHelp] = useState<string | null>(null)
   const [jumpBlockId, setJumpBlockId] = useState<string | null>(null)
+  const [insertTarget, setInsertTarget] = useState<'paragraph' | 'image' | 'question' | null>(null)
 
   // Quick setup modal state
   const [quickSetup,     setQuickSetup]     = useState(false)
@@ -162,6 +163,15 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     setJumpBlockId(null)
   }, [jumpBlockId, activeChapter])
 
+  useEffect(() => {
+    if (!insertTarget || previewMode) return
+    const element = document.getElementById('studio-insert-' + insertTarget)
+    if (!element) return
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    element.focus()
+    setInsertTarget(null)
+  }, [insertTarget, previewMode])
+
   const openBlock = (type: 'paragraph' | 'image' | 'question') => {
     setPreviewMode(false)
     setChecksOpen(false)
@@ -176,8 +186,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     if (activeChapter) {
       setActiveChapterId(activeChapter.id)
       // Do not create media/questions automatically; use the existing Insert control.
-      document.getElementById('studio-insert-' + type)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      document.getElementById('studio-insert-' + type)?.focus()
+      setInsertTarget(type)
     } else {
       setSidebarOpen(true)
       setBlockerHelp('Select or add a chapter before inserting content.')
