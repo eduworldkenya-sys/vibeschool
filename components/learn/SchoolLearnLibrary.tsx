@@ -189,6 +189,11 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const activeName = subjectNames.find(name => subjectKey(name) === subjectKey(selectedSubject))
   const activeBooks = gradeBooks.filter(book => subjectKey(book.cbc_subject) === subjectKey(activeName))
   const activeReaders = activeName ? readersForSubject(grade, activeName) : []
+  // Reuse the existing reader catalogue so the released pilot is discoverable
+  // from Learn itself without a duplicate lesson or publication record.
+  const grade4MathsLesson = grade === 'Grade 4'
+    ? readersForSubject(grade, 'Mathematics').find(reader => reader.href === '/learn/grade-4/mathematics/place-value')
+    : undefined
   const filteredGroups = subjectGroups.map(group => ({
     ...group,
     subjects: group.subjects.filter(name => {
@@ -244,6 +249,19 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                     onClick={() => setTab(id)}><Icon size={15} aria-hidden="true"/> {label}</button>)}
               </div>
               {tab === 'lessons' && <section role="tabpanel" aria-label="Textbook">
+                {activeReaders.length > 0 && <section className={styles.detailPanel} aria-label="Available subject lessons">
+                  <h2>Lessons</h2>
+                  <div className={styles.resourceList}>
+                    {activeReaders.map(reader => <Link className={styles.resource} key={reader.href} href={reader.href}>
+                      <span className={styles.resourceIcon}><BookOpen size={21} aria-hidden="true"/></span>
+                      <span className={styles.resourceBody}>
+                        <strong>{reader.title}</strong>
+                        <p>{reader.subtitle}</p>
+                      </span>
+                      <ChevronRight size={18} aria-hidden="true"/>
+                    </Link>)}
+                  </div>
+                </section>}
                 <SubjectTextbookOutline grade={grade} subject={activeName}
                   books={activeBooks.map(book => ({id:book.id,title:book.title,href:`/read/textbook/${encodeURIComponent(book.id)}`}))}
                   readers={activeReaders} booksLoading={booksLoading} booksError={booksError || catalogueTruncated}/>
@@ -279,6 +297,14 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
               <div className={styles.continueText}><strong>{grade} learning library</strong><span>Find approved lessons by subject, revisit textbooks and learn at your own pace.</span></div>
               <Link className={styles.buttonPrimary} href="/student/study">My learning <ArrowRight size={16} /></Link>
             </section>
+            {grade4MathsLesson && <section className={styles.continueCard} aria-label="Grade 4 Mathematics available lesson">
+              <span className={styles.continueIcon}><Calculator size={28} aria-hidden="true"/></span>
+              <div className={styles.continueText}>
+                <strong>Mathematics · Lesson 1: {grade4MathsLesson.title}</strong>
+                <span>Learn place value, explore the interactive chart and move into practice.</span>
+              </div>
+              <Link className={styles.buttonPrimary} href={grade4MathsLesson.href}>Open Lesson 1 <ArrowRight size={16}/></Link>
+            </section>}
             <nav className={styles.linksRow} aria-label="Continue to Practice">
               <Link className={styles.buttonSecondary} href="/student/vibelearn/topic-practice">Already learned a topic? Open Practice <ArrowRight size={15}/></Link>
             </nav>

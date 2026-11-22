@@ -36,7 +36,10 @@ assert.equal(subjectKey('Creative Arts and Sports'), subjectKey('Creative Arts')
 assert.equal(subjectKey('Agriculture and Nutrition'), subjectKey('Agriculture'))
 assert.deepEqual(groupsForAvailableSubjects('Grade 4', ['Mathematics', 'Extra Subject']).flatMap(group => group.subjects), ['Mathematics', 'Extra Subject'],
   'Canonical registered subjects must not be silently dropped')
-assert.equal(readersForSubject('Grade 4','Mathematics')[0]?.href, '/learn/grade-4/mathematics/time')
+assert.equal(readersForSubject('Grade 4','Mathematics')[0]?.href, '/learn/grade-4/mathematics/place-value',
+  'Published Grade 4 Maths Lesson 1 must be the first discoverable Learn reader')
+assert.ok(readersForSubject('Grade 4','Mathematics').some(reader => reader.href === '/learn/grade-4/mathematics/time'),
+  'Existing Grade 4 Time reader remains available')
 assert.equal(readersForSubject('Grade 1','Creative Activities')[0]?.href, '/learn/grade-1/creative-activities')
 assert.equal(readersForSubject('Grade 8','Mathematics').length, 0, 'No fictitious certified reader')
 assert.match(ui, /\.eq\('status', 'published'\)/, 'Only published books')
@@ -48,6 +51,12 @@ assert.match(ui, /\.eq\('grade', grade\)/, 'Use the canonical subject authority'
 assert.match(ui, /role="tablist"/, 'Subject tabs must remain accessible')
 assert.match(ui, /aria-label="Choose grade"/, 'Grade selector must have an accessible name')
 assert.match(ui, /href=\{reader\.href\}/, 'Do not rebuild protected lesson routes')
+assert.match(ui, /grade4MathsLesson && <section/, 'Learn Grade 4 landing must display Lesson 1')
+assert.match(ui, /href=\{grade4MathsLesson\.href\}/, 'Grade 4 Learn landing opens the registered lesson')
+assert.match(ui, /activeReaders\.map\(reader => <Link className=\{styles\.resource\}/,
+  'Subject Learn shows lesson links before the collapsible textbook')
+assert.match(ui, /aria-label="Available subject lessons"/)
+assert.match(catalog, /title: 'Place Value and Total Value'/)
 assert.match(ui, /encodeURIComponent\(book\.id\)/, 'Canonical textbook identity must be safely encoded')
 assert.doesNotMatch(ui, /service_role|certified_at\s*=/, 'Browser library must not bypass release controls')
 assert.match(css, /@media\(max-width:620px\)/, 'Mobile layout must be present')
