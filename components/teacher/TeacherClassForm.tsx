@@ -20,6 +20,9 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
   const router = useRouter()
   const [grade, setGrade] = useState('')
   const [stream, setStream] = useState('')
+  const [existing, setExisting] = useState<{id:string;name:string;stream:string|null}[]>([])
+  const [existingLoading,setExistingLoading] = useState(false)
+  const [existingChoice,setExistingChoice] = useState('new')
   const [subject, setSubject] = useState('')
   const [levels, setLevels] = useState<string[]>([])
   const [subjects, setSubjects] = useState<string[]>([])
@@ -71,6 +74,21 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
   }, [schoolId, retryNonce])
 
   useEffect(() => {
+    let cancelled=false
+    setExisting([]);setExistingChoice('new');setStream('')
+    if(!grade||authorityState!=='ready')return
+    setExistingLoading(true)
+    void (async()=>{
+      const r=await supabase.rpc('teacher_list_existing_grade_classes' as never,{p_school_id:schoolId,p_grade:grade} as never)
+      if(cancelled)return
+      if(r.error){setError('Could not check existing classes. Retry before adding.');setExistingChoice('unavailable')}
+      else {const rows=(r.data??[]) as {id:string;name:string;stream:string|null}[];setExisting(rows);setExistingChoice(rows.length?'':'new')}
+      setExistingLoading(false)
+    })()
+    return ()=>{cancelled=true}
+  },[grade,schoolId,authorityState])
+
+  useEffect(() => {
     let cancelled = false
     setSubject('')
     setSubjects([])
@@ -104,14 +122,14 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
     setError('')
     if (!grade || !levels.includes(grade)) { setError('Select a valid level for this school.'); return }
     if (!subject || !subjects.includes(subject)) { setError('Select a subject valid for this level.'); return }
-    if (!schoolId || loading) return
+    if (!schoolId || loading || existingLoading || existingChoice==='' || existingChoice==='unavailable') return
 
     setLoading(true)
     try {
     const { data: classId, error: rpcError } = await supabase.rpc('create_teacher_class_assignment' as never, {
       p_school_id: schoolId,
       p_grade: grade,
-      p_stream: stream.trim(),
+      p_stream: existingChoice==='new'?stream.trim():(existing.find(c=>c.id===existingChoice)?.stream??''),
       p_subject: subject,
       p_is_class_teacher: role === 'class_teacher',
     } as never) as { data: string | null; error: { message: string } | null }
@@ -150,9 +168,16 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
           {levels.map(level => <option key={level} value={level}>{level}</option>)}
         </select>
       </label>
-      <label style={{ fontSize: 12, fontWeight: 800, color: C.textMuted }}>Stream <span style={{ fontWeight: 500 }}>(optional)</span>
+      {grade && <label style={{fontSize:12,fontWeight:800,color:C.textMuted}}>Existing {grade} class
+        <select value={existingChoice} onChange={e=>{setExistingChoice(e.target.value);setStream('')}} disabled={disabled||existingLoading} style={inputStyle}>
+          <option value="">{existingLoading?'Checking school classes…':'Select class'}</option>
+          {existing.map(c=><option key={c.id} value={c.id}>{c.name}{c.stream?' · '+c.stream:' · No stream'} (existing)</option>)}
+          <option value="new">+ Create new {grade} class</option>
+        </select>
+      </label>}
+      {existingChoice==='new'&&<label style={{ fontSize: 12, fontWeight: 800, color: C.textMuted }}>Stream <span style={{ fontWeight: 500 }}>(optional)</span>
         <input value={stream} onChange={event => setStream(event.target.value)} maxLength={40} placeholder="East, Blue or A" disabled={disabled} style={inputStyle} />
-      </label>
+      </label>}
       <label style={{ fontSize: 12, fontWeight: 800, color: C.textMuted }}>Subject
         <select value={subject} onChange={event => setSubject(event.target.value)} disabled={disabled || !grade || subjectsLoading} style={inputStyle}>
           <option value="">{!grade ? 'Choose level first' : subjectsLoading ? 'Loading valid subjects…' : 'Choose subject'}</option>
@@ -172,7 +197,7 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
         ))}
       </fieldset>
       {error && <div role="alert" style={{ color: C.error, background: '#fef2f2', borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 650 }}>{error}{authorityState === 'error' && <button type="button" onClick={() => setRetryNonce(n => n + 1)} style={{ display: 'block', marginTop: 8, minHeight: 44 }}>Retry class setup</button>}</div>}
-      <button type="button" onClick={() => void submit()} disabled={disabled || subjectsLoading || !grade || !subject} style={{ padding: 13, border: 0, borderRadius: 12, background: disabled || subjectsLoading || !grade || !subject ? '#9ca3af' : C.accent, color: '#fff', fontWeight: 800, fontSize: 15, cursor: loading ? 'wait' : 'pointer' }}>
+      <button type="button" onClick={() => void submit()} disabled={disabled || subjectsLoading || existingLoading || !existingChoice || existingChoice==='unavailable' || !grade || !subject} style={{ padding: 13, border: 0, borderRadius: 12, background: disabled || subjectsLoading || !grade || !subject ? '#9ca3af' : C.accent, color: '#fff', fontWeight: 800, fontSize: 15, cursor: loading ? 'wait' : 'pointer' }}>
         {loading ? 'Adding class…' : mode === 'onboarding' ? 'Create or join class →' : 'Add or join class'}
       </button>
       <p style={{ margin: 0, color: C.textMuted, fontSize: 12, lineHeight: 1.5 }}>If this class already exists at your school, VibeSchool reuses it and adds only your subject assignment.</p>
