@@ -5,11 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { PublicationEditor } from '@/components/global/publish/PublicationEditor'
 import type { PublicationFormat } from '@/lib/publishTypes'
+import { isMumbi2Publisher } from '@/lib/studioPublisherIdentity'
 
 export default function ContentStudioEditorPage() {
   const router = useRouter()
   const search = useSearchParams()
   const [userId, setUserId] = useState<string | null>(null)
+  const [canPublish, setCanPublish] = useState(false)
   const rawFormat = search.get('format')
   const format: PublicationFormat = rawFormat === 'ebook' ? 'ebook' : 'vibetextbook'
   const publicationId = search.get('publication') ?? undefined
@@ -20,10 +22,11 @@ export default function ContentStudioEditorPage() {
       if (!user) { router.replace('/?role=teacher'); return }
       const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).maybeSingle()
       if (!profile || !['teacher', 'admin'].includes(profile.role)) { router.replace('/'); return }
+      setCanPublish(isMumbi2Publisher(user.id, profile.role))
       setUserId(user.id)
     })
   }, [router])
 
   if (!userId) return null
-  return <PublicationEditor authorId={userId} format={format} publicationId={publicationId} simpleMode />
+  return <PublicationEditor authorId={userId} format={format} publicationId={publicationId} simpleMode publishingEnabled={canPublish} />
 }
