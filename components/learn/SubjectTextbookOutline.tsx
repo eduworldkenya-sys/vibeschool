@@ -102,6 +102,45 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
     return () => { active = false }
   }, [state.scope, state.status, state.rows, scope, grade, subject])
 
+  // All other school subjects use the same official, independently verified
+  // outcome authority. The public shell remains headings-only; objective
+  // text is requested only for an authenticated viewer and never from drafts.
+  useEffect(() => {
+    if (state.scope !== scope || state.status !== 'ready' ||
+        (grade === 'Grade 4' && subjectKey(subject) === subjectKey('Mathematics'))) return
+    let active = true
+    const ids = [...new Set(state.rows.map(row => row.id).filter(Boolean))]
+    if (!ids.length) {
+      setObjectives({scope,canonicalRows:null,byUnit:{}})
+      return
+    }
+    void (async () => {
+      const {data:{user},error:authError} = await supabase.auth.getUser()
+      if (!active || authError || !user) return
+      const byUnit: Record<string,string[]> = {}
+      for (let offset = 0; offset < ids.length; offset += 50) {
+        const batch = ids.slice(offset, offset + 50)
+        const {data,error} = await supabase.from('curriculum_learning_outcomes')
+          .select('sub_strand_id,outcome_code,outcome_text')
+          .in('sub_strand_id',batch)
+          .eq('status','verified')
+          .eq('source_type','official')
+          .order('outcome_code',{ascending:true})
+          .limit(1000)
+        if (!active || error) return
+        for (const item of data ?? []) {
+          const unitId = item.sub_strand_id
+          const objective = String(item.outcome_text ?? '').trim()
+          if (!unitId || !batch.includes(unitId) || !objective) continue
+          if (!byUnit[unitId]) byUnit[unitId] = []
+          if (!byUnit[unitId].includes(objective)) byUnit[unitId].push(objective)
+        }
+      }
+      if (active) setObjectives({scope,canonicalRows:null,byUnit})
+    })().catch(() => undefined)
+    return () => { active = false }
+  }, [state.scope, state.status, state.rows, scope, grade, subject])
+
   // Only published chapter metadata allowed by existing RLS. The reader
   // remains the entitlement authority. No draft or body is requested here.
   useEffect(() => {
