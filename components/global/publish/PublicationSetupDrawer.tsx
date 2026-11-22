@@ -271,7 +271,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                       style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 12 }} />
                     <button onClick={() => fileRef.current?.click()} style={{
                       position: 'absolute', bottom: 8, right: 8,
-                      background: 'var(--publication-scrim, rgba(0,0,0,0.7))', border: '1px solid ' + BORDER,
+                      background: 'var(--publication-surface, rgba(0,0,0,0.7))', border: '1px solid ' + BORDER,
                       color: TEXT, borderRadius: 8, padding: '4px 10px',
                       fontSize: 11, cursor: 'pointer',
                     }}>Change</button>
