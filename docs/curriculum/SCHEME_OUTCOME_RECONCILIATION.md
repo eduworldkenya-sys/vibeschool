@@ -80,3 +80,68 @@ Reconcile by subject/grade as the current curriculum authorities are verified.
 The view automatically reflects new links; when an exact unique verified source
 is available, new generated Scheme records inherit it. **Existing unlinked
 rows are not silently rewritten when an unrelated source is later verified.**
+
+
+## Reusable curriculum → teacher Scheme acceptance (all next subjects, 22 November 2026)
+
+Apply these gates to **every grade/subject** that is connected to the existing
+Curriculum Map and Scheme of Work. This is an extension of the same canonical
+curriculum/teacher/scheme authority, not another publisher, map, approval service,
+or KICD source. Never equate deployed code with a working signed-in journey.
+
+1. **Source and identity:** record the official KICD document edition and
+   exact source locations; identify the existing `subjects` global UUID,
+   school-subject UUID, grade, strand/sub-strand identities, and original
+   outcome IDs. Reconcile counts, draft statuses and alternative units.
+   Do not label paraphrases or owner-approved data as independently certified.
+2. **Curriculum Map:** for an assigned teacher/class, confirm the real
+   Curriculum Map route opens, shows the correct grade and subject, and
+   permits browsing **all** matching sub-strands and their ACTIVE outcomes,
+   not draft/other-subject data. Unassigned subjects must not be substituted.
+3. **Scheme selection:** from that map, open the existing Scheme of Work
+   with class, school subject, term and chosen sub-strand preserved. Choose
+   an instructional week and one or more matching outcomes. Opening a map
+   alone must not create a Scheme lesson.
+4. **Authenticated save:** using a real authorized teacher session (not
+   service-role, SQL session impersonation or a fabricated token), save
+   **one** test lesson through the real UI. Reopen/refresh the Scheme,
+   confirm the lesson appears in the correct class, subject, term and week,
+   and inspect `scheme_of_work` plus `scheme_lesson_outcomes` read-only
+   to confirm saved outcome IDs, source lineage and teacher ownership.
+   Record the exact environment, teacher role, subject/grade, deployment
+   commit, timestamp and evidence URL/screenshot. Leave created content
+   intact or delete only through a legitimate, authorized teacher UI action.
+5. **Negative/security cases:** unassigned teacher, another school/class,
+   mismatched sub-strand/outcome, draft/inactive outcome, invalid week,
+   missing term, expired/anonymous session, repeated submit and zero
+   outcomes must fail without unrelated writes. Confirm existing RLS,
+   teacher assignments and server-side RPC validation are enforced.
+6. **Teacher continuity:** verify the saved Scheme lesson can be selected
+   by the existing lesson-preparation path; the correct outcome identities
+   survive the navigation. No substitute `curriculum` record, duplicate
+   textbook or publication/HQ dependency is introduced.
+7. **Review and release:** run the repeatable curriculum/scheme contract tests,
+   production build, migration security/clean-rebuild checks and exact-head CI.
+   Merge via governed PR, verify `main`, production deployment READY,
+   migration installed, read-only data counts and the **real signed-in
+   teacher end-to-end journey** on the deployed release.
+8. **Evidence decision:** mark each of source, UI read, save, negative cases,
+   teaching handoff and live deploy separately PASS/FAIL/BLOCKED.
+   If teacher authentication/session or browser verification is unavailable,
+   record `BLOCKED_ACCESS — authenticated teacher acceptance not executed`.
+   Code/DB/CI PASS is **not** a substitute; do not claim full teacher
+   acceptance or KICD certification.
+
+**Grade 4 CRE / Creative Arts baseline:** PR #1961 merged as
+`864d41545a287fe4e9ee47ec9b2ec46517a763f8`; production Vercel
+deployment READY; read policy and Scheme RPC installed. Read-only checks
+found CRE 35 sub-strands/129 active outcomes and Creative Arts 13
+sub-strands/64 active outcomes (four additional drafts excluded);
+there is at least one assigned teacher for each school subject.
+**Authenticated teacher UI open/save/reopen and lesson handoff have not been
+executed or certified.** Keep this gate pending for both subjects.
+
+**Regressions:** `node --test scripts/test-grade4-cre-ca-teacher-visibility.mjs`
+and `node scripts/test-curriculum-scheme-routing.mjs` run in the existing
+Engineering Integration Gate. These source-contract checks protect wiring
+but do not replace the signed-in acceptance in item 4.
