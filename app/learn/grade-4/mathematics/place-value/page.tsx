@@ -29,7 +29,7 @@ export default async function Grade4PlaceValueLessonPage() {
   // A safe lesson boundary must exist within the currently released version.
   // Otherwise fail closed instead of silently showing a different lesson.
   const stop = chapter.blocks.findIndex(block => block.type === 'heading2' &&
-    String(block.content ?? '').trim().toLowerCase() === FIRST_LESSON_STOP)
+    String(block.content ?? '').trim().toLowerCase() === FIRST_LESSON_STOP.toLowerCase())
   if (stop <= 0) notFound()
 
   return <ReaderClient
