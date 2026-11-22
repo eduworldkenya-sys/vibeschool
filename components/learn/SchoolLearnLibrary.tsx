@@ -179,14 +179,22 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const subjectGroups: SubjectGroup[] = useMemo(() => {
     const bookSubjects = uniqueNames(gradeBooks.map(book => book.cbc_subject?.trim() || '').filter(Boolean))
     const base = groupsForTextbookShells(grade, registeredSubjects ?? [])
+      .map(group => grade === 'Grade 4'
+        ? { ...group, subjects: group.subjects.filter(name => subjectKey(name) !== 'religiouseducation') }
+        : group)
+      .filter(group => group.subjects.length)
     const existing = new Set(base.flatMap(group => group.subjects).map(subjectKey))
     const extraBooks = bookSubjects.filter(name => !existing.has(subjectKey(name)))
     return extraBooks.length
       ? [...base, { title: 'Additional published materials', subjects: extraBooks }]
       : base
   }, [grade, gradeBooks, registeredSubjects])
+  // Grade 4 generic Religious Education is a legacy catalogue shell, not a
+  // curriculum subject. Resolve existing links to CRE without changing other grades.
   const subjectNames = useMemo(() => uniqueNames(subjectGroups.flatMap(group => group.subjects)), [subjectGroups])
-  const activeName = subjectNames.find(name => subjectKey(name) === subjectKey(selectedSubject))
+  const requestedSubject = grade === 'Grade 4' && subjectKey(selectedSubject) === 'religiouseducation'
+    ? 'Christian Religious Education' : selectedSubject
+  const activeName = subjectNames.find(name => subjectKey(name) === subjectKey(requestedSubject))
   const activeBooks = gradeBooks.filter(book => subjectKey(book.cbc_subject) === subjectKey(activeName))
   const activeReaders = activeName ? readersForSubject(grade, activeName) : []
   // Reuse the existing reader catalogue so the released pilot is discoverable
