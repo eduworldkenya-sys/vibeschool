@@ -44,6 +44,13 @@ test('teacher subject hub links Grade 4 CRE and Creative Arts to the existing ma
 })
 
 test('Grade 4 CRE/CA Scheme RPC preserves teacher assignment, outcome lineage and source provenance', () => {
+  assert.match(migration, /grade4_cre_ca_active_outcomes_read/)
+  assert.match(migration, /for select to authenticated/)
+  assert.match(migration, /created_by is null/)
+  assert.match(migration, /source_type='publisher'/)
+  assert.match(migration, /source_type='generated'/)
+  assert.match(migration, /status='active'/)
+  assert.doesNotMatch(migration, /for select to anon/)
   assert.match(migration, /security invoker/)
   assert.match(migration, /commit_custom_scheme_item/)
   assert.match(migration, /p_outcome_ids is null or cardinality\(p_outcome_ids\) not between 1 and 12/)
