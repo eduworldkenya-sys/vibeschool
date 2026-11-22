@@ -185,6 +185,18 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
   )
 
   const publishedReadOnly = publication.status === 'published'
+  // Creation progress is derived from saved editor state, never manually self-approved.
+  // Server-side release checks remain authoritative for publication.
+  const creationChecks = [
+    { label: 'Title', complete: Boolean(publication.title?.trim()), action: () => titleInputRef.current?.focus() },
+    ...(format === 'vibetextbook' ? [
+      { label: 'Subject', complete: Boolean(publication.cbc_subject?.trim()), action: () => setSetupOpen(true) },
+      { label: 'Grade', complete: Boolean(publication.cbc_grade?.trim()), action: () => setSetupOpen(true) },
+    ] : []),
+    { label: 'Chapter', complete: chapters.length > 0, action: () => { if (!publishedReadOnly) addChapter() } },
+    { label: 'Content', complete: chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), action: () => { if (!publishedReadOnly && activeChapter) addBlock('paragraph') } },
+  ]
+  const completedCreationChecks = creationChecks.filter(check => check.complete).length
 
   return (
     <div style={{
@@ -331,6 +343,25 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
           padding: '10px 16px', fontSize: 13, color: 'var(--publication-danger, #ef4444)',
         }}>{error}</div>
       )}
+
+      {/* Compact creation checklist: checked states come from actual editor data. */}
+      <section aria-label="Content creation checklist" style={{ maxWidth: 680, width: '100%', margin: '12px auto 0', padding: '0 16px', boxSizing: 'border-box' }}>
+        <details style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 12, padding: '10px 12px' }}>
+          <summary style={{ cursor: 'pointer', color: TEXT, fontSize: 13, fontWeight: 750 }}>
+            Content checks · {completedCreationChecks}/{creationChecks.length} complete
+          </summary>
+          <div style={{ display: 'grid', gap: 9, marginTop: 12 }}>
+            {creationChecks.map(check => (
+              <div key={check.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input type="checkbox" checked={check.complete} readOnly disabled aria-label={check.label + (check.complete ? ' complete' : ' incomplete')} style={{ width: 17, height: 17, accentColor: ACCENT, opacity: 1 }} />
+                <span style={{ color: check.complete ? MUTED : TEXT, fontSize: 13, flex: 1 }}>{check.label}</span>
+                {!check.complete && !publishedReadOnly && <button type="button" onClick={check.action} style={{ border: '1px solid ' + BORDER, background: SURF, color: TEXT, borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 12 }}>Fix</button>}
+              </div>
+            ))}
+            <small style={{ color: MUTED }}>Publishing may require additional automatic checks.</small>
+          </div>
+        </details>
+      </section>
 
       {/* Main */}
       <main style={{
