@@ -48,6 +48,73 @@ A. Primary and secondary swatch chart. B. Value strip with original colour, tint
 
 Ask: Which mixture surprised you? What helped your ball look round? Why did you overlap pictures? What does your montage communicate? What would you improve? Provide a second try for weak mixing or poor overlap, and display improved work without ranking children publicly.
 
+
+## Outcome alignment and assessment evidence
+
+| Existing VibeSchool paraphrased intention | Lessons | Evidence | Remediation |
+|---|---|---|---|
+| Distinguish primary and secondary colours | 1–4 | Six labelled swatches and three mixtures | Repeat mixing using labelled containers |
+| Paint objects with variations in colour value | 5–8 | Tint/shade strip and rounded ball painting | Model one highlight and one shadow, then retry |
+| Assemble an expressive montage | 9–13 | Planned and assembled overlapping ball-game scene | Rehearse placement with pre-cut pieces before gluing |
+| Appreciate painting and montage as communication | 14–15 | Specific, kind critique and learner reflection | Offer oral responses or sentence starters |
+
+These align to the four existing paraphrased intentions; authoritative source crosswalk remains a separate verification step.
+
+## Teaching routine
+
+For each lesson: recall prior learning, show a real or illustrated example, demonstrate one technique, guide a short paired attempt, supervise independent making, and close with a learner explanation and evidence check. Adapt duration to the actual school timetable. Store unfinished work safely with learner identifiers.
+
+## Formative checks for all 15 lessons
+
+| Lesson | Prompt or observation | Expected evidence |
+|---|---|---|
+| 1 | Find colours in familiar objects | Three labelled examples |
+| 2 | Identify primary paints | Red, yellow and blue |
+| 3 | Predict and mix colours | Orange, green and purple |
+| 4 | Sort colour samples | Correct primary/secondary classification |
+| 5 | Compare colour values | Ordered light-to-dark swatches |
+| 6 | Make tints | Gradual addition of white |
+| 7 | Make shades | Controlled addition of black |
+| 8 | Paint a rounded ball | Highlight, middle tone and shadow |
+| 9 | Explain a montage | Describes a combined picture's message |
+| 10 | Demonstrate overlap | Shows foreground and background |
+| 11 | Plan a ball-game picture | Clear sketch of subject and placement |
+| 12 | Prepare pieces safely | Painted, dried and safely cut shapes |
+| 13 | Assemble the montage | Purposeful placement and overlap |
+| 14 | Appreciate a peer's work | Specific, respectful observation |
+| 15 | Demonstrate and reflect | Two works and an improvement statement |
+
+## Practical assessment and feedback
+
+**Colour chart:** Learners make and label primary and secondary paint swatches. Assess paint mixing separately from writing accuracy.
+
+**Painted ball (20 marks):** Award 0–5 each for colour handling, tonal variation, recognisable form, and care/explanation.
+
+**Ball-game montage (20 marks):** Award 0–5 each for recognisable subject, arrangement/overlap, careful assembly, and reflection.
+
+For each criterion: 5 = independently clear; 3–4 = mostly secure; 1–2 = emerging with support; 0 = no observable evidence. Record one strength, one actionable improvement, and evidence from a retry. These are VibeSchool-original rubrics, not official KICD marks. Permit oral explanation, pointing, adapted grips and pre-cut materials without penalising accessibility adaptations.
+
+## Visual resources and placement
+
+| Existing illustration | Lesson placement | Accessible description |
+|---|---|---|
+| primary-colours.svg | 2, 4 | Three labelled red, yellow and blue paint swatches |
+| secondary-colours.svg | 3, 4 | Classroom paint mixtures: red/yellow orange, yellow/blue green, blue/red purple |
+| colour-value.svg | 5–7 | Progressively lighter and darker steps of one colour |
+| painted-ball.svg | 8 | A ball with highlight, middle tone and shadow |
+| overlapping.svg | 9–11 | One shape partly covers another, showing foreground and background |
+| montage-steps.svg | 11–13 | Plan, arrange, overlap and glue a ball-game scene |
+
+All six SVG source files are included in this PR. Source files alone do not establish successful authenticated storage upload or learner-page attachment.
+
+## Safety, inclusion and teacher records
+
+Use washable child-safe paints, blunt scissors and supervised cutting. Avoid solvents and sharp blades. Provide spoken image descriptions, written colour labels and tactile or pre-cut shapes. Never require learners to purchase materials or publicly display identifiable work. Record each learner's observed skill, evidence, feedback, retry and next action in the existing teacher workflow. Keep model answers and rubrics behind teacher authorization, not in public chapter JSON.
+
+## Guide completeness
+
+The editorial guide covers preparation, all 15 lessons, outcome mapping, teaching steps, differentiated support, formative assessment, scored practical tasks, visual placement, feedback and teacher records. Curriculum source certification, secure answer-key integration, image ingestion, assessment-bank linkage and live release remain independent technical checks.
+
 ## Publication checklist
 
 - [ ] Source-to-four-outcome crosswalk independently checked
