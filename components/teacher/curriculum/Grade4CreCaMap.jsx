@@ -35,11 +35,15 @@ export default function Grade4CreCaMap({
   mode = 'curriculum',
   onOpenScheme,
   onOpenCurriculum,
+  onSaveLesson,
+  saving = false,
+  canSave = false,
 }) {
   const source = SOURCES[kind]
   const [units, setUnits] = useState([])
   const [outcomes, setOutcomes] = useState([])
   const [selectedId, setSelectedId] = useState(selectedUnitId || '')
+  const [selectedOutcomes, setSelectedOutcomes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -48,6 +52,7 @@ export default function Grade4CreCaMap({
     setUnits([])
     setOutcomes([])
     setSelectedId(selectedUnitId || '')
+    setSelectedOutcomes([])
     setError('')
     setLoading(true)
 
@@ -98,6 +103,7 @@ export default function Grade4CreCaMap({
     [...new Set(units.map(unit => unit.name))], [units])
   const selected = units.find(unit => unit.id === selectedId) || units[0] || null
   const unitOutcomes = outcomes.filter(outcome => outcome.sub_strand_id === selected?.id)
+  const activeSelection = selectedOutcomes.filter(id => unitOutcomes.some(outcome => outcome.id === id))
   const isArtsAlternative = kind === 'arts' && /^(2\.6|2\.5)\s+(Swimming|Indigenous Kenyan Games)$/i.test(selected?.sub_strand || '')
 
   return (
@@ -136,9 +142,22 @@ export default function Grade4CreCaMap({
           {isArtsAlternative && <p style={{ fontSize: 12, color: '#835d15' }}>Optional alternative activity</p>}
           <strong style={{ fontSize: 13 }}>Specific learning outcomes ({unitOutcomes.length})</strong>
           {unitOutcomes.length
-            ? <ol style={{ paddingLeft: 23, fontSize: 14, lineHeight: 1.6, marginTop: 8 }}>
-              {unitOutcomes.map(outcome => <li key={outcome.id}>{outcome.outcome_text}</li>)}
-            </ol>
+            ? mode === 'scheme'
+              ? <fieldset style={{ border: 0, padding: 0, margin: '8px 0' }}>
+                <legend style={{ fontSize: 12, color: '#547060' }}>Choose outcomes for one planned lesson</legend>
+                {unitOutcomes.map(outcome => (
+                  <label key={outcome.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', fontSize: 14 }}>
+                    <input type="checkbox" checked={activeSelection.includes(outcome.id)} disabled={saving}
+                      onChange={event => setSelectedOutcomes(old => event.target.checked
+                        ? [...new Set([...old, outcome.id])]
+                        : old.filter(id => id !== outcome.id))} />
+                    <span>{outcome.outcome_text}</span>
+                  </label>
+                ))}
+              </fieldset>
+              : <ol style={{ paddingLeft: 23, fontSize: 14, lineHeight: 1.6, marginTop: 8 }}>
+                {unitOutcomes.map(outcome => <li key={outcome.id}>{outcome.outcome_text}</li>)}
+              </ol>
             : <p role="status">No active outcomes are linked to this sub-strand.</p>}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginTop: 12 }}>
             {mode === 'curriculum' && onOpenScheme && (
@@ -147,6 +166,14 @@ export default function Grade4CreCaMap({
                 Open Scheme of Work
               </button>
             )}
+            {mode === 'scheme' && onSaveLesson && (
+              <button type="button" disabled={saving || !canSave || activeSelection.length === 0 || activeSelection.length > 12}
+                onClick={() => onSaveLesson(selected.id, activeSelection)}
+                style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 15px', fontWeight: 750, opacity: saving || !canSave || activeSelection.length === 0 ? 0.5 : 1 }}>
+                {saving ? 'Saving…' : 'Add to Scheme'}
+              </button>
+            )}
+            {mode === 'scheme' && !canSave && <p style={{ fontSize: 12, color: '#825b25', width: '100%' }}>Select a term and instructional week to save a lesson.</p>}
             {mode === 'scheme' && onOpenCurriculum && (
               <button type="button" onClick={() => onOpenCurriculum(selected.id)}
                 style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 15px', fontWeight: 750 }}>
