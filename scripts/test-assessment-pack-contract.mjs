@@ -18,7 +18,7 @@ check(studio.includes('/teacher/assessment/cat/new?lessonPlanId='), 'CAT routes 
 check(studio.includes('Array.from(new Set(texts))'), 'outcome dedup remains compatible with repository TypeScript target')
 check(!studio.includes('State one key idea you learned about ${focus}'), 'generic topic fallback question generation is removed')
 check(!studio.includes('Explain ${focus} in your own words'), 'generic activity-label explanation fallback is removed')
-check(studio.includes('/no certified homework task|do not invent/i'), 'homework generation fails closed when lesson has no certified homework')
+check(studio.includes('savedLessonTask') && read('lib/assessment/lessonTaskSource.ts').includes('/no certified homework task|do not invent/i'), 'homework generation fails closed through canonical saved-lesson task resolver')
 
 const review = read('app/teacher/assessment/review/[assessmentId]/page.tsx')
 check(review.includes('approveAssessment'), 'review flow preserves teacher approval before assignment')
