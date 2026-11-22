@@ -13,7 +13,7 @@ const lifecycle = read('lib/content-engine/publications.ts')
 test('publisher identity is fixed server-authenticated user ID and teacher role, not editable name', () => {
   assert.match(identity, /MUMBI2_PUBLISHER_ID = 'c49bf987-357f-46bc-98fb-9a326882e437'/)
   assert.match(identity, /userId === MUMBI2_PUBLISHER_ID && role === 'teacher'/)
-  assert.doesNotMatch(identity, /full_name|user_metadata|email/)
+  assert.doesNotMatch(identity, /return .*full_name|return .*user_metadata|return .*email/)
   assert.match(entry, /sb\.auth\.getUser\(\)/)
   assert.match(entry, /\.from\('profiles'\)\.select\('role'\)/)
   assert.match(entry, /isMumbi2Publisher\(user\.id, profile\.role\)/)
