@@ -12,9 +12,11 @@ import { eligibleRoom, type LiveSummary } from './LiveNoticePolicy'
  */
 export default function LiveLearnerNotice({ studentId }: { studentId: string }) {
   const [rooms, setRooms] = useState<LiveSummary[]>([])
+  const [dismissed, setDismissed] = useState<string[]>([])
   useEffect(() => {
     // Never carry a previous learner's lesson titles across an identity switch.
     setRooms([])
+    setDismissed([])
     if (!studentId || process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED !== 'true') return
     let cancelled = false
     let running = false
@@ -69,13 +71,14 @@ export default function LiveLearnerNotice({ studentId }: { studentId: string }) 
     }
   }, [studentId])
 
-  if (!rooms.length) return null
+  const visible = rooms.filter(room => !dismissed.includes(room.id))
+  if (!visible.length) return null
   return <section className={compact.panel} role="status" aria-live="polite" aria-label="Live class notifications">
-    <strong>{rooms.length === 1 ? 'Your teacher is live' : `${rooms.length} lessons are live`}</strong>
-    {rooms.map(room => <Link key={room.id} className={compact.action}
+    <strong>{visible.length === 1 ? 'Your teacher is live' : `${visible.length} lessons are live`}</strong>
+    {visible.map(room => <div key={room.id} style={{display:'flex',alignItems:'center',gap:8}}><Link className={compact.action}
       href={`/student/live?room=${encodeURIComponent(room.id)}`}>
       <span>{room.title}</span>
       <span>Join class</span>
-    </Link>)}
+    </Link><button type="button" aria-label={`Dismiss ${room.title} notification`} onClick={()=>setDismissed(previous=>[...previous,room.id])}>Dismiss</button></div>)}
   </section>
 }
