@@ -1,0 +1,41 @@
+name: HQ Traffic
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/hq/visitors/**'
+      - 'app/hq/traffic/**'
+      - 'lib/hq/traffic-policy.ts'
+      - 'components/hq/VisitorTracker.tsx'
+      - 'components/hq/HQShell.tsx'
+      - 'scripts/test-hq-traffic.mjs'
+      - '.github/workflows/hq-traffic.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/api/hq/visitors/**'
+      - 'app/hq/traffic/**'
+      - 'lib/hq/traffic-policy.ts'
+      - 'components/hq/VisitorTracker.tsx'
+      - 'components/hq/HQShell.tsx'
+      - 'scripts/test-hq-traffic.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  traffic:
+    name: Traffic contract and TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Verify analytics privacy, path coverage and founder-only reporting
+        run: node --import ./scripts/register-typescript.mjs --test scripts/test-hq-traffic.mjs
+      - name: Verify full TypeScript integration
+        run: npm run typecheck
