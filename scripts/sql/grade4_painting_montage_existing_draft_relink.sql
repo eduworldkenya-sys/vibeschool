@@ -135,6 +135,21 @@ BEGIN
   WHERE d.id=v_guide AND d.status='draft';
   IF NOT FOUND THEN RAISE EXCEPTION 'CA_GUIDE_RELINK_FAILED'; END IF;
 
+  -- Stage the already existing canonical chapter resource for author-only
+  -- inspection. This changes neither visibility nor the draft publication.
+  UPDATE public.learning_resources lr
+  SET status='active'
+  WHERE lr.id=v_resource AND lr.publication_id=v_pub AND lr.chapter_id=v_chapter
+    AND lr.created_by='c49bf987-357f-46bc-98fb-9a326882e437'::uuid
+    AND lr.source_type='chapter' AND lr.status='inactive'
+    AND lr.visibility='private';
+  IF NOT EXISTS (
+    SELECT 1 FROM public.learning_resources lr
+    WHERE lr.id=v_resource AND lr.publication_id=v_pub
+      AND lr.chapter_id=v_chapter AND lr.status='active'
+      AND lr.visibility='private'
+  ) THEN RAISE EXCEPTION 'CA_RESOURCE_PRIVATE_STAGING_FAILED'; END IF;
+
   IF (SELECT count(*) FROM public.generated_assessment_items i
       JOIN public.content_blocks b ON b.id=i.source_block_id
       WHERE i.assessment_id=v_assessment AND b.chapter_id=v_chapter
