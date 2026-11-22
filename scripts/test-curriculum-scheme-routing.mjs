@@ -16,6 +16,6 @@ assert.ok(view.includes('canonicalRowIds.has(item.curriculum_id)'), 'Do not inve
 assert.ok(view.includes('curriculumId:item.curriculum_id'), 'Linked scheme must preserve canonical curriculum identity')
 assert.ok(view.includes('setSelectedStrand(row.strand'), 'Curriculum should reveal its linked strand')
 assert.ok(view.includes('setShowEnglishLegacy(true)'), 'Linked record should be visible even in the new English map')
-assert.ok(view.includes('No verified curriculum link for this scheme lesson'), 'Unlinked schemes must be labelled')
+assert.ok(view.includes('No verified curriculum outcome is linked to this Grade 3 English reference'), 'An unverified reference must remain explicitly labelled')
 assert.ok(view.includes("supabase.rpc('commit_curriculum_scheme'"), 'Do not replace canonical commit permissions')
 console.log('Teacher curriculum-to-scheme routing checks passed')
