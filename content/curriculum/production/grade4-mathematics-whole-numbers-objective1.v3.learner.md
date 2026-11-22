@@ -221,6 +221,3 @@ A digit in the thousands place represents that many **thousands**. A digit in th
 ### At home or with a friend
 
 Find a five-digit number on a receipt, an imaginary shop price, or a number card. Choose a digit and explain its place and total value. If you cannot find a real example, use **63,040**. No device, printer or bought materials are needed.
-
----
-**Editorial separation:** This is learner-facing manuscript content only. Answer keys, grading rubrics and teacher diagnostics are in a separate restricted teacher candidate. This document is not a certified or live VibeSchool publication.
