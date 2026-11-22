@@ -5,6 +5,7 @@ import test from 'node:test'
 const map = readFileSync('components/teacher/curriculum/Grade4CreCaMap.jsx', 'utf8')
 const scheme = readFileSync('app/teacher/scheme/AuthoritySchemePage.jsx', 'utf8')
 const hub = readFileSync('app/teacher/subjecthub/page.tsx', 'utf8')
+const migration = readFileSync('supabase/migrations/20261122184000_grade4_cre_ca_teacher_scheme_link.sql', 'utf8')
 
 test('Grade 4 CRE and Creative Arts use the existing canonical subject identities', () => {
   assert.match(map, /8165d513-035b-4019-9fdb-5b86a27335a1/)
@@ -30,6 +31,9 @@ test('Curriculum Map and Scheme display the same canonical reference without cre
   assert.match(scheme, /isGrade9English\|\|isGrade4CRE\|\|isGrade4CreativeArts/)
   assert.doesNotMatch(map, /\.from\('scheme_of_work'\)|\.insert\(|\.update\(|SERVICE_ROLE_KEY/)
   assert.match(map, /does not create or schedule a lesson/)
+  assert.match(scheme, /commit_grade4_cre_ca_scheme_lesson/)
+  assert.match(map, /onSaveLesson\(selected.id, activeSelection\)/)
+  assert.match(scheme, /weeks\.some\(w=>w\.week_number===selectedWeek\)/)
 })
 
 test('teacher subject hub links Grade 4 CRE and Creative Arts to the existing map', () => {
@@ -37,4 +41,19 @@ test('teacher subject hub links Grade 4 CRE and Creative Arts to the existing ma
   assert.match(hub, /creative arts and sports/)
   assert.match(hub, /christian religious education/)
   assert.match(hub, /\/teacher\/curriculum\?classId=/)
+})
+
+test('Grade 4 CRE/CA Scheme RPC preserves teacher assignment, outcome lineage and source provenance', () => {
+  assert.match(migration, /security invoker/)
+  assert.match(migration, /commit_custom_scheme_item/)
+  assert.match(migration, /p_outcome_ids is null or cardinality\(p_outcome_ids\) not between 1 and 12/)
+  assert.match(migration, /SCHEME_DUPLICATE_OUTCOMES/)
+  assert.match(migration, /SCHEME_CURRICULUM_IDENTITY_MISMATCH/)
+  assert.match(migration, /o\.status='active'/)
+  assert.match(migration, /o\.source_type=v_source_type/)
+  assert.match(migration, /o\.source_ref=v_outcome_source/)
+  assert.match(migration, /SCHEME_CURRICULUM_OUTCOME_MISMATCH/)
+  assert.match(migration, /scheme_lesson_outcomes/)
+  assert.match(migration, /to authenticated/)
+  assert.doesNotMatch(migration, /security definer|drop table|delete from public\.curriculum/i)
 })
