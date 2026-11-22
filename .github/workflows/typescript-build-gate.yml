@@ -91,6 +91,7 @@ jobs:
             npm run test:reference-convergence
             node scripts/test-geography-commissioning.mjs
             node --test scripts/test-universal-qa-learner.mjs
+            node --test scripts/test-idempotent-publication-media.mjs
             npm run typecheck
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
