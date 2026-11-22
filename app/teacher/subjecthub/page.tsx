@@ -919,6 +919,10 @@ export default function SubjectHubPage() {
     /^(mathematics|mathematical activities|mathematics activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
       : null
+  const grade4CreCaClass =
+    /^(christian religious education|cre|creative arts|creative arts and sports)$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
+      : null
   const grade6MathematicsClass =
     /^(mathematics|mathematical activities|mathematics activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*6\b/i.test(item.name)) ?? null
@@ -1283,6 +1287,20 @@ export default function SubjectHubPage() {
           </div>
           <Grade3MathematicsMap selectedUnitId={grade3MathematicsUnitId} onSelectUnit={setGrade3MathematicsUnitId} />
         </div>
+      )}
+      {/* Grade 4 CRE / Creative Arts reuse the same native teacher Curriculum Map and Scheme. */}
+      {!loading && !classLoading && activeSubject && grade4CreCaClass && (
+        <section style={{ margin: '14px 16px 0', background: '#fff', padding: 15, border: '1px solid #d7e7dd', borderRadius: 12 }}>
+          <strong style={{ color: '#173f32' }}>Grade 4 {activeSubject.name} curriculum</strong>
+          <p style={{ fontSize: 12, color: '#53695d', margin: '6px 0 12px' }}>
+            Browse existing strands, sub-strands and learning outcomes in the teacher Curriculum Map.
+          </p>
+          <button type="button"
+            onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade4CreCaClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id))}
+            style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 14px', fontWeight: 800, width: '100%' }}>
+            Open Curriculum Map
+          </button>
+        </section>
       )}
       {/* Grade 4 Mathematics source-linked curriculum and existing Scheme handoff. */}
       {!loading && !classLoading && activeSubject && grade4MathematicsClass && (
