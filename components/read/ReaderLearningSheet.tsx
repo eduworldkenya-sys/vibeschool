@@ -19,11 +19,12 @@ type Props={
   onPractice:()=>void
   onFontSize:(size:number)=>void
   onFocus:()=>void
+  lessonScoped?:boolean
 }
 
 type ResumeDetail={blockElementId?:unknown}
 
-export function ReaderLearningSheet({open,mode,chapterId,chapterTitle,fontSize,narrator,onMode,onClose,onPractice,onFontSize,onFocus}:Props){
+export function ReaderLearningSheet({open,mode,chapterId,chapterTitle,fontSize,narrator,onMode,onClose,onPractice,onFontSize,onFocus,lessonScoped}:Props){
   const closeRef=useRef<HTMLButtonElement|null>(null)
   const sheetRef=useRef<HTMLElement|null>(null)
   const dragStart=useRef<number|null>(null)
@@ -75,13 +76,13 @@ export function ReaderLearningSheet({open,mode,chapterId,chapterTitle,fontSize,n
       <div className={styles.body}>
         {mode==='tools'?<>
           <div className={styles.primaryGrid}>
-            <button className={styles.primaryAction} type="button" onClick={()=>onMode('learn')}><span><strong>Learn</strong><small>Explain, revise, quiz or visualise</small></span><span>›</span></button>
+            {!lessonScoped&&<button className={styles.primaryAction} type="button" onClick={()=>onMode('learn')}><span><strong>Learn</strong><small>Explain, revise, quiz or visualise</small></span><span>›</span></button>}
             <button className={styles.primaryAction} type="button" onClick={()=>closeThen(onPractice)}><span><strong>Practice</strong><small>Check your understanding</small></span><span>›</span></button>
             <button className={styles.primaryAction} type="button" onClick={()=>onMode('listen')}><span><strong>Listen</strong><small>Natural narration with controls</small></span><span>›</span></button>
           </div>
           <div className={styles.secondary}>
             <div className={styles.controlRow}><span>Text size</span><span className={styles.smallControls}><button className={styles.smallButton} type="button" aria-label="Decrease text size" onClick={()=>onFontSize(Math.max(16,fontSize-1))}>A−</button><button className={styles.smallButton} type="button" aria-label="Increase text size" onClick={()=>onFontSize(Math.min(26,fontSize+1))}>A+</button></span></div>
-            <button className={styles.primaryAction} type="button" onClick={()=>closeThen(onFocus)}><span><strong>Focus reading</strong><small>Hide distractions and keep the chapter central</small></span><span>›</span></button>
+            <button className={styles.primaryAction} type="button" onClick={()=>closeThen(onFocus)}><span><strong>Focus reading</strong><small>{lessonScoped?'Hide distractions and focus on Lesson 1':'Hide distractions and keep the chapter central'}</small></span><span>›</span></button>
           </div>
         </>:null}
         {mode==='learn'?<LearningTransformPanel chapterId={chapterId} chapterTitle={chapterTitle}/>:null}

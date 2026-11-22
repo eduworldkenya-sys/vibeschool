@@ -12,6 +12,7 @@ type Props = {
   blocks: ContentBlock[];
   format: PublicationFormat;
   fontSize: number;
+  progressScope?: string;
 };
 
 const LAYERS: Array<{ id: LearningLayer; label: string; description: string }> = [
@@ -46,8 +47,10 @@ function layerFor(block: ContentBlock): LearningLayer {
   return explicitLayer(block) ?? inferLayer(block);
 }
 
-export function LearningLoopArticle({ publicationId, chapterId, blocks, format, fontSize }: Props) {
-  const storageKey = `vibe.learning-loop.${publicationId}.${chapterId}`;
+export function LearningLoopArticle({ publicationId, chapterId, blocks, format, fontSize, progressScope }: Props) {
+  const storageKey = progressScope
+    ? `vibe.learning-loop.lesson.${publicationId}.${chapterId}.${progressScope}`
+    : `vibe.learning-loop.${publicationId}.${chapterId}`;
   const groups = useMemo(() => {
     const result: Record<LearningLayer, ContentBlock[]> = { orient: [], comprehend: [], apply: [], connect: [], extend: [] };
     for (const block of blocks) result[layerFor(block)].push(block);
@@ -76,7 +79,7 @@ export function LearningLoopArticle({ publicationId, chapterId, blocks, format, 
   const teacherBridgeUrl = `/teacher/from-textbook?publicationId=${encodeURIComponent(publicationId)}&chapterId=${encodeURIComponent(chapterId)}`;
 
   return (
-    <article aria-label="Chapter learning loop" style={{ fontSize, lineHeight: 1.72 }}>
+    <article aria-label={progressScope?"Lesson learning loop":"Chapter learning loop"} style={{ fontSize, lineHeight: 1.72 }}>
       {available.length > 1 ? (
         <section aria-label="Learning progress" style={{ margin: "0 0 18px", padding: "15px 16px", border: "1px solid rgba(255,255,255,.11)", borderRadius: 14, background: "rgba(255,255,255,.025)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "baseline" }}>

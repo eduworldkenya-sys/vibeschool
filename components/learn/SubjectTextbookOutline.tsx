@@ -165,7 +165,7 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
   // publication authority. Preserve published chapter links and resume history.
   const isGrade4Maths = grade === 'Grade 4' && subjectKey(subject) === subjectKey('Mathematics')
   const pilotLesson: BookReadingEntry | null = isGrade4Maths ? {
-    id: 'g4-math-place-value-lesson-1-open-preview',
+    id: 'g4-math-place-value-lesson-1',
     title: 'Lesson 1 · Place Value and Total Value',
     href: '/learn/grade-4/mathematics/place-value',
   } : null
@@ -193,10 +193,10 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
           const isPilotTopic = isGrade4Maths && topic.id === '0f130af0-8f3c-433a-a0df-453927dece7f'
           return <div key={topic.id} className={styles.bookTopicGroup}>
             {topic.strand && <small className={styles.tinyNote}>{topic.strand}</small>}
-            {isPilotTopic && <div className={styles.bookObjectivePreview} aria-label="Lesson 1 Place Value preview">
+            {isPilotTopic && <div className={styles.bookObjectivePreview} aria-label="Lesson 1 Place Value">
               <strong>Lesson 1 · Place Value and Total Value</strong>
-              <Link className={styles.bookTopicLink} href="/learn/grade-4/mathematics/place-value">Read Lesson 1 · Open preview <ChevronRight size={17} aria-hidden="true"/></Link>
-              <small>One learning objective · Read, try and practise · Preview answers are not saved</small>
+              <Link className={styles.bookTopicLink} href="/learn/grade-4/mathematics/place-value">Open Lesson 1 <ChevronRight size={17} aria-hidden="true"/></Link>
+              <small>Published lesson reading · Interactive exploration · Connected topic practice</small>
             </div>}
             {topic.entries.length ? topic.entries.map((entry,i)=>entryLink(entry,isPilotTopic && i===0?'Published topic reading':i===0?topic.title:entry.title)) : !isPilotTopic ? <div className={styles.bookTopicPending}><span>{topic.title}</span><small>Coming soon</small></div> : null}
             {relatedResources.length > 0 && <div className={styles.bookObjectivePreview} aria-label={topic.title+' interactive resources'}>
