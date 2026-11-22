@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
 import {
   listChapterOutcomeLinks,
@@ -52,80 +52,78 @@ export function OutcomeSelector({
   const [error,      setError]      = useState<string | null>(null)
   const [search,     setSearch]     = useState('')
   const [outcomes,   setOutcomes]   = useState<CurriculumLearningOutcome[]>([])
+  const [loadingOutcomes, setLoadingOutcomes] = useState(true)
   const [selectedIds,setSelectedIds]= useState<Set<string>>(new Set())
 
   const isScoped = Boolean(curriculumId || subStrandId)
 
-  // Loads the candidate outcome list only — never touches selectedIds.
-  // Re-running this on every search keystroke must not discard selections
-  // the author has made locally but not yet saved.
-  const loadOutcomes = useCallback(async (searchTerm: string) => {
-    setError(null)
-    const client = getSupabaseClient()
-    try {
-      const rows = await listVerifiedCurriculumOutcomes(client, {
-        curriculumId: curriculumId ?? undefined,
-        subStrandId: subStrandId ?? undefined,
-        search: searchTerm || undefined,
-        limit: 100,
-      })
-      setOutcomes(rows)
-    } catch (err) {
-      setError(
-        err instanceof ContentEngineError
-          ? err.message
-          : 'Could not load curriculum outcomes.',
-      )
-    }
-  }, [curriculumId, subStrandId])
-
-  // Loads which outcomes are currently linked — runs once per drawer open
-  // (and on chapter change), establishing the baseline selection. This is
-  // intentionally NOT re-run on search: re-deriving selectedIds from the DB
-  // on every keystroke would drop any not-yet-saved local selection the
-  // moment the author searched for another outcome.
-  const initSelection = useCallback(async () => {
-    setError(null)
-    setReady(false)
-    const client = getSupabaseClient()
-
-    try {
-      const persisted = await ensureChapterSaved()
-      if (!persisted) {
-        setError('Could not save this chapter yet — try again in a moment.')
-        return
-      }
-
-      const linkRows = await listChapterOutcomeLinks(client, chapterId)
-      setSelectedIds(new Set(linkRows.map(link => link.outcome_id)))
-      await loadOutcomes(search)
-      setReady(true)
-    } catch (err) {
-      setError(
-        err instanceof ContentEngineError
-          ? err.message
-          : 'Could not load curriculum outcomes.',
-      )
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterId, ensureChapterSaved])
-
+  // Initialize the saved links independently of the search query so typing
+  // never discards selections that have not been saved yet.
   useEffect(() => {
+    setReady(false)
+    setLoadingOutcomes(true)
     if (!isOpen) {
-      setReady(false)
       setSearch('')
       return
     }
-    void initSelection()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, chapterId])
+
+    let cancelled = false
+    setError(null)
+
+    async function initializeSelection() {
+      try {
+        const client = getSupabaseClient()
+        const persisted = await ensureChapterSaved()
+        if (cancelled) return
+        if (!persisted) {
+          setError('Could not save this chapter yet — try again in a moment.')
+          return
+        }
+
+        const links = await listChapterOutcomeLinks(client, chapterId)
+        if (cancelled) return
+        setSelectedIds(new Set(links.map(link => link.outcome_id)))
+        setReady(true)
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ContentEngineError ? err.message : 'Could not load curriculum outcomes.')
+        }
+      }
+    }
+
+    void initializeSelection()
+    return () => { cancelled = true }
+  }, [isOpen, chapterId, ensureChapterSaved])
 
   useEffect(() => {
     if (!isOpen || !ready) return
-    const t = setTimeout(() => { void loadOutcomes(search) }, 350)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      setError(null)
+      try {
+        const client = getSupabaseClient()
+        const rows = await listVerifiedCurriculumOutcomes(client, {
+          curriculumId: curriculumId ?? undefined,
+          subStrandId: subStrandId ?? undefined,
+          search: search || undefined,
+          limit: 100,
+        })
+        if (!cancelled) setOutcomes(rows)
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ContentEngineError ? err.message : 'Could not load curriculum outcomes.')
+        }
+      } finally {
+        if (!cancelled) setLoadingOutcomes(false)
+      }
+    }, search ? 350 : 0)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [isOpen, ready, curriculumId, subStrandId, search])
 
   useEffect(() => {
     if (!isOpen) return
@@ -235,7 +233,7 @@ export function OutcomeSelector({
 
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 12px' }}>
-          {!ready ? (
+          {!ready || loadingOutcomes ? (
             <div style={{ color: MUTED, fontSize: 13, padding: '20px 0', textAlign: 'center' }}>Loading…</div>
           ) : outcomes.length === 0 ? (
             <div style={{ color: MUTED, fontSize: 13, padding: '20px 0', textAlign: 'center' }}>

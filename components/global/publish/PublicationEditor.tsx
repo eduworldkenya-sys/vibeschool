@@ -352,7 +352,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
           placeholder="Title"
           style={{
             width: '100%', background: 'transparent',
-            border: 'none', borderBottom: titleError ? '2px solid #ef4444' : '2px solid transparent',
+            border: 'none', borderBottom: titleError ? '2px solid var(--publication-danger, #ef4444)' : '2px solid transparent',
             outline: 'none', color: titleError ? 'var(--publication-danger, #ef4444)' : TEXT,
             fontSize: 28, fontWeight: 800,
             padding: '0 0 4px', fontFamily: 'system-ui,-apple-system,sans-serif',
