@@ -96,3 +96,30 @@ html[data-vs-theme='light']{color-scheme:light;background-color:#f8f8f6}
 html[data-vs-theme='dark']{color-scheme:dark;background-color:#10151e}
 html[data-vs-theme='light'] body{background-color:#f8f8f6;color:#1e2625}
 html[data-vs-theme='dark'] body{background-color:#10151e;color:#f3f6f4}
+
+
+/* One Whole Numbers explorer in both system themes; local tokens do not change other readers. */
+.vs-whole-numbers-lab{
+  --wn-surface:#101b2c;
+  --wn-border:rgba(255,255,255,.19);
+  --wn-text:#f8fafc;
+  --wn-muted:#cad5e3;
+  --wn-accent:#ccff00;
+  --wn-subtle:#202d40;
+  --wn-selected-text:#0a1221;
+  --wn-input:#19263a;
+  --wn-track:#35435a;
+  --wn-highlight:#2b3f58;
+}
+html[data-vs-theme='light'] .vs-whole-numbers-lab{
+  --wn-surface:#f8fafc;
+  --wn-border:rgba(15,23,42,.22);
+  --wn-text:#142536;
+  --wn-muted:#405369;
+  --wn-accent:#dceeb0;
+  --wn-subtle:#e7edf3;
+  --wn-selected-text:#162619;
+  --wn-input:#ffffff;
+  --wn-track:#cbd5e1;
+  --wn-highlight:#e0e9f2;
+}
