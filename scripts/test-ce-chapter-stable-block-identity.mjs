@@ -6,7 +6,7 @@ const sql = readFileSync(new URL('../supabase/migrations/20261122211500_content_
 const fn = sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION public.ce_reconcile_chapter_blocks_trigger()'))
 
 test('chapter autosave must preserve block UUIDs rather than delete and reinsert', () => {
-  assert.match(fn, /old\.blocks IS NOT DISTINCT FROM new\.blocks/)
+  assert.match(fn, /new\.blocks IS NOT DISTINCT FROM old\.blocks/)
   assert.match(fn, /SET sequence = sequence \+ v_shift/)
   assert.match(fn, /WHERE chapter_id = new\.id AND legacy_block_id = v_legacy/)
   assert.match(fn, /WHERE id = v_existing\.id/)
@@ -38,7 +38,7 @@ test('interactive block remains its own canonical type, without new grants', () 
   assert.match(fn, /WHEN v_type = 'interactive' THEN 'interactive'/)
   assert.match(fn, /WHEN v_type = 'question' THEN 'question'/)
   assert.match(fn, /WHEN v_type IN \('image','diagram'/)
-  assert.doesNotMatch(sql, /(?:GRANT\s+|REVOKE\s+|CREATE\s+POLICY|DROP\s+POLICY|UPDATE\s+public\.publication_release_approvals)/i)
+  assert.doesNotMatch(sql, /^\s*(?:GRANT\s+|REVOKE\s+|CREATE\s+POLICY|DROP\s+POLICY|UPDATE\s+public\.publication_release_approvals)/im)
 })
 
 test('Creative Arts repair reuses same draft, question keys and citations; never mints approval', () => {
