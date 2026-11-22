@@ -144,4 +144,4 @@ executed or certified.** Keep this gate pending for both subjects.
 **Regressions:** `node --test scripts/test-grade4-cre-ca-teacher-visibility.mjs`
 and `node scripts/test-curriculum-scheme-routing.mjs` run in the existing
 Engineering Integration Gate. These source-contract checks protect wiring
-but do not replace the signed-in acceptance in item 4.
+but do not replace the signed-in acceptance in item 4. Every newly connected\ngrade/subject must add a corresponding contract regression to the same\nexisting integration gate; a new subject must not rely solely on the Grade 4\nCRE/Creative Arts-specific assertions.
