@@ -1,0 +1,30 @@
+.teacher-content-studio {
+  --publication-canvas: #fff;
+  --publication-surface: #fff;
+  --publication-text: var(--teacher-ink, #1c2923);
+  --publication-muted: #505f56;
+  --publication-border: #a5b3a9;
+  --publication-accent: var(--teacher-accent, #087451);
+  --publication-on-accent: #fff;
+  --publication-accent-disabled: #586961;
+  --publication-accent-border: #087451;
+  --publication-danger: #a12f3d;
+  --publication-danger-soft: #fff3f5;
+  --publication-danger-border: #cb7885;
+  --publication-warning: #80531f;
+  --publication-warning-soft: #fff8ed;
+  --publication-warning-border: #bc955e;
+  --publication-success-soft: #e9f2ec;
+  --publication-track: #dce5df;
+  --publication-scrim: rgb(28 41 35 / 48%);
+
+  min-height: 100dvh;
+  background: var(--publication-canvas);
+  color: var(--publication-text);
+  color-scheme: light;
+}
+
+.teacher-content-studio :is(input, textarea)::placeholder {
+  color: var(--publication-muted);
+  opacity: 1;
+}

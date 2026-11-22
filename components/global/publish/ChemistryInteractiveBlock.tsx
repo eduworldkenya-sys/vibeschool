@@ -1,7 +1,7 @@
 "use client"
 import React,{useState}from'react'
 import type{ContentBlock}from'@/lib/publishTypes'
-const T='#fff',M='rgba(255,255,255,.65)',A='#CCFF00',C='#111827',I='#0b1220',B='rgba(255,255,255,.1)'
+const T='var(--publication-text, #fff)',M='var(--publication-muted, rgba(255,255,255,.65))',A='var(--publication-accent, #CCFF00)',C='var(--publication-surface, #111827)',I='var(--publication-surface, #0b1220)',B='var(--publication-border, rgba(255,255,255,.1))'
 export const CHEMISTRY_G10_LABS=['chemistry_lab_safety','chemistry_atomic_structure','chemistry_periodic_table','chemistry_bonding_properties_lab','chemistry_periodicity_lab','chemistry_acid_base_lab','chemistry_salts_lab']as const
 export type ChemistryG10Lab=typeof CHEMISTRY_G10_LABS[number]
 export const isChemistryG10Lab=(v:unknown):v is ChemistryG10Lab=>typeof v==='string'&&(CHEMISTRY_G10_LABS as readonly string[]).includes(v)

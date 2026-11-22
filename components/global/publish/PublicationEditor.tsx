@@ -10,12 +10,12 @@ import { OutcomeSelector } from '@/components/global/publish/OutcomeSelector'
 import { PublicationSetupDrawer } from '@/components/global/publish/PublicationSetupDrawer'
 import { FORMAT_META, PublicationFormat, PublicationGenre } from '@/lib/publishTypes'
 
-const BG     = '#090D16'
-const SURF   = '#111827'
-const ACCENT = '#CCFF00'
-const TEXT   = '#ffffff'
-const MUTED  = 'rgba(255,255,255,0.4)'
-const BORDER = 'rgba(255,255,255,0.06)'
+const BG     = 'var(--publication-canvas, #090D16)'
+const SURF   = 'var(--publication-surface, #111827)'
+const ACCENT = 'var(--publication-accent, #CCFF00)'
+const TEXT   = 'var(--publication-text, #ffffff)'
+const MUTED  = 'var(--publication-muted, rgba(255,255,255,0.4))'
+const BORDER = 'var(--publication-border, rgba(255,255,255,0.06))'
 
 const GENRES: { value: PublicationGenre; label: string }[] = [
   { value: 'fiction',     label: 'Fiction'    },
@@ -161,14 +161,14 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
       }}>
         <div style={{ fontSize: 32, marginBottom: 10 }}>⚠️</div>
         <h2 style={{ margin: '0 0 8px', fontSize: 20 }}>Editor could not open</h2>
-        <p style={{ margin: '0 0 18px', color: '#fca5a5', fontSize: 13, lineHeight: 1.5 }}>
+        <p style={{ margin: '0 0 18px', color: 'var(--publication-danger, #fca5a5)', fontSize: 13, lineHeight: 1.5 }}>
           {error || 'The textbook could not be loaded.'}
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button
             onClick={() => window.location.reload()}
             style={{
-              background: ACCENT, color: BG, border: 'none', borderRadius: 10,
+              background: ACCENT, color: 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
               padding: '10px 16px', fontWeight: 800, cursor: 'pointer',
             }}
           >Retry</button>
@@ -196,7 +196,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
       {/* ── Quick Setup Modal ── */}
       {quickSetup && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 500 }} />
+          <div style={{ position: 'fixed', inset: 0, background: 'var(--publication-scrim, rgba(0,0,0,0.85))', zIndex: 500 }} />
           <div style={{
             position: 'fixed', top: '50%', left: '50%',
             transform: 'translate(-50%,-50%)',
@@ -225,8 +225,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
                 onKeyDown={e => { if (e.key === 'Enter') handleQuickSetupDone() }}
                 placeholder={`e.g. "How to Pass KCSE Maths"`}
                 style={{
-                  width: '100%', background: '#1a2235',
-                  border: '1px solid ' + (quickTitleErr ? '#ef4444' : BORDER),
+                  width: '100%', background: 'var(--publication-surface, #1a2235)',
+                  border: '1px solid ' + (quickTitleErr ? 'var(--publication-danger, #ef4444)' : BORDER),
                   borderRadius: 10, padding: '12px 14px',
                   color: TEXT, fontSize: 15, outline: 'none',
                   boxSizing: 'border-box',
@@ -234,7 +234,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
                 }}
               />
               {quickTitleErr && (
-                <div style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>Title is required</div>
+                <div style={{ fontSize: 12, color: 'var(--publication-danger, #ef4444)', marginTop: 6 }}>Title is required</div>
               )}
             </div>
 
@@ -251,7 +251,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
                       padding: '6px 14px', borderRadius: 24,
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
                       border: '1px solid ' + (quickGenre === g.value ? ACCENT : BORDER),
-                      background: quickGenre === g.value ? 'rgba(204,255,0,0.1)' : '#1a2235',
+                      background: quickGenre === g.value ? 'var(--publication-surface, rgba(204,255,0,0.1))' : 'var(--publication-surface, #1a2235)',
                       color: quickGenre === g.value ? ACCENT : MUTED,
                     }}
                   >{g.label}</button>
@@ -263,7 +263,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
               onClick={handleQuickSetupDone}
               style={{
                 width: '100%', padding: 14,
-                background: ACCENT, color: '#090D16',
+                background: ACCENT, color: 'var(--publication-on-accent, #090D16)',
                 border: 'none', borderRadius: 12,
                 fontSize: 15, fontWeight: 800, cursor: 'pointer',
               }}
@@ -277,7 +277,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
       {/* Header */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 100,
-        background: 'rgba(9,13,22,0.95)', backdropFilter: 'blur(12px)',
+        background: 'var(--publication-surface, rgba(9,13,22,0.95))', backdropFilter: 'blur(12px)',
         borderBottom: '1px solid ' + BORDER,
         padding: '0 16px', height: 52,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -315,8 +315,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
             {publishedReadOnly ? 'Live' : 'Setup'}
           </button>
           <button onClick={handlePublish} disabled={publishing || publishedReadOnly} style={{
-            background: publishing || publishedReadOnly ? 'rgba(204,255,0,0.35)' : ACCENT,
-            color: '#090D16', border: 'none', borderRadius: 10,
+            background: publishing || publishedReadOnly ? 'var(--publication-accent-disabled, rgba(204,255,0,0.35))' : ACCENT,
+            color: 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
             padding: '7px 16px', fontSize: 13, fontWeight: 800,
             cursor: publishing || publishedReadOnly ? 'default' : 'pointer',
           }}>
@@ -327,8 +327,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
 
       {error && (
         <div style={{
-          background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-          padding: '10px 16px', fontSize: 13, color: '#ef4444',
+          background: 'var(--publication-danger-soft, rgba(239,68,68,0.1))', border: '1px solid var(--publication-danger-border, rgba(239,68,68,0.2))',
+          padding: '10px 16px', fontSize: 13, color: 'var(--publication-danger, #ef4444)',
         }}>{error}</div>
       )}
 
@@ -352,8 +352,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
           placeholder="Title"
           style={{
             width: '100%', background: 'transparent',
-            border: 'none', borderBottom: titleError ? '2px solid #ef4444' : '2px solid transparent',
-            outline: 'none', color: titleError ? '#ef4444' : TEXT,
+            border: 'none', borderBottom: titleError ? '2px solid var(--publication-danger, #ef4444)' : '2px solid transparent',
+            outline: 'none', color: titleError ? 'var(--publication-danger, #ef4444)' : TEXT,
             fontSize: 28, fontWeight: 800,
             padding: '0 0 4px', fontFamily: 'system-ui,-apple-system,sans-serif',
             boxSizing: 'border-box', marginBottom: titleError ? 4 : 8,
@@ -361,7 +361,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
           }}
         />
         {titleError && (
-          <div style={{ fontSize: 12, color: '#ef4444', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, color: 'var(--publication-danger, #ef4444)', marginBottom: 8 }}>
             Title is required before publishing
           </div>
         )}
@@ -388,7 +388,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         {/* Chapter header */}
         {activeChapter && (
           <>
-            <div style={{ fontSize: 10, fontWeight: 700, color: meta.accent, letterSpacing: '0.12em', marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: `var(--publication-accent, ${meta.accent})`, letterSpacing: '0.12em', marginBottom: 8 }}>
               {meta.chapterLabel.toUpperCase()} {activeChapter.number}
             </div>
             <input

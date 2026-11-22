@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
 import {
   listChapterOutcomeLinks,
@@ -10,12 +10,12 @@ import {
   type CurriculumLearningOutcome,
 } from '@/lib/content-engine'
 
-const SURF   = '#111827'
-const CARD   = '#1a2235'
-const ACCENT = '#CCFF00'
-const TEXT   = '#ffffff'
-const MUTED  = 'rgba(255,255,255,0.4)'
-const BORDER = 'rgba(255,255,255,0.06)'
+const SURF   = 'var(--publication-surface, #111827)'
+const CARD   = 'var(--publication-surface, #1a2235)'
+const ACCENT = 'var(--publication-accent, #CCFF00)'
+const TEXT   = 'var(--publication-text, #ffffff)'
+const MUTED  = 'var(--publication-muted, rgba(255,255,255,0.4))'
+const BORDER = 'var(--publication-border, rgba(255,255,255,0.06))'
 
 interface Props {
   isOpen:         boolean
@@ -52,80 +52,78 @@ export function OutcomeSelector({
   const [error,      setError]      = useState<string | null>(null)
   const [search,     setSearch]     = useState('')
   const [outcomes,   setOutcomes]   = useState<CurriculumLearningOutcome[]>([])
+  const [loadingOutcomes, setLoadingOutcomes] = useState(true)
   const [selectedIds,setSelectedIds]= useState<Set<string>>(new Set())
 
   const isScoped = Boolean(curriculumId || subStrandId)
 
-  // Loads the candidate outcome list only — never touches selectedIds.
-  // Re-running this on every search keystroke must not discard selections
-  // the author has made locally but not yet saved.
-  const loadOutcomes = useCallback(async (searchTerm: string) => {
-    setError(null)
-    const client = getSupabaseClient()
-    try {
-      const rows = await listVerifiedCurriculumOutcomes(client, {
-        curriculumId: curriculumId ?? undefined,
-        subStrandId: subStrandId ?? undefined,
-        search: searchTerm || undefined,
-        limit: 100,
-      })
-      setOutcomes(rows)
-    } catch (err) {
-      setError(
-        err instanceof ContentEngineError
-          ? err.message
-          : 'Could not load curriculum outcomes.',
-      )
-    }
-  }, [curriculumId, subStrandId])
-
-  // Loads which outcomes are currently linked — runs once per drawer open
-  // (and on chapter change), establishing the baseline selection. This is
-  // intentionally NOT re-run on search: re-deriving selectedIds from the DB
-  // on every keystroke would drop any not-yet-saved local selection the
-  // moment the author searched for another outcome.
-  const initSelection = useCallback(async () => {
-    setError(null)
-    setReady(false)
-    const client = getSupabaseClient()
-
-    try {
-      const persisted = await ensureChapterSaved()
-      if (!persisted) {
-        setError('Could not save this chapter yet — try again in a moment.')
-        return
-      }
-
-      const linkRows = await listChapterOutcomeLinks(client, chapterId)
-      setSelectedIds(new Set(linkRows.map(link => link.outcome_id)))
-      await loadOutcomes(search)
-      setReady(true)
-    } catch (err) {
-      setError(
-        err instanceof ContentEngineError
-          ? err.message
-          : 'Could not load curriculum outcomes.',
-      )
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterId, ensureChapterSaved])
-
+  // Initialize the saved links independently of the search query so typing
+  // never discards selections that have not been saved yet.
   useEffect(() => {
+    setReady(false)
+    setLoadingOutcomes(true)
     if (!isOpen) {
-      setReady(false)
       setSearch('')
       return
     }
-    void initSelection()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, chapterId])
+
+    let cancelled = false
+    setError(null)
+
+    async function initializeSelection() {
+      try {
+        const client = getSupabaseClient()
+        const persisted = await ensureChapterSaved()
+        if (cancelled) return
+        if (!persisted) {
+          setError('Could not save this chapter yet — try again in a moment.')
+          return
+        }
+
+        const links = await listChapterOutcomeLinks(client, chapterId)
+        if (cancelled) return
+        setSelectedIds(new Set(links.map(link => link.outcome_id)))
+        setReady(true)
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ContentEngineError ? err.message : 'Could not load curriculum outcomes.')
+        }
+      }
+    }
+
+    void initializeSelection()
+    return () => { cancelled = true }
+  }, [isOpen, chapterId, ensureChapterSaved])
 
   useEffect(() => {
     if (!isOpen || !ready) return
-    const t = setTimeout(() => { void loadOutcomes(search) }, 350)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      setError(null)
+      try {
+        const client = getSupabaseClient()
+        const rows = await listVerifiedCurriculumOutcomes(client, {
+          curriculumId: curriculumId ?? undefined,
+          subStrandId: subStrandId ?? undefined,
+          search: search || undefined,
+          limit: 100,
+        })
+        if (!cancelled) setOutcomes(rows)
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ContentEngineError ? err.message : 'Could not load curriculum outcomes.')
+        }
+      } finally {
+        if (!cancelled) setLoadingOutcomes(false)
+      }
+    }, search ? 350 : 0)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [isOpen, ready, curriculumId, subStrandId, search])
 
   useEffect(() => {
     if (!isOpen) return
@@ -171,7 +169,7 @@ export function OutcomeSelector({
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'var(--publication-scrim, rgba(0,0,0,0.6))', zIndex: 300 }} />
       <div
         role="dialog"
         aria-modal="true"
@@ -194,7 +192,7 @@ export function OutcomeSelector({
             <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{chapterLabel}</div>
           </div>
           <button onClick={onClose} aria-label="Close" style={{
-            background: 'rgba(255,255,255,0.06)', border: 'none',
+            background: 'var(--publication-border, rgba(255,255,255,0.06))', border: 'none',
             borderRadius: '50%', width: 28, height: 28,
             color: TEXT, fontSize: 14, cursor: 'pointer',
           }}>✕</button>
@@ -203,8 +201,8 @@ export function OutcomeSelector({
         {!isScoped && (
           <div style={{
             margin: '12px 16px 0', padding: '8px 10px',
-            background: 'rgba(255,176,32,0.08)', border: '1px solid rgba(255,176,32,0.2)',
-            borderRadius: 8, fontSize: 11, color: '#FFB020', lineHeight: 1.4,
+            background: 'var(--publication-warning-soft, rgba(255,176,32,0.08))', border: '1px solid var(--publication-warning-border, rgba(255,176,32,0.2))',
+            borderRadius: 8, fontSize: 11, color: 'var(--publication-warning, #FFB020)', lineHeight: 1.4,
           }}>
             This chapter isn&apos;t linked to a curriculum strand yet, so this is showing verified outcomes from every grade and subject. Bridge the chapter to narrow it down.
           </div>
@@ -228,14 +226,14 @@ export function OutcomeSelector({
         {error && (
           <div role="alert" style={{
             margin: '0 16px 12px', padding: '8px 10px',
-            background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 8, fontSize: 12, color: '#ef4444',
+            background: 'var(--publication-danger-soft, rgba(239,68,68,0.1))', border: '1px solid var(--publication-danger-border, rgba(239,68,68,0.2))',
+            borderRadius: 8, fontSize: 12, color: 'var(--publication-danger, #ef4444)',
           }}>{error}</div>
         )}
 
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 12px' }}>
-          {!ready ? (
+          {!ready || loadingOutcomes ? (
             <div style={{ color: MUTED, fontSize: 13, padding: '20px 0', textAlign: 'center' }}>Loading…</div>
           ) : outcomes.length === 0 ? (
             <div style={{ color: MUTED, fontSize: 13, padding: '20px 0', textAlign: 'center' }}>
@@ -258,8 +256,8 @@ export function OutcomeSelector({
                     }
                   }}
                   style={{
-                    background: on ? 'rgba(204,255,0,0.08)' : CARD,
-                    border: '1px solid ' + (on ? 'rgba(204,255,0,0.25)' : BORDER),
+                    background: on ? 'var(--publication-surface, rgba(204,255,0,0.08))' : CARD,
+                    border: '1px solid ' + (on ? 'var(--publication-accent-border, rgba(204,255,0,0.25))' : BORDER),
                     borderRadius: 10, padding: '10px 12px', marginBottom: 6,
                     cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'flex-start',
                   }}
@@ -269,7 +267,7 @@ export function OutcomeSelector({
                     border: '1.5px solid ' + (on ? ACCENT : MUTED),
                     background: on ? ACCENT : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, color: '#090D16', fontWeight: 900,
+                    fontSize: 11, color: 'var(--publication-on-accent, #090D16)', fontWeight: 900,
                   }}>{on ? '✓' : ''}</div>
                   <div>
                     <div style={{ fontSize: 12.5, color: TEXT, lineHeight: 1.4 }}>{outcome.outcome_text}</div>
@@ -289,8 +287,8 @@ export function OutcomeSelector({
             disabled={saving || !ready}
             style={{
               width: '100%', padding: 12,
-              background: saving || !ready ? 'rgba(204,255,0,0.5)' : ACCENT,
-              color: '#090D16', border: 'none', borderRadius: 10,
+              background: saving || !ready ? 'var(--publication-accent-disabled, rgba(204,255,0,0.5))' : ACCENT,
+              color: 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
               fontSize: 13, fontWeight: 800,
               cursor: saving || !ready ? 'not-allowed' : 'pointer',
             }}

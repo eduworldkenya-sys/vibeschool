@@ -13,11 +13,11 @@ type Props = {
   onUpdate: (block: ContentBlock) => void
 }
 
-const ACCENT = '#45B7D1'
-const TEXT = '#fff'
-const MUTED = 'rgba(255,255,255,.58)'
-const SURFACE = '#111827'
-const BORDER = 'rgba(255,255,255,.10)'
+const ACCENT = 'var(--publication-accent, #45B7D1)'
+const TEXT = 'var(--publication-text, #fff)'
+const MUTED = 'var(--publication-muted, rgba(255,255,255,.58))'
+const SURFACE = 'var(--publication-surface, #111827)'
+const BORDER = 'var(--publication-border, rgba(255,255,255,.10))'
 
 function stringMeta(block: ContentBlock, key: string, fallback = ''): string {
   const value = block.meta?.[key]
@@ -55,7 +55,7 @@ export function QuestionBlock({ block, readOnly, onUpdate }: Props) {
   if (!readOnly) {
     const normalizedOptions = options.length ? options : ['', '', '', '']
     return (
-      <div style={{ background: `${ACCENT}0D`, border: `1px solid ${ACCENT}33`, borderRadius: 12, padding: 14 }}>
+      <div style={{ background: 'var(--publication-surface, #45B7D10D)', border: '1px solid var(--publication-border, #45B7D133)', borderRadius: 12, padding: 14 }}>
         <div style={{ color: ACCENT, fontSize: 10, fontWeight: 850, letterSpacing: '.09em', marginBottom: 10 }}>❓ QUESTION</div>
         <textarea
           value={promptWithoutAnswer(block.content)}
@@ -148,7 +148,7 @@ export function QuestionBlock({ block, readOnly, onUpdate }: Props) {
   }
 
   return (
-    <section aria-label="Learning question" style={{ background: `${ACCENT}0D`, border: `1px solid ${ACCENT}33`, borderRadius: 14, padding: 16 }}>
+    <section aria-label="Learning question" style={{ background: 'var(--publication-surface, #45B7D10D)', border: '1px solid var(--publication-border, #45B7D133)', borderRadius: 14, padding: 16 }}>
       <div style={{ color: ACCENT, fontSize: 10, fontWeight: 850, letterSpacing: '.09em', marginBottom: 8 }}>❓ CHECK YOUR UNDERSTANDING</div>
       <div style={{ color: TEXT, fontSize: 16, fontWeight: 750, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{promptWithoutAnswer(block.content)}</div>
       {!hasAnswerKey ? (
@@ -166,18 +166,18 @@ export function QuestionBlock({ block, readOnly, onUpdate }: Props) {
       ) : (
         <div role="radiogroup" aria-label="Answer choices" style={{ display: 'grid', gap: 8, marginTop: 14 }}>
           {options.filter(Boolean).map((option, index) => (
-            <label key={`${option}-${index}`} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${selected === option ? ACCENT : BORDER}`, background: selected === option ? `${ACCENT}12` : SURFACE, borderRadius: 10, padding: 11, cursor: checking ? 'default' : 'pointer', color: TEXT }}>
+            <label key={`${option}-${index}`} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${selected === option ? ACCENT : BORDER}`, background: selected === option ? 'var(--publication-surface, #45B7D112)' : SURFACE, borderRadius: 10, padding: 11, cursor: checking ? 'default' : 'pointer', color: TEXT }}>
               <input type="radio" name={`question-${block.id}`} checked={selected === option} disabled={checking} onChange={() => { setSelected(option); setFeedback('idle') }} />
               <span><strong>{String.fromCharCode(65 + index)}.</strong> {option}</span>
             </label>
           ))}
         </div>
       )}
-      {canSubmit && <button type="button" onClick={() => void check()} style={{ marginTop: 12, width: '100%', border: 0, borderRadius: 10, background: ACCENT, color: '#07100a', padding: '11px 14px', fontWeight: 850, cursor: 'pointer' }}>Check answer</button>}
+      {canSubmit && <button type="button" onClick={() => void check()} style={{ marginTop: 12, width: '100%', border: 0, borderRadius: 10, background: ACCENT, color: 'var(--publication-on-accent, #07100a)', padding: '11px 14px', fontWeight: 850, cursor: 'pointer' }}>Check answer</button>}
       {checking && <div role="status" aria-live="polite" style={{ marginTop: 12, color: MUTED, fontSize: 12 }}>Checking your answer…</div>}
-      {feedback === 'error' && <div role="alert" style={{ marginTop: 12, borderRadius: 10, padding: 12, background: 'rgba(245,158,11,.12)', color: TEXT }}>{message}</div>}
+      {feedback === 'error' && <div role="alert" style={{ marginTop: 12, borderRadius: 10, padding: 12, background: 'var(--publication-warning-soft, rgba(245,158,11,.12))', color: TEXT }}>{message}</div>}
       {(feedback === 'correct' || feedback === 'incorrect') && (
-        <div role="status" aria-live="polite" style={{ marginTop: 12, borderRadius: 10, padding: 12, background: feedback === 'correct' ? 'rgba(52,211,153,.12)' : 'rgba(245,158,11,.12)', color: TEXT }}>
+        <div role="status" aria-live="polite" style={{ marginTop: 12, borderRadius: 10, padding: 12, background: feedback === 'correct' ? 'var(--publication-success-soft, rgba(52,211,153,.12))' : 'var(--publication-warning-soft, rgba(245,158,11,.12))', color: TEXT }}>
           <strong>{feedback === 'correct' ? 'Excellent — correct.' : 'Not quite. Try again.'}</strong>
           {stringMeta(block, 'explanation') && <div style={{ marginTop: 5, color: MUTED, lineHeight: 1.6 }}>{stringMeta(block, 'explanation')}</div>}
           {feedback === 'incorrect' && stringMeta(block, 'hint') && <div style={{ marginTop: 5, color: MUTED, lineHeight: 1.6 }}>Hint: {stringMeta(block, 'hint')}</div>}

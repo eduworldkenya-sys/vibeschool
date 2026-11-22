@@ -2,12 +2,12 @@
 
 import React, { useMemo, useState } from 'react'
 
-const TEXT = '#ffffff'
-const MUTED = 'rgba(255,255,255,0.58)'
-const ACCENT = '#CCFF00'
-const CARD = '#111827'
-const INNER = '#0b1220'
-const BORDER = 'rgba(255,255,255,0.09)'
+const TEXT = 'var(--publication-text, #ffffff)'
+const MUTED = 'var(--publication-muted, rgba(255,255,255,0.58))'
+const ACCENT = 'var(--publication-accent, #CCFF00)'
+const CARD = 'var(--publication-surface, #111827)'
+const INNER = 'var(--publication-surface, #0b1220)'
+const BORDER = 'var(--publication-border, rgba(255,255,255,0.09))'
 
 export type LabObservation = {
   label: string
@@ -104,7 +104,7 @@ export function InteractiveLab({ config }: { config: InteractiveLabConfig }) {
           <div style={{ display: 'flex', alignItems: 'end', gap: 6, minHeight: 145, marginTop: 14, overflowX: 'auto' }}>
             {bins.map(bin => (
               <div key={bin.label} style={{ minWidth: 46, flex: 1, textAlign: 'center' }}>
-                <div style={{ height: `${Math.max(8, (bin.value / peak) * 105)}px`, background: 'rgba(204,255,0,0.72)', borderRadius: '6px 6px 2px 2px', color: '#090D16', fontWeight: 900, paddingTop: 4 }}>{bin.value}</div>
+                <div style={{ height: `${Math.max(8, (bin.value / peak) * 105)}px`, background: 'var(--publication-accent, rgba(204,255,0,0.72))', borderRadius: '6px 6px 2px 2px', color: 'var(--publication-on-accent, #090D16)', fontWeight: 900, paddingTop: 4 }}>{bin.value}</div>
                 <div style={{ color: MUTED, fontSize: 9, marginTop: 5 }}>{bin.label}</div>
               </div>
             ))}
@@ -124,7 +124,7 @@ export function InteractiveLab({ config }: { config: InteractiveLabConfig }) {
       )}
 
       {showHint && config.conclusionHint && (
-        <div style={{ marginTop: 8, color: TEXT, fontSize: 12, lineHeight: 1.6, background: 'rgba(204,255,0,0.06)', borderRadius: 10, padding: 10 }}>
+        <div style={{ marginTop: 8, color: TEXT, fontSize: 12, lineHeight: 1.6, background: 'var(--publication-surface, rgba(204,255,0,0.06))', borderRadius: 10, padding: 10 }}>
           {config.conclusionHint}
         </div>
       )}
