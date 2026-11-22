@@ -19,7 +19,7 @@ assert.match(page,/stop <= 0\) notFound\(\)/)
 assert.match(page,/ReaderClient/)
 assert.match(page,/lessonFocus=/)
 assert.match(page,/stopBeforeHeading: FIRST_LESSON_STOP/)
-assert.match(page,/Whole numbers in everyday life/)
+assert.match(page,/Reading and writing numerals/)
 assert.match(page,/robots: \{ index: false/)
 assert.doesNotMatch(page,/readFileSync|grade4-mathematics-whole-numbers-objective1\.v3\.learner\.md/)
 
