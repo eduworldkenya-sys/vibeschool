@@ -111,7 +111,7 @@ for(const [label,entry,list] of [
    assert.equal(lastProjectWrite.teacher_id,'teacher')
    assert.equal(lastProjectWrite.class_id,'class')
  }else{
-   await act(async()=>fireEvent.click(screen.getByRole('button',{name:'From lesson',exact:false})))
+   await act(async()=>fireEvent.click(screen.getByRole('button',{name:/From lesson/})))
    await waitFor(()=>assert(screen.getByRole('combobox',{name:'Saved lesson'})))
    await act(async()=>fireEvent.change(screen.getByRole('combobox',{name:'Saved lesson'}),{target:{value:'lesson'}}))
    assert(screen.getByText('Measure a book in centimetres and record the result.'))
