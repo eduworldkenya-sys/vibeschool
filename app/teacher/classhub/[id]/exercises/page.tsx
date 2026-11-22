@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { loadProgressAuthority, loadProgressRoster } from "@/lib/learner-intelligence/progress-data";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { parseLessonPlanBody } from "@/lib/teaching/lessonPlanCodec";
+import { savedLessonTask } from "@/lib/assessment/lessonTaskSource";
 import { ensureLessonExerciseDraft } from "@/lib/teaching/lessonExerciseDraft";
 
 interface Exercise {
@@ -91,8 +91,8 @@ function ExercisesInner() {
       if (!authority.subjects.some(subject => subject.id === fresh.subject_id)) {
         throw new Error("You are no longer assigned to this lesson's subject.");
       }
-      const sections = parseLessonPlanBody(fresh.body ?? "");
-      if (!sections?.consolidation.trim()) {
+      const task = savedLessonTask(fresh.body ?? "", "exercise");
+      if (!task) {
         throw new Error("Add an exercise under Check understanding in the saved lesson first.");
       }
       const result = await ensureLessonExerciseDraft({
@@ -101,7 +101,7 @@ function ExercisesInner() {
         schoolId: authority.schoolId,
         teacherId: authority.teacherId,
         title: (fresh.topic || fresh.title || "Lesson") + " — In-Class Exercise",
-        instructions: sections.consolidation.trim(),
+        instructions: task.text,
       });
       // Existing teacher edits, submissions and marking always win over regeneration.
       setShowForm(false);
@@ -132,7 +132,7 @@ function ExercisesInner() {
   const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6, display: "block" };
 
   const selectedLesson = lessonOptions.find(lesson => lesson.id === selectedLessonId);
-  const selectedSections = selectedLesson ? parseLessonPlanBody(selectedLesson.body ?? "") : null;
+  const selectedTask = selectedLesson ? savedLessonTask(selectedLesson.body ?? "", "exercise") : null;
   const active    = list.filter(e => e.status === "active").length;
   const completed = list.filter(e => e.status === "completed").length;
 
@@ -188,13 +188,13 @@ function ExercisesInner() {
                   <div style={{ marginTop: 12, padding: 12, background: C.surface, borderRadius: 10 }}>
                     <strong style={{ color: C.textPrimary }}>Check understanding</strong>
                     <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                      {selectedSections?.consolidation.trim() || "No exercise saved. Add one in this lesson before creating."}
+                      {selectedTask?.text || "No exercise saved. Add one in this lesson before creating."}
                     </p>
                     <Link href={`/teacher/lesson-notes?lessonPlanId=${encodeURIComponent(selectedLesson.id)}`}>Open source lesson</Link>
                   </div>
                 )}
                 {error && <p role="alert" style={{ color: C.error }}>{error}</p>}
-                <button type="button" onClick={() => void handleSubmit()} disabled={saving || !selectedLessonId || !selectedSections?.consolidation.trim()} style={{ marginTop: 12, minHeight: 44, padding: "10px 16px", border: "none", borderRadius: 10, background: "#075985", color: "#fff", fontWeight: 700, opacity: saving || !selectedSections?.consolidation.trim() ? 0.6 : 1 }}>
+                <button type="button" onClick={() => void handleSubmit()} disabled={saving || !selectedLessonId || !selectedTask} style={{ marginTop: 12, minHeight: 44, padding: "10px 16px", border: "none", borderRadius: 10, background: "#075985", color: "#fff", fontWeight: 700, opacity: saving || !selectedTask ? 0.6 : 1 }}>
                   {saving ? "Opening…" : "Create from lesson"}
                 </button>
               </>
