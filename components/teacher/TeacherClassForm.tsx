@@ -82,8 +82,8 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
     void (async()=>{
       const r=await supabase.rpc('teacher_list_existing_grade_classes' as never,{p_school_id:schoolId,p_grade:grade} as never)
       if(cancelled)return
-      if(r.error){setError('Could not check existing classes. Retry before adding.');setExistingChoice('unavailable')}
-      else {const rows=(r.data??[]) as ExistingClass[];setExisting(rows);setExistingChoice(rows.length?'':'new')}
+      if(r.error || !Array.isArray(r.data)){setError('Could not check existing classes. Retry before adding.');setExistingChoice('unavailable')}
+      else {const rows=r.data as ExistingClass[];setExisting(rows);setExistingChoice(rows.length?'':'new')}
       setExistingLoading(false)
     })()
     return ()=>{cancelled=true}
