@@ -40,3 +40,18 @@ test('interactive block remains its own canonical type, without new grants', () 
   assert.match(fn, /WHEN v_type IN \('image','diagram'/)
   assert.doesNotMatch(sql, /(?:GRANT\s+|REVOKE\s+|CREATE\s+POLICY|DROP\s+POLICY|UPDATE\s+public\.publication_release_approvals)/i)
 })
+
+test('Creative Arts repair reuses same draft, question keys and citations; never mints approval', () => {
+  const repair = readFileSync(new URL('./sql/grade4_painting_montage_existing_draft_relink.sql', import.meta.url), 'utf8')
+  for (const k of ['CA_QUESTION_LINEAGE_MISMATCH', 'CA_GUIDE_SOURCE_MATCH_MISMATCH',
+                   'CA_INTERACTIVE_RECHECK_FAILED', 'CA_QUESTION_RECHECK_FAILED',
+                   'CA_GUIDE_RECHECK_FAILED', 'creative_arts_montage_builder',
+                   'generated_assessment_items', 'content_derivatives']) {
+    assert.ok(repair.includes(k), 'Missing required guarded repair: ' + k)
+  }
+  assert.match(repair, /v_good<>15/)
+  assert.match(repair, /v_guide_matched<>31/)
+  assert.match(repair, /status='draft'/)
+  assert.doesNotMatch(repair, /UPDATE\s+public\.vibe_publications\s+SET\s+status\s*=\s*'published'/i)
+  assert.doesNotMatch(repair, /UPDATE\s+public\.publication_release_approvals|INSERT\s+INTO\s+public\.publication_release_approvals/i)
+})
