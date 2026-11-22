@@ -37,20 +37,21 @@ export default function TeachingScopePage(){
  }
  const invalid=(ctx?.classes??[]).filter(a=>a.curriculum_state==="needs_reconciliation"||a.curriculum_valid===false);
  return <section style={{maxWidth:760,margin:"0 auto",padding:"18px 14px 110px"}}>
-  <Link href="/teacher/profile" style={{fontSize:13,fontWeight:800,color:"#4338ca",textDecoration:"none"}}>← Back to profile</Link>
-  <header style={{margin:"16px 0",padding:18,borderRadius:20,background:"var(--teacher-ink, #1c2923)",color:"#fff"}}><div style={{fontSize:11,fontWeight:750,opacity:.65}}>TEACHING SCOPE</div><h1 style={{margin:"5px 0",fontSize:24}}>Curriculum alignment</h1><p style={{margin:0,fontSize:13,lineHeight:1.55,opacity:.8}}>Your assigned teaching subjects must match the curriculum for each level. This does not limit the books, resources or content you can explore in VibeSchool.</p></header>
+  <Link href="/teacher/profile" style={{fontSize:14,fontWeight:700,color:"var(--teacher-ink, #1c2923)",textDecoration:"none"}}>← Back</Link>
+  <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,margin:"18px 0 20px"}}><h1 style={{margin:0,fontSize:25}}>My subjects</h1><Link href="/teacher/classhub/add" style={{padding:"12px 16px",borderRadius:12,background:"var(--teacher-ink, #1c2923)",color:"#fff",fontWeight:800,textDecoration:"none",whiteSpace:"nowrap"}}>+ Add</Link></header>
+  {!loading&&(ctx?.classes??[]).length>0&&<div style={{display:"grid",gap:8,marginBottom:18}}>{(ctx?.classes??[]).map(a=><div key={a.assignment_id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,padding:"13px 14px",border:"1px solid var(--teacher-border, #e5e7eb)",borderRadius:13}}><div><strong>{a.subject_name}</strong><div style={{fontSize:13,opacity:.7}}>{a.class_name}{a.stream?` · ${a.stream}`:""}</div></div>{(a.curriculum_state==="needs_reconciliation"||a.curriculum_valid===false)&&<span style={{fontSize:12,fontWeight:800,color:"#991b1b"}}>Change below</span>}</div>)}</div>}
   {error&&<div role="alert" style={{padding:12,borderRadius:12,background:"#fef2f2",color:"#991b1b",marginBottom:12}}>{error}</div>}
-  {loading?<div style={{padding:18}}>Checking teaching scope…</div>:invalid.length===0?<section style={{padding:18,borderRadius:16,background:"#ecfdf5",color:"#065f46"}}><strong>Teaching scope is aligned.</strong><div style={{fontSize:13,marginTop:5}}>All current class-subject assignments match curriculum authority.</div></section>:<>
-   <div style={{fontSize:13,color:"var(--teacher-muted, #627168)",marginBottom:10}}>{invalid.length} assignment{invalid.length===1?"":"s"} need correction. VibeSchool will not guess the replacement.</div>
+  {loading?<div style={{padding:18}}>Loading…</div>:invalid.length===0?<section style={{padding:18,borderRadius:16,background:"#ecfdf5",color:"#065f46"}}><strong>All set</strong></section>:<>
+   <div style={{fontSize:13,color:"var(--teacher-muted, #627168)",marginBottom:10}}>{invalid.length} to change</div>
    <div style={{display:"grid",gap:12}}>{invalid.map(a=><section key={a.assignment_id} style={{padding:15,border:"1px solid #fecaca",borderRadius:16,background:"#fff"}}>
-    <div style={{fontSize:15,fontWeight:750}}>{a.class_name}{a.stream?` · ${a.stream}`:""}</div><div style={{fontSize:13,color:"#991b1b",marginTop:5}}>Current subject: <strong>{a.subject_name}</strong> — not valid for this level.</div>
-    <label style={{display:"grid",gap:6,marginTop:13,fontSize:12,fontWeight:800,color:"#4b5563"}}>Correct teaching subject
+    <div style={{fontSize:15,fontWeight:750}}>{a.class_name}{a.stream?` · ${a.stream}`:""}</div><div style={{fontSize:13,color:"#991b1b",marginTop:5}}><strong>{a.subject_name}</strong> · Invalid for this grade</div>
+    <label style={{display:"grid",gap:6,marginTop:13,fontSize:12,fontWeight:800,color:"#4b5563"}}>Change to
      <select value={selected[a.assignment_id]??""} onChange={e=>setSelected(s=>({...s,[a.assignment_id]:e.target.value}))} style={{minHeight:46,border:"1px solid #d1d5db",borderRadius:11,padding:"0 11px",background:"#fff"}}>
-      <option value="">Choose the subject you actually teach</option>{(choices[a.assignment_id]??[]).map(s=><option key={s} value={s}>{s}</option>)}
+      <option value="">Select subject</option>{(choices[a.assignment_id]??[]).map(s=><option key={s} value={s}>{s}</option>)}
      </select>
     </label>
-    <button onClick={()=>void reconcile(a)} disabled={!selected[a.assignment_id]||busy===a.assignment_id} style={{marginTop:10,minHeight:44,width:"100%",border:0,borderRadius:11,background:!selected[a.assignment_id]?"#9ca3af":"#4338ca",color:"#fff",fontWeight:750}}>{busy===a.assignment_id?"Correcting…":"Confirm teaching subject"}</button>
-    <p style={{fontSize:11,color:"var(--teacher-muted, #627168)",lineHeight:1.5,marginBottom:0}}>This updates the current assignment only. Existing Scheme, lesson and assessment history is not relabelled.</p>
+    <button onClick={()=>void reconcile(a)} disabled={!selected[a.assignment_id]||busy===a.assignment_id} style={{marginTop:10,minHeight:44,width:"100%",border:0,borderRadius:11,background:!selected[a.assignment_id]?"#9ca3af":"#4338ca",color:"#fff",fontWeight:750}}>{busy===a.assignment_id?"Saving…":"Save"}</button>
+
    </section>)}</div>
   </>}
  </section>
