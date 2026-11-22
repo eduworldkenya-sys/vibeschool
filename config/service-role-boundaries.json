@@ -162,6 +162,18 @@
         "identity.account_state !== 'restricted'",
         "status: 403"
       ]
+    },
+    "app/api/learn/grade4-curriculum/route.ts": {
+      "authority": "anonymous_read_only_fixed_grade4_subject_allowlist_with_bounded_public_curriculum_projection",
+      "requiredEvidence": [
+        "export async function GET(request: NextRequest)",
+        "const config = sources[key as keyof typeof sources]",
+        "if (!config) return NextResponse.json",
+        "eq('grade','Grade 4')",
+        "eq('subject_id',config.id)",
+        ".limit(100)",
+        "source_ref===config.ref"
+      ]
     }
   }
 }
