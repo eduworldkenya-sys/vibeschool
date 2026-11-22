@@ -85,7 +85,7 @@ test('an unreadable existing public image must remain a hard failure', async () 
 
 test('a permission error cannot be mistaken for a duplicate', async () => {
   const { client, events } = fixture({ uploadError: { statusCode: 403, message: 'Permission denied' } })
-  await assert.rejects(promoteDraftMedia(client, ref, VIBEPRESS_IMAGE_BUCKET), /Permission denied/)
+  await assert.rejects(promoteDraftMedia(client, ref, VIBEPRESS_IMAGE_BUCKET), error => error?.message === 'Permission denied')
   assert.equal(events.downloads.length, 1)
   assert.deepEqual(events.removes, [])
 })
