@@ -6,6 +6,7 @@ import { createBrowserClient } from "@supabase/ssr"
 import { useRouter } from "next/navigation"
 import { AlertCircle, BookOpen, CheckCircle2, ChevronRight, Circle, LockKeyhole, RefreshCw } from "lucide-react"
 import type { VibePublication } from "@/lib/publishTypes"
+import { isMumbi2Publisher } from "@/lib/studioPublisherIdentity"
 
 type LoadState = "loading" | "ready" | "error"
 type ChapterEvidence = { id: string; publication_id: string; blocks: unknown }
@@ -31,6 +32,7 @@ export default function PublishingReplacementPage() {
   const [state, setState] = useState<LoadState>("loading")
   const [items, setItems] = useState<VibePublication[]>([])
   const [message, setMessage] = useState("")
+  const [canPublish, setCanPublish] = useState(false)
   const [selectedPublicationId, setSelectedPublicationId] = useState<string | null>(null)
   const [evidence, setEvidence] = useState<Record<string, Evidence>>({})
   const [evidenceLoading, setEvidenceLoading] = useState(false)
@@ -41,12 +43,14 @@ export default function PublishingReplacementPage() {
     const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
     async function load() {
       setState("loading")
+      setCanPublish(false)
       const { data: { user }, error: userError } = await sb.auth.getUser()
       if (!active) return
       if (userError || !user) { router.replace("/?role=teacher"); return }
       const { data: profile, error: profileError } = await sb.from("profiles").select("role").eq("id", user.id).maybeSingle()
       if (!active) return
       if (profileError || !profile || !["teacher", "admin"].includes(profile.role)) { router.replace("/"); return }
+      setCanPublish(isMumbi2Publisher(user.id, profile.role))
       const { data, error } = await sb.from("vibe_publications").select("*").eq("author_id", user.id).in("format", ["vibetextbook", "ebook"]).order("updated_at", { ascending: false })
       if (!active) return
       if (error) { setMessage("Could not load your publications. Try again."); setState("error"); return }
@@ -97,7 +101,7 @@ export default function PublishingReplacementPage() {
       <nav aria-label="Breadcrumb"><Link href="/teacher/studio" style={{ color: "#475569" }}>← Content Studio</Link></nav>
       <header style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <div><p style={{ margin: "0 0 5px", fontWeight: 700, fontSize: 12, color: "#475569" }}>VIBESCHOOL</p><h1 style={{ fontSize: 29, margin: 0 }}>Publishing</h1></div>
-        <span style={{ display: "inline-flex", gap: 7, alignItems: "center", padding: "10px 13px", borderRadius: 999, background: "#fef3c7", color: "#92400e", fontSize: 13, fontWeight: 700 }}><LockKeyhole size={16}/> Awaiting Duncan activation</span>
+        <span style={{ display: "inline-flex", gap: 7, alignItems: "center", padding: "10px 13px", borderRadius: 999, background: "#fef3c7", color: "#92400e", fontSize: 13, fontWeight: 700 }}>{canPublish ? <CheckCircle2 size={16}/> : <LockKeyhole size={16}/>} {canPublish ? "Mumbi2 authenticated" : "Mumbi2 sign-in required"}</span>
       </header>
       <section style={panel} aria-labelledby="progress-title">
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
@@ -131,9 +135,12 @@ export default function PublishingReplacementPage() {
         </ol>
       </section>
       <section id="publishing-availability" style={panel} aria-label="Publishing availability">
-        <p style={{ margin: 0, display: "flex", gap: 9, alignItems: "center", fontWeight: 700 }}><LockKeyhole size={18}/> Publishing locked</p>
-        <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>The replacement publishing service is not activated. This screen does not bypass any existing release or authorization boundary. Existing published learner content is unaffected.</p>
-        <button disabled style={{ border: 0, borderRadius: 12, padding: "12px 20px", background: "#e2e8f0", color: "#64748b", fontWeight: 700, cursor: "not-allowed" }}>Publish</button>
+        <p style={{ margin: 0, display: "flex", gap: 9, alignItems: "center", fontWeight: 700 }}>{canPublish ? <CheckCircle2 size={18} color="#15803d"/> : <LockKeyhole size={18}/>} {canPublish ? "Mumbi2 can request publication" : "Publishing restricted to Mumbi2"}</p>
+        <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>Your Mumbi2 login is sufficient publishing identity. No separate owner activation is required. The server will still check content, answers, rights and learner visibility before releasing a publication.</p>
+        <button type="button" disabled={!canPublish || !selected || selected.status === "published"} onClick={() => router.push(editorHref)}
+          style={{ border: 0, borderRadius: 12, padding: "12px 20px", background: canPublish && selected?.status !== "published" ? "#2563eb" : "#e2e8f0", color: canPublish && selected?.status !== "published" ? "#fff" : "#64748b", fontWeight: 700, cursor: canPublish && selected?.status !== "published" ? "pointer" : "not-allowed" }}>
+          {selected?.status === "published" ? "Already published" : "Open and publish"}
+        </button>
       </section>
       <section style={panel} aria-label="Your publications">
         <div style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center" }}><h2 style={{ fontSize: 18, margin: 0 }}>Your content</h2><button type="button" onClick={() => setRefreshKey(x => x + 1)} style={{ display: "inline-flex", gap: 7, alignItems: "center", border: "1px solid #cbd5e1", background: "white", borderRadius: 9, padding: "7px 10px", cursor: "pointer" }}><RefreshCw size={15}/> Refresh</button></div>
