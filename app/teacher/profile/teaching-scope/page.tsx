@@ -26,6 +26,17 @@ export default function TeachingScopePage(){
   setChoices(Object.fromEntries(pairs));setLoading(false);
  },[router]);
  useEffect(()=>{void load()},[load]);
+ async function remove(a:Assignment){
+  if(busy)return;
+  if(!window.confirm(`Remove ${a.subject_name} from ${a.class_name}${a.stream?` · ${a.stream}`:""}? Your class and existing learning records stay.`))return;
+  setBusy(a.assignment_id);setError("");
+  const r=await supabase.rpc("teacher_remove_class_subject" as never,{p_assignment_id:a.assignment_id} as never);
+  if(r.error){
+   const msg=r.error.message;
+   setError(msg.includes("class_teacher_handover_required")?"Assign another class teacher before removing this role.":msg.includes("assignment_has_history")?"This assignment has linked records and cannot be removed safely.": "Could not remove this assignment.");
+  } else await load();
+  setBusy(null);
+ }
  async function reconcile(a:Assignment){
   const subject=selected[a.assignment_id]; if(!subject||busy)return;
   if(!window.confirm(`Change ${a.class_name}${a.stream?` ${a.stream}`:""} from ${a.subject_name} to ${subject}? Historical lesson and assessment records keep their original subject identity.`))return;
@@ -39,7 +50,7 @@ export default function TeachingScopePage(){
  return <section style={{maxWidth:760,margin:"0 auto",padding:"18px 14px 110px"}}>
   <Link href="/teacher/profile" style={{fontSize:14,fontWeight:700,color:"var(--teacher-ink, #1c2923)",textDecoration:"none"}}>← Back</Link>
   <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,margin:"18px 0 20px"}}><h1 style={{margin:0,fontSize:25}}>My subjects</h1><Link href="/teacher/classhub/add" style={{padding:"12px 16px",borderRadius:12,background:"var(--teacher-ink, #1c2923)",color:"#fff",fontWeight:800,textDecoration:"none",whiteSpace:"nowrap"}}>+ Add</Link></header>
-  {!loading&&(ctx?.classes??[]).length>0&&<div style={{display:"grid",gap:8,marginBottom:18}}>{(ctx?.classes??[]).map(a=><div key={a.assignment_id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,padding:"13px 14px",border:"1px solid var(--teacher-border, #e5e7eb)",borderRadius:13}}><div><strong>{a.subject_name}</strong><div style={{fontSize:13,opacity:.7}}>{a.class_name}{a.stream?` · ${a.stream}`:""}</div></div>{(a.curriculum_state==="needs_reconciliation"||a.curriculum_valid===false)&&<span style={{fontSize:12,fontWeight:800,color:"#991b1b"}}>Change below</span>}</div>)}</div>}
+  {!loading&&(ctx?.classes??[]).length>0&&<div style={{display:"grid",gap:8,marginBottom:18}}>{(ctx?.classes??[]).map(a=><div key={a.assignment_id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,padding:"13px 14px",border:"1px solid var(--teacher-border, #e5e7eb)",borderRadius:13}}><div><strong>{a.subject_name}</strong><div style={{fontSize:13,opacity:.7}}>{a.class_name}{a.stream?` · ${a.stream}`:""}</div></div><div style={{display:"flex",alignItems:"center",gap:8}}>{(a.curriculum_state==="needs_reconciliation"||a.curriculum_valid===false)&&<span style={{fontSize:12,fontWeight:800,color:"#991b1b"}}>Change below</span>}<button type="button" onClick={()=>void remove(a)} disabled={busy!==null} aria-label={`Remove ${a.subject_name} from ${a.class_name}`} style={{border:"1px solid #fecaca",borderRadius:9,padding:"8px 10px",background:"transparent",color:"#991b1b",fontWeight:700}}>{busy===a.assignment_id?"Working…":"Remove"}</button></div></div>)}</div>}
   {error&&<div role="alert" style={{padding:12,borderRadius:12,background:"#fef2f2",color:"#991b1b",marginBottom:12}}>{error}</div>}
   {loading?<div style={{padding:18}}>Loading…</div>:invalid.length===0?<section style={{padding:18,borderRadius:16,background:"#ecfdf5",color:"#065f46"}}><strong>All set</strong></section>:<>
    <div style={{fontSize:13,color:"var(--teacher-muted, #627168)",marginBottom:10}}>{invalid.length} to change</div>
