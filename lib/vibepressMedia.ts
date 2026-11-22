@@ -17,6 +17,7 @@ export interface PromotedMedia {
   publicBucket: string
   publicPath: string
   draftPath: string
+  createdByThisAttempt: boolean
 }
 
 function extensionFor(file: File): string {
@@ -101,6 +102,18 @@ export async function removeVibePressMedia(client: SupabaseClient, value: string
   await client.storage.from(publicObject.bucket).remove([publicObject.path])
 }
 
+/** Keep byte-level identity rather than trusting file names or public URLs. */
+async function identicalBlobs(first: Blob, second: Blob): Promise<boolean> {
+  if (first.size !== second.size) return false
+  const [a, b] = await Promise.all([first.arrayBuffer(), second.arrayBuffer()])
+  const left = new Uint8Array(a)
+  const right = new Uint8Array(b)
+  for (let i = 0; i < left.length; i += 1) {
+    if (left[i] !== right[i]) return false
+  }
+  return true
+}
+
 export async function promoteDraftMedia(
   client: SupabaseClient,
   value: string,
@@ -117,12 +130,29 @@ export async function promoteDraftMedia(
   const { data: blob, error: downloadError } = await client.storage.from(VIBEPRESS_DRAFT_BUCKET).download(draftPath)
   if (downloadError) throw downloadError
   const publicPath = `${userId}/${kind}/${filename}`
+  // Retry-safe promotion: previously promoted images remain immutable. A
+  // duplicate path is reusable only when its bytes exactly match the draft.
+  // Never overwrite another object or treat any storage error as success.
   const { error: uploadError } = await client.storage.from(targetBucket).upload(publicPath, blob, {
     cacheControl: '31536000',
     upsert: false,
     contentType: blob.type || undefined,
   })
-  if (uploadError) throw uploadError
+  let createdByThisAttempt = true
+  if (uploadError) {
+    const status = Number((uploadError as { statusCode?: number | string }).statusCode)
+    const message = uploadError.message.toLowerCase()
+    if (status !== 409 && !/resource already exists|already exists|duplicate/.test(message)) throw uploadError
+
+    const { data: existing, error: existingError } = await client.storage.from(targetBucket).download(publicPath)
+    if (existingError || !existing) {
+      throw new Error('Existing public image could not be verified; original draft is preserved.')
+    }
+    if (!(await identicalBlobs(blob, existing))) {
+      throw new Error('Public image path contains different content; refusing to overwrite or reuse it.')
+    }
+    createdByThisAttempt = false
+  }
   const { data } = client.storage.from(targetBucket).getPublicUrl(publicPath)
   return {
     sourceRef: value,
@@ -130,11 +160,12 @@ export async function promoteDraftMedia(
     publicBucket: targetBucket,
     publicPath,
     draftPath,
+    createdByThisAttempt,
   }
 }
 
 export async function rollbackPromotedMedia(client: SupabaseClient, promoted: readonly PromotedMedia[]): Promise<void> {
-  await Promise.all(promoted.map(item => client.storage.from(item.publicBucket).remove([item.publicPath])))
+  await Promise.all(promoted.filter(item => item.createdByThisAttempt).map(item => client.storage.from(item.publicBucket).remove([item.publicPath])))
 }
 
 export async function finalizePromotedMedia(client: SupabaseClient, promoted: readonly PromotedMedia[]): Promise<void> {
