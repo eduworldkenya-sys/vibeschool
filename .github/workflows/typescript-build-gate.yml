@@ -92,6 +92,7 @@ jobs:
             node scripts/test-geography-commissioning.mjs
             node --test scripts/test-universal-qa-learner.mjs
             node --test scripts/test-idempotent-publication-media.mjs
+            node --test scripts/test-ce-chapter-stable-block-identity.mjs
             npm run typecheck
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
