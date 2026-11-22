@@ -7,7 +7,7 @@ import { findChapter, loadPublicReader } from '@/app/read/textbook/[publicationI
 // publication or a rendering of a private/editorial manuscript.
 const PUBLICATION_ID = '6fc551d7-c9ae-4402-ac52-3d0a46461e87'
 const CHAPTER_ID = 'b23413c2-f7ae-44c2-9f5e-98f3cdeeeb8a'
-const FIRST_LESSON_STOP = 'Whole numbers in everyday life'
+const FIRST_LESSON_STOP = 'Reading and writing numerals'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
