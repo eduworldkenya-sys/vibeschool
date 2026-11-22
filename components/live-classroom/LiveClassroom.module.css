@@ -277,3 +277,28 @@
 .stageContent .startActions button{min-height:44px;padding:9px 13px;border-radius:10px;background:transparent;border:1px solid color-mix(in srgb,currentColor 28%,transparent);color:inherit;font-weight:650}
 .stageContent .startActions button.primary{background:var(--vs-accent,#087e72);border-color:var(--vs-accent,#087e72);color:white}
 @media(max-width:380px){.startPanel{gap:9px;padding:10px}.startActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.startActions button:first-child{grid-column:1/-1}.startPanel p{font-size:.85rem}}
+
+/* Teacher-configurable compact dock: classroom stage keeps remaining viewport. */
+.dockHeader{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.dockHeader button{min-height:36px!important;padding:5px 10px!important}
+.toolPicker{display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid #52736b;border-radius:10px;background:#1d322c}
+.toolPicker label{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px}
+.toolPicker input{accent-color:#2dd4bf;width:18px;height:18px}
+@media(max-width:600px){.dockHeader{justify-content:space-between}.toolPicker{max-height:24dvh;overflow:auto}}
+
+/* Space utilization: the presentation occupies the viewport while the dock stays compact. */
+@media(min-width:760px){
+  .immersive{gap:8px;padding:10px}
+  .dock{max-width:none;width:100%;margin:0}
+  .toolRow{display:flex;flex-wrap:wrap;justify-content:center}
+  .toolRow button{flex:0 1 110px}
+  .sessionRow{justify-content:center}
+  .sessionRow button{flex:0 1 155px}
+  .stageContent{padding:clamp(12px,2vw,22px)}
+}
+@media(max-width:759px){
+  .immersive{gap:4px}
+  .dock{gap:4px}
+  .toolRow button{min-height:42px}
+  .stageContent{padding:8px}
+}
