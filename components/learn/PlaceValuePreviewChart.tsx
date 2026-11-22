@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import styles from './PlaceValuePreview.module.css'
+import styles from '@/app/learn/grade-4/mathematics/place-value/PlaceValuePreview.module.css'
 
 const presets = [
   { label: '24,907', value: '24907' },
