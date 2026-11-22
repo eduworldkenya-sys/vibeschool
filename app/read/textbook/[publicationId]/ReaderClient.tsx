@@ -52,6 +52,11 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
   function go(i:number){if(!chapters[i])return;narrator.stop();setIndex(i);setContents(false);setSheet(null);window.history.replaceState(window.history.state,"",`/read/textbook/${publicationId}/${encodeURIComponent(chapters[i].id)}`);setTimeout(()=>document.getElementById("reader-active-unit")?.scrollIntoView({behavior:"smooth",block:"start"}),20)}
   function openPractice(){
     if(!active?.can_read)return;
+    if(lessonActive){
+      setSheet(null);
+      router.push("/student/vibelearn/topic-practice?subject=Mathematics&topic=Place%20Value%20%26%20Total%20Value");
+      return;
+    }
     // Include the exact active chapter with the event: do not rely on a
     // potentially stale chapter-change listener during fast navigation.
     const nextChapterId=chapters.slice(index+1).find(chapter=>chapter.can_read&&chapter.status==="published")?.id??null;
@@ -69,7 +74,7 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
     <main id="reader-active-unit" style={{width:"min(calc(100% - 36px),700px)",margin:"0 auto",padding:focus?"30px 0 96px":"34px 0 96px",scrollMarginTop:70}}>
       {!focus&&<OfflineBookSaveButton publicPayload={initialPayload}/> }
       {active?<><div style={{marginBottom:30}}><div style={{fontSize:12,fontWeight:850,letterSpacing:".13em",color:C.accent,marginBottom:10}}>{lessonActive?"LESSON 1":`UNIT ${active.number}`}</div><h1 style={{fontSize:"clamp(30px,8vw,46px)",lineHeight:1.08,letterSpacing:"-.035em",margin:"0 0 12px",fontWeight:900}}>{activeTitle||`Unit ${active.number}`}</h1>{path&&<div style={{fontSize:13,color:C.muted,marginBottom:18}}>{path}</div>}{active.curriculum.learning_outcomes.length>0&&<section aria-labelledby="outcomes-title" style={{borderLeft:`2px solid ${C.accent}`,paddingLeft:16,margin:"22px 0 28px"}}><h2 id="outcomes-title" style={{fontSize:14,margin:"0 0 9px",fontWeight:850}}>What you’ll learn</h2><ul style={{margin:0,paddingLeft:20,fontSize:15,lineHeight:1.55,color:"#d9dce1"}}>{active.curriculum.learning_outcomes.slice(0,4).map((o,i)=><li key={i} style={{marginBottom:6}}>{o}</li>)}</ul>{(active.curriculum.learning_outcomes.length>4||active.curriculum.key_inquiry_questions.length>0||active.curriculum.suggested_experiences.length>0)&&<button onClick={()=>setDetails(v=>!v)} style={{...linkBtn,marginTop:7}}>{details?"Hide learning details":"More learning details"}</button>}{details&&<div style={{marginTop:12,fontSize:14,color:C.muted}}>{active.curriculum.learning_outcomes.slice(4).map((o,i)=><div key={`o${i}`}>• {o}</div>)}{active.curriculum.key_inquiry_questions.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Questions to think about</strong>{active.curriculum.key_inquiry_questions.map((q,i)=><div key={`q${i}`}>• {q}</div>)}</>}{active.curriculum.suggested_experiences.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Ways to learn this</strong>{active.curriculum.suggested_experiences.map((x,i)=><div key={`x${i}`}>• {x}</div>)}</>}</div>}</section>}</div>
-      {active.can_read?activeBlocks.length?<><LearningLoopArticle publicationId={publicationId} chapterId={active.id} blocks={activeBlocks} format={pub.format} fontSize={font}/>
+      {active.can_read?activeBlocks.length?<><LearningLoopArticle publicationId={publicationId} chapterId={active.id} blocks={activeBlocks} format={pub.format} fontSize={font} progressScope={lessonActive?"grade4-place-value-lesson-1":undefined}/>
         {lessonActive&&<section aria-label="Explore and practise place value" style={{marginTop:28}}>
           <div style={{color:"#172f25",background:"#fff",borderRadius:16,padding:"1px 14px"}}><PlaceValuePreviewChart/></div>
           <nav aria-label="Next learning step" style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:18}}>
