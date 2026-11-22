@@ -9,16 +9,16 @@ test('present chapter images and questions are counted, not flagged as missing',
   assert.match(editor, /const questionCount = chapters\.reduce/)
   assert.match(editor, /block\.type === 'image'/)
   assert.match(editor, /block\.type === 'question'/)
-  assert.match(editor, /imageCount > 0[\s\S]*?rights verification pending/)
-  assert.match(editor, /questionCount > 0[\s\S]*?answer\/assessment verification pending/)
+  assert.match(editor, /imageCount > 0[\s\S]*?release verification separate/)
+  assert.match(editor, /questionCount > 0[\s\S]*?answer approval separate/)
   assert.match(editor, /imageCount > 0 \? 'Review images' : 'Add image'/)
   assert.match(editor, /questionCount > 0 \? 'Review questions' : 'Add question'/)
   assert.match(editor, /const documentChecks = \[/)
 })
 
-test('draft presence never incorrectly passes rights or assessment release checks', () => {
-  assert.match(editor, /key: 'media', label: 'Images and rights', ok: false/)
-  assert.match(editor, /key: 'assessment', label: 'Questions and answers', ok: false/)
+test('draft material presence remains distinct from release authorization and Learn checks', () => {
+  assert.match(editor, /key: 'media', label: 'Images included \(draft\)', ok: imageCount > 0/)
+  assert.match(editor, /key: 'assessment', label: 'Questions written \(draft\)', ok: questionCount > 0/)
   assert.match(editor, /key: 'authority', label: 'Publishing authority', ok: false/)
   assert.match(editor, /key: 'learn', label: 'Learn visibility', ok: false/)
   assert.match(editor, /if \(simpleMode\) return/)
