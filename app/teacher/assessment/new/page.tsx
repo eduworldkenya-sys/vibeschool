@@ -9,7 +9,7 @@ import { addDraftItem, completeLessonAssessmentGeneration, failLessonAssessmentG
 import type { AutoMarkingMode, QuestionType } from '@/lib/assessment'
 import { resolveLessonOutcomeAuthority } from '@/lib/teaching/lessonOutcomeAuthority'
 import type { LessonOutcomeRef } from '@/lib/teaching/lessonOutcomeAuthority'
-import { parseLessonPlanBody } from '@/lib/teaching/lessonPlanCodec'
+import { savedLessonTask } from '@/lib/assessment/lessonTaskSource'
 
 type StudioType = 'exercise' | 'quiz' | 'homework' | 'test'
 type LessonTruth = { body: string; classId: string; subjectId: string; outcomes: LessonOutcomeRef[] }
@@ -40,16 +40,10 @@ function question(prompt: string, marks: number, bloomLevel: string, difficulty:
  */
 function questionsFor(type: StudioType, body: string, outcomeRefs: LessonOutcomeRef[]): DraftQuestion[] {
   if (type === 'test' || outcomeRefs.length === 0) return []
-  const sections = parseLessonPlanBody(body)
-  if (!sections) return []
-  const task = (type === 'exercise'
-    ? sections.consolidation
-    : type === 'quiz'
-      ? sections.assessmentHook
-      : sections.homework).trim()
-  if (!task || /no certified homework task|do not invent/i.test(task)) return []
+  const source = savedLessonTask(body, type)
+  if (!source) return []
   const marks = type === 'homework' ? 10 : type === 'quiz' ? 5 : 10
-  return [question(task, marks, 'apply', 'medium', outcomeRefs.map(outcome => outcome.text))]
+  return [question(source.text, marks, 'apply', 'medium', outcomeRefs.map(outcome => outcome.text))]
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {
