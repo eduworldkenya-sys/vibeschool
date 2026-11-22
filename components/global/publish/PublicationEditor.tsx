@@ -138,6 +138,17 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     setQuickSetup(false)
   }
 
+  const documentChecks = [
+    { key: 'title', label: 'Document title', ok: Boolean(publication?.title?.trim()), detail: 'Title required', action: 'Edit title' },
+    { key: 'curriculum', label: 'Curriculum fields', ok: format !== 'vibetextbook' || Boolean(publication?.cbc_subject?.trim() && publication?.cbc_grade?.trim()), detail: 'Choose subject and grade in Details', action: 'Open details' },
+    { key: 'content', label: 'Written content', ok: chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), detail: 'Write at least one content block', action: 'Open writing' },
+    { key: 'media', label: 'Media and rights', ok: false, detail: 'Server verification unavailable; inspect images', action: 'Open images' },
+    { key: 'assessment', label: 'Assessments and answers', ok: false, detail: 'Server verification unavailable; inspect questions', action: 'Open questions' },
+    { key: 'authority', label: 'Publishing authority', ok: false, detail: 'Duncan activation pending', action: 'View activation' },
+    { key: 'learn', label: 'Learn visibility', ok: false, detail: 'Verified only after publication', action: 'Open preview' },
+  ]
+  const checkedCount = documentChecks.filter(check => check.ok).length
+
   const activeChapter = chapters.find(c => c.id === activeChapterId) ?? null
   // Navigate only to a real editable element. Deferred focus handles chapter switches.
   useEffect(() => {
@@ -198,17 +209,6 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
       setBlockerHelp('This is a draft preview. Learn visibility can be verified only by the release service after publication.')
     }
   }
-  const documentChecks = [
-    { key: 'title', label: 'Document title', ok: Boolean(publication?.title?.trim()), detail: 'Title required', action: 'Edit title' },
-    { key: 'curriculum', label: 'Curriculum fields', ok: format !== 'vibetextbook' || Boolean(publication?.cbc_subject?.trim() && publication?.cbc_grade?.trim()), detail: 'Choose subject and grade in Details', action: 'Open details' },
-    { key: 'content', label: 'Written content', ok: chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), detail: 'Write at least one content block', action: 'Open writing' },
-    { key: 'media', label: 'Media and rights', ok: false, detail: 'Server verification unavailable; inspect images', action: 'Open images' },
-    { key: 'assessment', label: 'Assessments and answers', ok: false, detail: 'Server verification unavailable; inspect questions', action: 'Open questions' },
-    { key: 'authority', label: 'Publishing authority', ok: false, detail: 'Duncan activation pending', action: 'View activation' },
-    { key: 'learn', label: 'Learn visibility', ok: false, detail: 'Verified only after publication', action: 'Open preview' },
-  ]
-  const checkedCount = documentChecks.filter(check => check.ok).length
-
   if (loading) return (
     <div style={{
       minHeight: '100dvh', background: BG,
