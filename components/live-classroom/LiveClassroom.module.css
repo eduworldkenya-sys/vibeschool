@@ -307,6 +307,8 @@
    Optional tools float above the dock only when explicitly opened. */
 .immersive{gap:5px;padding:max(6px,env(safe-area-inset-top)) max(7px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-left))}
 .liveTop{min-height:40px;gap:7px;flex:0 0 auto}
+.headerActions{display:flex;align-items:center;justify-content:flex-end;flex:none;gap:4px}
+.headerActions button{width:40px;flex:none}
 .liveTitle{min-width:0}
 .voiceSlot{min-width:0;flex:0 1 auto}
 .voiceSlot>section{border:0;background:transparent;padding:0;gap:2px}
@@ -333,7 +335,8 @@
   .stageContent{padding:clamp(8px,1.2vw,16px)}
 }
 @media(max-width:759px){
-  .liveTop{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:3px 5px}
+  .liveTop{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:3px 5px}
+  .headerActions{grid-column:3;grid-row:1}
   .voiceSlot{grid-column:1/-1;grid-row:2;width:100%;max-width:100%}
   .voiceSlot>section>div:first-child{flex-wrap:nowrap;overflow-x:auto}
   .voiceSlot>section>div:first-child button{flex:none}
