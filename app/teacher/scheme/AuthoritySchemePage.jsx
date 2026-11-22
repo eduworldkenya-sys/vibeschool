@@ -117,6 +117,7 @@ function Inner({ curriculumView = false }) {
   const [loading,setLoading] = useState(true)
   const [fetching,setFetching] = useState(false)
   const [committing,setCommitting] = useState(false)
+  const [savingGrade4CreCa,setSavingGrade4CreCa] = useState(false)
   const [error,setError] = useState(null)
   const [showPrint,setShowPrint] = useState(false)
   const [pendingStatusChange,setPendingStatusChange] = useState(null)
@@ -1245,6 +1246,21 @@ function Inner({ curriculumView = false }) {
 
   async function commitScheme(){if(!selectedClass||!selectedSubject||!selectedTermId||!curriculumRows.length)return;setCommitting(true);setError(null);const r=await supabase.rpc('commit_curriculum_scheme',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_curriculum_ids:curriculumRows.map(x=>x.id)});if(r.error)setError(commitError(r.error.message));else await loadScheme();setCommitting(false)}
   async function addCustom(){if(!selectedClass||!selectedSubject||!selectedTermId||!newTopic.trim())return;setAdding(true);setError(null);const r=await supabase.rpc('commit_custom_scheme_item',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_week:selectedWeek,p_topic:newTopic.trim(),p_strand:newStrand.trim()||null,p_resource_id:null,p_resource_role:null});if(r.error)setError(commitError(r.error.message));else{setNewTopic('');setNewStrand('');await loadScheme()}setAdding(false)}
+  async function addGrade4CreCaSchemeLesson(subStrandId,outcomeIds){
+    if(!selectedClass||!selectedSubject||!selectedTermId||!weeks.some(w=>w.week_number===selectedWeek)||!subStrandId||!outcomeIds?.length)return
+    setSavingGrade4CreCa(true);setError(null)
+    try{
+      const result=await supabase.rpc('commit_grade4_cre_ca_scheme_lesson',{
+        p_class_id:selectedClass,p_subject_id:selectedSubject,
+        p_academic_term_id:selectedTermId,p_week:selectedWeek,
+        p_sub_strand_id:subStrandId,p_outcome_ids:outcomeIds
+      })
+      if(result.error)throw new Error(commitError(result.error.message))
+      if(!result.data?.id)throw new Error('Linked Scheme lesson was not saved.')
+      await loadScheme()
+    }catch(err){setError(err instanceof Error?err.message:'Could not save the curriculum-linked Scheme lesson.')}
+    finally{setSavingGrade4CreCa(false)}
+  }
   async function addMappedCreativeLesson(){
     if (!activeMappedDraftRecord || !activeMappedDraftStrand || !selectedClass || !selectedSubject || !selectedTermId || !weeks.some(w=>w.week_number===selectedWeek)) {
       setError('Select a connected curriculum sub-strand, class, subject, term and instructional week.')
@@ -1364,6 +1380,9 @@ function Inner({ curriculumView = false }) {
       subjectId={selectedSubject}
       selectedUnitId={initial.current.unitId}
       mode={curriculumView ? 'curriculum' : 'scheme'}
+      saving={savingGrade4CreCa}
+      canSave={Boolean(selectedClass&&selectedSubject&&selectedTermId&&weeks.some(w=>w.week_number===selectedWeek))}
+      onSaveLesson={(unitId,outcomes)=>void addGrade4CreCaSchemeLesson(unitId,outcomes)}
       onOpenScheme={unitId=>{
         const p=new URLSearchParams({classId:selectedClass||'',subjectId:selectedSubject||'',week:String(selectedWeek),unitId})
         if(selectedTermId)p.set('termId',selectedTermId)
