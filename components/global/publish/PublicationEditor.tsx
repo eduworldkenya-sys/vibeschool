@@ -58,6 +58,9 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
   const [checksOpen, setChecksOpen] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [moreToolsOpen, setMoreToolsOpen] = useState(false)
+  const [blockerHelp, setBlockerHelp] = useState<string | null>(null)
+  const [jumpBlockId, setJumpBlockId] = useState<string | null>(null)
+  const [insertTarget, setInsertTarget] = useState<'paragraph' | 'image' | 'question' | null>(null)
 
   // Quick setup modal state
   const [quickSetup,     setQuickSetup]     = useState(false)
@@ -136,18 +139,85 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     setQuickSetup(false)
   }
 
-  const activeChapter = chapters.find(c => c.id === activeChapterId) ?? null
   const documentChecks = [
-    { label: 'Document title', ok: Boolean(publication?.title?.trim()), detail: 'Title required' },
-    { label: 'Curriculum fields', ok: format !== 'vibetextbook' || Boolean(publication?.cbc_subject?.trim() && publication?.cbc_grade?.trim()), detail: 'Choose subject and grade in Details' },
-    { label: 'Written content', ok: chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), detail: 'Write at least one content block' },
-    { label: 'Media and rights', ok: false, detail: 'Awaiting server verification' },
-    { label: 'Assessments and answers', ok: false, detail: 'Awaiting server verification' },
-    { label: 'Publishing authority', ok: false, detail: 'Duncan activation pending' },
-    { label: 'Learn visibility', ok: false, detail: 'Verified only after publication' },
+    { key: 'title', label: 'Document title', ok: Boolean(publication?.title?.trim()), detail: 'Title required', action: 'Edit title' },
+    { key: 'curriculum', label: 'Curriculum fields', ok: format !== 'vibetextbook' || Boolean(publication?.cbc_subject?.trim() && publication?.cbc_grade?.trim()), detail: 'Choose subject and grade in Details', action: 'Open details' },
+    { key: 'content', label: 'Written content', ok: chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), detail: 'Write at least one content block', action: 'Open writing' },
+    { key: 'media', label: 'Media and rights', ok: false, detail: 'Server verification unavailable; inspect images', action: 'Open images' },
+    { key: 'assessment', label: 'Assessments and answers', ok: false, detail: 'Server verification unavailable; inspect questions', action: 'Open questions' },
+    { key: 'authority', label: 'Publishing authority', ok: false, detail: 'Duncan activation pending', action: 'View activation' },
+    { key: 'learn', label: 'Learn visibility', ok: false, detail: 'Verified only after publication', action: 'Open preview' },
   ]
   const checkedCount = documentChecks.filter(check => check.ok).length
 
+  const activeChapter = chapters.find(c => c.id === activeChapterId) ?? null
+  // Navigate only to a real editable element. Deferred focus handles chapter switches.
+  useEffect(() => {
+    if (!jumpBlockId || !activeChapter?.blocks.some(block => block.id === jumpBlockId)) return
+    const element = document.getElementById('studio-block-' + jumpBlockId)
+    if (!element) return
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const editable = element.querySelector<HTMLElement>('[contenteditable="true"],textarea,input,button')
+    editable?.focus({ preventScroll: true })
+    setFocusedBlockId(jumpBlockId)
+    setJumpBlockId(null)
+  }, [jumpBlockId, activeChapter])
+
+  useEffect(() => {
+    if (!insertTarget || previewMode) return
+    const element = document.getElementById('studio-insert-' + insertTarget)
+    if (!element) return
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    element.focus()
+    setInsertTarget(null)
+  }, [insertTarget, previewMode])
+
+  const openBlock = (type: 'paragraph' | 'image' | 'question') => {
+    setPreviewMode(false)
+    setChecksOpen(false)
+    setBlockerHelp(null)
+    const chapter = chapters.find(ch => ch.blocks.some(block => block.type === type))
+    const target = chapter?.blocks.find(block => block.type === type)
+    if (chapter && target) {
+      setActiveChapterId(chapter.id)
+      setJumpBlockId(target.id)
+      return
+    }
+    if (activeChapter) {
+      setActiveChapterId(activeChapter.id)
+      // Do not create media/questions automatically; use the existing Insert control.
+      setInsertTarget(type)
+    } else {
+      setSidebarOpen(true)
+      setBlockerHelp('Select or add a chapter before inserting content.')
+    }
+  }
+  const openCheck = (key: string, ok: boolean) => {
+    if (ok) return
+    if (key === 'title') {
+      setPreviewMode(false)
+      setChecksOpen(false)
+      setTitleError(true)
+      titleInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      titleInputRef.current?.focus()
+    } else if (key === 'curriculum') {
+      setPreviewMode(false)
+      setChecksOpen(false)
+      setSetupOpen(true)
+    } else if (key === 'content') {
+      openBlock('paragraph')
+    } else if (key === 'media') {
+      openBlock('image')
+    } else if (key === 'assessment') {
+      openBlock('question')
+    } else if (key === 'authority') {
+      router.push('/teacher/studio/publishing#publishing-availability')
+    } else if (key === 'learn') {
+      setChecksOpen(false)
+      setPreviewMode(true)
+      setBlockerHelp('This is a draft preview. Learn visibility can be verified only by the release service after publication.')
+    }
+  }
   if (loading) return (
     <div style={{
       minHeight: '100dvh', background: BG,
@@ -362,10 +432,17 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
       {simpleMode && checksOpen && <section aria-label="Document checks" style={{ background: SURF, borderBottom: '1px solid ' + BORDER, padding: '12px 16px', color: TEXT }}>
         <p style={{ fontSize: 12, margin: '0 0 8px', color: MUTED }}>Draft checks are local only. Publication, security and Learn checks await verified server results.</p>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
-          {documentChecks.map(check => <li key={check.label} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13 }}><span aria-hidden="true">{check.ok ? '✓' : '○'}</span><strong>{check.label}</strong><span style={{ marginLeft: 'auto', color: MUTED }}>{check.ok ? 'Checked' : check.detail}</span></li>)}
+          {documentChecks.map(check => <li key={check.key} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', fontSize: 13 }}>
+            <span aria-hidden="true">{check.ok ? '✓' : '○'}</span><strong>{check.label}</strong>
+            <span style={{ marginLeft: 'auto', color: MUTED }}>{check.ok ? 'Checked' : check.detail}</span>
+            {!check.ok && <button type="button" onClick={() => openCheck(check.key, check.ok)}
+              aria-label={check.action + ' for ' + check.label}
+              style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, color: '#1d4ed8', padding: '6px 9px', fontWeight: 700, cursor: 'pointer' }}>{check.action} →</button>}
+          </li>)}
         </ul>
       </section>}
 
+      {simpleMode && blockerHelp && <div role="status" style={{ padding: '10px 16px', color: TEXT, background: SURF, borderBottom: '1px solid ' + BORDER }}>{blockerHelp}</div>}
       {error && (
         <div style={{
           background: 'var(--publication-danger-soft, rgba(239,68,68,0.1))', border: '1px solid var(--publication-danger-border, rgba(239,68,68,0.2))',
@@ -374,7 +451,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
       )}
 
       {simpleMode && !publishedReadOnly && !previewMode && <nav aria-label="Insert content" style={{ display: 'flex', gap: 8, padding: '10px max(16px, calc((100% - 900px)/2))', alignItems: 'center', flexWrap: 'wrap', background: SURF, borderBottom: '1px solid ' + BORDER }}>
-        {([{label:'Text',type:'paragraph'}, {label:'Heading',type:'heading2'}, {label:'Image',type:'image'}, {label:'Table',type:'table'}, {label:'Question',type:'question'}] as const).map(action => <button key={action.type} type="button" onClick={() => addBlock(action.type, focusedBlockId ?? undefined)} style={{ background: '#f8fafc', color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>+ {action.label}</button>)}
+        {([{label:'Text',type:'paragraph'}, {label:'Heading',type:'heading2'}, {label:'Image',type:'image'}, {label:'Table',type:'table'}, {label:'Question',type:'question'}] as const).map(action => <button key={action.type} type="button" id={'studio-insert-' + action.type} onClick={() => addBlock(action.type, focusedBlockId ?? undefined)} style={{ background: '#f8fafc', color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>+ {action.label}</button>)}
         <button type="button" aria-expanded={moreToolsOpen} onClick={() => setMoreToolsOpen(value => !value)} style={{ background: '#f8fafc', color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>More {moreToolsOpen ? '−' : '+'}</button>
         {moreToolsOpen && <div style={{ flexBasis: '100%', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {([{label:'Activity',type:'activity'}, {label:'Worked example',type:'workedExample'}, {label:'Bullets',type:'bulletList'}, {label:'Diagram',type:'diagram'}, {label:'Interactive',type:'interactive'}] as const).map(action => <button key={action.type} type="button" onClick={() => {addBlock(action.type, focusedBlockId ?? undefined);setMoreToolsOpen(false)}} style={{ background: SURF, color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>{action.label}</button>)}
@@ -489,6 +566,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
               </div>
             ) : (
               activeChapter.blocks.map(block => (
+                <div key={block.id} id={'studio-block-' + block.id} style={{ scrollMarginTop: 120 }}>
                 <ContentBlockEditor
                   key={block.id}
                   block={block}
@@ -502,6 +580,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
                   onMoveUp={() => moveBlock(block.id, 'up')}
                   onMoveDown={() => moveBlock(block.id, 'down')}
                 />
+                </div>
               ))
             )}
           </div>
