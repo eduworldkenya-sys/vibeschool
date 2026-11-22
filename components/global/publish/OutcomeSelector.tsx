@@ -10,12 +10,12 @@ import {
   type CurriculumLearningOutcome,
 } from '@/lib/content-engine'
 
-const SURF   = '#111827'
-const CARD   = '#1a2235'
-const ACCENT = '#CCFF00'
-const TEXT   = '#ffffff'
-const MUTED  = 'rgba(255,255,255,0.4)'
-const BORDER = 'rgba(255,255,255,0.06)'
+const SURF   = 'var(--publication-surface, #111827)'
+const CARD   = 'var(--publication-surface, #1a2235)'
+const ACCENT = 'var(--publication-accent, #CCFF00)'
+const TEXT   = 'var(--publication-text, #ffffff)'
+const MUTED  = 'var(--publication-muted, rgba(255,255,255,0.4))'
+const BORDER = 'var(--publication-border, rgba(255,255,255,0.06))'
 
 interface Props {
   isOpen:         boolean
@@ -171,7 +171,7 @@ export function OutcomeSelector({
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'var(--publication-scrim, rgba(0,0,0,0.6))', zIndex: 300 }} />
       <div
         role="dialog"
         aria-modal="true"
@@ -194,7 +194,7 @@ export function OutcomeSelector({
             <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{chapterLabel}</div>
           </div>
           <button onClick={onClose} aria-label="Close" style={{
-            background: 'rgba(255,255,255,0.06)', border: 'none',
+            background: 'var(--publication-border, rgba(255,255,255,0.06))', border: 'none',
             borderRadius: '50%', width: 28, height: 28,
             color: TEXT, fontSize: 14, cursor: 'pointer',
           }}>✕</button>
@@ -203,8 +203,8 @@ export function OutcomeSelector({
         {!isScoped && (
           <div style={{
             margin: '12px 16px 0', padding: '8px 10px',
-            background: 'rgba(255,176,32,0.08)', border: '1px solid rgba(255,176,32,0.2)',
-            borderRadius: 8, fontSize: 11, color: '#FFB020', lineHeight: 1.4,
+            background: 'var(--publication-warning-soft, rgba(255,176,32,0.08))', border: '1px solid var(--publication-warning-border, rgba(255,176,32,0.2))',
+            borderRadius: 8, fontSize: 11, color: 'var(--publication-warning, #FFB020)', lineHeight: 1.4,
           }}>
             This chapter isn&apos;t linked to a curriculum strand yet, so this is showing verified outcomes from every grade and subject. Bridge the chapter to narrow it down.
           </div>
@@ -228,8 +228,8 @@ export function OutcomeSelector({
         {error && (
           <div role="alert" style={{
             margin: '0 16px 12px', padding: '8px 10px',
-            background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 8, fontSize: 12, color: '#ef4444',
+            background: 'var(--publication-danger-soft, rgba(239,68,68,0.1))', border: '1px solid var(--publication-danger-border, rgba(239,68,68,0.2))',
+            borderRadius: 8, fontSize: 12, color: 'var(--publication-danger, #ef4444)',
           }}>{error}</div>
         )}
 
@@ -258,8 +258,8 @@ export function OutcomeSelector({
                     }
                   }}
                   style={{
-                    background: on ? 'rgba(204,255,0,0.08)' : CARD,
-                    border: '1px solid ' + (on ? 'rgba(204,255,0,0.25)' : BORDER),
+                    background: on ? 'var(--publication-surface, rgba(204,255,0,0.08))' : CARD,
+                    border: '1px solid ' + (on ? 'var(--publication-accent-border, rgba(204,255,0,0.25))' : BORDER),
                     borderRadius: 10, padding: '10px 12px', marginBottom: 6,
                     cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'flex-start',
                   }}
@@ -269,7 +269,7 @@ export function OutcomeSelector({
                     border: '1.5px solid ' + (on ? ACCENT : MUTED),
                     background: on ? ACCENT : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, color: '#090D16', fontWeight: 900,
+                    fontSize: 11, color: 'var(--publication-on-accent, #090D16)', fontWeight: 900,
                   }}>{on ? '✓' : ''}</div>
                   <div>
                     <div style={{ fontSize: 12.5, color: TEXT, lineHeight: 1.4 }}>{outcome.outcome_text}</div>
@@ -289,8 +289,8 @@ export function OutcomeSelector({
             disabled={saving || !ready}
             style={{
               width: '100%', padding: 12,
-              background: saving || !ready ? 'rgba(204,255,0,0.5)' : ACCENT,
-              color: '#090D16', border: 'none', borderRadius: 10,
+              background: saving || !ready ? 'var(--publication-accent-disabled, rgba(204,255,0,0.5))' : ACCENT,
+              color: 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
               fontSize: 13, fontWeight: 800,
               cursor: saving || !ready ? 'not-allowed' : 'pointer',
             }}

@@ -5,11 +5,11 @@ import type { ContentBlock } from '@/lib/publishTypes'
 import { InteractiveLab } from './InteractiveLab'
 import { CrossSubjectInteractiveBlock } from './CrossSubjectInteractiveBlock'
 
-const TEXT = '#ffffff'
-const MUTED = 'rgba(255,255,255,0.58)'
-const ACCENT = '#CCFF00'
-const CARD = '#111827'
-const BORDER = 'rgba(255,255,255,0.09)'
+const TEXT = 'var(--publication-text, #ffffff)'
+const MUTED = 'var(--publication-muted, rgba(255,255,255,0.58))'
+const ACCENT = 'var(--publication-accent, #CCFF00)'
+const CARD = 'var(--publication-surface, #111827)'
+const BORDER = 'var(--publication-border, rgba(255,255,255,0.09))'
 
 type BiologyInteractiveKind =
   | 'punnett_square'
@@ -54,8 +54,8 @@ function PunnettSquare({ block }: { block: ContentBlock }) {
     <InteractiveShell eyebrow="INTERACTIVE GENETICS" title={block.content || 'Build a monohybrid cross'}>
       <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: '0 0 12px' }}>Change either parent. The offspring grid and genotype probabilities update immediately.</p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-        <label style={{ color: MUTED, fontSize: 11, fontWeight: 800 }}>Parent A<select value={parentA} onChange={e => setParentA(e.target.value)} style={{ width: '100%', marginTop: 5, padding: 10, borderRadius: 10, background: '#0b1220', color: TEXT, border: `1px solid ${BORDER}` }}>{options.map(option => <option key={option}>{option}</option>)}</select></label>
-        <label style={{ color: MUTED, fontSize: 11, fontWeight: 800 }}>Parent B<select value={parentB} onChange={e => setParentB(e.target.value)} style={{ width: '100%', marginTop: 5, padding: 10, borderRadius: 10, background: '#0b1220', color: TEXT, border: `1px solid ${BORDER}` }}>{options.map(option => <option key={option}>{option}</option>)}</select></label>
+        <label style={{ color: MUTED, fontSize: 11, fontWeight: 800 }}>Parent A<select value={parentA} onChange={e => setParentA(e.target.value)} style={{ width: '100%', marginTop: 5, padding: 10, borderRadius: 10, background: 'var(--publication-surface, #0b1220)', color: TEXT, border: `1px solid ${BORDER}` }}>{options.map(option => <option key={option}>{option}</option>)}</select></label>
+        <label style={{ color: MUTED, fontSize: 11, fontWeight: 800 }}>Parent B<select value={parentB} onChange={e => setParentB(e.target.value)} style={{ width: '100%', marginTop: 5, padding: 10, borderRadius: 10, background: 'var(--publication-surface, #0b1220)', color: TEXT, border: `1px solid ${BORDER}` }}>{options.map(option => <option key={option}>{option}</option>)}</select></label>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr', gap: 6 }}>
         <div />
@@ -73,7 +73,7 @@ function MeiosisSequence({ block }: { block: ContentBlock }) {
   const [stage, setStage] = useState(0)
   return (
     <InteractiveShell eyebrow="INTERACTIVE PROCESS" title={block.content || 'Trace meiosis'}>
-      <div style={{ background: '#0b1220', borderRadius: 14, padding: 18, minHeight: 130, display: 'grid', placeItems: 'center', textAlign: 'center', border: `1px solid ${BORDER}` }}>
+      <div style={{ background: 'var(--publication-surface, #0b1220)', borderRadius: 14, padding: 18, minHeight: 130, display: 'grid', placeItems: 'center', textAlign: 'center', border: `1px solid ${BORDER}` }}>
         <div><div style={{ color: ACCENT, fontSize: 11, fontWeight: 900, marginBottom: 8 }}>STAGE {stage + 1} OF {stages.length}</div><div style={{ color: TEXT, fontSize: 18, fontWeight: 850 }}>{stages[stage]}</div></div>
       </div>
       <input aria-label="Meiosis stage" type="range" min={0} max={stages.length - 1} value={stage} onChange={e => setStage(Number(e.target.value))} style={{ width: '100%', marginTop: 14 }} />
@@ -113,8 +113,8 @@ function ReflexArc({ block }: { block: ContentBlock }) {
   return (
     <InteractiveShell eyebrow="TRACE THE PATHWAY" title={block.content || 'Build a reflex arc'}>
       <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6 }}>Predict the next component before revealing it.</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>{correct.slice(0, revealed).map((item, index) => <React.Fragment key={item}><span style={{ background: '#0b1220', border: `1px solid ${BORDER}`, borderRadius: 999, padding: '8px 11px', color: TEXT, fontSize: 12, fontWeight: 800 }}>{item}</span>{index < revealed - 1 && <span style={{ color: ACCENT }}>→</span>}</React.Fragment>)}</div>
-      <button type="button" onClick={() => setRevealed(value => value >= correct.length ? 1 : value + 1)} style={{ marginTop: 14, width: '100%', border: 'none', borderRadius: 10, padding: 11, background: ACCENT, color: '#090D16', fontWeight: 900 }}>{revealed >= correct.length ? 'Reset pathway' : 'Reveal next component'}</button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>{correct.slice(0, revealed).map((item, index) => <React.Fragment key={item}><span style={{ background: 'var(--publication-surface, #0b1220)', border: `1px solid ${BORDER}`, borderRadius: 999, padding: '8px 11px', color: TEXT, fontSize: 12, fontWeight: 800 }}>{item}</span>{index < revealed - 1 && <span style={{ color: ACCENT }}>→</span>}</React.Fragment>)}</div>
+      <button type="button" onClick={() => setRevealed(value => value >= correct.length ? 1 : value + 1)} style={{ marginTop: 14, width: '100%', border: 'none', borderRadius: 10, padding: 11, background: ACCENT, color: 'var(--publication-on-accent, #090D16)', fontWeight: 900 }}>{revealed >= correct.length ? 'Reset pathway' : 'Reveal next component'}</button>
     </InteractiveShell>
   )
 }

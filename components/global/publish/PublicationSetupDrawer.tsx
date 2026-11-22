@@ -9,12 +9,12 @@ import {
 } from '@/lib/publishTypes'
 import { parseDraftMediaRef, removeVibePressMedia, resolveVibePressMediaUrl, uploadDraftMedia, validateVibePressImage } from '@/lib/vibepressMedia'
 
-const SURF   = '#111827'
-const CARD   = '#1a2235'
-const ACCENT = '#CCFF00'
-const TEXT   = '#ffffff'
-const MUTED  = 'rgba(255,255,255,0.4)'
-const BORDER = 'rgba(255,255,255,0.06)'
+const SURF   = 'var(--publication-surface, #111827)'
+const CARD   = 'var(--publication-surface, #1a2235)'
+const ACCENT = 'var(--publication-accent, #CCFF00)'
+const TEXT   = 'var(--publication-text, #ffffff)'
+const MUTED  = 'var(--publication-muted, rgba(255,255,255,0.4))'
+const BORDER = 'var(--publication-border, rgba(255,255,255,0.06))'
 
 interface Props {
   publication: VibePublication
@@ -202,7 +202,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
   const pill = (active: boolean): React.CSSProperties => ({
     padding: '6px 14px', borderRadius: 24, fontSize: 12, fontWeight: 600,
     cursor: 'pointer', border: '1px solid ' + (active ? ACCENT : BORDER),
-    background: active ? 'rgba(204,255,0,0.1)' : CARD,
+    background: active ? 'var(--publication-surface, rgba(204,255,0,0.1))' : CARD,
     color: active ? ACCENT : MUTED,
   })
 
@@ -213,7 +213,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 300 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'var(--publication-scrim, rgba(0,0,0,0.7))', zIndex: 300 }} />
       <div style={{
         position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
         width: '100%', maxWidth: 480, background: SURF,
@@ -235,7 +235,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
               {wasAlreadyLive ? `Your changes to ${meta.label} are live.` : `Your ${meta.label} is now live.`}
             </p>
             <button onClick={() => { setSuccess(false); onClose() }} style={{
-              background: ACCENT, color: '#090D16', border: 'none',
+              background: ACCENT, color: 'var(--publication-on-accent, #090D16)', border: 'none',
               borderRadius: 12, padding: '12px 28px',
               fontSize: 14, fontWeight: 800, cursor: 'pointer',
             }}>Done</button>
@@ -247,7 +247,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                 {wasAlreadyLive ? `Update ${meta.label}` : `Publish ${meta.label}`}
               </h3>
               <button onClick={onClose} style={{
-                background: 'rgba(255,255,255,0.06)', border: 'none',
+                background: 'var(--publication-border, rgba(255,255,255,0.06))', border: 'none',
                 borderRadius: '50%', width: 28, height: 28,
                 color: TEXT, fontSize: 14, cursor: 'pointer',
               }}>✕</button>
@@ -255,9 +255,9 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
 
             {validErr && (
               <div style={{
-                background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+                background: 'var(--publication-danger-soft, rgba(239,68,68,0.1))', border: '1px solid var(--publication-danger-border, rgba(239,68,68,0.2))',
                 borderRadius: 10, padding: '10px 14px',
-                fontSize: 13, color: '#ef4444', marginBottom: 16,
+                fontSize: 13, color: 'var(--publication-danger, #ef4444)', marginBottom: 16,
               }}>{validErr}</div>
             )}
 
@@ -271,7 +271,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                       style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 12 }} />
                     <button onClick={() => fileRef.current?.click()} style={{
                       position: 'absolute', bottom: 8, right: 8,
-                      background: 'rgba(0,0,0,0.7)', border: '1px solid ' + BORDER,
+                      background: 'var(--publication-scrim, rgba(0,0,0,0.7))', border: '1px solid ' + BORDER,
                       color: TEXT, borderRadius: 8, padding: '4px 10px',
                       fontSize: 11, cursor: 'pointer',
                     }}>Change</button>
@@ -375,7 +375,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
               </div>
 
               <button onClick={handlePublish} disabled={publishing || uploadingCover} style={{
-                marginTop: 6, background: ACCENT, color: '#090D16', border: 'none',
+                marginTop: 6, background: ACCENT, color: 'var(--publication-on-accent, #090D16)', border: 'none',
                 borderRadius: 12, padding: '13px 18px', fontSize: 14, fontWeight: 850,
                 cursor: publishing || uploadingCover ? 'default' : 'pointer',
                 opacity: publishing || uploadingCover ? 0.55 : 1,

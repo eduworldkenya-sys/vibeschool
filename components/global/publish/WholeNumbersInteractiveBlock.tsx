@@ -15,13 +15,13 @@ const MODES: { id: Mode; label: string }[] = [
   { id: 'roman', label: 'Roman numerals' },
 ]
 
-const SURFACE = '#101b2c'
-const BORDER = 'rgba(255,255,255,.16)'
-const TEXT = '#f8fafc'
-const MUTED = '#cad5e3'
-const ACCENT = '#ccff00'
-const button = { background: '#202d40', color: TEXT, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '11px 12px', fontWeight: 700 as const }
-const field = { display: 'block', width: '100%', minHeight: 44, boxSizing: 'border-box' as const, borderRadius: 10, color: TEXT, background: '#19263a', border: `1px solid ${BORDER}`, fontSize: 18, padding: '9px 12px' }
+const SURFACE = 'var(--publication-surface, #101b2c)'
+const BORDER = 'var(--publication-border, rgba(255,255,255,.16))'
+const TEXT = 'var(--publication-text, #f8fafc)'
+const MUTED = 'var(--publication-muted, #cad5e3)'
+const ACCENT = 'var(--publication-accent, #ccff00)'
+const button = { background: 'var(--publication-surface, #202d40)', color: TEXT, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '11px 12px', fontWeight: 700 as const }
+const field = { display: 'block', width: '100%', minHeight: 44, boxSizing: 'border-box' as const, borderRadius: 10, color: TEXT, background: 'var(--publication-surface, #19263a)', border: `1px solid ${BORDER}`, fontSize: 18, padding: '9px 12px' }
 
 export function WholeNumbersInteractiveBlock({ block }: { block: ContentBlock }) {
   const controlId = useId()
@@ -49,7 +49,7 @@ export function WholeNumbersInteractiveBlock({ block }: { block: ContentBlock })
     <div aria-label="Choose activity" style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 15 }}>
       {MODES.map(option => <button key={option.id} type="button" aria-pressed={mode === option.id}
         onClick={() => switchMode(option.id)}
-        style={{ ...button, minHeight: 44, flexGrow: 1, fontSize: 12, background: mode === option.id ? ACCENT : '#202d40', color: mode === option.id ? '#0a1221' : TEXT }}>
+        style={{ ...button, minHeight: 44, flexGrow: 1, fontSize: 12, background: mode === option.id ? ACCENT : 'var(--publication-surface, #202d40)', color: mode === option.id ? 'var(--publication-on-accent, #0a1221)' : TEXT }}>
         {option.label}
       </button>)}
     </div>
@@ -58,15 +58,15 @@ export function WholeNumbersInteractiveBlock({ block }: { block: ContentBlock })
     </label>
     <input id={controlId} type="number" inputMode="numeric" min={min} max={max} step={1} value={input}
       onChange={event => { setInput(event.target.value); setPlaceIndex(0) }} style={field} />
-    {value === null ? <p role="alert" style={{ color: '#ffb4b4' }}>Enter a whole number from {min.toLocaleString('en-KE')} to {max.toLocaleString('en-KE')}.</p> : <>
+    {value === null ? <p role="alert" style={{ color: 'var(--publication-danger, #ffb4b4)' }}>Enter a whole number from {min.toLocaleString('en-KE')} to {max.toLocaleString('en-KE')}.</p> : <>
       {mode === 'place' && <>
         <p style={{ color: MUTED, fontSize: 13, margin: '12px 0 8px' }}>Tap a digit to see its place and total value.</p>
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cells.length},minmax(0,1fr))`, gap: 5 }}>
           {cells.map((cell, index) => <button key={index} type="button" onClick={() => setPlaceIndex(index)}
             aria-pressed={Math.min(placeIndex,cells.length-1) === index}
             aria-label={`Digit ${cell.digit} in the ${cell.label} place`}
-            style={{ ...button, padding: '10px 2px', minWidth: 0, background: Math.min(placeIndex,cells.length-1) === index ? ACCENT : '#202d40',
-              color: Math.min(placeIndex,cells.length-1) === index ? '#0a1221' : TEXT }}>
+            style={{ ...button, padding: '10px 2px', minWidth: 0, background: Math.min(placeIndex,cells.length-1) === index ? ACCENT : 'var(--publication-surface, #202d40)',
+              color: Math.min(placeIndex,cells.length-1) === index ? 'var(--publication-on-accent, #0a1221)' : TEXT }}>
             <span style={{ display: 'block', fontSize: 23, fontWeight: 850 }}>{cell.digit}</span>
             <span style={{ fontSize: 10, overflowWrap: 'anywhere' }}>{cell.label}</span>
           </button>)}
@@ -80,7 +80,7 @@ export function WholeNumbersInteractiveBlock({ block }: { block: ContentBlock })
         <p style={{ margin: 0, color: MUTED, fontSize: 13 }}>The nearest tens are <strong>{bottom.toLocaleString('en-KE')}</strong> and <strong>{(bottom + 10).toLocaleString('en-KE')}</strong>.</p>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '13px 0' }}>
           <span>{bottom}</span>
-          <div style={{ flex: 1, height: 10, background: '#35435a', borderRadius: 8, position: 'relative' }}>
+          <div style={{ flex: 1, height: 10, background: 'var(--publication-track, #35435a)', borderRadius: 8, position: 'relative' }}>
             <span aria-hidden="true" style={{ position: 'absolute', left: `${(value % 10) * 10}%`, top: -5, width: 16, height: 20, borderRadius: 8, background: ACCENT, transform: 'translateX(-50%)' }} />
           </div>
           <span>{bottom + 10}</span>

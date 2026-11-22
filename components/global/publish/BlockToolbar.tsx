@@ -3,11 +3,11 @@
 import React, { useState } from 'react'
 import { BlockType, PublicationFormat } from '@/lib/publishTypes'
 
-const ACCENT = '#CCFF00'
-const SURF = '#111827'
-const MUTED = 'rgba(255,255,255,0.4)'
-const BORDER = 'rgba(255,255,255,0.06)'
-const TEXT = '#ffffff'
+const ACCENT = 'var(--publication-accent, #CCFF00)'
+const SURF = 'var(--publication-surface, #111827)'
+const MUTED = 'var(--publication-muted, rgba(255,255,255,0.4))'
+const BORDER = 'var(--publication-border, rgba(255,255,255,0.06))'
+const TEXT = 'var(--publication-text, #ffffff)'
 
 type BlockGroup = { label: string; blocks: { type: BlockType; label: string; icon: string }[] }
 
@@ -39,11 +39,11 @@ interface Props { format: PublicationFormat; onAddBlock: (type: BlockType) => vo
 
 export function BlockToolbar({ onAddBlock }: Props) {
   const [open, setOpen] = useState(false)
-  return <div style={{ position:'fixed',bottom:0,left:0,right:0,zIndex:200,background:'rgba(9,13,22,.97)',backdropFilter:'blur(12px)',borderTop:'1px solid '+BORDER }}>
+  return <div style={{ position:'fixed',bottom:0,left:0,right:0,zIndex:200,background:'var(--publication-surface, rgba(9,13,22,.97))',backdropFilter:'blur(12px)',borderTop:'1px solid '+BORDER }}>
     {open && <div style={{ maxHeight:'52dvh',overflowY:'auto',padding:'12px 16px 4px' }}>{GROUPS.map(group=><div key={group.label} style={{marginBottom:14}}>
       <div style={{fontSize:10,color:MUTED,fontWeight:800,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:7}}>{group.label}</div>
       <div style={{display:'flex',flexWrap:'wrap',gap:8}}>{group.blocks.map(b=><button key={b.type} onClick={()=>{onAddBlock(b.type);setOpen(false)}} style={{background:SURF,border:'1px solid '+BORDER,borderRadius:10,padding:'8px 12px',color:TEXT,fontSize:12,fontWeight:650,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}><span>{b.icon}</span>{b.label}</button>)}</div>
     </div>)}</div>}
-    <div style={{padding:'10px 16px',display:'flex',alignItems:'center',gap:12}}><button aria-expanded={open} onClick={()=>setOpen(v=>!v)} style={{background:open?ACCENT:SURF,color:open?'#090D16':TEXT,border:'1px solid '+(open?ACCENT:BORDER),borderRadius:10,padding:'8px 16px',fontSize:13,fontWeight:750,cursor:'pointer'}}>{open?'✕ Close':'+ Add'}</button><span style={{fontSize:11,color:MUTED}}>{open?'Text · visuals · VibeLab · activities · assessment':'Build this unit block by block'}</span></div>
+    <div style={{padding:'10px 16px',display:'flex',alignItems:'center',gap:12}}><button aria-expanded={open} onClick={()=>setOpen(v=>!v)} style={{background:open?ACCENT:SURF,color:open?'var(--publication-on-accent, #090D16)':TEXT,border:'1px solid '+(open?ACCENT:BORDER),borderRadius:10,padding:'8px 16px',fontSize:13,fontWeight:750,cursor:'pointer'}}>{open?'✕ Close':'+ Add'}</button><span style={{fontSize:11,color:MUTED}}>{open?'Text · visuals · VibeLab · activities · assessment':'Build this unit block by block'}</span></div>
   </div>
 }

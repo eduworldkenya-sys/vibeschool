@@ -5,7 +5,7 @@ import { InteractiveLab, type InteractiveLabConfig } from './InteractiveLab'
 import { ChemistryInteractiveBlock, isChemistryG10Lab } from './ChemistryInteractiveBlock'
 import { WholeNumbersInteractiveBlock } from './WholeNumbersInteractiveBlock'
 
-const TEXT='#fff',MUTED='rgba(255,255,255,.58)',CARD='#111827',BORDER='rgba(255,255,255,.09)'
+const TEXT='var(--publication-text, #fff)',MUTED='var(--publication-muted, rgba(255,255,255,.58))',CARD='var(--publication-surface, #111827)',BORDER='var(--publication-border, rgba(255,255,255,.09))'
 export const CROSS_SUBJECT_LAB_TYPES=['chemistry_titration_lab','chemistry_rate_lab','chemistry_solubility_lab','chemistry_lab_safety','chemistry_atomic_structure','chemistry_periodic_table','chemistry_bonding_properties_lab','chemistry_periodicity_lab','chemistry_acid_base_lab','chemistry_salts_lab','physics_motion_lab','physics_electricity_lab','physics_moments_lab','mathematics_statistics_lab','mathematics_probability_lab','agriculture_germination_lab','agriculture_soil_lab'] as const
 export type CrossSubjectLabType=typeof CROSS_SUBJECT_LAB_TYPES[number]
 const presets:Record<string,InteractiveLabConfig>={
