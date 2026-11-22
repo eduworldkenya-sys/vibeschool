@@ -6,7 +6,7 @@
 
 Test **one complete learning objective/lesson first**. Use results to improve the canonical outcome package. Only then repeat the validated process for the remaining verified objectives and assemble/revise a chapter through existing authorized publication and versioning.
 
-The lesson-first **learner entry** is `/learn/grade-4/mathematics/place-value`. It now resolves via the **canonical published textbook reader** and exposes only the released first-lesson section, bounded before the later “Whole numbers in everyday life” heading. Keep the existing published textbook, stable canonical topic ID `0f130af0-8f3c-433a-a0df-453927dece7f`, chapter links, entitlements and reader progress intact. Do **not** delete or downgrade a published chapter in order to run this content experiment.
+The lesson-first **learner entry** is `/learn/grade-4/mathematics/place-value`. It now resolves via the **canonical published textbook reader** and exposes only the released first-lesson section, bounded before the next-topic “Reading and writing numerals” heading. Keep the existing published textbook, stable canonical topic ID `0f130af0-8f3c-433a-a0df-453927dece7f`, chapter links, entitlements and reader progress intact. Do **not** delete or downgrade a published chapter in order to run this content experiment.
 
 ## Pilot learning package to inspect
 
