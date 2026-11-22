@@ -27,3 +27,11 @@ All new machine authorization tables use RLS with no browser table access. Backe
 - Existing Grade 4 Whole Numbers publication: GitHub issue #1814
 
 **Do not remove the official source, correct answers, copyright, tenant RLS, authenticity, independent critic or exact publisher authorization gates merely to produce a green preflight.** Their evidence is what permits safe automated release.
+
+## Publisher-facing readiness (2026-11-22)
+
+`ce_get_publication_auto_review_state(publication_id)` exposes only scoped, read-only author/owner readiness: whether an active, independent reviewer has been commissioned for **Teacher Guide + assessment + release**, whether the exact current release fingerprint is approved, and a non-authoritative state label. It returns no reviewer credentials, qualification packet or secret evidence. It grants **no** editorial, reviewer, service-role or release capability.
+
+When the editor receives `publication_release_approval_required` or `publication_release_approval_stale`, it reports the actual **machine-not-commissioned / independent-review-pending** distinction rather than telling Mumbi2 to obtain human HQ approval. The editor does not submit reviews, mint receipts or silently publish.
+
+**Important:** This is explanatory/readiness integration, not an autonomous reviewer commissioning. A live qualified subject critic and genuine owner-authorized commissioning, distinct auth identity, fresh exact-hash evidence and existing release policies must be verified before automatic publication becomes operational. Never use a human membership as a pretend machine reviewer.
