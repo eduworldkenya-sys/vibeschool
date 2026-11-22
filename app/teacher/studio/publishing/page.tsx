@@ -38,6 +38,7 @@ export default function PublishingReplacementPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   useEffect(() => {
     let active = true
+    const publicationId = selectedPublicationId
     const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
     async function load() {
       setState("loading")
@@ -68,14 +69,14 @@ export default function PublishingReplacementPage() {
       setEvidenceLoading(true)
       setEvidenceError(false)
       // Read canonical chapter draft JSON, the same blocks used by PublicationEditor.
-      const { data, error } = await sb.from("vibe_chapters").select("id,publication_id,blocks").eq("publication_id", selectedPublicationId)
+      const { data, error } = await sb.from("vibe_chapters").select("id,publication_id,blocks").eq("publication_id", publicationId)
       if (!active) return
       setEvidenceLoading(false)
       if (error) { setEvidenceError(true); return }
       const chapters = (data ?? []) as ChapterEvidence[]
       setEvidence(previous => ({
         ...previous,
-        [selectedPublicationId]: {
+        [publicationId]: {
           chapters: chapters.length,
           images: chapters.reduce((count, chapter) => count + countOfType(chapter.blocks, "image"), 0),
           questions: chapters.reduce((count, chapter) => count + countOfType(chapter.blocks, "question"), 0),
