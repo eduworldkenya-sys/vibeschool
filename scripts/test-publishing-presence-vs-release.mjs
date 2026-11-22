@@ -7,7 +7,7 @@ test('existing images and questions finish only the draft presence checks',()=>{
   assert.match(editor,/key: 'media', label: 'Images included \(draft\)', ok: imageCount > 0/)
   assert.match(editor,/key: 'assessment', label: 'Questions written \(draft\)', ok: questionCount > 0/)
   assert.match(editor,/[Rr]ights, answers, security and Learn visibility require separate server checks/)
-  assert.match(editor,/key: 'authority'.*ok: false/)
+  assert.match(editor,/key: 'authority'.*ok: Boolean\(canPublish\)/)
   assert.match(editor,/key: 'learn'.*ok: false/)
 })
 test('publishing screen loads saved chapter block counts for selected publication',()=>{
@@ -21,5 +21,5 @@ test('publishing screen loads saved chapter block counts for selected publicatio
   assert.match(publishing,/setEvidenceError\(true\)/)
   assert.match(publishing,/do not add duplicates/)
   assert.match(publishing,/Zero of seven release checks verified/)
-  assert.match(publishing,/Publishing locked/)
+  assert.match(publishing,/Mumbi2 can request publication/)
 })

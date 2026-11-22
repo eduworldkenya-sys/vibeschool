@@ -24,8 +24,9 @@ test('each unfinished editor check has a direct, accessible action', () => {
   assert.doesNotMatch(editor, /const documentChecks[\s\S]*?ok:\s*true, detail: 'Awaiting server verification'/)
 })
 
-test('blocker navigation cannot activate the non-commissioned publisher', () => {
-  assert.match(editor, /if \(simpleMode\) return/)
-  assert.match(editor, /publishDisabled=\{simpleMode\}/)
-  assert.match(publishing, /Publishing locked/)
+test('blocker navigation uses signed-in Mumbi2 identity rather than owner activation', () => {
+  assert.match(editor, /if \(!canPublish\)/)
+  assert.match(editor, /publishDisabled=\{!canPublish\}/)
+  assert.match(publishing, /Mumbi2 can request publication/)
+  assert.match(publishing, /release verification still required/)
 })

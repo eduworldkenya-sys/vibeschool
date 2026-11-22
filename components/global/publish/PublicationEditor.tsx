@@ -34,9 +34,10 @@ interface Props {
   format:         PublicationFormat
   publicationId?: string
   simpleMode?: boolean
+  publishingEnabled?: boolean
 }
 
-export function PublicationEditor({ authorId, format, publicationId, simpleMode = false }: Props) {
+export function PublicationEditor({ authorId, format, publicationId, simpleMode = false, publishingEnabled = false }: Props) {
   const router = useRouter()
   const meta   = FORMAT_META[format]
 
@@ -97,6 +98,8 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     return () => window.removeEventListener('visibilitychange', onHide)
   }, [forceSave])
 
+  const canPublish = !simpleMode || (publishingEnabled && publication?.author_id === authorId)
+
   const saveLabel = saving
     ? 'Saving…'
     : lastSaved
@@ -104,8 +107,9 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     : 'Draft'
 
   const handlePublish = async () => {
-    // The replacement teacher interface cannot invoke legacy publishing.
-    if (simpleMode) return
+    // A signed-in Mumbi2 teacher can request release without a second owner activation.
+    // The server lifecycle still enforces ownership and independent release checks.
+    if (!canPublish) { setBlockerHelp('Sign in as Mumbi2 to request publication.'); return }
     if (!publication?.title?.trim()) {
       setTitleError(true)
       titleInputRef.current?.focus()
@@ -155,7 +159,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     { key: 'assessment', label: 'Questions written (draft)', ok: questionCount > 0, detail: questionCount > 0
       ? `${questionCount} question${questionCount === 1 ? '' : 's'} already written · answer approval separate`
       : 'No questions found', action: questionCount > 0 ? 'Review questions' : 'Add question' },
-    { key: 'authority', label: 'Publishing authority', ok: false, detail: 'Duncan activation pending', action: 'View activation' },
+    { key: 'authority', label: 'Publishing identity', ok: Boolean(canPublish), detail: canPublish ? 'Mumbi2 authorized · release checks apply' : 'Sign in as Mumbi2', action: 'View access' },
     { key: 'learn', label: 'Learn visibility', ok: false, detail: 'Verified only after publication', action: 'Open preview' },
   ]
   const checkedCount = documentChecks.filter(check => check.ok).length
@@ -428,13 +432,13 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           >
             {publishedReadOnly ? 'Live' : simpleMode ? 'Details' : 'Setup'}
           </button>
-          <button onClick={handlePublish} disabled={publishing || publishedReadOnly || simpleMode} title={simpleMode ? 'Publishing awaits Duncan activation and server checks' : undefined} style={{
-            background: publishing || publishedReadOnly || simpleMode ? '#e2e8f0' : ACCENT,
-            color: simpleMode ? '#475569' : 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
+          <button onClick={handlePublish} disabled={publishing || publishedReadOnly || !canPublish} title={!canPublish ? 'Sign in as Mumbi2 to request publication' : 'Release checks must pass before publication'} style={{
+            background: publishing || publishedReadOnly || !canPublish ? '#e2e8f0' : ACCENT,
+            color: !canPublish ? '#475569' : 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
             padding: '7px 16px', fontSize: 13, fontWeight: 800,
             cursor: publishing || publishedReadOnly ? 'default' : 'pointer',
           }}>
-            {publishedReadOnly ? 'Published' : publishing ? 'Publishing…' : simpleMode ? 'Publish · Locked' : 'Publish'}
+            {publishedReadOnly ? 'Published' : publishing ? 'Publishing…' : !canPublish ? 'Publish · Locked' : 'Publish'}
           </button>
         </div>
       </header>
@@ -623,8 +627,8 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           isOpen={setupOpen}
           onClose={() => setSetupOpen(false)}
           onUpdate={updatePublication}
-          onPublish={async () => { if (simpleMode) return false; const ok = await publishPublication(); return ok }}
-          publishDisabled={simpleMode}
+          onPublish={async () => { if (!canPublish) return false; return publishPublication() }}
+          publishDisabled={!canPublish}
         />
       )}
 
