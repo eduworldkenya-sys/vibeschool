@@ -22,10 +22,62 @@ const grade4CreOutline = [
   { title: 'Creation', topics: ['Self-awareness', 'Thoughts and Feelings', 'Making Choices', 'My Family', 'Relationships within the Family', 'Attributes of God'] },
   { title: 'The Holy Bible', topics: ['Respect for the Holy Bible', 'Zacchaeus the Tax Collector', 'Balaam’s Donkey', 'Samson Kills a Lion', 'Joseph Interprets a Dream', 'Bible Patriarchs: Abraham'] },
   { title: 'The Life of Jesus Christ', topics: ['Annunciation of the Birth of Jesus', 'Birth of John the Baptist', 'Healing of Blind Bartimaeus', 'Healing of the Ten Lepers', 'Jesus Raises a Widow’s Son', 'Forgiveness', 'Helping the Needy', 'Parable of the Lost Coin', 'Parable of the Mustard Seed', 'Nicodemus’ Encounter with Jesus Christ'] },
-  { title: 'Christian Values', topics: ['Trust', 'Truthfulness', 'Obedience', 'Love', 'Responsibility', 'Holiness'] },
-  { title: 'The Church', topics: ['House of God', 'The Early Church', 'Standing Firm in Faith', 'The Lord’s Prayer', 'Fruit of the Holy Spirit', 'Self-control'] },
+  { title: 'Christian Values', topics: ['Trust', 'Truthfulness', 'Obedience', 'Jesus Loves Little Children', 'Responsibility', 'Holiness'] },
+  { title: 'The Church', topics: ['Church as a House of Worship', 'The Early Church', 'Standing Firm in Faith', 'The Lord’s Prayer', 'Fruit of the Holy Spirit', 'Self-control'] },
   { title: 'Morality and Social Media', topics: ['Use of Social Media'] },
 ] as const
+
+// Each summary is original VibeSchool wording based on the cited KICD sub-strand outcomes.
+// The KICD document, not this summary, is the authority for exact wording.
+const grade4CreLearningGoals: readonly (readonly string[])[] = [
+  [
+    ['Say your name and explain how God made each person unique.', 'Recognise God as Creator and value yourself.'],
+    ['Identify positive thoughts and feelings.', 'Use Philippians 4:4 and Ephesians 4:26 to handle emotions.'],
+    ['Identify everyday choices and their consequences.', 'Make responsible decisions guided by Christian values.'],
+    ['Name nuclear and extended family members and draw a family tree.', 'Explain why family members and parents deserve respect.'],
+    ['Recognise unsafe situations and ways to protect yourself from abuse.', 'Identify trusted people to tell when someone touches you inappropriately.'],
+    ['Find Bible passages describing God.', 'Describe God as Creator, loving and holy.'],
+  ],
+  [
+    ['Handle the Bible respectfully.', 'Recognise Old and New Testament books and develop a habit of reading Scripture.'],
+    ['Retell Zacchaeus’s meeting with Jesus in Luke 19.', 'Practise repentance and honesty when handling money.'],
+    ['Retell the story of Balaam and his donkey in Numbers 22.', 'Follow God’s guidance and speak kindly about others.'],
+    ['Retell Samson’s encounter with the lion in Judges 14.', 'Recognise God’s power and trust God in difficulty.'],
+    ['Describe Joseph interpreting Pharaoh’s dream in Genesis 41.', 'Seek God’s wisdom and apply lessons from Joseph’s story.'],
+    ['Retell Abraham’s call and his change of name in Genesis.', 'Practise obedience and appreciate God’s blessings.'],
+  ],
+  [
+    ['Narrate the angel’s message to Mary in Luke 1.', 'Explain why Jesus’s birth is special and reflect on God’s power.'],
+    ['Retell the birth of John the Baptist.', 'Explain how John prepared people for Jesus.'],
+    ['Retell Jesus healing blind Bartimaeus.', 'Identify lessons of faith from the healing.'],
+    ['Retell Jesus healing ten people with leprosy.', 'Reflect on gratitude and faith.'],
+    ['Describe Jesus raising the widow’s son at Nain.', 'Recognise Jesus’s compassion for those who grieve.'],
+    ['Explain why forgiving others matters.', 'Reject revenge in the light of Matthew 5:39.'],
+    ['Explain the importance of helping people in need.', 'Show kindness and share with others.'],
+    ['Retell the parable of the lost coin in Luke 15.', 'Explain what it teaches about God’s love and repentance.'],
+    ['Retell the parable of the mustard seed.', 'Describe how the Kingdom of God grows.'],
+    ['Describe Nicodemus’s meeting with Jesus.', 'Identify lessons about faith from their conversation.'],
+  ],
+  [
+    ['Identify people you can trust and why trust matters.', 'Practise trustworthy behaviour.'],
+    ['Explain the importance of telling the truth.', 'Practise honesty in daily interactions.'],
+    ['Explain why honouring parents and following school rules matters.', 'Describe the consequences of disobedience.'],
+    ['Describe Jesus welcoming and blessing children in Matthew 19.', 'Show love through kindness to others.'],
+    ['Identify personal and school property.', 'Take responsibility for caring for shared and personal belongings.'],
+    ['Describe how to honour God through your actions and body.', 'Make choices that support holy living.'],
+  ],
+  [
+    ['Describe the church as a place of worship.', 'Identify respectful ways to participate in worship.'],
+    ['Describe how the early Church began and grew.', 'Identify ways Christians work together in church.'],
+    ['Explain what it means to remain firm in Christian faith.', 'Identify ways to stand by your beliefs.'],
+    ['Read and recite the Lord’s Prayer from Matthew 6.', 'Practise praying regularly for yourself and others.'],
+    ['Name the fruit of the Holy Spirit in Galatians 5.', 'Apply these qualities in everyday decisions.'],
+    ['Explain self-control using Galatians 5:23–25.', 'Make responsible choices and avoid harmful behaviour.'],
+  ],
+  [
+    ['Identify digital devices used at home and school.', 'Describe safe, appropriate social media use and practise integrity online.'],
+  ],
+]
 
 const grade4CreSelfAwarenessGoals = [
   'Identify yourself by your name.',
@@ -243,7 +295,7 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
         <summary><span className={styles.chapterNumber}>{String(index+1).padStart(2,'0')}</span><strong>{strand.title}</strong><ChevronRight size={18} aria-hidden="true"/></summary>
         <div className={styles.bookTopics}>{strand.topics.map((topic,topicIndex)=><div key={topic} className={styles.bookTopicGroup}>
           <strong>{index+1}.{topicIndex+1} {topic}</strong>
-          {index===0 && topicIndex===0 && <div className={styles.bookObjectivePreview}><strong>What you'll learn</strong><ol>{grade4CreSelfAwarenessGoals.map(goal=><li key={goal}>{goal}</li>)}</ol><small>Student-friendly paraphrases of KICD specific learning outcomes · Strand 1, sub-strand 1.1</small></div>}
+          {<div className={styles.bookObjectivePreview}><strong>What you'll learn</strong><ol>{(index===0 && topicIndex===0 ? grade4CreSelfAwarenessGoals : grade4CreLearningGoals[index][topicIndex]).map(goal=><li key={goal}>{goal}</li>)}</ol><small>VibeSchool summary aligned to KICD sub-strand {index+1}.{topicIndex+1} · See official source for full specific learning outcomes</small></div>}
         </div>)}</div>
       </details>)}
     </section>
