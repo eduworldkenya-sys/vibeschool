@@ -20,6 +20,17 @@ assert.match(page,/ReaderClient/)
 assert.match(page,/lessonFocus=/)
 assert.match(page,/stopBeforeHeading: FIRST_LESSON_STOP/)
 assert.match(page,/Reading and writing numerals/)
+// Regression: the released chapter contains this mixed-case heading. A previous
+// lowercase-content vs mixed-case-constant comparison caused a production 404.
+const releasedHeading = 'Reading and writing numerals'
+const boundary = page.match(/const FIRST_LESSON_STOP = '([^']+)'/)?.[1]
+assert.equal(boundary, releasedHeading, 'Keep the lesson stop aligned with the released heading')
+assert.match(page,/String\(block\.content \?\? ''\)\.trim\(\)\.toLowerCase\(\) === FIRST_LESSON_STOP\.toLowerCase\(\)/,
+  'Compare both heading and boundary using the same case normalization')
+assert.equal(releasedHeading.trim().toLowerCase(), boundary.trim().toLowerCase(),
+  'Released lesson boundary must match the route comparison')
+assert.notEqual(releasedHeading.toLowerCase(), boundary,
+  'The old mixed-case comparison is deliberately a failing regression fixture')
 assert.match(page,/robots: \{ index: false/)
 assert.doesNotMatch(page,/readFileSync|grade4-mathematics-whole-numbers-objective1\.v3\.learner\.md/)
 
