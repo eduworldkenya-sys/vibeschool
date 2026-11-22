@@ -19,7 +19,7 @@ test('present chapter images and questions are counted, not flagged as missing',
 test('draft material presence remains distinct from release authorization and Learn checks', () => {
   assert.match(editor, /key: 'media', label: 'Images included \(draft\)', ok: imageCount > 0/)
   assert.match(editor, /key: 'assessment', label: 'Questions written \(draft\)', ok: questionCount > 0/)
-  assert.match(editor, /key: 'authority', label: 'Publishing authority', ok: false/)
+  assert.match(editor, /key: 'authority', label: 'Publishing identity', ok: Boolean\(canPublish\)/)
   assert.match(editor, /key: 'learn', label: 'Learn visibility', ok: false/)
-  assert.match(editor, /if \(simpleMode\) return/)
+  assert.match(editor, /if \(!canPublish\)/)
 })
