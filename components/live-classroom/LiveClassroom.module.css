@@ -285,3 +285,20 @@
 .toolPicker label{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px}
 .toolPicker input{accent-color:#2dd4bf;width:18px;height:18px}
 @media(max-width:600px){.dockHeader{justify-content:space-between}.toolPicker{max-height:24dvh;overflow:auto}}
+
+/* Space utilization: the presentation occupies the viewport while the dock stays compact. */
+@media(min-width:760px){
+  .immersive{gap:8px;padding:10px}
+  .dock{max-width:none;width:100%;margin:0}
+  .toolRow{display:flex;flex-wrap:wrap;justify-content:center}
+  .toolRow button{flex:0 1 110px}
+  .sessionRow{justify-content:center}
+  .sessionRow button{flex:0 1 155px}
+  .stageContent{padding:clamp(12px,2vw,22px)}
+}
+@media(max-width:759px){
+  .immersive{gap:4px}
+  .dock{gap:4px}
+  .toolRow button{min-height:42px}
+  .stageContent{padding:8px}
+}
