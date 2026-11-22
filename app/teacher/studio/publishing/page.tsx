@@ -73,7 +73,7 @@ export default function PublishingReplacementPage() {
           </li>)}
         </ol>
       </section>
-      <section style={panel} aria-label="Publishing availability">
+      <section id="publishing-availability" style={panel} aria-label="Publishing availability">
         <p style={{ margin: 0, display: "flex", gap: 9, alignItems: "center", fontWeight: 700 }}><LockKeyhole size={18}/> Publishing locked</p>
         <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>The replacement publishing service is not activated. This screen does not bypass any existing release or authorization boundary. Existing published learner content is unaffected.</p>
         <button disabled style={{ border: 0, borderRadius: 12, padding: "12px 20px", background: "#e2e8f0", color: "#64748b", fontWeight: 700, cursor: "not-allowed" }}>Publish</button>
