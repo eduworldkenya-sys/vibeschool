@@ -305,8 +305,8 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
         position: 'sticky', top: 0, zIndex: 100,
         background: 'var(--publication-surface, rgba(9,13,22,0.95))', backdropFilter: 'blur(12px)',
         borderBottom: '1px solid ' + BORDER,
-        padding: '0 16px', height: 52,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '8px 16px', minHeight: 52, boxSizing: 'border-box',
+        display: 'flex', flexWrap: simpleMode ? 'wrap' : 'nowrap', gap: 8, alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button type="button" aria-label="Back" onClick={() => router.back()} style={{
@@ -350,7 +350,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           </button>
           <button onClick={handlePublish} disabled={publishing || publishedReadOnly || simpleMode} title={simpleMode ? 'Publishing awaits Duncan activation and server checks' : undefined} style={{
             background: publishing || publishedReadOnly || simpleMode ? '#e2e8f0' : ACCENT,
-            color: 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
+            color: simpleMode ? '#475569' : 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
             padding: '7px 16px', fontSize: 13, fontWeight: 800,
             cursor: publishing || publishedReadOnly ? 'default' : 'pointer',
           }}>
@@ -380,6 +380,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           {([{label:'Activity',type:'activity'}, {label:'Worked example',type:'workedExample'}, {label:'Bullets',type:'bulletList'}, {label:'Diagram',type:'diagram'}, {label:'Interactive',type:'interactive'}] as const).map(action => <button key={action.type} type="button" onClick={() => {addBlock(action.type, focusedBlockId ?? undefined);setMoreToolsOpen(false)}} style={{ background: SURF, color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>{action.label}</button>)}
         </div>}
       </nav>}
+      {simpleMode && previewMode && <p role="status" style={{ textAlign: 'center', color: MUTED, fontSize: 12, margin: '10px 16px 0' }}>Page preview — editing paused. This is not a verified public Learn page.</p>}
       {/* Main */}
       <main style={{
         flex: 1, padding: simpleMode ? '28px 24px' : '16px',
@@ -396,7 +397,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
         <input
           ref={titleInputRef}
           value={publication.title || ''}
-          readOnly={publishedReadOnly}
+          readOnly={publishedReadOnly || previewMode}
           onChange={e => {
             updatePublication({ title: e.target.value })
             if (e.target.value.trim()) setTitleError(false)
@@ -420,7 +421,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
 
         <input
           value={publication.subtitle || ''}
-          readOnly={publishedReadOnly}
+          readOnly={publishedReadOnly || previewMode}
           onChange={e => updatePublication({ subtitle: e.target.value })}
           placeholder="Subtitle (optional)"
           style={{
@@ -445,7 +446,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
             </div>
             <input
               value={activeChapter.title || ''}
-              readOnly={publishedReadOnly}
+              readOnly={publishedReadOnly || previewMode}
               onChange={e => updateChapterTitle(activeChapter.id, e.target.value)}
               placeholder={`${meta.chapterLabel} title`}
               style={{
