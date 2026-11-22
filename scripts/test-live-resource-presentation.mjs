@@ -98,7 +98,23 @@ const readerCSS=readFileSync(new URL('../components/live-classroom/LiveReadingSu
 for(const token of ['LiveReadingSurface','onQuote','aria-label="Reading preferences"','liveReadingBlockType','article.current?.contains','onClick={saveQuote}','setZoom']) assert.ok(readerUI.includes(token),'Reader missing '+token)
 assert.ok(!readerUI.includes('dangerouslySetInnerHTML'),'Untrusted lesson text must never be injected as HTML')
 assert.ok(!readerUI.includes('supabase'),'Reader cannot invent a second resource authority')
-assert.ok(readerCSS.includes('min(100%,840px)')&&readerCSS.includes('overflow-wrap:anywhere'),'Reader must reflow on mobile')
+assert.ok(readerCSS.includes('min(100%,1220px)')&&readerCSS.includes('overflow-wrap:anywhere'),'Reader must reclaim wide screens and reflow on mobile')
+const classroomCSS=readFileSync(new URL('../components/live-classroom/LiveClassroom.module.css',import.meta.url),'utf8')
+const filePreviewCSS=readFileSync(new URL('../components/live-classroom/LiveClassFiles.module.css',import.meta.url),'utf8')
+for (const required of [
+  'const [dockHidden,setDockHidden]=useState(true)',
+  'className={styles.voiceSlot}',
+  '(history.length>1||reviewId!==null)',
+  'workspaceRevision===null||!!conflictDraft',
+]) assert.ok(room.includes(required),'Device-first Live classroom contract missing '+required)
+for(const required of [
+  '.dock{display:flex;flex-direction:row',
+  '.toolRow{position:absolute',
+  '.voiceSlot{grid-column:1/-1',
+  '@media(max-height:480px) and (orientation:landscape)',
+]) assert.ok(classroomCSS.includes(required),'Device-first Live layout missing '+required)
+assert.ok(filePreviewCSS.includes('height:clamp(280px,72dvh,1100px)'),'Shared PDFs must use the available viewport')
+assert.ok(filePreviewCSS.includes('max-height:72dvh'),'Shared photos must use the available viewport')
 for(const token of ['<ClockExplorer value={prompt.body}/>','learnerMenu&&','More learner tools','onQuote={!teacher','noteDirty.current=true']) assert.ok(room.includes(token),'Live learner integration missing '+token)
 console.log('PASS: interactive learner reading, structure, no silent content loss, scoped notes and mobile reader contract')
 

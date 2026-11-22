@@ -302,3 +302,58 @@
   .toolRow button{min-height:42px}
   .stageContent{padding:8px}
 }
+
+/* Device-first Live presentation: one room header, one slim dock, full-width stage.
+   Optional tools float above the dock only when explicitly opened. */
+.immersive{gap:5px;padding:max(6px,env(safe-area-inset-top)) max(7px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-left))}
+.liveTop{min-height:40px;gap:7px;flex:0 0 auto}
+.headerActions{display:flex;align-items:center;justify-content:flex-end;flex:none;gap:4px}
+.headerActions button{width:40px;flex:none}
+.liveTitle{min-width:0}
+.voiceSlot{min-width:0;flex:0 1 auto}
+.voiceSlot>section{border:0;background:transparent;padding:0;gap:2px}
+.voiceSlot>section>div:first-child{gap:5px}
+.stage{border-radius:8px}
+.stageContent{padding:clamp(7px,1vw,14px)}
+.lessonHistory{min-height:32px;gap:4px;padding:0;flex-wrap:nowrap}
+.lessonHistory button{min-height:32px;padding:3px 7px}
+.dock{display:flex;flex-direction:row;align-items:center;justify-content:space-between;position:relative;gap:6px;flex:0 0 auto;width:100%;max-width:none;min-height:40px;margin:0}
+.dockHeader{flex:0 0 auto;justify-content:flex-start;gap:4px}
+.dockHeader button{min-height:40px!important;padding:5px 9px!important}
+.sessionRow{flex:0 1 auto;min-width:0;gap:5px;margin-left:auto}
+.sessionRow button,.sessionRow button:first-child{flex:0 1 auto;min-width:70px;min-height:40px;padding:5px 10px}
+.toolRow{position:absolute;z-index:5;bottom:calc(100% + 8px);left:0;right:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:5px;max-width:min(100%,850px);padding:7px;background:#1d322c;border:1px solid #52736b;border-radius:11px;box-shadow:0 9px 28px #0c251c66}
+.toolRow button{min-height:42px;flex:0 0 auto;padding:5px 9px;min-width:72px}
+.toolPicker{position:absolute;z-index:6;bottom:calc(100% + 74px);left:0;right:0;max-width:min(100%,850px);background:#1d322c;box-shadow:0 9px 28px #0c251c66}
+@media(min-width:760px){
+  .immersive{padding:8px;gap:5px}
+  .liveTop{flex-wrap:nowrap}
+  .voiceSlot{max-width:55vw}
+  .dock{display:flex;max-width:none;margin:0}
+  .sessionRow{justify-content:flex-end}
+  .sessionRow button,.sessionRow button:first-child{flex:0 1 auto;min-width:96px}
+  .stageContent{padding:clamp(8px,1.2vw,16px)}
+}
+@media(max-width:759px){
+  .liveTop{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:3px 5px}
+  .headerActions{grid-column:3;grid-row:1}
+  .voiceSlot{grid-column:1/-1;grid-row:2;width:100%;max-width:100%}
+  .voiceSlot>section>div:first-child{flex-wrap:nowrap;overflow-x:auto}
+  .voiceSlot>section>div:first-child button{flex:none}
+  .lessonHistory{overflow-x:auto;justify-content:center}
+  .dockHeader button{font-size:11px!important;padding:5px 7px!important}
+  .sessionRow{gap:3px;flex:1 1 auto}
+  .sessionRow button,.sessionRow button:first-child{flex:1 1 0;min-width:0;padding:4px 3px;font-size:11px}
+  .toolRow{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start}
+  .toolRow button{flex:0 0 auto;min-width:64px}
+  .stageContent{padding:7px}
+}
+@media(max-height:480px) and (orientation:landscape){
+  .liveTop{display:flex;flex-wrap:nowrap;gap:4px;min-height:34px}
+  .voiceSlot{grid-column:auto;grid-row:auto;width:auto;max-width:58vw}
+  .voiceSlot>section>div:first-child{gap:3px}
+  .voiceSlot>section>div:first-child button{min-height:30px!important;padding:3px 5px!important}
+  .dock{min-height:34px}
+  .dockHeader button,.sessionRow button{min-height:34px!important}
+  .stageContent{padding:5px}
+}

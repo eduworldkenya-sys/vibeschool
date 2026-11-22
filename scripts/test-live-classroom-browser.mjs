@@ -62,6 +62,10 @@ async function open(role,width=360,height=780,resume=''){
   return {page,context}
 }
 const button=(p,name)=>p.getByRole('button',{name,exact:true})
+async function teacherTool(p,name){
+ if(await button(p,name).count()===0)await button(p,'Tools').click()
+ await button(p,name).click()
+}
 const dialog=p=>p.getByRole('dialog',{name:'Live classroom'})
 async function see(p,text){await p.getByText(text,{exact:true}).first().waitFor({state:'visible'})}
 async function noPageOverflow(p){
@@ -69,6 +73,13 @@ async function noPageOverflow(p){
  assert.ok(sizes[0]<=sizes[1]+1,'Page overflow: '+sizes.join('/'))
 }
 async function join(p){await p.getByRole('button',{name:/Browser lesson/}).click();await dialog(p).waitFor()}
+async function assertStageUsesViewport(p,minHeightRatio){
+ const bounds=await p.getByLabel('Shared lesson',{exact:true}).evaluate(el=>{
+   const r=el.getBoundingClientRect();return {width:r.width,height:r.height,viewportWidth:innerWidth,viewportHeight:innerHeight}
+ })
+ assert.ok(bounds.width/bounds.viewportWidth>0.93,'Reading stage must use the device width: '+JSON.stringify(bounds))
+ assert.ok(bounds.height/bounds.viewportHeight>minHeightRatio,'Reading stage must dominate the device height: '+JSON.stringify(bounds))
+}
 try{
  const teacher=await open('teacher',1280,800),t=teacher.page
  await button(t,'My presentations').click()
@@ -85,10 +96,14 @@ try{
  await dialog(t).waitFor()
  await t.getByRole('button',{name:'Microphone off'}).waitFor()
  assert.equal(await t.getByRole('button',{name:'Microphone off'}).isDisabled(),true,'Voice feature gate must keep the mic unavailable')
+ await assertStageUsesViewport(t,0.68)
+ assert.equal(await button(t,'Slides').count(),0,'Optional tools should be closed until requested')
+ await button(t,'Tools').click()
  await button(t,'Slides').click()
  await t.getByLabel('Title',{exact:true}).waitFor()
  assert.equal(await t.getByLabel('Title',{exact:true}).inputValue(),'Equivalent fractions')
  await button(t,'Present slide').click()
+ assert.equal(await button(t,'Hide tools').count(),0,'Choosing a tool should close the floating shelf to avoid obscuring lesson controls')
  const learner=await open('learner'),l=learner.page
  await join(l);await see(l,'Equivalent fractions')
  await l.getByRole('button',{name:'Microphone off'}).waitFor()
@@ -103,18 +118,20 @@ try{
  await see(l,'Three quarters')
  await button(t,'Previous slide').click();await see(l,'Equivalent fractions')
  await button(t,'Next slide').click();await see(l,'Three quarters')
- await t.getByText('Draft saved',{exact:true}).waitFor()
+ await t.getByRole('status').filter({hasText:'Draft saved'}).waitFor({state:'attached'})
  const sid=new URL(t.url()).searchParams.get('resumeRoom')
  assert.ok(sid)
  const recovered=await open('teacher',360,780,'?resumeRoom='+sid)
  await dialog(recovered.page).waitFor()
+ await assertStageUsesViewport(recovered.page,0.62)
+ await button(recovered.page,'Tools').click()
  await button(recovered.page,'Slides').click()
  assert.equal(await recovered.page.getByLabel('Title',{exact:true}).inputValue(),'Three quarters')
  await noPageOverflow(recovered.page)
  await recovered.context.close()
  // Resources must display an existing certified payload through the actual
  // Live publish/history path, not through a separate learner data channel.
- await button(t,'Resources').click()
+ await teacherTool(t,'Resources')
  await t.getByLabel('Search resources').fill('Fractions')
  await t.getByText(/Prepared · Fractions/).waitFor()
  assert.equal(await t.getByText('Private marking scheme',{exact:true}).count(),0)
@@ -137,10 +154,10 @@ try{
  await button(l,'Save notes').click()
  await l.getByRole('button',{name:'Close',exact:true}).click()
 
- await button(t,'Resources').click()
+ await teacherTool(t,'Resources')
  await noPageOverflow(t)
  await button(t,'Return to lesson').click()
- await button(t,'Board').click()
+ await teacherTool(t,'Board')
  await t.getByLabel('Board text').fill('2 + 3 = 5')
  await button(t,'Insert text').click()
  await button(t,'Share board').click()
@@ -211,7 +228,7 @@ try{
  // Separate-user browser must be visible after the auxiliary learner context closes.
  await l.bringToFront()
  assert.equal(await l.evaluate(() => document.visibilityState),'visible','Learner page must be foreground for realtime delivery assertions')
- await button(t,'Quiz').click()
+ await teacherTool(t,'Quiz')
  await t.getByLabel('Question or instruction').fill('How many quarters make one half?')
  await t.getByLabel('Answer (hidden until reveal)').fill('Two quarters')
  await button(t,'Share with class').click()
@@ -233,7 +250,7 @@ try{
  await l.getByLabel('Your answer').fill('2')
  await button(l,'Submit').click()
  await l.getByText(/Submitted:/).waitFor()
- await button(t,'More').click()
+ await teacherTool(t,'More')
  await button(t,'Reveal / close answers').click()
  await see(l,'Two quarters')
  await l.getByRole('button',{name:'First lesson page'}).click()
