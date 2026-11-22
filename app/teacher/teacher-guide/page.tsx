@@ -9,15 +9,16 @@ import { parseLessonPlanBody, type LessonPlanSections } from "@/lib/teaching/les
 import { evaluateLessonReadiness } from "@/lib/teaching/lessonReadiness";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 import JumpingSchemeContent from "@/components/teacher/JumpingSchemeContent";
+import TeacherGuideSelector from "@/components/teacher/TeacherGuideSelector";
 
-const card: React.CSSProperties = { background:"#fff", border:"1px solid #e2e8f0", borderRadius:16, padding:16 };
-const action: React.CSSProperties = { border:0, borderRadius:12, padding:"11px 14px", fontWeight:800, cursor:"pointer", background:"#1e1b4b", color:"#fff" };
+const card: React.CSSProperties = { background:"#fff", border:"1px solid #e2e8f0", borderRadius:13, padding:13 };
+const action: React.CSSProperties = { border:0, borderRadius:11, padding:"11px 14px", minHeight:44, fontWeight:750, cursor:"pointer", background:"#1e1b4b", color:"#fff" };
 const secondary: React.CSSProperties = { ...action, background:"#fff", color:"#334155", border:"1px solid #cbd5e1" };
 
 function nonEmpty(value: string | null | undefined) { return value?.trim() || null; }
 
 function Section({ title, children }: { title:string; children:React.ReactNode }) {
-  return <section style={card}><h2 style={{fontSize:15,margin:"0 0 9px",color:"#0f172a"}}>{title}</h2>{children}</section>;
+  return <section style={card}><h2 style={{fontSize:15,margin:"0 0 7px",color:"#0f172a"}}>{title}</h2>{children}</section>;
 }
 
 function TextBlock({ value, empty }: { value:string | null | undefined; empty:string }) {
@@ -104,46 +105,76 @@ function TeacherGuideInner() {
     return q.toString();
   },[classId,subjectId,timetableSlotId,occurrenceDate,schemeId,lessonPlanId,occurrenceId]);
 
+  // Save only the last *successfully resolved* lesson link. The shortcut is
+  // teacher-scoped and is re-authorized through the canonical workspace.
+  useEffect(()=>{
+    if(!workspace?.teacherId || !workspace.context.schoolId || !classId || !subjectId) return;
+    if(!workspace.existingPlan && !source?.schemeId) return;
+    try {
+      window.localStorage.setItem(
+        `vibeschool.teacher-guide.recent.${workspace.teacherId}`,
+        JSON.stringify({
+          href: `/teacher/teacher-guide?${query}`,
+          title: source?.topic || source?.subStrand || subjectName || "Lesson guide",
+          schoolId: workspace.context.schoolId,
+          classId, subjectId,
+        }),
+      );
+    } catch {
+      // Browser storage may be unavailable; the guide itself still works.
+    }
+  },[workspace,source?.schemeId,source?.topic,source?.subStrand,subjectName,classId,subjectId,query]);
+
   if(loading) return <div role="status" style={{padding:24,color:"#475569",fontWeight:700}}>Opening the canonical Teacher Guide…</div>;
 
-  if(!(lessonPlanId || schemeId) && (!occurrenceDate || !classId || !subjectId)) return (
-    <div style={{maxWidth:760,margin:"0 auto",padding:18,display:"grid",gap:12}}>
-      <div style={{...card,borderColor:"#c7d2fe"}}>
-        <div style={{fontSize:11,fontWeight:750,color:"#4f46e5",textTransform:"uppercase"}}>Teacher Guide</div>
-        <h1 style={{fontSize:24,margin:"6px 0"}}>{classId && subjectId ? "Choose the lesson you are teaching" : "Open a guide from your teaching context"}</h1>
-        <p style={{fontSize:13,lineHeight:1.6,color:"#64748b"}}>
-          {classId && subjectId
-            ? "Your class and subject are already preserved. Choose the exact scheduled lesson so the guide can use the correct curriculum position."
-            : "Teacher Guide does not invent a class, subject, curriculum position or lesson. Open it from Subjects, a scheduled lesson, Scheme or Lesson Plan."}
-        </p>
-      </div>
-      {classId && subjectId ? (
+  // Existing lesson links open directly. Without one, offer actual teacher
+  // assignments instead of a large instruction card and navigation detour.
+  if(!(lessonPlanId || schemeId) && (!occurrenceDate || !classId || !subjectId)) {
+    if(classId && subjectId) return (
+      <main style={{maxWidth:760,margin:"0 auto",padding:"12px 14px 100px",display:"grid",gap:12}}>
+        <header>
+          <h1 style={{margin:0,fontSize:22}}>Teacher Guide</h1>
+          <p style={{margin:"4px 0 0",fontSize:13,color:"#64748b"}}>Choose your lesson.</p>
+        </header>
         <SubjectLessonHandoff classId={classId} subjectId={subjectId} purpose="guide" />
-      ) : (
-        <div style={{...card,display:"flex",gap:8,flexWrap:"wrap"}}>
-          <button style={action} onClick={()=>router.push("/teacher/teach-today")}>Choose a lesson</button>
-          <button style={secondary} onClick={()=>router.push("/teacher/subjecthub")}>Open Subjects</button>
-          <button style={secondary} onClick={()=>router.push("/teacher/scheme")}>Open Scheme</button>
-        </div>
-      )}
-    </div>
-  );
+      </main>
+    );
+    return <TeacherGuideSelector initialClassId={classId} initialSubjectId={subjectId} />;
+  }
 
   if(error || !workspace) return <div style={{maxWidth:760,margin:"0 auto",padding:18}}><div style={{...card,borderColor:"#fecaca"}}><h1 style={{fontSize:20}}>Teacher Guide needs attention</h1><p style={{fontSize:13,color:"#991b1b"}}>{error || "No authorized teaching context was returned."}</p><button style={secondary} onClick={()=>window.location.reload()}>Retry</button></div></div>;
 
   return (
-    <div style={{maxWidth:760,margin:"0 auto",padding:"16px 14px 100px",display:"grid",gap:12}}>
-      <header style={{...card,background:"var(--teacher-ink, #1c2923)",color:"#fff",border:0}}>
-        <div style={{fontSize:11,fontWeight:750,textTransform:"uppercase",opacity:.7}}>{guideReady?"Teacher Guide · ready to teach from":guideContentAvailable?"Teacher Guide · lesson plan review":"Teacher Guide · connect lesson source"}</div>
-        <h1 style={{fontSize:24,margin:"6px 0"}}>{source?.topic || source?.subStrand || subjectName || "Lesson guide"}</h1>
-        <div style={{fontSize:12,opacity:.78}}>{subjectName || "Subject"} · {context?.grade || workspace.context.grade || "Class"} · {context?.schoolName || "Active school"}</div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:14}}>
-          <button style={{...action,background:"var(--teacher-green, #087451)"}} onClick={()=>router.push(`/teacher/lessonplan?${query}`)}>{workspace.existingPlan?"Open Lesson Plan":"Prepare Lesson Plan"}</button>
-          {workspace.existingPlan && <button style={{...secondary,border:0}} onClick={()=>router.push(`/teacher/lesson-notes?lessonPlanId=${workspace.existingPlan?.id}&${query}`)}>Lesson Notes / Teach</button>}
+    <div style={{maxWidth:760,margin:"0 auto",padding:"12px 14px 100px",display:"grid",gap:9}}>
+      <header style={{...card,display:"grid",gap:6}}>
+        <div style={{fontSize:11,fontWeight:750,textTransform:"uppercase",color:"var(--teacher-green, #087451)"}}>
+          Teacher Guide
         </div>
+        <h1 style={{fontSize:22,lineHeight:1.25,margin:0,color:"var(--teacher-ink, #1c2923)"}}>
+          {source?.topic || source?.subStrand || subjectName || "Lesson guide"}
+        </h1>
+        <div style={{fontSize:12,color:"#64748b"}}>
+          {subjectName || "Subject"} · {context?.grade || workspace.context.grade || "Class"} · {context?.schoolName || "Active school"}
+        </div>
+        <nav aria-label="Lesson actions" style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:5}}>
+          <button type="button" style={{...action,background:"var(--teacher-green, #087451)"}} onClick={()=>router.push(`/teacher/lessonplan?${query}`)}>
+            {workspace.existingPlan?"Lesson Plan":"Prepare Plan"}
+          </button>
+          {workspace.existingPlan && <button type="button" style={secondary} onClick={()=>router.push(`/teacher/lesson-notes?lessonPlanId=${workspace.existingPlan?.id}&${query}`)}>Teach / Notes</button>}
+          <button type="button" style={secondary} onClick={()=>router.push(`/teacher/teacher-guide?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subjectId)}`)}>Change lesson</button>
+        </nav>
       </header>
 
-      {!guideReady && <section role="status" style={{...card,background:"#fff7ed",borderColor:"#fdba74",color:"#9a3412"}}><strong>{guideContentAvailable?"Review the saved lesson plan before teaching":"Connect the lesson source before teaching"}</strong><ul style={{margin:"8px 0 0",paddingLeft:20,fontSize:12,lineHeight:1.6}}>{guideGaps.map(gap=><li key={gap}>{gap}</li>)}</ul></section>}
+      {!guideReady && (
+        <details style={{...card,borderColor:"#f0c88b",background:"#fffaf0",color:"#854d0e"}}>
+          <summary style={{cursor:"pointer",fontSize:13,fontWeight:700}}>
+            {guideContentAvailable ? "Lesson plan checks" : "Missing lesson connections"} · {guideGaps.length}
+          </summary>
+          <ul style={{margin:"8px 0 0",paddingLeft:20,fontSize:12,lineHeight:1.6}}>
+            {guideGaps.map(gap=><li key={gap}>{gap}</li>)}
+          </ul>
+        </details>
+      )}
 
       {(workspace.sourceError || workspace.sourceBundleError || workspace.occurrenceError) && <div style={{...card,background:"#fff7ed",borderColor:"#fdba74",fontSize:12,color:"#9a3412"}}>{workspace.sourceError || workspace.sourceBundleError || workspace.occurrenceError}</div>}
 
