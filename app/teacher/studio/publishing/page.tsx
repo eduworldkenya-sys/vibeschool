@@ -38,7 +38,6 @@ export default function PublishingReplacementPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   useEffect(() => {
     let active = true
-    const publicationId = selectedPublicationId
     const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
     async function load() {
       setState("loading")
@@ -64,6 +63,7 @@ export default function PublishingReplacementPage() {
   useEffect(() => {
     if (!selectedPublicationId || state !== "ready") return
     let active = true
+    const publicationId = selectedPublicationId
     const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
     async function loadEvidence() {
       setEvidenceLoading(true)
