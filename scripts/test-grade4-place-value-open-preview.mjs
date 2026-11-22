@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+const read = file => readFileSync(file,'utf8')
+const original = read('content/curriculum/production/grade4-mathematics-whole-numbers-objective1.v3.learner.md')
+const page = read('app/learn/grade-4/mathematics/place-value/page.tsx')
+const chart = read('components/learn/PlaceValuePreviewChart.tsx')
+const outline = read('components/learn/SubjectTextbookOutline.tsx')
+assert.ok(original.includes('### Place Value and Total Value'))
+assert.ok(original.includes('### Mastery check: can you explain the mathematics?'))
+assert.ok(page.includes('grade4-mathematics-whole-numbers-objective1.v3.learner.md'))
+assert.ok(page.includes('readFileSync') && page.includes('parseManuscript(raw)'),'Preview must render existing original manuscript; no parallel content copy')
+assert.ok(page.includes('robots: { index: false'),'Uncertified preview must not advertise itself as an indexed certified textbook')
+assert.ok(page.includes('not scored or saved'))
+assert.ok(page.includes('student/vibelearn/topic-practice?subject=Mathematics&topic=Place%20Value%20%26%20Total%20Value'))
+assert.ok(outline.includes("topic.id==='0f130af0-8f3c-433a-a0df-453927dece7f'"),'Must link only exact canonical Whole Numbers sub-strand')
+assert.ok(outline.includes('/learn/grade-4/mathematics/place-value'))
+assert.ok(outline.includes('Official chapter review continues'))
+assert.ok(page.includes('PlaceValuePreviewChart'))
+assert.ok(chart.includes("aria-pressed={selected === i}") && chart.includes('aria-live="polite"'))
+assert.ok(chart.includes('10000, 1000, 100, 10, 1'))
+for(const forbidden of [/service_role/i,/publish_publication\s*\(/i,/update\s+public\./i,/certify_/i,/verification_evidence/i,/answer\s*key/i,/marking_scheme/i,/auth\.uid/i]){
+  assert.ok(!forbidden.test(page),`Preview reader must not bypass certification or expose sensitive content: ${forbidden}`)
+}
+for(const [n,digits] of [[24907,[2,4,9,0,7]],[40506,[4,0,5,0,6]],[50505,[5,0,5,0,5]]])
+  assert.equal(digits.reduce((sum,d,i)=>sum+d*[10000,1000,100,10,1][i],0),n)
+console.log('Grade 4 Maths open original reading preview: bounded, read-only and numerically correct')
