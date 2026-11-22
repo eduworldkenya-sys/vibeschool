@@ -22,8 +22,8 @@ const grade4CreOutline = [
   { title: 'Creation', topics: ['Self-awareness', 'Thoughts and Feelings', 'Making Choices', 'My Family', 'Relationships within the Family', 'Attributes of God'] },
   { title: 'The Holy Bible', topics: ['Respect for the Holy Bible', 'Zacchaeus the Tax Collector', 'Balaam’s Donkey', 'Samson Kills a Lion', 'Joseph Interprets a Dream', 'Bible Patriarchs: Abraham'] },
   { title: 'The Life of Jesus Christ', topics: ['Annunciation of the Birth of Jesus', 'Birth of John the Baptist', 'Healing of Blind Bartimaeus', 'Healing of the Ten Lepers', 'Jesus Raises a Widow’s Son', 'Forgiveness', 'Helping the Needy', 'Parable of the Lost Coin', 'Parable of the Mustard Seed', 'Nicodemus’ Encounter with Jesus Christ'] },
-  { title: 'Christian Values', topics: ['Trust', 'Truthfulness', 'Obedience', 'Jesus Loves Little Children', 'Responsibility', 'Holiness'] },
-  { title: 'The Church', topics: ['Church as a House of Worship', 'The Early Church', 'Standing Firm in Faith', 'The Lord’s Prayer', 'Fruit of the Holy Spirit', 'Self-control'] },
+  { title: 'Christian Values', topics: ['Trust', 'Truthfulness', 'Obedience', 'Love', 'Responsibility', 'Holiness'] },
+  { title: 'The Church', topics: ['House of God', 'The Early Church', 'Standing Firm in Faith', 'The Lord’s Prayer', 'Fruit of the Holy Spirit', 'Self-control'] },
   { title: 'Morality and Social Media', topics: ['Use of Social Media'] },
 ] as const
 
@@ -62,7 +62,7 @@ const grade4CreLearningGoals: readonly (readonly string[])[] = [
     ['Identify people you can trust and why trust matters.', 'Practise trustworthy behaviour.'],
     ['Explain the importance of telling the truth.', 'Practise honesty in daily interactions.'],
     ['Explain why honouring parents and following school rules matters.', 'Describe the consequences of disobedience.'],
-    ['Describe Jesus welcoming and blessing children in Matthew 19.', 'Show love through kindness to others.'],
+    ['Identify ways Christians show love to God and other people.', 'Practise kindness and care for others.'],
     ['Identify personal and school property.', 'Take responsibility for caring for shared and personal belongings.'],
     ['Describe how to honour God through your actions and body.', 'Make choices that support holy living.'],
   ],
