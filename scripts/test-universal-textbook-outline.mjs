@@ -99,6 +99,18 @@ assert.match(outline,/\.in\('sub_strand_id', ids\)/)
 assert.doesNotMatch(outline,/service_role|\.select\('.*(?:payload|marking_key|teacher_guide)/)
 console.log('PASS: authenticated Grade 4 Maths objective previews, canonical 19-row ordering, legacy isolation, fail-closed mapping and unchanged release links')
 
+// Other school subjects (including Grade 5 CRE) display objectives only after
+// authenticating and obtaining officially verified, canonically linked rows.
+// An empty/unverified subject must not claim a completed lesson.
+assert.match(outline,/All other school subjects use the same official/)
+assert.match(outline,/if \(!active \|\| authError \|\| !user\) return/)
+assert.match(outline,/\.eq\('status','verified'\)/)
+assert.match(outline,/\.eq\('source_type','official'\)/)
+assert.match(outline,/\.in\('sub_strand_id',batch\)/)
+assert.match(outline,/if \(!ids\.length\)/)
+assert.match(outline,/if \(!active \|\| error\) return/)
+console.log('PASS: authenticated generic official objectives, verified-only filter, empty subject and stale-response isolation')
+
 assert.match(outline,/get_school_textbook_shell_metadata/)
 const publicShellSql=read('supabase/migrations/20261119053000_public_school_textbook_shell_metadata.sql')
 assert.match(publicShellSql,/s\.school_id is null/)
