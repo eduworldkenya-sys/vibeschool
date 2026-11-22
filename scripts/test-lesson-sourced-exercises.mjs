@@ -46,7 +46,7 @@ test('class Exercise workspace requires a current, owned saved lesson before dra
   assert.match(page, /\.eq\("school_id", authority\.schoolId\)/)
   assert.match(page, /authority\.subjects\.some\(subject => subject\.id === fresh\.subject_id\)/)
   assert.doesNotMatch(page, /supabase\.from\("exercises"\)\.insert\(/)
-  assert.match(page, /preserv/)
+  assert.match(read("lib/teaching/lessonExerciseDraft.ts"), /preserved_existing/)
 })
 
 test('assessment generator copies lesson task and retains outcome lineage and review', () => {
