@@ -186,6 +186,16 @@ type LiveLearnerEducationPath = {
 type LiveDatabase = Omit<Database, 'public'> & {
   public: Omit<Database['public'], 'Tables' | 'Functions'> & {
     Functions: Database['public']['Functions'] & {
+      ce_get_publication_auto_review_state: {
+        Args: { p_publication_id: string }
+        Returns: {
+          publication_status: string
+          human_approval_required: boolean
+          machine_review_commissioned: boolean
+          exact_version_approved: boolean
+          review_state: 'published' | 'release_approved' | 'machine_reviewer_not_commissioned' | 'independent_machine_review_pending'
+        }
+      }
       vibetutor_create_student_invite: { Args: Record<never, never>; Returns: string }
       vibetutor_claim_student_invite: { Args: { p_token: string }; Returns: "accepted" | "pending_guardian" }
       vibetutor_parent_student_invites: { Args: Record<never, never>; Returns: { id: string; student: string; tutor: string; status: string }[] }
