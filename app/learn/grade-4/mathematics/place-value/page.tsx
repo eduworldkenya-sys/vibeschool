@@ -100,7 +100,7 @@ function renderSection(block: Section, key: number) {
 const raw = readFileSync(join(process.cwd(),
   'content/curriculum/production/grade4-mathematics-whole-numbers-objective1.v3.learner.md'), 'utf8')
 const sections = parseManuscript(raw)
-// The chapter and subject labels are displayed in the page heading rather than
+// The subject and lesson labels are displayed in the page heading rather than
 // duplicated at the start of the learner's authored manuscript.
 const learnerContent = sections.slice(3)
 
@@ -110,13 +110,13 @@ export default function Grade4PlaceValueOpenPreviewPage() {
       <Link href="/learn?grade=Grade%204&subject=Mathematics" className={styles.back}>← Grade 4 Mathematics</Link>
       <article className={styles.paper}>
         <header className={styles.hero}>
-          <div className={styles.kicker}>VibeSchool Originals · Grade 4 Mathematics · Numbers</div>
+          <div className={styles.kicker}>VibeSchool Originals · Grade 4 Mathematics · Lesson 1</div>
           <h1>Place Value and Total Value</h1>
-          <p className={styles.lede}>Whole Numbers · Our first learning objective</p>
+          <p className={styles.lede}>First learning objective · Place value and total value</p>
         </header>
         <p role="note" className={styles.previewNote}>
-          Open learning preview. This original textbook section is available for reading and exploration
-          while the full chapter completes publication review. Work on this page is not scored or saved.
+          Lesson 1 is open for reading, exploring and practising your understanding.
+          Work on this page is not scored or saved. Use Practice Place Value to check your answers.
         </p>
         <div className={styles.lesson}>{learnerContent.map(renderSection)}</div>
         <nav className={styles.buttonRow} aria-label="Continue studying">
