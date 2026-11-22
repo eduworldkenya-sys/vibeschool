@@ -374,7 +374,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
         // Publisher-facing status comes from the current server, not a fictitious
         // human HQ approval or a fabricated machine-review receipt.
         const { data: reviewState, error: statusError } = await sb.rpc('ce_get_publication_auto_review_state', {
-          p_publication_id: preparedPub.id,
+          p_publication_id: originalPub.id,
         })
         const machineReady = !statusError && reviewState && typeof reviewState === 'object'
           && !Array.isArray(reviewState) && 'machine_review_commissioned' in reviewState
