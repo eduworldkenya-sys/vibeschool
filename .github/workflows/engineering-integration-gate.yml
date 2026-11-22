@@ -46,6 +46,10 @@ jobs:
           fetch-depth: 0
       - run: git fetch --no-tags origin main:refs/remotes/origin/main
       - run: test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
+      - name: Teacher curriculum and Scheme link regression
+        run: |
+          node --test scripts/test-grade4-cre-ca-teacher-visibility.mjs
+          node scripts/test-curriculum-scheme-routing.mjs
       - run: python3 scripts/engineering_control_plane.py --mode self-test
       - run: python3 scripts/engineering_control_plane.py --mode audit --base origin/main --head HEAD --output control-plane-report.json
 
