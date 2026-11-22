@@ -13,7 +13,7 @@
 .error{padding:8px;color:#9c1b1b;background:#fff1f0;border-radius:8px;font-size:12px}
 .empty{font-size:12px;opacity:.75;margin:0}
 .preview{display:grid;gap:8px;min-width:0}
-.preview iframe{display:block;width:100%;height:clamp(220px,48dvh,580px);background:#fff;border:1px solid currentColor;border-radius:8px}
-.preview img{display:block;max-width:100%;max-height:48dvh;object-fit:contain;margin:auto}
+.preview iframe{display:block;width:100%;height:clamp(280px,72dvh,1100px);background:#fff;border:1px solid currentColor;border-radius:8px}
+.preview img{display:block;max-width:100%;max-height:72dvh;object-fit:contain;margin:auto}
 .preview a{color:inherit;text-decoration:underline;overflow-wrap:anywhere;font-size:12px}
-@media(max-width:500px){.root{padding:7px}.list{max-height:22dvh}.preview iframe{height:45dvh;min-height:180px}}
+@media(max-width:500px){.root{padding:7px}.list{max-height:22dvh}.preview iframe{height:65dvh;min-height:200px}}
