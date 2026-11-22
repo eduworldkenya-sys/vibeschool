@@ -139,12 +139,22 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     setQuickSetup(false)
   }
 
+  // Count the actual canonical chapter JSON blocks used by this editor. Never
+  // mistake a missing server rights/assessment approval for missing draft material.
+  const imageCount = chapters.reduce((total, chapter) =>
+    total + chapter.blocks.filter(block => block.type === 'image').length, 0)
+  const questionCount = chapters.reduce((total, chapter) =>
+    total + chapter.blocks.filter(block => block.type === 'question').length, 0)
   const documentChecks = [
     { key: 'title', label: 'Document title', ok: Boolean(publication?.title?.trim()), detail: 'Title required', action: 'Edit title' },
     { key: 'curriculum', label: 'Curriculum fields', ok: format !== 'vibetextbook' || Boolean(publication?.cbc_subject?.trim() && publication?.cbc_grade?.trim()), detail: 'Choose subject and grade in Details', action: 'Open details' },
     { key: 'content', label: 'Written content', ok: chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), detail: 'Write at least one content block', action: 'Open writing' },
-    { key: 'media', label: 'Media and rights', ok: false, detail: 'Server verification unavailable; inspect images', action: 'Open images' },
-    { key: 'assessment', label: 'Assessments and answers', ok: false, detail: 'Server verification unavailable; inspect questions', action: 'Open questions' },
+    { key: 'media', label: 'Images and rights', ok: false, detail: imageCount > 0
+      ? `${imageCount} image${imageCount === 1 ? '' : 's'} found · rights verification pending`
+      : 'No images found · add an image and verify its rights', action: imageCount > 0 ? 'Review images' : 'Add image' },
+    { key: 'assessment', label: 'Questions and answers', ok: false, detail: questionCount > 0
+      ? `${questionCount} question${questionCount === 1 ? '' : 's'} found · answer/assessment verification pending`
+      : 'No questions found · add questions with answers', action: questionCount > 0 ? 'Review questions' : 'Add question' },
     { key: 'authority', label: 'Publishing authority', ok: false, detail: 'Duncan activation pending', action: 'View activation' },
     { key: 'learn', label: 'Learn visibility', ok: false, detail: 'Verified only after publication', action: 'Open preview' },
   ]
