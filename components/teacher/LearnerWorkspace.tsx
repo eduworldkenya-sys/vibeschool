@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Activity, ArrowLeft, Award, BookOpen, CalendarDays, Check,
   CheckCircle2, ChevronDown, ChevronRight, ClipboardList,
@@ -169,6 +169,7 @@ const ActionButton = ({ children, onClick, primary = false, icon: Icon }: { chil
 
 export default function LearnerWorkspace({ data, actions = {}, initialTab = "profile", onTabChange, permissions = {} }: LearnerWorkspaceProps) {
   const [tab, setTab] = useState<WorkspaceTab>(initialTab);
+  useEffect(() => setTab(initialTab), [initialTab]);
   const [moreOpen, setMoreOpen] = useState(false);
   const [subject, setSubject] = useState("All subjects");
   const [workFilter, setWorkFilter] = useState("All");
