@@ -143,7 +143,7 @@ export type LearnerWorkspaceProps = {
   initialTab?: WorkspaceTab;
   onTabChange?: (tab: WorkspaceTab) => void;
   /** The parent page must enforce permissions server-side; these only control visible actions. */
-  permissions?: { canAssign?: boolean; canChat?: boolean; canSeeParent?: boolean; canEditProfile?: boolean; canCorrectMarks?: boolean; canManageLearning?: boolean };
+  permissions?: { canAssign?: boolean; canChat?: boolean; canSeeParent?: boolean; canEditProfile?: boolean; canCorrectMarks?: boolean; canManageLearning?: boolean; canSeeSchoolRoles?: boolean; canSeeSchoolResources?: boolean };
 };
 
 const TABS: { id: WorkspaceTab; label: string; icon: typeof UserRound }[] = [
@@ -231,7 +231,7 @@ export default function LearnerWorkspace({ data, actions = {}, initialTab = "pro
       <Panel title="School Life" icon={UsersRound}>
         <div className={styles.lifeRows}>{[
           { label: "Groups", icon: UsersRound, type: "groups" as const, value: schoolLife.groups?.join(", ") }, { label: "Roles", icon: ShieldCheck, type: "roles" as const, value: schoolLife.roles?.join(", ") }, { label: "Recognition", icon: Trophy, type: "recognition" as const, value: schoolLife.recognition?.join(", ") }, { label: "Resources", icon: BookOpen, type: "resources" as const, value: schoolLife.resources?.map(x => x.title).join(", ") },
-        ].map(x => <button type="button" key={x.label} onClick={() => actions.openSchoolItem?.(x.type)} disabled={!actions.openSchoolItem} className={styles.lifeRow}><x.icon size={18}/><strong>{x.label}</strong><span>{x.value || "—"}</span>{actions.openSchoolItem && <ChevronRight size={15}/>}</button>)}</div>
+        ].filter(x => x.type !== "roles" || permissions.canSeeSchoolRoles).filter(x => x.type !== "resources" || permissions.canSeeSchoolResources).map(x => <button type="button" key={x.label} aria-label={x.label} onClick={() => actions.openSchoolItem?.(x.type)} disabled={!actions.openSchoolItem} className={styles.lifeRow}><x.icon size={18}/><strong>{x.label}</strong><span>{x.value || "—"}</span>{actions.openSchoolItem && <ChevronRight size={15}/>}</button>)}</div>
       </Panel>
       <Panel title="Quick Insights" icon={TrendingUp}>
         <div className={styles.metrics}>{[
