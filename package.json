@@ -13,7 +13,7 @@
     "test:canonical-references": "node scripts/test-canonical-reference-selectors.mjs",
     "test:seo-authority": "node scripts/seo-content-authority-contract-test.mjs",
     "test:vibetutor-services": "node --import ./scripts/register-typescript.mjs --test scripts/test-vibeme.mjs && node --import ./scripts/register-typescript.mjs --test scripts/test-vibetutor-tuition-services.mjs && node --test scripts/test-vibetutor-no-guardian-gate.mjs && node --test scripts/test-vibetutor-published-imported-requests.mjs && npm run test:vibechat",
-    "validate": "npm run test:teacher-guide && npm run test:shared-theme && npm run test:institutions && npm run test:vibetutor-services && npm run test:marketing-studio && npm run test:spin-studio && npm run test:pendulum-studio && npm run test:coin-studio && npm run test:live-resources && npm run test:live-voice && npm run typecheck && npm run lint && npm run test:twin && npm run test:classhub && npm run test:seo-authority && npm run test:timetable && npm run test:teaching-library && npm run test:jumping-content && npm run build",
+    "validate": "npm run test:studio-document && npm run test:teacher-guide && npm run test:shared-theme && npm run test:institutions && npm run test:vibetutor-services && npm run test:marketing-studio && npm run test:spin-studio && npm run test:pendulum-studio && npm run test:coin-studio && npm run test:live-resources && npm run test:live-voice && npm run typecheck && npm run lint && npm run test:twin && npm run test:classhub && npm run test:seo-authority && npm run test:timetable && npm run test:teaching-library && npm run test:jumping-content && npm run build",
     "test:timetable": "node --import ./scripts/register-typescript.mjs scripts/test-timetable-modern-intelligence.mjs && node --import ./scripts/register-typescript.mjs scripts/test-timetable-guided-periods.mjs && node scripts/test-school-day-samples.mjs && node scripts/test-timetable-modernization-closure.mjs && node --test scripts/test-timetable-reconciliation.mjs",
     "test:twin": "node scripts/test-deterministic-twin-contract.mjs && node scripts/test-personal-twin.mjs && node scripts/test-personal-twin-service.mjs && node --test scripts/test-twin-self-service-bindings.mjs && node --test scripts/test-unified-entry-continuity.mjs scripts/test-unified-identity-foundation.mjs && node --test scripts/test-unified-identity-authority-hardening.mjs",
     "test:originals": "node --test scripts/test-originals-stories-series.mjs",
@@ -43,7 +43,8 @@
     "test:institutions": "node --test scripts/test-institutions-senior-page.mjs",
     "test:live-voice": "node --test scripts/test-live-voice.mjs",
     "test:shared-theme": "node --test scripts/test-shared-platform-theme.mjs",
-    "test:vibechat": "node --test scripts/test-vibechat-unified-inbox.mjs scripts/test-vibechat-contact-discovery.mjs"
+    "test:vibechat": "node --test scripts/test-vibechat-unified-inbox.mjs scripts/test-vibechat-contact-discovery.mjs",
+    "test:studio-document": "node --import ./scripts/register-typescript.mjs --test scripts/test-studio-document-reader.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
