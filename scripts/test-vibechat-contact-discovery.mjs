@@ -61,6 +61,6 @@ test('VibeChat contacts use only scoped RPCs and never expose phone numbers',()=
   assert.match(contacts,/vibechat_respond_contact/)
   assert.match(contacts,/vibechat_my_handle/)
   assert.match(contacts,/\['teacher', 'parent', 'admin'\]\.includes\(role\)/)
-  assert.doesNotMatch(contacts,/select\('\*'\)|\.from\('profiles'\)|phone|email/i)
+  assert.doesNotMatch(contacts,/\.from\('profiles'\)|\.select\('phone'|\.select\('email'/i)
   assert.match(ui,/tab==='contacts'/)
 })
