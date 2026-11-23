@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import styles from './PublishedTextbookEditorial.module.css'
 import type { ContentBlock } from '@/lib/publishTypes'
 import UniversalLearnReader, { type UniversalLearnSection } from '@/components/learn/UniversalLearnReader'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
@@ -57,9 +58,9 @@ function PublishedBlock({ block }: { block: ContentBlock }) {
     const src = publicMediaUrl(block.content)
     if (!src) return <p role="status">This illustration is not publicly available.</p>
     const alt = typeof meta.alt === 'string' && meta.alt.trim() ? meta.alt : caption || 'Learning illustration'
-    return <figure style={{ margin: '18px 0', textAlign: 'center' }}>
-      <img src={src} alt={alt} loading="lazy" style={{ maxWidth: '100%', height: 'auto', borderRadius: 12, display: 'block', margin: 'auto' }} />
-      {caption && <figcaption style={{ marginTop: 9, color: '#526558', fontSize: 13 }}>{caption}</figcaption>}
+    return <figure className={styles.media}>
+      <img src={src} alt={alt} loading="lazy" style={{ maxWidth: '100%', height: 'auto', borderRadius: 0, display: 'block', margin: 'auto' }} />
+      {caption && <figcaption>{caption}</figcaption>}
     </figure>
   }
   if (block.type === 'interactive') return <div style={{
@@ -69,12 +70,12 @@ function PublishedBlock({ block }: { block: ContentBlock }) {
     ['--publication-surface' as string]: '#f5faf6',
     ['--publication-border' as string]: '#dce7df',
   }}><BiologyInteractiveBlock block={block}/></div>
-  if (block.type === 'divider') return <hr style={{ border: 0, borderTop: '1px solid #dce6df', margin: '14px 0' }} />
+  if (block.type === 'divider') return <hr className={styles.divider} />
   if (!text) return null
   if (block.type === 'table') {
     const rows = block.content.split('\n').filter(Boolean).map(row => row.split('|').map(cell => cell.trim()))
-    return <div style={{ overflowX: 'auto', maxWidth: '100%' }}><table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 14 }}><tbody>
-      {rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j} style={{ border: '1px solid #dce7df', padding: '9px 12px' }}>{cell}</td>)}</tr>)}
+    return <div className={styles.tableWrap}><table><tbody>
+      {rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>)}
     </tbody></table></div>
   }
   if (block.type === 'heading3') return <h3 style={{ color: '#183e2c', fontSize: '1.05rem', margin: '16px 0 6px' }}>{text}</h3>
@@ -84,15 +85,15 @@ function PublishedBlock({ block }: { block: ContentBlock }) {
       ? <ol style={{ paddingLeft: 22 }}>{lines.map((line, i) => <li key={i}><VisualRichText body={line}/></li>)}</ol>
       : <ul style={{ paddingLeft: 22 }}>{lines.map((line, i) => <li key={i}><VisualRichText body={line}/></li>)}</ul>
   }
-  if (['activity','experiment','project','question'].includes(block.type)) return <aside style={{ borderLeft: '2px solid #aab8ae', padding: '10px 15px', background: '#fff', borderRadius: 2, margin: '12px 0' }}>
-    <strong style={{ fontSize: 13, color: '#613e83' }}>{block.type === 'question' ? 'Think about it' : 'Try this'}</strong>
+  if (['activity','experiment','project','question'].includes(block.type)) return <section className={styles.activity} aria-label={block.type === 'question' ? 'Question' : 'Learning activity'}>
+    <div className={styles.activityLabel}><span>{block.type === 'question' ? 'Think about it' : block.type === 'experiment' ? 'Investigation' : block.type === 'project' ? 'Project' : 'Activity'}</span></div>
+    <div className={styles.activityBody}><VisualRichText body={text}/></div>
+  </section>
+  if (['definition','example','workedExample','callout','summary'].includes(block.type)) return <section className={block.type === 'summary' || block.type === 'callout' ? styles.keyIdea : styles.example}>
+    <h3>{block.type === 'workedExample' ? 'Worked example' : block.type === 'summary' ? 'Remember' : block.type === 'example' ? 'Example' : block.type === 'definition' ? 'Meaning' : 'Key idea'}</h3>
     <VisualRichText body={text}/>
-  </aside>
-  if (['definition','example','workedExample','callout','summary'].includes(block.type)) return <aside style={{ borderLeft: '2px solid #aab8ae', padding: '10px 15px', background: '#fff', borderRadius: 2, margin: '12px 0' }}>
-    <strong style={{ fontSize: 13, color: '#185b3d' }}>{block.type === 'workedExample' ? 'Worked example' : block.type.charAt(0).toUpperCase() + block.type.slice(1)}</strong>
-    <VisualRichText body={text}/>
-  </aside>
-  if (block.type === 'quote') return <blockquote style={{ margin: '12px 0', paddingLeft: 15, borderLeft: '3px solid #9ebcaf' }}><VisualRichText body={text}/></blockquote>
+  </section>
+  if (block.type === 'quote') return <blockquote className={styles.quote}><VisualRichText body={text}/></blockquote>
   return <VisualRichText body={text}/>
 }
 
@@ -102,16 +103,17 @@ export default function PublishedTextbookLearnReader({ subject, blocks, chapterI
   chapterId: string
 }) {
   const sections = useMemo(() => textbookLearnSections(blocks), [blocks])
-  return <UniversalLearnReader
+  return <div className={styles.book}><UniversalLearnReader
+    presentation="book"
     subject={subject}
     topic={chapterId}
     anchorPrefix={'textbook-' + chapterId}
     sections={sections}
     showTeachingTools={false}
-    renderBody={section => <div style={{ display: 'grid', gap: 12 }}>
+    renderBody={section => <div className={styles.blocks}>
       {(section as ReaderSection).sourceBlocks.map(block => <div key={block.id} id={'reader-block-' + block.id} data-reader-block-id={block.id}>
         <PublishedBlock block={block}/>
       </div>)}
     </div>}
-  />
+  /></div>
 }
