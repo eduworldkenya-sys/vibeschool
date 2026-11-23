@@ -78,7 +78,12 @@ assert.ok(schema.includes('public.mini_tags_valid(tags)') &&
   schema.includes('mini_optional_quiz_valid') &&
   schema.includes('using gin(tags)'),
   'valid hashtags and optional questions must have database constraints')
-assert.ok(schema.includes('as $') && !schema.includes('as $\\n'), 'SQL functions must use valid dollar quoting')
+for(const [name,sql] of [['foundation',schema],['review',review]]) {
+  assert.doesNotMatch(sql,/as \\$(?!\\$)\\r?\\n/,name+' has a malformed SQL dollar-quote delimiter')
+  assert.doesNotMatch(sql,/\\n\\$;/,name+' has a malformed SQL dollar-quote terminator')
+}
+assert.match(schema,/grant execute on function public\\.mini_tags_valid\\(text\\[\\]\\) to authenticated/)
+assert.doesNotMatch(review,/p\\.date_of_birth is null/,'unknown-age creators must not bypass adult eligibility')
 assert.ok(actions.includes('parseMiniHashtags') && actions.includes('quiz_question:question') &&
   realExplore.includes('popularTags') && realExplore.includes('miniTagLabel'),
   'hashtags must be wired to publication and discovery')
