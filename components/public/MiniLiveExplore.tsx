@@ -149,7 +149,7 @@ export function MiniLiveExplore() {
     )
     return tab === 'New'
       ? [...matches].sort((a,b) => (b.published_at ?? '').localeCompare(a.published_at ?? ''))
-      : rankMiniLessons(matches, { interests, following: follows, dismissed })
+      : rankMiniLessons(matches, { interests, following: adult ? follows : new Set<string>(), dismissed })
   }, [posts,tab,subject,query,interests,follows,dismissed])
 
   async function interact(kind: 'like' | 'save') {
