@@ -6,7 +6,6 @@ const TOOLS = [
   { key: 'lessonplan',  label: 'Lesson Plan', icon: '✎' },
   { key: 'gradebook',   label: 'Class Results', icon: '▐' },
   { key: 'connecthub',  label: 'ConnectHub',  icon: '⬡' },
-  { key: 'twin',        label: 'Twin',        icon: '◎' },
 ] as const
 
 type ToolKey = typeof TOOLS[number]['key']
