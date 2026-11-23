@@ -19,6 +19,7 @@ assert.ok(!page.includes('<SchoolDaySampleBuilder'), 'templates do not fill the 
 assert.ok(setup.includes('SchoolDaySampleBuilder'), 'existing template setup remains accessible')
 assert.ok(page.includes('duplicateActiveTimetable(nextWeek)'), 'repeat function is preserved')
 assert.ok(page.includes('restoreTimetableSnapshot(lastUndoSnapshotId'), 'undo function is preserved')
+assert.ok(page.includes("(tuitionWeek.length > 0 || scheduleContext === 'tuition')"), 'default Week suppresses empty tuition cards')
 assert.ok(grid.includes('rows.length===0'), 'unconfirmed slots never synthesize timetable period rows')
 
 console.log('Professional timetable Week UI regressions: PASS')
