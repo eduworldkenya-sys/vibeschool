@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { miniRecommendationScore, rankMiniLessons } from '../lib/minis/recommendation.ts'
+import { parseMiniHashtags, miniSubjectFromTags } from '../lib/minis/tags.ts'
 
 const read = p => readFileSync(new URL('../'+p,import.meta.url),'utf8')
 const schema = read('supabase/migrations/20261123210000_mini_lessons_foundation_v1.sql')
@@ -11,6 +12,12 @@ const explore = read('app/explore/page.tsx')
 const home = read('components/public/MiniHomeSection.tsx')
 const server = read('app/api/hq/minis/review/route.ts')
 
+assert.deepEqual(parseMiniHashtags('#Mathematics #Fractions #Mathematics'),['mathematics','fractions'])
+assert.deepEqual(parseMiniHashtags('  #Agriculture, #Maize '),['agriculture','maize'])
+assert.equal(miniSubjectFromTags(['fractions','mathematics']),'Mathematics')
+assert.equal(miniSubjectFromTags(['farming']),'General Knowledge')
+for (const invalid of ['', '#', '#x', '#foo!', '#one #two #three #four #five #six', '#1234'])
+  assert.throws(()=>parseMiniHashtags(invalid), 'invalid hashtag must be denied: '+invalid)
 const basic = {
   id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   creator_id:'11111111-1111-4111-8111-111111111111',
@@ -50,7 +57,7 @@ for(const required of [
   "public.mini_adult_signal_allowed(user_id)",
   "status='pending'",
   "revoke all on public.mini_lessons from anon,authenticated",
-  "grant insert(creator_id,title,body,subject,cover_path,status)",
+  "grant insert(creator_id,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status)",
   "public.mini_approved_comments",
   "public.mini_creator_public(m.creator_id)",
   "'mini-covers','mini-covers',false",
@@ -67,6 +74,20 @@ for(const required of [
   "to service_role",
   'hq_human_audit_log',
 ]) assert.ok(review.includes(required),'review contract missing: '+required)
+assert.ok(schema.includes('public.mini_tags_valid(tags)') &&
+  schema.includes('mini_optional_quiz_valid') &&
+  schema.includes('using gin(tags)'),
+  'valid hashtags and optional questions must have database constraints')
+assert.ok(schema.includes('as $') && !schema.includes('as $\\n'), 'SQL functions must use valid dollar quoting')
+assert.ok(actions.includes('parseMiniHashtags') && actions.includes('quiz_question:question') &&
+  realExplore.includes('popularTags') && realExplore.includes('miniTagLabel'),
+  'hashtags must be wired to publication and discovery')
+assert.ok(realExplore.includes('prepareMiniPhoto') && realExplore.includes('quizEnabled') &&
+  realExplore.includes('current.quiz_question'),
+  'real image editing and optional reader question must be present')
+assert.ok(read('app/api/hq/minis/review/route.ts').includes('quiz_explanation') &&
+  read('app/hq/minis/page.tsx').includes('quiz_correct'),
+  'moderator must be able to inspect any answer and explanation before approval')
 assert.ok(actions.includes("status: 'pending'") && actions.includes("upload(coverPath, photo") &&
   actions.includes("remove([coverPath])"),'submissions must be pending with private cover cleanup')
 assert.ok(actions.includes("currentMiniUser()") && actions.includes("miniIsVerifiedAdult") &&
@@ -79,4 +100,4 @@ assert.ok(explore.includes("NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true'"
 assert.ok(server.includes("MINI_LESSONS_REVIEW_ENABLED === 'true'") &&
   server.includes("getUser(bearer)") && server.includes("content.approve") &&
   server.includes("mini_review_item"),'moderation must stay staff-authenticated and separately gated')
-console.log('PASS: Mini Lesson ranking fairness, relevance, authorization, private media, moderation and rollout guards')
+console.log('PASS: Mini Lesson hashtags, photo editing, learning, ranking fairness, authorization, moderation and rollout guards')
