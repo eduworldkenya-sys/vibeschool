@@ -137,7 +137,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
 
     setTitleError(false)
     setPublishing(true)
-    const ok = await publishPublication()
+    const ok = await publishPublication(simpleMode ? { confirmedReadingOnlyTextbook: materialsConfirmed } : undefined)
     setPublishing(false)
     if (ok) router.push('/global/creator/' + authorId)
   }
@@ -459,7 +459,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           <input type="checkbox" checked={materialsConfirmed} disabled={!draftMaterialsPresent} onChange={event => setMaterialsConfirmed(event.target.checked)} aria-label="Confirm existing lesson materials" />
           Materials checked — {imageOrQuestionSummary}
         </label>
-        <span style={{ fontSize: 12, color: MUTED }}>No duplicate uploads or rewriting required. Server release checks still apply.</span>
+        <span style={{ fontSize: 12, color: MUTED }}>No duplicate uploads or rewriting required. Reading only; scored assessments and private Teacher Guides remain separate.</span>
       </section>}
 
       {simpleMode && checksOpen && <section aria-label="Document checks" style={{ background: SURF, borderBottom: '1px solid ' + BORDER, padding: '12px 16px', color: TEXT }}>
@@ -646,7 +646,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           isOpen={setupOpen}
           onClose={() => setSetupOpen(false)}
           onUpdate={updatePublication}
-          onPublish={async () => { if (!canPublish || (simpleMode && !materialsConfirmed)) { setChecksOpen(true); return false }; return publishPublication() }}
+          onPublish={async () => { if (!canPublish || (simpleMode && !materialsConfirmed)) { setChecksOpen(true); return false }; return publishPublication(simpleMode ? { confirmedReadingOnlyTextbook: materialsConfirmed } : undefined) }}
           publishDisabled={!canPublish || (simpleMode && !materialsConfirmed)}
         />
       )}
