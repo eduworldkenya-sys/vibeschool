@@ -1,5 +1,5 @@
 -- Issue #1984. Additive identity registry; no existing authority or school records changed.
--- The new role table is NOT an authorization source for Teacher/Student/Parent OS.
+-- Existing Twin relationship authority stays canonical; this migration creates no new role authority.
 begin;
 
 -- authorization-test: public.vs_identities — scripts/test-unified-identity-foundation.mjs; anonymous SELECT denied, owner sees only self
@@ -15,14 +15,6 @@ create table public.vs_identities (
  constraint vs_identity_person_owner check(
   (kind='person' and auth_user_id is not null) or
   (kind='managed_learner' and auth_user_id is null))
-);
--- authorization-test: public.vs_identity_roles — scripts/test-unified-identity-foundation.mjs; role grants do not elevate canonical authority
-create table public.vs_identity_roles (
- identity_id uuid not null references public.vs_identities(id) on delete cascade,
- role text not null check(role in ('teacher','student','parent')),
- state text not null default 'pending' check(state in ('pending','active','revoked')),
- granted_at timestamptz,
- primary key(identity_id,role)
 );
 -- authorization-test: public.vs_managed_learners — scripts/test-unified-identity-foundation.mjs; no read for non-guardian
 create table public.vs_managed_learners (
@@ -46,16 +38,13 @@ insert into public.vs_username_reservations(username)
 select unnest(array['admin','administrator','support','vibeschool','vibetutor','vibeconnect','system','security','help','official','teacher','student','parent','moderator','staff']);
 
 alter table public.vs_identities enable row level security;
-alter table public.vs_identity_roles enable row level security;
 alter table public.vs_managed_learners enable row level security;
 alter table public.vs_username_reservations enable row level security;
-revoke all on public.vs_identities,public.vs_identity_roles,public.vs_managed_learners,public.vs_username_reservations from anon,authenticated;
-grant select on public.vs_identities,public.vs_identity_roles,public.vs_managed_learners to authenticated;
+revoke all on public.vs_identities,public.vs_managed_learners,public.vs_username_reservations from anon,authenticated;
+grant select on public.vs_identities,public.vs_managed_learners to authenticated;
 
 create policy vs_identity_self_read on public.vs_identities for select to authenticated
  using(auth_user_id=(select auth.uid()));
-create policy vs_roles_self_read on public.vs_identity_roles for select to authenticated
- using(exists(select 1 from public.vs_identities i where i.id=identity_id and i.auth_user_id=(select auth.uid())));
 create policy vs_managed_guardian_read on public.vs_managed_learners for select to authenticated
  using(exists(select 1 from public.vs_identities i where i.id=guardian_identity_id and i.auth_user_id=(select auth.uid())));
 
