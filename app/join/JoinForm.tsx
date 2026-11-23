@@ -2,6 +2,7 @@
 import Link from 'next/link'
 
 import { useState, type FormEvent } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 import { useAuthAppearance } from '@/app/auth/useAuthAppearance'
@@ -12,6 +13,8 @@ type OnboardingState = { state?: unknown; destination?: unknown }
 
 export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
   const role = initialRole
+  const searchParams = useSearchParams()
+  const requestedDestination = safeInternalPath(searchParams.get('next'))
   const appearance = useAuthAppearance()
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -25,6 +28,7 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
     url.searchParams.set('intent', 'signup')
     url.searchParams.set('role', role)
     url.searchParams.set('flow', crypto.randomUUID())
+    if (requestedDestination && roleCanVisit(role, requestedDestination)) url.searchParams.set('next', requestedDestination)
     return url.toString()
   }
 
@@ -100,7 +104,9 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
     if (!destination || typeof next.state !== 'string' || !roleCanVisit(role, destination)) {
       throw new Error('Invalid destination')
     }
-    window.location.assign(destination)
+    const target = next.state === 'ready' && requestedDestination && roleCanVisit(role, requestedDestination)
+      ? requestedDestination : destination
+    window.location.assign(target)
   }
 
   async function withGoogle() {
@@ -147,7 +153,7 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
           existingRole === 'parent' ? '/parent' : '/login'}>Open your existing account</a>}
         <div className="divider" />
         <a href="/signup/student" className="learner">Create learner account</a>
-        <p className="foot">Already registered? <Link href="/login">Sign in</Link></p>
+        <p className="foot">Already registered? <Link href={requestedDestination ? `/login?redirect=${encodeURIComponent(requestedDestination)}` : '/login'}>Sign in</Link></p>
         <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
       </section>
       <style jsx>{`
