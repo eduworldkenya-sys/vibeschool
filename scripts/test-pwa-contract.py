@@ -100,7 +100,7 @@ def main() -> int:
 
     # Changing the offline shell or safe public precache set requires a service-worker
     # generation change so existing installed clients actually receive the new fallback.
-    require(sw, "vibeschool-v9-offline-reading", "service worker cache generation")
+    require(sw, "vibeschool-v10-public-games", "service worker cache generation")
     require(sw, "'/sandbox'", "service worker safe public sandbox")
     require(sw, "url.pathname.startsWith('/api/')", "service worker")
     require(sw, "url.pathname.startsWith('/auth/')", "service worker")
