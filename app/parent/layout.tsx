@@ -10,7 +10,7 @@ import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core";
 
 const NAV_TABS: ParentNavTab[] = [
   { id: "home",      label: "Home",     icon: "🏠", href: "/parent"          },
-  { id: "connect",   label: "Inbox",    icon: "🔔", href: "/parent/inbox"    },
+  { id: "connect",   label: "VibeChat", icon: "💬", href: "/vibechat"    },
   { id: "vibelearn", label: "VibeLearn",icon: "🎓", href: "/parent/vibe-learn" },
   { id: "learn",     label: "Learn",    icon: "📚", href: "/parent/learn"    },
   { id: "students",  label: "Children", icon: "🎒", href: "/parent/students" },
