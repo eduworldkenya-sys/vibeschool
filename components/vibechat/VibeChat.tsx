@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Bell, MessageCircle, RefreshCw, Send, Users, UserPlus } from 'lucide-react'
+import { ArrowLeft, Bell, MessageCircle, RefreshCw, Send, Users, UserPlus, ShieldAlert, Ban } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase'
 import Enquiries from './Enquiries'
 import VibeChatAvatar from './VibeChatAvatar'
@@ -57,6 +57,11 @@ export default function VibeChat() {
   const [acking, setAcking] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [messageError, setMessageError] = useState('')
+  const [safety, setSafety] = useState<{ blocked: boolean; blocked_by_me: boolean } | null>(null)
+  const [safetyBusy, setSafetyBusy] = useState(false)
+  const [safetyError, setSafetyError] = useState('')
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState('safety')
   const selectedRef = useRef<string | null>(null)
   selectedRef.current = active
 
@@ -198,9 +203,68 @@ export default function VibeChat() {
     return () => { running = false; window.clearInterval(interval) }
   }, [selected?.key, uid, loadMessages])
 
+  useEffect(() => {
+    if (!selected || !uid) { setSafety(null); setSafetyError(''); return }
+    const key = selected.key
+    let live = true
+    setSafety(null)
+    setSafetyError('')
+    setReportOpen(false)
+    const p_kind = selected.kind === 'school' ? 'vc' : 'tuition'
+    void getSupabaseClient().rpc('vibechat_thread_safety', {
+      p_kind, p_room: selected.id,
+    }).then(({ data, error: checkError }) => {
+      if (!live || selectedRef.current !== key) return
+      if (checkError || !data) {
+        setSafetyError('Could not verify messaging permissions. Retry by reopening this conversation.')
+      } else {
+        setSafety(data)
+      }
+    }, () => {
+      if (live && selectedRef.current === key) setSafetyError('Connection safety could not be checked.')
+    })
+    return () => { live = false }
+  }, [selected?.key, uid])
+
+  async function toggleBlock() {
+    if (!selected || !safety || safetyBusy) return
+    setSafetyBusy(true)
+    setSafetyError('')
+    try {
+      const { error: blockError } = await getSupabaseClient().rpc('vibechat_block_thread', {
+        p_kind: selected.kind === 'school' ? 'vc' : 'tuition',
+        p_room: selected.id,
+        p_block: !safety.blocked_by_me,
+      })
+      if (blockError) throw blockError
+      setSafety({ blocked: !safety.blocked_by_me, blocked_by_me: !safety.blocked_by_me })
+      sendTyping(false)
+    } catch {
+      setSafetyError('Could not change this block. Please retry.')
+    } finally { setSafetyBusy(false) }
+  }
+
+  async function report() {
+    if (!selected || !safety || safetyBusy) return
+    setSafetyBusy(true)
+    setSafetyError('')
+    try {
+      const { error: reportError } = await getSupabaseClient().rpc('vibechat_report_thread', {
+        p_kind: selected.kind === 'school' ? 'vc' : 'tuition',
+        p_room: selected.id,
+        p_reason: reportReason,
+      })
+      if (reportError) throw reportError
+      setReportOpen(false)
+      setSafetyError('Report submitted for review.')
+    } catch {
+      setSafetyError('Could not submit this report. Please retry.')
+    } finally { setSafetyBusy(false) }
+  }
+
   async function sendMessage(event: React.FormEvent) {
     event.preventDefault()
-    if (!selected || !uid || sending || !body.trim() || body.trim().length > 1500) return
+    if (!selected || !uid || !safety || safety.blocked || sending || !body.trim() || body.trim().length > 1500) return
     setSending(true)
     sendTyping(false)
     setMessageError('')
@@ -294,7 +358,13 @@ export default function VibeChat() {
           {selected ? <>
             <div className={styles.conversationHeader}>
               <div className={styles.peerHeader}><VibeChatAvatar name={selected.title} avatarUrl={selected.avatarUrl} size="large"/><div><strong>{selected.title}</strong><div className={styles.subtitle}>{otherTyping ? 'Typing…' : selected.detail}</div></div></div>
-              <button type="button" className={styles.back} onClick={()=>setActive(null)} aria-label="Back to conversations"><ArrowLeft size={17} aria-hidden/> Back</button>
+              <div className={styles.contactRow}>
+                <button type="button" className={styles.back} disabled={!safety || safetyBusy || (safety.blocked && !safety.blocked_by_me)}
+                  onClick={()=>void toggleBlock()}><Ban size={15} aria-hidden/> {safety?.blocked_by_me?'Unblock':'Block'}</button>
+                <button type="button" className={styles.back} disabled={!safety || safetyBusy}
+                  onClick={()=>setReportOpen(value=>!value)}><ShieldAlert size={15} aria-hidden/> Report</button>
+                <button type="button" className={styles.back} onClick={()=>setActive(null)} aria-label="Back to conversations"><ArrowLeft size={17} aria-hidden/> Back</button>
+              </div>
             </div>
             <div className={styles.messages} aria-live="polite" aria-relevant="additions text">
               {messagesLoading&&<p className={styles.empty} role="status">Loading messages…</p>}
@@ -303,14 +373,28 @@ export default function VibeChat() {
                 {m.body}<time className={styles.time} dateTime={m.created_at}>{stamp(m.created_at)}</time>
               </div>)}
             </div>
-            {otherTyping && <p className={styles.typing} role="status" aria-live="polite"><span className={styles.typingDots} aria-hidden="true">● ● ●</span> Typing…</p>}
+            {otherTyping && !safety?.blocked && <p className={styles.typing} role="status" aria-live="polite"><span className={styles.typingDots} aria-hidden="true">● ● ●</span> Typing…</p>}
+            {reportOpen && <div className={styles.actionRow}>
+              <label htmlFor="vc-report-reason" className={styles.subtitle}>Why are you reporting this conversation?</label>
+              <select id="vc-report-reason" className={styles.search} style={{width:'auto',margin:0}}
+                value={reportReason} onChange={e=>setReportReason(e.target.value)}>
+                <option value="safety">Safety concern</option>
+                <option value="harassment">Harassment</option>
+                <option value="spam">Spam</option>
+                <option value="other">Other</option>
+              </select>
+              <button type="button" className={styles.primary} disabled={safetyBusy} onClick={()=>void report()}>Submit report</button>
+            </div>}
+            {safety?.blocked && <p role="status" className={styles.empty}>This conversation is blocked. Messages are preserved.</p>}
+            {!safety && <p role="status" className={styles.subtitle}>Checking messaging permissions…</p>}
+            {safetyError && <p role="status" className={styles.error}>{safetyError}</p>
             {messageError && <p className={styles.error} role="alert">{messageError}</p>}
             <form className={styles.compose} onSubmit={e=>void sendMessage(e)}>
               <label htmlFor="vc-message" className="sr-only">Message</label>
               <textarea id="vc-message" value={body} maxLength={1500} rows={2}
-                onChange={e=>{setBody(e.target.value);sendTyping(Boolean(e.target.value.trim()))}}
-                onBlur={()=>sendTyping(false)} placeholder="Write a message" required/>
-              <button className={styles.primary} disabled={sending || !body.trim()} aria-label="Send message"><Send size={18} aria-hidden/></button>
+                onChange={e=>{setBody(e.target.value);if(safety && !safety.blocked)sendTyping(Boolean(e.target.value.trim()))}}
+                onBlur={()=>sendTyping(false)} placeholder={safety?.blocked?'Conversation blocked':'Write a message'} disabled={!safety || safety.blocked} required/>
+              <button className={styles.primary} disabled={sending || !safety || safety.blocked || !body.trim()} aria-label="Send message"><Send size={18} aria-hidden/></button>
             </form>
           </> : <div className={styles.empty}>Select a conversation to read or send a message.</div>}
         </div>
