@@ -10,6 +10,9 @@ import{useReaderNarrator}from"@/components/read/useReaderNarrator";
 import sheetStyles from"@/components/read/ReaderLearningSheet.module.css";
 import OfflineBookSaveButton from "@/components/read/OfflineBookSaveButton";
 import PlaceValuePreviewChart from "@/components/learn/PlaceValuePreviewChart";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+import timeStyles from "@/components/learn/Grade4TimeContentReader.module.css";
 
 export type Curriculum={framework:string|null;grade:string|null;subject:string|null;strand:string|null;sub_strand:string|null;topic:string|null;term:number|null;week:number|null;learning_outcomes:string[];key_inquiry_questions:string[];suggested_experiences:string[];core_competencies:string[];core_values:string[];source_ref:string|null;alignment_status:"unclaimed"|"creator_claimed"|"pending_review"|"verified"|"rejected";authority:"official"|"publisher"|null;verified_by:string|null;verified_at:string|null;has_curriculum_detail:boolean};
 export type Chapter={id:string;publication_id:string;title:string|null;number:number;status:"draft"|"published"|"locked";word_count:number|null;reading_time_min:number|null;can_read:boolean;progress_percent:number|null;completed_at:string|null;curriculum:Curriculum;is_bookmarked:boolean;blocks:ContentBlock[]|null};
@@ -71,10 +74,47 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
   return <div style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,-apple-system,sans-serif",fontSize:font,lineHeight:1.72}}>
     <style>{`[data-reader-speaking="true"]{outline:2px solid rgba(22,134,89,.5);outline-offset:7px;border-radius:8px;background:rgba(22,134,89,.035);transition:background .18s ease}`}</style>
     {!focus&&<header style={{position:"sticky",top:0,zIndex:40,background:"rgba(255,255,255,.96)",backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.line}`}}><div style={{height:58,maxWidth:760,margin:"auto",padding:"0 12px",display:"grid",gridTemplateColumns:"42px minmax(0,1fr) auto auto",alignItems:"center",gap:6}}><button aria-label="Back" onClick={()=>router.back()} style={iconBtn}>←</button><div style={{overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",fontSize:13,fontWeight:750}}>{activeTitle||pub.title||"VibeLearn"}</div><button onClick={()=>setContents(true)} style={navBtn}>Contents</button><button aria-label="Open reading tools" onClick={()=>setSheet("tools")} style={iconBtn}>•••</button></div></header>}
-    <main id="reader-active-unit" style={{width:"min(calc(100% - 36px),700px)",margin:"0 auto",padding:focus?"30px 0 96px":"34px 0 96px",scrollMarginTop:70}}>
+    <main id="reader-active-unit" className={timeStyles.page} style={{scrollMarginTop:70,fontSize:16,lineHeight:1.75}}>
+      <div className={timeStyles.wrap}>
+        {!focus&&<nav className={timeStyles.breadcrumbs} aria-label="Breadcrumb">
+          <Link href="/learn">Learn</Link><ChevronRight size={15} aria-hidden="true"/>
+          <Link href={"/learn?grade="+encodeURIComponent(active?.curriculum?.grade||pub.cbc_grade||"grade4")+"&subject="+encodeURIComponent(active?.curriculum?.subject||pub.cbc_subject||"Creative Arts")}>
+            {(active?.curriculum?.grade||pub.cbc_grade||"Grade 4").replace(/^grade(\d+)$/i,"Grade $1")} {cap(active?.curriculum?.subject||pub.cbc_subject||"Creative Arts")}
+          </Link><ChevronRight size={15} aria-hidden="true"/><span aria-current="page">{activeTitle||pub.title}</span>
+        </nav>}
+        {!focus&&<header className={timeStyles.hero}>
+          <div>
+            <p className={timeStyles.kicker}>{(active?.curriculum?.grade||pub.cbc_grade||"Grade 4").replace(/^grade(\d+)$/i,"Grade $1")} {cap(active?.curriculum?.subject||pub.cbc_subject||"Learning")}</p>
+            <h1 className={timeStyles.heroTitle}>{pub.title}</h1>
+            {pub.description&&<p className={timeStyles.heroDescription}>{pub.description}</p>}
+          </div><div className={timeStyles.subjectTag}>Learn at your own pace</div>
+        </header>}
+        {!focus&&chapters.length>1&&<details className={timeStyles.lessonChooser}>
+          <summary>Choose a lesson <span>({chapters.length} available)</span></summary>
+          <nav className={timeStyles.lessonList} aria-label="Choose a textbook lesson">
+            {chapters.map((chapter,i)=><button type="button" key={chapter.id}
+              aria-current={active?.id===chapter.id?"step":undefined}
+              className={timeStyles.lessonButton+" "+(active?.id===chapter.id?timeStyles.lessonButtonActive:"")}
+              onClick={()=>go(i)}>
+              <span className={timeStyles.lessonNumber}>{chapter.number}</span>
+              <span><span className={timeStyles.lessonTitle}>{chapter.title||"Lesson "+chapter.number}</span>
+                <span className={timeStyles.lessonSmall}>{active?.id===chapter.id?"Reading now":"Open lesson"}</span></span>
+            </button>)}
+          </nav>
+        </details>}
+        <div className={timeStyles.contentArea}>
       {!focus&&<OfflineBookSaveButton publicPayload={initialPayload}/> }
-      {active?<><div style={{marginBottom:30}}><div style={{fontSize:12,fontWeight:850,letterSpacing:".13em",color:C.accent,marginBottom:10}}>{lessonActive?"LESSON 1":`UNIT ${active.number}`}</div><h1 style={{fontSize:"clamp(30px,8vw,46px)",lineHeight:1.08,letterSpacing:"-.035em",margin:"0 0 12px",fontWeight:900}}>{activeTitle||`Unit ${active.number}`}</h1>{path&&<div style={{fontSize:13,color:C.muted,marginBottom:18}}>{path}</div>}{!lessonActive&&active.curriculum.learning_outcomes.length>0&&<section aria-labelledby="outcomes-title" style={{borderLeft:`2px solid ${C.accent}`,paddingLeft:16,margin:"22px 0 28px"}}><h2 id="outcomes-title" style={{fontSize:14,margin:"0 0 9px",fontWeight:850}}>What you’ll learn</h2><ul style={{margin:0,paddingLeft:20,fontSize:15,lineHeight:1.55,color:"#385b49"}}>{active.curriculum.learning_outcomes.slice(0,4).map((o,i)=><li key={i} style={{marginBottom:6}}>{o}</li>)}</ul>{(active.curriculum.learning_outcomes.length>4||active.curriculum.key_inquiry_questions.length>0||active.curriculum.suggested_experiences.length>0)&&<button onClick={()=>setDetails(v=>!v)} style={{...linkBtn,marginTop:7}}>{details?"Hide learning details":"More learning details"}</button>}{details&&<div style={{marginTop:12,fontSize:14,color:C.muted}}>{active.curriculum.learning_outcomes.slice(4).map((o,i)=><div key={`o${i}`}>• {o}</div>)}{active.curriculum.key_inquiry_questions.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Questions to think about</strong>{active.curriculum.key_inquiry_questions.map((q,i)=><div key={`q${i}`}>• {q}</div>)}</>}{active.curriculum.suggested_experiences.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Ways to learn this</strong>{active.curriculum.suggested_experiences.map((x,i)=><div key={`x${i}`}>• {x}</div>)}</>}</div>}</section>}</div>
-      {active.can_read?activeBlocks.length?<><PublishedTextbookLearnReader subject={active.curriculum?.subject||pub.cbc_subject||"Learning"} blocks={activeBlocks} chapterId={active.id}/>
+      {active?<><article className={timeStyles.article}><div className={timeStyles.articleHead}>
+        <div className={timeStyles.readerToolbar}>
+          <p className={timeStyles.articleNum}>{lessonActive?"Lesson 1":"Lesson "+(index+1)+" of "+chapters.length}</p>
+          <div className={timeStyles.textSettings} role="group" aria-label="Text size">
+            <span>Text size</span>
+            <button type="button" aria-label="Standard text size" aria-pressed={font<=19} className={font<=19?timeStyles.settingActive:""} onClick={()=>setFont(19)}>A</button>
+            <button type="button" aria-label="Large text size" aria-pressed={font>19} className={font>19?timeStyles.settingActive:""} onClick={()=>setFont(22)}>A+</button>
+          </div>
+        </div>
+        <h2 className={timeStyles.articleTitle}>{activeTitle||"Lesson "+active.number}</h2>{path&&<div style={{fontSize:13,color:C.muted,marginBottom:18}}>{path}</div>}{!lessonActive&&active.curriculum.learning_outcomes.length>0&&<section className={timeStyles.goal} aria-labelledby="outcomes-title"><h3 id="outcomes-title" className={timeStyles.goalLabel}>What you’ll learn</h3><ul style={{margin:0,paddingLeft:20,fontSize:15,lineHeight:1.55,color:"#385b49"}}>{active.curriculum.learning_outcomes.slice(0,4).map((o,i)=><li key={i} style={{marginBottom:6}}>{o}</li>)}</ul>{(active.curriculum.learning_outcomes.length>4||active.curriculum.key_inquiry_questions.length>0||active.curriculum.suggested_experiences.length>0)&&<button onClick={()=>setDetails(v=>!v)} style={{...linkBtn,marginTop:7}}>{details?"Hide learning details":"More learning details"}</button>}{details&&<div style={{marginTop:12,fontSize:14,color:C.muted}}>{active.curriculum.learning_outcomes.slice(4).map((o,i)=><div key={`o${i}`}>• {o}</div>)}{active.curriculum.key_inquiry_questions.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Questions to think about</strong>{active.curriculum.key_inquiry_questions.map((q,i)=><div key={`q${i}`}>• {q}</div>)}</>}{active.curriculum.suggested_experiences.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Ways to learn this</strong>{active.curriculum.suggested_experiences.map((x,i)=><div key={`x${i}`}>• {x}</div>)}</>}</div>}</section>}</div>
+      <div style={{padding:"clamp(16px,3vw,30px)"}}>{active.can_read?activeBlocks.length?<><PublishedTextbookLearnReader subject={active.curriculum?.subject||pub.cbc_subject||"Learning"} blocks={activeBlocks} chapterId={active.id}/>
         {lessonActive&&<section aria-label="Explore and practise place value" style={{marginTop:28}}>
           <div style={{color:"#172f25",background:"#fff",borderRadius:16,padding:"1px 14px"}}><PlaceValuePreviewChart/></div>
           <nav aria-label="Next learning step" style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:18}}>
@@ -84,7 +124,9 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
           <p style={{fontSize:13,color:C.muted,marginTop:14}}>Practice attempts are handled by VibeSchool Practice. To save reading progress for the complete topic, open the full textbook.</p>
         </section>}
       </>:<p style={{color:C.muted}}>{lessonActive?"This lesson is not currently available. Open the full textbook for published content.":"This unit has no readable content yet."}</p>:<div style={{padding:"30px 0",borderTop:`1px solid ${C.line}`}}><h2>This unit is locked</h2><p style={{color:C.muted}}>This unit is not available with your current access.</p></div>}
-      <nav aria-label="Chapter navigation" style={{display:lessonActive?"none":"grid",gridTemplateColumns:"1fr 1fr",gap:10,borderTop:`1px solid ${C.line}`,marginTop:42,paddingTop:22}}><button disabled={index<=0} onClick={()=>go(index-1)} style={btn}>← Previous</button><button disabled={index>=chapters.length-1} onClick={()=>go(index+1)} style={btn}>Next →</button></nav></>:<p>No units are available yet.</p>}
+      <nav className={timeStyles.lessonPager} aria-label="Chapter navigation" style={{display:lessonActive?"none":"flex"}}><button className={timeStyles.pagerButton} disabled={index<=0} onClick={()=>go(index-1)}>← Previous lesson</button><button className={timeStyles.pagerButton+" "+timeStyles.pagerPrimary} disabled={index>=chapters.length-1} onClick={()=>go(index+1)}>Next lesson →</button></nav></div></article></>:<p>No units are available yet.</p>}
+        </div>
+      </div>
     </main>
     {focus&&<button onClick={()=>setFocus(false)} style={{position:"fixed",right:14,top:14,zIndex:60,...btn}}>Exit focus</button>}
     {active?<ReaderNarrationMiniPlayer chapterTitle={activeTitle||`Unit ${active.number}`} narrator={narrator} onOpen={()=>setSheet("listen")}/>:null}
