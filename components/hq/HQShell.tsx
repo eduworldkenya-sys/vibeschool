@@ -14,7 +14,7 @@ type NavGroup = {label:string;items:readonly NavItem[]}
 export const HQ_NAV_GROUPS: readonly NavGroup[] = [
   {label:"Overview",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Operations","/hq/operations","◈"],["Alerts","/hq/notifications","!"]]},
   {label:"Business",items:[["Product","/hq/analytics","◎"],["Traffic","/hq/traffic","▥"],["Schools","/hq/schools","⌂"],["Users","/hq/users","♙"],["HQ Team","/hq/team","♟"],["Marketing","/hq/marketing","↗"],["Success Wishes","/hq/success-wishes","♡"],["Tutor Imports","/hq/vibetutor/imports","♙"],["Geography","/hq/geography","⌖"],["Support","/hq/support","?"]]},
-  {label:"Learning",items:[["Content","/hq/content","▣"],["Curriculum Authority","/hq/curriculum-authority","A"],["Content Factory","/hq/curriculum-intelligence/engine","✦"],["Studio","/hq/studio","✎"]]},
+  {label:"Learning",items:[["Content","/hq/content","▣"],["Mini Reviews","/hq/minis","▤"],["Curriculum Authority","/hq/curriculum-authority","A"],["Content Factory","/hq/curriculum-intelligence/engine","✦"],["Studio","/hq/studio","✎"]]},
   {label:"Operations",items:[["Departments","/hq/departments","▦"],["Workroom","/hq/workroom","□"],["Workforce","/hq/workforce","⚙"],["Revenue","/hq/billing","$"],["System","/hq/security","◇"],["Commissioning","/hq/workforce/readiness","✓"]]},
 ]
 
