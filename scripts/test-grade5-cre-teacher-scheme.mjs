@@ -5,7 +5,7 @@ import test from 'node:test'
 const map = readFileSync('components/teacher/curriculum/Grade4CreCaMap.jsx', 'utf8')
 const scheme = readFileSync('app/teacher/scheme/AuthoritySchemePage.jsx', 'utf8')
 const hub = readFileSync('app/teacher/subjecthub/page.tsx', 'utf8')
-const sql = readFileSync('supabase/migrations/20261123114500_grade5_cre_teacher_scheme_link.sql', 'utf8')
+const sql = readFileSync('supabase/migrations/20261123115433_grade5_cre_teacher_scheme_link.sql', 'utf8')
 
 test('Grade 5 CRE reuses the existing canonical subject and exact source-scoped 30-unit curriculum', () => {
   assert.match(map, /grade5cre:\s*\{/)
