@@ -26,7 +26,7 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
   onBusyChange: (busy: boolean) => void;
 }) {
   const [groups, setGroups] = useState<Group[]>([]);
-  const [groupFilter, setGroupFilter] = useState<"mine" | "available">("mine");
+  const [groupFilter, setGroupFilter] = useState<"mine" | "available">("available");
   const [groupSearch, setGroupSearch] = useState("");
   const [showIssueBook, setShowIssueBook] = useState(false);
   const [data, setData] = useState<Operations>({ duties: [], borrowings: [], books: [] });
@@ -112,6 +112,7 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
               : await supabase.from("class_group_members").upsert({ group_id: group.id, student_id: studentId }, { onConflict: "group_id,student_id", ignoreDuplicates: true });
             if (result.error) throw result.error;
             setMessage(group.member ? "Removed from this group." : "Added to this group.");
+            setGroupFilter(group.member ? "available" : "mine");
           })}>{group.member ? "Remove learner" : <><Plus size={15}/> Add learner</>}</button>}
           {group.mode === "smart" && <span className={styles.auto}><Check size={15}/> Rules</span>}
         </article>)}
