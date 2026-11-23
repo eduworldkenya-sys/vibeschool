@@ -168,6 +168,7 @@ export default function StudentHomePage() {
       isNewLearner={!hasLearningEvidence && !continueReading}
       reading={continueReading}
       nextTask={nextTask}
+      recommendedAction={suggestedAction}
       toDo={feed?.counts.toDo ?? 0}
       schoolLinked={hasSchoolEnrollment}
       openingTask={launchingTaskId !== null}
