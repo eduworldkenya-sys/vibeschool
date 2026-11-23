@@ -38,4 +38,21 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
 $$;
 REVOKE ALL ON FUNCTION vibe_live.can_join(uuid,uuid,text,uuid,uuid,uuid)
  FROM PUBLIC,anon,authenticated;
+
+-- Enrich the already-scoped learner discovery projection. Exposes only the
+-- published tutor display name (no contact, identity ID or hidden roster).
+DO $migration$
+DECLARE
+ src text:=pg_get_functiondef('vibe_live.command(text,uuid,uuid,integer,jsonb)'::regprocedure);
+ old text:=$anchormode',x.mode,'canJoin'$anchor$;
+ replacement text:=$anchormode',x.mode,'teacherName',(
+   SELECT t.display_name FROM public.vibetutor_tutors t
+   WHERE t.profile_id=x.teacher_id AND t.status='published'
+ ),'canJoin'$anchor$;
+BEGIN
+ IF (length(src)-length(replace(src,old,'')))/length(old)<>1 THEN
+   RAISE EXCEPTION 'Unexpected Live discovery projection: reconcile before applying';
+ END IF;
+ EXECUTE replace(src,old,replacement);
+END $migration$;
 COMMIT;
