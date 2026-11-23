@@ -58,15 +58,16 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
   if (authError || !auth.user) throw new Error('Twin requires an authenticated identity.')
   const userId = auth.user.id
 
-  const [studentRes, membershipsRes, parentLinksRes, teacherAssignmentsRes, ownerRes] = await Promise.all([
+  const [studentRes, membershipsRes, parentLinksRes, teacherAssignmentsRes, ownerRes, selfAccessRes] = await Promise.all([
     supabase.from('students').select('id').eq('profile_id', userId).is('deleted_at', null).limit(1).maybeSingle(),
     supabase.from('school_members').select('school_id, role').eq('profile_id', userId),
     supabase.from('parent_student_links').select('student_id, school_id, access_level, relationship').eq('parent_id', userId),
     supabase.from('teacher_classes').select('school_id, class_id, subject_id, is_class_teacher').eq('teacher_id', userId),
     supabase.rpc('is_platform_owner'),
+    supabase.rpc('get_my_auth_access_state'),
   ])
 
-  const authorityReadError = studentRes.error || membershipsRes.error || parentLinksRes.error || teacherAssignmentsRes.error || ownerRes.error
+  const authorityReadError = studentRes.error || membershipsRes.error || parentLinksRes.error || teacherAssignmentsRes.error || ownerRes.error || selfAccessRes.error
   if (authorityReadError) {
     throw new Error(authorityReadError.message || 'Twin authority relationships could not be resolved.')
   }
@@ -167,6 +168,33 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
         },
       })
     }
+  }
+
+  // The canonical account resolver can authorize a self-service workspace
+  // before a teacher joins a school or a parent links a child.
+  // Such bindings contain ZERO resource IDs and never confer tenant access.
+  const selfAccess = selfAccessRes.data
+  const selfRole = selfAccess && typeof selfAccess === 'object' && !Array.isArray(selfAccess)
+    ? (selfAccess as { role?: unknown; account_status?: unknown; is_anonymized?: unknown })
+    : null
+  const activeSelfRole = selfRole?.account_status === 'active' && selfRole.is_anonymized !== true
+    ? selfRole.role : null
+
+  if (activeSelfRole === 'parent' && !bindings.some(binding => binding.role === 'parent')) {
+    bindings.push({
+      role: 'parent', scopeType: 'family', scopeId: userId, schoolId: null,
+      relationship: 'canonical_parent_self_service',
+      resourceIds: [],
+      evidence: { canonical_role: 'parent', linked_learner_count: 0 },
+    })
+  }
+  if (activeSelfRole === 'teacher' && !bindings.some(binding => binding.role === 'teacher')) {
+    bindings.push({
+      role: 'teacher', scopeType: 'school', scopeId: userId, schoolId: null,
+      relationship: 'canonical_teacher_independent',
+      resourceIds: [],
+      evidence: { canonical_role: 'teacher', school_membership_count: 0 },
+    })
   }
 
   if (ownerRes.data === true) {
