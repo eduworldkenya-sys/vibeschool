@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 const roles = [
   { title: 'Learner', text: 'Learn, practise and understand what to focus on next.', href: '/login/student', action: 'Continue learning' },
-  { title: 'Teacher', text: 'Plan, teach and turn classroom evidence into the next useful action.', href: '/join?role=teacher', action: 'Start teaching' },
+  { title: 'Teacher', text: 'Plan, teach and turn classroom evidence into the next useful action.', href: '/signup/teacher', action: 'Start teaching' },
   { title: 'Parent', text: 'See the learning story clearly enough to know how to help.', href: '/login/parent', action: 'Support my child' },
   { title: 'School', text: 'Connect curriculum, people and learning activity without adding unnecessary work.', href: '/admin/signup', action: 'Set up my school' },
 ]
@@ -37,7 +37,7 @@ export default function WelcomePage() {
           <Link href="/about">About</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/login" className="signin">Sign in</Link>
-          <Link href="/join?role=teacher" className="navCta">Get started</Link>
+          <Link href="/signup/teacher" className="navCta">Get started</Link>
         </nav>
       </header>
 
@@ -93,7 +93,7 @@ export default function WelcomePage() {
         <h2>Start where you are.</h2>
         <p>You do not need to learn the platform first. Choose your role and continue.</p>
         <div className="finalGrid">
-          <Link href="/join?role=teacher"><strong>Teacher</strong><span>Create account</span></Link>
+          <Link href="/signup/teacher"><strong>Teacher</strong><span>Create account</span></Link>
           <Link href="/login/student"><strong>Learner</strong><span>Continue learning</span></Link>
           <Link href="/login/parent"><strong>Parent</strong><span>Support my child</span></Link>
           <Link href="/admin/signup"><strong>School</strong><span>Set up school</span></Link>
