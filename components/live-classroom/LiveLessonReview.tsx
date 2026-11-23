@@ -88,11 +88,9 @@ export default function LiveLessonReview({
     }
   }
 
-  if (roomStatus !== 'ended') {
-    return error ? <p role="alert" style={{padding:'6px 14px',fontSize:12}}>
-      Lesson record: {error} <button type="button" onClick={() => setRetry(n => n + 1)}>Retry</button>
-    </p> : null
-  }
+  // Do not overlay the teaching canvas or shrink its viewport while Live.
+  // The explicit end-of-lesson review provides the retry and failure feedback.
+  if (roomStatus !== 'ended') return null
 
   const lessonHref = review?.lessonPlanId
     ? '/teacher/lesson-notes?lessonPlanId=' + encodeURIComponent(review.lessonPlanId) +
