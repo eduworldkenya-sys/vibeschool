@@ -158,7 +158,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
   const documentChecks = [
     { key: 'title', label: 'Document title', ok: Boolean(publication?.title?.trim()), detail: 'Title required', action: 'Edit title' },
     { key: 'curriculum', label: 'Curriculum fields', ok: format !== 'vibetextbook' || Boolean(publication?.cbc_subject?.trim() && publication?.cbc_grade?.trim()), detail: 'Choose subject and grade in Details', action: 'Open details' },
-    { key: 'content', label: 'Written content', ok: chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim()))), detail: 'Write at least one content block', action: 'Open writing' },
+    { key: 'content', label: 'Written content', ok: chapters.some(chapter => chapter.blocks.some(block => !['image', 'diagram', 'question', 'video', 'audio'].includes(block.type) && Boolean(block.content?.trim()))), detail: 'Write at least one content block', action: 'Open writing' },
     { key: 'media', label: 'Images (optional)', ok: true, detail: `${imageCount} attached · optional for reading publication`, action: 'Review images' },
     { key: 'assessment', label: 'Questions (optional)', ok: true, detail: `${questionCount} saved · no questions required to publish reading content`, action: 'Review questions' },
     { key: 'authority', label: 'Publishing identity', ok: Boolean(canPublish), detail: canPublish ? 'Mumbi2 authorized · release checks apply' : 'Sign in as Mumbi2', action: 'View access' },
