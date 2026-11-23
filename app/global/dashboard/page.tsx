@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { VibeContent } from '@/lib/types'
 import VibeTwin from '@/components/student/VibeTwin'
+import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability'
 import { extractPdfText } from '@/lib/extractPdfText'
 import { extractDocxText } from '@/lib/extractDocxText'
 
@@ -282,7 +283,7 @@ export default function VibeGlobalDashboard() {
             </div>
           )}
           {/* Twin button */}
-          <button
+          {VIBETWIN_ENABLED && <button
             onClick={() => setTwinOpen(true)}
             style={{
               background: 'rgba(204,255,0,0.1)',
@@ -293,7 +294,7 @@ export default function VibeGlobalDashboard() {
             }}
           >
             ✦ Twin
-          </button>
+          </button>}
           {/* Avatar */}
           <div
             onClick={() => setTab('profile')}
@@ -553,7 +554,7 @@ export default function VibeGlobalDashboard() {
         )}
 
         {/* ══ LISTEN ══ */}
-        {tab === 'listen' && (
+        {VIBETWIN_ENABLED && tab === 'listen' && (
           <div style={{ animation: 'slideIn 0.2s ease' }}>
             <div style={{ fontSize: 18, fontWeight: 900, color: TEXT, marginBottom: 4 }}>Listen</div>
             <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>Ask Twin anything. Tap the Twin button above.</div>
@@ -622,7 +623,7 @@ export default function VibeGlobalDashboard() {
       }}>
         {([
           { id: 'feed',    icon: '🔥', label: 'Vibe Feed' },
-          { id: 'listen',  icon: '✦',  label: 'Listen' },
+          ...(VIBETWIN_ENABLED ? [{ id: 'listen' as const, icon: '✦', label: 'Listen' }] : []),
           { id: 'create',  icon: '＋',  label: 'Drop' },
           { id: 'profile', icon: '👤', label: 'Profile' },
         ] as const).map(t => {
@@ -646,12 +647,12 @@ export default function VibeGlobalDashboard() {
       </div>
 
       {/* Twin */}
-      <VibeTwin
+      {VIBETWIN_ENABLED &&       <VibeTwin
         isOpen={twinOpen}
         onClose={() => setTwinOpen(false)}
         userName={firstName}
 
-      />
+      />}
     </div>
   )
 }
