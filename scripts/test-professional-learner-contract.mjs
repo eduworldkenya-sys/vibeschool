@@ -97,7 +97,13 @@ assert.match(muteSql, /not public\.post_secondary_public_enabled\(\) then/)
 const companionId = '51f1052d-2f59-46bb-9186-c1a7937d203a'
 const fictionId = 'c0b2a83f-d726-4eed-812e-7d79f57497df'
 const paritySql = read('supabase/migrations/20261118063000_general_fiction_reading_scope.sql')
-assert.ok(scope.includes(companionId) && muteSql.includes(companionId) && paritySql.includes(companionId), 'CPA guide remains muted')
+const publicOriginalsSql = read('supabase/migrations/20261119074756_public_originals_companion_reading_scope.sql')
+assert.ok(!scope.includes(companionId) && muteSql.includes(companionId) && paritySql.includes(companionId) && publicOriginalsSql.includes(companionId), 'CPA companion is now public reading, not academic access')
+assert.ok(publicOriginalsSql.includes(fictionId))
+assert.match(publicOriginalsSql, /p\.genre = 'self_help'/)
+assert.match(publicOriginalsSql, /p\.pricing->>'type' = 'free'/)
+assert.match(publicOriginalsSql, /not coalesce\(p\.cbc_aligned,false\)/)
+assert.match(publicOriginalsSql, /post_secondary_public_enabled\(\)/)
 assert.ok(!scope.includes(fictionId) && paritySql.includes(fictionId), 'Taraji fiction is no longer route-muted; database checks its exact identity and metadata')
 assert.match(paritySql, /p\.format = 'ebook'/)
 assert.match(paritySql, /p\.genre = 'fiction'/)
@@ -110,6 +116,6 @@ assert.match(read('app/learning-unavailable/page.tsx'), /href="\/learn\/stories"
 const routePattern = scope.match(/return (\/\^.*?\$\/i)\.test\(pathname\)/)?.[1]
 assert.ok(routePattern)
 const route = new RegExp(routePattern.slice(1,-2),'i')
-for (const path of ['/learn/stories', '/learn/stories/'+fictionId, '/learn/stories/'+fictionId+'/read']) assert.ok(route.test(path),path)
+for (const path of ['/learn/stories', '/learn/stories/'+fictionId, '/learn/stories/'+fictionId+'/read', '/learn/stories/'+companionId, '/learn/stories/'+companionId+'/read']) assert.ok(route.test(path),path)
 for (const path of ['/learn', '/learning-unavailable', '/learn/kasneb-cpa', '/learn/grade-4', '/student/college', '/learn/stories/'+fictionId+'/admin', '/learn/stories/../kasneb-cpa']) assert.ok(!route.test(path),path)
 console.log('PASS: school-only scope, direct-link denial, registration denial and reversible data restrictions')

@@ -50,11 +50,9 @@ export function resolveRegistrationLearningSelection(level: unknown, choice: unk
   return selected?.pathway && !enabled ? null : selected
 }
 
-// Professional study guides remain muted. Taraji is general fiction, not CPA tuition.
-// Keep this route-level deny list aligned with the restrictive publication visibility policy.
-const MUTED_PUBLICATION_IDS = new Set([
-  '51f1052d-2f59-46bb-9186-c1a7937d203a',
-])
+// Both approved Originals books are public reading, not CPA tuition.
+// Database publication metadata and the academic mute remain authoritative.
+const MUTED_PUBLICATION_IDS = new Set<string>()
 export function isMutedPostSecondaryPublication(id: string): boolean {
   return !POST_SECONDARY_PUBLIC_ENABLED && MUTED_PUBLICATION_IDS.has(id.toLowerCase())
 }
