@@ -552,7 +552,7 @@ export default function VibeLearnShellWrapper({
       setVibeLock(true)
       vibeSpeak('Vibe lock. Focus mode on.')
       try {
-        wakeLockRef.current = await (navigator as any).wakeLock?.request('screen')
+        wakeLockRef.current = await navigator.wakeLock?.request('screen')
       } catch { /* not supported */ }
     } else {
       setVibeLock(false)
