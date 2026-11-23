@@ -126,7 +126,6 @@ try{
     errorMsg:'untrusted secret meeting token must not display'
   }))
   await solo.getByRole('alert').getByText('Daily audio connection failed. Check network connection and retry.').waitFor()
-  await solo.waitForFunction(async()=>true)
   // Fatal event telemetry contains only closed enums, not untrusted messages.
   await new Promise(ok=>setTimeout(ok,100))
   assert.equal(diagnostics.length,1)
