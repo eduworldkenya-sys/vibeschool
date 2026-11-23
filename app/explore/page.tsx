@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { PublicHeader } from '@/components/public/PublicHeader'
+import { PublicFooter } from '@/components/public/PublicFooter'
 import { MiniExplore } from '@/components/public/MiniExplore'
 import { MiniLiveExplore } from '@/components/public/MiniLiveExplore'
 
@@ -19,5 +20,6 @@ export default function ExplorePage() {
         {process.env.NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true' ? <MiniLiveExplore/> : <MiniExplore/>}
       </Suspense>
     </main>
+    <PublicFooter hideSupport />
   </div>
 }
