@@ -42,6 +42,9 @@ export function textbookLearnSections(blocks: readonly ContentBlock[]): ReaderSe
     if (block.content.trim() || block.type === 'divider') current.sourceBlocks.push(block)
   }
   if (current.sourceBlocks.length) groups.push(current)
+  // UniversalLearnReader intentionally hides empty sections; preserve a body
+  // marker derived from actual saved blocks even when renderBody owns layout.
+  for (const group of groups) group.body = group.sourceBlocks.map(block => block.content).join('\n')
   return groups
 }
 
