@@ -1,3 +1,4 @@
+import './test-vibetwin-global-mute.mjs'
 import fs from 'node:fs'
 
 const protectedFiles = [
