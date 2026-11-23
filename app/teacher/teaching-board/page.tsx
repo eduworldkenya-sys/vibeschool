@@ -1,6 +1,7 @@
 'use client'
 import {Suspense,useEffect,useState} from 'react'
 import Link from 'next/link'
+import {teachingKitBackHref} from '@/lib/teaching/teachingKitContext'
 import {useRouter,useSearchParams} from 'next/navigation'
 import {supabase} from '@/lib/supabase'
 import {ObjectBoard} from '@/components/live-classroom/LiveObjectBoard'
@@ -46,7 +47,7 @@ function BoardWorkspace(){
  return <main style={{maxWidth:1200,margin:'0 auto',padding:14,minHeight:'100vh',background:'#f7faf8',color:'#18392b'}}>
    <header style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:9,flexWrap:'wrap'}}>
     <div><span style={{fontSize:11,color:'#557568',fontWeight:700}}>TEACHING KIT · IN CLASS</span><h1 style={{margin:'4px 0',fontSize:24}}>Whiteboard</h1></div>
-    <Link style={button} href="/teacher/lessonplan">Lesson Plans</Link>
+    <Link style={button} href={teachingKitBackHref(params)}>Lesson Plans</Link>
    </header>
    <p style={{fontSize:13,color:'#516c60'}}>This board is private to your signed-in teacher account on this device. Nothing is shared to Live automatically.</p>
    <nav aria-label="Whiteboard history" style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>

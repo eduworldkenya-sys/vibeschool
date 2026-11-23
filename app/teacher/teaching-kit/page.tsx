@@ -1,6 +1,7 @@
 'use client'
 import {Suspense, useCallback, useEffect, useState} from 'react'
 import Link from 'next/link'
+import {teachingKitBackHref} from '@/lib/teaching/teachingKitContext'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {supabase} from '@/lib/supabase'
 import {TeachingLibrary} from '@/components/live-classroom/LiveTeachingLibrary'
@@ -59,7 +60,7 @@ function SlidesWorkspace(){
   return <main style={{maxWidth:1120,margin:'0 auto',padding:'16px',background:'#f7faf8',minHeight:'100vh',color:'#172f25'}}>
     <header style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
       <div><span style={{fontSize:11,color:'#547365',fontWeight:750}}>TEACHING KIT</span><h1 style={{margin:'4px 0',fontSize:24}}>Slides</h1><p style={{fontSize:13,margin:0,color:'#506b5e'}}>Create once. Use in class or load in Live Lesson.</p></div>
-      <Link href="/teacher/lessonplan" style={button}>Lesson Plans</Link>
+      <Link href={teachingKitBackHref(params)} style={button}>Lesson Plans</Link>
     </header>
     <TeachingLibrary command={command} currentDeck={null} onUse={material=>{setDeck(material);setPage(0)}}/>
   </main>

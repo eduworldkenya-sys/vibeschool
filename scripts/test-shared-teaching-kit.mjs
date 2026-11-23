@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
+import {teachingKitBackHref} from '../lib/teaching/teachingKitContext.ts'
 const source=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8')
 const kit=source('components/teacher/TeachingKit.tsx')
 const notes=source('app/teacher/lesson-notes/page.tsx')
@@ -7,6 +8,12 @@ const classUi=source('components/teacher/LessonTeachMode.tsx')
 const live=source('components/live-classroom/LiveClassroom.tsx')
 const slides=source('app/teacher/teaching-kit/page.tsx')
 const board=source('app/teacher/teaching-board/page.tsx')
+const u='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const k='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+assert.equal(teachingKitBackHref(new URLSearchParams()),'/teacher/lessonplan')
+assert.equal(teachingKitBackHref(new URLSearchParams({lessonPlanId:'../../student',classId:k})),'/teacher/lessonplan')
+const back=teachingKitBackHref(new URLSearchParams({lessonPlanId:u,classId:k,occurrenceId:'broken',date:'2026-02-30'}))
+assert.equal(back,'/teacher/lesson-notes?lessonPlanId='+u+'&classId='+k)
 assert.match(kit,/Teaching Kit/)
 for(const tool of ['plan','slides','resources','book','exercises','board'])assert.ok(kit.includes("id:'"+tool+"'"))
 assert.ok(kit.includes('onInClass')&&kit.includes('onGoLive'))
@@ -17,6 +24,7 @@ assert.ok(live.includes("teacher&&panel==='resources'"))
 assert.ok(live.includes('teacherLivePlan(String(result.data.body'),'Private lesson phase access remains teacher-only')
 assert.ok(slides.includes('TeachingLibrary command={command}'),'Slides must use the existing server-scoped library')
 assert.ok(slides.includes("p_action:action,p_class_id:classId,p_session_id:id,p_version:version,p_payload:{...payload,host:true}"))
+assert.ok(slides.includes('teachingKitBackHref(params)')&&board.includes('teachingKitBackHref(params)'))
 assert.ok(slides.includes('<SlideCanvas')&&slides.includes('Nothing is broadcast to learners'))
 assert.ok(board.includes('decodeBoard(saved)')&&board.includes('vibeschool.in-class-board.v1:'))
 assert.ok(board.includes('<ObjectBoard')&&board.includes("supabase.auth.getUser()"))
