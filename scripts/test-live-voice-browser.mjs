@@ -14,7 +14,7 @@ import {LiveVoice} from './components/live-classroom/LiveVoice';
 const teacher=location.pathname==='/teacher';
 const studentId='${learnerId}';
 function App(){
-  const [learners,setLearners]=useState([{studentId,name:'Learner A',needsHelp:true}]);
+  const [learners,setLearners]=useState(location.search.includes('solo=1')?[]:[{studentId,name:'Learner A',needsHelp:true}]);
   return <LiveVoice roomId='${roomId}' classId={null} teacher={teacher} enabled={true}
     status='active' learners={teacher?learners:[]}
     onAcknowledge={async id=>{
@@ -35,13 +35,13 @@ class Call{
     this.people={local:{local:true,session_id:'self',user_id:'teacher-fixture',
     tracks:{audio:{persistentTrack:null}},permissions:{canSend:new Set(['audio'])}}};}
   on(name,cb){(this.handlers[name]||=[]).push(cb);return this}
-  emit(name){for(const cb of this.handlers[name]||[])cb()}
+  emit(name,event){for(const cb of this.handlers[name]||[])cb(event)}
   participants(){return this.people}
   async join(options){
     if(!options.token)throw Error('Missing auth token');
     const teacher=location.pathname==='/teacher'
     this.people.local.permissions.canSend=teacher?new Set(['audio']):false
-    if(teacher)this.people.remote={local:false,session_id:'other',user_id:'${learnerId}',
+    if(teacher&&!location.search.includes('solo=1'))this.people.remote={local:false,session_id:'other',user_id:'${learnerId}',
       tracks:{audio:{persistentTrack:null}},permissions:{canSend:false}}
     window.__joinCount=(window.__joinCount||0)+1
     this.emit('participant-joined');return this.people
@@ -96,16 +96,35 @@ await new Promise(ok=>server.listen(0,'127.0.0.1',ok))
 const base='http://127.0.0.1:'+server.address().port
 const browser=await chromium.launch({headless:true})
 const pages=[],errors=[]
-async function open(role,clock=false){
+async function open(role,clock=false,query=''){
   const context=await browser.newContext({viewport:{width:390,height:760}})
   pages.push(context)
   const page=await context.newPage()
   page.on('pageerror',err=>errors.push(role+': '+err.message))
   if(clock)await page.clock.install()
-  await page.goto(base+'/'+role)
+  await page.goto(base+'/'+role+query)
   return page
 }
 try{
+  // No second participant or learner roster is required for teacher mic.
+  const solo=await open('teacher',false,'?solo=1')
+  await solo.getByRole('button',{name:'Join audio'}).click()
+  await solo.getByRole('status').getByText('Connected').waitFor()
+  assert.match(await solo.locator('section').textContent(),/Learners on audio: 0/)
+  await solo.getByRole('button',{name:'Speak',exact:true}).click()
+  assert.equal(await solo.evaluate(()=>window.__voiceCall.localAudio()),true)
+  await solo.evaluate(()=>window.__voiceCall.emit('error',{
+    error:{type:'connection-error'},
+    errorMsg:'untrusted secret meeting token must not display'
+  }))
+  await solo.getByRole('alert').getByText('Daily audio connection failed. Check network connection and retry.').waitFor()
+  assert.doesNotMatch(await solo.getByRole('alert').textContent(),/untrusted|secret|token/)
+  assert.equal(await solo.getByRole('button',{name:'Join audio'}).isEnabled(),true)
+  await solo.getByRole('button',{name:'Join audio'}).click()
+  await solo.getByRole('status').getByText('Connected').waitFor()
+  await solo.getByRole('button',{name:'Leave audio'}).click()
+  await solo.getByRole('button',{name:'Join audio'}).waitFor()
+
   const t=await open('teacher',true)
   await t.getByRole('button',{name:'Join audio'}).click()
   await t.getByRole('status').getByText('Connected').waitFor()
