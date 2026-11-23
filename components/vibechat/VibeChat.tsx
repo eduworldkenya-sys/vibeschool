@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Bell, MessageCircle, RefreshCw, Send, Users } from 'lucide-react'
+import { ArrowLeft, Bell, MessageCircle, RefreshCw, Send, Users, UserPlus } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase'
 import Enquiries from './Enquiries'
+import VibeChatContacts from './VibeChatContacts'
+import { useVibeChatTyping } from './useVibeChatTyping'
 import styles from './VibeChat.module.css'
 
-type Tab = 'chats' | 'enquiries' | 'notices'
+type Tab = 'chats' | 'contacts' | 'enquiries' | 'notices'
 type Chat = {
   key: string
   id: string
@@ -35,7 +37,7 @@ export default function VibeChat() {
   const params = useSearchParams()
   const requestedTab = params.get('tab')
   const requestedChat = validKey(params.get('thread'))
-  const [tab, setTab] = useState<Tab>(requestedTab === 'enquiries' || requestedTab === 'notices' ? requestedTab : 'chats')
+  const [tab, setTab] = useState<Tab>(requestedTab === 'enquiries' || requestedTab === 'notices' || requestedTab === 'contacts' ? requestedTab : 'chats')
   const [uid, setUid] = useState('')
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
   const [role, setRole] = useState('')
@@ -144,6 +146,7 @@ export default function VibeChat() {
   useEffect(() => { void load() }, [load])
 
   const selected = chats.find(chat => chat.key === active) ?? null
+  const { otherTyping, sendTyping } = useVibeChatTyping(selected?.key ?? null)
   const loadMessages = useCallback(async (chat: Chat, ownerId: string) => {
     const db = getSupabaseClient()
     try {
@@ -189,6 +192,7 @@ export default function VibeChat() {
     event.preventDefault()
     if (!selected || !uid || sending || !body.trim() || body.trim().length > 1500) return
     setSending(true)
+    sendTyping(false)
     setMessageError('')
     const text = body.trim()
     const db = getSupabaseClient()
@@ -235,7 +239,7 @@ export default function VibeChat() {
         <Link className={styles.back} href="/vibetutor"><ArrowLeft size={16} aria-hidden/> VibeTutor</Link>
       </header>
       <nav className={styles.tabs} aria-label="VibeChat sections">
-        {([['chats','Chats',MessageCircle],['enquiries','Enquiries',Users],['notices','Notices',Bell]] as const).map(([value,label,Icon]) =>
+        {([['chats','Chats',MessageCircle],['contacts','Contacts',UserPlus],['enquiries','Enquiries',Users],['notices','Notices',Bell]] as const).map(([value,label,Icon]) =>
           <button key={value} type="button" className={styles.tab + (tab === value ? ' ' + styles.active : '')}
             aria-current={tab===value ? 'page' : undefined} onClick={()=>setTab(value)}>
             <Icon size={15} aria-hidden style={{verticalAlign:'middle',marginRight:6}}/>{label}{value==='notices'&&notices.some(n=>n.requiresAck&&!n.acked)?' · New':''}
@@ -271,7 +275,7 @@ export default function VibeChat() {
         <div className={styles.conversation} data-open={selected?'true':'false'}>
           {selected ? <>
             <div className={styles.conversationHeader}>
-              <div><strong>{selected.title}</strong><div className={styles.subtitle}>{selected.detail}</div></div>
+              <div><strong>{selected.title}</strong><div className={styles.subtitle}>{otherTyping ? 'Typing…' : selected.detail}</div></div>
               <button type="button" className={styles.back} onClick={()=>setActive(null)} aria-label="Back to conversations"><ArrowLeft size={17} aria-hidden/> Back</button>
             </div>
             <div className={styles.messages} aria-live="polite" aria-relevant="additions text">
@@ -281,16 +285,23 @@ export default function VibeChat() {
                 {m.body}<time className={styles.time} dateTime={m.created_at}>{stamp(m.created_at)}</time>
               </div>)}
             </div>
+            {otherTyping && <p className={styles.typing} role="status" aria-live="polite"><span className={styles.typingDots} aria-hidden="true">● ● ●</span> Typing…</p>}
             {messageError && <p className={styles.error} role="alert">{messageError}</p>}
             <form className={styles.compose} onSubmit={e=>void sendMessage(e)}>
               <label htmlFor="vc-message" className="sr-only">Message</label>
               <textarea id="vc-message" value={body} maxLength={1500} rows={2}
-                onChange={e=>setBody(e.target.value)} placeholder="Write a message" required/>
+                onChange={e=>{setBody(e.target.value);sendTyping(Boolean(e.target.value.trim()))}}
+                onBlur={()=>sendTyping(false)} placeholder="Write a message" required/>
               <button className={styles.primary} disabled={sending || !body.trim()} aria-label="Send message"><Send size={18} aria-hidden/></button>
             </form>
           </> : <div className={styles.empty}>Select a conversation to read or send a message.</div>}
         </div>
       </section>}
+      {signedIn&&tab==='contacts'&&<VibeChatContacts role={role} onOpenThread={threadId=>{
+        setTab('chats')
+        setActive('vc:' + threadId)
+        void load()
+      }}/>} 
       {signedIn&&tab==='enquiries'&&<section className={styles.panel} aria-label="Tutor enquiries"><Enquiries/></section>}
       {signedIn&&tab==='notices'&&<section className={styles.panel}>
         <h2>School notices</h2>
