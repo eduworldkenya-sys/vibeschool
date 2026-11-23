@@ -169,9 +169,10 @@ begin
     v_before:=jsonb_build_object('status',v_comment.status);
     update public.mini_comments set status=p_decision,reviewed_at=now() where id=p_id;
   end if;
-  v_after:=jsonb_build_object('status',p_decision,'target',p_target,'reason',p_reason);
+  v_after:=jsonb_build_object('status',p_decision,'target',p_target,'mini_item_id',p_id,'reason',p_reason);
   insert into public.hq_human_audit_log(actor_id,target_id,action,before_state,after_state,source,request_id)
-  values(p_actor,p_id,'mini.'||p_target||'.reviewed',v_before,v_after,'mini_lessons',gen_random_uuid());
+  values(p_actor,case when p_target='mini' then v_mini.creator_id else v_comment.author_id end,
+    'mini.'||p_target||'.reviewed',v_before,v_after,'human',gen_random_uuid());
   return v_after;
 end;
 $$;
