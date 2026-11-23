@@ -1560,7 +1560,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(displaySlots.find(slot => slot.id === s.id) ?? null) }}
         onAdd={canAddSlot && !blocksError && calendarSchoolId === activeSchoolId ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
       />}
-      {view === 'week' && scheduleContext !== 'school' && (
+      {view === 'week' && scheduleContext !== 'school' && (tuitionWeek.length > 0 || scheduleContext === 'tuition') && (
         <Card><SectionLabel>Tuition this week</SectionLabel>
           {tuitionWeek.length === 0 ? <p style={{ fontSize: 13, color: C.textMuted }}>No private tuition lessons this week.</p> : (
             <div style={{ display: 'grid', gap: 8 }}>{tuitionWeek.map(lesson => <div key={lesson.id}>
