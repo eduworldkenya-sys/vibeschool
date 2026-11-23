@@ -1,0 +1,45 @@
+/* Conventional schoolbook layout: one clear rectangular paper surface with
+   a quiet shadow. No card stack, floating panels or decorative gradients.
+   Scoped to published textbooks; the Mathematics Time page is unchanged. */
+.squareArticle {
+  border: 1px solid #d8dedb;
+  border-radius: 3px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(25, 44, 34, .10);
+  overflow: hidden;
+}
+.squareArticle :global([data-presentation="lesson"] .section-placeholder) { border-radius: 0; }
+.plainReader :global([data-presentation="lesson"] section[data-tone]) {
+  background: #fff;
+  border: 0;
+  border-top: 1px solid #e6eae7;
+  border-radius: 0;
+  padding: 20px 0;
+  box-shadow: none;
+}
+.plainReader :global([data-presentation="lesson"] section[data-tone]:first-child) {
+  border-top: 0;
+  padding-top: 0;
+}
+.plainReader :global([data-presentation="lesson"] nav[aria-label="Lesson sections"]) {
+  border-bottom: 1px solid #e6eae7;
+}
+.plainReader :global([data-presentation="lesson"] nav[aria-label="Lesson sections"] a) {
+  background: #fff;
+  border: 1px solid #d8dedb;
+  border-radius: 3px;
+  color: #28563e;
+}
+.plainReader :global([data-presentation="lesson"] section[data-tone] h3) {
+  color: #223d2e;
+}
+.plainReader :global([data-presentation="lesson"] section[data-tone] .section-contents) {
+  line-height: 1.75;
+}
+@media (max-width: 700px) {
+  .squareArticle { border-radius: 2px; box-shadow: 0 2px 8px rgba(25, 44, 34, .08); }
+  .plainReader :global([data-presentation="lesson"] section[data-tone]) { padding: 16px 0; }
+}
+@media print {
+  .squareArticle { border: 0; box-shadow: none; }
+}
