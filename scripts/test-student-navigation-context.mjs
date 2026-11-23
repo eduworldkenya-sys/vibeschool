@@ -45,4 +45,33 @@ assert.match(navCss,/\.sheetActive\{/,'Active destinations remain identifiable')
 assert.match(learnChrome,/LearnHeader student=\{student === true\}/,'Learn discovery knows the learner context')
 assert.match(learnChrome,/POST_SECONDARY_PUBLIC_ENABLED && !student && <Link href="\/learn\?view=courses"/,'Public course destination is not forced onto signed-in learner header')
 assert.match(learnChrome,/student && <Link href="\/student\/study"/,'Signed-in learner can return to their personal Learn')
+
+const home = read('app/student/page.tsx')
+const homeDesk = read('components/student/StudentHomeDesk.tsx')
+const homeDeskCss = read('components/student/StudentHomeDesk.module.css')
+assert.match(home, /<StudentHomeDesk/, 'Home renders the shared learner desk')
+assert.match(home, /isNewLearner=\{!hasLearningEvidence && !continueReading\}/, 'First-visit state is derived from recorded learning and saved reading')
+assert.match(home, /nextTask=\{nextTask\}/, 'Assigned schoolwork remains connected to the Home action')
+assert.match(homeDesk, /fallbackSubjectGroups\(learnerGrade\)/, 'New learner subject choices reuse the canonical catalogue')
+assert.match(homeDesk, /gradeHref\(learnerGrade, subject\)/, 'Subject tiles open the canonical grade-scoped catalogue')
+assert.match(homeDesk, /safeReadingHref\(reading\.actionUrl\)/, 'Returning learner reading must retain safe internal navigation')
+assert.match(homeDesk, /schoolLinked \? '\/student\/projects' : '\/student\/projects\/independent'/, 'Projects support independent and school-linked learners')
+assert.match(homeDesk, /NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true'/, 'Disabled Live does not present a false join action')
+assert.match(homeDesk, /unavailable: !liveEnabled/, 'Live tile visibly reflects activation state')
+assert.match(homeDesk, /aria-label=\{group\.name\}/, 'Tool groups are named for assistive navigation')
+assert.match(homeDeskCss, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/, 'Mobile Home uses a four-column tool grid')
+for (const href of [
+  '/student/study', '/student/vibelearn/topic-practice', '/student/vibelearn/exams',
+  '/student/vibelearn/revision', '/student/vibelearn/mistakes',
+  '/student/vibelearn/practice', '/learn/stories', '/student/tasks',
+  '/student/homework', '/student/assessment', '/student/exercises',
+  '/student/projects/independent', '/student/timetable', '/student/live',
+  '/student/tutoring', '/vibechat', '/student/marks', '/student/workspace',
+  '/schools/following', '/student/notifications', '/student/profile',
+  '/student/settings',
+]) {
+  assert.ok(homeDesk.includes(href), 'Learner Home must expose existing destination ' + href)
+}
+assert.doesNotMatch(homeDesk, /href=['"]\/offline\/books/, 'Do not restore retired offline book saving')
+
 console.log('Student navigation ownership and context contracts: PASS')
