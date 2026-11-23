@@ -3,16 +3,17 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { MINI_SUBJECTS, fetchApprovedMinis, fetchOwnMiniStatus, loadApprovedComments, loadMiniCovers,
+import { fetchApprovedMinis, fetchOwnMiniStatus, loadApprovedComments, loadMiniCovers,
   type MiniPost, type ApprovedComment } from '@/lib/minis/data'
 import { rankMiniLessons } from '@/lib/minis/recommendation'
 import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInteraction, submitMini,
   addMiniComment, reportMini, recordMiniLearningSignal } from '@/lib/minis/actions'
+import { miniTagLabel, parseMiniHashtags } from '@/lib/minis/tags'
 import styles from './MiniExplore.module.css'
 
 type Section = 'feed' | 'read' | 'compose' | 'creator' | 'mine' | 'profile'
 type Tab = 'For You' | 'Following' | 'New'
-type Submission = { id: string; title: string; subject: string; status: string; created_at: string }
+type Submission = { id: string; title: string; tags: string[]; status: string; created_at: string }
 
 const ensureSignIn = (user: string | null) => {
   if (user) return true
@@ -39,7 +40,7 @@ export function MiniLiveExplore() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const [section, setSection] = useState<Section>('feed')
   const [tab, setTab] = useState<Tab>('For You')
-  const [subject, setSubject] = useState('All')
+  const [tag, setTag] = useState('All')
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creatorId, setCreatorId] = useState<string | null>(null)
@@ -53,7 +54,7 @@ export function MiniLiveExplore() {
   const [error, setError] = useState('')
   const [draftTitle, setDraftTitle] = useState('')
   const [draftBody, setDraftBody] = useState('')
-  const [draftSubject, setDraftSubject] = useState<string>(MINI_SUBJECTS[0])
+  const [draftTags, setDraftTags] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [profileName,setProfileName] = useState('')
   const [profileUsername,setProfileUsername] = useState('')
@@ -110,7 +111,7 @@ export function MiniLiveExplore() {
           if (item) open(item)
           else {
             const { data } = await supabase.from('mini_lessons')
-              .select('id,creator_id,creator_label,title,body,subject,cover_path,status,quality_score,like_count,save_count,learned_count,published_at,created_at')
+              .select('id,creator_id,creator_label,title,body,subject,tags,cover_path,status,quality_score,like_count,save_count,learned_count,published_at,created_at')
               .eq('id',id).eq('status','approved').maybeSingle()
             if (data && mounted) {
               const newPost = data as MiniPost
@@ -139,34 +140,41 @@ export function MiniLiveExplore() {
     if (!adult) return new Set<string>()
     return new Set(posts.filter(post => saves.has(post.id)).map(post => post.subject))
   }, [adult,posts,saves])
+  const popularTags = useMemo(() => {
+    const counts = new Map<string,number>()
+    for (const post of posts) for (const item of post.tags) counts.set(item,(counts.get(item)??0)+1)
+    return [...counts].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name])=>name)
+  }, [posts])
+  const chooseTag = (name: string) => { setTag(name); setSection('feed'); window.history.replaceState(null,'','/explore') }
   const visible = useMemo(() => {
     const q = query.trim().toLocaleLowerCase()
     const matches = posts.filter(post =>
-      (subject === 'All' || post.subject === subject) &&
+      (tag === 'All' || post.tags.includes(tag)) &&
       (tab !== 'Following' || follows.has(post.creator_id)) &&
       !dismissed.has(post.id) &&
-      (!q || (post.title + ' ' + post.body + ' ' + post.subject + ' ' + post.creator_label).toLocaleLowerCase().includes(q))
+      (!q || (post.title + ' ' + post.body + ' ' + post.tags.join(' ') + ' ' + post.creator_label).toLocaleLowerCase().includes(q))
     )
     return tab === 'New'
       ? [...matches].sort((a,b) => (b.published_at ?? '').localeCompare(a.published_at ?? ''))
       : rankMiniLessons(matches, { interests, following: adult ? follows : new Set<string>(), dismissed })
-  }, [posts,tab,subject,query,interests,follows,dismissed])
+  }, [posts,tab,tag,query,interests,follows,dismissed])
 
-  async function interact(kind: 'like' | 'save') {
-    if (!current || !ensureSignIn(viewer) || !viewer || busy) return
+  async function interact(kind: 'like' | 'save', post?: MiniPost) {
+    const target = post ?? current
+    if (!target || !ensureSignIn(viewer) || !viewer || busy) return
     const oldSet = kind === 'like' ? likes : saves
     const setter = kind === 'like' ? setLikes : setSaves
-    const adding = !oldSet.has(current.id)
+    const adding = !oldSet.has(target.id)
     setBusy(true);setError('')
     try {
-      await changeMiniInteraction(current.id,viewer,kind,adding)
+      await changeMiniInteraction(target.id,viewer,kind,adding)
       setter(old => {
         const next = new Set(old)
-        if (adding) next.add(current.id)
-        else next.delete(current.id)
+        if (adding) next.add(target.id)
+        else next.delete(target.id)
         return next
       })
-      setPosts(old => old.map(post => post.id === current.id ?
+      setPosts(old => old.map(post => post.id === target.id ?
         { ...post, [kind === 'like' ? 'like_count' : 'save_count']:
             Math.max(0,(kind === 'like' ? post.like_count : post.save_count) + (adding ? 1 : -1)) }
         : post))
@@ -174,13 +182,14 @@ export function MiniLiveExplore() {
     finally {setBusy(false)}
   }
 
-  async function follow() {
-    if (!current || !ensureSignIn(viewer) || !viewer || busy) return
-    const adding = !follows.has(current.creator_id)
+  async function follow(post?: MiniPost) {
+    const target = post ?? current
+    if (!target || !ensureSignIn(viewer) || !viewer || busy || target.creator_id===viewer) return
+    const adding = !follows.has(target.creator_id)
     setBusy(true);setError('')
     try {
-      await changeMiniFollow(current.creator_id,viewer,adding)
-      setFollows(old => { const next = new Set(old); if(adding)next.add(current.creator_id);else next.delete(current.creator_id);return next })
+      await changeMiniFollow(target.creator_id,viewer,adding)
+      setFollows(old => { const next = new Set(old); if(adding)next.add(target.creator_id);else next.delete(target.creator_id);return next })
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to follow.')}
     finally {setBusy(false)}
   }
@@ -226,8 +235,9 @@ export function MiniLiveExplore() {
     if (!photo) {setError('Add a cover photo to publish a Mini Lesson.');return}
     setBusy(true);setError('');setNotice('')
     try {
-      await submitMini({ title:draftTitle,body:draftBody,subject:draftSubject,photo,userId:viewer })
-      setDraftTitle('');setDraftBody('');setPhoto(null)
+      parseMiniHashtags(draftTags)
+      await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo,userId:viewer })
+      setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null)
       setNotice('Mini submitted! It will appear in Explore only after moderation.')
       back()
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit Mini.')}
@@ -282,23 +292,42 @@ export function MiniLiveExplore() {
     finally {setBusy(false)}
   }
 
-  const card = (post: MiniPost) => <button type="button" key={post.id} className={styles.miniCard}
-    onClick={() => open(post)} style={{ textAlign: 'left' }}>
-    <Cover url={covers[post.id]} subject={post.subject} title={post.title}/>
-    <span className={styles.miniCardBody} style={{ display:'block' }}>
-      <span className={styles.subject}>{post.subject} · Mini Lesson</span>
-      <h3>{post.title}</h3>
-      <p>{post.body.slice(0,130)}{post.body.length>130?'…':''}</p>
-      <span className={styles.creatorLine}>@{post.creator_label} · Read Mini ↗</span>
-    </span>
-  </button>
+  const card = (post: MiniPost) => <article key={post.id} className={styles.feedCard}>
+    <div className={styles.feedCreator}>
+      <button type="button" className={styles.linkButton} onClick={() => {setCreatorId(post.creator_id);setSection('creator')}}>
+        <span className={styles.avatar} aria-hidden="true">{post.creator_label.charAt(0).toUpperCase()}</span>
+        <span>@{post.creator_label}</span>
+      </button>
+      <button type="button" className={styles.smallButton} disabled={busy || post.creator_id===viewer}
+        aria-pressed={follows.has(post.creator_id)} onClick={()=>void follow(post)}>
+        {follows.has(post.creator_id)?'Following':'+ Follow'}
+      </button>
+    </div>
+    <button type="button" className={styles.feedImage} onClick={()=>open(post)} aria-label={'Read '+post.title}>
+      <Cover url={covers[post.id]} subject={post.subject} title={post.title}/>
+    </button>
+    <div className={styles.feedCaption}>
+      <button type="button" className={styles.linkButton} onClick={()=>open(post)}><strong>{post.title}</strong></button>
+      <p>{post.body.length>240?post.body.slice(0,240).trimEnd()+'…':post.body}</p>
+      <div className={styles.tagRow}>{post.tags.map(name=><button type="button" key={name}
+        className={styles.tagButton} onClick={()=>chooseTag(name)}>{miniTagLabel(name)}</button>)}</div>
+      <div className={styles.feedActions}>
+        <button type="button" aria-pressed={likes.has(post.id)} disabled={busy} onClick={()=>void interact('like',post)}>
+          {likes.has(post.id)?'♥ Liked':'♡ Like'} {post.like_count}</button>
+        <button type="button" onClick={()=>open(post)}>◇ Comment</button>
+        <button type="button" aria-pressed={saves.has(post.id)} disabled={busy} onClick={()=>void interact('save',post)}>
+          {saves.has(post.id)?'▣ Saved':'▢ Save'}</button>
+        <button type="button" onClick={()=>void (navigator.share
+          ? navigator.share({title:post.title,url:window.location.origin+'/explore?mini='+encodeURIComponent(post.id)}).catch(()=>setNotice('Sharing cancelled.'))
+          : navigator.clipboard.writeText(window.location.origin+'/explore?mini='+encodeURIComponent(post.id)).then(()=>setNotice('Link copied.')).catch(()=>setError('Unable to copy the link.')))}>↗ Share</button>
+      </div>
+    </div>
+  </article>
 
   return <div className={styles.explorePage}><div className={styles.container}>
     {section === 'feed' && <>
       <div className={styles.exploreTop}>
-        <div><span className={styles.eyebrow}>VIBESCHOOL MINI LESSONS</span>
-          <h1 className={styles.exploreTitle}>Explore</h1>
-          <p className={styles.subline}>Discover short, useful explanations shared by educators.</p></div>
+        <div><h1 className={styles.exploreTitle}>Mini Lessons</h1></div>
         <div className={styles.actions}>
           <button type="button" className={styles.secondary} onClick={() => void editProfile()}>My Profile</button>
           <button type="button" className={styles.secondary} onClick={() => void openMine()}>My Minis</button>
@@ -314,10 +343,10 @@ export function MiniLiveExplore() {
             className={styles.tab + (tab===t?' '+styles.tabActive:'')} aria-pressed={tab===t}
             onClick={()=>setTab(t)}>{t}</button>)}
         </div>
-        <div className={styles.filters} role="group" aria-label="Filter by subject">
-          {['All',...MINI_SUBJECTS].map(s=><button type="button" key={s}
-            className={styles.pill+(subject===s?' '+styles.pillActive:'')} aria-pressed={subject===s}
-            onClick={()=>setSubject(s)}>{s}</button>)}
+        <div className={styles.filters} role="group" aria-label="Explore by hashtag">
+          {['All',...popularTags].map(name=><button type="button" key={name}
+            className={styles.pill+(tag===name?' '+styles.pillActive:'')} aria-pressed={tag===name}
+            onClick={()=>setTag(name)}>{name==='All'?'All':miniTagLabel(name)}</button>)}
         </div>
       </div>
       <div className={styles.resultsLabel}><strong>{tab==='Following'?'Creators you follow':'Mini Lessons'}</strong>
@@ -326,7 +355,7 @@ export function MiniLiveExplore() {
         ? <div className={styles.grid}>{visible.map(card)}</div>
         : <div className={styles.empty}>
           <p>{error || (tab==='Following'?'Follow an educator to see their Minis here.':'No published Minis found.')}</p>
-          <button type="button" className={styles.secondary} onClick={()=>{setSubject('All');setQuery('');setTab('For You')}}>Explore all</button>
+          <button type="button" className={styles.secondary} onClick={()=>{setTag('All');setQuery('');setTab('For You')}}>Explore all</button>
         </div>}
       <p className={styles.previewNote}>Recommendations prioritize educational usefulness and give new creators a fair chance. No watch-time targeting.</p>
     </>}
@@ -335,7 +364,7 @@ export function MiniLiveExplore() {
       <div className={styles.readerHeader}><button className={styles.back} type="button" onClick={back}>← Explore</button></div>
       <Cover url={covers[current.id]} subject={current.subject} title={current.title}/>
       <div className={styles.readerBody}>
-        <span className={styles.subject}>MINI LESSON · {current.subject}</span>
+        <span className={styles.subject}>MINI LESSON</span>
         <h1 className={styles.readerTitle}>{current.title}</h1>
         <div className={styles.creatorRow}>
           <div className={styles.creatorLeft}>
@@ -349,6 +378,7 @@ export function MiniLiveExplore() {
             {follows.has(current.creator_id)?'Following':'+ Follow'}</button>
         </div>
         {current.body.split(/\n\s*\n/).map((paragraph,index)=><p key={index} className={styles.paragraph}>{paragraph}</p>)}
+        <div className={styles.tagRow}>{current.tags.map(name=><button key={name} type="button" className={styles.tagButton} onClick={()=>chooseTag(name)}>{miniTagLabel(name)}</button>)}</div>
         <div className={styles.actions}>
           <button type="button" aria-pressed={likes.has(current.id)} disabled={busy} onClick={()=>void interact('like')}>
             {likes.has(current.id)?'♥ Liked':'♡ Like'} ({current.like_count})</button>
@@ -401,10 +431,10 @@ export function MiniLiveExplore() {
         <label htmlFor="mini-body" className={styles.label}>Explanation</label>
         <textarea id="mini-body" required minLength={40} maxLength={3000} className={styles.editor}
           value={draftBody} onChange={e=>setDraftBody(e.target.value)} placeholder="Explain one useful thing clearly…"/>
-        <label htmlFor="mini-subject" className={styles.label}>Subject</label>
-        <select id="mini-subject" className={styles.field} value={draftSubject} onChange={e=>setDraftSubject(e.target.value)}>
-          {MINI_SUBJECTS.map(s=><option key={s}>{s}</option>)}
-        </select>
+        <label htmlFor="mini-tags" className={styles.label}>Hashtags</label>
+        <input id="mini-tags" className={styles.field} required maxLength={180} value={draftTags}
+          onChange={e=>setDraftTags(e.target.value)} placeholder="#Mathematics #Fractions (up to 5)"/>
+        <p className={styles.previewNote}>Use 1–5 hashtags so people can discover your Mini Lesson.</p>
         <label htmlFor="mini-photo" className={styles.label}>Cover photo</label>
         <input type="file" id="mini-photo" required accept="image/jpeg,image/png,image/webp"
           onChange={e=>setPhoto(e.target.files?.[0]??null)}/>
@@ -420,7 +450,7 @@ export function MiniLiveExplore() {
       <h1>My Mini Lessons</h1>
       <p className={styles.subline}>Check whether your submitted Minis are pending or approved.</p>
       {mine.length ? mine.map(p=><div key={p.id} className={styles.comment}><strong>{p.title}</strong>
-        {p.subject} · {p.status==='approved'?'Published':p.status==='pending'?'Awaiting review':p.status}</div>)
+        {p.tags.map(miniTagLabel).join(' ')} · {p.status==='approved'?'Published':p.status==='pending'?'Awaiting review':p.status}</div>)
         : <p>No Mini Lessons submitted yet.</p>}
     </section>}
 
@@ -448,6 +478,6 @@ export function MiniLiveExplore() {
       <div className={styles.grid}>{posts.filter(post=>post.creator_id===creatorId).map(card)}</div>
     </section>}
     {(error || notice) && <p role={error?'alert':'status'} className={styles.formNote}>{error || notice}</p>}
-    <div style={{textAlign:'center',marginTop:26}}><Link href="/" className={styles.sectionLink}>VibeSchool Home</Link></div>
+    <div className={styles.previewNote} style={{textAlign:'center',marginTop:12}}>VibeSchool Mini Lessons</div>
   </div></div>
 }
