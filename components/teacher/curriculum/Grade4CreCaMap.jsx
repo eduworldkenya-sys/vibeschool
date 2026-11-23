@@ -11,21 +11,29 @@ const SOURCES = {
   cre: {
     id: '8165d513-035b-4019-9fdb-5b86a27335a1',
     label: 'Christian Religious Education',
+    grade: 'Grade 4',
     source: 'owner-approved:grade4-cre:2026-11-22',
     outcomeSource: 'publisher',
   },
   arts: {
     id: '6d68b57c-565d-4a04-879d-c77f588d6404',
     label: 'Creative Arts',
+    grade: 'Grade 4',
     source: 'owner-paraphrase-2026-11-22',
     outcomeSource: 'generated',
+  },
+  grade5cre: {
+    id: '8165d513-035b-4019-9fdb-5b86a27335a1',
+    label: 'Christian Religious Education',
+    grade: 'Grade 5',
+    source: 'CRE-GRADE-5-DESIGN-Revised.pdf',
+    outcomeSource: 'official',
   },
 }
 
 function belongsToSource(row, source, kind) {
-  return kind === 'cre'
-    ? row.source_ref === source
-    : typeof row.source_ref === 'string' && row.source_ref.includes(source)
+  if (kind === 'cre') return row.source_ref === source
+  return typeof row.source_ref === 'string' && row.source_ref.includes(source)
 }
 
 export default function Grade4CreCaMap({
@@ -58,15 +66,15 @@ export default function Grade4CreCaMap({
 
     ;(async () => {
       try {
-        if (!source || !subjectId) throw new Error('Select an assigned Grade 4 subject.')
+        if (!source || !subjectId) throw new Error('Select an assigned curriculum subject.')
         const globalId = await resolveGlobalSubjectId(subjectId)
         if (globalId !== source.id) {
-          throw new Error('This subject is not connected to the canonical Grade 4 curriculum.')
+          throw new Error('This subject is not connected to the canonical curriculum.')
         }
         const unitResponse = await supabase.from('cbc_strands')
           .select('id,subject_id,grade,name,sub_strand,strand_order,sub_strand_order,source_ref')
           .eq('subject_id', source.id)
-          .eq('grade', 'Grade 4')
+          .eq('grade', source.grade)
           .order('strand_order', { ascending: true })
           .order('sub_strand_order', { ascending: true })
         if (unitResponse.error) throw unitResponse.error
@@ -104,19 +112,20 @@ export default function Grade4CreCaMap({
   const selected = units.find(unit => unit.id === selectedId) || units[0] || null
   const unitOutcomes = outcomes.filter(outcome => outcome.sub_strand_id === selected?.id)
   const activeSelection = selectedOutcomes.filter(id => unitOutcomes.some(outcome => outcome.id === id))
+  const canPlanWithoutOutcomes = kind === 'grade5cre'
   const isArtsAlternative = kind === 'arts' && /^(2\.6|2\.5)\s+(Swimming|Indigenous Kenyan Games)$/i.test(selected?.sub_strand || '')
 
   return (
-    <section aria-label={'Grade 4 ' + source.label + ' curriculum reference'}
+    <section aria-label={source.grade + ' ' + source.label + ' curriculum reference'}
       style={{ background: '#fff', color: '#173f32', border: '1px solid #d7e7dd', padding: 16, borderRadius: 14, marginBottom: 14 }}>
       <div style={{ fontSize: 12, color: '#547060', fontWeight: 700 }}>
-        Grade 4 · {source.label} · Curriculum Map
+        {source.grade} · {source.label} · Curriculum Map
       </div>
       <h2 style={{ fontSize: 18, margin: '6px 0' }}>{mode === 'scheme' ? 'Choose a curriculum reference' : source.label}</h2>
       <p style={{ fontSize: 12, margin: '4px 0 12px', color: '#547060' }}>
         {mode === 'scheme'
-          ? 'Browse the source-linked objectives while preparing your Scheme of Work. This selection does not create or schedule a lesson.'
-          : 'Existing VibeSchool curriculum records. Formal KICD outcome verification is still pending.'}
+          ? 'Choose a sub-strand for your Scheme. Only active source-linked outcomes can be selected; a Grade 5 CRE sub-strand can be planned without outcomes.'
+          : 'Source-linked curriculum structure. Draft outcomes are not presented as verified KICD objectives.'}
       </p>
       {kind === 'arts' && <p style={{ fontSize: 12, color: '#547060' }}>
         Swimming and Indigenous Kenyan Games are alternatives, not two compulsory units.
@@ -158,7 +167,7 @@ export default function Grade4CreCaMap({
               : <ol style={{ paddingLeft: 23, fontSize: 14, lineHeight: 1.6, marginTop: 8 }}>
                 {unitOutcomes.map(outcome => <li key={outcome.id}>{outcome.outcome_text}</li>)}
               </ol>
-            : <p role="status">No active outcomes are linked to this sub-strand.</p>}
+            : <p role="status">No active learning outcomes are linked to this sub-strand.{canPlanWithoutOutcomes ? ' You can save a sub-strand plan; objectives will be linked after source review.' : ''}</p>}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginTop: 12 }}>
             {mode === 'curriculum' && onOpenScheme && (
               <button type="button" onClick={() => onOpenScheme(selected.id)}
@@ -167,10 +176,10 @@ export default function Grade4CreCaMap({
               </button>
             )}
             {mode === 'scheme' && onSaveLesson && (
-              <button type="button" disabled={saving || !canSave || activeSelection.length === 0 || activeSelection.length > 12}
+              <button type="button" disabled={saving || !canSave || (!canPlanWithoutOutcomes && activeSelection.length === 0) || activeSelection.length > 12}
                 onClick={() => onSaveLesson(selected.id, activeSelection)}
-                style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 15px', fontWeight: 750, opacity: saving || !canSave || activeSelection.length === 0 ? 0.5 : 1 }}>
-                {saving ? 'Saving…' : 'Add to Scheme'}
+                style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 15px', fontWeight: 750, opacity: saving || !canSave || (!canPlanWithoutOutcomes && activeSelection.length === 0) ? 0.5 : 1 }}>
+                {saving ? 'Saving…' : canPlanWithoutOutcomes && activeSelection.length === 0 ? 'Plan Sub-strand' : 'Add to Scheme'}
               </button>
             )}
             {mode === 'scheme' && !canSave && <p style={{ fontSize: 12, color: '#825b25', width: '100%' }}>Select a term and instructional week to save a lesson.</p>}
