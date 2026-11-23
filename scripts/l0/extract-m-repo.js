@@ -290,7 +290,7 @@ for (const migration of migrations) {
       migration,
       error: error instanceof Error ? error.message : String(error),
       cursor_position: prefix === null ? null : pos,
-      line: prefix === null ? null : prefix.split('\\n').length,
+      line: prefix === null ? null : (prefix.match(/\n/g)?.length ?? 0) + 1,
       context: prefix === null ? null : sql.slice(Math.max(0, pos - 140), Math.min(sql.length, pos + 100)),
       error_fields: error && typeof error === 'object' ? Object.keys(error) : [],
     });
