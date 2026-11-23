@@ -264,7 +264,7 @@ export function MiniLiveExplore() {
   }
 
   async function openMine() {
-    if (!ensureSignIn(viewer) || busy) return
+    if (!ensureSignIn(viewer) || !viewer || busy) return
     setBusy(true);setError('')
     try {setMine(await fetchOwnMiniStatus(viewer));setSection('mine')}
     catch(e) {setError(e instanceof Error ? e.message : 'Unable to load submissions.')}
