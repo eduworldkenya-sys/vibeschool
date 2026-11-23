@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { deriveSelfServiceBindings } from '@/lib/twin/self-service-bindings'
+import { unifiedIdentityEnabled } from '@/lib/identity/features'
 
 export type TwinRole = 'student' | 'teacher' | 'parent' | 'admin' | 'hq'
 
@@ -173,6 +174,7 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
 
   // Canonical role claims can open only a self-owned workspace; authoritative
   // school and child access is still derived from existing RLS-backed relations.
+  if (unifiedIdentityEnabled) {
   const access = selfAccessRes.data
   const knownRoles = new Set(bindings.map(binding => binding.role))
   let managedLearnerCount = 0
@@ -188,6 +190,7 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
     if (Array.isArray(learners)) managedLearnerCount = learners.length
   }
   bindings.push(...deriveSelfServiceBindings(userId, access, knownRoles, managedLearnerCount))
+  }
 
   if (ownerRes.data === true) {
     bindings.push({
