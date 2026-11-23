@@ -10,6 +10,20 @@ type Props = {
   roomId:string;classId:string|null;teacher:boolean;enabled:boolean;status:'active'|'paused'|'ended'
   learners:Learner[];onAcknowledge:(studentId:string)=>Promise<void>
 }
+// Keep provider details out of learner-facing UI. Daily's typed fatal-error
+// category is enough to distinguish a transport fault from a rejected meeting.
+function dailyVoiceError(type:unknown):string {
+  switch(type){
+    case 'meeting-full': return 'Daily audio room is full. End the previous audio connection and retry.'
+    case 'exp-token': case 'exp-room': return 'Audio access expired. Rejoin the active lesson.'
+    case 'nbf-token': case 'nbf-room': return 'Audio is not available before this lesson starts.'
+    case 'not-allowed': case 'ejected': return 'Daily denied this audio connection. Check classroom access.'
+    case 'no-room': return 'Daily could not find the audio room. Leave and rejoin the lesson.'
+    case 'connection-error': return 'Daily audio connection failed. Check network connection and retry.'
+    case 'end-of-life': return 'Daily ended this audio session. Rejoin the active lesson.'
+    default: return 'Daily audio failed to connect. Retry, or report the error.'
+  }
+}
 function canPublishAudio(value:unknown):boolean{
   if (value===true)return true
   if (Array.isArray(value))return value.includes('audio')
@@ -120,8 +134,15 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
       call.on('participant-left',sync)
       call.on('track-started',sync)
       call.on('track-stopped',sync)
-      call.on('error',()=>{if(meeting.current===call)void stop().then(()=>{setError('Audio connection lost. Retry joining.');setPhase('failed')})})
-      call.on('left-meeting',()=>{void stop()})
+      call.on('error',event=>{
+        if(meeting.current!==call)return
+        const failure=dailyVoiceError(event?.error?.type)
+        void stop().then(()=>{if(alive.current){setError(failure);setPhase('failed')}})
+      })
+      call.on('left-meeting',()=>{
+        if(meeting.current!==call)return
+        void stop().then(()=>{if(alive.current){setError('Daily ended the audio connection. Retry joining.');setPhase('failed')}})
+      })
       await call.join({url:data.url,token:data.token})
       if(generation!==connectGeneration.current){if(!call.isDestroyed())await call.destroy();return}
       // Daily room start_audio_off is true; microphone permission remains user initiated.
