@@ -237,6 +237,10 @@ export async function GET(req: NextRequest) {
 
   logStage('onboarding_resolved', flowId, state)
   const target = state === 'ready' && next && roleCanVisit(role, next) ? next : safeDestination
-  logStage('destination_selected', flowId, target)
-  return redirectWithCookies(req, target, pendingCookies)
+  // Verified new adult signups set their username after canonical onboarding.
+  // Existing sign-ins keep their current journey and are never forced to re-register.
+  const finalTarget = intent === 'signup' && state === 'ready' && (role === 'teacher' || role === 'parent')
+    ? `/account/setup?next=${encodeURIComponent(target)}` : target
+  logStage('destination_selected', flowId, finalTarget)
+  return redirectWithCookies(req, finalTarget, pendingCookies)
 }
