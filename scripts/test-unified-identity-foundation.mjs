@@ -63,5 +63,6 @@ test('unverified identity rollout never redirects active users to a missing sche
   const createChild = read('app/parent/create-child/page.tsx')
   assert.match(flag, /NEXT_PUBLIC_UNIFIED_IDENTITY_ENABLED === 'true'/)
   assert.match(callback, /unifiedIdentityEnabled && intent === 'signup'/)
-  assert.match(createChild, /unifiedIdentityEnabled \? '\/account\/children' : '\/parent\/link-child'/)
+  assert.match(createChild, /if \(!unifiedIdentityEnabled\) redirect\('\/parent\/link-child'\)/)
+  assert.match(createChild, /redirect\('\/account\/children'\)/)
 })
