@@ -63,7 +63,7 @@ function voiceSettings(exp: number) {
   return {
     exp, eject_at_room_exp: true, max_participants: 80,
     enforce_unique_user_ids: true, enable_knocking: false,
-    enable_recording: false, enable_chat: false, enable_screenshare: false,
+    enable_chat: false, enable_screenshare: false,
     enable_prejoin_ui: false, start_audio_off: true, start_video_off: true,
   }
 }
@@ -76,7 +76,7 @@ function validProviderRoom(value: unknown, name: string, exp: number): value is 
     /^https:\/\/[a-z0-9-]+\.daily\.co\/vs-live-[0-9a-f-]+$/i.test(room.url) &&
     !!config && config.exp === exp && config.eject_at_room_exp === true &&
     config.max_participants === 80 && config.enforce_unique_user_ids === true &&
-    config.enable_knocking === false && [false,''].includes(config.enable_recording as false | '') &&
+    config.enable_knocking === false && (config.enable_recording == null || config.enable_recording === false || config.enable_recording === '') &&
     config.enable_screenshare === false && config.enable_chat === false &&
     config.start_audio_off === true &&
     config.start_video_off === true && config.enable_prejoin_ui === false
@@ -127,7 +127,7 @@ export async function issueLiveVoiceToken(
     exp:Math.min(Math.floor(now/1000)+120,expiry),
     eject_at_token_exp:true, // server ejects even if teacher, browser or watchdog is offline
     start_audio_off:true,start_video_off:true,
-    enable_recording:false,enable_recording_ui:false,start_cloud_recording:false,
+    enable_recording_ui:false,start_cloud_recording:false,
     enable_prejoin_ui:false,enable_screenshare:false,
     permissions:{canSend,canAdmin,canReceive:{base:{audio:true,video:false,screenAudio:false,screenVideo:false,customAudio:{'*':false},customVideo:{'*':false}}}},
   }})
