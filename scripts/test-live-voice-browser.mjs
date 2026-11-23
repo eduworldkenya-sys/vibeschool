@@ -74,12 +74,20 @@ const bundled=await build({
 const files=new Map(bundled.outputFiles.map(x=>['/'+x.path.split('/').at(-1),x.contents]))
 assert.ok(files.has('/app.js')&&files.has('/app.css'))
 let allowed=true
+const diagnostics=[]
 const server=createServer(async(req,res)=>{
   const path=new URL(req.url,'http://127.0.0.1').pathname
   if(files.has(path)){res.writeHead(200,{'Content-Type':path.endsWith('.js')?'text/javascript':'text/css'});return res.end(files.get(path))}
   if(path==='/teacher'||path==='/learner'){
     res.writeHead(200,{'Content-Type':'text/html'})
     return res.end('<!doctype html><html><head><link rel="stylesheet" href="/app.css"/></head><body><div id="root"></div><script src="/app.js"></script></body></html>')
+  }
+  if(path==='/api/live/voice/'+roomId&&req.method==='PATCH'){
+    const chunks=[]
+    for await (const chunk of req)chunks.push(chunk)
+    diagnostics.push(JSON.parse(Buffer.concat(chunks).toString('utf8')))
+    res.writeHead(202,{'Content-Type':'application/json'})
+    return res.end(JSON.stringify({accepted:true}))
   }
   if(path==='/api/live/voice/'+roomId&&req.method==='POST'){
     if(!allowed){res.writeHead(403,{'Content-Type':'application/json'});return res.end(JSON.stringify({error:'You are no longer allowed in this classroom.'}))}
@@ -115,11 +123,26 @@ try{
   assert.equal(await solo.evaluate(()=>window.__voiceCall.localAudio()),true)
   await solo.evaluate(()=>window.__voiceCall.emit('error',{
     error:{type:'connection-error'},
-    errorMsg:'untrusted secret meeting token must not display'
+    errorMsg:'untrusted secret opaque value must not display'
   }))
   await solo.getByRole('alert').getByText('Daily audio connection failed. Check network connection and retry.').waitFor()
+  // Fatal event telemetry contains only closed enums, not untrusted messages.
+  await new Promise(ok=>setTimeout(ok,100))
+  assert.equal(diagnostics.length,1)
+  assert.deepEqual(diagnostics[0].diagnostic,{stage:'connected',code:'connection-error',hint:'unknown'})
+  assert.doesNotMatch(JSON.stringify(diagnostics),/untrusted|secret|meeting token|fixture-jwt/) 
   assert.doesNotMatch(await solo.getByRole('alert').textContent(),/untrusted|secret|token/)
   assert.equal(await solo.getByRole('button',{name:'Join audio'}).isEnabled(),true)
+  await solo.getByRole('button',{name:'Join audio'}).click()
+  await solo.getByRole('status').getByText('Connected').waitFor()
+  await solo.evaluate(()=>window.__voiceCall.emit('error',{
+    action:'error',
+    errorMsg:'Private meeting token secret leaks at https://example.invalid/private',
+  }))
+  await solo.getByRole('alert').getByText('Daily audio failed (connected / token). Retry joining.').waitFor()
+  await new Promise(ok=>setTimeout(ok,100))
+  assert.deepEqual(diagnostics[1].diagnostic,{stage:'connected',code:'unknown',hint:'token'})
+  assert.doesNotMatch(JSON.stringify(diagnostics),/https:\/\/example.invalid|Private meeting token secret/)
   await solo.getByRole('button',{name:'Join audio'}).click()
   await solo.getByRole('status').getByText('Connected').waitFor()
   await solo.getByRole('button',{name:'Leave audio'}).click()

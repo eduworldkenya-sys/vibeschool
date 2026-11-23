@@ -13,7 +13,23 @@ function sameOrigin(req:NextRequest) {
   try {const u=new URL(origin);return origin===u.origin && u.protocol==='https:' && u.host===host}
   catch{return false}
 }
-async function handle(req:NextRequest,id:string,method:'POST'|'DELETE') {
+const voiceStages=new Set(['joining','signaling','media','connected','unknown'])
+const voiceCodes=new Set([
+  'ejected','nbf-room','nbf-token','exp-room','exp-token','no-room',
+  'meeting-full','end-of-life','not-allowed','connection-error',
+  'join-exception','unexpected-leave','unknown'
+])
+const voiceHints=new Set(['token','access','capacity','device','room','transport','timeout','unknown'])
+function parseVoiceDiagnostic(value:unknown) {
+  if(!value || typeof value!=='object' || Array.isArray(value))throw new LiveVoiceError('Invalid voice diagnostic.',400)
+  const obj=value as Record<string,unknown>
+  if(Object.keys(obj).some(k=>!['stage','code','hint'].includes(k)) ||
+     !voiceStages.has(obj.stage as string) || !voiceCodes.has(obj.code as string) ||
+     !voiceHints.has(obj.hint as string))
+    throw new LiveVoiceError('Invalid voice diagnostic.',400)
+  return {stage:obj.stage as string,code:obj.code as string,hint:obj.hint as string}
+}
+async function handle(req:NextRequest,id:string,method:'POST'|'DELETE'|'PATCH') {
   try {
     // No activation from a browser build or a checked-in default. Both
     // switches require explicit production commissioning.
@@ -40,19 +56,32 @@ async function handle(req:NextRequest,id:string,method:'POST'|'DELETE') {
       process.env.VIBE_LIVE_VOICE_PILOT_USER_IDS,
       process.env.VIBE_LIVE_VOICE_PILOT_UNTIL,
       Date.now(),method==='DELETE')
-    const supplied=method==='POST'?await req.json().catch(()=>null):null
+    // PATCH is a bounded authenticated diagnostic, never a token request.
+    const raw=method==='PATCH' ? await req.text() : null
+    if(raw!==null && raw.length>450)throw new LiveVoiceError('Invalid voice diagnostic.',400)
+    const supplied=method==='DELETE'?null:method==='PATCH'
+      ? (()=>{try{return JSON.parse(raw??'')}catch{return null}})()
+      : await req.json().catch(()=>null)
     const rawClassId=(supplied as {classId?:unknown}|null)?.classId
-    if (method==='POST' && rawClassId!==null && rawClassId!==undefined && !voiceUuid(rawClassId))
+    if (method!=='DELETE' && rawClassId!==null && rawClassId!==undefined && !voiceUuid(rawClassId))
       throw new LiveVoiceError('Invalid classroom context.',400)
     // A session UUID is not a permission. Always authorize through the same
     // Live RPC used by the whiteboard, roster and learner participation.
     const {data,error}=await db.rpc('vibe_live_command',{
-      p_action:'get',p_class_id:method==='POST' ? rawClassId ?? null : null,
+      p_action:'get',p_class_id:method==='DELETE'?null:rawClassId ?? null,
       p_session_id:id,p_version:null,p_payload:{},
     })
     if (error || !data || typeof data !== 'object' || data.id!==id)
       throw new LiveVoiceError('You are not authorized for this Live class.',403)
     const room=data as VoiceRoom
+    if(method==='PATCH'){
+      // Reuse the token route's JWT, same-origin, pilot-user and canonical Live
+      // RPC checks. Log only closed enum values. No room, user or token fields.
+      validateVoiceRoom(room,id)
+      const diagnostic=parseVoiceDiagnostic((supplied as {diagnostic?:unknown}|null)?.diagnostic)
+      console.error('vibeschool_live_voice_client_failure',diagnostic)
+      return reply({accepted:true},202)
+    }
     const key=process.env.DAILY_API_KEY ?? ''
     if (!key) throw new LiveVoiceError('Voice provider not configured.',503)
     if (method==='DELETE') {
@@ -83,3 +112,6 @@ export const POST=(req:NextRequest,props:{params:Promise<{sessionId:string}>})=>
   props.params.then(({sessionId})=>handle(req,sessionId,'POST'))
 export const DELETE=(req:NextRequest,props:{params:Promise<{sessionId:string}>})=>
   props.params.then(({sessionId})=>handle(req,sessionId,'DELETE'))
+
+export const PATCH=(req:NextRequest,props:{params:Promise<{sessionId:string}>})=>
+  props.params.then(({sessionId})=>handle(req,sessionId,'PATCH'))
