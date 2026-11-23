@@ -41,7 +41,6 @@ function NavIcon({ name }: { name: NavIconName }) {
     case 'courses': return <svg {...common}><path d="m2 9 10-5 10 5-10 5L2 9zM6 12v5c4 3 8 3 12 0v-5M22 9v7"/></svg>
     case 'schools': return <svg {...common}><path d="M4 21V7l8-4 8 4v14M4 10h16M9 21v-7h6v7M7 13h.01M17 13h.01"/></svg>
     case 'teachers': return <svg {...common}><path d="M3 5h18v11H3zM7 21l5-5 5 5M8 9h8M8 12h5"/></svg>
-    case 'contact': return <svg {...common}><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9 9 0 0 1-4-.9L3 20l1-4.4A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8 11h8"/></svg>
   }
 }
 
