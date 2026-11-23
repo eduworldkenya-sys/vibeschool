@@ -11,6 +11,7 @@ import LessonTeachMode, { type LessonCompletionReview } from "@/components/teach
 import ReflectionSheet from "@/components/teacher/ReflectionSheet";
 import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
 import LessonPreparationStudio from "@/components/teacher/LessonPreparationStudio";
+import TeachingKit from "@/components/teacher/TeachingKit";
 import TeachingWorkspaceNav from "@/components/teacher/TeachingWorkspaceNav";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 import JumpingSchemeContent from "@/components/teacher/JumpingSchemeContent";
@@ -363,6 +364,20 @@ function LessonNotesInner() {
     );
   }
 
+  // Pass the same verified plan and occurrence identity into all teaching tools.
+  const kitParams = new URLSearchParams({lessonPlanId:plan.id});
+  if(plan.class_id)kitParams.set('classId',plan.class_id);
+  if(plan.subject_id)kitParams.set('subjectId',plan.subject_id);
+  if(plan.timetable_slot_id)kitParams.set('timetableSlotId',plan.timetable_slot_id);
+  if(plan.taught_date)kitParams.set('date',plan.taught_date);
+  if(occurrence?.id)kitParams.set('occurrenceId',occurrence.id);
+  const kitQuery = kitParams.toString();
+  const linkedBook = resources.find(resource=>Boolean(resource.publicationId));
+  const linkedChapter = exactChapters[0];
+  const liveKitUrl = plan.class_id && process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true'
+    ? '/teacher/classhub/' + encodeURIComponent(plan.class_id) + '/live?' + kitQuery
+    : null;
+
   const visibleSections = sections
     ? sectionOrder.filter(({ key }) => cleanText(sections[key]).length > 0)
     : [];
@@ -378,6 +393,14 @@ function LessonNotesInner() {
         </section>
       )}
       {plan.class_id && plan.subject_id && <TeachingWorkspaceNav classId={plan.class_id} subjectId={plan.subject_id} lessonPlanId={plan.id} occurrenceId={occurrence?.id} timetableSlotId={plan.timetable_slot_id} occurrenceDate={plan.taught_date} current="Lesson" />}
+      {sections && <TeachingKit actions={{
+        plan:()=>router.push('/teacher/lessonplan?'+kitQuery),
+        slides:()=>router.push('/teacher/teaching-kit?'+kitQuery),
+        resources:()=>router.push('/teacher/resources?'+kitQuery),
+        book:linkedBook?()=>openResource(linkedBook):linkedChapter?()=>router.push('/read/textbook/'+encodeURIComponent(linkedChapter.publication_id)+'?chapterId='+encodeURIComponent(linkedChapter.id)):undefined,
+        exercises:plan.class_id&&plan.subject_id?()=>router.push('/teacher/assessment/new?'+kitQuery):undefined,
+        board:()=>router.push('/teacher/teaching-board?'+kitQuery),
+      }} onInClass={()=>setTeachMode(true)} onGoLive={liveKitUrl?()=>router.push(liveKitUrl):undefined} />}
       {sections && <LessonPreparationStudio sections={sections} topic={plan.topic || plan.title || "Lesson notes"} resourceCount={resources.length} onTeach={() => setTeachMode(true)} onEdit={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(plan.class_id || contextClassId)}&subjectId=${encodeURIComponent(plan.subject_id || contextSubjectId)}&timetableSlotId=${encodeURIComponent(plan.timetable_slot_id || "")}&date=${encodeURIComponent(plan.taught_date || "")}`)} />}
       {plan.scheme_id && (
         <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",margin:"12px 0"}}>
