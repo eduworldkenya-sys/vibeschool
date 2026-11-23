@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { ArrowRight, BookOpen, Compass, FlaskConical, Gamepad2, Lightbulb, Palette, Search, X } from 'lucide-react'
+import { ArrowRight, BookOpen, FlaskConical, Gamepad2, Lightbulb, Palette, Search, X } from 'lucide-react'
 import { useStudent } from '@/lib/student-context'
 import { fallbackSubjectGroups, recogniseLearnerGrade } from '@/lib/learn/schoolCatalog'
 
