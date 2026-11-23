@@ -20,6 +20,7 @@ as $$
       or t.value !~ '^[a-z][a-z0-9_]{1,29}$');
 $$;
 revoke all on function public.mini_tags_valid(text[]) from public;
+grant execute on function public.mini_tags_valid(text[]) to authenticated;
 
 create table if not exists public.mini_lessons (
   id uuid primary key default gen_random_uuid(),
@@ -126,7 +127,7 @@ as $$
       and p.account_status::text='active'
       and not p.is_anonymized
       and gp.is_public
-      and (p.date_of_birth is null or p.date_of_birth <= current_date - interval '18 years')
+      and p.date_of_birth <= current_date - interval '18 years'
   );
 $$;
 create or replace function public.mini_creator_public(p_user uuid)
