@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
-const liveFrom = (table: string) => (supabase as any).from(table)
+const liveFrom = (table: string) => supabase.from(table)
 
 type Staff = { id: string; full_name: string; role: string }
 type Thread = { id: string; context_tag: string | null; last_message_at: string | null; last_message_preview: string | null }
