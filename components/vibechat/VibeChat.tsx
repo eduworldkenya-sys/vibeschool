@@ -387,7 +387,7 @@ export default function VibeChat() {
             </div>}
             {safety?.blocked && <p role="status" className={styles.empty}>This conversation is blocked. Messages are preserved.</p>}
             {!safety && <p role="status" className={styles.subtitle}>Checking messaging permissions…</p>}
-            {safetyError && <p role="status" className={styles.error}>{safetyError}</p>
+            {safetyError && <p role="status" className={styles.error}>{safetyError}</p>}
             {messageError && <p className={styles.error} role="alert">{messageError}</p>}
             <form className={styles.compose} onSubmit={e=>void sendMessage(e)}>
               <label htmlFor="vc-message" className="sr-only">Message</label>
