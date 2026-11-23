@@ -13,7 +13,6 @@ export function useVibeChatTyping(chatKey: string | null) {
   const lastActiveRef = useRef(0)
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const remoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const remoteKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!chatKey || !/^(vc|tuition):[0-9a-f-]{36}$/i.test(chatKey)) return
@@ -49,7 +48,6 @@ export function useVibeChatTyping(chatKey: string | null) {
       if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current)
       channelRef.current = null
       connectedRef.current = false
-      remoteKeyRef.current = null
       lastActiveRef.current = 0
       void db.removeChannel(channel)
     }
