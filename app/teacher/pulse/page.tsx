@@ -526,8 +526,8 @@ export default function PulsePage() {
               {Array.from(new Map(safeMyClasses.map(item => [item.class_id, item])).values()).map(item => (
                 <option key={item.class_id} value={item.class_id}>School · {item.class_name}</option>
               ))}
-              <option value="tuition">Private tuition</option>
-              <option value="open">Open class</option>
+              <option value="tuition">Invited</option>
+              <option value="open">Public</option>
             </select>
             <button type="submit" style={{ flexShrink: 0, minHeight: 44, border: 0, borderRadius: 10, padding: "10px 14px", background: "#b91c1c", color: "#fff", fontWeight: 750, cursor: "pointer" }}>Go Live</button>
           </form>
