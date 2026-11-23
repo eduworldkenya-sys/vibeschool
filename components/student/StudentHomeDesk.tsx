@@ -18,6 +18,7 @@ type Reading = {
   progressPercent: number
 }
 type Task = { title: string; subject?: string; actionLabel?: string }
+type Recommendation = { title: string; actionUrl?: string | null }
 
 type Props = {
   firstName?: string | null
@@ -25,6 +26,7 @@ type Props = {
   isNewLearner: boolean
   reading: Reading | null
   nextTask: Task | null
+  recommendedAction: Recommendation | null
   toDo: number
   schoolLinked: boolean
   openingTask: boolean
@@ -53,7 +55,7 @@ function SubjectIcon({ name }: { name: string }) {
 }
 
 export default function StudentHomeDesk({
-  firstName, grade, isNewLearner, reading, nextTask, toDo, schoolLinked,
+  firstName, grade, isNewLearner, reading, nextTask, recommendedAction, toDo, schoolLinked,
   openingTask, onOpenTask,
 }: Props) {
   const learnerGrade = recogniseLearnerGrade(grade)
@@ -64,6 +66,7 @@ export default function StudentHomeDesk({
     : []
   const browseHref = gradeHref(learnerGrade)
   const resumeHref = reading ? safeReadingHref(reading.actionUrl) : null
+  const recommendationHref = recommendedAction?.actionUrl ? safeReadingHref(recommendedAction.actionUrl) : null
   const liveEnabled = process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true'
   const groups: Group[] = [
     { name: 'Learning', tools: [
@@ -121,8 +124,8 @@ export default function StudentHomeDesk({
           {learnerGrade && <span className={styles.grade}>{learnerGrade}</span>}
         </div>
         <div className={styles.resume}>
-          <span className={styles.eyebrow}>{resumeHref ? 'CONTINUE READING' : nextTask ? 'UP NEXT' : 'READY TO LEARN'}</span>
-          <h2>{resumeHref ? reading?.title : nextTask ? nextTask.title : 'Choose your next lesson'}</h2>
+          <span className={styles.eyebrow}>{resumeHref ? 'CONTINUE READING' : nextTask ? 'UP NEXT' : recommendationHref ? 'CONTINUE LEARNING' : 'READY TO LEARN'}</span>
+          <h2>{resumeHref ? reading?.title : nextTask ? nextTask.title : recommendationHref ? recommendedAction?.title : 'Choose your next lesson'}</h2>
           {resumeHref && reading && <>
             <p>{reading.chapterTitle || 'Your saved place'} · {Math.round(Math.max(0, Math.min(100, reading.progressPercent)))}% read</p>
             <div className={styles.track} role="progressbar" aria-label="Reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.max(0, Math.min(100, reading.progressPercent)))}>
@@ -132,6 +135,7 @@ export default function StudentHomeDesk({
           {!resumeHref && nextTask && <p>{nextTask.subject || 'Assigned work'}</p>}
           {resumeHref ? <Link href={resumeHref} className={styles.primary}>Continue learning <ArrowRight size={18} aria-hidden="true" /></Link>
             : nextTask ? <button type="button" disabled={openingTask} className={styles.primary} onClick={onOpenTask}>{openingTask ? 'Opening…' : nextTask.actionLabel || 'Open task'} <ArrowRight size={18} aria-hidden="true" /></button>
+            : recommendationHref ? <Link href={recommendationHref} className={styles.primary}>Continue learning <ArrowRight size={18} aria-hidden="true" /></Link>
             : <Link href={browseHref} className={styles.primary}>Explore subjects <ArrowRight size={18} aria-hidden="true" /></Link>}
         </div>
       </section>
