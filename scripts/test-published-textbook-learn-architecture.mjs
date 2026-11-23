@@ -26,6 +26,8 @@ test('existing title, paragraphs, headings and six images remain on Learn reader
   assert.match(adapter,/block\.type === 'image' \|\| block\.type === 'diagram'/)
   assert.match(adapter,/<img src=\{src\} alt=\{alt\}/)
   assert.match(adapter,/meta\.caption/)
+  assert.match(adapter,/BiologyInteractiveBlock block=\{block\}/)
+  assert.match(adapter,/block\.type === 'table'/)
   assert.match(adapter,/block\.type === 'question'/)
   assert.match(adapter,/block\.id/)
   assert.match(adapter,/return <VisualRichText body=\{text\}/)
