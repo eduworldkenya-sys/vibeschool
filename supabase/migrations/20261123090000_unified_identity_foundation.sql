@@ -48,14 +48,36 @@ create policy vs_identity_self_read on public.vs_identities for select to authen
 create policy vs_managed_guardian_read on public.vs_managed_learners for select to authenticated
  using(exists(select 1 from public.vs_identities i where i.id=guardian_identity_id and i.auth_user_id=(select auth.uid())));
 
--- Cross-surface handle consistency for legacy global profiles and identity registry.
+-- Maintain username uniqueness against the existing Global public profile writer.
 create function public.vs_guard_global_public_username()
-returns trigger language plpgsql security definer set search_path=public,auth,pg_temp as $
+returns trigger language plpgsql security definer set search_path=public,auth,pg_temp as $$
 declare v_username text;
 begin
  if new.username is null then return new; end if;
  v_username:=lower(trim(new.username));
- if v_username !~ '^[a-z][a-z0-9_]{2,23}
+ if v_username !~ '^[a-z][a-z0-9_]{2,23}$' then
+  raise exception 'Invalid username' using errcode='22023';
+ end if;
+ perform pg_advisory_xact_lock(hashtext(v_username)::bigint);
+ perform pg_advisory_xact_lock(hashtext(v_username)::bigint);
+ if exists(select 1 from public.vs_username_reservations where username=v_username) then
+  raise exception 'Username unavailable' using errcode='23505';
+ end if;
+ if exists(select 1 from public.vs_identities where username=v_username and auth_user_id is distinct from new.profile_id) then
+  raise exception 'Username unavailable' using errcode='23505';
+ end if;
+ if exists(select 1 from public.vs_identities where auth_user_id=new.profile_id and username is not null and username<>v_username) then
+  raise exception 'Username does not match account identity' using errcode='23505';
+ end if;
+ new.username:=v_username;
+ return new;
+end;
+$$;
+revoke all on function public.vs_guard_global_public_username() from public,anon,authenticated;
+create trigger vs_global_username_consistency
+before insert or update of username on public.global_public_profiles
+for each row execute function public.vs_guard_global_public_username();
+
 create function public.vs_claim_my_username(p_username text)
 returns jsonb language plpgsql security definer set search_path=public,auth,pg_temp as $$
 declare
@@ -149,136 +171,6 @@ begin
  end if;
  if exists(select 1 from public.global_public_profiles where lower(trim(username))=v_username) then
   raise exception 'Username unavailable' using errcode='23505';
- end if;
- select id into v_guardian from public.vs_identities where auth_user_id=v_uid and kind='person';
- if v_guardian is null then raise exception 'Set up username first' using errcode='22023'; end if;
- if (select count(*) from public.vs_managed_learners where guardian_identity_id=v_guardian) >= 20 then
-  raise exception 'Managed learner limit reached' using errcode='54000';
- end if;
- insert into public.vs_identities(username,display_name,kind)
-  values(v_username,trim(p_display_name),'managed_learner') returning id into v_child;
- insert into public.vs_managed_learners(learner_identity_id,guardian_identity_id,grade_label,guardian_confirmed_at)
-  values(v_child,v_guardian,nullif(trim(coalesce(p_grade,'')),''),now());
- return jsonb_build_object('id',v_child,'username',v_username);
-exception when unique_violation then
- raise exception 'Username unavailable' using errcode='23505';
-end;
-$$;
-revoke all on function public.vs_create_managed_learner(text,text,text,boolean) from public,anon;
-grant execute on function public.vs_create_managed_learner(text,text,text,boolean) to authenticated;
-comment on table public.vs_identities is 'Additive identity registry; no domain role privileges';
-comment on table public.vs_managed_learners is 'Guardian-managed placeholders, not independent logins';
-notify pgrst,'reload schema';
-commit;
- then
-  raise exception 'Invalid username' using errcode='22023';
- end if;
- perform pg_advisory_xact_lock(hashtext(v_username)::bigint);
- if exists(select 1 from public.vs_username_reservations where username=v_username) then
-  raise exception 'Username unavailable' using errcode='23505';
- end if;
- if exists(select 1 from public.vs_identities
-  where username=v_username and auth_user_id is distinct from new.profile_id) then
-  raise exception 'Username unavailable' using errcode='23505';
- end if;
- if exists(select 1 from public.vs_identities
-  where auth_user_id=new.profile_id and username is not null and username<>v_username) then
-  raise exception 'Username does not match account identity' using errcode='23505';
- end if;
- new.username:=v_username;
- return new;
-end;
-$;
-revoke all on function public.vs_guard_global_public_username() from public,anon,authenticated;
-create trigger vs_global_username_consistency
-before insert or update of username on public.global_public_profiles
-for each row execute function public.vs_guard_global_public_username();
-
-
-create function public.vs_claim_my_username(p_username text)
-returns jsonb language plpgsql security definer set search_path=public,auth,pg_temp as $$
-declare
- v_uid uuid:=auth.uid();
- v_username text:=lower(trim(leading '@' from trim(coalesce(p_username,''))));
- v_id uuid;
- v_old text;
- v_access jsonb;
-begin
- if v_uid is null then raise exception 'Sign in required' using errcode='28000'; end if;
- if v_username !~ '^[a-z][a-z0-9_]{2,23}$' then
-  raise exception 'Invalid username' using errcode='22023';
- end if;
- perform pg_advisory_xact_lock(hashtext(v_username)::bigint);
- if exists(select 1 from public.vs_username_reservations where username=v_username) then
-  raise exception 'Username unavailable' using errcode='23505';
- end if;
- v_access:=public.get_my_auth_access_state();
- if v_access->>'account_status'<>'active' or coalesce((v_access->>'is_anonymized')::boolean,true) then
-  raise exception 'Account unavailable' using errcode='28000';
- end if;
- if not exists(select 1 from public.profiles where id=v_uid) then
-  raise exception 'Account profile missing' using errcode='28000';
- end if;
- insert into public.vs_identities(auth_user_id,kind) values(v_uid,'person')
-  on conflict(auth_user_id) do nothing;
- select id,username into v_id,v_old from public.vs_identities where auth_user_id=v_uid for update;
- if v_old is not null and v_old<>v_username then
-  raise exception 'Username already set' using errcode='22023';
- end if;
- update public.vs_identities set username=v_username,updated_at=now() where id=v_id;
- return jsonb_build_object('identity_id',v_id,'username',v_username);
-exception when unique_violation then
- raise exception 'Username unavailable' using errcode='23505';
-end;
-$$;
-revoke all on function public.vs_claim_my_username(text) from public,anon;
-grant execute on function public.vs_claim_my_username(text) to authenticated;
-
-create function public.vs_list_my_identities()
-returns jsonb language sql stable security definer set search_path=public,auth,pg_temp as $$
-with mine as (
- select id,username,display_name,kind from public.vs_identities where auth_user_id=(select auth.uid())
-), kids as (
- select i.id,i.username,i.display_name,i.kind
- from public.vs_managed_learners ml
- join mine m on ml.guardian_identity_id=m.id
- join public.vs_identities i on i.id=ml.learner_identity_id
-)
-select jsonb_build_object('self',(select to_jsonb(m) from mine m),
- 'managed_learners',coalesce((select jsonb_agg(to_jsonb(k)) from kids k),'[]'::jsonb));
-$$;
-revoke all on function public.vs_list_my_identities() from public,anon;
-grant execute on function public.vs_list_my_identities() to authenticated;
-
--- Managed learner records are NOT authenticated student sessions.
-create function public.vs_create_managed_learner(p_username text,p_display_name text,p_grade text default null,p_guardian_confirmed boolean default false)
-returns jsonb language plpgsql security definer set search_path=public,auth,pg_temp as $$
-declare
- v_uid uuid:=auth.uid();
- v_guardian uuid;
- v_child uuid;
- v_username text:=lower(trim(leading '@' from trim(coalesce(p_username,''))));
- v_access jsonb;
-begin
- if v_uid is null then raise exception 'Sign in required' using errcode='28000'; end if;
- if v_username !~ '^[a-z][a-z0-9_]{2,23}$' or char_length(trim(coalesce(p_display_name,''))) not between 1 and 80 then
-  raise exception 'Invalid learner details' using errcode='22023';
- end if;
- if char_length(coalesce(p_grade,''))>60 then raise exception 'Invalid grade' using errcode='22023'; end if;
- if p_guardian_confirmed is distinct from true then raise exception 'Guardian declaration required' using errcode='42501'; end if;
- perform pg_advisory_xact_lock(hashtext(v_username)::bigint);
- if exists(select 1 from public.vs_username_reservations where username=v_username) then
-  raise exception 'Username unavailable' using errcode='23505';
- end if;
- v_access:=public.get_my_auth_access_state();
- if v_access->>'account_status'<>'active' or coalesce((v_access->>'is_anonymized')::boolean,true) then
-  raise exception 'Account unavailable' using errcode='28000';
- end if;
- if v_access->>'role' not in ('parent','teacher') then
-  raise exception 'Verified adult account required' using errcode='42501';
- end if;
- if not exists (select 1 from auth.users where id=v_uid and email_confirmed_at is not null) then
-  raise exception 'Verified email required' using errcode='42501';
  end if;
  select id into v_guardian from public.vs_identities where auth_user_id=v_uid and kind='person';
  if v_guardian is null then raise exception 'Set up username first' using errcode='22023'; end if;
