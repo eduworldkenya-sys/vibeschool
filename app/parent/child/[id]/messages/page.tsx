@@ -4,9 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 const liveFrom = (table: string) => supabase.from(table)
 
 type Staff = { id: string; full_name: string; role: string }
@@ -149,7 +146,7 @@ export default function ChildMessagesPage() {
     try {
       let threadId = existingByStaff.get(member.id) ?? null
       if (!threadId) {
-        const { data, error: rpcError } = await rpc<string>('parent_start_child_thread', {
+        const { data, error: rpcError } = await supabase.rpc('parent_start_child_thread', {
           p_student_id: studentId,
           p_staff_id: member.id,
           p_context_tag: contextTag,
