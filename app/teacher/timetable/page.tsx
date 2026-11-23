@@ -1397,6 +1397,30 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           --skeleton-bg:    linear-gradient(90deg,#1c1c1e 25%,#2c2c2e 50%,#1c1c1e 75%);
         }
 
+        .vs-v3-workspace{border:1px solid var(--border-color,#e3e6e9);border-radius:8px;background:var(--surface,#fff);padding:12px 13px;margin-bottom:8px}
+        .vs-v3-titleline,.vs-v3-weekline,.vs-v3-tabline,.vs-v3-brand,.vs-v3-topactions,.vs-v3-nav,.vs-v3-tabs,.vs-v3-tabs-right,.vs-v3-daynavigation{display:flex;align-items:center;gap:8px}
+        .vs-v3-titleline,.vs-v3-weekline,.vs-v3-tabline{justify-content:space-between;flex-wrap:wrap}
+        .vs-v3-brand-icon{width:34px;height:34px;background:#07684b;color:white;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:19px}
+        .vs-v3-brand h1{font-size:18px;line-height:1.2;margin:0 0 3px;font-weight:750;color:var(--text-primary,#17202a)}
+        .vs-v3-brand span:not(.vs-v3-brand-icon){display:block;font-size:11px;color:var(--text-muted,#667085)}
+        .vs-v3-button{font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border-color,#dce1e6);background:var(--surface,#fff);color:var(--text-primary,#17202a);border-radius:6px;padding:9px 12px;white-space:nowrap}
+        .vs-v3-button:disabled{opacity:.4;cursor:not-allowed}.vs-v3-primary{background:#075f46;border-color:#075f46;color:#fff}
+        .vs-v3-weekline{padding:12px 0 10px}.vs-v3-nav strong{font-size:12px;font-variant-numeric:tabular-nums}.vs-v3-nav button,.vs-v3-daynavigation button{border:1px solid var(--border-color,#dce1e6);background:transparent;border-radius:50%;cursor:pointer;width:28px;height:28px;font-size:18px;color:var(--text-primary,#17202a)}
+        .vs-v3-metriclink{font:inherit;font-size:11px;color:var(--text-muted,#667085);background:transparent;border:0;cursor:pointer}
+        .vs-v3-tabline{margin:0 -13px -12px;padding:8px 13px;background:var(--surface-raised,#f8f9fa);border-top:1px solid var(--border-color,#e3e6e9)}
+        .vs-v3-tabs button{padding:9px 12px;background:transparent;border:0;border-radius:20px;font-size:12px;color:var(--text-muted,#667085);font-weight:600;cursor:pointer}
+        .vs-v3-tabs button.active{background:#07684b;color:white}
+        .vs-v3-tools{position:relative}.vs-v3-tools summary{list-style:none}.vs-v3-popover{position:absolute;top:100%;right:0;z-index:30;min-width:200px;background:var(--surface,#fff);border:1px solid var(--border-color,#e3e6e9);box-shadow:0 10px 25px #0002;border-radius:8px;padding:6px}
+        .vs-v3-popover button{display:block;width:100%;background:none;border:0;text-align:left;padding:10px;font:inherit;font-size:12px;color:var(--text-primary,#17202a);cursor:pointer}
+        .vs-v3-popover button:hover{background:var(--surface-raised,#f5f7f9)}
+        .vs-v3-filters{margin-top:12px;display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+        .vs-v3-filters label{display:grid;gap:4px;font-size:11px;flex:1 1 140px;min-width:125px;color:var(--text-muted,#667085)}
+        .vs-v3-filters input,.vs-v3-filters select{width:100%;padding:9px 7px;border:1px solid var(--border-color,#dce1e6);border-radius:6px;background:var(--surface,#fff);color:var(--text-primary,#17202a);font:inherit;font-size:12px}
+        .vs-v3-filterresult{font-size:11px;padding:9px 0;color:var(--text-muted,#667085)}.vs-v3-filterresult button{border:0;background:none;text-decoration:underline;cursor:pointer;color:inherit}
+        .vs-v3-daynavigation{padding-top:12px;justify-content:space-between}.vs-v3-daynavigation strong{font-size:12px}
+        .vs-v3-diagnostics{margin-top:12px;border:1px solid var(--border-color,#e3e6e9);border-radius:8px;background:var(--surface,#fff);font-size:12px}
+        .vs-v3-diagnostics>summary{padding:12px;cursor:pointer;font-weight:600}.vs-v3-diagnostics-body{padding:12px;border-top:1px solid var(--border-color,#e3e6e9)}
+        @media(max-width:640px){.vs-v3-workspace{padding:10px}.vs-v3-tabline{margin:0 -10px -10px;padding:8px 10px}.vs-v3-weekline{gap:6px}.vs-v3-titleline{gap:10px}.vs-v3-tabs button{padding:8px 10px}}
         .vs-tool-item {display:block;width:100%;text-align:left;padding:10px 9px;border:0;background:transparent;color:var(--text-primary,#171c25);font:inherit;font-size:12px;border-radius:5px;cursor:pointer;}
         .vs-tool-item:hover,.vs-tool-item:focus-visible {background:var(--surface-raised,#f8f9fb);}
         .vs-timetable-metrics {display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;}
@@ -1446,434 +1470,58 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       {schoolError && <ErrorBanner message={schoolError} />}
       {tuitionError && <div role="alert" className="no-print" style={{ marginBottom: 12, fontSize: 12 }}>{tuitionError} <button type="button" onClick={refreshTuition}>Retry tuition</button></div>}
 
-      {!loading && (
-        <div style={{
-          background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12,
-          padding: '10px 16px', marginBottom: 14,
-        }}>
-          <div style={{ fontSize: 11, color: '#92400e', fontWeight: 700, marginBottom: 4 }}>
-            {isWeekend ? (todayDow === 7 ? 'Sunday' : 'Saturday') : 'School Day'}
+      <section className="vs-v3-workspace no-print" aria-label="Timetable workspace">
+        <div className="vs-v3-titleline">
+          <div className="vs-v3-brand"><span className="vs-v3-brand-icon" aria-hidden="true">▦</span>
+            <div><h1>Timetable</h1><span>${schools.find(school=>school.id===activeSchoolId)?.name ?? 'Teacher timetable'}</span></div>
           </div>
-          <div style={{ fontSize: 12, color: '#78350f', fontStyle: 'italic' }}>
-            {['Every student can learn, just not on the same day.',
-              'Education is not filling a bucket but lighting a fire.',
-              'A good teacher can inspire hope and ignite the imagination.',
-              'Teaching is the greatest act of optimism.',
-              'One child, one teacher, one book can change the world.',
-              'The best teachers teach from the heart, not from the book.',
-              'The art of teaching is the art of assisting discovery.',
-            ][new Date().getDay()]}
+          <div className="vs-v3-topactions">
+            <button type="button" className="vs-v3-button" onClick={()=>router.push('/teacher/timetable/setup')}>⚙ Setup</button>
+            <button type="button" className="vs-v3-button vs-v3-primary" disabled={!canAddSlot} onClick={()=>{setInitialPlacement(undefined);setShowAddSlot(true)}}>+ Lesson</button>
           </div>
         </div>
-      )}
-
-      {/* Hero */}
-      <div
-        className="print-hero"
-        style={{
-          background:   'var(--surface, #fff)',
-          borderRadius: 8,
-          border: '1px solid var(--border-color, #e5e7eb)',
-          padding:      '14px 16px',
-          marginBottom: 14,
-          color:        C.textPrimary,
-        }}
-      >
-        <div style={{ fontSize: 11, color: 'var(--text-muted,#64748b)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-          TIMETABLE
+        <div className="vs-v3-weekline">
+          <div role="group" aria-label="Timetable week navigation" className="vs-v3-nav">
+            <button type="button" aria-label="Previous week" onClick={()=>{browsedWeekRef.current=true;setWeekStart(value=>nairobiDateAdd(value,-7))}}>‹</button>
+            <strong>{weekStart} — {nairobiDateAdd(weekStart,6)}</strong>
+            <button type="button" aria-label="Next week" onClick={()=>{browsedWeekRef.current=true;setWeekStart(value=>nairobiDateAdd(value,7))}}>›</button>
+          </div>
+          <button type="button" className="vs-v3-metriclink" onClick={()=>chooseView('insights')}>{totalLessons} lessons · {weeklyLoadError?'Allocation unverified':loadMismatches.length+' insights'} ›</button>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
-          My timetable
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted,#64748b)', marginTop: 6 }}>
-          {loading ? 'Loading…' : `${totalLessons} school lessons · ${tuitionWeek.filter(lesson => lesson.status === 'scheduled').length} tuition lessons this week`}
-        </div>
-
-        <div className="no-print" style={{ marginTop: 14 }}>
-          <button
-            type="button"
-            onClick={() => canAddSlot && setShowAddSlot(true)}
-            disabled={!canAddSlot}  
-            style={{
-              padding: '8px 18px', borderRadius: 6, border: '1px solid var(--border-color, #e5e7eb)',
-              cursor:     canAddSlot ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
-              background: 'var(--surface-raised,#f8f9fb)', color: C.textPrimary,
-              opacity:    canAddSlot ? 1 : 0.45,
-              transition: 'opacity 0.2s',
-            }}
-          >
-            + Add Lesson
-          </button>
-        </div>
-
-        {/* FIX [UI-07]: separate NOW and NEXT rows for clarity */}
-        {isToday && !loading && (nowSlot || nextSlot) && (
-          <div style={{
-            marginTop: 14, padding: '10px 14px',
-            background: 'var(--surface-raised,#f8f9fb)',
-            borderRadius: 6,
-            display: 'flex', flexDirection: 'column', gap: 6,
-          }}>
-            {nowSlot && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted,#64748b)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    Now
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginTop: 2 }}>
-                    {nowSlot.subject} · {nowSlot.className}
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-muted,#64748b)' }}>
-                  ends {formatTime(nowSlot.endTime)}
-                </div>
+        <div className="vs-v3-tabline">
+          <div role="group" aria-label="Timetable view" className="vs-v3-tabs">
+            <button type="button" aria-pressed={view==='day'} className={view==='day'?'active':''} onClick={()=>{setActiveDow(nairobiDayOfWeek());chooseView('day')}}>Today</button>
+            <button type="button" aria-pressed={view==='week'} className={view==='week'?'active':''} onClick={()=>chooseView('week')}>Week</button>
+            <button type="button" aria-pressed={view==='insights'} className={view==='insights'?'active':''} onClick={()=>chooseView('insights')}>Insights</button>
+          </div>
+          <div className="vs-v3-tabs-right">
+            <button type="button" aria-expanded={showTimetableFilters} aria-controls="timetable-filter-options" className="vs-v3-button" onClick={()=>setShowTimetableFilters(v=>!v)}>☷ Filters{hasDisplayFilters?' •':''}</button>
+            <details className="vs-v3-tools"><summary className="vs-v3-button" aria-label="More timetable tools">•••</summary>
+              <div className="vs-v3-popover">
+                <button type="button" onClick={()=>router.push('/teacher/timetable/setup')}>Templates & school day</button>
+                <button type="button" onClick={()=>router.push('/teacher/lessonplan/prepare')}>Prepare lesson</button>
+                <button type="button" onClick={()=>window.print()}>Print timetable</button>
+                <button type="button" onClick={()=>{setShowTimetableFilters(true);chooseView('insights')}}>Allocation insights</button>
               </div>
-            )}
-            {nextSlot && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted,#64748b)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    Next
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginTop: 2 }}>
-                    {nextSlot.subject} · {nextSlot.className}
-                  </div>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-muted,#64748b)' }}>
-                  {formatCountdown(minutesUntil(nextSlot.startTime, curMin))}
-                </div>
-              </div>
-            )}
+            </details>
           </div>
-        )}
-      </div>
-
-      {/* Only an unselected teacher sees the starter. Full editing and retrieval
-          remain in Timetable setup, including for teachers with no school. */}
-      {!loading && teacherId && showSampleStarter && (
-        <div className="no-print" style={{ marginBottom: 14 }}>
-          {!activeSchoolId && (
-            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 10px' }}>
-              No school timetable connected. Choose a sample to edit and save a personal
-              template in Setup. Only a school administrator can publish school periods.
-            </p>
-          )}
-          <SchoolDaySampleBuilder
-            key={teacherId + ':' + (activeSchoolId ?? 'independent')}
-            mode="starter"
-            userId={teacherId}
-            schoolId={activeSchoolId ?? 'independent'}
-            schoolName={schools.find(s => s.id === activeSchoolId)?.name ?? 'Independent planning'}
-            canManage={false}
-            periodCount={0}
-            onReload={load}
-            onSampleChosen={sampleId => {
-              setShowSampleStarter(false)
-              router.push('/teacher/timetable/setup?sample=' + encodeURIComponent(sampleId))
-            }}
-          />
-          {activeSchoolId && (
-            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 8 }}>
-              Retrieve or change samples from{' '}
-              <a href="/teacher/timetable/setup">Timetable setup</a>. School periods require administrator confirmation.
-            </p>
-          )}
         </div>
-      )}
-
-      {weeklyLoadError && (
-        <div role="alert" className="no-print" style={{
-          marginBottom: 14, border: '1px solid #f59e0b',
-          borderRadius: 12, padding: '12px 14px', color: C.textPrimary,
-        }}>
-          <strong>Weekly allocation not verified.</strong> {weeklyLoadError}
-          <button type="button" onClick={() => setWeeklyLoadRetry(value => value + 1)}
-            style={{ marginLeft: 10, border: 'none', background: 'transparent',
-              color: C.accent, fontWeight: 700, cursor: 'pointer' }}>
-            Retry check
-          </button>
-        </div>
-      )}
-
-      {/* Weekly Load Check — only visible when a class+subject combo is
-          off the KICD allocation target, unscheduled, or missing a target.
-          Silent otherwise, same rule as the scheme page's coverage indicators. */}
-      {!loading && loadMismatches.length > 0 && (
-        <div
-          className="no-print"
-          style={{
-            marginBottom: 14, borderRadius: 14, border: `1px solid ${C.border}`,
-            background: C.surface, overflow: 'hidden',
-          }}
-        >
-          <button
-            onClick={() => setShowLoadCheck(v => !v)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', textAlign: 'left',
-            }}
-          >
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>
-              Weekly allocation · {loadMismatches.filter(m => m.status !== 'NO_TARGET').length} outside target · {loadMismatches.filter(m => m.status === 'NO_TARGET').length} without a target
-            </span>
-            <span style={{ fontSize: 12, color: C.textMuted }}>{showLoadCheck ? 'Hide' : 'Show'}</span>
-          </button>
-          {showLoadCheck && (
-            <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {loadMismatches.map(m => {
-                const label =
-                  m.status === 'ZERO'      ? 'not scheduled' :
-                  m.status === 'UNDER'     ? 'under allocation' :
-                  m.status === 'OVER'      ? 'over allocation' :
-                  'weekly target unavailable'
-                const color =
-                  m.status === 'NO_TARGET' ? C.textMuted :
-                  m.status === 'OVER'      ? '#dc2626' :
-                  '#d97706'
-                return (
-                  <div key={`${m.classId}::${m.subjectId}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                    <span style={{ color: C.textPrimary, fontWeight: 600 }}>
-                      {m.subjectName} · {m.className}{m.stream ? ' ' + m.stream : ''}
-                    </span>
-                    <span style={{ color, fontWeight: 700 }}>
-                      {m.lessonsPerWeek === null ? `${m.scheduledCount} scheduled` : `${m.scheduledCount} of ${m.lessonsPerWeek}`} · {label}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {periodIssues.length > 0 && (
-        <details open className="no-print" style={{
-          marginBottom: 14, border: '1px solid #f59e0b',
-          borderRadius: 12, padding: '12px 14px',
-        }}>
-          <summary style={{ fontWeight: 700, cursor: 'pointer' }}>
-            {periodIssues.length} upper-primary lesson placements need review
-          </summary>
-          <p style={{ margin: '8px 0', fontSize: 12 }}>
-            These slots are visible for historical continuity, but they have no
-            verified 35-minute weekday school period. Weekly allocation totals
-            may include them and must not be treated as fully verified.
-            {' '}<a href="/teacher/timetable/setup">Configure school periods</a>.
-          </p>
-          <ul style={{ marginBottom: 0 }}>{periodIssues.map(slot => (
-            <li key={slot.id}>{slot.subject} · {slot.className} ·
-              {' '}{DAYS.find(day => day.dow === slot.dayOfWeek)?.label} ·
-              {' '}{slot.startTime}–{slot.endTime}
-              {timeToMin(slot.endTime) - timeToMin(slot.startTime) !== 35
-                ? ' · duration is not 35 minutes' : ' · no confirmed school-period match'}
-            </li>
-          ))}</ul>
-        </details>
-      )}
-
-      <div className="no-print" role="group" aria-label="Schedule context" style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        {(['all', 'school', 'tuition'] as const).map(context => <Btn key={context} variant={scheduleContext === context ? 'primary' : 'ghost'} small onClick={() => setScheduleContext(context)}>{context === 'all' ? 'All' : context === 'school' ? 'School' : 'Tuition'}</Btn>)}
-      </div>
-
-      {/* Day tabs */}
-      {view !== "insights" && <div
-        className="day-tabs no-print"
-        style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}
-      >
-        {DAYS.map(d => {
-          const schoolCount = displaySlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
-          const tuitionCount = tuitionWeek.filter(lesson => tuitionLocalDate(lesson.starts_at) === dateForDow(d.dow) && lesson.status === 'scheduled').length
-          const count = (scheduleContext === 'tuition' ? 0 : schoolCount) + (scheduleContext === 'school' ? 0 : tuitionCount)
-          const isActive = activeDow === d.dow
-          const isTdy    = d.dow === todayDow
-          const wknd     = d.weekend
-          const activeBg = wknd ? '#d97706' : C.accent
-          const border   = isTdy && !isActive ? `1.5px solid ${wknd ? '#d97706' : C.accent}` : wknd && !isActive ? '1.5px dashed #d97706' : 'none'
-          return (
-            <button
-              type="button"
-              key={d.dow}
-              onClick={() => setActiveDow(d.dow)}
-              style={{
-                padding:      '8px 16px',
-                borderRadius: 20,
-                border,
-                cursor:       'pointer',
-                fontFamily:   'inherit',
-                fontSize:     13,
-                fontWeight:   700,
-                flexShrink:   0,
-                background:   isActive ? activeBg : wknd ? '#fffbeb' : 'var(--surface-raised, #f9fafb)',
-                color:        isActive ? '#fff' : wknd ? '#d97706' : isTdy ? C.accent : C.textMuted,
-              }}
-            >
-              {d.label}
-              {wknd && !isActive && <span style={{ fontSize: 11, marginLeft: 3 }}>✦</span>}
-              {count > 0 && (
-                <span style={{
-                  marginLeft: 6, fontSize: 11, fontWeight: 800,
-                  padding: '1px 6px', borderRadius: 10,
-                  background: isActive ? 'rgba(255,255,255,0.25)' : wknd ? '#fef3c7' : C.accentLight,
-                  color:      isActive ? '#fff' : wknd ? '#d97706' : C.accent,
-                }}>
-                  {count}
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>}
-
-      {personalSchoolDay && (
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-            <div>
-              <SectionLabel>My personal school-day timetable</SectionLabel>
-              <div style={{ fontSize: 13, fontWeight: 750, color: C.textPrimary }}>{personalSchoolDay.name}</div>
-              <p style={{ fontSize: 12, color: C.textMuted, margin: '6px 0 10px' }}>
-                Your chosen bell-time outline for {DAYS.find(d => d.dow === activeDow)?.label ?? 'this day'}.
-                Saved on this device only; these are not assigned subjects, school-approved periods or lessons.
-              </p>
-            </div>
-            <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>Edit personal timetable</Btn>
-          </div>
-          {personalSchoolDay.blocks.filter(b => b.schedule_day === 0 || b.schedule_day === activeDow)
-            .sort((a, b) => a.start_time.localeCompare(b.start_time)).length === 0 ? (
-            <p style={{ color: C.textMuted, fontSize: 12 }}>No personal periods planned for this day.</p>
-          ) : <div style={{ display: 'grid', gap: 6 }}>
-            {personalSchoolDay.blocks.filter(b => b.schedule_day === 0 || b.schedule_day === activeDow)
-              .sort((a, b) => a.start_time.localeCompare(b.start_time)).map((block, index) => (
-              <div key={index} style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid ' + C.border, borderLeft: '3px solid ' + periodAppearance(block.kind).border, background: periodAppearance(block.kind).background, borderRadius: 8, padding: '8px 10px', fontSize: 12 }}>
-                <strong style={{ minWidth: 100, color: C.textPrimary }}>{block.start_time}–{block.end_time}</strong>
-                <span style={{ color: periodAppearance(block.kind).text }}>{block.label}</span>
-                <span style={{ marginLeft: 'auto', color: C.textMuted }}>{block.kind.replaceAll('_', ' ')}</span>
-              </div>
-            ))}
-          </div>}
-        </Card>
-      )}
-
-      {schools.length > 1 && (
-        <div className="no-print" style={{ marginBottom: 12 }}>
-          <label style={{ display: 'grid', gap: 5, fontSize: 11, fontWeight: 800, color: C.textMuted }}>
-            Show timetable for
-            <select
-              value={schoolFilter}
-              onChange={e => setSchoolFilter(e.target.value)}
-              style={{ padding: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.textPrimary }}
-            >
-              <option value="all">All my schools</option>
-              {schools.map(school => <option key={school.id} value={school.id}>{school.name}{school.id === activeSchoolId ? ' · active' : ''}</option>)}
-            </select>
-          </label>
-        </div>
-      )}
-
-      <div className="no-print vs-timetable-filterbar" aria-label="Find timetable lessons" style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:10}}>
-        <label style={{display:'flex',flex:'1 1 190px',minWidth:160,alignItems:'center',gap:8,border:'1px solid var(--border-color,#e5e7eb)',background:'var(--surface,#fff)',borderRadius:6,padding:'0 10px'}}>
-          <span aria-hidden="true" style={{color:C.textMuted}}>⌕</span>
-          <input type="search" aria-label="Search lessons by subject, class or room" placeholder="Search subject, class, room" value={searchText} onChange={e=>setSearchText(e.target.value)} style={{width:'100%',padding:'10px 0',border:0,background:'transparent',font: 'inherit',fontSize:12,color:C.textPrimary,outlineOffset:2}} />
-        </label>
-        <button type="button" aria-expanded={showTimetableFilters} aria-controls="timetable-filter-options" onClick={()=>setShowTimetableFilters(value=>!value)}
-          style={{border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,padding:'10px 12px',background:'var(--surface,#fff)',color:C.textPrimary,cursor:'pointer',fontSize:12}}>
-          Filters{hasDisplayFilters?' · Active':''}
-        </button>
-        <button type="button" onClick={()=>router.push('/teacher/timetable/setup')}
-          style={{border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,padding:'10px 12px',background:'var(--surface,#fff)',color:C.textPrimary,cursor:'pointer',fontSize:12}}>Setup</button>
-        <button type="button" disabled={!canAddSlot} onClick={()=>setShowAddSlot(true)}
-          style={{border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,padding:'10px 12px',background:'var(--surface,#fff)',color:C.textPrimary,cursor:canAddSlot?'pointer':'not-allowed',fontSize:12}}>+ Lesson</button>
-      </div>
-      {showTimetableFilters && <div id="timetable-filter-options" className="no-print" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10,padding:10,border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6}}>
-        <label style={{fontSize:12,display:'grid',gap:4,minWidth:150,flex:'1 1 160px'}}>Class
-          <select aria-label="Filter timetable by class" value={classFilter} onChange={e=>setClassFilter(e.target.value)} style={{padding:9,border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,background:'var(--surface,#fff)',color:C.textPrimary}}>
-            <option value="all">All classes</option>{classChoices.map(item=><option value={item.id} key={item.id}>{item.name}</option>)}
-          </select>
-        </label>
-        <label style={{fontSize:12,display:'grid',gap:4,minWidth:150,flex:'1 1 160px'}}>Subject
-          <select aria-label="Filter timetable by subject" value={subjectFilter} onChange={e=>setSubjectFilter(e.target.value)} style={{padding:9,border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,background:'var(--surface,#fff)',color:C.textPrimary}}>
-            <option value="all">All subjects</option>{subjectChoices.map(item=><option value={item.id} key={item.id}>{item.name}</option>)}
-          </select>
-        </label>
-        <button type="button" onClick={clearDisplayFilters} style={{alignSelf:'end',border:'1px solid var(--border-color,#e5e7eb)',background:'transparent',borderRadius:6,padding:'10px 12px',color:C.textPrimary,cursor:'pointer'}}>Clear</button>
-      </div>}
-      {hasDisplayFilters && <div className="no-print" role="status" style={{fontSize:12,color:C.textMuted,marginBottom:9}}>
-        {renderedWeekSlots.length} matching school lesson{renderedWeekSlots.length===1?'':'s'} in this week
-        <button type="button" onClick={clearDisplayFilters} style={{border:0,background:'transparent',textDecoration:'underline',color:C.textPrimary,marginLeft:8,cursor:'pointer'}}>Clear filters</button>
-      </div>}
-      <div className="no-print" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:10}}>
-        <div role="group" aria-label="Navigate timetable week" style={{display:'flex',alignItems:'center',gap:6}}>
-          <button type="button" aria-label="Previous week" onClick={()=>{browsedWeekRef.current=true;setWeekStart(value=>nairobiDateAdd(value,-7))}} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>‹</button>
-          <span style={{fontVariantNumeric:'tabular-nums',fontSize:12,fontWeight:650,padding:'0 5px'}}>{weekStart} — {nairobiDateAdd(weekStart,6)}</span>
-          <button type="button" aria-label="Next week" onClick={()=>{browsedWeekRef.current=true;setWeekStart(value=>nairobiDateAdd(value,7))}} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>›</button>
-          <button type="button" onClick={()=>{browsedWeekRef.current=false;setWeekStart(nairobiWeekStart());setActiveDow(nairobiDayOfWeek());chooseView('day')}} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>Today</button>
-        </div>
-        <span style={{fontSize:11,color:C.textMuted}}>{view==='insights'?'Select an allocation to see lessons':'Select any lesson to open its tools'}</span>
-      </div>
-      <div className="no-print" role="group" aria-label="Timetable view" style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:10,padding:'8px 10px',border:'1px solid var(--border-color,#e5e7eb)',borderRadius:8,background:'var(--surface,#fff)' }}>
-        <div style={{display:'flex',gap:6,alignItems:'center'}}>
-          <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Today</Btn>
-          <Btn variant={view === 'week' ? 'primary' : 'ghost'} small onClick={() => chooseView('week')}>Week</Btn>
-          <Btn variant={view === 'insights' ? 'primary' : 'ghost'} small onClick={() => chooseView('insights')}>Insights</Btn>
-        </div>
-        <details className="vs-timetable-tools" style={{position:'relative'}}>
-          <summary style={{cursor:'pointer',padding:'8px 11px',border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,fontSize:12,fontWeight:650,listStyle:'none'}}>Tools ▾</summary>
-          <div style={{position:'absolute',right:0,top:'100%',zIndex:12,width:210,background:'var(--surface,#fff)',border:'1px solid var(--border-color,#e5e7eb)',borderRadius:8,padding:8,boxShadow:'0 12px 28px rgba(0,0,0,.09)'}}>
-            <button type="button" className="vs-tool-item" onClick={() => router.push('/teacher/timetable/setup')}>Templates & school day</button>
-            <button type="button" className="vs-tool-item" onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare a lesson</button>
-            <button type="button" className="vs-tool-item" onClick={() => window.print()}>Print timetable</button>
-          </div>
-        </details>
-      </div>
-      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}} aria-label="Additional timetable actions">
-        {/* Preserve existing revision, preparation and setup actions below. */}
-        <Btn
-          variant="ghost"
-          small
-          onClick={async () => {
-            const nextWeek = nairobiDateAdd(weekStart, 7)
-            if (!window.confirm(`Create a new timetable revision from ${nextWeek} using the current active pattern? Existing lesson history will stay unchanged.`)) return
-            try {
-              let undoSnapshotId: string | null = null
-              try {
-                undoSnapshotId = await snapshotTimetable('Before repeating timetable into next week')
-              } catch {
-                undoSnapshotId = null
-              }
-              await duplicateActiveTimetable(nextWeek)
-              if (undoSnapshotId) setLastUndoSnapshotId(undoSnapshotId)
-              await load()
-            } catch (error) {
-              setLoadError(error instanceof Error ? error.message : 'Could not repeat the timetable into next week.')
-            }
-          }}
-        >
-          Repeat from next week
-        </Btn>
-        <Btn variant="ghost" small onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare lesson</Btn>
-        <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>Timetable setup</Btn>
-        {lastUndoSnapshotId && (
-          <Btn
-            variant="ghost"
-            small
-            onClick={async () => {
-              if (!window.confirm('Undo the last timetable change from today forward? Taught lesson history will remain unchanged.')) return
-              try {
-                await restoreTimetableSnapshot(lastUndoSnapshotId, nairobiDateStr())
-                setLastUndoSnapshotId(null)
-                setSelected(null)
-                await load()
-              } catch (error) {
-                setLoadError(error instanceof Error ? error.message : 'Could not undo the last timetable change.')
-              }
-            }}
-          >
-            Undo last change
-          </Btn>
-        )}
-      </div>
-      {blocksError && <p role="alert">{blocksError} <button type="button" onClick={() => load()}>Retry</button></p>}
+        {showTimetableFilters && <div id="timetable-filter-options" className="vs-v3-filters">
+          <label>Search lessons<input type="search" aria-label="Search lessons" value={searchText} onChange={e=>setSearchText(e.target.value)} placeholder="Subject, class, room" /></label>
+          <label>School<select value={schoolFilter} onChange={e=>setSchoolFilter(e.target.value)}><option value="all">All my schools</option>{schools.map(school=><option key={school.id} value={school.id}>{school.name}</option>)}</select></label>
+          <label>Class<select value={classFilter} onChange={e=>setClassFilter(e.target.value)}><option value="all">All classes</option>{classChoices.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label>Subject<select value={subjectFilter} onChange={e=>setSubjectFilter(e.target.value)}><option value="all">All subjects</option>{subjectChoices.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label>Schedule<select value={scheduleContext} onChange={e=>setScheduleContext(e.target.value as 'all'|'school'|'tuition')}><option value="all">School & tuition</option><option value="school">School only</option><option value="tuition">Tuition only</option></select></label>
+          <button className="vs-v3-button" type="button" onClick={()=>{clearDisplayFilters();setSchoolFilter('all');setScheduleContext('all')}}>Clear</button>
+        </div>}
+        {hasDisplayFilters && <div className="vs-v3-filterresult" role="status">{totalLessons} matching school lessons <button type="button" onClick={clearDisplayFilters}>Clear</button></div>}
+        {view==='day' && <div className="vs-v3-daynavigation">
+          <button type="button" aria-label="Previous day" onClick={()=>setActiveDow(d=>Math.max(1,d-1))}>‹</button>
+          <strong>{DAYS.find(d=>d.dow===activeDow)?.label} · {dateForDow(activeDow)}</strong>
+          <button type="button" aria-label="Next day" onClick={()=>setActiveDow(d=>Math.min(7,d+1))}>›</button>
+        </div>}
+      </section>
+      {blocksError && <p role="alert">{blocksError} <button type="button" onClick={()=>load()}>Retry</button></p>}
       {view === 'insights' && (
         <section aria-label="Timetable insights" style={{border:'1px solid var(--border-color,#e5e7eb)',background:'var(--surface,#fff)',borderRadius:8,padding:16,marginBottom:14}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
@@ -1983,31 +1631,213 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </Card>}
 
-      {/* Week summary */}
-      {!loading && view !== "insights" && (
-        <Card>
-          <SectionLabel>Week Summary</SectionLabel>
-          {[
-            { label: 'School Lessons', value: totalLessons },
-            { label: 'Tuition Lessons', value: tuitionWeek.filter(lesson => lesson.status === 'scheduled').length },
-            { label: 'School Classes',       value: uniqueClasses },
-            { label: "Today's School Lessons", value: todayCount },
-          ].map(r => (
-            <div
-              key={r.label}
-              style={{
-                display: 'flex', justifyContent: 'space-between',
-                padding: '10px 0',
-                borderBottom: `1px solid var(--border-color, ${C.border})`,
-              }}
-            >
-              <span style={{ fontSize: 13, color: C.textMuted }}>{r.label}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{r.value}</span>
+      <details className="vs-v3-diagnostics no-print">
+        <summary>Scheduling checks & historical records {loadMismatches.length+periodIssues.length>0?'· '+(loadMismatches.length+periodIssues.length)+' items':''}</summary>
+        <div className="vs-v3-diagnostics-body">
+                {weeklyLoadError && (
+        <div role="alert" className="no-print" style={{
+          marginBottom: 14, border: '1px solid #f59e0b',
+          borderRadius: 12, padding: '12px 14px', color: C.textPrimary,
+        }}>
+          <strong>Weekly allocation not verified.</strong> {weeklyLoadError}
+          <button type="button" onClick={() => setWeeklyLoadRetry(value => value + 1)}
+            style={{ marginLeft: 10, border: 'none', background: 'transparent',
+              color: C.accent, fontWeight: 700, cursor: 'pointer' }}>
+            Retry check
+          </button>
+        </div>
+      )}
+
+      {/* Weekly Load Check — only visible when a class+subject combo is
+          off the KICD allocation target, unscheduled, or missing a target.
+          Silent otherwise, same rule as the scheme page's coverage indicators. */}
+      {!loading && loadMismatches.length > 0 && (
+        <div
+          className="no-print"
+          style={{
+            marginBottom: 14, borderRadius: 14, border: `1px solid ${C.border}`,
+            background: C.surface, overflow: 'hidden',
+          }}
+        >
+          <button
+            onClick={() => setShowLoadCheck(v => !v)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>
+              Weekly allocation · {loadMismatches.filter(m => m.status !== 'NO_TARGET').length} outside target · {loadMismatches.filter(m => m.status === 'NO_TARGET').length} without a target
+            </span>
+            <span style={{ fontSize: 12, color: C.textMuted }}>{showLoadCheck ? 'Hide' : 'Show'}</span>
+          </button>
+          {showLoadCheck && (
+            <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {loadMismatches.map(m => {
+                const label =
+                  m.status === 'ZERO'      ? 'not scheduled' :
+                  m.status === 'UNDER'     ? 'under allocation' :
+                  m.status === 'OVER'      ? 'over allocation' :
+                  'weekly target unavailable'
+                const color =
+                  m.status === 'NO_TARGET' ? C.textMuted :
+                  m.status === 'OVER'      ? '#dc2626' :
+                  '#d97706'
+                return (
+                  <div key={`${m.classId}::${m.subjectId}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                    <span style={{ color: C.textPrimary, fontWeight: 600 }}>
+                      {m.subjectName} · {m.className}{m.stream ? ' ' + m.stream : ''}
+                    </span>
+                    <span style={{ color, fontWeight: 700 }}>
+                      {m.lessonsPerWeek === null ? `${m.scheduledCount} scheduled` : `${m.scheduledCount} of ${m.lessonsPerWeek}`} · {label}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
-          ))}
+          )}
+        </div>
+      )}
+
+      {periodIssues.length > 0 && (
+        <details open className="no-print" style={{
+          marginBottom: 14, border: '1px solid #f59e0b',
+          borderRadius: 12, padding: '12px 14px',
+        }}>
+          <summary style={{ fontWeight: 700, cursor: 'pointer' }}>
+            {periodIssues.length} upper-primary lesson placements need review
+          </summary>
+          <p style={{ margin: '8px 0', fontSize: 12 }}>
+            These slots are visible for historical continuity, but they have no
+            verified 35-minute weekday school period. Weekly allocation totals
+            may include them and must not be treated as fully verified.
+            {' '}<a href="/teacher/timetable/setup">Configure school periods</a>.
+          </p>
+          <ul style={{ marginBottom: 0 }}>{periodIssues.map(slot => (
+            <li key={slot.id}>{slot.subject} · {slot.className} ·
+              {' '}{DAYS.find(day => day.dow === slot.dayOfWeek)?.label} ·
+              {' '}{slot.startTime}–{slot.endTime}
+              {timeToMin(slot.endTime) - timeToMin(slot.startTime) !== 35
+                ? ' · duration is not 35 minutes' : ' · no confirmed school-period match'}
+            </li>
+          ))}</ul>
+        </details>
+      )}
+
+
+                {/* Only an unselected teacher sees the starter. Full editing and retrieval
+          remain in Timetable setup, including for teachers with no school. */}
+      {!loading && teacherId && showSampleStarter && (
+        <div className="no-print" style={{ marginBottom: 14 }}>
+          {!activeSchoolId && (
+            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 10px' }}>
+              No school timetable connected. Choose a sample to edit and save a personal
+              template in Setup. Only a school administrator can publish school periods.
+            </p>
+          )}
+          <SchoolDaySampleBuilder
+            key={teacherId + ':' + (activeSchoolId ?? 'independent')}
+            mode="starter"
+            userId={teacherId}
+            schoolId={activeSchoolId ?? 'independent'}
+            schoolName={schools.find(s => s.id === activeSchoolId)?.name ?? 'Independent planning'}
+            canManage={false}
+            periodCount={0}
+            onReload={load}
+            onSampleChosen={sampleId => {
+              setShowSampleStarter(false)
+              router.push('/teacher/timetable/setup?sample=' + encodeURIComponent(sampleId))
+            }}
+          />
+          {activeSchoolId && (
+            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 8 }}>
+              Retrieve or change samples from{' '}
+              <a href="/teacher/timetable/setup">Timetable setup</a>. School periods require administrator confirmation.
+            </p>
+          )}
+        </div>
+      )}
+
+
+                {personalSchoolDay && (
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <SectionLabel>My personal school-day timetable</SectionLabel>
+              <div style={{ fontSize: 13, fontWeight: 750, color: C.textPrimary }}>{personalSchoolDay.name}</div>
+              <p style={{ fontSize: 12, color: C.textMuted, margin: '6px 0 10px' }}>
+                Your chosen bell-time outline for {DAYS.find(d => d.dow === activeDow)?.label ?? 'this day'}.
+                Saved on this device only; these are not assigned subjects, school-approved periods or lessons.
+              </p>
+            </div>
+            <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>Edit personal timetable</Btn>
+          </div>
+          {personalSchoolDay.blocks.filter(b => b.schedule_day === 0 || b.schedule_day === activeDow)
+            .sort((a, b) => a.start_time.localeCompare(b.start_time)).length === 0 ? (
+            <p style={{ color: C.textMuted, fontSize: 12 }}>No personal periods planned for this day.</p>
+          ) : <div style={{ display: 'grid', gap: 6 }}>
+            {personalSchoolDay.blocks.filter(b => b.schedule_day === 0 || b.schedule_day === activeDow)
+              .sort((a, b) => a.start_time.localeCompare(b.start_time)).map((block, index) => (
+              <div key={index} style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid ' + C.border, borderLeft: '3px solid ' + periodAppearance(block.kind).border, background: periodAppearance(block.kind).background, borderRadius: 8, padding: '8px 10px', fontSize: 12 }}>
+                <strong style={{ minWidth: 100, color: C.textPrimary }}>{block.start_time}–{block.end_time}</strong>
+                <span style={{ color: periodAppearance(block.kind).text }}>{block.label}</span>
+                <span style={{ marginLeft: 'auto', color: C.textMuted }}>{block.kind.replaceAll('_', ' ')}</span>
+              </div>
+            ))}
+          </div>}
         </Card>
       )}
 
+
+          <details><summary>More timetable actions</summary>      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}} aria-label="Additional timetable actions">
+        {/* Preserve existing revision, preparation and setup actions below. */}
+        <Btn
+          variant="ghost"
+          small
+          onClick={async () => {
+            const nextWeek = nairobiDateAdd(weekStart, 7)
+            if (!window.confirm(`Create a new timetable revision from ${nextWeek} using the current active pattern? Existing lesson history will stay unchanged.`)) return
+            try {
+              let undoSnapshotId: string | null = null
+              try {
+                undoSnapshotId = await snapshotTimetable('Before repeating timetable into next week')
+              } catch {
+                undoSnapshotId = null
+              }
+              await duplicateActiveTimetable(nextWeek)
+              if (undoSnapshotId) setLastUndoSnapshotId(undoSnapshotId)
+              await load()
+            } catch (error) {
+              setLoadError(error instanceof Error ? error.message : 'Could not repeat the timetable into next week.')
+            }
+          }}
+        >
+          Repeat from next week
+        </Btn>
+        {lastUndoSnapshotId && (
+          <Btn
+            variant="ghost"
+            small
+            onClick={async () => {
+              if (!window.confirm('Undo the last timetable change from today forward? Taught lesson history will remain unchanged.')) return
+              try {
+                await restoreTimetableSnapshot(lastUndoSnapshotId, nairobiDateStr())
+                setLastUndoSnapshotId(null)
+                setSelected(null)
+                await load()
+              } catch (error) {
+                setLoadError(error instanceof Error ? error.message : 'Could not undo the last timetable change.')
+              }
+            }}
+          >
+            Undo last change
+          </Btn>
+        )}
+      </div>
+</details>
+        </div>
+      </details>
       {/* Slot detail drawer */}
       <SlotDrawer
         slot={selected}
