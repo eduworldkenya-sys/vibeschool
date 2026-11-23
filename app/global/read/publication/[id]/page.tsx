@@ -55,6 +55,9 @@ export default function ReadPublicationPage() {
       setIsLoggedIn(!!user)
       const { data: pub, error: pe } = await sb.from('vibe_publications').select('*').eq('id', id).eq('status', 'published').single()
       if (pe || !pub) { setNotFound(true); setLoading(false); return }
+      // Old publication links for textbooks resolve to the one canonical Learn
+      // textbook reader; no duplicate or dark legacy textbook UI.
+      if (pub.format === 'vibetextbook') { router.replace('/read/textbook/' + encodeURIComponent(id)); return }
       // Existing public story links remain valid and now open the dedicated Originals book view.
       if (isStoryPublication(pub as VibePublication) && !new URLSearchParams(window.location.search).has('classic')) { router.replace(storyLandingHref(id)); return }
       setPublication(pub as VibePublication)
