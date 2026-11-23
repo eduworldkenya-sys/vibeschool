@@ -1560,7 +1560,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
               <span className="vs-v3-progress" aria-hidden="true"><span style={{width:row.lessonsPerWeek&&row.lessonsPerWeek>0?`${Math.min(100,100*row.scheduledCount/row.lessonsPerWeek)}%`:'0%',background:subjectTone(row.subjectName).border}} /></span>
               <span className="vs-v3-insightstatus">{row.status==='OK'?'Matched':row.status==='NO_TARGET'?'Target unverified':row.status==='UNDER'?'Under allocation':row.status==='OVER'?'Over allocation':'Not scheduled'}</span>
             </button>)}
-          </div>
+          </div>}
           <p style={{fontSize:12,color:C.textMuted,margin:'14px 0 0'}}>Lesson counts are based on the existing load service. Period issues and unverified targets must be resolved before treating the timetable as complete.</p>
           <button type="button" onClick={() => router.push('/teacher/timetable/setup')} style={{marginTop:12,border:'1px solid var(--border-color,#e5e7eb)',background:'transparent',borderRadius:6,padding:'9px 12px',color:C.textPrimary,cursor:'pointer'}}>School day & templates</button>
         </section>
