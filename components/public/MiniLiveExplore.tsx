@@ -10,7 +10,7 @@ import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInter
   addMiniComment, reportMini, recordMiniLearningSignal } from '@/lib/minis/actions'
 import styles from './MiniExplore.module.css'
 
-type Section = 'feed' | 'read' | 'compose' | 'creator' | 'mine'
+type Section = 'feed' | 'read' | 'compose' | 'creator' | 'mine' | 'profile'
 type Tab = 'For You' | 'Following' | 'New'
 type Submission = { id: string; title: string; subject: string; status: string; created_at: string }
 
@@ -55,6 +55,8 @@ export function MiniLiveExplore() {
   const [draftBody, setDraftBody] = useState('')
   const [draftSubject, setDraftSubject] = useState<string>(MINI_SUBJECTS[0])
   const [photo, setPhoto] = useState<File | null>(null)
+  const [profileName,setProfileName] = useState('')
+  const [profileUsername,setProfileUsername] = useState('')
 
   const open = useCallback((post: MiniPost) => {
     setSelectedId(post.id)
@@ -240,6 +242,46 @@ export function MiniLiveExplore() {
     finally {setBusy(false)}
   }
 
+  async function editProfile() {
+    if (!ensureSignIn(viewer) || !viewer || busy) return
+    setError('');setNotice('')
+    if (!adult) {
+      setError('Public creator profiles require an adult account with a verified date of birth.')
+      return
+    }
+    setBusy(true)
+    try {
+      const {data,error:readError} = await supabase.from('global_public_profiles')
+        .select('username,display_name').eq('profile_id',viewer).maybeSingle()
+      if (readError) throw readError
+      setProfileName(data?.display_name ?? '')
+      setProfileUsername(data?.username ?? '')
+      setSection('profile')
+    } catch {setError('Unable to load your VibeSchool public profile.')}
+    finally {setBusy(false)}
+  }
+
+  async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!viewer || !adult || busy) return
+    const username = profileUsername.trim().toLowerCase().replace(/^@/,'')
+    const displayName = profileName.trim()
+    if (!/^[a-z][a-z0-9_]{2,23}$/.test(username) ||
+        displayName.length < 2 || displayName.length > 80) {
+      setError('Choose a 3–24-character username beginning with a letter, and a public name of 2–80 characters.')
+      return
+    }
+    setBusy(true);setError('');setNotice('')
+    try {
+      const {error:saveError} = await supabase.from('global_public_profiles')
+        .upsert({profile_id:viewer,username,display_name:displayName,is_public:true},{onConflict:'profile_id'})
+      if (saveError) throw saveError
+      setNotice('Your existing VibeSchool profile is now public. You can submit Mini Lessons for review.')
+      setSection('compose')
+    } catch {setError('Could not save your profile. Check whether that username is already taken.')}
+    finally {setBusy(false)}
+  }
+
   const card = (post: MiniPost) => <button type="button" key={post.id} className={styles.miniCard}
     onClick={() => open(post)} style={{ textAlign: 'left' }}>
     <Cover url={covers[post.id]} subject={post.subject} title={post.title}/>
@@ -258,6 +300,7 @@ export function MiniLiveExplore() {
           <h1 className={styles.exploreTitle}>Explore</h1>
           <p className={styles.subline}>Discover short, useful explanations shared by educators.</p></div>
         <div className={styles.actions}>
+          <button type="button" className={styles.secondary} onClick={() => void editProfile()}>My Profile</button>
           <button type="button" className={styles.secondary} onClick={() => void openMine()}>My Minis</button>
           <button type="button" className={styles.primary} onClick={() => {setError('');setSection('compose')}}>+ Create Mini</button>
         </div>
@@ -297,8 +340,9 @@ export function MiniLiveExplore() {
         <div className={styles.creatorRow}>
           <div className={styles.creatorLeft}>
             <span className={styles.avatar} aria-hidden="true">{current.creator_label.slice(0,1).toUpperCase()}</span>
-            <div><Link href={'/global/u/'+encodeURIComponent(current.creator_label)} className={styles.linkButton}>
-              @{current.creator_label}</Link><p className={styles.previewNote}>VibeSchool public profile</p></div>
+            <div><button type="button" className={styles.linkButton} onClick={() => {
+                setCreatorId(current.creator_id);setSection('creator')
+              }}>@{current.creator_label}</button><p className={styles.previewNote}>VibeSchool creator · View Minis</p></div>
           </div>
           <button type="button" className={styles.smallButton} disabled={busy || current.creator_id===viewer}
             aria-pressed={follows.has(current.creator_id)} onClick={()=>void follow()}>
@@ -349,7 +393,7 @@ export function MiniLiveExplore() {
       <h1>Share what you know.</h1>
       <p className={styles.subline}>One photo and a short educational explanation.</p>
       {!viewer && <p className={styles.formNote}>Sign in before publishing. <Link href="/login?redirect=%2Fexplore">Sign in</Link></p>}
-      {viewer && <p className={styles.formNote}>Your existing VibeSchool username is used. <Link href="/global/profile">Manage your public profile</Link>.</p>}
+      {viewer && <p className={styles.formNote}>Minis use your existing VibeSchool public username. <button type="button" className={styles.linkButton} onClick={() => void editProfile()}>Set up your creator profile</button>.</p>}
       <form onSubmit={event=>void publish(event)}>
         <label htmlFor="mini-title" className={styles.label}>Title</label>
         <input id="mini-title" required maxLength={100} minLength={5} className={styles.field}
@@ -378,6 +422,24 @@ export function MiniLiveExplore() {
       {mine.length ? mine.map(p=><div key={p.id} className={styles.comment}><strong>{p.title}</strong>
         {p.subject} · {p.status==='approved'?'Published':p.status==='pending'?'Awaiting review':p.status}</div>)
         : <p>No Mini Lessons submitted yet.</p>}
+    </section>}
+
+    {section === 'profile' && <section className={styles.profile}>
+      <button type="button" className={styles.back} onClick={back}>← Explore</button>
+      <h1>My VibeSchool public profile</h1>
+      <p className={styles.subline}>Your existing account and username will appear on published Minis. Only eligible adults can make a creator profile public.</p>
+      <form onSubmit={event => void saveProfile(event)}>
+        <label className={styles.label} htmlFor="mini-profile-username">Username</label>
+        <input className={styles.field} id="mini-profile-username" autoComplete="off"
+          value={profileUsername} maxLength={24} required
+          onChange={event => setProfileUsername(event.target.value)} placeholder="your_username" />
+        <label className={styles.label} htmlFor="mini-profile-name">Public display name</label>
+        <input className={styles.field} id="mini-profile-name" value={profileName}
+          required maxLength={80} onChange={event => setProfileName(event.target.value)}
+          placeholder="How people should know you" />
+        <p className={styles.formNote}>Publishing this profile makes your username and display name public. You can still submit a Mini only after account and ownership checks.</p>
+        <button type="submit" className={styles.primary} disabled={busy || !adult}>Save public profile</button>
+      </form>
     </section>}
 
     {section === 'creator' && creator && <section className={styles.profile}>
