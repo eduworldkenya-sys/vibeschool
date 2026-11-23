@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import type { ContentBlock } from '@/lib/publishTypes'
 import UniversalLearnReader, { type UniversalLearnSection } from '@/components/learn/UniversalLearnReader'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import { BiologyInteractiveBlock } from '@/components/global/publish/BiologyInteractiveBlock'
 
 type ReaderSection = UniversalLearnSection & { sourceBlocks: ContentBlock[] }
 
@@ -61,8 +62,21 @@ function PublishedBlock({ block }: { block: ContentBlock }) {
       {caption && <figcaption style={{ marginTop: 9, color: '#526558', fontSize: 13 }}>{caption}</figcaption>}
     </figure>
   }
+  if (block.type === 'interactive') return <div style={{
+    ['--publication-text' as string]: '#173e2c',
+    ['--publication-muted' as string]: '#52665a',
+    ['--publication-accent' as string]: '#168659',
+    ['--publication-surface' as string]: '#f5faf6',
+    ['--publication-border' as string]: '#dce7df',
+  }}><BiologyInteractiveBlock block={block}/></div>
   if (block.type === 'divider') return <hr style={{ border: 0, borderTop: '1px solid #dce6df', margin: '14px 0' }} />
   if (!text) return null
+  if (block.type === 'table') {
+    const rows = block.content.split('\n').filter(Boolean).map(row => row.split('|').map(cell => cell.trim()))
+    return <div style={{ overflowX: 'auto', maxWidth: '100%' }}><table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 14 }}><tbody>
+      {rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j} style={{ border: '1px solid #dce7df', padding: '9px 12px' }}>{cell}</td>)}</tr>)}
+    </tbody></table></div>
+  }
   if (block.type === 'heading3') return <h3 style={{ color: '#183e2c', fontSize: '1.05rem', margin: '16px 0 6px' }}>{text}</h3>
   if (block.type === 'bulletList' || block.type === 'numberedList' || block.type === 'keyPoints') {
     const lines = text.split(/\n+/).map(line => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim()).filter(Boolean)
