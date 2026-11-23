@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useStudent } from '@/lib/student-context'
 import { supabase } from '@/lib/supabase'
-import { ArrowRight, BookOpen, ClipboardList, CalendarDays } from 'lucide-react'
+import { ArrowRight, BookOpen, ClipboardList, CalendarDays, Compass, Gamepad2, PenLine } from 'lucide-react'
 import {
   getVibeLearnWorkstation, getAssignedReading, getExamReadinessBrief, updateExamReadiness,
   getAdaptiveLearningPath, getAdaptiveResourceRecommendations,
@@ -119,6 +119,7 @@ export default function LearnerStudyDesk() {
       <div className={compact.screen}>
       <h1>Learn</h1>
       <section className={compact.grid} aria-label="Reading destinations">
+        <Link href="/student/explore" className={compact.primary}><Compass size={18}/> Explore interests <ArrowRight size={16}/></Link>
         <Link href="/learn" className={compact.primary}><BookOpen size={18}/> Browse lessons <ArrowRight size={16}/></Link>
         <Link href="/learn/stories" className={compact.primary}><BookOpen size={18}/> Stories <ArrowRight size={16}/></Link>
         <Link href="/learn?view=reading" className={compact.action}>Library <ArrowRight size={16}/></Link>
@@ -133,6 +134,8 @@ export default function LearnerStudyDesk() {
         </details>}
       </section>}
       <section className={compact.grid} aria-label="Learning tools">
+        <Link className={compact.action} href="/student/funhub"><Gamepad2 size={16}/> Play & learn</Link>
+        <Link className={compact.action} href="/student/create"><PenLine size={16}/> Create</Link>
         <Link className={compact.action} href="/student/tasks"><ClipboardList size={16}/> My tasks</Link>
         <Link className={compact.action} href="/student/vibelearn/exams"><CalendarDays size={16}/> Exams</Link>
         <Link className={compact.action} href="/student/vibelearn/topic-practice">Topic Practice</Link>
