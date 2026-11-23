@@ -7,6 +7,7 @@ import VibeSubmitContent from '@/components/student/VibeSubmitContent'
 import VibeProgress from '@/components/student/VibeProgress'
 import { awardPoints, updateStreak } from '@/lib/vibelearn-points'
 import VibeTwin from '@/components/student/VibeTwin'
+import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability'
 
 type VibeTab = 'feed' | 'indexer' | 'library'
 type ContentType = 'ebook' | 'epage' | 'textbook'
@@ -774,7 +775,7 @@ export default function VibeLearnShellWrapper({
             {vibeLock ? '🔒 VIBE LOCK' : 'VibeLearn'}
           </span>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <button
+            {VIBETWIN_ENABLED && <button
               onClick={() => setTwinOpen(true)}
               aria-label="Open Vibe Twin"
               style={{
@@ -786,7 +787,7 @@ export default function VibeLearnShellWrapper({
               }}
             >
               ✦
-            </button>
+            </button>}
             <button
               onClick={toggleVibeLock}
               aria-label={vibeLock ? 'Exit Vibe Lock' : 'Enter Vibe Lock'}
@@ -1006,11 +1007,11 @@ export default function VibeLearnShellWrapper({
           })}
         </nav>
       </div>
-      <VibeTwin
+      {VIBETWIN_ENABLED && <VibeTwin
         isOpen={twinOpen}
         onClose={() => setTwinOpen(false)}
         userName={userName}
-      />
+      />}
     </>
   )
 }
