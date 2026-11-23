@@ -267,6 +267,8 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
           stream?: string | null
           subject_id: string
           subject_name: string
+          curriculum_valid?: boolean
+          curriculum_state?: string
         }>
       } | null
       const activeSchoolId = context?.school_id ?? null
@@ -276,17 +278,10 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
         return
       }
 
-      const classIds = Array.from(new Set((context?.classes ?? []).map(row => row.class_id).filter(Boolean)))
-      const { data: classGrades, error: classGradeError } = classIds.length
-        ? await supabase.from('classes').select('id,grade_code').eq('school_id',activeSchoolId).in('id',classIds)
-        : { data: [] as Array<{id:string;grade_code:string|null}>, error: null }
-      if (classGradeError) {
-        setError('Could not verify class grade identities. Check the school class configuration.')
-        setAssignmentsLoading(false)
-        return
-      }
-      const gradeByClass = new Map((classGrades ?? []).map(row => [row.id, row.grade_code]))
-
+      // The canonical teacher operating context already joins the authorized
+      // class and subject and validates the subject against classes.name.
+      // Do not request classes.grade_code: that column is absent in production
+      // and used to abort the entire assignment picker.
       const options: AssignmentOption[] = (context?.classes ?? [])
         .filter(r => r.assignment_id && r.class_id && r.subject_id && r.class_name && r.subject_name)
         .map(r => ({
@@ -296,11 +291,16 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
           subjectId:      r.subject_id,
           className:      r.stream ? `${r.class_name} ${r.stream}` : r.class_name,
           subjectName:    r.subject_name,
-          gradeLabel:     gradeByClass.get(r.class_id) ?? '',
+          gradeLabel:     r.class_name.trim(),
         }))
         .sort((a, b) => a.className.localeCompare(b.className) || a.subjectName.localeCompare(b.subjectName))
 
       setAssignments(options)
+      // A genuinely empty authorized assignment list must remain distinct
+      // from the old grade-column query failure.
+      if (options.length === 0) {
+        setError('No assigned class and subject in this school. Add your teaching assignment first.')
+      }
       if (copySlot) {
         const source = options.find(
           option => option.classId === copySlot.classId && option.subjectId === copySlot.subjectId,
@@ -489,6 +489,10 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
     }
 
     if (!selectedAssignment) { setError('Select a class and subject.'); return }
+    if (!/^Grade\s+[1-9]$/i.test(selectedAssignment.gradeLabel)) {
+      setError('This class needs a recognized grade before a lesson can be scheduled.')
+      return
+    }
     const { classId, subjectId } = selectedAssignment
     if (!classId || !subjectId) { setError('This assignment is missing required data.'); return }
 
@@ -585,10 +589,10 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
     >
       <div role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit lesson time' : 'Add lesson to timetable'} style={{
         background: C.bg,
-        borderRadius: '20px 20px 0 0',
-        padding: '24px 20px 60px',
-        width: '100%', maxWidth: 480,
-        display: 'flex', flexDirection: 'column', gap: 16,
+        borderRadius: '10px 10px 0 0',
+        padding: '18px 18px 28px',
+        width: '100%', maxWidth: 500,
+        display: 'flex', flexDirection: 'column', gap: 12,
         maxHeight: '90vh', overflowY: 'auto',
       }}
         onClick={e => e.stopPropagation()}
@@ -601,7 +605,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
           <button aria-label="Close lesson form" disabled={saving || deleting || checkingConflicts} onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.textMuted }}>✕</button>
         </div>
 
-        {!isEdit && <p style={{fontSize:13,color:C.textMuted,margin:0}}>{isCopy ? 'The original lesson stays unchanged. Choose where this copy should appear.' : 'Choose your class and subject, then a teaching period. You can prepare the lesson plan before or after scheduling.'}</p>}
+        {!isEdit && <p style={{fontSize:12,color:C.textMuted,margin:0}}>{isCopy ? 'Choose where to place the copy.' : 'Choose a class, subject and school period.'}</p>}
         {error && (
           <div role="alert" style={{ fontSize: 12, color: C.error, background: '#fef2f2', padding: '8px 12px', borderRadius: 8 }}>
             {error}
@@ -614,7 +618,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
           </div>
         )}
 
-        <fieldset disabled={saving || deleting || checkingConflicts} style={{border:0,padding:0,margin:0,display:'flex',flexDirection:'column',gap:16,minWidth:0}}>
+        <fieldset disabled={saving || deleting || checkingConflicts} style={{border:0,padding:0,margin:0,display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
         {isEdit ? (
           <div>
             <label style={labelStyle}>Class &amp; Subject</label>
@@ -628,8 +632,8 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
             {assignmentsLoading ? (
               <div style={{ fontSize: 13, color: C.textMuted }}>Loading your assignments…</div>
             ) : assignments.length === 0 ? (
-              <div style={{ fontSize: 13, color: C.error }}>
-                No teaching assignments yet. <a href="/teacher/onboarding/class">Set up class and subject</a>
+              <div style={{ fontSize: 13, color: C.textMuted }}>
+                No class and subject assigned for this school. <a href="/teacher/onboarding/class">Manage teaching assignments</a>
               </div>
             ) : (
               <select value={teacherClassId} onChange={e => {setTeacherClassId(e.target.value);setPeriodId('');setSuggestions([])}} style={inputStyle}>
@@ -658,7 +662,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
         </div>
 
         {(!isEdit || upperPrimary) && <div>
-          {upperPrimary && <p style={{fontSize:13}}>Grades 4–6 use single 35-minute periods on school days.</p>}
+          {upperPrimary && <p style={{fontSize:12,color:C.textMuted}}>Grades 4–6 · 35-minute school periods</p>}
           {periodsLoading ? <p>Loading school periods…</p> : periodsError ? <p role="alert">{periodsError}</p> : hasTeachingPeriods ? <>
             <label htmlFor="teaching-period" style={labelStyle}>Teaching period</label>
             <select id="teaching-period" style={inputStyle} value={periodId} onChange={e => {setPeriodId(e.target.value);setCustomTime(false)}}>
