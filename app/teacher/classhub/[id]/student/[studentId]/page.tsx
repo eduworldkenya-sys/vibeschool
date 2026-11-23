@@ -20,7 +20,7 @@ import LearnerIdentityFields from "@/components/teacher/LearnerIdentityFields";
 import LearnerDetailSheet from "@/components/teacher/LearnerDetailSheet";
 import LearnerRelatedRecords from "@/components/teacher/LearnerRelatedRecords";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
-import LearnerWorkspace, { type LearnerWorkspaceData, type WorkspaceTab } from "@/components/teacher/LearnerWorkspace";
+import LearnerWorkspace, { type LearnerWorkspaceData } from "@/components/teacher/LearnerWorkspace";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
 import { isLearnerAssignedHomework } from "@/lib/homework/eligibility";
