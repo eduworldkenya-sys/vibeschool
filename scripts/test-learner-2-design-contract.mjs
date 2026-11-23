@@ -17,7 +17,9 @@ test('learner 2.0 keeps five primary tabs and visible secondary destinations',()
 
 test('Home shows action first while Workspace and stories stay discoverable',()=>{
  const home=read('app/student/page.tsx')
- assert.match(home,/nextTask\?\.title/)
+ assert.match(home,/nextQueue\.map\(task =>/)
+ assert.match(home,/\{task\.title\}/)
+ assert.match(home,/void openTask\(task\)/)
  assert.match(home,/className="student-home-secondary-grid"/)
  assert.match(home,/title="Workspace"/)
  assert.match(home,/title="Stories"/)
