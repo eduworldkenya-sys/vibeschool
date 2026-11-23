@@ -41,11 +41,8 @@ Keep the installed PWA useful when offline, save supported work locally and sync
 
 Do not indiscriminately cache dynamic routes or authorization-bearing responses. User agreement to offline-first is not permission to weaken privacy/security controls.
 
-## Public textbook offline-reading pilot (2026-11-15)
-- The canonical VibeTextbook reader offers **Download for offline** only for published, free, publicly readable chapters from its **anonymous initial payload**. Authenticated/locked/restricted chapters are never copied into the public offline library.
-- Download saves a minimal publication/chapter/block snapshot to IndexedDB and prepares the standalone `/offline/books` PWA shell (scripts/styles) through the existing service worker. The library lists, reads, navigates and deletes those public book snapshots without internet.
-- This is a **free-content pilot**. No entitlement/payment gate is active; the existing server's locked/nonpublic chapters remain unavailable for offline download. Externally hosted images/audio/interactive/network-driven tools may not work offline and are not certified as downloaded assets. Reading progress in the offline library is not synchronized.
-- Browser storage can be cleared/evicted; no claim of irrevocable storage or full app offline readiness.
+## Offline public-book feature retired (2026-11-23)
+The prior free-public-book download pilot was defective and removed by owner direction. Online textbook reading remains available subject to the normal server checks. Do not reintroduce downloaded textbook copies, the `/offline/books` route, or reader save buttons. The service worker retains separately approved offline games and the general offline fallback, but no book download preparation. Existing public-book snapshots are retired on service-worker activation; no student progress database is modified.
 
 ## RESERVED / MUTED: 24-hour subscription content controls — REQUIRED BEFORE CHARGING
 **DO NOT ENABLE PAID CONTENT OFFLINE by simply caching the current public reader.** When subscription payments are activated, launch must be blocked until all of the following are implemented and separately independently certified:
@@ -54,12 +51,9 @@ Do not indiscriminately cache dynamic routes or authorization-bearing responses.
 3. No offline renewal or extension without server-authorized fresh licence; expiry closes access even when downloaded; user-owned progress must remain accessible subject to privacy controls.
 4. Cancellation/revocation is only discoverable online or after offline entitlement expiration; risk bounded by short validity window. Browser/PWA DRM is not tamper-proof.
 5. End-to-end M-PESA reconciliation, authorized entitlement expiry (24 hours measured by server, not device), conflict, device offline/reconnect and abuse tests.
-6. Remove the current free-only public-book snapshot admission for paid material and replace it with a separate protected-reader storage and runtime authority path. **Do not switch on the payment gate or paid offline downloads until these prerequisites pass.**
+6. If offline books are ever approved again, build a new protected reader storage and runtime authority path instead of restoring the retired public-book pilot. **Do not switch on the payment gate or paid offline downloads until these prerequisites pass.**
 
-Content remains free and accessible offline in the current release; the above future lock is a documented requirement, not activated code.
+Book downloads are retired; the above is historical future planning, not activated code.
 
-## Offline reader usability and device-storage safeguards
-- Student navigation contains a single **Offline Books** destination, using full document navigation so a service worker can load the cached HTML when internet is absent. The same destination is reachable from the canonical VibeTextbook reader and offline fallback.
-- The public offline reader exposes network state, available storage estimate when supported, and a **user-initiated** request for persistent browser storage. Browsers may decline storage persistence, and user-cleared data remains unrecoverable until content is downloaded again.
-- Content remains an anonymous-public-only local snapshot. Do not infer that media, interactive third-party embeds, practice submissions or a student's private records are available offline merely because a book page was saved.
-- The existing free-now/24-hour-entitlement-before-charging rule is unchanged; do not silently activate subscription gating or download paid/locked chapters into the public library.
+## Offline scope after public-book retirement
+Offline games and the branded fallback continue. Textbooks require an online authorized reader and are not saved locally as book snapshots. Future offline textbook capabilities require a separate explicit product decision and security review.
