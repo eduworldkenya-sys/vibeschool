@@ -14,6 +14,8 @@ import type {
   VibePublication,
 } from './publishTypes'
 
+export const UNTITLED_DRAFT_TITLE = 'Untitled draft'
+
 type PublicationRow = Database['public']['Tables']['vibe_publications']['Row']
 type PublicationInsert = Database['public']['Tables']['vibe_publications']['Insert']
 type ChapterRow = Database['public']['Tables']['vibe_chapters']['Row']
@@ -112,7 +114,7 @@ export function publicationRowToDraft(row: PublicationRow): VibePublication {
 }
 export function publicationDraftToInsert(publication: VibePublication, chapterCount: number = publication.chapter_count): PublicationInsert {
   return {
-    id: publication.id, author_id: publication.author_id, format: publication.format, title: publication.title?.trim() || undefined,
+    id: publication.id, author_id: publication.author_id, format: publication.format, title: publication.title?.trim() || (publication.status === 'draft' ? UNTITLED_DRAFT_TITLE : undefined),
     subtitle: publication.subtitle, cover_url: publication.cover_url, description: publication.description, genre: publication.genre,
     tags: publication.tags, language: publication.language, status: publication.status, pricing: pricingToJson(publication.pricing), chapter_count: chapterCount,
     total_reads: publication.total_reads, total_vibes: publication.total_vibes, earnings_ksh: publication.earnings_ksh, cbc_subject: publication.cbc_subject,

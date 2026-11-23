@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePublicationDraft } from '@/hooks/usePublicationDraft'
+import { UNTITLED_DRAFT_TITLE } from '@/lib/publicationDraftCodec'
 import { ContentBlockEditor } from '@/components/global/publish/ContentBlockEditor'
 import { StudioDocumentEditor } from '@/components/global/publish/StudioDocumentEditor'
 import PublishedTextbookLearnReader from '@/components/learn/PublishedTextbookLearnReader'
@@ -78,7 +79,7 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
 
   // Auto-open quick setup on first load for new publications
   useEffect(() => {
-    if (!simpleMode && !loading && publication && !publicationId && !publication.title) {
+    if (!simpleMode && !loading && publication && !publicationId && (!publication.title || publication.title === UNTITLED_DRAFT_TITLE)) {
       setQuickSetup(true)
     }
   }, [loading, publication, publicationId])
@@ -103,6 +104,7 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
   }, [forceSave])
 
   const canPublish = !simpleMode || (publishingEnabled && publication?.author_id === authorId)
+  const hasRealTitle = Boolean(publication?.title?.trim() && publication.title.trim() !== UNTITLED_DRAFT_TITLE)
 
   const saveLabel = saving
     ? 'Saving…'
@@ -119,7 +121,7 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
       setBlockerHelp('Confirm that the existing textbook reading content is ready before publishing.')
       return
     }
-    if (!publication?.title?.trim()) {
+    if (!publication || !hasRealTitle) {
       setTitleError(true)
       titleInputRef.current?.focus()
       return
@@ -159,7 +161,7 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
   const questionCount = chapters.reduce((total, chapter) =>
     total + chapter.blocks.filter(block => block.type === 'question').length, 0)
   const documentChecks = [
-    { key: 'title', label: 'Document title', ok: Boolean(publication?.title?.trim()), detail: 'Title required', action: 'Edit title' },
+    { key: 'title', label: 'Document title', ok: hasRealTitle, detail: 'Title required', action: 'Edit title' },
     { key: 'curriculum', label: 'Curriculum fields', ok: format !== 'vibetextbook' || Boolean(publication?.cbc_subject?.trim() && publication?.cbc_grade?.trim()), detail: 'Choose subject and grade in Details', action: 'Open details' },
     { key: 'content', label: 'Written content', ok: chapters.some(chapter => chapter.blocks.some(block => !['image', 'diagram', 'question', 'video', 'audio'].includes(block.type) && Boolean(block.content?.trim()))), detail: 'Write at least one content block', action: 'Open writing' },
     { key: 'media', label: 'Images (optional)', ok: true, detail: `${imageCount} attached · optional for reading publication`, action: 'Review images' },
@@ -170,7 +172,7 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
   const checkedCount = documentChecks.filter(check => check.ok).length
   // Any material change requires a fresh confirmation; a stale checkbox must not authorize a new draft version.
   useEffect(() => { setMaterialsConfirmed(false) }, [chapters, publication?.title, publication?.cbc_subject, publication?.cbc_grade])
-  const draftMaterialsPresent = Boolean(publication?.title?.trim()) && chapters.length > 0
+  const draftMaterialsPresent = hasRealTitle && chapters.length > 0
     && chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim())))
   const optionalMaterialSummary = `${imageCount} images and ${questionCount} questions saved (optional)`
 
