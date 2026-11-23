@@ -135,6 +135,7 @@ export type LearnerWorkspaceActions = {
   openEvent?: (id: string) => void;
   performNextAction?: (item: NextAction) => void;
   addNote?: () => void;
+  openFullProgress?: () => void;
 };
 export type LearnerWorkspaceProps = {
   data: LearnerWorkspaceData;
@@ -246,7 +247,7 @@ export default function LearnerWorkspace({ data, actions = {}, initialTab = "pro
     {tab === "progress" && <div className={styles.detailLayout}>
       <div className={styles.filters}><label>Subject <select value={subject} onChange={e => setSubject(e.target.value)}><option>All subjects</option>{subjects.map(x => <option key={x}>{x}</option>)}</select></label><label className={styles.searchLabel}><Search size={17}/><input placeholder="Find a topic" aria-label="Find a topic" value={search} onChange={e => setSearch(e.target.value)}/></label></div>
       <div className={styles.twoColumns}>
-        <Panel title="Lessons" icon={BookOpen}>{filteredLessons.length ? filteredLessons.map(x => <button key={x.id} type="button" className={styles.recordRow} onClick={() => actions.openLesson?.(x.id)} disabled={!actions.openLesson}><span><strong>{x.title}</strong><small>{x.subject}{x.outcome ? ` · ${x.outcome}` : ""}</small></span><span className={styles.recordMeta}>{x.status.replaceAll("_", " ")}</span><ChevronRight size={16}/></button>) : <Empty>No lessons found</Empty>}</Panel>
+        <Panel title="Lessons" icon={BookOpen}>{actions.openFullProgress && <button type="button" className={styles.smallAction} onClick={actions.openFullProgress}>Full learning progress <ExternalLink size={14}/></button>}{filteredLessons.length ? filteredLessons.map(x => <button key={x.id} type="button" className={styles.recordRow} onClick={() => actions.openLesson?.(x.id)} disabled={!actions.openLesson}><span><strong>{x.title}</strong><small>{x.subject}{x.outcome ? ` · ${x.outcome}` : ""}</small></span><span className={styles.recordMeta}>{x.status.replaceAll("_", " ")}</span><ChevronRight size={16}/></button>) : <Empty>No lessons found</Empty>}</Panel>
         <Panel title="Mastery" icon={Target}>{filteredMastery.length ? filteredMastery.map(x => <div className={styles.masteryRow} key={x.id}><div className={styles.masteryTitle}><strong>{x.title}</strong><span>{x.evidenceCount > 0 ? formatPct(x.percent) : "No evidence"}</span></div><small>{x.subject} · {x.evidenceCount} assessment {x.evidenceCount === 1 ? "record" : "records"}</small>{x.percent != null && x.evidenceCount > 0 && <div className={styles.progressTrack}><div style={{ width: `${Math.max(0, Math.min(100, x.percent))}%` }}/></div>}</div>) : <Empty>No mastery evidence</Empty>}</Panel>
       </div>
       <Panel title="Mistakes" icon={AlertTriangle}>{filteredMistakes.length ? filteredMistakes.map(x => <div className={styles.recordRow} key={x.id}><span><strong>{x.title}</strong><small>{x.subject} · {x.count} {x.count === 1 ? "error" : "errors"}{x.corrected ? " · Corrected" : ""}</small></span><button type="button" className={styles.smallAction} disabled={!actions.openMistake} onClick={() => actions.openMistake?.(x.id)}>Review</button></div>) : <Empty>No recorded mistakes</Empty>}</Panel>
