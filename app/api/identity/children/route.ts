@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { identityClient } from '@/lib/identity/server'
 import { validSameOriginMutation } from '@/lib/identity/origin'
 import { validateUsername } from '@/lib/identity/username'
+import { unifiedIdentityEnabled } from '@/lib/identity/features'
 const noStore = { 'Cache-Control': 'private, no-store' }
 
 export async function POST(request: NextRequest) {
+  if (!unifiedIdentityEnabled) return NextResponse.json({ error: 'Unavailable' }, { status: 503, headers: noStore })
   if (!validSameOriginMutation(request)) return NextResponse.json({ error: 'Request origin rejected' }, { status: 403, headers: noStore })
   const db = await identityClient()
   const { data: { user }, error: authError } = await db.auth.getUser()
