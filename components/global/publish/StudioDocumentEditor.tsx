@@ -32,12 +32,13 @@ const BlockIdentity = Extension.create({
 type EmbedOptions = { lookup: () => Map<string, ContentBlock>; change: (block: ContentBlock) => void }
 function EmbedView({ node, editor, extension }: NodeViewProps) {
   const options = extension.options as EmbedOptions
-  const block = options.lookup().get(String(node.attrs.blockId))
+  const [editedBlock, setEditedBlock] = useState<ContentBlock | undefined>(() => options.lookup().get(String(node.attrs.blockId)))
+  const block = editedBlock ?? options.lookup().get(String(node.attrs.blockId))
   if (!block) return <NodeViewWrapper className={styles.missing}>Content unavailable — reload this lesson.</NodeViewWrapper>
   return <NodeViewWrapper className={styles.embed} contentEditable={false}>
     <ContentBlockEditor block={block} format="vibetextbook" readOnly={!editor.isEditable}
       simpleMode={false} isFocused={false} onFocus={() => undefined}
-      onUpdate={options.change} onDelete={() => undefined} onMoveUp={() => undefined} onMoveDown={() => undefined}/>
+      onUpdate={updated => { setEditedBlock(updated); options.change(updated) }} onDelete={() => undefined} onMoveUp={() => undefined} onMoveDown={() => undefined}/>
   </NodeViewWrapper>
 }
 
