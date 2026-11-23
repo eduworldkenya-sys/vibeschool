@@ -39,7 +39,7 @@ test('same canonical published reader keeps access checks and learner continuity
   assert.match(reader,/record_reading_progress/)
   assert.match(reader,/ReaderLearningSheet/)
   assert.match(reader,/ReaderNarrationMiniPlayer/)
-  assert.match(reader,/OfflineBookSaveButton/)
+  assert.doesNotMatch(reader,/OfflineBookSaveButton|saveOfflineBook|offline\/books/)
   assert.match(learn,/\/read\/textbook\//)
   assert.match(oldRoute,/pub\.format === 'vibetextbook'/)
   assert.match(oldRoute,/router\.replace\('\/read\/textbook\/'/)

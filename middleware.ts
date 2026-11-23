@@ -146,9 +146,8 @@ export async function middleware(request: NextRequest) {
   const schoolLearnRoute = (pathname === '/learn' || pathname.startsWith('/learn/')) && !isGeneralStoryRoute(pathname) &&
     !((pathname === '/learn' && request.nextUrl.searchParams.get('view') === 'courses') ||
       pathname === '/learn/kasneb-cpa' || pathname.startsWith('/learn/kasneb-cpa/'))
-  // Legacy school textbook/offline entrypoints must not bypass the college home.
-  const schoolReaderRoute = pathname.startsWith('/read/textbook/') ||
-    pathname === '/offline/books' || pathname.startsWith('/offline/books/')
+  // School textbook reading must not bypass the college home.
+  const schoolReaderRoute = pathname.startsWith('/read/textbook/')
   if (user && (studentRoute || schoolLearnRoute || schoolReaderRoute)) {
     const { data: education, error: educationError } = await supabase
       .from('learner_education_paths')
