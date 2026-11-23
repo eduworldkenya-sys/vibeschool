@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Check, Copy, Search, UserPlus, X } from 'lucide-react'
+import { Check, Copy, Link2, Search, UserPlus, X } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase'
 import styles from './VibeChat.module.css'
 
@@ -20,6 +21,8 @@ export default function VibeChatContacts({
   role,
   onOpenThread,
 }: { role: string; onOpenThread: (threadId: string) => void }) {
+  const params = useSearchParams()
+  const suggestedHandle = params.get('find') ?? ''
   const [myHandle, setMyHandle] = useState('')
   const [lookupText, setLookupText] = useState('')
   const [found, setFound] = useState<Lookup | null>(null)
@@ -48,6 +51,9 @@ export default function VibeChatContacts({
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => {
+    if (/^@[a-z0-9][a-z0-9.]{2,30}$/i.test(suggestedHandle)) setLookupText(suggestedHandle)
+  }, [suggestedHandle])
 
   async function lookup(event: React.FormEvent) {
     event.preventDefault()
@@ -114,7 +120,16 @@ export default function VibeChatContacts({
                 await navigator.clipboard.writeText(myHandle)
                 setNotice('VibeChat ID copied.')
               } catch { setError('Could not copy the ID on this device.') }
-            }}><Copy size={15} aria-hidden/> Copy</button>
+            }}><Copy size={15} aria-hidden/> Copy ID</button>
+          <button type="button" className={styles.back} disabled={!myHandle} onClick={async()=>{
+            try {
+              const share = new URL('/vibechat', window.location.origin)
+              share.searchParams.set('tab','contacts')
+              share.searchParams.set('find',myHandle)
+              await navigator.clipboard.writeText(share.toString())
+              setNotice('Connection link copied.')
+            } catch { setError('Could not copy the connection link.') }
+          }}><Link2 size={15} aria-hidden/> Share link</button>
         </div>
         <small className={styles.subtitle}>Sharing your ID does not give strangers permission to message you.</small>
       </div>
