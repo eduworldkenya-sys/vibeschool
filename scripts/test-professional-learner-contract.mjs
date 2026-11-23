@@ -85,7 +85,7 @@ for (const layoutPath of ['app/learn/[courseSlug]/layout.tsx','app/student/colle
 assert.match(read('components/learn/LearnNavigation.tsx'), /POST_SECONDARY_PUBLIC_ENABLED && !student && <Link/)
 assert.match(read('components/public/PublicBottomNav.tsx'), /POST_SECONDARY_PUBLIC_ENABLED \|\| item\.icon !== 'courses'/)
 assert.match(read('components/learn/SchoolLearnLibrary.tsx'), /POST_SECONDARY_PUBLIC_ENABLED && params\.get\('view'\) === 'courses'/)
-assert.match(read('components/read/OfflineBooksLibrary.tsx'), /filter\(book=>!isMutedPostSecondaryPublication\(book\.id\)\)/)
+assert.doesNotMatch(read('components/student/BottomNav.tsx'), /Offline Books|\/offline\/books/)
 const muteSql = read('supabase/migrations/20261117042515_mute_post_secondary_public_scope.sql')
 for (const table of ['courses','modules','topics','course_enrollments','learner_progress','learner_education_paths','vibe_publications','vibe_chapters','content_blocks','vibe_saved_items','vibe_reading_progress','vibe_workspace_items']) {
   assert.ok(muteSql.includes('on public.'+table+' as restrictive'), 'missing public mute restriction: '+table)
