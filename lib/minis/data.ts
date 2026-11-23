@@ -6,6 +6,10 @@ export type MiniPost = RankedMini & {
   title: string
   body: string
   tags: string[]
+  quiz_question: string | null
+  quiz_options: string[]
+  quiz_correct: number | null
+  quiz_explanation: string | null
   cover_path: string | null
   status: string
   created_at: string
@@ -33,6 +37,7 @@ export function isMiniPost(value: unknown): value is MiniPost {
     typeof post.body === 'string' &&
     typeof post.subject === 'string' &&
     Array.isArray(post.tags) && post.tags.every(tag => typeof tag === 'string') &&
+    Array.isArray(post.quiz_options) && post.quiz_options.every(choice => typeof choice === 'string') &&
     typeof post.quality_score === 'number' &&
     typeof post.like_count === 'number' &&
     typeof post.save_count === 'number' &&
@@ -41,7 +46,7 @@ export function isMiniPost(value: unknown): value is MiniPost {
 
 export async function fetchApprovedMinis(limit = 120): Promise<MiniPost[]> {
   const { data, error } = await supabase.from('mini_lessons')
-    .select('id,creator_id,creator_label,title,body,subject,tags,cover_path,status,quality_score,like_count,save_count,learned_count,published_at,created_at')
+    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,quality_score,like_count,save_count,learned_count,published_at,created_at')
     .eq('status','approved')
     .order('published_at', { ascending: false })
     .limit(Math.min(120, Math.max(1, limit)))
