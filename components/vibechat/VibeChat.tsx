@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Bell, MessageCircle, RefreshCw, Send, Users, UserPlus } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase'
 import Enquiries from './Enquiries'
+import VibeChatAvatar from './VibeChatAvatar'
 import VibeChatContacts from './VibeChatContacts'
 import { useVibeChatTyping } from './useVibeChatTyping'
 import styles from './VibeChat.module.css'
@@ -16,6 +17,7 @@ type Chat = {
   id: string
   kind: 'school' | 'tuition'
   title: string
+  avatarUrl: string | null
   detail: string
   preview: string
   updated: string | null
@@ -69,7 +71,7 @@ export default function VibeChat() {
       setUid(user.id)
       setSignedIn(true)
 
-      const [profile, schoolMember, teacherProfile, participantResult, tutorResult, studentResult, noticeRecipients] = await Promise.all([
+      const [profile, schoolMember, teacherProfile, participantResult, tutorResult, studentResult, noticeRecipients, schoolPeerResult, tuitionPeerResult] = await Promise.all([
         db.from('profiles').select('role,school_id').eq('id', user.id).maybeSingle(),
         db.from('school_members').select('school_id').eq('profile_id', user.id).limit(1),
         db.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
@@ -77,6 +79,8 @@ export default function VibeChat() {
         db.rpc('vibetutor_my_student_invites'),
         db.rpc('vibetutor_student_inbox'),
         db.from('vc_circular_recipients').select('id,circular_id,ack_at').eq('profile_id', user.id),
+        db.rpc('vibechat_my_chat_peers'),
+        db.rpc('vibechat_my_tuition_peers'),
       ])
       setRole(profile.data?.role ?? '')
       setSchoolMessagingAvailable(Boolean(profile.data?.school_id || schoolMember.data?.[0]?.school_id || teacherProfile.data?.school_id))
@@ -85,20 +89,20 @@ export default function VibeChat() {
       const threadIds = [...new Set((participantResult.data ?? []).map(p => p.thread_id).filter((id): id is string => Boolean(id)))]
       let schoolChats: Chat[] = []
       if (threadIds.length) {
-        const [{ data: threads, error: threadsError }, { data: peers }] = await Promise.all([
-          db.from('vc_threads').select('id,school_id,type,subject,context_tag,last_message_at,last_message_preview,created_at').in('id', threadIds),
-          db.from('vc_participants').select('thread_id,profile_id').in('thread_id', threadIds).is('left_at', null).neq('profile_id', user.id),
-        ])
+        const { data: threads, error: threadsError } = await db.from('vc_threads')
+          .select('id,school_id,type,subject,context_tag,last_message_at,last_message_preview,created_at')
+          .in('id', threadIds)
         if (threadsError) throw threadsError
-        const peerIds = [...new Set((peers ?? []).map(p => p.profile_id).filter((id): id is string => Boolean(id)))]
-        const { data: profiles } = peerIds.length
-          ? await db.from('profiles').select('id,full_name').in('id', peerIds)
-          : { data: [] }
-        const names = new Map((profiles ?? []).map(p => [p.id, p.full_name]))
-        const peerName = new Map((peers ?? []).map(p => [p.thread_id, names.get(p.profile_id ?? '') ?? 'School conversation']))
+        // This RPC only projects profiles for verified direct-chat peers. Public
+        // profiles RLS deliberately does not expose a searchable account directory.
+        const peerMap = new Map(
+          (Array.isArray(schoolPeerResult.data) ? schoolPeerResult.data : [])
+            .map(peer => [peer.thread_id, peer] as const)
+        )
         schoolChats = ((threads ?? []) as SchoolThread[]).filter(t => t.type === 'direct').map(t => ({
           key: 'vc:' + t.id, id: t.id, kind: 'school' as const,
-          title: peerName.get(t.id) ?? t.subject ?? 'School conversation',
+          title: peerMap.get(t.id)?.name ?? t.subject ?? 'School conversation',
+          avatarUrl: peerMap.get(t.id)?.avatar_url ?? null,
           detail: t.context_tag === 'general' ? 'School message' : 'School · ' + (t.context_tag ?? 'message'),
           preview: t.last_message_preview ?? '', updated: t.last_message_at ?? t.created_at,
           schoolId: t.school_id,
@@ -114,9 +118,14 @@ export default function VibeChat() {
       if (!studentResult.error && Array.isArray(studentResult.data)) {
         for (const item of studentResult.data as TutorInvite[]) if (item.status === 'accepted') invitations.set(item.id, item)
       }
+      const tuitionPeerMap = new Map(
+        (Array.isArray(tuitionPeerResult.data) ? tuitionPeerResult.data : [])
+          .map(peer => [peer.invitation_id, peer] as const)
+      )
       const tuitionChats = [...invitations.values()].map(item => ({
         key: 'tuition:' + item.id, id: item.id, kind: 'tuition' as const,
-        title: item.tutor ?? item.student ?? 'Private tutor',
+        title: tuitionPeerMap.get(item.id)?.name ?? item.tutor ?? item.student ?? 'Private tutor',
+        avatarUrl: tuitionPeerMap.get(item.id)?.avatar_url ?? null,
         detail: 'Approved private tuition', preview: '',
         updated: null, schoolId: null,
       }))
@@ -265,7 +274,7 @@ export default function VibeChat() {
             filtered.length === 0 ? <div className={styles.empty}>No conversations found. Tutor enquiries appear under Enquiries.</div> :
             filtered.map(chat => <button type="button" className={styles.thread + (active===chat.key?' '+styles.selected:'')}
               key={chat.key} onClick={()=>{setActive(chat.key);setBody('')}} aria-pressed={active===chat.key}>
-              <span className={styles.avatar}>{chat.title.slice(0,1).toUpperCase()}</span>
+              <VibeChatAvatar name={chat.title} avatarUrl={chat.avatarUrl}/>
               <span className={styles.threadText}><strong>{chat.title}</strong><small>{chat.preview || chat.detail}</small>
                 <span className={styles.channel}>{chat.kind==='tuition'?'Tuition':'School'}{chat.updated?' · '+stamp(chat.updated):''}</span>
               </span>
@@ -275,7 +284,7 @@ export default function VibeChat() {
         <div className={styles.conversation} data-open={selected?'true':'false'}>
           {selected ? <>
             <div className={styles.conversationHeader}>
-              <div><strong>{selected.title}</strong><div className={styles.subtitle}>{otherTyping ? 'Typing…' : selected.detail}</div></div>
+              <div className={styles.peerHeader}><VibeChatAvatar name={selected.title} avatarUrl={selected.avatarUrl} size="large"/><div><strong>{selected.title}</strong><div className={styles.subtitle}>{otherTyping ? 'Typing…' : selected.detail}</div></div></div>
               <button type="button" className={styles.back} onClick={()=>setActive(null)} aria-label="Back to conversations"><ArrowLeft size={17} aria-hidden/> Back</button>
             </div>
             <div className={styles.messages} aria-live="polite" aria-relevant="additions text">
