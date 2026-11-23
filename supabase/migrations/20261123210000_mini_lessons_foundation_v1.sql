@@ -16,8 +16,8 @@ create or replace function public.mini_tags_valid(p_tags text[])
 returns boolean language sql immutable set search_path = ''
 as $$
   select cardinality(p_tags) between 1 and 5
-    and not exists(select 1 from unnest(p_tags) as tag where tag is null
-      or tag !~ '^[a-z][a-z0-9_]{1,29}$');
+    and not exists(select 1 from unnest(p_tags) as t(value) where t.value is null
+      or t.value !~ '^[a-z][a-z0-9_]{1,29}$');
 $$;
 revoke all on function public.mini_tags_valid(text[]) from public;
 
@@ -29,6 +29,18 @@ create table if not exists public.mini_lessons (
   body text not null check (char_length(btrim(body)) between 40 and 3000),
   subject text not null check (char_length(btrim(subject)) between 2 and 60),
   tags text[] not null default array['general']::text[] check (public.mini_tags_valid(tags)),
+  quiz_question text,
+  quiz_options text[] not null default '{}'::text[],
+  quiz_correct smallint,
+  quiz_explanation text,
+  constraint mini_optional_quiz_valid check (
+    (quiz_question is null and cardinality(quiz_options)=0 and quiz_correct is null and quiz_explanation is null)
+    or (char_length(btrim(quiz_question)) between 10 and 240
+      and cardinality(quiz_options) between 2 and 4
+      and quiz_correct between 0 and cardinality(quiz_options)-1
+      and char_length(btrim(quiz_explanation)) between 10 and 500
+      and array_position(quiz_options,null) is null)
+  ),
   cover_path text check (cover_path is null or (char_length(cover_path) <= 180 and cover_path ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}\.(jpg|jpeg|png|webp)$')),
   status text not null default 'pending' check (status in ('draft','pending','approved','rejected','hidden')),
   quality_score smallint not null default 50 check (quality_score between 0 and 100),
@@ -215,8 +227,8 @@ revoke all on public.mini_comments from anon,authenticated;
 revoke all on public.mini_reports from anon,authenticated;
 
 grant select on public.mini_lessons to anon,authenticated;
-grant insert(creator_id,title,body,subject,tags,cover_path,status) on public.mini_lessons to authenticated;
-grant update(title,body,subject,tags,cover_path,status) on public.mini_lessons to authenticated;
+grant insert(creator_id,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status) on public.mini_lessons to authenticated;
+grant update(title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status) on public.mini_lessons to authenticated;
 grant delete on public.mini_lessons to authenticated;
 -- Column-limited grants forbid forged timestamps, visibility and reviewer state.
 grant select,delete on public.mini_interactions to authenticated;
