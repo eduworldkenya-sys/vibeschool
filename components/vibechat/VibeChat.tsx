@@ -245,7 +245,10 @@ export default function VibeChat() {
           <span className={styles.logo}><MessageCircle aria-hidden size={22}/></span>
           <div><h1 className={styles.heading}>VibeChat</h1><small className={styles.subtitle}>One place for your conversations</small></div>
         </Link>
-        <Link className={styles.back} href="/vibetutor"><ArrowLeft size={16} aria-hidden/> VibeTutor</Link>
+        <Link className={styles.back}
+          href={role === 'parent' ? '/parent' : role === 'teacher' ? '/teacher/pulse' : role === 'student' ? '/student' : role === 'admin' ? '/admin' : '/vibetutor'}>
+          <ArrowLeft size={16} aria-hidden/> Back
+        </Link>
       </header>
       <nav className={styles.tabs} aria-label="VibeChat sections">
         {([['chats','Chats',MessageCircle],['contacts','Contacts',UserPlus],['enquiries','Enquiries',Users],['notices','Notices',Bell]] as const).map(([value,label,Icon]) =>
@@ -268,7 +271,8 @@ export default function VibeChat() {
             placeholder="Search conversations" value={search} onChange={e=>setSearch(e.target.value)} />
           <div className={styles.actionRow}>
             {role==='teacher'&&schoolMessagingAvailable&&<Link className={styles.back} href="/teacher/vibeconnect">New school message</Link>}
-            {role==='parent'&&<Link className={styles.back} href="/parent/messages">Message a teacher</Link>}
+            {role==='parent'&&<Link className={styles.back} href="/parent/messages">Choose a child's teacher</Link>}
+            {role==='admin'&&<Link className={styles.back} href="/admin/communication">Manage school notices</Link>}
           </div>
           {loading?<p className={styles.empty} role="status">Loading conversations…</p>:
             filtered.length === 0 ? <div className={styles.empty}>No conversations found. Tutor enquiries appear under Enquiries.</div> :
