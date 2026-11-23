@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { MiniPost } from './data'
-import { MINI_SUBJECTS } from './data'
+import { miniSubjectFromTags, parseMiniHashtags } from './tags'
 
 export async function currentMiniUser(): Promise<string | null> {
   const { data, error } = await supabase.auth.getUser()
@@ -13,11 +13,11 @@ export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
 }
 
 export async function submitMini({
-  title, body, subject, photo, userId,
+  title, body, hashtags, photo, userId,
 }: {
   title: string
   body: string
-  subject: string
+  hashtags: string
   photo: File
   userId: string
 }): Promise<string> {
@@ -25,7 +25,8 @@ export async function submitMini({
   const cleanBody = body.trim()
   if (cleanTitle.length < 5 || cleanTitle.length > 100) throw Error('Use a title between 5 and 100 characters.')
   if (cleanBody.length < 40 || cleanBody.length > 3000) throw Error('Write a short, useful explanation of at least 40 characters.')
-  if (!MINI_SUBJECTS.some(value => value === subject)) throw Error('Choose a valid subject.')
+  const tags = parseMiniHashtags(hashtags)
+  const subject = miniSubjectFromTags(tags)
   const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as Record<string,string>)[photo.type]
   if (!ext || photo.size > 5 * 1024 * 1024 || photo.size < 100)
     throw Error('Choose a JPG, PNG or WebP photo under 5 MB.')
@@ -44,7 +45,7 @@ export async function submitMini({
   if (uploadError) throw Error('Unable to upload this image. Please try again.')
 
   const { data: submitted, error: publishError } = await supabase.from('mini_lessons')
-    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, cover_path: coverPath, status: 'pending' })
+    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, cover_path: coverPath, status: 'pending' })
     .select('id').single()
   if (publishError || !submitted?.id) {
     // Best-effort rollback of an unused, private file; the DB stays fail-closed.
