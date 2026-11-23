@@ -137,7 +137,7 @@ export default function SchoolPublicContent({ slug, initialFilter = 'all', compa
           <label>Term<select value={term} onChange={e => setTerm(e.target.value)}><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
           <label>Amount (KES)<input type="number" min="1" max="99999999" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required/></label>
         </div>}
-        <p className={styles.hint}>Public information only. Private circulars and learner details stay in VibeConnect.</p>
+        <p className={styles.hint}>Public information only. Private circulars and learner details stay in VibeChat.</p>
         <button disabled={saving} className={styles.submit}>{saving ? 'Publishing…' : 'Publish'}</button>
         {message && <p role="status">{message}</p>}
       </form>
