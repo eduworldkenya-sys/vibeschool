@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-const sql = readFileSync('supabase/migrations/20261123144500_textbook_global_subject_index_resolution.sql', 'utf8')
+const sql = readFileSync('supabase/migrations/20261123172405_textbook_global_subject_index_resolution.sql', 'utf8')
 
 test('global subject is selected before identically named school copies', () => {
   assert.match(sql, /from public\.subjects[\s\S]*?and school_id is null/)
