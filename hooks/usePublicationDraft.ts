@@ -311,7 +311,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
       if (roleError || !isMumbi2Publisher(authData.user.id, profile?.role)) {
         setError('This checklist publishing pilot is limited to Mumbi2.'); return false
       }
-      if (!originalChapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim())))) {
+      if (!originalChapters.some(chapter => chapter.blocks.some(block => !['image', 'diagram', 'question', 'video', 'audio'].includes(block.type) && Boolean(block.content?.trim())))) {
         setError('Add lesson content before publishing.'); return false
       }
     }
