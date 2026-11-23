@@ -7,6 +7,7 @@ import { PublicFooter } from '@/components/public/PublicFooter'
 import { supabase } from '@/lib/supabase'
 import { schoolUrl } from '@/lib/school-urls'
 import styles from '@/app/schools/components/SchoolPublicContent.module.css'
+import schoolStyles from '@/app/schools/schools.module.css'
 
 type FeedPost = {
   id:string;school_slug:string;school_name:string;kind:string;title:string;body:string;
@@ -30,12 +31,12 @@ export default function FollowedSchoolsPage() {
     })()
     return()=>{active=false}
   },[retry])
-  return <div style={{minHeight:'100vh',background:'#f6f8fb',color:'#102030'}}>
+  return <div className={`${schoolStyles.page} ${schoolStyles.directoryPage}`}>
     <PublicHeader product="Schools"/>
     <main id="main-content" style={{maxWidth:850,margin:'auto',padding:'28px 14px 70px'}}>
       <nav aria-label="Breadcrumb"><Link href="/schools">Schools</Link> / Following</nav>
       <h1 style={{fontSize:'clamp(26px,5vw,36px)',margin:'18px 0 4px'}}>Updates from followed schools</h1>
-      <p style={{color:'#556c78',margin:'0 0 22px'}}>Public information from the schools you follow.</p>
+      <p style={{color:'var(--school-muted)',margin:'0 0 22px'}}>Public information from the schools you follow.</p>
       {status==='loading'&&<p role="status">Loading updates…</p>}
       {status==='login'&&<p><Link href={'/login?redirect='+encodeURIComponent('/schools/following')}>Sign in</Link> to see updates from schools you follow.</p>}
       {status==='error'&&<p role="alert">Could not load followed schools. <button onClick={()=>setRetry(x=>x+1)}>Retry</button></p>}

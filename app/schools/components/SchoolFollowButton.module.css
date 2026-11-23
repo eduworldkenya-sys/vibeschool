@@ -10,3 +10,5 @@
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 420px) { .button, .active { min-width: 150px; } }
+
+@media(prefers-color-scheme:dark){.active{background:#153c31;border-color:#39856d;color:#b7efda}.active:hover:not(:disabled){background:#204e40}.error{color:#fca5a5}}
