@@ -635,7 +635,7 @@ grant execute on function public.vibechat_respond_contact(uuid, boolean) to auth
 -- Avatar/name projection only for the other active participant in an existing direct chat.
 -- Bypasses restrictive profiles directory RLS without creating public profile browsing.
 create or replace function public.vibechat_my_chat_peers()
-returns jsonb language sql stable security definer set search_path = '' as $
+returns jsonb language sql stable security definer set search_path = '' as $vcchatpeers$
   select coalesce(jsonb_agg(jsonb_build_object(
     'thread_id', t.id, 'name', peer.full_name, 'avatar_url', peer.avatar_url
   )),'[]'::jsonb)
@@ -649,14 +649,14 @@ returns jsonb language sql stable security definer set search_path = '' as $
     and private.vc_user_is_thread_participant(t.id)
     and peer.account_status::text='active'
     and not coalesce(peer.is_anonymized,false)
-$;
+$vcchatpeers$;
 revoke all on function public.vibechat_my_chat_peers() from public, anon, authenticated;
 grant execute on function public.vibechat_my_chat_peers() to authenticated;
 
 -- In tuition, the existing accepted-invitation RPC is the authority.
 -- A learner profile is returned only to its accepted tutor, or vice versa.
 create or replace function public.vibechat_my_tuition_peers()
-returns jsonb language sql stable security definer set search_path = '' as $
+returns jsonb language sql stable security definer set search_path = '' as $vctuitionpeers$
   select coalesce(jsonb_agg(jsonb_build_object(
     'invitation_id', i.id, 'name', peer.full_name, 'avatar_url', peer.avatar_url
   )),'[]'::jsonb)
@@ -668,7 +668,7 @@ returns jsonb language sql stable security definer set search_path = '' as $
   where auth.uid() is not null and i.status = 'accepted'
     and peer.account_status::text='active'
     and not coalesce(peer.is_anonymized,false)
-$;
+$vctuitionpeers$;
 revoke all on function public.vibechat_my_tuition_peers() from public, anon, authenticated;
 grant execute on function public.vibechat_my_tuition_peers() to authenticated;
 
