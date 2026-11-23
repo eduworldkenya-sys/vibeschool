@@ -91,15 +91,12 @@ export default function LearnerStudyDesk() {
     setLoading(true);setError('');setMoreOpen(false);setMoreLoaded(false)
     setWorkspace(null);setAssigned([]);setClassResources([])
     setReadiness(null);setLearningPath(null);setRecommendations(null)
-    Promise.all([
-      getVibeLearnWorkstation(),
-      getAssignedReading().catch(()=>[]),
-    ]).then(([brief,reading])=>{
-      if(!active)return
-      setWorkspace(brief);setAssigned(reading)
+    void getVibeLearnWorkstation().then(brief=>{
+      if(active)setWorkspace(brief)
     }).catch(reason=>{
       if(active)setError(reason instanceof Error?reason.message:'Your learning desk could not load.')
     }).finally(()=>{if(active)setLoading(false)})
+    void getAssignedReading().then(reading=>{if(active)setAssigned(reading)}).catch(()=>undefined)
     return ()=>{active=false}
   },[identity?.studentId,identityLoading])
 
@@ -199,7 +196,7 @@ export default function LearnerStudyDesk() {
             </section>}
             <details className={styles.advancedBlock}><summary>More reading tools</summary><StudentLearningFeatureLinks mode="learn" grade={identity.className}/></details>
             <StudentIntro feature="learn-overview"><p>Open a lesson, continue reading or choose a learning activity.</p></StudentIntro>
-      {moreLoading?<p className={styles.card} role="status">Opening more learning…</p>:
+      {!moreLoaded?<p className={styles.card} role="status">Opening more learning…</p>:
       <div className={compact.grid} style={{alignItems:'start'}}>
         <details className={compact.panel} aria-label="Assigned learning"><summary>Assigned reading</summary>
 
@@ -255,13 +252,6 @@ export default function LearnerStudyDesk() {
                   <span><strong>{item.title}</strong><small>{item.outcomeText}</small></span><ArrowRight size={17}/></Link>)}
             </div>}
         </details>
-        {workspace?.twin.now&&<details className={compact.panel}><summary>Next action</summary>
-
-
-          <p><strong>{workspace.twin.now.title}</strong></p>
-          {workspace.twin.now.actionUrl&&<Link className={styles.secondary} href={safeInternalRoute(workspace.twin.now.actionUrl)}>
-            {workspace.twin.now.actionLabel||'Open activity'} <ArrowRight size={16}/></Link>}
-        </details>}
         {readiness&&<details className={compact.panel}><summary>Study plan</summary>
           <div className={styles.split}><div><h2>{readiness.examName} study plan</h2>
             <p className={styles.muted}>{readiness.psychologyHeadline}</p></div>
