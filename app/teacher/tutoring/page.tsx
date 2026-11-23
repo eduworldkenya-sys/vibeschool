@@ -91,7 +91,7 @@ export default function TeacherTutoringPage() {
     ...(process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED==='true' ? [{label:"Live Classroom",detail:"Teach connected learners or host an open lesson",href:"/teacher/tutoring/live",icon:Video}] : []),
     { label: "My learners", detail: students === null ? "Your connected learners" : `${students.length} connected ${students.length === 1 ? "learner" : "learners"}`, href: "/teacher/tutoring/students", icon: Users },
     { label: "Sessions", detail: "Schedule private lessons", href: "/teacher/tutoring/students?tool=lessons", icon: CalendarDays },
-     { label: "Messages", detail: "Private conversations", href: "/teacher/tutoring/students?tool=messages", icon: MessageCircle },
+     { label: "VibeChat", detail: "Private conversations", href: "/vibechat", icon: MessageCircle },
     { label: "Tasks & feedback", detail: "Assign and review private learner work", href: "/teacher/tutoring/students?tool=tasks", icon: GraduationCap },
   ];
   // Canonical teaching routes: these are shared, not private replicas.
