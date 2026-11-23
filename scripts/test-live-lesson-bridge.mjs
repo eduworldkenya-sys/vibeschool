@@ -13,7 +13,7 @@ assert.equal(isLessonUuid('not-a-uuid'),false)
 const live=lessonToLiveHref(context)
 assert.ok(live)
 assert.equal(live?.startsWith('/teacher/classhub/'+classId+'/live?'),true)
-const liveParams=new URL(live!,'https://example.test').searchParams
+const liveParams=new URL(live,'https://example.test').searchParams
 assert.equal(liveParams.get('lessonPlanId'),plan)
 assert.equal(liveParams.get('subjectId'),subject)
 assert.equal(liveParams.get('timetableSlotId'),slot)
@@ -21,7 +21,7 @@ assert.equal(liveParams.get('occurrenceId'),occurrence)
 assert.equal(liveParams.get('date'),'2026-11-23')
 const back=liveToLessonHref(context)
 assert.ok(back)
-const backParams=new URL(back!,'https://example.test').searchParams
+const backParams=new URL(back,'https://example.test').searchParams
 assert.equal(backParams.get('lessonPlanId'),plan)
 assert.equal(backParams.get('classId'),classId)
 assert.equal(backParams.get('occurrenceId'),occurrence)
@@ -30,7 +30,7 @@ assert.equal(lessonToLiveHref({...context,lessonPlanId:'javascript:alert(1)'}),n
 assert.equal(liveToLessonHref({...context,classId:'../../student'}),null)
 const invalid=lessonToLiveHref({...context,occurrenceId:'not-an-occurrence',occurrenceDate:'2026-02-30',subjectId:'invalid'})
 assert.ok(invalid)
-const invalidParams=new URL(invalid!,'https://example.test').searchParams
+const invalidParams=new URL(invalid,'https://example.test').searchParams
 assert.equal(invalidParams.has('occurrenceId'),false)
 assert.equal(invalidParams.has('date'),false)
 assert.equal(invalidParams.has('subjectId'),false)
