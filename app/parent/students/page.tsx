@@ -159,7 +159,7 @@ function EmptyState() {
         Your children appear here
       </p>
       <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 28px", lineHeight: 1.6 }}>
-        Link an existing student with a claim code, or add your child to get started.
+        Link a school learner with a claim code, or create an independent learner profile.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <button
@@ -178,7 +178,7 @@ function EmptyState() {
             color: dark, fontWeight: 700, fontSize: 14,
             cursor: "pointer", fontFamily: "inherit",
           }}
-        >+ Add Child to Class</button>
+        >+ Create Learner Profile</button>
       </div>
     </div>
   );
@@ -359,6 +359,11 @@ export default function ParentStudentsPage() {
               <p style={{fontSize:12,color:'#6b7280'}}>Guide study routines, privacy and age-appropriate preferences for each linked learner.</p>
               {children.map(child => <button key={child.student_id} type="button" onClick={()=>router.push(`/parent/child/${child.student_id}/controls`)} style={{display:'block',width:'100%',textAlign:'left',padding:12,marginTop:8,border:'1px solid #e5e7eb',background:'#f8fafc',borderRadius:12,cursor:'pointer'}}>Manage {child.name}&apos;s controls →</button>)}
             </section>
+
+            <button type="button" onClick={() => router.push('/account/children')}
+              style={{width:'100%',padding:12,border:'1px solid #e5e7eb',background:'#fff',borderRadius:12,marginBottom:12,fontWeight:700,cursor:'pointer'}}>
+              My managed learner profiles
+            </button>
 
             {/* Love card */}
             <LoveCard />
