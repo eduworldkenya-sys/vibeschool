@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import SchoolLifeParticipation from "./SchoolLifeParticipation";
+import { Check, Plus, ArrowRight, BookOpen, Search, UsersRound } from "lucide-react";
+import styles from "./LearnerRelatedRecords.module.css";
 
 type Group = { id: string; name: string; mode: string; purpose: string | null; subject_id: string | null; member: boolean; reason: string | null };
 type Duty = { id: string; title: string; starts_on: string; ends_on: string; members: { student_id: string; active: boolean }[] };
@@ -24,6 +26,9 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
   onBusyChange: (busy: boolean) => void;
 }) {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [groupFilter, setGroupFilter] = useState<"mine" | "available">("mine");
+  const [groupSearch, setGroupSearch] = useState("");
+  const [showIssueBook, setShowIssueBook] = useState(false);
   const [data, setData] = useState<Operations>({ duties: [], borrowings: [], books: [] });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -78,11 +83,41 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
   }
   if (subjectId && kind !== "groups") return <p role="alert">School-life editing is available in the class-teacher view.</p>;
   if (kind === "activities") return <SchoolLifeParticipation classId={classId} studentId={studentId} onBusyChange={onBusyChange}/>;
-  return <>
+  const listedGroups = groups.filter(group => group.member === (groupFilter === "mine"))
+    .filter(group => group.name.toLowerCase().includes(groupSearch.trim().toLowerCase()));
+  return <div className={styles.tool}>
     {loading && <p role="status">Loading learner records…</p>}
     {error && <div role="alert">{error}<button disabled={busy} onClick={() => void act(load)}>Retry</button></div>}
     {message && <p role="status">{message}</p>}
-    {!loading && !error && kind === "groups" && <>
+    {!loading && !error && kind === "groups" && <section className={styles.stack} aria-label="Learner groups">
+      <div className={styles.segment} role="group" aria-label="Group membership filter">
+        <button type="button" aria-pressed={groupFilter === "mine"} onClick={() => setGroupFilter("mine")}>My groups <span>{groups.filter(group => group.member).length}</span></button>
+        <button type="button" aria-pressed={groupFilter === "available"} onClick={() => setGroupFilter("available")}>Available <span>{groups.filter(group => !group.member).length}</span></button>
+      </div>
+      {groups.length > 6 && <label className={styles.search}><Search size={16}/><span className={styles.visuallyHidden}>Find group</span><input aria-label="Find group" value={groupSearch} onChange={event => setGroupSearch(event.target.value)} placeholder="Find group"/></label>}
+      {groupFilter === "mine" && !groups.some(group => group.member) && <p className={styles.empty}>No current group memberships for this learner.</p>}
+      {groupFilter === "available" && !groups.some(group => !group.member) && <p className={styles.empty}>No groups available.</p>}
+      {listedGroups.length === 0 && groupSearch && <p className={styles.empty}>No matching groups.</p>}
+      <div className={styles.rows}>
+        {listedGroups.map(group => <article className={styles.row} key={group.id}>
+          <div className={styles.symbol}><UsersRound size={18}/></div>
+          <div className={styles.rowMain}>
+            <strong>{group.name}</strong>
+            <small>{group.mode === "smart" ? "Automatic" : group.member ? "Member" : "Saved group"}{group.reason && group.mode === "smart" && group.member ? ` · ${group.reason}` : ""}</small>
+            {group.purpose && <span className={styles.secondaryLine}>{group.purpose}</span>}
+          </div>
+          {group.mode !== "smart" && <button type="button" className={group.member ? styles.ghost : styles.action} disabled={busy} onClick={() => void act(async () => {
+            const result = group.member
+              ? await supabase.from("class_group_members").delete().eq("group_id", group.id).eq("student_id", studentId)
+              : await supabase.from("class_group_members").upsert({ group_id: group.id, student_id: studentId }, { onConflict: "group_id,student_id", ignoreDuplicates: true });
+            if (result.error) throw result.error;
+            setMessage(group.member ? "Removed from this group." : "Added to this group.");
+          })}>{group.member ? "Remove learner" : <><Plus size={15}/> Add learner</>}</button>}
+          {group.mode === "smart" && <span className={styles.auto}><Check size={15}/> Rules</span>}
+        </article>)}
+      </div>
+      <Link className={styles.footerLink} href={`/teacher/classhub/${classId}/groups?selected=${studentId}${subjectId ? `&subjectId=${encodeURIComponent(subjectId)}` : ""}`}>All groups <ArrowRight size={16}/></Link>
+    </section>}
       {!groups.some(group => group.member) && <p>No current group memberships for this learner.</p>}
       {[...groups].sort((a, b) => Number(b.member) - Number(a.member)).map(group => <article key={group.id}>
         <strong>{group.name}</strong><p>{group.purpose}</p>
@@ -99,18 +134,18 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
       <Link href={`/teacher/classhub/${classId}/groups?selected=${studentId}${subjectId ? `&subjectId=${encodeURIComponent(subjectId)}` : ""}`}>Open full Groups workspace</Link>
     </>}
     {!loading && !error && kind === "roles" && <>
-      <h3>Duties and responsibilities</h3>
+      <div className={styles.sectionHeading}>Responsibilities</div>
       {data.duties.filter(duty => duty.members.some(member => member.student_id === studentId)).map(duty => <article key={duty.id}>
         <strong>{duty.title}</strong><p>{duty.starts_on} – {duty.ends_on}</p>
         <p>{duty.members.some(member => member.student_id === studentId && member.active) ? (duty.starts_on > today() ? "Upcoming" : duty.ends_on < today() ? "Past assignment" : "Current assignment") : "Previous assignment"}</p>
       </article>)}
       {!data.duties.some(duty => duty.members.some(member => member.student_id === studentId)) && <p>No duty assignments recorded.</p>}
-      <h3>Team and club positions</h3>
+      <div className={styles.sectionHeading}>Clubs & teams</div>
       <SchoolLifeParticipation classId={classId} studentId={studentId} onBusyChange={onBusyChange}/>
       <Link href={`/teacher/classhub/${classId}/operations`}>Manage shared class duty roster</Link>
     </>}
     {!loading && !error && kind === "resources" && <>
-      <h3>Borrowed resources</h3>
+      <div className={styles.sectionHeading}>Borrowed</div>
       {!data.borrowings.some(loan => loan.student_id === studentId) && <p>No borrowing records for this learner.</p>}
       {data.borrowings.filter(loan => loan.student_id === studentId).map(loan => <article key={loan.id}>
         <strong>{loan.book_title}</strong><p>{loan.returned_at ? `Returned ${loan.returned_at.slice(0, 10)}` : `${loan.due_date < today() ? "Overdue" : "Due"} ${loan.due_date}`}</p>
@@ -123,7 +158,8 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
           })}>Confirm return</button><button disabled={busy} onClick={() => setReturnId(null)}>Cancel</button>
         </> : <button disabled={busy} onClick={() => { setCondition("good"); setReturnId(loan.id); }}>Record return</button>)}
       </article>)}
-      <details><summary>Issue a book to this learner</summary>
+      <button type="button" className={styles.issueToggle} aria-expanded={showIssueBook} onClick={() => setShowIssueBook(value => !value)}><BookOpen size={17}/> Issue book <Plus size={16}/></button>
+      {showIssueBook && <div className={styles.issueForm}>
         <label>Available book<select value={bookId} onChange={event => setBookId(event.target.value)}><option value="">Choose book</option>{data.books.filter(book => book.available_copies > 0).map(book => <option key={book.id} value={book.id}>{book.title}</option>)}</select></label>
         <label>Return by<input type="date" value={due} min={today()} onChange={event => setDue(event.target.value)}/></label>
         <button disabled={busy || !bookId || !due || due < today()} onClick={() => void act(async () => {
@@ -134,8 +170,8 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
           if (result.error) throw result.error;
           request.current = null; setBookId(""); setDue(""); setMessage("Book issued to this learner.");
         })}>Issue book</button>
-      </details>
+      </div>}
       <Link href={`/teacher/classhub/${classId}/operations`}>Open full Class Operations</Link>
     </>}
-  </>;
+  </div>;
 }
