@@ -18,6 +18,22 @@ $$;
 revoke all on function public.mini_creator_can_submit(uuid) from public;
 grant execute on function public.mini_creator_can_submit(uuid) to anon,authenticated;
 
+-- Any opted-in adult may publish: teacher, parent or independent adult learner.
+-- Public exposure still requires an independently checked adult DOB.
+create or replace function public.mini_creator_public(p_user uuid)
+returns boolean language sql stable security definer set search_path=''
+as $
+  select exists(
+    select 1 from public.profiles p
+    join public.global_public_profiles gp on gp.profile_id=p.id
+    where p.id=p_user and p.account_status::text='active'
+      and not p.is_anonymized and gp.is_public
+      and p.date_of_birth <= current_date - interval '18 years'
+  );
+$;
+revoke all on function public.mini_creator_public(uuid) from public;
+grant execute on function public.mini_creator_public(uuid) to anon,authenticated;
+
 create or replace function public.mini_rate_limit()
 returns trigger language plpgsql security definer set search_path=''
 as $$
