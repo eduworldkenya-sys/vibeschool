@@ -7,6 +7,7 @@ type BridgeReview = {
   lessonPlanId: string | null
   occurrenceId: string | null
   status: 'active' | 'paused' | 'ended'
+  captureAllowed: boolean
   joined: number
   questions: number
   responses: number
@@ -49,6 +50,7 @@ export default function LiveLessonReview({
       throw new Error('Invalid linked Lesson Plan.')
     if (row.occurrenceId !== null && (typeof row.occurrenceId !== 'string' || !UUID.test(row.occurrenceId)))
       throw new Error('Invalid teaching occurrence.')
+    if (typeof row.captureAllowed !== 'boolean') throw new Error('Invalid evidence permission.')
     for (const field of ['joined', 'questions', 'responses', 'saved', 'added'] as const) {
       if (!Number.isSafeInteger(row[field]) || row[field] < 0)
         throw new Error('Invalid Live lesson totals.')
@@ -109,10 +111,12 @@ export default function LiveLessonReview({
     </div>
     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
       {error && <button type="button" onClick={() => setRetry(n => n + 1)}>Retry</button>}
-      {review?.lessonPlanId && review.responses > 0 && <button
+      {review?.lessonPlanId && review.responses > 0 && review.captureAllowed && <button
         type="button" disabled={saving} onClick={() => void saveEvidence()}>
         {saving ? 'Saving…' : 'Save responses as evidence'}
       </button>}
+      {review?.lessonPlanId && review.responses > 0 && !review.captureAllowed &&
+        <small>Start or finish the linked teaching occurrence in Lesson Plan before saving evidence.</small>}
       {lessonHref && <a href={lessonHref} style={{
         display:'inline-flex',alignItems:'center',padding:'8px 12px',background:'#142e23',
         color:'#fff',borderRadius:4,fontSize:13,textDecoration:'none',fontWeight:700,
