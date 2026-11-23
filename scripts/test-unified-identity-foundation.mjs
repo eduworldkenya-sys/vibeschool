@@ -34,3 +34,34 @@ test('username has a single normalized, constrained contract', () => {
   for (const good of ['brian254','mary_teacher','abc']) assert.ok(pattern.test(good))
   for (const bad of ['ab','@abc','admin.name','ab-3','1teacher','invalid space','Aaa','x'.repeat(25)]) assert.ok(!pattern.test(bad))
 })
+
+test('new identity registry cannot race or collide with Global profile handles', () => {
+  const sql = read('supabase/migrations/20261123090000_unified_identity_foundation.sql')
+  const global = read('app/global/profile/page.tsx')
+  assert.match(sql, /create trigger vs_global_username_consistency/)
+  assert.match(sql, /pg_advisory_xact_lock\(hashtext\(v_username\)::bigint\)/)
+  assert.match(sql, /Existing public username must be retained/)
+  assert.match(sql, /public\.vs_username_reservations where username=v_username/)
+  assert.match(global, /\^\[a-z\]\[a-z0-9_\]\{2,23\}\$/)
+  assert.doesNotMatch(sql, /create table public\.vs_identity_roles/)
+})
+
+test('guardian-managed learner creation cannot grant a login or an existing school identity', () => {
+  const sql = read('supabase/migrations/20261123090000_unified_identity_foundation.sql')
+  const api = read('app/api/identity/children/route.ts')
+  assert.match(sql, /p_guardian_confirmed is distinct from true/)
+  assert.match(sql, /email_confirmed_at is not null/)
+  assert.match(sql, /Managed learner limit reached/)
+  assert.match(sql, /kind='managed_learner' and auth_user_id is null/)
+  assert.match(api, /guardianConfirmed = payload\?\.guardianConfirmed === true/)
+  assert.match(api, /p_guardian_confirmed: true/)
+})
+
+test('unverified identity rollout never redirects active users to a missing schema', () => {
+  const flag = read('lib/identity/features.ts')
+  const callback = read('app/auth/callback/route.ts')
+  const createChild = read('app/parent/create-child/page.tsx')
+  assert.match(flag, /NEXT_PUBLIC_UNIFIED_IDENTITY_ENABLED === 'true'/)
+  assert.match(callback, /unifiedIdentityEnabled && intent === 'signup'/)
+  assert.match(createChild, /unifiedIdentityEnabled \? '\/account\/children' : '\/parent\/link-child'/)
+})
