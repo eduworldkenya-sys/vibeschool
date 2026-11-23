@@ -17,12 +17,16 @@ test('learner 2.0 keeps five primary tabs and visible secondary destinations',()
 
 test('Home shows action first while Workspace and stories stay discoverable',()=>{
  const home=read('app/student/page.tsx')
- assert.match(home,/nextTask\?\.title/)
- assert.match(home,/className="student-home-secondary-grid"/)
- assert.match(home,/title="Workspace"/)
- assert.match(home,/title="Stories"/)
- assert.match(home,/title="My Day"/)
- assert.match(home,/router\.push\('\/student\/vibelearn\/exams'\)/)
+ const desk=read('components/student/StudentHomeDesk.tsx')
+ assert.match(home,/<StudentHomeDesk/)
+ assert.match(home,/nextTask=\{nextTask\}/)
+ assert.match(home,/resolveTaskLaunch\(task\.taskId\)/)
+ assert.match(desk,/className=\{styles\.hero\}/)
+ assert.match(desk,/nextTask \? nextTask\.title/)
+ assert.match(desk,/label: 'Workspace'/)
+ assert.match(desk,/label: 'Books & Stories'/)
+ assert.match(desk,/label: 'My Day'/)
+ assert.match(desk,/label: 'My Exams'/)
 })
 
 test('personalisation is account scoped and cannot touch grading authority',()=>{
