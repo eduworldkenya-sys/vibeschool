@@ -39,3 +39,26 @@
 .sheet{width:min(100%,460px);background:white;border-radius:18px 18px 0 0;padding:20px;display:grid;gap:15px;box-shadow:0 -4px 36px rgba(0,0,0,.13);padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 .sheet .heading{margin-bottom:0}
 @media(min-width:650px){.sheet{border-radius:18px;align-self:center}}
+
+/* Single-learner progressive Activities controls */
+.root{padding:0;border:0;box-shadow:none;background:transparent;border-radius:0}
+.heading{margin-bottom:10px}
+.heading h2{font-size:14px;letter-spacing:-.15px}
+.segment{display:flex;gap:4px;padding:4px;border-radius:11px;background:#edf2ee;margin-bottom:10px}
+.segment button{flex:1;display:flex;justify-content:center;align-items:center;gap:7px;border:0;background:transparent;color:#5d6d64;padding:9px 8px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;min-height:36px}
+.segment button[aria-pressed=true]{background:#fff;color:#185438;box-shadow:0 1px 5px #102c191a}
+.segment span{font-variant-numeric:tabular-nums;font-size:11px;opacity:.7}
+.activityList{display:grid;gap:6px;max-height:240px;overflow:auto;padding:1px 1px 6px}
+.activityRow{width:100%;display:flex;align-items:center;text-align:left;gap:10px;border:1px solid #e4ebe5;border-radius:11px;background:white;padding:9px 10px;cursor:pointer;color:#597065;min-height:52px}
+.activityRow[aria-pressed=true]{border-color:#8db9a0;background:#f3faf5;color:#185338}
+.activityIcon{width:32px;height:32px;border-radius:9px;background:#edf5ef;color:#3e7651;display:grid;place-items:center;flex-shrink:0}
+.activityLabel{display:grid;gap:3px;flex:1;min-width:0}
+.activityLabel strong{font-size:12px;color:#203b2c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.activityLabel small{font-size:11px;color:#718076}
+.panel{margin-top:9px;padding-top:10px}
+.panelHeader strong{font-size:13px}
+.fields{gap:9px;margin-top:10px}
+.optional{border:1px solid #e2eae3;background:#fbfcfb;border-radius:10px;padding:10px 12px}
+.optional summary{cursor:pointer;font-size:12px;font-weight:700;color:#345a42;list-style-position:inside}
+.optional label{margin-top:9px}
+@media(max-width:420px){.activityRow{padding:8px}.activityIcon{width:30px;height:30px}.fields{gap:8px}}
