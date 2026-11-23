@@ -56,7 +56,13 @@ const StudioEmbed = Node.create<EmbedOptions>({
   addNodeView() { return ReactNodeViewRenderer(EmbedView) },
 })
 
-const plainInline = (content: string) => !/<\/?(?:table|img|iframe|video|audio|svg|math|script|style|form|input|div|ul|ol|h[1-6])\b/i.test(content)
+const inlineTags = new Set(['p', 'strong', 'b', 'em', 'i', 'u', 's', 'del', 'strike', 'code', 'br', 'sub', 'sup'])
+function plainInline(content: string): boolean {
+  const tags = Array.from(content.matchAll(/<\s*\/?\s*([a-z][a-z0-9-]*)\b/gi), match => match[1].toLowerCase())
+  // Unknown tags and multi-paragraph legacy HTML stay untouched in their
+  // original ContentBlockEditor. Never silently drop or flatten structures.
+  return tags.every(tag => inlineTags.has(tag)) && tags.filter(tag => tag === 'p').length <= 2
+}
 
 function asHtml(block: ContentBlock): string {
   const id = escapeHtml(block.id)
