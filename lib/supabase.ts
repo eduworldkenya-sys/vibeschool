@@ -196,6 +196,11 @@ type LiveDatabase = Omit<Database, 'public'> & {
           review_state: 'published' | 'release_approved' | 'machine_reviewer_not_commissioned' | 'independent_machine_review_pending'
         }
       }
+      vibechat_my_handle: { Args: Record<never, never>; Returns: string }
+      vibechat_lookup_handle: { Args: { p_handle: string }; Returns: { handle: string; display_name: string; account_role: string }[] }
+      vibechat_request_contact: { Args: { p_handle: string }; Returns: string }
+      vibechat_my_contacts: { Args: Record<never, never>; Returns: { id: string; name: string; handle: string; direction: 'incoming' | 'outgoing'; status: 'pending' | 'accepted' | 'declined'; thread_id: string | null; created_at: string }[] }
+      vibechat_respond_contact: { Args: { p_request: string; p_accept: boolean }; Returns: string | null }
       vibetutor_create_student_invite: { Args: Record<never, never>; Returns: string }
       vibetutor_claim_student_invite: { Args: { p_token: string }; Returns: "accepted" | "pending_guardian" }
       vibetutor_parent_student_invites: { Args: Record<never, never>; Returns: { id: string; student: string; tutor: string; status: string }[] }
