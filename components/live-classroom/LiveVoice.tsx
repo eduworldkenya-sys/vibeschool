@@ -147,7 +147,7 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
         if(reported)return
         reported=true
         // Enumeration-only telemetry is authorized by the same Live RPC and
-        // pilot allowlist as token issuance. A failure to report never blocks UI.
+        // canonical Live scope and classroom RPC as token issuance. A failure to report never blocks UI.
         void fetch('/api/live/voice/'+encodeURIComponent(roomId),{
           method:'PATCH',
           headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
@@ -176,6 +176,16 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
       call.on('network-connection',event=>{
         if(event.type==='signaling')stage='signaling'
         if(event.type==='sfu'||event.type==='peer-to-peer')stage='media'
+      })
+      // Daily reports browser microphone failures as camera-error, separately
+      // from fatal connection errors. Keep listening if speaking is blocked.
+      call.on('camera-error',event=>{
+        if(meeting.current!==call || event.errorMsg?.audioOk===true)return
+        if(!micPreference.current && !meeting.current?.localAudio())return
+        micPreference.current=false
+        setMicOn(false)
+        setError('Microphone unavailable. Allow microphone access in your browser, then tap Speak again.')
+        reportFailure('device-error','device')
       })
       call.on('error',event=>{
         if(meeting.current!==call)return

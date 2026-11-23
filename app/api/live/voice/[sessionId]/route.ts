@@ -17,9 +17,32 @@ const voiceStages=new Set(['joining','signaling','media','connected','unknown'])
 const voiceCodes=new Set([
   'ejected','nbf-room','nbf-token','exp-room','exp-token','no-room',
   'meeting-full','end-of-life','not-allowed','connection-error',
-  'join-exception','unexpected-leave','unknown'
+  'join-exception','unexpected-leave','device-error','unknown'
 ])
 const voiceHints=new Set(['token','access','capacity','device','room','transport','timeout','unknown'])
+// Failure telemetry is deliberately closed vocabulary: no room ID, user ID,
+// request body, error message, provider URL, token or browser error text.
+function voiceFailureCategory(error:unknown):'scope'|'scope_expired'|'identity'|'class_authorization'|'room_inactive'|'provider'|'configuration'|'other' {
+  if (!(error instanceof LiveVoiceError)) return 'other'
+  switch(error.message) {
+    case 'Classroom voice is limited to pilot accounts.':
+    case 'Classroom voice is not commissioned.': return 'scope'
+    case 'Classroom voice pilot has expired.': return 'scope_expired'
+    case 'Sign in to use voice.':
+    case 'Unverified voice participant.':
+    case 'Your learner identity could not be verified for voice.': return 'identity'
+    case 'You are not authorized for this Live class.':
+    case 'Could not verify classroom access.': return 'class_authorization'
+    case 'Audio is available only during an active lesson.': return 'room_inactive'
+    case 'Voice is not active yet.':
+    case 'Voice provider not configured.':
+    case 'Voice authorization unavailable.': return 'configuration'
+    default: return error.message.startsWith('Daily ') ||
+      error.message.startsWith('Voice provider ') ||
+      error.message.startsWith('Voice-room ')
+        ? 'provider' : 'other'
+  }
+}
 function parseVoiceDiagnostic(value:unknown) {
   if(!value || typeof value!=='object' || Array.isArray(value))throw new LiveVoiceError('Invalid voice diagnostic.',400)
   const obj=value as Record<string,unknown>
@@ -112,6 +135,12 @@ async function handle(req:NextRequest,id:string,method:'POST'|'DELETE'|'PATCH') 
     const result=await issueLiveVoiceToken(room,user.id,learnerStudentId,key,fetch,Date.now(),accessScope)
     return reply(result)
   } catch (e) {
+    // Diagnostics for denials before Daily has initialized. PATCH cannot log
+    // these cases because it is guarded by the very same access checks.
+    if (method === 'POST') console.error('vibeschool_live_voice_request_failure', {
+      category: voiceFailureCategory(e),
+      status: e instanceof LiveVoiceError ? e.status : 503,
+    })
     return e instanceof LiveVoiceError ? reply({error:e.message},e.status)
       : reply({error:'Voice connection unavailable. Retry.'},503)
   }
