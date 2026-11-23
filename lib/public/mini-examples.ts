@@ -2,6 +2,7 @@ export type MiniExample = {
   id: string
   title: string
   subject: string
+  tags: string[]
   creator: string
   minutes: number
   summary: string
@@ -17,6 +18,7 @@ export const MINI_EXAMPLES: MiniExample[] = [
     id: 'kenya-independence',
     title: 'How Kenya gained independence',
     subject: 'History',
+    tags: ["history","kenya","independence"],
     creator: 'Example History teacher',
     minutes: 2,
     summary: 'How Kenya reached the historic moment of 12 December 1963.',
@@ -34,6 +36,7 @@ export const MINI_EXAMPLES: MiniExample[] = [
     id: 'yellow-maize',
     title: 'Why maize leaves turn yellow',
     subject: 'Agriculture',
+    tags: ["agriculture","maize","farming"],
     creator: 'Example Agriculture teacher',
     minutes: 3,
     summary: 'Learn what yellowing leaves can tell us about crop health.',
@@ -51,6 +54,7 @@ export const MINI_EXAMPLES: MiniExample[] = [
     id: 'electric-circuit',
     title: 'How an electric circuit works',
     subject: 'Physics',
+    tags: ["physics","electricity","circuits"],
     creator: 'Example Physics teacher',
     minutes: 3,
     summary: 'Understand a simple circuit, its switch and its bulb.',
@@ -68,6 +72,7 @@ export const MINI_EXAMPLES: MiniExample[] = [
     id: 'literary-suspense',
     title: 'How writers create suspense',
     subject: 'Literature',
+    tags: ["literature","writing","suspense"],
     creator: 'Example Literature teacher',
     minutes: 3,
     summary: 'Discover how silence and uncertainty keep a reader curious.',

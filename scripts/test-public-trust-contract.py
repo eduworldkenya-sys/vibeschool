@@ -156,9 +156,9 @@ mini_ui = text('components/public/MiniExplore.tsx')
 mini_home = text('components/public/MiniHomeSection.tsx')
 for fragment in ['MiniExplore', "canonical: '/explore'", 'PublicHeader', 'PublicFooter', 'main-content']:
     if fragment not in mini_page: errors.append(f'Mini Explore shell missing: {fragment}')
-for fragment in ['MINI_EXAMPLES', 'setQuery(', 'setSubject(', 'setTab(', 'toggle(liked, setLiked,', 'toggle(saved, setSaved,', 'toggle(followed, setFollowed,', 'setComments(', 'Create Mini', 'Publish — not active', 'moderation', 'safeguarding']:
+for fragment in ['MINI_EXAMPLES', 'setQuery(', 'setTag(', 'setTab(', 'toggle(liked, setLiked,', 'toggle(saved, setSaved,', 'toggle(followed, setFollowed,', 'setComments(', 'Create Mini', 'Publish — not active', 'moderation', 'safeguarding']:
     if fragment not in mini_ui: errors.append(f'Mini Explore preview missing: {fragment}')
-for forbidden in ['supabase.from(', 'fetch(', 'localStorage.', 'sessionStorage.', 'service_role', 'publish_mini(']:
+for forbidden in ['setSubject(', 'supabase.from(', 'fetch(', 'localStorage.', 'sessionStorage.', 'service_role', 'publish_mini(']:
     if forbidden in mini_ui: errors.append(f'Mini Explore preview must not activate backend publishing: {forbidden}')
 if 'MiniHomeSection' not in home or '/explore' not in home or 'MiniCard' not in mini_home:
     errors.append('Home must show Mini discovery without replacing its existing roles and trust content')
