@@ -181,7 +181,7 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
       // from fatal connection errors. Keep listening if speaking is blocked.
       call.on('camera-error',event=>{
         if(meeting.current!==call || event.errorMsg?.audioOk===true)return
-        if(!micPreference.current && !call.localAudio())return
+        if(!micPreference.current && !meeting.current?.localAudio())return
         micPreference.current=false
         setMicOn(false)
         setError('Microphone unavailable. Allow microphone access in your browser, then tap Speak again.')
