@@ -104,11 +104,11 @@ export default function UniversalLearnReader({
               ? <LearningBlockRenderer blocks={section.blocks} /> : <VisualRichText body={section.body} />)}
           </div>
         </details>
-        return <section id={id} key={id} data-tone={tone} className={styles.section} aria-labelledby={`${id}-heading`}>
-          <header className={styles.sectionHeading}>
-            <SectionHeading id={`${id}-heading`}>{section.title || 'Read and learn'}</SectionHeading>
+        return <section id={id} key={id} data-tone={tone} className={styles.section} aria-labelledby={presentation === 'book' && !section.title ? undefined : `${id}-heading`}>
+          {(section.title || presentation !== 'book' || section.hint) && <header className={styles.sectionHeading}>
+            {(section.title || presentation !== 'book') && <SectionHeading id={`${id}-heading`}>{section.title || 'Read and learn'}</SectionHeading>}
             {section.hint && <p>{section.hint}</p>}
-          </header>
+          </header>}
           <div className={styles.body}>
             {renderBody?.(section, index)
               ?? (section.blocks?.length

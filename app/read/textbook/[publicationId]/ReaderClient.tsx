@@ -69,7 +69,7 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
     setSheet(null);
   }
 
-  const pub=payload.publication;const path=[active?.curriculum.grade&&cap(active.curriculum.grade),active?.curriculum.subject&&cap(active.curriculum.subject),active?.curriculum.strand].filter(Boolean).join(" · ");const filtered=chapters.filter(c=>!query.trim()||`${c.number} ${c.title??""} ${c.curriculum?.strand??""}`.toLowerCase().includes(query.toLowerCase()));const contentGroups=new Map<string,Chapter[]>();for(const chapter of filtered){const strand=chapter.curriculum?.strand?.trim()||"";const group=contentGroups.get(strand)||[];group.push(chapter);contentGroups.set(strand,group)}
+  const pub=payload.publication;const topicTitle=active?.curriculum?.sub_strand?.trim() || active?.curriculum?.topic?.trim() || activeTitle || payload.publication.title;const path=[active?.curriculum.grade&&cap(active.curriculum.grade),active?.curriculum.subject&&cap(active.curriculum.subject),active?.curriculum.strand].filter(Boolean).join(" · ");const filtered=chapters.filter(c=>!query.trim()||`${c.number} ${c.title??""} ${c.curriculum?.strand??""}`.toLowerCase().includes(query.toLowerCase()));const contentGroups=new Map<string,Chapter[]>();for(const chapter of filtered){const strand=chapter.curriculum?.strand?.trim()||"";const group=contentGroups.get(strand)||[];group.push(chapter);contentGroups.set(strand,group)}
 
   return <div style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,-apple-system,sans-serif",fontSize:font,lineHeight:1.72}}>
     <style>{`[data-reader-speaking="true"]{outline:2px solid rgba(22,134,89,.5);outline-offset:7px;border-radius:8px;background:rgba(22,134,89,.035);transition:background .18s ease}`}</style>
@@ -85,8 +85,8 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
         {!focus&&<header className={timeStyles.hero}>
           <div>
             <p className={timeStyles.kicker}>{(active?.curriculum?.grade||pub.cbc_grade||"Grade 4").replace(/^grade(\d+)$/i,"Grade $1")} {cap(active?.curriculum?.subject||pub.cbc_subject||"Learning")}</p>
-            <h1 className={timeStyles.heroTitle}>{pub.title}</h1>
-            {pub.description&&<p className={timeStyles.heroDescription}>{pub.description}</p>}
+            <h1 className={timeStyles.heroTitle}>{topicTitle}</h1>
+            {pub.description && topicTitle === pub.title && <p className={timeStyles.heroDescription}>{pub.description}</p>}
           </div><div className={timeStyles.subjectTag}>Learn at your own pace</div>
         </header>}
         {!focus&&chapters.length>1&&<details className={timeStyles.lessonChooser}>

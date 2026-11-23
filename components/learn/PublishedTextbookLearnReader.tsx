@@ -33,7 +33,7 @@ function publicMediaUrl(value: string): string | null {
  * remain enforced by get_public_vibetextbook_reader and ReaderClient. */
 export function textbookLearnSections(blocks: readonly ContentBlock[]): ReaderSection[] {
   const groups: ReaderSection[] = []
-  let current: ReaderSection = { id: 'opening', title: 'Read and learn', tone: 'learn', body: '', sourceBlocks: [] }
+  let current: ReaderSection = { id: 'opening', title: '', tone: 'learn', body: '', sourceBlocks: [] }
   for (const block of blocks) {
     if (!block || typeof block.content !== 'string') continue
     if ((block.type === 'heading1' || block.type === 'heading2') && plainText(block.content)) {
