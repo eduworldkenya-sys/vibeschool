@@ -38,6 +38,20 @@ export default function IndependentProjects() {
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState<Record<string, string>>({});
 
+  // Prefill only the existing private project editor. Templates are prompts,
+  // not fabricated submissions or another source of learner evidence.
+  useEffect(() => {
+    const template = new URLSearchParams(window.location.search).get("template");
+    const templates: Record<string, { title: string; description: string }> = {
+      story: { title: "My original story", description: "Who are the characters? Where does the story take place? What happens?" },
+      investigation: { title: "My investigation", description: "What do I want to find out? How will I observe and record the results safely?" },
+      design: { title: "My design idea", description: "What will I make or design? What materials and steps will I need?" },
+      reading: { title: "My reading reflection", description: "What did I read? What were the main ideas, and what did I learn?" },
+    };
+    const suggestion = template ? templates[template] : undefined;
+    if (suggestion) { setTitle(suggestion.title); setDescription(suggestion.description); }
+  }, []);
+
   const load = useCallback(async (ownerId: string) => {
     const { data, error: loadError } = await supabase.from("projects")
       .select("id,title,description,status,independent_notes,independent_completed_at,created_at")
