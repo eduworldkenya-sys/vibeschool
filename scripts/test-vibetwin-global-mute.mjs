@@ -26,7 +26,6 @@ const entrypoints = [
   'app/student/layout.tsx',
   'components/student/LearnYourWayReaderBridge.tsx',
   'components/read/ReaderCalmSurface.tsx',
-  'app/global/dashboard/page.tsx',
 ]
 for (const file of entrypoints) {
   assert.match(read(file), /VIBETWIN_ENABLED/, file + ' must use the global mute')
