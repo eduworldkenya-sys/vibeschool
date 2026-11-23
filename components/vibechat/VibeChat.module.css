@@ -52,3 +52,52 @@
 .avatarImage{width:100%;height:100%;object-fit:cover;display:block}
 .peerHeader{display:flex;gap:11px;align-items:center;min-width:0}
 .peerHeader>div{min-width:0;overflow-wrap:anywhere}
+
+/* Compact conversation-first UI; existing backend and permissions unchanged. */
+.shell{height:100dvh;min-height:0;padding:10px clamp(10px,1.5vw,18px);display:flex;flex-direction:column}
+.main{width:100%;max-width:1440px;min-height:0;height:100%;display:flex;flex-direction:column}
+.header{margin-bottom:8px;min-height:42px}
+.logo{width:36px;height:36px;border-radius:11px}
+.heading{font-size:22px;letter-spacing:-.035em;font-family:Arial,sans-serif;font-weight:750}
+.tabs{padding:3px 0 9px;gap:6px;align-items:center;overflow:visible}
+.tab{display:inline-flex;align-items:center;gap:7px;border-radius:9px;padding:9px 12px;font-size:13px}
+.moreWrap{position:relative}
+.moreMenu{position:absolute;top:100%;left:0;z-index:20;min-width:170px;padding:6px;background:var(--vs-surface,#fff);border:1px solid var(--vs-border,#d7e2dc);border-radius:12px;box-shadow:0 12px 30px #0002;display:grid}
+.moreMenu button{border:0;background:transparent;color:inherit;padding:11px;border-radius:7px;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer}
+.moreMenu button:hover{background:var(--vs-surface-secondary,#edf7f2)}
+.layout{flex:1;min-height:0;max-height:none;border-radius:12px;grid-template-columns:minmax(255px,32%) minmax(0,1fr)}
+.sidebar{min-height:0}
+.searchRow{display:flex;align-items:center;gap:3px;padding:9px 10px 5px}
+.searchRow .search{margin:0;flex:1;width:0;font:inherit;font-size:13px;padding:10px 12px}
+.newChat{border:0;background:transparent;color:#087451;display:grid;place-items:center;min-height:42px;min-width:40px;cursor:pointer;border-radius:9px}
+.newChat:hover{background:var(--vs-surface-secondary,#edf7f2)}
+.filters{display:flex;gap:5px;padding:4px 10px 8px}
+.filter{border:1px solid var(--vs-border,#d7e2dc);background:transparent;color:inherit;border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer}
+.filterActive{background:#087451;border-color:#087451;color:white}
+.thread{padding:11px 12px;gap:11px}
+.threadTop{display:flex;align-items:baseline;justify-content:space-between;gap:6px;min-width:0}
+.threadTop strong{font-size:13px}
+.threadDate{white-space:nowrap;font-size:10px;color:var(--vs-muted,#69766e)}
+.threadText{gap:3px}
+.threadText small{font-size:12px}
+.channel{font-size:10px}
+.conversation{min-height:0}
+.conversationHeader{padding:10px 12px;min-height:58px}
+.messages{min-height:0}
+.compose{flex-shrink:0;padding:10px}
+.compose textarea{min-height:43px;max-height:110px;font-size:14px;padding:10px 12px}
+.compose .primary{min-width:45px;min-height:43px;padding:9px}
+@media(max-width:670px){
+ .shell{height:100dvh;padding:7px}
+ .header{min-height:38px}
+ .layout{flex:1;min-height:0;max-height:none;grid-template-columns:1fr}
+ .sidebar{max-height:none;height:100%;overflow-y:auto}
+ .conversation{height:100%;min-height:0}
+ .layout:has(.conversation[data-open="true"]) .sidebar{display:none}
+ .layout:has(.conversation[data-open="false"]) .conversation{display:none}
+ .conversationHeader .contactRow{gap:4px}
+ .conversationHeader .contactRow .back{font-size:0;padding:8px}
+ .messages{min-height:0}
+ .bubble{max-width:86%}
+ .searchRow{padding:8px}
+}
