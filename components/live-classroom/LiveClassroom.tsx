@@ -670,7 +670,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const participants=room?.participants??[]
   const subjects=['Mathematics','English','Kiswahili','Science','Creative Arts','CRE','IRE','Social Studies','Agriculture','Pre-Technical Studies'] as const
   const grades=['PP1','PP2',...Array.from({length:9},(_,i)=>'Grade '+(i+1)),...Array.from({length:4},(_,i)=>'Form '+(i+1))]
-  const matchLabel=(title:string,label:string)=>title.toLocaleLowerCase('en').split(/[^a-z0-9]+/).join(' ').includes(label.toLocaleLowerCase('en'))
+  const matchLabel=(title:string,label:string)=>(' '+title.toLocaleLowerCase('en').split(/[^a-z0-9]+/).join(' ')+' ').includes(' '+label.toLocaleLowerCase('en')+' ')
   const linkedRooms=rooms.filter(item=>item.mode!=='open'&&item.canJoin)
   const visibleRooms=rooms.filter(item=>teacher||(
     (scope==='all'||item.mode===scope)
@@ -1048,7 +1048,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         {!classId&&hostModes.length>1&&<div className={styles.controls} aria-label="Classroom type">{hostModes.map(item=><button type="button" key={item} aria-pressed={hostMode===item} onClick={()=>{setHostMode(item);setGroupId('')}}>{classroomLabels[item]}</button>)}</div>}
         {!classId&&hostMode==='tuition'&&<label>Learners<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">All connected learners</option>{groups.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
         {hostMode==='open'&&<><div className={styles.controls}><label>Grade<select value={publicGrade} onChange={e=>setPublicGrade(e.target.value)}>{grades.map(g=><option key={g} value={g}>{g}</option>)}</select></label><label>Subject<select value={publicSubject} onChange={e=>setPublicSubject(e.target.value)}>{subjects.map(g=><option key={g} value={g}>{g}</option>)}</select></label></div><small>Visible to eligible VibeSchool learners. You approve each request before they enter.</small></>}
-        <label>Lesson title<input required maxLength={120} value={title} onChange={e=>setTitle(e.target.value)} placeholder={hostMode==='open'?'Lesson topic':'Grade 4 · Mathematics'}/></label>
+        <label>Lesson title<input required maxLength={hostMode==='open'?80:120} value={title} onChange={e=>setTitle(e.target.value)} placeholder={hostMode==='open'?'Lesson topic':'Grade 4 · Mathematics'}/></label>
         <button className={styles.primary} disabled={busy||!title.trim()}>Go Live</button>
       </form>}
       {!teacher&&<div className={styles.controls}>
