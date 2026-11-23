@@ -176,7 +176,9 @@ export async function GET(req: NextRequest) {
         user_id: user.id, learner_email_verified_at: user.email_confirmed_at,
       }, { onConflict: 'user_id', ignoreDuplicates: true })
       if (provisionError) return authError(req, 'independent_signup_failed', pendingCookies)
-      return redirectWithCookies(req, '/signup/student/independent', pendingCookies)
+      const learnerSetup = next && roleCanVisit('student', next)
+        ? `/signup/student/independent?next=${encodeURIComponent(next)}` : '/signup/student/independent'
+      return redirectWithCookies(req, learnerSetup, pendingCookies)
     }
     if (!requestedRole || !SELF_SERVICE_ROLES.has(requestedRole)) {
       return authError(req, 'role_required', pendingCookies)
