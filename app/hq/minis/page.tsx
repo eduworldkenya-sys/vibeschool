@@ -108,7 +108,7 @@ export default function MiniModerationPage() {
   }
 
   return <HQPage title="Mini Lessons review" description="Review educational accuracy, ownership, rights and safety before public release.">
-    <div style={{display:'grid',gap:16,padding:'14px 0 40px',color:colors.text,maxWidth:1050}}>
+    <div style={{display:'grid',gap:16,padding:'14px 0 40px',color:colors.text,maxWidth:1050,background:'#fff',borderRadius:12,padding:20}}>
       <div style={{display:'flex',gap:9,flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
         <span style={{fontSize:13,color:colors.subtle}}>{queue.minis.length} pending Minis · {queue.comments.length} comments · {queue.reports.length} reports</span>
         <button type="button" style={button} onClick={()=>void load()} disabled={loading||busy}>Refresh queue</button>
