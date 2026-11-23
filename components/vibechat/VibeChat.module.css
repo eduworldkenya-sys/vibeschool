@@ -37,3 +37,12 @@
 .error{color:#b42318;font-size:13px;margin:10px 0}
 .actionRow{display:flex;gap:8px;flex-wrap:wrap;margin:12px}
 @media(max-width:670px){.layout{grid-template-columns:1fr;max-height:none;min-height:calc(100dvh - 170px)}.sidebar{max-height:60dvh;border-right:0}.conversation{min-height:62dvh}.layout:has(.conversation[data-open="true"]) .sidebar{display:none}.layout:has(.conversation[data-open="false"]) .conversation{display:none}.bubble{max-width:85%}.search{margin:8px;width:calc(100% - 16px)}.back{font-size:11px;padding:8px}.header{align-items:start}}
+
+.contactBlock{display:grid;gap:10px;border:1px solid var(--vs-border,#d7e2dc);border-radius:14px;padding:14px}
+.contactRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.contactRow strong{overflow-wrap:anywhere}
+.contactRow .primary{display:inline-flex;align-items:center;gap:6px;justify-content:center}
+.typing{font-size:12px;padding:0 14px;margin:0 0 5px;color:var(--vs-muted,#556a60);min-height:20px}
+.typingDots{color:#087451;letter-spacing:2px;animation:vibechatTyping 1s ease-in-out infinite}
+@keyframes vibechatTyping{0%,100%{opacity:.3}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.typingDots{animation:none}}
