@@ -99,7 +99,7 @@ export async function PATCH(req: NextRequest) {
         !['approved','rejected','hidden'].includes(String(decision)) ||
         typeof id !== 'string' || !UUID.test(id) ||
         (reason !== null && (typeof reason !== 'string' || reason.length > 500)) ||
-        !Number.isInteger(quality) || Number(quality) < 0 || Number(quality) > 100)
+        typeof quality !== 'number' || !Number.isInteger(quality) || quality < 0 || quality > 100)
       return response({ error: 'Invalid review decision' }, 400)
     const { data: result, error } = await actor.db.rpc('mini_review_item', {
       p_actor: actor.actorId,
