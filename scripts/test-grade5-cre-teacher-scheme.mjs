@@ -1,0 +1,76 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import test from 'node:test'
+
+const map = readFileSync('components/teacher/curriculum/Grade4CreCaMap.jsx', 'utf8')
+const scheme = readFileSync('app/teacher/scheme/AuthoritySchemePage.jsx', 'utf8')
+const hub = readFileSync('app/teacher/subjecthub/page.tsx', 'utf8')
+const sql = readFileSync('supabase/migrations/20261123114500_grade5_cre_teacher_scheme_link.sql', 'utf8')
+
+test('Grade 5 CRE reuses the existing canonical subject and exact source-scoped 30-unit curriculum', () => {
+  assert.match(map, /grade5cre:\s*\{/)
+  assert.match(map, /id: '8165d513-035b-4019-9fdb-5b86a27335a1'/)
+  assert.match(map, /grade: 'Grade 5'/)
+  assert.match(map, /CRE-GRADE-5-DESIGN-Revised\.pdf/)
+  assert.match(map, /resolveGlobalSubjectId\(subjectId\)/)
+  assert.match(map, /\.eq\('subject_id', source\.id\)/)
+  assert.match(map, /\.eq\('grade', source\.grade\)/)
+  assert.match(map, /\.order\('strand_order'/)
+  assert.match(map, /\.order\('sub_strand_order'/)
+})
+
+test('Teacher Subject Hub and Curriculum Map route Grade 5 CRE into the SAME Scheme interface', () => {
+  assert.match(hub, /const grade5CreClass/)
+  assert.match(hub, /christian religious education\|cre/)
+  assert.match(hub, /grade5CreClass\.id/)
+  assert.match(hub, /\/teacher\/curriculum\?classId=/)
+  assert.match(scheme, /const isGrade5CRE/)
+  assert.match(scheme, /isGrade4CRE \|\| isGrade5CRE \|\| isGrade4CreativeArts/)
+  assert.match(scheme, /kind=\{isGrade5CRE \? 'grade5cre' : isGrade4CRE/)
+  assert.match(scheme, /isGrade5CRE \? 'commit_grade5_cre_scheme_unit'/)
+  assert.match(scheme, /\/teacher\/scheme\?/)
+  assert.match(scheme, /weeks\.some\(w=>w\.week_number===selectedWeek\)/)
+})
+
+test('Unverified Grade 5 outcomes stay invisible while structural sub-strand planning works', () => {
+  assert.match(map, /\.eq\('status', 'active'\)/)
+  assert.match(map, /\.eq\('source_type', source\.outcomeSource\)/)
+  assert.match(map, /const canPlanWithoutOutcomes = kind === 'grade5cre'/)
+  assert.match(map, /objectives will be linked after source review/)
+  assert.match(map, /canPlanWithoutOutcomes && activeSelection\.length === 0/)
+  assert.doesNotMatch(map, /from\('scheme_of_work'\)|SERVICE_ROLE_KEY|\.insert\(/)
+  assert.match(sql, /status='active'/)
+  assert.match(sql, /and o\.status='active'/)
+  assert.match(sql, /and o\.created_by is null/)
+  assert.doesNotMatch(sql, /status='draft'\s*or|or\s*status='draft'/)
+})
+
+test('Grade 5 RPC enforces grade, subject, source and outcome lineage', () => {
+  assert.match(sql, /create or replace function public\.commit_grade5_cre_scheme_unit/)
+  assert.match(sql, /security invoker/)
+  assert.match(sql, /auth\.uid\(\) is null/)
+  assert.match(sql, /global\.name='Christian Religious Education'/)
+  assert.match(sql, /global\.id='8165d513-035b-4019-9fdb-5b86a27335a1'/)
+  assert.match(sql, /c\.grade='Grade 5'/)
+  assert.match(sql, /SCHEME_GRADE_MISMATCH/)
+  assert.match(sql, /SCHEME_CURRICULUM_IDENTITY_MISMATCH/)
+  assert.match(sql, /SCHEME_DUPLICATE_OUTCOMES/)
+  assert.match(sql, /SCHEME_CURRICULUM_OUTCOME_MISMATCH/)
+  assert.match(sql, /o\.sub_strand_id=v_unit\.id/)
+  assert.match(sql, /v_count is distinct from cardinality\(p_outcome_ids\)/)
+  assert.match(sql, /commit_custom_scheme_item/)
+  assert.match(sql, /where id=v_scheme\.id and teacher_id=auth\.uid\(\)/)
+  assert.match(sql, /scheme_lesson_outcomes/)
+})
+
+test('Grade 5 safe planning has empty outcomes, no auto-publication and no authority bypass', () => {
+  assert.match(sql, /p_outcome_ids uuid\[\] default '\{\}'::uuid\[\]/)
+  assert.match(sql, /cardinality\(p_outcome_ids\)>12/)
+  assert.match(sql, /v_objectives/)
+  assert.match(sql, /when v_count>0 then p_outcome_ids\[1\] else null/)
+  assert.match(sql, /planning reference; KICD outcome equivalence not certified/)
+  assert.match(sql, /revoke all on function .* from public/)
+  assert.match(sql, /to authenticated/)
+  assert.doesNotMatch(sql, /security definer|drop table|disable row level security|to anon|insert into public\.curriculum_learning_outcomes/i)
+  assert.doesNotMatch(sql, /auto_release_publication|hq_review_publication_release/)
+})
