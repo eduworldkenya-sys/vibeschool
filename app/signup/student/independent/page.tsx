@@ -8,6 +8,7 @@ import { resolveRegistrationLearningSelection } from '@/lib/learner/learning-lev
 import LearningLevelSelect from '@/components/learner/LearningLevelSelect'
 import { useAuthAppearance } from '@/app/auth/useAuthAppearance'
 import { unifiedIdentityEnabled } from '@/lib/identity/features'
+import { roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 import styles from './signup.module.css'
 
 export default function IndependentLearnerSignup() {
@@ -51,7 +52,9 @@ export default function IndependentLearnerSignup() {
       if (!response.ok) throw new Error(result.error||'Could not save your learning level.')
       // The destination is determined by the server, not a free-form user URL.
       const destination = result.destination === '/student/college' ? '/student/college' : '/student'
-      router.replace(unifiedIdentityEnabled ? `/account/setup?next=${encodeURIComponent(destination)}` : destination)
+      const requested = safeInternalPath(new URLSearchParams(window.location.search).get('next'))
+      const next = requested && roleCanVisit('student', requested) ? requested : destination
+      router.replace(unifiedIdentityEnabled ? `/account/setup?next=${encodeURIComponent(next)}` : next)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not finish setup.')
     } finally { setBusy(false) }
