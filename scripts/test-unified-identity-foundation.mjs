@@ -6,7 +6,7 @@ const read = path => readFileSync(path, 'utf8')
 test('new schema never grants old Teacher/Student/Parent OS authority', () => {
   const sql = read('supabase/migrations/20261123090000_unified_identity_foundation.sql')
   for (const marker of ['get_my_auth_access_state()','enable row level security','auth.uid()',
-    'Parent authorization required',"kind='managed_learner' and auth_user_id is null",
+    'Verified adult account required',"kind='managed_learner' and auth_user_id is null",
     'grant execute on function public.vs_create_managed_learner']) {
     assert.ok(sql.includes(marker), 'Missing guard: ' + marker)
   }
