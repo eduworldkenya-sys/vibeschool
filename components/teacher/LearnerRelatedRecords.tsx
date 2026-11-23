@@ -119,21 +119,6 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
       </div>
       <Link className={styles.footerLink} href={`/teacher/classhub/${classId}/groups?selected=${studentId}${subjectId ? `&subjectId=${encodeURIComponent(subjectId)}` : ""}`}>All groups <ArrowRight size={16}/></Link>
     </section>}
-      {!groups.some(group => group.member) && <p>No current group memberships for this learner.</p>}
-      {[...groups].sort((a, b) => Number(b.member) - Number(a.member)).map(group => <article key={group.id}>
-        <strong>{group.name}</strong><p>{group.purpose}</p>
-        <p>{group.member ? `Member${group.reason && group.mode === "smart" ? ` · ${group.reason}` : ""}` : "Not a member"} · {group.mode === "smart" ? "Smart list" : "Saved group"}</p>
-        {group.mode !== "smart" && <button disabled={busy} onClick={() => void act(async () => {
-          const result = group.member
-            ? await supabase.from("class_group_members").delete().eq("group_id", group.id).eq("student_id", studentId)
-            : await supabase.from("class_group_members").upsert({ group_id: group.id, student_id: studentId }, { onConflict: "group_id,student_id", ignoreDuplicates: true });
-          if (result.error) throw result.error;
-          setMessage(group.member ? "Removed from this group." : "Added to this group.");
-        })}>{group.member ? "Remove learner" : "Add learner"}</button>}
-        {group.mode === "smart" && <p>Membership follows the list’s rules.</p>}
-      </article>)}
-      <Link href={`/teacher/classhub/${classId}/groups?selected=${studentId}${subjectId ? `&subjectId=${encodeURIComponent(subjectId)}` : ""}`}>Open full Groups workspace</Link>
-    </>}
     {!loading && !error && kind === "roles" && <>
       <div className={styles.sectionHeading}>Responsibilities</div>
       {data.duties.filter(duty => duty.members.some(member => member.student_id === studentId)).map(duty => <article key={duty.id}>
