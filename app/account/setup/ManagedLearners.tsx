@@ -34,7 +34,7 @@ export default function ManagedLearners() {
   }
   return <section style={{ maxWidth: 480, margin: 'auto', padding: 20 }}>
     <h1>My learners</h1>
-    <p>Each child has a separate identity and learning history.</p>
+    <p>Each child has a separate profile. Learning access can be connected after verified setup.</p>
     <ul>{(data?.managed_learners || []).map(child => <li key={child.id}>
       {child.display_name} · @{child.username}
     </li>)}</ul>
