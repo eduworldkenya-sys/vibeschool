@@ -251,8 +251,9 @@ test('teacher can terminate exact media room on canonical class end',async()=>{
   assert.equal(p.calls.length,1)
   assert.equal(p.calls[0].method,'DELETE')
   assert.equal(p.calls[0].path,'rooms/'+name)
-  await closeLiveVoiceRoom(id,'key',p.request,'all')
-  assert.equal(p.calls[1].path,'rooms/'+dailyVoiceName(id,'all'))
+  const group=mockProvider({roomName:dailyVoiceName(id,'all')})
+  await closeLiveVoiceRoom(id,'key',group.request,'all')
+  assert.equal(group.calls[0].path,'rooms/'+dailyVoiceName(id,'all'))
   await assert.rejects(closeLiveVoiceRoom('bad','key',p.request),/Invalid/)
 })
 test('client and route respect feature gate, private credential, real JWT, and canonical room authority',()=>{
