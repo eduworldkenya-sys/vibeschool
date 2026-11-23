@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useStudent } from '@/lib/student-context'
 import { supabase } from '@/lib/supabase'
-import { ArrowRight, BookOpen, ClipboardList, CalendarDays, Compass, Gamepad2, PenLine } from 'lucide-react'
+import { ArrowRight, BookOpen, ClipboardList, CalendarDays, Compass, Gamepad2, PenLine, Search, LibraryBig, PencilLine, BrainCircuit, ChartNoAxesColumn, ChevronDown } from 'lucide-react'
 import {
   getVibeLearnWorkstation, getAssignedReading, getExamReadinessBrief, updateExamReadiness,
   getAdaptiveLearningPath, getAdaptiveResourceRecommendations,
@@ -116,34 +116,66 @@ export default function LearnerStudyDesk() {
   const savedReading = workspace?.continueLearning.slice(0,3) ?? []
   return <main className={styles.page}>
     <div className={styles.wrap}>
-      <div className={compact.screen}>
-      <h1>Learn</h1>
-      <section className={compact.grid} aria-label="Reading destinations">
-        <Link href="/student/explore" className={compact.primary}><Compass size={18}/> Explore interests <ArrowRight size={16}/></Link>
-        <Link href="/learn" className={compact.primary}><BookOpen size={18}/> Browse lessons <ArrowRight size={16}/></Link>
-        <Link href="/learn/stories" className={compact.primary}><BookOpen size={18}/> Stories <ArrowRight size={16}/></Link>
-        <Link href="/learn?view=reading" className={compact.action}>Library <ArrowRight size={16}/></Link>
-      </section>
-      {!loading && savedReading.length > 0 && <section className={compact.panel} aria-label="Continue reading">
-        {savedReading.slice(0,1).map(item => <Link key={item.publicationId} className={compact.action} href={safeInternalRoute(item.actionUrl)}>
-          <span>{item.title}<small className={compact.muted} style={{display:'block'}}>{item.progressPercent}% read</small></span><span>Continue</span>
-        </Link>)}
-        {savedReading.length > 1 && <details>
-          <summary>More saved reading</summary>
-          {savedReading.slice(1).map(item => <Link key={item.publicationId} href={safeInternalRoute(item.actionUrl)} className={compact.action}>{item.title} · {item.progressPercent}%</Link>)}
-        </details>}
-      </section>}
-      <section className={compact.grid} aria-label="Learning tools">
-        <Link className={compact.action} href="/student/funhub"><Gamepad2 size={16}/> Play & learn</Link>
-        <Link className={compact.action} href="/student/create"><PenLine size={16}/> Create</Link>
-        <Link className={compact.action} href="/student/tasks"><ClipboardList size={16}/> My tasks</Link>
-        <Link className={compact.action} href="/student/vibelearn/exams"><CalendarDays size={16}/> Exams</Link>
-        <Link className={compact.action} href="/student/vibelearn/topic-practice">Topic Practice</Link>
-        <Link className={compact.action} href="/student/marks">Progress</Link>
-      </section>
-      <details className={compact.panel}><summary>More reading tools</summary><StudentLearningFeatureLinks mode="learn" grade={identity.className}/></details>
-      <StudentIntro feature="learn-overview"><p>Open a lesson, continue reading or choose a learning activity.</p></StudentIntro>
+      <div className={styles.screen}>
+        <header className={styles.topBar}>
+          <div className={styles.heading}>
+            <h1>Learn</h1>
+            {identity.className && <span className={styles.grade}>{identity.className}</span>}
+          </div>
+          <Link href="/learn" className={styles.findLink}><Search size={17} aria-hidden="true"/> Find a lesson</Link>
+        </header>
+        <section className={styles.resume} aria-label="Continue reading">
+          {!loading && savedReading.length > 0 ? savedReading.slice(0,1).map(item =>
+            <div key={item.publicationId} className={styles.resumeContent}>
+              <span className={styles.eyebrow}>Continue reading</span>
+              <h2>{item.title}</h2>
+              {item.chapterTitle && <p className={styles.resumeMeta}>{item.chapterTitle}</p>}
+              <span className={styles.progressLabel}>{Math.round(Math.max(0,Math.min(100,item.progressPercent)))}% read</span>
+              <div className={styles.progressTrack} role="progressbar" aria-label="Reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.max(0,Math.min(100,item.progressPercent)))}>
+                <div style={{width: Math.max(0,Math.min(100,item.progressPercent)) + '%'}}/>
+              </div>
+              <Link href={safeInternalRoute(item.actionUrl)} className={styles.resumeAction}><span>Continue</span><ArrowRight size={18} aria-hidden="true"/></Link>
+            </div>
+          ) : loading ? <p className={styles.resumeLoading} role="status">Finding your last lesson…</p> :
+            <div className={styles.resumeContent}>
+              <span className={styles.eyebrow}>Start learning</span>
+              <h2>What would you like to learn?</h2>
+              <Link href="/learn" className={styles.resumeAction}>Browse lessons <ArrowRight size={18} aria-hidden="true"/></Link>
+            </div>}
+        </section>
+        <section className={styles.learningSection} aria-label="Learning tools">
+          <h2 className={styles.sectionTitle}>Choose what to do</h2>
+          <nav className={styles.learningGrid} aria-label="Learn destinations">
+            <Link href="/learn" className={styles.learningTile}><span className={styles.tileIcon}><BookOpen size={22} aria-hidden="true"/></span><span>Books & lessons</span><ArrowRight className={styles.tileArrow} size={15} aria-hidden="true"/></Link>
+            <Link href="/student/vibelearn/topic-practice" className={styles.learningTile}><span className={styles.tileIcon}><PencilLine size={22} aria-hidden="true"/></span><span>Practice</span><ArrowRight className={styles.tileArrow} size={15} aria-hidden="true"/></Link>
+            <Link href="/learn/stories" className={styles.learningTile}><span className={styles.tileIcon}><LibraryBig size={22} aria-hidden="true"/></span><span>Stories</span><ArrowRight className={styles.tileArrow} size={15} aria-hidden="true"/></Link>
+            <Link href="/student/explore" className={styles.learningTile}><span className={styles.tileIcon}><Compass size={22} aria-hidden="true"/></span><span>Explore</span><ArrowRight className={styles.tileArrow} size={15} aria-hidden="true"/></Link>
+          </nav>
+          <nav className={styles.creativeLinks} aria-label="Creative activities">
+            <Link href="/student/funhub"><Gamepad2 size={17} aria-hidden="true"/> Play & learn <ArrowRight size={14} aria-hidden="true"/></Link>
+            <Link href="/student/create"><PenLine size={17} aria-hidden="true"/> Create <ArrowRight size={14} aria-hidden="true"/></Link>
+          </nav>
+        </section>
+        {!loading && assigned.length > 0 && <section className={styles.teacherRow} aria-label="Assigned reading">
+          <span className={styles.eyebrow}>From your teacher</span>
+          <Link href={safeInternalRoute(assigned[0].actionUrl)}>{assigned[0].title}<ArrowRight size={16} aria-hidden="true"/></Link>
+        </section>}
       {error&&<p className={styles.alert} role="alert">{error}</p>}
+        <details className={styles.more}>
+          <summary>More learning <ChevronDown size={17} aria-hidden="true"/></summary>
+          <div className={styles.moreBody}>
+            <nav className={styles.moreNav} aria-label="Additional learning tools">
+              <Link href="/student/vibelearn/exams"><CalendarDays size={17} aria-hidden="true"/> My Exams</Link>
+              <Link href="/student/vibelearn/revision"><BrainCircuit size={17} aria-hidden="true"/> Revision</Link>
+              <Link href="/student/tasks"><ClipboardList size={17} aria-hidden="true"/> My tasks</Link>
+              <Link href="/student/marks"><ChartNoAxesColumn size={17} aria-hidden="true"/> Progress</Link>
+            </nav>
+            {!loading && savedReading.length > 1 && <section className={styles.advancedBlock}>
+              <h3>Other saved reading</h3>
+              {savedReading.slice(1).map(item => <Link key={item.publicationId} href={safeInternalRoute(item.actionUrl)} className={styles.item}>{item.title} · {Math.round(item.progressPercent)}% <ArrowRight size={16}/></Link>)}
+            </section>}
+            <details className={styles.advancedBlock}><summary>More reading tools</summary><StudentLearningFeatureLinks mode="learn" grade={identity.className}/></details>
+            <StudentIntro feature="learn-overview"><p>Open a lesson, continue reading or choose a learning activity.</p></StudentIntro>
       {loading?<p className={styles.card} role="status">Loading your current learning activities…</p>:
       <div className={compact.grid} style={{alignItems:'start'}}>
         <details className={compact.panel} aria-label="Assigned learning"><summary>Assigned reading</summary>
@@ -225,6 +257,8 @@ export default function LearnerStudyDesk() {
           <details><summary style={{cursor:'pointer',fontSize:12}}>About this study estimate</summary><p className={styles.muted}>{readiness.predictionDisclaimer}</p></details>
         </details>}
       </div>}
+          </div>
+        </details>
       </div>
     </div>
   </main>
