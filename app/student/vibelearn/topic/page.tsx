@@ -80,7 +80,7 @@ export default function TopicWorkspacePage() {
 
         <section style={card}>
           <div style={eyebrowDark}>Practise</div><h2 style={title}>{workspace.questions.length} verified questions available</h2>
-          <p style={muted}>Start a scored session using stored hints and explanations. VibeTwin remains off during scoring.</p>
+          <p style={muted}>Start a scored session using stored hints and explanations. Your score is based on your own answers.</p>
           <button style={{ ...primaryButton, marginTop: 12 }} onClick={() => router.push(`/student/vibelearn/practice?subject=${encodeURIComponent(workspace.subject)}&topic=${encodeURIComponent(workspace.topic)}`)}>Start topic practice</button>
         </section>
 
