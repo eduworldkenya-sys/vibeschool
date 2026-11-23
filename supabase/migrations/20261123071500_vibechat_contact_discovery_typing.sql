@@ -19,7 +19,7 @@ create index if not exists vibechat_child_threads
 create or replace function public.parent_start_child_thread(
   p_student_id uuid,
   p_staff_id uuid,
-  p_context_tag text default 'question'
+  p_context_tag text default 'general'
 ) returns uuid
 language plpgsql volatile security definer set search_path='' as $vcparent$
 declare
@@ -29,27 +29,32 @@ declare
 begin
   if v_parent is null then raise exception 'Sign-in required' using errcode='28000'; end if;
   if p_student_id is null or p_staff_id is null or
-     coalesce(p_context_tag,'') not in ('question','general','urgent')
+     coalesce(p_context_tag,'') not in ('question','general','urgent','concern','enquiry')
   then raise exception 'Invalid child message request' using errcode='22023'; end if;
   select cl.school_id into v_school
   from public.parent_student_links link
   join public.students learner on learner.id=link.student_id
     and learner.deleted_at is null
   join public.classes cl on cl.id=learner.class_id
-  join public.teacher_classes assignment on assignment.class_id=cl.id
-    and assignment.school_id=cl.school_id
-    and assignment.teacher_id=p_staff_id
   join public.profiles guardian on guardian.id=link.parent_id
     and guardian.account_status::text='active'
     and not coalesce(guardian.is_anonymized,false)
-  join public.profiles teacher on teacher.id=assignment.teacher_id
-    and teacher.role='teacher'
-    and teacher.account_status::text='active'
-    and not coalesce(teacher.is_anonymized,false)
+  join public.profiles staff_profile on staff_profile.id=p_staff_id
+    and staff_profile.role in ('teacher','admin')
+    and staff_profile.account_status::text='active'
+    and not coalesce(staff_profile.is_anonymized,false)
   where link.parent_id=v_parent and link.student_id=p_student_id
     and (link.school_id is null or link.school_id=cl.school_id)
     and exists (select 1 from public.school_members sm
       where sm.profile_id=p_staff_id and sm.school_id=cl.school_id)
+    and (
+      (staff_profile.role='teacher' and exists (
+        select 1 from public.teacher_classes assignment
+        where assignment.teacher_id=p_staff_id and assignment.class_id=cl.id
+          and assignment.school_id=cl.school_id
+      ))
+      or staff_profile.role='admin'
+    )
   limit 1;
   if v_school is null then
     raise exception 'Parent or assigned teacher is not authorized'
@@ -210,13 +215,18 @@ returns boolean language sql stable security definer set search_path='' as $vcac
         or exists (
           select 1 from public.students learner
           join public.classes cl on cl.id=learner.class_id
-          join public.teacher_classes assignment on assignment.class_id=cl.id
-            and assignment.school_id=cl.school_id
           join public.school_members member on member.school_id=cl.school_id
-            and member.profile_id=assignment.teacher_id
+            and member.profile_id=auth.uid()
+          join public.profiles staff_profile on staff_profile.id=auth.uid()
+            and staff_profile.role in ('teacher','admin')
           where learner.id=thread.student_id and learner.deleted_at is null
             and cl.school_id=thread.school_id
-            and assignment.teacher_id=auth.uid()
+            and (
+              staff_profile.role='admin'
+              or exists (select 1 from public.teacher_classes assignment
+                where assignment.teacher_id=auth.uid() and assignment.class_id=cl.id
+                  and assignment.school_id=cl.school_id)
+            )
         )
       )
   );
