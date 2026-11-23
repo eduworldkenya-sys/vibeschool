@@ -23,7 +23,7 @@ import { liveAnswerChoices, addWorkToPrivateNotes } from '@/lib/live/learnerActi
 import type { LessonDeliveryStep } from '@/lib/teaching/lessonPlanCodec'
 
 type ClassroomMode = 'school' | 'tuition' | 'homeschool' | 'open'
-const classroomLabels: Record<ClassroomMode,string>={school:'School',tuition:'Tuition',homeschool:'Homeschool',open:'Open class'}
+const classroomLabels: Record<ClassroomMode,string>={school:'My Class',tuition:'Invited',homeschool:'Homeschool',open:'Public'}
 type Summary = { mode: ClassroomMode; canJoin: boolean; id: string; title: string; status: 'active' | 'paused'; own: boolean; waitingStatus?:'pending'|'admitted'|'denied'|null }
 type PastSummary = { id: string; title: string; mode: ClassroomMode; startedAt: string; status: 'ended' }
 type Mode = 'teach' | 'quiz' | 'exercise' | 'poll' | 'clock' | 'board'
@@ -1034,7 +1034,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       {teacher&&<form onSubmit={e=>{e.preventDefault();void act('start',null,{title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
         {!classId&&hostModes.length>1&&<div className={styles.controls} aria-label="Classroom type">{hostModes.map(item=><button type="button" key={item} aria-pressed={hostMode===item} onClick={()=>{setHostMode(item);setGroupId('')}}>{classroomLabels[item]}</button>)}</div>}
         {!classId&&hostMode==='tuition'&&<label>Learners<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">All connected learners</option>{groups.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
-        {hostMode==='open'&&<small>Discoverable to school-level learners. Joining requires an approved tutor connection.</small>}
+        {hostMode==='open'&&<small>Visible to eligible VibeSchool learners. You approve each request before they enter.</small>}
         <label>Lesson title<input required maxLength={120} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Grade 4 · Mathematics"/></label>
         <button className={styles.primary} disabled={busy||!title.trim()}>Go Live</button>
       </form>}
@@ -1045,9 +1045,9 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       </div>}
       {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>
         teacher?<button type="button" key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>Resume</span></button>
-        :!item.canJoin?<div key={item.id} className={styles.discover}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><Link href="/student/tutoring">Connect to tutor</Link></div>
-        :item.mode==='open'&&item.waitingStatus!=='admitted'?<div key={item.id} className={styles.discover}><strong>{item.title}<small>Teacher-controlled Open class</small></strong>
-          {item.waitingStatus==='pending'?<span role="status">Waiting for teacher approval</span>:item.waitingStatus==='denied'?<span>Admission declined</span>:<button type="button" disabled={busy||!online} onClick={()=>void requestAdmission(item.id)}>Request admission</button>}
+        :!item.canJoin?<div key={item.id} className={styles.discover}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><Link href="/student/tutoring">Connect to teacher</Link></div>
+        :item.mode==='open'&&item.waitingStatus!=='admitted'?<div key={item.id} className={styles.discover}><strong>{item.title}<small>Public · Teacher approval required</small></strong>
+          {item.waitingStatus==='pending'?<span role="status">Request sent · Waiting for teacher</span>:item.waitingStatus==='denied'?<span>Admission declined</span>:<button type="button" disabled={busy||!online} onClick={()=>void requestAdmission(item.id)}>Request to join</button>}
         </div>
         :<button type="button" key={item.id} disabled={busy} onClick={()=>void act('join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>Join Live</span></button>
       )}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
