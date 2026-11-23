@@ -362,7 +362,7 @@ function scheduleActions(brain: TwinBrainState): TwinAction[] {
   const seen = new Set<string>();
   const actions: TwinAction[] = [];
   const today = nairobiDateStr();
-  for (const slot of snap.todaySlots as any[]) {
+  for (const slot of snap.todaySlots) {
     if (seen.has(slot.id)) continue;
     seen.add(slot.id);
     actions.push({
