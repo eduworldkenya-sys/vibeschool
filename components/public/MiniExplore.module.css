@@ -122,3 +122,11 @@
   .search input{font-size:14px}
   .readerBody{padding:14px}
 }
+
+.photoEditor{margin:12px 0;display:grid;gap:8px}
+.photoCanvas{width:100%;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:#e5e7eb;display:grid;place-items:center}
+.photoCanvas img{display:block;transform-origin:center}
+.photoTools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.photoTools label{font-weight:700;font-size:12px}
+.photoTools input[type="range"]{flex:1;min-width:95px;accent-color:#192c4a}
+.photoTools button{min-height:38px;padding:8px 12px}
