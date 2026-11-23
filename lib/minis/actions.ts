@@ -1,0 +1,105 @@
+import { supabase } from '@/lib/supabase'
+import type { MiniPost } from './data'
+import { MINI_SUBJECTS } from './data'
+
+export async function currentMiniUser(): Promise<string | null> {
+  const { data, error } = await supabase.auth.getUser()
+  return error ? null : data.user?.id ?? null
+}
+
+export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('mini_adult_signal_allowed', { p_user: userId })
+  return !error && data === true
+}
+
+export async function submitMini({
+  title, body, subject, photo, userId,
+}: {
+  title: string
+  body: string
+  subject: string
+  photo: File
+  userId: string
+}): Promise<string> {
+  const cleanTitle = title.trim()
+  const cleanBody = body.trim()
+  if (cleanTitle.length < 5 || cleanTitle.length > 100) throw Error('Use a title between 5 and 100 characters.')
+  if (cleanBody.length < 40 || cleanBody.length > 3000) throw Error('Write a short, useful explanation of at least 40 characters.')
+  if (!MINI_SUBJECTS.some(value => value === subject)) throw Error('Choose a valid subject.')
+  const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as Record<string,string>)[photo.type]
+  if (!ext || photo.size > 5 * 1024 * 1024 || photo.size < 100)
+    throw Error('Choose a JPG, PNG or WebP photo under 5 MB.')
+
+  const verified = await currentMiniUser()
+  if (!verified || verified !== userId) throw Error('Sign in to submit your Mini Lesson.')
+
+  const { data: canSubmit, error: eligibilityError } =
+    await supabase.rpc('mini_creator_can_submit', { p_user: verified })
+  if (eligibilityError || canSubmit !== true)
+    throw Error('Your teacher account needs an opted-in public profile before submitting Minis. Check your public profile settings.')
+
+  const coverPath = userId + '/' + crypto.randomUUID() + '.' + ext
+  const { error: uploadError } = await supabase.storage.from('mini-covers')
+    .upload(coverPath, photo, { contentType: photo.type, cacheControl: '3600', upsert: false })
+  if (uploadError) throw Error('Unable to upload this image. Please try again.')
+
+  const { data: submitted, error: publishError } = await supabase.from('mini_lessons')
+    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, cover_path: coverPath, status: 'pending' })
+    .select('id').single()
+  if (publishError || !submitted?.id) {
+    // Best-effort rollback of an unused, private file; the DB stays fail-closed.
+    await supabase.storage.from('mini-covers').remove([coverPath])
+    throw Error('The Mini could not be submitted. Your profile may need additional verification.')
+  }
+  return submitted.id as string
+}
+
+export async function changeMiniInteraction(id: string, userId: string, kind: 'like' | 'save', on: boolean) {
+  const verified = await currentMiniUser()
+  if (!verified || verified !== userId) throw Error('Sign in to interact with Minis.')
+  const result = on
+    ? await supabase.from('mini_interactions').insert({ mini_id: id, user_id: verified, kind })
+    : await supabase.from('mini_interactions').delete().eq('mini_id',id).eq('user_id',verified).eq('kind',kind)
+  if (result.error && !(on && result.error.code === '23505')) throw Error('Could not update this Mini.')
+}
+
+export async function changeMiniFollow(creatorId: string, userId: string, on: boolean) {
+  const verified = await currentMiniUser()
+  if (!verified || verified !== userId) throw Error('Sign in to follow creators.')
+  if (verified === creatorId) throw Error('You cannot follow your own profile.')
+  const result = on
+    ? await supabase.from('global_profile_follows').insert({ follower_id: verified, followed_id: creatorId })
+    : await supabase.from('global_profile_follows').delete().eq('follower_id',verified).eq('followed_id',creatorId)
+  if (result.error && !(on && result.error.code === '23505')) throw Error('Unable to update this follow.')
+}
+
+export async function addMiniComment(id: string, userId: string, body: string) {
+  const verified = await currentMiniUser()
+  if (!verified || verified !== userId) throw Error('Sign in to post a comment.')
+  if (body.trim().length < 2 || body.trim().length > 500) throw Error('Comments must be between 2 and 500 characters.')
+  const { error } = await supabase.from('mini_comments')
+    .insert({ mini_id: id, author_id: verified, body: body.trim(), status: 'pending' })
+  if (error) throw Error('The comment could not be submitted.')
+}
+
+export async function reportMini(id: string, userId: string, reason: string) {
+  const verified = await currentMiniUser()
+  if (!verified || verified !== userId) throw Error('Sign in to report content.')
+  const allowed = ['incorrect','unsafe','spam','copyright','other']
+  if (!allowed.includes(reason)) throw Error('Choose a valid reason.')
+  const { error } = await supabase.from('mini_reports')
+    .insert({ mini_id: id, reporter_id: verified, reason })
+  if (error && error.code !== '23505') throw Error('Unable to submit report.')
+}
+
+export async function recordMiniLearningSignal(
+  mini: MiniPost, userId: string, signal: 'understood' | 'not_interested',
+) {
+  const verified = await currentMiniUser()
+  if (!verified || verified !== userId) throw Error('Sign in to save learning feedback.')
+  if (!(await miniIsVerifiedAdult(verified))) throw Error('Learning preference tracking is available only for verified adults.')
+  const day = new Date().toISOString().slice(0,10)
+  const { error } = await supabase.from('mini_learning_signals')
+    .insert({ user_id: verified, mini_id: mini.id, signal, occurred_on: day })
+  if (error && error.code !== '23505') throw Error('Unable to record that feedback.')
+}
