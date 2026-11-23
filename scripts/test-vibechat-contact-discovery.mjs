@@ -64,3 +64,27 @@ test('VibeChat contacts use only scoped RPCs and never expose phone numbers',()=
   assert.doesNotMatch(contacts,/\.from\('profiles'\)|\.select\('phone'|\.select\('email'/i)
   assert.match(ui,/tab==='contacts'/)
 })
+
+test('parent-child messaging only admits linked guardians and assigned teachers', () => {
+  assert.match(sql,/create or replace function public\.parent_start_child_thread\(/)
+  assert.match(sql,/link\.parent_id=v_parent and link\.student_id=p_student_id/)
+  assert.match(sql,/assignment\.teacher_id=p_staff_id/)
+  assert.match(sql,/teacher\.role='teacher'/)
+  assert.match(sql,/learner\.deleted_at is null/)
+  assert.match(sql,/guardian\.account_status::text='active'/)
+  assert.match(sql,/teacher\.account_status::text='active'/)
+  assert.match(sql,/sm\.profile_id=p_staff_id and sm\.school_id=cl\.school_id/)
+  assert.match(sql,/pg_advisory_xact_lock/)
+  assert.match(sql,/thread\.student_id=p_student_id/)
+  assert.match(sql,/insert into public\.vc_participants/)
+  assert.match(sql,/revoke all on function public\.parent_start_child_thread/)
+  assert.doesNotMatch(sql,/grant all on .*?vc_threads to authenticated/i)
+})
+
+test('message insert never permits spoofed senders or departed participants', () => {
+  assert.match(sql,/create policy vibechat_member_sender_integrity on public\.vc_messages/)
+  assert.match(sql,/as restrictive for insert to authenticated/)
+  assert.match(sql,/sender_id=auth\.uid\(\)/)
+  assert.match(sql,/member\.left_at is null/)
+  assert.throws(() => assert.match(sql.replace('sender_id=auth.uid()','sender_id is not null'), /sender_id=auth\.uid\(\)/))
+})
