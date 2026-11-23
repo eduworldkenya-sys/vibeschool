@@ -8,6 +8,7 @@ import { SchoolReadinessAssessment } from '@/components/public/SchoolReadinessAs
 import { RoleJourneySelector } from '@/components/public/RoleJourneySelector'
 import { ConnectedEducationExplorer } from '@/components/public/ConnectedEducationExplorer'
 import styles from './home.module.css'
+import { MiniHomeSection } from '@/components/public/MiniHomeSection'
 import SuccessWishesFloatingOffer from '@/components/success-wishes/SuccessWishesFloatingOffer'
 
 export const metadata: Metadata = {
@@ -40,10 +41,10 @@ export default function HomePage() {
       <section className={styles.hero}>
         <div className={styles.heroInner}>
           <p className={styles.eyebrow}>VIBESCHOOL · BUILT FOR KENYAN EDUCATION</p>
-          <h1>Teach better. Plan less. Know what comes next.</h1>
-          <p className={styles.lead}>One connected workspace for curriculum planning, teaching, assessment and learner progress — built around the work teachers do every day.</p>
+          <h1>Learn. Teach. Share knowledge.</h1>
+          <p className={styles.lead}>Discover knowledge, learn from educators and teach through one connected VibeSchool experience.</p>
           <div className={styles.actions}>
-            <TrackedLink className={styles.primary} href="/sandbox" event="public_home_start_learning">Explore the live sandbox</TrackedLink>
+            <TrackedLink className={styles.primary} href="/explore" event="public_home_explore_minis">Explore Mini Lessons</TrackedLink>
             <Link className={styles.secondary} href="/product">See how VibeSchool works</Link>
           </div>
           <div className={styles.heroTrust}>
@@ -56,6 +57,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      <MiniHomeSection />
       <div id="product-tour"><ProductTour /></div>
       <RoleJourneySelector />
       <ConnectedEducationExplorer />
