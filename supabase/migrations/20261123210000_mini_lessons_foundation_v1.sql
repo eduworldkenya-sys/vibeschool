@@ -35,11 +35,13 @@ create table if not exists public.mini_lessons (
   quiz_explanation text,
   constraint mini_optional_quiz_valid check (
     (quiz_question is null and cardinality(quiz_options)=0 and quiz_correct is null and quiz_explanation is null)
-    or (char_length(btrim(quiz_question)) between 10 and 240
+    or (quiz_question is not null and quiz_correct is not null and quiz_explanation is not null
+      and char_length(btrim(quiz_question)) between 10 and 240
       and cardinality(quiz_options) between 2 and 4
       and quiz_correct between 0 and cardinality(quiz_options)-1
       and char_length(btrim(quiz_explanation)) between 10 and 500
-      and array_position(quiz_options,null) is null)
+      and array_position(quiz_options,null) is null
+      and array_position(quiz_options,'') is null)
   ),
   cover_path text check (cover_path is null or (char_length(cover_path) <= 180 and cover_path ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}\.(jpg|jpeg|png|webp)$')),
   status text not null default 'pending' check (status in ('draft','pending','approved','rejected','hidden')),
