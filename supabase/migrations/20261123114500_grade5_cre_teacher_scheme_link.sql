@@ -58,15 +58,15 @@ begin
 
   -- A teacher may pass the assigned school's subject, but the global subject
   -- identity must be exactly CRE, never the generic Religious Education area.
-  select global.id into v_global_subject
+  select root_subject.id into v_global_subject
   from public.subjects selected
-  join public.subjects global on global.id=case
+  join public.subjects root_subject on root_subject.id=case
     when selected.school_id is null then selected.id else selected.global_subject_id end
   where selected.id=p_subject_id
-    and global.school_id is null
-    and global.global_subject_id is null
-    and global.name='Christian Religious Education'
-    and global.id='8165d513-035b-4019-9fdb-5b86a27335a1'::uuid;
+    and root_subject.school_id is null
+    and root_subject.global_subject_id is null
+    and root_subject.name='Christian Religious Education'
+    and root_subject.id='8165d513-035b-4019-9fdb-5b86a27335a1'::uuid;
   if v_global_subject is null then raise exception 'SCHEME_SUBJECT_IDENTITY_MISMATCH'; end if;
 
   -- Exact selected curriculum unit, not a hardcoded parallel curriculum.
