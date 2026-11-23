@@ -201,9 +201,9 @@ const SlotCard = React.memo(function SlotCard({
         display:      'flex',
         alignItems:   'center',
         gap:          12,
-        padding:      '13px 14px',
+        padding:      '10px 12px',
         borderRadius: 6,
-        background:   subjectTone(slot.subject).background,
+        background:   'var(--surface,#fff)',
         border: isNow
           ? `2px solid ${C.accent}`
           : isNext
@@ -247,7 +247,7 @@ const SlotCard = React.memo(function SlotCard({
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 4, alignItems: 'center' }}>
           <span style={{
-            fontSize: 11, fontWeight: 750, padding: '2px 7px', borderRadius: 20,
+            fontSize: 10, fontWeight: 650, padding: '2px 6px', borderRadius: 5,
             background: slot.readiness === 'ready' ? '#d1fae5' : slot.readiness === 'needs_review' ? '#fef3c7' : '#fee2e2',
             color: slot.readiness === 'ready' ? '#065f46' : slot.readiness === 'needs_review' ? '#92400e' : '#991b1b',
           }}>
@@ -255,7 +255,6 @@ const SlotCard = React.memo(function SlotCard({
           </span>
           {slot.isSubstitute && <span style={{ fontSize: 11, fontWeight: 750, color: '#1d4ed8' }}>Substitute lesson</span>}
           {slot.exceptionReason && <span style={{ fontSize: 11, fontWeight: 750, color: '#92400e' }}>{slot.exceptionReason}</span>}
-          <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted }}>School</span>
           {slot.schoolName && <span style={{ fontSize: 11, color: C.textMuted }}>{slot.schoolName}</span>}
         </div>
         {slot.room
@@ -1397,6 +1396,13 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           --skeleton-bg:    linear-gradient(90deg,#1c1c1e 25%,#2c2c2e 50%,#1c1c1e 75%);
         }
 
+        .vs-v3-insightrows{display:grid;gap:0;border:1px solid var(--border-color,#e3e6e9);border-radius:8px;overflow:hidden}
+        .vs-v3-insightrow{padding:12px 13px;display:grid;grid-template-columns:1fr auto;gap:7px 10px;text-align:left;border:0;border-bottom:1px solid var(--border-color,#e3e6e9);background:var(--surface,#fff);font:inherit;color:var(--text-primary,#17202a);cursor:pointer}
+        .vs-v3-insightrow:last-child{border-bottom:0}.vs-v3-insightrow:hover{background:var(--surface-raised,#f8f9fa)}
+        .vs-v3-insightname{display:flex;align-items:center;gap:8px;font-size:12px}.vs-v3-insightname small{font-size:10px;color:var(--text-muted,#667085);font-weight:400}
+        .vs-v3-insightcount{font-size:12px;font-variant-numeric:tabular-nums;color:var(--text-muted,#667085)}
+        .vs-v3-insightcount span{padding-left:8px}.vs-v3-progress{grid-column:1/-1;height:5px;border-radius:8px;background:var(--surface-raised,#f1f2f4);overflow:hidden}
+        .vs-v3-progress span{display:block;height:100%;border-radius:8px}.vs-v3-insightstatus{grid-column:1/-1;font-size:10px;color:var(--text-muted,#667085)}
         .vs-v3-workspace{border:1px solid var(--border-color,#e3e6e9);border-radius:8px;background:var(--surface,#fff);padding:12px 13px;margin-bottom:8px}
         .vs-v3-titleline,.vs-v3-weekline,.vs-v3-tabline,.vs-v3-brand,.vs-v3-topactions,.vs-v3-nav,.vs-v3-tabs,.vs-v3-tabs-right,.vs-v3-daynavigation{display:flex;align-items:center;gap:8px}
         .vs-v3-titleline,.vs-v3-weekline,.vs-v3-tabline{justify-content:space-between;flex-wrap:wrap}
@@ -1543,21 +1549,18 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           <p style={{fontSize:12,color:C.textMuted,margin:'0 0 8px'}}>Select a subject to filter the weekly calendar. Unknown targets require school allocation setup.</p>
           {weeklyLoadError ? <p role="alert" style={{fontSize:12,color:C.textMuted}}>Cannot verify weekly allocations. Use Retry check above after the source is available.</p> :
           weeklyLoadRows.length === 0 ? <p style={{fontSize:12,color:C.textMuted}}>No verified teacher-class subject allocation records returned.</p> :
-          <div style={{overflowX:'auto'}}>
-            <table className="vs-timetable-allocation-table">
-              <thead><tr><th>Class / subject</th><th>Target</th><th>Scheduled</th><th>Status</th></tr></thead>
-              <tbody>{weeklyLoadRows.map(row => <tr key={row.classId + ':' + row.subjectId}>
-                <td><button type="button" aria-label={`Show ${row.subjectName} for ${row.className} ${row.stream ?? ''} in timetable`}
-                  onClick={()=>{ const matching=visibleSlots.find(slot=>slot.classId===row.classId && slot.subjectId===row.subjectId); if(matching) setSchoolFilter(matching.schoolId); setClassFilter(row.classId);setSubjectFilter(row.subjectId);setSearchText('');chooseView('week') }}
-                  style={{display:'flex',alignItems:'center',gap:8,background:'transparent',border:0,padding:0,textAlign:'left',color:C.textPrimary,cursor:'pointer',font:'inherit',textDecoration:'underline',textUnderlineOffset:3}}>
-                  <span aria-hidden="true" style={{width:9,height:9,flexShrink:0,borderRadius:2,background:subjectTone(row.subjectName).border}} />
-                  {row.className}{row.stream ? ' ' + row.stream : ''} · {row.subjectName}
-                </button></td>
-                <td>{row.lessonsPerWeek ?? 'Unknown'}</td><td>{row.scheduledCount}</td>
-                <td><strong style={{color:row.status === 'OK'?'#247354':row.status === 'NO_TARGET'?C.textMuted:'#a8640b'}}>{row.status === 'OK'?'Matched':row.status === 'NO_TARGET'?'No target':row.status === 'UNDER'?'Under':row.status === 'OVER'?'Over':'Not scheduled'}</strong></td>
-              </tr>)}</tbody>
-            </table>
-          </div>}
+          <div className="vs-v3-insightrows">
+            {weeklyLoadRows.map(row => <button type="button" key={row.classId+':'+row.subjectId}
+              className="vs-v3-insightrow"
+              aria-label={`View ${row.subjectName} ${row.className} timetable, ${row.scheduledCount} of ${row.lessonsPerWeek??'unknown'} lessons`}
+              onClick={()=>{const match=visibleSlots.find(slot=>slot.classId===row.classId && slot.subjectId===row.subjectId);if(match)setSchoolFilter(match.schoolId);setClassFilter(row.classId);setSubjectFilter(row.subjectId);setSearchText('');chooseView('week')}}>
+              <span className="vs-v3-insightname"><span style={{width:8,height:8,background:subjectTone(row.subjectName).border,borderRadius:2,flexShrink:0}}/>
+                <strong>{row.subjectName}</strong><small>{row.className}{row.stream?' '+row.stream:''}</small></span>
+              <span className="vs-v3-insightcount">{row.scheduledCount}/{row.lessonsPerWeek??'—'} <span aria-hidden="true">›</span></span>
+              <span className="vs-v3-progress" aria-hidden="true"><span style={{width:row.lessonsPerWeek&&row.lessonsPerWeek>0?`${Math.min(100,100*row.scheduledCount/row.lessonsPerWeek)}%`:'0%',background:subjectTone(row.subjectName).border}} /></span>
+              <span className="vs-v3-insightstatus">{row.status==='OK'?'Matched':row.status==='NO_TARGET'?'Target unverified':row.status==='UNDER'?'Under allocation':row.status==='OVER'?'Over allocation':'Not scheduled'}</span>
+            </button>)}
+          </div>
           <p style={{fontSize:12,color:C.textMuted,margin:'14px 0 0'}}>Lesson counts are based on the existing load service. Period issues and unverified targets must be resolved before treating the timetable as complete.</p>
           <button type="button" onClick={() => router.push('/teacher/timetable/setup')} style={{marginTop:12,border:'1px solid var(--border-color,#e5e7eb)',background:'transparent',borderRadius:6,padding:'9px 12px',color:C.textPrimary,cursor:'pointer'}}>School day & templates</button>
         </section>
@@ -1595,7 +1598,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       {/* Slot list */}
       {view === 'day' && <Card>
         <SectionLabel>
-          {DAYS.find(d => d.dow === activeDow)?.label ?? ''}{isToday ? ' — Today' : ''}
+          {DAYS.find(d => d.dow === activeDow)?.label ?? ''}{isToday ? ' — Today' : ''} · {dayEntries.length} lesson{dayEntries.length===1?'':'s'}
         </SectionLabel>
 
         {loading ? (
