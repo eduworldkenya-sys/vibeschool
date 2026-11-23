@@ -142,8 +142,8 @@ export default function ParentInboxPage() {
       <section style={{ ...card, marginTop: 12 }}>
         <div style={{ fontSize: 9, fontWeight: 900, color: C.emerald, textTransform: 'uppercase', letterSpacing: 1 }}>Conversations</div>
         <h2 style={{ margin: '4px 0 6px', fontSize: 16 }}>Need to talk to the school?</h2>
-        <p style={{ margin: '0 0 10px', color: C.muted, fontSize: 11 }}>Inbox events are system records. Teacher conversations and school circular acknowledgements stay in VibeConnect.</p>
-        <button onClick={() => router.push('/parent/messages')} style={primaryButton}>Open messages & school notices</button>
+        <p style={{ margin: '0 0 10px', color: C.muted, fontSize: 11 }}>Inbox events are system records. Teacher conversations and school circular acknowledgements stay in VibeChat.</p>
+        <button onClick={() => router.push('/vibechat')} style={primaryButton}>Open messages & school notices</button>
       </section>
     </div>
   )

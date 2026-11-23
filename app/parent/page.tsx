@@ -307,7 +307,7 @@ export default function ParentHomePage() {
             <h1 style={{ fontSize: 21, lineHeight: 1.2, margin: '5px 0 4px' }}>{greeting()}, {firstName}</h1>
             <p style={{ margin: 0, color: '#cbd5e1', fontSize: 12 }}>{new Date().toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', weekday: 'long', day: 'numeric', month: 'long' })} · {children.length} {children.length === 1 ? 'child' : 'children'} connected</p>
           </div>
-          <button onClick={() => router.push('/parent/inbox')} aria-label="Open family inbox" style={{ border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.09)', color: '#fff', borderRadius: 12, padding: '9px 11px', cursor: 'pointer', fontWeight: 800, fontFamily: 'inherit', fontSize: 12 }}>Inbox {familyPulse.recentMessages > 0 ? `· ${familyPulse.recentMessages}` : ''}</button>
+          <button onClick={() => router.push('/parent/inbox')} aria-label="Open family updates" style={{ border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.09)', color: '#fff', borderRadius: 12, padding: '9px 11px', cursor: 'pointer', fontWeight: 800, fontFamily: 'inherit', fontSize: 12 }}>Updates {familyPulse.recentMessages > 0 ? `· ${familyPulse.recentMessages}` : ''}</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginTop: 16 }}>
@@ -378,7 +378,7 @@ export default function ParentHomePage() {
         <div style={eyebrow}>Family channels</div>
         <h2 style={{ margin: '4px 0 12px', fontSize: 17 }}>Everything important has a home</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-          <Channel title="Teacher & school messages" detail="Conversations and notices" onClick={() => router.push('/parent/messages')} />
+          <Channel title="Teacher & school messages" detail="Conversations and notices" onClick={() => router.push('/vibechat')} />
           <Channel title="Public school updates" detail="News, fees, uniforms & admissions" onClick={() => router.push('/schools/following')} />
           <Channel title="Learning progress" detail="Released assessments" onClick={() => router.push('/parent/assessments')} />
           <Channel title="Official reports" detail="Published report cards" onClick={() => router.push('/parent/report-cards')} />

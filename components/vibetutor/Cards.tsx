@@ -125,7 +125,7 @@ export function RequestCard({ r, compact = false, score, signedIn = false }: { r
               <textarea id={'interest-' + r.id} className={styles.input} value={intro} maxLength={500} rows={3} onChange={e => setIntro(e.target.value)} />
               <button className={styles.modalSignIn} type="button" disabled={sending || sent || intro.trim().length < 10} onClick={() => void sendInterest()}>{sent ? 'Interest sent' : sending ? 'Sending…' : 'Contact request owner'}</button>
               {contactError && <p role="alert" className={styles.hint}>{contactError}</p>}
-              {sent && <p role="status" className={styles.hint}>Enquiry sent privately to the request owner. <Link href="/vibetutor/inquiries">View enquiries</Link></p>}
+              {sent && <p role="status" className={styles.hint}>Enquiry sent privately to the request owner. <Link href="/vibechat?tab=enquiries">View enquiries</Link></p>}
             </div>}
         </section>
       </div>}

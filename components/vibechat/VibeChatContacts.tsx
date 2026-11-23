@@ -1,0 +1,193 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import { Check, Copy, Link2, Search, UserPlus, X } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { getSupabaseClient } from '@/lib/supabase'
+import styles from './VibeChat.module.css'
+import VibeChatAvatar from './VibeChatAvatar'
+
+type Lookup = { handle: string; display_name: string; account_role: string; avatar_url: string | null }
+type Connection = {
+  id: string
+  name: string
+  handle: string
+  avatar_url: string | null
+  direction: 'incoming' | 'outgoing'
+  status: 'pending' | 'accepted' | 'declined'
+  thread_id: string | null
+  created_at: string
+}
+
+export default function VibeChatContacts({
+  role,
+  onOpenThread,
+}: { role: string; onOpenThread: (threadId: string) => void }) {
+  const params = useSearchParams()
+  const suggestedHandle = params.get('find') ?? ''
+  const [myHandle, setMyHandle] = useState('')
+  const [lookupText, setLookupText] = useState('')
+  const [found, setFound] = useState<Lookup | null>(null)
+  const [connections, setConnections] = useState<Connection[]>([])
+  const [loading, setLoading] = useState(true)
+  const [looking, setLooking] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+  const mayInvite = ['teacher', 'parent', 'admin'].includes(role)
+
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const db = getSupabaseClient()
+      const [handleResult, connectionsResult] = await Promise.all([
+        db.rpc('vibechat_my_handle'),
+        db.rpc('vibechat_my_contacts'),
+      ])
+      if (handleResult.error || connectionsResult.error) throw new Error('contacts unavailable')
+      setMyHandle(handleResult.data ?? '')
+      setConnections((connectionsResult.data ?? []) as Connection[])
+    } catch {
+      setError('Contacts are not available. Check your connection and try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => {
+    if (/^@[a-z0-9][a-z0-9.]{2,30}$/i.test(suggestedHandle)) setLookupText(suggestedHandle)
+  }, [suggestedHandle])
+
+  async function lookup(event: React.FormEvent) {
+    event.preventDefault()
+    if (!mayInvite) return
+    setFound(null)
+    setNotice('')
+    setError('')
+    const input = lookupText.trim().toLowerCase()
+    if (!/^@[a-z0-9][a-z0-9.]{2,30}$/.test(input)) {
+      setError('Enter an exact VibeChat ID, for example @mumbi.4821')
+      return
+    }
+    setLooking(true)
+    try {
+      const { data, error: lookupError } = await getSupabaseClient().rpc('vibechat_lookup_handle', { p_handle: input })
+      if (lookupError) throw lookupError
+      if (!data?.length) setNotice('Contact not found or not available to you.')
+      else setFound(data[0] as Lookup)
+    } catch {
+      setError('Could not search for this contact. Try again.')
+    } finally {
+      setLooking(false)
+    }
+  }
+
+  async function invite() {
+    if (!found || busy) return
+    setBusy('invite')
+    setError('')
+    try {
+      const { error: requestError } = await getSupabaseClient().rpc('vibechat_request_contact', { p_handle: found.handle })
+      if (requestError) throw requestError
+      setNotice('Connection request recorded. Chat opens after acceptance.')
+      setFound(null)
+      await refresh()
+    } catch {
+      setError('Could not send this request. It may already exist or your request limit was reached.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function respond(connection: Connection, accept: boolean) {
+    if (busy || connection.direction !== 'incoming' || connection.status !== 'pending') return
+    setBusy(connection.id)
+    setError('')
+    try {
+      const { data: threadId, error: responseError } = await getSupabaseClient().rpc('vibechat_respond_contact', {
+        p_request: connection.id, p_accept: accept,
+      })
+      if (responseError) throw responseError
+      setNotice(accept ? 'Contact accepted.' : 'Contact declined.')
+      await refresh()
+      if (accept && threadId) onOpenThread(threadId)
+    } catch {
+      setError('Could not update this request. Please retry.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return <section className={styles.panel} aria-label="VibeChat contacts" style={{display:'grid',gap:16}}>
+    <header>
+      <h2 style={{margin:'0 0 4px'}}>Contacts</h2>
+      <p className={styles.subtitle}>Connect by VibeChat ID, not a phone number.</p>
+    </header>
+    {loading ? <p role="status">Loading your contacts…</p> : <>
+      <div className={styles.contactBlock}>
+        <span className={styles.subtitle}>Your VibeChat ID</span>
+        <div className={styles.contactRow}>
+          <strong>{myHandle || 'Unavailable'}</strong>
+          <button type="button" className={styles.back} disabled={!myHandle}
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(myHandle)
+                setNotice('VibeChat ID copied.')
+              } catch { setError('Could not copy the ID on this device.') }
+            }}><Copy size={15} aria-hidden/> Copy ID</button>
+          <button type="button" className={styles.back} disabled={!myHandle} onClick={async()=>{
+            try {
+              const share = new URL('/vibechat', window.location.origin)
+              share.searchParams.set('tab','contacts')
+              share.searchParams.set('find',myHandle)
+              await navigator.clipboard.writeText(share.toString())
+              setNotice('Connection link copied.')
+            } catch { setError('Could not copy the connection link.') }
+          }}><Link2 size={15} aria-hidden/> Share link</button>
+        </div>
+        <small className={styles.subtitle}>Sharing your ID does not give strangers permission to message you.</small>
+      </div>
+      {mayInvite ? <form onSubmit={e=>void lookup(e)} className={styles.contactBlock}>
+        <label htmlFor="vc-handle"><strong>Find someone by ID</strong></label>
+        <p className={styles.subtitle}>Available contacts include published tutors and authorized colleagues in your school.</p>
+        <div className={styles.contactRow}>
+          <input id="vc-handle" type="search" className={styles.search} style={{margin:0,flex:1,minWidth:0,width:'auto'}}
+            placeholder="@username.1234" autoComplete="off" value={lookupText}
+            maxLength={40} onChange={e=>setLookupText(e.target.value)} />
+          <button className={styles.primary} disabled={looking || !lookupText.trim()}>
+            <Search size={17} aria-hidden/> {looking?'Finding…':'Find'}
+          </button>
+        </div>
+        {found && <div className={styles.contactRow}>
+          <VibeChatAvatar name={found.display_name} avatarUrl={found.avatar_url}/>
+          <div style={{flex:1}}><strong>{found.display_name}</strong>
+            <div className={styles.subtitle}>{found.handle} · {found.account_role}</div></div>
+          <button type="button" className={styles.primary} disabled={busy==='invite'} onClick={()=>void invite()}>
+            <UserPlus size={16} aria-hidden/> Connect
+          </button>
+        </div>}
+      </form> : <p className={styles.subtitle}>To connect with a new tutor, use your parent or guardian account. Existing approved learning conversations remain available.</p>}
+      <section aria-label="Connection requests">
+        <h3>Connections</h3>
+        {connections.filter(c=>c.status!=='declined').length===0 ? <p className={styles.subtitle}>No connections or requests yet.</p> :
+          connections.filter(c=>c.status!=='declined').map(c=><article className={styles.contactRow} key={c.id}>
+            <VibeChatAvatar name={c.name} avatarUrl={c.avatar_url}/>
+            <span style={{flex:1,minWidth:0}}>
+              <strong>{c.name}</strong><span className={styles.subtitle} style={{display:'block'}}>{c.handle} · {c.status==='pending'?(c.direction==='incoming'?'Wants to connect':'Request sent'):'Connected'}</span>
+            </span>
+            {c.status==='pending'&&c.direction==='incoming'? <>
+              <button type="button" disabled={!!busy} className={styles.primary} onClick={()=>void respond(c,true)}>
+                <Check size={16} aria-hidden/> Accept</button>
+              <button type="button" disabled={!!busy} className={styles.back} onClick={()=>void respond(c,false)}>
+                <X size={16} aria-hidden/> Decline</button>
+            </> : c.status==='accepted'&&c.thread_id?
+              <button type="button" className={styles.back} onClick={()=>onOpenThread(c.thread_id!)}>Chat</button> : null}
+          </article>)}
+      </section>
+    </>}
+    {notice&&<p role="status">{notice}</p>}
+    {error&&<p className={styles.error} role="alert">{error} <button type="button" onClick={()=>void refresh()}>Retry</button></p>}
+  </section>
+}

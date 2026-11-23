@@ -31,7 +31,7 @@ export const teacherTools = {
     { label: 'Learners', href: '/teacher/students', icon: Users },
     { label: 'Attendance', href: '/teacher/attendance', icon: ClipboardCheck },
     { label: 'Homework', href: '/teacher/homework', icon: NotebookPen },
-    { label: 'VibeConnect', href: '/teacher/vibeconnect', icon: MessageSquare },
+    { label: 'VibeChat', href: '/vibechat', icon: MessageSquare },
   ],
   assess: [
     { label: 'Classroom assessment', href: '/teacher/assessment', icon: ClipboardCheck },

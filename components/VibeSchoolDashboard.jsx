@@ -266,14 +266,14 @@ function MessageModal({ student, onClose }) {
       <div style={{ textAlign: "center", padding: "20px 0" }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
         <div style={{ fontSize: 15, color: C.textPrimary, fontWeight: 600 }}>Message sent.</div>
-        <div style={{ fontSize: 13, color: C.textMuted, marginTop: 6 }}>Thread created in VibeConnect.</div>
+        <div style={{ fontSize: 13, color: C.textMuted, marginTop: 6 }}>Thread created in VibeChat.</div>
         <Btn style={{ marginTop: 20 }} onClick={onClose}>Done</Btn>
       </div>
     </Modal>
   );
   return (
     <Modal open onClose={onClose} title={`Message${student ? ` — ${student.name}` : ""}`}>
-      <div style={{ marginBottom: 12, fontSize: 13, color: C.textMuted }}>Opens a thread in VibeConnect. Students cannot see this.</div>
+      <div style={{ marginBottom: 12, fontSize: 13, color: C.textMuted }}>Opens a thread in VibeChat. Students cannot see this.</div>
       <textarea
         value={msg}
         onChange={e => setMsg(e.target.value)}
@@ -476,7 +476,7 @@ function BottomNav({ active, onChange, unreadConnect }) {
   const tabs = [
     { id: "home",        icon: "🏠", label: "Home" },
     { id: "lessonplan",  icon: "📖", label: "Plans" },
-    { id: "vibeconnect", icon: "💬", label: "VibeConnect", badge: unreadConnect },
+    { id: "vibeconnect", icon: "💬", label: "VibeChat", badge: unreadConnect },
     { id: "more",        icon: "⋯",  label: "More" },
     { id: "profile",     icon: "👤", label: "Profile" },
   ];
@@ -848,7 +848,7 @@ function VibeConnectTab({ setMessageModal }) {
   return (
     <div style={{ animation: "slideIn 0.22s ease" }}>
       <div style={{ background: "linear-gradient(135deg, #0f766e 0%, #10b981 100%)", borderRadius: 20, padding: "20px 20px", marginBottom: 14, color: "#fff" }}>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>VibeConnect</div>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>VibeChat</div>
         <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'Bricolage Grotesque', sans-serif", marginTop: 4 }}>Messages & Threads</div>
         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 6 }}>Teachers · Parents · Admin. Scoped to your school.</div>
       </div>

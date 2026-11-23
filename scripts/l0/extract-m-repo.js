@@ -277,9 +277,22 @@ for (const migration of migrations) {
     const tree = await parse(sql);
     walk(tree, { migration });
   } catch (error) {
+    // Include the parser's structured position for a targeted SQL repair.
+    // Diagnostics only: invalid migrations still fail closed.
+    const position = error && typeof error === 'object'
+      ? (error.cursorPosition ?? error.position ?? error.location ?? null)
+      : null;
+    const pos = Number(position);
+    const prefix = Number.isFinite(pos) && pos > 0 && pos <= sql.length
+      ? sql.slice(0, pos - 1)
+      : null;
     parseErrors.push({
       migration,
       error: error instanceof Error ? error.message : String(error),
+      cursor_position: prefix === null ? null : pos,
+      line: prefix === null ? null : (prefix.match(/\n/g)?.length ?? 0) + 1,
+      context: prefix === null ? null : sql.slice(Math.max(0, pos - 140), Math.min(sql.length, pos + 100)),
+      error_fields: error && typeof error === 'object' ? Object.keys(error) : [],
     });
   }
 }
