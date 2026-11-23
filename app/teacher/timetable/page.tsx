@@ -868,11 +868,12 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [loadError,       setLoadError]        = useState<string | null>(null)
   const [schoolError,     setSchoolError]      = useState<string | null>(null)
   const [selected,        setSelected]         = useState<Slot | null>(null)
-  const [view, setView] = useState<'day' | 'week'>('day')
+  const [view, setView] = useState<'day' | 'week' | 'insights'>('week')
   useEffect(() => {
-    try {if (localStorage.getItem('teacher-timetable-view') === 'week') setView('week')} catch { /* View preference is optional. */ }
+    try {const saved = localStorage.getItem('teacher-timetable-view')
+    if (saved === 'day' || saved === 'week' || saved === 'insights') setView(saved)} catch { /* View preference is optional. */ }
   }, [])
-  const chooseView = (next: 'day' | 'week') => {
+  const chooseView = (next: 'day' | 'week' | 'insights') => {
     setView(next)
     try {localStorage.setItem('teacher-timetable-view',next)} catch { /* View remains usable without storage. */ }
   }
@@ -1372,6 +1373,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           --skeleton-bg:    linear-gradient(90deg,#1c1c1e 25%,#2c2c2e 50%,#1c1c1e 75%);
         }
 
+        .vs-tool-item {display:block;width:100%;text-align:left;padding:10px 9px;border:0;background:transparent;color:var(--text-primary,#171c25);font:inherit;font-size:12px;border-radius:5px;cursor:pointer;}
+        .vs-tool-item:hover,.vs-tool-item:focus-visible {background:var(--surface-raised,#f8f9fb);}
+        .vs-timetable-metrics {display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;}
+        .vs-timetable-metric {background:var(--surface-raised,#f8f9fb);padding:12px;border:1px solid var(--border-color,#e5e7eb);border-radius:6px;display:flex;flex-direction:column;gap:3px;}
+        .vs-timetable-metric strong {font-size:20px;font-variant-numeric:tabular-nums;}
+        .vs-timetable-metric span {font-size:11px;color:var(--text-muted,#64748b);}
+        .vs-timetable-allocation-table {width:100%;border-collapse:collapse;font-size:12px;min-width:450px;}
+        .vs-timetable-allocation-table th,.vs-timetable-allocation-table td {padding:10px;text-align:left;border-bottom:1px solid var(--border-color,#e5e7eb);}
+        .vs-timetable-allocation-table th {font-weight:600;background:var(--surface-raised,#f8f9fb);}
         .day-tabs::-webkit-scrollbar { display: none; }
         .day-tabs { scrollbar-width: none; -ms-overflow-style: none; }
 
@@ -1437,20 +1447,21 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       <div
         className="print-hero"
         style={{
-          background:   'linear-gradient(135deg, #065f46 0%, #10b981 100%)',
-          borderRadius: 20,
-          padding:      '20px',
+          background:   'var(--surface, #fff)',
+          borderRadius: 8,
+          border: '1px solid var(--border-color, #e5e7eb)',
+          padding:      '14px 16px',
           marginBottom: 14,
-          color:        '#fff',
+          color:        C.textPrimary,
         }}
       >
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-          SmartTimetable
+        <div style={{ fontSize: 11, color: 'var(--text-muted,#64748b)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+          TIMETABLE
         </div>
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
-          My Weekly Schedule
+          My timetable
         </div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted,#64748b)', marginTop: 6 }}>
           {loading ? 'Loading…' : `${totalLessons} school lessons · ${tuitionWeek.filter(lesson => lesson.status === 'scheduled').length} tuition lessons this week`}
         </div>
 
@@ -1460,10 +1471,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             onClick={() => canAddSlot && setShowAddSlot(true)}
             disabled={!canAddSlot}  
             style={{
-              padding: '8px 18px', borderRadius: 20, border: 'none',
+              padding: '8px 18px', borderRadius: 6, border: '1px solid var(--border-color, #e5e7eb)',
               cursor:     canAddSlot ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
-              background: 'rgba(255,255,255,0.2)', color: '#fff',
+              background: 'var(--surface-raised,#f8f9fb)', color: C.textPrimary,
               opacity:    canAddSlot ? 1 : 0.45,
               transition: 'opacity 0.2s',
             }}
@@ -1476,21 +1487,21 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         {isToday && !loading && (nowSlot || nextSlot) && (
           <div style={{
             marginTop: 14, padding: '10px 14px',
-            background: 'rgba(255,255,255,0.12)',
-            borderRadius: 12,
+            background: 'var(--surface-raised,#f8f9fb)',
+            borderRadius: 6,
             display: 'flex', flexDirection: 'column', gap: 6,
           }}>
             {nowSlot && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted,#64748b)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
                     Now
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginTop: 2 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginTop: 2 }}>
                     {nowSlot.subject} · {nowSlot.className}
                   </div>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.75)' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-muted,#64748b)' }}>
                   ends {formatTime(nowSlot.endTime)}
                 </div>
               </div>
@@ -1498,14 +1509,14 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             {nextSlot && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted,#64748b)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
                     Next
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginTop: 2 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginTop: 2 }}>
                     {nextSlot.subject} · {nextSlot.className}
                   </div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.85)' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-muted,#64748b)' }}>
                   {formatCountdown(minutesUntil(nextSlot.startTime, curMin))}
                 </div>
               </div>
@@ -1643,7 +1654,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       </div>
 
       {/* Day tabs */}
-      <div
+      {view !== "insights" && <div
         className="day-tabs no-print"
         style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}
       >
@@ -1689,7 +1700,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             </button>
           )
         })}
-      </div>
+      </div>}
 
       {personalSchoolDay && (
         <Card>
@@ -1736,10 +1747,23 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         </div>
       )}
 
-      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}} aria-label="Timetable view">
-        <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Daily view</Btn>
-        <Btn variant={view === 'week' ? 'primary' : 'ghost'} small onClick={() => chooseView('week')}>Weekly sheet</Btn>
-        <Btn variant="ghost" small onClick={() => window.print()}>Print</Btn>
+      <div className="no-print" role="group" aria-label="Timetable view" style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:10,padding:'8px 10px',border:'1px solid var(--border-color,#e5e7eb)',borderRadius:8,background:'var(--surface,#fff)' }}>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Today</Btn>
+          <Btn variant={view === 'week' ? 'primary' : 'ghost'} small onClick={() => chooseView('week')}>Week</Btn>
+          <Btn variant={view === 'insights' ? 'primary' : 'ghost'} small onClick={() => chooseView('insights')}>Insights</Btn>
+        </div>
+        <details className="vs-timetable-tools" style={{position:'relative'}}>
+          <summary style={{cursor:'pointer',padding:'8px 11px',border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,fontSize:12,fontWeight:650,listStyle:'none'}}>Tools ▾</summary>
+          <div style={{position:'absolute',right:0,top:'100%',zIndex:12,width:210,background:'var(--surface,#fff)',border:'1px solid var(--border-color,#e5e7eb)',borderRadius:8,padding:8,boxShadow:'0 12px 28px rgba(0,0,0,.09)'}}>
+            <button type="button" className="vs-tool-item" onClick={() => router.push('/teacher/timetable/setup')}>Templates & school day</button>
+            <button type="button" className="vs-tool-item" onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare a lesson</button>
+            <button type="button" className="vs-tool-item" onClick={() => window.print()}>Print timetable</button>
+          </div>
+        </details>
+      </div>
+      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}} aria-label="Additional timetable actions">
+        {/* Preserve existing revision, preparation and setup actions below. */}
         <Btn
           variant="ghost"
           small
@@ -1786,6 +1810,40 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </div>
       {blocksError && <p role="alert">{blocksError} <button type="button" onClick={() => load()}>Retry</button></p>}
+      {view === 'insights' && (
+        <section aria-label="Timetable insights" style={{border:'1px solid var(--border-color,#e5e7eb)',background:'var(--surface,#fff)',borderRadius:8,padding:16,marginBottom:14}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
+            <strong style={{fontSize:16}}>Timetable insights</strong>
+            <button type="button" onClick={() => setWeeklyLoadRetry(value => value + 1)} style={{fontSize:12,border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,padding:'7px 10px',background:'transparent',color:C.textPrimary,cursor:'pointer'}}>Refresh</button>
+          </div>
+          <div className="vs-timetable-metrics">
+            {[
+              {label:'School lessons',value:totalLessons},
+              {label:'Tuition lessons',value:tuitionWeek.filter(lesson => lesson.status === 'scheduled').length},
+              {label:'Classes',value:uniqueClasses},
+              {label:'Allocation alerts',value:weeklyLoadError ? '—' : loadMismatches.length},
+              {label:'Period issues',value:periodIssues.length},
+            ].map(metric => <div key={metric.label} className="vs-timetable-metric">
+              <strong>{metric.value}</strong><span>{metric.label}</span>
+            </div>)}
+          </div>
+          <h3 style={{fontSize:13,margin:'18px 0 8px'}}>Subject allocations</h3>
+          {weeklyLoadError ? <p role="alert" style={{fontSize:12,color:C.textMuted}}>Cannot verify weekly allocations. Use Retry check above after the source is available.</p> :
+          weeklyLoadRows.length === 0 ? <p style={{fontSize:12,color:C.textMuted}}>No verified teacher-class subject allocation records returned.</p> :
+          <div style={{overflowX:'auto'}}>
+            <table className="vs-timetable-allocation-table">
+              <thead><tr><th>Class / subject</th><th>Target</th><th>Scheduled</th><th>Status</th></tr></thead>
+              <tbody>{weeklyLoadRows.map(row => <tr key={row.classId + ':' + row.subjectId}>
+                <td>{row.className}{row.stream ? ' ' + row.stream : ''} · {row.subjectName}</td>
+                <td>{row.lessonsPerWeek ?? 'Unknown'}</td><td>{row.scheduledCount}</td>
+                <td><strong style={{color:row.status === 'OK'?'#247354':row.status === 'NO_TARGET'?C.textMuted:'#a8640b'}}>{row.status === 'OK'?'Matched':row.status === 'NO_TARGET'?'No target':row.status === 'UNDER'?'Under':row.status === 'OVER'?'Over':'Not scheduled'}</strong></td>
+              </tr>)}</tbody>
+            </table>
+          </div>}
+          <p style={{fontSize:12,color:C.textMuted,margin:'14px 0 0'}}>Lesson counts are based on the existing load service. Period issues and unverified targets must be resolved before treating the timetable as complete.</p>
+          <button type="button" onClick={() => router.push('/teacher/timetable/setup')} style={{marginTop:12,border:'1px solid var(--border-color,#e5e7eb)',background:'transparent',borderRadius:6,padding:'9px 12px',color:C.textPrimary,cursor:'pointer'}}>School day & templates</button>
+        </section>
+      )}
       {view === 'week' && scheduleContext !== 'tuition' && schoolFilter === 'all' && schools.length > 1 && !loading && (
         <div className="no-print" style={{ padding: 12, marginBottom: 12, borderRadius: 12, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
           Choose one school above for its weekly sheet. Daily view combines all of your schools and still respects the global teacher clash rule.
@@ -1856,7 +1914,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       </Card>}
 
       {/* Week summary */}
-      {!loading && (
+      {!loading && view !== "insights" && (
         <Card>
           <SectionLabel>Week Summary</SectionLabel>
           {[
