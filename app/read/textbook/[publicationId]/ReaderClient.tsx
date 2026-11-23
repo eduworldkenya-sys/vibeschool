@@ -13,6 +13,7 @@ import PlaceValuePreviewChart from "@/components/learn/PlaceValuePreviewChart";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import timeStyles from "@/components/learn/Grade4TimeContentReader.module.css";
+import paperStyles from "@/components/learn/PublishedTextbookPaper.module.css";
 
 export type Curriculum={framework:string|null;grade:string|null;subject:string|null;strand:string|null;sub_strand:string|null;topic:string|null;term:number|null;week:number|null;learning_outcomes:string[];key_inquiry_questions:string[];suggested_experiences:string[];core_competencies:string[];core_values:string[];source_ref:string|null;alignment_status:"unclaimed"|"creator_claimed"|"pending_review"|"verified"|"rejected";authority:"official"|"publisher"|null;verified_by:string|null;verified_at:string|null;has_curriculum_detail:boolean};
 export type Chapter={id:string;publication_id:string;title:string|null;number:number;status:"draft"|"published"|"locked";word_count:number|null;reading_time_min:number|null;can_read:boolean;progress_percent:number|null;completed_at:string|null;curriculum:Curriculum;is_bookmarked:boolean;blocks:ContentBlock[]|null};
@@ -104,7 +105,7 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
         </details>}
         <div className={timeStyles.contentArea}>
       {!focus&&<OfflineBookSaveButton publicPayload={initialPayload}/> }
-      {active?<><article className={timeStyles.article}><div className={timeStyles.articleHead}>
+      {active?<><article className={timeStyles.article+" "+paperStyles.squareArticle}><div className={timeStyles.articleHead}>
         <div className={timeStyles.readerToolbar}>
           <p className={timeStyles.articleNum}>{lessonActive?"Lesson 1":"Lesson "+(index+1)+" of "+chapters.length}</p>
           <div className={timeStyles.textSettings} role="group" aria-label="Text size">
@@ -114,7 +115,7 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
           </div>
         </div>
         <h2 className={timeStyles.articleTitle}>{activeTitle||"Lesson "+active.number}</h2>{path&&<div style={{fontSize:13,color:C.muted,marginBottom:18}}>{path}</div>}{!lessonActive&&active.curriculum.learning_outcomes.length>0&&<section className={timeStyles.goal} aria-labelledby="outcomes-title"><h3 id="outcomes-title" className={timeStyles.goalLabel}>What you’ll learn</h3><ul style={{margin:0,paddingLeft:20,fontSize:15,lineHeight:1.55,color:"#385b49"}}>{active.curriculum.learning_outcomes.slice(0,4).map((o,i)=><li key={i} style={{marginBottom:6}}>{o}</li>)}</ul>{(active.curriculum.learning_outcomes.length>4||active.curriculum.key_inquiry_questions.length>0||active.curriculum.suggested_experiences.length>0)&&<button onClick={()=>setDetails(v=>!v)} style={{...linkBtn,marginTop:7}}>{details?"Hide learning details":"More learning details"}</button>}{details&&<div style={{marginTop:12,fontSize:14,color:C.muted}}>{active.curriculum.learning_outcomes.slice(4).map((o,i)=><div key={`o${i}`}>• {o}</div>)}{active.curriculum.key_inquiry_questions.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Questions to think about</strong>{active.curriculum.key_inquiry_questions.map((q,i)=><div key={`q${i}`}>• {q}</div>)}</>}{active.curriculum.suggested_experiences.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Ways to learn this</strong>{active.curriculum.suggested_experiences.map((x,i)=><div key={`x${i}`}>• {x}</div>)}</>}</div>}</section>}</div>
-      <div style={{padding:"clamp(16px,3vw,30px)"}}>{active.can_read?activeBlocks.length?<><PublishedTextbookLearnReader subject={active.curriculum?.subject||pub.cbc_subject||"Learning"} blocks={activeBlocks} chapterId={active.id}/>
+      <div className={paperStyles.plainReader} style={{padding:"clamp(16px,3vw,30px)"}}>{active.can_read?activeBlocks.length?<><PublishedTextbookLearnReader subject={active.curriculum?.subject||pub.cbc_subject||"Learning"} blocks={activeBlocks} chapterId={active.id}/>
         {lessonActive&&<section aria-label="Explore and practise place value" style={{marginTop:28}}>
           <div style={{color:"#172f25",background:"#fff",borderRadius:16,padding:"1px 14px"}}><PlaceValuePreviewChart/></div>
           <nav aria-label="Next learning step" style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:18}}>
