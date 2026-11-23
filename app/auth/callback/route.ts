@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
+import { unifiedIdentityEnabled } from '@/lib/identity/features'
 
 const SELF_SERVICE_ROLES = new Set(['teacher', 'parent'])
 
@@ -175,7 +176,9 @@ export async function GET(req: NextRequest) {
         user_id: user.id, learner_email_verified_at: user.email_confirmed_at,
       }, { onConflict: 'user_id', ignoreDuplicates: true })
       if (provisionError) return authError(req, 'independent_signup_failed', pendingCookies)
-      return redirectWithCookies(req, '/signup/student/independent', pendingCookies)
+      const learnerSetup = next && roleCanVisit('student', next)
+        ? `/signup/student/independent?next=${encodeURIComponent(next)}` : '/signup/student/independent'
+      return redirectWithCookies(req, learnerSetup, pendingCookies)
     }
     if (!requestedRole || !SELF_SERVICE_ROLES.has(requestedRole)) {
       return authError(req, 'role_required', pendingCookies)
@@ -237,6 +240,10 @@ export async function GET(req: NextRequest) {
 
   logStage('onboarding_resolved', flowId, state)
   const target = state === 'ready' && next && roleCanVisit(role, next) ? next : safeDestination
-  logStage('destination_selected', flowId, target)
-  return redirectWithCookies(req, target, pendingCookies)
+  // Verified new adult signups set their username after canonical onboarding.
+  // Existing sign-ins keep their current journey and are never forced to re-register.
+  const finalTarget = unifiedIdentityEnabled && intent === 'signup' && state === 'ready' && (role === 'teacher' || role === 'parent')
+    ? `/account/setup?next=${encodeURIComponent(target)}` : target
+  logStage('destination_selected', flowId, finalTarget)
+  return redirectWithCookies(req, finalTarget, pendingCookies)
 }

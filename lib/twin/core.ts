@@ -1,4 +1,6 @@
 import { supabase } from '@/lib/supabase'
+import { deriveSelfServiceBindings } from '@/lib/twin/self-service-bindings'
+import { unifiedIdentityEnabled } from '@/lib/identity/features'
 
 export type TwinRole = 'student' | 'teacher' | 'parent' | 'admin' | 'hq'
 
@@ -58,15 +60,16 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
   if (authError || !auth.user) throw new Error('Twin requires an authenticated identity.')
   const userId = auth.user.id
 
-  const [studentRes, membershipsRes, parentLinksRes, teacherAssignmentsRes, ownerRes] = await Promise.all([
+  const [studentRes, membershipsRes, parentLinksRes, teacherAssignmentsRes, ownerRes, selfAccessRes] = await Promise.all([
     supabase.from('students').select('id').eq('profile_id', userId).is('deleted_at', null).limit(1).maybeSingle(),
     supabase.from('school_members').select('school_id, role').eq('profile_id', userId),
     supabase.from('parent_student_links').select('student_id, school_id, access_level, relationship').eq('parent_id', userId),
     supabase.from('teacher_classes').select('school_id, class_id, subject_id, is_class_teacher').eq('teacher_id', userId),
     supabase.rpc('is_platform_owner'),
+    supabase.rpc('get_my_auth_access_state'),
   ])
 
-  const authorityReadError = studentRes.error || membershipsRes.error || parentLinksRes.error || teacherAssignmentsRes.error || ownerRes.error
+  const authorityReadError = studentRes.error || membershipsRes.error || parentLinksRes.error || teacherAssignmentsRes.error || ownerRes.error || selfAccessRes.error
   if (authorityReadError) {
     throw new Error(authorityReadError.message || 'Twin authority relationships could not be resolved.')
   }
@@ -167,6 +170,26 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
         },
       })
     }
+  }
+
+  // Canonical role claims can open only a self-owned workspace; authoritative
+  // school and child access is still derived from existing RLS-backed relations.
+  if (unifiedIdentityEnabled) {
+  const access = selfAccessRes.data
+  const knownRoles = new Set(bindings.map(binding => binding.role))
+  let managedLearnerCount = 0
+  if (access && typeof access === 'object' && !Array.isArray(access) &&
+      (access as { role?: unknown }).role === 'teacher' && !knownRoles.has('parent')) {
+    const { data: managed, error: managedError } = await supabase.rpc('vs_list_my_identities')
+    // The additive migration may not yet be installed. Do not break existing sign-in.
+    if (managedError && managedError.code !== 'PGRST202') {
+      throw new Error(managedError.message || 'Managed learner authority could not be resolved.')
+    }
+    const learners = managed && typeof managed === 'object' && !Array.isArray(managed)
+      ? (managed as { managed_learners?: unknown }).managed_learners : null
+    if (Array.isArray(learners)) managedLearnerCount = learners.length
+  }
+  bindings.push(...deriveSelfServiceBindings(userId, access, knownRoles, managedLearnerCount))
   }
 
   if (ownerRes.data === true) {

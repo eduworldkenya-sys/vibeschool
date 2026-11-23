@@ -5,8 +5,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthAppearance } from '@/app/auth/useAuthAppearance'
+import { roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 
-export default function SchoolSignupForm({ emailPilot }: { emailPilot: boolean }) {
+export default function SchoolSignupForm({ emailPilot, initialNext }: { emailPilot: boolean; initialNext: string | null }) {
+  const safeNext = safeInternalPath(initialNext)
+  const studentNext = safeNext && roleCanVisit('student', safeNext) ? safeNext : null
   const router = useRouter()
   const appearance = useAuthAppearance()
   const [claimCode, setClaimCode] = useState('')
@@ -27,6 +30,7 @@ export default function SchoolSignupForm({ emailPilot }: { emailPilot: boolean }
     callback.searchParams.set('intent', 'signup')
     callback.searchParams.set('role', 'student')
     callback.searchParams.set('flow', crypto.randomUUID())
+    if (studentNext) callback.searchParams.set('next', studentNext)
     try {
       const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: callback.toString(), queryParams: { prompt: 'select_account' } } })
       if (error) throw error
@@ -77,7 +81,7 @@ export default function SchoolSignupForm({ emailPilot }: { emailPilot: boolean }
     <p className="lead">Keep your sign-in ID. Use it with your PIN next time.</p>
     <label htmlFor="created-login-id">Your sign-in ID</label>
     <input id="created-login-id" value={createdAccount.loginId} readOnly onFocus={e=>e.target.select()} />
-    <button className="primary" disabled={busy} onClick={()=>router.replace(createdAccount.signedIn ? '/student' : '/login/student')}>{busy ? 'Finishing…' : createdAccount.signedIn ? 'Start learning' : 'Sign in'}</button>
+    <button className="primary" disabled={busy} onClick={()=>router.replace(createdAccount.signedIn ? (studentNext || '/student') : (studentNext ? `/login/student?redirect=${encodeURIComponent(studentNext)}` : '/login/student'))}>{busy ? 'Finishing…' : createdAccount.signedIn ? 'Start learning' : 'Sign in'}</button>
   </section><style jsx>{styles}</style></main>
 
   return <main className="shell vs-auth" data-auth-theme={appearance}><section className="card">
@@ -99,7 +103,7 @@ export default function SchoolSignupForm({ emailPilot }: { emailPilot: boolean }
     <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create learner account'}</button>
       </div>}
     </section>
-    <p className="switch">Already registered? <Link href="/login/student">Sign in</Link></p>
+    <p className="switch">Already registered? <Link href={studentNext ? `/login/student?redirect=${encodeURIComponent(studentNext)}` : '/login/student'}>Sign in</Link></p>
     <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
 }

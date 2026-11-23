@@ -43,7 +43,7 @@ export default function ProfilePage(){
  function field<K extends keyof Draft>(k:K,v:Draft[K]){setDraft(d=>({...d,[k]:v}))}
  async function save(e:React.FormEvent){e.preventDefault();if(!authReady||!userId||saving)return;setError('');setNotice('');const username=draft.username.trim().toLowerCase().replace(/^@/,'');const name=draft.display_name.trim();
   if(draft.is_public&&(!username||name.length<2)){setError('Add a public name and username before publishing your profile.');return}
-  if(username&&!/^[a-z0-9_]{3,24}$/.test(username)){setError('Username must be 3–24 lowercase letters, numbers or underscores.');return}
+  if(username&&!/^[a-z][a-z0-9_]{2,23}$/.test(username)){setError('Start your username with a letter; use 3–24 lowercase letters, numbers or underscores.');return}
   if(draft.avatar_url&&!/^https?:\/\//i.test(draft.avatar_url.trim())){setError('Photo URL must begin with http:// or https://.');return}
   setSaving(true);const {error:e2}=await supabase.from('global_public_profiles').upsert({profile_id:userId,username:username||null,display_name:name||null,bio:draft.bio.trim()||null,avatar_url:draft.avatar_url.trim()||null,role_label:draft.role_label.trim()||null,county:draft.county.trim()||null,institution:draft.institution.trim()||null,is_public:draft.is_public,show_social_counts:draft.show_social_counts},{onConflict:'profile_id'});setSaving(false);
   if(e2){setError(e2.code==='23505'?'That username is already taken.':e2.message||'Could not save profile.');return}setDraft(d=>({...d,username,display_name:name}));setNotice('Profile saved.');
