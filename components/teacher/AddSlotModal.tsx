@@ -489,8 +489,8 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
     }
 
     if (!selectedAssignment) { setError('Select a class and subject.'); return }
-    if (!/^Grade\s+[1-9]$/i.test(selectedAssignment.gradeLabel)) {
-      setError('This class needs a recognized grade before a lesson can be scheduled.')
+    if (!selectedAssignment.gradeLabel.trim()) {
+      setError('The selected class has no grade identity. Reconcile its class details before scheduling.')
       return
     }
     const { classId, subjectId } = selectedAssignment
@@ -732,9 +732,15 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
         )}
 
         </fieldset>
+        {!isEdit && !periodsLoading && !periodsError && !hasTeachingPeriods && selectedAssignment && (
+          <div role="status" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'10px 12px',border:'1px solid #e8c47b',borderRadius:6,background:'#fffbef'}}>
+            <span style={{fontSize:12,color:'#75521e'}}>School periods are not configured.</span>
+            <a href="/teacher/timetable/setup" style={{fontSize:12,fontWeight:700,color:'#75521e',whiteSpace:'nowrap'}}>Set up school day</a>
+          </div>
+        )}
         <Btn
           onClick={save}
-          disabled={saving || deleting || checkingConflicts || (!isEdit && (assignmentsLoading || periodsLoading || !!periodsError || assignments.length === 0))}
+          disabled={saving || deleting || checkingConflicts || (!isEdit && (assignmentsLoading || periodsLoading || !!periodsError || assignments.length === 0 || (upperPrimary && (!selectedBlock || !hasTeachingPeriods))))}
         >
           {checkingConflicts ? 'Checking…' : saving ? 'Saving…' : isEdit ? 'Save Changes' : isCopy ? 'Save copy' : 'Save lesson'}
         </Btn>
