@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8')
-const sql = read('supabase/migrations/20261123200000_live_lesson_evidence_bridge.sql')
+const sql = read('supabase/migrations/20261123181007_live_lesson_evidence_bridge.sql')
 const review = read('components/live-classroom/LiveLessonReview.tsx')
 const live = read('components/live-classroom/LiveClassroom.tsx')
 const notes = read('app/teacher/lesson-notes/page.tsx')
