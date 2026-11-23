@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LESSON_DELIVERY_PHASES, projectLessonDelivery, type LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
+import TeachingKit from '@/components/teacher/TeachingKit'
 
 type ClassroomContext = {
   lessonPlanId: string
@@ -86,6 +87,7 @@ export default function LessonTeachMode({
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [teachingStarted, setTeachingStarted] = useState(false)
   const [packView, setPackView] = useState<PackView>('notes')
+  const [supportOpen, setSupportOpen] = useState(false)
   const [scratchpad, setScratchpad] = useState(initialScratchpad)
   const [online, setOnline] = useState(true)
   const [finishing, setFinishing] = useState(false)
@@ -216,6 +218,19 @@ export default function LessonTeachMode({
     router.push(`${path}?${q.toString()}`)
   }
 
+  function openKitRoute(path:string) {
+    const q=new URLSearchParams()
+    if(context){
+      q.set('lessonPlanId',context.lessonPlanId)
+      q.set('classId',context.classId)
+      q.set('subjectId',context.subjectId)
+      if(context.occurrenceId)q.set('occurrenceId',context.occurrenceId)
+      if(context.timetableSlotId)q.set('timetableSlotId',context.timetableSlotId)
+      if(context.occurrenceDate)q.set('date',context.occurrenceDate)
+    }
+    router.push(path+(q.toString()?'?'+q.toString():''))
+  }
+
   const noClassCoverage = completionFacts.emptyRoster && (coverageOutcome === 'not_covered' || coverageOutcome === 'postponed')
 
   async function openFinish() {
@@ -335,6 +350,15 @@ export default function LessonTeachMode({
           ))}
         </nav>
 
+        <TeachingKit compact actions={{
+          plan:()=>{setPackView('notes');setSupportOpen(true)},
+          slides:()=>openKitRoute('/teacher/teaching-kit'),
+          resources:()=>{setPackView('resources');setSupportOpen(true)},
+          book:linkedResources.some(r=>r.available)&&onOpenResource?()=>onOpenResource(linkedResources.find(r=>r.available)!.id):undefined,
+          exercises:context&&!context.unscheduled?()=>openAction('/teacher/assessment/new'):undefined,
+          board:()=>openKitRoute('/teacher/teaching-board'),
+        }} />
+
         <section className="studio-teach-board" style={{ background:"var(--teacher-ink, #1c2923)", color:'#fff', borderRadius:18, padding:16, marginBottom:12 }}>
           <div style={{ fontSize:11, fontWeight:750, color:'#d0c5e8', textTransform:'uppercase' }}>
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
@@ -353,7 +377,7 @@ export default function LessonTeachMode({
           <button type="button" disabled={safeIndex>=available.length-1} onClick={()=>changeStep(Math.min(available.length-1,safeIndex+1))} style={{...actionStyle,background:'var(--teacher-accent, #6352bd)',color:'#fff',opacity: safeIndex >= available.length - 1 ? 0.45 : 1}}>Next →</button>
         </div>
 
-        <details className="studio-teach-support"><summary>Teaching notes, resources & differentiation</summary>
+        <details className="studio-teach-support" open={supportOpen} onToggle={event=>setSupportOpen(event.currentTarget.open)}><summary>Teaching notes, resources & differentiation</summary>
         <section aria-label="Prepared lesson materials" style={{ background:'#fff', border:'1px solid #c7d2fe', borderRadius:16, padding:13, marginBottom:12 }}>
           <div style={{ fontSize:11, fontWeight:750, color:'#3730a3', textTransform:'uppercase' }}>Ready beside you</div>
           <div style={{ fontSize:12, color:'#64748b', margin:'3px 0 9px' }}>{sections.resources.trim() ? 'Resources ready' : 'Resources missing'} · {sections.differentiation.trim() ? 'Differentiation ready' : 'Differentiation missing'} · Prepared Teaching Pack</div>
