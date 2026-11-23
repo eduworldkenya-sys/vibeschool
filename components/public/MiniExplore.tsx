@@ -6,9 +6,27 @@ import { MINI_EXAMPLES, type MiniExample } from '@/lib/public/mini-examples'
 import { MiniArtwork } from './MiniArtwork'
 import styles from './MiniExplore.module.css'
 
-type View = 'feed' | 'read' | 'creator' | 'compose'
+type View = 'feed' | 'read' | 'creator' | 'compose' | 'request-compose' | 'request-detail'
 type FeedTab = 'For You' | 'Following' | 'New'
 type LocalComment = { name: string; text: string }
+type RequestReply = { id: string; title: string; explanation: string; photo: string }
+type MiniRequest = { id: string; question: string; tags: string[]; supporters: number; replies: RequestReply[] }
+
+const EXAMPLE_REQUESTS: MiniRequest[] = [
+  { id: 'example-algebra-request', question: 'Can someone explain simultaneous equations step by step?',
+    tags: ['mathematics','grade9','algebra'], supporters: 18, replies: [] },
+]
+
+function parseRequestTags(input: string): string[] {
+  const words = input.trim().split(/[\s,]+/).filter(Boolean)
+  if (words.length < 1 || words.length > 5) throw new Error('Add 1–5 hashtags.')
+  const tags = words.map(word => word.replace(/^#/, '').toLowerCase())
+  if (tags.some(tag => !/^[a-z][a-z0-9_]{1,29}$/.test(tag))) {
+    throw new Error('Use hashtags with 2–30 letters, numbers or underscores.')
+  }
+  return [...new Set(tags)]
+}
+
 
 export function MiniExplore() {
   const [view, setView] = useState<View>('feed')
@@ -29,16 +47,29 @@ export function MiniExplore() {
   const [draftFile, setDraftFile] = useState('')
   const [draftImage, setDraftImage] = useState<string | null>(null)
   const [preview, setPreview] = useState(false)
+  const [createMenuOpen, setCreateMenuOpen] = useState(false)
+  const [requests, setRequests] = useState<MiniRequest[]>(EXAMPLE_REQUESTS)
+  const [selectedRequest, setSelectedRequest] = useState<string | null>(null)
+  const [supportedRequests, setSupportedRequests] = useState<string[]>([])
+  const [requestQuestion, setRequestQuestion] = useState('')
+  const [requestTags, setRequestTags] = useState('')
+  const [requestFeedback, setRequestFeedback] = useState('')
+  const [respondingTo, setRespondingTo] = useState<string | null>(null)
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('mini')
+    const requestId = new URLSearchParams(window.location.search).get('request')
+    if (requestId && EXAMPLE_REQUESTS.some(request => request.id === requestId)) {
+      setSelectedRequest(requestId)
+      setView('request-detail')
+    }
     if (id && MINI_EXAMPLES.some(mini => mini.id === id)) {
       setSelected(id)
       setView('read')
     }
   }, [])
 
-  const popularTags = Array.from(new Set(MINI_EXAMPLES.flatMap(mini => mini.tags)))
+  const popularTags = Array.from(new Set([...MINI_EXAMPLES.flatMap(mini => mini.tags), ...requests.flatMap(request => request.tags)]))
   const selectTag = (value: string) => { setTag(value); setView('feed'); window.history.replaceState(null,'','/explore') }
   const filtered = useMemo(() => {
     const search = query.trim().toLocaleLowerCase()
@@ -50,6 +81,12 @@ export function MiniExplore() {
     return tab === 'New' ? [...results].reverse() : results
   }, [query, tag, tab, followed])
 
+  const visibleRequests = requests.filter(request =>
+    tab !== 'Following' &&
+    (tag === 'All' || request.tags.includes(tag)) &&
+    (!query.trim() || [request.question, ...request.tags].join(' ').toLowerCase().includes(query.trim().toLowerCase()))
+  )
+  const request = requests.find(item => item.id === selectedRequest)
   const current = MINI_EXAMPLES.find(mini => mini.id === selected)
   const toggle = (values: string[], set: (next: string[]) => void, key: string) =>
     set(values.includes(key) ? values.filter(value => value !== key) : [...values, key])
@@ -64,11 +101,67 @@ export function MiniExplore() {
     setView('feed')
     setSelected(null)
     setCreator('')
+    setSelectedRequest(null)
+    setRespondingTo(null)
+    setCreateMenuOpen(false)
     window.history.replaceState(null, '', '/explore')
   }
   const openCreator = (name: string) => {
     setCreator(name)
     setView('creator')
+  }
+  const openRequest = (id: string) => {
+    setSelectedRequest(id)
+    setView('request-detail')
+    window.history.replaceState(null, '', '/explore?request=' + encodeURIComponent(id))
+  }
+  const toggleSupport = (id: string) => toggle(supportedRequests, setSupportedRequests, id)
+  const createRequest = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const question = requestQuestion.trim()
+    if (question.length < 12 || question.length > 240) {
+      setRequestFeedback('Write a clear question between 12 and 240 characters.')
+      return
+    }
+    try {
+      const tags = parseRequestTags(requestTags)
+      const id = 'local-request-' + Date.now().toString(36)
+      setRequests(existing => [{ id, question, tags, supporters: 1, replies: [] }, ...existing])
+      setRequestQuestion('')
+      setRequestTags('')
+      setRequestFeedback('Request added to this preview only. It has not been submitted publicly.')
+      setView('feed')
+    } catch (error) {
+      setRequestFeedback(error instanceof Error ? error.message : 'Check your request.')
+    }
+  }
+  const explainRequest = (id: string) => {
+    const target = requests.find(item => item.id === id)
+    if (!target) return
+    setRespondingTo(id)
+    setDraftTitle('')
+    setDraftBody('')
+    setDraftTags(target.tags.map(tag => '#' + tag).join(' '))
+    setDraftFile('')
+    setDraftImage(null)
+    setPreview(false)
+    setView('compose')
+  }
+  const addPreviewExplanation = () => {
+    if (!respondingTo || !draftTitle.trim() || !draftBody.trim() || !draftImage) return
+    const id = respondingTo
+    setRequests(existing => existing.map(item => item.id === id ?
+      { ...item, replies: [...item.replies, {
+        id: 'local-answer-' + Date.now().toString(36),
+        title: draftTitle.trim(), explanation: draftBody.trim(), photo: draftImage,
+      }] } : item))
+    setDraftTitle('')
+    setDraftBody('')
+    setDraftFile('')
+    setDraftImage(null)
+    setRespondingTo(null)
+    setRequestFeedback('Explanation added to the local preview only. Publishing remains inactive.')
+    openRequest(id)
   }
   const addComment = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -103,7 +196,14 @@ export function MiniExplore() {
             <span className={styles.eyebrow}>VIBESCHOOL MINI LESSONS</span>
             <h1 className={styles.exploreTitle}>Mini Lessons</h1>
           </div>
-          <button type="button" className={styles.primary} onClick={() => setView('compose')}>+ Create Mini</button>
+          <div className={styles.createWrap}>
+            <button type="button" className={styles.primary} aria-expanded={createMenuOpen} aria-controls="mini-create-menu"
+              onClick={() => setCreateMenuOpen(open => !open)}>+ Create</button>
+            {createMenuOpen && <div className={styles.createMenu} id="mini-create-menu">
+              <button type="button" onClick={() => { setRespondingTo(null); setCreateMenuOpen(false); setView('compose') }}>Create Mini Lesson</button>
+              <button type="button" onClick={() => { setCreateMenuOpen(false); setRequestFeedback(''); setView('request-compose') }}>Request an explanation</button>
+            </div>}
+          </div>
         </div>
         <div className={styles.controls}>
           <label className={styles.search}>
@@ -127,9 +227,23 @@ export function MiniExplore() {
         </div>
         <div className={styles.resultsLabel}>
           <strong>{tab === 'Following' ? 'From creators you follow' : 'Mini Lessons'}</strong>
-          <span>{filtered.length} illustrative examples</span>
+          <span>{filtered.length} Mini examples · {visibleRequests.length} request previews</span>
         </div>
-        {filtered.length ? <div className={styles.grid}>
+        {requestFeedback && <p className={styles.previewNote} role="status">{requestFeedback}</p>}
+        {(filtered.length > 0 || visibleRequests.length > 0) ? <div className={styles.grid}>
+          {visibleRequests.map(item => <article key={item.id} className={styles.requestCard}>
+            <div className={styles.requestEyebrow}>Student request · illustrative preview</div>
+            <button type="button" className={styles.requestTitle} onClick={() => openRequest(item.id)}>{item.question}</button>
+            <div className={styles.tagRow}>{item.tags.map(name => <button key={name} type="button"
+              className={styles.tagButton} onClick={() => selectTag(name)}>{'#' + name}</button>)}</div>
+            <div className={styles.requestMeta}>{item.supporters + (supportedRequests.includes(item.id) ? 1 : 0)} interested · {item.replies.length} explanations</div>
+            <div className={styles.requestActions}>
+              <button type="button" aria-pressed={supportedRequests.includes(item.id)} onClick={() => toggleSupport(item.id)}>
+                {supportedRequests.includes(item.id) ? '✓ Me too' : '+ Me too'}</button>
+              <button type="button" onClick={() => openRequest(item.id)}>View explanations</button>
+              <button type="button" onClick={() => explainRequest(item.id)}>Explain</button>
+            </div>
+          </article>)}
           {filtered.map(mini => <article key={mini.id} className={styles.feedCard}>
             <div className={styles.feedCreator}>
               <button type="button" className={styles.linkButton} onClick={() => openCreator(mini.creator)}>
@@ -162,10 +276,11 @@ export function MiniExplore() {
             </div>
           </article>)}
         </div> : <div className={styles.empty}>
-          <p>No matching Minis in this preview.</p>
+          <p>No matching Mini Lessons or requests in this preview.</p>
+          <button type="button" className={styles.primary} onClick={() => { setRequestQuestion(query.trim()); setRequestFeedback(''); setView('request-compose') }}>Request this topic</button>
           <button type="button" className={styles.secondary} onClick={() => { setTag('All'); setTab('For You'); setQuery('') }}>Explore all</button>
         </div>}
-        <p className={styles.previewNote}>These are examples for interface testing, not publications by real teachers. Personalized recommendations and public publishing are not active.</p>
+        <p className={styles.previewNote}>Mini Lessons and requests here are illustrative. Requests, explanations and Me too actions are local to this preview. Public submission, recommendations and publishing are not active.</p>
       </>}
 
       {view === 'read' && current && <article className={styles.reader}>
@@ -219,6 +334,47 @@ export function MiniExplore() {
         </div>
       </article>}
 
+      {view === 'request-detail' && request && <section className={styles.requestDetail}>
+        <button type="button" className={styles.back} onClick={back}>← Back to Mini Lessons</button>
+        <div className={styles.requestEyebrow}>Student request · illustrative preview</div>
+        <h1>{request.question}</h1>
+        <div className={styles.tagRow}>{request.tags.map(name => <button key={name} type="button"
+          className={styles.tagButton} onClick={() => selectTag(name)}>{'#' + name}</button>)}</div>
+        <div className={styles.requestActions}>
+          <button type="button" aria-pressed={supportedRequests.includes(request.id)} onClick={() => toggleSupport(request.id)}>
+            {supportedRequests.includes(request.id) ? '✓ Me too' : '+ Me too'}</button>
+          <button type="button" className={styles.primary} onClick={() => explainRequest(request.id)}>Explain this</button>
+        </div>
+        <h2>{request.replies.length} {request.replies.length === 1 ? 'explanation' : 'explanations'}</h2>
+        {request.replies.length === 0 && <p className={styles.subline}>No explanations added to this preview yet. Be the first to explain it.</p>}
+        {request.replies.map(reply => <article key={reply.id} className={styles.localReply}>
+          <img src={reply.photo} alt={'Illustration for ' + reply.title}/>
+          <h3>{reply.title}</h3><p>{reply.explanation}</p>
+          <span className={styles.previewNote}>Local explanation preview — not published</span>
+        </article>)}
+        <p className={styles.previewNote}>Requests do not expose student identity, and public explanations require verified creators and moderation.</p>
+      </section>}
+
+      {view === 'request-compose' && <section className={styles.form}>
+        <button type="button" className={styles.back} onClick={back}>← Back to Mini Lessons</button>
+        <span className={styles.eyebrow}>REQUEST A MINI LESSON</span>
+        <h1>What would you like explained?</h1>
+        <p className={styles.subline}>Ask a clear learning question. A photo is not required.</p>
+        <form onSubmit={createRequest} className={styles.requestForm}>
+          <label htmlFor="request-question" className={styles.label}>Your question</label>
+          <textarea id="request-question" className={styles.editor} rows={4} minLength={12} maxLength={240}
+            value={requestQuestion} onChange={event => setRequestQuestion(event.target.value)}
+            placeholder="Can someone show me how to solve simultaneous equations?"/>
+          <label htmlFor="request-tags" className={styles.label}>Hashtags</label>
+          <input id="request-tags" className={styles.field} maxLength={160} value={requestTags}
+            onChange={event => setRequestTags(event.target.value)} placeholder="#Mathematics #Grade9"/>
+          {requestFeedback && <p role="status" className={styles.previewNote}>{requestFeedback}</p>}
+          <button type="submit" className={styles.primary} disabled={requestQuestion.trim().length < 12 || !requestTags.trim()}>
+            Add to preview</button>
+        </form>
+        <p className={styles.formNote}>This is a local interface preview. Nothing is posted online. Do not include names, phone numbers or other personal details.</p>
+      </section>}
+
       {view === 'creator' && <section className={styles.profile}>
         <button type="button" className={styles.back} onClick={() => setView('read')}>← Back to Mini</button>
         <div className={styles.creatorRow}>
@@ -236,9 +392,9 @@ export function MiniExplore() {
 
       {view === 'compose' && <section className={styles.form}>
         <button type="button" className={styles.back} onClick={back}>← Back to Explore</button>
-        <span className={styles.eyebrow}>CREATE MINI LESSON</span>
-        <h1>Share what you know.</h1>
-        <p className={styles.subline}>One useful photo and a few paragraphs are enough to start.</p>
+        <span className={styles.eyebrow}>{respondingTo ? 'EXPLAIN A REQUEST' : 'CREATE MINI LESSON'}</span>
+        <h1>{respondingTo ? 'Make it easy to understand.' : 'Share what you know.'}</h1>
+        <p className={styles.subline}>{respondingTo ? 'Your explanation will be linked to the student question in this preview.' : 'One useful photo and a few paragraphs are enough to start.'}</p>
         <label className={styles.label} htmlFor="mini-title">Title</label>
         <input id="mini-title" className={styles.field} maxLength={100} value={draftTitle}
           onChange={event => setDraftTitle(event.target.value)} placeholder="What will someone learn?"/>
@@ -256,7 +412,10 @@ export function MiniExplore() {
         <div className={styles.actions}>
           <button className={styles.secondary} type="button" disabled={!draftTitle.trim() || !draftBody.trim()} onClick={() => setPreview(value => !value)}>
             {preview ? 'Hide preview' : 'Preview Mini'}</button>
-          <button className={styles.primary} type="button" disabled title="Publishing requires a verified account and moderated backend">Publish — not active</button>
+          {respondingTo ? <button className={styles.primary} type="button"
+            disabled={!draftTitle.trim() || !draftBody.trim() || !draftImage}
+            onClick={addPreviewExplanation}>Add local explanation</button>
+            : <button className={styles.primary} type="button" disabled title="Publishing requires a verified account and moderated backend">Publish — not active</button>}
         </div>
         {preview && <div className={styles.preview}>
           {draftImage ? <img src={draftImage} alt="Selected Mini cover preview" style={{ width: '100%', maxHeight: 320, objectFit: 'contain' }}/> : <MiniArtwork kind="history"/>}

@@ -1,0 +1,33 @@
+name: Mini Lesson Request Preview Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'components/public/MiniExplore.tsx'
+      - 'components/public/MiniExplore.module.css'
+      - 'scripts/test-mini-request-preview.mjs'
+      - 'package.json'
+      - '.github/workflows/mini-request-preview-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'components/public/MiniExplore.tsx'
+      - 'components/public/MiniExplore.module.css'
+      - 'scripts/test-mini-request-preview.mjs'
+      - 'package.json'
+      - '.github/workflows/mini-request-preview-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  request-contract:
+    name: Mini Requests Preview Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/test-mini-request-preview.mjs
