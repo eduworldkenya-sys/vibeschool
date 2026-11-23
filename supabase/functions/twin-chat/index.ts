@@ -6,6 +6,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? ""
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? ""
 
 export const CYBORG_CHAT_SESSION_REQUIRED = "CYBORG_CHAT_SESSION_REQUIRED"
+const VIBETWIN_CHAT_ENABLED = false
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -165,6 +166,8 @@ async function callCyborgChatModel(missionId: string, systemPrompt: string, mess
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
+  // Reversible owner-authorized VibeTwin mute; do not delete user data or chat code.
+  if (!VIBETWIN_CHAT_ENABLED) return json({ error: "VibeTwin temporarily unavailable" }, 503)
   try {
     requireAuthenticatedRequest(req)
     const body = await req.json()

@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { VIBETWIN_ENABLED } from "@/lib/vibetwin-availability"
 import { nairobiDateStr } from "@/lib/time";
 
 const C = {
@@ -310,7 +311,7 @@ export default function TeacherAcademicsPage(){
 
         {tab==="overview"&&(
           <div style={{animation:"fadeUp 0.25s ease"}}>
-            {insight&&!loading&&(<div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",borderRadius:14,padding:"13px 15px",marginBottom:12}}><div style={{fontSize:11,fontWeight:800,color:"#a5b4fc",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>{insightLoading?"✨ Upgrading...":"✨ Twin Insight"}</div><div style={{fontSize:13,fontWeight:600,color:"#e0e7ff",lineHeight:1.5}}>{insight}</div></div>)}
+            {VIBETWIN_ENABLED&&insight&&!loading&&(<div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",borderRadius:14,padding:"13px 15px",marginBottom:12}}><div style={{fontSize:11,fontWeight:800,color:"#a5b4fc",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>{insightLoading?"✨ Upgrading...":"✨ Twin Insight"}</div><div style={{fontSize:13,fontWeight:600,color:"#e0e7ff",lineHeight:1.5}}>{insight}</div></div>)}
             {loading?<Skel h={130}/>:subjects.length>0?(
               <div style={{background:C.surface,borderRadius:16,border:`1px solid ${C.border}`,padding:16,marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
                 <div style={{fontSize:11,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:14}}>Overall Mastery</div>
