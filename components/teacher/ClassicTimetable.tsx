@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { C } from "@/components/teacher/ui";
 import { periodAppearance } from "@/lib/timetable/periodAppearance";
 
 /**
