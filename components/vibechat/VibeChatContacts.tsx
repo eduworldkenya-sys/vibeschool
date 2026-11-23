@@ -35,19 +35,22 @@ export default function VibeChatContacts({
   const mayInvite = ['teacher', 'parent', 'admin'].includes(role)
 
   const refresh = useCallback(async () => {
-    const db = getSupabaseClient()
+    setLoading(true)
     setError('')
-    const [handleResult, connectionsResult] = await Promise.all([
-      db.rpc('vibechat_my_handle'),
-      db.rpc('vibechat_my_contacts'),
-    ])
-    if (handleResult.error || connectionsResult.error) {
-      setError('Contacts are not available. Check your connection and try again.')
-    } else {
+    try {
+      const db = getSupabaseClient()
+      const [handleResult, connectionsResult] = await Promise.all([
+        db.rpc('vibechat_my_handle'),
+        db.rpc('vibechat_my_contacts'),
+      ])
+      if (handleResult.error || connectionsResult.error) throw new Error('contacts unavailable')
       setMyHandle(handleResult.data ?? '')
       setConnections((connectionsResult.data ?? []) as Connection[])
+    } catch {
+      setError('Contacts are not available. Check your connection and try again.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
@@ -67,41 +70,52 @@ export default function VibeChatContacts({
       return
     }
     setLooking(true)
-    const { data, error: lookupError } = await getSupabaseClient().rpc('vibechat_lookup_handle', { p_handle: input })
-    setLooking(false)
-    if (lookupError) setError('Could not search for this contact. Try again.')
-    else if (!data?.length) setNotice('Contact not found or not available to you.')
-    else setFound(data[0] as Lookup)
+    try {
+      const { data, error: lookupError } = await getSupabaseClient().rpc('vibechat_lookup_handle', { p_handle: input })
+      if (lookupError) throw lookupError
+      if (!data?.length) setNotice('Contact not found or not available to you.')
+      else setFound(data[0] as Lookup)
+    } catch {
+      setError('Could not search for this contact. Try again.')
+    } finally {
+      setLooking(false)
+    }
   }
 
   async function invite() {
     if (!found || busy) return
     setBusy('invite')
     setError('')
-    const { error: requestError } = await getSupabaseClient().rpc('vibechat_request_contact', { p_handle: found.handle })
-    if (requestError) setError('Could not send this request. It may already exist or your request limit was reached.')
-    else {
+    try {
+      const { error: requestError } = await getSupabaseClient().rpc('vibechat_request_contact', { p_handle: found.handle })
+      if (requestError) throw requestError
       setNotice('Connection request recorded. Chat opens after acceptance.')
       setFound(null)
       await refresh()
+    } catch {
+      setError('Could not send this request. It may already exist or your request limit was reached.')
+    } finally {
+      setBusy(null)
     }
-    setBusy(null)
   }
 
   async function respond(connection: Connection, accept: boolean) {
     if (busy || connection.direction !== 'incoming' || connection.status !== 'pending') return
     setBusy(connection.id)
     setError('')
-    const { data: threadId, error: responseError } = await getSupabaseClient().rpc('vibechat_respond_contact', {
-      p_request: connection.id, p_accept: accept,
-    })
-    if (responseError) setError('Could not update this request. Please retry.')
-    else {
+    try {
+      const { data: threadId, error: responseError } = await getSupabaseClient().rpc('vibechat_respond_contact', {
+        p_request: connection.id, p_accept: accept,
+      })
+      if (responseError) throw responseError
       setNotice(accept ? 'Contact accepted.' : 'Contact declined.')
       await refresh()
       if (accept && threadId) onOpenThread(threadId)
+    } catch {
+      setError('Could not update this request. Please retry.')
+    } finally {
+      setBusy(null)
     }
-    setBusy(null)
   }
 
   return <section className={styles.panel} aria-label="VibeChat contacts" style={{display:'grid',gap:16}}>
