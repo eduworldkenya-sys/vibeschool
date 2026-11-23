@@ -41,7 +41,7 @@ class Call{
     if(!options.token)throw Error('Missing auth token');
     const teacher=location.pathname==='/teacher'
     this.people.local.permissions.canSend=teacher?new Set(['audio']):false
-    if(teacher)this.people.remote={local:false,session_id:'other',user_id:'${learnerId}',
+    if(teacher&&!location.search.includes('solo=1'))this.people.remote={local:false,session_id:'other',user_id:'${learnerId}',
       tracks:{audio:{persistentTrack:null}},permissions:{canSend:false}}
     window.__joinCount=(window.__joinCount||0)+1
     this.emit('participant-joined');return this.people
