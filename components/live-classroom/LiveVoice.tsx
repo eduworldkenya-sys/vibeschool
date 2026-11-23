@@ -219,7 +219,12 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
         reportFailure('join-exception',voiceDiagnosticHint(e instanceof Error?e.message:null))
       if(call && !call.isDestroyed())await call.destroy().catch(()=>{})
       if(generation===connectGeneration.current){
-        meeting.current=null;setPhase('failed');setError(e instanceof Error?e.message:'Audio unavailable.')
+        meeting.current=null
+        setPhase('failed')
+        // Never surface raw Daily join rejection details to the classroom UI.
+        const hint=voiceDiagnosticHint(e instanceof Error?e.message:null)
+        setError(call?'Daily audio join failed ('+stage+' / '+hint+'). Retry joining.'
+          :e instanceof Error?e.message:'Audio unavailable.')
       }
     } finally {connecting.current=false}
   }
