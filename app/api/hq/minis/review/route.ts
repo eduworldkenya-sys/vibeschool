@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     const [{ data: minis, error: postError }, { data: comments, error: commentError },
       { data: reports, error: reportError }] = await Promise.all([
       actor.db.from('mini_lessons')
-        .select('id,creator_id,creator_label,title,body,subject,cover_path,status,created_at')
+        .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,created_at')
         .eq('status','pending').order('created_at',{ascending:true}).limit(80),
       actor.db.from('mini_comments')
         .select('id,mini_id,author_id,body,status,created_at')
