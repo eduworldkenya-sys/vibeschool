@@ -52,6 +52,7 @@ export interface UsePublicationDraftResult {
   deleteChapter: (id: string) => void
   addBlock: (type: BlockType, afterBlockId?: string) => void
   updateBlock: (blockId: string, content: string, meta?: ContentBlock['meta']) => void
+  replaceActiveChapterBlocks: (blocks: ContentBlock[]) => void
   deleteBlock: (blockId: string) => void
   moveBlock: (blockId: string, direction: 'up' | 'down') => void
   publishPublication: (options?: { confirmedReadingOnlyTextbook?: boolean }) => Promise<boolean>
@@ -272,6 +273,10 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
     scheduleSave()
   }, [activeChapterId, rejectPublishedMutation, scheduleSave])
 
+  const replaceActiveChapterBlocks = useCallback((blocks: ContentBlock[]) => {
+    mutateActiveChapter(() => blocks)
+  }, [mutateActiveChapter])
+
   const addBlock = useCallback((type: BlockType, afterBlockId?: string) => {
     const newBlock: ContentBlock = { id: crypto.randomUUID(), type, content: '' }
     mutateActiveChapter(blocks => {
@@ -432,5 +437,5 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
     }
   }, [forceSave, persist])
 
-  return { loading, saving, lastSaved, error, publication, chapters, activeChapterId, setActiveChapterId, updatePublication, updateChapterTitle, updateChapterStatus, addChapter, deleteChapter, addBlock, updateBlock, deleteBlock, moveBlock, publishPublication, forceSave }
+  return { loading, saving, lastSaved, error, publication, chapters, activeChapterId, setActiveChapterId, updatePublication, updateChapterTitle, updateChapterStatus, addChapter, deleteChapter, addBlock, updateBlock, replaceActiveChapterBlocks, deleteBlock, moveBlock, publishPublication, forceSave }
 }
