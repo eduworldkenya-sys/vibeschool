@@ -99,3 +99,12 @@ test('revocation of child scope removes the right to read or type in that thread
   assert.match(sql,/thread\.student_id is null/)
   assert.match(sql,/private\.vc_user_is_thread_participant\(thread\.id\)/)
 });
+
+test('clients cannot restore departed participants or tamper with thread scope', () => {
+  assert.match(sql,/revoke update on public\.vc_participants from anon,authenticated/)
+  assert.match(sql,/grant update\(last_read_at\) on public\.vc_participants to authenticated/)
+  assert.match(sql,/revoke update on public\.vc_threads from anon,authenticated/)
+  assert.match(sql,/grant update\(last_message_at,last_message_preview,updated_at\)/)
+  assert.match(sql,/revoke update on public\.vc_messages from authenticated/)
+  assert.match(sql,/grant update\(deleted_at\) on public\.vc_messages to authenticated/)
+})
