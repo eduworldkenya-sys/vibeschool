@@ -39,6 +39,10 @@ class Call{
   participants(){return this.people}
   async join(options){
     if(!options.token)throw Error('Missing auth token');
+    if(location.search.includes('failJoin=1')){
+      this.emit('error',{action:'error',errorMsg:'private opaque failure'})
+      throw Error('private opaque failure')
+    }
     const teacher=location.pathname==='/teacher'
     this.people.local.permissions.canSend=teacher?new Set(['audio']):false
     if(teacher&&!location.search.includes('solo=1'))this.people.remote={local:false,session_id:'other',user_id:'${learnerId}',
@@ -58,7 +62,7 @@ class Call{
   isDestroyed(){return this.destroyed}
   async destroy(){this.destroyed=true;window.__destroyCount=(window.__destroyCount||0)+1}
 }
-export default {createCallObject:()=>{const c=new Call();window.__voiceCall=c;return c}};
+export default {createCallObject:options=>{const c=new Call();window.__voiceCall=c;window.__voiceOptions=options;return c}};
 `
 const bundled=await build({
   stdin:{contents:jsx,loader:'tsx',resolveDir:process.cwd()},
@@ -118,6 +122,11 @@ try{
   const solo=await open('teacher',false,'?solo=1')
   await solo.getByRole('button',{name:'Join audio'}).click()
   await solo.getByRole('status').getByText('Connected').waitFor()
+  assert.deepEqual(await solo.evaluate(()=>({
+    startAudioOff:window.__voiceOptions.startAudioOff,
+    startVideoOff:window.__voiceOptions.startVideoOff,
+    videoSource:window.__voiceOptions.videoSource,
+  })),{startAudioOff:true,startVideoOff:true,videoSource:false})
   assert.match(await solo.locator('section').textContent(),/Learners on audio: 0/)
   await solo.getByRole('button',{name:'Speak',exact:true}).click()
   assert.equal(await solo.evaluate(()=>window.__voiceCall.localAudio()),true)
@@ -145,6 +154,17 @@ try{
   assert.doesNotMatch(JSON.stringify(diagnostics),/https:\/\/example.invalid|Private meeting token secret/)
   await solo.getByRole('button',{name:'Join audio'}).click()
   await solo.getByRole('status').getByText('Connected').waitFor()
+  // Reproduce an unknown Daily failure during join: recovery must be
+  // actionable and no provider-private text is displayed.
+  await solo.evaluate(()=>window.__voiceCall.emit('error',{
+    action:'error',errorMsg:'unknown redacted failure detail'
+  }))
+  await solo.getByRole('alert').getByText('Daily audio failed (connected / unknown). Retry joining.').waitFor()
+  await new Promise(ok=>setTimeout(ok,100))
+  assert.deepEqual(diagnostics[2].diagnostic,{stage:'connected',code:'unknown',hint:'unknown'})
+  assert.doesNotMatch(JSON.stringify(diagnostics),/redacted failure detail/)
+  await solo.getByRole('button',{name:'Join audio'}).click()
+  await solo.getByRole('status').getByText('Connected').waitFor()
   await solo.getByRole('button',{name:'Leave audio'}).click()
   await solo.getByRole('button',{name:'Join audio'}).waitFor()
 
@@ -167,7 +187,7 @@ try{
   assert.equal(await t.getByRole('button',{name:'Speak',exact:true}).isEnabled(),true)
   assert.equal(await t.evaluate(()=>window.__voiceCall.localAudio()),false)
   await new Promise(ok=>setTimeout(ok,100))
-  assert.deepEqual(diagnostics[2].diagnostic,{stage:'connected',code:'device-error',hint:'device'})
+  assert.deepEqual(diagnostics[3].diagnostic,{stage:'connected',code:'device-error',hint:'device'})
   assert.doesNotMatch(JSON.stringify(diagnostics),/private device detail/)
   // Retrying remains a fresh, user-initiated microphone action.
   await t.getByRole('button',{name:'Speak',exact:true}).click()
@@ -201,6 +221,15 @@ try{
   })
   await l.getByRole('button',{name:'Muted'}).waitFor()
   assert.equal(await l.evaluate(()=>window.__voiceCall.localAudio()),false)
+  // Reproduce the real Android screenshot: Daily fatal error while still joining.
+  // The raw provider message must stay private and the mic must remain off.
+  const failedJoin=await open('teacher',false,'?solo=1&failJoin=1')
+  await failedJoin.getByRole('button',{name:'Join audio'}).click()
+  await failedJoin.getByRole('alert').getByText('Daily audio could not connect. Retry; if it keeps failing, try another network.').waitFor()
+  assert.equal(await failedJoin.getByRole('button',{name:'Microphone off'}).isDisabled(),true)
+  assert.doesNotMatch(await failedJoin.getByRole('alert').textContent(),/private opaque failure/)
+  await new Promise(ok=>setTimeout(ok,100))
+  assert.deepEqual(diagnostics.at(-1).diagnostic,{stage:'joining',code:'unknown',hint:'unknown'})
   assert.deepEqual(errors,[])
   // Auth revocation on renewal must not silently restore existing media.
   allowed=false
