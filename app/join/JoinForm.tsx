@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react'
 import { supabase } from '@/lib/supabase'
 import { roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 import { useAuthAppearance } from '@/app/auth/useAuthAppearance'
+import { unifiedIdentityEnabled } from '@/lib/identity/features'
 
 type AdultRole = 'teacher' | 'parent'
 type AccessState = { role?: unknown; account_status?: unknown; is_anonymized?: unknown; reason_code?: unknown }
@@ -104,7 +105,7 @@ export default function JoinForm({ initialRole, initialNext }: { initialRole: Ad
     }
     const target = next.state === 'ready' && requestedDestination && roleCanVisit(role, requestedDestination)
       ? requestedDestination : destination
-    window.location.assign(next.state === 'ready' ? `/account/setup?next=${encodeURIComponent(target)}` : target)
+    window.location.assign(unifiedIdentityEnabled && next.state === 'ready' ? `/account/setup?next=${encodeURIComponent(target)}` : target)
   }
 
   async function withGoogle() {
