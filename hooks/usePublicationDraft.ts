@@ -58,7 +58,7 @@ export interface UsePublicationDraftResult {
   forceSave: () => Promise<boolean>
 }
 
-export function usePublicationDraft(authorId: string, format: PublicationFormat, publicationId?: string): UsePublicationDraftResult {
+export function usePublicationDraft(authorId: string, format: PublicationFormat, publicationId?: string, freshDraftId?: string): UsePublicationDraftResult {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -86,6 +86,27 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
           const { data, error: loadError } = await sb.from('vibe_publications').select('*').eq('id', publicationId).single()
           if (loadError) throw loadError
           pub = publicationRowToDraft(data)
+        } else if (freshDraftId) {
+          // Create uses an explicit URL-stable UUID. Reloads and Strict Mode
+          // retries resolve the same draft rather than creating duplicates.
+          const { data: existing, error: lookupError } = await sb.from('vibe_publications').select('*').eq('id', freshDraftId).eq('author_id', authorId).maybeSingle()
+          if (lookupError) throw lookupError
+          if (existing) {
+            if (existing.format !== format || existing.status !== 'draft') throw new Error('This draft cannot be reused. Open it from Content Studio.')
+            pub = publicationRowToDraft(existing)
+          } else {
+            const fresh = { ...emptyPublication(authorId, format), id: freshDraftId }
+            const { data: inserted, error: insertError } = await sb.from('vibe_publications').insert(publicationDraftToInsert(fresh)).select('*').single()
+            if (insertError) {
+              // Only recover unique-key races for this exact owner-scoped draft.
+              if (insertError.code !== '23505') throw insertError
+              const { data: raced, error: racedError } = await sb.from('vibe_publications').select('*').eq('id', freshDraftId).eq('author_id', authorId).single()
+              if (racedError || !raced || raced.format !== format || raced.status !== 'draft') throw racedError ?? new Error('Draft creation conflict')
+              pub = publicationRowToDraft(raced)
+            } else {
+              pub = publicationRowToDraft(inserted)
+            }
+          }
         } else {
           const { data: existing } = await sb.from('vibe_publications').select('*').eq('author_id', authorId).eq('format', format).eq('status', 'draft').order('updated_at', { ascending: false }).limit(1).maybeSingle()
           if (existing) {
@@ -123,7 +144,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
     }
     void load()
     return () => { cancelled = true }
-  }, [authorId, format, publicationId])
+  }, [authorId, format, publicationId, freshDraftId])
 
   const persist = useCallback(async (): Promise<boolean> => {
     const pub = pubRef.current
