@@ -66,3 +66,14 @@ test('unverified identity rollout never redirects active users to a missing sche
   assert.match(createChild, /if \(!unifiedIdentityEnabled\) redirect\('\/parent\/link-child'\)/)
   assert.match(createChild, /redirect\('\/account\/children'\)/)
 })
+
+test('identity migration keeps complete SQL function bodies and one transaction boundary', () => {
+  const sql = read('supabase/migrations/20261123090000_unified_identity_foundation.sql')
+  assert.equal((sql.match(/create function public\./g) || []).length, 4)
+  assert.equal((sql.match(/as \$\$/g) || []).length, 4)
+  assert.equal((sql.match(/\$\$;/g) || []).length, 4)
+  assert.equal((sql.match(/\bcommit;/g) || []).length, 1)
+  assert.equal((sql.match(/\bbegin;/g) || []).length, 1)
+  assert.ok(sql.trimEnd().endsWith('commit;'))
+  assert.match(sql, /create trigger vs_global_username_consistency/)
+})
