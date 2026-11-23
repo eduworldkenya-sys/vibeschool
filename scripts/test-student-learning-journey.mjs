@@ -26,7 +26,8 @@ test('Learn opens existing chapter actionUrl and preserves canonical tools',()=>
   assert.match(read("components/student/StudentLearningFeatureLinks.tsx"),/topicPracticeHref\(subject\)/)
   assert.match(study,/href="\/student\/vibelearn\/revision"/)
   assert.match(study,/href="\/student\/tasks"/)
-  assert.match(study,/href="\/learn"/)
+  assert.match(study,/href=\{browseHref\}/)
+  assert.match(study,/recogniseLearnerGrade\(identity\.className\)/)
 })
 
 test('Topic Practice feedback is accessible, non-musical and opt-in',()=>{

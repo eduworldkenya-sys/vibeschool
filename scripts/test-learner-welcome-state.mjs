@@ -13,7 +13,9 @@ test('first visit offers Start, saved reading offers Continue, and loading is ne
   const study = read('app/student/study/page.tsx')
   assert.match(study, /<h1>Learn<\/h1>/)
   assert.match(study, /!loading && savedReading\.length > 0/)
-  assert.match(study, /href="\/learn"[^>]*>.*Browse lessons/)
+  assert.match(study, /href=\{browseHref\}[^>]*>Browse lessons/)
+  assert.match(study, /recogniseLearnerGrade\(identity\.className\)/)
+  assert.match(study, /encodeURIComponent\(grade\)/)
   assert.match(study, /<span>Continue<\/span>/)
 })
 
