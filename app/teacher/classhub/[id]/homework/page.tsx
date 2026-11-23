@@ -47,8 +47,8 @@ const INPUT_STYLE = {
   caretColor: "#111827",
 };
 
-function draftKey(classId: string, schoolId: string | null, occurrenceId: string | null, groupId: string | null) {
-  return `vibeschool:teacher:homework:${schoolId ?? "school"}:${classId}:${occurrenceId ?? "generic"}:${groupId ?? "whole-class"}`;
+function draftKey(classId: string, schoolId: string | null, occurrenceId: string | null, groupId: string | null, studentId: string | null = null) {
+  return `vibeschool:teacher:homework:${schoolId ?? "school"}:${classId}:${occurrenceId ?? "generic"}:${studentId ? `learner-${studentId}` : groupId ?? "whole-class"}`;
 }
 
 function readDraft(key: string): FormState | null {
@@ -80,6 +80,7 @@ function HomeworkInner() {
   const sourceSubjectName = search.get("subject")?.trim() || "";
   const sourceTopic = search.get("topic")?.trim() || "";
   const sourceGroupId = search.get("groupId")?.trim() || null;
+  const sourceStudentId = search.get("studentId")?.trim() || null;
   const lessonLinked = Boolean(sourceLessonPlanId || sourceOccurrenceId);
 
   const [context, setContext] = useState<Context | null>(null);
@@ -94,7 +95,7 @@ function HomeworkInner() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [draftReady, setDraftReady] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; dueDate?: string }>({});
-  const [showForm, setShowForm] = useState(lessonLinked || Boolean(sourceGroupId));
+  const [showForm, setShowForm] = useState(lessonLinked || Boolean(sourceGroupId) || Boolean(sourceStudentId));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -108,7 +109,7 @@ function HomeworkInner() {
       ?? null,
     [classId, context, sourceSubjectId],
   );
-  const storageKey = useMemo(() => draftKey(classId, context?.school_id ?? null, sourceOccurrenceId, sourceGroupId), [classId, context?.school_id, sourceGroupId, sourceOccurrenceId]);
+  const storageKey = useMemo(() => draftKey(classId, context?.school_id ?? null, sourceOccurrenceId, sourceGroupId, sourceStudentId), [classId, context?.school_id, sourceGroupId, sourceOccurrenceId, sourceStudentId]);
   const authoritativeSubject = lessonLinked ? (lessonContext?.subject || sourceSubjectName || assignment?.subject_name || "") : form.subject;
   const minimumDueDate = lessonContext?.occurrenceDate && lessonContext.occurrenceDate > nairobiDateStr() ? lessonContext.occurrenceDate : nairobiDateStr();
 
@@ -140,6 +141,8 @@ function HomeworkInner() {
       if (rosterRes.error) throw rosterRes.error;
       if (groupsRes.error) throw groupsRes.error;
       const enrolled = rosterRes.data ?? [];
+      if (sourceStudentId && sourceGroupId) throw new Error("Choose a learner or a group, not both.");
+      if (sourceStudentId && !enrolled.some(row => row.student_id === sourceStudentId)) throw new Error("This learner is not currently enrolled in this class.");
       const learnerIds = enrolled.map(row => row.student_id);
       const namesRes = learnerIds.length
         ? await supabase.from("students").select("id,name").in("id", learnerIds).is("deleted_at", null)
@@ -200,13 +203,14 @@ function HomeworkInner() {
         setLessonContext(resolvedLesson);
       }
 
-      const key = draftKey(classId, ctx.school_id, sourceOccurrenceId, sourceGroupId);
+      const key = draftKey(classId, ctx.school_id, sourceOccurrenceId, sourceGroupId, sourceStudentId);
+      const recipientSelection = sourceStudentId ? { audience: "learners" as const, groupId: "", studentIds: [sourceStudentId] } : sourceGroupId ? { audience: "group" as const, groupId: sourceGroupId } : {};
       const savedDraft = readDraft(key);
       const defaultSubject = resolvedLesson?.subject || sourceSubjectName || ctx.classes.find((item) => item.class_id === classId && (!sourceSubjectId || item.subject_id === sourceSubjectId))?.subject_name || "";
       if (savedDraft) {
-        setForm({ ...EMPTY_FORM, ...savedDraft, subject: lessonLinked ? defaultSubject : savedDraft.subject, ...(sourceGroupId ? { audience: "group" as const, groupId: sourceGroupId } : {}) });
+        setForm({ ...EMPTY_FORM, ...savedDraft, subject: lessonLinked ? defaultSubject : savedDraft.subject, ...recipientSelection });
       } else {
-        setForm({ ...EMPTY_FORM, ...(sourceGroupId ? { audience: "group" as const, groupId: sourceGroupId } : {}), subject: defaultSubject, title: lessonLinked && sourceTopic ? `${sourceTopic} Homework` : "" });
+        setForm({ ...EMPTY_FORM, ...recipientSelection, subject: defaultSubject, title: lessonLinked && sourceTopic ? `${sourceTopic} Homework` : "" });
       }
       setDraftReady(true);
     } catch (loadError) {
@@ -215,7 +219,7 @@ function HomeworkInner() {
     } finally {
       setLoading(false);
     }
-  }, [classId, lessonLinked, router, sourceGroupId, sourceLessonPlanId, sourceOccurrenceId, sourceSubjectId, sourceSubjectName, sourceTopic]);
+  }, [classId, lessonLinked, router, sourceGroupId, sourceStudentId, sourceLessonPlanId, sourceOccurrenceId, sourceSubjectId, sourceSubjectName, sourceTopic]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (draftReady && showForm && context?.school_id) writeDraft(storageKey, { ...form, subject: lessonLinked ? authoritativeSubject : form.subject }); }, [authoritativeSubject, context?.school_id, draftReady, form, lessonLinked, showForm, storageKey]);

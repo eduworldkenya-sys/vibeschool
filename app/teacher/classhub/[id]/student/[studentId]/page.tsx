@@ -20,6 +20,7 @@ import LearnerIdentityFields from "@/components/teacher/LearnerIdentityFields";
 import LearnerDetailSheet from "@/components/teacher/LearnerDetailSheet";
 import LearnerRelatedRecords from "@/components/teacher/LearnerRelatedRecords";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
+import LearnerWorkspace, { type LearnerWorkspaceData } from "@/components/teacher/LearnerWorkspace";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
 import { isLearnerAssignedHomework } from "@/lib/homework/eligibility";
@@ -341,6 +342,7 @@ export default function TeacherStudentProgressPage() {
       ? "about"
       : "now",
   );
+  const [legacyView, setLegacyView] = useState(() => searchParams.get("legacy") === "1");
   const [panel, setPanel] = useState<"all" | "groups" | "roles" | "resources" | "activities" | "notes" | "recognition" | "support" | null>(null);
   const activeEventNote = panel === "recognition" ? recognitionNote : eventNote;
   const [panelBusy, setPanelBusy] = useState(false);
@@ -993,7 +995,93 @@ export default function TeacherStudentProgressPage() {
   const availableTabs = requestedSubjectId ? tabs.filter((item) => item !== "about")
     : tabs;
 
+  // The premium profile is a permission-scoped presentation of records already
+  // fetched by this route. Missing lesson/mistake evidence stays empty, not synthetic.
+  const contextNote = (key: LearnerContextKey) => teacherEvents
+    .filter(item => learnerContextKey(item) === key && Boolean(item.note?.trim()))
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0]?.note?.trim();
+  const asChips = (text?: string | null) => text ? [text] : [];
+  const workspaceData: LearnerWorkspaceData = {
+    learner: {
+      id: student.id,
+      name: student.name,
+      className: [classAssignment?.class_name, classAssignment?.stream].filter(Boolean).join(" ") || null,
+      grade: classAssignment?.class_name ?? null,
+      joinedAt,
+      subjects: subjects.map(item => item.name),
+    },
+    learningProfile: {
+      strengths: asChips(contextNote("strengths")),
+      interests: asChips(contextNote("interests")),
+      bestSupport: asChips(contextNote("helpful_strategies")),
+      currentNeeds: asChips(contextNote("support_needs")),
+      accommodations: asChips(contextNote("accommodations")),
+    },
+    work: assignedHomework.map(item => {
+      const submission = submissionMap.get(item.id);
+      const missing = !submission && Boolean(item.due_date) && new Date(item.due_date!).getTime() < Date.now();
+      return {
+        id: item.id, title: item.title, subject: item.subject, dueDate: item.due_date,
+        status: submission?.status === "marked" ? "marked" as const : submission ? "submitted" as const : missing ? "missing" as const : "assigned" as const,
+        score: submission?.mark ?? null,
+      };
+    }),
+    results: gradebook.map(item => ({
+      id: item.assessment_id, title: item.assessment_title,
+      subject: subjectNames.get(item.subject_id ?? "") ?? "Subject",
+      date: item.released_at, score: item.score, maxScore: item.max_score,
+      status: "released" as const,
+    })),
+    attendance: {
+      sessions: truth.attendance.records, present: truth.attendance.present,
+      absent: truth.attendance.absent, late: truth.attendance.late,
+    },
+    activity: timeline.map(item => ({
+      id: item.id, at: item.at, label: [item.type, item.title].filter(Boolean).join(": "),
+      kind: item.type.toLowerCase() === "work" ? "work" as const : item.type.toLowerCase() === "assessment" ? "result" as const : item.type.toLowerCase() === "attendance" ? "attendance" as const : "other" as const,
+    })),
+    nextActions: (activeIntervention || truth.work.missing > 0) ? [{
+      id: "next", label: nextAction.title, secondary: nextAction.detail,
+      actionLabel: "Open", kind: nextAction.kind === "intervention" ? "support" as const : nextAction.kind === "work" ? "review" as const : "review" as const,
+    }] : [],
+    followUpCount: interventions.filter(item => item.status !== "completed" && item.status !== "dismissed").length,
+  };
+  const openLegacy = (next: Tab) => { setTab(next); setLegacyView(true); };
+  const routeSuffix = requestedSubjectId ? `?subjectId=${encodeURIComponent(requestedSubjectId)}` : "";
+  const openCanonicalProgress = () => router.push(`/teacher/classhub/${classId}/student/${studentId}/progress${routeSuffix}`);
+  const requestedView = searchParams.get("view");
+  const selectedWorkspaceTab = (["profile", "progress", "work", "results", "attendance", "activity"] as const).find(item => item === requestedView) ?? "profile";
+  const onWorkspaceTabChange = (next: string) => {
+    const query = new URLSearchParams(searchParams.toString());
+    if (next === "profile") query.delete("view"); else query.set("view", next);
+    router.replace(`${window.location.pathname}${query.size ? `?${query.toString()}` : ""}`, { scroll: false });
+  };
+
   return (
+    <>
+      {!legacyView ? <LearnerWorkspace
+        data={workspaceData}
+        initialTab={selectedWorkspaceTab}
+        onTabChange={onWorkspaceTabChange}
+        permissions={{ canAssign: true, canChat: true, canEditProfile: !requestedSubjectId, canManageLearning: !requestedSubjectId, canSeeSchoolRoles: !requestedSubjectId, canSeeSchoolResources: !requestedSubjectId }}
+        actions={{
+          back: () => router.push(`/teacher/classhub/${classId}`),
+          assign: () => router.push(`/teacher/classhub/${classId}/homework?studentId=${encodeURIComponent(studentId)}`),
+          chat: () => router.push("/vibechat"),
+          openFullProgress: openCanonicalProgress,
+          editProfile: () => openLegacy("about"),
+          editLearningProfile: () => openLegacy("about"),
+          openSchoolItem: kind => { if (requestedSubjectId && (kind === "roles" || kind === "resources")) return; setPanel(kind); },
+          openWork: id => setSelectedWork(assignedHomework.find(item => item.id === id) ?? null),
+          markWork: id => router.push(`/teacher/classhub/${classId}/homework/${id}?studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`),
+          openResult: () => router.push(`/teacher/assessment?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`),
+          openAttendance: () => router.push(`/teacher/attendance?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}`),
+          openEvent: () => openLegacy("timeline"),
+          performNextAction: item => item.kind === "support" ? setPanel("support") : item.kind === "review" && truth.work.missing > 0 ? openLegacy("work") : openCanonicalProgress(),
+          addNote: () => setPanel("notes"),
+        }}
+      /> : <>
+      <button type="button" onClick={() => setLegacyView(false)} style={{margin:"12px 14px", padding:"10px 14px", border:"1px solid #dce5de", borderRadius:8, background:"#fff", cursor:"pointer"}}>← Learner profile</button>
     <div className={`studio-learner-profile ${experience.profilePage}`}>
       <header className={experience.profileHeader}>
         <button
@@ -2308,6 +2396,8 @@ export default function TeacherStudentProgressPage() {
           )}
         </Card>
       )}
+    </div>
+    </>}
       {panel && <LearnerDetailSheet title={panel === "all" ? "Activities and responsibilities" : panel.charAt(0).toUpperCase() + panel.slice(1)} learnerName={student.name} busy={panelBusy || eventSaving}
         onClose={() => { setPanel(null); setEventMessage(""); }}>
         {panel === "all" && <>{(["groups", ...(!requestedSubjectId ? ["roles", "activities", "resources"] as const : []), "recognition", "notes"] as const).map(kind =>
@@ -2335,6 +2425,6 @@ export default function TeacherStudentProgressPage() {
           <p>{submissionMap.get(selectedWork.id)?.feedback}</p></article>
         <a href={`/teacher/classhub/${classId}/homework/${selectedWork.id}?studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full work details</a>
       </LearnerDetailSheet>}
-    </div>
+    </>
   );
 }
