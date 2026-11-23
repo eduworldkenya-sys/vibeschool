@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { deriveSelfServiceBindings } from '../lib/twin/self-service-bindings.ts'
+import { readFileSync } from 'node:fs'
+import Module from 'node:module'
+import ts from 'typescript'
+// Match the repository's Node 20-compatible Twin contract harness: transpile
+// the pure reducer directly rather than relying on Node 22+ registerHooks.
+const moduleForTest = new Module('self-service-bindings-contract')
+moduleForTest._compile(ts.transpileModule(
+  readFileSync('lib/twin/self-service-bindings.ts', 'utf8'),
+  { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
+).outputText, 'self-service-bindings-contract')
+const { deriveSelfServiceBindings } = moduleForTest.exports
 
 const id = '00000000-0000-4000-8000-000000000001'
 const active = role => ({ role, account_status: 'active', is_anonymized: false })
