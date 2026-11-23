@@ -58,7 +58,7 @@ class Call{
   isDestroyed(){return this.destroyed}
   async destroy(){this.destroyed=true;window.__destroyCount=(window.__destroyCount||0)+1}
 }
-export default {createCallObject:()=>{const c=new Call();window.__voiceCall=c;return c}};
+export default {createCallObject:options=>{const c=new Call();window.__voiceCall=c;window.__voiceOptions=options;return c}};
 `
 const bundled=await build({
   stdin:{contents:jsx,loader:'tsx',resolveDir:process.cwd()},
@@ -118,6 +118,11 @@ try{
   const solo=await open('teacher',false,'?solo=1')
   await solo.getByRole('button',{name:'Join audio'}).click()
   await solo.getByRole('status').getByText('Connected').waitFor()
+  assert.deepEqual(await solo.evaluate(()=>({
+    startAudioOff:window.__voiceOptions.startAudioOff,
+    startVideoOff:window.__voiceOptions.startVideoOff,
+    videoSource:window.__voiceOptions.videoSource,
+  })),{startAudioOff:true,startVideoOff:true,videoSource:false})
   assert.match(await solo.locator('section').textContent(),/Learners on audio: 0/)
   await solo.getByRole('button',{name:'Speak',exact:true}).click()
   assert.equal(await solo.evaluate(()=>window.__voiceCall.localAudio()),true)
@@ -143,6 +148,14 @@ try{
   await new Promise(ok=>setTimeout(ok,100))
   assert.deepEqual(diagnostics[1].diagnostic,{stage:'connected',code:'unknown',hint:'token'})
   assert.doesNotMatch(JSON.stringify(diagnostics),/https:\/\/example.invalid|Private meeting token secret/)
+  await solo.getByRole('button',{name:'Join audio'}).click()
+  await solo.getByRole('status').getByText('Connected').waitFor()
+  // Reproduce an unknown Daily failure during join: recovery must be
+  // actionable and no provider-private text is displayed.
+  await solo.evaluate(()=>window.__voiceCall.emit('error',{
+    action:'error',errorMsg:'unknown redacted failure detail'
+  }))
+  await solo.getByRole('alert').getByText('Daily audio failed (connected / unknown). Retry joining.').waitFor()
   await solo.getByRole('button',{name:'Join audio'}).click()
   await solo.getByRole('status').getByText('Connected').waitFor()
   await solo.getByRole('button',{name:'Leave audio'}).click()
