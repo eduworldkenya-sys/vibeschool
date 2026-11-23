@@ -1,49 +1,26 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-const read=path=>fs.readFileSync(path,'utf8')
-const store=read('lib/read/offlinePublicBooks.ts')
-const download=read('components/read/OfflineBookSaveButton.tsx')
-const page=read('app/read/textbook/[publicationId]/ReaderClient.tsx')
-const sw=read('public/sw.js')
-const ui=read('components/read/OfflineBooksLibrary.tsx')
-const docs=read('docs/architecture/OFFLINE_FIRST_CONTRACT.md')
-test('only anonymously readable, published, free book chapters are stored',()=>{
-  assert.match(store,/pub\.status !== 'published'/)
-  assert.match(store,/pub\.pricing\.type !== 'free'/)
-  assert.match(store,/c\.status === 'published' && c\.can_read && Array\.isArray\(c\.blocks\)/)
-  assert.doesNotMatch(store,/resume\s*:/)
-  assert.doesNotMatch(store,/\bprogress_percent\b/)
-  assert.match(download,/publicBookSnapshot\(publicPayload\)/)
-  assert.match(page,/publicPayload=\{initialPayload\}/)
+const read = path => fs.readFileSync(path, 'utf8')
+test('defective offline books are fully removed from public routes and reader navigation', () => {
+  for (const path of [
+    'components/read/OfflineBookSaveButton.tsx',
+    'components/read/OfflineBooksLibrary.tsx',
+    'components/read/OfflineStorageStatus.tsx',
+    'lib/read/offlinePublicBooks.ts',
+    'app/offline/books/page.tsx',
+  ]) assert.equal(fs.existsSync(path), false, path + ' must be deleted')
+  assert.doesNotMatch(read('app/read/textbook/[publicationId]/ReaderClient.tsx'), /OfflineBookSaveButton|saveOfflineBook/)
+  assert.doesNotMatch(read('components/student/BottomNav.tsx'), /Offline Books|\/offline\/books/)
+  assert.doesNotMatch(read('public/offline.html'), /My Offline Books|\/offline\/books/)
 })
-test('offline library and service worker preserve public-only cache policy',()=>{
-  assert.match(sw,/OFFLINE_BOOK_ROUTE = '\/offline\/books'/)
-  assert.match(sw,/PREPARE_OFFLINE_BOOK_READER/)
-  assert.match(sw,/OFFLINE_BOOK_READER_READY/)
-  assert.match(sw,/url\.pathname\.startsWith\('\/auth\/'\)/)
-  assert.match(sw,/url\.pathname\.startsWith\('\/api\/'\)/)
-  assert.match(sw,/SAFE_PUBLIC_PATHS\.has\(url\.pathname\) && !url\.search/)
-  assert.match(ui,/listOfflineBooks\(/)
-  assert.match(ui,/deleteOfflineBook\(/)
-  assert.match(ui,/ContentBlockEditor/)
-})
-test('future paid-subscription rule remains deferred and explicitly gated',()=>{
-  assert.match(docs,/RESERVED \/ MUTED: 24-hour subscription/)
-  assert.match(docs,/DO NOT ENABLE PAID CONTENT OFFLINE/)
-  assert.match(docs,/before charging/i)
-  assert.doesNotMatch(download,/getSubscription|checkEntitlement/)
-})
-
-test('offline reader is reachable from canonical student navigation and warns about storage eviction',()=>{
-  const nav=read('components/student/BottomNav.tsx')
-  const shelf=read('components/read/OfflineBooksLibrary.tsx')
-  const status=read('components/read/OfflineStorageStatus.tsx')
-  assert.match(nav,/label: "Offline Books", href: "\/offline\/books"/)
-  assert.match(nav,/window\.location\.assign\(href\)/)
-  assert.match(shelf,/<OfflineStorageStatus\/>/)
-  assert.match(status,/navigator\.storage\.estimate\(\)/)
-  assert.match(status,/navigator\.storage\.persist\(\)/)
-  assert.match(status,/Browser declined persistent storage/)
-  assert.match(read('docs/architecture/OFFLINE_FIRST_CONTRACT.md'),/24-hour-entitlement-before-charging/)
+test('service worker does not prepare or cache public-book shell, but offline games continue', () => {
+  const sw = read('public/sw.js')
+  assert.doesNotMatch(sw, /PREPARE_OFFLINE_BOOK_READER|OFFLINE_BOOK_READER_READY|OFFLINE_BOOK_ROUTE|\/offline\/books/)
+  assert.match(sw, /OFFLINE_GAME_ROUTES/)
+  assert.match(sw, /PREPARE_OFFLINE_GAMES/)
+  assert.match(sw, /OFFLINE_GAMES_READY/)
+  assert.match(sw, /indexedDB\.deleteDatabase\('vibeschool-public-books-v1'\)/)
+  assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/)
+  assert.match(sw, /url\.pathname\.startsWith\('\/auth\/'\)/)
 })
