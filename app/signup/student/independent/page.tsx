@@ -49,7 +49,8 @@ export default function IndependentLearnerSignup() {
       const result = await response.json()
       if (!response.ok) throw new Error(result.error||'Could not save your learning level.')
       // The destination is determined by the server, not a free-form user URL.
-      router.replace(result.destination === '/student/college' ? '/student/college' : '/student')
+      const destination = result.destination === '/student/college' ? '/student/college' : '/student'
+      router.replace(`/account/setup?next=${encodeURIComponent(destination)}`)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not finish setup.')
     } finally { setBusy(false) }
