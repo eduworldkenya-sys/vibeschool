@@ -22,8 +22,8 @@ export async function middleware(request: NextRequest) {
   // Owner-directed global VibeTwin pause: block even bookmarked routes and API calls.
   // Redirect page visitors to their normal workspace, without revealing a Twin screen.
   if (!VIBETWIN_ENABLED && (
-    /^\\/(?:student|teacher|parent|admin|hq)\\/twin(?:\\/|$)/i.test(pathname) ||
-    /^\\/api\\/(?:twin|student\\/twin|teacher\\/twin|parent\\/twin)(?:\\/|$)/i.test(pathname)
+    /^\/(?:student|teacher|parent|admin|hq)\/twin(?:\/|$)/i.test(pathname) ||
+    /^\/api\/(?:twin|student\/twin|teacher\/twin|parent\/twin)(?:\/|$)/i.test(pathname)
   )) {
     const headers = { 'Cache-Control': 'private, no-store' }
     if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Not found' }, { status: 404, headers })
