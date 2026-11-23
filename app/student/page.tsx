@@ -11,7 +11,7 @@ import compact from '@/components/student/LearnerCompact.module.css'
 import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
 import { loadActiveClassTimetable, timetableSlotsForDay } from '@/lib/timetable/engine'
 import { useStudent } from '@/lib/student-context'
-import { learnerGreeting } from '@/lib/student/learner-welcome'
+import StudentHomeDesk from '@/components/student/StudentHomeDesk'
 import Skel from '@/components/student/Skel'
 import { acknowledgeStudentHomeChanges, getStudentHomeOsBrief, markStudentHomeOpened, resolveTaskLaunch, updateStudentHomePreferences, type PreferredStudyTime, type StudentHomeOsBrief, type StudentTask } from '@/lib/student/tasks'
 import { getLearnerTwinState, type LearnerTwinState } from '@/lib/student/twin'
@@ -162,25 +162,19 @@ export default function StudentHomePage() {
   if (!identity) return null
 
   return <div className="student-home" style={{ animation: 'slideIn .22s ease' }}>
-    <div className={compact.screen} style={{width:'100%'}}>
-      <h1>{learnerGreeting(new Date(), identity.firstName)}</h1>
-      <section className={compact.panel} aria-label="Next action">
-        <h2>{nextTask?.title ?? continueReading?.title ?? suggestedAction?.title ?? 'Learn'}</h2>
-        {(nextTask || continueReading) && <small className={compact.muted}>{nextTask ? `${nextTask.subject} · ${taskMeta(nextTask)}` : `${continueReading?.progressPercent}% read`}</small>}
-        <button className={compact.primary} disabled={launchingTaskId !== null}
-          onClick={() => nextTask ? void openTask(nextTask) : router.push((continueReading && safeLearningRoute(continueReading.actionUrl)) || (suggestedAction?.actionUrl && safeLearningRoute(suggestedAction.actionUrl)) || '/student/study')}>
-          {launchingTaskId ? 'Opening…' : nextTask?.actionLabel ?? (continueReading ? 'Continue reading' : hasLearningEvidence ? 'Open Learn' : 'Start learning')} <span aria-hidden="true">→</span>
-        </button>
-      </section>
-      {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true' && <LiveLearnerNotice studentId={identity.studentId} />}
-      <nav className={compact.grid} aria-label="Home shortcuts">
-        {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED==='true' && <Link className={compact.action} href="/student/live">Join Live</Link>}
-        <Link className={compact.action} href="/student/tasks">Tasks · {feed?.counts.toDo ?? 0}</Link>
-        <button type="button" className={compact.action} onClick={() => router.push('/student/vibelearn/exams')}>Exams</button>
-        <Link className={compact.action} href="/student/timetable">My Day</Link>
-        <Link className={compact.action} href="/student/marks">Progress</Link>
-      </nav>
-    </div>
+    <StudentHomeDesk
+      firstName={identity.firstName}
+      grade={identity.className}
+      isNewLearner={!hasLearningEvidence && !continueReading}
+      reading={continueReading}
+      nextTask={nextTask}
+      recommendedAction={suggestedAction ?? null}
+      toDo={feed?.counts.toDo ?? 0}
+      schoolLinked={hasSchoolEnrollment}
+      openingTask={launchingTaskId !== null}
+      onOpenTask={() => { if (nextTask) void openTask(nextTask) }}
+    />
+    {process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true' && <LiveLearnerNotice studentId={identity.studentId} />}
 
     {error && <section className={compact.panel} role="alert">{error}<button onClick={() => void load()} className={compact.action}>Retry</button></section>}
     <details className={compact.panel} style={{width:'100%',maxWidth:760,margin:'0 auto'}}>
