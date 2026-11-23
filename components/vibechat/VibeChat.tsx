@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Bell, MessageCircle, RefreshCw, Send, Users, UserPlus, ShieldAlert, Ban } from 'lucide-react'
+import { ArrowLeft, Bell, MessageCircle, RefreshCw, Send, Users, UserPlus, ShieldAlert, Ban, MoreVertical, SquarePen } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase'
 import Enquiries from './Enquiries'
 import VibeChatAvatar from './VibeChatAvatar'
@@ -51,6 +51,8 @@ export default function VibeChat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [body, setBody] = useState('')
   const [search, setSearch] = useState('')
+  const [chatFilter, setChatFilter] = useState<'all' | 'school' | 'tuition'>('all')
+  const [moreOpen, setMoreOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [messagesLoading, setMessagesLoading] = useState(false)
   const [sending, setSending] = useState(false)
@@ -301,14 +303,14 @@ export default function VibeChat() {
     setAcking(null)
   }
 
-  const filtered = useMemo(() => chats.filter(chat => (chat.title + ' ' + chat.detail).toLowerCase().includes(search.toLowerCase())), [chats,search])
+  const filtered = useMemo(() => chats.filter(chat => (chatFilter === 'all' || chat.kind === chatFilter) && (chat.title + ' ' + chat.detail).toLowerCase().includes(search.toLowerCase())), [chats,search,chatFilter])
 
   return <main className={styles.shell}>
     <div className={styles.main}>
       <header className={styles.header}>
         <Link className={styles.brand} href="/vibechat" aria-label="VibeChat home">
           <span className={styles.logo}><MessageCircle aria-hidden size={22}/></span>
-          <div><h1 className={styles.heading}>VibeChat</h1><small className={styles.subtitle}>One place for your conversations</small></div>
+          <h1 className={styles.heading}>VibeChat</h1>
         </Link>
         <Link className={styles.back}
           href={role === 'parent' ? '/parent' : role === 'teacher' ? '/teacher/pulse' : role === 'student' ? '/student' : role === 'admin' ? '/admin' : '/vibetutor'}>
@@ -316,12 +318,16 @@ export default function VibeChat() {
         </Link>
       </header>
       <nav className={styles.tabs} aria-label="VibeChat sections">
-        {([['chats','Chats',MessageCircle],...(role==='teacher' ? [['school','School',Users] as const] : []),['contacts','Contacts',UserPlus],['enquiries','Enquiries',Users],['notices','Notices',Bell]] as const).map(([value,label,Icon]) =>
-          <button key={value} type="button" className={styles.tab + (tab === value ? ' ' + styles.active : '')}
-            aria-current={tab===value ? 'page' : undefined} onClick={()=>setTab(value)}>
-            <Icon size={15} aria-hidden style={{verticalAlign:'middle',marginRight:6}}/>{label}{value==='notices'&&notices.some(n=>n.requiresAck&&!n.acked)?' · New':''}
-          </button>)}
-        <button type="button" className={styles.tab} disabled title="Calls will be added after secure Live integration">Calls · Soon</button>
+        <button type="button" className={styles.tab + (tab==='chats'?' '+styles.active:'')} onClick={()=>setTab('chats')}><MessageCircle size={16} aria-hidden/> Chats</button>
+        <button type="button" className={styles.tab + (tab==='contacts'?' '+styles.active:'')} onClick={()=>setTab('contacts')}><UserPlus size={16} aria-hidden/> Contacts</button>
+        <div className={styles.moreWrap}>
+          <button type="button" className={styles.tab + (['school','enquiries','notices'].includes(tab)?' '+styles.active:'')} aria-expanded={moreOpen} aria-haspopup="true" onClick={()=>setMoreOpen(v=>!v)}><MoreVertical size={16} aria-hidden/> More {notices.some(n=>n.requiresAck&&!n.acked)?'· New':''}</button>
+          {moreOpen&&<div className={styles.moreMenu}>
+            {role==='teacher'&&<button type="button" onClick={()=>{setTab('school');setMoreOpen(false)}}><Users size={16} aria-hidden/> School</button>}
+            <button type="button" onClick={()=>{setTab('enquiries');setMoreOpen(false)}}><Users size={16} aria-hidden/> Enquiries</button>
+            <button type="button" onClick={()=>{setTab('notices');setMoreOpen(false)}}><Bell size={16} aria-hidden/> Notices</button>
+          </div>}
+        </div>
       </nav>
       {signedIn===false ? <section className={styles.panel}>
         <h2>Sign in to VibeChat</h2>
@@ -336,20 +342,28 @@ export default function VibeChat() {
       {error && <div role="alert" className={styles.error}>{error} <button type="button" onClick={()=>void load()}><RefreshCw size={14} aria-hidden/> Retry</button></div>}
       {signedIn && tab==='chats' && <section className={styles.layout} aria-label="VibeChat conversations">
         <aside className={styles.sidebar}>
-          <input className={styles.search} type="search" aria-label="Search conversations"
-            placeholder="Search conversations" value={search} onChange={e=>setSearch(e.target.value)} />
+          <div className={styles.searchRow}>
+            <input className={styles.search} type="search" aria-label="Search conversations"
+              placeholder="Search chats" value={search} onChange={e=>setSearch(e.target.value)} />
+            <button type="button" className={styles.newChat} aria-label="Find a contact" title="New conversation" onClick={()=>setTab('contacts')}><SquarePen size={19} aria-hidden/></button>
+          </div>
+          <div className={styles.filters} aria-label="Conversation filters">
+            {(['all','school','tuition'] as const).map(filter=><button type="button" key={filter}
+              aria-pressed={chatFilter===filter} className={styles.filter + (chatFilter===filter?' '+styles.filterActive:'')}
+              onClick={()=>setChatFilter(filter)}>{filter==='all'?'All':filter==='school'?'School':'Tuition'}</button>)}
+          </div>
           <div className={styles.actionRow}>
             {role==='teacher'&&schoolMessagingAvailable&&<button type="button" className={styles.back} onClick={()=>setTab('school')}>New school message</button>}
             {role==='parent'&&<Link className={styles.back} href="/parent/messages">Choose a child's teacher</Link>}
             {role==='admin'&&<Link className={styles.back} href="/admin/communication">Manage school notices</Link>}
           </div>
           {loading?<p className={styles.empty} role="status">Loading conversations…</p>:
-            filtered.length === 0 ? <div className={styles.empty}>No conversations found. Tutor enquiries appear under Enquiries.</div> :
+            filtered.length === 0 ? <div className={styles.empty}>No conversations match. Start a chat from Contacts.</div> :
             filtered.map(chat => <button type="button" className={styles.thread + (active===chat.key?' '+styles.selected:'')}
               key={chat.key} onClick={()=>{setActive(chat.key);setBody('')}} aria-pressed={active===chat.key}>
               <VibeChatAvatar name={chat.title} avatarUrl={chat.avatarUrl}/>
-              <span className={styles.threadText}><strong>{chat.title}</strong><small>{chat.preview || chat.detail}</small>
-                <span className={styles.channel}>{chat.kind==='tuition'?'Tuition':'School'}{chat.updated?' · '+stamp(chat.updated):''}</span>
+              <span className={styles.threadText}><span className={styles.threadTop}><strong>{chat.title}</strong><time className={styles.threadDate}>{stamp(chat.updated)}</time></span>
+                <small>{chat.preview || chat.detail}</small><span className={styles.channel}>{chat.kind==='tuition'?'Tuition':'School'}</span>
               </span>
             </button>)
           }
@@ -421,7 +435,7 @@ export default function VibeChat() {
               </button>}</div>}
           </article>)}
       </section>}
-      <p className={styles.subtitle} style={{marginTop:12}}>Only approved contacts can exchange private tuition messages. Do not share children's personal contact details.</p>
+      
     </div>
   </main>
 }
