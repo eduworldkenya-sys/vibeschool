@@ -8,6 +8,11 @@ type MiniReview = {
   id: string
   title: string
   subject: string
+  tags: string[]
+  quiz_question: string | null
+  quiz_options: string[]
+  quiz_correct: number | null
+  quiz_explanation: string | null
   creator_label: string
   creator_id: string
   body: string
@@ -132,7 +137,7 @@ export default function MiniModerationPage() {
                 style={{...button,width:'100%',marginBottom:9,textAlign:'left',
                   borderColor:selection?.id===item.id?colors.primary:colors.border}}>
                 <strong style={{display:'block'}}>{item.title}</strong>
-                <small>{item.subject} · @{item.creator_label}</small>
+                <small>{item.tags.map(tag=>'#'+tag).join(' ')} · @{item.creator_label}</small>
               </button>) : <p style={{color:colors.subtle}}>No pending Minis.</p>}
           </section>
           <section aria-label="Submitted comments">
@@ -150,13 +155,16 @@ export default function MiniModerationPage() {
           style={{background:colors.bg,border:'1px solid '+colors.border,borderRadius:14,padding:20}}>
           <h2 id="mini-review-heading" style={{fontSize:21}}>Review {selection?.target}</h2>
           {'title' in active && <><h3>{active.title}</h3>
-            <p style={{fontSize:12,color:colors.subtle}}>@{active.creator_label} · {active.subject}</p>
+            <p style={{fontSize:12,color:colors.subtle}}>@{active.creator_label} · {active.tags.map(tag=>'#'+tag).join(' ')}</p>
             {active.cover_preview_url
               ? <img src={active.cover_preview_url} alt={'Submitted photo for '+active.title}
                 style={{maxWidth:'100%',maxHeight:350,objectFit:'contain',borderRadius:8}}/>
               : <p style={{color:'#92400e'}}>Cover unavailable. Do not approve without reviewing it.</p>}
           </>}
           <p style={{whiteSpace:'pre-wrap',lineHeight:1.75,fontSize:14}}>{active.body}</p>
+          {'quiz_question' in active && active.quiz_question && <div style={{border:'1px solid '+colors.border,padding:12,borderRadius:8}}><strong>Quick question: {active.quiz_question}</strong>
+            <ol>{active.quiz_options.map((answer,index)=><li key={index}>{answer} {index===active.quiz_correct?'(correct)':''}</li>)}</ol>
+            <p>Explanation: {active.quiz_explanation}</p></div>}
           {selection?.target==='mini' && <label style={{display:'block',fontSize:13,marginTop:16}}>
             Educational quality (0–100)
             <input type="number" min={0} max={100} value={quality} onChange={e=>setQuality(Number(e.target.value))}
