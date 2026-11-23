@@ -57,6 +57,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
   const [publishing,     setPublishing]     = useState(false)
   const [titleError,     setTitleError]     = useState(false)
   const [checksOpen, setChecksOpen] = useState(false)
+  const [materialsConfirmed, setMaterialsConfirmed] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [moreToolsOpen, setMoreToolsOpen] = useState(false)
   const [blockerHelp, setBlockerHelp] = useState<string | null>(null)
@@ -110,6 +111,11 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     // A signed-in Mumbi2 teacher can request release without a second owner activation.
     // The server lifecycle still enforces ownership and independent release checks.
     if (!canPublish) { setBlockerHelp('Sign in as Mumbi2 to request publication.'); return }
+    if (simpleMode && !materialsConfirmed) {
+      setChecksOpen(true)
+      setBlockerHelp('Confirm that the existing lesson, images and questions are ready before publishing.')
+      return
+    }
     if (!publication?.title?.trim()) {
       setTitleError(true)
       titleInputRef.current?.focus()
@@ -163,6 +169,9 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     { key: 'learn', label: 'Learn visibility', ok: false, detail: 'Verified only after publication', action: 'Open preview' },
   ]
   const checkedCount = documentChecks.filter(check => check.ok).length
+  const draftMaterialsPresent = Boolean(publication?.title?.trim()) && chapters.length > 0
+    && chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim())))
+  const imageOrQuestionSummary = `${imageCount} image${imageCount === 1 ? '' : 's'} · ${questionCount} question${questionCount === 1 ? '' : 's'}`
 
   const activeChapter = chapters.find(c => c.id === activeChapterId) ?? null
   // Navigate only to a real editable element. Deferred focus handles chapter switches.
@@ -432,8 +441,8 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           >
             {publishedReadOnly ? 'Live' : simpleMode ? 'Details' : 'Setup'}
           </button>
-          <button onClick={handlePublish} disabled={publishing || publishedReadOnly || !canPublish} title={!canPublish ? 'Sign in as Mumbi2 to request publication' : 'Release checks must pass before publication'} style={{
-            background: publishing || publishedReadOnly || !canPublish ? '#e2e8f0' : ACCENT,
+          <button onClick={handlePublish} disabled={publishing || publishedReadOnly || !canPublish || (simpleMode && !materialsConfirmed)} title={!canPublish ? 'Sign in as Mumbi2 to request publication' : 'Release checks must pass before publication'} style={{
+            background: publishing || publishedReadOnly || !canPublish || (simpleMode && !materialsConfirmed) ? '#e2e8f0' : ACCENT,
             color: !canPublish ? '#475569' : 'var(--publication-on-accent, #090D16)', border: 'none', borderRadius: 10,
             padding: '7px 16px', fontSize: 13, fontWeight: 800,
             cursor: publishing || publishedReadOnly ? 'default' : 'pointer',
@@ -442,6 +451,14 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           </button>
         </div>
       </header>
+
+      {simpleMode && !publishedReadOnly && <section aria-label="Confirm existing lesson materials" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 16px', borderBottom: '1px solid ' + BORDER, background: SURF, color: TEXT }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: draftMaterialsPresent ? 'pointer' : 'not-allowed', fontSize: 13 }}>
+          <input type="checkbox" checked={materialsConfirmed} disabled={!draftMaterialsPresent} onChange={event => setMaterialsConfirmed(event.target.checked)} aria-label="Confirm existing lesson materials" />
+          Materials checked — {imageOrQuestionSummary}
+        </label>
+        <span style={{ fontSize: 12, color: MUTED }}>No duplicate uploads or rewriting required. Server release checks still apply.</span>
+      </section>}
 
       {simpleMode && checksOpen && <section aria-label="Document checks" style={{ background: SURF, borderBottom: '1px solid ' + BORDER, padding: '12px 16px', color: TEXT }}>
         <p style={{ fontSize: 12, margin: '0 0 8px', color: MUTED }}>Images and questions marked complete here mean present in the draft — not approved for release. Rights, answers, security and Learn visibility require separate server checks.</p>
@@ -627,8 +644,8 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           isOpen={setupOpen}
           onClose={() => setSetupOpen(false)}
           onUpdate={updatePublication}
-          onPublish={async () => { if (!canPublish) return false; return publishPublication() }}
-          publishDisabled={!canPublish}
+          onPublish={async () => { if (!canPublish || (simpleMode && !materialsConfirmed)) { setChecksOpen(true); return false }; return publishPublication() }}
+          publishDisabled={!canPublish || (simpleMode && !materialsConfirmed)}
         />
       )}
 
