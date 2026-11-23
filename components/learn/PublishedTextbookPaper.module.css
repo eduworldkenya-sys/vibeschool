@@ -8,7 +8,6 @@
   box-shadow: 0 3px 12px rgba(25, 44, 34, .10);
   overflow: hidden;
 }
-.squareArticle :global([data-presentation="lesson"] .section-placeholder) { border-radius: 0; }
 .plainReader :global([data-presentation="lesson"] section[data-tone]) {
   background: #fff;
   border: 0;
@@ -32,9 +31,6 @@
 }
 .plainReader :global([data-presentation="lesson"] section[data-tone] h3) {
   color: #223d2e;
-}
-.plainReader :global([data-presentation="lesson"] section[data-tone] .section-contents) {
-  line-height: 1.75;
 }
 @media (max-width: 700px) {
   .squareArticle { border-radius: 2px; box-shadow: 0 2px 8px rgba(25, 44, 34, .08); }
