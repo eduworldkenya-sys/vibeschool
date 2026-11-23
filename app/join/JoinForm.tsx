@@ -106,7 +106,7 @@ export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
     }
     const target = next.state === 'ready' && requestedDestination && roleCanVisit(role, requestedDestination)
       ? requestedDestination : destination
-    window.location.assign(target)
+    window.location.assign(next.state === 'ready' ? `/account/setup?next=${encodeURIComponent(target)}` : target)
   }
 
   async function withGoogle() {
