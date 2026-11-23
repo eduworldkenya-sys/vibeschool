@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { parseLessonPlanBody } from "@/lib/teaching/lessonPlanCodec";
+import { lessonToLiveHref } from "@/lib/teaching/liveLessonLinks";
 import type { LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
 import LessonTeachMode, { type LessonCompletionReview } from "@/components/teacher/LessonTeachMode";
 import ReflectionSheet from "@/components/teacher/ReflectionSheet";
@@ -417,7 +418,17 @@ function LessonNotesInner() {
       </section>
 
       {plan.class_id && process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true" && (
-        <button type="button" onClick={() => router.push(`/teacher/classhub/${encodeURIComponent(plan.class_id!)}/live?lessonPlanId=${encodeURIComponent(plan.id)}`)}
+        <button type="button" onClick={() => {
+          const href = lessonToLiveHref({
+            lessonPlanId: plan.id,
+            classId: plan.class_id!,
+            subjectId: plan.subject_id,
+            timetableSlotId: plan.timetable_slot_id,
+            occurrenceId: occurrence?.id,
+            occurrenceDate: occurrence?.occurrence_date ?? plan.taught_date,
+          });
+          if (href) router.push(href);
+        }}
           style={{ width: "100%", textAlign: "center", padding: "12px 15px", borderRadius: 12, border: "1px solid currentColor", background: "var(--vs-surface,#f7faf8)", color: "var(--teacher-ink,#1c2923)", fontWeight: 800, marginBottom: 12 }}>
           Teach this Lesson Plan in Live
         </button>
