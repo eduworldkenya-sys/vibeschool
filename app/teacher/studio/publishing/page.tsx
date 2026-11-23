@@ -14,9 +14,9 @@ type Evidence = { images: number; questions: number; chapters: number }
 const countOfType = (blocks: unknown, type: string) => Array.isArray(blocks) ? blocks.filter(block => block && typeof block === "object" && (block as { type?: unknown }).type === type).length : 0
 const stages = [
   { label: "Curriculum", detail: "Grade, subject and learning outcomes" },
-  { label: "Content", detail: "Required lesson and Teacher Guide material" },
-  { label: "Answers", detail: "Questions and protected marking keys" },
-  { label: "Images", detail: "Upload and accessible links" },
+  { label: "Content", detail: "Reading text and chapters; Teacher Guide optional" },
+  { label: "Answers", detail: "Optional — develop assessments later" },
+  { label: "Images", detail: "Optional — existing images remain available" },
   { label: "Security", detail: "Publisher access and material rights" },
   { label: "Publication", detail: "Server-confirmed release" },
   { label: "Learn", detail: "Verified public learner page" },
@@ -105,7 +105,7 @@ export default function PublishingReplacementPage() {
       </header>
       <section style={panel} aria-labelledby="progress-title">
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-          <div><h2 id="progress-title" style={{ margin: 0, fontSize: 19 }}>Publication checks</h2><p style={{ color: "#64748b", margin: "5px 0 0", fontSize: 13 }}>Draft images and questions are detected from your saved chapters. Publishing approvals still require server verification.</p></div>
+          <div><h2 id="progress-title" style={{ margin: 0, fontSize: 19 }}>Publication checks</h2><p style={{ color: "#64748b", margin: "5px 0 0", fontSize: 13 }}>Publish textbook reading content first. Questions and Teacher’s Guide are optional and can be developed later.</p></div>
           <strong aria-label="Zero of seven release checks verified">0 / 7</strong>
         </div>
         <div aria-label="No checks verified" style={{ height: 8, background: "#e5e7eb", borderRadius: 20, margin: "17px 0" }}/>
@@ -121,9 +121,9 @@ export default function PublishingReplacementPage() {
             const found = !evidenceError && currentEvidence && (isImage ? currentEvidence.images > 0 : isAnswer ? currentEvidence.questions > 0 : false)
             const count = isImage ? currentEvidence?.images : isAnswer ? currentEvidence?.questions : null
             const description = found
-              ? `${count} ${isImage ? "images attached" : "questions written"} — release verification still required`
+              ? `${count} ${isImage ? "images attached" : "questions written"} — optional for reading release`
               : currentEvidence && (isImage || isAnswer)
-                ? `No ${isImage ? "images" : "questions"} found in this draft`
+                ? `No ${isImage ? "images" : "questions"} — optional, not a reading publication blocker`
                 : stage.detail
             return <li key={stage.label} style={{ display: "flex", gap: 12, alignItems: "center", padding: "13px 2px", borderBottom: i === stages.length-1 ? "none" : "1px solid #f1f5f9" }}>
               {found ? <CheckCircle2 size={19} color="#16a34a" aria-label="Draft material present"/> : <Circle size={19} color="#94a3b8" aria-hidden="true"/>}
@@ -136,7 +136,7 @@ export default function PublishingReplacementPage() {
       </section>
       <section id="publishing-availability" style={panel} aria-label="Publishing availability">
         <p style={{ margin: 0, display: "flex", gap: 9, alignItems: "center", fontWeight: 700 }}>{canPublish ? <CheckCircle2 size={18} color="#15803d"/> : <LockKeyhole size={18}/>} {canPublish ? "Mumbi2 can request publication" : "Publishing restricted to Mumbi2"}</p>
-        <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>Your Mumbi2 login is sufficient publishing identity. No separate owner activation is required. The server will still check content, answers, rights and learner visibility before releasing a publication.</p>
+        <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>Your Mumbi2 login is sufficient publishing identity. No separate owner activation. Reading textbooks do not require questions or Teacher’s Guide. Publication still requires valid content and authorized access.</p>
         <button type="button" disabled={!canPublish || !selected || selected.status === "published"} onClick={() => router.push(editorHref)}
           style={{ border: 0, borderRadius: 12, padding: "12px 20px", background: canPublish && selected?.status !== "published" ? "#2563eb" : "#e2e8f0", color: canPublish && selected?.status !== "published" ? "#fff" : "#64748b", fontWeight: 700, cursor: canPublish && selected?.status !== "published" ? "pointer" : "not-allowed" }}>
           {selected?.status === "published" ? "Already published" : "Open and publish"}
