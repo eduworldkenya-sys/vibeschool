@@ -2,6 +2,7 @@
 
 import React from "react";
 import { periodAppearance } from "@/lib/timetable/periodAppearance";
+import { subjectTone } from "@/lib/timetable/subjectColor";
 
 /**
  * Premium weekly calendar presentation of the EXISTING teacher timetable.
@@ -104,6 +105,7 @@ export default function ClassicTimetable({
               className={hasOverlap || found.length > 1 ? "vs-conflict-cell" : ""}>
               {found.map(slot => <button key={slot.id} type="button"
                 className="vs-lesson"
+                style={{background:subjectTone(slot.subject).background,color:subjectTone(slot.subject).foreground,borderLeftColor:subjectTone(slot.subject).border}}
                 aria-label={`Open ${slot.subject}, ${slot.className}, ${day.l} ${time(slot.startTime)}–${time(slot.endTime)}`}
                 onClick={() => onSelect(slot)}>
                 <strong>{slot.subject}</strong>
