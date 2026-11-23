@@ -13,6 +13,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import timeStyles from "@/components/learn/Grade4TimeContentReader.module.css";
 import paperStyles from "@/components/learn/PublishedTextbookPaper.module.css";
+import editorial from "@/components/learn/PublishedTextbookEditorial.module.css";
 
 export type Curriculum={framework:string|null;grade:string|null;subject:string|null;strand:string|null;sub_strand:string|null;topic:string|null;term:number|null;week:number|null;learning_outcomes:string[];key_inquiry_questions:string[];suggested_experiences:string[];core_competencies:string[];core_values:string[];source_ref:string|null;alignment_status:"unclaimed"|"creator_claimed"|"pending_review"|"verified"|"rejected";authority:"official"|"publisher"|null;verified_by:string|null;verified_at:string|null;has_curriculum_detail:boolean};
 export type Chapter={id:string;publication_id:string;title:string|null;number:number;status:"draft"|"published"|"locked";word_count:number|null;reading_time_min:number|null;can_read:boolean;progress_percent:number|null;completed_at:string|null;curriculum:Curriculum;is_bookmarked:boolean;blocks:ContentBlock[]|null};
@@ -71,25 +72,25 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
 
   const pub=payload.publication;const topicTitle=active?.curriculum?.sub_strand?.trim() || active?.curriculum?.topic?.trim() || activeTitle || payload.publication.title;const path=[active?.curriculum.grade&&cap(active.curriculum.grade),active?.curriculum.subject&&cap(active.curriculum.subject),active?.curriculum.strand].filter(Boolean).join(" · ");const filtered=chapters.filter(c=>!query.trim()||`${c.number} ${c.title??""} ${c.curriculum?.strand??""}`.toLowerCase().includes(query.toLowerCase()));const contentGroups=new Map<string,Chapter[]>();for(const chapter of filtered){const strand=chapter.curriculum?.strand?.trim()||"";const group=contentGroups.get(strand)||[];group.push(chapter);contentGroups.set(strand,group)}
 
-  return <div style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,-apple-system,sans-serif",fontSize:font,lineHeight:1.72}}>
+  return <div className={editorial.premiumShell} style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,-apple-system,sans-serif",fontSize:font,lineHeight:1.72}}>
     <style>{`[data-reader-speaking="true"]{outline:2px solid rgba(22,134,89,.5);outline-offset:7px;border-radius:8px;background:rgba(22,134,89,.035);transition:background .18s ease}`}</style>
-    {!focus&&<header style={{position:"sticky",top:0,zIndex:40,background:"rgba(255,255,255,.96)",backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.line}`}}><div style={{height:58,maxWidth:760,margin:"auto",padding:"0 12px",display:"grid",gridTemplateColumns:"42px minmax(0,1fr) auto auto",alignItems:"center",gap:6}}><button aria-label="Back" onClick={()=>router.back()} style={iconBtn}>←</button><div style={{overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",fontSize:13,fontWeight:750}}>{activeTitle||pub.title||"VibeLearn"}</div><button onClick={()=>setContents(true)} style={navBtn}>Contents</button><button aria-label="Open reading tools" onClick={()=>setSheet("tools")} style={iconBtn}>•••</button></div></header>}
-    <main id="reader-active-unit" className={timeStyles.page} style={{scrollMarginTop:70,fontSize:16,lineHeight:1.75}}>
+    {!focus&&<header className={editorial.premiumHeader}><div className={editorial.premiumHeaderBar}><button aria-label="Back" onClick={()=>router.back()} style={iconBtn}>←</button><div className={editorial.premiumTitle}>{activeTitle||pub.title||"VibeLearn"}</div><button type="button" onClick={()=>setContents(true)} className={editorial.premiumTool}>Contents</button><button type="button" aria-label="Open reading tools" onClick={()=>setSheet("tools")} className={editorial.premiumTool}>•••</button></div></header>}
+    <main id="reader-active-unit" className={timeStyles.page+" "+editorial.premiumPage} style={{scrollMarginTop:70,fontSize:16,lineHeight:1.75}}>
       <div className={timeStyles.wrap}>
-        {!focus&&<nav className={timeStyles.breadcrumbs} aria-label="Breadcrumb">
+        {!focus&&<nav className={timeStyles.breadcrumbs+" "+editorial.premiumBreadcrumbs} aria-label="Breadcrumb">
           <Link href="/learn">Learn</Link><ChevronRight size={15} aria-hidden="true"/>
           <Link href={"/learn?grade="+encodeURIComponent(active?.curriculum?.grade||pub.cbc_grade||"grade4")+"&subject="+encodeURIComponent(active?.curriculum?.subject||pub.cbc_subject||"Creative Arts")}>
             {(active?.curriculum?.grade||pub.cbc_grade||"Grade 4").replace(/^grade(\d+)$/i,"Grade $1")} {cap(active?.curriculum?.subject||pub.cbc_subject||"Creative Arts")}
           </Link><ChevronRight size={15} aria-hidden="true"/><span aria-current="page">{activeTitle||pub.title}</span>
         </nav>}
-        {!focus&&<header className={timeStyles.hero}>
+        {!focus&&<header className={timeStyles.hero+" "+editorial.premiumHero}>
           <div>
             <p className={timeStyles.kicker}>{(active?.curriculum?.grade||pub.cbc_grade||"Grade 4").replace(/^grade(\d+)$/i,"Grade $1")} {cap(active?.curriculum?.subject||pub.cbc_subject||"Learning")}</p>
             <h1 className={timeStyles.heroTitle}>{topicTitle}</h1>
             {pub.description && topicTitle === pub.title && <p className={timeStyles.heroDescription}>{pub.description}</p>}
-          </div><div className={timeStyles.subjectTag}>Learn at your own pace</div>
+          </div>
         </header>}
-        {!focus&&chapters.length>1&&<details className={timeStyles.lessonChooser}>
+        {!focus&&chapters.length>1&&<details className={timeStyles.lessonChooser+" "+editorial.premiumChooser}>
           <summary>Choose a lesson <span>({chapters.length} available)</span></summary>
           <nav className={timeStyles.lessonList} aria-label="Choose a textbook lesson">
             {chapters.map((chapter,i)=><button type="button" key={chapter.id}
@@ -103,7 +104,7 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
           </nav>
         </details>}
         <div className={timeStyles.contentArea}>
-      {active?<><article className={timeStyles.article+" "+paperStyles.squareArticle}><div className={timeStyles.articleHead}>
+      {active?<><article className={timeStyles.article+" "+paperStyles.squareArticle+" "+editorial.premiumPaper}><div className={timeStyles.articleHead}>
         <div className={timeStyles.readerToolbar}>
           <p className={timeStyles.articleNum}>{lessonActive?"Lesson 1":"Lesson "+(index+1)+" of "+chapters.length}</p>
           <div className={timeStyles.textSettings} role="group" aria-label="Text size">
