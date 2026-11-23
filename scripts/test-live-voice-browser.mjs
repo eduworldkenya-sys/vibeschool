@@ -156,6 +156,9 @@ try{
     action:'error',errorMsg:'unknown redacted failure detail'
   }))
   await solo.getByRole('alert').getByText('Daily audio failed (connected / unknown). Retry joining.').waitFor()
+  await new Promise(ok=>setTimeout(ok,100))
+  assert.deepEqual(diagnostics[2].diagnostic,{stage:'connected',code:'unknown',hint:'unknown'})
+  assert.doesNotMatch(JSON.stringify(diagnostics),/redacted failure detail/)
   await solo.getByRole('button',{name:'Join audio'}).click()
   await solo.getByRole('status').getByText('Connected').waitFor()
   await solo.getByRole('button',{name:'Leave audio'}).click()
@@ -180,7 +183,7 @@ try{
   assert.equal(await t.getByRole('button',{name:'Speak',exact:true}).isEnabled(),true)
   assert.equal(await t.evaluate(()=>window.__voiceCall.localAudio()),false)
   await new Promise(ok=>setTimeout(ok,100))
-  assert.deepEqual(diagnostics[2].diagnostic,{stage:'connected',code:'device-error',hint:'device'})
+  assert.deepEqual(diagnostics[3].diagnostic,{stage:'connected',code:'device-error',hint:'device'})
   assert.doesNotMatch(JSON.stringify(diagnostics),/private device detail/)
   // Retrying remains a fresh, user-initiated microphone action.
   await t.getByRole('button',{name:'Speak',exact:true}).click()
