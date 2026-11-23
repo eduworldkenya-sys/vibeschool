@@ -84,6 +84,61 @@ revoke all on function public.parent_start_child_thread(uuid,uuid,text)
 grant execute on function public.parent_start_child_thread(uuid,uuid,text)
   to authenticated;
 
+
+-- The historical participant helper omitted departure and child-link checks.
+-- Restore both at the canonical source of truth used by thread/message RLS.
+create or replace function private.vc_user_is_thread_participant(p_thread_id uuid)
+returns boolean language sql stable security definer set search_path='' as $vcactive$
+  select auth.uid() is not null and exists (
+    select 1 from public.vc_participants membership
+    join public.vc_threads thread on thread.id=membership.thread_id
+    join public.profiles actor on actor.id=membership.profile_id
+      and actor.account_status::text='active'
+      and not coalesce(actor.is_anonymized,false)
+    where membership.thread_id=p_thread_id and membership.profile_id=auth.uid()
+      and membership.left_at is null
+      and (
+        thread.student_id is null
+        or exists (
+          select 1 from public.parent_student_links link
+          join public.students learner on learner.id=link.student_id
+            and learner.deleted_at is null
+          join public.classes cl on cl.id=learner.class_id
+          where link.parent_id=auth.uid() and link.student_id=thread.student_id
+            and cl.school_id=thread.school_id
+            and (link.school_id is null or link.school_id=cl.school_id)
+        )
+        or exists (
+          select 1 from public.students learner
+          join public.classes cl on cl.id=learner.class_id
+          join public.teacher_classes assignment on assignment.class_id=cl.id
+            and assignment.school_id=cl.school_id
+          join public.school_members member on member.school_id=cl.school_id
+            and member.profile_id=assignment.teacher_id
+          where learner.id=thread.student_id and learner.deleted_at is null
+            and cl.school_id=thread.school_id
+            and assignment.teacher_id=auth.uid()
+        )
+      )
+  );
+$vcactive$;
+revoke all on function private.vc_user_is_thread_participant(uuid)
+  from public, anon;
+grant execute on function private.vc_user_is_thread_participant(uuid)
+  to authenticated;
+
+-- School administrators keep their existing circular rights, but may not
+-- bypass learner-specific parent/teacher admission to read a private direct chat.
+drop policy if exists vibechat_child_message_read_integrity on public.vc_messages;
+create policy vibechat_child_message_read_integrity on public.vc_messages
+  as restrictive for select to authenticated
+  using (exists (
+    select 1 from public.vc_threads thread
+    where thread.id=vc_messages.thread_id
+      and (thread.student_id is null
+        or private.vc_user_is_thread_participant(thread.id))
+  ));
+
 -- Revoke the legacy ability to spoof another sender or post after leaving.
 -- This restrictive INSERT policy cannot grant access to an unauthorized user.
 drop policy if exists vibechat_member_sender_integrity on public.vc_messages;
