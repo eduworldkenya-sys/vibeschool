@@ -9,7 +9,7 @@ import type { Json } from '@/lib/database.types'
 type ReaderChapterEvent = { publicationId?: string; chapterId?: string; progressPercent?: number }
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
+const rpc: Rpc = supabase.rpc.bind(supabase)
 
 export default function LearnYourWayReaderBridge() {
   const pathname = usePathname(); const router = useRouter()
