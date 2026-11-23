@@ -165,6 +165,9 @@ async function callCyborgChatModel(missionId: string, systemPrompt: string, mess
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
+  // Owner-directed global pause: prevent all chat activity and entitlement writes.
+  // Preserve the existing implementation for a future explicitly approved return.
+  return json({ error: "VibeTwin temporarily unavailable" }, 503)
   try {
     requireAuthenticatedRequest(req)
     const body = await req.json()
