@@ -86,7 +86,7 @@ export async function rejectDailyResponse(stage: 'room-lookup' | 'room-create' |
 }
 function voiceSettings(exp: number) {
   return {
-    exp, eject_at_room_exp: true, max_participants: 80,
+    exp, eject_at_room_exp: true, max_participants: 2,
     enforce_unique_user_ids: true, enable_knocking: false,
     enable_chat: false, enable_screenshare: false,
     enable_prejoin_ui: false, start_audio_off: true, start_video_off: true,
@@ -100,7 +100,7 @@ function validProviderRoom(value: unknown, name: string, exp: number): value is 
     typeof room.url === 'string' &&
     /^https:\/\/[a-z0-9-]+\.daily\.co\/vs-live-[0-9a-f-]+$/i.test(room.url) &&
     !!config && config.exp === exp && config.eject_at_room_exp === true &&
-    config.max_participants === 80 && config.enforce_unique_user_ids === true &&
+    config.max_participants === 2 && config.enforce_unique_user_ids === true &&
     config.enable_knocking === false && (config.enable_recording == null || config.enable_recording === false || config.enable_recording === '') &&
     config.enable_screenshare === false && config.enable_chat === false &&
     config.start_audio_off === true &&
