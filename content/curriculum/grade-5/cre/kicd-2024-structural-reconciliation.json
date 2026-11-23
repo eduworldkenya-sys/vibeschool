@@ -1,0 +1,335 @@
+{
+  "grade": "Grade 5",
+  "subject": "Christian Religious Education",
+  "subject_id": "8165d513-035b-4019-9fdb-5b86a27335a1",
+  "authority": {
+    "publisher": "KICD",
+    "edition": "Revised 2024",
+    "source_url": "https://kicd.ac.ke/wp-content/uploads/2024/10/CRE-GRADE-5-DESIGN-Revised.pdf",
+    "basis": "official 2024 summary; 30 existing canonical database identity references",
+    "source_exact_private_transcription_complete": false,
+    "rights_scope_verified": false
+  },
+  "inspected_at": "2026-11-23",
+  "counts": {
+    "strands": 5,
+    "sub_strands": 30,
+    "suggested_lessons": 90,
+    "linked_outcomes": 17,
+    "units_with_outcomes": 4,
+    "units_missing_outcomes": 26,
+    "published_chapters": 0
+  },
+  "draft_textbook": {
+    "id": "a0252de1-adf4-4c5f-9d43-fb8e05da4424",
+    "status": "draft",
+    "chapters": 30
+  },
+  "handling": "Structural reconciliation only. Preserve these existing database UUIDs. Do not present this index as verified outcome-by-outcome KICD equivalence or as published content. Create no duplicate curriculum records.",
+  "strands": [
+    {
+      "code": "1.0",
+      "title": "Creation",
+      "units": [
+        {
+          "code": "1.1",
+          "title": "My Purpose (Talents and Abilities)",
+          "cbc_strand_id": "48a8e5b0-cac1-4df5-85cf-b7f0e20f7577",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 4,
+          "official_printed_page": 1,
+          "scope_status": "existing_paraphrases_require_semantic_review"
+        },
+        {
+          "code": "1.2",
+          "title": "Work",
+          "cbc_strand_id": "30fa7ae3-d257-436c-9004-d9253ae4d2f3",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 6,
+          "official_printed_page": 3,
+          "scope_status": "existing_paraphrases_require_semantic_review"
+        },
+        {
+          "code": "1.3",
+          "title": "The Fall of Man",
+          "cbc_strand_id": "df847e46-5887-4a0d-a10e-21a2e9ab849b",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 3,
+          "official_printed_page": 5,
+          "scope_status": "existing_paraphrases_require_semantic_review"
+        },
+        {
+          "code": "1.4",
+          "title": "Family Unity",
+          "cbc_strand_id": "3dcddd1b-0230-49ce-a72a-003ee9e9ad7f",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 4,
+          "official_printed_page": 6,
+          "scope_status": "existing_paraphrases_require_semantic_review"
+        }
+      ]
+    },
+    {
+      "code": "2.0",
+      "title": "The Bible",
+      "units": [
+        {
+          "code": "2.1",
+          "title": "The Bible as a Guide",
+          "cbc_strand_id": "1fedd72e-5715-41aa-b84a-fa395661b141",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "2.2",
+          "title": "Bible Stories: Peter and John in the Temple",
+          "cbc_strand_id": "71987027-eaa9-405f-87dd-1c08b8542f52",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "2.3",
+          "title": "King Solomon the Wise Ruler",
+          "cbc_strand_id": "8cf3a4a1-4fc6-46cb-b192-ff12d028fddf",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "2.4",
+          "title": "Noah and His Sons",
+          "cbc_strand_id": "c4a9766c-6607-40c0-bb16-2878d3652189",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "2.5",
+          "title": "A Hand Writes on the Wall",
+          "cbc_strand_id": "2511efb7-3d5f-4c48-8836-bf89d1c412b3",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "2.6",
+          "title": "Mount Carmel Contest",
+          "cbc_strand_id": "248518fa-3788-4c02-9943-0a15b02fe695",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "2.7",
+          "title": "God’s Protection",
+          "cbc_strand_id": "e6b189b0-311e-4e45-9bdf-cdbc196472ae",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "2.8",
+          "title": "The Call of Moses",
+          "cbc_strand_id": "ac24452c-d6f5-4eb3-bc2f-ee54de8d3603",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        }
+      ]
+    },
+    {
+      "code": "3.0",
+      "title": "The Life of Jesus Christ",
+      "units": [
+        {
+          "code": "3.1",
+          "title": "John the Baptist",
+          "cbc_strand_id": "3f52ce9e-1f9f-46f6-b7f3-338557d575c0",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "3.2",
+          "title": "The Baptism of Jesus Christ",
+          "cbc_strand_id": "558b1dfc-2c05-4d12-82a6-c2f97a34adb5",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "3.3",
+          "title": "Calming the Storm",
+          "cbc_strand_id": "857996b2-8faa-4170-9db9-82eaad1b5b1e",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "3.4",
+          "title": "Feeding the Four Thousand",
+          "cbc_strand_id": "15017870-945b-494d-b284-1f8f95676122",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "3.5",
+          "title": "Healing the Paralysed Man",
+          "cbc_strand_id": "817587b8-f055-42a1-8111-054953e34f8f",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "3.6",
+          "title": "Parable of the Lost Sheep",
+          "cbc_strand_id": "a6f487cd-c4ab-45a7-b7ea-be61378658f7",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "3.7",
+          "title": "Sermon on the Mount",
+          "cbc_strand_id": "bcfdb833-6a64-476b-b34b-ee1a0ffeba65",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "3.8",
+          "title": "The Rich Young Ruler",
+          "cbc_strand_id": "765d9772-4bec-44a4-90db-34f64e63d2db",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "3.9",
+          "title": "A Friend at Midnight",
+          "cbc_strand_id": "7a80e617-cf42-4ded-adb0-45e92c9b3b74",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        }
+      ]
+    },
+    {
+      "code": "4.0",
+      "title": "The Church",
+      "units": [
+        {
+          "code": "4.1",
+          "title": "The Early Church",
+          "cbc_strand_id": "3fe3bb6c-4d6f-4189-9ef3-f26a4c10b981",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "4.2",
+          "title": "The Lord’s Supper",
+          "cbc_strand_id": "e3aee536-3319-46f3-a1aa-9d42ba11dc10",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "4.3",
+          "title": "The Holy Spirit",
+          "cbc_strand_id": "87441b61-462f-4de1-a256-a1027accf113",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "4.4",
+          "title": "Peter’s Miraculous Rescue",
+          "cbc_strand_id": "e4b76af1-ec7c-4e5f-8a3c-2da460e9a4a4",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        }
+      ]
+    },
+    {
+      "code": "5.0",
+      "title": "Christian Living",
+      "units": [
+        {
+          "code": "5.1",
+          "title": "Friendship Formation",
+          "cbc_strand_id": "174bfebb-3695-4708-8eb3-5086cb47cfce",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "5.2",
+          "title": "Human Sexuality",
+          "cbc_strand_id": "39e09a79-c98f-42f7-b27e-061b7fa8b886",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "5.3",
+          "title": "Sanctity of Life",
+          "cbc_strand_id": "33cec3db-083d-4a4f-a165-5c63d64fd426",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "5.4",
+          "title": "Alcohol, Drugs and Substance Abuse",
+          "cbc_strand_id": "e7cd0f5c-f7cf-4f6e-a835-dc72ff0b4640",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        },
+        {
+          "code": "5.5",
+          "title": "Social Media",
+          "cbc_strand_id": "d287a5b8-2363-4c93-8d32-7ac8ee9b4e46",
+          "suggested_lessons": 3,
+          "linked_outcomes_at_baseline": 0,
+          "official_printed_page": null,
+          "scope_status": "outcome_alignment_pending"
+        }
+      ]
+    }
+  ],
+  "discrepancies": [
+    "The KICD summary uses 'Rich Young Ruler' while the body also uses 'Rich Young Man'; retain existing source-linked ID and reconcile title per source locator.",
+    "Punctuation and apostrophes in The Church titles vary; never create separate units for typographic variants."
+  ]
+}
