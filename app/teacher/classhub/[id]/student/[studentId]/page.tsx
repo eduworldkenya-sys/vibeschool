@@ -342,7 +342,7 @@ export default function TeacherStudentProgressPage() {
       ? "about"
       : "now",
   );
-  const [legacyView, setLegacyView] = useState(false);
+  const [legacyView, setLegacyView] = useState(() => searchParams.get("legacy") === "1");
   const [panel, setPanel] = useState<"all" | "groups" | "roles" | "resources" | "activities" | "notes" | "recognition" | "support" | null>(null);
   const activeEventNote = panel === "recognition" ? recognitionNote : eventNote;
   const [panelBusy, setPanelBusy] = useState(false);
@@ -1063,7 +1063,7 @@ export default function TeacherStudentProgressPage() {
         data={workspaceData}
         initialTab={selectedWorkspaceTab}
         onTabChange={onWorkspaceTabChange}
-        permissions={{ canAssign: true, canChat: true, canEditProfile: !requestedSubjectId, canManageLearning: !requestedSubjectId }}
+        permissions={{ canAssign: true, canChat: true, canEditProfile: !requestedSubjectId, canManageLearning: !requestedSubjectId, canSeeSchoolRoles: !requestedSubjectId, canSeeSchoolResources: !requestedSubjectId }}
         actions={{
           back: () => router.push(`/teacher/classhub/${classId}`),
           assign: () => router.push(`/teacher/classhub/${classId}/homework?studentId=${encodeURIComponent(studentId)}`),
@@ -1071,7 +1071,7 @@ export default function TeacherStudentProgressPage() {
           openFullProgress: openCanonicalProgress,
           editProfile: () => openLegacy("about"),
           editLearningProfile: () => openLegacy("about"),
-          openSchoolItem: kind => setPanel(kind),
+          openSchoolItem: kind => { if (requestedSubjectId && (kind === "roles" || kind === "resources")) return; setPanel(kind); },
           openWork: id => setSelectedWork(assignedHomework.find(item => item.id === id) ?? null),
           markWork: id => router.push(`/teacher/classhub/${classId}/homework/${id}?studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`),
           openResult: () => router.push(`/teacher/assessment?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`),
