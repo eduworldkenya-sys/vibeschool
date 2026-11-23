@@ -144,7 +144,7 @@ export default function LearnerStudyDesk() {
           </div>
           <Link href={browseHref} className={styles.findLink}><Search size={17} aria-hidden="true"/> Find a lesson</Link>
         </header>
-        <section className={styles.resume} aria-label="Continue reading">
+        <section className={styles.resume} aria-label="Reading">
           {!loading && savedReading.length > 0 ? savedReading.slice(0,1).map(item =>
             <div key={item.publicationId} className={styles.resumeContent}>
               <span className={styles.eyebrow}>Continue reading</span>
