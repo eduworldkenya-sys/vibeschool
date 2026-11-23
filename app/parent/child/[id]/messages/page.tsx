@@ -1,17 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
-const liveFrom = (table: string) => (supabase as any).from(table)
+const liveFrom = (table: string) => supabase.from(table)
 
 type Staff = { id: string; full_name: string; role: string }
 type Thread = { id: string; context_tag: string | null; last_message_at: string | null; last_message_preview: string | null }
-type Message = { id: string; sender_id: string; body: string; created_at: string }
 
 const C = {
   navy: '#0f172a',
@@ -43,33 +39,10 @@ export default function ChildMessagesPage() {
   const [staff, setStaff] = useState<Staff[]>([])
   const [threads, setThreads] = useState<Thread[]>([])
   const [threadStaff, setThreadStaff] = useState<Record<string, Staff>>({})
-  const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
-  const [activeStaff, setActiveStaff] = useState<Staff | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [messageBody, setMessageBody] = useState('')
   const [contextTag, setContextTag] = useState('question')
   const [loading, setLoading] = useState(true)
   const [opening, setOpening] = useState(false)
-  const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const bottomRef = useRef<HTMLDivElement>(null)
-
-  const loadMessages = useCallback(async (threadId: string) => {
-    const { data, error: messageError } = await supabase
-      .from('vc_messages')
-      .select('id, sender_id, body, created_at')
-      .eq('thread_id', threadId)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: true })
-    if (messageError) throw messageError
-    setMessages((data ?? []).filter(row => row.sender_id && row.created_at).map(row => ({
-      id: row.id,
-      sender_id: row.sender_id as string,
-      body: row.body,
-      created_at: row.created_at as string,
-    })))
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
-  }, [])
 
   const loadThreads = useCallback(async (uid: string) => {
     if (!studentId) return
@@ -173,7 +146,7 @@ export default function ChildMessagesPage() {
     try {
       let threadId = existingByStaff.get(member.id) ?? null
       if (!threadId) {
-        const { data, error: rpcError } = await rpc<string>('parent_start_child_thread', {
+        const { data, error: rpcError } = await supabase.rpc('parent_start_child_thread', {
           p_student_id: studentId,
           p_staff_id: member.id,
           p_context_tag: contextTag,
@@ -182,9 +155,9 @@ export default function ChildMessagesPage() {
         threadId = data
         await loadThreads(userId)
       }
-      setActiveStaff(member)
-      setActiveThreadId(threadId)
-      await loadMessages(threadId)
+      // The child-scoped RPC chooses an authorized teacher and learner.
+      // All actual messaging now takes place in the single VibeChat channel.
+      router.push('/vibechat?thread=vc:' + encodeURIComponent(threadId))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not open this conversation.')
     } finally {
@@ -192,70 +165,10 @@ export default function ChildMessagesPage() {
     }
   }
 
-  async function openExisting(thread: Thread) {
-    const member = threadStaff[thread.id]
-    if (!member) return
-    setActiveStaff(member)
-    setActiveThreadId(thread.id)
-    await loadMessages(thread.id)
-    await supabase.from('vc_participants').update({ last_read_at: new Date().toISOString() }).eq('thread_id', thread.id).eq('profile_id', userId)
+  function openExisting(thread: Thread) {
+    if (!threadStaff[thread.id]) return
+    router.push('/vibechat?thread=vc:' + encodeURIComponent(thread.id))
   }
-
-  async function sendMessage() {
-    if (!activeThreadId || !messageBody.trim()) return
-    setSending(true)
-    setError('')
-    const body = messageBody.trim()
-    try {
-      const { error: insertError } = await supabase.from('vc_messages').insert({
-        thread_id: activeThreadId,
-        sender_id: userId,
-        body,
-      })
-      if (insertError) throw insertError
-      await supabase.from('vc_threads').update({
-        last_message_at: new Date().toISOString(),
-        last_message_preview: body.slice(0, 80),
-      }).eq('id', activeThreadId)
-      setMessageBody('')
-      await loadMessages(activeThreadId)
-      await loadThreads(userId)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Message could not be sent.')
-    } finally {
-      setSending(false)
-    }
-  }
-
-  if (loading) return <section style={card}>Loading child messaging…</section>
-
-  if (error && !userId) return <section style={{ ...card, color: '#b91c1c' }}>{error}</section>
-
-  if (activeThreadId && activeStaff) return (
-    <div style={{ minHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <button onClick={() => { setActiveThreadId(null); setActiveStaff(null); setMessages([]) }} style={backButton}>‹</button>
-        <div style={avatar}>{initials(activeStaff.full_name)}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 900, color: C.navy }}>{activeStaff.full_name}</div>
-          <div style={{ fontSize: 11, color: C.muted }}>{studentName} · {activeStaff.role}</div>
-        </div>
-      </div>
-
-      {error && <div style={errorBox}>{error}</div>}
-      <div style={{ ...card, flex: 1, minHeight: 360, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
-        {messages.length === 0 ? <div style={{ margin: 'auto', textAlign: 'center', color: C.muted, fontSize: 13 }}>No messages yet. This conversation is securely linked to {studentName}.</div> : messages.map(message => {
-          const mine = message.sender_id === userId
-          return <div key={message.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}><div style={{ maxWidth: '78%', borderRadius: mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px', padding: '9px 12px', background: mine ? C.emerald : '#f1f5f9', color: mine ? '#fff' : C.navy, fontSize: 13, lineHeight: 1.45 }}><div>{message.body}</div><div style={{ fontSize: 9, opacity: 0.65, marginTop: 4, textAlign: 'right' }}>{timeLabel(message.created_at)}</div></div></div>
-        })}
-        <div ref={bottomRef} />
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <textarea value={messageBody} onChange={event => setMessageBody(event.target.value)} placeholder={`Message ${activeStaff.full_name} about ${studentName}`} rows={2} style={composer} />
-        <button disabled={sending || !messageBody.trim()} onClick={sendMessage} style={{ ...sendButton, opacity: sending || !messageBody.trim() ? 0.5 : 1 }}>{sending ? '…' : 'Send'}</button>
-      </div>
-    </div>
-  )
 
   return (
     <div>
@@ -301,8 +214,5 @@ const card: React.CSSProperties = { background: C.surface, border: `1px solid ${
 const eyebrow: React.CSSProperties = { fontSize: 9, fontWeight: 900, color: C.emerald, textTransform: 'uppercase', letterSpacing: 1 }
 const avatar: React.CSSProperties = { width: 36, height: 36, borderRadius: 12, background: '#ede9fe', color: C.indigo, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 12, flexShrink: 0 }
 const contactButton: React.CSSProperties = { width: '100%', border: `1px solid ${C.border}`, background: '#fff', borderRadius: 12, padding: 10, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }
-const backButton: React.CSSProperties = { width: 36, height: 36, borderRadius: 10, border: `1px solid ${C.border}`, background: '#fff', fontSize: 22, cursor: 'pointer' }
-const composer: React.CSSProperties = { flex: 1, border: `1px solid ${C.border}`, borderRadius: 13, padding: '10px 12px', resize: 'none', fontFamily: 'inherit', fontSize: 13, outline: 'none' }
-const sendButton: React.CSSProperties = { border: 'none', borderRadius: 13, background: C.emerald, color: '#fff', padding: '0 16px', fontFamily: 'inherit', fontWeight: 900, cursor: 'pointer' }
 const secondaryButton: React.CSSProperties = { width: '100%', border: `1px solid ${C.border}`, borderRadius: 12, background: '#fff', padding: 12, color: C.navy, fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer' }
 const errorBox: React.CSSProperties = { border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', borderRadius: 12, padding: 11, marginBottom: 10, fontSize: 12 }

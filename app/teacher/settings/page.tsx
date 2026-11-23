@@ -9,7 +9,7 @@ import { Card, SectionLabel, Btn, C, TeacherWorkspace } from "@/components/teach
 
 type NotifPrefs = { attendance:boolean; flags:boolean; messages:boolean; lessonPlans:boolean; schoolNotices:boolean; news:boolean };
 const DEFAULT_PREFS: NotifPrefs = { attendance:true, flags:true, messages:true, lessonPlans:true, schoolNotices:false, news:false };
-const LABELS: Record<keyof NotifPrefs,string> = { attendance:"Attendance reminders", flags:"Early warning flags", messages:"VibeConnect messages", lessonPlans:"Lesson plan alerts", schoolNotices:"School notices", news:"Education news" };
+const LABELS: Record<keyof NotifPrefs,string> = { attendance:"Attendance reminders", flags:"Early warning flags", messages:"VibeChat messages", lessonPlans:"Lesson plan alerts", schoolNotices:"School notices", news:"Education news" };
 
 function readPrefs(value: unknown): NotifPrefs {
   if (!value || typeof value !== "object" || Array.isArray(value)) return DEFAULT_PREFS;

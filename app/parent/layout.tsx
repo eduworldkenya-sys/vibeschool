@@ -10,7 +10,7 @@ import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core";
 
 const NAV_TABS: ParentNavTab[] = [
   { id: "home",      label: "Home",     icon: "🏠", href: "/parent"          },
-  { id: "connect",   label: "Inbox",    icon: "🔔", href: "/parent/inbox"    },
+  { id: "connect",   label: "VibeChat", icon: "💬", href: "/vibechat"    },
   { id: "vibelearn", label: "VibeLearn",icon: "🎓", href: "/parent/vibe-learn" },
   { id: "learn",     label: "Learn",    icon: "📚", href: "/parent/learn"    },
   { id: "students",  label: "Children", icon: "🎒", href: "/parent/students" },
@@ -91,7 +91,7 @@ function TopBar({ initials }: { initials: string }) {
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
         <TwinRoleSwitcher currentRole="parent" />
-        <div onClick={() => router.push("/parent/messages")} aria-label="Open parent conversations" style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer" }}>💬</div>
+        <div onClick={() => router.push("/vibechat")} aria-label="Open VibeChat conversations" style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer" }}>💬</div>
         <div onClick={() => router.push("/parent/profile")} aria-label="Open parent profile" style={{ width: 34, height: 34, borderRadius: "50%", background: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer" }}>{initials || "…"}</div>
       </div>
     </div>

@@ -261,8 +261,8 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
   intents["term_progress"] = `The term is ${Math.round(snap.termProgressPct)}% complete.`;
 
   intents["unread_messages"] = snap.unreadMessages > 0
-    ? `You have ${snap.unreadMessages} unread message thread${snap.unreadMessages === 1 ? "" : "s"} in VibeConnect.`
-    : "No unread messages in VibeConnect.";
+    ? `You have ${snap.unreadMessages} unread message thread${snap.unreadMessages === 1 ? "" : "s"} in VibeChat.`
+    : "No unread messages in VibeChat.";
 
   if (snap.homeworkDue?.length > 0) {
     const next = snap.homeworkDue[0];
@@ -362,7 +362,7 @@ function scheduleActions(brain: TwinBrainState): TwinAction[] {
   const seen = new Set<string>();
   const actions: TwinAction[] = [];
   const today = nairobiDateStr();
-  for (const slot of snap.todaySlots as any[]) {
+  for (const slot of snap.todaySlots) {
     if (seen.has(slot.id)) continue;
     seen.add(slot.id);
     actions.push({
@@ -663,7 +663,7 @@ export function buildContextString(brain: TwinBrainState): string {
   lines.push(`Twin interactions: ${fingerprint.totalQueries}`);
 
   if (snap?.unreadMessages && snap.unreadMessages > 0)
-    lines.push(`\nUnread VibeConnect messages: ${snap.unreadMessages} thread${snap.unreadMessages === 1 ? "" : "s"} waiting.`);
+    lines.push(`\nUnread VibeChat messages: ${snap.unreadMessages} thread${snap.unreadMessages === 1 ? "" : "s"} waiting.`);
 
   if (snap && snap.homeworkDue?.length > 0) {
     const hwLines = snap.homeworkDue

@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, BookOpenCheck, BrainCircuit, CalendarDays, ChartNoAxesColumn, ChevronRight, ClipboardCheck, Eraser, GraduationCap, Home, LibraryBig, Menu, NotebookPen, PencilLine, Settings, ShieldCheck, UserRound, UsersRound, X, ListTodo } from "lucide-react";
+import { BookOpen, BookOpenCheck, BrainCircuit, CalendarDays, ChartNoAxesColumn, ChevronRight, ClipboardCheck, Eraser, GraduationCap, Home, LibraryBig, Menu, NotebookPen, PencilLine, Settings, ShieldCheck, UserRound, UsersRound, MessageCircle, X, ListTodo } from "lucide-react";
 import styles from "./BottomNav.module.css";
 
 const PRIMARY = [
@@ -18,6 +18,7 @@ const MORE = [
   { label: "My Mistakes", href: "/student/vibelearn/mistakes", Icon: Eraser, group: "Practice & exams" },
   { label: "Revision", href: "/student/vibelearn/revision", Icon: BrainCircuit, group: "Practice & exams" },
   { label: "My Tutors", href: "/student/tutoring", Icon: UsersRound, group: "Planning & tuition" },
+  { label: "VibeChat", href: "/vibechat", Icon: MessageCircle, group: "Planning & tuition" },
   { label: "Practice Sets", href: "/student/vibelearn/practice", Icon: BookOpenCheck, group: "Practice & exams" },
   { label: "Books & Stories", href: "/learn/stories", Icon: LibraryBig, group: "Reading & study" },
   { label: "My Workspace", href: "/student/workspace", Icon: NotebookPen, group: "Reading & study" },
