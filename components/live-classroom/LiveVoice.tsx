@@ -46,6 +46,11 @@ function voiceDiagnosticHint(value:unknown):string {
   if(/\b(timed? out|timeout|deadline)\b/.test(msg))return 'timeout'
   return 'unknown'
 }
+function unknownJoinMessage(stage:VoiceDiagnosticStage,hint:string):string {
+  return stage==='joining' && hint==='unknown'
+    ? 'Daily audio could not connect. Retry; if it keeps failing, try another network.'
+    : 'Daily audio failed ('+stage+' / '+hint+'). Retry joining.'
+}
 function canPublishAudio(value:unknown):boolean{
   if (value===true)return true
   if (Array.isArray(value))return value.includes('audio')
@@ -164,7 +169,9 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
       if(!data.url||!data.token||data.role!==(teacher?'teacher':'learner'))throw Error('Invalid voice authorization.')
       const {default:Daily}=await import('@daily-co/daily-js')
       if (generation!==connectGeneration.current||!alive.current)return
-      call=Daily.createCallObject({videoSource:false})
+      // Explicitly start Daily's call object muted, in addition to the room
+      // and token policy. Do not request mobile mic capture merely to listen.
+      call=Daily.createCallObject({videoSource:false,startVideoOff:true,startAudioOff:true})
       meeting.current=call
       call.on('participant-joined',sync)
       call.on('participant-updated',sync)
@@ -193,7 +200,7 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
         const hint=voiceDiagnosticHint(event?.errorMsg??event?.error?.localizedMsg)
         reportFailure(code,hint)
         const failure=code==='unknown'
-          ? 'Daily audio failed ('+stage+' / '+hint+'). Retry joining.'
+          ? unknownJoinMessage(stage,hint)
           : dailyVoiceError(code)
         void stop().then(()=>{if(alive.current){setError(failure);setPhase('failed')}})
       })
@@ -233,7 +240,7 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
         setPhase('failed')
         // Never surface raw Daily join rejection details to the classroom UI.
         const hint=voiceDiagnosticHint(e instanceof Error?e.message:null)
-        setError(call?'Daily audio join failed ('+stage+' / '+hint+'). Retry joining.'
+        setError(call?unknownJoinMessage(stage,hint)
           :e instanceof Error?e.message:'Audio unavailable.')
       }
     } finally {connecting.current=false}
