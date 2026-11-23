@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, BookOpenCheck, BrainCircuit, CalendarDays, ChartNoAxesColumn, ChevronRight, ClipboardCheck, Eraser, GraduationCap, Home, LibraryBig, Menu, NotebookPen, PencilLine, Settings, ShieldCheck, UserRound, UsersRound, MessageCircle, X, ListTodo } from "lucide-react";
+import { BookOpen, BookOpenCheck, BrainCircuit, CalendarDays, ChartNoAxesColumn, ChevronRight, ClipboardCheck, Eraser, GraduationCap, Home, LibraryBig, Menu, NotebookPen, PencilLine, Settings, ShieldCheck, UserRound, UsersRound, MessageCircle, X, ListTodo, Compass, Gamepad2, PenLine } from "lucide-react";
 import styles from "./BottomNav.module.css";
 
 const PRIMARY = [
@@ -14,6 +14,9 @@ const PRIMARY = [
 ] as const;
 
 const MORE = [
+  { label: "Explore", href: "/student/explore", Icon: Compass, group: "Discover & create" },
+  { label: "Play", href: "/student/funhub", Icon: Gamepad2, group: "Discover & create" },
+  { label: "Create", href: "/student/create", Icon: PenLine, group: "Discover & create" },
   { label: "My Exams", href: "/student/vibelearn/exams", Icon: ClipboardCheck, group: "Practice & exams" },
   { label: "My Mistakes", href: "/student/vibelearn/mistakes", Icon: Eraser, group: "Practice & exams" },
   { label: "Revision", href: "/student/vibelearn/revision", Icon: BrainCircuit, group: "Practice & exams" },
@@ -29,6 +32,7 @@ const MORE = [
 
 // One list owns every destination; groups organise More without creating routes.
 const MORE_GROUPS = [
+  { label: "Discover & create", items: MORE.filter(item => item.group === "Discover & create") },
   { label: "Practice & exams", items: MORE.filter(item => item.group === "Practice & exams") },
   { label: "Reading & study", items: MORE.filter(item => item.group === "Reading & study") },
   { label: "Planning & tuition", items: MORE.filter(item => item.group === "Planning & tuition") },

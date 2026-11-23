@@ -6,7 +6,7 @@ import {
   ChartNoAxesColumn, ChevronRight, ClipboardCheck, Eraser, FlaskConical,
   FolderOpen, House, Languages, LibraryBig, ListTodo, MessageCircle,
   NotebookPen, NotebookTabs, Palette, PencilLine, Ruler, School,
-  Settings, UserRound, UsersRound, Video, Calculator, type LucideIcon,
+  Settings, UserRound, UsersRound, Video, Calculator, Compass, Gamepad2, PenLine, Search, type LucideIcon,
 } from 'lucide-react'
 import { fallbackSubjectGroups, recogniseLearnerGrade } from '@/lib/learn/schoolCatalog'
 import styles from './StudentHomeDesk.module.css'
@@ -69,6 +69,12 @@ export default function StudentHomeDesk({
   const recommendationHref = recommendedAction?.actionUrl ? safeReadingHref(recommendedAction.actionUrl) : null
   const liveEnabled = process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true'
   const groups: Group[] = [
+    { name: 'Discover & create', tools: [
+      { label: 'Explore', href: '/student/explore', Icon: Compass },
+      { label: 'Play', href: '/student/funhub', Icon: Gamepad2 },
+      { label: 'Create', href: '/student/create', Icon: PenLine },
+      { label: 'Find lessons', href: browseHref, Icon: Search },
+    ] },
     { name: 'Learning', tools: [
       { label: 'Learn', href: '/student/study', Icon: BookOpen },
       { label: 'Practice', href: '/student/vibelearn/topic-practice', Icon: PencilLine },

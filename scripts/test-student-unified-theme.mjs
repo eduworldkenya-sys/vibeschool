@@ -33,14 +33,16 @@ test('one learner-wide Student Learn green theme for school and independent lear
 
 test('home retains action-first data and shows responsive green dashboard',()=>{
   const home=read('app/student/page.tsx')
+  const desk=read('components/student/StudentHomeDesk.tsx')
   const css=read('app/student/student-home.css')
-  assert.match(home,/className="student-home-feature-grid"/)
-  assert.match(home,/className="student-home-quick-grid"/)
-  assert.match(home,/className="student-home-pulse"/)
-  assert.match(home,/nextTask\?\.title/)
+  // The canonical home now delegates the visible learner actions to StudentHomeDesk.
+  // Test both parent data plumbing and the owned interactive destinations.
+  assert.match(home,/<StudentHomeDesk/)
+  assert.match(home,/nextTask=\{nextTask\}/)
   assert.match(home,/resolveTaskLaunch\(task\.taskId\)/)
-  assert.match(home,/router\.push\('\/student\/study'\)/)
-  assert.match(home,/router\.push\('\/student\/vibelearn\/exams'\)/)
+  assert.match(desk,/label: 'Learn', href: '\/student\/study'/)
+  assert.match(desk,/label: 'My Exams', href: '\/student\/vibelearn\/exams'/)
+  assert.match(desk,/label: 'Tasks', href: '\/student\/tasks'/)
   assert.match(home,/See all tasks/)
   assert.match(home,/Mark seen/)
   assert.match(home,/Save my goals/)
