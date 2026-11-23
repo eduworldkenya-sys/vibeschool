@@ -9,6 +9,7 @@ import { rankMiniLessons } from '@/lib/minis/recommendation'
 import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInteraction, submitMini,
   addMiniComment, reportMini, recordMiniLearningSignal } from '@/lib/minis/actions'
 import { miniTagLabel, parseMiniHashtags } from '@/lib/minis/tags'
+import { prepareMiniPhoto } from '@/lib/minis/photo'
 import styles from './MiniExplore.module.css'
 
 type Section = 'feed' | 'read' | 'compose' | 'creator' | 'mine' | 'profile'
@@ -56,6 +57,9 @@ export function MiniLiveExplore() {
   const [draftBody, setDraftBody] = useState('')
   const [draftTags, setDraftTags] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
+  const [photoPreview,setPhotoPreview] = useState('')
+  const [photoRotation,setPhotoRotation] = useState(0)
+  const [photoZoom,setPhotoZoom] = useState(1)
   const [quizEnabled, setQuizEnabled] = useState(false)
   const [quizQuestion, setQuizQuestion] = useState('')
   const [quizOptions, setQuizOptions] = useState(['','',''])
@@ -64,6 +68,13 @@ export function MiniLiveExplore() {
   const [answers, setAnswers] = useState<Record<string,number>>({})
   const [profileName,setProfileName] = useState('')
   const [profileUsername,setProfileUsername] = useState('')
+
+  useEffect(() => {
+    if (!photo) { setPhotoPreview(''); return }
+    const url = URL.createObjectURL(photo)
+    setPhotoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photo])
 
   const open = useCallback((post: MiniPost) => {
     setSelectedId(post.id)
@@ -242,9 +253,10 @@ export function MiniLiveExplore() {
     setBusy(true);setError('');setNotice('')
     try {
       parseMiniHashtags(draftTags)
-      await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo,userId:viewer,
+      const editedPhoto = await prepareMiniPhoto(photo,photoRotation,photoZoom)
+      await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo:editedPhoto,userId:viewer,
         challenge:quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null })
-      setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
+      setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
       setNotice('Mini submitted! It will appear in Explore only after moderation.')
       back()
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit Mini.')}
@@ -462,7 +474,20 @@ export function MiniLiveExplore() {
         <label htmlFor="mini-photo" className={styles.label}>Cover photo</label>
         <input type="file" id="mini-photo" required accept="image/jpeg,image/png,image/webp"
           onChange={e=>setPhoto(e.target.files?.[0]??null)}/>
-        {photo && <p className={styles.previewNote}>{photo.name} · {(photo.size/1024/1024).toFixed(2)} MB</p>}
+        {photo && <div className={styles.photoEditor}>
+          <div className={styles.photoCanvas}>
+            {photoPreview && <img src={photoPreview} alt="Edited photo preview"
+              style={{width:'100%',height:'100%',objectFit:'cover',transform:'rotate('+photoRotation+'deg) scale('+photoZoom+')'}}/>}
+          </div>
+          <p className={styles.previewNote}>{photo.name} · {(photo.size/1024/1024).toFixed(2)} MB · 4:3 crop</p>
+          <div className={styles.photoTools}>
+            <button type="button" className={styles.secondary} onClick={()=>setPhotoRotation(value=>(value+90)%360)}>↻ Rotate</button>
+            <label htmlFor="mini-zoom">Zoom</label>
+            <input id="mini-zoom" type="range" min="1" max="2" step="0.1" value={photoZoom}
+              onChange={e=>setPhotoZoom(Number(e.target.value))}/>
+            <button type="button" className={styles.secondary} onClick={()=>{setPhotoRotation(0);setPhotoZoom(1)}}>Reset</button>
+          </div>
+        </div>}
         <p className={styles.formNote}>Photos stay private while the Mini is pending. Submission does not make it public.</p>
         <div style={{margin:'18px 0'}}>
           <label style={{display:'flex',gap:10,alignItems:'center',fontWeight:700,fontSize:14}}>
