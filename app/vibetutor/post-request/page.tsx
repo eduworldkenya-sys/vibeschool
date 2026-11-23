@@ -16,7 +16,7 @@ const REQUEST_AREAS = [...new Set([...AREAS, ...TUITION_AREA_ALLOCATIONS.map(([n
 
 const DRAFT_KEY = 'vibetutor:learner-request:v1'
 
-type RequestDraft = { learner: string; subjects: string[]; level: string; mode: Mode; area: string; days: string[]; budget: string; phone: string; publicPreview?: boolean }
+type RequestDraft = { learner: string; subjects: string[]; level: string; mode: Mode; area: string; days: string[]; budget: string; phone: string; dayparts?: DayPart[]; publicPreview?: boolean }
 
 const toggle = (list: string[], value: string) => list.includes(value) ? list.filter(x => x !== value) : [...list, value]
 // Limit by numbering format as the user types or pastes; never discard leading zeroes.
@@ -56,7 +56,7 @@ export default function PostRequest() {
     if (draft) {
       setLearner(draft.learner); setSubjects(draft.subjects); setLevel(draft.level)
       setMode(draft.mode); setArea(draft.area); setDays(draft.days)
-      setBudget(draft.budget); setPhone(normalizedPhone(draft.phone)); setPublicPreview(draft.publicPreview !== false); setTouched(true)
+      setBudget(draft.budget); setPhone(normalizedPhone(draft.phone)); setDayparts(draft.dayparts || []); setPublicPreview(draft.publicPreview !== false); setTouched(true)
     }
     const query = new URLSearchParams(window.location.search)
     const service = findTuitionService(query.get('service'))
@@ -69,8 +69,8 @@ export default function PostRequest() {
 
   useEffect(() => {
     if (!ready || !touched) return
-    saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone, publicPreview })
-  }, [ready, touched, learner, subjects, level, mode, area, days, budget, phone, publicPreview])
+    saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone, dayparts, publicPreview })
+  }, [ready, touched, learner, subjects, level, mode, area, days, budget, phone, dayparts, publicPreview])
 
   useEffect(() => {
     let active = true
@@ -114,7 +114,7 @@ export default function PostRequest() {
           </li>)}
         </ol>
       </div>}
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone, publicPreview }); window.location.assign('/login?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone, dayparts, publicPreview }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); setTouched(false); setPostedPublic(publicPreview); setPosted(true) } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
+      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone, dayparts, publicPreview }); window.location.assign('/login?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone, dayparts, publicPreview }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); setTouched(false); setPostedPublic(publicPreview); setPosted(true) } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
         <Field label="Level" required><select className={styles.input} value={level} onChange={e => { setTouched(true); setLevel(e.target.value); setSubjects([]) }}><option value="">Choose level</option>{LEVELS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Subjects" required>{level && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
         <Field label="Teaching format"><Segmented<Mode> label="Teaching format" value={mode} onChange={value => { setTouched(true); setMode(value) }} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
