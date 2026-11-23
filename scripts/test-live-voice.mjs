@@ -16,7 +16,7 @@ const teacherRoom={id,title:'Grade 4',mode:'school',teacher:true,status:'active'
 const learnerRoom={...teacherRoom,teacher:false}
 const name=dailyVoiceName(id)
 const roomInfo={name,url:'https://education.daily.co/'+name,privacy:'private',config:{
-  exp,eject_at_room_exp:true,max_participants:80,enforce_unique_user_ids:true,
+  exp,eject_at_room_exp:true,max_participants:2,enforce_unique_user_ids:true,
   enable_knocking:false,enable_screenshare:false,enable_chat:false,
   start_audio_off:true,start_video_off:true,enable_prejoin_ui:false,
 }}
@@ -112,6 +112,7 @@ test('creates only a locked private audio room, rejects mismatched provider room
   assert.equal(create.name,name)
   assert.equal(create.properties.eject_at_room_exp,true)
   assert.equal(create.properties.enforce_unique_user_ids,true)
+  assert.equal(create.properties.max_participants,2,'two account pilot never requests unsupported 80-person capacity')
   assert.equal(create.properties.start_audio_off,true)
   assert.equal(create.properties.start_video_off,true)
   assert.equal(create.properties.enable_recording,undefined,'Daily room must not send unsupported recording mode')
@@ -122,6 +123,7 @@ test('creates only a locked private audio room, rejects mismatched provider room
     {...roomInfo,privacy:'public'},
     {...roomInfo,name:'vs-other'},
     {...roomInfo,config:{...roomInfo.config,enable_recording:'cloud'}},
+    {...roomInfo,config:{...roomInfo.config,max_participants:80}},
     {...roomInfo,config:{...roomInfo.config,max_participants:100}},
     {...roomInfo,config:{...roomInfo.config,eject_at_room_exp:false}},
     {...roomInfo,config:{...roomInfo.config,enable_screenshare:true}},
