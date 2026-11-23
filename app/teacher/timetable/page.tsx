@@ -841,6 +841,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // load() reruns (weekStart is in its deps), pulling the new week's
   // bounded slots — e.g. recovery slots — that the old range never held.
   const [weekStart, setWeekStart] = useState<string>(() => nairobiWeekStart())
+  const browsedWeekRef = useRef(false) // Hold manually navigated weeks across clock ticks.
 
   const isWeekend    = todayDow === 6 || todayDow === 7
   const effectiveDow = todayDow
@@ -932,7 +933,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       setCurMin(currentTimeMin())
       setTodayDow(nairobiDayOfWeek())  // FIX [LOGIC-02] + TBL-009C: keep day current, Nairobi-anchored
       const nextWeekStart = nairobiWeekStart()  // TBL-009D: week rollover triggers reload via load()'s deps
-      setWeekStart(current => current === nextWeekStart ? current : nextWeekStart)
+      if (!browsedWeekRef.current) setWeekStart(current => current === nextWeekStart ? current : nextWeekStart)
     }, 60_000)
     return () => clearInterval(id)
   }, [])
@@ -1253,7 +1254,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     return schoolEntries.sort((a, b) => a.start.localeCompare(b.start))
   }, [daySlots, tuitionDay, scheduleContext])
 
-  const isToday = activeDow === todayDow
+  const isToday = dateForDow(activeDow) === nairobiDateStr()
 
   const nowSlot = useMemo(
     () => isToday
@@ -1796,10 +1797,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       </div>}
       <div className="no-print" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:10}}>
         <div role="group" aria-label="Navigate timetable week" style={{display:'flex',alignItems:'center',gap:6}}>
-          <button type="button" aria-label="Previous week" onClick={()=>setWeekStart(value=>nairobiDateAdd(value,-7))} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>‹</button>
+          <button type="button" aria-label="Previous week" onClick={()=>{browsedWeekRef.current=true;setWeekStart(value=>nairobiDateAdd(value,-7))}} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>‹</button>
           <span style={{fontVariantNumeric:'tabular-nums',fontSize:12,fontWeight:650,padding:'0 5px'}}>{weekStart} — {nairobiDateAdd(weekStart,6)}</span>
-          <button type="button" aria-label="Next week" onClick={()=>setWeekStart(value=>nairobiDateAdd(value,7))} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>›</button>
-          <button type="button" onClick={()=>{setWeekStart(nairobiWeekStart());setActiveDow(nairobiDayOfWeek());chooseView('day')}} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>Today</button>
+          <button type="button" aria-label="Next week" onClick={()=>{browsedWeekRef.current=true;setWeekStart(value=>nairobiDateAdd(value,7))}} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>›</button>
+          <button type="button" onClick={()=>{browsedWeekRef.current=false;setWeekStart(nairobiWeekStart());setActiveDow(nairobiDayOfWeek());chooseView('day')}} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>Today</button>
         </div>
         <span style={{fontSize:11,color:C.textMuted}}>{view==='insights'?'Select an allocation to see lessons':'Select any lesson to open its tools'}</span>
       </div>
