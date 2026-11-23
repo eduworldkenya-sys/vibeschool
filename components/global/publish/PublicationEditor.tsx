@@ -169,6 +169,8 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     { key: 'learn', label: 'Learn visibility', ok: false, detail: 'Verified only after publication', action: 'Open preview' },
   ]
   const checkedCount = documentChecks.filter(check => check.ok).length
+  // Any material change requires a fresh confirmation; a stale checkbox must not authorize a new draft version.
+  useEffect(() => { setMaterialsConfirmed(false) }, [chapters, publication?.title, publication?.cbc_subject, publication?.cbc_grade])
   const draftMaterialsPresent = Boolean(publication?.title?.trim()) && chapters.length > 0
     && chapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim())))
   const imageOrQuestionSummary = `${imageCount} image${imageCount === 1 ? '' : 's'} · ${questionCount} question${questionCount === 1 ? '' : 's'}`
