@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import type { VibePublication } from '@/lib/publishTypes'
@@ -29,6 +29,7 @@ export default function TeacherContentStudioPage() {
   const [publications, setPublications] = useState<VibePublication[]>([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
+  const pendingCreateId = useRef<string | null>(null)
   const [createKind, setCreateKind] = useState<CreateKind>('lesson')
   const [filter, setFilter] = useState<'all' | 'draft' | 'published'>('all')
   const visiblePublications = publications.filter(item => filter === 'all' || (filter === 'published' ? item.status === 'published' : item.status !== 'published'))
@@ -59,13 +60,13 @@ export default function TeacherContentStudioPage() {
       <button onClick={() => router.push('/teacher/studio/governance')} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 10, color: TEXT, fontSize: 11, fontWeight: 800, cursor: 'pointer', padding: '8px 11px' }}>Sources & history</button>
     </div>
     <h1 style={{ margin: '0 0 20px', fontSize: 28 }}>Content Studio</h1>
-    <button type="button" onClick={() => setCreateOpen(true)} style={{ width: '100%', border: 'none', borderRadius: 14, background: ACCENT, color: '#111827', fontSize: 17, fontWeight: 800, padding: 17, cursor: 'pointer', marginBottom: 28 }}>+ Create</button>
+    <button type="button" onClick={() => { pendingCreateId.current = null; setCreateOpen(true) }} style={{ width: '100%', border: 'none', borderRadius: 14, background: ACCENT, color: '#111827', fontSize: 17, fontWeight: 800, padding: 17, cursor: 'pointer', marginBottom: 28 }}>+ Create</button>
     {createOpen && <div role="presentation" onClick={() => setCreateOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,.45)', display: 'grid', placeItems: 'center', padding: 16 }}>
       <div role="dialog" aria-modal="true" aria-labelledby="studio-create-title" onClick={event => event.stopPropagation()} style={{ width: '100%', maxWidth: 420, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 22 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2 id="studio-create-title" style={{ margin: 0, fontSize: 22 }}>Create content</h2><button type="button" aria-label="Close" onClick={() => setCreateOpen(false)} style={{ border: 'none', background: 'transparent', color: TEXT, fontSize: 24, cursor: 'pointer' }}>×</button></div>
         <p style={{ color: MUTED, fontSize: 13 }}>What are you creating?</p>
         <div role="radiogroup" aria-label="Content type" style={{ display: 'grid', gap: 8 }}>{CREATE_OPTIONS.map(option => <label key={option.kind} style={{ display: 'flex', alignItems: 'center', gap: 12, border: `1px solid ${createKind === option.kind ? ACCENT : BORDER}`, borderRadius: 12, padding: 13, cursor: 'pointer' }}><input type="radio" name="studio-content-kind" checked={createKind === option.kind} onChange={() => setCreateKind(option.kind)} /><span><strong style={{ display: 'block' }}>{option.label}</strong><small style={{ color: MUTED }}>{option.description}</small></span></label>)}</div>
-        <button type="button" onClick={() => { const option = CREATE_OPTIONS.find(item => item.kind === createKind)!; router.push(`/teacher/studio/editor?format=${option.format}&fresh=${crypto.randomUUID()}`); setCreateOpen(false) }} style={{ width: '100%', marginTop: 20, border: 'none', borderRadius: 12, padding: 14, background: ACCENT, color: '#111827', fontWeight: 800, cursor: 'pointer' }}>Continue →</button>
+        <button type="button" onClick={() => { const option = CREATE_OPTIONS.find(item => item.kind === createKind)!; const id = pendingCreateId.current ?? crypto.randomUUID(); pendingCreateId.current = id; router.push(`/teacher/studio/editor?format=${option.format}&fresh=${id}`); setCreateOpen(false) }} style={{ width: '100%', marginTop: 20, border: 'none', borderRadius: 12, padding: 14, background: ACCENT, color: '#111827', fontWeight: 800, cursor: 'pointer' }}>Continue →</button>
       </div>
     </div>}
     <section><div style={{ marginBottom: 12 }}><div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', color: MUTED }}>YOUR CONTENT</div></div>
