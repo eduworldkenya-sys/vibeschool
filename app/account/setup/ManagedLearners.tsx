@@ -8,6 +8,7 @@ export default function ManagedLearners() {
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
   const [grade, setGrade] = useState('')
+  const [guardianConfirmed, setGuardianConfirmed] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   async function load() {
@@ -18,16 +19,17 @@ export default function ManagedLearners() {
   useEffect(() => { void load().catch(() => setError('Could not load profiles.')) }, [])
   async function create(event: FormEvent) {
     event.preventDefault()
+    if (!guardianConfirmed) { setError('Confirm that you are authorized to manage this learner.'); return }
     setBusy(true); setError('')
     try {
       const response = await fetch('/api/identity/children', {
         method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, username, grade }),
+        body: JSON.stringify({ name, username, grade, guardianConfirmed }),
       })
       const result = await response.json()
       if (!response.ok) { setError(result.error || 'Unable to add learner'); return }
-      setName(''); setUsername(''); setGrade('')
+      setName(''); setUsername(''); setGrade(''); setGuardianConfirmed(false)
       await load()
     } catch { setError('Could not connect. Try again.') }
     finally { setBusy(false) }
@@ -43,8 +45,9 @@ export default function ManagedLearners() {
       <label>Display name<input required maxLength={80} value={name} onChange={e => setName(e.target.value)} /></label>
       <label>Username<input required minLength={3} maxLength={24} value={username} onChange={e => setUsername(e.target.value)} placeholder="brian254" /></label>
       <label>Learning level (optional)<input maxLength={60} value={grade} onChange={e => setGrade(e.target.value)} placeholder="Grade 4" /></label>
+      <label><input type="checkbox" checked={guardianConfirmed} onChange={e => setGuardianConfirmed(e.target.checked)} /> I am this learner&apos;s parent or authorized guardian.</label>
       {error && <p role="alert">{error}</p>}
-      <button disabled={busy} type="submit">{busy ? 'Saving…' : 'Add learner'}</button>
+      <button disabled={busy || !guardianConfirmed} type="submit">{busy ? 'Saving…' : 'Add learner'}</button>
       <p>Creating a managed learner profile does not grant a child login or school access. Verified setup is required for these connections.</p>
     </form>
   </section>
