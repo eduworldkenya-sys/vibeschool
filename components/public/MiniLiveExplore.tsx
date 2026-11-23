@@ -56,6 +56,12 @@ export function MiniLiveExplore() {
   const [draftBody, setDraftBody] = useState('')
   const [draftTags, setDraftTags] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
+  const [quizEnabled, setQuizEnabled] = useState(false)
+  const [quizQuestion, setQuizQuestion] = useState('')
+  const [quizOptions, setQuizOptions] = useState(['','',''])
+  const [quizCorrect, setQuizCorrect] = useState(0)
+  const [quizExplanation, setQuizExplanation] = useState('')
+  const [answers, setAnswers] = useState<Record<string,number>>({})
   const [profileName,setProfileName] = useState('')
   const [profileUsername,setProfileUsername] = useState('')
 
@@ -236,8 +242,9 @@ export function MiniLiveExplore() {
     setBusy(true);setError('');setNotice('')
     try {
       parseMiniHashtags(draftTags)
-      await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo,userId:viewer })
-      setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null)
+      await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo,userId:viewer,
+        challenge:quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null })
+      setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
       setNotice('Mini submitted! It will appear in Explore only after moderation.')
       back()
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit Mini.')}
@@ -311,6 +318,9 @@ export function MiniLiveExplore() {
       <p>{post.body.length>240?post.body.slice(0,240).trimEnd()+'…':post.body}</p>
       <div className={styles.tagRow}>{post.tags.map(name=><button type="button" key={name}
         className={styles.tagButton} onClick={()=>chooseTag(name)}>{miniTagLabel(name)}</button>)}</div>
+      {post.quiz_question && <button type="button" className={styles.smallButton} onClick={()=>open(post)}>
+        Try quick question ›
+      </button>}
       <div className={styles.feedActions}>
         <button type="button" aria-pressed={likes.has(post.id)} disabled={busy} onClick={()=>void interact('like',post)}>
           {likes.has(post.id)?'♥ Liked':'♡ Like'} {post.like_count}</button>
@@ -379,6 +389,20 @@ export function MiniLiveExplore() {
         </div>
         {current.body.split(/\n\s*\n/).map((paragraph,index)=><p key={index} className={styles.paragraph}>{paragraph}</p>)}
         <div className={styles.tagRow}>{current.tags.map(name=><button key={name} type="button" className={styles.tagButton} onClick={()=>chooseTag(name)}>{miniTagLabel(name)}</button>)}</div>
+        {current.quiz_question && <section className={styles.quiz}>
+          <h2>Try a quick question</h2>
+          <p>{current.quiz_question}</p>
+          {current.quiz_options.map((option,index)=><button type="button" key={index}
+            className={styles.choice+(answers[current.id]===index?' '+styles.selected:'')}
+            aria-pressed={answers[current.id]===index}
+            onClick={()=>setAnswers(previous=>({...previous,[current.id]:index}))}>
+            {String.fromCharCode(65+index)}. {option}
+          </button>)}
+          {answers[current.id]!==undefined && <p role="status" className={styles.feedback}>
+            {answers[current.id]===current.quiz_correct?'Correct! ':'Not quite. '}
+            {current.quiz_explanation}
+          </p>}
+        </section>}
         <div className={styles.actions}>
           <button type="button" aria-pressed={likes.has(current.id)} disabled={busy} onClick={()=>void interact('like')}>
             {likes.has(current.id)?'♥ Liked':'♡ Like'} ({current.like_count})</button>
@@ -440,6 +464,30 @@ export function MiniLiveExplore() {
           onChange={e=>setPhoto(e.target.files?.[0]??null)}/>
         {photo && <p className={styles.previewNote}>{photo.name} · {(photo.size/1024/1024).toFixed(2)} MB</p>}
         <p className={styles.formNote}>Photos stay private while the Mini is pending. Submission does not make it public.</p>
+        <div style={{margin:'18px 0'}}>
+          <label style={{display:'flex',gap:10,alignItems:'center',fontWeight:700,fontSize:14}}>
+            <input type="checkbox" checked={quizEnabled} onChange={e=>setQuizEnabled(e.target.checked)} />
+            Add a quick question (optional)
+          </label>
+          {quizEnabled && <div className={styles.quiz}>
+            <label className={styles.label} htmlFor="mini-quiz">Question</label>
+            <input id="mini-quiz" className={styles.field} required minLength={10} maxLength={240}
+              value={quizQuestion} onChange={e=>setQuizQuestion(e.target.value)} placeholder="What did someone learn?"/>
+            {quizOptions.map((option,index)=><div key={index}>
+              <label className={styles.label} htmlFor={'mini-quiz-option-'+index}>Answer {String.fromCharCode(65+index)}</label>
+              <input className={styles.field} id={'mini-quiz-option-'+index} required maxLength={180}
+                value={option} onChange={e=>setQuizOptions(previous=>previous.map((item,i)=>i===index?e.target.value:item))}/>
+            </div>)}
+            <label className={styles.label} htmlFor="mini-correct">Correct answer</label>
+            <select id="mini-correct" className={styles.field} value={quizCorrect}
+              onChange={e=>setQuizCorrect(Number(e.target.value))}>
+              {quizOptions.map((_,i)=><option value={i} key={i}>{String.fromCharCode(65+i)}</option>)}
+            </select>
+            <label className={styles.label} htmlFor="mini-explanation">Why this answer is correct</label>
+            <textarea className={styles.field} id="mini-explanation" required minLength={10} maxLength={500}
+              value={quizExplanation} onChange={e=>setQuizExplanation(e.target.value)} rows={3}/>
+          </div>}
+        </div>
         <button type="submit" className={styles.primary} disabled={!viewer || busy || !draftTitle.trim() || !draftBody.trim() || !photo}>
           {busy?'Submitting…':'Submit Mini for review'}</button>
       </form>
