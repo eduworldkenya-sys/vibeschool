@@ -5,12 +5,14 @@ import { Check, Copy, Link2, Search, UserPlus, X } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase'
 import styles from './VibeChat.module.css'
+import VibeChatAvatar from './VibeChatAvatar'
 
-type Lookup = { handle: string; display_name: string; account_role: string }
+type Lookup = { handle: string; display_name: string; account_role: string; avatar_url: string | null }
 type Connection = {
   id: string
   name: string
   handle: string
+  avatar_url: string | null
   direction: 'incoming' | 'outgoing'
   status: 'pending' | 'accepted' | 'declined'
   thread_id: string | null
@@ -159,6 +161,7 @@ export default function VibeChatContacts({
           </button>
         </div>
         {found && <div className={styles.contactRow}>
+          <VibeChatAvatar name={found.display_name} avatarUrl={found.avatar_url}/>
           <div style={{flex:1}}><strong>{found.display_name}</strong>
             <div className={styles.subtitle}>{found.handle} · {found.account_role}</div></div>
           <button type="button" className={styles.primary} disabled={busy==='invite'} onClick={()=>void invite()}>
@@ -170,6 +173,7 @@ export default function VibeChatContacts({
         <h3>Connections</h3>
         {connections.filter(c=>c.status!=='declined').length===0 ? <p className={styles.subtitle}>No connections or requests yet.</p> :
           connections.filter(c=>c.status!=='declined').map(c=><article className={styles.contactRow} key={c.id}>
+            <VibeChatAvatar name={c.name} avatarUrl={c.avatar_url}/>
             <span style={{flex:1,minWidth:0}}>
               <strong>{c.name}</strong><span className={styles.subtitle} style={{display:'block'}}>{c.handle} · {c.status==='pending'?(c.direction==='incoming'?'Wants to connect':'Request sent'):'Connected'}</span>
             </span>
