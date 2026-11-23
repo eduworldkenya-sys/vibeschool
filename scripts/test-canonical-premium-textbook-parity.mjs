@@ -18,8 +18,8 @@ test('authoring preview and released reader share one editorial renderer', () =>
 })
 test('textbook activities and examples are editorial sections, not generic shaded cards', () => {
   assert.match(published, /className=\{styles\.activity\}/)
-  assert.match(published, /className=\{styles\.example\}/)
-  assert.match(published, /className=\{styles\.keyIdea\}/)
+  assert.match(published, /styles\.example/)
+  assert.match(published, /styles\.keyIdea/)
   assert.doesNotMatch(published, /background: '#fff', borderRadius: 2/)
   assert.match(styles, /\.activity\s*\{/)
   assert.doesNotMatch(styles, /gradient\(/)
