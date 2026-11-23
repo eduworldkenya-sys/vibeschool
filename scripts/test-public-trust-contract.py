@@ -30,6 +30,19 @@ for rel in shell_pages:
         if required not in content:
             errors.append(f'{rel}: missing {required}')
 
+skip_source = text('components/public/PublicSkipLink.tsx')
+skip_enhancement = text('components/public/PublicSkipFocus.tsx')
+for fragment in ['href="#main-content"', 'data-vs-public-skip', 'PublicSkipFocus']:
+    if fragment not in skip_source:
+        errors.append(f'native public skip link missing: {fragment}')
+if "'use client'" in skip_source:
+    errors.append('skip anchor must remain server rendered to survive early keyboard activation')
+for fragment in ["addEventListener('click'", "main.focus({ preventScroll: true })"]:
+    if fragment not in skip_enhancement:
+        errors.append(f'public skip focus enhancement missing: {fragment}')
+if 'preventDefault' in skip_enhancement:
+    errors.append('skip link enhancement must never suppress native fragment navigation')
+
 header = text('components/public/PublicHeader.tsx')
 footer = text('components/public/PublicFooter.tsx')
 shell_css = text('components/public/PublicShell.module.css')
