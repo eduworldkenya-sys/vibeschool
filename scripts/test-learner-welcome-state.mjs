@@ -48,7 +48,7 @@ test('independent signup persists a verified name and lookup falls back to the p
 test('home only promotes twin continue suggestions when prior learning evidence exists', () => {
   const home = read('app/student/page.tsx')
   assert.match(home, /const suggestedAction = hasLearningEvidence \? data\?\.twin\.decision\.now : null/)
-  assert.match(home, /recommendedAction=\{suggestedAction\}/)
+  assert.match(home, /recommendedAction=\{suggestedAction \?\? null\}/)
   assert.match(home, /isNewLearner=\{!hasLearningEvidence && !continueReading\}/)
   const desk = read('components/student/StudentHomeDesk.tsx')
   assert.match(desk, /recommendationHref = recommendedAction\?\.actionUrl/)
