@@ -151,7 +151,7 @@ export function MiniLiveExplore() {
   }, [posts,tab,subject,query,interests,follows,dismissed])
 
   async function interact(kind: 'like' | 'save') {
-    if (!current || !ensureSignIn(viewer) || busy) return
+    if (!current || !ensureSignIn(viewer) || !viewer || busy) return
     const oldSet = kind === 'like' ? likes : saves
     const setter = kind === 'like' ? setLikes : setSaves
     const adding = !oldSet.has(current.id)
@@ -173,7 +173,7 @@ export function MiniLiveExplore() {
   }
 
   async function follow() {
-    if (!current || !ensureSignIn(viewer) || busy) return
+    if (!current || !ensureSignIn(viewer) || !viewer || busy) return
     const adding = !follows.has(current.creator_id)
     setBusy(true);setError('')
     try {
@@ -185,7 +185,7 @@ export function MiniLiveExplore() {
 
   async function sendComment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!current || !ensureSignIn(viewer) || busy) return
+    if (!current || !ensureSignIn(viewer) || !viewer || busy) return
     setBusy(true);setError('')
     try {
       await addMiniComment(current.id,viewer,commentText)
@@ -196,7 +196,7 @@ export function MiniLiveExplore() {
   }
 
   async function sendReport() {
-    if (!current || !ensureSignIn(viewer) || busy) return
+    if (!current || !ensureSignIn(viewer) || !viewer || busy) return
     setBusy(true);setError('')
     try {
       await reportMini(current.id,viewer,reportReason)
@@ -206,7 +206,7 @@ export function MiniLiveExplore() {
   }
 
   async function learning(signal: 'understood' | 'not_interested') {
-    if (!current || !ensureSignIn(viewer) || busy || !adult) return
+    if (!current || !ensureSignIn(viewer) || !viewer || busy || !adult) return
     setBusy(true);setError('')
     try {
       await recordMiniLearningSignal(current,viewer,signal)
@@ -220,7 +220,7 @@ export function MiniLiveExplore() {
 
   async function publish(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!ensureSignIn(viewer) || busy) return
+    if (!ensureSignIn(viewer) || !viewer || busy) return
     if (!photo) {setError('Add a cover photo to publish a Mini Lesson.');return}
     setBusy(true);setError('');setNotice('')
     try {
