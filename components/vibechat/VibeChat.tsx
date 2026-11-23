@@ -262,7 +262,11 @@ export default function VibeChat() {
       {signedIn===false ? <section className={styles.panel}>
         <h2>Sign in to VibeChat</h2>
         <p>Your school and tutoring conversations are private to your account.</p>
-        <Link className={styles.primary} href={'/login?redirect='+encodeURIComponent('/vibechat')}>Sign in</Link>
+        <div className={styles.actionRow}>
+          <Link className={styles.primary} href={'/login/teacher?redirect='+encodeURIComponent('/vibechat')}>Teacher</Link>
+          <Link className={styles.back} href={'/login/parent?redirect='+encodeURIComponent('/vibechat')}>Parent</Link>
+          <Link className={styles.back} href={'/login/student?redirect='+encodeURIComponent('/vibechat')}>Learner</Link>
+        </div>
       </section> : null}
       {signedIn===null && <p role="status">Checking your account…</p>}
       {error && <div role="alert" className={styles.error}>{error} <button type="button" onClick={()=>void load()}><RefreshCw size={14} aria-hidden/> Retry</button></div>}
