@@ -8,11 +8,7 @@ as $$
     join public.global_public_profiles gp on gp.profile_id=p.id
     where p.id=p_user and p.account_status::text='active'
       and not p.is_anonymized and gp.is_public
-      and (
-        p.date_of_birth <= current_date - interval '18 years'
-        or (p.date_of_birth is null
-          and exists(select 1 from public.teacher_profiles tp where tp.profile_id=p.id))
-      )
+      and p.date_of_birth <= current_date - interval '18 years'
   );
 $$;
 revoke all on function public.mini_creator_can_submit(uuid) from public;
