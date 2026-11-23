@@ -52,6 +52,7 @@ export default function ClassicTimetable({
   onAdd?: (placement: Placement) => void;
 }) {
   const current = slots.filter(slot => active(slot,dateForDow(slot.dayOfWeek)));
+  const [focusedDay, setFocusedDay] = React.useState(1);
   // Only actual configured school periods create calendar rows.
   // Irregular/legacy lessons remain below the grid as reviewable records.
   const teachingDays = DAYS.filter(d => d.d<=5 ||
@@ -63,6 +64,11 @@ export default function ClassicTimetable({
   }
   const rows = [...rowKeys.values()].sort((a,b)=>a.start.localeCompare(b.start)||a.end.localeCompare(b.end));
   const irregular = current.filter(slot => !matchingBlock(blocks,slot.dayOfWeek,slot));
+  const focusedEntries = [
+    ...current.filter(slot=>slot.dayOfWeek===focusedDay).map(slot=>({start:slot.startTime,slot,activity:null as SchoolDayBlock|null})),
+    ...blocks.filter(block=>block.kind!=="lesson" && (block.scheduleDay===0 || block.scheduleDay===focusedDay))
+      .map(activity=>({start:activity.startTime,slot:null as ClassicSlot|null,activity})),
+  ].sort((a,b)=>a.start.localeCompare(b.start));
   const card = (slot:ClassicSlot) => {
     const tone=subjectTone(slot.subject);
     return <button type="button" key={slot.id} onClick={()=>onSelect(slot)}
@@ -76,13 +82,25 @@ export default function ClassicTimetable({
   return <section className="vs-v3-week" aria-label="Weekly timetable">
     <style>{css}</style>
     <div className="vs-v3-section-head">
-      <strong>WEEKLY SCHEDULE</strong><span>{current.length} lessons · {irregular.length} needing period review</span>
+      <strong>WEEK</strong><span>{current.length} lessons{irregular.length>0?" · "+irregular.length+" unverified":""}</span>
     </div>
-    {rows.length===0 ? <div className="vs-v3-empty" role="status">
-      <strong>School day not configured</strong>
-      <p>No confirmed teaching periods are available for this school. Existing lessons remain visible below; configure the real school day to build the calendar.</p>
-      <a href="/teacher/timetable/setup">Open school day setup</a>
-    </div> : <div className="vs-v3-scroll" role="region" aria-label="Weekly school period grid" tabIndex={0}>
+    {rows.length===0 ? <>
+      <div className="vs-week-notice" role="status">
+        <div><strong>School periods not configured</strong><span>Saved lessons are visible below. Their period placement is not confirmed.</span></div>
+        <a href="/teacher/timetable/setup">Set up</a>
+      </div>
+      <div className="vs-week-record-board" aria-label="Saved lessons by day">
+        {teachingDays.map(day => {
+          const saved = current.filter(slot => slot.dayOfWeek === day.d).sort((a,b)=>a.startTime.localeCompare(b.startTime));
+          return <div key={day.d} className="vs-week-record-column">
+            <div className="vs-week-record-column-head"><strong>{day.l} {dateForDow(day.d).slice(8)}</strong><span>{saved.length}</span></div>
+            <div className="vs-week-record-column-list">{saved.length ? saved.map(slot=><div key={slot.id}>
+              {card(slot)}
+            </div>) : <span className="vs-week-none">No lessons</span>}</div>
+          </div>;
+        })}
+      </div>
+    </> : <div className="vs-v3-scroll" role="region" aria-label="Weekly school period grid" tabIndex={0}>
       <table>
         <thead><tr><th scope="col" className="vs-v3-time">TIME</th>
           {teachingDays.map(d=><th scope="col" key={d.d}><strong>{d.l}</strong><small>{dateForDow(d.d).slice(8)}</small></th>)}
@@ -109,14 +127,40 @@ export default function ClassicTimetable({
         </tr>)}</tbody>
       </table>
     </div>}
-    {irregular.length>0 && <details className="vs-v3-review">
-      <summary>{irregular.length} existing lesson{irregular.length===1?"":"s"} outside confirmed periods · Review</summary>
-      <p>These records are preserved. They do not create artificial time rows or authorize new school periods.</p>
+    <div className="vs-week-mobile" aria-label="Week day selector and lesson list">
+      <div role="group" aria-label="Choose day" className="vs-week-mobile-days">
+        {teachingDays.map(day=><button type="button" key={day.d} aria-pressed={focusedDay===day.d}
+          className={focusedDay===day.d?"active":""} onClick={()=>setFocusedDay(day.d)}>
+          <span>{day.l}</span><strong>{dateForDow(day.d).slice(8)}</strong>
+          <small>{current.filter(s=>s.dayOfWeek===day.d).length}</small>
+        </button>)}
+      </div>
+      <div className="vs-week-focus-header"><strong>{teachingDays.find(d=>d.d===focusedDay)?.l} {dateForDow(focusedDay).slice(8)}</strong>
+        <span>{current.filter(s=>s.dayOfWeek===focusedDay).length} lessons</span></div>
+      {focusedEntries.map((entry,index)=><div key={(entry.slot?.id ?? entry.activity?.id ?? String(index))} className="vs-week-focus-row">
+        <span className="vs-week-focus-time">{hhmm(entry.start)}
+          <small>{hhmm(entry.slot?.endTime ?? entry.activity?.endTime ?? "")}</small></span>
+        {entry.slot ? <div>{card(entry.slot)}{rows.length>0 && !matchingBlock(blocks,focusedDay,entry.slot) &&
+          <span className="vs-week-unverified">Unverified period</span>}</div>
+          : entry.activity ? <div className="vs-week-activity"
+            style={{background:periodAppearance(entry.activity.kind).background,
+              borderLeftColor:periodAppearance(entry.activity.kind).border,
+              color:periodAppearance(entry.activity.kind).text}}>
+              {entry.activity.label}
+            </div> : null}
+      </div>)}
+      {focusedEntries.length===0 &&
+        <div className="vs-week-none" style={{padding:"20px 12px"}}>No lessons for this day.</div>}
+    </div>
+    {rows.length>0 && irregular.length>0 && <section className="vs-v3-review" aria-label="Existing lessons outside confirmed periods">
+      <div className="vs-week-focus-header"><strong>{irregular.length} lessons need period review</strong>
+        <a href="/teacher/timetable/setup">Review periods</a></div>
+      <p>Preserved records. They do not create teaching periods.</p>
       <div className="vs-v3-irregular">{irregular.map(slot=><div key={slot.id} className="vs-v3-irregular-row">
         <span>{DAYS.find(d=>d.d===slot.dayOfWeek)?.l} · {hhmm(slot.startTime)}–{hhmm(slot.endTime)}</span>
         {card(slot)}
       </div>)}</div>
-    </details>}
+    </section>}
     {rows.length>0 && current.length===0 && <div className="vs-v3-empty">No lessons scheduled for this week.</div>}
   </section>;
 }
@@ -143,8 +187,25 @@ const css=`
 .vs-v3-continued{display:block;text-align:center;font-size:10px;opacity:.6;padding:5px;line-height:1.3}
 .vs-v3-empty{padding:22px 16px;line-height:1.5;font-size:12px}.vs-v3-empty p{margin:6px 0 10px;color:var(--text-muted,#667085)}
 .vs-v3-review{padding:12px;border-top:1px solid var(--border-color,#e3e6e9);font-size:12px}
-.vs-v3-review summary{cursor:pointer;font-weight:650}.vs-v3-review p{color:var(--text-muted,#667085)}
+.vs-v3-review p{color:var(--text-muted,#667085)}.vs-week-focus-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 0;font-size:12px}.vs-week-focus-header a{color:#07684b;text-decoration:none;font-weight:700}
 .vs-v3-irregular{display:grid;gap:8px}.vs-v3-irregular-row{display:grid;grid-template-columns:minmax(100px,160px) 1fr;align-items:center;gap:10px}.vs-v3-irregular-row>span{font-size:11px;color:var(--text-muted,#667085)}
-@media(max-width:650px){.vs-v3-week table{min-width:680px}.vs-v3-week th.vs-v3-time{width:68px}.vs-v3-section-head{align-items:start;flex-direction:column;gap:4px}}
+.vs-week-notice{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:11px 13px;border-bottom:1px solid var(--border-color,#e3e6e9);background:var(--surface-raised,#f8f9fa);font-size:12px}
+.vs-week-notice>div{display:grid;gap:2px}.vs-week-notice span{font-size:11px;color:var(--text-muted,#667085)}.vs-week-notice a,.vs-v3-section-head a{color:#07684b;text-decoration:none;font-weight:700}
+.vs-week-record-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid var(--border-color,#e3e6e9)}
+.vs-week-record-column{min-width:0;border-right:1px solid var(--border-color,#e3e6e9)}.vs-week-record-column:last-child{border-right:0}
+.vs-week-record-column-head{display:flex;justify-content:space-between;gap:4px;padding:11px 7px;border-bottom:1px solid var(--border-color,#e3e6e9);background:var(--surface-raised,#f8f9fa);font-size:12px}
+.vs-week-record-column-list{padding:6px;display:grid;align-content:start;gap:7px;min-height:130px}
+.vs-week-unverified{display:block;font-size:10px;color:var(--text-muted,#667085);padding:4px 1px}
+.vs-week-none{font-size:12px;color:var(--text-muted,#667085)}
+.vs-week-mobile{display:none}.vs-week-mobile-days{display:flex;overflow-x:auto;scrollbar-width:none;gap:5px;padding:12px}
+.vs-week-mobile-days button{min-width:48px;flex:1;border:1px solid var(--border-color,#e3e6e9);border-radius:7px;background:var(--surface,#fff);color:var(--text-primary,#17202a);padding:7px 4px;display:grid;justify-items:center;gap:3px;font:inherit;cursor:pointer}
+.vs-week-mobile-days button.active{background:#07684b;color:white;border-color:#07684b}
+.vs-week-mobile-days span{font-size:11px}.vs-week-mobile-days strong{font-size:14px}.vs-week-mobile-days small{font-size:10px;opacity:.75}
+.vs-week-mobile>.vs-week-focus-header{padding:9px 12px;background:var(--surface-raised,#f8f9fa)}
+.vs-week-focus-row{display:grid;grid-template-columns:56px minmax(0,1fr);gap:8px;margin:8px 12px;align-items:start}
+.vs-week-focus-time{font-size:11px;padding-top:11px;font-weight:700;font-variant-numeric:tabular-nums}.vs-week-focus-time small{display:block;font-weight:400;color:var(--text-muted,#667085);padding-top:3px}
+.vs-week-focus-row .vs-v3-lesson strong{font-size:13px}.vs-week-focus-row .vs-v3-lesson span{font-size:11px}.vs-week-focus-row .vs-v3-lesson small{display:none}
+.vs-week-activity{padding:13px;border-left:3px solid;border-radius:5px;font-size:12px}
+@media(max-width:650px){.vs-v3-scroll,.vs-week-record-board,.vs-v3-review{display:none}.vs-week-mobile{display:block}.vs-v3-section-head{align-items:center;flex-direction:row;gap:6px}.vs-week-notice{align-items:start}}
 @media print{.vs-v3-scroll{overflow:visible}.vs-v3-week table{min-width:0}.vs-v3-lesson{print-color-adjust:exact}.vs-v3-add{display:none}.vs-v3-time{position:static!important}}
 `;

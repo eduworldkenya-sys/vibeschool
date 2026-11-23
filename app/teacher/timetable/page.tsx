@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import ClassicTimetable, { type SchoolDayBlock } from '@/components/teacher/ClassicTimetable'
-import SchoolDaySampleBuilder from '@/components/teacher/SchoolDaySampleBuilder'
 import { personalSchoolDayKey, parsePersonalSchoolDay, type PersonalSchoolDayPlan } from '@/lib/timetable/schoolDaySamples'
 import { isUpperPrimary, type SchoolPeriod } from '@/lib/timetable/periods'
 import { periodAppearance } from '@/lib/timetable/periodAppearance'
@@ -897,7 +896,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // occurrence/class/subject identity so it survives sheet navigation.
   const [recoveryCtx,     setRecoveryCtx]      = useState<RecoverySheetContext | null>(null)
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
-  const [showSampleStarter, setShowSampleStarter] = useState(false)
   const [personalSchoolDay, setPersonalSchoolDay] = useState<PersonalSchoolDayPlan | null>(null)
   useEffect(() => {
     if (!teacherId) { setPersonalSchoolDay(null); return }
@@ -907,16 +905,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       ))
     } catch { setPersonalSchoolDay(null) }
   }, [teacherId, activeSchoolId])
-  useEffect(() => {
-    if (!teacherId) return
-    try {
-      setShowSampleStarter(!window.localStorage.getItem('vs.timetable.sample-picked.v1.' + teacherId))
-    } catch { setShowSampleStarter(true) }
-  }, [teacherId])
   const [weeklyLoadRows,  setWeeklyLoadRows]   = useState<WeeklyLoadRow[]>([])
   const [weeklyLoadError, setWeeklyLoadError]  = useState<string | null>(null)
   const [weeklyLoadRetry, setWeeklyLoadRetry]  = useState(0)
-  const [showLoadCheck,   setShowLoadCheck]    = useState(false)
 
   // FIX [FATAL-02]: isMounted ref — prevents setState on unmounted component
   const isMounted = useRef(true)
@@ -1425,8 +1416,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         .vs-v3-filterresult{font-size:11px;padding:9px 0;color:var(--text-muted,#667085)}.vs-v3-filterresult button{border:0;background:none;text-decoration:underline;cursor:pointer;color:inherit}
         .vs-v3-daynavigation{padding-top:12px;justify-content:space-between}.vs-v3-daynavigation strong{font-size:12px}
         .vs-v3-diagnostics{margin-top:12px;border:1px solid var(--border-color,#e3e6e9);border-radius:8px;background:var(--surface,#fff);font-size:12px}
-        .vs-v3-diagnostics>summary{padding:12px;cursor:pointer;font-weight:600}.vs-v3-diagnostics-body{padding:12px;border-top:1px solid var(--border-color,#e3e6e9)}
-        @media(max-width:640px){.vs-v3-workspace{padding:10px}.vs-v3-tabline{margin:0 -10px -10px;padding:8px 10px}.vs-v3-weekline{gap:6px}.vs-v3-titleline{gap:10px}.vs-v3-tabs button{padding:8px 10px}}
+        .vs-v3-diagnostics-title{margin:0;padding:12px;font-size:14px;font-weight:700}.vs-v3-diagnostics-body{padding:12px;border-top:1px solid var(--border-color,#e3e6e9)}
+        @media(max-width:640px){.vs-v3-workspace{padding:10px}.vs-v3-tabline{margin:0 -10px -10px;padding:8px 10px;flex-wrap:nowrap;gap:4px}.vs-v3-tabs{gap:1px}.vs-v3-tabs-right{gap:4px}.vs-v3-tabs-right .vs-v3-button{padding:8px 9px}.vs-v3-print-button span{display:none}.vs-v3-weekline{gap:6px}.vs-v3-titleline{gap:10px}.vs-v3-tabs button{padding:8px 9px}}
         .vs-tool-item {display:block;width:100%;text-align:left;padding:10px 9px;border:0;background:transparent;color:var(--text-primary,#171c25);font:inherit;font-size:12px;border-radius:5px;cursor:pointer;}
         .vs-tool-item:hover,.vs-tool-item:focus-visible {background:var(--surface-raised,#f8f9fb);}
         .vs-timetable-metrics {display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;}
@@ -1502,14 +1493,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           </div>
           <div className="vs-v3-tabs-right">
             <button type="button" aria-expanded={showTimetableFilters} aria-controls="timetable-filter-options" className="vs-v3-button" onClick={()=>setShowTimetableFilters(v=>!v)}>☷ Filters{hasDisplayFilters?' •':''}</button>
-            <details className="vs-v3-tools"><summary className="vs-v3-button" aria-label="More timetable tools">•••</summary>
-              <div className="vs-v3-popover">
-                <button type="button" onClick={()=>router.push('/teacher/timetable/setup')}>Templates & school day</button>
-                <button type="button" onClick={()=>router.push('/teacher/lessonplan/prepare')}>Prepare lesson</button>
-                <button type="button" onClick={()=>window.print()}>Print timetable</button>
-                <button type="button" onClick={()=>{setShowTimetableFilters(true);chooseView('insights')}}>Allocation insights</button>
-              </div>
-            </details>
+            {view==='day' && <button type="button" className="vs-v3-button" onClick={()=>router.push('/teacher/lessonplan/prepare')}>Prepare</button>}
+            {view==='week' && <button type="button" className="vs-v3-button vs-v3-print-button" aria-label="Print timetable" onClick={()=>window.print()}>⎙ <span>Print</span></button>}
           </div>
         </div>
         {showTimetableFilters && <div id="timetable-filter-options" className="vs-v3-filters">
@@ -1575,7 +1560,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(displaySlots.find(slot => slot.id === s.id) ?? null) }}
         onAdd={canAddSlot && !blocksError && calendarSchoolId === activeSchoolId ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
       />}
-      {view === 'week' && scheduleContext !== 'school' && (
+      {view === 'week' && scheduleContext !== 'school' && (tuitionWeek.length > 0 || scheduleContext === 'tuition') && (
         <Card><SectionLabel>Tuition this week</SectionLabel>
           {tuitionWeek.length === 0 ? <p style={{ fontSize: 13, color: C.textMuted }}>No private tuition lessons this week.</p> : (
             <div style={{ display: 'grid', gap: 8 }}>{tuitionWeek.map(lesson => <div key={lesson.id}>
@@ -1634,8 +1619,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </Card>}
 
-      <details className="vs-v3-diagnostics no-print">
-        <summary>Scheduling checks & historical records {loadMismatches.length+periodIssues.length>0?'· '+(loadMismatches.length+periodIssues.length)+' items':''}</summary>
+      {view === 'insights' && <section className="vs-v3-diagnostics no-print" aria-label="Scheduling review">
+          <h2 className="vs-v3-diagnostics-title">Scheduling review · {loadMismatches.length+periodIssues.length} items</h2>
         <div className="vs-v3-diagnostics-body">
                 {weeklyLoadError && (
         <div role="alert" className="no-print" style={{
@@ -1662,20 +1647,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             background: C.surface, overflow: 'hidden',
           }}
         >
-          <button
-            onClick={() => setShowLoadCheck(v => !v)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', textAlign: 'left',
-            }}
-          >
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>
-              Weekly allocation · {loadMismatches.filter(m => m.status !== 'NO_TARGET').length} outside target · {loadMismatches.filter(m => m.status === 'NO_TARGET').length} without a target
-            </span>
-            <span style={{ fontSize: 12, color: C.textMuted }}>{showLoadCheck ? 'Hide' : 'Show'}</span>
-          </button>
-          {showLoadCheck && (
+          <h3 style={{fontSize:13,fontWeight:700,padding:"12px 14px",margin:0}}>
+            Weekly allocation · {loadMismatches.filter(m => m.status !== 'NO_TARGET').length} outside target · {loadMismatches.filter(m => m.status === 'NO_TARGET').length} without target
+          </h3>
+          {(
             <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {loadMismatches.map(m => {
                 const label =
@@ -1704,13 +1679,13 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
       {periodIssues.length > 0 && (
-        <details open className="no-print" style={{
+        <section className="no-print" style={{
           marginBottom: 14, border: '1px solid #f59e0b',
           borderRadius: 12, padding: '12px 14px',
         }}>
-          <summary style={{ fontWeight: 700, cursor: 'pointer' }}>
+          <h3 style={{fontWeight:700,fontSize:13,margin:0}}>
             {periodIssues.length} upper-primary lesson placements need review
-          </summary>
+          </h3>
           <p style={{ margin: '8px 0', fontSize: 12 }}>
             These slots are visible for historical continuity, but they have no
             verified 35-minute weekday school period. Weekly allocation totals
@@ -1725,45 +1700,11 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
                 ? ' · duration is not 35 minutes' : ' · no confirmed school-period match'}
             </li>
           ))}</ul>
-        </details>
+        </section>
       )}
 
 
-                {/* Only an unselected teacher sees the starter. Full editing and retrieval
-          remain in Timetable setup, including for teachers with no school. */}
-      {!loading && teacherId && showSampleStarter && (
-        <div className="no-print" style={{ marginBottom: 14 }}>
-          {!activeSchoolId && (
-            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 10px' }}>
-              No school timetable connected. Choose a sample to edit and save a personal
-              template in Setup. Only a school administrator can publish school periods.
-            </p>
-          )}
-          <SchoolDaySampleBuilder
-            key={teacherId + ':' + (activeSchoolId ?? 'independent')}
-            mode="starter"
-            userId={teacherId}
-            schoolId={activeSchoolId ?? 'independent'}
-            schoolName={schools.find(s => s.id === activeSchoolId)?.name ?? 'Independent planning'}
-            canManage={false}
-            periodCount={0}
-            onReload={load}
-            onSampleChosen={sampleId => {
-              setShowSampleStarter(false)
-              router.push('/teacher/timetable/setup?sample=' + encodeURIComponent(sampleId))
-            }}
-          />
-          {activeSchoolId && (
-            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 8 }}>
-              Retrieve or change samples from{' '}
-              <a href="/teacher/timetable/setup">Timetable setup</a>. School periods require administrator confirmation.
-            </p>
-          )}
-        </div>
-      )}
-
-
-                {personalSchoolDay && (
+{personalSchoolDay && (
         <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
             <div>
@@ -1793,7 +1734,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
 
-          <details><summary>More timetable actions</summary>      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}} aria-label="Additional timetable actions">
+          <section aria-label="Timetable revision actions"><h3 style={{fontSize:13,margin:"10px 0"}}>Timetable revisions</h3>      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}} aria-label="Additional timetable actions">
         {/* Preserve existing revision, preparation and setup actions below. */}
         <Btn
           variant="ghost"
@@ -1838,10 +1779,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           </Btn>
         )}
       </div>
-</details>
-        </div>
-      </details>
-      {/* Slot detail drawer */}
+</section>
+         </div>
+       </section>}
+       {/* Slot detail drawer */}
       <SlotDrawer
         slot={selected}
         curMin={curMin}
