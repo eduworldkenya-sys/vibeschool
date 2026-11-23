@@ -7,6 +7,7 @@ import test from 'node:test'
 const read = file => readFileSync(file, 'utf8')
 const login = read('app/login/[role]/page.tsx')
 const join = read('app/join/JoinForm.tsx')
+const joinPage = read('app/join/page.tsx')
 const tutor = read('app/vibetutor/post-request/page.tsx')
 const callback = read('app/auth/callback/route.ts')
 
@@ -16,7 +17,8 @@ test('learner Google login never requests first-time signup', () => {
 
 test('signup link carries safe origin intent to join', () => {
   assert.match(login, /next=\$\{encodeURIComponent\(requestedRedirect\)\}/)
-  assert.match(join, /safeInternalPath\(searchParams\.get\('next'\)\)/)
+  assert.match(joinPage, /safeInternalPath\(searchParams\?\.next\)/)
+  assert.match(join, /safeInternalPath\(initialNext\)/)
 })
 
 test('email signup and OAuth share the same validated callback path', () => {
