@@ -69,7 +69,14 @@ export async function GET(req: NextRequest) {
         .order('created_at',{ascending:false}).limit(100),
     ])
     if (postError || commentError || reportError) return response({ error: 'Moderation queue unavailable' }, 503)
-    return response({ minis: minis ?? [], comments: comments ?? [], reports: reports ?? [] })
+    // Only a verified reviewer receives short-lived signed private cover links.
+    const entries = await Promise.all((minis ?? []).map(async mini => {
+      if (!mini.cover_path) return { ...mini, cover_preview_url: null }
+      const { data, error: coverError } = await actor.db.storage.from('mini-covers')
+        .createSignedUrl(mini.cover_path, 300)
+      return { ...mini, cover_preview_url: coverError ? null : data?.signedUrl ?? null }
+    }))
+    return response({ minis: entries, comments: comments ?? [], reports: reports ?? [] })
   } catch { return response({ error: 'Moderation queue unavailable' }, 503) }
 }
 
