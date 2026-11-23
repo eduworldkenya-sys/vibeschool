@@ -17,7 +17,7 @@ const voiceStages=new Set(['joining','signaling','media','connected','unknown'])
 const voiceCodes=new Set([
   'ejected','nbf-room','nbf-token','exp-room','exp-token','no-room',
   'meeting-full','end-of-life','not-allowed','connection-error',
-  'join-exception','unexpected-leave','unknown'
+  'join-exception','unexpected-leave','device-error','unknown'
 ])
 const voiceHints=new Set(['token','access','capacity','device','room','transport','timeout','unknown'])
 // Failure telemetry is deliberately closed vocabulary: no room ID, user ID,
