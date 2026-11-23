@@ -35,11 +35,12 @@ interface Props {
   authorId:       string
   format:         PublicationFormat
   publicationId?: string
+  freshDraftId?: string
   simpleMode?: boolean
   publishingEnabled?: boolean
 }
 
-export function PublicationEditor({ authorId, format, publicationId, simpleMode = false, publishingEnabled = false }: Props) {
+export function PublicationEditor({ authorId, format, publicationId, freshDraftId, simpleMode = false, publishingEnabled = false }: Props) {
   const router = useRouter()
   const meta   = FORMAT_META[format]
 
@@ -50,7 +51,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
     updateChapterTitle, updateChapterStatus, addChapter, deleteChapter,
     addBlock, updateBlock, deleteBlock, moveBlock,
     publishPublication, forceSave,
-  } = usePublicationDraft(authorId, format, publicationId)
+  } = usePublicationDraft(authorId, format, publicationId, freshDraftId)
 
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null)
   const [sidebarOpen,    setSidebarOpen]    = useState(false)
