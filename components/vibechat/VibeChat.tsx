@@ -230,7 +230,7 @@ export default function VibeChat() {
       <header className={styles.header}>
         <Link className={styles.brand} href="/vibechat" aria-label="VibeChat home">
           <span className={styles.logo}><MessageCircle aria-hidden size={22}/></span>
-          <span><h1 className={styles.heading}>VibeChat</h1><small className={styles.subtitle}>One place for your conversations</small></span>
+          <div><h1 className={styles.heading}>VibeChat</h1><small className={styles.subtitle}>One place for your conversations</small></div>
         </Link>
         <Link className={styles.back} href="/vibetutor"><ArrowLeft size={16} aria-hidden/> VibeTutor</Link>
       </header>
