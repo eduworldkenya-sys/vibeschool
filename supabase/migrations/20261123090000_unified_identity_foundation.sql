@@ -174,6 +174,9 @@ commit;
   raise exception 'Invalid username' using errcode='22023';
  end if;
  perform pg_advisory_xact_lock(hashtext(v_username)::bigint);
+ if exists(select 1 from public.vs_username_reservations where username=v_username) then
+  raise exception 'Username unavailable' using errcode='23505';
+ end if;
  if exists(select 1 from public.vs_identities
   where username=v_username and auth_user_id is distinct from new.profile_id) then
   raise exception 'Username unavailable' using errcode='23505';
