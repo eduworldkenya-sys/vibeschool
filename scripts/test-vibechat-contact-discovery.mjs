@@ -88,3 +88,14 @@ test('message insert never permits spoofed senders or departed participants', ()
   assert.match(sql,/member\.left_at is null/)
   assert.throws(() => assert.match(sql.replace('sender_id=auth.uid()','sender_id is not null'), /sender_id=auth\.uid\(\)/))
 })
+
+test('revocation of child scope removes the right to read or type in that thread', () => {
+  assert.match(sql,/create or replace function private\.vc_user_is_thread_participant\(/)
+  assert.match(sql,/membership\.left_at is null/)
+  assert.match(sql,/link\.parent_id=auth\.uid\(\) and link\.student_id=thread\.student_id/)
+  assert.match(sql,/assignment\.teacher_id=auth\.uid\(\)/)
+  assert.match(sql,/create policy vibechat_child_message_read_integrity on public\.vc_messages/)
+  assert.match(sql,/as restrictive for select to authenticated/)
+  assert.match(sql,/thread\.student_id is null/)
+  assert.match(sql,/private\.vc_user_is_thread_participant\(thread\.id\)/)
+});
