@@ -340,8 +340,8 @@ export default function VibeLearnPage() {
           </div>
         )}
 
+        {/* Twin greeting is intentionally hidden while VibeTwin is muted. */}
         {VIBETWIN_ENABLED && (
-        {/* ── Twin greeting card ── */}
         <div style={{ padding: '16px 16px 0' }}>
           <div style={{
             background: '#ffffff',
