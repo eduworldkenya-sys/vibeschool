@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Bell, ChevronRight, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { unifiedIdentityEnabled } from '@/lib/identity/features'
 import { Card, SectionLabel, Btn, C, TeacherWorkspace } from "@/components/teacher/ui";
 
 type NotifPrefs = { attendance:boolean; flags:boolean; messages:boolean; lessonPlans:boolean; schoolNotices:boolean; news:boolean };
@@ -44,9 +45,9 @@ export default function SettingsPage(){
 
 
     <Card><SectionLabel>Account</SectionLabel>{profile?<><Row label="Name" value={profile.full_name}/><Row label="Phone" value={profile.phone}/><Row label="Role" value={profile.role}/></>:<div style={{padding:"12px 0",fontSize:13,color:C.textMuted}}>No profile data found.</div>}
-      <Link href="/account/children" style={{marginTop:10,padding:"12px 14px",border:`1px solid ${C.border}`,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"space-between",textDecoration:"none",color:C.textPrimary}}>
+      {unifiedIdentityEnabled && <Link href="/account/children" style={{marginTop:10,padding:"12px 14px",border:`1px solid ${C.border}`,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"space-between",textDecoration:"none",color:C.textPrimary}}>
         <strong style={{fontSize:14}}>My children</strong><ChevronRight size={18}/>
-      </Link>
+      </Link>}
       <Link href="/teacher/profile/account" style={{marginTop:14,padding:"14px",border:`1px solid ${C.border}`,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"space-between",textDecoration:"none",color:C.textPrimary,background:"var(--teacher-canvas, #f5f6f2)"}}><span style={{display:"flex",gap:10,alignItems:"center"}}><ShieldCheck size={20}/><span><strong style={{display:"block",fontSize:14}}>Security, privacy & trust</strong><small style={{display:"block",marginTop:3,color:C.textMuted}}>Password, sign-out and profile privacy.</small></span></span><ChevronRight size={18}/></Link>
     </Card>
 
