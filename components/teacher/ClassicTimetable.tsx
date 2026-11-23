@@ -4,11 +4,6 @@ import React from "react";
 import { periodAppearance } from "@/lib/timetable/periodAppearance";
 import { subjectTone } from "@/lib/timetable/subjectColor";
 
-/**
- * Premium weekly calendar presentation of the EXISTING teacher timetable.
- * All authority stays with the parent page, its canonical reader and the
- * existing add/edit/occurrence workflows. No new schedule state is created.
- */
 export type ClassicSlot = {
   id: string; subject: string; className: string; room: string;
   startTime: string; endTime: string; dayOfWeek: number;
@@ -19,16 +14,17 @@ export type SchoolDayBlock = {
   startTime: string; endTime: string; kind: string; protected: boolean;
 };
 type Placement = { dayOfWeek: number; startTime: string; endTime: string };
-const DAYS = [
-  { d: 1, l: "Mon" }, { d: 2, l: "Tue" }, { d: 3, l: "Wed" },
-  { d: 4, l: "Thu" }, { d: 5, l: "Fri" }, { d: 6, l: "Sat" }, { d: 7, l: "Sun" },
-];
-const time = (value: string) => value.slice(0, 5);
-const isActive = (slot: ClassicSlot, date: string) =>
-  slot.effectiveFrom <= date && (slot.effectiveUntil === null || slot.effectiveUntil >= date);
-const overlaps = (a: ClassicSlot, b: ClassicSlot) =>
-  a.id !== b.id && a.dayOfWeek === b.dayOfWeek &&
-  time(a.startTime) < time(b.endTime) && time(a.endTime) > time(b.startTime);
+const DAYS = [{d:1,l:"Mon"},{d:2,l:"Tue"},{d:3,l:"Wed"},{d:4,l:"Thu"},{d:5,l:"Fri"},{d:6,l:"Sat"},{d:7,l:"Sun"}];
+const hhmm = (s: string) => s.slice(0,5);
+const active = (s: ClassicSlot, date: string) =>
+  s.effectiveFrom <= date && (!s.effectiveUntil || s.effectiveUntil >= date);
+const matchingBlock = (blocks: SchoolDayBlock[], day: number, slot: ClassicSlot) =>
+  blocks.some(b => (b.scheduleDay === day || b.scheduleDay === 0) &&
+    b.kind === "lesson" && hhmm(b.startTime) === hhmm(slot.startTime) &&
+    hhmm(b.endTime) === hhmm(slot.endTime));
+const blockForDay = (blocks: SchoolDayBlock[], day: number, start: string, end: string) =>
+  blocks.find(b => b.scheduleDay === day && hhmm(b.startTime) === start && hhmm(b.endTime) === end) ??
+  blocks.find(b => b.scheduleDay === 0 && hhmm(b.startTime) === start && hhmm(b.endTime) === end);
 
 export default function ClassicTimetable({
   slots, blocks, dateForDow, onSelect, onAdd,
@@ -39,136 +35,95 @@ export default function ClassicTimetable({
   onSelect: (slot: ClassicSlot) => void;
   onAdd?: (placement: Placement) => void;
 }) {
-  const activeSlots = slots.filter(slot => isActive(slot, dateForDow(slot.dayOfWeek)));
-  const days = DAYS.filter(day =>
-    day.d <= 5 || activeSlots.some(slot => slot.dayOfWeek === day.d) ||
-    blocks.some(block => block.scheduleDay === day.d)
-  );
-
-  // Preserve all old time boundaries, including custom periods and historical
-  // overlaps. Consecutive double lessons span rows rather than appearing twice.
-  const boundaries = [...new Set([
-    ...blocks.flatMap(block => [time(block.startTime), time(block.endTime)]),
-    ...activeSlots.flatMap(slot => [time(slot.startTime), time(slot.endTime)]),
-  ])].sort();
-  const rows = boundaries.slice(0, -1).map((start, index) => ({
-    start, end: boundaries[index + 1],
-  }));
-  const covering = (day: number, row: { start: string; end: string }) =>
-    blocks.find(block => block.scheduleDay === day &&
-      time(block.startTime) <= row.start && time(block.endTime) >= row.end) ??
-    blocks.find(block => block.scheduleDay === 0 &&
-      time(block.startTime) <= row.start && time(block.endTime) >= row.end);
-
-  if (!rows.length) {
-    return <section className="vs-timetable-empty" aria-label="Empty timetable">
-      <strong>No lessons scheduled</strong>
-      <span>Use Add lesson or open Timetable setup to begin.</span>
-      <style>{styles}</style>
-    </section>;
+  const current = slots.filter(slot => active(slot,dateForDow(slot.dayOfWeek)));
+  // Only actual configured school periods create calendar rows.
+  // Irregular/legacy lessons remain below the grid as reviewable records.
+  const teachingDays = DAYS.filter(d => d.d<=5 ||
+    blocks.some(b=>b.scheduleDay===d.d) || current.some(s=>s.dayOfWeek===d.d));
+  const rowKeys = new Map<string,{start:string;end:string}>();
+  for (const b of blocks) {
+    if (b.scheduleDay!==0 && !teachingDays.some(d=>d.d===b.scheduleDay)) continue;
+    rowKeys.set(`${hhmm(b.startTime)}-${hhmm(b.endTime)}`,{start:hhmm(b.startTime),end:hhmm(b.endTime)});
   }
-
-  return <section className="vs-timetable-week" aria-label="Weekly timetable">
-    <style>{styles}</style>
-    <div className="vs-timetable-scroll" role="region" aria-label="Scrollable weekly timetable" tabIndex={0}>
-      <table aria-label="Conventional weekly timetable">
-        <thead><tr>
-          <th scope="col" className="vs-time-heading">Time</th>
-          {days.map(day => <th scope="col" key={day.d}>
-            <span>{day.l}</span>
-            <small>{activeSlots.filter(slot => slot.dayOfWeek === day.d).length} lessons</small>
-          </th>)}
+  const rows = [...rowKeys.values()].sort((a,b)=>a.start.localeCompare(b.start)||a.end.localeCompare(b.end));
+  const irregular = current.filter(slot => !matchingBlock(blocks,slot.dayOfWeek,slot));
+  const card = (slot:ClassicSlot) => {
+    const tone=subjectTone(slot.subject);
+    return <button type="button" key={slot.id} onClick={()=>onSelect(slot)}
+      className="vs-v3-lesson" style={{background:tone.background,color:tone.foreground,borderLeftColor:tone.border}}
+      aria-label={`Open ${slot.subject}, ${slot.className}, ${hhmm(slot.startTime)} to ${hhmm(slot.endTime)}`}>
+      <strong>{slot.subject}</strong>
+      <span>{slot.className}{slot.room?` · ${slot.room}`:""}</span>
+      <small>{hhmm(slot.startTime)}–{hhmm(slot.endTime)}</small>
+    </button>;
+  };
+  return <section className="vs-v3-week" aria-label="Weekly timetable">
+    <style>{css}</style>
+    <div className="vs-v3-section-head">
+      <strong>WEEKLY SCHEDULE</strong><span>{current.length} lessons · {irregular.length} needing period review</span>
+    </div>
+    {rows.length===0 ? <div className="vs-v3-empty" role="status">
+      <strong>School day not configured</strong>
+      <p>No confirmed teaching periods are available for this school. Existing lessons remain visible below; configure the real school day to build the calendar.</p>
+      <a href="/teacher/timetable/setup">Open school day setup</a>
+    </div> : <div className="vs-v3-scroll" role="region" aria-label="Weekly school period grid" tabIndex={0}>
+      <table>
+        <thead><tr><th scope="col" className="vs-v3-time">TIME</th>
+          {teachingDays.map(d=><th scope="col" key={d.d}><strong>{d.l}</strong><small>{dateForDow(d.d).slice(8)}</small></th>)}
         </tr></thead>
-        <tbody>{rows.map(row => <tr key={row.start}>
-          <th scope="row" className="vs-time-cell">
-            <span>{row.start}</span><small>{row.end}</small>
-          </th>
-          {days.map(day => {
-            const found = activeSlots.filter(slot =>
-              slot.dayOfWeek === day.d &&
-              time(slot.startTime) <= row.start &&
-              time(slot.endTime) > row.start
-            );
-            const preceding = found.length === 1 &&
-              time(found[0].startTime) < row.start &&
-              !activeSlots.some(other => overlaps(found[0], other));
-            if (preceding) return null;
-            const hasOverlap = found.length === 1 &&
-              activeSlots.some(other => overlaps(found[0], other));
-            const span = found.length === 1 && !hasOverlap
-              ? rows.filter(part => part.start >= row.start &&
-                part.start < time(found[0].endTime)).length : 1;
-            const block = covering(day.d, row);
-
-            // Never conceal pre-existing overlaps or legacy/custom slots.
-            if (found.length) return <td key={day.d} rowSpan={span}
-              className={hasOverlap || found.length > 1 ? "vs-conflict-cell" : ""}>
-              {found.map(slot => <button key={slot.id} type="button"
-                className="vs-lesson"
-                style={{background:subjectTone(slot.subject).background,color:subjectTone(slot.subject).foreground,borderLeftColor:subjectTone(slot.subject).border}}
-                aria-label={`Open ${slot.subject}, ${slot.className}, ${day.l} ${time(slot.startTime)}–${time(slot.endTime)}`}
-                onClick={() => onSelect(slot)}>
-                <strong>{slot.subject}</strong>
-                <span>{slot.className}{slot.room ? ` · ${slot.room}` : ""}</span>
-                <small>{time(slot.startTime)}–{time(slot.endTime)}</small>
-              </button>)}
-            </td>;
-
-            if (block && block.kind !== "lesson") {
-              const tone = periodAppearance(block.kind);
-              return <td key={day.d}
-                aria-label={`${tone.label}: ${block.label}, ${row.start} to ${row.end}`}
-                style={{ background: tone.background, borderLeft: `2px solid ${tone.border}` }}>
-                <span className="vs-activity" style={{ color: tone.text }}>{block.label}</span>
-              </td>;
-            }
-            const canPlace = Boolean(onAdd && (!blocks.length ||
-              (block?.kind === "lesson" && !activeSlots.some(slot =>
-                slot.dayOfWeek === day.d && time(slot.startTime) < time(block.endTime) &&
-                time(slot.endTime) > time(block.startTime)))));
-            return <td key={day.d} className="vs-open-cell">
-              {canPlace && <button type="button" className="vs-add"
-                aria-label={`Add lesson ${day.l} ${row.start}`}
-                onClick={() => onAdd?.({
-                  dayOfWeek: day.d,
-                  startTime: block ? time(block.startTime) : row.start,
-                  endTime: block ? time(block.endTime) : row.end,
-                })}>+ <span>Add lesson</span></button>}
+        <tbody>{rows.map(row=><tr key={row.start+row.end}>
+          <th scope="row" className="vs-v3-time"><strong>{row.start}</strong><small>{row.end}</small></th>
+          {teachingDays.map(day=>{
+            const block=blockForDay(blocks,day.d,row.start,row.end);
+            const candidates=current.filter(s=>s.dayOfWeek===day.d && hhmm(s.startTime)===row.start && hhmm(s.endTime)===row.end);
+            const activity=block&&block.kind!=="lesson";
+            const tone=activity?periodAppearance(block.kind):null;
+            return <td key={day.d} className={activity?"vs-v3-activity":""} style={tone?{background:tone.background}:undefined}>
+              {activity?<span style={{color:tone?.text}}>{block.label}</span>:
+                candidates.length ? <div className="vs-v3-cards">{candidates.map(card)}</div> :
+                block?.kind==="lesson" && onAdd ? <button type="button" className="vs-v3-add"
+                  aria-label={`Add lesson ${day.l} ${row.start} to ${row.end}`}
+                  onClick={()=>onAdd({dayOfWeek:day.d,startTime:row.start,endTime:row.end})}>+</button>:null}
             </td>;
           })}
         </tr>)}</tbody>
       </table>
-    </div>
+    </div>}
+    {irregular.length>0 && <details className="vs-v3-review">
+      <summary>{irregular.length} existing lesson{irregular.length===1?"":"s"} outside confirmed periods · Review</summary>
+      <p>These records are preserved. They do not create artificial time rows or authorize new school periods.</p>
+      <div className="vs-v3-irregular">{irregular.map(slot=><div key={slot.id} className="vs-v3-irregular-row">
+        <span>{DAYS.find(d=>d.d===slot.dayOfWeek)?.l} · {hhmm(slot.startTime)}–{hhmm(slot.endTime)}</span>
+        {card(slot)}
+      </div>)}</div>
+    </details>}
+    {rows.length>0 && current.length===0 && <div className="vs-v3-empty">No lessons scheduled for this week.</div>}
   </section>;
 }
-
-const styles = `
-.vs-timetable-week,.vs-timetable-empty { color:var(--text-primary,#171c25);background:var(--surface,#fff);border:1px solid var(--border-color,#e4e8ee);border-radius:8px;overflow:hidden; }
-.vs-timetable-scroll { overflow-x:auto;max-width:100%;overscroll-behavior-x:contain; }
-.vs-timetable-scroll:focus-visible { outline:2px solid var(--focus-ring,#2563eb);outline-offset:-2px; }
-.vs-timetable-week table { border-collapse:separate;border-spacing:0;min-width:720px;width:100%;table-layout:fixed;font:inherit;font-size:12px; }
-.vs-timetable-week th,.vs-timetable-week td { border-right:1px solid var(--border-color,#e4e8ee);border-bottom:1px solid var(--border-color,#e4e8ee); }
-.vs-timetable-week tr:last-child td,.vs-timetable-week tr:last-child th { border-bottom:0; }
-.vs-timetable-week th:last-child,.vs-timetable-week td:last-child { border-right:0; }
-.vs-timetable-week thead th { padding:11px 8px;background:var(--surface-raised,#f8f9fb);font-weight:650;text-align:left;vertical-align:middle; }
-.vs-timetable-week thead th small { display:block;font-size:10px;font-weight:450;opacity:.65;margin-top:3px; }
-.vs-timetable-week .vs-time-heading { position:sticky;left:0;z-index:3;width:94px; }
-.vs-timetable-week .vs-time-cell { position:sticky;left:0;z-index:2;width:94px;padding:12px 9px;text-align:left;vertical-align:top;background:var(--surface,#fff);white-space:nowrap;font-size:11px;font-weight:650;font-variant-numeric:tabular-nums; }
-.vs-timetable-week .vs-time-cell small { display:block;margin-top:3px;opacity:.55;font-size:10px;font-weight:450; }
-.vs-timetable-week td { padding:5px;min-width:116px;vertical-align:top;height:54px; }
-.vs-timetable-week .vs-lesson { display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:9px 8px;min-height:57px;margin:0 0 3px;text-align:left;font:inherit;color:inherit;background:var(--surface-raised,#f8f9fb);border:1px solid var(--border-color,#e4e8ee);border-left:3px solid var(--text-primary,#374151);border-radius:4px;cursor:pointer; }
-.vs-timetable-week .vs-lesson:hover { background:var(--surface-hover,#eef2f6);border-color:var(--text-muted,#9ca3af); }
-.vs-timetable-week .vs-lesson:focus-visible,.vs-timetable-week .vs-add:focus-visible { outline:2px solid #2563eb;outline-offset:2px; }
-.vs-timetable-week .vs-lesson strong {font-weight:680;line-height:1.25;}
-.vs-timetable-week .vs-lesson span {font-size:11px;opacity:.8;line-height:1.25;}
-.vs-timetable-week .vs-lesson small {font-size:10px;opacity:.65;font-variant-numeric:tabular-nums;}
-.vs-timetable-week .vs-open-cell {background:var(--surface,#fff);}
-.vs-timetable-week .vs-add {font:inherit;font-size:11px;padding:10px 6px;width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:5px;border:1px dashed transparent;border-radius:4px;background:transparent;color:var(--text-muted,#667085);cursor:pointer;}
-.vs-timetable-week .vs-add:hover {border-color:var(--border-color,#cbd5e1);background:var(--surface-raised,#f8f9fb);}
-.vs-timetable-week .vs-activity {display:block;text-align:center;font-size:11px;font-weight:600;padding:8px 3px;}
-.vs-timetable-week .vs-conflict-cell {background:var(--warning-bg,#fff7ed);}
-.vs-timetable-empty {padding:30px 20px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;}
-.vs-timetable-empty span {font-size:12px;opacity:.7;}
-@media(max-width:640px) { .vs-timetable-week table {min-width:680px;} .vs-timetable-week .vs-time-heading,.vs-timetable-week .vs-time-cell {width:76px;} .vs-timetable-week td {padding:3px;} .vs-timetable-week .vs-add span {display:none;} }
-@media print { .vs-timetable-week {border:0;overflow:visible;} .vs-timetable-scroll {overflow:visible;} .vs-timetable-week table {min-width:0;font-size:10px;} .vs-timetable-week .vs-lesson {border:1px solid #bbb;background:#fff;color:#000;break-inside:avoid;} .vs-timetable-week .vs-add {display:none;} .vs-timetable-week .vs-time-cell,.vs-timetable-week thead th {position:static;background:#fff;color:#000;} }
+const css=`
+.vs-v3-week{background:var(--surface,#fff);border:1px solid var(--border-color,#e3e6e9);border-radius:8px;overflow:hidden;color:var(--text-primary,#16202a)}
+.vs-v3-section-head{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:11px 13px;font-size:11px;border-bottom:1px solid var(--border-color,#e3e6e9)}
+.vs-v3-section-head strong{font-size:10px;letter-spacing:.06em}.vs-v3-section-head span{opacity:.67}
+.vs-v3-scroll{overflow-x:auto;max-width:100%}.vs-v3-scroll:focus-visible{outline:2px solid #2563eb;outline-offset:-2px}
+.vs-v3-week table{width:100%;min-width:680px;border-collapse:collapse;table-layout:fixed;font:inherit;font-size:12px}
+.vs-v3-week th,.vs-v3-week td{border-right:1px solid var(--border-color,#e3e6e9);border-bottom:1px solid var(--border-color,#e3e6e9)}
+.vs-v3-week th:last-child,.vs-v3-week td:last-child{border-right:0}
+.vs-v3-week thead th{padding:10px 6px;background:var(--surface-raised,#f8f9fa);text-align:center}
+.vs-v3-week thead th strong{display:block}.vs-v3-week thead th small{display:block;font-weight:400;font-size:10px;opacity:.6;margin-top:3px}
+.vs-v3-week th.vs-v3-time{width:80px;text-align:left;padding:10px 9px;background:var(--surface-raised,#f8f9fa);position:sticky;left:0;z-index:2;font-weight:500}
+.vs-v3-week th.vs-v3-time strong{display:block;font-size:11px}.vs-v3-week th.vs-v3-time small{display:block;opacity:.6;font-size:10px;margin-top:5px}
+.vs-v3-week td{height:72px;vertical-align:middle;padding:4px;min-width:100px}
+.vs-v3-cards{display:flex;flex-direction:column;gap:3px}
+.vs-v3-lesson{width:100%;text-align:left;display:flex;flex-direction:column;gap:4px;border:0;border-left:3px solid;border-radius:4px;padding:9px 7px;cursor:pointer;font:inherit;min-height:58px}
+.vs-v3-lesson:hover{filter:brightness(.96)}.vs-v3-lesson:focus-visible,.vs-v3-add:focus-visible{outline:2px solid #2563eb;outline-offset:1px}
+.vs-v3-lesson strong{font-size:11px;line-height:1.2}.vs-v3-lesson span,.vs-v3-lesson small{font-size:10px;opacity:.8;line-height:1.2}
+.vs-v3-add{width:100%;height:55px;background:transparent;border:1px solid transparent;border-radius:4px;color:var(--text-muted,#98a1aa);cursor:pointer;font-size:17px}
+.vs-v3-add:hover{background:var(--surface-raised,#f8f9fa);border-color:var(--border-color,#e3e6e9)}
+.vs-v3-activity{text-align:center;font-size:11px;font-weight:600}
+.vs-v3-empty{padding:22px 16px;line-height:1.5;font-size:12px}.vs-v3-empty p{margin:6px 0 10px;color:var(--text-muted,#667085)}
+.vs-v3-review{padding:12px;border-top:1px solid var(--border-color,#e3e6e9);font-size:12px}
+.vs-v3-review summary{cursor:pointer;font-weight:650}.vs-v3-review p{color:var(--text-muted,#667085)}
+.vs-v3-irregular{display:grid;gap:8px}.vs-v3-irregular-row{display:grid;grid-template-columns:minmax(100px,160px) 1fr;align-items:center;gap:10px}.vs-v3-irregular-row>span{font-size:11px;color:var(--text-muted,#667085)}
+@media(max-width:650px){.vs-v3-week table{min-width:680px}.vs-v3-week th.vs-v3-time{width:68px}.vs-v3-section-head{align-items:start;flex-direction:column;gap:4px}}
+@media print{.vs-v3-scroll{overflow:visible}.vs-v3-week table{min-width:0}.vs-v3-lesson{print-color-adjust:exact}.vs-v3-add{display:none}.vs-v3-time{position:static!important}}
 `;
