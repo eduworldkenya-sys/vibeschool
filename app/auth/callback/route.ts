@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
+import { unifiedIdentityEnabled } from '@/lib/identity/features'
 
 const SELF_SERVICE_ROLES = new Set(['teacher', 'parent'])
 
@@ -239,7 +240,7 @@ export async function GET(req: NextRequest) {
   const target = state === 'ready' && next && roleCanVisit(role, next) ? next : safeDestination
   // Verified new adult signups set their username after canonical onboarding.
   // Existing sign-ins keep their current journey and are never forced to re-register.
-  const finalTarget = intent === 'signup' && state === 'ready' && (role === 'teacher' || role === 'parent')
+  const finalTarget = unifiedIdentityEnabled && intent === 'signup' && state === 'ready' && (role === 'teacher' || role === 'parent')
     ? `/account/setup?next=${encodeURIComponent(target)}` : target
   logStage('destination_selected', flowId, finalTarget)
   return redirectWithCookies(req, finalTarget, pendingCookies)
