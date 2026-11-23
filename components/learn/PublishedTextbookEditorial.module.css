@@ -1,0 +1,37 @@
+/* Shared editorial language for both the publisher preview and released textbook.
+   The material remains the saved publication blocks; never insert placeholder lessons. */
+.book { color:#28392e; font-family:Georgia,"Times New Roman",serif; font-size:1.08rem; line-height:1.74; }
+.book :global([data-presentation="book"]) { color:inherit; }
+.book :global([data-presentation="book"] section[data-tone]) { background:none; border:0; border-radius:0; box-shadow:none; padding:0; margin:0; }
+.book :global([data-presentation="book"] section[data-tone] + section[data-tone]) { margin-top:1.75rem; }
+.book :global([data-presentation="book"] section[data-tone] > header) { margin:1.9rem 0 .7rem; }
+.book :global([data-presentation="book"] section[data-tone] > header h2) { color:#234734; font-family:Georgia,"Times New Roman",serif; font-size:1.38rem; line-height:1.28; letter-spacing:-.015em; margin:0; }
+.book :global([data-presentation="book"] section[data-tone] > div) { font-family:inherit; }
+.blocks { display:flex; flex-direction:column; gap:1.05rem; min-width:0; }
+.blocks > div { min-width:0; scroll-margin-top:90px; }
+.blocks p { margin:.1rem 0 .65rem; }
+.passage { margin:0; }
+.media { margin:1.7rem auto; text-align:center; }
+.media img { display:block; height:auto; max-width:100%; margin:0 auto; border-radius:0; }
+.media figcaption { font: .78rem/1.5 Inter,system-ui,sans-serif; color:#65746a; margin-top:.65rem; }
+.activity { margin:1.65rem 0; padding:1rem 0 1.1rem; border-top:1px solid #cdd8cd; border-bottom:1px solid #e0e6de; }
+.activityLabel { display:flex; align-items:baseline; gap:.75rem; margin-bottom:.55rem; color:#28563e; font:700 .88rem/1.4 Inter,system-ui,sans-serif; }
+.activityNumber { font-size:.73rem; color:#728674; letter-spacing:.08em; }
+.activityBody { margin:0; }
+.example { margin:1.6rem 0; padding:.2rem 0 .2rem 1.1rem; border-left:2px solid #aabda6; }
+.example h3, .keyIdea h3 { font:700 .93rem/1.5 Inter,system-ui,sans-serif; margin:0 0 .5rem; color:#244b36; }
+.keyIdea { margin:1.7rem 0; padding:1rem 0 0; border-top:1px solid #dde5dc; }
+.definition { margin:1.3rem 0; }
+.definition strong { color:#234d36; }
+.quote { margin:1.2rem 0; border-left:2px solid #a8bbaa; padding-left:1.15rem; }
+.divider { border:0; border-top:1px solid #e3e7e2; margin:1.4rem 0; }
+.tableWrap { overflow-x:auto; max-width:100%; }
+.tableWrap table { width:100%; border-collapse:collapse; font: .9rem/1.5 Inter,system-ui,sans-serif; }
+.tableWrap td { border-bottom:1px solid #d6ded4; padding:.65rem .7rem; text-align:left; }
+.tableWrap tr:first-child td { border-top:1px solid #a5baa5; font-weight:650; }
+.previewPaper { max-width:770px; margin:1.5rem auto; padding:clamp(22px,5vw,58px); color:#28392e; background:#fff; border:1px solid #d6ded4; box-shadow:0 3px 12px rgba(24,49,31,.09); }
+.previewPaper h1 { margin:0 0 .3rem; color:#1e3c2b; font:600 clamp(1.8rem,4vw,2.5rem)/1.12 Georgia,"Times New Roman",serif; }
+.previewPaper > p { color:#63776a; font: .85rem/1.6 Inter,system-ui,sans-serif; margin:0 0 1rem; }
+.previewKicker { color:#41644b; font:700 .7rem/1.4 Inter,system-ui,sans-serif; letter-spacing:.11em; text-transform:uppercase; margin-bottom:1.2rem; }
+@media(max-width:600px) { .book{font-size:1rem;line-height:1.66} .previewPaper{margin:.8rem 0;padding:20px 17px;border-left:0;border-right:0;box-shadow:none} .activity{padding:.8rem 0} }
+@media print { .previewPaper{border:0;box-shadow:none;margin:0} }

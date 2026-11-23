@@ -4,6 +4,8 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePublicationDraft } from '@/hooks/usePublicationDraft'
 import { ContentBlockEditor } from '@/components/global/publish/ContentBlockEditor'
+import PublishedTextbookLearnReader from '@/components/learn/PublishedTextbookLearnReader'
+import editorial from '@/components/learn/PublishedTextbookEditorial.module.css'
 import { BlockToolbar } from '@/components/global/publish/BlockToolbar'
 import { ChapterSidebar } from '@/components/global/publish/ChapterSidebar'
 import { OutcomeSelector } from '@/components/global/publish/OutcomeSelector'
@@ -486,7 +488,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
           {([{label:'Activity',type:'activity'}, {label:'Worked example',type:'workedExample'}, {label:'Bullets',type:'bulletList'}, {label:'Diagram',type:'diagram'}, {label:'Interactive',type:'interactive'}] as const).map(action => <button key={action.type} type="button" onClick={() => {addBlock(action.type, focusedBlockId ?? undefined);setMoreToolsOpen(false)}} style={{ background: SURF, color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>{action.label}</button>)}
         </div>}
       </nav>}
-      {simpleMode && previewMode && <p role="status" style={{ textAlign: 'center', color: MUTED, fontSize: 12, margin: '10px 16px 0' }}>Page preview — editing paused. This is not a verified public Learn page.</p>}
+      {simpleMode && previewMode && <p role="status" style={{ textAlign: 'center', color: MUTED, fontSize: 12, margin: '10px 16px 0' }}>Textbook page preview · the same content renderer used in Learn. Publication access is checked separately.</p>}
       {/* Main */}
       <main style={{
         flex: 1, padding: simpleMode ? '28px 24px' : '16px',
@@ -498,6 +500,13 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
         boxShadow: simpleMode ? '0 6px 26px rgba(15,23,42,.04)' : 'none',
         width: '100%', boxSizing: 'border-box',
       }}>
+        {previewMode && format === 'vibetextbook' ? <article className={editorial.previewPaper} aria-label="Textbook reading preview">
+          <div className={editorial.previewKicker}>{publication.cbc_grade || 'Grade'} · {publication.cbc_subject || 'Subject'}</div>
+          <h1>{activeChapter?.title || publication.title || 'Untitled lesson'}</h1>
+          {publication.subtitle && <p>{publication.subtitle}</p>}
+          {activeChapter ? <PublishedTextbookLearnReader subject={publication.cbc_subject || 'Learning'} blocks={activeChapter.blocks} chapterId={activeChapter.id}/> :
+            <p>No chapter has been added yet.</p>}
+        </article> : <>
 
         {/* Publication title — with inline error highlight */}
         <input
@@ -614,6 +623,7 @@ export function PublicationEditor({ authorId, format, publicationId, simpleMode 
             )}
           </div>
         )}
+      </>}
       </main>
 
       {!publishedReadOnly && !simpleMode && !previewMode && (
