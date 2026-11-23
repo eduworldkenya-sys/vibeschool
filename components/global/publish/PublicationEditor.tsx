@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePublicationDraft } from '@/hooks/usePublicationDraft'
 import { ContentBlockEditor } from '@/components/global/publish/ContentBlockEditor'
+import { StudioDocumentEditor } from '@/components/global/publish/StudioDocumentEditor'
 import PublishedTextbookLearnReader from '@/components/learn/PublishedTextbookLearnReader'
 import editorial from '@/components/learn/PublishedTextbookEditorial.module.css'
 import { BlockToolbar } from '@/components/global/publish/BlockToolbar'
@@ -49,7 +50,7 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
     publication, chapters, activeChapterId,
     setActiveChapterId, updatePublication,
     updateChapterTitle, updateChapterStatus, addChapter, deleteChapter,
-    addBlock, updateBlock, deleteBlock, moveBlock,
+    addBlock, updateBlock, replaceActiveChapterBlocks, deleteBlock, moveBlock,
     publishPublication, forceSave,
   } = usePublicationDraft(authorId, format, publicationId, freshDraftId)
 
@@ -62,7 +63,6 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
   const [checksOpen, setChecksOpen] = useState(false)
   const [materialsConfirmed, setMaterialsConfirmed] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
-  const [moreToolsOpen, setMoreToolsOpen] = useState(false)
   const [blockerHelp, setBlockerHelp] = useState<string | null>(null)
   const [jumpBlockId, setJumpBlockId] = useState<string | null>(null)
   const [insertTarget, setInsertTarget] = useState<'paragraph' | 'image' | 'question' | null>(null)
@@ -482,13 +482,6 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
         }}>{error}</div>
       )}
 
-      {simpleMode && !publishedReadOnly && !previewMode && <nav aria-label="Insert content" style={{ display: 'flex', gap: 8, padding: '10px max(16px, calc((100% - 900px)/2))', alignItems: 'center', flexWrap: 'wrap', background: SURF, borderBottom: '1px solid ' + BORDER }}>
-        {([{label:'Text',type:'paragraph'}, {label:'Heading',type:'heading2'}, {label:'Image',type:'image'}, {label:'Table',type:'table'}, {label:'Question',type:'question'}] as const).map(action => <button key={action.type} type="button" id={'studio-insert-' + action.type} onClick={() => addBlock(action.type, focusedBlockId ?? undefined)} style={{ background: '#f8fafc', color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>+ {action.label}</button>)}
-        <button type="button" aria-expanded={moreToolsOpen} onClick={() => setMoreToolsOpen(value => !value)} style={{ background: '#f8fafc', color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>More {moreToolsOpen ? '−' : '+'}</button>
-        {moreToolsOpen && <div style={{ flexBasis: '100%', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-          {([{label:'Activity',type:'activity'}, {label:'Worked example',type:'workedExample'}, {label:'Bullets',type:'bulletList'}, {label:'Diagram',type:'diagram'}, {label:'Interactive',type:'interactive'}] as const).map(action => <button key={action.type} type="button" onClick={() => {addBlock(action.type, focusedBlockId ?? undefined);setMoreToolsOpen(false)}} style={{ background: SURF, color: TEXT, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>{action.label}</button>)}
-        </div>}
-      </nav>}
       {simpleMode && previewMode && <p role="status" style={{ textAlign: 'center', color: MUTED, fontSize: 12, margin: '10px 16px 0' }}>Textbook page preview · the same content renderer used in Learn. Publication access is checked separately.</p>}
       {/* Main */}
       <main style={{
@@ -595,7 +588,9 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
         {/* Blocks */}
         {activeChapter && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {activeChapter.blocks.length === 0 ? (
+            {simpleMode ? (
+              <StudioDocumentEditor key={activeChapter.id} blocks={activeChapter.blocks} readOnly={publishedReadOnly || previewMode} onChange={replaceActiveChapterBlocks} />
+            ) : activeChapter.blocks.length === 0 ? (
               <div onClick={() => { if (!publishedReadOnly) addBlock('paragraph') }} style={{
                 border: '2px dashed ' + BORDER, borderRadius: 12,
                 padding: '36px 16px', textAlign: 'center',
