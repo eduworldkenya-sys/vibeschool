@@ -29,7 +29,7 @@ test('Curriculum Map and Scheme display the same canonical reference without cre
   assert.match(scheme, /isGrade4CreativeArts/)
   assert.match(scheme, /<Grade4CreCaMap/)
   assert.match(scheme, /mode=\{curriculumView \? 'curriculum' : 'scheme'\}/)
-  assert.match(scheme, /isGrade9English\|\|isGrade4CRE\|\|isGrade4CreativeArts/)
+  assert.match(scheme, /isGrade9English\|\|isGrade4CRE\|\|isGrade5CRE\|\|isGrade4CreativeArts/)
   assert.doesNotMatch(map, /\.from\('scheme_of_work'\)|\.insert\(|\.update\(|SERVICE_ROLE_KEY/)
   assert.match(map, /does not create or schedule a lesson/)
   assert.match(scheme, /commit_grade4_cre_ca_scheme_lesson/)
