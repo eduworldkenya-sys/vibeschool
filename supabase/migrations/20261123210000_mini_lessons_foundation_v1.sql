@@ -196,10 +196,15 @@ grant select on public.mini_lessons to anon,authenticated;
 grant insert(creator_id,title,body,subject,cover_path,status) on public.mini_lessons to authenticated;
 grant update(title,body,subject,cover_path,status) on public.mini_lessons to authenticated;
 grant delete on public.mini_lessons to authenticated;
-grant select,insert,delete on public.mini_interactions to authenticated;
-grant select,insert on public.mini_learning_signals to authenticated;
-grant select,insert on public.mini_comments to authenticated;
-grant select,insert on public.mini_reports to authenticated;
+-- Column-limited grants forbid forged timestamps, visibility and reviewer state.
+grant select,delete on public.mini_interactions to authenticated;
+grant insert(user_id,mini_id,kind) on public.mini_interactions to authenticated;
+grant select on public.mini_learning_signals to authenticated;
+grant insert(user_id,mini_id,signal,occurred_on) on public.mini_learning_signals to authenticated;
+grant select on public.mini_comments to authenticated;
+grant insert(mini_id,author_id,body,status) on public.mini_comments to authenticated;
+grant select on public.mini_reports to authenticated;
+grant insert(reporter_id,mini_id,reason,description) on public.mini_reports to authenticated;
 
 create policy mini_public_read on public.mini_lessons
 for select to anon,authenticated
