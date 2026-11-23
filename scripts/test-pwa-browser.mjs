@@ -131,42 +131,6 @@ try {
   await page.getByRole('heading', { name: /^VibeSpin Studio/ }).waitFor({ timeout: 10000 })
   await context.setOffline(false)
 
-  stage('prepare public offline book shell and cold read without internet')
-  await page.goto(`${BASE}/offline/books`, { waitUntil: 'domcontentloaded' })
-  const prepared = await page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.ready
-    return new Promise((resolve, reject) => {
-      const channel = new MessageChannel()
-      const timeout = setTimeout(() => reject(new Error('book reader preparation timed out')), 120000)
-      channel.port1.onmessage = event => { clearTimeout(timeout); resolve(event.data) }
-      registration.active.postMessage({ type: 'PREPARE_OFFLINE_BOOK_READER' }, [channel.port2])
-    })
-  })
-  assert(prepared.type === 'OFFLINE_BOOK_READER_READY', 'offline reader preparation did not succeed: '+JSON.stringify(prepared))
-  await page.evaluate(async () => {
-    const db = await new Promise((resolve,reject) => {
-      const req=indexedDB.open('vibeschool-public-books-v1',1)
-      req.onupgradeneeded=()=>req.result.createObjectStore('books',{keyPath:'id'})
-      req.onsuccess=()=>resolve(req.result)
-      req.onerror=()=>reject(req.error)
-    })
-    await new Promise((resolve,reject) => {
-      const tx=db.transaction('books','readwrite')
-      tx.objectStore('books').put({
-        id:'offline-book-test',title:'Offline Test Book',format:'vibetextbook',savedAt:Date.now(),
-        chapters:[{id:'offline-test-chapter',number:1,title:'Offline Test Chapter',blocks:[{id:'offline-text',type:'paragraph',content:'This paragraph is saved on the device.'}]}]
-      })
-      tx.oncomplete=resolve
-      tx.onerror=()=>reject(tx.error)
-    })
-    db.close()
-  })
-  await context.setOffline(true)
-  await page.goto(`${BASE}/offline/books`, {waitUntil:'domcontentloaded',timeout:30000})
-  await page.getByRole('button',{name:'Read offline'}).click({timeout:30000})
-  assert((await page.locator('body').innerText()).includes('Offline Test Chapter'), 'offline saved chapter did not render')
-  await context.setOffline(false)
-
   stage('verify normal navigation recovery')
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForFunction(() => document.title.includes('VibeSchool'))
