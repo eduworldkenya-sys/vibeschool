@@ -77,6 +77,16 @@ create index if not exists mini_reports_post_idx on public.mini_reports(mini_id,
 
 -- Definitive, existing-account source: public profile opt-in and active accounts.
 -- Children and accounts with known minor dates of birth are never public creators.
+-- No interaction or comment writes from deactivated or anonymized accounts.
+create or replace function public.mini_active_account(p_user uuid)
+returns boolean language sql stable security definer set search_path=''
+as $
+  select exists(select 1 from public.profiles p where p.id=p_user
+    and p.account_status::text='active' and not p.is_anonymized);
+$;
+revoke all on function public.mini_active_account(uuid) from public;
+grant execute on function public.mini_active_account(uuid) to authenticated;
+
 create or replace function public.mini_creator_can_submit(p_user uuid)
 returns boolean
 language sql stable security definer set search_path = ''
@@ -229,7 +239,7 @@ create policy mini_interactions_read_own on public.mini_interactions
 for select to authenticated using (user_id=(select auth.uid()));
 create policy mini_interactions_insert_own on public.mini_interactions
 for insert to authenticated with check(
-  user_id=(select auth.uid()) and exists (
+  user_id=(select auth.uid()) and public.mini_active_account(user_id) and exists (
     select 1 from public.mini_lessons m
     where m.id=mini_id and m.status='approved' and public.mini_creator_public(m.creator_id)
   )
@@ -253,7 +263,7 @@ create policy mini_comments_read_own on public.mini_comments
 for select to authenticated using (author_id=(select auth.uid()));
 create policy mini_comments_write_pending on public.mini_comments
 for insert to authenticated with check(
-  author_id=(select auth.uid()) and status='pending'
+  author_id=(select auth.uid()) and public.mini_active_account(author_id) and status='pending'
   and exists(select 1 from public.mini_lessons m where m.id=mini_id
     and m.status='approved' and public.mini_creator_public(m.creator_id))
 );
@@ -261,7 +271,7 @@ create policy mini_reports_read_own on public.mini_reports
 for select to authenticated using (reporter_id=(select auth.uid()));
 create policy mini_reports_create_own on public.mini_reports
 for insert to authenticated with check(
-  reporter_id=(select auth.uid()) and exists(select 1 from public.mini_lessons m
+  reporter_id=(select auth.uid()) and public.mini_active_account(reporter_id) and exists(select 1 from public.mini_lessons m
     where m.id=mini_id and m.status='approved' and public.mini_creator_public(m.creator_id))
 );
 
