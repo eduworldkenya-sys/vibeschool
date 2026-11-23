@@ -200,6 +200,9 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibechat_lookup_handle: { Args: { p_handle: string }; Returns: { handle: string; display_name: string; account_role: string; avatar_url: string | null }[] }
       vibechat_request_contact: { Args: { p_handle: string }; Returns: string }
       vibechat_my_contacts: { Args: Record<never, never>; Returns: { id: string; name: string; avatar_url: string | null; handle: string; direction: 'incoming' | 'outgoing'; status: 'pending' | 'accepted' | 'declined'; thread_id: string | null; created_at: string }[] }
+      vibechat_thread_safety: { Args: { p_kind: string; p_room: string }; Returns: { blocked: boolean; blocked_by_me: boolean } }
+      vibechat_block_thread: { Args: { p_kind: string; p_room: string; p_block: boolean }; Returns: boolean }
+      vibechat_report_thread: { Args: { p_kind: string; p_room: string; p_reason: string }; Returns: string }
       vibechat_my_school_families: { Args: Record<never, never>; Returns: { student_id: string; student_name: string; parent_id: string; parent_name: string; avatar_url: string | null }[] }
       vibechat_start_teacher_parent_thread: { Args: { p_student_id: string; p_parent_id: string; p_context_tag?: string }; Returns: string }
       vibechat_my_chat_peers: { Args: Record<never, never>; Returns: { thread_id: string; name: string; avatar_url: string | null }[] }
