@@ -1,6 +1,6 @@
+"use client";
+"use client";
 import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability';
-"use client";
-"use client";
 import { useState, useRef, useEffect } from "react";
 
 const C = {
