@@ -35,3 +35,58 @@
 .previewKicker { color:#41644b; font:700 .7rem/1.4 Inter,system-ui,sans-serif; letter-spacing:.11em; text-transform:uppercase; margin-bottom:1.2rem; }
 @media(max-width:600px) { .book{font-size:1rem;line-height:1.66} .previewPaper{margin:.8rem 0;padding:20px 17px;border-left:0;border-right:0;box-shadow:none} .activity{padding:.8rem 0} }
 @media print { .previewPaper{border:0;box-shadow:none;margin:0} }
+
+/* Editorial Edition: restrained textbook layout, one reading column,
+   no decorative cards. Shared by the author preview and learner reader. */
+.book { --book-ink:#25352a; --book-leaf:#355e44; color:var(--book-ink); font-size:1.12rem; line-height:1.83; letter-spacing:.002em; text-wrap:pretty; }
+.book :global([data-presentation="book"]) { max-width:100%; }
+.book :global([data-presentation="book"] .sections) { display:block; margin:0; }
+.book :global([data-presentation="book"] section[data-tone] + section[data-tone]) { margin-top:2rem; }
+.book :global([data-presentation="book"] section[data-tone] > header) { margin:2.1rem 0 .9rem; }
+.book :global([data-presentation="book"] section[data-tone] > header h2) { font-size:clamp(1.28rem,2.3vw,1.56rem);font-weight:600; color:#254933; }
+.book :global([data-presentation="book"] .body) { font:inherit; line-height:inherit; color:inherit; }
+.book :global([data-presentation="book"] .section) { padding:0; }
+.blocks { gap:1rem; }
+.blocks > div:empty { display:none; }
+.blocks :global(p) { margin:0 0 .55rem; }
+.activity { margin:2.15rem 0; padding:1.08rem 0 1.2rem; border-top:1px solid #b6c4b6; border-bottom:1px solid #e2e7df; }
+.activityLabel { font-size:.87rem; color:#355e44; }
+.activityBody { padding:0; }
+.example { margin:1.8rem 0; border-left:2px solid #b5c6b3; padding:.1rem 0 .1rem 1.1rem; }
+.keyIdea { margin:2.2rem 0 1.3rem; }
+.media { margin:2rem 0 1.7rem; }
+.media img { max-height:560px; object-fit:contain; }
+.media figcaption { color:#64776b; font-size:.78rem; }
+.tableWrap { margin:1.5rem 0; }
+.previewPaper { max-width:760px; padding:clamp(26px,5vw,58px); }
+.previewPaper h1 { letter-spacing:-.025em; font-weight:600; }
+.premiumShell { background:#f2f2ee !important; color:#25352a; }
+.premiumPage { background:#f2f2ee !important; }
+.premiumHero { margin:0 auto 17px; padding:0 2px; align-items:center; }
+.premiumHero :global(h1) { font:600 clamp(25px,3vw,36px)/1.16 Georgia,"Times New Roman",serif; letter-spacing:-.035em; color:#243e2c; margin:0; }
+.premiumHero :global(p) { color:#58705e; }
+.premiumPaper { border-radius:2px; border-color:#d6dcd3; box-shadow:0 3px 14px rgba(30,45,33,.075); }
+.premiumPaper :global(h2) { font-family:Georgia,"Times New Roman",serif; letter-spacing:-.022em; font-size:clamp(1.65rem,2.8vw,2.2rem); font-weight:600; color:#243e2c; }
+.premiumPaper :global([class*="articleHead"]) { border-bottom:0; padding-bottom:10px; }
+.premiumPaper :global([class*="goal"]) { border:0; background:transparent; border-radius:0; padding:0; margin:14px 0 0; }
+.premiumPaper :global([class*="goalLabel"]) { font-size:.72rem; color:#58715e; }
+.premiumPaper :global([class*="lessonPager"]) { border-top:1px solid #e7ebe3; margin-top:26px; padding-top:20px; }
+.premiumPaper :global([class*="pagerButton"]) { border-radius:3px; }
+.premiumChooser { margin:0 0 13px; }
+.premiumChooser :global(summary) { cursor:pointer; }
+.premiumHeader { position:sticky; top:0; z-index:40; background:rgba(255,255,255,.97); border-bottom:1px solid #e1e5dd; }
+.premiumHeaderBar { height:52px; max-width:930px; margin:auto; padding:0 12px; display:grid; grid-template-columns:40px minmax(0,1fr) auto auto; align-items:center; gap:7px; }
+.premiumTitle { font:600 .88rem/1.4 Inter,system-ui,sans-serif; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; color:#304d38; }
+.premiumTool { min-height:40px; min-width:40px; border:1px solid #d7dfd5; background:#fff; border-radius:5px; color:#31553d; padding:7px 10px; cursor:pointer; font:600 .78rem Inter,system-ui,sans-serif; }
+.premiumTool:focus-visible,.premiumChooser :global(button:focus-visible) { outline:3px solid #7eae86; outline-offset:2px; }
+.premiumTool:hover { background:#f0f5f0; }
+.premiumBreadcrumbs { margin:11px 0 14px; }
+@media(max-width:700px) {
+  .book { font-size:1.04rem; line-height:1.72; }
+  .premiumHero { margin-bottom:12px; }
+  .premiumPaper { border-left:0; border-right:0; box-shadow:0 2px 6px rgba(30,45,33,.05); }
+  .premiumHeaderBar { height:48px; }
+  .previewPaper { padding:20px 18px; }
+  .media img { max-height:420px; }
+}
+@media(prefers-reduced-motion:reduce) { .premiumShell *, .premiumShell *::before, .premiumShell *::after { scroll-behavior:auto!important; } }
