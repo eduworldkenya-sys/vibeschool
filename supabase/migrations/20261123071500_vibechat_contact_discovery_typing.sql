@@ -248,47 +248,6 @@ create policy vibechat_child_message_read_integrity on public.vc_messages
         or private.vc_user_is_thread_participant(thread.id))
   ));
 
--- Revoke the legacy ability to spoof another sender or post after leaving.
--- This restrictive INSERT policy cannot grant access to an unauthorized user.
-drop policy if exists vibechat_member_sender_integrity on public.vc_messages;
-create policy vibechat_member_sender_integrity on public.vc_messages
-  as restrictive for insert to authenticated
-  with check (sender_id=auth.uid() and exists (
-    select 1 from public.vc_participants member
-    where member.thread_id=vc_messages.thread_id
-      and member.profile_id=auth.uid() and member.left_at is null
-  ) and not private.vibechat_room_blocked('vc',vc_messages.thread_id));
-
--- Production inspection on 2026-11-23 found zero case-insensitive collisions.
--- Preserve one canonical VibeChat ID regardless of mixed case.
-create unique index if not exists profiles_vibechat_id_casefold_unique
-  on public.profiles (lower(vc_id)) where vc_id is not null;
-
--- Only the two participants can see an invitation; no user directory table is exposed.
--- access: service-only public.vibechat_contact_requests
--- authorization-test: public.vibechat_contact_requests; scripts/test-vibechat-contact-discovery.mjs
--- Owner-scoped RPCs perform all reads/writes; direct client table privileges are revoked.
-create table if not exists public.vibechat_contact_requests (
-  id uuid primary key default gen_random_uuid(),
-  requester_id uuid not null references public.profiles(id) on delete cascade,
-  recipient_id uuid not null references public.profiles(id) on delete cascade,
-  status text not null default 'pending' check (status in ('pending','accepted','declined')),
-  thread_id uuid null references public.vc_threads(id) on delete set null,
-  created_at timestamptz not null default now(),
-  responded_at timestamptz,
-  constraint vibechat_contact_distinct_users check (requester_id <> recipient_id)
-);
-create unique index if not exists vibechat_contact_pair_once
-  on public.vibechat_contact_requests (least(requester_id, recipient_id), greatest(requester_id, recipient_id));
-create index if not exists vibechat_incoming_requests
-  on public.vibechat_contact_requests (recipient_id, status, created_at desc);
-create index if not exists vibechat_outgoing_requests
-  on public.vibechat_contact_requests (requester_id, created_at desc);
-alter table public.vibechat_contact_requests enable row level security;
-revoke all on public.vibechat_contact_requests from public, anon, authenticated;
--- No generic SELECT/INSERT policies: verified, scoped RPCs are the only API.
-
-
 -- access: service-only public.vibechat_blocks
 -- authorization-test: public.vibechat_blocks; scripts/test-vibechat-contact-discovery.mjs
 create table if not exists public.vibechat_blocks (
@@ -368,6 +327,49 @@ revoke all on function private.vibechat_room_blocked(text,uuid)
   from public,anon;
 grant execute on function private.vibechat_room_blocked(text,uuid)
   to authenticated;
+
+-- Revoke the legacy ability to spoof another sender or post after leaving.
+-- This restrictive INSERT policy cannot grant access to an unauthorized user.
+drop policy if exists vibechat_member_sender_integrity on public.vc_messages;
+create policy vibechat_member_sender_integrity on public.vc_messages
+  as restrictive for insert to authenticated
+  with check (sender_id=auth.uid() and exists (
+    select 1 from public.vc_participants member
+    where member.thread_id=vc_messages.thread_id
+      and member.profile_id=auth.uid() and member.left_at is null
+  ) and not private.vibechat_room_blocked('vc',vc_messages.thread_id));
+
+-- Production inspection on 2026-11-23 found zero case-insensitive collisions.
+-- Preserve one canonical VibeChat ID regardless of mixed case.
+create unique index if not exists profiles_vibechat_id_casefold_unique
+  on public.profiles (lower(vc_id)) where vc_id is not null;
+
+-- Only the two participants can see an invitation; no user directory table is exposed.
+-- access: service-only public.vibechat_contact_requests
+-- authorization-test: public.vibechat_contact_requests; scripts/test-vibechat-contact-discovery.mjs
+-- Owner-scoped RPCs perform all reads/writes; direct client table privileges are revoked.
+create table if not exists public.vibechat_contact_requests (
+  id uuid primary key default gen_random_uuid(),
+  requester_id uuid not null references public.profiles(id) on delete cascade,
+  recipient_id uuid not null references public.profiles(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending','accepted','declined')),
+  thread_id uuid null references public.vc_threads(id) on delete set null,
+  created_at timestamptz not null default now(),
+  responded_at timestamptz,
+  constraint vibechat_contact_distinct_users check (requester_id <> recipient_id)
+);
+create unique index if not exists vibechat_contact_pair_once
+  on public.vibechat_contact_requests (least(requester_id, recipient_id), greatest(requester_id, recipient_id));
+create index if not exists vibechat_incoming_requests
+  on public.vibechat_contact_requests (recipient_id, status, created_at desc);
+create index if not exists vibechat_outgoing_requests
+  on public.vibechat_contact_requests (requester_id, created_at desc);
+alter table public.vibechat_contact_requests enable row level security;
+revoke all on public.vibechat_contact_requests from public, anon, authenticated;
+-- No generic SELECT/INSERT policies: verified, scoped RPCs are the only API.
+
+
+
 
 create or replace function public.vibechat_thread_safety(p_kind text,p_room uuid)
 returns jsonb language plpgsql stable security definer set search_path='' as $vcsafety$
