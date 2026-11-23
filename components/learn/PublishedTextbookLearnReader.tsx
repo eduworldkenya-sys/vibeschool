@@ -5,6 +5,7 @@ import styles from './PublishedTextbookEditorial.module.css'
 import type { ContentBlock } from '@/lib/publishTypes'
 import UniversalLearnReader, { type UniversalLearnSection } from '@/components/learn/UniversalLearnReader'
 import { VisualRichText } from '@/components/learn/VisualLearningAsset'
+import { TextbookSafeInlineHtml } from '@/components/learn/TextbookSafeInlineHtml'
 import { BiologyInteractiveBlock } from '@/components/global/publish/BiologyInteractiveBlock'
 
 type ReaderSection = UniversalLearnSection & { sourceBlocks: ContentBlock[] }
@@ -94,6 +95,9 @@ function PublishedBlock({ block }: { block: ContentBlock }) {
     <VisualRichText body={text}/>
   </section>
   if (block.type === 'quote') return <blockquote className={styles.quote}><VisualRichText body={text}/></blockquote>
+  if (block.type === 'paragraph' && /<(?:p|strong|b|em|i|u|s|del|code|sub|sup|br)\b/i.test(block.content)) {
+    return <TextbookSafeInlineHtml content={block.content} />
+  }
   return <VisualRichText body={text}/>
 }
 
