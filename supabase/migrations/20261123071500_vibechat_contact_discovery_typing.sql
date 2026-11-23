@@ -278,6 +278,148 @@ alter table public.vibechat_contact_requests enable row level security;
 revoke all on public.vibechat_contact_requests from public, anon, authenticated;
 -- No generic SELECT/INSERT policies: verified, scoped RPCs are the only API.
 
+
+-- access: service-only public.vibechat_blocks
+-- authorization-test: public.vibechat_blocks; scripts/test-vibechat-contact-discovery.mjs
+create table if not exists public.vibechat_blocks (
+  blocker_id uuid not null references public.profiles(id) on delete cascade,
+  blocked_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key(blocker_id,blocked_id),
+  constraint vibechat_block_nonself check(blocker_id<>blocked_id)
+);
+alter table public.vibechat_blocks enable row level security;
+revoke all on public.vibechat_blocks from public,anon,authenticated;
+
+-- access: service-only public.vibechat_reports
+-- authorization-test: public.vibechat_reports; scripts/test-vibechat-contact-discovery.mjs
+create table if not exists public.vibechat_reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_id uuid not null references public.profiles(id) on delete cascade,
+  room_kind text not null check(room_kind in ('vc','tuition')),
+  room_id uuid not null,
+  reason text not null check(reason in ('spam','harassment','safety','other')),
+  created_at timestamptz not null default now(),
+  review_status text not null default 'pending' check(review_status in ('pending','reviewed','closed'))
+);
+create index if not exists vibechat_pending_reports
+  on public.vibechat_reports(review_status,created_at desc);
+alter table public.vibechat_reports enable row level security;
+revoke all on public.vibechat_reports from public,anon,authenticated;
+
+create or replace function private.vibechat_room_peer(p_kind text,p_room uuid)
+returns uuid language plpgsql stable security definer set search_path='' as $vcpeer$
+declare v_peer uuid; v_tutor uuid; v_learner uuid;
+begin
+  if auth.uid() is null or p_room is null then return null; end if;
+  if p_kind='vc' then
+    if not private.vc_user_is_thread_participant(p_room) then return null; end if;
+    -- Only two-member direct rooms expose a peer; group rooms cannot be blocked
+    -- using this one-to-one safety contract.
+    if not exists(select 1 from public.vc_threads t where t.id=p_room and t.type='direct')
+      or (select count(*) from public.vc_participants p
+          where p.thread_id=p_room and p.left_at is null)<>2
+    then return null; end if;
+    select p.profile_id into v_peer from public.vc_participants p
+      where p.thread_id=p_room and p.left_at is null and p.profile_id<>auth.uid()
+      limit 1;
+    return v_peer;
+  elsif p_kind='tuition' then
+    select tutor_id,student_profile_id into v_tutor,v_learner
+      from public.vibetutor_private_access(p_room) limit 1;
+    if v_tutor=auth.uid() then return v_learner; end if;
+    if v_learner=auth.uid() then return v_tutor; end if;
+  end if;
+  return null;
+end;
+$vcpeer$;
+revoke all on function private.vibechat_room_peer(text,uuid) from public,anon;
+grant execute on function private.vibechat_room_peer(text,uuid) to authenticated;
+
+create or replace function private.vibechat_pair_blocked(p_a uuid,p_b uuid)
+returns boolean language sql stable security definer set search_path='' as $vcblocked$
+  select p_a is not null and p_b is not null and exists(
+    select 1 from public.vibechat_blocks b
+    where (b.blocker_id=p_a and b.blocked_id=p_b)
+       or (b.blocker_id=p_b and b.blocked_id=p_a)
+  )
+$vcblocked$;
+revoke all on function private.vibechat_pair_blocked(uuid,uuid)
+  from public,anon;
+grant execute on function private.vibechat_pair_blocked(uuid,uuid)
+  to authenticated;
+
+create or replace function private.vibechat_room_blocked(p_kind text,p_room uuid)
+returns boolean language sql stable security definer set search_path='' as $vcroomblocked$
+  select private.vibechat_pair_blocked(
+    auth.uid(),private.vibechat_room_peer(p_kind,p_room))
+$vcroomblocked$;
+revoke all on function private.vibechat_room_blocked(text,uuid)
+  from public,anon;
+grant execute on function private.vibechat_room_blocked(text,uuid)
+  to authenticated;
+
+create or replace function public.vibechat_thread_safety(p_kind text,p_room uuid)
+returns jsonb language plpgsql stable security definer set search_path='' as $vcsafety$
+declare v_peer uuid; v_by_me boolean;
+begin
+  v_peer:=private.vibechat_room_peer(p_kind,p_room);
+  if v_peer is null then raise exception 'Conversation not available' using errcode='42501'; end if;
+  select exists(select 1 from public.vibechat_blocks b
+    where b.blocker_id=auth.uid() and b.blocked_id=v_peer) into v_by_me;
+  return jsonb_build_object(
+    'blocked',private.vibechat_pair_blocked(auth.uid(),v_peer),
+    'blocked_by_me',v_by_me);
+end;
+$vcsafety$;
+revoke all on function public.vibechat_thread_safety(text,uuid)
+  from public,anon,authenticated;
+grant execute on function public.vibechat_thread_safety(text,uuid) to authenticated;
+
+create or replace function public.vibechat_block_thread(
+  p_kind text,p_room uuid,p_block boolean
+) returns boolean language plpgsql volatile security definer set search_path='' as $vcblock$
+declare v_peer uuid;
+begin
+  v_peer:=private.vibechat_room_peer(p_kind,p_room);
+  if v_peer is null then raise exception 'Conversation not available' using errcode='42501'; end if;
+  if coalesce(p_block,false) then
+    insert into public.vibechat_blocks(blocker_id,blocked_id)
+      values(auth.uid(),v_peer) on conflict do nothing;
+  else
+    delete from public.vibechat_blocks b
+      where b.blocker_id=auth.uid() and b.blocked_id=v_peer;
+  end if;
+  return true;
+end;
+$vcblock$;
+revoke all on function public.vibechat_block_thread(text,uuid,boolean)
+  from public,anon,authenticated;
+grant execute on function public.vibechat_block_thread(text,uuid,boolean)
+  to authenticated;
+
+create or replace function public.vibechat_report_thread(
+  p_kind text,p_room uuid,p_reason text
+) returns uuid language plpgsql volatile security definer set search_path='' as $vcreport$
+declare v_peer uuid; v_id uuid;
+begin
+  v_peer:=private.vibechat_room_peer(p_kind,p_room);
+  if v_peer is null then raise exception 'Conversation not available' using errcode='42501'; end if;
+  if p_reason not in ('spam','harassment','safety','other') or p_reason is null
+  then raise exception 'Invalid report reason' using errcode='22023'; end if;
+  if (select count(*) from public.vibechat_reports r
+    where r.reporter_id=auth.uid() and r.created_at>now()-interval '1 day')>=10
+  then raise exception 'Report limit reached' using errcode='42501'; end if;
+  insert into public.vibechat_reports(reporter_id,room_kind,room_id,reason)
+    values(auth.uid(),p_kind,p_room,p_reason) returning id into v_id;
+  return v_id;
+end;
+$vcreport$;
+revoke all on function public.vibechat_report_thread(text,uuid,text)
+  from public,anon,authenticated;
+grant execute on function public.vibechat_report_thread(text,uuid,text)
+  to authenticated;
+
 create or replace function private.vibechat_contact_allowed(p_sender uuid, p_target uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
   select exists (
