@@ -213,8 +213,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <OfflineBar />
           {VIBETWIN_ENABLED && <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>}
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} creditsLoading={creditsLoading} />
-          <main id="teacher-main" data-studio-view={VIBETWIN_ENABLED && (/^\/teacher\/classhub\/[^/]+\/student\/[^/]+\/?$/.test(pathname ?? "") ? "learner" : pathname === "/teacher/assessment" ? "assessment" : undefined} tabIndex={-1} className="teacher-content teacher-light-surface">{children}</main>
-          {/^\/teacher\/classhub\/[^/]+\/student\/[^/]+\/?$/.test(pathname ?? "")
+          <main id="teacher-main" data-studio-view={/^\/teacher\/classhub\/[^/]+\/student\/[^/]+\/?$/.test(pathname ?? "") ? "learner" : pathname === "/teacher/assessment" ? "assessment" : undefined} tabIndex={-1} className="teacher-content teacher-light-surface">{children}</main>
+          {VIBETWIN_ENABLED && (/^\/teacher\/classhub\/[^/]+\/student\/[^/]+\/?$/.test(pathname ?? "")
             ? <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 14px 100px' }}><button type="button" className="teacher-icon-button" style={{ width: 'auto', padding: '0 14px', gap: 8 }} onClick={() => setTwinOpen(true)}><Sparkles size={18}/> Ask Twin{twinUnread > 0 ? ` · ${twinUnread} updates` : ''}</button></div>
             : <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />)}
           <TeacherNavigation />
