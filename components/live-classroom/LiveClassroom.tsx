@@ -670,7 +670,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const participants=room?.participants??[]
   const subjects=['Mathematics','English','Kiswahili','Science','Creative Arts','CRE','IRE','Social Studies','Agriculture','Pre-Technical Studies'] as const
   const grades=['PP1','PP2',...Array.from({length:9},(_,i)=>'Grade '+(i+1)),...Array.from({length:4},(_,i)=>'Form '+(i+1))]
-  const matchLabel=(title:string,label:string)=>new RegExp('(^|[^a-z0-9])'+label.replace(/[.*+?^$\{\}()|[\]\\]/g,'\\  const visibleRooms=rooms.filter(item=>teacher||((scope==='all'||item.mode===scope)&&(!search.trim()||item.title.toLowerCase().includes(search.trim().toLowerCase())))).sort((a,b)=>Number(b.id===sharedId)-Number(a.id===sharedId))')+'(?=$|[^a-z0-9])','i').test(title)
+  const matchLabel=(title:string,label:string)=>title.toLocaleLowerCase('en').split(/[^a-z0-9]+/).join(' ').includes(label.toLocaleLowerCase('en'))
   const linkedRooms=rooms.filter(item=>item.mode!=='open'&&item.canJoin)
   const visibleRooms=rooms.filter(item=>teacher||(
     (scope==='all'||item.mode===scope)
