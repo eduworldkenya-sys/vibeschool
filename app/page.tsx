@@ -44,7 +44,7 @@ export default function HomePage() {
           <h1>Learn. Teach. Share knowledge.</h1>
           <p className={styles.lead}>Discover knowledge, learn from educators and teach through one connected VibeSchool experience.</p>
           <div className={styles.actions}>
-            <TrackedLink className={styles.primary} href="/explore" event="public_home_explore_minis">Explore Mini Lessons</TrackedLink>
+            <Link className={styles.primary} href="/explore">Explore Mini Lessons</Link>
             <Link className={styles.secondary} href="/product">See how VibeSchool works</Link>
           </div>
           <div className={styles.heroTrust}>
