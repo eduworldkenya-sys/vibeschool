@@ -10,6 +10,7 @@ import SchoolDaySampleBuilder from '@/components/teacher/SchoolDaySampleBuilder'
 import { personalSchoolDayKey, parsePersonalSchoolDay, type PersonalSchoolDayPlan } from '@/lib/timetable/schoolDaySamples'
 import { isUpperPrimary, type SchoolPeriod } from '@/lib/timetable/periods'
 import { periodAppearance } from '@/lib/timetable/periodAppearance'
+import { subjectTone } from '@/lib/timetable/subjectColor'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
@@ -201,15 +202,14 @@ const SlotCard = React.memo(function SlotCard({
         alignItems:   'center',
         gap:          12,
         padding:      '13px 14px',
-        borderRadius: 14,
-        background:   isNow
-          ? 'var(--slot-now-bg, #f0fdf4)'
-          : 'var(--surface, #ffffff)',
+        borderRadius: 6,
+        background:   subjectTone(slot.subject).background,
         border: isNow
           ? `2px solid ${C.accent}`
           : isNext
           ? `1.5px dashed ${C.accent}`
           : `1px solid var(--border, ${C.border})`,
+        borderLeft: `4px solid ${subjectTone(slot.subject).border}`,
         cursor:   'pointer',
         position: 'relative',
         overflow: 'hidden',
@@ -239,7 +239,7 @@ const SlotCard = React.memo(function SlotCard({
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: subjectTone(slot.subject).foreground }}>
           {slot.subject}
           {slot.className
             ? <span style={{ color: C.textMuted, fontWeight: 500 }}> · {slot.className}</span>
@@ -883,6 +883,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null)
   const [schools, setSchools] = useState<Array<{id:string;name:string}>>([])
   const [schoolFilter, setSchoolFilter] = useState<string>('all')
+  const [classFilter, setClassFilter] = useState<string>('all')
+  const [subjectFilter, setSubjectFilter] = useState<string>('all')
+  const [searchText, setSearchText] = useState('')
+  const [showTimetableFilters, setShowTimetableFilters] = useState(false)
   const [calendarExceptions, setCalendarExceptions] = useState<Array<{id:string;school_id:string;exception_date:string;kind:string;label:string;suppress_ordinary_teaching:boolean}>>([])
   const [lastUndoSnapshotId, setLastUndoSnapshotId] = useState<string | null>(null)
   const [initialPlacement, setInitialPlacement] = useState<{dayOfWeek:number;startTime:string;endTime:string} | undefined>()
@@ -1223,9 +1227,21 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     [allSlots, schoolFilter]
   )
 
+  const displaySlots = useMemo(() => {
+    const term = searchText.trim().toLocaleLowerCase('en')
+    return visibleSlots.filter(slot =>
+      (classFilter === 'all' || slot.classId === classFilter) &&
+      (subjectFilter === 'all' || slot.subjectId === subjectFilter) &&
+      (!term || [slot.subject,slot.className,slot.grade,slot.room,slot.schoolName].some(value => (value ?? '').toLocaleLowerCase('en').includes(term)))
+    )
+  }, [visibleSlots, classFilter, subjectFilter, searchText])
+  const classChoices = useMemo(() => [...new Map(visibleSlots.map(slot => [slot.classId,{id:slot.classId,name:slot.className}])).values()].sort((a,b)=>a.name.localeCompare(b.name)), [visibleSlots])
+  const subjectChoices = useMemo(() => [...new Map(visibleSlots.map(slot => [slot.subjectId,{id:slot.subjectId,name:slot.subject}])).values()].sort((a,b)=>a.name.localeCompare(b.name)), [visibleSlots])
+  const hasDisplayFilters = classFilter !== 'all' || subjectFilter !== 'all' || searchText.trim().length > 0
+  const clearDisplayFilters = () => { setClassFilter('all'); setSubjectFilter('all'); setSearchText('') }
   const daySlots = useMemo(
-    () => visibleSlots.filter(s => s.dayOfWeek === activeDow && slotActiveOn(s, dateForDow(activeDow))),
-    [visibleSlots, activeDow, slotActiveOn, dateForDow]
+    () => displaySlots.filter(s => s.dayOfWeek === activeDow && slotActiveOn(s, dateForDow(activeDow))),
+    [displaySlots, activeDow, slotActiveOn, dateForDow]
   )
 
   const tuitionWeek = useMemo(() => tuitionLessonsBetween(tuitionLessons, weekStart, nairobiDateAdd(weekStart, 6)), [tuitionLessons, weekStart])
@@ -1260,9 +1276,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // are one lesson per date, not two.
   const renderedWeekSlots = useMemo(
     () => DAYS.flatMap(day =>
-      visibleSlots.filter(s => s.dayOfWeek === day.dow && slotActiveOn(s, dateForDow(day.dow)))
+      displaySlots.filter(s => s.dayOfWeek === day.dow && slotActiveOn(s, dateForDow(day.dow)))
     ),
-    [visibleSlots, slotActiveOn, dateForDow]
+    [displaySlots, slotActiveOn, dateForDow]
   )
   const totalLessons  = renderedWeekSlots.length
   const uniqueClasses = useMemo(
@@ -1659,7 +1675,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}
       >
         {DAYS.map(d => {
-          const schoolCount = visibleSlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
+          const schoolCount = displaySlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
           const tuitionCount = tuitionWeek.filter(lesson => tuitionLocalDate(lesson.starts_at) === dateForDow(d.dow) && lesson.status === 'scheduled').length
           const count = (scheduleContext === 'tuition' ? 0 : schoolCount) + (scheduleContext === 'school' ? 0 : tuitionCount)
           const isActive = activeDow === d.dow
@@ -1747,6 +1763,46 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         </div>
       )}
 
+      <div className="no-print vs-timetable-filterbar" aria-label="Find timetable lessons" style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:10}}>
+        <label style={{display:'flex',flex:'1 1 190px',minWidth:160,alignItems:'center',gap:8,border:'1px solid var(--border-color,#e5e7eb)',background:'var(--surface,#fff)',borderRadius:6,padding:'0 10px'}}>
+          <span aria-hidden="true" style={{color:C.textMuted}}>⌕</span>
+          <input type="search" aria-label="Search lessons by subject, class or room" placeholder="Search subject, class, room" value={searchText} onChange={e=>setSearchText(e.target.value)} style={{width:'100%',padding:'10px 0',border:0,background:'transparent',font: 'inherit',fontSize:12,color:C.textPrimary,outlineOffset:2}} />
+        </label>
+        <button type="button" aria-expanded={showTimetableFilters} aria-controls="timetable-filter-options" onClick={()=>setShowTimetableFilters(value=>!value)}
+          style={{border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,padding:'10px 12px',background:'var(--surface,#fff)',color:C.textPrimary,cursor:'pointer',fontSize:12}}>
+          Filters{hasDisplayFilters?' · Active':''}
+        </button>
+        <button type="button" onClick={()=>router.push('/teacher/timetable/setup')}
+          style={{border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,padding:'10px 12px',background:'var(--surface,#fff)',color:C.textPrimary,cursor:'pointer',fontSize:12}}>Setup</button>
+        <button type="button" disabled={!canAddSlot} onClick={()=>setShowAddSlot(true)}
+          style={{border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,padding:'10px 12px',background:'var(--surface,#fff)',color:C.textPrimary,cursor:canAddSlot?'pointer':'not-allowed',fontSize:12}}>+ Lesson</button>
+      </div>
+      {showTimetableFilters && <div id="timetable-filter-options" className="no-print" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10,padding:10,border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6}}>
+        <label style={{fontSize:12,display:'grid',gap:4,minWidth:150,flex:'1 1 160px'}}>Class
+          <select aria-label="Filter timetable by class" value={classFilter} onChange={e=>setClassFilter(e.target.value)} style={{padding:9,border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,background:'var(--surface,#fff)',color:C.textPrimary}}>
+            <option value="all">All classes</option>{classChoices.map(item=><option value={item.id} key={item.id}>{item.name}</option>)}
+          </select>
+        </label>
+        <label style={{fontSize:12,display:'grid',gap:4,minWidth:150,flex:'1 1 160px'}}>Subject
+          <select aria-label="Filter timetable by subject" value={subjectFilter} onChange={e=>setSubjectFilter(e.target.value)} style={{padding:9,border:'1px solid var(--border-color,#e5e7eb)',borderRadius:6,background:'var(--surface,#fff)',color:C.textPrimary}}>
+            <option value="all">All subjects</option>{subjectChoices.map(item=><option value={item.id} key={item.id}>{item.name}</option>)}
+          </select>
+        </label>
+        <button type="button" onClick={clearDisplayFilters} style={{alignSelf:'end',border:'1px solid var(--border-color,#e5e7eb)',background:'transparent',borderRadius:6,padding:'10px 12px',color:C.textPrimary,cursor:'pointer'}}>Clear</button>
+      </div>}
+      {hasDisplayFilters && <div className="no-print" role="status" style={{fontSize:12,color:C.textMuted,marginBottom:9}}>
+        {renderedWeekSlots.length} matching school lesson{renderedWeekSlots.length===1?'':'s'} in this week
+        <button type="button" onClick={clearDisplayFilters} style={{border:0,background:'transparent',textDecoration:'underline',color:C.textPrimary,marginLeft:8,cursor:'pointer'}}>Clear filters</button>
+      </div>}
+      <div className="no-print" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:10}}>
+        <div role="group" aria-label="Navigate timetable week" style={{display:'flex',alignItems:'center',gap:6}}>
+          <button type="button" aria-label="Previous week" onClick={()=>setWeekStart(value=>nairobiDateAdd(value,-7))} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>‹</button>
+          <span style={{fontVariantNumeric:'tabular-nums',fontSize:12,fontWeight:650,padding:'0 5px'}}>{weekStart} — {nairobiDateAdd(weekStart,6)}</span>
+          <button type="button" aria-label="Next week" onClick={()=>setWeekStart(value=>nairobiDateAdd(value,7))} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>›</button>
+          <button type="button" onClick={()=>{setWeekStart(nairobiWeekStart());setActiveDow(nairobiDayOfWeek());chooseView('day')}} className="vs-tool-item" style={{width:'auto',border:'1px solid var(--border-color,#e5e7eb)'}}>Today</button>
+        </div>
+        <span style={{fontSize:11,color:C.textMuted}}>{view==='insights'?'Select an allocation to see lessons':'Select any lesson to open its tools'}</span>
+      </div>
       <div className="no-print" role="group" aria-label="Timetable view" style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:10,padding:'8px 10px',border:'1px solid var(--border-color,#e5e7eb)',borderRadius:8,background:'var(--surface,#fff)' }}>
         <div style={{display:'flex',gap:6,alignItems:'center'}}>
           <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Today</Btn>
@@ -1828,13 +1884,19 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             </div>)}
           </div>
           <h3 style={{fontSize:13,margin:'18px 0 8px'}}>Subject allocations</h3>
+          <p style={{fontSize:12,color:C.textMuted,margin:'0 0 8px'}}>Select a subject to filter the weekly calendar. Unknown targets require school allocation setup.</p>
           {weeklyLoadError ? <p role="alert" style={{fontSize:12,color:C.textMuted}}>Cannot verify weekly allocations. Use Retry check above after the source is available.</p> :
           weeklyLoadRows.length === 0 ? <p style={{fontSize:12,color:C.textMuted}}>No verified teacher-class subject allocation records returned.</p> :
           <div style={{overflowX:'auto'}}>
             <table className="vs-timetable-allocation-table">
               <thead><tr><th>Class / subject</th><th>Target</th><th>Scheduled</th><th>Status</th></tr></thead>
               <tbody>{weeklyLoadRows.map(row => <tr key={row.classId + ':' + row.subjectId}>
-                <td>{row.className}{row.stream ? ' ' + row.stream : ''} · {row.subjectName}</td>
+                <td><button type="button" aria-label={`Show ${row.subjectName} for ${row.className} ${row.stream ?? ''} in timetable`}
+                  onClick={()=>{ const matching=visibleSlots.find(slot=>slot.classId===row.classId && slot.subjectId===row.subjectId); if(matching) setSchoolFilter(matching.schoolId); setClassFilter(row.classId);setSubjectFilter(row.subjectId);setSearchText('');chooseView('week') }}
+                  style={{display:'flex',alignItems:'center',gap:8,background:'transparent',border:0,padding:0,textAlign:'left',color:C.textPrimary,cursor:'pointer',font:'inherit',textDecoration:'underline',textUnderlineOffset:3}}>
+                  <span aria-hidden="true" style={{width:9,height:9,flexShrink:0,borderRadius:2,background:subjectTone(row.subjectName).border}} />
+                  {row.className}{row.stream ? ' ' + row.stream : ''} · {row.subjectName}
+                </button></td>
                 <td>{row.lessonsPerWeek ?? 'Unknown'}</td><td>{row.scheduledCount}</td>
                 <td><strong style={{color:row.status === 'OK'?'#247354':row.status === 'NO_TARGET'?C.textMuted:'#a8640b'}}>{row.status === 'OK'?'Matched':row.status === 'NO_TARGET'?'No target':row.status === 'UNDER'?'Under':row.status === 'OVER'?'Over':'Not scheduled'}</strong></td>
               </tr>)}</tbody>
@@ -1850,8 +1912,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         </div>
       )}
       {view === 'week' && scheduleContext !== 'tuition' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
-        slots={visibleSlots} blocks={schoolFilter !== 'all' ? (schoolBlocks[schoolFilter] ?? []) : dayBlocks} dateForDow={dateForDow}
-        onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(visibleSlots.find(slot => slot.id === s.id) ?? null) }}
+        slots={displaySlots} blocks={schoolFilter !== 'all' ? (schoolBlocks[schoolFilter] ?? []) : dayBlocks} dateForDow={dateForDow}
+        onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(displaySlots.find(slot => slot.id === s.id) ?? null) }}
         onAdd={canAddSlot && !blocksError && (schoolFilter === 'all' || schoolFilter === activeSchoolId) ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
       />}
       {view === 'week' && scheduleContext !== 'school' && (
