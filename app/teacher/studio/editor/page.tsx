@@ -15,6 +15,8 @@ export default function ContentStudioEditorPage() {
   const rawFormat = search.get('format')
   const format: PublicationFormat = rawFormat === 'ebook' ? 'ebook' : 'vibetextbook'
   const publicationId = search.get('publication') ?? undefined
+  const requestedFreshId = search.get('fresh')
+  const freshDraftId = !publicationId && requestedFreshId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedFreshId) ? requestedFreshId : undefined
 
   useEffect(() => {
     const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
@@ -28,5 +30,5 @@ export default function ContentStudioEditorPage() {
   }, [router])
 
   if (!userId) return null
-  return <PublicationEditor authorId={userId} format={format} publicationId={publicationId} simpleMode publishingEnabled={canPublish} />
+  return <PublicationEditor authorId={userId} format={format} publicationId={publicationId} freshDraftId={freshDraftId} simpleMode publishingEnabled={canPublish} />
 }
