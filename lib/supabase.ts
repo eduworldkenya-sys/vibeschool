@@ -196,6 +196,7 @@ type LiveDatabase = Omit<Database, 'public'> & {
           review_state: 'published' | 'release_approved' | 'machine_reviewer_not_commissioned' | 'independent_machine_review_pending'
         }
       }
+      parent_start_child_thread: { Args: { p_student_id: string; p_staff_id: string; p_context_tag?: string }; Returns: string }
       vibechat_my_handle: { Args: Record<never, never>; Returns: string }
       vibechat_lookup_handle: { Args: { p_handle: string }; Returns: { handle: string; display_name: string; account_role: string; avatar_url: string | null }[] }
       vibechat_request_contact: { Args: { p_handle: string }; Returns: string }
