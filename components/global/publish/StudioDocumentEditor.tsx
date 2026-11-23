@@ -65,7 +65,7 @@ function asHtml(block: ContentBlock): string {
     if (/^<p(?:\s|>)/i.test(text) && /<\/p>\s*$/i.test(text) && (text.match(/<p(?:\s|>)/gi) ?? []).length === 1) {
       return text.replace(/^<p(?:\s[^>]*)?>/i, '<p data-studio-id="' + id + '">')
     }
-    return '<p data-studio-id="' + id + '">' + (/<[^>]+>/.test(text) ? text : escapeHtml(block.content)) + '</p>'
+    return '<p data-studio-id="' + id + '">' + (/<\/?(?:p|strong|b|em|i|u|s|del|code|br|sub|sup)\b/i.test(text) ? text : escapeHtml(block.content)) + '</p>'
   }
   if (block.type === 'heading1' || block.type === 'heading2' || block.type === 'heading3') {
     const level = Number(block.type.slice(-1))
