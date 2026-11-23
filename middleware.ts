@@ -1,4 +1,5 @@
 import { POST_SECONDARY_PUBLIC_ENABLED, isMutedPostSecondaryPublication, isGeneralStoryRoute } from '@/lib/learner/learning-levels'
+import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability'
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { AUTH_DASHBOARDS, requiredRoleForPath, roleCanVisit, safeInternalPath, pathnameOnly } from '@/lib/auth-routing'
@@ -16,6 +17,33 @@ export async function middleware(request: NextRequest) {
     canonical.protocol = 'https:'
     canonical.port = ''
     return NextResponse.redirect(canonical, 308)
+  }
+
+  // Owner-directed global VibeTwin pause: block even bookmarked routes and API calls.
+  // Redirect page visitors to their normal workspace, without revealing a Twin screen.
+  if (!VIBETWIN_ENABLED && (
+    /^\\/(?:student|teacher|parent|admin|hq)\\/twin(?:\\/|$)/i.test(pathname) ||
+    /^\\/api\\/(?:twin|student\\/twin|teacher\\/twin|parent\\/twin)(?:\\/|$)/i.test(pathname)
+  )) {
+    const headers = { 'Cache-Control': 'private, no-store' }
+    if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Not found' }, { status: 404, headers })
+    const target = request.nextUrl.clone()
+    target.pathname = pathname.startsWith('/student/') ? '/student' :
+      pathname.startsWith('/teacher/') ? '/teacher/pulse' :
+      pathname.startsWith('/parent/') ? '/parent' :
+      pathname.startsWith('/admin/') ? '/admin' : '/hq'
+    target.search = ''
+    const response = NextResponse.redirect(target, 307)
+    response.headers.set('Cache-Control', 'private, no-store')
+    return response
+  }
+  // Old teacher launch links must not reopen a muted VibeTwin drawer.
+  if (!VIBETWIN_ENABLED && request.nextUrl.searchParams.has('twin')) {
+    const target = request.nextUrl.clone()
+    target.searchParams.delete('twin')
+    const response = NextResponse.redirect(target, 307)
+    response.headers.set('Cache-Control', 'private, no-store')
+    return response
   }
 
   // Do not render or advertise retired public discovery/deep links while muted.
