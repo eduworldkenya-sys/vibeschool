@@ -490,7 +490,7 @@ export function PublicationEditor({ authorId, format, publicationId, freshDraftI
         maxWidth: simpleMode ? 900 : 680, margin: simpleMode ? '20px auto' : '0 auto',
         background: simpleMode ? SURF : 'transparent',
         border: simpleMode ? '1px solid ' + BORDER : 'none',
-        borderRadius: simpleMode ? 12 : 0,
+        borderRadius: 0,
         boxShadow: simpleMode ? '0 6px 26px rgba(15,23,42,.04)' : 'none',
         width: '100%', boxSizing: 'border-box',
       }}>
