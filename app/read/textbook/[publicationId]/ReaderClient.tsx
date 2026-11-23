@@ -8,7 +8,6 @@ import PublishedTextbookLearnReader from "@/components/learn/PublishedTextbookLe
 import{ReaderLearningSheet,ReaderNarrationMiniPlayer,type ReaderSheetMode}from"@/components/read/ReaderLearningSheet";
 import{useReaderNarrator}from"@/components/read/useReaderNarrator";
 import sheetStyles from"@/components/read/ReaderLearningSheet.module.css";
-import OfflineBookSaveButton from "@/components/read/OfflineBookSaveButton";
 import PlaceValuePreviewChart from "@/components/learn/PlaceValuePreviewChart";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -104,7 +103,6 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
           </nav>
         </details>}
         <div className={timeStyles.contentArea}>
-      {!focus&&<OfflineBookSaveButton publicPayload={initialPayload}/> }
       {active?<><article className={timeStyles.article+" "+paperStyles.squareArticle}><div className={timeStyles.articleHead}>
         <div className={timeStyles.readerToolbar}>
           <p className={timeStyles.articleNum}>{lessonActive?"Lesson 1":"Lesson "+(index+1)+" of "+chapters.length}</p>
