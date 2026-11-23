@@ -39,6 +39,10 @@ class Call{
   participants(){return this.people}
   async join(options){
     if(!options.token)throw Error('Missing auth token');
+    if(location.search.includes('failJoin=1')){
+      this.emit('error',{action:'error',errorMsg:'private opaque failure'})
+      throw Error('private opaque failure')
+    }
     const teacher=location.pathname==='/teacher'
     this.people.local.permissions.canSend=teacher?new Set(['audio']):false
     if(teacher&&!location.search.includes('solo=1'))this.people.remote={local:false,session_id:'other',user_id:'${learnerId}',
@@ -217,6 +221,15 @@ try{
   })
   await l.getByRole('button',{name:'Muted'}).waitFor()
   assert.equal(await l.evaluate(()=>window.__voiceCall.localAudio()),false)
+  // Reproduce the real Android screenshot: Daily fatal error while still joining.
+  // The raw provider message must stay private and the mic must remain off.
+  const failedJoin=await open('teacher',false,'?solo=1&failJoin=1')
+  await failedJoin.getByRole('button',{name:'Join audio'}).click()
+  await failedJoin.getByRole('alert').getByText('Daily audio could not connect. Retry; if it keeps failing, try another network.').waitFor()
+  assert.equal(await failedJoin.getByRole('button',{name:'Mic off'}).isDisabled(),true)
+  assert.doesNotMatch(await failedJoin.getByRole('alert').textContent(),/private opaque failure/)
+  await new Promise(ok=>setTimeout(ok,100))
+  assert.deepEqual(diagnostics.at(-1).diagnostic,{stage:'joining',code:'unknown',hint:'unknown'})
   assert.deepEqual(errors,[])
   // Auth revocation on renewal must not silently restore existing media.
   allowed=false
