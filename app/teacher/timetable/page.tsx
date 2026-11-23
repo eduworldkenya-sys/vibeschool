@@ -1479,7 +1479,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       <section className="vs-v3-workspace no-print" aria-label="Timetable workspace">
         <div className="vs-v3-titleline">
           <div className="vs-v3-brand"><span className="vs-v3-brand-icon" aria-hidden="true">▦</span>
-            <div><h1>Timetable</h1><span>${schools.find(school=>school.id===activeSchoolId)?.name ?? 'Teacher timetable'}</span></div>
+            <div><h1>Timetable</h1><span>{schools.find(school=>school.id===activeSchoolId)?.name ?? 'Teacher timetable'}</span></div>
           </div>
           <div className="vs-v3-topactions">
             <button type="button" className="vs-v3-button" onClick={()=>router.push('/teacher/timetable/setup')}>⚙ Setup</button>
