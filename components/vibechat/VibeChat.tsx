@@ -39,6 +39,7 @@ export default function VibeChat() {
   const [uid, setUid] = useState('')
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
   const [role, setRole] = useState('')
+  const [schoolMessagingAvailable, setSchoolMessagingAvailable] = useState(false)
   const [chats, setChats] = useState<Chat[]>([])
   const [notices, setNotices] = useState<Notice[]>([])
   const [active, setActive] = useState<string | null>(requestedChat)
@@ -66,14 +67,17 @@ export default function VibeChat() {
       setUid(user.id)
       setSignedIn(true)
 
-      const [profile, participantResult, tutorResult, studentResult, noticeRecipients] = await Promise.all([
-        db.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+      const [profile, schoolMember, teacherProfile, participantResult, tutorResult, studentResult, noticeRecipients] = await Promise.all([
+        db.from('profiles').select('role,school_id').eq('id', user.id).maybeSingle(),
+        db.from('school_members').select('school_id').eq('profile_id', user.id).limit(1),
+        db.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
         db.from('vc_participants').select('thread_id,last_read_at').eq('profile_id', user.id).is('left_at', null),
         db.rpc('vibetutor_my_student_invites'),
         db.rpc('vibetutor_student_inbox'),
         db.from('vc_circular_recipients').select('id,circular_id,ack_at').eq('profile_id', user.id),
       ])
       setRole(profile.data?.role ?? '')
+      setSchoolMessagingAvailable(Boolean(profile.data?.school_id || schoolMember.data?.[0]?.school_id || teacherProfile.data?.school_id))
       if (participantResult.error) throw participantResult.error
 
       const threadIds = [...new Set((participantResult.data ?? []).map(p => p.thread_id).filter((id): id is string => Boolean(id)))]
@@ -250,7 +254,7 @@ export default function VibeChat() {
           <input className={styles.search} type="search" aria-label="Search conversations"
             placeholder="Search conversations" value={search} onChange={e=>setSearch(e.target.value)} />
           <div className={styles.actionRow}>
-            {role==='teacher'&&<Link className={styles.back} href="/teacher/vibeconnect">New school message</Link>}
+            {role==='teacher'&&schoolMessagingAvailable&&<Link className={styles.back} href="/teacher/vibeconnect">New school message</Link>}
             {role==='parent'&&<Link className={styles.back} href="/parent/messages">Message a teacher</Link>}
           </div>
           {loading?<p className={styles.empty} role="status">Loading conversations…</p>:
