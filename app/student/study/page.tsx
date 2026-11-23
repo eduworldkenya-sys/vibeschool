@@ -196,7 +196,7 @@ export default function LearnerStudyDesk() {
             </section>}
             <details className={styles.advancedBlock}><summary>More reading tools</summary><StudentLearningFeatureLinks mode="learn" grade={identity.className}/></details>
             <StudentIntro feature="learn-overview"><p>Open a lesson, continue reading or choose a learning activity.</p></StudentIntro>
-      {!moreLoaded?<p className={styles.card} role="status">Opening more learning…</p>:
+      {!loading && !workspace ? <p className={styles.card} role="status">Personal learning details are unavailable. You can still browse books and practise.</p> : !moreLoaded?<p className={styles.card} role="status">Opening more learning…</p>:
       <div className={compact.grid} style={{alignItems:'start'}}>
         <details className={compact.panel} aria-label="Assigned learning"><summary>Assigned reading</summary>
 
