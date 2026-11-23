@@ -17,7 +17,7 @@ const learnerRoom={...teacherRoom,teacher:false}
 const name=dailyVoiceName(id)
 const roomInfo={name,url:'https://education.daily.co/'+name,privacy:'private',config:{
   exp,eject_at_room_exp:true,max_participants:80,enforce_unique_user_ids:true,
-  enable_knocking:false,enable_recording:false,enable_screenshare:false,enable_chat:false,
+  enable_knocking:false,enable_screenshare:false,enable_chat:false,
   start_audio_off:true,start_video_off:true,enable_prejoin_ui:false,
 }}
 function response(status,body){return {status,ok:status>=200&&status<300,json:async()=>body}}
@@ -74,9 +74,9 @@ test('teacher gets bounded audio-only moderation; learner can only receive',asyn
   assert.deepEqual(teacher,{url:roomInfo.url,token:'signed-token',role:'teacher',participantId:actor,expiresAt:Math.floor(now/1000)+120})
   const tokenRequest=provider.calls.find(c=>c.path==='meeting-tokens').body.properties
   assert.equal(tokenRequest.is_owner,false)
-  assert.deepEqual(tokenRequest.permissions.canSend,['audio'])
+  assert.deepEqual(tokenRequest.permissions.canSend,['audio'],'Daily JS calls the microphone track audio')
   assert.deepEqual(tokenRequest.permissions.canAdmin,['participants'])
-  assert.equal(tokenRequest.enable_recording,false)
+  assert.equal(tokenRequest.enable_recording,undefined,'Daily meeting tokens must not send unsupported recording mode')
   assert.equal(tokenRequest.enable_screenshare,false)
   assert.equal(tokenRequest.start_video_off,true)
   assert.equal(tokenRequest.start_audio_off,true)
@@ -114,7 +114,7 @@ test('creates only a locked private audio room, rejects mismatched provider room
   assert.equal(create.properties.enforce_unique_user_ids,true)
   assert.equal(create.properties.start_audio_off,true)
   assert.equal(create.properties.start_video_off,true)
-  assert.equal(create.properties.enable_recording,false)
+  assert.equal(create.properties.enable_recording,undefined,'Daily room must not send unsupported recording mode')
   assert.equal(create.properties.enable_screenshare,false)
   assert.equal(create.properties.start_audio_off,true)
   assert.equal(create.properties.start_video_off,true)
