@@ -7,6 +7,7 @@ import BottomNav from "@/components/student/BottomNav";
 import StudentPlannerReminders from "@/components/student/StudentPlannerReminders";
 import OfflineBar from "@/components/student/OfflineBar";
 import TwinWorkspaceProvider from "@/components/student/VibeTwin/TwinWorkspaceProvider";
+import { VIBETWIN_ENABLED } from "@/lib/vibetwin-availability";
 import { ToastContext, ThemeContext } from "@/components/student/StudentUiContext";
 import { FeedbackSoundToggle } from "@/components/student/LearningFeedback";
 import { StudentProvider, useStudent } from "@/lib/student-context";
@@ -339,11 +340,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
         <div style={{ minHeight: "100dvh", background: "var(--vs-bg)" }}>
           <StudentProvider>
-            <TwinWorkspaceProvider>
-              <StudentShell>
-                {children}
-              </StudentShell>
-            </TwinWorkspaceProvider>
+            {VIBETWIN_ENABLED ? (
+              <TwinWorkspaceProvider><StudentShell>{children}</StudentShell></TwinWorkspaceProvider>
+            ) : (
+              <StudentShell>{children}</StudentShell>
+            )}
           </StudentProvider>
           {toast && <Toast msg={toast} />}
         </div>
