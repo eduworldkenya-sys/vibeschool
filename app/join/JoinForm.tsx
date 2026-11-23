@@ -2,7 +2,6 @@
 import Link from 'next/link'
 
 import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 import { useAuthAppearance } from '@/app/auth/useAuthAppearance'
@@ -11,10 +10,9 @@ type AdultRole = 'teacher' | 'parent'
 type AccessState = { role?: unknown; account_status?: unknown; is_anonymized?: unknown; reason_code?: unknown }
 type OnboardingState = { state?: unknown; destination?: unknown }
 
-export default function JoinForm({ initialRole }: { initialRole: AdultRole }) {
+export default function JoinForm({ initialRole, initialNext }: { initialRole: AdultRole; initialNext: string | null }) {
   const role = initialRole
-  const searchParams = useSearchParams()
-  const requestedDestination = safeInternalPath(searchParams.get('next'))
+  const requestedDestination = safeInternalPath(initialNext)
   const appearance = useAuthAppearance()
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
