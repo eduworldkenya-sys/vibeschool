@@ -1,0 +1,75 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8')
+const sql = read('supabase/migrations/20261123181007_live_lesson_evidence_bridge.sql')
+const review = read('components/live-classroom/LiveLessonReview.tsx')
+const live = read('components/live-classroom/LiveClassroom.tsx')
+const notes = read('app/teacher/lesson-notes/page.tsx')
+const packageJSON = JSON.parse(read('package.json'))
+
+test('Live record uses the canonical private sessions and lesson evidence', () => {
+  assert.match(sql, /alter table vibe_live\.sessions/)
+  assert.match(sql, /references public\.lesson_plans\(id\)/)
+  assert.match(sql, /references public\.teaching_occurrences\(id\)/)
+  assert.match(sql, /insert into public\.lesson_evidence/)
+  assert.match(sql, /lesson_id,class_id,teacher_id,student_id,evidence_type/)
+  assert.doesNotMatch(sql, /create table public\.live_lesson/)
+})
+
+test('Live RPC always validates actor, host rights, plan ownership and occurrence identity', () => {
+  assert.match(sql, /v_caller uuid := auth\.uid\(\)/)
+  assert.match(sql, /v_room\.teacher_id<>v_caller/)
+  assert.match(sql, /vibe_live\.host_allowed\(/)
+  assert.match(sql, /public\.teacher_can_access_class\(/)
+  assert.match(sql, /teacher_id=v_caller/)
+  assert.match(sql, /class_id=v_room\.class_id/)
+  assert.match(sql, /v_plan\.timetable_slot_id/)
+  assert.match(sql, /o\.occurrence_date=v_plan\.taught_date/)
+  assert.match(sql, /live_bridge_occurrence_mismatch/)
+  assert.match(sql, /lesson_evidence_occurrence_required/)
+  assert.match(sql, /lesson_evidence_occurrence_not_teachable/)
+  assert.match(sql, /v_occ\.unscheduled_plan_id is not null/)
+  assert.match(sql, /join public\.student_classes sc/)
+  assert.match(sql, /live_bridge_already_bound/)
+  assert.match(sql, /on conflict \(live_prompt_id,student_id\)/)
+  assert.match(sql, /revoke all on function public\.vibe_live_lesson_bridge/)
+  assert.match(sql, /grant execute on function public\.vibe_live_lesson_bridge[\s\S]*to authenticated;/)
+})
+
+test('Live observation is ungraded and has no authority over attendance or mastery', () => {
+  assert.match(sql, /v_room\.status<>'ended'/)
+  assert.match(sql, /join vibe_live\.participants/)
+  assert.match(sql, /join vibe_live\.responses/)
+  assert.match(sql, /where q\.session_id=v_room\.id/)
+  assert.doesNotMatch(sql, /insert into public\.attendance|update public\.attendance/i)
+  assert.doesNotMatch(sql, /update public\.teaching_occurrences|finalize_teaching_occurrence/i)
+  assert.doesNotMatch(sql, /\bscore\s*=|\bjudgement\s*=/i)
+  assert.match(review, /Live joins are not official attendance/)
+  assert.match(review, /Responses have no automatic score or mastery/)
+})
+
+test('Only teacher view binds and captures, and completion links to existing lesson notes', () => {
+  assert.match(live, /teacher&&room\.mode==='school'&&<LiveLessonReview/)
+  assert.match(live, /preparedPlanId=\{linkedPlan\?\.id\?\?null\}/)
+  assert.match(review, /p_action: action/)
+  assert.match(review, /action === 'bind' \? preparedPlanId : null/)
+  assert.match(review, /request\('capture'\)/)
+  assert.match(review, /roomStatus !== 'ended'/)
+  assert.match(review, /review\.captureAllowed/)
+  assert.match(review, /Start or finish the linked teaching occurrence/)
+  assert.match(review, /'\/teacher\/lesson-notes\?lessonPlanId='/)
+  assert.match(review, /'&teach=1'/)
+  assert.match(notes, /onClick=\{\(\) => \{ if\(liveKitUrl\) router\.push\(liveKitUrl\) \}\}/)
+  assert.match(notes, /if\(occurrence\?\.id\)kitParams\.set\('occurrenceId',occurrence\.id\)/)
+  assert.equal(typeof packageJSON.scripts['test:live-lesson-bridge'], 'string')
+  assert.match(packageJSON.scripts.validate, /npm run test:live-lesson-bridge/)
+})
+
+test('Migration is additive; rollback keeps teacher-approved evidence for audit', () => {
+  assert.match(sql, /add column if not exists lesson_plan_id/)
+  assert.match(sql, /add column if not exists live_prompt_id/)
+  assert.doesNotMatch(sql, /drop table|truncate|delete from public\.lesson_evidence/i)
+  assert.match(sql, /Rollback: revoke EXECUTE and drop function/)
+})

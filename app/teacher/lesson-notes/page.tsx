@@ -440,7 +440,7 @@ function LessonNotesInner() {
       </section>
 
       {plan.class_id && process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true" && (
-        <button type="button" onClick={() => router.push(`/teacher/classhub/${encodeURIComponent(plan.class_id!)}/live?lessonPlanId=${encodeURIComponent(plan.id)}`)}
+        <button type="button" onClick={() => { if(liveKitUrl) router.push(liveKitUrl) }}
           style={{ width: "100%", textAlign: "center", padding: "12px 15px", borderRadius: 12, border: "1px solid currentColor", background: "var(--vs-surface,#f7faf8)", color: "var(--teacher-ink,#1c2923)", fontWeight: 800, marginBottom: 12 }}>
           Teach this Lesson Plan in Live
         </button>
