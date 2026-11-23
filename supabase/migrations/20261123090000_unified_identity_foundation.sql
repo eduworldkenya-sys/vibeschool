@@ -2,6 +2,7 @@
 -- The new role table is NOT an authorization source for Teacher/Student/Parent OS.
 begin;
 
+-- authorization-test: public.vs_identities — scripts/test-unified-identity-foundation.mjs; anonymous SELECT denied, owner sees only self
 create table public.vs_identities (
  id uuid primary key default gen_random_uuid(),
  auth_user_id uuid unique references auth.users(id) on delete cascade,
@@ -15,6 +16,7 @@ create table public.vs_identities (
   (kind='person' and auth_user_id is not null) or
   (kind='managed_learner' and auth_user_id is null))
 );
+-- authorization-test: public.vs_identity_roles — scripts/test-unified-identity-foundation.mjs; role grants do not elevate canonical authority
 create table public.vs_identity_roles (
  identity_id uuid not null references public.vs_identities(id) on delete cascade,
  role text not null check(role in ('teacher','student','parent')),
@@ -22,6 +24,7 @@ create table public.vs_identity_roles (
  granted_at timestamptz,
  primary key(identity_id,role)
 );
+-- authorization-test: public.vs_managed_learners — scripts/test-unified-identity-foundation.mjs; no read for non-guardian
 create table public.vs_managed_learners (
  learner_identity_id uuid primary key references public.vs_identities(id) on delete restrict,
  guardian_identity_id uuid not null references public.vs_identities(id) on delete restrict,
@@ -32,6 +35,8 @@ create table public.vs_managed_learners (
  constraint no_self_guardianship check(learner_identity_id <> guardian_identity_id)
 );
 create index vs_managed_learners_guardian_idx on public.vs_managed_learners(guardian_identity_id);
+-- access: service-only public.vs_username_reservations
+-- authorization-test: public.vs_username_reservations — scripts/test-unified-identity-foundation.mjs; no direct client read/write
 create table public.vs_username_reservations (
  username text primary key check(username ~ '^[a-z][a-z0-9_]{2,23}$'),
  reason text not null default 'reserved'
