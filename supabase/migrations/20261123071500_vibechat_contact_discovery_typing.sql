@@ -3,6 +3,11 @@
 -- Existing school and tuition message history remains authoritative.
 begin;
 
+-- Production inspection on 2026-11-23 found zero case-insensitive collisions.
+-- Preserve one canonical VibeChat ID regardless of mixed case.
+create unique index if not exists profiles_vibechat_id_casefold_unique
+  on public.profiles (lower(vc_id)) where vc_id is not null;
+
 -- Only the two participants can see an invitation; no user directory table is exposed.
 create table if not exists public.vibechat_contact_requests (
   id uuid primary key default gen_random_uuid(),
