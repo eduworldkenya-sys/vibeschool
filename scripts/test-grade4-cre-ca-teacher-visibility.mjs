@@ -11,7 +11,8 @@ test('Grade 4 CRE and Creative Arts use the existing canonical subject identitie
   assert.match(map, /8165d513-035b-4019-9fdb-5b86a27335a1/)
   assert.match(map, /6d68b57c-565d-4a04-879d-c77f588d6404/)
   assert.match(map, /resolveGlobalSubjectId\(subjectId\)/)
-  assert.match(map, /\.eq\('grade', 'Grade 4'\)/)
+  assert.match(map, /grade: 'Grade 4'/)
+  assert.match(map, /\.eq\('grade', source\.grade\)/)
   assert.match(map, /belongsToSource\(row, source\.source, kind\)/)
 })
 
