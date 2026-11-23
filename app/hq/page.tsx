@@ -16,7 +16,7 @@ type Control = { product_key:string; policy_key:string; desired_value:Json; obse
 type Decision = { id?:string; proposed_action?:string; reason?:string; risk?:string; status?:string; created_at?:string; worker_key?:string }
 type CommandCache={report:Report|null;controls:Control[];health:Report|null;decisions:Decision[]}
 type Attention = {key:string;title:string;why:string;severity:"critical"|"high"|"normal";source:string;owner?:string|null;action?:string;href?:string;when?:string|null}
-const sb=hqSupabase as any
+const sb=hqSupabase
 
 const statusTone:Record<EvidenceStatus,string>={CERTIFIED:C.green,LIVE:C.green,CACHED:C.amber,STALE:C.amber,ESTIMATED:C.amber,"NOT INSTRUMENTED":C.muted,UNAVAILABLE:C.red}
 const severityWeight={critical:0,high:1,normal:2}
