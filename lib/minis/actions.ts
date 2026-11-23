@@ -13,13 +13,14 @@ export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
 }
 
 export async function submitMini({
-  title, body, hashtags, photo, userId,
+  title, body, hashtags, photo, userId, challenge,
 }: {
   title: string
   body: string
   hashtags: string
   photo: File
   userId: string
+  challenge?: { question: string; options: string[]; correct: number; explanation: string } | null
 }): Promise<string> {
   const cleanTitle = title.trim()
   const cleanBody = body.trim()
@@ -27,6 +28,15 @@ export async function submitMini({
   if (cleanBody.length < 40 || cleanBody.length > 3000) throw Error('Write a short, useful explanation of at least 40 characters.')
   const tags = parseMiniHashtags(hashtags)
   const subject = miniSubjectFromTags(tags)
+  const question = challenge?.question.trim() || null
+  const options = challenge ? challenge.options.map(option => option.trim()) : []
+  const explanation = challenge?.explanation.trim() || null
+  const correct = challenge?.correct ?? null
+  if (challenge && (!question || question.length<10 || question.length>240 ||
+    options.length<2 || options.length>4 || options.some(option=>option.length<1 || option.length>180) ||
+    correct === null || !Number.isInteger(correct) || correct<0 || correct>=options.length ||
+    !explanation || explanation.length<10 || explanation.length>500))
+    throw Error('Complete the quick question, answer choices and explanation.')
   const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as Record<string,string>)[photo.type]
   if (!ext || photo.size > 5 * 1024 * 1024 || photo.size < 100)
     throw Error('Choose a JPG, PNG or WebP photo under 5 MB.')
@@ -45,7 +55,7 @@ export async function submitMini({
   if (uploadError) throw Error('Unable to upload this image. Please try again.')
 
   const { data: submitted, error: publishError } = await supabase.from('mini_lessons')
-    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, cover_path: coverPath, status: 'pending' })
+    .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, quiz_question:question, quiz_options:options, quiz_correct:correct, quiz_explanation:explanation, cover_path: coverPath, status: 'pending' })
     .select('id').single()
   if (publishError || !submitted?.id) {
     // Best-effort rollback of an unused, private file; the DB stays fail-closed.
