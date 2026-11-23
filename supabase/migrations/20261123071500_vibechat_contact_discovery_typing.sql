@@ -63,7 +63,7 @@ begin
   select thread.id into v_thread
   from public.vc_threads thread
   where thread.student_id=p_student_id and thread.school_id=v_school
-    and thread.type='direct' and thread.created_by=v_parent
+    and thread.type='direct'
     and exists (select 1 from public.vc_participants mine
       where mine.thread_id=thread.id and mine.profile_id=v_parent and mine.left_at is null)
     and exists (select 1 from public.vc_participants other
@@ -84,6 +84,105 @@ revoke all on function public.parent_start_child_thread(uuid,uuid,text)
 grant execute on function public.parent_start_child_thread(uuid,uuid,text)
   to authenticated;
 
+
+
+-- Teacher outreach uses the learner/guardian relationship, not a people search.
+-- No email, phone, admission number, or unlinked learner is returned.
+create or replace function public.vibechat_my_school_families()
+returns jsonb language sql stable security definer set search_path='' as $vcfamily$
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'student_id', selection.student_id,
+      'student_name', selection.student_name,
+      'parent_id', selection.parent_id,
+      'parent_name', selection.parent_name,
+      'avatar_url', selection.avatar_url
+  ) order by selection.student_name, selection.parent_name), '[]'::jsonb)
+  from (
+    select distinct learner.id as student_id, learner.name as student_name,
+      guardian.id as parent_id, guardian.full_name as parent_name,
+      guardian.avatar_url
+    from public.teacher_classes assignment
+    join public.classes class on class.id=assignment.class_id
+      and class.school_id=assignment.school_id
+    join public.school_members staff on staff.profile_id=assignment.teacher_id
+      and staff.school_id=class.school_id
+    join public.students learner on learner.class_id=class.id and learner.deleted_at is null
+    join public.parent_student_links guardian_link on guardian_link.student_id=learner.id
+      and (guardian_link.school_id is null or guardian_link.school_id=class.school_id)
+    join public.profiles guardian on guardian.id=guardian_link.parent_id
+      and guardian.account_status::text='active'
+      and not coalesce(guardian.is_anonymized,false)
+    join public.profiles teacher on teacher.id=assignment.teacher_id
+      and teacher.role='teacher' and teacher.account_status::text='active'
+      and not coalesce(teacher.is_anonymized,false)
+    where auth.uid() is not null and assignment.teacher_id=auth.uid()
+    order by learner.name, guardian.full_name
+    limit 150
+  ) selection
+$vcfamily$;
+revoke all on function public.vibechat_my_school_families()
+  from public,anon,authenticated;
+grant execute on function public.vibechat_my_school_families() to authenticated;
+
+create or replace function public.vibechat_start_teacher_parent_thread(
+  p_student_id uuid,
+  p_parent_id uuid,
+  p_context_tag text default 'general'
+) returns uuid
+language plpgsql volatile security definer set search_path='' as $vcteacher$
+declare
+  v_teacher uuid := auth.uid();
+  v_school uuid;
+  v_thread uuid;
+begin
+  if v_teacher is null then raise exception 'Sign-in required' using errcode='28000'; end if;
+  if p_student_id is null or p_parent_id is null
+     or coalesce(p_context_tag,'') not in ('general','question','urgent','concern')
+  then raise exception 'Invalid teacher message request' using errcode='22023'; end if;
+  select class.school_id into v_school
+    from public.teacher_classes assignment
+    join public.classes class on class.id=assignment.class_id
+      and class.school_id=assignment.school_id
+    join public.school_members staff on staff.profile_id=v_teacher
+      and staff.school_id=class.school_id
+    join public.students learner on learner.class_id=class.id
+      and learner.id=p_student_id and learner.deleted_at is null
+    join public.parent_student_links guardian_link on guardian_link.student_id=learner.id
+      and guardian_link.parent_id=p_parent_id
+      and (guardian_link.school_id is null or guardian_link.school_id=class.school_id)
+    join public.profiles teacher on teacher.id=v_teacher and teacher.role='teacher'
+      and teacher.account_status::text='active'
+      and not coalesce(teacher.is_anonymized,false)
+    join public.profiles guardian on guardian.id=p_parent_id
+      and guardian.account_status::text='active'
+      and not coalesce(guardian.is_anonymized,false)
+    where assignment.teacher_id=v_teacher limit 1;
+  if v_school is null then
+    raise exception 'Teacher and guardian are not authorized for this learner'
+      using errcode='42501';
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended(
+    p_parent_id::text || ':' || p_student_id::text || ':' || v_teacher::text,0));
+  select thread.id into v_thread from public.vc_threads thread
+  where thread.student_id=p_student_id and thread.school_id=v_school and thread.type='direct'
+    and exists(select 1 from public.vc_participants parent
+      where parent.thread_id=thread.id and parent.profile_id=p_parent_id and parent.left_at is null)
+    and exists(select 1 from public.vc_participants staff
+      where staff.thread_id=thread.id and staff.profile_id=v_teacher and staff.left_at is null)
+  order by thread.created_at desc limit 1;
+  if v_thread is not null then return v_thread; end if;
+  insert into public.vc_threads(school_id,student_id,type,created_by,context_tag,subject)
+    values(v_school,p_student_id,'direct',v_teacher,p_context_tag,'School-family conversation')
+    returning id into v_thread;
+  insert into public.vc_participants(thread_id,profile_id,school_id)
+    values(v_thread,v_teacher,v_school),(v_thread,p_parent_id,v_school);
+  return v_thread;
+end;
+$vcteacher$;
+revoke all on function public.vibechat_start_teacher_parent_thread(uuid,uuid,text)
+  from public,anon,authenticated;
+grant execute on function public.vibechat_start_teacher_parent_thread(uuid,uuid,text)
+  to authenticated;
 
 -- The historical participant helper omitted departure and child-link checks.
 -- Restore both at the canonical source of truth used by thread/message RLS.
