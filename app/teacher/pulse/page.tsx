@@ -19,6 +19,7 @@ import RecentActivity from "@/components/teacher/RecentActivity";
 import TodayGlance from "@/components/teacher/TodayGlance";
 
 import TwinShortcut from "@/components/teacher/TwinShortcut";
+import { VIBETWIN_ENABLED } from "@/lib/vibetwin-availability";
 import WeekOverview from "@/components/teacher/WeekOverview";
 import { subscribePulse } from "@/lib/pulse/refresh";
 
@@ -577,7 +578,7 @@ export default function PulsePage() {
       <RecentActivity items={recentItems} />
 
       </details>
-      <TwinShortcut onOpen={(mode) => router.push(`/teacher/twin?mode=${encodeURIComponent(mode)}`)} />
+      {VIBETWIN_ENABLED && <TwinShortcut onOpen={(mode) => router.push(`/teacher/twin?mode=${encodeURIComponent(mode)}`)} />}
     </div>
   );
 }
