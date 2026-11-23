@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, ClipboardCheck, FileText, GraduationCap, Home, Library, LifeBuoy, ArrowLeftRight, MessageSquare, NotebookPen, School, Settings, SlidersHorizontal, Sparkles, TrendingUp, UserRound, Users, Wallet, Bell, ClipboardList } from 'lucide-react'
+import { BookOpen, CalendarDays, ClipboardCheck, FileText, GraduationCap, Home, Library, LifeBuoy, ArrowLeftRight, MessageSquare, NotebookPen, School, Settings, SlidersHorizontal, TrendingUp, UserRound, Users, Wallet, Bell, ClipboardList } from 'lucide-react'
 
 export const teacherTabs = [
   { id: 'today', label: 'Today', href: '/teacher/pulse', icon: Home },
@@ -9,7 +9,7 @@ export const teacherTabs = [
 ] as const
 export type TeacherTab = typeof teacherTabs[number]['id']
 export const teacherTools = {
-  today: [{ label: 'Today', href: '/teacher/pulse', icon: Home }, { label: 'Twin', href: '/teacher/twin', icon: Sparkles }, { label: 'Notifications', href: '/teacher/notifications', icon: Bell }],
+  today: [{ label: 'Today', href: '/teacher/pulse', icon: Home }, { label: 'Notifications', href: '/teacher/notifications', icon: Bell }],
   teach: [
     { label: 'Teach today', href: '/teacher/teach-today', icon: BookOpen },
     { label: 'My tutoring', href: '/teacher/tutoring', icon: GraduationCap },
