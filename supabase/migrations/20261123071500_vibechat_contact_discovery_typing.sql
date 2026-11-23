@@ -238,8 +238,8 @@ revoke all on function private.vibechat_can_use_typing_topic(text) from public, 
 grant execute on function private.vibechat_can_use_typing_topic(text) to authenticated;
 drop policy if exists vibechat_typing_receive on realtime.messages;
 create policy vibechat_typing_receive on realtime.messages for select to authenticated
-  using (private.vibechat_can_use_typing_topic(realtime.topic()));
+  using (realtime.messages.extension = 'broadcast' and private.vibechat_can_use_typing_topic(realtime.topic()));
 drop policy if exists vibechat_typing_send on realtime.messages;
 create policy vibechat_typing_send on realtime.messages for insert to authenticated
-  with check (private.vibechat_can_use_typing_topic(realtime.topic()));
+  with check (realtime.messages.extension = 'broadcast' and private.vibechat_can_use_typing_topic(realtime.topic()));
 commit;
