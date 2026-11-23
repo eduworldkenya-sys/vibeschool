@@ -154,6 +154,24 @@ try{
   assert.equal(await t.getByRole('button',{name:'Speak',exact:true}).isEnabled(),true)
   await t.getByRole('button',{name:'Speak',exact:true}).click()
   assert.equal(await t.evaluate(()=>window.__voiceCall.localAudio()),true)
+  // A failed microphone permission attempt is reported by Daily as
+  // camera-error, not by the fatal connection-error listener.
+  await t.evaluate(()=>{
+    window.__voiceCall.isAudio=false
+    window.__voiceCall.emit('camera-error',{
+      error:{type:'permissions'},
+      errorMsg:{audioOk:false,errorMsg:'private device detail do not log'}
+    })
+  })
+  await t.getByRole('alert').getByText('Microphone unavailable. Allow microphone access in your browser, then tap Speak again.').waitFor()
+  assert.equal(await t.getByRole('button',{name:'Speak',exact:true}).isEnabled(),true)
+  assert.equal(await t.evaluate(()=>window.__voiceCall.localAudio()),false)
+  await new Promise(ok=>setTimeout(ok,100))
+  assert.deepEqual(diagnostics[2].diagnostic,{stage:'connected',code:'device-error',hint:'device'})
+  assert.doesNotMatch(JSON.stringify(diagnostics),/private device detail/)
+  // Retrying remains a fresh, user-initiated microphone action.
+  await t.getByRole('button',{name:'Speak',exact:true}).click()
+  assert.equal(await t.evaluate(()=>window.__voiceCall.localAudio()),true)
   await t.getByRole('button',{name:'Allow Learner A to speak'}).click()
   await t.waitForFunction(()=>window.__acks===1)
   assert.deepEqual(await t.evaluate(()=>Array.from(window.__voiceCall.people.remote.permissions.canSend)),['audio'])
