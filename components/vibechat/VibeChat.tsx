@@ -8,10 +8,11 @@ import { getSupabaseClient } from '@/lib/supabase'
 import Enquiries from './Enquiries'
 import VibeChatAvatar from './VibeChatAvatar'
 import VibeChatContacts from './VibeChatContacts'
+import VibeChatSchool from './VibeChatSchool'
 import { useVibeChatTyping } from './useVibeChatTyping'
 import styles from './VibeChat.module.css'
 
-type Tab = 'chats' | 'contacts' | 'enquiries' | 'notices'
+type Tab = 'chats' | 'contacts' | 'enquiries' | 'notices' | 'school'
 type Chat = {
   key: string
   id: string
@@ -39,7 +40,7 @@ export default function VibeChat() {
   const params = useSearchParams()
   const requestedTab = params.get('tab')
   const requestedChat = validKey(params.get('thread'))
-  const [tab, setTab] = useState<Tab>(requestedTab === 'enquiries' || requestedTab === 'notices' || requestedTab === 'contacts' ? requestedTab : 'chats')
+  const [tab, setTab] = useState<Tab>(requestedTab === 'enquiries' || requestedTab === 'notices' || requestedTab === 'contacts' || requestedTab === 'school' ? requestedTab : 'chats')
   const [uid, setUid] = useState('')
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
   const [role, setRole] = useState('')
@@ -251,7 +252,7 @@ export default function VibeChat() {
         </Link>
       </header>
       <nav className={styles.tabs} aria-label="VibeChat sections">
-        {([['chats','Chats',MessageCircle],['contacts','Contacts',UserPlus],['enquiries','Enquiries',Users],['notices','Notices',Bell]] as const).map(([value,label,Icon]) =>
+        {([['chats','Chats',MessageCircle],...(role==='teacher' ? [['school','School',Users] as const] : []),['contacts','Contacts',UserPlus],['enquiries','Enquiries',Users],['notices','Notices',Bell]] as const).map(([value,label,Icon]) =>
           <button key={value} type="button" className={styles.tab + (tab === value ? ' ' + styles.active : '')}
             aria-current={tab===value ? 'page' : undefined} onClick={()=>setTab(value)}>
             <Icon size={15} aria-hidden style={{verticalAlign:'middle',marginRight:6}}/>{label}{value==='notices'&&notices.some(n=>n.requiresAck&&!n.acked)?' · New':''}
@@ -270,7 +271,7 @@ export default function VibeChat() {
           <input className={styles.search} type="search" aria-label="Search conversations"
             placeholder="Search conversations" value={search} onChange={e=>setSearch(e.target.value)} />
           <div className={styles.actionRow}>
-            {role==='teacher'&&schoolMessagingAvailable&&<Link className={styles.back} href="/teacher/vibeconnect">New school message</Link>}
+            {role==='teacher'&&schoolMessagingAvailable&&<button type="button" className={styles.back} onClick={()=>setTab('school')}>New school message</button>}
             {role==='parent'&&<Link className={styles.back} href="/parent/messages">Choose a child's teacher</Link>}
             {role==='admin'&&<Link className={styles.back} href="/admin/communication">Manage school notices</Link>}
           </div>
@@ -310,6 +311,11 @@ export default function VibeChat() {
           </> : <div className={styles.empty}>Select a conversation to read or send a message.</div>}
         </div>
       </section>}
+      {signedIn&&tab==='school'&&role==='teacher'&&<VibeChatSchool onOpenThread={threadId=>{
+        setTab('chats')
+        setActive('vc:' + threadId)
+        void load()
+      }}/>}
       {signedIn&&tab==='contacts'&&<VibeChatContacts role={role} onOpenThread={threadId=>{
         setTab('chats')
         setActive('vc:' + threadId)
