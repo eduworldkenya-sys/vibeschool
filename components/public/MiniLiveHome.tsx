@@ -41,7 +41,7 @@ export function MiniLiveHome() {
             src={covers[post.id]} alt={'Photo for '+post.title}/>
           : <div className={styles.art+' '+styles.literatureArt} aria-hidden="true"/>}
           <div className={styles.miniCardBody}>
-            <span className={styles.subject}>{post.subject}</span>
+            <span className={styles.subject}>{(post.tags ?? []).map(tag=>'#'+tag).join(' ')}</span>
             <h3>{post.title}</h3>
             <p>{post.body.slice(0,120)}{post.body.length>120?'…':''}</p>
             <span className={styles.creatorLine}>@{post.creator_label} · Read ↗</span>
