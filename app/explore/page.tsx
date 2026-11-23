@@ -19,6 +19,6 @@ export default function ExplorePage() {
         <MiniExplore />
       </Suspense>
     </main>
-    <PublicFooter />
+    <PublicFooter hideSupport />
   </div>
 }
