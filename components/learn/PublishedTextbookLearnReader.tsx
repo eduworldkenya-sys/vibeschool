@@ -84,11 +84,11 @@ function PublishedBlock({ block }: { block: ContentBlock }) {
       ? <ol style={{ paddingLeft: 22 }}>{lines.map((line, i) => <li key={i}><VisualRichText body={line}/></li>)}</ol>
       : <ul style={{ paddingLeft: 22 }}>{lines.map((line, i) => <li key={i}><VisualRichText body={line}/></li>)}</ul>
   }
-  if (['activity','experiment','project','question'].includes(block.type)) return <aside style={{ borderLeft: '3px solid #9574ba', padding: '10px 15px', background: '#faf8ff', borderRadius: 8, margin: '12px 0' }}>
+  if (['activity','experiment','project','question'].includes(block.type)) return <aside style={{ borderLeft: '2px solid #aab8ae', padding: '10px 15px', background: '#fff', borderRadius: 2, margin: '12px 0' }}>
     <strong style={{ fontSize: 13, color: '#613e83' }}>{block.type === 'question' ? 'Think about it' : 'Try this'}</strong>
     <VisualRichText body={text}/>
   </aside>
-  if (['definition','example','workedExample','callout','summary'].includes(block.type)) return <aside style={{ borderLeft: '3px solid #168659', padding: '10px 15px', background: '#f4faf6', borderRadius: 8, margin: '12px 0' }}>
+  if (['definition','example','workedExample','callout','summary'].includes(block.type)) return <aside style={{ borderLeft: '2px solid #aab8ae', padding: '10px 15px', background: '#fff', borderRadius: 2, margin: '12px 0' }}>
     <strong style={{ fontSize: 13, color: '#185b3d' }}>{block.type === 'workedExample' ? 'Worked example' : block.type.charAt(0).toUpperCase() + block.type.slice(1)}</strong>
     <VisualRichText body={text}/>
   </aside>
