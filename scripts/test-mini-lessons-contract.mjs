@@ -58,7 +58,7 @@ for(const required of [
   "for delete to authenticated",
 ]) assert.ok(schema.includes(required),'schema missing mandatory authorization: '+required)
 for(const required of [
-  'Mini creator','review',
+  'mini_creator_can_submit','review',
   'mini_rate_limit', 'pg_advisory_xact_lock',
   "p_decision='approved'",
   "Creator cannot review their own Mini",
