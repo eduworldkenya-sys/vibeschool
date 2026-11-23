@@ -491,6 +491,7 @@ returns jsonb language sql stable security definer set search_path = '' as $
   join public.profiles peer on peer.id = other.profile_id
   where auth.uid() is not null
     and mine.profile_id = auth.uid() and mine.left_at is null
+    and private.vc_user_is_thread_participant(t.id)
     and peer.account_status::text='active'
     and not coalesce(peer.is_anonymized,false)
 $;
@@ -515,6 +516,18 @@ returns jsonb language sql stable security definer set search_path = '' as $
 $;
 revoke all on function public.vibechat_my_tuition_peers() from public, anon, authenticated;
 grant execute on function public.vibechat_my_tuition_peers() to authenticated;
+
+
+-- Client table grants are column-minimal. Nobody may self-resurrect a left
+-- participant, replace a thread's learner context or change another user.
+-- Trusted SECURITY DEFINER admission functions retain their scoped writes.
+revoke update on public.vc_participants from anon,authenticated;
+grant update(last_read_at) on public.vc_participants to authenticated;
+revoke update on public.vc_threads from anon,authenticated;
+grant update(last_message_at,last_message_preview,updated_at)
+  on public.vc_threads to authenticated;
+revoke update on public.vc_messages from authenticated;
+grant update(deleted_at) on public.vc_messages to authenticated;
 
 -- Realtime typing broadcasts are private and ephemeral. Not message bodies;
 -- caller is checked for every school/tuition topic at the server boundary.
