@@ -95,7 +95,9 @@ function PublishedBlock({ block }: { block: ContentBlock }) {
     <VisualRichText body={text}/>
   </section>
   if (block.type === 'quote') return <blockquote className={styles.quote}><VisualRichText body={text}/></blockquote>
-  // Keep the canonical certified visual-token resolver authoritative.\n  if (block.type === 'paragraph' && block.content.includes('[visual:')) return <VisualRichText body={text}/>\n  if (block.type === 'paragraph' && /<(?:p|strong|b|em|i|u|s|del|code|sub|sup|br)\b/i.test(block.content)) {
+  // Keep the canonical certified visual-token resolver authoritative.
+  if (block.type === 'paragraph' && block.content.includes('[visual:')) return <VisualRichText body={text}/>
+  if (block.type === 'paragraph' && /<(?:p|strong|b|em|i|u|s|del|code|sub|sup|br)\b/i.test(block.content)) {
     return <TextbookSafeInlineHtml content={block.content} />
   }
   return <VisualRichText body={text}/>
