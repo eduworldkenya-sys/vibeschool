@@ -10,6 +10,9 @@ const join = read('app/join/JoinForm.tsx')
 const joinPage = read('app/join/page.tsx')
 const tutor = read('app/vibetutor/post-request/page.tsx')
 const callback = read('app/auth/callback/route.ts')
+const studentSignup = read('app/signup/student/SchoolSignupForm.tsx')
+const studentPage = read('app/signup/student/page.tsx')
+const independent = read('app/signup/student/independent/page.tsx')
 
 test('learner Google login never requests first-time signup', () => {
   assert.match(login, /callback\.searchParams\.set\('intent', 'signin'\)/)
@@ -37,4 +40,13 @@ test('tuition request persists and restores preferred times', () => {
   assert.match(tutor, /dayparts\?: DayPart\[\]/)
   assert.match(tutor, /setDayparts\(draft\.dayparts \|\| \[\]\)/)
   assert.match(tutor, /days, budget, phone, dayparts, publicPreview/)
+})
+
+test('student signup keeps validated origin through Google or school-code onboarding', () => {
+  assert.match(studentPage, /safeInternalPath\(params.next\)/)
+  assert.match(studentSignup, /roleCanVisit\('student', safeNext\)/)
+  assert.match(studentSignup, /callback.searchParams.set\('next', studentNext\)/)
+  assert.match(studentSignup, /createdAccount.signedIn \? \(studentNext \|\| '\/student'\)/)
+  assert.match(callback, /signup\/student\/independent\?next=/)
+  assert.match(independent, /safeInternalPath\(new URLSearchParams\(window.location.search\).get\('next'\)\)/)
 })
