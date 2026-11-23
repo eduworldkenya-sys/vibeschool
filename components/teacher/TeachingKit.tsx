@@ -25,7 +25,7 @@ export default function TeachingKit({actions,onInClass,onGoLive,compact=false}:{
     <div className={styles.heading}><div><span className={styles.eyebrow}>LESSON MATERIALS</span><h2>Teaching Kit</h2></div></div>
     <div className={styles.tools}>{tools.map(({id,label,icon:Icon})=>
       <button key={id} type="button" className={styles.tool} onClick={actions[id]} disabled={!actions[id]}
-        aria-label={label + (!actions[id]?' unavailable':'')}>
+        aria-label={'Teaching Kit: '+label + (!actions[id]?' unavailable':'')}>
         <Icon size={21} aria-hidden="true"/><span>{label}</span>
       </button>
     )}</div>
