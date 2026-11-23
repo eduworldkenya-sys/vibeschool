@@ -15,6 +15,7 @@ import {
 } from '@/lib/student/vibelearn'
 import styles from './study.module.css'
 import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
+import { recogniseLearnerGrade } from '@/lib/learn/schoolCatalog'
 
 type ClassResource = {id:string,title:string,description:string|null,type:string,url:string|null,subject_id:string|null}
 
@@ -60,6 +61,9 @@ export default function LearnerStudyDesk() {
   const [examDate,setExamDate]=useState('')
   const [dailyMinutes,setDailyMinutes]=useState(90)
   const [confidence,setConfidence]=useState<number|null>(null)
+  const [moreOpen,setMoreOpen]=useState(false)
+  const [moreLoading,setMoreLoading]=useState(false)
+  const [moreLoaded,setMoreLoaded]=useState(false)
   const isForm4=/\bform\s*4\b/i.test(identity?.className??'')
 
   async function refresh() {
@@ -84,22 +88,39 @@ export default function LearnerStudyDesk() {
   useEffect(()=>{
     if(identityLoading||!identity) return
     let active=true
-    setLoading(true);setError('')
+    setLoading(true);setError('');setMoreOpen(false);setMoreLoaded(false)
+    setWorkspace(null);setAssigned([]);setClassResources([])
+    setReadiness(null);setLearningPath(null);setRecommendations(null)
     Promise.all([
       getVibeLearnWorkstation(),
       getAssignedReading().catch(()=>[]),
+    ]).then(([brief,reading])=>{
+      if(!active)return
+      setWorkspace(brief);setAssigned(reading)
+    }).catch(reason=>{
+      if(active)setError(reason instanceof Error?reason.message:'Your learning desk could not load.')
+    }).finally(()=>{if(active)setLoading(false)})
+    return ()=>{active=false}
+  },[identity?.studentId,identityLoading])
+
+  // Defer optional evidence and class-resource requests until the learner opens
+  // More. A slow support service must not delay opening a book or starting practice.
+  useEffect(()=>{
+    if(!moreOpen||loading||!workspace||moreLoaded)return
+    let active=true
+    setMoreLoading(true)
+    Promise.all([
       isForm4?getExamReadinessBrief().catch(()=>null):Promise.resolve(null),
       getAdaptiveLearningPath().catch(()=>null),
       getAdaptiveResourceRecommendations().catch(()=>null),
-    ]).then(([brief,reading,exam,path,support])=>{
-      if(!active) return
-      setWorkspace(brief);setAssigned(reading);setReadiness(exam);setLearningPath(path);setRecommendations(support)
-      void getLiveClassResources(brief).then(resources=>{if(active)setClassResources(resources)}).catch(()=>{if(active)setClassResources([])})
+      getLiveClassResources(workspace).catch(()=>[]),
+    ]).then(([exam,path,support,resources])=>{
+      if(!active)return
+      setReadiness(exam);setLearningPath(path);setRecommendations(support);setClassResources(resources)
       if(exam){setExamDate(exam.examDate??'');setDailyMinutes(exam.dailyRevisionMinutes);setConfidence(exam.confidenceCheck)}
-    }).catch(reason=>{if(active)setError(reason instanceof Error?reason.message:'Your learning desk could not load.')})
-      .finally(()=>{if(active)setLoading(false)})
+    }).finally(()=>{if(active){setMoreLoaded(true);setMoreLoading(false)}})
     return ()=>{active=false}
-  },[identity?.studentId,identityLoading,isForm4])
+  },[moreOpen,loading,workspace,moreLoaded,isForm4,identity?.studentId])
 
   async function savePlan() {
     if(!readiness||saving) return
@@ -114,6 +135,8 @@ export default function LearnerStudyDesk() {
 
   if(identityLoading||!identity) return <main className={styles.page} role="status">{identityError||'Opening your learning desk…'}</main>
   const savedReading = workspace?.continueLearning.slice(0,3) ?? []
+  const grade = recogniseLearnerGrade(identity.className)
+  const browseHref = grade ? '/learn?grade=' + encodeURIComponent(grade) : '/learn'
   return <main className={styles.page}>
     <div className={styles.wrap}>
       <div className={styles.screen}>
@@ -122,7 +145,7 @@ export default function LearnerStudyDesk() {
             <h1>Learn</h1>
             {identity.className && <span className={styles.grade}>{identity.className}</span>}
           </div>
-          <Link href="/learn" className={styles.findLink}><Search size={17} aria-hidden="true"/> Find a lesson</Link>
+          <Link href={browseHref} className={styles.findLink}><Search size={17} aria-hidden="true"/> Find a lesson</Link>
         </header>
         <section className={styles.resume} aria-label="Continue reading">
           {!loading && savedReading.length > 0 ? savedReading.slice(0,1).map(item =>
@@ -140,13 +163,13 @@ export default function LearnerStudyDesk() {
             <div className={styles.resumeContent}>
               <span className={styles.eyebrow}>Start learning</span>
               <h2>What would you like to learn?</h2>
-              <Link href="/learn" className={styles.resumeAction}>Browse lessons <ArrowRight size={18} aria-hidden="true"/></Link>
+              <Link href={browseHref} className={styles.resumeAction}>Browse lessons <ArrowRight size={18} aria-hidden="true"/></Link>
             </div>}
         </section>
         <section className={styles.learningSection} aria-label="Learning tools">
           <h2 className={styles.sectionTitle}>Choose what to do</h2>
           <nav className={styles.learningGrid} aria-label="Learn destinations">
-            <Link href="/learn" className={styles.learningTile}><span className={styles.tileIcon}><BookOpen size={22} aria-hidden="true"/></span><span>Books & lessons</span><ArrowRight className={styles.tileArrow} size={15} aria-hidden="true"/></Link>
+            <Link href={browseHref} className={styles.learningTile}><span className={styles.tileIcon}><BookOpen size={22} aria-hidden="true"/></span><span>Books & lessons</span><ArrowRight className={styles.tileArrow} size={15} aria-hidden="true"/></Link>
             <Link href="/student/vibelearn/topic-practice" className={styles.learningTile}><span className={styles.tileIcon}><PencilLine size={22} aria-hidden="true"/></span><span>Practice</span><ArrowRight className={styles.tileArrow} size={15} aria-hidden="true"/></Link>
             <Link href="/learn/stories" className={styles.learningTile}><span className={styles.tileIcon}><LibraryBig size={22} aria-hidden="true"/></span><span>Stories</span><ArrowRight className={styles.tileArrow} size={15} aria-hidden="true"/></Link>
             <Link href="/student/explore" className={styles.learningTile}><span className={styles.tileIcon}><Compass size={22} aria-hidden="true"/></span><span>Explore</span><ArrowRight className={styles.tileArrow} size={15} aria-hidden="true"/></Link>
@@ -161,7 +184,7 @@ export default function LearnerStudyDesk() {
           <Link href={safeInternalRoute(assigned[0].actionUrl)}>{assigned[0].title}<ArrowRight size={16} aria-hidden="true"/></Link>
         </section>}
       {error&&<p className={styles.alert} role="alert">{error}</p>}
-        <details className={styles.more}>
+        <details className={styles.more} onToggle={event=>setMoreOpen(event.currentTarget.open)}>
           <summary>More learning <ChevronDown size={17} aria-hidden="true"/></summary>
           <div className={styles.moreBody}>
             <nav className={styles.moreNav} aria-label="Additional learning tools">
@@ -176,7 +199,7 @@ export default function LearnerStudyDesk() {
             </section>}
             <details className={styles.advancedBlock}><summary>More reading tools</summary><StudentLearningFeatureLinks mode="learn" grade={identity.className}/></details>
             <StudentIntro feature="learn-overview"><p>Open a lesson, continue reading or choose a learning activity.</p></StudentIntro>
-      {loading?<p className={styles.card} role="status">Loading your current learning activities…</p>:
+      {moreLoading?<p className={styles.card} role="status">Opening more learning…</p>:
       <div className={compact.grid} style={{alignItems:'start'}}>
         <details className={compact.panel} aria-label="Assigned learning"><summary>Assigned reading</summary>
 
