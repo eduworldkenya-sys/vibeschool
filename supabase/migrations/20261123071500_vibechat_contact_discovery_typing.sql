@@ -247,7 +247,7 @@ create policy vibechat_member_sender_integrity on public.vc_messages
     select 1 from public.vc_participants member
     where member.thread_id=vc_messages.thread_id
       and member.profile_id=auth.uid() and member.left_at is null
-  ));
+  ) and not private.vibechat_room_blocked('vc',vc_messages.thread_id));
 
 -- Production inspection on 2026-11-23 found zero case-insensitive collisions.
 -- Preserve one canonical VibeChat ID regardless of mixed case.
@@ -426,6 +426,7 @@ returns boolean language sql stable security definer set search_path = '' as $$
     select 1 from public.profiles sender
     join public.profiles target on target.id = p_target
     where sender.id = p_sender and sender.id <> target.id
+      and not private.vibechat_pair_blocked(p_sender,p_target)
       -- Students/minors are NEVER exposed in discoverability or connection requests.
       and sender.role in ('teacher','parent','admin')
       and target.role in ('teacher','admin')
@@ -671,6 +672,33 @@ grant update(last_message_at,last_message_preview,updated_at)
 revoke update on public.vc_messages from authenticated;
 grant update(deleted_at) on public.vc_messages to authenticated;
 
+
+-- Preserve VibeTutor's accepted-invitation, size and rate-limit conditions,
+-- adding a server-side block check to the existing canonical RPC. Client-only
+-- disabling must never be the authority for tuition safety.
+create or replace function public.vibetutor_send_lesson_message(
+  p_invitation uuid,p_body text
+) returns uuid language plpgsql security definer set search_path='' as $vcsend$
+declare v_id uuid;
+begin
+  if not exists(select 1 from public.vibetutor_private_access(p_invitation))
+  then raise exception 'Accepted tuition connection required' using errcode='42501'; end if;
+  if private.vibechat_room_blocked('tuition',p_invitation)
+  then raise exception 'This conversation is blocked' using errcode='42501'; end if;
+  if length(trim(coalesce(p_body,''))) not between 1 and 1500
+  then raise exception 'Message must be 1 to 1500 characters' using errcode='22023'; end if;
+  if (select count(*) from public.vibetutor_lesson_messages
+    where sender_id=auth.uid() and created_at>now()-interval '1 minute')>=10
+  then raise exception 'Message limit reached' using errcode='42501'; end if;
+  insert into public.vibetutor_lesson_messages(invitation_id,sender_id,body)
+    values(p_invitation,auth.uid(),trim(p_body)) returning id into v_id;
+  return v_id;
+end;
+$vcsend$;
+revoke all on function public.vibetutor_send_lesson_message(uuid,text) from public,anon;
+grant execute on function public.vibetutor_send_lesson_message(uuid,text)
+  to authenticated;
+
 -- Realtime typing broadcasts are private and ephemeral. Not message bodies;
 -- caller is checked for every school/tuition topic at the server boundary.
 create or replace function private.vibechat_can_use_typing_topic(p_topic text)
@@ -683,7 +711,8 @@ begin
   v_kind := split_part(p_topic, ':', 2);
   v_id := split_part(p_topic, ':', 3)::uuid;
   if v_kind = 'tuition' then
-    return exists (select 1 from public.vibetutor_private_access(v_id));
+    return exists (select 1 from public.vibetutor_private_access(v_id))
+      and not private.vibechat_room_blocked('tuition',v_id);
   end if;
   return exists (
     select 1 from public.vc_participants p
@@ -691,6 +720,7 @@ begin
     where p.thread_id=v_id and p.profile_id=auth.uid() and p.left_at is null
       and t.type='direct'
       and private.vc_user_is_thread_participant(t.id)
+      and not private.vibechat_room_blocked('vc',t.id)
   );
 end;
 $$;
