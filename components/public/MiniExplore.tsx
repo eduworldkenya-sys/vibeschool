@@ -15,7 +15,7 @@ export function MiniExplore() {
   const [selected, setSelected] = useState<string | null>(null)
   const [creator, setCreator] = useState('')
   const [query, setQuery] = useState('')
-  const [subject, setSubject] = useState('All')
+  const [tag, setTag] = useState('All')
   const [tab, setTab] = useState<FeedTab>('For You')
   const [liked, setLiked] = useState<string[]>([])
   const [saved, setSaved] = useState<string[]>([])
@@ -25,7 +25,7 @@ export function MiniExplore() {
   const [draftComment, setDraftComment] = useState('')
   const [draftTitle, setDraftTitle] = useState('')
   const [draftBody, setDraftBody] = useState('')
-  const [draftSubject, setDraftSubject] = useState('History')
+  const [draftTags, setDraftTags] = useState('')
   const [draftFile, setDraftFile] = useState('')
   const [draftImage, setDraftImage] = useState<string | null>(null)
   const [preview, setPreview] = useState(false)
@@ -38,15 +38,17 @@ export function MiniExplore() {
     }
   }, [])
 
+  const popularTags = Array.from(new Set(MINI_EXAMPLES.flatMap(mini => mini.tags)))
+  const selectTag = (value: string) => { setTag(value); setView('feed'); window.history.replaceState(null,'','/explore') }
   const filtered = useMemo(() => {
     const search = query.trim().toLocaleLowerCase()
     const results = MINI_EXAMPLES.filter(mini =>
-      (subject === 'All' || mini.subject === subject) &&
+      (tag === 'All' || mini.tags.includes(tag)) &&
       (tab !== 'Following' || followed.includes(mini.creator)) &&
-      (!search || [mini.title, mini.subject, mini.summary, mini.creator].join(' ').toLocaleLowerCase().includes(search))
+      (!search || [mini.title, ...mini.tags, mini.summary, mini.creator].join(' ').toLocaleLowerCase().includes(search))
     )
     return tab === 'New' ? [...results].reverse() : results
-  }, [query, subject, tab, followed])
+  }, [query, tag, tab, followed])
 
   const current = MINI_EXAMPLES.find(mini => mini.id === selected)
   const toggle = (values: string[], set: (next: string[]) => void, key: string) =>
@@ -78,9 +80,8 @@ export function MiniExplore() {
   const attach = (file?: File) => {
     if (!file) return
     const image = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
-    const document = /\.(pdf|doc|docx)$/i.test(file.name)
-    if (file.size > 8 * 1024 * 1024 || (!image && !document)) {
-      setDraftFile('Choose a JPG, PNG, WebP, PDF, DOC or DOCX file under 8 MB.')
+    if (file.size > 5 * 1024 * 1024 || !image) {
+      setDraftFile('Choose a JPG, PNG or WebP photo under 5 MB.')
       setDraftImage(null)
       return
     }
@@ -100,8 +101,7 @@ export function MiniExplore() {
         <div className={styles.exploreTop}>
           <div>
             <span className={styles.eyebrow}>VIBESCHOOL MINI LESSONS</span>
-            <h1 className={styles.exploreTitle}>Explore</h1>
-            <p className={styles.subline}>Discover something worth knowing. Tap a picture to read the full Mini.</p>
+            <h1 className={styles.exploreTitle}>Mini Lessons</h1>
           </div>
           <button type="button" className={styles.primary} onClick={() => setView('compose')}>+ Create Mini</button>
         </div>
@@ -118,10 +118,10 @@ export function MiniExplore() {
                 aria-pressed={tab === value} onClick={() => setTab(value)}>{value}</button>
             )}
           </div>
-          <div className={styles.filters} role="group" aria-label="Filter subject">
-            {['All', 'History', 'Agriculture', 'Physics', 'Literature'].map(value =>
-              <button key={value} type="button" className={styles.pill + (subject === value ? ' ' + styles.pillActive : '')}
-                aria-pressed={subject === value} onClick={() => setSubject(value)}>{value}</button>
+          <div className={styles.filters} role="group" aria-label="Explore by hashtag">
+            {['All', ...popularTags].map(value =>
+              <button key={value} type="button" className={styles.pill + (tag === value ? ' ' + styles.pillActive : '')}
+                aria-pressed={tag === value} onClick={() => setTag(value)}>{value === 'All' ? 'All' : '#'+value}</button>
             )}
           </div>
         </div>
@@ -130,18 +130,40 @@ export function MiniExplore() {
           <span>{filtered.length} illustrative examples</span>
         </div>
         {filtered.length ? <div className={styles.grid}>
-          {filtered.map(mini => <button type="button" key={mini.id} onClick={() => read(mini)} className={styles.miniCard} style={{ textAlign: 'left' }}>
-            <MiniArtwork kind={mini.cover}/>
-            <span className={styles.miniCardBody} style={{ display: 'block' }}>
-              <span className={styles.subject}>{mini.subject} · {mini.minutes} min</span>
-              <h3>{mini.title}</h3>
+          {filtered.map(mini => <article key={mini.id} className={styles.feedCard}>
+            <div className={styles.feedCreator}>
+              <button type="button" className={styles.linkButton} onClick={() => openCreator(mini.creator)}>
+                <span className={styles.avatar} aria-hidden="true">{mini.creator.charAt(0)}</span>
+                {mini.creator}
+              </button>
+              <button type="button" className={styles.smallButton}
+                aria-pressed={followed.includes(mini.creator)}
+                onClick={() => toggle(followed,setFollowed,mini.creator)}>
+                {followed.includes(mini.creator) ? 'Following' : '+ Follow'}
+              </button>
+            </div>
+            <button type="button" className={styles.feedImage} aria-label={'Read '+mini.title} onClick={() => read(mini)}>
+              <MiniArtwork kind={mini.cover}/>
+            </button>
+            <div className={styles.feedCaption}>
+              <button type="button" className={styles.linkButton} onClick={() => read(mini)}><strong>{mini.title}</strong></button>
               <p>{mini.summary}</p>
-              <span className={styles.creatorLine}>Illustrative Mini · Tap to read ↗</span>
-            </span>
-          </button>)}
+              <div className={styles.tagRow}>
+                {mini.tags.map(name => <button key={name} type="button" className={styles.tagButton} onClick={() => selectTag(name)}>{'#'+name}</button>)}
+              </div>
+              <div className={styles.feedActions}>
+                <button type="button" aria-pressed={liked.includes(mini.id)} onClick={() => toggle(liked,setLiked,mini.id)}>
+                  {liked.includes(mini.id)?'♥ Liked':'♡ Like'}</button>
+                <button type="button" onClick={() => read(mini)}>◇ Comment</button>
+                <button type="button" aria-pressed={saved.includes(mini.id)} onClick={() => toggle(saved,setSaved,mini.id)}>
+                  {saved.includes(mini.id)?'▣ Saved':'▢ Save'}</button>
+                <button type="button" onClick={() => navigator.clipboard?.writeText(window.location.origin+'/explore?mini='+encodeURIComponent(mini.id))}>↗ Share</button>
+              </div>
+            </div>
+          </article>)}
         </div> : <div className={styles.empty}>
           <p>No matching Minis in this preview.</p>
-          <button type="button" className={styles.secondary} onClick={() => { setSubject('All'); setTab('For You'); setQuery('') }}>Explore all</button>
+          <button type="button" className={styles.secondary} onClick={() => { setTag('All'); setTab('For You'); setQuery('') }}>Explore all</button>
         </div>}
         <p className={styles.previewNote}>These are examples for interface testing, not publications by real teachers. Personalized recommendations and public publishing are not active.</p>
       </>}
@@ -150,7 +172,7 @@ export function MiniExplore() {
         <div className={styles.readerHeader}><button type="button" className={styles.back} onClick={back}>← Back to Explore</button></div>
         <MiniArtwork kind={current.cover}/>
         <div className={styles.readerBody}>
-          <span className={styles.subject}>MINI LESSON · {current.subject} · {current.minutes} MIN READ</span>
+          <span className={styles.subject}>MINI LESSON · {current.minutes} MIN READ</span>
           <h1 className={styles.readerTitle}>{current.title}</h1>
           <p className={styles.subline}>{current.summary}</p>
           <div className={styles.creatorRow}>
@@ -163,6 +185,7 @@ export function MiniExplore() {
               onClick={() => toggle(followed, setFollowed, current.creator)}>{followed.includes(current.creator) ? 'Following' : '+ Follow'}</button>
           </div>
           {current.paragraphs.map((text, index) => <p className={styles.paragraph} key={index}>{text}</p>)}
+          <div className={styles.tagRow}>{current.tags.map(name => <button key={name} type="button" className={styles.tagButton} onClick={() => selectTag(name)}>{'#'+name}</button>)}</div>
           <div className={styles.quiz}>
             <h3>Check your understanding</h3>
             <p>{current.question}</p>
@@ -222,13 +245,11 @@ export function MiniExplore() {
         <label className={styles.label} htmlFor="mini-body">Your explanation</label>
         <textarea id="mini-body" className={styles.editor} maxLength={3000} value={draftBody}
           onChange={event => setDraftBody(event.target.value)} placeholder="Explain something useful in a few paragraphs..."/>
-        <label className={styles.label} htmlFor="mini-subject">Subject</label>
-        <select id="mini-subject" className={styles.field} value={draftSubject} onChange={event => setDraftSubject(event.target.value)}>
-          {['History', 'Agriculture', 'Physics', 'Literature', 'Mathematics', 'English', 'Science', 'General Knowledge'].map(name => <option key={name}>{name}</option>)}
-        </select>
-        <label className={styles.label} htmlFor="mini-attachment">Photo or document (optional)</label>
+        <label className={styles.label} htmlFor="mini-tags">Hashtags</label>
+        <input id="mini-tags" className={styles.field} value={draftTags} onChange={event => setDraftTags(event.target.value)} placeholder="#Mathematics #Fractions" />
+        <label className={styles.label} htmlFor="mini-attachment">Photo</label>
         <div className={styles.upload}>
-          <input type="file" id="mini-attachment" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp"
+          <input type="file" id="mini-attachment" accept="image/jpeg,image/png,image/webp"
             onChange={event => attach(event.target.files?.[0])}/>
           {draftFile && <span className={styles.previewNote}>{draftFile}</span>}
         </div>
@@ -238,8 +259,8 @@ export function MiniExplore() {
           <button className={styles.primary} type="button" disabled title="Publishing requires a verified account and moderated backend">Publish — not active</button>
         </div>
         {preview && <div className={styles.preview}>
-          {draftImage ? <img src={draftImage} alt="Selected Mini cover preview" style={{ width: '100%', maxHeight: 320, objectFit: 'contain' }}/> : <MiniArtwork kind={draftSubject === 'Agriculture' ? 'agriculture' : draftSubject === 'Physics' ? 'physics' : draftSubject === 'Literature' ? 'literature' : 'history'}/>}
-          <div className={styles.previewBody}><span className={styles.subject}>MINI LESSON · {draftSubject}</span>
+          {draftImage ? <img src={draftImage} alt="Selected Mini cover preview" style={{ width: '100%', maxHeight: 320, objectFit: 'contain' }}/> : <MiniArtwork kind="history"/>}
+          <div className={styles.previewBody}><span className={styles.subject}>MINI LESSON · {draftTags}</span>
             <h2>{draftTitle}</h2>{draftBody.split(/\n\s*\n/).map((part, index) => <p key={index}>{part}</p>)}</div>
         </div>}
         <p className={styles.formNote}>Interface preview only. Files remain on your device; nothing is uploaded or made public. Real publishing must verify creator permissions and pass content and child-safety checks.</p>
