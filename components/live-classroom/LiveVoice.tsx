@@ -24,6 +24,28 @@ function dailyVoiceError(type:unknown):string {
     default: return 'Daily audio failed to connect. Retry, or report the error.'
   }
 }
+type VoiceDiagnosticStage = 'joining' | 'signaling' | 'media' | 'connected' | 'unknown'
+const safeFatalCodes = new Set([
+  'ejected','nbf-room','nbf-token','exp-room','exp-token','no-room',
+  'meeting-full','end-of-life','not-allowed','connection-error',
+])
+// Only categories leave this browser. Never transmit Daily's raw errorMsg,
+// localizedMsg, token, room URL, participant identifier or browser exceptions.
+function voiceDiagnosticCode(value:unknown):string {
+  return typeof value==='string' && safeFatalCodes.has(value)?value:'unknown'
+}
+function voiceDiagnosticHint(value:unknown):string {
+  if(typeof value!=='string')return 'unknown'
+  const msg=value.slice(0,512).toLowerCase()
+  if(/\b(token|jwt|expired|expiry)\b/.test(msg))return 'token'
+  if(/\b(denied|forbidden|unauthorized|permission|access)\b/.test(msg))return 'access'
+  if(/\b(full|capacity|participant limit|quota)\b/.test(msg))return 'capacity'
+  if(/\b(camera|microphone|device|mediadevices)\b/.test(msg))return 'device'
+  if(/\b(room|meeting)\b/.test(msg))return 'room'
+  if(/\b(ice|turn|stun|sfu|signaling|websocket|peer|network|disconnect|connection)\b/.test(msg))return 'transport'
+  if(/\b(timed? out|timeout|deadline)\b/.test(msg))return 'timeout'
+  return 'unknown'
+}
 function canPublishAudio(value:unknown):boolean{
   if (value===true)return true
   if (Array.isArray(value))return value.includes('audio')
@@ -114,10 +136,25 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
     const generation=++connectGeneration.current
     setPhase('connecting');setError('')
     let call:DailyCall|null=null
+    let stage:VoiceDiagnosticStage='joining'
+    let reported=false
+    let reportFailure:(code:string,hint:string)=>void=()=>{}
     try{
       const {data:{session}}=await supabase.auth.getSession()
       if(!session)throw Error('Sign in to join audio.')
       connectedUser.current=session.user.id
+      reportFailure=(code,hint)=>{
+        if(reported)return
+        reported=true
+        // Enumeration-only telemetry is authorized by the same Live RPC and
+        // pilot allowlist as token issuance. A failure to report never blocks UI.
+        void fetch('/api/live/voice/'+encodeURIComponent(roomId),{
+          method:'PATCH',
+          headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
+          body:JSON.stringify({classId,diagnostic:{stage,code,hint}}),
+          cache:'no-store',keepalive:true,signal:AbortSignal.timeout(5000),
+        }).catch(()=>{})
+      }
       const res=await fetch('/api/live/voice/'+encodeURIComponent(roomId),{
         method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
         body:JSON.stringify({classId}),cache:'no-store',signal:AbortSignal.timeout(16000),
@@ -134,16 +171,29 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
       call.on('participant-left',sync)
       call.on('track-started',sync)
       call.on('track-stopped',sync)
+      call.on('joining-meeting',()=>{stage='joining'})
+      call.on('joined-meeting',()=>{stage='connected'})
+      call.on('network-connection',event=>{
+        if(event.type==='signaling')stage='signaling'
+        if(event.type==='sfu'||event.type==='peer-to-peer')stage='media'
+      })
       call.on('error',event=>{
         if(meeting.current!==call)return
-        const failure=dailyVoiceError(event?.error?.type)
+        const code=voiceDiagnosticCode(event?.error?.type)
+        const hint=voiceDiagnosticHint(event?.errorMsg??event?.error?.localizedMsg)
+        reportFailure(code,hint)
+        const failure=code==='unknown'
+          ? 'Daily audio failed ('+stage+' / '+hint+'). Retry joining.'
+          : dailyVoiceError(code)
         void stop().then(()=>{if(alive.current){setError(failure);setPhase('failed')}})
       })
       call.on('left-meeting',()=>{
         if(meeting.current!==call)return
+        reportFailure('unexpected-leave','unknown')
         void stop().then(()=>{if(alive.current){setError('Daily ended the audio connection. Retry joining.');setPhase('failed')}})
       })
       await call.join({url:data.url,token:data.token})
+      stage='connected'
       if(generation!==connectGeneration.current){if(!call.isDestroyed())await call.destroy();return}
       // Daily room start_audio_off is true; microphone permission remains user initiated.
       call.setLocalAudio(false)
@@ -165,6 +215,8 @@ export function LiveVoice({roomId,classId,teacher,enabled,status,learners,onAckn
         },Math.max(1000,ttlMs-30000))
       }
     }catch(e){
+      if(call && generation===connectGeneration.current)
+        reportFailure('join-exception',voiceDiagnosticHint(e instanceof Error?e.message:null))
       if(call && !call.isDestroyed())await call.destroy().catch(()=>{})
       if(generation===connectGeneration.current){
         meeting.current=null;setPhase('failed');setError(e instanceof Error?e.message:'Audio unavailable.')
