@@ -31,7 +31,7 @@ assert.equal(connectReadingEntries([...rows,{id:'f',name:'Other',sub_strand:'Sub
 assert.match(outline,/\.eq\('status','published'\)/)
 assert.match(outline,/\.eq\('viewer_id',user\.id\)/)
 assert.doesNotMatch(outline,/\.select\([^\n]*blocks/)
-assert.match(outline,/resumed \? 'Continue reading' : 'Start reading'/)
+assert.match(outline,/resumed \? 'Continue reading' : open === pilotLesson \? 'Start Lesson 1' : 'Start reading'/)
 assert.doesNotMatch(library,/>Topics and lessons<|>Published textbooks<|>Existing lesson readers</)
 console.log('PASS: single book landing, existing reader destinations, owner-only resume, no draft leakage or fabricated linkage')
 

@@ -44,7 +44,8 @@
     "test:live-voice": "node --test scripts/test-live-voice.mjs",
     "test:shared-theme": "node --test scripts/test-shared-platform-theme.mjs",
     "test:vibechat": "node --test scripts/test-vibechat-unified-inbox.mjs scripts/test-vibechat-contact-discovery.mjs",
-    "test:studio-document": "node --import ./scripts/register-typescript.mjs --test scripts/test-studio-document-reader.mjs && node --import ./scripts/register-typescript.mjs --test scripts/test-studio-draft-title-creation.mjs"
+    "test:studio-document": "node --import ./scripts/register-typescript.mjs --test scripts/test-studio-document-reader.mjs && node --import ./scripts/register-typescript.mjs --test scripts/test-studio-draft-title-creation.mjs",
+    "test:vibetwin-muted": "node scripts/test-vibetwin-global-mute.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",

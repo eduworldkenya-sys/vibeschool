@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability'
 
 const BG      = '#f0f2f5'
 const SURFACE = '#ffffff'
@@ -339,7 +340,8 @@ export default function VibeLearnPage() {
           </div>
         )}
 
-        {/* ── Twin greeting card ── */}
+        {/* Twin greeting is intentionally hidden while VibeTwin is muted. */}
+        {VIBETWIN_ENABLED && (
         <div style={{ padding: '16px 16px 0' }}>
           <div style={{
             background: '#ffffff',
@@ -381,6 +383,8 @@ export default function VibeLearnPage() {
             </div>
           </div>
         </div>
+
+        )}
 
         {/* ── Search ── */}
         <div style={{ padding: '16px 16px 0' }}>
@@ -508,7 +512,7 @@ export default function VibeLearnPage() {
                 My Exam
               </div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginBottom: 14, lineHeight: 1.4 }}>
-                Test yourself. Twin builds a real exam.
+                Test your knowledge with exam practice.
               </div>
               <button style={{
                 background: 'rgba(255,255,255,0.15)', color: WHITE,
@@ -550,7 +554,7 @@ export default function VibeLearnPage() {
           }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
               {[
-                { label: 'Twin Sessions', value: String(totalSessions), icon: '🧠' },
+                ...(VIBETWIN_ENABLED ? [{ label: 'Twin Sessions', value: String(totalSessions), icon: '🧠' }] : []),
                 { label: 'Daily Streak',  value: `${dailyStreak} 🔥`,   icon: '🔥' },
                 { label: 'Time Learned',  value: `${totalMins}m`,        icon: '⏱️' },
               ].map(stat => (
@@ -565,7 +569,7 @@ export default function VibeLearnPage() {
             </div>
 
             {/* Growth line — session count by day */}
-            {sessions.length > 1 && (() => {
+            {VIBETWIN_ENABLED && sessions.length > 1 && (() => {
               const byDay: Record<string, number> = {}
               sessions.forEach(s => {
                 const day = s.created_at.slice(0, 10)
@@ -600,7 +604,7 @@ export default function VibeLearnPage() {
               )
             })()}
 
-            {sessions.length === 0 && (
+            {VIBETWIN_ENABLED && sessions.length === 0 && (
               <div style={{ color: MUTED, fontSize: 12, textAlign: 'center', paddingTop: 8 }}>
                 No Twin sessions yet. Start learning to build your biography.
               </div>

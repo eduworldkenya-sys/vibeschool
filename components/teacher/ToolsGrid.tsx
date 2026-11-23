@@ -1,3 +1,4 @@
+import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability'
 import styles from './ToolsGrid.module.css'
 
 const TOOLS = [
@@ -6,7 +7,7 @@ const TOOLS = [
   { key: 'lessonplan',  label: 'Lesson Plan', icon: '✎' },
   { key: 'gradebook',   label: 'Class Results', icon: '▐' },
   { key: 'connecthub',  label: 'ConnectHub',  icon: '⬡' },
-  { key: 'twin',        label: 'Twin',        icon: '◎' },
+  ...(VIBETWIN_ENABLED ? [{ key: 'twin' as const, label: 'Twin', icon: '◎' }] : []),
 ] as const
 
 type ToolKey = typeof TOOLS[number]['key']

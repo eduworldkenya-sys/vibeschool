@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
+import { VIBETWIN_ENABLED } from "@/lib/vibetwin-availability";
 
 import OfflineBar from "@/components/teacher/OfflineBar";
 import "@/components/teacher/teacher-workspace.css";
@@ -210,14 +211,14 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         <CreditContext.Provider value={{ creditBalance, refreshCredits }}>
           <div className="teacher-shell"><a href="#teacher-main" className="teacher-skip-link">Skip to workspace</a>
           <OfflineBar />
-          <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
+          {VIBETWIN_ENABLED && <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>}
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} creditsLoading={creditsLoading} />
           <main id="teacher-main" data-studio-view={/^\/teacher\/classhub\/[^/]+\/student\/[^/]+\/?$/.test(pathname ?? "") ? "learner" : pathname === "/teacher/assessment" ? "assessment" : undefined} tabIndex={-1} className="teacher-content teacher-light-surface">{children}</main>
-          {/^\/teacher\/classhub\/[^/]+\/student\/[^/]+\/?$/.test(pathname ?? "")
+          {VIBETWIN_ENABLED && (/^\/teacher\/classhub\/[^/]+\/student\/[^/]+\/?$/.test(pathname ?? "")
             ? <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 14px 100px' }}><button type="button" className="teacher-icon-button" style={{ width: 'auto', padding: '0 14px', gap: 8 }} onClick={() => setTwinOpen(true)}><Sparkles size={18}/> Ask Twin{twinUnread > 0 ? ` · ${twinUnread} updates` : ''}</button></div>
-            : <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />}
+            : <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />)}
           <TeacherNavigation />
-          <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
+          {VIBETWIN_ENABLED && <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />}
           {toast && <Toast msg={toast} />}
           </div>
         </CreditContext.Provider>

@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability'
 import type { Json } from '@/lib/database.types'
 
 type ReaderChapterEvent = { publicationId?: string; chapterId?: string; progressPercent?: number }
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
+const rpc: Rpc = supabase.rpc.bind(supabase)
 
 export default function LearnYourWayReaderBridge() {
   const pathname = usePathname(); const router = useRouter()
@@ -17,7 +18,7 @@ export default function LearnYourWayReaderBridge() {
   const isReader = pathname.startsWith('/read/textbook/')
 
   useEffect(() => {
-    if (!isReader) { setLearner(false); return }
+    if (!VIBETWIN_ENABLED || !isReader) { setLearner(false); return }
     let cancelled = false
     async function resolveLearner() {
       const { data } = await supabase.auth.getSession()
@@ -42,7 +43,7 @@ export default function LearnYourWayReaderBridge() {
   useEffect(() => { if (!isReader) setChapterId(null) }, [isReader])
 
   useEffect(() => {
-    if (!isReader || !learner || !chapterId) return
+    if (!VIBETWIN_ENABLED || !isReader || !learner || !chapterId) return
     const open = () => router.push(`/student/twin/teach/chapter/${chapterId}`)
     window.addEventListener('vibe:reader-help', open)
     return () => window.removeEventListener('vibe:reader-help', open)

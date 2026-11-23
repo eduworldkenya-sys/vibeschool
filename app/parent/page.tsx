@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getParentAssessmentSummary } from '@/lib/assessment/integration'
 import ParentTwinDrawer from '@/components/parent/TwinDrawer'
+import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability'
 
 interface ChildData {
   id: string
@@ -386,8 +387,8 @@ export default function ParentHomePage() {
         </div>
       </section>
 
-      <button onClick={() => setTwinOpen(true)} aria-label="Open parent Twin" style={{ position: 'fixed', bottom: 86, right: 20, zIndex: 750, width: 52, height: 52, borderRadius: 18, background: `linear-gradient(135deg,${C.indigo},#064e3b)`, border: '1.5px solid rgba(16,185,129,0.5)', color: C.emeraldBright, fontSize: 20, cursor: 'pointer', boxShadow: '0 8px 28px rgba(15,23,42,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✦</button>
-      <ParentTwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
+      {VIBETWIN_ENABLED && <button onClick={() => setTwinOpen(true)} aria-label="Open parent Twin" style={{ position: 'fixed', bottom: 86, right: 20, zIndex: 750, width: 52, height: 52, borderRadius: 18, background: `linear-gradient(135deg,${C.indigo},#064e3b)`, border: '1.5px solid rgba(16,185,129,0.5)', color: C.emeraldBright, fontSize: 20, cursor: 'pointer', boxShadow: '0 8px 28px rgba(15,23,42,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✦</button>}
+      {VIBETWIN_ENABLED && <ParentTwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />}
     </div>
   )
 }

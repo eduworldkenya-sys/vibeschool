@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getRevisionWorkspace, saveTopicNote, type TopicWorkspace } from '@/lib/student/vibelearn'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
+import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability'
 
 export default function TopicWorkspacePage() {
   const router = useRouter()
@@ -80,7 +81,7 @@ export default function TopicWorkspacePage() {
 
         <section style={card}>
           <div style={eyebrowDark}>Practise</div><h2 style={title}>{workspace.questions.length} verified questions available</h2>
-          <p style={muted}>Start a scored session using stored hints and explanations. VibeTwin remains off during scoring.</p>
+          <p style={muted}>Start a scored session using stored hints and explanations. Your score is based on your own answers.</p>
           <button style={{ ...primaryButton, marginTop: 12 }} onClick={() => router.push(`/student/vibelearn/practice?subject=${encodeURIComponent(workspace.subject)}&topic=${encodeURIComponent(workspace.topic)}`)}>Start topic practice</button>
         </section>
 
@@ -91,11 +92,13 @@ export default function TopicWorkspacePage() {
           </div>}
         </section>
 
+        {VIBETWIN_ENABLED && (
         <section style={{ ...card, background: '#faf5ff', borderColor: '#ddd6fe' }}>
           <div style={eyebrowDark}>VibeTwin · explicit help only</div><h2 style={title}>Think first, ask second</h2>
           <p style={{ ...muted, lineHeight: 1.6 }}>Twin may simplify an explanation, translate, provide a similar example or explain a completed mistake. It must not answer an active scored question or replace the textbook, teacher or your own working.</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}><span style={pill}>Explain simply</span><span style={pill}>Show similar example</span><span style={pill}>Explain my mistake</span><span style={pill}>Translate</span></div>
         </section>
+        )}
       </>}
     </div>
   </main>

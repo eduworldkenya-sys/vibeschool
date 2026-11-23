@@ -162,7 +162,7 @@ export default function AdminAcademicsPage() {
       <header>
         <h1 style={{ margin: 0, fontSize: 24 }}>Teaching & learning oversight</h1>
         <p style={{ color: "#64748b", margin: "5px 0 0" }}>
-          {term ? `${term.name} · ${term.academic_year}` : "No active academic term"} · operational evidence only, without Student Twin private conversations.
+          {term ? `${term.name} · ${term.academic_year}` : "No active academic term"} · operational evidence only.
         </p>
       </header>
 

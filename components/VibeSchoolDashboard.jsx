@@ -1,5 +1,6 @@
 "use client";
 "use client";
+import { VIBETWIN_ENABLED } from '@/lib/vibetwin-availability';
 import { useState, useRef, useEffect } from "react";
 
 const C = {
@@ -1049,10 +1050,10 @@ export default function VibeSchoolTeacher() {
         {lessonModal && <LessonPlanModal slot={lessonModal} onClose={() => setLessonModal(null)} />}
 
         {/* ── Twin Pill — always above nav ── */}
-        <TwinPill onOpen={() => setTwinOpen(true)} hasUnread={!twinOpen} />
+        {VIBETWIN_ENABLED && <TwinPill onOpen={() => setTwinOpen(true)} hasUnread={!twinOpen} />}
 
         {/* ── Twin Drawer — slides up ── */}
-        <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
+        {VIBETWIN_ENABLED && <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />}
 
         {/* ── Bottom Nav ── */}
         <BottomNav active={activeTab} onChange={t => { setActiveTab(t); setTwinOpen(false); }} unreadConnect={unreadConnect} />
