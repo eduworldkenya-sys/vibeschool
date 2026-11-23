@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import styles from './VibeChat.module.css'
+import { codeFromAvatar, vibeMePath } from '@/lib/vibeme'
 
 /** Reuse the account's own uploaded photo or VibeMe choice; never fetch third-party tracking URLs. */
 export function safeVibeChatAvatar(url: string | null | undefined): string | null {
   if (!url) return null
-  if (/^\/api\/vibeme\/v[12]-[0-9]{7,16}\.svg$/.test(url)) return url
+  const vibeMeCode = codeFromAvatar(url)
+  if (vibeMeCode) return vibeMePath(vibeMeCode)
   try {
     const target = new URL(url)
     const supabase = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://invalid.invalid')
