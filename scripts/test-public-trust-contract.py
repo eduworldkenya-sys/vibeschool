@@ -17,7 +17,7 @@ def text(rel: str) -> str:
 
 # Public surfaces that must remain inside the canonical VibeSchool shell.
 shell_pages = [
-    'app/page.tsx','app/product/page.tsx','app/about/page.tsx','app/contact/page.tsx','app/careers/page.tsx',
+    'app/page.tsx','app/product/page.tsx','app/explore/page.tsx','app/about/page.tsx','app/contact/page.tsx','app/careers/page.tsx',
     'app/institutions/page.tsx','app/trust/page.tsx','app/trust/child-safety/page.tsx',
     'app/trust/security/page.tsx','app/trust/responsible-ai/page.tsx','app/legal/page.tsx',
     'app/legal/privacy/page.tsx','app/legal/terms/page.tsx','app/legal/aup/page.tsx',
@@ -66,13 +66,17 @@ for fragment in [':focus-visible','@media(max-width:640px)','min-height:44px','p
 bottom_nav = text('components/public/PublicBottomNav.tsx')
 for label, destination in [
     ('Home', '/'),
-    ('Explore', '/product'),
+    ('Explore', '/explore'),
+    ('Learn', '/learn'),
     ('Schools', '/schools'),
     ('Teachers', '/teacher'),
-    ('Contact', '/contact'),
 ]:
     if f"label: '{label}', href: '{destination}'" not in bottom_nav:
         errors.append(f'public mobile navigation missing {label}: {destination}')
+if "label: 'Contact', href: '/contact'" in bottom_nav:
+    errors.append('Contact must not occupy the public bottom navigation')
+if "'/explore'" not in bottom_nav:
+    errors.append('Explore route must remain public in bottom navigation')
 for forbidden in ["label: 'Create'", "href: '/global/activity'", "href: '/global/profile'", "href: '/global/signup'"]:
     if forbidden in bottom_nav:
         errors.append(f'public mobile navigation contains account-only destination: {forbidden}')
@@ -132,6 +136,19 @@ for fragment in [
 home = text('app/page.tsx')
 for fragment in ['RoleJourneySelector','ConnectedEducationExplorer','SchoolReadinessAssessment','GET TO KNOW VIBESCHOOL','FOR SCHOOLS &amp; EDUCATION INSTITUTIONS','Pathways','Trust Centre','/product','/institutions']:
     if fragment not in home: errors.append(f'homepage communication missing: {fragment}')
+
+# Mini Lessons are a discovery UI preview; real publishing remains off.
+mini_page = text('app/explore/page.tsx')
+mini_ui = text('components/public/MiniExplore.tsx')
+mini_home = text('components/public/MiniHomeSection.tsx')
+for fragment in ['MiniExplore', "canonical: '/explore'", 'PublicHeader', 'PublicFooter', 'main-content']:
+    if fragment not in mini_page: errors.append(f'Mini Explore shell missing: {fragment}')
+for fragment in ['MINI_EXAMPLES', 'setQuery(', 'setSubject(', 'setTab(', 'setLiked(', 'setSaved(', 'setFollowed(', 'setComments(', 'Create Mini', 'Publish — not active', 'moderation', 'safeguarding']:
+    if fragment not in mini_ui: errors.append(f'Mini Explore preview missing: {fragment}')
+for forbidden in ['supabase.from(', 'fetch(', 'localStorage.', 'sessionStorage.', 'service_role', 'publish_mini(']:
+    if forbidden in mini_ui: errors.append(f'Mini Explore preview must not activate backend publishing: {forbidden}')
+if 'MiniHomeSection' not in home or '/explore' not in home or 'MiniCard' not in mini_home:
+    errors.append('Home must show Mini discovery without replacing its existing roles and trust content')
 
 role_selector = text('components/public/RoleJourneySelector.tsx')
 for fragment in ['Learner','Teacher','Family','School leader','public_role_learner','public_role_teacher','public_role_family','public_role_school','See the whole system']:
