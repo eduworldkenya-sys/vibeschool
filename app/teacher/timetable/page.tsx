@@ -1239,6 +1239,13 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const classChoices = useMemo(() => [...new Map(visibleSlots.map(slot => [slot.classId,{id:slot.classId,name:slot.className}])).values()].sort((a,b)=>a.name.localeCompare(b.name)), [visibleSlots])
   const subjectChoices = useMemo(() => [...new Map(visibleSlots.map(slot => [slot.subjectId,{id:slot.subjectId,name:slot.subject}])).values()].sort((a,b)=>a.name.localeCompare(b.name)), [visibleSlots])
   const hasDisplayFilters = classFilter !== 'all' || subjectFilter !== 'all' || searchText.trim().length > 0
+  // The weekly grid is school-specific whenever multiple schools are linked.
+  // A class/subject search may narrow it to one school without switching the
+  // user's global school selection or exposing another school's write actions.
+  const filteredSchoolIds = [...new Set(displaySlots.map(slot => slot.schoolId))]
+  const calendarSchoolId = schoolFilter !== 'all' ? schoolFilter :
+    filteredSchoolIds.length === 1 ? filteredSchoolIds[0] :
+    schools.length === 1 ? schools[0].id : null
   const clearDisplayFilters = () => { setClassFilter('all'); setSubjectFilter('all'); setSearchText('') }
   const daySlots = useMemo(
     () => displaySlots.filter(s => s.dayOfWeek === activeDow && slotActiveOn(s, dateForDow(activeDow))),
@@ -1907,15 +1914,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           <button type="button" onClick={() => router.push('/teacher/timetable/setup')} style={{marginTop:12,border:'1px solid var(--border-color,#e5e7eb)',background:'transparent',borderRadius:6,padding:'9px 12px',color:C.textPrimary,cursor:'pointer'}}>School day & templates</button>
         </section>
       )}
-      {view === 'week' && scheduleContext !== 'tuition' && schoolFilter === 'all' && schools.length > 1 && !loading && (
+      {view === 'week' && scheduleContext !== 'tuition' && !calendarSchoolId && schools.length > 1 && !loading && (
         <div className="no-print" style={{ padding: 12, marginBottom: 12, borderRadius: 12, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
           Choose one school above for its weekly sheet. Daily view combines all of your schools and still respects the global teacher clash rule.
         </div>
       )}
-      {view === 'week' && scheduleContext !== 'tuition' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
-        slots={displaySlots} blocks={schoolFilter !== 'all' ? (schoolBlocks[schoolFilter] ?? []) : dayBlocks} dateForDow={dateForDow}
+      {view === 'week' && scheduleContext !== 'tuition' && calendarSchoolId && !loading && !loadError && !schoolError && <ClassicTimetable
+        slots={displaySlots} blocks={schoolBlocks[calendarSchoolId] ?? []} dateForDow={dateForDow}
         onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(displaySlots.find(slot => slot.id === s.id) ?? null) }}
-        onAdd={canAddSlot && !blocksError && (schoolFilter === 'all' || schoolFilter === activeSchoolId) ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
+        onAdd={canAddSlot && !blocksError && calendarSchoolId === activeSchoolId ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
       />}
       {view === 'week' && scheduleContext !== 'school' && (
         <Card><SectionLabel>Tuition this week</SectionLabel>
