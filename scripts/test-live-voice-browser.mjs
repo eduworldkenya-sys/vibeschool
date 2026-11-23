@@ -226,7 +226,7 @@ try{
   const failedJoin=await open('teacher',false,'?solo=1&failJoin=1')
   await failedJoin.getByRole('button',{name:'Join audio'}).click()
   await failedJoin.getByRole('alert').getByText('Daily audio could not connect. Retry; if it keeps failing, try another network.').waitFor()
-  assert.equal(await failedJoin.getByRole('button',{name:'Mic off'}).isDisabled(),true)
+  assert.equal(await failedJoin.getByRole('button',{name:'Microphone off'}).isDisabled(),true)
   assert.doesNotMatch(await failedJoin.getByRole('alert').textContent(),/private opaque failure/)
   await new Promise(ok=>setTimeout(ok,100))
   assert.deepEqual(diagnostics.at(-1).diagnostic,{stage:'joining',code:'unknown',hint:'unknown'})
