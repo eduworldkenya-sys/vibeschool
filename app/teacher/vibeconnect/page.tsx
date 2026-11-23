@@ -377,7 +377,7 @@ export default function TeacherVibeConnectPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
         <VCIcon size={32} />
         <div>
-          <h1 style={{ fontSize: '20px', fontWeight: '800', color: C.text, margin: 0 }}>VibeConnect</h1>
+          <h1 style={{ fontSize: '20px', fontWeight: '800', color: C.text, margin: 0 }}>VibeChat</h1>
           <p style={{ fontSize: '12px', color: C.muted, margin: 0 }}>Messages · Notices · School comms</p>
         </div>
       </div>
