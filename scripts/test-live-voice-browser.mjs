@@ -123,7 +123,7 @@ try{
   assert.equal(await solo.evaluate(()=>window.__voiceCall.localAudio()),true)
   await solo.evaluate(()=>window.__voiceCall.emit('error',{
     error:{type:'connection-error'},
-    errorMsg:'untrusted secret meeting token must not display'
+    errorMsg:'untrusted secret opaque value must not display'
   }))
   await solo.getByRole('alert').getByText('Daily audio connection failed. Check network connection and retry.').waitFor()
   // Fatal event telemetry contains only closed enums, not untrusted messages.
