@@ -197,6 +197,26 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
     })
   }
 
+  // A teacher who also manages a learner is a parent in their personal
+  // workspace. The managed-profile RPC is guardian-owned and returns no
+  // existing students/schools. Missing RPC during additive rollout is safe.
+  if (activeSelfRole === 'teacher' && !bindings.some(binding => binding.role === 'parent')) {
+    const { data: managed, error: managedError } = await supabase.rpc('vs_list_my_identities')
+    if (managedError && managedError.code !== 'PGRST202') {
+      throw new Error(managedError.message || 'Managed learner authority could not be resolved.')
+    }
+    const learners = managed && typeof managed === 'object' && !Array.isArray(managed)
+      ? (managed as { managed_learners?: unknown }).managed_learners : null
+    if (Array.isArray(learners) && learners.length > 0) {
+      bindings.push({
+        role: 'parent', scopeType: 'family', scopeId: userId, schoolId: null,
+        relationship: 'guardian_managed_learner_profiles',
+        resourceIds: [], // NOT canonical students; separate linking must be verified
+        evidence: { managed_profile_count: learners.length },
+      })
+    }
+  }
+
   if (ownerRes.data === true) {
     bindings.push({
       role: 'hq', scopeType: 'platform', scopeId: 'vibeschool', schoolId: null,
