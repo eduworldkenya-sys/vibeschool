@@ -7,6 +7,94 @@ begin;
 -- Additive repair; retain every existing VibeConnect ID.
 alter table public.profiles add column if not exists vc_id text;
 
+-- Parent/teacher context is stored on the thread, never inferred from the
+-- caller's arbitrary route parameters or the participant's school account.
+alter table public.vc_threads
+  add column if not exists student_id uuid references public.students(id);
+create index if not exists vibechat_child_threads
+  on public.vc_threads(student_id, created_at desc) where student_id is not null;
+
+-- Child-scoped admission: a linked guardian and an assigned, currently active
+-- class teacher, for this exact learner. There is no arbitrary staff discovery.
+create or replace function public.parent_start_child_thread(
+  p_student_id uuid,
+  p_staff_id uuid,
+  p_context_tag text default 'question'
+) returns uuid
+language plpgsql volatile security definer set search_path='' as $vcparent$
+declare
+  v_parent uuid := auth.uid();
+  v_school uuid;
+  v_thread uuid;
+begin
+  if v_parent is null then raise exception 'Sign-in required' using errcode='28000'; end if;
+  if p_student_id is null or p_staff_id is null or
+     coalesce(p_context_tag,'') not in ('question','general','urgent')
+  then raise exception 'Invalid child message request' using errcode='22023'; end if;
+  select cl.school_id into v_school
+  from public.parent_student_links link
+  join public.students learner on learner.id=link.student_id
+    and learner.deleted_at is null
+  join public.classes cl on cl.id=learner.class_id
+  join public.teacher_classes assignment on assignment.class_id=cl.id
+    and assignment.school_id=cl.school_id
+    and assignment.teacher_id=p_staff_id
+  join public.profiles guardian on guardian.id=link.parent_id
+    and guardian.account_status::text='active'
+    and not coalesce(guardian.is_anonymized,false)
+  join public.profiles teacher on teacher.id=assignment.teacher_id
+    and teacher.role='teacher'
+    and teacher.account_status::text='active'
+    and not coalesce(teacher.is_anonymized,false)
+  where link.parent_id=v_parent and link.student_id=p_student_id
+    and (link.school_id is null or link.school_id=cl.school_id)
+    and exists (select 1 from public.school_members sm
+      where sm.profile_id=p_staff_id and sm.school_id=cl.school_id)
+  limit 1;
+  if v_school is null then
+    raise exception 'Parent or assigned teacher is not authorized'
+      using errcode='42501';
+  end if;
+
+  -- Concurrent requests for the same exact guardian/learner/teacher are
+  -- serialized, avoiding accidental duplicate threads.
+  perform pg_advisory_xact_lock(hashtextextended(
+    v_parent::text || ':' || p_student_id::text || ':' || p_staff_id::text,0));
+  select thread.id into v_thread
+  from public.vc_threads thread
+  where thread.student_id=p_student_id and thread.school_id=v_school
+    and thread.type='direct' and thread.created_by=v_parent
+    and exists (select 1 from public.vc_participants mine
+      where mine.thread_id=thread.id and mine.profile_id=v_parent and mine.left_at is null)
+    and exists (select 1 from public.vc_participants other
+      where other.thread_id=thread.id and other.profile_id=p_staff_id and other.left_at is null)
+  order by thread.created_at desc limit 1;
+  if v_thread is not null then return v_thread; end if;
+
+  insert into public.vc_threads(school_id,student_id,type,created_by,context_tag,subject)
+    values(v_school,p_student_id,'direct',v_parent,p_context_tag,'Child-scoped teacher conversation')
+    returning id into v_thread;
+  insert into public.vc_participants(thread_id,profile_id,school_id)
+    values (v_thread,v_parent,v_school),(v_thread,p_staff_id,v_school);
+  return v_thread;
+end;
+$vcparent$;
+revoke all on function public.parent_start_child_thread(uuid,uuid,text)
+  from public, anon, authenticated;
+grant execute on function public.parent_start_child_thread(uuid,uuid,text)
+  to authenticated;
+
+-- Revoke the legacy ability to spoof another sender or post after leaving.
+-- This restrictive INSERT policy cannot grant access to an unauthorized user.
+drop policy if exists vibechat_member_sender_integrity on public.vc_messages;
+create policy vibechat_member_sender_integrity on public.vc_messages
+  as restrictive for insert to authenticated
+  with check (sender_id=auth.uid() and exists (
+    select 1 from public.vc_participants member
+    where member.thread_id=vc_messages.thread_id
+      and member.profile_id=auth.uid() and member.left_at is null
+  ));
+
 -- Production inspection on 2026-11-23 found zero case-insensitive collisions.
 -- Preserve one canonical VibeChat ID regardless of mixed case.
 create unique index if not exists profiles_vibechat_id_casefold_unique
