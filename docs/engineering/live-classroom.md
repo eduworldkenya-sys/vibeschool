@@ -231,3 +231,46 @@ not authorize activation of the media service.
 - When voice UI is enabled but a member has not joined authorized audio, the voice dock shows `Mic off` and `Join audio`; mic activation continues to depend on the existing room authorization, teacher approval for learners, and device consent.
 - The teacher quiz-answer-history database repair and its migration are explicitly **not included** in this release; existing quiz submissions and security remain unchanged. A separate independently reviewed change is required before exposing historical answers.
 - This UI-only change does not enable Daily/provider service, change Supabase tables or grants, or represent verified microphone capture.
+
+## Full-class voice rollout candidate (23 November 2026)
+
+Owner direction: allow **all appropriately authorized VibeSchool teachers and learners**
+to use audio inside their existing Live Lesson, rather than only two pilot
+accounts. This change does not create a public calling product, publish a
+classroom, admit unconnected users or provide voice outside Live. The
+authenticated `vibe_live_command(get)` remains the sole session-admission
+authority and the learner identity remains server-verified; all of the school,
+tuition, homeschool and eligible open-class membership/waiting-room rules
+still apply. A parent hosting a homeschool session retains the canonical host
+role already used by Live; no new host role is granted.
+
+- `VIBE_LIVE_VOICE_ACCESS_SCOPE=all` is the explicit full-class release
+  switch. Missing/unknown values deny all issuance. `pilot` and its original
+  account allowlist/expiry remain available for rollback. Neither scope can
+  bypass both `VIBE_LIVE_VOICE_SERVER_ENABLED` and
+  `NEXT_PUBLIC_VIBE_LIVE_VOICE_ENABLED`, the verified JWT, same-origin check,
+  active classroom and canonical RPC.
+- Group audio uses a separate private Daily room name,
+  `vs-live-class-<session UUID>`, preventing accidental reuse of an older
+  two-seat pilot room. The class room omits `max_participants` and relies on
+  Daily's documented 200-person default; real account plan quotas,
+  concurrency, audio quality and usage charges MUST be confirmed with a
+  multiple-device test. Returning private-room settings are validated before
+  any meeting token is issued. Pilot rooms still enforce exactly two seats.
+- Teacher can speak alone; learners join receive-only. Teachers retain
+  participant-audio-only moderation, and students must raise a hand, receive
+  permission and voluntarily activate their microphone. Video, recording,
+  screen sharing and provider chat stay disabled. Short tokens expire and
+  require renewed canonical authorization.
+- An authenticated teacher ending the lesson closes both group and legacy
+  pilot rooms in all mode. Network failures or failed provider ejection must
+  be treated as unresolved; disabling environment flags only prevents **new**
+  joins and does not remove existing participants immediately.
+- Changing the code or merging it is not production commissioning. Before
+  changing the server access scope to `all`, require exact-head CI, independent
+  authorization/tenant-isolation review, provider plan/budget checks, teacher
+  alone and teacher + several real learners on Android/network handoff,
+  student permission/revocation checks, outsider denial, expiry/ejection and
+  mobile speaker/microphone verification. Retain the prior scope and keys
+  until rollback is safe. This change does not claim functioning real audio
+  solely from passing code tests.

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { closeLiveVoiceRoom, issueLiveVoiceToken, LiveVoiceError, requireLiveVoicePilotUser, validateVoiceRoom, voiceUuid, type VoiceRoom } from '@/lib/live/voice'
+import { closeLiveVoiceRoom, issueLiveVoiceToken, LiveVoiceError, requireLiveVoiceAccessUser, validateVoiceRoom, voiceUuid, type VoiceRoom } from '@/lib/live/voice'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,10 +48,9 @@ async function handle(req:NextRequest,id:string,method:'POST'|'DELETE'|'PATCH') 
     })
     const {data:{user},error:userError}=await db.auth.getUser(authorization.slice(7))
     if (userError||!user) throw new LiveVoiceError('Sign in to use voice.',401)
-    // Owner-authorized two-account pilot: no other authenticated classroom
-    // member can obtain a Daily token, even when the UI flag is enabled.
-    // Closing an already-ended media room remains possible after pilot expiry.
-    requireLiveVoicePilotUser(user.id,
+    // The rollout scope is independent of real JWT + canonical Live admission.
+    // Neither a shared URL nor the 'all' scope bypasses classroom membership.
+    const accessScope = requireLiveVoiceAccessUser(user.id,
       process.env.VIBE_LIVE_VOICE_ACCESS_SCOPE,
       process.env.VIBE_LIVE_VOICE_PILOT_USER_IDS,
       process.env.VIBE_LIVE_VOICE_PILOT_UNTIL,
@@ -75,7 +74,7 @@ async function handle(req:NextRequest,id:string,method:'POST'|'DELETE'|'PATCH') 
       throw new LiveVoiceError('You are not authorized for this Live class.',403)
     const room=data as VoiceRoom
     if(method==='PATCH'){
-      // Reuse the token route's JWT, same-origin, pilot-user and canonical Live
+      // Reuse the token route's JWT, same-origin, rollout and canonical Live
       // RPC checks. Log only closed enum values. No room, user or token fields.
       validateVoiceRoom(room,id)
       const diagnostic=parseVoiceDiagnostic((supplied as {diagnostic?:unknown}|null)?.diagnostic)
@@ -87,7 +86,16 @@ async function handle(req:NextRequest,id:string,method:'POST'|'DELETE'|'PATCH') 
     if (method==='DELETE') {
       if (!room.teacher || room.status!=='ended')
         throw new LiveVoiceError('Only a teacher can close an ended voice room.',403)
-      await closeLiveVoiceRoom(id,key)
+      // Close both room generations at class end so a migrated pilot user
+      // is not left transmitting on a legacy private audio room.
+      if (accessScope === 'all') {
+        const results = await Promise.allSettled([
+          closeLiveVoiceRoom(id,key,fetch,'all'),
+          closeLiveVoiceRoom(id,key,fetch,'pilot'),
+        ])
+        if (results.some(result => result.status === 'rejected'))
+          throw new LiveVoiceError('Could not close every voice room.',503)
+      } else await closeLiveVoiceRoom(id,key)
       return reply({closed:true})
     }
     validateVoiceRoom(room,id)
@@ -101,7 +109,7 @@ async function handle(req:NextRequest,id:string,method:'POST'|'DELETE'|'PATCH') 
         throw new LiveVoiceError('Your learner identity could not be verified for voice.',403)
       learnerStudentId=students[0].id
     }
-    const result=await issueLiveVoiceToken(room,user.id,learnerStudentId,key)
+    const result=await issueLiveVoiceToken(room,user.id,learnerStudentId,key,fetch,Date.now(),accessScope)
     return reply(result)
   } catch (e) {
     return e instanceof LiveVoiceError ? reply({error:e.message},e.status)
