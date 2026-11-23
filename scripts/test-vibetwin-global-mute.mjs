@@ -8,6 +8,9 @@ const middleware = read('middleware.ts')
 assert.match(middleware, /!VIBETWIN_ENABLED/)
 assert.match(middleware, /student\|teacher\|parent\|admin\|hq/)
 assert.match(middleware, /status: 404/)
+const edge = read('supabase/functions/twin-chat/index.ts')
+assert.match(edge, /const VIBETWIN_CHAT_ENABLED = false/)
+assert.match(edge, /if \(!VIBETWIN_CHAT_ENABLED\) return json\(/)
 assert.match(middleware, /request\.nextUrl\.searchParams\.has\('twin'\)/)
 const entrypoints = [
   'app/teacher/layout.tsx',
