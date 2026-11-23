@@ -8,7 +8,8 @@ import {
   publicationDraftToInsert,
   publicationRowToDraft,
 } from '@/lib/publicationDraftCodec'
-import { publishPublication as publishPublicationLifecycle } from '@/lib/content-engine'
+import { publishPublication as publishPublicationLifecycle, publishTextbook } from '@/lib/content-engine'
+import { isMumbi2Publisher } from '@/lib/studioPublisherIdentity'
 import {
   finalizePromotedMedia,
   parseDraftMediaRef,
@@ -53,7 +54,7 @@ export interface UsePublicationDraftResult {
   updateBlock: (blockId: string, content: string, meta?: ContentBlock['meta']) => void
   deleteBlock: (blockId: string) => void
   moveBlock: (blockId: string, direction: 'up' | 'down') => void
-  publishPublication: () => Promise<boolean>
+  publishPublication: (options?: { confirmedReadingOnlyTextbook?: boolean }) => Promise<boolean>
   forceSave: () => Promise<boolean>
 }
 
@@ -287,7 +288,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
     })
   }, [mutateActiveChapter])
 
-  const publishPublication = useCallback(async (): Promise<boolean> => {
+  const publishPublication = useCallback(async (options?: { confirmedReadingOnlyTextbook?: boolean }): Promise<boolean> => {
     const originalPub = pubRef.current
     const originalChapters = chapRef.current
     if (!originalPub) { setError('Publication is not available.'); return false }
@@ -297,6 +298,23 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
     if (originalPub.format === 'vibetextbook' && !originalPub.cbc_grade?.trim()) { setError('Select the grade before publishing this textbook.'); return false }
 
     const sb = getSupabaseClient()
+    const readingOnly = options?.confirmedReadingOnlyTextbook === true
+    if (readingOnly) {
+      if (originalPub.format !== 'vibetextbook') { setError('Checklist publishing is only supported for textbook reading content.'); return false }
+      // UI confirmation is not authorization. Authenticate again before using
+      // the existing owned textbook lifecycle, which also enforces auth.uid().
+      const { data: authData, error: authError } = await sb.auth.getUser()
+      if (authError || !authData.user || authData.user.id !== originalPub.author_id) {
+        setError('The authenticated textbook author is required to publish.'); return false
+      }
+      const { data: profile, error: roleError } = await sb.from('profiles').select('role').eq('id', authData.user.id).maybeSingle()
+      if (roleError || !isMumbi2Publisher(authData.user.id, profile?.role)) {
+        setError('This checklist publishing pilot is limited to Mumbi2.'); return false
+      }
+      if (!originalChapters.some(chapter => chapter.blocks.some(block => Boolean(block.content?.trim())))) {
+        setError('Add lesson content before publishing.'); return false
+      }
+    }
     const promoted: PromotedMedia[] = []
     const replacements = new Map<string, string>()
     let lifecycleSucceeded = false
@@ -340,7 +358,11 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
       if (!saved) throw new Error('Publication could not be saved before release.')
 
       const now = new Date().toISOString()
-      await publishPublicationLifecycle(sb, preparedPub.id)
+      // Textbook reading does not commission scored practice or a Teacher Guide.
+      // Its existing owned lifecycle has no independent editorial approval step.
+      // All other publication formats keep the canonical reviewed release route.
+      if (readingOnly) await publishTextbook(sb, preparedPub.id)
+      else await publishPublicationLifecycle(sb, preparedPub.id)
       lifecycleSucceeded = true
 
       const { data: persistedChapters, error: reloadError } = await sb.from('vibe_chapters').select('*').eq('publication_id', preparedPub.id).order('number', { ascending: true })
