@@ -18,10 +18,26 @@ const DAYS = [{d:1,l:"Mon"},{d:2,l:"Tue"},{d:3,l:"Wed"},{d:4,l:"Thu"},{d:5,l:"Fr
 const hhmm = (s: string) => s.slice(0,5);
 const active = (s: ClassicSlot, date: string) =>
   s.effectiveFrom <= date && (!s.effectiveUntil || s.effectiveUntil >= date);
-const matchingBlock = (blocks: SchoolDayBlock[], day: number, slot: ClassicSlot) =>
-  blocks.some(b => (b.scheduleDay === day || b.scheduleDay === 0) &&
-    b.kind === "lesson" && hhmm(b.startTime) === hhmm(slot.startTime) &&
-    hhmm(b.endTime) === hhmm(slot.endTime));
+// Find a continuous sequence of REAL teaching periods for a single or
+// multi-period lesson. Never bridge breaks or unrelated clock gaps.
+const matchingBlock = (blocks: SchoolDayBlock[], day: number, slot: ClassicSlot) => {
+  const dayPeriods = blocks.filter(b => b.scheduleDay===day || b.scheduleDay===0)
+    .filter(b=>b.kind==="lesson")
+    .sort((a,b)=>hhmm(a.startTime).localeCompare(hhmm(b.startTime)));
+  let until = hhmm(slot.startTime);
+  let matched = false;
+  for (const block of dayPeriods) {
+    if (hhmm(block.startTime) !== until) {
+      if (matched || hhmm(block.startTime) > until) break;
+      continue;
+    }
+    matched = true;
+    until = hhmm(block.endTime);
+    if (until===hhmm(slot.endTime)) return true;
+    if (until>hhmm(slot.endTime)) return false;
+  }
+  return false;
+};
 const blockForDay = (blocks: SchoolDayBlock[], day: number, start: string, end: string) =>
   blocks.find(b => b.scheduleDay === day && hhmm(b.startTime) === start && hhmm(b.endTime) === end) ??
   blocks.find(b => b.scheduleDay === 0 && hhmm(b.startTime) === start && hhmm(b.endTime) === end);
@@ -75,12 +91,16 @@ export default function ClassicTimetable({
           <th scope="row" className="vs-v3-time"><strong>{row.start}</strong><small>{row.end}</small></th>
           {teachingDays.map(day=>{
             const block=blockForDay(blocks,day.d,row.start,row.end);
-            const candidates=current.filter(s=>s.dayOfWeek===day.d && hhmm(s.startTime)===row.start && hhmm(s.endTime)===row.end);
+            const occupying=current.filter(s=>s.dayOfWeek===day.d && matchingBlock(blocks,day.d,s) &&
+              hhmm(s.startTime)<=row.start && hhmm(s.endTime)>=row.end);
+            const candidates=occupying.filter(s=>hhmm(s.startTime)===row.start);
+            const continuing=occupying.filter(s=>hhmm(s.startTime)<row.start);
             const activity=block&&block.kind!=="lesson";
             const tone=activity?periodAppearance(block.kind):null;
             return <td key={day.d} className={activity?"vs-v3-activity":""} style={tone?{background:tone.background}:undefined}>
               {activity?<span style={{color:tone?.text}}>{block.label}</span>:
                 candidates.length ? <div className="vs-v3-cards">{candidates.map(card)}</div> :
+                continuing.length ? <span className="vs-v3-continued" aria-label="Occupied by continuing lesson">Continues · {continuing.map(s=>s.subject).join(", ")}</span> :
                 block?.kind==="lesson" && onAdd ? <button type="button" className="vs-v3-add"
                   aria-label={`Add lesson ${day.l} ${row.start} to ${row.end}`}
                   onClick={()=>onAdd({dayOfWeek:day.d,startTime:row.start,endTime:row.end})}>+</button>:null}
@@ -120,6 +140,7 @@ const css=`
 .vs-v3-add{width:100%;height:55px;background:transparent;border:1px solid transparent;border-radius:4px;color:var(--text-muted,#98a1aa);cursor:pointer;font-size:17px}
 .vs-v3-add:hover{background:var(--surface-raised,#f8f9fa);border-color:var(--border-color,#e3e6e9)}
 .vs-v3-activity{text-align:center;font-size:11px;font-weight:600}
+.vs-v3-continued{display:block;text-align:center;font-size:10px;opacity:.6;padding:5px;line-height:1.3}
 .vs-v3-empty{padding:22px 16px;line-height:1.5;font-size:12px}.vs-v3-empty p{margin:6px 0 10px;color:var(--text-muted,#667085)}
 .vs-v3-review{padding:12px;border-top:1px solid var(--border-color,#e3e6e9);font-size:12px}
 .vs-v3-review summary{cursor:pointer;font-weight:650}.vs-v3-review p{color:var(--text-muted,#667085)}
