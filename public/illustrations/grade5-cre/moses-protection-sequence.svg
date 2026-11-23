@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="1020" viewBox="0 0 760 1020" role="img" aria-labelledby="title desc">
+<title id="title">How Moses was protected</title>
+<desc id="desc">A four-stage sequence from Exodus 2 verses 1 through 10: Moses' mother prepared a basket; his sister watched from a distance; Pharaoh's daughter found the child; Moses' mother cared for him. The drawing is a learning aid, not an instruction for childcare near water.</desc>
+<rect width="760" height="1020" fill="#fffdf8"/>
+<rect x="0" y="0" width="760" height="12" fill="#173e37"/>
+<g font-family="Arial, Helvetica, sans-serif" fill="#1b302b">
+<text x="55" y="84" font-weight="700" font-size="43">How Moses was protected</text>
+<text x="55" y="125" font-size="23" fill="#526660">Exodus 2:1–10  •  A sequence of care</text>
+<line x1="104" y1="216" x2="104" y2="842" stroke="#d1ded5" stroke-width="5" stroke-dasharray="9 9"/>
+<g>
+<circle cx="104" cy="245" r="46" fill="#e5ede5" stroke="#82998b" stroke-width="2"/>
+<g transform="translate(75 218)" fill="none" stroke="#375d4d" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 22 Q29 49 56 22 L50 43 Q29 55 9 43Z" fill="#d6a869"/>
+<path d="M7 17 Q29 -1 51 17" stroke-dasharray="3 7"/>
+<path d="M17 13 L17 34 M28 9 L28 38 M40 13 L40 34"/>
+</g>
+<text x="183" y="226" font-size="31" font-weight="700">1. A basket was prepared</text>
+<text x="183" y="264" font-size="23">Moses' mother made a basket</text>
+<text x="183" y="295" font-size="23">and placed him among reeds.</text>
+</g>
+<g>
+<circle cx="104" cy="425" r="46" fill="#e5ede5" stroke="#82998b" stroke-width="2"/>
+<g transform="translate(73 405)" stroke="#375d4d" stroke-width="4" fill="none" stroke-linecap="round">
+<path d="M4 20 Q31 -4 58 20 Q31 44 4 20Z"/><circle cx="31" cy="20" r="10" fill="#d3a576" stroke="none"/><circle cx="31" cy="20" r="4" fill="#203b35" stroke="none"/>
+</g>
+<text x="183" y="406" font-size="31" font-weight="700">2. A sister watched</text>
+<text x="183" y="444" font-size="23">She stayed at a distance and</text>
+<text x="183" y="475" font-size="23">noticed what happened next.</text>
+</g>
+<g>
+<circle cx="104" cy="605" r="46" fill="#e5ede5" stroke="#82998b" stroke-width="2"/>
+<g transform="translate(75 580)" fill="none" stroke="#375d4d" stroke-width="4" stroke-linecap="round">
+<path d="M6 28 Q29 45 52 28"/><path d="M16 26 L16 16 Q16 0 29 0 Q42 0 42 16 L42 26"/><path d="M24 17 L24 23 M34 17 L34 23"/>
+</g>
+<text x="183" y="586" font-size="31" font-weight="700">3. A princess showed care</text>
+<text x="183" y="624" font-size="23">Pharaoh's daughter found the</text>
+<text x="183" y="655" font-size="23">baby and showed compassion.</text>
+</g>
+<g>
+<circle cx="104" cy="785" r="46" fill="#e5ede5" stroke="#82998b" stroke-width="2"/>
+<g transform="translate(80 757)" stroke="#375d4d" stroke-width="3" fill="none">
+<path d="M24 48 C-20 17 10 -13 24 11 C38 -13 68 17 24 48Z" fill="#cae0d0"/>
+</g>
+<text x="183" y="768" font-size="31" font-weight="700">4. Moses was cared for</text>
+<text x="183" y="806" font-size="23">His mother was chosen to</text>
+<text x="183" y="837" font-size="23">nurse and care for him.</text>
+</g>
+<line x1="55" y1="900" x2="705" y2="900" stroke="#d4dfd8" stroke-width="2"/>
+<text x="55" y="938" font-size="20" font-weight="700">Think about it</text>
+<text x="55" y="971" font-size="20">Who helped Moses, and how did their actions work together?</text>
+</g></svg>
