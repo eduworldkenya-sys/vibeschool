@@ -30,8 +30,8 @@ const learnChrome = read('components/learn/LearnNavigation.tsx')
 const primaryDestinations = [...bottom.matchAll(/label: "(?:Home|Learn|Practice|Tasks|Progress)", href:/g)]
 assert.equal(primaryDestinations.length,5,'Keep exactly five primary tabs')
 const moreDestinations = [...bottom.matchAll(/label: "[^"]+", href: "[^"]+", Icon: [A-Za-z]+, group: "(?:Practice & exams|Reading & study|Planning & tuition|My account)"/g)]
-assert.equal(moreDestinations.length,11,'All eleven secondary destinations including Offline Books must have one canonical group')
-assert.match(bottom,/label: "Offline Books", href: "\/offline\/books"/,'Offline Books is in canonical grouped learner navigation')
+assert.equal(moreDestinations.length,10,'All ten active secondary destinations must have one canonical group')
+assert.doesNotMatch(bottom,/label: "Offline Books"|href: "\/offline\/books"/,'Retired offline book access must stay absent')
 assert.match(bottom,/MORE\.filter\(item => item\.group ===/,'Groups derive from one source of truth')
 assert.match(bottom,/role="dialog" aria-modal="true"/,'More must be an accessible dialog')
 assert.match(bottom,/event\.key === "Escape"/,'More closes by Escape')
