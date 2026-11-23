@@ -45,17 +45,20 @@ export default function LiveLessonReview({
     if (failure) throw new Error(failure.message || 'Could not load Live lesson record.')
     if (!data || typeof data !== 'object' || Array.isArray(data))
       throw new Error('Invalid Live lesson record.')
-    const row = data as unknown as BridgeReview
+    const row = data as Partial<BridgeReview>
     if (row.lessonPlanId !== null && (typeof row.lessonPlanId !== 'string' || !UUID.test(row.lessonPlanId)))
       throw new Error('Invalid linked Lesson Plan.')
     if (row.occurrenceId !== null && (typeof row.occurrenceId !== 'string' || !UUID.test(row.occurrenceId)))
       throw new Error('Invalid teaching occurrence.')
     if (typeof row.captureAllowed !== 'boolean') throw new Error('Invalid evidence permission.')
     for (const field of ['joined', 'questions', 'responses', 'saved', 'added'] as const) {
-      if (!Number.isSafeInteger(row[field]) || row[field] < 0)
+      const count = row[field]
+      if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0)
         throw new Error('Invalid Live lesson totals.')
     }
-    return row
+    if (!['active', 'paused', 'ended'].includes(row.status ?? ''))
+      throw new Error('Invalid Live lesson status.')
+    return row as BridgeReview
   }, [roomId, preparedPlanId])
 
   useEffect(() => {
