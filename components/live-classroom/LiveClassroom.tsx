@@ -24,7 +24,7 @@ import type { LessonDeliveryStep } from '@/lib/teaching/lessonPlanCodec'
 
 type ClassroomMode = 'school' | 'tuition' | 'homeschool' | 'open'
 const classroomLabels: Record<ClassroomMode,string>={school:'My Class',tuition:'Invited',homeschool:'Homeschool',open:'Public'}
-type Summary = { mode: ClassroomMode; canJoin: boolean; id: string; title: string; status: 'active' | 'paused'; own: boolean; waitingStatus?:'pending'|'admitted'|'denied'|null }
+type Summary = { mode: ClassroomMode; canJoin: boolean; id: string; title: string; teacherName?:string|null; status: 'active' | 'paused'; own: boolean; waitingStatus?:'pending'|'admitted'|'denied'|null }
 type PastSummary = { id: string; title: string; mode: ClassroomMode; startedAt: string; status: 'ended' }
 type Mode = 'teach' | 'quiz' | 'exercise' | 'poll' | 'clock' | 'board'
 type Prompt = { id: string; kind: Mode; body: string; answerKey: string | null; revealed: boolean }
@@ -266,6 +266,10 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [pastLoading,setPastLoading] = useState(false)
   const [pastError,setPastError] = useState('')
   const [search,setSearch]=useState('')
+  const [subjectFilter,setSubjectFilter]=useState('all')
+  const [gradeFilter,setGradeFilter]=useState('all')
+  const [publicGrade,setPublicGrade]=useState('Grade 4')
+  const [publicSubject,setPublicSubject]=useState('Mathematics')
   const [scope,setScope]=useState<'all'|ClassroomMode>('all')
   const [sharedId,setSharedId]=useState('')
   const [shareLink,setShareLink]=useState('')
@@ -664,7 +668,16 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   function changeBoard(value:string){if(value!==board){rememberBoard();setBoard(value)}}
   const content=mode==='clock'?clock:mode==='board'?board:body
   const participants=room?.participants??[]
-  const visibleRooms=rooms.filter(item=>teacher||((scope==='all'||item.mode===scope)&&(!search.trim()||item.title.toLowerCase().includes(search.trim().toLowerCase())))).sort((a,b)=>Number(b.id===sharedId)-Number(a.id===sharedId))
+  const subjects=['Mathematics','English','Kiswahili','Science','Creative Arts','CRE','IRE','Social Studies','Agriculture','Pre-Technical Studies'] as const
+  const grades=['PP1','PP2',...Array.from({length:9},(_,i)=>'Grade '+(i+1)),...Array.from({length:4},(_,i)=>'Form '+(i+1))]
+  const matchLabel=(title:string,label:string)=>new RegExp('(^|[^a-z0-9])'+label.replace(/[.*+?^$\{\}()|[\]\\]/g,'\\  const visibleRooms=rooms.filter(item=>teacher||((scope==='all'||item.mode===scope)&&(!search.trim()||item.title.toLowerCase().includes(search.trim().toLowerCase())))).sort((a,b)=>Number(b.id===sharedId)-Number(a.id===sharedId))')+'(?=$|[^a-z0-9])','i').test(title)
+  const linkedRooms=rooms.filter(item=>item.mode!=='open'&&item.canJoin)
+  const visibleRooms=rooms.filter(item=>teacher||(
+    (scope==='all'||item.mode===scope)
+    &&(subjectFilter==='all'||matchLabel(item.title,subjectFilter))
+    &&(gradeFilter==='all'||matchLabel(item.title,gradeFilter))
+    &&(!search.trim()||[item.title,item.teacherName??''].some(text=>text.toLowerCase().includes(search.trim().toLowerCase())))
+  )).sort((a,b)=>Number(b.id===sharedId)-Number(a.id===sharedId)||Number(a.mode==='open')-Number(b.mode==='open'))
   const prompt=room?.prompt
   const history=room?historyFor(room):[]
   const viewedPrompt=(reviewId?history.find(p=>p.id===reviewId):null)??prompt
@@ -1031,25 +1044,28 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {loading&&!room&&<p role="status">Connecting…</p>}
     {!room&&!loading&&<section className={styles.panel}>
       {teacher&&<><button type="button" aria-expanded={beforeLibrary} onClick={()=>setBeforeLibrary(v=>!v)}>My presentations</button>{beforeLibrary&&<TeachingLibrary command={call} currentDeck={null} onUse={useMaterial}/>} {preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
-      {teacher&&<form onSubmit={e=>{e.preventDefault();void act('start',null,{title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
+      {teacher&&<form onSubmit={e=>{e.preventDefault();void act('start',null,{title:hostMode==='open'?`${publicGrade} · ${publicSubject} · ${title.trim()}`:title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
         {!classId&&hostModes.length>1&&<div className={styles.controls} aria-label="Classroom type">{hostModes.map(item=><button type="button" key={item} aria-pressed={hostMode===item} onClick={()=>{setHostMode(item);setGroupId('')}}>{classroomLabels[item]}</button>)}</div>}
         {!classId&&hostMode==='tuition'&&<label>Learners<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">All connected learners</option>{groups.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
-        {hostMode==='open'&&<small>Visible to eligible VibeSchool learners. You approve each request before they enter.</small>}
-        <label>Lesson title<input required maxLength={120} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Grade 4 · Mathematics"/></label>
+        {hostMode==='open'&&<><div className={styles.controls}><label>Grade<select value={publicGrade} onChange={e=>setPublicGrade(e.target.value)}>{grades.map(g=><option key={g} value={g}>{g}</option>)}</select></label><label>Subject<select value={publicSubject} onChange={e=>setPublicSubject(e.target.value)}>{subjects.map(g=><option key={g} value={g}>{g}</option>)}</select></label></div><small>Visible to eligible VibeSchool learners. You approve each request before they enter.</small></>}
+        <label>Lesson title<input required maxLength={120} value={title} onChange={e=>setTitle(e.target.value)} placeholder={hostMode==='open'?'Lesson topic':'Grade 4 · Mathematics'}/></label>
         <button className={styles.primary} disabled={busy||!title.trim()}>Go Live</button>
       </form>}
       {!teacher&&<div className={styles.controls}>
-        <label>Find live lessons<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search lesson title"/></label>
+        <label>Find live lessons<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search lessons or teachers"/></label>
         <label>Audience<select value={scope} onChange={e=>setScope(e.target.value as 'all'|ClassroomMode)}><option value="all">All lessons</option>{Object.entries(classroomLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+        <label>Subject<select aria-label="Filter by subject" value={subjectFilter} onChange={e=>setSubjectFilter(e.target.value)}><option value="all">All subjects</option>{subjects.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
+        <label>Grade<select aria-label="Filter by grade" value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}><option value="all">All grades</option>{grades.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
         {sharedId&&!rooms.some(item=>item.id===sharedId)&&<button disabled={busy} onClick={()=>void act('join',sharedId)}>Join shared lesson</button>}
       </div>}
+      {!teacher&&linkedRooms.length>0&&<p>My Live Lessons · {linkedRooms.length}</p>}
       {visibleRooms.length>0?<div className={styles.rooms}>{visibleRooms.map(item=>
         teacher?<button type="button" key={item.id} disabled={busy} onClick={()=>void act('get',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>Resume</span></button>
         :!item.canJoin?<div key={item.id} className={styles.discover}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><Link href="/student/tutoring">Connect to teacher</Link></div>
-        :item.mode==='open'&&item.waitingStatus!=='admitted'?<div key={item.id} className={styles.discover}><strong>{item.title}<small>Public · Teacher approval required</small></strong>
+        :item.mode==='open'&&item.waitingStatus!=='admitted'?<div key={item.id} className={styles.discover}><strong>{item.title}<small>{item.teacherName||'Verified teacher'} · Public · Teacher approval required</small></strong>
           {item.waitingStatus==='pending'?<span role="status">Request sent · Waiting for teacher</span>:item.waitingStatus==='denied'?<span>Admission declined</span>:<button type="button" disabled={busy||!online} onClick={()=>void requestAdmission(item.id)}>Request to join</button>}
         </div>
-        :<button type="button" key={item.id} disabled={busy} onClick={()=>void act('join',item.id)}><strong>{item.title}<small>{classroomLabels[item.mode]}</small></strong><span>Join Live</span></button>
+        :<button type="button" key={item.id} disabled={busy} onClick={()=>void act('join',item.id)}><strong>{item.title}<small>{item.teacherName||'Teacher'} · {classroomLabels[item.mode]}</small></strong><span>Join Live</span></button>
       )}</div>:<p>{teacher?'No active session':rooms.length?'No matching lessons':'Waiting for your teacher to go live.'}</p>}
       {pastAvailable&&<button type="button" aria-expanded={pastOpen} disabled={pastLoading} onClick={()=>void togglePastClasses()}>{pastOpen?'Hide Past Classes':'Past Classes'}</button>}
       {pastAvailable&&pastOpen&&<section aria-label="Past Classes">
