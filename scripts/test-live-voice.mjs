@@ -5,7 +5,7 @@ import ts from 'typescript'
 
 const source=readFileSync('lib/live/voice.ts','utf8')
 const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
-const {LiveVoiceError,validateVoiceRoom,voiceUuid,requireLiveVoicePilotUser,issueLiveVoiceToken,closeLiveVoiceRoom,dailyVoiceName}=
+const {LiveVoiceError,validateVoiceRoom,voiceUuid,requireLiveVoicePilotUser,issueLiveVoiceToken,closeLiveVoiceRoom,dailyVoiceName,rejectDailyResponse}=
   await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'))
 const id='00000000-0000-4000-8000-000000000010'
 const actor='00000000-0000-4000-8000-000000000001'
@@ -150,7 +150,7 @@ test('Daily room creation 400 is not treated as a racing conflict, and failure i
   assert.deepEqual(calls,['rooms/'+name,'rooms'],'do not make a second GET after invalid room create')
   assert.equal(logs.length,1)
   assert.equal(logs[0][0],'vibeschool_live_voice_daily_failure')
-  assert.deepEqual(logs[0][1],{stage:'room-create',status:400})
+  assert.deepEqual(logs[0][1],{stage:'room-create',status:400,code:'invalid-request-error',field:'unspecified',category:'unspecified'})
   assert.doesNotMatch(JSON.stringify(logs),/secret-must-not-log|signed-token/)
 })
 test('Daily auth failures and rate limits are correctly distinguished without leaking provider responses',async()=>{
@@ -167,9 +167,33 @@ test('Daily auth failures and rate limits are correctly distinguished without le
       await assert.rejects(issueLiveVoiceToken(teacherRoom,actor,null,'private-value',request,now),expected)
     }finally{console.error=previous}
     assert.equal(calls.length,1,'failed room lookup must not create room or request token')
-    assert.deepEqual(logs[0][1],{stage:'room-lookup',status})
+    assert.equal(logs[0][1].stage,'room-lookup')
+    assert.equal(logs[0][1].status,status)
+    assert.equal(logs[0][1].field,'unspecified')
+    assert.equal(logs[0][1].category,'unspecified')
     assert.doesNotMatch(JSON.stringify(logs),/secret|private-value/)
   }
+})
+test('Daily error diagnostics identify rejected field but never print untrusted provider text',async()=>{
+  const logs=[],previous=console.error
+  try{
+    console.error=(...args)=>logs.push(args)
+    await assert.rejects(rejectDailyResponse('room-create',response(400,{
+      error:'invalid-request-error',
+      info:'Invalid properties.max_participants. private-key=should-never-appear https://example.invalid/secret',
+      auth:'also-never-log'
+    })),/Daily rejected/)
+    assert.deepEqual(logs[0],[ 'vibeschool_live_voice_daily_failure', {
+      stage:'room-create',status:400,code:'invalid-request-error',field:'max_participants',category:'invalid_setting'
+    }])
+    assert.doesNotMatch(JSON.stringify(logs),/should-never-appear|example.invalid|also-never-log/)
+    logs.length=0
+    await assert.rejects(rejectDailyResponse('room-create',response(400,{
+      error:'invalid-request-error',info:'The maximum number of rooms on your plan has been reached'
+    })),/Daily rejected/)
+    assert.equal(logs[0][1].category,'quota_or_plan')
+    assert.equal(logs[0][1].field,'unspecified')
+  }finally{console.error=previous}
 })
 test('teacher can terminate exact media room on canonical class end',async()=>{
   const p=mockProvider()
