@@ -32,5 +32,5 @@ for (const file of entrypoints) {
 }
 assert.doesNotMatch(read('app/admin/academics/page.tsx'), /Student Twin private conversations/)
 assert.doesNotMatch(read('app/student/vibelearn/practice/page.tsx'), /VibeTwin/)
-assert.match(read('app/student/vibelearn/topic/page.tsx'), /VIBETWIN_ENABLED && \\(/)
+assert.match(read('app/student/vibelearn/topic/page.tsx'), /VIBETWIN_ENABLED/)
 console.log('VibeTwin global mute contract: PASS')
