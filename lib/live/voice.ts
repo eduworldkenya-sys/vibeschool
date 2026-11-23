@@ -48,9 +48,34 @@ const API = 'https://api.daily.co/v1/'
 // The upstream API can reject an account credential or room properties.
 // Do not print keys, meeting tokens, body, participant IDs or provider URLs.
 // Only the operation name and HTTP status are logged for support.
-function rejectDailyResponse(stage: 'room-lookup' | 'room-create' | 'room-token', response: Response): never {
+// The Daily response "info" describes WHY creation failed. Log ONLY bounded,
+// literal, allowlisted categories/field names. Never emit the raw response body,
+// token, URL, user input, room name or unbounded provider message to logs.
+export async function rejectDailyResponse(stage: 'room-lookup' | 'room-create' | 'room-token', response: Response): Promise<never> {
   const status = response.status
-  console.error('vibeschool_live_voice_daily_failure', {stage, status})
+  const body: unknown = await response.json().catch(() => null)
+  const provider = body && typeof body === 'object' && !Array.isArray(body)
+    ? body as Record<string, unknown> : {}
+  const code = typeof provider.error === 'string' && [
+    'invalid-request-error', 'not-found', 'unauthorized', 'forbidden',
+    'rate-limit-exceeded', 'invalid-token',
+  ].includes(provider.error) ? provider.error : 'unknown'
+  const info = typeof provider.info === 'string' ? provider.info.slice(0, 2000).toLowerCase() : ''
+  const knownFields = [
+    'enforce_unique_user_ids', 'eject_at_room_exp', 'max_participants',
+    'enable_knocking', 'enable_screenshare', 'enable_chat',
+    'enable_prejoin_ui', 'start_audio_off', 'start_video_off',
+    'exp', 'privacy', 'name', 'properties',
+  ]
+  const field = knownFields.find(f => new RegExp('(^|[^a-z0-9_])' + f + '([^a-z0-9_]|$)').test(info)) ?? 'unspecified'
+  const category =
+    /\b(quota|capacity|maximum number|too many|limit reached|upgrade|plan)\b/.test(info) ? 'quota_or_plan'
+      : /\b(invalid|unknown|unsupported|not recognized|not allowed)\b/.test(info) ? 'invalid_setting'
+      : /\b(expi(red|ry|ration)|timestamp|date|too far)\b/.test(info) ? 'expiry'
+      : /\b(already exists|duplicate|conflict)\b/.test(info) ? 'conflict'
+      : /\b(missing|required)\b/.test(info) ? 'missing_field'
+      : 'unspecified'
+  console.error('vibeschool_live_voice_daily_failure', {stage, status, code, field, category})
   if (status === 401 || status === 403)
     throw new LiveVoiceError('Daily account authorization failed. Check the configured provider key.', 503)
   if (status === 400 || status === 422)
@@ -109,9 +134,9 @@ export async function issueLiveVoiceToken(
     // Only an actual concurrent-create conflict warrants re-reading the room.
     // An HTTP 400 means invalid settings, never a successful racing create.
     if (response.status === 409) response = await api('rooms/' + roomName)
-    if (!response.ok) rejectDailyResponse('room-create', response)
+    if (!response.ok) await rejectDailyResponse('room-create', response)
   } else if (!response.ok) {
-    rejectDailyResponse('room-lookup', response)
+    await rejectDailyResponse('room-lookup', response)
   }
   let providerRoom: unknown
   try { providerRoom = await response.json() } catch { throw new LiveVoiceError('Invalid voice provider response.',503) }
@@ -131,7 +156,7 @@ export async function issueLiveVoiceToken(
     enable_prejoin_ui:false,enable_screenshare:false,
     permissions:{canSend,canAdmin,canReceive:{base:{audio:true,video:false,screenAudio:false,screenVideo:false,customAudio:{'*':false},customVideo:{'*':false}}}},
   }})
-  if (!tokenResponse.ok) rejectDailyResponse('room-token',tokenResponse)
+  if (!tokenResponse.ok) await rejectDailyResponse('room-token',tokenResponse)
   const responseData = await tokenResponse.json().catch(()=>null) as {token?:unknown}|null
   if (typeof responseData?.token !== 'string' || !responseData.token) throw new LiveVoiceError('Invalid audio authorization.',503)
   return { url:providerRoom.url, token:responseData.token, role, participantId,
