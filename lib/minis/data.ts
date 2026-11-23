@@ -5,6 +5,7 @@ export type MiniPost = RankedMini & {
   creator_label: string
   title: string
   body: string
+  tags: string[]
   cover_path: string | null
   status: string
   created_at: string
@@ -31,6 +32,7 @@ export function isMiniPost(value: unknown): value is MiniPost {
     typeof post.title === 'string' &&
     typeof post.body === 'string' &&
     typeof post.subject === 'string' &&
+    Array.isArray(post.tags) && post.tags.every(tag => typeof tag === 'string') &&
     typeof post.quality_score === 'number' &&
     typeof post.like_count === 'number' &&
     typeof post.save_count === 'number' &&
@@ -39,7 +41,7 @@ export function isMiniPost(value: unknown): value is MiniPost {
 
 export async function fetchApprovedMinis(limit = 120): Promise<MiniPost[]> {
   const { data, error } = await supabase.from('mini_lessons')
-    .select('id,creator_id,creator_label,title,body,subject,cover_path,status,quality_score,like_count,save_count,learned_count,published_at,created_at')
+    .select('id,creator_id,creator_label,title,body,subject,tags,cover_path,status,quality_score,like_count,save_count,learned_count,published_at,created_at')
     .eq('status','approved')
     .order('published_at', { ascending: false })
     .limit(Math.min(120, Math.max(1, limit)))
@@ -49,10 +51,10 @@ export async function fetchApprovedMinis(limit = 120): Promise<MiniPost[]> {
 
 export async function fetchOwnMiniStatus(userId: string) {
   const { data, error } = await supabase.from('mini_lessons')
-    .select('id,title,subject,status,created_at')
+    .select('id,title,tags,status,created_at')
     .eq('creator_id',userId).order('created_at',{ascending:false}).limit(30)
   if (error) throw new Error('Unable to load your submissions.')
-  return (data ?? []) as { id: string; title: string; subject: string; status: string; created_at: string }[]
+  return (data ?? []) as { id: string; title: string; tags: string[]; status: string; created_at: string }[]
 }
 
 export async function loadMiniCovers(posts: MiniPost[]) {
