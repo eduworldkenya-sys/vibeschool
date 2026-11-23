@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Pencil, Check } from "lucide-react";
+import { Plus, Pencil, Check, ChevronRight, UsersRound } from "lucide-react";
 import LearnerDetailSheet from "./LearnerDetailSheet";
 import { supabase } from "@/lib/supabase";
 import styles from "./SchoolLifeParticipation.module.css";
@@ -50,6 +50,7 @@ export default function SchoolLifeParticipation({ classId, studentId, preselecte
   const [position, setPosition] = useState("");
   const [note, setNote] = useState("");
   const [search, setSearch] = useState("");
+  const [activityFilter, setActivityFilter] = useState<"mine" | "all">("mine");
   const mutationLock = useRef(false);
   const createdActivity = useRef<string | null>(null);
   const retry = useRef<{ key: string; id: string } | null>(null);
@@ -80,6 +81,9 @@ export default function SchoolLifeParticipation({ classId, studentId, preselecte
   const members = useMemo(() => snapshot.memberships.filter(m => m.activity_id === currentId), [snapshot.memberships, currentId]);
   const selectedMember = studentId ? members.find(m => m.student_id === studentId) : undefined;
   const filteredStudents = useMemo(() => snapshot.students.filter(s => s.name.toLowerCase().includes(search.toLowerCase())), [snapshot.students,search]);
+  const mine = studentId ? activities.filter(a => snapshot.memberships.some(m => m.student_id === studentId && m.activity_id === a.id)) : activities;
+  const visibleActivities = studentId && activityFilter === "mine" ? mine : activities;
+  const activityCount = (id: string) => snapshot.memberships.filter(m => m.activity_id === id).length;
 
   useEffect(() => {
     if (!studentId) return;
@@ -139,6 +143,7 @@ export default function SchoolLifeParticipation({ classId, studentId, preselecte
       createdActivity.current = null; retry.current = null;
       setShowForm(false);
       setMessage(editingActivity ? "Shared class activity updated." : studentId ? "Activity created and learner added as a participant." : "Activity created. Add participating learners below.");
+      if (studentId) setActivityFilter("mine");
     } catch (cause) { setError(friendlyError(cause)); }
     finally { mutationLock.current = false; setBusy(false); onBusyChange?.(false); }
   }
@@ -171,32 +176,38 @@ export default function SchoolLifeParticipation({ classId, studentId, preselecte
   return (
     <section className={styles.root} aria-label="Learner activities and participation">
       <div className={styles.heading}>
-        <div><h2>Activities & participation</h2><p>Sports, clubs, talents and school activities</p></div>
+        <div><h2>Activities</h2></div>
         <button type="button" className={styles.secondary} onClick={() => openCreate()} disabled={busy}>
           <Plus size={16}/> New
         </button>
       </div>
+      {studentId && !loading && <div className={styles.segment} role="group" aria-label="Activity view">
+        <button type="button" aria-pressed={activityFilter === "mine"} onClick={() => setActivityFilter("mine")}>Joined <span>{mine.length}</span></button>
+        <button type="button" aria-pressed={activityFilter === "all"} onClick={() => setActivityFilter("all")}>All <span>{activities.length}</span></button>
+      </div>}
       {loading && <p className={styles.muted} role="status">Loading activities…</p>}
       {error && !showForm && <p className={styles.error} role="alert">{error} <button type="button" disabled={busy} onClick={() => { setError(""); void reload().catch(cause => setError(friendlyError(cause))); }}>Retry loading</button></p>}
       {message && <p className={styles.success} role="status">{message}</p>}
       {!loading && (
         <>
           {!activities.length && <p className={styles.empty}>No activities recorded yet. Create a sport, club or activity to start.</p>}
-          {!!activities.length && (
-            <div className={styles.activityTabs} aria-label="Activities">
-              {activities.map(a => {
-                const count = snapshot.memberships.filter(m => m.activity_id === a.id).length;
-                const studentMember = studentId && snapshot.memberships.some(m => m.activity_id === a.id && m.student_id === studentId);
-                return (
-                  <button type="button" key={a.id} disabled={busy} onClick={() => { setSelectedId(a.id); setMessage(""); setError(""); }}
-                    aria-pressed={a.id === currentId} className={a.id === currentId ? styles.activeTab : styles.tab}>
-                    {a.title}<span>{studentId ? (studentMember ? " ✓" : "") : ` · ${count}`}</span>
-                  </button>
-                );
+          {studentId && activityFilter === "mine" && mine.length === 0 && activities.length > 0 && <div className={styles.empty}>No activities joined. <button type="button" className={styles.secondary} onClick={() => setActivityFilter("all")}>Browse activities</button></div>}
+          {!!visibleActivities.length && (
+            <div className={styles.activityList} aria-label="Activities">
+              {visibleActivities.map(a => {
+                const count = activityCount(a.id);
+                const studentMember = Boolean(studentId && snapshot.memberships.some(m => m.activity_id === a.id && m.student_id === studentId));
+                return <button type="button" key={a.id} disabled={busy}
+                  onClick={() => { setSelectedId(a.id); setMessage(""); setError(""); }}
+                  aria-pressed={a.id === currentId} className={styles.activityRow}>
+                  <span className={styles.activityIcon}><UsersRound size={16}/></span>
+                  <span className={styles.activityLabel}><strong>{a.title}</strong><small>{categories.find(c => c[0] === a.category)?.[1] ?? "Activity"} · {studentId ? (studentMember ? "Joined" : "Available") : `${count} learners`}</small></span>
+                  <ChevronRight size={16} aria-hidden="true"/>
+                </button>;
               })}
             </div>
           )}
-          {activity && (
+          {activity && (!studentId || activityFilter === "all" || mine.some(item => item.id === activity.id)) && (
             <div className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div><strong>{activity.title}</strong><small>{categories.find(c => c[0] === activity.category)?.[1] ?? "Activity"} · {activity.scope === "school" ? "School-wide" : "This class"}</small></div>
@@ -211,8 +222,11 @@ export default function SchoolLifeParticipation({ classId, studentId, preselecte
                   <label>Involvement<select disabled={busy} value={involvement} onChange={e => { setInvolvement(e.target.value as Membership["involvement"]); if (e.target.value === "interested") setPosition(""); }}>
                     {statuses.map(([value,label]) => <option key={value} value={value}>{label}</option>)}
                   </select></label>
-                  {involvement !== "interested" && <label>Position (optional)<input disabled={busy} value={position} onChange={e => setPosition(e.target.value)} maxLength={60} placeholder="e.g. Goalkeeper, Captain"/></label>}
-                  <label>Note (optional)<input disabled={busy} value={note} onChange={e => setNote(e.target.value)} maxLength={400} placeholder="Brief factual detail"/></label>
+                  <details className={styles.optional} open={Boolean(selectedMember?.position || selectedMember?.note)}>
+                    <summary>Position & note</summary>
+                    {involvement !== "interested" && <label>Position<input disabled={busy} value={position} onChange={e => setPosition(e.target.value)} maxLength={60} placeholder="e.g. Captain"/></label>}
+                    <label>Note<input disabled={busy} value={note} onChange={e => setNote(e.target.value)} maxLength={400} placeholder="Optional note"/></label>
+                  </details>
                   <div className={styles.actions}>
                     <button disabled={busy} type="button" className={styles.primary} onClick={() => void saveMembers("save")}><Check size={16}/>{busy ? "Saving…" : selectedMember ? "Update" : "Add participation"}</button>
                     {selectedMember && <button disabled={busy} type="button" className={styles.secondary} onClick={() => void saveMembers("end")}>End</button>}
@@ -250,7 +264,7 @@ export default function SchoolLifeParticipation({ classId, studentId, preselecte
               <label>Name<input disabled={busy || !!createdActivity.current} maxLength={90} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Football, Wildlife Club"/></label>
               <label>Type<select disabled={busy || !!createdActivity.current} value={category} onChange={e => setCategory(e.target.value)}>{categories.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
               <label>Details (optional)<input disabled={busy || !!createdActivity.current} maxLength={400} value={details} onChange={e => setDetails(e.target.value)} placeholder="e.g. School field · Tuesday"/></label>
-              <p>{editingActivity ? "Changes update this class activity for everyone. Use Position and Note to change only this learner’s participation." : studentId ? "Creates a class activity and adds this learner as a participant. You can update involvement and position next." : "Creates an activity for this class. School-wide activities are managed by school administration."}</p>
+              {editingActivity && <p className={styles.muted}>Changes apply to everyone in this class.</p>}
               <div className={styles.actions}><button className={styles.secondary} onClick={() => setShowForm(false)} disabled={busy}>Cancel</button><button className={styles.primary} onClick={() => void saveActivity()} disabled={busy || title.trim().length < 2}>{busy ? "Saving…" : createdActivity.current ? "Retry Save" : studentId && !editingActivity ? "Create & add learner" : "Save activity"}</button></div>
           </LearnerDetailSheet>}
         </>
