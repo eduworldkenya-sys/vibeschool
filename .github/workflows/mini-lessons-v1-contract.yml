@@ -1,0 +1,31 @@
+name: Mini Lessons V1 Security and Ranking Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/explore/**'
+      - 'app/api/hq/minis/**'
+      - 'components/public/MiniLive*'
+      - 'components/public/MiniHomeSection.tsx'
+      - 'lib/minis/**'
+      - 'supabase/migrations/*mini_lessons*.sql'
+      - 'scripts/test-mini-lessons-contract.mjs'
+      - '.github/workflows/mini-lessons-v1-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  minis-contract:
+    name: Mini Lessons security, privacy and ranking unit proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --import ./scripts/register-typescript.mjs scripts/test-mini-lessons-contract.mjs
