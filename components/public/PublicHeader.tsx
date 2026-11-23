@@ -8,6 +8,7 @@ import styles from './PublicShell.module.css'
 type PublicHeaderProps = { product?: string; compact?: boolean; navigation?: ReadonlyArray<readonly [string, string]> }
 
 const primaryNav = [
+  ['/explore', 'Explore'],
   ['/learn', 'Learn'],
   ['/teacher', 'Teachers'],
   ['/vibetutor', 'VibeTutor'],
