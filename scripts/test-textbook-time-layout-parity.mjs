@@ -6,6 +6,7 @@ const time = read('components/learn/Grade4TimeContentReader.tsx')
 const timeStyles = read('components/learn/Grade4TimeContentReader.module.css')
 const reader = read('app/read/textbook/[publicationId]/ReaderClient.tsx')
 const adapter = read('components/learn/PublishedTextbookLearnReader.tsx')
+const paper = read('components/learn/PublishedTextbookPaper.module.css')
 
 test('published Creative Arts and all school textbooks use Mathematics Time layout components',()=>{
   assert.match(time,/className=\{styles\.breadcrumbs\}/)
@@ -39,4 +40,15 @@ test('same grade and subject breadcrumbs, lessons and navigation; no hardcoded c
   assert.match(reader,/go\(index-1\)/)
   assert.match(reader,/go\(index\+1\)/)
   assert.doesNotMatch(reader,/eff38437-a033-4f62-83b4-59f2dfa0c889/)
+})
+
+test('textbooks use conventional square paper, quiet shadows and no nested AI-like section cards',()=>{
+  assert.match(reader,/paperStyles\.squareArticle/)
+  assert.match(reader,/paperStyles\.plainReader/)
+  assert.match(paper,/border-radius: 3px/)
+  assert.match(paper,/box-shadow: 0 3px 12px/)
+  assert.match(paper,/section\[data-tone\]/)
+  assert.match(paper,/border-radius: 0/)
+  assert.match(paper,/box-shadow: none/)
+  assert.doesNotMatch(paper,/gradient\(/)
 })
