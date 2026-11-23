@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { deriveSelfServiceBindings } from '@/lib/twin/self-service-bindings'
 
 export type TwinRole = 'student' | 'teacher' | 'parent' | 'admin' | 'hq'
 
@@ -170,52 +171,23 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
     }
   }
 
-  // The canonical account resolver can authorize a self-service workspace
-  // before a teacher joins a school or a parent links a child.
-  // Such bindings contain ZERO resource IDs and never confer tenant access.
-  const selfAccess = selfAccessRes.data
-  const selfRole = selfAccess && typeof selfAccess === 'object' && !Array.isArray(selfAccess)
-    ? (selfAccess as { role?: unknown; account_status?: unknown; is_anonymized?: unknown })
-    : null
-  const activeSelfRole = selfRole?.account_status === 'active' && selfRole.is_anonymized !== true
-    ? selfRole.role : null
-
-  if (activeSelfRole === 'parent' && !bindings.some(binding => binding.role === 'parent')) {
-    bindings.push({
-      role: 'parent', scopeType: 'family', scopeId: userId, schoolId: null,
-      relationship: 'canonical_parent_self_service',
-      resourceIds: [],
-      evidence: { canonical_role: 'parent', linked_learner_count: 0 },
-    })
-  }
-  if (activeSelfRole === 'teacher' && !bindings.some(binding => binding.role === 'teacher')) {
-    bindings.push({
-      role: 'teacher', scopeType: 'school', scopeId: userId, schoolId: null,
-      relationship: 'canonical_teacher_independent',
-      resourceIds: [],
-      evidence: { canonical_role: 'teacher', school_membership_count: 0 },
-    })
-  }
-
-  // A teacher who also manages a learner is a parent in their personal
-  // workspace. The managed-profile RPC is guardian-owned and returns no
-  // existing students/schools. Missing RPC during additive rollout is safe.
-  if (activeSelfRole === 'teacher' && !bindings.some(binding => binding.role === 'parent')) {
+  // Canonical role claims can open only a self-owned workspace; authoritative
+  // school and child access is still derived from existing RLS-backed relations.
+  const access = selfAccessRes.data
+  const knownRoles = new Set(bindings.map(binding => binding.role))
+  let managedLearnerCount = 0
+  if (access && typeof access === 'object' && !Array.isArray(access) &&
+      (access as { role?: unknown }).role === 'teacher' && !knownRoles.has('parent')) {
     const { data: managed, error: managedError } = await supabase.rpc('vs_list_my_identities')
+    // The additive migration may not yet be installed. Do not break existing sign-in.
     if (managedError && managedError.code !== 'PGRST202') {
       throw new Error(managedError.message || 'Managed learner authority could not be resolved.')
     }
     const learners = managed && typeof managed === 'object' && !Array.isArray(managed)
       ? (managed as { managed_learners?: unknown }).managed_learners : null
-    if (Array.isArray(learners) && learners.length > 0) {
-      bindings.push({
-        role: 'parent', scopeType: 'family', scopeId: userId, schoolId: null,
-        relationship: 'guardian_managed_learner_profiles',
-        resourceIds: [], // NOT canonical students; separate linking must be verified
-        evidence: { managed_profile_count: learners.length },
-      })
-    }
+    if (Array.isArray(learners)) managedLearnerCount = learners.length
   }
+  bindings.push(...deriveSelfServiceBindings(userId, access, knownRoles, managedLearnerCount))
 
   if (ownerRes.data === true) {
     bindings.push({
