@@ -1,6 +1,16 @@
 -- Mini Lessons V1: reversible additive foundation, deliberately no automatic public release.
 -- The canonical VibeSchool public profile and follow tables remain authoritative.
 -- Apply only after required review, reconstruction and RLS/adversarial verification.
+-- authorization-test: public.mini_lessons
+--   anon reads approved adult opted-in creators only; owner drafts only; direct approval denied.
+-- authorization-test: public.mini_interactions
+--   authenticated users may like/save approved Minis as themselves only; cannot edit others.
+-- authorization-test: public.mini_learning_signals
+--   adult-verified users only; minors and spoofed subject tracking denied.
+-- authorization-test: public.mini_comments
+--   comments are pending and private by default; public reads only via redacted approved RPC.
+-- authorization-test: public.mini_reports
+--   one private report per signed-in account per Mini; cross-user disclosure denied.
 create table if not exists public.mini_lessons (
   id uuid primary key default gen_random_uuid(),
   creator_id uuid not null references public.profiles(id) on delete restrict,
