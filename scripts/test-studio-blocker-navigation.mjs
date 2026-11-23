@@ -26,7 +26,7 @@ test('each unfinished editor check has a direct, accessible action', () => {
 
 test('blocker navigation uses signed-in Mumbi2 identity rather than owner activation', () => {
   assert.match(editor, /if \(!canPublish\)/)
-  assert.match(editor, /publishDisabled=\{!canPublish\}/)
+  assert.match(editor, /publishDisabled=\{!canPublish \|\| \(simpleMode && !materialsConfirmed\)\}/)
   assert.match(publishing, /Mumbi2 can request publication/)
-  assert.match(publishing, /release verification still required/)
+  assert.match(publishing, /optional for reading release/)
 })
