@@ -49,6 +49,7 @@ async function journey({ intent, requestedRole, actualRole, reasonCode = 'OK' })
       'next/server': { NextResponse: { redirect: mockRedirect } },
       'next/headers': { cookies: () => ({ getAll: () => [], set: () => {} }) },
       '@/lib/auth-routing': { AUTH_DASHBOARDS: dashboards, safeInternalPath: path => path?.startsWith('/') && !path.startsWith('//') ? path : null, roleCanVisit: (r, path) => !['/student', '/teacher', '/parent', '/admin'].some(prefix => path.startsWith(prefix)) || path.startsWith('/' + r) },
+      '@/lib/identity/features': { unifiedIdentityEnabled: false },
     })[name] ?? (() => { throw Error('Unexpected import: ' + name) })(),
   })
   const url = new URL('https://vibeschool.co.ke/auth/callback')
