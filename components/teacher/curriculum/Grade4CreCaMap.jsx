@@ -124,7 +124,7 @@ export default function Grade4CreCaMap({
       <h2 style={{ fontSize: 18, margin: '6px 0' }}>{mode === 'scheme' ? 'Choose a curriculum reference' : source.label}</h2>
       <p style={{ fontSize: 12, margin: '4px 0 12px', color: '#547060' }}>
         {mode === 'scheme'
-          ? 'Choose a sub-strand for your Scheme. Only active source-linked outcomes can be selected; a Grade 5 CRE sub-strand can be planned without outcomes.'
+          ? 'Choose a sub-strand for your Scheme. Only active source-linked outcomes can be selected; a Grade 5 CRE sub-strand can be planned without outcomes. This selection does not create or schedule a lesson.'
           : 'Source-linked curriculum structure. Draft outcomes are not presented as verified KICD objectives.'}
       </p>
       {kind === 'arts' && <p style={{ fontSize: 12, color: '#547060' }}>
