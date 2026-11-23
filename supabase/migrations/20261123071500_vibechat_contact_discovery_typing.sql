@@ -3,12 +3,19 @@
 -- Existing school and tuition message history remains authoritative.
 begin;
 
+-- The existing production schema has this column, but blank reconstruction did not.
+-- Additive repair; retain every existing VibeConnect ID.
+alter table public.profiles add column if not exists vc_id text;
+
 -- Production inspection on 2026-11-23 found zero case-insensitive collisions.
 -- Preserve one canonical VibeChat ID regardless of mixed case.
 create unique index if not exists profiles_vibechat_id_casefold_unique
   on public.profiles (lower(vc_id)) where vc_id is not null;
 
 -- Only the two participants can see an invitation; no user directory table is exposed.
+-- access: service-only public.vibechat_contact_requests
+-- authorization-test: public.vibechat_contact_requests; scripts/test-vibechat-contact-discovery.mjs
+-- Owner-scoped RPCs perform all reads/writes; direct client table privileges are revoked.
 create table if not exists public.vibechat_contact_requests (
   id uuid primary key default gen_random_uuid(),
   requester_id uuid not null references public.profiles(id) on delete cascade,
@@ -95,14 +102,14 @@ revoke all on function public.vibechat_my_handle() from public, anon, authentica
 grant execute on function public.vibechat_my_handle() to authenticated;
 
 create or replace function public.vibechat_lookup_handle(p_handle text)
-returns table(handle text, display_name text, account_role text)
+returns table(handle text, display_name text, account_role text, avatar_url text)
 language plpgsql stable security definer set search_path = '' as $$
 declare v_user uuid := auth.uid(); v_handle text := lower(trim(coalesce(p_handle, '')));
 begin
   if v_user is null then raise exception 'Sign-in required' using errcode='28000'; end if;
   -- Exact lookup only: no prefix search, phone/email search, student directory or enumeration.
   if v_handle !~ '^@[a-z0-9][a-z0-9.]{2,30}$' then return; end if;
-  return query select p.vc_id, p.full_name::text, p.role
+  return query select p.vc_id, p.full_name::text, p.role, p.avatar_url
     from public.profiles p
     where lower(p.vc_id) = v_handle
       and private.vibechat_contact_allowed(v_user, p.id)
@@ -161,6 +168,7 @@ returns jsonb language sql stable security definer set search_path = '' as $$
     'status', r.status,
     'handle', peer.vc_id,
     'name', peer.full_name,
+    'avatar_url', peer.avatar_url,
     'thread_id', r.thread_id,
     'created_at', r.created_at
   ) order by r.created_at desc),'[]'::jsonb)
@@ -215,6 +223,46 @@ end;
 $$;
 revoke all on function public.vibechat_respond_contact(uuid, boolean) from public, anon, authenticated;
 grant execute on function public.vibechat_respond_contact(uuid, boolean) to authenticated;
+
+
+-- Avatar/name projection only for the other active participant in an existing direct chat.
+-- Bypasses restrictive profiles directory RLS without creating public profile browsing.
+create or replace function public.vibechat_my_chat_peers()
+returns jsonb language sql stable security definer set search_path = '' as $
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'thread_id', t.id, 'name', peer.full_name, 'avatar_url', peer.avatar_url
+  )),'[]'::jsonb)
+  from public.vc_participants mine
+  join public.vc_threads t on t.id = mine.thread_id and t.type='direct'
+  join public.vc_participants other on other.thread_id = t.id
+    and other.profile_id <> mine.profile_id and other.left_at is null
+  join public.profiles peer on peer.id = other.profile_id
+  where auth.uid() is not null
+    and mine.profile_id = auth.uid() and mine.left_at is null
+    and peer.account_status::text='active'
+    and not coalesce(peer.is_anonymized,false)
+$;
+revoke all on function public.vibechat_my_chat_peers() from public, anon, authenticated;
+grant execute on function public.vibechat_my_chat_peers() to authenticated;
+
+-- In tuition, the existing accepted-invitation RPC is the authority.
+-- A learner profile is returned only to its accepted tutor, or vice versa.
+create or replace function public.vibechat_my_tuition_peers()
+returns jsonb language sql stable security definer set search_path = '' as $
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'invitation_id', i.id, 'name', peer.full_name, 'avatar_url', peer.avatar_url
+  )),'[]'::jsonb)
+  from public.vibetutor_student_invitations i
+  join lateral public.vibetutor_private_access(i.id) access on true
+  join public.profiles peer on peer.id = case
+    when access.tutor_id = auth.uid() then access.student_profile_id
+    else access.tutor_id end
+  where auth.uid() is not null and i.status = 'accepted'
+    and peer.account_status::text='active'
+    and not coalesce(peer.is_anonymized,false)
+$;
+revoke all on function public.vibechat_my_tuition_peers() from public, anon, authenticated;
+grant execute on function public.vibechat_my_tuition_peers() to authenticated;
 
 -- Realtime typing broadcasts are private and ephemeral. Not message bodies;
 -- caller is checked for every school/tuition topic at the server boundary.
