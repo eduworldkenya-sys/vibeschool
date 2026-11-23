@@ -5,7 +5,7 @@ import ts from 'typescript'
 
 const source=readFileSync('lib/live/voice.ts','utf8')
 const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
-const {LiveVoiceError,validateVoiceRoom,voiceUuid,requireLiveVoicePilotUser,issueLiveVoiceToken,closeLiveVoiceRoom,dailyVoiceName,rejectDailyResponse}=
+const {LiveVoiceError,validateVoiceRoom,voiceUuid,requireLiveVoiceAccessUser,issueLiveVoiceToken,closeLiveVoiceRoom,dailyVoiceName,rejectDailyResponse}=
   await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'))
 const id='00000000-0000-4000-8000-000000000010'
 const actor='00000000-0000-4000-8000-000000000001'
@@ -21,16 +21,16 @@ const roomInfo={name,url:'https://education.daily.co/'+name,privacy:'private',co
   start_audio_off:true,start_video_off:true,enable_prejoin_ui:false,
 }}
 function response(status,body){return {status,ok:status>=200&&status<300,json:async()=>body}}
-function mockProvider({existing=true,override=null,token='signed-token'}={}){
+function mockProvider({existing=true,override=null,token='signed-token',roomName=name}={}){
   const calls=[]
   const request=async(url,options)=>{
     const path=url.replace('https://api.daily.co/v1/','')
     const body=options.body?JSON.parse(options.body):null
     calls.push({path,method:options.method,body,headers:options.headers})
-    if (path==='rooms/'+name && options.method==='GET')return response(existing?200:404,override??roomInfo)
+    if (path==='rooms/'+roomName && options.method==='GET')return response(existing?200:404,override??roomInfo)
     if (path==='rooms' && options.method==='POST')return response(200,override??roomInfo)
     if (path==='meeting-tokens')return response(200,{token})
-    if (path==='rooms/'+name && options.method==='DELETE')return response(200,{})
+    if (path==='rooms/'+roomName && options.method==='DELETE')return response(200,{})
     return response(500,{})
   }
   return {request,calls}
@@ -42,17 +42,28 @@ test('pilot fails closed outside two authenticated accounts, before token issuan
   const outsider='00000000-0000-4000-8000-000000000099'
   const cutoff=new Date(now+3600000).toISOString()
   const permitted=teacher+','+pupil
-  assert.doesNotThrow(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted,cutoff,now))
-  assert.doesNotThrow(()=>requireLiveVoicePilotUser(pupil,'pilot',permitted,cutoff,now))
-  assert.throws(()=>requireLiveVoicePilotUser(outsider,'pilot',permitted,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===403)
-  assert.throws(()=>requireLiveVoicePilotUser(teacher,'pilot',undefined,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===403)
-  assert.throws(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted+',invalid',cutoff,now),e=>e instanceof LiveVoiceError&&e.status===403)
-  assert.throws(()=>requireLiveVoicePilotUser(teacher,'public',permitted,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===503)
-  assert.throws(()=>requireLiveVoicePilotUser(teacher,undefined,permitted,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===503)
-  assert.throws(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted,undefined,now),e=>e instanceof LiveVoiceError&&e.status===503)
-  assert.throws(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted,cutoff,now+3600000),e=>e instanceof LiveVoiceError&&e.status===503)
-  assert.doesNotThrow(()=>requireLiveVoicePilotUser(teacher,'pilot',permitted,cutoff,now+3600000,true),'authorized teacher can clean up after expiry')
-  assert.throws(()=>requireLiveVoicePilotUser(outsider,'pilot',permitted,cutoff,now,true),/limited to pilot accounts/)
+  assert.doesNotThrow(()=>requireLiveVoiceAccessUser(teacher,'pilot',permitted,cutoff,now))
+  assert.doesNotThrow(()=>requireLiveVoiceAccessUser(pupil,'pilot',permitted,cutoff,now))
+  assert.throws(()=>requireLiveVoiceAccessUser(outsider,'pilot',permitted,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===403)
+  assert.throws(()=>requireLiveVoiceAccessUser(teacher,'pilot',undefined,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===403)
+  assert.throws(()=>requireLiveVoiceAccessUser(teacher,'pilot',permitted+',invalid',cutoff,now),e=>e instanceof LiveVoiceError&&e.status===403)
+  assert.throws(()=>requireLiveVoiceAccessUser(teacher,'public',permitted,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===503)
+  assert.throws(()=>requireLiveVoiceAccessUser(teacher,undefined,permitted,cutoff,now),e=>e instanceof LiveVoiceError&&e.status===503)
+  assert.throws(()=>requireLiveVoiceAccessUser(teacher,'pilot',permitted,undefined,now),e=>e instanceof LiveVoiceError&&e.status===503)
+  assert.throws(()=>requireLiveVoiceAccessUser(teacher,'pilot',permitted,cutoff,now+3600000),e=>e instanceof LiveVoiceError&&e.status===503)
+  assert.doesNotThrow(()=>requireLiveVoiceAccessUser(teacher,'pilot',permitted,cutoff,now+3600000,true),'authorized teacher can clean up after expiry')
+  assert.throws(()=>requireLiveVoiceAccessUser(outsider,'pilot',permitted,cutoff,now,true),/limited to pilot accounts/)
+})
+test('all-account scope admits authenticated UUIDs but remains deny-by-default when unconfigured',()=>{
+  const outsider='00000000-0000-4000-8000-000000000099'
+  assert.equal(requireLiveVoiceAccessUser(actor,'all',undefined,undefined,now),'all')
+  assert.equal(requireLiveVoiceAccessUser(learner,'all','invalid',undefined,now),'all')
+  assert.equal(requireLiveVoiceAccessUser(outsider,'all',undefined,undefined,now),'all')
+  assert.throws(()=>requireLiveVoiceAccessUser('not-uuid','all',undefined,undefined,now),/Unverified/)
+  assert.throws(()=>requireLiveVoiceAccessUser(actor,'everyone',undefined,undefined,now),/not commissioned/)
+  assert.throws(()=>requireLiveVoiceAccessUser(actor,'',undefined,undefined,now),/not commissioned/)
+  // Granting classroom admission still requires the independently checked
+  // RPC and student identity in the route, never this access-scope function.
 })
 test('reject incorrect and expired classroom authority before any provider request',async()=>{
   assert.equal(voiceUuid(id),true)
@@ -134,6 +145,43 @@ test('creates only a locked private audio room, rejects mismatched provider room
     assert.equal(p.calls.filter(c=>c.path==='meeting-tokens').length,0)
   }
 })
+test('full-class scope creates a separate private room without a two-seat cap',async()=>{
+  const fullName=dailyVoiceName(id,'all')
+  const {max_participants:ignored,...fullConfig}=roomInfo.config
+  const fullInfo={...roomInfo,name:fullName,url:'https://education.daily.co/'+fullName,config:fullConfig}
+  const p=mockProvider({existing:false,override:fullInfo,roomName:fullName})
+  const teacher=await issueLiveVoiceToken(teacherRoom,actor,null,'key',p.request,now,'all')
+  assert.equal(teacher.url,fullInfo.url)
+  assert.deepEqual(p.calls.map(c=>c.path),['rooms/'+fullName,'rooms','meeting-tokens'])
+  const create=p.calls.find(c=>c.path==='rooms').body
+  assert.equal(create.name,fullName)
+  assert.equal(create.privacy,'private')
+  assert.equal(Object.hasOwn(create.properties,'max_participants'),false)
+  assert.equal(create.properties.start_video_off,true)
+  assert.equal(create.properties.enable_chat,false)
+  assert.equal(create.properties.enable_screenshare,false)
+  const token=p.calls.find(c=>c.path==='meeting-tokens').body.properties
+  assert.equal(token.room_name,fullName)
+  assert.deepEqual(token.permissions.canSend,['audio'])
+  assert.equal(token.eject_at_token_exp,true)
+  const learnerProvider=mockProvider({roomName:fullName,override:fullInfo})
+  await issueLiveVoiceToken(learnerRoom,actor,learner,'key',learnerProvider.request,now,'all')
+  const learnerToken=learnerProvider.calls.find(c=>c.path==='meeting-tokens').body.properties
+  assert.equal(learnerToken.permissions.canSend,false)
+  assert.equal(learnerToken.permissions.canAdmin,false)
+  for(const broken of [
+    {...fullInfo,privacy:'public'},
+    {...fullInfo,url:roomInfo.url},
+    {...fullInfo,config:{...fullConfig,max_participants:2}},
+    {...fullInfo,config:{...fullConfig,enable_chat:true}},
+    {...fullInfo,config:{...fullConfig,enable_screenshare:true}},
+    {...fullInfo,config:{...fullConfig,enable_recording:'cloud'}},
+  ]){
+    const bad=mockProvider({roomName:fullName,override:broken})
+    await assert.rejects(issueLiveVoiceToken(teacherRoom,actor,null,'key',bad.request,now,'all'),/privacy verification/)
+    assert.equal(bad.calls.some(c=>c.path==='meeting-tokens'),false)
+  }
+})
 test('Daily room creation 400 is not treated as a racing conflict, and failure is actionable',async()=>{
   const calls=[]
   const request=async(url,options)=>{
@@ -203,6 +251,8 @@ test('teacher can terminate exact media room on canonical class end',async()=>{
   assert.equal(p.calls.length,1)
   assert.equal(p.calls[0].method,'DELETE')
   assert.equal(p.calls[0].path,'rooms/'+name)
+  await closeLiveVoiceRoom(id,'key',p.request,'all')
+  assert.equal(p.calls[1].path,'rooms/'+dailyVoiceName(id,'all'))
   await assert.rejects(closeLiveVoiceRoom('bad','key',p.request),/Invalid/)
 })
 test('client and route respect feature gate, private credential, real JWT, and canonical room authority',()=>{
@@ -221,10 +271,14 @@ test('client and route respect feature gate, private credential, real JWT, and c
   assert.match(client,/reportFailure\(code,hint\)/)
   assert.doesNotMatch(client,/console\.error\(event|console\.log\(event/)
   assert.match(route,/db\.auth\.getUser/)
-  assert.match(route,/requireLiveVoicePilotUser\(user\.id/)
+  assert.match(route,/requireLiveVoiceAccessUser\(user\.id/)
   assert.match(route,/VIBE_LIVE_VOICE_ACCESS_SCOPE/)
   assert.match(route,/VIBE_LIVE_VOICE_PILOT_USER_IDS/)
   assert.match(route,/VIBE_LIVE_VOICE_PILOT_UNTIL/)
+  assert.match(route,/accessScope === 'all'/)
+  assert.match(route,/issueLiveVoiceToken\(room,user\.id,learnerStudentId,key,fetch,Date\.now\(\),accessScope\)/)
+  assert.match(source,/vs-live-class-/)
+  assert.match(source,/scope === 'all'/)
   assert.match(route,/p_action:'get'/)
   assert.match(route,/db\.rpc\('vibe_live_command'/)
   assert.match(route,/students'\)\.select\('id'/)
