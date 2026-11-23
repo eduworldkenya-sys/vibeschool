@@ -923,6 +923,10 @@ export default function SubjectHubPage() {
     /^(christian religious education|cre|creative arts|creative arts and sports)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
       : null
+  const grade5CreClass =
+    /^(christian religious education|cre)$/i.test(activeSubject?.name?.trim() ?? '')
+      ? classes.find(item => /\b(?:grade|class)\s*5\b/i.test(item.name)) ?? null
+      : null
   const grade6MathematicsClass =
     /^(mathematics|mathematical activities|mathematics activities)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*6\b/i.test(item.name)) ?? null
@@ -1297,6 +1301,20 @@ export default function SubjectHubPage() {
           </p>
           <button type="button"
             onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade4CreCaClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id))}
+            style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 14px', fontWeight: 800, width: '100%' }}>
+            Open Curriculum Map
+          </button>
+        </section>
+      )}
+      {/* Grade 5 CRE uses the same teacher Curriculum Map and Scheme, retaining the canonical grade-specific source. */}
+      {!loading && !classLoading && activeSubject && grade5CreClass && (
+        <section style={{ margin: '14px 16px 0', background: '#fff', padding: 15, border: '1px solid #d7e7dd', borderRadius: 12 }}>
+          <strong style={{ color: '#173f32' }}>Grade 5 Christian Religious Education curriculum</strong>
+          <p style={{ fontSize: 12, color: '#53695d', margin: '6px 0 12px' }}>
+            Browse the 30 existing sub-strands and prepare an outcome-linked Scheme when outcomes are available.
+          </p>
+          <button type="button"
+            onClick={() => router.push('/teacher/curriculum?classId=' + encodeURIComponent(grade5CreClass.id) + '&subjectId=' + encodeURIComponent(activeSubject.id))}
             style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 14px', fontWeight: 800, width: '100%' }}>
             Open Curriculum Map
           </button>
