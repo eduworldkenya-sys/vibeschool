@@ -7,7 +7,7 @@ assert.match(read('lib/vibetwin-availability.ts'), /VIBETWIN_ENABLED:\s*boolean\
 const middleware = read('middleware.ts')
 assert.match(middleware, /!VIBETWIN_ENABLED/)
 assert.match(middleware, /student\|teacher\|parent\|admin\|hq/)
-assert.match(middleware, /api\\\\\//)
+assert.match(middleware, /status: 404/)
 assert.match(middleware, /request\.nextUrl\.searchParams\.has\('twin'\)/)
 const entrypoints = [
   'app/teacher/layout.tsx',
