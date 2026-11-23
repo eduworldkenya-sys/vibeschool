@@ -7,6 +7,7 @@ import {
   chapterRowToDraft,
   publicationDraftToInsert,
   publicationRowToDraft,
+  UNTITLED_DRAFT_TITLE,
 } from '@/lib/publicationDraftCodec'
 import { publishPublication as publishPublicationLifecycle, publishTextbook } from '@/lib/content-engine'
 import { isMumbi2Publisher } from '@/lib/studioPublisherIdentity'
@@ -138,7 +139,19 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
           if (pub.status === 'published') setError(PUBLISHED_REVISION_MESSAGE)
         }
       } catch (reason) {
-        if (!cancelled) setError(reason instanceof Error ? reason.message : 'Load failed')
+        if (!cancelled) {
+          // PostgREST returns plain error objects rather than Error instances.
+          // Never conceal a failed database operation behind "Load failed".
+          const dbError = reason && typeof reason === 'object' ? reason as { message?: unknown; code?: unknown } : null
+          const message = reason instanceof Error
+            ? reason.message
+            : typeof dbError?.message === 'string' ? dbError.message : 'Unable to load this draft. Check your connection and retry.'
+          console.error('[PublicationDraft] load failed', {
+            code: typeof dbError?.code === 'string' ? dbError.code : 'unknown',
+            message,
+          })
+          setError(message)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -319,7 +332,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
     const originalChapters = chapRef.current
     if (!originalPub) { setError('Publication is not available.'); return false }
     if (originalPub.status === 'published') { setError(PUBLISHED_REVISION_MESSAGE); return false }
-    if (!originalPub.title?.trim()) { setError('Title is required before publishing.'); return false }
+    if (!originalPub.title?.trim() || originalPub.title.trim() === UNTITLED_DRAFT_TITLE) { setError('Enter a title before publishing.'); return false }
     if (originalPub.format === 'vibetextbook' && !originalPub.cbc_subject?.trim()) { setError('Select the CBC subject before publishing this textbook.'); return false }
     if (originalPub.format === 'vibetextbook' && !originalPub.cbc_grade?.trim()) { setError('Select the grade before publishing this textbook.'); return false }
 
