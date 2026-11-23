@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowUpRight, BookOpen, CalendarDays, ClipboardCheck, LifeBuoy, Search, Sparkles } from 'lucide-react'
+import { ArrowUpRight, BookOpen, CalendarDays, ClipboardCheck, LifeBuoy, Search } from 'lucide-react'
 import { TeacherWorkspace } from '@/components/teacher/ui'
 
 const questions = [
@@ -9,10 +9,9 @@ const questions = [
  {title:'Where do I take attendance?',answer:'Open Attendance, select the class or scheduled lesson, and review the register before saving.',href:'/teacher/attendance',action:'Open attendance'},
  {title:'How do I change my school or teaching scope?',answer:'Your profile contains your active school and teaching scope. Check these when a class or subject is missing.',href:'/teacher/profile',action:'Open profile'},
  {title:'Where can I see learner progress?',answer:'Open a class, then its progress view or a learner record. Assessment results and teaching progress have their own views.',href:'/teacher/classhub',action:'Open my classes'},
- {title:'What can Twin help with?',answer:'Twin can help you find your next teaching action and navigate the workspace. Available actions depend on your role and current context.',href:'/teacher/twin',action:'Open Twin'},
  {title:'Where do I mark submitted work?',answer:'Use Mark submitted work to review learner answers and give feedback. Class results contains results already shared.',href:'/teacher/assessment/marking',action:'Open marking'},
 ]
-const guides=[{title:'Plan your teaching day',href:'/teacher/timetable',icon:CalendarDays},{title:'Prepare a lesson',href:'/teacher/lessonplan',icon:BookOpen},{title:'Take attendance',href:'/teacher/attendance',icon:ClipboardCheck},{title:'Explore Twin',href:'/teacher/twin',icon:Sparkles}]
+const guides=[{title:'Plan your teaching day',href:'/teacher/timetable',icon:CalendarDays},{title:'Prepare a lesson',href:'/teacher/lessonplan',icon:BookOpen},{title:'Take attendance',href:'/teacher/attendance',icon:ClipboardCheck}]
 export default function HelpPage(){
  const [query,setQuery]=useState('')
  const matches=questions.filter(item=>(item.title+' '+item.answer).toLowerCase().includes(query.trim().toLowerCase()))
