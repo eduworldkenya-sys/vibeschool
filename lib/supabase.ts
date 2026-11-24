@@ -211,6 +211,18 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibechat_change_message: { Args: { p_kind: 'vc' | 'tuition'; p_room: string; p_message: string; p_action: string; p_value?: string | null }; Returns: boolean }
       vibechat_my_conversation_preferences: { Args: Record<never, never>; Returns: { kind: 'vc' | 'tuition'; room_id: string; pinned: boolean; archived: boolean; muted: boolean }[] }
       vibechat_set_conversation_preference: { Args: { p_kind: 'vc' | 'tuition'; p_room: string; p_setting: 'pinned' | 'archived' | 'muted'; p_value: boolean }; Returns: boolean }
+      vibechat_group_candidates: { Args: Record<never, never>; Returns: {id:string;name:string;handle:string|null}[] }
+      vibechat_group_create: { Args: {p_room:string;p_name:string;p_recipients:string[]}; Returns: string }
+      vibechat_group_invite: { Args: {p_room:string;p_recipients:string[]}; Returns: boolean }
+      vibechat_group_respond: { Args: {p_invite:string;p_accept:boolean}; Returns: string|null }
+      vibechat_group_leave: { Args: {p_room:string}; Returns: boolean }
+      vibechat_group_send: { Args: {p_owner:string;p_room:string;p_operation:string;p_body:string}; Returns: string }
+      vibechat_group_list: { Args: Record<never, never>; Returns: {id:string;name:string;owner:boolean;members:number;updated:string;preview:string;unread:number;pinned:boolean;archived:boolean;muted:boolean}[] }
+      vibechat_group_invitations: { Args: Record<never, never>; Returns: {id:string;group_name:string;inviter_name:string;created_at:string}[] }
+      vibechat_group_messages: { Args: {p_room:string;p_before?:string|null;p_before_id?:string|null;p_query?:string|null}; Returns: {id:string;body:string;mine:boolean;sender:string;created_at:string}[] }
+      vibechat_group_ack: { Args: {p_room:string;p_message:string}; Returns: boolean }
+      vibechat_group_preference: { Args: {p_room:string;p_setting:'pinned'|'archived'|'muted';p_value:boolean}; Returns: boolean }
+      vibechat_group_report: { Args: {p_room:string;p_reason:string}; Returns: string }
       vibechat_register_push: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string }; Returns: boolean }
       vibechat_unregister_push: { Args: { p_endpoint: string }; Returns: boolean }
       vibechat_notification_preferences: { Args: { p_enabled?: boolean }; Returns: boolean }
