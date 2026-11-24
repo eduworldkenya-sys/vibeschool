@@ -42,7 +42,18 @@ begin
 end $guard$;
 -- Official outcome records must be admitted through the existing source/authority workflow.
 -- Never promote the authored scheme draft to official outcomes.
--- This candidate only inserts headings. It does not alter existing RLS or publishing; the new invoker RPC is authenticated-only and delegates existing tenant checks.
+-- The teacher read policy is narrowly scoped to official, attested outcomes for this grade/subject and source. Review and authorize before applying. No public read or write access is added.
+drop policy if exists grade4_social_studies_official_outcomes_read on public.curriculum_learning_outcomes;
+create policy grade4_social_studies_official_outcomes_read on public.curriculum_learning_outcomes
+for select to authenticated using (
+  status='active' and source_type='official' and verified_by is not null and verified_at is not null
+  and created_by=verified_by
+  and source_ref like 'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf#page=%'
+  and exists (select 1 from public.cbc_strands c where c.id=curriculum_learning_outcomes.sub_strand_id
+      and c.subject_id='09715a10-3f91-4351-b6bc-fa252666a20b'::uuid and c.grade='Grade 4'
+      and c.source_ref like 'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf#page=%&unit=%')
+);
+-- The new invoker RPC delegates existing tenant checks. No publishing changes.
 -- Same tenant-checked planning contract as Grade 5 CRE. No official outcome is invented.
 create or replace function public.commit_grade4_social_studies_scheme_unit(
  p_class_id uuid,p_subject_id uuid,p_academic_term_id uuid,p_week integer,p_sub_strand_id uuid,p_outcome_ids uuid[] default '{}'::uuid[]
@@ -67,7 +78,7 @@ begin
  if v_unit.id is null then raise exception 'SCHEME_CURRICULUM_IDENTITY_MISMATCH'; end if;
  if not exists(select 1 from public.classes c where c.id=p_class_id and lower(btrim(c.name)) ~ '^(grade|class)[[:space:]]*4([[:space:]]|$)') then raise exception 'SCHEME_GRADE_MISMATCH'; end if;
  select count(*),string_agg(o.outcome_text,E'\n' order by array_position(p_outcome_ids,o.id)) into v_count,v_objectives
- from public.curriculum_learning_outcomes o where o.id=any(p_outcome_ids) and o.sub_strand_id=v_unit.id and o.status='active' and o.source_type='official' and o.created_by is null and o.source_ref like 'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf#page=%';
+ from public.curriculum_learning_outcomes o where o.id=any(p_outcome_ids) and o.sub_strand_id=v_unit.id and o.status='active' and o.source_type='official' and o.verified_by is not null and o.verified_at is not null and o.created_by=o.verified_by and o.source_ref like 'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf#page=%';
  if v_count is distinct from cardinality(p_outcome_ids) then raise exception 'SCHEME_CURRICULUM_OUTCOME_MISMATCH'; end if;
  v_scheme:=public.commit_custom_scheme_item(p_class_id,p_subject_id,p_academic_term_id,p_week,v_unit.sub_strand,v_unit.name,null,null);
  update public.scheme_of_work set sub_strand_id=v_unit.id,sub_strand=v_unit.sub_strand,objectives=v_objectives,curriculum_outcome_id=case when v_count>0 then p_outcome_ids[1] else null end,reference=v_unit.source_ref||' (planning reference; outcome equivalence not certified)' where id=v_scheme.id and teacher_id=auth.uid() returning * into v_saved;
