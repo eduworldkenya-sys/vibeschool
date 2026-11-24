@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { learnerDisplayName } from '@/lib/student/learner-welcome'
@@ -78,7 +79,7 @@ export default function IndependentLearnerSignup() {
             <label style={{display:'block',margin:'8px 0'}}><input type="radio" checked={ageBand==='adult'} onChange={()=>setAgeBand('adult')} /> I am 18 or older</label>
             <label style={{display:'block',margin:'8px 0'}}><input type="radio" checked={ageBand==='under_18'} onChange={()=>setAgeBand('under_18')} /> I am under 18</label>
           </fieldset>
-          {ageBand==='under_18' && <p role="status">You can read lessons now without registering. A parent or authorized guardian can create your private learning account when needed. <a href="/learn">Open Learn</a> · <a href="/join?role=parent">Set up with an adult</a></p>}
+          {ageBand==='under_18' && <p role="status">You can read lessons now without registering. A parent or authorized guardian can create your private learning account when needed. <Link href="/learn">Open Learn</Link> · <Link href="/join?role=parent">Set up with an adult</Link></p>}
           <LearningLevelSelect level={level} choice={choice} onLevelChange={setLevel}
             onChoiceChange={setChoice} disabled={busy}/>
           <button className={styles.primary} disabled={!resolveRegistrationLearningSelection(level,choice)||!name.trim()||busy||ageBand!=='adult'}
