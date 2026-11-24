@@ -224,7 +224,8 @@ export function MiniLiveExplore() {
     try {
       await addMiniComment(current.id,viewer,commentText)
       setCommentText('')
-      setNotice('Your comment was submitted for moderation. It is not public yet.')
+      setNotice('Comment published after the automatic safety check.')
+      setComments(await loadApprovedComments(current.id))
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit comment.')}
     finally {setBusy(false)}
   }
@@ -234,7 +235,7 @@ export function MiniLiveExplore() {
     setBusy(true);setError('')
     try {
       await reportMini(current.id,viewer,reportReason)
-      setNotice('Report submitted for review.')
+      setNotice('Report received. Multiple safety reports can automatically hide unsafe content.')
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit report.')}
     finally {setBusy(false)}
   }
@@ -277,9 +278,10 @@ export function MiniLiveExplore() {
         challenge:quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null,
         requestId: answerRequest?.id ?? null })
       setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
-      setNotice(answerRequest
-        ? 'Explanation submitted for moderation. It will appear on the request after approval.'
-        : 'Mini submitted! It will appear in Explore only after moderation.')
+      const latest = await fetchApprovedMinis(120)
+      setPosts(latest)
+      setCovers(await loadMiniCovers(latest))
+      setNotice(answerRequest ? 'Your explanation is published on the request.' : 'Mini Lesson published.')
       back()
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit Mini.')}
     finally {setBusy(false)}
@@ -297,7 +299,7 @@ export function MiniLiveExplore() {
     if (!ensureSignIn(viewer) || !viewer || busy) return
     setError('');setNotice('')
     if (!adult) {
-      setError('Public creator profiles require an adult account with a verified date of birth.')
+      setError('Public creator profiles currently require adult account verification. There is no HQ content approval.')
       return
     }
     setBusy(true)
@@ -327,7 +329,7 @@ export function MiniLiveExplore() {
       const {error:saveError} = await supabase.from('global_public_profiles')
         .upsert({profile_id:viewer,username,display_name:displayName,is_public:true},{onConflict:'profile_id'})
       if (saveError) throw saveError
-      setNotice('Your existing VibeSchool profile is now public. You can submit Mini Lessons for review.')
+      setNotice('Your public profile is ready. Publish Mini Lessons through automatic safety checks.')
       setSection('compose')
     } catch {setError('Could not save your profile. Check whether that username is already taken.')}
     finally {setBusy(false)}
@@ -469,7 +471,7 @@ export function MiniLiveExplore() {
             <label htmlFor="mini-comment" className={styles.label}>Ask a question or share an idea</label>
             <textarea id="mini-comment" className={styles.field} maxLength={500} rows={3}
               value={commentText} onChange={e=>setCommentText(e.target.value)}/>
-            <button type="submit" className={styles.primary} disabled={busy || !commentText.trim()}>Submit comment for review</button>
+            <button type="submit" className={styles.primary} disabled={busy || !commentText.trim()}>Post comment</button>
           </form>
           <div className={styles.actions} style={{ justifyContent:'flex-start' }}>
             <label htmlFor="mini-report" className={styles.label}>Report content</label>
@@ -520,7 +522,7 @@ export function MiniLiveExplore() {
             <button type="button" className={styles.secondary} onClick={()=>{setPhotoRotation(0);setPhotoZoom(1)}}>Reset</button>
           </div>
         </div>}
-        <p className={styles.formNote}>Photos stay private while the Mini is pending. Submission does not make it public.</p>
+        <p className={styles.formNote}>Photos remain private until an automated safety check passes. There is no HQ publication approval.</p>
         <div style={{margin:'18px 0'}}>
           <label style={{display:'flex',gap:10,alignItems:'center',fontWeight:700,fontSize:14}}>
             <input type="checkbox" checked={quizEnabled} onChange={e=>setQuizEnabled(e.target.checked)} />
@@ -546,23 +548,23 @@ export function MiniLiveExplore() {
           </div>}
         </div>
         <button type="submit" className={styles.primary} disabled={!viewer || busy || !draftTitle.trim() || !draftBody.trim() || !photo}>
-          {busy?'Submitting…':'Submit Mini for review'}</button>
+          {busy?'Checking safety…':'Publish Mini Lesson'}</button>
       </form>
     </section>}
 
     {section === 'mine' && <section className={styles.profile}>
       <button type="button" className={styles.back} onClick={back}>← Explore</button>
       <h1>My Mini Lessons</h1>
-      <p className={styles.subline}>Check whether your submitted Minis are pending or approved.</p>
+      <p className={styles.subline}>View your Mini Lessons and their automatic safety status.</p>
       {mine.length ? mine.map(p=><div key={p.id} className={styles.comment}><strong>{p.title}</strong>
-        {p.tags.map(miniTagLabel).join(' ')} · {p.status==='approved'?'Published':p.status==='pending'?'Awaiting review':p.status}</div>)
+        {p.tags.map(miniTagLabel).join(' ')} · {p.status==='approved'?'Published':p.status==='pending'?'Safety check pending':p.status}</div>)
         : <p>No Mini Lessons submitted yet.</p>}
     </section>}
 
     {section === 'profile' && <section className={styles.profile}>
       <button type="button" className={styles.back} onClick={back}>← Explore</button>
       <h1>My VibeSchool public profile</h1>
-      <p className={styles.subline}>Your existing account and username will appear on published Minis. Only eligible adults can make a creator profile public.</p>
+      <p className={styles.subline}>Your existing account and username appear on published Minis. Public creator age safeguards remain separate from content moderation.</p>
       <form onSubmit={event => void saveProfile(event)}>
         <label className={styles.label} htmlFor="mini-profile-username">Username</label>
         <input className={styles.field} id="mini-profile-username" autoComplete="off"

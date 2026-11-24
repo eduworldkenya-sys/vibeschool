@@ -7,6 +7,28 @@ export async function currentMiniUser(): Promise<string | null> {
   return error ? null : data.user?.id ?? null
 }
 
+/**
+ * Request immediate automated safety screening; publishing is never manually approved in HQ.
+ * API is fail-closed if its release flag or classifier is unavailable.
+ */
+export async function publishMiniSafely(target:'mini'|'request'|'comment',id:string):Promise<void> {
+  const {data:{session},error:sessionError}=await supabase.auth.getSession()
+  if(sessionError||!session?.access_token)throw Error('Sign in to publish.')
+  let response:Response
+  try{
+    response=await fetch('/api/minis/safety',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+      body:JSON.stringify({target,id}),
+      cache:'no-store',
+    })
+  }catch{throw Error('Your submission is saved privately. Automatic safety checks are unavailable; retry later.')}
+  const payload:unknown=await response.json().catch(()=>null)
+  const result=payload&&typeof payload==='object'?payload as {error?:string;published?:boolean;message?:string}:null
+  if(!response.ok)throw Error(result?.error||'Your submission is saved privately. Retry the automatic safety check.')
+  if(result?.published!==true)throw Error(result?.message||'Content did not pass the automatic safety check.')
+}
+
 export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('mini_adult_signal_allowed', { p_user: userId })
   return !error && data === true
@@ -49,7 +71,7 @@ export async function submitMini({
   const { data: canSubmit, error: eligibilityError } =
     await supabase.rpc('mini_creator_can_submit', { p_user: verified })
   if (eligibilityError || canSubmit !== true)
-    throw Error('Your teacher account needs an opted-in public profile before submitting Minis. Check your public profile settings.')
+    throw Error('Public creators need an opted-in profile and independent age eligibility. Check your public profile settings.')
 
   const coverPath = userId + '/' + crypto.randomUUID() + '.' + ext
   const { error: uploadError } = await supabase.storage.from('mini-covers')
@@ -64,6 +86,7 @@ export async function submitMini({
     await supabase.storage.from('mini-covers').remove([coverPath])
     throw Error('The Mini could not be submitted. Your profile may need additional verification.')
   }
+  await publishMiniSafely('mini',submitted.id as string)
   return submitted.id as string
 }
 
@@ -90,9 +113,11 @@ export async function addMiniComment(id: string, userId: string, body: string) {
   const verified = await currentMiniUser()
   if (!verified || verified !== userId) throw Error('Sign in to post a comment.')
   if (body.trim().length < 2 || body.trim().length > 500) throw Error('Comments must be between 2 and 500 characters.')
-  const { error } = await supabase.from('mini_comments')
+  const { data, error } = await supabase.from('mini_comments')
     .insert({ mini_id: id, author_id: verified, body: body.trim(), status: 'pending' })
-  if (error) throw Error('The comment could not be submitted.')
+    .select('id').single()
+  if (error || !data?.id) throw Error('The comment could not be submitted.')
+  await publishMiniSafely('comment',data.id as string)
 }
 
 export async function reportMini(id: string, userId: string, reason: string) {

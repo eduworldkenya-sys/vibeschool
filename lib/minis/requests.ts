@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { parseMiniHashtags } from './tags'
-import { currentMiniUser } from './actions'
+import { currentMiniUser, publishMiniSafely } from './actions'
 
 export type MiniPublicRequest = {
   id: string
@@ -56,6 +56,7 @@ export async function submitMiniRequest(question: string, hashtags: string): Pro
   const { data, error } = await supabase.from('mini_requests')
     .insert({ requester_id: verified, question: clean, tags }).select('id').single()
   if (error || !data?.id) throw Error('Request not submitted. Check your account and daily limit.')
+  await publishMiniSafely('request',data.id as string)
   return data.id as string
 }
 
@@ -66,4 +67,15 @@ export async function changeRequestSupport(requestId: string, on: boolean) {
     ? await supabase.from('mini_request_supports').insert({ request_id: requestId,user_id: verified })
     : await supabase.from('mini_request_supports').delete().eq('request_id',requestId).eq('user_id',verified)
   if (result.error && !(on && result.error.code==='23505')) throw Error('Unable to update request support.')
+}
+
+/** Private community report; five independent safety reports temporarily hide a request. */
+export async function reportMiniRequest(requestId: string, reason: 'unsafe'|'spam'|'harassment'|'personal_information'|'other') {
+  const viewer = await currentMiniUser()
+  if (!viewer) throw Error('Sign in to report a request.')
+  if (!['unsafe','spam','harassment','personal_information','other'].includes(reason))
+    throw Error('Choose a valid report reason.')
+  const { error } = await supabase.from('mini_request_reports')
+    .insert({ request_id: requestId, reporter_id: viewer, reason })
+  if (error && error.code !== '23505') throw Error('Unable to report this request.')
 }
