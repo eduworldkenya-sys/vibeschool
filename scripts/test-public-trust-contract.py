@@ -151,7 +151,7 @@ home = text('app/home/page.tsx')
 landing = text('app/page.tsx')
 if "export { default } from './explore/page'" not in landing:
     errors.append('public root must reuse Explore')
-if "href=\"/home\" aria-label=\"VibeSchool home\"" not in header:
+if 'href="/home" aria-label="VibeSchool home"' not in header:
     errors.append('public wordmark must retain original homepage access')
 for fragment in ['RoleJourneySelector','ConnectedEducationExplorer','SchoolReadinessAssessment','GET TO KNOW VIBESCHOOL','FOR SCHOOLS &amp; EDUCATION INSTITUTIONS','Pathways','Trust Centre','/product','/institutions']:
     if fragment not in home: errors.append(f'homepage communication missing: {fragment}')
