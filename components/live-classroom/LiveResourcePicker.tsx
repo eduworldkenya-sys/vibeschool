@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { LIVE_LEARNER_ASSET_KINDS, LIVE_SCHOOL_GRADE_LABELS, liveResourcePages, readableLiveResourceText } from '@/lib/live/resourcePresentation'
 import styles from './LiveResourcePicker.module.css'
-import { TeachingDiagram, SLIDE_DIAGRAMS, diagramLabel, encodeSlide, type SlideDiagram } from './LiveSlideCanvas'
+import { TeachingDiagram, SLIDE_DIAGRAMS, diagramLabel, encodeSlide, type LiveSlide, type SlideDiagram } from './LiveSlideCanvas'
+import {setStudioResource} from './LiveSlideProtocol'
 
 type ResourceChoice = {
   id: string
@@ -24,7 +25,7 @@ type SchemeLink = { scheme_lesson_id: string | null; resource_id: string | null;
 type ReleasedRoot = { id: string; title: string; subject: string | null; grade: string | null }
 
 export function LiveResourcePicker({
-  classId, lessonPlanId, schemeLessonId, canPresent, onPresent, onClose,
+  classId, lessonPlanId, schemeLessonId, canPresent, onPresent, onClose, onPrepare,
 }: {
   classId: string | null
   lessonPlanId: string | null
@@ -32,6 +33,7 @@ export function LiveResourcePicker({
   canPresent: boolean
   onPresent: (body: string) => void
   onClose: () => void
+  onPrepare?: (slide: LiveSlide) => void
 }) {
   const [items, setItems] = useState<ResourceChoice[]>([])
   const [query, setQuery] = useState('')
@@ -285,6 +287,17 @@ export function LiveResourcePicker({
     if (!selected || !canPresent) return
     const raw = selected.pages[page]
     if (!raw) return
+    if (onPrepare) {
+      // Reusable preparations may only include released public learner content.
+      // Class-scoped sources remain in their original authorized classroom.
+      if (selected.item.source !== 'certified' || !selected.version) return
+      const slide: LiveSlide = {title: selected.item.title.slice(0,120), body: 'Resource page\n\n'+raw, diagram, notes: ''}
+      if (!encodeSlide(slide,30,30)) {setError('This resource page is too large for a slide. Choose a shorter resource.');return}
+      const notes=setStudioResource(slide,{id:selected.item.id,version:selected.version,page})
+      if(notes===null){setError('Could not preserve the certified source reference.');return}
+      onPrepare({...slide,notes})
+      return
+    }
     if (diagram==='none') {onPresent(raw);return}
     // Use the canonical diagram slide codec; the same viewer and lesson history
     // work before, during and after Live. No arbitrary SVG or markup is accepted.
@@ -298,7 +311,7 @@ export function LiveResourcePicker({
     <div className={styles.toolbar}>
       <strong>Resources</strong>
       <span>Certified learning materials{classId ? ' and shared class resources' : ''}</span>
-      <button type="button" onClick={onClose}>Return to lesson</button>
+      <button type="button" onClick={onClose}>{onPrepare?'Back to preparation':'Return to lesson'}</button>
     </div>
     {error && <p role="alert" className={styles.error}>{error}</p>}
     {schemeWarning && <p role="status" className={styles.warning}>{schemeWarning}</p>}
@@ -330,11 +343,11 @@ export function LiveResourcePicker({
             <div className={styles.actions}>
               <button type="button" disabled={page === 0} onClick={() => setPage(n => n - 1)}>Previous</button>
               <button type="button" disabled={page === selected.pages.length - 1} onClick={() => setPage(n => n + 1)}>Next</button>
-              <button type="button" className={styles.primary} disabled={!canPresent} onClick={presentCurrent}>Present this page</button>
+              <button type="button" className={styles.primary} disabled={!canPresent} onClick={presentCurrent}>{onPrepare?'Add to lesson':'Present this page'}</button>
             </div>
-            <small>Presentation creates a learner-visible snapshot in Live history. Private drafts and teacher notes are not available here.</small>
+            <small>{onPrepare?'Adds a private, reusable copy of this certified page, with its source version in teacher notes. Nothing is shared until you teach.':'Presentation creates a learner-visible snapshot in Live history. Private drafts and teacher notes are not available here.'}</small>
           </> :
-          <p>Select a resource to preview its readable pages. Only an explicit Present action shares a page.</p>}
+          <p>{onPrepare?'Select a certified resource to add a page to your preparation.':'Select a resource to preview its readable pages. Only an explicit Present action shares a page.'}</p>}
       </div>
     </div>
   </section>

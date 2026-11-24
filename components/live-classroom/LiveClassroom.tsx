@@ -14,6 +14,9 @@ import {copyPhotoDeck,shareSlidePhotos} from './LivePhotoDeckReuse'
 import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import { TeachingLibrary } from './LiveTeachingLibrary'
+import {validateStudioResources} from './LiveStudioResourceValidation'
+import {studioResource,studioFile} from './LiveSlideProtocol'
+import {presentStudioFile,validateStudioFiles} from './LiveStudioFiles'
 import { LiveResourcePicker } from './LiveResourcePicker'
 import { LiveClassFiles } from './LiveClassFiles'
 import { LiveFilePresentation } from './LiveFilePresentation'
@@ -213,7 +216,7 @@ function TeacherSticker({prompt,hidden,onHide}:{prompt:Prompt|null|undefined;hid
  </div>
 }
 
-export default function LiveClassroom({classId,teacher,back,hostModes=['tuition','open']}:{classId:string|null;teacher:boolean;back:string;hostModes?:ClassroomMode[]}) {
+export default function LiveClassroom({classId,teacher,back,hostModes=['tuition','open'],initialStudio=false}:{classId:string|null;teacher:boolean;back:string;hostModes?:ClassroomMode[];initialStudio?:boolean}) {
   const hostModeKey=hostModes.join(',')
   const [hostMode,setHostMode]=useState<ClassroomMode>(classId?'school':hostModes[0])
   const [groupId,setGroupId]=useState('')
@@ -226,7 +229,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [slides,setSlides]=useState<LiveSlide[]>([{title:'',body:''}])
   const [slideIndex,setSlideIndex]=useState(0)
   const [deletedSlide,setDeletedSlide]=useState<{slide:LiveSlide;index:number}|null>(null)
-  const [beforeLibrary,setBeforeLibrary]=useState(false)
+  const [beforeLibrary,setBeforeLibrary]=useState(initialStudio&&teacher)
   const preparedDeck=useRef<{title:string;slides:LiveSlide[]}|null>(null)
   const [preparedTitle,setPreparedTitle]=useState('')
   const [linkedPlan,setLinkedPlan]=useState<{id:string;schemeId:string|null;title:string;steps:LessonDeliveryStep[]}|null>(null)
@@ -611,6 +614,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     mutating.current=true;lock.current=true;setBusy(true);setError('')
     try {
       let requestPayload=payload
+      if(action==='start'&&preparedDeck.current){await validateStudioResources(preparedDeck.current.slides);await validateStudioFiles(preparedDeck.current.slides);if(!mounted.current||generation.current!==stamp)return}
       if(action==='publish'){
         const fingerprint=JSON.stringify([room?.id,payload.kind,payload.body,payload.answerKey??null])
         if(pendingPublish.current?.fingerprint!==fingerprint)pendingPublish.current={fingerprint,requestId:crypto.randomUUID()}
@@ -954,12 +958,22 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   }
   function presentSlide(index:number,revealCount?:number){
     const item=slides[index];if(!item||!canNavigateSlides||photoLock.current)return
+    if(studioFile(item)){
+      const roomId=room?.id;if(!roomId||!window.confirm('Share this prepared file with the current classroom?'))return
+      photoLock.current=true;setPhotoPreparing(true);setError('')
+      const current=()=>active.current?.id===roomId&&active.current?.status==='active'&&active.current?.teacher===true
+      void presentStudioFile(item,roomId,current).then(async body=>{if(current()&&body)await act('publish',null,{kind:'teach',body,answerKey:null})}).catch(e=>setError(e instanceof Error?e.message:'File preparation failed.')).finally(()=>{photoLock.current=false;setPhotoPreparing(false)})
+      return
+    }
     const photos=decodePhotoSlide(item.body);if(photos){void preparePhotoSlide(index);return}
     const visual=visualSlidePayload(item.body)
     const partial=revealCount!==undefined&&visual!==null?revealBoard(visual,revealCount):null
     if(revealCount!==undefined&&!partial)return
     const slideText=partial?encodeSlide({...item,body:visualSlideBody(partial)},index+1,slides.length):encodeSlide(item,index+1,slides.length)
-    if(slideText)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})
+    if(!slideText)return
+    if(!studioResource(item)){void act('publish',null,{kind:'teach',body:slideText,answerKey:null});return}
+    const roomId=room?.id;photoLock.current=true;setPhotoPreparing(true);setError('')
+    void validateStudioResources([item]).then(async()=>{if(active.current?.id===roomId&&active.current?.status==='active'&&active.current?.teacher===true)await act('publish',null,{kind:'teach',body:slideText,answerKey:null})}).catch(e=>setError(e instanceof Error?e.message:'Resource verification failed.')).finally(()=>{photoLock.current=false;setPhotoPreparing(false)})
   }
   function moveSlide(delta:number){
     const to=slideIndex+delta;if(to<0||to>=slides.length)return
@@ -1160,7 +1174,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     {error&&<div role="alert" className={styles.alert}>{error} <button onClick={()=>void refresh()}>Retry</button></div>}
     {loading&&!room&&<p role="status">Connecting…</p>}
     {!room&&!loading&&<section className={styles.panel}>
-      {teacher&&<><button type="button" aria-expanded={beforeLibrary} onClick={()=>setBeforeLibrary(v=>!v)}>My presentations</button>{beforeLibrary&&<TeachingLibrary command={call} currentDeck={null} onUse={useMaterial}/>} {preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
+      {teacher&&<>{!beforeLibrary&&<button type="button" onClick={()=>setBeforeLibrary(true)}>Live Studio · Prepare lesson</button>}{beforeLibrary&&<TeachingLibrary command={call} currentDeck={null} onUse={useMaterial} onClose={()=>setBeforeLibrary(false)}/>} {preparedTitle&&<p>Ready for next lesson: {preparedTitle} <button type="button" onClick={()=>{preparedDeck.current=null;setPreparedTitle('')}}>Remove</button></p>}</>}
       {teacher&&classId&&<section aria-label="Prepare Live Lesson" style={{padding:'12px 0',display:'grid',gap:6}}>
         <label>Saved Lesson Plan
           <select aria-label="Saved Lesson Plan" value={selectedPlanId??''}
@@ -1176,7 +1190,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         {linkedPlanError&&<small role="alert">{linkedPlanError}</small>}
         {linkedPlan&&<small>Private teacher plan ready · {linkedPlan.steps.length} teaching phases</small>}
       </section>}
-      {teacher&&<form onSubmit={e=>{e.preventDefault();void act('start',null,{title:hostMode==='open'?`${publicGrade} · ${publicSubject} · ${title.trim()}`:title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
+      {teacher&&!beforeLibrary&&<form onSubmit={e=>{e.preventDefault();void act('start',null,{title:hostMode==='open'?`${publicGrade} · ${publicSubject} · ${title.trim()}`:title,mode:hostMode,groupId:classId||hostMode!=='tuition'?null:groupId||null})}}>
         {!classId&&hostModes.length>1&&<div className={styles.controls} aria-label="Classroom type">{hostModes.map(item=><button type="button" key={item} aria-pressed={hostMode===item} onClick={()=>{setHostMode(item);setGroupId('')}}>{classroomLabels[item]}</button>)}</div>}
         {!classId&&hostMode==='tuition'&&<label>Learners<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">All connected learners</option>{groups.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
         {hostMode==='open'&&<><div className={styles.controls}><label>Grade<select value={publicGrade} onChange={e=>setPublicGrade(e.target.value)}>{grades.map(g=><option key={g} value={g}>{g}</option>)}</select></label><label>Subject<select value={publicSubject} onChange={e=>setPublicSubject(e.target.value)}>{subjects.map(g=><option key={g} value={g}>{g}</option>)}</select></label></div><small>Visible to eligible VibeSchool learners. You approve each request before they enter.</small></>}
