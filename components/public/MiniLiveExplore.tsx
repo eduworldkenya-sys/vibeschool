@@ -10,9 +10,11 @@ import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInter
   addMiniComment, reportMini, recordMiniLearningSignal } from '@/lib/minis/actions'
 import { miniTagLabel, parseMiniHashtags } from '@/lib/minis/tags'
 import { prepareMiniPhoto } from '@/lib/minis/photo'
+import { MiniLiveRequests } from './MiniLiveRequests'
+import type { MiniPublicRequest } from '@/lib/minis/requests'
 import styles from './MiniExplore.module.css'
 
-type Section = 'feed' | 'read' | 'compose' | 'creator' | 'mine' | 'profile'
+type Section = 'feed' | 'read' | 'compose' | 'creator' | 'mine' | 'profile' | 'request'
 type Tab = 'For You' | 'Following' | 'New'
 type Submission = { id: string; title: string; tags: string[]; status: string; created_at: string }
 
@@ -54,6 +56,8 @@ export function MiniLiveExplore() {
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [draftTitle, setDraftTitle] = useState('')
+  const [answerRequest, setAnswerRequest] = useState<MiniPublicRequest | null>(null)
+  const [createMenu, setCreateMenu] = useState(false)
   const [draftBody, setDraftBody] = useState('')
   const [draftTags, setDraftTags] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
@@ -90,6 +94,8 @@ export function MiniLiveExplore() {
     setSection('feed')
     setCreatorId(null)
     setSelectedId(null)
+    setAnswerRequest(null)
+    setCreateMenu(false)
     setError('')
     window.history.replaceState(null, '', '/explore')
   }
@@ -246,6 +252,19 @@ export function MiniLiveExplore() {
     finally {setBusy(false)}
   }
 
+  const explainRequest = (request: MiniPublicRequest) => {
+    if (!viewer || !adult) {
+      setError('Verified adult creators may submit explanations. Sign in and verify your public profile first.')
+      return
+    }
+    setAnswerRequest(request)
+    setDraftTags(request.tags.map(name=>'#'+name).join(' '))
+    setDraftTitle('')
+    setDraftBody('')
+    setPhoto(null)
+    setSection('compose')
+  }
+
   async function publish(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!ensureSignIn(viewer) || !viewer || busy) return
@@ -255,9 +274,12 @@ export function MiniLiveExplore() {
       parseMiniHashtags(draftTags)
       const editedPhoto = await prepareMiniPhoto(photo,photoRotation,photoZoom)
       await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo:editedPhoto,userId:viewer,
-        challenge:quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null })
+        challenge:quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null,
+        requestId: answerRequest?.id ?? null })
       setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
-      setNotice('Mini submitted! It will appear in Explore only after moderation.')
+      setNotice(answerRequest
+        ? 'Explanation submitted for moderation. It will appear on the request after approval.'
+        : 'Mini submitted! It will appear in Explore only after moderation.')
       back()
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit Mini.')}
     finally {setBusy(false)}
@@ -353,7 +375,13 @@ export function MiniLiveExplore() {
         <div className={styles.actions}>
           <button type="button" className={styles.secondary} onClick={() => void editProfile()}>My Profile</button>
           <button type="button" className={styles.secondary} onClick={() => void openMine()}>My Minis</button>
-          <button type="button" className={styles.primary} onClick={() => {setError('');setSection('compose')}}>+ Create Mini</button>
+          <div className={styles.createWrap}>
+            <button type="button" className={styles.primary} aria-expanded={createMenu} onClick={()=>setCreateMenu(v=>!v)}>+ Create</button>
+            {createMenu&&<div className={styles.createMenu}>
+              <button type="button" onClick={()=>{setAnswerRequest(null);setCreateMenu(false);setSection('compose')}}>Create Mini Lesson</button>
+              <button type="button" onClick={()=>{setCreateMenu(false);setSection('request')}}>Request an explanation</button>
+            </div>}
+          </div>
         </div>
       </div>
       <div className={styles.controls}>
@@ -371,17 +399,20 @@ export function MiniLiveExplore() {
             onClick={()=>setTag(name)}>{name==='All'?'All':miniTagLabel(name)}</button>)}
         </div>
       </div>
+      {tab !== 'Following' && <MiniLiveRequests query={query} onExplain={explainRequest}/>}
       <div className={styles.resultsLabel}><strong>{tab==='Following'?'Creators you follow':'Mini Lessons'}</strong>
         <span>{visible.length} results</span></div>
       {loading ? <p role="status">Loading Mini Lessons…</p> : visible.length
         ? <div className={styles.grid}>{visible.map(card)}</div>
         : <div className={styles.empty}>
           <p>{error || (tab==='Following'?'Follow an educator to see their Minis here.':'No published Minis found.')}</p>
+          <button type="button" className={styles.primary} onClick={()=>setSection('request')}>Request this topic</button>
           <button type="button" className={styles.secondary} onClick={()=>{setTag('All');setQuery('');setTab('For You')}}>Explore all</button>
         </div>}
       <p className={styles.previewNote}>Recommendations prioritize educational usefulness and give new creators a fair chance. No watch-time targeting.</p>
     </>}
 
+    {section === 'request' && <MiniLiveRequests mode="compose" query={query} onBack={back} onExplain={explainRequest}/>}
     {section === 'read' && current && <article className={styles.reader}>
       <div className={styles.readerHeader}><button className={styles.back} type="button" onClick={back}>← Explore</button></div>
       <Cover url={covers[current.id]} subject={current.subject} title={current.title}/>
@@ -455,7 +486,8 @@ export function MiniLiveExplore() {
 
     {section === 'compose' && <section className={styles.form}>
       <button className={styles.back} type="button" onClick={back}>← Explore</button>
-      <span className={styles.eyebrow}>CREATE MINI LESSON</span>
+      <span className={styles.eyebrow}>{answerRequest?'EXPLAIN STUDENT REQUEST':'CREATE MINI LESSON'}</span>
+      {answerRequest&&<p className={styles.formNote}>{answerRequest.question}</p>}
       <h1>Share what you know.</h1>
       <p className={styles.subline}>One photo and a short educational explanation.</p>
       {!viewer && <p className={styles.formNote}>Sign in before publishing. <Link href="/login?redirect=%2Fexplore">Sign in</Link></p>}
