@@ -10,6 +10,7 @@ import VibeChatAvatar from './VibeChatAvatar'
 import VibeChatContacts from './VibeChatContacts'
 import VibeChatUsernameSearch from './VibeChatUsernameSearch'
 import VibeChatSchool from './VibeChatSchool'
+import VibeChatGroups from './VibeChatGroups'
 import { useVibeChatTyping } from './useVibeChatTyping'
 import { useVibeChatInboxUpdates } from './useVibeChatInboxUpdates'
 import { useVibeChatOutbox } from './useVibeChatOutbox'
@@ -17,7 +18,7 @@ import { useVibeChatPreferences,useVibeChatOpenAppNotifications } from './useVib
 import { useVibeChatWebPush } from './useVibeChatWebPush'
 import styles from './VibeChat.module.css'
 
-type Tab = 'chats' | 'contacts' | 'enquiries' | 'notices' | 'school'
+type Tab = 'chats' | 'contacts' | 'enquiries' | 'notices' | 'school' | 'groups'
 type Chat = {
   key: string
   id: string
@@ -56,7 +57,7 @@ export default function VibeChat() {
   const params = useSearchParams()
   const requestedTab = params.get('tab')
   const requestedChat = validKey(params.get('thread'))
-  const [tab, setTab] = useState<Tab>(requestedTab === 'enquiries' || requestedTab === 'notices' || requestedTab === 'contacts' || requestedTab === 'school' ? requestedTab : 'chats')
+  const [tab, setTab] = useState<Tab>(requestedTab === 'enquiries' || requestedTab === 'notices' || requestedTab === 'contacts' || requestedTab === 'school' || requestedTab === 'groups' ? requestedTab : 'chats')
   const [uid, setUid] = useState('')
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
   const [role, setRole] = useState('')
@@ -398,6 +399,7 @@ export default function VibeChat() {
 
   const outbox=useVibeChatOutbox(uid,item=>{
     if(item.owner!==uid)return
+    if(item.kind==='group'){setRefreshVersion(v=>v+1);return}
     const chat=chats.find(c=>c.key===item.kind+':'+item.room)
     if(chat&&selectedRef.current===chat.key)void loadMessages(chat,uid)
     void load(true)
@@ -473,6 +475,7 @@ export default function VibeChat() {
       <nav className={styles.tabs} aria-label="VibeChat sections">
         <button type="button" className={styles.tab + (tab==='chats'?' '+styles.active:'')} onClick={()=>setTab('chats')}><MessageCircle size={16} aria-hidden/> Chats</button>
         <button type="button" className={styles.tab + (tab==='contacts'?' '+styles.active:'')} onClick={()=>setTab('contacts')}><UserPlus size={16} aria-hidden/> Contacts</button>
+        <button type="button" className={styles.tab+(tab==='groups'?' '+styles.active:'')} onClick={()=>setTab('groups')}><Users size={16} aria-hidden/> Groups</button>
         <div className={styles.moreWrap}>
           <button type="button" className={styles.tab + (['school','enquiries','notices'].includes(tab)?' '+styles.active:'')} aria-expanded={moreOpen} aria-haspopup="true" onClick={()=>setMoreOpen(v=>!v)}><MoreVertical size={16} aria-hidden/> More {notices.some(n=>n.requiresAck&&!n.acked)?'· New':''}</button>
           {moreOpen&&<div className={styles.moreMenu}>
@@ -614,6 +617,7 @@ export default function VibeChat() {
           </> : <div className={styles.empty}>Select a conversation to read or send a message.</div>}
         </div>
       </section>}
+      {signedIn&&tab==='groups'&&<VibeChatGroups key={uid} owner={uid} refreshVersion={refreshVersion} refresh={()=>setRefreshVersion(v=>v+1)} outbox={outbox}/>}
       {signedIn&&tab==='school'&&role==='teacher'&&<VibeChatSchool onOpenThread={threadId=>{
         setTab('chats')
         setSearch('')
