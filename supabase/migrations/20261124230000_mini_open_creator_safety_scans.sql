@@ -1,3 +1,4 @@
+-- access: service-only public.mini_safety_scans
 -- Mini Lessons open creator publishing: automatic safety screening, not HQ approval.
 -- NON-ACTIVATING. Publishing stays gated by MINI_LESSONS_OPEN_PUBLISHING_ENABLED on the trusted API.
 -- authorization-test: public.mini_safety_scans - service-only RLS, no client reads or writes.
