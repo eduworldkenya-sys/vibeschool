@@ -65,6 +65,7 @@ begin
    select * into wb from vibe_live.workbook_entries w where w.session_id=room.id and w.prompt_id=wb_prompt and w.student_id=wb_student for update;
    if coalesce(wb.revision,0)<>wb_revision then raise exception 'live_workbook_conflict'; end if;
    if p_action in ('workbook_return','workbook_accept') then
+     if p_action='workbook_return' and (room.status<>'active' or room.expires_at<=now()) then raise exception 'live_workbook_not_open'; end if;
      wb_feedback:=btrim(coalesce(p_payload->>'feedback',''));
      if wb.status is distinct from 'submitted' or char_length(wb_feedback) not between 1 and 2000 then raise exception 'live_invalid_workbook_feedback'; end if;
      update vibe_live.workbook_entries w set status=case when p_action='workbook_accept' then 'accepted' else 'returned' end,
