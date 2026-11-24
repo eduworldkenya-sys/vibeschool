@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useStudent } from '@/lib/student-context'
 import { supabase } from '@/lib/supabase'
-import { ArrowRight, BookOpen, ClipboardList, CalendarDays, Compass, Gamepad2, PenLine, Search, LibraryBig, PencilLine, BrainCircuit, ChartNoAxesColumn, ChevronDown } from 'lucide-react'
+import { ArrowRight, BookOpen, ClipboardList, CalendarDays, Compass, Gamepad2, PenLine, Search, LibraryBig, PencilLine, BrainCircuit, ChartNoAxesColumn, ChevronDown, Calculator, Languages, FlaskConical, Palette, Globe2 } from 'lucide-react'
 import {
   getVibeLearnWorkstation, getAssignedReading, getExamReadinessBrief, updateExamReadiness,
   getAdaptiveLearningPath, getAdaptiveResourceRecommendations,
@@ -15,7 +15,7 @@ import {
 } from '@/lib/student/vibelearn'
 import styles from './study.module.css'
 import StudentLearningFeatureLinks from '@/components/student/StudentLearningFeatureLinks'
-import { recogniseLearnerGrade } from '@/lib/learn/schoolCatalog'
+import { fallbackSubjectGroups, recogniseLearnerGrade } from '@/lib/learn/schoolCatalog'
 
 type ClassResource = {id:string,title:string,description:string|null,type:string,url:string|null,subject_id:string|null}
 
@@ -134,6 +134,29 @@ export default function LearnerStudyDesk() {
   const savedReading = workspace?.continueLearning.slice(0,3) ?? []
   const grade = recogniseLearnerGrade(identity.className)
   const browseHref = grade ? '/learn?grade=' + encodeURIComponent(grade) : '/learn'
+  // The catalogue is the sole subject authority; these links never claim content is published.
+  const subjects = grade ? (fallbackSubjectGroups(grade)[0]?.subjects ?? []) : []
+  const iconForSubject = (subject: string) => {
+    if (/math/i.test(subject)) return <Calculator size={22} aria-hidden="true"/>
+    if (/english|kiswahili|language/i.test(subject)) return <Languages size={22} aria-hidden="true"/>
+    if (/science|environment|technology/i.test(subject)) return <FlaskConical size={22} aria-hidden="true"/>
+    if (/creative|art/i.test(subject)) return <Palette size={22} aria-hidden="true"/>
+    if (/social|religious|citizenship/i.test(subject)) return <Globe2 size={22} aria-hidden="true"/>
+    return <BookOpen size={22} aria-hidden="true"/>
+  }
+  const subjectDesk = <section className={styles.subjectSection} aria-label="My subjects">
+    <div className={styles.subjectHead}>
+      <h2 className={styles.sectionTitle}>My subjects</h2>
+      <Link href={browseHref}>All subjects <ArrowRight size={16} aria-hidden="true"/></Link>
+    </div>
+    {subjects.length > 0 ? <nav className={styles.subjectGrid} aria-label={grade + ' subjects'}>
+      {subjects.map(subject => <Link key={subject} className={styles.subjectTile}
+        href={browseHref + '&subject=' + encodeURIComponent(subject)}>
+        <span className={styles.subjectTileIcon}>{iconForSubject(subject)}</span>
+        <span>{subject}</span>
+      </Link>)}
+    </nav> : <Link className={styles.chooseGrade} href="/learn">Choose your grade <ArrowRight size={16} aria-hidden="true"/></Link>}
+  </section>
   return <main className={styles.page}>
     <div className={styles.wrap}>
       <div className={styles.screen}>
@@ -144,7 +167,8 @@ export default function LearnerStudyDesk() {
           </div>
           <Link href={browseHref} className={styles.findLink}><Search size={17} aria-hidden="true"/> Find a lesson</Link>
         </header>
-        <section className={styles.resume} aria-label="Reading">
+        {!loading && savedReading.length === 0 && subjectDesk}
+        {(loading || savedReading.length > 0) && <section className={styles.resume} aria-label="Reading">
           {!loading && savedReading.length > 0 ? savedReading.slice(0,1).map(item =>
             <div key={item.publicationId} className={styles.resumeContent}>
               <span className={styles.eyebrow}>Continue reading</span>
@@ -162,7 +186,8 @@ export default function LearnerStudyDesk() {
               <h2>What would you like to learn?</h2>
               <Link href={browseHref} className={styles.resumeAction}>Browse lessons <ArrowRight size={18} aria-hidden="true"/></Link>
             </div>}
-        </section>
+        </section>}
+        {!loading && savedReading.length > 0 && subjectDesk}
         <section className={styles.learningSection} aria-label="Learning tools">
           <h2 className={styles.sectionTitle}>Choose what to do</h2>
           <nav className={styles.learningGrid} aria-label="Learn destinations">
