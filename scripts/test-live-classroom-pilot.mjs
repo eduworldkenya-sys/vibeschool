@@ -1,3 +1,4 @@
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES} from '../components/live-classroom/LiveDeckTransfer.ts'
 // Install the pinned test-only engine outside the repo: npm install --prefix /tmp/live-test --no-audit --no-fund @electric-sql/pglite@0.3.14
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
@@ -37,6 +38,18 @@ assert.equal(encodeSlide(privateSlide,1,31),'')
 assert.equal(validSlide({title:'a',body:'b',theme:'unsafe'}),false)
 for(const diagram of SLIDE_DIAGRAMS)assert.equal(decodeSlide(encodeSlide({...privateSlide,diagram},1,1)).diagram,diagram)
 console.log('PASS: bounded slide protocol, native diagram identifiers, privacy and malformed input rejection')
+const exported=exportDeck('Fractions',[privateSlide])
+assert.ok(!exported.includes(privateSlide.notes))
+assert.equal(importDeck(exported).slides[0].notes,undefined)
+assert.deepEqual(importDeck(exportDeck('Fractions',[privateSlide],true)).slides,[privateSlide])
+assert.throws(()=>importDeck('not json'),/Invalid/)
+assert.throws(()=>importDeck(JSON.stringify({format:'vibeschool-slides',version:2,title:'X',slides:[privateSlide]})),/Unsupported/)
+assert.throws(()=>importDeck(JSON.stringify({format:'vibeschool-slides',version:1,title:'X',slides:[{...privateSlide,extra:true}]})),/Invalid slide/)
+assert.throws(()=>exportDeck('X',Array(31).fill(privateSlide)),/1–30/)
+assert.throws(()=>importDeck('x'.repeat(MAX_DECK_FILE_BYTES+1)),/too large/)
+assert.throws(()=>exportDeck('X',[{title:'x',body:'"'.repeat(3878)}]),/too large/)
+assert.equal(importDeck(exportDeck('Blank',[{title:'',body:''}])).slides.length,1)
+console.log('PASS: portable presentation round trip, privacy, validation and size limits')
 // Dashboard shortcut must use existing scoped host routes and remain hidden until enabled.
 const teacherToday=readFileSync(new URL('../app/teacher/pulse/page.tsx',import.meta.url),'utf8')
 assert.ok(teacherToday.includes('process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true"'))
