@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-const sql=readFileSync('supabase/migrations/20261121173000_vibetutor_published_imported_requests.sql','utf8')
+const sql=readFileSync('supabase/migrations/20261121081306_vibetutor_published_imported_requests.sql','utf8')
 const browse=readFileSync('app/vibetutor/browse/BrowseClient.tsx','utf8')
 const listings=readFileSync('components/vibetutor/listings.ts','utf8')
 const cards=readFileSync('components/vibetutor/Cards.tsx','utf8')
@@ -44,7 +44,7 @@ test('real learner names are read only from the authenticated request owner’s 
  assert.doesNotMatch(view,/r\.learner_label|r\.phone|r\.requester_id\s*,/i)
 })
 
-const consentedPublicName = readFileSync('supabase/migrations/20261121200000_vibetutor_consent_gated_public_first_names.sql', 'utf8')
+const consentedPublicName = readFileSync('supabase/migrations/20261121090520_vibetutor_consent_gated_public_first_names.sql', 'utf8')
 test('visitor receives only the first name when parent/guardian name-publication consent was independently verified',()=>{
  assert.match(consentedPublicName,/create table if not exists public\.vibetutor_request_public_first_name_consents/)
  assert.match(consentedPublicName,/guardian_consent_evidence_ref text not null/)
