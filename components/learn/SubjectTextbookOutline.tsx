@@ -14,9 +14,10 @@ type ObjectiveState = { scope: string; canonicalRows: CurriculumOutlineRow[] | n
 type Book = { id: string; title: string; href: string }
 type Reader = { title: string; href: string }
 type Reading = { scope: string; loading: boolean; entries: BookReadingEntry[]; resume: string | null }
-type Props = { grade: string; subject: string; books: readonly Book[]; readers: readonly Reader[]; booksLoading: boolean; booksError: boolean }
+type Props = { grade: string; subject: string; curriculumSubject?: string; books: readonly Book[]; readers: readonly Reader[]; booksLoading: boolean; booksError: boolean }
 
-export default function SubjectTextbookOutline({ grade, subject, books, readers, booksLoading, booksError }: Props) {
+export default function SubjectTextbookOutline({ grade, subject: displaySubject, curriculumSubject, books, readers, booksLoading, booksError }: Props) {
+  const subject = curriculumSubject ?? displaySubject
   const scope = JSON.stringify([grade, subject])
   const bookScope = JSON.stringify(books.map(book => book.id))
   const readingScope = JSON.stringify([scope, bookScope])
@@ -235,10 +236,10 @@ export default function SubjectTextbookOutline({ grade, subject, books, readers,
   const entryLink = (entry: BookReadingEntry, label = entry.title) =>
     <Link className={styles.bookTopicLink} key={entry.href} href={entry.href}><span>{label}</span><ChevronRight size={17} aria-hidden="true"/></Link>
 
-  return <article className={styles.subjectBook} aria-label={grade+' '+subject+' textbook'}>
+  return <article className={styles.subjectBook} aria-label={grade+' '+displaySubject+' textbook'}>
     <header className={styles.bookHero}>
-      <div className={styles.bookCover} aria-hidden="true"><span>VibeSchool</span><BookOpen size={28}/><strong>{subject}</strong><small>{grade}</small></div>
-      <div className={styles.bookTitle}><div className={styles.kicker}>VibeSchool Originals</div><h1>{subject}</h1>
+      <div className={styles.bookCover} aria-hidden="true"><span>VibeSchool</span><BookOpen size={28}/><strong>{displaySubject}</strong><small>{grade}</small></div>
+      <div className={styles.bookTitle}><div className={styles.kicker}>VibeSchool Originals</div><h1>{displaySubject}</h1>
         <p>{grade} · Textbook</p>
         {open ? <Link className={styles.buttonPrimary} href={open.href}>{resumed ? 'Continue reading' : open === pilotLesson ? 'Start Lesson 1' : 'Start reading'} <ArrowRight size={16}/></Link>
           : <p role="status">{pending ? 'Opening book…' : 'Content coming soon'}</p>}

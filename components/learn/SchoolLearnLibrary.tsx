@@ -84,6 +84,17 @@ function uniqueNames(names: string[]) {
   })
 }
 
+/** Keep the published CRE identity, but present one Religious Education entry
+ * in Learn for Grades 4 and 5. IRE/HRE retain separate subject identities. */
+function isCreLearnAlias(grade: string, subject?: string | null) {
+  return (grade === 'Grade 4' || grade === 'Grade 5') &&
+    ['religiouseducation', 'christianreligiouseducation'].includes(subjectKey(subject))
+}
+
+function sameLearnSubject(grade: string, a?: string | null, b?: string | null) {
+  return subjectKey(a) === subjectKey(b) || (isCreLearnAlias(grade, a) && isCreLearnAlias(grade, b))
+}
+
 function buildUrl(path: string, grade: string, subject?: string) {
   const params = new URLSearchParams({ grade })
   if (subject) params.set('subject', subject)
@@ -178,25 +189,32 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const gradeBooks = useMemo(() => books.filter(book => gradeMatches(book.cbc_grade, grade)), [books, grade])
   const subjectGroups: SubjectGroup[] = useMemo(() => {
     const bookSubjects = uniqueNames(gradeBooks.map(book => book.cbc_subject?.trim() || '').filter(Boolean))
+    const seenSubjects = new Set<string>()
     const base = groupsForTextbookShells(grade, registeredSubjects ?? [])
-      .map(group => grade === 'Grade 4'
-        ? { ...group, subjects: group.subjects.filter(name => subjectKey(name) !== 'religiouseducation') }
-        : group)
+      .map(group => ({ ...group, subjects: group.subjects
+        .map(name => isCreLearnAlias(grade, name) ? 'Religious Education' : name)
+        .filter(name => {
+          const key = subjectKey(name)
+          if (seenSubjects.has(key)) return false
+          seenSubjects.add(key)
+          return true
+        }) }))
       .filter(group => group.subjects.length)
     const existing = new Set(base.flatMap(group => group.subjects).map(subjectKey))
-    const extraBooks = bookSubjects.filter(name => !existing.has(subjectKey(name)))
+    const extraBooks = bookSubjects
+      .map(name => isCreLearnAlias(grade, name) ? 'Religious Education' : name)
+      .filter(name => !existing.has(subjectKey(name)))
     return extraBooks.length
-      ? [...base, { title: 'Additional published materials', subjects: extraBooks }]
+      ? [...base, { title: 'Additional published materials', subjects: uniqueNames(extraBooks) }]
       : base
   }, [grade, gradeBooks, registeredSubjects])
-  // Grade 4 generic Religious Education is a legacy catalogue shell, not a
-  // curriculum subject. Resolve existing links to CRE without changing other grades.
   const subjectNames = useMemo(() => uniqueNames(subjectGroups.flatMap(group => group.subjects)), [subjectGroups])
-  const requestedSubject = grade === 'Grade 4' && subjectKey(selectedSubject) === 'religiouseducation'
-    ? 'Christian Religious Education' : selectedSubject
-  const activeName = subjectNames.find(name => subjectKey(name) === subjectKey(requestedSubject))
-  const activeBooks = gradeBooks.filter(book => subjectKey(book.cbc_subject) === subjectKey(activeName))
-  const activeReaders = activeName ? readersForSubject(grade, activeName) : []
+  const requestedSubject = isCreLearnAlias(grade, selectedSubject) ? 'Religious Education' : selectedSubject
+  const activeName = subjectNames.find(name => sameLearnSubject(grade, name, requestedSubject))
+  const curriculumSubject = isCreLearnAlias(grade, activeName) ? 'Christian Religious Education' : activeName
+  const activeBooks = gradeBooks.filter(book => sameLearnSubject(grade, book.cbc_subject, activeName))
+  const activeReaders = activeName ? readersForSubject(grade,
+    isCreLearnAlias(grade, activeName) ? 'Christian Religious Education' : activeName) : []
   // Reuse the existing reader catalogue so the released pilot is discoverable
   // from Learn itself without a duplicate lesson or publication record.
   const grade4MathsLesson = grade === 'Grade 4'
@@ -207,7 +225,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
     subjects: group.subjects.filter(name => {
       if (!query.trim()) return true
       const text = [name, subjectDescription(name), ...gradeBooks
-        .filter(book => subjectKey(book.cbc_subject) === subjectKey(name))
+        .filter(book => sameLearnSubject(grade, book.cbc_subject, name))
         .map(book => `${book.title} ${book.description ?? ''}`)].join(' ').toLowerCase()
       return text.includes(query.trim().toLowerCase())
     }),
@@ -270,21 +288,21 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                     </Link>)}
                   </div>
                 </section>}
-                <SubjectTextbookOutline grade={grade} subject={activeName}
+                <SubjectTextbookOutline grade={grade} subject={activeName} curriculumSubject={curriculumSubject ?? activeName}
                   books={activeBooks.map(book => ({id:book.id,title:book.title,href:`/read/textbook/${encodeURIComponent(book.id)}`}))}
                   readers={activeReaders} booksLoading={booksLoading} booksError={booksError || catalogueTruncated}/>
                 <div className={styles.linksRow}>
-                  <Link className={styles.buttonSecondary} aria-label="Finished learning? Practise this subject" href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:activeName}).toString()}>Practise <ArrowRight size={16}/></Link>
+                  <Link className={styles.buttonSecondary} aria-label="Finished learning? Practise this subject" href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:curriculumSubject ?? activeName}).toString()}>Practise <ArrowRight size={16}/></Link>
                 </div>
               </section>}
               {tab === 'resources' && <section role="tabpanel" className={styles.detailPanel} aria-label="Supporting resources">
                 <h2>Learning resources</h2>
                 <p className={styles.description}>Diagrams, illustrations, reading support and subject-specific activities appear inside published lesson readers. Only approved resources are displayed.</p>
-                <CertifiedResourceLinks grade={grade} subject={activeName}/>
+                <CertifiedResourceLinks grade={grade} subject={curriculumSubject ?? activeName}/>
                 <div className={styles.linksRow}>
                   {activeReaders.map(reader => <Link className={styles.buttonSecondary} key={reader.href} href={reader.href}>Open {reader.title} <ArrowRight size={15} /></Link>)}
                   <Link className={styles.buttonSecondary} href="/student/resources">My shared learning materials <ArrowRight size={15} /></Link>
-                  <Link className={styles.buttonSecondary} href={'/learn/visuals?' + new URLSearchParams({grade, subject:activeName}).toString()}>Visual learning library <ArrowRight size={15}/></Link>
+                  <Link className={styles.buttonSecondary} href={'/learn/visuals?' + new URLSearchParams({grade, subject:curriculumSubject ?? activeName}).toString()}>Visual learning library <ArrowRight size={15}/></Link>
                 </div>
               </section>}
             </>
@@ -326,7 +344,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
               <section key={group.title} aria-label={group.title}>
                 <div className={styles.sectionHead}><h2>{group.title}</h2><span>{group.subjects.length} subjects</span></div>
                 <div className={styles.subjectGrid}>{group.subjects.map((name, index) => {
-                  const count = gradeBooks.filter(book => subjectKey(book.cbc_subject) === subjectKey(name)).length
+                  const count = gradeBooks.filter(book => sameLearnSubject(grade, book.cbc_subject, name)).length
                   const readers = readersForSubject(grade, name).length
                   return <Link key={name} className={styles.subjectCard} href={buildUrl(basePath, grade, name)}>
                     <span className={`${styles.subjectIcon} ${styles[`tone${(index + groupIndex) % 6}`] ?? ''}`}><IconForSubject name={name}/></span>
