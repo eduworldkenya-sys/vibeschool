@@ -72,7 +72,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
       await submitMiniRequest(question,tags)
       setQuestion('');setTags('')
       setNotice('Request submitted for review. It will appear publicly only after moderation.')
-      onBack?.()
+      setNotice('Request submitted privately for review. It is not yet public.')
     }catch(e){setError(e instanceof Error?e.message:'Unable to submit request.')}
     finally{setBusy(false)}
   }
