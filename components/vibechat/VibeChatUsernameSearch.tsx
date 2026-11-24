@@ -13,7 +13,7 @@ export default function VibeChatUsernameSearch({query, role, onRequested, onOpen
 }) {
   const input = query.trim().toLowerCase().replace(/^@/, '')
   const valid = /^[a-z0-9][a-z0-9._]{2,30}$/.test(input)
-  const [result, setResult] = useState<{input: string; rows: Match[]; error: boolean} | null>(null)
+  const [result, setResult] = useState<{input: string; rows: Match[]; error: string | null} | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [sent, setSent] = useState<string[]>([])
   const [requestError, setRequestError] = useState('')
@@ -26,10 +26,13 @@ export default function VibeChatUsernameSearch({query, role, onRequested, onOpen
     const timer = setTimeout(async () => {
       try {
         const {data, error} = await getSupabaseClient().rpc('vibechat_search_handles', {p_query: input})
-        if (error) throw error
-        if (!cancelled) setResult({input, rows: data ?? [], error: false})
+        if (error) {
+          if (!cancelled) setResult({input,rows:[],error:error.code==='PGRST202' || error.code==='42883' ? 'Search is awaiting a server update.' : 'Search could not load.'})
+          return
+        }
+        if (!cancelled) setResult({input, rows: data ?? [], error: null})
       } catch {
-        if (!cancelled) setResult({input, rows: [], error: true})
+        if (!cancelled) setResult({input, rows: [], error: 'Search could not load. Check your connection.'})
       }
     }, 300)
     return () => { cancelled = true; clearTimeout(timer) }
@@ -56,7 +59,7 @@ export default function VibeChatUsernameSearch({query, role, onRequested, onOpen
   return <section aria-label="Matching usernames" className={styles.contactBlock}>
     <strong>People</strong>
     {!current ? <small role="status">Searching…</small> :
-      current.error ? <div role="alert">Search unavailable. <button type="button" className={styles.back} onClick={()=>setRetry(n=>n+1)}>Retry</button></div> :
+      current.error ? <div role="alert">{current.error} <button type="button" className={styles.back} onClick={()=>setRetry(n=>n+1)}>Retry</button></div> :
       current.rows.length === 0 ? <small role="status">No matching available usernames.</small> :
       current.rows.map(row => <div className={styles.contactRow} key={row.handle}>
         <VibeChatAvatar name={row.display_name} avatarUrl={row.avatar_url}/>

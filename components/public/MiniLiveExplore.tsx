@@ -239,7 +239,7 @@ export function MiniLiveExplore() {
     finally{if(sequence===creatorSequence.current)setCreatorBusy(false)}
   }
   const current = posts.find(post => post.id === selectedId)||creatorPosts.find(post=>post.id===selectedId)
-  const creator = creatorPosts[0]||posts.find(post => post.creator_id === creatorId)
+  const creator = creatorPosts.find(post=>post.creator_id===creatorId)||posts.find(post => post.creator_id === creatorId)
   const interests = useMemo(() => {
     if (!adult) return new Set<string>()
     return new Set(posts.filter(post => saves.has(post.id)).map(post => post.subject))
@@ -273,10 +273,11 @@ export function MiniLiveExplore() {
         else next.delete(target.id)
         return next
       })
-      setPosts(old => old.map(post => post.id === target.id ?
+      const update=(old:MiniPost[])=>old.map(post => post.id === target.id ?
         { ...post, [kind === 'like' ? 'like_count' : 'save_count']:
             Math.max(0,(kind === 'like' ? post.like_count : post.save_count) + (adding ? 1 : -1)) }
-        : post))
+        : post)
+      setPosts(update);setCreatorPosts(update)
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to update Mini.')}
     finally {setBusy(false)}
   }
@@ -360,6 +361,7 @@ export function MiniLiveExplore() {
     } catch(e) {
       setError(e instanceof Error ? e.message : 'Unable to submit Mini.')
       if(e instanceof MiniSubmissionSavedError){
+        setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('');setAnswerRequest(null)
         setSection('mine')
         try{setMine(await fetchOwnMiniStatus(viewer))}catch{setError(old=>old+' Open My Minis to reload the saved submission.')}
       }
@@ -430,9 +432,13 @@ export function MiniLiveExplore() {
     finally {setBusy(false)}
   }
 
+  function openCreator(id:string){
+    if(id!==creatorId){++creatorSequence.current;setCreatorPosts([]);setCreatorCursor(null);setCreatorError('')}
+    setCreatorId(id);setSection('creator')
+  }
   const card = (post: MiniPost) => <article key={post.id} className={styles.feedCard}>
     <div className={styles.feedCreator}>
-      <button type="button" className={styles.linkButton} onClick={() => {setCreatorId(post.creator_id);setSection('creator')}}>
+      <button type="button" className={styles.linkButton} onClick={() => {openCreator(post.creator_id)}}>
         <span className={styles.avatar} aria-hidden="true">{post.creator_label.charAt(0).toUpperCase()}</span>
         <span>@{post.creator_label}</span>
       </button>
@@ -522,7 +528,7 @@ export function MiniLiveExplore() {
           <div className={styles.creatorLeft}>
             <span className={styles.avatar} aria-hidden="true">{current.creator_label.slice(0,1).toUpperCase()}</span>
             <div><button type="button" className={styles.linkButton} onClick={() => {
-                setCreatorId(current.creator_id);setSection('creator')
+                openCreator(current.creator_id)
               }}>@{current.creator_label}</button><p className={styles.previewNote}>VibeSchool creator · View Minis</p></div>
           </div>
           <button type="button" className={styles.smallButton} disabled={busy || current.creator_id===viewer}
