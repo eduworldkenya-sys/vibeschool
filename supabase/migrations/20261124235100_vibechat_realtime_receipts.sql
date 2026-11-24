@@ -106,7 +106,7 @@ returns boolean language plpgsql volatile security definer set search_path='' as
 declare v_user uuid:=auth.uid(); v_peer uuid; v_at timestamptz;
 begin
   v_peer:=private.vibechat_room_peer(p_kind,p_room);
-  if v_user is null or v_peer is null or private.vibechat_pair_blocked(v_user,v_peer) then return false; end if;
+  if v_user is null or v_peer is null or private.vibechat_pair_blocked(v_user,v_peer) or not exists(select 1 from public.profiles p where p.id=v_user and p.account_status::text='active' and not coalesce(p.is_anonymized,false)) then return false; end if;
   if p_kind='vc' then
     select m.created_at into v_at from public.vc_messages m where m.thread_id=p_room and m.id=p_message and m.sender_id=v_peer and m.deleted_at is null;
   elsif p_kind='tuition' then
@@ -130,6 +130,58 @@ $ack$;
 revoke all on function public.vibechat_ack_message(text,uuid,uuid,boolean) from public,anon,authenticated;
 grant execute on function public.vibechat_ack_message(text,uuid,uuid,boolean) to authenticated;
 
+
+-- access: service-only private.vibechat_presence
+-- authorization-test: scripts/test-vibechat-realtime-receipts.mjs
+create table if not exists private.vibechat_presence(
+  profile_id uuid primary key references public.profiles(id) on delete cascade,
+  enabled boolean not null default false,
+  seen_at timestamptz
+);
+alter table private.vibechat_presence enable row level security;
+revoke all on private.vibechat_presence from public,anon,authenticated;
+
+create or replace function private.vibechat_presence_eligible(p_user uuid)
+returns boolean language sql stable security definer set search_path='' as $presence_eligible$
+ select exists(select 1 from public.profiles p where p.id=p_user
+   and p.account_status::text='active' and not coalesce(p.is_anonymized,false)
+   and p.date_of_birth<=current_date-interval '18 years'
+   and p.role is distinct from 'student'
+   and not exists(select 1 from public.students s where s.profile_id=p.id and s.deleted_at is null));
+$presence_eligible$;
+revoke all on function private.vibechat_presence_eligible(uuid) from public,anon,authenticated;
+
+create or replace function public.vibechat_presence_settings(p_enabled boolean default null)
+returns jsonb language plpgsql volatile security definer set search_path='' as $presence_settings$
+declare v_user uuid:=auth.uid(); v_eligible boolean;
+begin
+ if v_user is null then raise exception 'Sign in required' using errcode='28000'; end if;
+ v_eligible:=private.vibechat_presence_eligible(v_user);
+ if p_enabled is not null then
+   if p_enabled and not v_eligible then raise exception 'Adult account eligibility required' using errcode='42501'; end if;
+   insert into private.vibechat_presence(profile_id,enabled,seen_at)
+     values(v_user,p_enabled,case when p_enabled then now() end)
+   on conflict(profile_id) do update set enabled=excluded.enabled,seen_at=excluded.seen_at;
+ end if;
+ return jsonb_build_object('eligible',v_eligible,'enabled',v_eligible and coalesce(
+   (select p.enabled from private.vibechat_presence p where p.profile_id=v_user),false));
+end;
+$presence_settings$;
+revoke all on function public.vibechat_presence_settings(boolean) from public,anon,authenticated;
+grant execute on function public.vibechat_presence_settings(boolean) to authenticated;
+
+create or replace function public.vibechat_presence_tick()
+returns boolean language plpgsql volatile security definer set search_path='' as $tick$
+begin
+ if not private.vibechat_presence_eligible(auth.uid()) then return false; end if;
+ update private.vibechat_presence p set seen_at=now()
+   where p.profile_id=auth.uid() and p.enabled and (p.seen_at is null or p.seen_at<now()-interval '20 seconds');
+ return exists(select 1 from private.vibechat_presence p where p.profile_id=auth.uid() and p.enabled);
+end;
+$tick$;
+revoke all on function public.vibechat_presence_tick() from public,anon,authenticated;
+grant execute on function public.vibechat_presence_tick() to authenticated;
+
 -- Inbox metadata comes from real messages rather than client-maintained previews.
 create or replace function public.vibechat_my_inbox_state()
 returns jsonb language sql stable security definer set search_path='' as $state$
@@ -147,9 +199,15 @@ returns jsonb language sql stable security definer set search_path='' as $state$
     'updated',last_message.created_at,'preview',left(last_message.body,80),
     'unread',coalesce(unread.n,0),
     'latest_incoming_id',incoming.id,
+    'peer_online',case when r.kind='vc' and not private.vibechat_pair_blocked(auth.uid(),r.peer)
+      and private.vibechat_presence_eligible(auth.uid()) and private.vibechat_presence_eligible(r.peer)
+      and coalesce(my_presence.enabled,false) and coalesce(peer_presence.enabled,false)
+      then coalesce(peer_presence.seen_at>now()-interval '60 seconds',false) else false end,
     'peer_delivered_at',case when not private.vibechat_pair_blocked(auth.uid(),r.peer) then theirs.delivered_at end,
     'peer_read_at',case when not private.vibechat_pair_blocked(auth.uid(),r.peer) then theirs.read_at end)), '[]'::jsonb)
   from scoped r
+  left join private.vibechat_presence my_presence on my_presence.profile_id=auth.uid()
+  left join private.vibechat_presence peer_presence on peer_presence.profile_id=r.peer
   left join private.vibechat_receipts mine on mine.kind=r.kind and mine.room_id=r.room_id and mine.profile_id=auth.uid()
   left join private.vibechat_receipts theirs on theirs.kind=r.kind and theirs.room_id=r.room_id and theirs.profile_id=r.peer
   left join lateral (
@@ -170,7 +228,7 @@ returns jsonb language sql stable security definer set search_path='' as $state$
       union all select m.created_at from public.vibetutor_lesson_messages m where r.kind='tuition' and m.invitation_id=r.room_id and m.sender_id=r.peer
     ) x where x.created_at>coalesce(greatest(mine.read_at,r.legacy_read),'-infinity'::timestamptz)
   ) unread on true
-  where auth.uid() is not null and r.peer is not null;
+  where auth.uid() is not null and r.peer is not null and exists(select 1 from public.profiles p where p.id=auth.uid() and p.account_status::text='active' and not coalesce(p.is_anonymized,false));
 $state$;
 revoke all on function public.vibechat_my_inbox_state() from public,anon,authenticated;
 grant execute on function public.vibechat_my_inbox_state() to authenticated;
