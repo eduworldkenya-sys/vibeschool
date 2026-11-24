@@ -43,7 +43,7 @@ export default function LiveLessonHistory({planId,classId}: {planId:string;class
     let cancelled=false
     setLoading(true)
     setError('')
-    void supabase.rpc('vibe_live_plan_history',{p_lesson_plan_id:planId}).then(({data,error:failure})=>{
+    void supabase.rpc('vibe_live_plan_history',{p_lesson_plan_id:planId}).then(({data,error:failure}: {data:unknown;error:{message?:string}|null})=>{
       if (cancelled) return
       if (failure) throw new Error(failure.message||'Live history unavailable.')
       setSessions(parseRows(data))
