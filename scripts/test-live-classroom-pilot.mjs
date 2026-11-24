@@ -713,3 +713,6 @@ await db.close()
  assert.equal(adjacentSlide([{...deck[0],notes:'Changed private notes'},...deck.slice(1)],first,1),2)
  assert.equal(adjacentSlide([deck[0],deck[1],deck[1]],first,1),null)
 }
+
+await import('./test-live-workbook-contract.mjs')
+await import('./test-live-classroom-phase.mjs')
