@@ -6,8 +6,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
+import socialScheme from '@/docs/content/grade4-social-studies-scheme-draft.json'
 
 const SOURCES = {
+  social: {
+    id: '09715a10-3f91-4351-b6bc-fa252666a20b',
+    label: 'Social Studies',
+    grade: 'Grade 4',
+    source: 'https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf#page=',
+    outcomeSource: 'publisher',
+  },
   cre: {
     id: '8165d513-035b-4019-9fdb-5b86a27335a1',
     label: 'Christian Religious Education',
@@ -33,6 +41,7 @@ const SOURCES = {
 
 function belongsToSource(row, source, kind) {
   if (kind === 'cre') return row.source_ref === source
+  if (kind === 'social') return typeof row.source_ref === 'string' && row.source_ref.startsWith(source) && /&unit=[1-5]\.[1-7]$/.test(row.source_ref)
   return typeof row.source_ref === 'string' && row.source_ref.includes(source)
 }
 
@@ -52,6 +61,7 @@ export default function Grade4CreCaMap({
   const [outcomes, setOutcomes] = useState([])
   const [selectedId, setSelectedId] = useState(selectedUnitId || '')
   const [selectedOutcomes, setSelectedOutcomes] = useState([])
+  const [socialLessonSequence, setSocialLessonSequence] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -85,13 +95,13 @@ export default function Grade4CreCaMap({
         let validOutcomes = []
         if (ids.length) {
           const outcomeResponse = await supabase.from('curriculum_learning_outcomes')
-            .select('id,sub_strand_id,outcome_text,outcome_code,status,source_type')
+            .select('id,sub_strand_id,outcome_text,outcome_code,status,source_type,source_ref')
             .in('sub_strand_id', ids)
             .eq('status', 'active')
             .eq('source_type', source.outcomeSource)
             .order('outcome_code', { ascending: true })
           if (outcomeResponse.error) throw outcomeResponse.error
-          validOutcomes = outcomeResponse.data || []
+          validOutcomes = (outcomeResponse.data || []).filter(row => kind !== 'social' || (row.source_ref?.startsWith(source.source) && row.source_ref?.endsWith('&provenance=user-transcript-2026-11-24')))
         }
         if (active) {
           setUnits(validUnits)
@@ -111,7 +121,12 @@ export default function Grade4CreCaMap({
     [...new Set(units.map(unit => unit.name))], [units])
   const selected = units.find(unit => unit.id === selectedId) || units[0] || null
   const unitOutcomes = outcomes.filter(outcome => outcome.sub_strand_id === selected?.id)
-  const activeSelection = selectedOutcomes.filter(id => unitOutcomes.some(outcome => outcome.id === id))
+  const socialLessons = kind === 'social' ? (socialScheme.units.find(unit => unit.code === selected?.sub_strand?.split(' ')[0])?.lessons || []) : []
+  const socialLesson = socialLessons.find(lesson => lesson.sequence === socialLessonSequence) || socialLessons[0] || null
+  const activeSelection = kind === 'social'
+    ? unitOutcomes.filter(outcome => socialLesson?.sourceOutcomeCodes.includes(outcome.outcome_code)).map(outcome => outcome.id)
+    : selectedOutcomes.filter(id => unitOutcomes.some(outcome => outcome.id === id))
+  const socialLessonReady = kind !== 'social' || Boolean(socialLesson && activeSelection.length === socialLesson.sourceOutcomeCodes.length)
   const canPlanWithoutOutcomes = kind === 'grade5cre'
   const isArtsAlternative = kind === 'arts' && /^(2\.6|2\.5)\s+(Swimming|Indigenous Kenyan Games)$/i.test(selected?.sub_strand || '')
 
@@ -124,9 +139,10 @@ export default function Grade4CreCaMap({
       <h2 style={{ fontSize: 18, margin: '6px 0' }}>{mode === 'scheme' ? 'Choose a curriculum reference' : source.label}</h2>
       <p style={{ fontSize: 12, margin: '4px 0 12px', color: '#547060' }}>
         {mode === 'scheme'
-          ? 'Choose a sub-strand for your Scheme. Only active source-linked outcomes can be selected; a Grade 5 CRE sub-strand can be planned without outcomes. This selection does not create or schedule a lesson.'
+          ? 'Choose a sub-strand for your Scheme. Only active source-linked outcomes can be selected; a source-linked Grade 5 CRE sub-strand can be planned without outcomes. This selection does not create or schedule a lesson.'
           : 'Source-linked curriculum structure. Draft outcomes are not presented as verified KICD objectives.'}
       </p>
+      {kind === 'social' && <p style={{ fontSize: 12, color: '#547060' }}>KICD curriculum text supplied by the owner; independent source verification pending. Scheme objectives are prepared separately in VibeSchool wording.</p>}
       {kind === 'arts' && <p style={{ fontSize: 12, color: '#547060' }}>
         Swimming and Indigenous Kenyan Games are alternatives, not two compulsory units.
       </p>}
@@ -151,7 +167,16 @@ export default function Grade4CreCaMap({
           {isArtsAlternative && <p style={{ fontSize: 12, color: '#835d15' }}>Optional alternative activity</p>}
           <strong style={{ fontSize: 13 }}>Specific learning outcomes ({unitOutcomes.length})</strong>
           {unitOutcomes.length
-            ? mode === 'scheme'
+            ? mode === 'scheme' && kind === 'social'
+              ? <div style={{ margin: '10px 0' }}>
+                <label htmlFor="social-scheme-lesson" style={{display:'block',fontSize:12,fontWeight:700}}>VibeSchool scheme lesson</label>
+                <select id="social-scheme-lesson" value={socialLesson?.sequence || ''} onChange={event => setSocialLessonSequence(Number(event.target.value))} style={{width:'100%',minHeight:44,margin:'6px 0'}}>
+                  {socialLessons.map(lesson => <option key={lesson.sequence} value={lesson.sequence}>{lesson.sequence}. {lesson.title}</option>)}
+                </select>
+                {socialLesson && <><p><strong>Lesson objective:</strong> {socialLesson.objective}</p><p><strong>Activity:</strong> {socialLesson.activity}</p><p><strong>Assessment:</strong> {socialLesson.assessment}</p><ol>{unitOutcomes.filter(outcome=>activeSelection.includes(outcome.id)).map(outcome=><li key={outcome.id}>{outcome.outcome_text}</li>)}</ol></>}
+                {!socialLessonReady && <p role="status">The required source outcomes are not all available.</p>}
+              </div>
+              : mode === 'scheme'
               ? <fieldset style={{ border: 0, padding: 0, margin: '8px 0' }}>
                 <legend style={{ fontSize: 12, color: '#547060' }}>Choose outcomes for one planned lesson</legend>
                 {unitOutcomes.map(outcome => (
@@ -176,8 +201,8 @@ export default function Grade4CreCaMap({
               </button>
             )}
             {mode === 'scheme' && onSaveLesson && (
-              <button type="button" disabled={saving || !canSave || (!canPlanWithoutOutcomes && activeSelection.length === 0) || activeSelection.length > 12}
-                onClick={() => onSaveLesson(selected.id, activeSelection)}
+              <button type="button" disabled={saving || !canSave || !socialLessonReady || (!canPlanWithoutOutcomes && activeSelection.length === 0) || activeSelection.length > 12}
+                onClick={() => kind === 'social' ? onSaveLesson(selected.id, activeSelection, socialLesson?.sequence) : onSaveLesson(selected.id, activeSelection)}
                 style={{ background: '#175b43', color: '#fff', border: 0, borderRadius: 9, minHeight: 44, padding: '10px 15px', fontWeight: 750, opacity: saving || !canSave || (!canPlanWithoutOutcomes && activeSelection.length === 0) ? 0.5 : 1 }}>
                 {saving ? 'Saving…' : canPlanWithoutOutcomes && activeSelection.length === 0 ? 'Plan Sub-strand' : 'Add to Scheme'}
               </button>

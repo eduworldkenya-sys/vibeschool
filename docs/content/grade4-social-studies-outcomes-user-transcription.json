@@ -1,0 +1,708 @@
+{
+  "grade": "Grade 4",
+  "subject": "Social Studies",
+  "sourceUrl": "https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-4-Social-Studies-20.6.2024-Revised-1.pdf",
+  "sourceEdition": "Revised June 2024 (as identified in the project)",
+  "provenance": {
+    "kind": "user-supplied-text",
+    "receivedOn": "2026-11-24",
+    "normalization": "Removed list labels, terminal list punctuation and line breaks; wording and source spelling retained.",
+    "artifactStatus": "PDF bytes not supplied; no PDF checksum or independent source certification asserted",
+    "rightsReference": "User supplied curriculum text for VibeSchool reference import; separate source rights documentation not verified"
+  },
+  "generalLearningOutcomes": [
+    "explore the environment for learning and enjoyment.",
+    "demonstrate desirable values, attitudes and practices for sustainable social interactions.",
+    "develop appropriate organizational, practical and technological competencies for problem solving.",
+    "understand and appreciate Human Rights and civic responsibility for attainment of social justice.",
+    "apply acquired competencies in solving environmental challenges for sustainable development.",
+    "understand the System of Governance in Kenya and be willing to participate in its processes.",
+    "participate in Community Service Learning to manage pertinent and contemporary issues in society effectively.",
+    "respect and appreciate cultural and human diversity to promote cohesion and integration."
+  ],
+  "outcomes": [
+    {
+      "code": "1.1.a",
+      "printedPage": 1,
+      "pdfPage": 13,
+      "text": "identify the four cardinal points of a compass",
+      "lessonSequences": [
+        1,
+        2
+      ]
+    },
+    {
+      "code": "1.1.b",
+      "printedPage": 1,
+      "pdfPage": 13,
+      "text": "use the four cardinal points to give directions on a map",
+      "lessonSequences": [
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "code": "1.1.c",
+      "printedPage": 1,
+      "pdfPage": 13,
+      "text": "appreciate the use of four cardinal points in everyday life",
+      "lessonSequences": [
+        6
+      ]
+    },
+    {
+      "code": "1.2.a",
+      "printedPage": 3,
+      "pdfPage": 15,
+      "text": "identify sub-counties in the county",
+      "lessonSequences": [
+        7
+      ]
+    },
+    {
+      "code": "1.2.b",
+      "printedPage": 3,
+      "pdfPage": 15,
+      "text": "locate the county in relation to neighbouring counties",
+      "lessonSequences": [
+        8,
+        9
+      ]
+    },
+    {
+      "code": "1.2.c",
+      "printedPage": 3,
+      "pdfPage": 15,
+      "text": "estimate the size of the county in relation to neighbouring counties",
+      "lessonSequences": [
+        10
+      ]
+    },
+    {
+      "code": "1.2.d",
+      "printedPage": 3,
+      "pdfPage": 15,
+      "text": "acknowledge the location and size of the county",
+      "lessonSequences": [
+        11
+      ]
+    },
+    {
+      "code": "1.3.a",
+      "printedPage": 5,
+      "pdfPage": 17,
+      "text": "identify the main physical features in the county",
+      "lessonSequences": [
+        12,
+        13
+      ]
+    },
+    {
+      "code": "1.3.b",
+      "printedPage": 5,
+      "pdfPage": 17,
+      "text": "state the importance of the main physical features in the county",
+      "lessonSequences": [
+        14
+      ]
+    },
+    {
+      "code": "1.3.c",
+      "printedPage": 5,
+      "pdfPage": 17,
+      "text": "illustrate the main physical features in the county",
+      "lessonSequences": [
+        15
+      ]
+    },
+    {
+      "code": "1.3.d",
+      "printedPage": 5,
+      "pdfPage": 17,
+      "text": "appreciate the main physical features in the county",
+      "lessonSequences": [
+        16
+      ]
+    },
+    {
+      "code": "1.4.a",
+      "printedPage": 7,
+      "pdfPage": 19,
+      "text": "identify the four seasons experienced in the county",
+      "lessonSequences": [
+        17
+      ]
+    },
+    {
+      "code": "1.4.b",
+      "printedPage": 7,
+      "pdfPage": 19,
+      "text": "explain how the four seasons influence human activities in the county",
+      "lessonSequences": [
+        18
+      ]
+    },
+    {
+      "code": "1.4.c",
+      "printedPage": 7,
+      "pdfPage": 19,
+      "text": "explore how rainy weather affects road safety in the county",
+      "lessonSequences": [
+        19
+      ]
+    },
+    {
+      "code": "1.4.d",
+      "printedPage": 7,
+      "pdfPage": 19,
+      "text": "model weather charts of seasons in the county",
+      "lessonSequences": [
+        20
+      ]
+    },
+    {
+      "code": "1.4.e",
+      "printedPage": 7,
+      "pdfPage": 19,
+      "text": "appreciate the different seasons experienced in the county",
+      "lessonSequences": [
+        20
+      ]
+    },
+    {
+      "code": "1.5.a",
+      "printedPage": 9,
+      "pdfPage": 21,
+      "text": "identify the main historic built environments in the county",
+      "lessonSequences": [
+        21,
+        22
+      ]
+    },
+    {
+      "code": "1.5.b",
+      "printedPage": 9,
+      "pdfPage": 21,
+      "text": "explain the importance of the main historic built environments in the county",
+      "lessonSequences": [
+        23
+      ]
+    },
+    {
+      "code": "1.5.c",
+      "printedPage": 9,
+      "pdfPage": 21,
+      "text": "participate in conservation activities of the historic built environments within the county",
+      "lessonSequences": [
+        24
+      ]
+    },
+    {
+      "code": "1.5.d",
+      "printedPage": 9,
+      "pdfPage": 21,
+      "text": "appreciate historic built environments in the county",
+      "lessonSequences": [
+        25
+      ]
+    },
+    {
+      "code": "2.1.a",
+      "printedPage": 12,
+      "pdfPage": 24,
+      "text": "identify ways in which people depend on each other in the county",
+      "lessonSequences": [
+        26,
+        27,
+        28
+      ]
+    },
+    {
+      "code": "2.1.b",
+      "printedPage": 12,
+      "pdfPage": 24,
+      "text": "explain the benefits of interdependence of people in the county",
+      "lessonSequences": [
+        29,
+        31
+      ]
+    },
+    {
+      "code": "2.1.c",
+      "printedPage": 12,
+      "pdfPage": 24,
+      "text": "use chart to illustrate the benefits of interdependence people",
+      "lessonSequences": [
+        30
+      ]
+    },
+    {
+      "code": "2.1.d",
+      "printedPage": 12,
+      "pdfPage": 24,
+      "text": "appreciate the interdependence of people in the County",
+      "lessonSequences": [
+        31
+      ]
+    },
+    {
+      "code": "2.2.a",
+      "printedPage": 14,
+      "pdfPage": 26,
+      "text": "describe patterns of population distribution in the county",
+      "lessonSequences": [
+        32,
+        33,
+        34,
+        35
+      ]
+    },
+    {
+      "code": "2.2.b",
+      "printedPage": 14,
+      "pdfPage": 26,
+      "text": "illustrate the patterns of population distribution in the county",
+      "lessonSequences": [
+        36
+      ]
+    },
+    {
+      "code": "2.2.c",
+      "printedPage": 14,
+      "pdfPage": 26,
+      "text": "appreciate population distribution in the county",
+      "lessonSequences": [
+        36
+      ]
+    },
+    {
+      "code": "3.1.a",
+      "printedPage": 17,
+      "pdfPage": 29,
+      "text": "identify aspects of traditional culture in the county",
+      "lessonSequences": [
+        37,
+        38
+      ]
+    },
+    {
+      "code": "3.1.b",
+      "printedPage": 17,
+      "pdfPage": 29,
+      "text": "illustrate aspects of traditional culture practised in the county",
+      "lessonSequences": [
+        39
+      ]
+    },
+    {
+      "code": "3.1.c",
+      "printedPage": 17,
+      "pdfPage": 29,
+      "text": "appreciate the importance of traditional culture in the county",
+      "lessonSequences": [
+        40
+      ]
+    },
+    {
+      "code": "3.2.a",
+      "printedPage": 19,
+      "pdfPage": 31,
+      "text": "narrate the history of the school",
+      "lessonSequences": [
+        41
+      ]
+    },
+    {
+      "code": "3.2.b",
+      "printedPage": 19,
+      "pdfPage": 31,
+      "text": "explain the values of the school",
+      "lessonSequences": [
+        42
+      ]
+    },
+    {
+      "code": "3.2.c",
+      "printedPage": 19,
+      "pdfPage": 31,
+      "text": "recite the school motto",
+      "lessonSequences": [
+        43
+      ]
+    },
+    {
+      "code": "3.2.d",
+      "printedPage": 19,
+      "pdfPage": 31,
+      "text": "desire to obey the school rules",
+      "lessonSequences": [
+        43
+      ]
+    },
+    {
+      "code": "4.1.a",
+      "printedPage": 22,
+      "pdfPage": 34,
+      "text": "Explore the main resources found in the county",
+      "lessonSequences": [
+        44
+      ]
+    },
+    {
+      "code": "4.1.b",
+      "printedPage": 22,
+      "pdfPage": 34,
+      "text": "identify the main economic activities carried out in the county",
+      "lessonSequences": [
+        45
+      ]
+    },
+    {
+      "code": "4.1.c",
+      "printedPage": 22,
+      "pdfPage": 34,
+      "text": "explain the importance of economic activities carried out in the county",
+      "lessonSequences": [
+        46
+      ]
+    },
+    {
+      "code": "4.1.d",
+      "printedPage": 22,
+      "pdfPage": 34,
+      "text": "participate in economic activities in the locality",
+      "lessonSequences": [
+        47
+      ]
+    },
+    {
+      "code": "4.1.e",
+      "printedPage": 22,
+      "pdfPage": 34,
+      "text": "appreciate the economic activities in the county",
+      "lessonSequences": [
+        47
+      ]
+    },
+    {
+      "code": "4.2.a",
+      "printedPage": 24,
+      "pdfPage": 36,
+      "text": "identify industries in the county",
+      "lessonSequences": [
+        48,
+        49
+      ]
+    },
+    {
+      "code": "4.2.b",
+      "printedPage": 24,
+      "pdfPage": 36,
+      "text": "explain the benefits of industries in the county",
+      "lessonSequences": [
+        50,
+        51
+      ]
+    },
+    {
+      "code": "4.2.c",
+      "printedPage": 24,
+      "pdfPage": 36,
+      "text": "locate industries in the county",
+      "lessonSequences": [
+        52
+      ]
+    },
+    {
+      "code": "4.2.d",
+      "printedPage": 24,
+      "pdfPage": 36,
+      "text": "recognise the role of industries in the county",
+      "lessonSequences": [
+        53
+      ]
+    },
+    {
+      "code": "4.3.a",
+      "printedPage": 25,
+      "pdfPage": 37,
+      "text": "identify the projects that can be initiated at school",
+      "lessonSequences": [
+        54,
+        55
+      ]
+    },
+    {
+      "code": "4.3.b",
+      "printedPage": 25,
+      "pdfPage": 37,
+      "text": "participate in initiating an enterprise project at school",
+      "lessonSequences": [
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "code": "4.3.c",
+      "printedPage": 25,
+      "pdfPage": 37,
+      "text": "uphold ethics and collective efforts in managing enterprise projects at school",
+      "lessonSequences": [
+        60
+      ]
+    },
+    {
+      "code": "5.1.a",
+      "printedPage": 28,
+      "pdfPage": 40,
+      "text": "identify qualities of a good citizen in school",
+      "lessonSequences": [
+        61,
+        62
+      ]
+    },
+    {
+      "code": "5.1.b",
+      "printedPage": 28,
+      "pdfPage": 40,
+      "text": "develop qualities of good citizenship in school",
+      "lessonSequences": [
+        63
+      ]
+    },
+    {
+      "code": "5.1.c",
+      "printedPage": 28,
+      "pdfPage": 40,
+      "text": "appreciate qualities of good citizenship in school",
+      "lessonSequences": [
+        64
+      ]
+    },
+    {
+      "code": "5.2.a",
+      "printedPage": 30,
+      "pdfPage": 42,
+      "text": "identify factors that promote peace in school",
+      "lessonSequences": [
+        65
+      ]
+    },
+    {
+      "code": "5.2.b",
+      "printedPage": 30,
+      "pdfPage": 42,
+      "text": "develop strategies of living in peace with others in school",
+      "lessonSequences": [
+        66,
+        67
+      ]
+    },
+    {
+      "code": "5.2.c",
+      "printedPage": 30,
+      "pdfPage": 42,
+      "text": "desire to uphold peace in school",
+      "lessonSequences": [
+        68
+      ]
+    },
+    {
+      "code": "5.3.a",
+      "printedPage": 32,
+      "pdfPage": 44,
+      "text": "outline forms of child abuse in the community",
+      "lessonSequences": [
+        69
+      ]
+    },
+    {
+      "code": "5.3.b",
+      "printedPage": 32,
+      "pdfPage": 44,
+      "text": "explain the causes of child abuse in the community",
+      "lessonSequences": [
+        70
+      ]
+    },
+    {
+      "code": "5.3.c",
+      "printedPage": 32,
+      "pdfPage": 44,
+      "text": "explain effects of child abuse in the community",
+      "lessonSequences": [
+        71
+      ]
+    },
+    {
+      "code": "5.3.d",
+      "printedPage": 32,
+      "pdfPage": 44,
+      "text": "desire to promote child rights and responsibilities in the school",
+      "lessonSequences": [
+        72
+      ]
+    },
+    {
+      "code": "5.4.a",
+      "printedPage": 35,
+      "pdfPage": 47,
+      "text": "identify democratic processes in the school",
+      "lessonSequences": [
+        73
+      ]
+    },
+    {
+      "code": "5.4.b",
+      "printedPage": 35,
+      "pdfPage": 47,
+      "text": "explain the benefits of democracy in school",
+      "lessonSequences": [
+        74
+      ]
+    },
+    {
+      "code": "5.4.c",
+      "printedPage": 35,
+      "pdfPage": 47,
+      "text": "practise democratic elements in school",
+      "lessonSequences": [
+        75
+      ]
+    },
+    {
+      "code": "5.4.d",
+      "printedPage": 35,
+      "pdfPage": 47,
+      "text": "appreciate democratic practices in school",
+      "lessonSequences": [
+        75
+      ]
+    },
+    {
+      "code": "5.5.a",
+      "printedPage": 37,
+      "pdfPage": 49,
+      "text": "explain the composition of Children’s Government in school",
+      "lessonSequences": [
+        76,
+        78
+      ]
+    },
+    {
+      "code": "5.5.b",
+      "printedPage": 37,
+      "pdfPage": 49,
+      "text": "describe the functions of the Children’s Government in school",
+      "lessonSequences": [
+        77
+      ]
+    },
+    {
+      "code": "5.5.c",
+      "printedPage": 37,
+      "pdfPage": 49,
+      "text": "participate in Children’s Government in school",
+      "lessonSequences": [
+        79
+      ]
+    },
+    {
+      "code": "5.5.d",
+      "printedPage": 37,
+      "pdfPage": 49,
+      "text": "respect Children’s Government in school",
+      "lessonSequences": [
+        79
+      ]
+    },
+    {
+      "code": "5.6.a",
+      "printedPage": 39,
+      "pdfPage": 51,
+      "text": "identify leaders in the community",
+      "lessonSequences": [
+        80
+      ]
+    },
+    {
+      "code": "5.6.b",
+      "printedPage": 39,
+      "pdfPage": 51,
+      "text": "explain the duties of leaders in the community",
+      "lessonSequences": [
+        81
+      ]
+    },
+    {
+      "code": "5.6.c",
+      "printedPage": 39,
+      "pdfPage": 51,
+      "text": "demonstrate qualities of good leadership in the community",
+      "lessonSequences": [
+        82,
+        83
+      ]
+    },
+    {
+      "code": "5.6.d",
+      "printedPage": 39,
+      "pdfPage": 51,
+      "text": "appreciate good leadership in the community",
+      "lessonSequences": [
+        84
+      ]
+    },
+    {
+      "code": "5.7.a",
+      "printedPage": 41,
+      "pdfPage": 53,
+      "text": "identify the structure of county government",
+      "lessonSequences": [
+        85,
+        86
+      ]
+    },
+    {
+      "code": "5.7.b",
+      "printedPage": 41,
+      "pdfPage": 53,
+      "text": "explain the duties of County Governor in Kenya",
+      "lessonSequences": [
+        87
+      ]
+    },
+    {
+      "code": "5.7.c",
+      "printedPage": 41,
+      "pdfPage": 53,
+      "text": "explain the roles of a member of county assembly",
+      "lessonSequences": [
+        88
+      ]
+    },
+    {
+      "code": "5.7.d",
+      "printedPage": 41,
+      "pdfPage": 53,
+      "text": "appreciate the County Government in Kenya",
+      "lessonSequences": [
+        89,
+        90
+      ]
+    }
+  ],
+  "sourceDiscrepancies": [
+    {
+      "location": "Appendix II, printed page 49",
+      "note": "4.4 African Diaspora appears in appendix only; absent from summary and main specific-outcome tables. Excluded from the 19-unit curriculum pending source reconciliation."
+    },
+    {
+      "location": "Summary xii and strand 1 page 1",
+      "note": "Summary labels strand 1 Natural and Historic Built Environments; main strand uses Natural and Built Environments."
+    }
+  ]
+}

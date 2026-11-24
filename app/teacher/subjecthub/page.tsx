@@ -920,7 +920,7 @@ export default function SubjectHubPage() {
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
       : null
   const grade4CreCaClass =
-    /^(christian religious education|cre|creative arts|creative arts and sports)$/i.test(activeSubject?.name?.trim() ?? '')
+    /^(christian religious education|cre|creative arts|creative arts and sports|social studies)$/i.test(activeSubject?.name?.trim() ?? '')
       ? classes.find(item => /\b(?:grade|class)\s*4\b/i.test(item.name)) ?? null
       : null
   const grade5CreClass =
