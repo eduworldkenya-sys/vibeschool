@@ -32,7 +32,7 @@ export default function RoleLoginPage() {
   const [schoolCode, setSchoolCode] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [schoolExpanded, setSchoolExpanded] = useState(false)
+  const [schoolExpanded, setSchoolExpanded] = useState(true)
   const [emailExpanded, setEmailExpanded] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -43,13 +43,13 @@ export default function RoleLoginPage() {
   async function submit() {
     if (busy) return
     setMessage('')
-    if (!identifier.trim() || !password) { setMessage(config.email ? 'Enter your email and password.' : 'Enter your admission number and PIN.'); return }
+    if (!identifier.trim() || !password) { setMessage(config.email ? 'Enter your email and password.' : 'Enter your learner sign-in ID and PIN or password.'); return }
     setBusy(true)
     try {
       const email = config.email ? identifier.trim().toLowerCase() : learnerLoginEmail(identifier, schoolCode)
       if (!email) { setMessage('Enter your learner sign-in ID or admission number.'); return }
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error || !data.user) { setMessage(config.email ? 'Incorrect email or password.' : 'Check your school code, admission number and PIN, or use your full sign-in ID.'); return }
+      if (error || !data.user) { setMessage(config.email ? 'Incorrect email or password.' : 'Check your sign-in ID and PIN or password.'); return }
 
       const { data: accessState, error: accessError } = await supabase.rpc('get_my_auth_access_state')
       if (accessError || !accessState || typeof accessState !== 'object' || Array.isArray(accessState)) {
@@ -148,7 +148,7 @@ export default function RoleLoginPage() {
       {((config.email && emailExpanded) || (role === 'student' && schoolExpanded)) && <div id={config.email ? 'email-signin-fields' : 'school-signin-fields'}>
       {!config.email && <div className="field"><label htmlFor="school-code">School code (leave blank for a full sign-in ID)</label><input id="school-code" type="text" autoCapitalize="none" placeholder="School code from your teacher" value={schoolCode} onChange={e=>setSchoolCode(e.target.value)} disabled={busy} /></div>}
       <div className="field"><label htmlFor="identifier">{config.email ? 'Email address' : 'Admission number or full sign-in ID'}</label><input id="identifier" type={config.email ? 'email' : 'text'} autoComplete="username" autoCapitalize="none" placeholder={config.email ? 'you@example.com' : 'e.g. ADM001 or school_adm001'} value={identifier} onChange={e=>setIdentifier(e.target.value)} disabled={busy} /></div>
-      <div className="field"><div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/auth/forgot-password">Forgot password?</a>}</div><div className="password-field"><input id="password" type={showPassword ? 'text' : 'password'} inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" placeholder={config.email ? 'Enter your password' : 'Enter your PIN'} value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} /><button type="button" className="password-toggle" aria-label={showPassword ? (config.email ? 'Hide password' : 'Hide PIN') : (config.email ? 'Show password' : 'Show PIN')} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)} disabled={busy}>{showPassword ? 'Hide' : 'Show'}</button></div></div>
+      <div className="field"><div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN or password'}</label>{config.email && <a href="/auth/forgot-password">Forgot password?</a>}</div><div className="password-field"><input id="password" type={showPassword ? 'text' : 'password'} inputMode={undefined} autoComplete="current-password" placeholder={config.email ? 'Enter your password' : 'PIN or password'} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} /><button type="button" className="password-toggle" aria-label={showPassword ? (config.email ? 'Hide password' : 'Hide PIN') : (config.email ? 'Show password' : 'Show PIN')} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)} disabled={busy}>{showPassword ? 'Hide' : 'Show'}</button></div></div>
       <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : config.email ? 'Continue with email' : 'Sign in'}</button>
       </div>}
       {signupLink && <p className="switch">New to VibeSchool? <a href={signupLink}>Create your {role === 'student' ? 'learner' : role} account</a></p>}
