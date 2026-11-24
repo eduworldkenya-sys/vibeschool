@@ -1,7 +1,7 @@
 // Public offline foundation. Never cache authenticated, user-specific or API data.
-const CACHE_NAME = 'vibeschool-v10-public-games'
+const CACHE_NAME = 'vibeschool-v11-public-games'
 const STATIC_ROUTES = ['/offline.html']
-const SAFE_PUBLIC_ROUTES = ['/', '/about', '/contact', '/careers', '/institutions', '/sandbox', '/trust', '/legal']
+const SAFE_PUBLIC_ROUTES = ['/home', '/about', '/contact', '/careers', '/institutions', '/sandbox', '/trust', '/legal']
 const OFFLINE_GAME_ROUTES = ['/marketing-studio', '/spin-studio', '/coin-studio', '/pendulum-studio', '/games-studio']
 const SAFE_PUBLIC_PATHS = new Set([...SAFE_PUBLIC_ROUTES, ...OFFLINE_GAME_ROUTES])
 const PUBLIC_ASSET_PREFIXES = ['/_next/static/', '/icons/', '/pwa-icons/', '/fonts/']
