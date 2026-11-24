@@ -10,7 +10,9 @@ const actions = read('lib/minis/actions.ts')
 const realExplore = read('components/public/MiniLiveExplore.tsx')
 const explore = read('app/explore/page.tsx')
 const home = read('components/public/MiniHomeSection.tsx')
-const server = read('app/api/hq/minis/review/route.ts')
+const safetyApi = read('app/api/minis/safety/route.ts')
+const safetyDb = read('supabase/migrations/20261124230000_mini_open_creator_safety_scans.sql')
+const oldHq = read('app/api/hq/minis/review/route.ts')
 
 assert.deepEqual(parseMiniHashtags('#Mathematics #Fractions #Mathematics'),['mathematics','fractions'])
 assert.deepEqual(parseMiniHashtags('  #Agriculture, #Maize '),['agriculture','maize'])
@@ -94,9 +96,9 @@ assert.ok(actions.includes('parseMiniHashtags') && actions.includes('quiz_questi
 assert.ok(realExplore.includes('prepareMiniPhoto') && realExplore.includes('quizEnabled') &&
   realExplore.includes('current.quiz_question'),
   'real image editing and optional reader question must be present')
-assert.ok(read('app/api/hq/minis/review/route.ts').includes('quiz_explanation') &&
-  read('app/hq/minis/page.tsx').includes('quiz_correct'),
-  'moderator must be able to inspect any answer and explanation before approval')
+assert.ok(safetyApi.includes('quiz_explanation') && safetyApi.includes('quiz_options') &&
+  safetyApi.includes("item.cover_path") && safetyApi.includes('moderate('),
+  'automated safety must examine photo, explanation and optional question')
 assert.ok(actions.includes("status: 'pending'") && actions.includes("upload(coverPath, photo") &&
   actions.includes("remove([coverPath])"),'submissions must be pending with private cover cleanup')
 assert.ok(actions.includes("currentMiniUser()") && actions.includes("miniIsVerifiedAdult") &&
@@ -106,7 +108,14 @@ assert.ok(realExplore.includes('rankMiniLessons') && realExplore.includes('loadM
 assert.ok(explore.includes("NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true'") &&
   home.includes("NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true'"),
   'new read/write backend must remain off until commissioned')
-assert.ok(server.includes("MINI_LESSONS_REVIEW_ENABLED === 'true'") &&
-  server.includes("getUser(bearer)") && server.includes("content.approve") &&
-  server.includes("mini_review_item"),'moderation must stay staff-authenticated and separately gated')
-console.log('PASS: Mini Lesson hashtags, photo editing, learning, ranking fairness, authorization, moderation and rollout guards')
+assert.ok(safetyApi.includes("MINI_LESSONS_OPEN_PUBLISHING_ENABLED") &&
+  safetyApi.includes('getUser(bearer)') && safetyApi.includes('mini_safety_claim') &&
+  safetyApi.includes("status:'pending'") === false && safetyApi.includes("'approved'") &&
+  safetyApi.includes("MINI_SAFETY_MODEL") &&
+  actions.includes("await publishMiniSafely('mini'") &&
+  oldHq.includes('status:410'),
+  'creator publishing must be automated, safety-gated and independent of HQ')
+assert.ok(safetyDb.includes('enable row level security') &&
+  safetyDb.includes("to service_role") &&
+  safetyDb.includes('mini_report_safety_hold'), 'automated safety audit and community-report hold required')
+console.log('PASS: Mini Lesson hashtags, photo editing, learning, ranking fairness, authorization, automated safety and rollout guards')
