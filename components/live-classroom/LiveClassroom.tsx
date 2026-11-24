@@ -15,7 +15,8 @@ import {PrivateSlideFields} from './LivePreparedAssessment'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import { TeachingLibrary } from './LiveTeachingLibrary'
 import {validateStudioResources} from './LiveStudioResourceValidation'
-import {studioResource} from './LiveSlideProtocol'
+import {studioResource,studioFile} from './LiveSlideProtocol'
+import {presentStudioFile,validateStudioFiles} from './LiveStudioFiles'
 import { LiveResourcePicker } from './LiveResourcePicker'
 import { LiveClassFiles } from './LiveClassFiles'
 import { LiveFilePresentation } from './LiveFilePresentation'
@@ -613,7 +614,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     mutating.current=true;lock.current=true;setBusy(true);setError('')
     try {
       let requestPayload=payload
-      if(action==='start'&&preparedDeck.current){await validateStudioResources(preparedDeck.current.slides);if(!mounted.current||generation.current!==stamp)return}
+      if(action==='start'&&preparedDeck.current){await validateStudioResources(preparedDeck.current.slides);await validateStudioFiles(preparedDeck.current.slides);if(!mounted.current||generation.current!==stamp)return}
       if(action==='publish'){
         const fingerprint=JSON.stringify([room?.id,payload.kind,payload.body,payload.answerKey??null])
         if(pendingPublish.current?.fingerprint!==fingerprint)pendingPublish.current={fingerprint,requestId:crypto.randomUUID()}
@@ -957,6 +958,13 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   }
   function presentSlide(index:number,revealCount?:number){
     const item=slides[index];if(!item||!canNavigateSlides||photoLock.current)return
+    if(studioFile(item)){
+      const roomId=room?.id;if(!roomId||!window.confirm('Share this prepared file with the current classroom?'))return
+      photoLock.current=true;setPhotoPreparing(true);setError('')
+      const current=()=>active.current?.id===roomId&&active.current?.status==='active'&&active.current?.teacher===true
+      void presentStudioFile(item,roomId,current).then(async body=>{if(current()&&body)await act('publish',null,{kind:'teach',body,answerKey:null})}).catch(e=>setError(e instanceof Error?e.message:'File preparation failed.')).finally(()=>{photoLock.current=false;setPhotoPreparing(false)})
+      return
+    }
     const photos=decodePhotoSlide(item.body);if(photos){void preparePhotoSlide(index);return}
     const visual=visualSlidePayload(item.body)
     const partial=revealCount!==undefined&&visual!==null?revealBoard(visual,revealCount):null
@@ -965,7 +973,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     if(!slideText)return
     if(!studioResource(item)){void act('publish',null,{kind:'teach',body:slideText,answerKey:null});return}
     const roomId=room?.id;photoLock.current=true;setPhotoPreparing(true);setError('')
-    void validateStudioResources([item]).then(()=>{if(active.current?.id===roomId&&active.current?.status==='active'&&active.current?.teacher===true)return act('publish',null,{kind:'teach',body:slideText,answerKey:null})}).catch(e=>setError(e instanceof Error?e.message:'Resource verification failed.')).finally(()=>{photoLock.current=false;setPhotoPreparing(false)})
+    void validateStudioResources([item]).then(async()=>{if(active.current?.id===roomId&&active.current?.status==='active'&&active.current?.teacher===true)await act('publish',null,{kind:'teach',body:slideText,answerKey:null})}).catch(e=>setError(e instanceof Error?e.message:'Resource verification failed.')).finally(()=>{photoLock.current=false;setPhotoPreparing(false)})
   }
   function moveSlide(delta:number){
     const to=slideIndex+delta;if(to<0||to>=slides.length)return

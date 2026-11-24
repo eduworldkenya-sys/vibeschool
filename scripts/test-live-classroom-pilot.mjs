@@ -9,7 +9,7 @@ assert.equal(liveSyncDelay(null,0),4000)
 assert.equal(liveSyncDelay('paused',0),4000)
 assert.equal(liveSyncDelay('ended',0),15000)
 assert.deepEqual([1,2,3,4,100].map(n=>liveSyncDelay('active',n)),[5000,10000,20000,30000,30000])
-import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide,visualSlideBody,visualSlidePayload,studioMinutes,setStudioMinutes,studioResource,setStudioResource} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide,visualSlideBody,visualSlidePayload,studioMinutes,setStudioMinutes,studioResource,setStudioResource,studioFile,setStudioFile} from '../components/live-classroom/LiveSlideProtocol.ts'
 import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS,revealBoard,boardRevealCount} from '../components/live-classroom/LiveBoardProtocol.ts'
 const shape={id:'fixture-rect',kind:'rectangle',x:20,y:25,w:90,h:60,angle:15,color:'#1865c0',stroke:3,locked:true}
 const drawnBoard={...emptyBoard(2,3),background:'grid',objects:[shape,{...shape,id:'fixture-note',kind:'text',text:'2 + 3 = 5'},{...shape,id:'fixture-diagram',kind:'diagram',diagram:'fraction-bars'},{...shape,id:'fixture-arrow',kind:'arrow',points:[0,0,1000,1000]}]}
@@ -94,6 +94,12 @@ const linked={...privateSlide,notes:setStudioResource(privateSlide,resourceRef)}
 assert.deepEqual(studioResource(linked),resourceRef)
 assert.deepEqual(studioResource({...linked,notes:setStudioMinutes(linked,4)}),resourceRef)
 assert.ok(!encodeSlide(linked,1,1).includes(resourceRef.id))
+const attachment={hash:'a'.repeat(64),mime:'application/pdf'}
+const fileStage={...privateSlide,notes:setStudioFile(privateSlide,attachment)}
+assert.deepEqual(studioFile(fileStage),attachment)
+assert.deepEqual(studioFile({...fileStage,notes:setStudioMinutes(fileStage,5)}),attachment)
+assert.equal(setStudioFile(privateSlide,{...attachment,hash:'../bad'}),null)
+assert.ok(!encodeSlide(fileStage,1,1).includes(attachment.hash))
 const demos=[{id:'a',demo:defaultDemo('clock')},{id:'b',demo:defaultDemo('ruler')}]
 const multiBody=encodeMultiDemo(demos)
 assert.deepEqual(decodeMultiDemo(multiBody),demos)

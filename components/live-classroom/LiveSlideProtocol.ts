@@ -193,7 +193,10 @@ export function updatePhoto(p:SlidePhoto,patch:Partial<Pick<SlidePhoto,'x'|'y'|'
  * so editing a question cannot silently reuse a stale answer key. */
 const PRIVATE_ASSESSMENT_PREFIX='VSLIDENOTES1:'
 export type StudioResourceRef={id:string;version:string;page:number}
-type PrivateSlideNotes={text:string;assessment?:{body:string;option:number;explanation:string};minutes?:number;resource?:StudioResourceRef}
+export const STUDIO_FILE_TYPES=['application/pdf','image/jpeg','image/png','image/webp'] as const
+export type StudioFileRef={hash:string;mime:typeof STUDIO_FILE_TYPES[number]}
+export function validStudioFile(value:unknown):value is StudioFileRef{if(!value||typeof value!=='object')return false;const f=value as StudioFileRef;return typeof f.hash==='string'&&/^[0-9a-f]{64}$/.test(f.hash)&&STUDIO_FILE_TYPES.includes(f.mime)}
+type PrivateSlideNotes={text:string;assessment?:{body:string;option:number;explanation:string};minutes?:number;resource?:StudioResourceRef;file?:StudioFileRef}
 const validMinutes=(n:unknown):n is number=>typeof n==='number'&&Number.isInteger(n)&&n>=1&&n<=120
 const uuid=(s:unknown):s is string=>typeof s==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
 function validStudioResource(r:unknown):r is StudioResourceRef{if(!r||typeof r!=='object')return false;const v=r as StudioResourceRef;return uuid(v.id)&&uuid(v.version)&&Number.isInteger(v.page)&&v.page>=0&&v.page<30}
@@ -205,7 +208,7 @@ function unpackNotes(notes:string|undefined):PrivateSlideNotes{
   if(!n||typeof n!=='object')return {text:value}
   const obj=n as PrivateSlideNotes
   if(typeof obj.text!=='string')return {text:value}
-  const base:PrivateSlideNotes={text:obj.text,...(validMinutes(obj.minutes)?{minutes:obj.minutes}:{}),...(validStudioResource(obj.resource)?{resource:{id:obj.resource.id,version:obj.resource.version,page:obj.resource.page}}:{})}
+  const base:PrivateSlideNotes={text:obj.text,...(validStudioFile(obj.file)?{file:{hash:obj.file.hash,mime:obj.file.mime}}:{}),...(validMinutes(obj.minutes)?{minutes:obj.minutes}:{}),...(validStudioResource(obj.resource)?{resource:{id:obj.resource.id,version:obj.resource.version,page:obj.resource.page}}:{})}
   const a=obj.assessment
   const question=a&&typeof a.body==='string'?decodeAssessment(a.body):null
   if(!a||!question||question.kind!=='quiz'||!Number.isInteger(a.option)||a.option<0||a.option>=question.options.length||typeof a.explanation!=='string')return base
@@ -213,10 +216,12 @@ function unpackNotes(notes:string|undefined):PrivateSlideNotes{
  }catch{return {text:value}}
 }
 function packNotes(value:PrivateSlideNotes):string|null{
- const n=value.assessment||value.minutes||value.resource?PRIVATE_ASSESSMENT_PREFIX+JSON.stringify(value):value.text
+ const n=value.assessment||value.minutes||value.resource||value.file?PRIVATE_ASSESSMENT_PREFIX+JSON.stringify(value):value.text
  return n.length<=2000?n:null
 }
 export function presenterNotes(notes:string|undefined):string{return unpackNotes(notes).text}
+export function studioFile(slide:LiveSlide):StudioFileRef|undefined{return unpackNotes(slide.notes).file}
+export function setStudioFile(slide:LiveSlide,file:StudioFileRef):string|null{return validStudioFile(file)?packNotes({...unpackNotes(slide.notes),file}):null}
 export function studioMinutes(slide:LiveSlide):number{return unpackNotes(slide.notes).minutes??0}
 export function setStudioMinutes(slide:LiveSlide,minutes:number):string|null{if(minutes!==0&&!validMinutes(minutes))return null;return packNotes({...unpackNotes(slide.notes),minutes:minutes||undefined})}
 export function studioResource(slide:LiveSlide):StudioResourceRef|undefined{return unpackNotes(slide.notes).resource}
