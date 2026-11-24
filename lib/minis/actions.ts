@@ -16,7 +16,7 @@ export class MiniSubmissionSavedError extends Error {
   constructor(submissionId:string,message:string){super(message);this.name='MiniSubmissionSavedError';this.submissionId=submissionId;Object.setPrototypeOf(this,MiniSubmissionSavedError.prototype)}
 }
 
-export async function publishMiniSafely(target:'mini'|'request'|'comment',id:string):Promise<void> {
+export async function publishMiniSafely(target:'mini'|'request'|'comment',id:string,ownerReviewed=false):Promise<void> {
   const {data:{session},error:sessionError}=await supabase.auth.getSession()
   if(sessionError||!session?.access_token)throw Error('Sign in to publish.')
   let response:Response
@@ -24,7 +24,7 @@ export async function publishMiniSafely(target:'mini'|'request'|'comment',id:str
     response=await fetch('/api/minis/safety',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
-      body:JSON.stringify({target,id}),
+      body:JSON.stringify({target,id,ownerReviewed}),
       cache:'no-store',
     })
   }catch{throw Error('Your submission is saved privately. Automatic safety checks are unavailable; retry later.')}
@@ -40,13 +40,14 @@ export async function miniIsVerifiedAdult(userId: string): Promise<boolean> {
 }
 
 export async function submitMini({
-  title, body, hashtags, photo, userId, challenge, requestId,
+  title, body, hashtags, photo, userId, challenge, requestId, ownerReviewed=false,
 }: {
   title: string
   body: string
   hashtags: string
   photo: File
   userId: string
+  ownerReviewed?: boolean
   requestId?: string | null
   challenge?: { question: string; options: string[]; correct: number; explanation: string } | null
 }): Promise<string> {
@@ -91,7 +92,7 @@ export async function submitMini({
     await supabase.storage.from('mini-covers').remove([coverPath])
     throw Error('The Mini could not be submitted. Your profile may need additional verification.')
   }
-  try {await publishMiniSafely('mini',submitted.id as string)}
+  try {await publishMiniSafely('mini',submitted.id as string,ownerReviewed)}
   catch(error){throw new MiniSubmissionSavedError(submitted.id as string,error instanceof Error?error.message:'Saved privately. Check publication status.')}
   return submitted.id as string
 }
