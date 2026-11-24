@@ -43,7 +43,7 @@ try {
   if (!initial.focusedFooter) fail('sandbox missing public trust/footer navigation')
   if (!initial.mobileNavigationVisible) fail('sandbox missing public mobile bottom navigation')
   if (initial.overflow > 2) fail('mobile horizontal overflow: ' + initial.overflow + 'px')
-  for (const href of ['/', '/sandbox', '/learn', '/product', '/evidence', '/login/global', '/learn?grade=Grade+8&subject=Mathematics']) {
+  for (const href of ['/home', '/explore', '/sandbox', '/learn', '/product', '/evidence', '/login/global', '/learn?grade=Grade+8&subject=Mathematics']) {
     if (!initial.links.includes(href)) fail('sandbox shared navigation missing: ' + href)
   }
   if (initial.links.includes('/global/signup')) fail('sandbox reintroduced legacy global signup entry')
