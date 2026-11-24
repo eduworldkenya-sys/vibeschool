@@ -749,12 +749,21 @@
     "revisionPrompts": 19
   },
   "visuals": {
-    "state": "draft text diagrams and tables embedded; standalone illustrations and accessible visual assets not created or linked"
+    "state": "Six original SVG schematic drafts committed; not uploaded to certified visual storage; existing native table and descriptive fallback in reader package.",
+    "manifest": "visuals/manifest.json",
+    "count": 6
   },
   "quality": {
-    "state": "structural read-back passed; subject-fact/local examples, accessibility, pedagogical review and canonical publication import still pending",
+    "state": "Structural coverage and targeted geography/governance source checks completed; independent review, actual render/accessibility and release pending",
     "verified": "19 headings; 72 canonical IDs; 90 allocated lessons; 95 review questions",
     "formalAssessment": "not imported into bank; practice and revision questions drafted, formal exam not included"
   },
-  "next": "Integrate the original chapters through existing VibeSchool publication flow, complete per-outcome supplements, visual assets and content QA; protect answer keys; verify actual reader and teacher delivery."
+  "next": "Import the draft through the authorized existing publication editor; upload and validate visuals; complete remaining independent checks and verify actual learner delivery.",
+  "readerDraft": {
+    "path": "reader-draft.json",
+    "sectionCount": 19,
+    "blockCount": 393,
+    "questionCount": 95,
+    "state": "prepared in canonical block format, not imported into authenticated publication editor"
+  }
 }
