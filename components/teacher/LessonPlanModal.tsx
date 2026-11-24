@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { lessonToLiveHref } from '@/lib/teaching/liveLessonLinks'
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
 
@@ -1940,7 +1941,14 @@ export default function LessonPlanModal({
               {planId && process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true' && <button
                 type="button"
                 className="studio-lesson-modal__action"
-                onClick={() => router.push('/teacher/classhub/' + encodeURIComponent(slot.class_id) + '/live?lessonPlanId=' + encodeURIComponent(planId))}
+                onClick={() => {
+                  const href=lessonToLiveHref({
+                    lessonPlanId:planId,classId:slot.class_id,subjectId:slot.subject_id,
+                    timetableSlotId:slot.id,occurrenceId:teachingOccurrence?.occurrenceId,
+                    occurrenceDate:taughtDate,
+                  });
+                  if(href)router.push(href);
+                }}
               >Teach this plan in Live</button>}
               <details className="studio-lesson-details"><summary>Resources, readiness & delivery</summary>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: suggestionLinked && suggestion ? 8 : 16, fontSize: 12, color: C.textMuted }}>
