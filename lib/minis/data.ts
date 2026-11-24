@@ -92,10 +92,10 @@ export async function fetchMiniPage({ search = '', tag = 'All', cursor, creators
 
 export async function fetchOwnMiniStatus(userId: string) {
   const { data, error } = await supabase.from('mini_lessons')
-    .select('id,title,tags,status,created_at')
+    .select('id,title,tags,status,created_at,like_count,save_count,learned_count')
     .eq('creator_id',userId).order('created_at',{ascending:false}).limit(30)
   if (error) throw new Error('Unable to load your submissions.')
-  return (data ?? []) as { id: string; title: string; tags: string[]; status: string; created_at: string }[]
+  return (data ?? []) as { id: string; title: string; tags: string[]; status: string; created_at: string; like_count:number; save_count:number; learned_count:number }[]
 }
 
 export async function loadMiniCovers(posts: MiniPost[]) {

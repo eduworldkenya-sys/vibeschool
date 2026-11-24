@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { currentMiniUser } from '@/lib/minis/actions'
+import { currentMiniUser, publishMiniSafely, MiniSubmissionSavedError } from '@/lib/minis/actions'
 import { fetchMiniRequestAnswers, loadMiniCovers, type MiniPost } from '@/lib/minis/data'
 import { changeRequestSupport, fetchMiniRequests, fetchMiniRequestSupports,
   fetchMyMiniRequests, submitMiniRequest, reportMiniRequest, type MiniPublicRequest, type MiniOwnRequest } from '@/lib/minis/requests'
@@ -20,6 +20,7 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
   const [answers,setAnswers] = useState<MiniPost[]>([])
   const [covers,setCovers] = useState<Record<string,string>>({})
   const [mine,setMine] = useState<MiniOwnRequest[]|null>(null)
+  const [savedRequestId,setSavedRequestId] = useState<string|null>(null)
   const [question,setQuestion] = useState(query)
   const [tags,setTags] = useState('')
   const [viewer,setViewer] = useState<string|null>(null)
@@ -82,12 +83,20 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     if(!viewer){window.location.assign('/login?redirect=%2Fexplore');return}
     setBusy(true);setError('');setNotice('')
     try {
-      await submitMiniRequest(question,tags)
-      setQuestion('');setTags('')
+      if(savedRequestId)await publishMiniSafely('request',savedRequestId)
+      else await submitMiniRequest(question,tags)
+      setSavedRequestId(null);setQuestion('');setTags('')
       setNotice('Your request is public after passing an automatic safety check. No HQ approval needed.')
-      await refresh()
-    }catch(e){setError(e instanceof Error?e.message:'Unable to submit request.')}
+      try{await refresh()}catch{setNotice('Your request is public. Refresh Explore to see it.')}
+    }catch(e){if(e instanceof MiniSubmissionSavedError)setSavedRequestId(e.submissionId);setError(e instanceof Error?e.message:'Unable to submit request.')}
     finally{setBusy(false)}
+  }
+  async function retryRequest(id:string){
+    if(!viewer||busy)return
+    setBusy(true);setError('');setNotice('')
+    try{await publishMiniSafely('request',id);setNotice('Your request is public.')}
+    catch(e){setError(e instanceof Error?e.message:'Unable to retry safety check.')}
+    finally{try{setMine(await fetchMyMiniRequests())}catch{setError(old=>old||'Unable to refresh request status.')}setBusy(false)}
   }
   async function openMine() {
     if(!viewer){window.location.assign('/login?redirect=%2Fexplore');return}
@@ -105,14 +114,15 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     <form className={styles.requestForm} onSubmit={event=>void submit(event)}>
       <label htmlFor="mini-request-question" className={styles.label}>Question</label>
       <textarea id="mini-request-question" className={styles.editor} required minLength={12} maxLength={240}
-        value={question} onChange={event=>setQuestion(event.target.value)}
+        value={question} disabled={!!savedRequestId} onChange={event=>setQuestion(event.target.value)}
         placeholder="How can I solve simultaneous equations step by step?"/>
       <label htmlFor="mini-request-tags" className={styles.label}>Hashtags</label>
-      <input id="mini-request-tags" className={styles.field} required maxLength={160} value={tags}
+      <input id="mini-request-tags" className={styles.field} required maxLength={160} disabled={!!savedRequestId} value={tags}
         onChange={event=>setTags(event.target.value)} placeholder="#Mathematics #Grade9"/>
       <button type="submit" className={styles.primary} disabled={busy||question.trim().length<12||!tags.trim()}>
-        {busy?'Checking safety…':'Post request'}</button>
+        {busy?'Checking safety…':savedRequestId?'Retry safety check':'Post request'}</button>
     </form>
+    {savedRequestId&&<button type="button" className={styles.secondary} onClick={onBack}>Return to Explore · My requests</button>}
     {(error||notice)&&<p role={error?'alert':'status'} className={styles.formNote}>{error||notice}</p>}
     <p className={styles.previewNote}>Never include your name, phone number, contacts or school identity. Requests pass an automatic safety check before public discovery.</p>
   </section>
@@ -123,8 +133,10 @@ export function MiniLiveRequests({ mode='feed', query='', onBack, onExplain }: P
     {mine.length?mine.map(p=><div key={p.id} className={styles.comment}>
       <strong>{p.question}</strong>
       <span>{p.status==='approved'?'Public':p.status==='pending'?'Safety check pending':p.status} · {p.explanations} approved explanations</span>
+      {p.status==='pending'&&<button type="button" disabled={busy} onClick={()=>void retryRequest(p.id)}>Retry safety check</button>}
     </div>):<p>No requests yet.</p>}
     {error&&<p role="alert">{error}</p>}
+    {notice&&<p role="status">{notice}</p>}
   </section>
 
   if(selected) return <section className={styles.requestDetail}>
