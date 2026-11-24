@@ -211,6 +211,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   const subjectNames = useMemo(() => uniqueNames(subjectGroups.flatMap(group => group.subjects)), [subjectGroups])
   const requestedSubject = isCreLearnAlias(grade, selectedSubject) ? 'Religious Education' : selectedSubject
   const activeName = subjectNames.find(name => sameLearnSubject(grade, name, requestedSubject))
+  const curriculumSubject = isCreLearnAlias(grade, activeName) ? 'Christian Religious Education' : activeName
   const activeBooks = gradeBooks.filter(book => sameLearnSubject(grade, book.cbc_subject, activeName))
   const activeReaders = activeName ? readersForSubject(grade,
     isCreLearnAlias(grade, activeName) ? 'Christian Religious Education' : activeName) : []
@@ -287,21 +288,21 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                     </Link>)}
                   </div>
                 </section>}
-                <SubjectTextbookOutline grade={grade} subject={activeName}
+                <SubjectTextbookOutline grade={grade} subject={activeName} curriculumSubject={curriculumSubject ?? activeName}
                   books={activeBooks.map(book => ({id:book.id,title:book.title,href:`/read/textbook/${encodeURIComponent(book.id)}`}))}
                   readers={activeReaders} booksLoading={booksLoading} booksError={booksError || catalogueTruncated}/>
                 <div className={styles.linksRow}>
-                  <Link className={styles.buttonSecondary} aria-label="Finished learning? Practise this subject" href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:activeName}).toString()}>Practise <ArrowRight size={16}/></Link>
+                  <Link className={styles.buttonSecondary} aria-label="Finished learning? Practise this subject" href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:curriculumSubject ?? activeName}).toString()}>Practise <ArrowRight size={16}/></Link>
                 </div>
               </section>}
               {tab === 'resources' && <section role="tabpanel" className={styles.detailPanel} aria-label="Supporting resources">
                 <h2>Learning resources</h2>
                 <p className={styles.description}>Diagrams, illustrations, reading support and subject-specific activities appear inside published lesson readers. Only approved resources are displayed.</p>
-                <CertifiedResourceLinks grade={grade} subject={activeName}/>
+                <CertifiedResourceLinks grade={grade} subject={curriculumSubject ?? activeName}/>
                 <div className={styles.linksRow}>
                   {activeReaders.map(reader => <Link className={styles.buttonSecondary} key={reader.href} href={reader.href}>Open {reader.title} <ArrowRight size={15} /></Link>)}
                   <Link className={styles.buttonSecondary} href="/student/resources">My shared learning materials <ArrowRight size={15} /></Link>
-                  <Link className={styles.buttonSecondary} href={'/learn/visuals?' + new URLSearchParams({grade, subject:activeName}).toString()}>Visual learning library <ArrowRight size={15}/></Link>
+                  <Link className={styles.buttonSecondary} href={'/learn/visuals?' + new URLSearchParams({grade, subject:curriculumSubject ?? activeName}).toString()}>Visual learning library <ArrowRight size={15}/></Link>
                 </div>
               </section>}
             </>
