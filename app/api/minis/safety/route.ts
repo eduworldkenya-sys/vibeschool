@@ -46,7 +46,7 @@ async function moderate(input:{target:Target;title:string;body:string;photo?:{da
   if(input.target==='request'&&/\b(my|our)\s+(school|phone|address|teacher's\s+phone)\b/i.test(text))
     return {safe:false,reason:'Remove identifying personal details'}
   const headers={'Content-Type':'application/json','x-goog-api-key':key}
-  const language=await fetch('https://language.googleapis.com/v1/documents:moderateText',{
+  const language=await fetch('https://language.googleapis.com/v2/documents:moderateText',{
     method:'POST',headers,cache:'no-store',signal:AbortSignal.timeout(20000),
     body:JSON.stringify({document:{type:'PLAIN_TEXT',content:text}}),
   })
@@ -54,7 +54,7 @@ async function moderate(input:{target:Target;title:string;body:string;photo?:{da
   const classified:unknown=await language.json()
   if(!classified||typeof classified!=='object')throw new Error('Invalid text safety response.')
   const report=classified as {languageSupported?:boolean;moderationCategories?:Array<{name?:string;confidence?:number}>}
-  if(report.languageSupported===false)throw new Error('Unsupported text safety language.')
+  if(report.languageSupported!==true)throw new Error('Unsupported or unconfirmed text safety language.')
   if(!Array.isArray(report.moderationCategories)||report.moderationCategories.length===0)
     throw new Error('Missing text safety categories.')
   const thresholds:Record<string,number>={
@@ -64,7 +64,7 @@ async function moderate(input:{target:Target;title:string;body:string;photo?:{da
   for(const item of report.moderationCategories){
     if(typeof item.name!=='string'||typeof item.confidence!=='number'||!Number.isFinite(item.confidence))
       throw new Error('Invalid text safety category.')
-    if(Object.hasOwn(thresholds,item.name)&&item.confidence>=thresholds[item.name])
+    if(Object.prototype.hasOwnProperty.call(thresholds,item.name)&&item.confidence>=thresholds[item.name])
       return {safe:false,reason:'Content did not meet the safety policy'}
   }
   if(input.photo){
