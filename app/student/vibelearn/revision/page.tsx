@@ -15,6 +15,7 @@ import RevisionTopicStarter, { type RevisionStarterHandle } from '@/components/s
 import { getRevisionWorkspace, isCurrentGradeMistake, type MistakeNotebookItem, type RevisionWorkspace } from '@/lib/student/vibelearn'
 import { getMyRevisionMemory, recordRevisionRecall, type RevisionMemoryRecord } from '@/lib/student/revisionMemory'
 import type { RevisionTopic } from '@/lib/student/revisionTopic'
+import RevisionOutcomeQueue from '@/components/student/RevisionOutcomeQueue'
 
 type Screen = 'home' | 'recall' | 'feedback' | 'finished'
 type Mode = 'Recall' | 'Flashcards'
@@ -183,6 +184,7 @@ function RevisionStudioSession(){
                <button type="button" onClick={startRevision} disabled={launching} style={{...primary,width:'100%',borderRadius:999}}>{launching?'Opening…':'Start revision'} <ArrowRight size={15} style={{verticalAlign:'middle',marginLeft:5}}/></button>
              </div>
            </section>
+           <RevisionOutcomeQueue learnerId={identity.studentId} className={identity.className??''}/>
            <section aria-label="Choose a revision subject">
              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:10}}><h2 style={{fontSize:18,margin:0}}>Subjects</h2><span style={muted}>Select to revise</span></div>
              <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
