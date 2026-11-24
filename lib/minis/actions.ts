@@ -85,7 +85,11 @@ export async function submitMini({
     throw Error('Public creators need an opted-in profile and independent age eligibility. Check your public profile settings.')
 
   const coverPath=photo?userId+'/'+crypto.randomUUID()+'.'+ext:null
-  if(photo&&coverPath){const {error}=await supabase.storage.from('mini-covers').upload(coverPath,photo,{contentType:photo.type,cacheControl:'3600',upsert:false});if(error)throw Error('Unable to upload image.') }
+  if (photo && coverPath) {
+    const { error: uploadError } = await supabase.storage.from('mini-covers')
+      .upload(coverPath, photo, { contentType: photo.type, cacheControl: '3600', upsert: false })
+    if (uploadError) throw Error('Unable to upload this image. Please try again.')
+  }
 
   const { data: submitted, error: publishError } = await supabase.from('mini_lessons')
     .insert({ creator_id: userId, title: cleanTitle, body: cleanBody, subject, tags, quiz_question:question, quiz_options:options, quiz_correct:correct, quiz_explanation:explanation, cover_path: coverPath, ...(slides?{slide_deck:slides}:{}), status: 'pending', request_id: requestId ?? null })

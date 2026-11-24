@@ -1,4 +1,4 @@
-import {decodeSlide,encodeSlide,decodeAssessment,preparedAssessment,isPhotoBody,visualSlidePayload,decodeDemo,decodeMultiDemo,type LiveSlide,type PublishedSlide} from '@/components/live-classroom/LiveSlideProtocol'
+import {decodeSlide,encodeSlide,decodeAssessment,preparedAssessment,isPhotoBody,visualSlidePayload,decodeDemo,decodeMultiDemo,encodeAssessment,encodeDemo,encodeMultiDemo,type LiveSlide,type PublishedSlide} from '@/components/live-classroom/LiveSlideProtocol'
 export type MiniSlideEntry={encoded:string;answer?:{option:number;explanation:string}}
 type MiniSlide={slide:PublishedSlide;answer?:MiniSlideEntry['answer']}
 export const MINI_SLIDE_LIMIT=10
@@ -13,7 +13,8 @@ export function parseMiniDeck(raw:unknown):MiniSlide[]|null{
   const slide=decodeSlide(entry.encoded)
   if(!slide||slide.number!==i+1||slide.total!==raw.length||encodeSlide(slide,i+1,raw.length)!==entry.encoded||isPhotoBody(slide.body)||visualSlidePayload(slide.body)!==null)return null
   if(/^VSLIDE[A-Z0-9]*:/.test(slide.body)&&!decodeAssessment(slide.body)&&!decodeDemo(slide.body)&&!decodeMultiDemo(slide.body))return null
-  const q=decodeAssessment(slide.body),a=entry.answer
+  const q=decodeAssessment(slide.body),demo=decodeDemo(slide.body),multi=decodeMultiDemo(slide.body),a=entry.answer
+  if((q&&encodeAssessment(q)!==slide.body)||(demo&&encodeDemo(demo)!==slide.body)||(multi&&encodeMultiDemo(multi)!==slide.body))return null
   if(q?.kind==='quiz'){
    if(!a||typeof a!=='object'||Array.isArray(a)||Object.keys(a).some(k=>k!=='option'&&k!=='explanation')||!Number.isInteger(a.option)||a.option<0||a.option>=q.options.length||typeof a.explanation!=='string'||a.explanation.length>800)return null
    result.push({slide,answer:{option:a.option,explanation:a.explanation}})
