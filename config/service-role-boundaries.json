@@ -185,7 +185,8 @@
         "mini_safety_claim",
         "status:verdict.safe?'approved':'rejected'",
         "Forbidd",
-        "Blocked by safety policy"
+        "MINI_GOOGLE_SAFETY_API_KEY",
+        "Incomplete image safety analysis"
       ]
     }
   }
