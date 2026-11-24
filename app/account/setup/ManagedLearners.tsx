@@ -173,7 +173,7 @@ export default function ManagedLearners() {
         </label>
         <button disabled={busy || !!activating || !guardianConfirmed} type="submit"
           style={{padding:14,fontWeight:700,background:'#111827',color:'white',border:0}}>
-          {busy?'Saving…':'Add learner'}
+          {busy?'Creating learner…':'Create learner account'}
         </button>
         <p style={{color:'#64748b',fontSize:13,margin:0}}>No school code or extra account approval. School linking is optional later.</p>
       </form>
