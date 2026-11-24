@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, Sparkles } from 
 import { supabase } from '@/lib/supabase'
 import styles from './CanonicalTopicPractice.module.css'
 import LearningNotebookPrompt from '@/components/learn/LearningNotebookPrompt'
+import PracticeCatalogueNav from '@/components/student/PracticeCatalogueNav'
 import LearningFeedback, { playLearningSound, useLearningFeedback } from '@/components/student/LearningFeedback'
 import { saveResponse, startOrResumeAttempt, submitAttempt } from '@/lib/assessment/engine'
 import type { AttemptWorkspace, SubmitAttemptResult } from '@/lib/assessment/types'
@@ -237,6 +238,7 @@ export default function CanonicalTopicPractice({grade,subject='',topic=''}:{grad
           </button>
         </span>
       </div>
+      <PracticeCatalogueNav mode="topics" subject={subjectFilter} topic={topic}/>
       {subjects.length>1 && <div className={styles.filters} aria-label="Filter topics by subject">
         {['',...subjects].map(value=><button key={value||'all'} type="button" aria-pressed={subjectFilter===value} onClick={()=>setSubjectFilter(value)}>{value||'All'}</button>)}
       </div>}
