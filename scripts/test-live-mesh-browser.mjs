@@ -20,7 +20,7 @@ const seats = [
 for (let i = 2; i < learnerCount; i++) {
   seats.push({ path: '/listener-' + i, user: id(100 + i), student: id(200 + i) })
 }
-const migration = readFileSync(new URL('../supabase/migrations/20261125000000_live_classroom_mesh_pilot.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../supabase/migrations/20261124192341_live_classroom_mesh_pilot.sql', import.meta.url), 'utf8')
 await db.exec('create table auth.users(id uuid primary key); insert into auth.users select id from public.profiles')
 await db.exec(migration)
 const room = await rpc(teacher, 'start', null, null, { title: 'VibeMesh browser fixture' })
