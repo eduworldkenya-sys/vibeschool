@@ -55,6 +55,36 @@ export async function fetchApprovedMinis(limit = 120): Promise<MiniPost[]> {
   return (Array.isArray(data) ? data : []).filter(isMiniPost)
 }
 
+export const MINI_PAGE_SIZE = 24
+
+/** Search all publicly readable approved rows, not just the initial feed. */
+export async function fetchMiniPage({ search = '', tag = 'All', offset = 0, creators }: {
+  search?: string; tag?: string; offset?: number; creators?: readonly string[]
+} = {}): Promise<{ posts: MiniPost[]; nextOffset: number | null }> {
+  if (creators && !creators.length) return { posts: [], nextOffset: null }
+  // Only allow ordinary search characters in the PostgREST OR expression.
+  const term = search.normalize('NFKC').replace(new RegExp('[^\\p{L}\\p{N}\\s_-]', 'gu'), ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+  const exactTag = search.trim().replace(/^#/, '').toLowerCase()
+  let query = supabase.from('mini_lessons')
+    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
+    .eq('status','approved')
+  if (tag !== 'All') query = query.contains('tags', [tag])
+  if (creators) query = query.in('creator_id', [...creators])
+  if (term) {
+    const pattern = '%' + term.replace(/_/g, '\\_') + '%'
+    const filters = ['title','body','creator_label','subject'].map(column => column + '.ilike.' + pattern)
+    if (/^[a-z][a-z0-9_]{1,29}$/.test(exactTag)) filters.push('tags.cs.{' + exactTag + '}')
+    query = query.or(filters.join(','))
+  } else if (search.trim()) return { posts: [], nextOffset: null }
+  const start = Math.max(0, Math.floor(offset))
+  const { data, error } = await query.order('published_at',{ascending:false})
+    .order('id',{ascending:false}).range(start,start + MINI_PAGE_SIZE)
+  if (error) throw Error('Unable to load Mini Lessons. Try again.')
+  const rows = Array.isArray(data) ? data : []
+  return { posts: rows.slice(0, MINI_PAGE_SIZE).filter(isMiniPost),
+    nextOffset: rows.length > MINI_PAGE_SIZE ? start + MINI_PAGE_SIZE : null }
+}
+
 export async function fetchOwnMiniStatus(userId: string) {
   const { data, error } = await supabase.from('mini_lessons')
     .select('id,title,tags,status,created_at')
@@ -65,12 +95,19 @@ export async function fetchOwnMiniStatus(userId: string) {
 
 export async function loadMiniCovers(posts: MiniPost[]) {
   const urls: Record<string, string> = {}
-  await Promise.all(posts.filter(p => p.cover_path).map(async post => {
-    if (!post.cover_path) return
+  const withCovers = posts.filter(p => p.cover_path)
+  for (let start = 0; start < withCovers.length; start += 24) {
+    const batch = withCovers.slice(start,start+24)
     const { data, error } = await supabase.storage.from('mini-covers')
-      .createSignedUrl(post.cover_path, 3600)
-    if (!error && data?.signedUrl) urls[post.id] = data.signedUrl
-  }))
+      .createSignedUrls(batch.map(post => post.cover_path!), 3600)
+    if (!error && data) {
+      const byPath = new Map(data.filter(item=>item.path && item.signedUrl).map(item=>[item.path,item.signedUrl]))
+      for (const post of batch) {
+        const url = byPath.get(post.cover_path!)
+        if (url) urls[post.id] = url
+      }
+    }
+  }
   return urls
 }
 
