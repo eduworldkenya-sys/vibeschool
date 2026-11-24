@@ -53,3 +53,16 @@ test('private scan log, bounded attempts and community safety holds',()=>{
 test('negative control detects a missing safety gate',()=>{
  assert.doesNotMatch(api.replace("MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true'",''),/MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true'/)
 })
+
+test('pending publication retries the same private record without inserting another',()=>{
+ const retry=creator.slice(creator.indexOf('async function retryPublication'),creator.indexOf('async function openMine'))
+ assert.match(retry,/publishMiniSafely\('mini',id\)/)
+ assert.doesNotMatch(retry,/submitMini\(|\.insert\(/)
+ assert.match(retry,/fetchOwnMiniStatus\(viewer\)/)
+ assert.match(creator,/p.status==='pending'[\s\S]*Retry safety check/)
+})
+test('publication feedback precedes the feed and refresh errors do not misreport success',()=>{
+ assert.ok(creator.indexOf("{(error || notice)")<creator.indexOf("{section === 'feed'"))
+ assert.match(creator,/Mini Lesson published\. Refresh Explore to see it\./)
+ assert.match(creator,/\.select\('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id/)
+})

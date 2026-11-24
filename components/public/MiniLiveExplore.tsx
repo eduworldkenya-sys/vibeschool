@@ -7,7 +7,7 @@ import { fetchApprovedMinis, fetchOwnMiniStatus, loadApprovedComments, loadMiniC
   type MiniPost, type ApprovedComment } from '@/lib/minis/data'
 import { rankMiniLessons } from '@/lib/minis/recommendation'
 import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInteraction, submitMini,
-  addMiniComment, reportMini, recordMiniLearningSignal } from '@/lib/minis/actions'
+  addMiniComment, reportMini, recordMiniLearningSignal, publishMiniSafely } from '@/lib/minis/actions'
 import { miniTagLabel, parseMiniHashtags } from '@/lib/minis/tags'
 import { prepareMiniPhoto } from '@/lib/minis/photo'
 import { MiniLiveRequests } from './MiniLiveRequests'
@@ -134,12 +134,11 @@ export function MiniLiveExplore() {
           if (item) open(item)
           else {
             const { data } = await supabase.from('mini_lessons')
-              .select('id,creator_id,creator_label,title,body,subject,tags,cover_path,status,quality_score,like_count,save_count,learned_count,published_at,created_at')
+              .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
               .eq('id',id).eq('status','approved').maybeSingle()
             if (data && mounted) {
               const newPost = data as MiniPost
               setPosts(existing => [...existing,newPost])
-              setCovers(existing => existing)
               void loadMiniCovers([newPost]).then(extra => {
                 if (mounted) setCovers(existing => ({ ...existing, ...extra }))
               })
@@ -278,13 +277,29 @@ export function MiniLiveExplore() {
         challenge:quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null,
         requestId: answerRequest?.id ?? null })
       setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
-      const latest = await fetchApprovedMinis(120)
-      setPosts(latest)
-      setCovers(await loadMiniCovers(latest))
       setNotice(answerRequest ? 'Your explanation is published on the request.' : 'Mini Lesson published.')
       back()
+      try {
+        const latest = await fetchApprovedMinis(120)
+        setPosts(latest)
+        setCovers(await loadMiniCovers(latest))
+      } catch {setNotice('Mini Lesson published. Refresh Explore to see it.')}
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit Mini.')}
     finally {setBusy(false)}
+  }
+
+  async function retryPublication(id: string) {
+    if (!viewer || busy) return
+    setBusy(true);setError('');setNotice('')
+    try {
+      await publishMiniSafely('mini',id)
+      setNotice('Mini Lesson published.')
+    } catch(e) {setError(e instanceof Error ? e.message : 'Unable to retry safety check.')}
+    finally {
+      try {setMine(await fetchOwnMiniStatus(viewer))}
+      catch {setError(previous=>previous || 'Unable to refresh publication status.')}
+      setBusy(false)
+    }
   }
 
   async function openMine() {
@@ -371,6 +386,7 @@ export function MiniLiveExplore() {
   </article>
 
   return <div className={styles.explorePage}><div className={styles.container}>
+    {(error || notice) && <p role={error?'alert':'status'} className={styles.formNote}>{error || notice}</p>}
     {section === 'feed' && <>
       <div className={styles.exploreTop}>
         <div><h1 className={styles.exploreTitle}>Mini Lessons</h1></div>
@@ -557,7 +573,8 @@ export function MiniLiveExplore() {
       <h1>My Mini Lessons</h1>
       <p className={styles.subline}>View your Mini Lessons and their automatic safety status.</p>
       {mine.length ? mine.map(p=><div key={p.id} className={styles.comment}><strong>{p.title}</strong>
-        {p.tags.map(miniTagLabel).join(' ')} · {p.status==='approved'?'Published':p.status==='pending'?'Safety check pending':p.status}</div>)
+        {p.tags.map(miniTagLabel).join(' ')} · {p.status==='approved'?'Published':p.status==='pending'?'Safety check pending':p.status}
+        {p.status==='pending' && <button type="button" className={styles.secondary} disabled={busy} onClick={()=>void retryPublication(p.id)}>Retry safety check</button>}</div>)
         : <p>No Mini Lessons submitted yet.</p>}
     </section>}
 
@@ -584,7 +601,6 @@ export function MiniLiveExplore() {
       <h1>@{creator.creator_label}</h1>
       <div className={styles.grid}>{posts.filter(post=>post.creator_id===creatorId).map(card)}</div>
     </section>}
-    {(error || notice) && <p role={error?'alert':'status'} className={styles.formNote}>{error || notice}</p>}
     <div className={styles.previewNote} style={{textAlign:'center',marginTop:12}}>VibeSchool Mini Lessons</div>
   </div></div>
 }
