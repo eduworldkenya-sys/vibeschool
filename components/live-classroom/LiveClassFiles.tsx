@@ -41,6 +41,7 @@ export function LiveClassFiles({roomId,teacher,status,onPresentFile,onInsertPhot
   const [busy,setBusy] = useState(false)
   const [loading,setLoading] = useState(true)
   const [preview,setPreview] = useState<Preview|null>(null)
+  const [photoLibrary,setPhotoLibrary]=useState<LiveFile[]|null>(null)
 
   const refresh = useCallback(async()=>{
     const result=await supabase.from('live_classroom_assets')
@@ -59,13 +60,50 @@ export function LiveClassFiles({roomId,teacher,status,onPresentFile,onInsertPhot
 
   useEffect(()=>{
     let active=true
-    setLoading(true);setPreview(null);setFiles([])
+    setLoading(true);setPreview(null);setFiles([]);setPhotoLibrary(null)
     const load=async()=>{if(!active)return;await refresh();if(active)setLoading(false)}
     void load()
     const timer=status==='ended'?null:window.setInterval(()=>{void load()},6000)
     return ()=>{active=false;if(timer!==null)window.clearInterval(timer)}
   },[roomId,status,refresh])
 
+  async function openPhotoLibrary(){
+    if(!teacher||status==='ended'||busy)return
+    setBusy(true);setError('')
+    try{
+      const {data,error}=await supabase.auth.getUser()
+      if(error||!data.user)throw Error('Sign in to access your own photos.')
+      const result=await supabase.from('live_classroom_assets').select('id,title,session_id,mime_type,byte_size,object_path,shared_at').eq('uploader_id',data.user.id).neq('session_id',roomId).in('mime_type',['image/jpeg','image/png','image/webp']).order('created_at',{ascending:false}).limit(100)
+      if(result.error)throw result.error
+      setPhotoLibrary((result.data??[]) as LiveFile[])
+    }catch(e){setError(e instanceof Error?e.message:'Unable to load previous photos.')}
+    finally{setBusy(false)}
+  }
+  async function copyPhoto(source:LiveFile){
+    if(!teacher||status==='ended'||busy||files.length>=20)return
+    setBusy(true);setError('')
+    let destination:LiveFile|null=null
+    try{
+      const {data,error}=await supabase.auth.getUser()
+      if(error||!data.user)throw Error('Sign in again to reuse photos.')
+      const check=await supabase.from('live_classroom_assets').select('id,title,session_id,mime_type,byte_size,object_path,shared_at').eq('id',source.id).eq('uploader_id',data.user.id).neq('session_id',roomId).in('mime_type',['image/jpeg','image/png','image/webp']).single()
+      if(check.error||!check.data)throw Error('You no longer have access to this photo.')
+      const original=check.data as LiveFile
+      const downloaded=await supabase.storage.from(BUCKET).download(original.object_path)
+      if(downloaded.error||!downloaded.data)throw Error('Could not read the original photo.')
+      const file=new File([downloaded.data],original.title,{type:original.mime_type})
+      if(file.size<1||file.size>MAX_BYTES||!(await allowedSignature(file)))throw Error('The original photo is invalid or too large.')
+      const created=await supabase.from('live_classroom_assets').insert({session_id:roomId,title:original.title,mime_type:original.mime_type,byte_size:file.size}).select('id,title,session_id,mime_type,byte_size,object_path,shared_at').single()
+      if(created.error||!created.data)throw Error('Unable to reserve a new private photo.')
+      destination=created.data as LiveFile
+      const stored=await supabase.storage.from(BUCKET).upload(destination.object_path,file,{contentType:original.mime_type,cacheControl:'0',upsert:false})
+      if(stored.error)throw stored.error
+      setPhotoLibrary(null);await refresh()
+    }catch(e){
+      if(destination){await supabase.storage.from(BUCKET).remove([destination.object_path]);await supabase.from('live_classroom_assets').delete().eq('id',destination.id).eq('session_id',roomId)}
+      setError(e instanceof Error?e.message:'Photo copy failed. No photo has been shared.')
+    }finally{setBusy(false)}
+  }
   async function upload(file:File|null){
     if(!teacher||status==='ended'||!file)return
     const type=file.type
@@ -147,6 +185,8 @@ export function LiveClassFiles({roomId,teacher,status,onPresentFile,onInsertPhot
         onChange={event=>{const file=event.target.files?.[0]??null;event.target.value='';void upload(file)}}/>
       <small>Private until you explicitly share · 8 MB maximum</small>
     </label>}
+    {teacher&&status!=='ended'&&<button type="button" disabled={busy||files.length>=20} onClick={()=>void openPhotoLibrary()}>Reuse my previous photos</button>}
+    {photoLibrary!==null&&<section aria-label="My previous classroom photos"><div className={styles.heading}><strong>My previous photos</strong><button type="button" disabled={busy} onClick={()=>setPhotoLibrary(null)}>Close</button></div>{photoLibrary.length?<ul className={styles.list}>{photoLibrary.map(photo=><li key={photo.id}><div><strong>{photo.title}</strong><small>{Math.ceil(photo.byte_size/1024)} KB</small></div><button type="button" disabled={busy||files.length>=20} onClick={()=>void copyPhoto(photo)}>Copy privately</button></li>)}</ul>:<p>No accessible photos from your previous classrooms.</p>}<small>Copies belong to this classroom and remain private until shared.</small></section>}
     {error&&<p role="alert" className={styles.error}>{error}</p>}
     {loading?<p role="status">Loading lesson files…</p>:
       visible.length===0?<p className={styles.empty}>{teacher?'No files uploaded for this lesson.':'Your teacher has not shared files for this lesson.'}</p>:
