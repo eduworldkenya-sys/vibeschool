@@ -8,7 +8,6 @@ type ReaderChapterEventDetail = { chapterId?: unknown };
 type ReaderMode = "read" | "study" | "revise";
 type Anchor = { blockId: string; startOffset: number; endOffset: number };
 type SelectionState = ({ text: string; x: number; y: number } & Anchor) | null;
-type StudyItem = { item_id: string; item_type: string; chapter_id: string; payload: Record<string, unknown> };
 
 function textOffset(root: HTMLElement, node: Node, offset: number): number {
   const range = document.createRange(); range.selectNodeContents(root); range.setEnd(node, offset); return range.toString().length;
@@ -30,25 +29,15 @@ function selectedTextInsideReader(): SelectionState {
   return { text:text.slice(0,2000), blockId:startBlock.dataset.readerBlockId || "", startOffset, endOffset, x:Math.max(12,Math.min(window.innerWidth-12,rect.left+rect.width/2)), y:Math.max(68,rect.top-10) };
 }
 
-function rangeFromOffsets(root: HTMLElement, start: number, end: number): Range | null {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let cursor=0; let startNode:Node|null=null,endNode:Node|null=null,startLocal=0,endLocal=0;
-  while(walker.nextNode()) { const node=walker.currentNode; const length=node.textContent?.length ?? 0;
-    if(!startNode && start>=cursor && start<=cursor+length){startNode=node;startLocal=start-cursor;}
-    if(end>=cursor && end<=cursor+length){endNode=node;endLocal=end-cursor;break;} cursor+=length;
-  }
-  if(!startNode||!endNode)return null; const range=document.createRange(); range.setStart(startNode,startLocal); range.setEnd(endNode,endLocal); return range;
-}
-
 function bestEnglishVoice(): SpeechSynthesisVoice|null { if(!("speechSynthesis" in window))return null; const voices=window.speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith("en")); return voices.find(v=>/natural|neural|enhanced|premium|online|google|microsoft/i.test(`${v.name} ${v.voiceURI}`))??voices[0]??null; }
 
 export function ReaderStudyInteractions(){
   const router=useRouter(); const supabase=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!),[]);
-  const chapterIdRef=useRef<string|null>(null); const [mode,setMode]=useState<ReaderMode>("read"); const [selection,setSelection]=useState<SelectionState>(null); const [noteOpen,setNoteOpen]=useState(false); const [note,setNote]=useState(""); const [saving,setSaving]=useState(false); const [message,setMessage]=useState(""); const [items,setItems]=useState<StudyItem[]>([]); const [zoomedImage,setZoomedImage]=useState<{src:string;alt:string}|null>(null);
+  const chapterIdRef=useRef<string|null>(null); const [mode,setMode]=useState<ReaderMode>("read"); const [selection,setSelection]=useState<SelectionState>(null); const [noteOpen,setNoteOpen]=useState(false); const [note,setNote]=useState(""); const [saving,setSaving]=useState(false); const [message,setMessage]=useState(""); const [zoomedImage,setZoomedImage]=useState<{src:string;alt:string}|null>(null);
 
-  async function loadAnnotations(chapterId:string){ const {data:auth}=await supabase.auth.getUser(); if(!auth.user){setItems([]);return;} const {data,error}=await supabase.rpc("get_my_study_workspace_items",{p_item_type:null}); if(error)return; setItems(((data??[]) as StudyItem[]).filter(item=>item.chapter_id===chapterId&&(item.item_type==="highlight"||item.item_type==="note"))); }
 
   useEffect(()=>{
-    function onChapter(raw:Event){const event=raw as CustomEvent<ReaderChapterEventDetail>;const id=typeof event.detail?.chapterId==="string"?event.detail.chapterId:null;chapterIdRef.current=id;setSelection(null);setNoteOpen(false);setMessage("");if(id)window.setTimeout(()=>void loadAnnotations(id),80);}
+    function onChapter(raw:Event){const event=raw as CustomEvent<ReaderChapterEventDetail>;const id=typeof event.detail?.chapterId==="string"?event.detail.chapterId:null;chapterIdRef.current=id;setSelection(null);setNoteOpen(false);setMessage("");}
     function onMode(raw:Event){const event=raw as CustomEvent<{mode?:ReaderMode}>;if(event.detail?.mode)setMode(event.detail.mode);setSelection(null);setNoteOpen(false);}
     function onSelectionChange(){if(mode!=="study")return setSelection(null);window.setTimeout(()=>setSelection(selectedTextInsideReader()),0);}
     function onPointerDown(event:PointerEvent){const target=event.target as HTMLElement|null;if(target?.closest(".reader-selection-toolbar,.reader-selection-note"))return;if(!target?.closest("#reader-active-unit"))setSelection(null);}
@@ -58,18 +47,12 @@ export function ReaderStudyInteractions(){
     return()=>{window.removeEventListener("vibe:reader-chapter",onChapter);window.removeEventListener("vibe:reader-mode",onMode);document.removeEventListener("selectionchange",onSelectionChange);document.removeEventListener("pointerdown",onPointerDown,true);document.removeEventListener("click",onImageClick,true);window.removeEventListener("keydown",onKeyDown);};
   },[mode]);
 
-  useEffect(()=>{
-    const noteCounts=new Map<string,number>();
-    for(const item of items){const p=item.payload||{};const blockId=typeof p.block_id==="string"?p.block_id:"";if(!blockId)continue;if(item.item_type==="note")noteCounts.set(blockId,(noteCounts.get(blockId)||0)+1);}
-    document.querySelectorAll<HTMLElement>("#reader-active-unit [data-reader-block-id]").forEach(el=>{delete el.dataset.readerNoteCount;});
-    noteCounts.forEach((count,id)=>{const el=document.querySelector<HTMLElement>(`#reader-active-unit [data-reader-block-id="${CSS.escape(id)}"]`);if(el)el.dataset.readerNoteCount=String(count);});
-    const cssApi=CSS as typeof CSS & {highlights?:Map<string,unknown>}; if(!cssApi.highlights||typeof Highlight==="undefined")return;
-    const ranges:Range[]=[]; for(const item of items){if(item.item_type!=="highlight")continue;const p=item.payload||{};const id=typeof p.block_id==="string"?p.block_id:"";const start=Number(p.start_offset),end=Number(p.end_offset);if(!id||!Number.isInteger(start)||!Number.isInteger(end)||end<=start)continue;const el=document.querySelector<HTMLElement>(`#reader-active-unit [data-reader-block-id="${CSS.escape(id)}"]`);if(!el)continue;const range=rangeFromOffsets(el,start,end);if(range)ranges.push(range);}
-    cssApi.highlights.set("vibe-reader-highlights",new Highlight(...ranges)); return()=>{cssApi.highlights?.delete("vibe-reader-highlights");};
-  },[items]);
+  // ReaderAnnotationManager exclusively renders highlights and note markers.
+  // This component creates selections and writes annotations; it never owns
+  // the CSS Highlight registry, avoiding duelling cleanup during navigation.
 
   async function requireUser(){const{data}=await supabase.auth.getUser();if(data.user)return data.user;const redirect=`${window.location.pathname}${window.location.search}`;router.push(`/login?redirect=${encodeURIComponent(redirect)}`);return null;}
-  async function saveItem(itemType:"highlight"|"note"|"vocabulary",payload:Record<string,unknown>){if(!selection?.text||!chapterIdRef.current||saving)return;if(!(await requireUser()))return;setSaving(true);setMessage("");const anchor={block_id:selection.blockId,start_offset:selection.startOffset,end_offset:selection.endOffset};const{data,error}=await supabase.rpc("upsert_study_workspace_item",{p_item_type:itemType,p_chapter_id:chapterIdRef.current,p_payload:{...payload,...(itemType==="vocabulary"?{}:anchor)},p_item_id:null});const result=data as{ok?:boolean;reason?:string|null}|null;if(error||!result?.ok){setMessage(result?.reason==="not_entitled"?"This passage is not available to save.":"Could not save this study item.");setSaving(false);return;}setMessage(itemType==="highlight"?"Highlighted":itemType==="note"?"Note saved":"Saved to vocabulary");setSaving(false);if(itemType==="note"){setNote("");setNoteOpen(false);}await loadAnnotations(chapterIdRef.current);window.setTimeout(()=>{window.getSelection()?.removeAllRanges();setSelection(null);setMessage("");},650);}
+  async function saveItem(itemType:"highlight"|"note"|"vocabulary",payload:Record<string,unknown>){if(!selection?.text||!chapterIdRef.current||saving)return;const savedChapterId=chapterIdRef.current;if(!(await requireUser()))return;if(chapterIdRef.current!==savedChapterId)return;setSaving(true);setMessage("");const anchor={block_id:selection.blockId,start_offset:selection.startOffset,end_offset:selection.endOffset};const{data,error}=await supabase.rpc("upsert_study_workspace_item",{p_item_type:itemType,p_chapter_id:savedChapterId,p_payload:{...payload,...(itemType==="vocabulary"?{}:anchor)},p_item_id:null});const result=data as{ok?:boolean;reason?:string|null}|null;if(error||!result?.ok){setMessage(result?.reason==="not_entitled"?"This passage is not available to save.":"Could not save this study item.");setSaving(false);return;}setMessage(itemType==="highlight"?"Highlighted":itemType==="note"?"Note saved":"Saved to vocabulary");setSaving(false);if(itemType==="note"){setNote("");setNoteOpen(false);}if(itemType!=="vocabulary")window.dispatchEvent(new CustomEvent("vibe:reader-annotation-changed",{detail:{chapterId:savedChapterId}}));window.setTimeout(()=>{window.getSelection()?.removeAllRanges();setSelection(null);setMessage("");},650);}
   function speak(text:string){if(!("speechSynthesis" in window)||!text)return;window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);const voice=bestEnglishVoice();if(voice){utterance.voice=voice;utterance.lang=voice.lang;}else utterance.lang="en-KE";utterance.rate=.9;window.speechSynthesis.speak(utterance);}
   const vocabularyEligible=Boolean(selection&&selection.text.length<=80&&selection.text.split(/\s+/).length<=8);
 
