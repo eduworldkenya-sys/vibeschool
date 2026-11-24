@@ -85,12 +85,14 @@ export function useVibeChatOutbox(owner:string,onCommitted:(item:QueuedMessage)=
     const item=[...firstByRoom.values()].find(m=>!m.failed&&m.nextAt<=now)
     if(!item)return
     inFlight.current=item.id
+    const abort=new AbortController()
+    const deadline=window.setTimeout(()=>abort.abort(),15000)
     try{
-      const {data,error}=await getSupabaseClient().rpc('vibechat_send_once',{p_owner:actor,p_kind:item.kind,p_room:item.room,p_operation:item.id,p_body:item.body})
+      const {data,error}=await getSupabaseClient().rpc('vibechat_send_once',{p_owner:actor,p_kind:item.kind,p_room:item.room,p_operation:item.id,p_body:item.body}).abortSignal(abort.signal)
       if(currentOwner.current!==actor||inFlight.current!==item.id)return
       if(error){
         const rate=error.details==='VIBECHAT_RATE_LIMIT'||/message (?:rate )?limit reached/i.test(error.message)
-        const transient=rate||!error.code||['PGRST000','PGRST001','PGRST002','PGRST003','PGRST202','57014','40001','40P01','08006','08000'].includes(error.code)
+        const transient=abort.signal.aborted||rate||!error.code||['PGRST000','PGRST001','PGRST002','PGRST003','PGRST202','57014','40001','40P01','08006','08000'].includes(error.code)
         const attempts=item.attempts+1
         publish(queue.current.map(m=>m.id===item.id?{...m,attempts,failed:!transient||attempts>=12,nextAt:Date.now()+(rate?65000:retryDelay(attempts))}:m))
       }else if(data){
@@ -105,7 +107,7 @@ export function useVibeChatOutbox(owner:string,onCommitted:(item:QueuedMessage)=
         const attempts=item.attempts+1
         publish(queue.current.map(m=>m.id===item.id?{...m,attempts,failed:attempts>=12,nextAt:Date.now()+retryDelay(attempts)}:m))
       }
-    }finally{if(inFlight.current===item.id)inFlight.current=null}
+    }finally{window.clearTimeout(deadline);if(inFlight.current===item.id)inFlight.current=null}
   },[publish])
   useEffect(()=>{
     if(!owner||!online)return
