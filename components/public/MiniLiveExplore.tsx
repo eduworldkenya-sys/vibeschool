@@ -11,6 +11,7 @@ import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInter
   addMiniComment, reportMini, recordMiniLearningSignal, publishMiniSafely, MiniSubmissionSavedError } from '@/lib/minis/actions'
 import { miniTagLabel, parseMiniHashtags } from '@/lib/minis/tags'
 import { prepareMiniPhoto } from '@/lib/minis/photo'
+import { MiniVoiceComposer, MiniVoicePreview, MiniPublishedVoice } from './MiniVoice'
 import { MiniLiveRequests } from './MiniLiveRequests'
 import type { MiniPublicRequest } from '@/lib/minis/requests'
 import styles from './MiniExplore.module.css'
@@ -77,6 +78,8 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
   const [createMenu, setCreateMenu] = useState(false)
   const [draftBody, setDraftBody] = useState('')
   const [draftTags, setDraftTags] = useState('')
+  const [voice,setVoice]=useState<File|null>(null)
+  const [voiceBusy,setVoiceBusy]=useState(false)
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview,setPhotoPreview] = useState('')
   const [draftPreview,setDraftPreview] = useState('')
@@ -103,7 +106,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
   useEffect(() => () => { if (draftPreview) URL.revokeObjectURL(draftPreview) }, [draftPreview])
 
   async function previewDraft() {
-    if (!photo || previewBusy || !composerRef.current?.reportValidity()) return
+    if (!photo || voiceBusy || previewBusy || !composerRef.current?.reportValidity()) return
     setError('');setPreviewBusy(true)
     try {
       parseMiniHashtags(draftTags)
@@ -124,6 +127,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
   }, [])
 
   const back = () => {
+    setVoice(null)
     setDraftPreview('')
     setSection('feed')
     setCreatorId(null)
@@ -165,7 +169,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         if (id) {
           {
             const { data } = await supabase.from('mini_lessons')
-              .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
+              .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,audio_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
               .eq('id',id).eq('status','approved').maybeSingle()
             if (data && mounted) {
               const newPost = data as MiniPost
@@ -363,23 +367,23 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     setDraftTags(request.tags.map(name=>'#'+name).join(' '))
     setDraftTitle('')
     setDraftBody('')
-    setPhoto(null)
+    setPhoto(null);setVoice(null)
     setSection('compose')
   }
 
   async function publish(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!enabled) return
-    if (!ensureSignIn(viewer) || !viewer || busy) return
+    if (!ensureSignIn(viewer) || !viewer || busy || voiceBusy) return
     if (!photo) {setError('Add a cover photo to publish a Mini Lesson.');return}
     setBusy(true);setError('');setNotice('')
     try {
       parseMiniHashtags(draftTags)
       const editedPhoto = await prepareMiniPhoto(photo,photoRotation,photoZoom)
-      await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo:editedPhoto,userId:viewer,
+      await submitMini({ title:draftTitle,body:draftBody,hashtags:draftTags,photo:editedPhoto,voice,userId:viewer,
         challenge:quizEnabled ? { question:quizQuestion, options:quizOptions, correct:quizCorrect, explanation:quizExplanation } : null,
         requestId: answerRequest?.id ?? null })
-      setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
+      setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setVoice(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
       setNotice(answerRequest ? 'Your explanation is published on the request.' : 'Mini Lesson published.')
       back()
       setRefreshKey(key=>key+1)
@@ -387,7 +391,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
       setError(e instanceof Error ? e.message : 'Unable to submit Mini.')
       if(e instanceof MiniSubmissionSavedError){
         setDraftPreview('')
-        setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('');setAnswerRequest(null)
+        setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setVoice(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('');setAnswerRequest(null)
         setSection('mine')
         try{setMine(await fetchOwnMiniStatus(viewer))}catch{setError(old=>old+' Open My Minis to reload the saved submission.')}
       }
@@ -483,6 +487,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
     <div className={styles.feedCaption}>
       <button type="button" className={styles.linkButton} onClick={()=>open(post)}><strong>{post.title}</strong></button>
       <p>{post.body.length>240?post.body.slice(0,240).trimEnd()+'…':post.body}</p>
+      {post.audio_path&&<MiniPublishedVoice key={post.audio_path} path={post.audio_path}/>}
       <div className={styles.tagRow}>{post.tags.map(name=><button type="button" key={name}
         className={styles.tagButton} onClick={()=>chooseTag(name)}>{miniTagLabel(name)}</button>)}</div>
       {post.quiz_question && <button type="button" className={styles.smallButton} onClick={()=>open(post)}>
@@ -566,6 +571,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
             aria-pressed={follows.has(current.creator_id)} onClick={()=>void follow()}>
             {follows.has(current.creator_id)?'Following':'+ Follow'}</button>
         </div>
+        {current.audio_path&&<MiniPublishedVoice key={current.audio_path} path={current.audio_path}/>}
         {current.body.split(/\n\s*\n/).map((paragraph,index)=><p key={index} className={styles.paragraph}>{paragraph}</p>)}
         <div className={styles.tagRow}>{current.tags.map(name=><button key={name} type="button" className={styles.tagButton} onClick={()=>chooseTag(name)}>{miniTagLabel(name)}</button>)}</div>
         {current.quiz_question && <section className={styles.quiz}>
@@ -626,7 +632,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
         <header className={styles.composerHeader}>
           <button className={styles.back} type="button" disabled={previewBusy||busy} onClick={draftPreview?()=>setDraftPreview(''):back} aria-label={draftPreview?'Edit Mini Lesson':'Back to Explore'}>←</button>
           <h1>{draftPreview?'Preview':answerRequest?'Explain request':'Create Mini Lesson'}</h1>
-          <button type="submit" className={styles.primary} disabled={!enabled || !viewer || busy || previewBusy || !draftTitle.trim() || !draftBody.trim() || !photo}>
+          <button type="submit" className={styles.primary} disabled={!enabled || !viewer || busy || voiceBusy || previewBusy || !draftTitle.trim() || !draftBody.trim() || !photo}>
             {busy?'Checking…':'Publish'}</button>
         </header>
         {!enabled && <p role="status" className={styles.compactNotice}>Publishing is not yet available. Drafts aren't saved.</p>}
@@ -661,6 +667,7 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
           <label htmlFor="mini-body" className={styles.visuallyHidden}>Explanation</label>
           <textarea id="mini-body" required minLength={40} maxLength={3000} className={styles.editor}
             value={draftBody} onChange={e=>setDraftBody(e.target.value)} placeholder="Explain something useful…"/>
+          <MiniVoiceComposer file={voice} onChange={setVoice} onBusy={setVoiceBusy} disabled={!!draftPreview}/>
           <label htmlFor="mini-tags" className={styles.visuallyHidden}>Hashtags</label>
           <input id="mini-tags" className={styles.field} required maxLength={180} value={draftTags}
             onChange={e=>setDraftTags(e.target.value)} placeholder="# Hashtags (1–5)"/>
@@ -686,11 +693,11 @@ export function MiniLiveExplore({ enabled = true }: { enabled?: boolean } = {}) 
             <textarea className={styles.field} id="mini-explanation" required minLength={10} maxLength={500}
               value={quizExplanation} onChange={e=>setQuizExplanation(e.target.value)} rows={3}/>
           </div>}
-          <button type="button" className={styles.secondary+' '+styles.previewButton} disabled={previewBusy||!photo||!draftTitle.trim()||!draftBody.trim()||!draftTags.trim()} onClick={()=>void previewDraft()}>{previewBusy?'Preparing…':'Preview'}</button>
+          <button type="button" className={styles.secondary+' '+styles.previewButton} disabled={previewBusy||voiceBusy||!photo||!draftTitle.trim()||!draftBody.trim()||!draftTags.trim()} onClick={()=>void previewDraft()}>{previewBusy?'Preparing…':'Preview'}</button>
         </fieldset>
         {draftPreview && <article className={styles.draftPreview}>
           <img src={draftPreview} alt="Mini Lesson photo preview"/>
-          <div className={styles.previewBody}><h2>{draftTitle}</h2><p>{draftBody}</p><p className={styles.tagRow}>{draftTags}</p>
+          <div className={styles.previewBody}><h2>{draftTitle}</h2><p>{draftBody}</p>{voice&&<MiniVoicePreview file={voice}/>}<p className={styles.tagRow}>{draftTags}</p>
             {quizEnabled && <section className={styles.quiz}><h3>{quizQuestion}</h3>{quizOptions.map((option,i)=><p key={i}>{String.fromCharCode(65+i)}. {option}</p>)}</section>}
             <button type="button" className={styles.secondary} onClick={()=>setDraftPreview('')}>Edit</button>
           </div>
