@@ -30,3 +30,40 @@ assert.match(practice, /Continue learning/)
 assert.match(practice, /not certified mastery/)
 assert.match(practice, /const validNextChapterId = \/\^\[0-9a-f\]/)
 console.log('PASS: chapter-scoped practice continuation retains server scoring and honest next actions')
+
+
+const continuity = read('components/read/ReaderContinuityCoordinator.tsx')
+const study = read('components/read/ReaderStudyInteractions.tsx')
+const annotations = read('components/read/ReaderAnnotationManager.tsx')
+const editorial = read('components/learn/PublishedTextbookEditorial.module.css')
+
+// Exactly one authoritative reader progress writer.
+assert.doesNotMatch(reader, /record_reading_progress/, 'ReaderClient must not duplicate progress writes')
+assert.match(continuity, /record_reading_progress/, 'Canonical progress and saved position remain')
+assert.match(reader, /canRead:active\.can_read&&active\.status==="published"&&!lessonActive/)
+assert.match(continuity, /detail\.canRead !== true/, 'Locked and preview content must not write progress')
+assert.match(continuity, /generation !== chapterGeneration/, 'Stale chapter restoration must be dropped')
+assert.match(continuity, /activeRef\.current\?\.chapterId !== snapshot\.chapterId/)
+
+// The bottom controls invoke the reader API, not brittle text-matched DOM buttons.
+assert.match(reader, /vibe:reader-open-contents/)
+assert.match(continuity, /new Event\("vibe:reader-open-contents"\)/)
+assert.match(reader, /vibe:reader-navigate/)
+assert.match(continuity, /new CustomEvent\("vibe:reader-navigate"/)
+assert.doesNotMatch(continuity, /text\.startsWith\(label\)/)
+assert.match(reader, /disabled=\{!readableChapter\(chapter\)\}/)
+assert.match(reader, /disabled=\{previousIndex<0\}/)
+assert.match(reader, /disabled=\{nextIndex<0\}/)
+
+// Only the annotation manager renders saved highlights and note markers.
+assert.doesNotMatch(study, /cssApi\.highlights\.set|get_my_study_workspace_items/)
+assert.match(study, /vibe:reader-annotation-changed/, 'Saving notifies the annotation owner')
+assert.match(annotations, /vibe:reader-annotation-changed/)
+assert.match(annotations, /cssApi\.highlights\.set\("vibe-reader-highlights"/)
+assert.match(annotations, /chapterIdRef\.current !== chapterId/, 'Ignore stale annotation results')
+
+// Text sizing applies to the actual published book, not just controls.
+assert.match(reader, /"--reader-book-font-size":font\+"px"/)
+assert.match(editorial, /var\(--reader-book-font-size, 1\.04rem\)/)
+assert.match(launcher, /\/login\?redirect=/, 'Chapter practice survives sign-in')
+console.log('PASS: single-owner reader continuity, annotations, accessible navigation and font scaling')

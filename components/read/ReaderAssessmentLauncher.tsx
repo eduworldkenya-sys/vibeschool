@@ -30,11 +30,16 @@ export function ReaderAssessmentLauncher() {
       // The click carries its own source; ref is only for older reader dispatchers.
       const source = validSource((event as CustomEvent<Detail>).detail) ?? activeSource.current;
       if (!source) return;
-      const { data, error } = await sb.auth.getUser();
-      if (error || !data.user) { router.push("/login"); return; }
       const query = new URLSearchParams({ publication: source.publicationId, chapter: source.chapterId });
       if (source.nextChapterId) query.set("next", source.nextChapterId);
-      router.push(`/student/vibelearn/practice?${query.toString()}`);
+      const destination = `/student/vibelearn/practice?${query.toString()}`;
+      // Preserve the exact chapter when login interrupts the read-to-practise flow.
+      const { data, error } = await sb.auth.getUser();
+      if (error || !data.user) {
+        router.push(`/login?redirect=${encodeURIComponent(destination)}`);
+        return;
+      }
+      router.push(destination);
     }
     function onPractice(event: Event) { void practice(event); }
     window.addEventListener("vibe:reader-chapter", chapter);
