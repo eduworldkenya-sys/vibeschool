@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal, Hand, MessageSquare, NotebookPen, History, Wifi, WifiOff, BookOpen } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
+import { adjacentSlide } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
 import { TeachingLibrary } from './LiveTeachingLibrary'
@@ -914,9 +915,12 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const slide=slides[slideIndex]
   const liveSlide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
   const slideText=slide?encodeSlide(slide,slideIndex+1,slides.length):''
+  const previousLiveSlide=liveSlide?adjacentSlide(slides,liveSlide,-1):null
+  const nextLiveSlide=liveSlide?adjacentSlide(slides,liveSlide,1):null
+  const canNavigateSlides=teacher&&!busy&&!draftLoading&&online&&room?.status==='active'
   function editSlide(patch:Partial<LiveSlide>){setSlides(items=>items.map((item,i)=>i===slideIndex?{...item,...patch}:item))}
   function presentSlide(index:number){
-    const item=slides[index];if(!item||busy||!online||room?.status!=='active')return
+    const item=slides[index];if(!item||!canNavigateSlides)return
     const slideText=encodeSlide(item,index+1,slides.length)
     if(slideText)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})
   }
@@ -1001,7 +1005,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel('library')}>My presentations</button><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
           <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length}/>
           <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
-          <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next</button><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>Present slide</button></div>
+          <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous preview</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next preview</button><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>Present slide</button></div>
           <div className={styles.slideFields}>
             <label>Title<input value={slide.title} maxLength={120} disabled={busy} onChange={e=>editSlide({title:e.target.value})}/></label>
             <label>Content<textarea value={slide.body} maxLength={3878} disabled={busy} onChange={e=>editSlide({body:e.target.value})}/></label>
@@ -1082,9 +1086,11 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       {viewedPrompt.id===prompt?.id&&<button type="button" onClick={()=>setPanel('learners')}>Responses</button>}
     </div>}
     {teacher&&panel===null&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
-      <button type="button" disabled={busy||!online||room.status!=='active'||liveSlide.number<=1||liveSlide.total!==slides.length||!encodeSlide(slides[liveSlide.number-2],liveSlide.number-1,slides.length)} onClick={()=>presentSlide(liveSlide.number-2)}>Previous slide</button>
+      <button type="button" disabled={!canNavigateSlides||previousLiveSlide===null} onClick={()=>{if(previousLiveSlide!==null)presentSlide(previousLiveSlide)}}>Previous slide</button>
       <span>{liveSlide.number} / {liveSlide.total}</span><button type="button" onClick={openSlides}>Edit slides</button>
-      <button type="button" disabled={busy||!online||room.status!=='active'||liveSlide.number>=slides.length||liveSlide.total!==slides.length||!encodeSlide(slides[liveSlide.number],liveSlide.number+1,slides.length)} onClick={()=>presentSlide(liveSlide.number)}>Next slide</button>
+      <button type="button" disabled={!canNavigateSlides||nextLiveSlide===null} onClick={()=>{if(nextLiveSlide!==null)presentSlide(nextLiveSlide)}}>Next slide</button>
+      {canNavigateSlides&&nextLiveSlide!==null&&nextLiveSlide>liveSlide.number&&<small role="status">Blank or invalid draft slides will be skipped.</small>}
+      {canNavigateSlides&&nextLiveSlide===null&&liveSlide.number<liveSlide.total&&<small role="status">No matching publishable next slide. Open Edit slides, restore or complete the deck, and present a slide again.</small>}
     </div>}
     {!teacher&&reviewId===null&&prompt&&['quiz','exercise','poll'].includes(prompt.kind)&&<section className={styles.answerPanel}>{room.ownAnswer!==null&&room.ownAnswer!==undefined?<p role="status"><strong>Submitted:</strong> {room.ownAnswer}</p>:prompt.revealed?<p>Responses closed.</p>:<form onSubmit={e=>{e.preventDefault();void act('answer',null,{body:answer,promptId:prompt.id})}}>
        {answerChoices.length?<fieldset className={styles.answerChoices}><legend>Choose your answer</legend>{answerChoices.map(option=><label key={option.letter}><input type="radio" name="live-choice" value={option.value} checked={answerFor===prompt.id&&answer===option.value} onChange={()=>{setAnswerFor(prompt.id);setAnswer(option.value)}} disabled={room.status!=='active'}/><span><strong>{option.letter}.</strong> {option.text}</span></label>)}</fieldset>:<label>Your answer<textarea maxLength={2000} required value={answerFor===prompt.id?answer:''} onChange={e=>{setAnswerFor(prompt.id);setAnswer(e.target.value)}} disabled={room.status!=='active'}/></label>}
