@@ -398,7 +398,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
               <h2>Chapters and topics</h2>
               {chapterSearchStatus === 'loading' && <p role="status">Finding published chapters…</p>}
               {chapterSearchStatus === 'error' && <p role="alert">Chapter search is unavailable. You can still browse subjects and books.</p>}
-              {chapterSearchStatus === 'ready' && chapterMatches.length === 0 && <p>No matching published chapters.</p>}
+              {chapterSearchStatus === 'ready' && chapterMatches.length === 0 && filteredGroups.length === 0 && <p>No matching published chapters.</p>}
               {chapterMatches.map(chapter => {
                 const parent = gradeBooks.find(book => book.id === chapter.publication_id)
                 return <Link className={styles.chapterSearchLink} key={chapter.id}
@@ -422,8 +422,8 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                     <span className={styles.subjectAvailability}>{count > 0 || readers > 0 ? 'Read textbook' : 'View textbook'} <ChevronRight size={13} style={{ verticalAlign: 'middle' }} /></span>
                   </Link>
                 })}</div>
-              </section>) : <div className={styles.empty}>
-              {query ? 'No subjects match your search. Try a different word.' :
+              </section>) : chapterMatches.length > 0 || chapterSearchStatus === 'loading' ? null : <div className={styles.empty}>
+              {query ? 'No matching subjects or published chapters. Try a different word.' :
                 grade === 'Playgroup'
                   ? 'No nationally registered Playgroup subjects are available in this catalogue. Age-appropriate published resources will be listed when available.'
                   : 'No subject entries are available for this grade yet. Published textbooks will appear when catalogued.'}
@@ -431,11 +431,6 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
             {activeLevel === 'senior' && <p className={styles.tinyNote}>Senior School subjects are organised by core choices and pathways. A learner’s school-selected combination determines which optional subjects apply; these are not all compulsory.</p>}
             {activeLevel === 'legacy' && <p className={styles.tinyNote}>Forms 1–4 use a separate legacy curriculum. The incomplete legacy subject register is not presented as a complete official subject list.</p>}
             {catalogueTruncated && <p className={styles.alert}>The published textbook catalogue is very large; not every result could be displayed in this view.</p>}
-            <div className={styles.statsRow} aria-hidden="true" hidden>
-              <div className={styles.stat}><strong>Learn</strong><span>Clear notes, worked examples and diagrams</span></div>
-              <div className={styles.stat}><strong>Explore</strong><span>Interactive demonstrations and visual aids</span></div>
-              <div className={styles.stat}><strong>Read</strong><span>Published books, stories and reading support</span></div>
-            </div>
           </>}
         </main>
       </div>
