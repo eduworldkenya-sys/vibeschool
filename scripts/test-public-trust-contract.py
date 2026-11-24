@@ -26,7 +26,7 @@ shell_pages = [
 ]
 for rel in shell_pages:
     content = text(rel)
-    for required in ['PublicHeader','PublicFooter','main-content']:
+    for required in (['PublicHeader','main-content'] if rel == 'app/explore/page.tsx' else ['PublicHeader','PublicFooter','main-content']):
         if required not in content:
             errors.append(f'{rel}: missing {required}')
 
@@ -152,9 +152,11 @@ for fragment in ['RoleJourneySelector','ConnectedEducationExplorer','SchoolReadi
 
 # Mini Lessons are a discovery UI preview; real publishing remains off.
 mini_page = text('app/explore/page.tsx')
+if 'PublicFooter' in mini_page:
+    errors.append('Mini Explore must remain footer-free in both preview and live modes')
 mini_ui = text('components/public/MiniExplore.tsx')
 mini_home = text('components/public/MiniHomeSection.tsx')
-for fragment in ['MiniExplore', "canonical: '/explore'", 'PublicHeader', 'PublicFooter', 'main-content']:
+for fragment in ['MiniExplore', "canonical: '/explore'", 'PublicHeader', 'main-content']:
     if fragment not in mini_page: errors.append(f'Mini Explore shell missing: {fragment}')
 for fragment in ['MINI_EXAMPLES', 'setQuery(', 'setTag(', 'setTab(', 'toggle(liked, setLiked,', 'toggle(saved, setSaved,', 'toggle(followed, setFollowed,', 'setComments(', 'Create Mini', 'Publish — not active', 'moderation', 'safeguarding']:
     if fragment not in mini_ui: errors.append(f'Mini Explore preview missing: {fragment}')
