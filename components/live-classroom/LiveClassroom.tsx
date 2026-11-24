@@ -213,7 +213,7 @@ function TeacherSticker({prompt,hidden,onHide}:{prompt:Prompt|null|undefined;hid
  </div>
 }
 
-export default function LiveClassroom({classId,teacher,back,hostModes=['tuition','open']}:{classId:string|null;teacher:boolean;back:string;hostModes?:ClassroomMode[]}) {
+export default function LiveClassroom({classId,teacher,back,hostModes=['tuition','open'],initialStudio=false}:{classId:string|null;teacher:boolean;back:string;hostModes?:ClassroomMode[];initialStudio?:boolean}) {
   const hostModeKey=hostModes.join(',')
   const [hostMode,setHostMode]=useState<ClassroomMode>(classId?'school':hostModes[0])
   const [groupId,setGroupId]=useState('')
@@ -226,7 +226,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   const [slides,setSlides]=useState<LiveSlide[]>([{title:'',body:''}])
   const [slideIndex,setSlideIndex]=useState(0)
   const [deletedSlide,setDeletedSlide]=useState<{slide:LiveSlide;index:number}|null>(null)
-  const [beforeLibrary,setBeforeLibrary]=useState(false)
+  const [beforeLibrary,setBeforeLibrary]=useState(initialStudio&&teacher)
   const preparedDeck=useRef<{title:string;slides:LiveSlide[]}|null>(null)
   const [preparedTitle,setPreparedTitle]=useState('')
   const [linkedPlan,setLinkedPlan]=useState<{id:string;schemeId:string|null;title:string;steps:LessonDeliveryStep[]}|null>(null)

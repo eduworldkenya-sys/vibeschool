@@ -13,6 +13,7 @@ export const teacherTools = {
   today: [{ label: 'Today', href: '/teacher/pulse', icon: Home }, ...(VIBETWIN_ENABLED ? [{ label: 'Twin', href: '/teacher/twin', icon: Sparkles }] : []), { label: 'Notifications', href: '/teacher/notifications', icon: Bell }],
   teach: [
     { label: 'Teach today', href: '/teacher/teach-today', icon: BookOpen },
+    ...(process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED==='true' ? [{label:'Live Studio',href:'/teacher/live-studio',icon:NotebookPen}] : []),
     { label: 'My tutoring', href: '/teacher/tutoring', icon: GraduationCap },
     { label: 'Timetable', href: '/teacher/timetable', icon: CalendarDays },
     { label: 'Subjects', href: '/teacher/subjecthub', icon: GraduationCap },
