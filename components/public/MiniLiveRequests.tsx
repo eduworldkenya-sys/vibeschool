@@ -38,7 +38,7 @@ export function MiniLiveRequests({ enabled=true, mode='feed', query='', onBack, 
       fetchMiniRequests(), id ? fetchMiniRequestSupports(id) : Promise.resolve(new Set<string>()),
     ])
     setRequests(list);setViewer(id);setSupports(own)
-  }, [enabled]
+  }, [enabled])
   useEffect(() => {
     if(!enabled)return
     let active=true
