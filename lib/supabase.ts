@@ -203,6 +203,7 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibechat_open_or_request_contact: { Args: { p_handle: string }; Returns: string | null }
       vibechat_request_contact: { Args: { p_handle: string }; Returns: string }
       vibechat_my_contacts: { Args: Record<never, never>; Returns: { id: string; name: string; avatar_url: string | null; handle: string; direction: 'incoming' | 'outgoing'; status: 'pending' | 'accepted' | 'declined'; thread_id: string | null; created_at: string }[] }
+      get_my_auth_access_state: { Args: Record<never, never>; Returns: { authenticated: boolean; role: string | null; account_status: string | null; is_anonymized: boolean; profile_complete?: boolean } }
       vibechat_my_inbox_state: { Args: Record<never, never>; Returns: { kind: 'vc' | 'tuition'; room_id: string; updated: string | null; preview: string | null; unread: number; latest_incoming_id: string | null; peer_online: boolean; peer_delivered_at: string | null; peer_read_at: string | null }[] }
       vibechat_presence_settings: { Args: { p_enabled?: boolean }; Returns: { eligible: boolean; enabled: boolean } }
       vibechat_presence_tick: { Args: Record<never, never>; Returns: boolean }
