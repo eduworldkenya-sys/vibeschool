@@ -24,7 +24,7 @@ const C={bg:"#f7f9f8",surface:"#ffffff",text:"#173e2c",muted:"#52665a",line:"#dc
 const cap=(s:string)=>s.replace(/_/g," ").replace(/\b\w/g,m=>m.toUpperCase());
 const blocks=(v:unknown):ContentBlock[]=>Array.isArray(v)?v.filter((b):b is ContentBlock=>!!b&&typeof b==="object"&&typeof(b as ContentBlock).id==="string"&&typeof(b as ContentBlock).type==="string"):[];
 
-export default function ReaderClient({publicationId,initialPayload,initialChapterId,lessonFocus}:{publicationId:string;initialPayload:ReaderPayload;initialChapterId:string|null;lessonFocus?:ReaderLessonFocus}){
+export default function ReaderClient({publicationId,initialPayload,initialChapterId,initialBlockId,lessonFocus}:{publicationId:string;initialPayload:ReaderPayload;initialChapterId:string|null;initialBlockId?:string|null;lessonFocus?:ReaderLessonFocus}){
   const router=useRouter();
   const initialChapters=Array.isArray(initialPayload.chapters)?initialPayload.chapters:[];
   const initialRequested=initialChapterId?initialChapters.findIndex(c=>c.id===initialChapterId):-1;
@@ -49,7 +49,7 @@ export default function ReaderClient({publicationId,initialPayload,initialChapte
 
   useEffect(()=>{let cancelled=false;const sb=createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);void(async()=>{const{data:{session}}=await sb.auth.getSession();if(!session||cancelled)return;const{data,error}=await sb.rpc("get_vibetextbook_reader",{publication_id_input:publicationId});if(cancelled||error)return;const next=data as ReaderPayload|null;if(!next?.ok||!next.publication)return;next.chapters=Array.isArray(next.chapters)?next.chapters:[];const currentId=chapters[index]?.id??initialChapterId;setPayload(next);const requested=currentId?next.chapters.findIndex(c=>c.id===currentId):-1;const resume=next.resume?.chapter_id?next.chapters.findIndex(c=>c.id===next.resume?.chapter_id):-1;setIndex(requested>=0?requested:resume>=0?resume:0)})().catch(()=>undefined);return()=>{cancelled=true}},[publicationId]);
 
-  useEffect(()=>{if(!active)return;window.dispatchEvent(new CustomEvent("vibe:reader-chapter",{detail:{publicationId:payload.publication.id,chapterId:active.id,progressPercent:active.progress_percent??0,canRead:active.can_read&&active.status==="published"&&!lessonActive}}));setDetails(false);setSheet(null)},[payload.publication.id,active?.id,active?.can_read,active?.status,lessonActive]);
+  useEffect(()=>{if(!active)return;window.dispatchEvent(new CustomEvent("vibe:reader-chapter",{detail:{publicationId:payload.publication.id,chapterId:active.id,progressPercent:active.progress_percent??0,canRead:active.can_read&&active.status==="published"&&!lessonActive,searchBlockId:active.id===initialChapterId?initialBlockId??null:null}}));setDetails(false);setSheet(null)},[payload.publication.id,active?.id,active?.can_read,active?.status,lessonActive,initialChapterId,initialBlockId]);
 
   // ReaderContinuityCoordinator owns reading progress, position restoration,
   // and pending retries. Competing scroll writers could overwrite its anchors.

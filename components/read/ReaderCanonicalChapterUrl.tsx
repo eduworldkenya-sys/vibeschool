@@ -14,7 +14,8 @@ export function ReaderCanonicalChapterUrl() {
       if (!detail?.publicationId || !detail.chapterId) return;
 
       const path = `/read/textbook/${encodeURIComponent(detail.publicationId)}/${encodeURIComponent(detail.chapterId)}`;
-      if (window.location.pathname === path && !window.location.search) return;
+      // Preserve an explicit block target on an already canonical chapter URL.
+      if (window.location.pathname === path && (!window.location.search || new URLSearchParams(window.location.search).has('block'))) return;
 
       window.history.replaceState(window.history.state, "", path);
     };
