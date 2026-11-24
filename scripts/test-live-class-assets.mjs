@@ -7,7 +7,7 @@ const fixture=await createLiveFixture()
 const {db,rpc,teacher,a,b,outsider}=fixture
 try {
   await db.exec("create schema storage; create table storage.buckets(id text primary key,name text,public boolean not null,file_size_limit bigint,allowed_mime_types text[]); create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,metadata jsonb); alter table storage.objects enable row level security; grant usage on schema storage to authenticated,anon; grant select,insert,delete on storage.objects to authenticated; grant select on storage.buckets to authenticated;")
-  await db.exec(readFileSync(new URL('../supabase/migrations/20261121130000_live_private_session_assets.sql',import.meta.url),'utf8'))
+  await db.exec(readFileSync(new URL('../supabase/migrations/20261121073938_live_private_session_assets.sql',import.meta.url),'utf8'))
   const room=await rpc(teacher,'start',null,null,{title:'Grade 4 Private PDF'})
   const sid=room.id
   await rpc(a,'join',sid)

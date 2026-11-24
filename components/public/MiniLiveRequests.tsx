@@ -12,9 +12,10 @@ type Props = {
   mode?: 'feed' | 'compose'
   query?: string
   onBack?: () => void
+  onRequest?: () => void
   onExplain: (request: MiniPublicRequest) => void
 }
-export function MiniLiveRequests({ enabled=true, mode='feed', query='', onBack, onExplain }: Props) {
+export function MiniLiveRequests({ enabled=true, mode='feed', query='', onBack, onRequest, onExplain }: Props) {
   const [requests,setRequests] = useState<MiniPublicRequest[]>([])
   const [supports,setSupports] = useState<Set<string>>(new Set())
   const [selected,setSelected] = useState<MiniPublicRequest|null>(null)
@@ -92,7 +93,7 @@ export function MiniLiveRequests({ enabled=true, mode='feed', query='', onBack, 
       if(savedRequestId)await publishMiniSafely('request',savedRequestId)
       else await submitMiniRequest(question,tags)
       setSavedRequestId(null);setQuestion('');setTags('')
-      setNotice('Your request is public after passing an automatic safety check. No HQ approval needed.')
+      setNotice('Request published.')
       try{await refresh()}catch{setNotice('Your request is public. Refresh Explore to see it.')}
     }catch(e){if(e instanceof MiniSubmissionSavedError)setSavedRequestId(e.submissionId);setError(e instanceof Error?e.message:'Unable to submit request.')}
     finally{setBusy(false)}
@@ -116,10 +117,8 @@ export function MiniLiveRequests({ enabled=true, mode='feed', query='', onBack, 
 
   if(mode==='compose') return <section className={styles.form}>
     <button type="button" className={styles.back} onClick={onBack}>← Explore</button>
-    <span className={styles.eyebrow}>REQUEST A MINI LESSON</span>
-    <h1>What would you like explained?</h1>
-    <p className={styles.subline}>One clear question and relevant hashtags. No photo needed.</p>
-    {!enabled && <p role="status" className={styles.formNote}>Publishing is not yet available. Your question will not be saved or posted.</p>}
+    <h1 className={styles.requestHeading}>Request a Mini Lesson</h1>
+    {!enabled && <p role="status" className={styles.formNote}>Publishing is not yet available. Drafts aren't saved.</p>}
     <form className={styles.requestForm} onSubmit={event=>void submit(event)}>
       <label htmlFor="mini-request-question" className={styles.label}>Question</label>
       <textarea id="mini-request-question" className={styles.editor} required minLength={12} maxLength={240}
@@ -133,7 +132,7 @@ export function MiniLiveRequests({ enabled=true, mode='feed', query='', onBack, 
     </form>
     {savedRequestId&&<button type="button" className={styles.secondary} onClick={onBack}>Return to Explore · My requests</button>}
     {(error||notice)&&<p role={error?'alert':'status'} className={styles.formNote}>{error||notice}</p>}
-    <p className={styles.previewNote}>Never include your name, phone number, contacts or school identity. Requests pass an automatic safety check before public discovery.</p>
+    <p className={styles.previewNote}>Never include your name, contacts or school. Requests pass an automatic safety check.</p>
   </section>
 
   if(mine) return <section className={styles.requestDetail}>
@@ -182,13 +181,13 @@ export function MiniLiveRequests({ enabled=true, mode='feed', query='', onBack, 
   const q=query.trim().toLowerCase()
   const visible=requests.filter(r=>!q||[r.question,...r.tags].join(' ').toLowerCase().includes(q))
   return <section aria-label="Mini Lesson requests" className={styles.requestFeed}>
-    <div className={styles.resultsLabel}><strong>Requests to explain</strong>
-      <div className={styles.requestActions}>{viewer&&<button type="button" onClick={()=>void openMine()}>My requests</button>}</div>
+    <div className={styles.resultsLabel}><strong>Requests</strong>
+      <div className={styles.requestActions}>{onRequest&&<button type="button" onClick={onRequest}>+ Request</button>}{viewer&&<button type="button" onClick={()=>void openMine()}>My requests</button>}</div>
     </div>
     {error&&<p role="alert" className={styles.formNote}>{error}</p>}
     {notice&&<p role="status" className={styles.formNote}>{notice}</p>}
     {loading?<p className={styles.subline}>Loading requests…</p>:!visible.length
-      ? <p className={styles.subline}>{enabled?'No matching requests yet. Start one with + Create.':'No published requests yet.'}</p>
+      ? <p className={styles.subline}>{query.trim()?'No matching requests.':'No requests yet.'}</p>
       : <div className={styles.grid}>
         {visible.map(r=><article key={r.id} className={styles.requestCard}>
           <span className={styles.requestEyebrow}>Student request · {r.explanations?'Answered':'Open'}</span>
