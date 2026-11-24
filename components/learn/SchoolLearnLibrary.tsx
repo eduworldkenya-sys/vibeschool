@@ -29,6 +29,8 @@ type PublishedBook = {
   cbc_subject: string | null
 }
 
+type ChapterSearchHit = { id: string; title: string; publication_id: string; number: number | null }
+
 type RegisteredSubject = {
   subject_name: string
   pathway: string | null
@@ -113,7 +115,10 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
   ) ? urlGrade! : preferredGrade
   const selectedSubject = params.get('subject')
   const activeLevel: SchoolLevelId = levelForGrade(grade)
-  const [query, setQuery] = useState('')
+  const initialQuery = params.get('q') ?? ''
+  const [query, setQuery] = useState(initialQuery)
+  const [chapterMatches, setChapterMatches] = useState<ChapterSearchHit[]>([])
+  const [chapterSearchStatus, setChapterSearchStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [tab, setTab] = useState<'lessons' | 'resources'>('lessons')
   const [books, setBooks] = useState<PublishedBook[]>([])
   const [booksLoading, setBooksLoading] = useState(true)
@@ -184,9 +189,59 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
     return () => { active = false }
   }, [grade])
 
-  useEffect(() => { setQuery(''); setTab('lessons') }, [grade, selectedSubject])
+  useEffect(() => { setQuery(initialQuery); setTab('lessons') }, [grade, selectedSubject, initialQuery])
 
   const gradeBooks = useMemo(() => books.filter(book => gradeMatches(book.cbc_grade, grade)), [books, grade])
+
+  // Search only chapter titles belonging to published books in the selected
+  // grade. Existing publication RLS remains the access authority; never search
+  // drafts or infer a chapter from an unpublished curriculum shell.
+  useEffect(() => {
+    let active = true
+    const needle = query.trim().replace(/[%_\\]/g, '').slice(0, 90)
+    if (needle.length < 2 || booksLoading) {
+      setChapterMatches([])
+      setChapterSearchStatus('idle')
+      return () => { active = false }
+    }
+    const ids = [...new Set(gradeBooks.map(book => book.id))]
+    if (!ids.length) {
+      setChapterMatches([])
+      setChapterSearchStatus('ready')
+      return () => { active = false }
+    }
+    setChapterSearchStatus('loading')
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const found: ChapterSearchHit[] = []
+          for (let offset = 0; offset < ids.length && found.length < 40; offset += 50) {
+            const { data, error } = await supabase.from('vibe_chapters')
+              .select('id,title,publication_id,number')
+              .in('publication_id', ids.slice(offset, offset + 50))
+              .eq('status', 'published')
+              .ilike('title', '%' + needle + '%')
+              .order('number', { ascending: true })
+              .limit(40)
+            if (error) throw error
+            if (!active) return
+            found.push(...((data ?? []) as ChapterSearchHit[]))
+          }
+          if (active) {
+            setChapterMatches(found.slice(0, 40))
+            setChapterSearchStatus('ready')
+          }
+        } catch {
+          if (active) {
+            setChapterMatches([])
+            setChapterSearchStatus('error')
+          }
+        }
+      })()
+    }, 280)
+    return () => { active = false; clearTimeout(timer) }
+  }, [gradeBooks, query, booksLoading])
+
   const subjectGroups: SubjectGroup[] = useMemo(() => {
     const bookSubjects = uniqueNames(gradeBooks.map(book => book.cbc_subject?.trim() || '').filter(Boolean))
     const seenSubjects = new Set<string>()
@@ -275,7 +330,11 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                     onClick={() => setTab(id)}><Icon size={15} aria-hidden="true"/> {label}</button>)}
               </div>
               {tab === 'lessons' && <section role="tabpanel" aria-label="Textbook">
-                {activeReaders.length > 0 && <section className={styles.detailPanel} aria-label="Available subject lessons">
+                <SubjectTextbookOutline grade={grade} subject={activeName} curriculumSubject={curriculumSubject ?? activeName}
+                  books={activeBooks.map(book => ({id:book.id,title:book.title,href:`/read/textbook/${encodeURIComponent(book.id)}`}))}
+                  readers={activeReaders} booksLoading={booksLoading} booksError={booksError || catalogueTruncated}/>
+                {activeReaders.length > 0 && <details className={styles.detailPanel} aria-label="Available subject lessons">
+                  <summary className={styles.moreLessonSummary}>More lesson links <ChevronRight size={16} aria-hidden="true"/></summary>
                   <h2>Lessons</h2>
                   <div className={styles.resourceList}>
                     {activeReaders.map(reader => <Link className={styles.resource} key={reader.href} href={reader.href}>
@@ -287,10 +346,8 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                       <ChevronRight size={18} aria-hidden="true"/>
                     </Link>)}
                   </div>
-                </section>}
-                <SubjectTextbookOutline grade={grade} subject={activeName} curriculumSubject={curriculumSubject ?? activeName}
-                  books={activeBooks.map(book => ({id:book.id,title:book.title,href:`/read/textbook/${encodeURIComponent(book.id)}`}))}
-                  readers={activeReaders} booksLoading={booksLoading} booksError={booksError || catalogueTruncated}/>
+                </details>}
+
                 <div className={styles.linksRow}>
                   <Link className={styles.buttonSecondary} aria-label="Finished learning? Practise this subject" href={'/student/vibelearn/topic-practice?' + new URLSearchParams({subject:curriculumSubject ?? activeName}).toString()}>Practise <ArrowRight size={16}/></Link>
                 </div>
@@ -308,9 +365,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
             </>
           ) : <>
             <div className={styles.intro}><div>
-              <div className={styles.kicker}>One destination for your learning content</div>
-              <h1 className={styles.pageTitle}>What would you like to learn?</h1>
-              <p className={styles.description}>Choose your grade and subject to open released lessons, exercises and textbooks. Browse published reading from this same library.</p>
+              <h1 className={styles.pageTitle}>Learn</h1>
             </div></div>
             <nav className={styles.gradeTabs} aria-label="Choose grade">
               {SCHOOL_LEVELS.find(level => level.id === activeLevel)?.grades.map(item =>
@@ -334,11 +389,25 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
             <nav className={styles.linksRow} aria-label="Continue to Practice">
               <Link className={styles.buttonSecondary} href="/student/vibelearn/topic-practice">Already learned a topic? Open Practice <ArrowRight size={15}/></Link>
             </nav>
-            <div className={styles.sectionHead}><h2>Subjects for {grade}</h2><span>{subjectNames.length} catalogue choices</span></div>
+            <div className={styles.sectionHead}><h2>Subjects for {grade}</h2></div>
             <label className={styles.searchbox}><Search size={19} aria-hidden="true" />
               <input type="search" value={query} onChange={event => setQuery(event.target.value)}
-                placeholder="Search subjects, topics or textbook titles…" aria-label="Search subjects and published books" />
+                placeholder="Search subjects, books or chapters…" aria-label="Search subjects, published books and chapters" />
             </label>
+            {query.trim().length >= 2 && <section aria-label="Matching textbook chapters" className={styles.chapterSearchResults}>
+              <h2>Chapters and topics</h2>
+              {chapterSearchStatus === 'loading' && <p role="status">Finding published chapters…</p>}
+              {chapterSearchStatus === 'error' && <p role="alert">Chapter search is unavailable. You can still browse subjects and books.</p>}
+              {chapterSearchStatus === 'ready' && chapterMatches.length === 0 && <p>No matching published chapters.</p>}
+              {chapterMatches.map(chapter => {
+                const parent = gradeBooks.find(book => book.id === chapter.publication_id)
+                return <Link className={styles.chapterSearchLink} key={chapter.id}
+                  href={`/read/textbook/${encodeURIComponent(chapter.publication_id)}/${encodeURIComponent(chapter.id)}`}>
+                  <span><strong>{chapter.title}</strong><small>{parent?.title ?? 'Published textbook'}</small></span>
+                  <ChevronRight size={17} aria-hidden="true"/>
+                </Link>
+              })}
+            </section>}
             {booksError && <div className={styles.alert} role="alert">Published textbooks could not be loaded. Subject browsing is still available, but book availability is incomplete.</div>}
             {filteredGroups.length ? filteredGroups.map((group, groupIndex) =>
               <section key={group.title} aria-label={group.title}>
@@ -349,7 +418,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
                   return <Link key={name} className={styles.subjectCard} href={buildUrl(basePath, grade, name)}>
                     <span className={`${styles.subjectIcon} ${styles[`tone${(index + groupIndex) % 6}`] ?? ''}`}><IconForSubject name={name}/></span>
                     <span className={styles.subjectName}>{name}</span>
-                    <span className={styles.subjectDescription}>{subjectDescription(name)}</span>
+                    <span className={styles.subjectDescription}>{count > 0 || readers > 0 ? 'Reading available' : 'Browse contents'}</span>
                     <span className={styles.subjectAvailability}>{count > 0 || readers > 0 ? 'Read textbook' : 'View textbook'} <ChevronRight size={13} style={{ verticalAlign: 'middle' }} /></span>
                   </Link>
                 })}</div>
@@ -362,7 +431,7 @@ function SchoolLearnLibraryContent({ mode = 'public', learnerGrade }: Props) {
             {activeLevel === 'senior' && <p className={styles.tinyNote}>Senior School subjects are organised by core choices and pathways. A learner’s school-selected combination determines which optional subjects apply; these are not all compulsory.</p>}
             {activeLevel === 'legacy' && <p className={styles.tinyNote}>Forms 1–4 use a separate legacy curriculum. The incomplete legacy subject register is not presented as a complete official subject list.</p>}
             {catalogueTruncated && <p className={styles.alert}>The published textbook catalogue is very large; not every result could be displayed in this view.</p>}
-            <div className={styles.statsRow}>
+            <div className={styles.statsRow} aria-hidden="true" hidden>
               <div className={styles.stat}><strong>Learn</strong><span>Clear notes, worked examples and diagrams</span></div>
               <div className={styles.stat}><strong>Explore</strong><span>Interactive demonstrations and visual aids</span></div>
               <div className={styles.stat}><strong>Read</strong><span>Published books, stories and reading support</span></div>
