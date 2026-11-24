@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { fetchApprovedMinis, fetchOwnMiniStatus, loadApprovedComments, loadMiniCovers,
-  fetchMiniPage, type MiniCursor, type MiniPost, type ApprovedComment } from '@/lib/minis/data'
+import { fetchMiniPage, fetchOwnMiniStatus, loadApprovedComments, loadMiniCovers,
+  type MiniCursor, type MiniPost, type ApprovedComment } from '@/lib/minis/data'
 import { miniPublicPath, miniExplorePath } from '@/lib/minis/public-url'
 import { rankMiniLessons } from '@/lib/minis/recommendation'
 import { currentMiniUser, miniIsVerifiedAdult, changeMiniFollow, changeMiniInteraction, submitMini,
@@ -28,7 +28,7 @@ const ensureSignIn = (user: string | null) => {
 
 function Cover({ url, subject, title }: { url?: string; subject: string; title: string }) {
   if (url) return <img className={styles.art} style={{ width: '100%', objectFit: 'cover' }} src={url}
-    alt={'Cover photo for ' + title}/>
+    alt={'Cover photo for ' + title} loading="lazy" decoding="async"/>
   return <div className={styles.art + ' ' + styles.literatureArt} role="img" aria-label={subject + ' Mini Lesson'}>
     <span style={{ fontSize: 54, color: '#5a4730' }} aria-hidden="true">✦</span>
   </div>
@@ -36,13 +36,6 @@ function Cover({ url, subject, title }: { url?: string; subject: string; title: 
 
 export function MiniLiveExplore() {
   const [posts, setPosts] = useState<MiniPost[]>([])
-  const [feedIds,setFeedIds] = useState<string[]>([])
-  const [cursor,setCursor] = useState<MiniCursor|undefined>()
-  const [feedLoading,setFeedLoading] = useState(true)
-  const [feedError,setFeedError] = useState('')
-  const [feedVersion,setFeedVersion] = useState(0)
-  const feedGeneration = useRef(0)
-  const feedBusy = useRef(false)
   const [covers, setCovers] = useState<Record<string,string>>({})
   const [viewer, setViewer] = useState<string | null>(null)
   const [adult, setAdult] = useState(false)
@@ -54,6 +47,15 @@ export function MiniLiveExplore() {
   const [tab, setTab] = useState<Tab>('For You')
   const [tag, setTag] = useState('All')
   const [query, setQuery] = useState('')
+  const [nextCursor, setNextCursor] = useState<MiniCursor|null>(null)
+  const [pageBusy, setPageBusy] = useState(false)
+  const [feedError, setFeedError] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
+  const feedSequence = useRef(0)
+  const feedReady = useRef(false)
+  const [identityReady,setIdentityReady] = useState(false)
+  const [feedIds,setFeedIds] = useState<string[]>([])
+  const [knownTags,setKnownTags] = useState<string[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creatorId, setCreatorId] = useState<string | null>(null)
   const [comments, setComments] = useState<ApprovedComment[]>([])
@@ -113,14 +115,9 @@ export function MiniLiveExplore() {
     let mounted = true
     async function load() {
       try {
-        const [list, userId] = await Promise.all([fetchApprovedMinis(24), currentMiniUser()])
-        const [signed, adultEligible] = await Promise.all([
-          loadMiniCovers(list),
-          userId ? miniIsVerifiedAdult(userId) : Promise.resolve(false),
-        ])
+        const userId = await currentMiniUser()
+        const adultEligible = userId ? await miniIsVerifiedAdult(userId) : false
         if (!mounted) return
-        setPosts(list)
-        setCovers(signed)
         setViewer(userId)
         setAdult(adultEligible)
         if (userId) {
@@ -139,12 +136,10 @@ export function MiniLiveExplore() {
         }
         const params = new URLSearchParams(window.location.search)
         const initialTag = params.get('tag')
-        if(initialTag && /^[a-z0-9_-]{2,32}$/.test(initialTag)) setTag(initialTag)
+        if(initialTag && /^[a-z][a-z0-9_]{1,29}$/.test(initialTag)) setTag(initialTag)
         const id = params.get('mini')
         if (id) {
-          const item = list.find(post => post.id === id)
-          if (item) open(item)
-          else {
+          {
             const { data } = await supabase.from('mini_lessons')
               .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
               .eq('id',id).eq('status','approved').maybeSingle()
@@ -161,45 +156,54 @@ export function MiniLiveExplore() {
       } catch {
         if (mounted) setError('Unable to load Mini Lessons. The service may not be enabled yet.')
       } finally {
-        if (mounted) setLoading(false)
+        if (mounted) {setIdentityReady(true);feedReady.current=true}
       }
     }
     void load()
     return () => { mounted = false }
   }, [open])
 
-  const feedFilter = useMemo(()=>({query,tag:tag==='All'?undefined:tag,creators:tab==='Following'?[...follows]:undefined}),[query,tag,tab,follows])
-  const mergeFeed = useCallback((items:MiniPost[])=>{
-    setPosts(old=>[...new Map([...old,...items].map(post=>[post.id,post])).values()])
-    void loadMiniCovers(items).then(urls=>setCovers(old=>({...old,...urls}))).catch(()=>{})
-  },[])
+  const mergePage = useCallback((items: MiniPost[], append: boolean) => {
+    setPosts(old => {
+      const map = new Map(old.map(post=>[post.id,post]))
+      for (const post of items) map.set(post.id,post)
+      return [...map.values()]
+    })
+    setFeedIds(old=>[...new Set([...(append?old:[]),...items.map(post=>post.id)])])
+    setKnownTags(old=>[...new Set([...old,...items.flatMap(post=>post.tags)])].slice(0,80))
+  }, [])
+
   useEffect(()=>{
-    if(loading) return
-    const generation=++feedGeneration.current
-    feedBusy.current=true
-    setFeedLoading(true);setFeedError('');setFeedIds([]);setCursor(undefined)
-    const timer=window.setTimeout(()=>{
-      void fetchMiniPage(feedFilter).then(page=>{
-        if(generation!==feedGeneration.current)return
-        mergeFeed(page.posts);setFeedIds(page.posts.map(post=>post.id));setCursor(page.next)
-      }).catch(()=>{
-        if(generation===feedGeneration.current)setFeedError('Unable to load results. Please retry.')
-      }).finally(()=>{
-        if(generation===feedGeneration.current){feedBusy.current=false;setFeedLoading(false)}
-      })
+    if (!identityReady || section !== 'feed') return
+    const sequence = ++feedSequence.current
+    setLoading(true);setPageBusy(false);setFeedError('');setNextCursor(null)
+    const timer = window.setTimeout(()=>{
+      void fetchMiniPage({search:query,tag,creators:tab==='Following'?[...follows]:undefined})
+        .then(page=>{
+          if(sequence!==feedSequence.current)return
+          mergePage(page.posts,false);setNextCursor(page.nextCursor)
+          void loadMiniCovers(page.posts).then(urls=>{
+            if(sequence===feedSequence.current)setCovers(old=>({...old,...urls}))
+          }).catch(()=>{})
+        })
+        .catch(e=>{if(sequence===feedSequence.current){setFeedIds([]);setFeedError(e instanceof Error?e.message:'Unable to load feed.')}})
+        .finally(()=>{if(sequence===feedSequence.current)setLoading(false)})
     },query.trim()?250:0)
-    return ()=>{window.clearTimeout(timer);++feedGeneration.current;feedBusy.current=false}
-  },[loading,feedFilter,feedVersion,mergeFeed,query])
-  async function loadMoreMinis(){
-    if(!cursor||feedBusy.current)return
-    const generation=feedGeneration.current
-    feedBusy.current=true;setFeedLoading(true);setFeedError('')
+    return ()=>{window.clearTimeout(timer);++feedSequence.current}
+  },[identityReady,section,query,tag,tab,follows,refreshKey,mergePage])
+
+  async function loadMore() {
+    if(pageBusy||loading||nextCursor===null||!feedReady.current)return
+    const sequence=feedSequence.current
+    setPageBusy(true);setFeedError('')
     try {
-      const page=await fetchMiniPage(feedFilter,cursor)
-      if(generation!==feedGeneration.current)return
-      mergeFeed(page.posts);setFeedIds(old=>[...new Set([...old,...page.posts.map(post=>post.id)])]);setCursor(page.next)
-    }catch{if(generation===feedGeneration.current)setFeedError('Unable to load more. Please retry.')}
-    finally{if(generation===feedGeneration.current){feedBusy.current=false;setFeedLoading(false)}}
+      const page=await fetchMiniPage({search:query,tag,cursor:nextCursor,creators:tab==='Following'?[...follows]:undefined})
+      if(sequence!==feedSequence.current)return
+      mergePage(page.posts,true);setNextCursor(page.nextCursor)
+      const urls=await loadMiniCovers(page.posts)
+      if(sequence===feedSequence.current)setCovers(old=>({...old,...urls}))
+    }catch(e){if(sequence===feedSequence.current)setFeedError(e instanceof Error?e.message:'Unable to load more.')}
+    finally{if(sequence===feedSequence.current)setPageBusy(false)}
   }
 
   const current = posts.find(post => post.id === selectedId)
@@ -211,16 +215,16 @@ export function MiniLiveExplore() {
   const popularTags = useMemo(() => {
     const counts = new Map<string,number>()
     for (const post of posts) for (const item of post.tags) counts.set(item,(counts.get(item)??0)+1)
-    return [...counts].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name])=>name)
-  }, [posts])
-  const chooseTag = (name: string) => { setTag(name); setSection('feed'); window.history.replaceState(null,'','/explore') }
+    return [...new Set([...(tag==='All'?[]:[tag]),...knownTags])].sort((a,b)=>a===tag?-1:b===tag?1:(counts.get(b)??0)-(counts.get(a)??0)).slice(0,16)
+  }, [posts,knownTags,tag])
+  const chooseTag = (name: string) => { setTag(name);setQuery('');setSection('feed');window.history.replaceState(null,'','/explore') }
   const visible = useMemo(() => {
-    const ids = new Set(feedIds)
-    const matches = posts.filter(post => ids.has(post.id) && !dismissed.has(post.id))
+    const ids=new Set(feedIds)
+    const matches=posts.filter(post=>ids.has(post.id)&&!dismissed.has(post.id))
     return tab === 'New'
-      ? [...matches].sort((a,b) => (b.published_at ?? '').localeCompare(a.published_at ?? ''))
+      ? [...matches].sort((a,b) => (b.published_at ?? '').localeCompare(a.published_at ?? '')||b.id.localeCompare(a.id))
       : rankMiniLessons(matches, { interests, following: adult ? follows : new Set<string>(), dismissed })
-  }, [posts,tab,feedIds,interests,follows,dismissed,adult])
+  }, [posts,feedIds,tab,interests,follows,dismissed,adult])
 
   async function interact(kind: 'like' | 'save', post?: MiniPost) {
     const target = post ?? current
@@ -320,11 +324,7 @@ export function MiniLiveExplore() {
       setDraftTitle('');setDraftBody('');setDraftTags('');setPhoto(null);setPhotoRotation(0);setPhotoZoom(1);setQuizEnabled(false);setQuizQuestion('');setQuizOptions(['','','']);setQuizCorrect(0);setQuizExplanation('')
       setNotice(answerRequest ? 'Your explanation is published on the request.' : 'Mini Lesson published.')
       back()
-      try {
-        const latest = await fetchApprovedMinis(24)
-        mergeFeed(latest)
-        setFeedVersion(v=>v+1)
-      } catch {setNotice('Mini Lesson published. Refresh Explore to see it.')}
+      setRefreshKey(key=>key+1)
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to submit Mini.')}
     finally {setBusy(false)}
   }
@@ -335,6 +335,7 @@ export function MiniLiveExplore() {
     try {
       await publishMiniSafely('mini',id)
       setNotice('Mini Lesson published.')
+      setRefreshKey(key=>key+1)
     } catch(e) {setError(e instanceof Error ? e.message : 'Unable to retry safety check.')}
     finally {
       try {setMine(await fetchOwnMiniStatus(viewer))}
@@ -455,22 +456,21 @@ export function MiniLiveExplore() {
         <div className={styles.filters} role="group" aria-label="Explore by hashtag">
           {['All',...popularTags].map(name=><button type="button" key={name}
             className={styles.pill+(tag===name?' '+styles.pillActive:'')} aria-pressed={tag===name}
-            onClick={()=>setTag(name)}>{name==='All'?'All':miniTagLabel(name)}</button>)}
+            onClick={()=>chooseTag(name)}>{name==='All'?'All':miniTagLabel(name)}</button>)}
         </div>
       </div>
       {tab !== 'Following' && <MiniLiveRequests query={query} onExplain={explainRequest}/>}
       <div className={styles.resultsLabel}><strong>{tab==='Following'?'Creators you follow':'Mini Lessons'}</strong>
         <span>{visible.length} loaded</span></div>
-      {(loading || (feedLoading && !feedIds.length)) ? <p role="status">Loading Mini Lessons…</p> : visible.length
+      {feedError && <div role="alert" className={styles.formNote}>{feedError} <button type="button" onClick={()=>setRefreshKey(key=>key+1)}>Retry</button></div>}
+      {loading ? <p role="status">Loading Mini Lessons…</p> : visible.length
         ? <div className={styles.grid}>{visible.map(card)}</div>
         : <div className={styles.empty}>
           <p>{error || (tab==='Following'?'Follow an educator to see their Minis here.':'No published Minis found.')}</p>
           <button type="button" className={styles.primary} onClick={()=>setSection('request')}>Request this topic</button>
           <button type="button" className={styles.secondary} onClick={()=>{setTag('All');setQuery('');setTab('For You')}}>Explore all</button>
         </div>}
-      {feedError && <p role="alert">{feedError} <button type="button" className={styles.secondary} onClick={()=>cursor?void loadMoreMinis():setFeedVersion(v=>v+1)}>Retry</button></p>}
-      {cursor && !feedError && <button type="button" className={styles.secondary} disabled={feedLoading} onClick={()=>void loadMoreMinis()}>{feedLoading?'Loading…':'Load more'}</button>}
-      <p className={styles.previewNote}>Recommendations prioritize educational usefulness and give new creators a fair chance. No watch-time targeting.</p>
+      {!loading && nextCursor!==null && <button type="button" className={styles.loadMore} disabled={pageBusy} onClick={()=>void loadMore()}>{pageBusy?'Loading…':'Load more'}</button>}
     </>}
 
     {section === 'request' && <MiniLiveRequests mode="compose" query={query} onBack={back} onExplain={explainRequest}/>}
@@ -521,7 +521,7 @@ export function MiniLiveExplore() {
           <button type="button" disabled={busy} onClick={()=>void learning('understood')}>I understood this</button>
           <button type="button" disabled={busy} onClick={()=>void learning('not_interested')}>Not interested</button>
         </div>}
-        <div className={styles.actions}><Link href="/learn" className={styles.secondary}>Explore textbooks</Link><Link href="/learners" className={styles.secondary}>Learning tools</Link></div>
+        <div className={styles.actions}><Link href="/learn" className={styles.secondary}>Explore textbooks</Link><Link href="/student/vibelearn/topic-practice" className={styles.secondary}>Practice</Link><Link href="/vibetutor" className={styles.secondary}>Find a tutor</Link></div>
         <section className={styles.comments} id="mini-discussion">
           <h2>Discussion</h2>
           <p className={styles.subline}>Comments appear only after moderation. Learner identities remain private.</p>
@@ -645,6 +645,5 @@ export function MiniLiveExplore() {
       <h1>@{creator.creator_label}</h1>
       <div className={styles.grid}>{posts.filter(post=>post.creator_id===creatorId).map(card)}</div>
     </section>}
-    <div className={styles.previewNote} style={{textAlign:'center',marginTop:12}}>VibeSchool Mini Lessons</div>
   </div></div>
 }

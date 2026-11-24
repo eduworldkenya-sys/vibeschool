@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase'
 import type { RankedMini } from './recommendation'
-import { miniSearchText, MINI_ID } from './public-url'
 
 export type MiniPost = RankedMini & {
   creator_label: string
@@ -56,6 +55,41 @@ export async function fetchApprovedMinis(limit = 120): Promise<MiniPost[]> {
   return (Array.isArray(data) ? data : []).filter(isMiniPost)
 }
 
+export const MINI_PAGE_SIZE = 24
+export type MiniCursor = { publishedAt: string; id: string }
+
+/** Search all publicly readable approved rows, not just the initial feed. */
+export async function fetchMiniPage({ search = '', tag = 'All', cursor, creators }: {
+  search?: string; tag?: string; cursor?: MiniCursor; creators?: readonly string[]
+} = {}): Promise<{ posts: MiniPost[]; nextCursor: MiniCursor | null }> {
+  if (creators && !creators.length) return { posts: [], nextCursor: null }
+  // Only allow ordinary search characters in the PostgREST OR expression.
+  const term = search.normalize('NFKC').replace(new RegExp('[^\\p{L}\\p{N}\\s_-]', 'gu'), ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+  const exactTag = search.trim().replace(/^#/, '').toLowerCase()
+  let query = supabase.from('mini_lessons')
+    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
+    .eq('status','approved')
+  if (tag !== 'All') query = query.contains('tags', [tag])
+  if (creators) query = query.in('creator_id', [...creators])
+  if (term) {
+    const pattern = '%' + term.replace(/_/g, '\\_') + '%'
+    const filters = ['title','body','creator_label','subject'].map(column => column + '.ilike.' + pattern)
+    if (/^[a-z][a-z0-9_]{1,29}$/.test(exactTag)) filters.push('tags.cs.{' + exactTag + '}')
+    query = query.or(filters.join(','))
+  } else if (search.trim()) return { posts: [], nextCursor: null }
+  if(cursor){
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cursor.id) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(cursor.publishedAt) || !Number.isFinite(Date.parse(cursor.publishedAt))) throw Error('Invalid feed cursor.')
+    query=query.or('published_at.lt.'+cursor.publishedAt+',and(published_at.eq.'+cursor.publishedAt+',id.lt.'+cursor.id+')')
+  }
+  const { data, error } = await query.order('published_at',{ascending:false})
+    .order('id',{ascending:false}).limit(MINI_PAGE_SIZE+1)
+  if (error) throw Error('Unable to load Mini Lessons. Try again.')
+  const rows = Array.isArray(data) ? data : []
+  const posts = rows.slice(0, MINI_PAGE_SIZE).filter(isMiniPost)
+  const last = posts[posts.length-1]
+  return { posts, nextCursor: rows.length > MINI_PAGE_SIZE && last?.published_at ? {publishedAt:last.published_at,id:last.id} : null }
+}
+
 export async function fetchOwnMiniStatus(userId: string) {
   const { data, error } = await supabase.from('mini_lessons')
     .select('id,title,tags,status,created_at')
@@ -66,12 +100,19 @@ export async function fetchOwnMiniStatus(userId: string) {
 
 export async function loadMiniCovers(posts: MiniPost[]) {
   const urls: Record<string, string> = {}
-  await Promise.all(posts.filter(p => p.cover_path).map(async post => {
-    if (!post.cover_path) return
+  const withCovers = posts.filter(p => p.cover_path)
+  for (let start = 0; start < withCovers.length; start += 24) {
+    const batch = withCovers.slice(start,start+24)
     const { data, error } = await supabase.storage.from('mini-covers')
-      .createSignedUrl(post.cover_path, 3600)
-    if (!error && data?.signedUrl) urls[post.id] = data.signedUrl
-  }))
+      .createSignedUrls(batch.map(post => post.cover_path!), 3600)
+    if (!error && data) {
+      const byPath = new Map(data.filter(item=>item.path && item.signedUrl).map(item=>[item.path,item.signedUrl]))
+      for (const post of batch) {
+        const url = byPath.get(post.cover_path!)
+        if (url) urls[post.id] = url
+      }
+    }
+  }
   return urls
 }
 
@@ -93,31 +134,4 @@ export async function fetchMiniRequestAnswers(requestId: string): Promise<MiniPo
     .order('published_at',{ascending:false}).limit(60)
   if (error) throw Error('Unable to load explanations.')
   return (Array.isArray(data) ? data : []).filter(isMiniPost)
-}
-
-export type MiniCursor = {publishedAt:string;id:string}
-export type MiniFeedFilter = {query?:string;tag?:string;creators?:string[]}
-export async function fetchMiniPage(filter:MiniFeedFilter={},cursor?:MiniCursor) {
-  const size = 24
-  if (filter.creators && filter.creators.length===0) return {posts:[] as MiniPost[],next:undefined}
-  let request = supabase.from('mini_lessons')
-    .select('id,creator_id,creator_label,title,body,subject,tags,quiz_question,quiz_options,quiz_correct,quiz_explanation,cover_path,status,request_id,quality_score,like_count,save_count,learned_count,published_at,created_at')
-    .eq('status','approved')
-  if (filter.tag && /^[a-z0-9_-]{2,32}$/.test(filter.tag)) request=request.contains('tags',[filter.tag])
-  if (filter.creators) request=request.in('creator_id',filter.creators.filter(id=>MINI_ID.test(id)))
-  const q=miniSearchText(filter.query??'')
-  if(q) request=request.or('title.ilike.%'+q+'%,body.ilike.%'+q+'%,creator_label.ilike.%'+q+'%,subject.ilike.%'+q+'%'+(/^[a-z0-9_-]{2,32}$/i.test(q)?',tags.cs.{'+q.toLowerCase()+'}':''))
-  if(cursor && MINI_ID.test(cursor.id) && Number.isFinite(Date.parse(cursor.publishedAt))) {
-    const date=new Date(cursor.publishedAt).toISOString()
-    // Preserve timestamp precision supplied by the database, after validating syntax.
-    const stamp=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(cursor.publishedAt)?cursor.publishedAt:date
-    request=request.or('published_at.lt.'+stamp+',and(published_at.eq.'+stamp+',id.lt.'+cursor.id+')')
-  }
-  const {data,error}=await request.order('published_at',{ascending:false}).order('id',{ascending:false}).limit(size+1)
-  if(error) throw Error('Unable to load Mini Lessons. Please retry.')
-  const rows=(Array.isArray(data)?data:[]).filter(isMiniPost)
-  const posts=rows.slice(0,size)
-  const last=posts[posts.length-1]
-  const next:MiniCursor|undefined=rows.length>size && last?.published_at ? {publishedAt:last.published_at,id:last.id}:undefined
-  return {posts,next}
 }
