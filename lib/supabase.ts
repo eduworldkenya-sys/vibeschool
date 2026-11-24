@@ -207,6 +207,9 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibechat_my_inbox_state: { Args: Record<never, never>; Returns: { kind: 'vc' | 'tuition'; room_id: string; updated: string | null; preview: string | null; unread: number; latest_incoming_id: string | null; peer_online: boolean; peer_delivered_at: string | null; peer_read_at: string | null }[] }
       vibechat_presence_settings: { Args: { p_enabled?: boolean }; Returns: { eligible: boolean; enabled: boolean } }
       vibechat_presence_tick: { Args: Record<never, never>; Returns: boolean }
+      vibechat_send_rich: { Args: { p_owner: string; p_kind: 'vc' | 'tuition'; p_room: string; p_operation: string; p_body: string; p_reply?: string | null }; Returns: string }
+      vibechat_change_message: { Args: { p_kind: 'vc' | 'tuition'; p_room: string; p_message: string; p_action: string; p_value?: string | null }; Returns: boolean }
+      vibechat_rich_messages: { Args: { p_kind: 'vc' | 'tuition'; p_room: string }; Returns: { id: string; body: string; mine: boolean; created_at: string; deleted_at: string | null; edited_at: string | null; reply_to_id: string | null; reply_excerpt: string | null; reactions: { reaction: string; mine: boolean }[] }[] }
       vibechat_send_once: { Args: { p_owner: string; p_kind: 'vc' | 'tuition'; p_room: string; p_operation: string; p_body: string }; Returns: string }
       vibechat_ack_message: { Args: { p_kind: string; p_room: string; p_message: string; p_read?: boolean }; Returns: boolean }
       vibechat_thread_safety: { Args: { p_kind: string; p_room: string }; Returns: { blocked: boolean; blocked_by_me: boolean } }
