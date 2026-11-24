@@ -1,4 +1,4 @@
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES,encodeAssessment,decodeAssessment,assessmentPrompt} from '../components/live-classroom/LiveSlideProtocol.ts'
 // Install the pinned test-only engine outside the repo: npm install --prefix /tmp/live-test --no-audit --no-fund @electric-sql/pglite@0.3.14
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
@@ -46,6 +46,14 @@ const reveals=buildTextRevealSlides({title:'Steps',body:'First\nSecond\nThird',n
 assert.deepEqual(reveals.map(s=>s.body),['First','First\nSecond','First\nSecond\nThird'])
 assert.equal(buildTextRevealSlides({title:'Steps',body:'First\nSecond'},1).length,0)
 assert.ok(!encodeSlide(reveals[0],1,3).includes('Private'))
+const activity={kind:'quiz',question:'What is one half?',options:['1/2','1/3']}
+const activityBody=encodeAssessment(activity)
+assert.deepEqual(decodeAssessment(activityBody),activity)
+assert.equal(assessmentPrompt(activity),'What is one half?\nA. 1/2\nB. 1/3')
+assert.equal(encodeAssessment({...activity,answerKey:'1/2'}),'')
+assert.equal(encodeAssessment({...activity,options:['One','one']}),'')
+assert.equal(decodeSlide(encodeSlide({title:'Quiz',body:activityBody,notes:'Private'},1,1)).body,activityBody)
+assert.equal(buildTextRevealSlides({title:'Quiz',body:activityBody},3).length,0)
 const encodedSlide=encodeSlide(privateSlide,2,5)
 assert.ok(encodedSlide)
 assert.ok(!encodedSlide.includes(privateSlide.notes))

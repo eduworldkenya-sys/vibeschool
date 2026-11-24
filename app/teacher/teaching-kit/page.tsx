@@ -55,7 +55,7 @@ function SlidesWorkspace(){
         <div><strong>{deck.title}</strong><div style={{fontSize:12,color:'#4b6659'}}>In class · on this device only · {page+1} / {deck.slides.length}</div></div>
         <button type="button" style={button} onClick={closeDeck}>Close presentation</button>
       </header>
-      <div style={{maxWidth:1100,margin:'0 auto'}}>{slide&&<SlideCanvas slide={slide} number={page+1} total={deck.slides.length}/>}</div>
+      <div style={{maxWidth:1100,margin:'0 auto'}}>{slide&&<SlideCanvas key={page} slide={slide} number={page+1} total={deck.slides.length} explore={controls}/>}</div>
       <div style={{display:'flex',justifyContent:'center',gap:8,marginTop:8}}><button type="button" style={button} onClick={()=>void toggleFull()}>{full?'Exit full screen':'Full screen'}</button><button type="button" style={button} aria-expanded={controls} onClick={()=>setControls(v=>!v)}>{controls?'Hide controls':'Show controls'}</button></div>
       {fullError&&<p role="status" style={{textAlign:'center'}}>{fullError}</p>}
       {controls&&<nav aria-label="Presentation slides" style={{display:'flex',gap:8,justifyContent:'center',alignItems:'center',margin:'12px auto',flexWrap:'wrap'}}>

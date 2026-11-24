@@ -8,7 +8,7 @@ const prefix='VSLIDE1:'
 export function validSlide(s:unknown):s is LiveSlide {
  if(!s||typeof s!=='object')return false
  const x=s as LiveSlide
- return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878&&(!isDemoBody(x.body)||decodeDemo(x.body)!==null)
+ return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878&&(!isDemoBody(x.body)||decodeDemo(x.body)!==null)&&(!isAssessmentBody(x.body)||decodeAssessment(x.body)!==null)
  &&(x.diagram===undefined||SLIDE_DIAGRAMS.includes(x.diagram))&&(x.theme===undefined||SLIDE_THEMES.includes(x.theme))
  &&(x.layout===undefined||x.layout==='wide'||x.layout==='portrait')&&(x.font===undefined||x.font==='normal'||x.font==='large')
  &&(x.notes===undefined||(typeof x.notes==='string'&&x.notes.length<=2000))
@@ -134,9 +134,24 @@ export function changeDemo(d:SlideDemo,field:'a'|'b',value:number):SlideDemo{
  return next
 }
 export function buildTextRevealSlides(slide:LiveSlide,available:number):LiveSlide[]{
- if(isDemoBody(slide.body)||visualSlidePayload(slide.body)!==null)return []
+ if(isDemoBody(slide.body)||isAssessmentBody(slide.body)||visualSlidePayload(slide.body)!==null)return []
  const lines=slide.body.split(/\r?\n/).map(line=>line.trim()).filter(Boolean)
  if(lines.length<2||lines.length>available||lines.length>30)return []
  const steps=lines.map((_,i)=>({...slide,body:lines.slice(0,i+1).join('\n')}))
  return steps.every((s,i)=>Boolean(encodeSlide(s,i+1,steps.length)))?steps:[]
 }
+
+export type SlideAssessment={kind:'quiz'|'poll';question:string;options:string[]}
+const ASSESSMENT_PREFIX='VSLIDEASK1:'
+export function isAssessmentBody(body:string):boolean{return body.startsWith(ASSESSMENT_PREFIX)}
+export function validAssessment(value:unknown):value is SlideAssessment{
+ if(!value||typeof value!=='object'||Array.isArray(value))return false
+ const a=value as SlideAssessment
+ return Object.keys(a).every(k=>['kind','question','options'].includes(k))&&(a.kind==='quiz'||a.kind==='poll')&&typeof a.question==='string'&&!!a.question.trim()&&a.question.length<=500&&Array.isArray(a.options)&&a.options.length>=2&&a.options.length<=6&&a.options.every(o=>typeof o==='string'&&!!o.trim()&&o.length<=140&&!/[\r\n]/.test(o))&&new Set(a.options.map(o=>o.trim().toLowerCase())).size===a.options.length
+}
+export function decodeAssessment(body:string):SlideAssessment|null{
+ if(!isAssessmentBody(body)||body.length>2000)return null
+ try{const v:unknown=JSON.parse(body.slice(ASSESSMENT_PREFIX.length));return validAssessment(v)?{kind:v.kind,question:v.question,options:v.options}:null}catch{return null}
+}
+export function encodeAssessment(a:SlideAssessment):string{return validAssessment(a)?ASSESSMENT_PREFIX+JSON.stringify({kind:a.kind,question:a.question.trim(),options:a.options.map(o=>o.trim())}):''}
+export function assessmentPrompt(a:SlideAssessment):string{return a.question.trim()+'\n'+a.options.map((o,i)=>String.fromCharCode(65+i)+'. '+o.trim()).join('\n')}

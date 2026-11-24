@@ -2,7 +2,8 @@
 import {useState} from 'react'
 import {ObjectBoard} from './LiveObjectBoard'
 import {BOARD_COLORS,emptyBoard,encodeBoard,decodeBoard} from './LiveBoardProtocol'
-import {encodeSlide,visualSlideBody,visualSlidePayload,decodeDemo,encodeDemo,defaultDemo,DEMO_RANGES,diagramLabel,type DemoKind,type LiveSlide} from './LiveSlideProtocol'
+import {encodeSlide,visualSlideBody,visualSlidePayload,decodeDemo,encodeDemo,defaultDemo,DEMO_RANGES,diagramLabel,decodeAssessment,type DemoKind,type LiveSlide} from './LiveSlideProtocol'
+import {AssessmentEditor} from './LiveSlideAssessmentEditor'
 import {DemoControls} from './LiveAdjustableDiagram'
 import styles from './LiveClassroom.module.css'
 
@@ -38,7 +39,11 @@ function VisualEditor({slide,disabled,onChange}:Props){
  </section>
 }
 export function SlideBodyEditor({slide,disabled,onChange}:Props){
+ const [activityOpen,setActivityOpen]=useState(false)
+ const assessment=decodeAssessment(slide.body)
  const demo=decodeDemo(slide.body)
+ if(activityOpen)return <AssessmentEditor initial={assessment??{kind:'quiz',question:'',options:['','']}} disabled={disabled} onApply={body=>{onChange(body);setActivityOpen(false)}} onCancel={()=>setActivityOpen(false)}/>
+ if(assessment)return <div className={styles.slideToolbar}><button type="button" disabled={disabled} onClick={()=>setActivityOpen(true)}>Edit quiz / poll</button><button type="button" disabled={disabled} onClick={()=>{if(window.confirm('Replace the activity with a text slide?'))onChange('')}}>Switch to text</button></div>
  if(demo)return <section aria-label="Adjustable teaching diagram"><DemoControls demo={demo} disabled={disabled} onChange={d=>onChange(encodeDemo(d))}/><button type="button" disabled={disabled} onClick={()=>{if(window.confirm('Replace this demonstration with text?'))onChange('')}}>Switch to text</button></section>
  if(visualSlidePayload(slide.body)!==null)return <VisualEditor slide={slide} disabled={disabled} onChange={onChange}/>
  function convert(){
@@ -50,5 +55,5 @@ export function SlideBodyEditor({slide,disabled,onChange}:Props){
   const body=visualSlideBody(encodeBoard(doc))
   if(encodeSlide({...slide,body},30,30))onChange(body)
  }
- return <><label>Content<textarea value={slide.body} maxLength={3878} disabled={disabled} onChange={e=>onChange(e.target.value)}/></label><button type="button" disabled={disabled} onClick={convert}>Use visual canvas</button><label>Adjustable demonstration<select disabled={disabled} value="" onChange={e=>{const kind=e.target.value as DemoKind;if(!kind||!Object.prototype.hasOwnProperty.call(DEMO_RANGES,kind))return;if(slide.body.trim()&&!window.confirm('Replace existing content with the demonstration?'))return;onChange(encodeDemo(defaultDemo(kind)))}}><option value="">Choose demonstration</option>{Object.keys(DEMO_RANGES).map(k=><option key={k} value={k}>{diagramLabel(k as DemoKind)}</option>)}</select></label></>
+ return <><label>Content<textarea value={slide.body} maxLength={3878} disabled={disabled} onChange={e=>onChange(e.target.value)}/></label><button type="button" disabled={disabled} onClick={convert}>Use visual canvas</button><button type="button" disabled={disabled} onClick={()=>{if(!slide.body.trim()||window.confirm('Replace existing content with a quiz or poll?'))setActivityOpen(true)}}>Add quiz or poll</button><label>Adjustable demonstration<select disabled={disabled} value="" onChange={e=>{const kind=e.target.value as DemoKind;if(!kind||!Object.prototype.hasOwnProperty.call(DEMO_RANGES,kind))return;if(slide.body.trim()&&!window.confirm('Replace existing content with the demonstration?'))return;onChange(encodeDemo(defaultDemo(kind)))}}><option value="">Choose demonstration</option>{Object.keys(DEMO_RANGES).map(k=><option key={k} value={k}>{diagramLabel(k as DemoKind)}</option>)}</select></label></>
 }

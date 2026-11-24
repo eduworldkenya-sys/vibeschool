@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal, Hand, MessageSquare, NotebookPen, History, Wifi, WifiOff, BookOpen } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
-import { adjacentSlide, buildTextRevealSlides } from './LiveSlideProtocol'
+import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
@@ -128,7 +128,7 @@ function SharedPrompt({prompt,roomId,learner=false,compact=false,onQuote}:{promp
  const sharedFile=prompt?.kind==='teach'?decodeLiveFileRef(prompt.body):null
  if(sharedFile)return roomId?<LiveFilePresentation roomId={roomId} fileId={sharedFile}/>:<p>Shared PDF or photo</p>
  const slide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
- if(slide)return <SlideCanvas slide={slide} number={slide.number} total={slide.total}/>
+ if(slide)return <SlideCanvas slide={slide} number={slide.number} total={slide.total} mini={compact} explore={learner&&!compact}/>
  return prompt?<><div className={styles.label}>{labels[prompt.kind]}</div>{prompt.kind==='clock'?(learner?<ClockExplorer value={prompt.body}/>:<ClockView value={prompt.body}/>):prompt.kind==='board'?<BoardView value={prompt.body}/>:prompt.kind==='teach'&&!compact?<LiveReadingSurface body={prompt.body} learner={learner} onQuote={onQuote}/>:<p className={styles.content}>{prompt.body}</p>}{prompt.revealed&&prompt.answerKey&&<div className={styles.solution}><strong>Answer</strong><p className={styles.content}>{prompt.answerKey}</p></div>}</>:<p className={styles.empty}>Choose a teaching tool to start.</p>
 }
 
@@ -944,6 +944,16 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
     const index=Math.min(deletedSlide.index,slides.length)
     setSlides(items=>[...items.slice(0,index),deletedSlide.slide,...items.slice(index)]);setSlideIndex(index);setDeletedSlide(null)
   }
+  function launchSlideAssessment(){
+    const activity=liveSlide?decodeAssessment(liveSlide.body):null
+    if(!activity||!canNavigateSlides)return
+    const question=assessmentPrompt(activity)
+    const saved=activity.kind===mode?{body,key}:composerDrafts.current[activity.kind]
+    if((saved?.body||saved?.key)&&!window.confirm('Replace the unsent activity draft?'))return
+    chooseMode(activity.kind);setBody(question);setKey('')
+  }
+  const lastPresentedSlide=[...history].reverse().map(p=>p.kind==='teach'?decodeSlide(p.body):null).find(p=>p!==null)
+  const resumeAfterActivity=lastPresentedSlide?adjacentSlide(slides,lastPresentedSlide,1):null
   function reuseQuestion(item:Prompt){
     if(!teacher||busy||draftLoading||room?.status!=='active'||!['quiz','exercise','poll'].includes(item.kind))return
     const saved=item.kind===mode?{body,key}:composerDrafts.current[item.kind]
@@ -1085,10 +1095,11 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
       <button type="button" disabled={busy||draftLoading||!online||room.status!=='active'} onClick={()=>reuseQuestion(viewedPrompt)}>Edit as new question</button>
       {viewedPrompt.id===prompt?.id&&<button type="button" disabled={busy||!online||room.status!=='active'||viewedPrompt.revealed} onClick={()=>void act('reveal')}>Reveal / close</button>}
       {viewedPrompt.id===prompt?.id&&<button type="button" onClick={()=>setPanel('learners')}>Responses</button>}
+      {viewedPrompt.id===prompt?.id&&viewedPrompt.revealed&&resumeAfterActivity!==null&&<button type="button" disabled={!canNavigateSlides} onClick={()=>presentSlide(resumeAfterActivity)}>Continue slides</button>}
     </div>}
     {teacher&&panel===null&&!editingBoard&&reviewId===null&&liveSlide&&(!focusMode||focusDock)&&<div className={styles.presentControls}>
       <button type="button" disabled={!canNavigateSlides||previousLiveSlide===null} onClick={()=>{if(previousLiveSlide!==null)presentSlide(previousLiveSlide)}}>Previous slide</button>
-      <span>{liveSlide.number} / {liveSlide.total}</span><button type="button" onClick={openSlides}>Edit slides</button>
+      <span>{liveSlide.number} / {liveSlide.total}</span><button type="button" onClick={openSlides}>Edit slides</button>{decodeAssessment(liveSlide.body)&&<button type="button" disabled={!canNavigateSlides} onClick={launchSlideAssessment}>Launch {decodeAssessment(liveSlide.body)?.kind}</button>}
       <button type="button" disabled={!canNavigateSlides||nextLiveSlide===null} onClick={()=>{if(nextLiveSlide!==null)presentSlide(nextLiveSlide)}}>Next slide</button>
       {canNavigateSlides&&nextLiveSlide!==null&&nextLiveSlide>liveSlide.number&&<small role="status">Blank or invalid draft slides will be skipped.</small>}
       {canNavigateSlides&&nextLiveSlide===null&&liveSlide.number<liveSlide.total&&<small role="status">No matching publishable next slide. Open Edit slides, restore or complete the deck, and present a slide again.</small>}
@@ -1169,6 +1180,6 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
        <section aria-label="Saved teaching materials" className={styles.savedMaterials}><strong>Lesson materials</strong><p>Review the pages, diagrams and board work your teacher presented. Access still follows your current class or tuition permission.</p>
        <div className={styles.savedMaterialList}>{history.filter(item=>item.kind==='teach'||item.kind==='board').map(item=><button type="button" key={item.id} aria-pressed={viewedPrompt?.id===item.id} onClick={()=>setReviewId(item.id)}>{item.kind==='board'?'Shared whiteboard':decodeLiveFileRef(item.body)?'Shared PDF or photo':decodeSlide(item.body)?.title??item.body.split('\n')[0]?.slice(0,85)??'Lesson page'}</button>)}</div>
        {!history.some(item=>item.kind==='teach'||item.kind==='board')&&<p>No teaching materials were presented in this class.</p>}</section>
-       <div aria-label="Saved lesson"><SharedPrompt prompt={viewedPrompt} roomId={room.id}/></div><LiveClassFiles roomId={room.id} teacher={teacher} status="ended"/>{!teacher&&room.ownNote&&<div><h3>My notes</h3><p className={styles.content}>{room.ownNote}</p></div>}<button onClick={leave}>Return to live lessons</button></section>}
+       <div aria-label="Saved lesson"><SharedPrompt prompt={viewedPrompt} roomId={room.id} learner={!teacher}/></div><LiveClassFiles roomId={room.id} teacher={teacher} status="ended"/>{!teacher&&room.ownNote&&<div><h3>My notes</h3><p className={styles.content}>{room.ownNote}</p></div>}<button onClick={leave}>Return to live lessons</button></section>}
   </main>
 }
