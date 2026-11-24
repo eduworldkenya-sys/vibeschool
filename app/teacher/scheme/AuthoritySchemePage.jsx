@@ -1054,12 +1054,12 @@ function Inner({ curriculumView = false }) {
     const matches=(...fields)=>fields.some(field=>String(field??'').toLocaleLowerCase().includes(needle))
     const units=searchableUnits.filter(unit=>matches(unit.id,unit.title,unit.strand,unit.subStrand,unit.sub_strand,unit.theme,unit.outcomes?.join?.(' ')))
       .map(unit=>({kind:'unit',id:unit.id,title:unit.title||unit.name||unit.id,detail:unit.strand||'Curriculum sub-strand',unit}))
-    const rows=allCurriculumRows.filter(row=>matches(row.topic,row.strand,row.sub_strand,row.id,...(curriculumOutcomes[row.id]||[]).map(x=>x.outcome_text)))
+    const rows=(isGrade4SocialStudies ? [] : allCurriculumRows).filter(row=>matches(row.topic,row.strand,row.sub_strand,row.id,...(curriculumOutcomes[row.id]||[]).map(x=>x.outcome_text)))
       .map(row=>({kind:'curriculum',id:row.id,title:row.topic||row.sub_strand||'Curriculum item',detail:row.strand||'Curriculum',row}))
     const scheme=ordered.filter(item=>matches(item.topic,item.strand,item.sub_strand,item.objectives,item.key_inquiry_question,item.learning_experiences,item.reference,item.week))
       .map(item=>({kind:'scheme',id:item.id,title:item.topic||'Scheme lesson',detail:'Scheme · Week '+item.week,item}))
     return [...units,...rows,...scheme].slice(0,30)
-  },[finderQuery,searchableUnits,allCurriculumRows,curriculumOutcomes,ordered])
+  },[finderQuery,searchableUnits,allCurriculumRows,curriculumOutcomes,ordered,isGrade4SocialStudies])
   function chooseFinderResult(result){
     setFinderQuery('')
     if(result.kind==='scheme'){
