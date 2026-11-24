@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { AlertCircle, BookOpen, CheckCircle2, ChevronRight, Circle, LockKeyhole, RefreshCw } from "lucide-react"
 import type { VibePublication } from "@/lib/publishTypes"
 import { isMumbi2Publisher } from "@/lib/studioPublisherIdentity"
+import { importGrade4SocialStudiesDraft } from "@/lib/grade4SocialStudiesDraftImport"
 
 type LoadState = "loading" | "ready" | "error"
 type ChapterEvidence = { id: string; publication_id: string; blocks: unknown }
@@ -38,6 +39,15 @@ export default function PublishingReplacementPage() {
   const [evidenceLoading, setEvidenceLoading] = useState(false)
   const [evidenceError, setEvidenceError] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState("")
+  async function importPreparedBook() {
+    if (!canPublish || importing) return
+    setImporting(true); setImportError("")
+    try { const id = await importGrade4SocialStudiesDraft(); router.push(`/teacher/studio/editor?format=vibetextbook&publication=${encodeURIComponent(id)}`) }
+    catch (error) { setImportError(error instanceof Error ? error.message : "Draft import failed. Retry to resume.") }
+    finally { setImporting(false) }
+  }
   useEffect(() => {
     let active = true
     const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
@@ -142,6 +152,7 @@ export default function PublishingReplacementPage() {
           {selected?.status === "published" ? "Already published" : "Open and publish"}
         </button>
       </section>
+      {canPublish && state === "ready" && <section style={panel} aria-label="Prepared textbooks"><h2 style={{margin:"0 0 10px",fontSize:18}}>Prepared textbooks</h2><button type="button" disabled={importing} onClick={() => void importPreparedBook()} style={{border:"1px solid #d1d5db",background:"#fff",color:"#111827",padding:"12px",cursor:importing?"wait":"pointer"}}>{importing ? "Importing textbook…" : "Open Grade 4 Social Studies draft"}</button>{importError && <p role="alert">{importError}</p>}</section>}
       <section style={panel} aria-label="Your publications">
         <div style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center" }}><h2 style={{ fontSize: 18, margin: 0 }}>Your content</h2><button type="button" onClick={() => setRefreshKey(x => x + 1)} style={{ display: "inline-flex", gap: 7, alignItems: "center", border: "1px solid #cbd5e1", background: "white", borderRadius: 9, padding: "7px 10px", cursor: "pointer" }}><RefreshCw size={15}/> Refresh</button></div>
         {state === "loading" && <p role="status">Loading your content…</p>}

@@ -1,0 +1,769 @@
+{
+  "grade": "Grade 4",
+  "subject": "Social Studies",
+  "canonicalSubjectId": "09715a10-3f91-4351-b6bc-fa252666a20b",
+  "source": "User-supplied 2024 KICD curriculum transcription; 72 active publisher references, no independent KICD certification",
+  "version": "draft-1",
+  "publicationState": "unpublished; not connected to Learn",
+  "chapterCount": 5,
+  "unitCount": 19,
+  "outcomeCount": 72,
+  "suggestedLessons": 90,
+  "questionCount": 95,
+  "chapters": [
+    {
+      "path": "01-natural-and-built-environments.md",
+      "words": 2175,
+      "sections": [
+        {
+          "code": "1.1",
+          "title": "Finding our way"
+        },
+        {
+          "code": "1.2",
+          "title": "Knowing our county"
+        },
+        {
+          "code": "1.3",
+          "title": "Land and water features"
+        },
+        {
+          "code": "1.4",
+          "title": "Weather and seasons"
+        },
+        {
+          "code": "1.5",
+          "title": "Keeping our history alive"
+        }
+      ]
+    },
+    {
+      "path": "02-people-and-population.md",
+      "words": 998,
+      "sections": [
+        {
+          "code": "2.1",
+          "title": "We need one another"
+        },
+        {
+          "code": "2.2",
+          "title": "Where people live"
+        }
+      ]
+    },
+    {
+      "path": "03-social-organisations.md",
+      "words": 898,
+      "sections": [
+        {
+          "code": "3.1",
+          "title": "The culture of our county"
+        },
+        {
+          "code": "3.2",
+          "title": "Our school"
+        }
+      ]
+    },
+    {
+      "path": "04-resources-and-economic-activities.md",
+      "words": 1421,
+      "sections": [
+        {
+          "code": "4.1",
+          "title": "How people earn a living"
+        },
+        {
+          "code": "4.2",
+          "title": "Industries in our county"
+        },
+        {
+          "code": "4.3",
+          "title": "Starting an enterprise project at school"
+        }
+      ]
+    },
+    {
+      "path": "05-citizenship-and-governance.md",
+      "words": 2741,
+      "sections": [
+        {
+          "code": "5.1",
+          "title": "Being a good citizen at school"
+        },
+        {
+          "code": "5.2",
+          "title": "Living peacefully with others"
+        },
+        {
+          "code": "5.3",
+          "title": "Every child has rights"
+        },
+        {
+          "code": "5.4",
+          "title": "Making decisions together"
+        },
+        {
+          "code": "5.5",
+          "title": "Children's government in school"
+        },
+        {
+          "code": "5.6",
+          "title": "Leaders in our community"
+        },
+        {
+          "code": "5.7",
+          "title": "How county governments work"
+        }
+      ]
+    }
+  ],
+  "units": [
+    {
+      "code": "1.1",
+      "unitId": "e1e01829-0177-46a7-ad89-168683ea59c4",
+      "section": "Finding our way",
+      "manuscript": "01-natural-and-built-environments.md",
+      "suggestedLessons": 6,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "1.1.a",
+          "id": "9a2919ee-c76c-41fc-8bc9-c7de0e855d83",
+          "editorialCoverage": "The four main directions",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.1.b",
+          "id": "35a52b78-f3c1-4b05-ba61-89e16df780d7",
+          "editorialCoverage": "Giving clear directions; school map and route",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.1.c",
+          "id": "968d5991-019f-4ef5-9737-43cd19166052",
+          "editorialCoverage": "Giving clear directions; check 5",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "1.2",
+      "unitId": "2ca9a681-4046-4470-a0dc-6e9e996ece12",
+      "section": "Knowing our county",
+      "manuscript": "01-natural-and-built-environments.md",
+      "suggestedLessons": 5,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "1.2.a",
+          "id": "d57b142c-bac5-4d0a-ae78-ec456b392c03",
+          "editorialCoverage": "Investigate; actual sub-county names",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.2.b",
+          "id": "1e900654-4e97-4507-9042-5669fe68ae28",
+          "editorialCoverage": "Where is our county?; Investigate",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.2.c",
+          "id": "d425cbef-cc58-4ebc-851b-1ee10cc07931",
+          "editorialCoverage": "Comparing county sizes; grid model",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.2.d",
+          "id": "410ef708-355b-463e-8fc2-60b38698be74",
+          "editorialCoverage": "Comparing county sizes; practical county fact card",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "1.3",
+      "unitId": "77ee883c-c107-442a-90f2-335b36907029",
+      "section": "Land and water features",
+      "manuscript": "01-natural-and-built-environments.md",
+      "suggestedLessons": 5,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "1.3.a",
+          "id": "ef5c4d5e-bc97-448a-8e56-598a09dc8e4b",
+          "editorialCoverage": "Recognising physical features",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.3.b",
+          "id": "8a2dd3f7-b48d-4426-8f7b-3d37e0fb2f79",
+          "editorialCoverage": "Why these features matter",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.3.c",
+          "id": "a7c6fc62-007f-4710-9ed5-8319dc6b4d80",
+          "editorialCoverage": "Make a landscape model",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.3.d",
+          "id": "b2ada3db-1a76-4c17-961b-4a9593f56bde",
+          "editorialCoverage": "Conservation actions; check 5",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "1.4",
+      "unitId": "418d7015-0486-40ca-9aac-33e8f99ba6ac",
+      "section": "Weather and seasons",
+      "manuscript": "01-natural-and-built-environments.md",
+      "suggestedLessons": 4,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "1.4.a",
+          "id": "9cd4f671-4f73-42d6-96e6-ec3f1d3ee07d",
+          "editorialCoverage": "Four common seasonal conditions",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.4.b",
+          "id": "2d560e9e-eb52-4870-90f1-e7d20e038f42",
+          "editorialCoverage": "Four common seasonal conditions; activity examples",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.4.c",
+          "id": "fb00475c-9381-423d-9abf-15c941e7d1a6",
+          "editorialCoverage": "Staying safe on rainy roads",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.4.d",
+          "id": "747468fd-53da-4097-b3d3-33dc24a2105f",
+          "editorialCoverage": "Keeping a weather chart; Observe and record",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.4.e",
+          "id": "bd8e606d-0030-456a-97fe-40a18aee0902",
+          "editorialCoverage": "Observe and record; weather adaptation",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "1.5",
+      "unitId": "3329bb07-16c6-4998-b34e-69862d1e78c1",
+      "section": "Keeping our history alive",
+      "manuscript": "01-natural-and-built-environments.md",
+      "suggestedLessons": 5,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "1.5.a",
+          "id": "3854af09-89d1-420f-a91f-23454ec655d6",
+          "editorialCoverage": "Historic places and buildings; local investigation",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.5.b",
+          "id": "038742fd-e42f-47a0-ba48-38370b8b4447",
+          "editorialCoverage": "Why should we preserve them?",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.5.c",
+          "id": "92b75fc0-7d69-411c-9451-3e8180c5d220",
+          "editorialCoverage": "Our history project; supervised conservation",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "1.5.d",
+          "id": "a8cb9fa6-89f7-45d4-96ec-bf0bccc94c74",
+          "editorialCoverage": "Our history project; reflection",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "2.1",
+      "unitId": "9d7e569a-4786-466e-96c4-5ec80f369187",
+      "section": "We need one another",
+      "manuscript": "02-people-and-population.md",
+      "suggestedLessons": 6,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "2.1.a",
+          "id": "40ecaa6c-8de6-4934-937a-a552d06668eb",
+          "editorialCoverage": "How people depend on one another",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "2.1.b",
+          "id": "4ac12f3c-92f1-4cf0-88e5-26a1412abb14",
+          "editorialCoverage": "Why interdependence matters",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "2.1.c",
+          "id": "bb4d7b73-8174-4e42-a5e0-af2388351785",
+          "editorialCoverage": "Draw the connections; flow chart",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "2.1.d",
+          "id": "ae6d48e5-a869-406b-975b-71bcc52f4047",
+          "editorialCoverage": "Why interdependence matters; check 5",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "2.2",
+      "unitId": "a11c3af2-d144-4489-8a5e-3442b7e63529",
+      "section": "Where people live",
+      "manuscript": "02-people-and-population.md",
+      "suggestedLessons": 5,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "2.2.a",
+          "id": "463c3da6-5516-4324-9e1b-75698c0f540a",
+          "editorialCoverage": "Patterns of population distribution",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "2.2.b",
+          "id": "dd305d26-190f-4d11-abfc-d8dad508ff95",
+          "editorialCoverage": "Investigate a pattern; dot diagram",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "2.2.c",
+          "id": "8d290a31-9d02-45ea-bae4-3cd98adb482c",
+          "editorialCoverage": "Why distribution varies; service planning",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "3.1",
+      "unitId": "893a8f48-2f9d-410c-a70b-52d48aecb244",
+      "section": "The culture of our county",
+      "manuscript": "03-social-organisations.md",
+      "suggestedLessons": 4,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "3.1.a",
+          "id": "679ec543-08ec-432f-9cfe-8c7dae3e36be",
+          "editorialCoverage": "Ways people express culture",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "3.1.b",
+          "id": "393ec0e7-84af-4680-98d6-1776be85a6e1",
+          "editorialCoverage": "Our culture gallery",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "3.1.c",
+          "id": "ac3e9914-734d-4555-882e-8bfccf19043b",
+          "editorialCoverage": "Why culture is important; respectful response",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "3.2",
+      "unitId": "01d94439-c82d-4834-ac3a-5616ee7f1acb",
+      "section": "Our school",
+      "manuscript": "03-social-organisations.md",
+      "suggestedLessons": 3,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "3.2.a",
+          "id": "e8e06e4d-3925-43cd-a728-833fb5186077",
+          "editorialCoverage": "The history of a school; timeline",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "3.2.b",
+          "id": "11b16004-d91c-462f-b908-0bcd6cd7fe99",
+          "editorialCoverage": "School values, motto and rules",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "3.2.c",
+          "id": "97a8f874-c16e-485c-a6b3-4a7b78c0d14a",
+          "editorialCoverage": "Make a school story poster; check 4",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "3.2.d",
+          "id": "64264a2a-7fe0-4036-8e6a-3853ca2049c5",
+          "editorialCoverage": "School values, motto and rules; check 5",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "4.1",
+      "unitId": "f3535c15-fa99-4664-b975-2e3666f4c27f",
+      "section": "How people earn a living",
+      "manuscript": "04-resources-and-economic-activities.md",
+      "suggestedLessons": 4,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "4.1.a",
+          "id": "399e9d8d-c7eb-4989-859a-4f329bf00b58",
+          "editorialCoverage": "Resources in our county",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "4.1.b",
+          "id": "3ab034e8-5b78-49e2-91be-e3f55d318aa8",
+          "editorialCoverage": "Resources in our county; activity examples",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "4.1.c",
+          "id": "08156cce-1778-4582-ae7c-3282ebc2bffa",
+          "editorialCoverage": "Why economic activities matter",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "4.1.d",
+          "id": "2ff58662-baa1-4ddf-abb3-7c266a47a2ce",
+          "editorialCoverage": "Make an economic activity poster; supervised activities",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "4.1.e",
+          "id": "ad40f67b-b271-42a1-9f8f-6f9a47f74a04",
+          "editorialCoverage": "Conservation and benefits; review",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "4.2",
+      "unitId": "a3c5c6b4-5b14-45f9-a2a2-259a6b0222d1",
+      "section": "Industries in our county",
+      "manuscript": "04-resources-and-economic-activities.md",
+      "suggestedLessons": 6,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "4.2.a",
+          "id": "8b51c4d0-dbbf-454d-8dd2-2fd92a38cbe9",
+          "editorialCoverage": "From raw material to product",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "4.2.b",
+          "id": "5ae26587-1e20-43d2-b311-02e995fc0c99",
+          "editorialCoverage": "Benefits and responsibilities",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "4.2.c",
+          "id": "6d2cb0e8-2493-422b-9d15-761f27512d2b",
+          "editorialCoverage": "Follow a product; actual local map",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "4.2.d",
+          "id": "a8c09352-7590-4e46-b3d7-3492fff6709e",
+          "editorialCoverage": "Benefits and responsibilities; check 4",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "4.3",
+      "unitId": "2cd19ee6-03f4-4ead-90a0-88bf74d64d5d",
+      "section": "Starting an enterprise project at school",
+      "manuscript": "04-resources-and-economic-activities.md",
+      "suggestedLessons": 7,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "4.3.a",
+          "id": "15c030ae-1a01-4376-95e2-937a2c150706",
+          "editorialCoverage": "Choosing a useful project",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "4.3.b",
+          "id": "8870d27b-924c-460b-bfc3-57fcc6d37bfa",
+          "editorialCoverage": "Our project plan; planning and making",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "4.3.c",
+          "id": "d23986e8-9bb2-44fd-8822-8d5cb4ace549",
+          "editorialCoverage": "Working together ethically; project reflection",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "5.1",
+      "unitId": "5af32c0e-509d-4960-8c61-d90c1f8e322c",
+      "section": "Being a good citizen at school",
+      "manuscript": "05-citizenship-and-governance.md",
+      "suggestedLessons": 4,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "5.1.a",
+          "id": "3686ce7b-7ed6-4c52-9ae9-c605c56a4ce1",
+          "editorialCoverage": "Qualities of a good citizen",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.1.b",
+          "id": "726cc14b-0b2b-40ba-90e4-08e6d03af485",
+          "editorialCoverage": "Put citizenship into practice",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.1.c",
+          "id": "66595b62-c47c-48d7-a3c2-9b436affe6da",
+          "editorialCoverage": "Weekly reflection and inclusive scenarios",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "5.2",
+      "unitId": "282b036e-78d6-4484-9580-af7d3ec5bcc9",
+      "section": "Living peacefully with others",
+      "manuscript": "05-citizenship-and-governance.md",
+      "suggestedLessons": 4,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "5.2.a",
+          "id": "be903ec2-7a1e-420c-8126-21e74eec614d",
+          "editorialCoverage": "What promotes peace?",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.2.b",
+          "id": "1e9cfd8d-a3a2-4bca-ac85-1078557bdfd8",
+          "editorialCoverage": "Building peace at school; plan a peace activity",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.2.c",
+          "id": "5cb35cc4-9905-4490-8851-07b2a100547e",
+          "editorialCoverage": "Plan a peace activity; reflection",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "5.3",
+      "unitId": "abdee0fe-c57c-4f42-b26f-e0d54becd351",
+      "section": "Every child has rights",
+      "manuscript": "05-citizenship-and-governance.md",
+      "suggestedLessons": 4,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "5.3.a",
+          "id": "6f5f137d-0299-441a-9ade-fbae9afc1138",
+          "editorialCoverage": "Rights and responsibilities; forms of abuse",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.3.b",
+          "id": "da8725d4-5ed4-4f08-b1ca-5fb1572d12c8",
+          "editorialCoverage": "Why abuse happens and how it affects children",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.3.c",
+          "id": "e63fff7f-6b70-4eb9-ae49-c168adc5648c",
+          "editorialCoverage": "Why abuse happens and how it affects children",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.3.d",
+          "id": "fc766154-00a6-43f2-8dfb-03060f492c3b",
+          "editorialCoverage": "Seeking protection and promoting rights",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "5.4",
+      "unitId": "f9d60325-7795-41ec-99ea-085d5db16934",
+      "section": "Making decisions together",
+      "manuscript": "05-citizenship-and-governance.md",
+      "suggestedLessons": 3,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "5.4.a",
+          "id": "d48aca64-b039-40a6-affe-658f039ad931",
+          "editorialCoverage": "Democracy at school",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.4.b",
+          "id": "b991ff98-07e2-454b-ad7b-e2440574419f",
+          "editorialCoverage": "Democracy at school; benefits",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.4.c",
+          "id": "bde485ad-eaa1-426d-ac50-f8fb4b724843",
+          "editorialCoverage": "Hold a mock election",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.4.d",
+          "id": "80b03050-4491-4f35-abb4-81e1016c72ec",
+          "editorialCoverage": "Fair decision-making; check 4",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "5.5",
+      "unitId": "d6442483-58ca-42c2-a9bb-ecaad9da4b87",
+      "section": "Children's government in school",
+      "manuscript": "05-citizenship-and-governance.md",
+      "suggestedLessons": 4,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "5.5.a",
+          "id": "dfe75c02-dd2a-4f7d-9e45-508869a7e886",
+          "editorialCoverage": "The composition of children's government",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.5.b",
+          "id": "59e3a7c7-6d56-4800-9f53-83589280c689",
+          "editorialCoverage": "What children's government does",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.5.c",
+          "id": "9fc857c1-65a3-44d6-b37c-779dc1d57dab",
+          "editorialCoverage": "Simulate a meeting",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.5.d",
+          "id": "b52d0195-c928-415d-b01c-e47bfbaff7af",
+          "editorialCoverage": "Respectful participation",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "5.6",
+      "unitId": "1786218c-d864-48ef-9e12-64d3e50daf0d",
+      "section": "Leaders in our community",
+      "manuscript": "05-citizenship-and-governance.md",
+      "suggestedLessons": 5,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "5.6.a",
+          "id": "4adf4847-630b-4751-bb11-b6c24d4ae23b",
+          "editorialCoverage": "Different community leaders",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.6.b",
+          "id": "29cdf7c7-ed30-4f48-add3-5e231c4c3c16",
+          "editorialCoverage": "Different community leaders; roles",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.6.c",
+          "id": "7360a86d-bfbf-4937-9e5f-195130c446aa",
+          "editorialCoverage": "Interview or role-play",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.6.d",
+          "id": "3c105ebb-85aa-4819-89e2-3eb8d9832143",
+          "editorialCoverage": "What good leaders do; check 5",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    },
+    {
+      "code": "5.7",
+      "unitId": "c686a631-390f-4ce0-b4e4-97e827aae692",
+      "section": "How county governments work",
+      "manuscript": "05-citizenship-and-governance.md",
+      "suggestedLessons": 6,
+      "reviewQuestions": 5,
+      "outcomes": [
+        {
+          "code": "5.7.a",
+          "id": "19f03982-2394-4fb1-a38f-9b850d8514ec",
+          "editorialCoverage": "The structure of county government",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.7.b",
+          "id": "ebad4738-b854-4f31-aa8b-d9f4cd4858e6",
+          "editorialCoverage": "Duties of the governor",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.7.c",
+          "id": "d941c180-1ee8-42a1-acc8-2b62fa4cf3c2",
+          "editorialCoverage": "Roles of an MCA",
+          "state": "draft-mapped; independent review pending"
+        },
+        {
+          "code": "5.7.d",
+          "id": "dc62bfaf-f520-4e86-b88c-84e46b187ee8",
+          "editorialCoverage": "Our county government chart; check 5",
+          "state": "draft-mapped; independent review pending"
+        }
+      ]
+    }
+  ],
+  "teacherSupport": {
+    "path": "teacher-support-and-answer-key.md",
+    "visibility": "teacher-only intended; repository draft, no actual runtime access control verified",
+    "questionKeys": 95,
+    "revisionPrompts": 19
+  },
+  "visuals": {
+    "state": "Six original SVG schematic drafts committed; not uploaded to certified visual storage; existing native table and descriptive fallback in reader package.",
+    "manifest": "visuals/manifest.json",
+    "count": 6
+  },
+  "quality": {
+    "state": "Structural coverage and targeted geography/governance source checks completed; independent review, actual render/accessibility and release pending",
+    "verified": "19 headings; 72 canonical IDs; 90 allocated lessons; 95 review questions",
+    "formalAssessment": "not imported into bank; practice and revision questions drafted, formal exam not included"
+  },
+  "next": "Import the draft through the authorized existing publication editor; upload and validate visuals; complete remaining independent checks and verify actual learner delivery.",
+  "readerDraft": {
+    "path": "reader-draft.json",
+    "sectionCount": 19,
+    "blockCount": 393,
+    "questionCount": 95,
+    "state": "prepared in canonical block format, not imported into authenticated publication editor"
+  }
+}
