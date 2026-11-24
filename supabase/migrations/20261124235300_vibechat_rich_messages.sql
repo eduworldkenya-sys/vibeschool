@@ -6,6 +6,22 @@ alter table public.vibetutor_lesson_messages add column if not exists reply_to_i
 alter table public.vibetutor_lesson_messages add column if not exists edited_at timestamptz;
 alter table public.vibetutor_lesson_messages add column if not exists deleted_at timestamptz;
 
+-- Legacy client inserts cannot forge server-managed rich-message metadata.
+create or replace function private.vibechat_guard_rich_metadata()
+returns trigger language plpgsql security invoker set search_path='' as $guard$
+begin
+ if current_user in ('anon','authenticated') then
+   if tg_op='INSERT' and (new.reply_to_id is not null or new.edited_at is not null) then
+     raise exception 'Message metadata is server-managed' using errcode='42501';
+   elsif tg_op='UPDATE' and (new.reply_to_id is distinct from old.reply_to_id or new.edited_at is distinct from old.edited_at) then
+     raise exception 'Message metadata is server-managed' using errcode='42501';
+   end if;
+ end if;
+ return new;
+end;$guard$;
+revoke all on function private.vibechat_guard_rich_metadata() from public,anon,authenticated;
+create trigger vibechat_guard_rich_metadata before insert or update on public.vc_messages for each row execute function private.vibechat_guard_rich_metadata();
+
 -- access: service-only private.vibechat_reactions
 -- authorization-test: private.vibechat_reactions; scripts/sql/vibechat_rich_authorization.sql
 create table private.vibechat_reactions(
