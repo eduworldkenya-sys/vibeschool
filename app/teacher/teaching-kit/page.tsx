@@ -19,6 +19,13 @@ function SlidesWorkspace(){
   const [error,setError]=useState('')
   const [deck,setDeck]=useState<Presentation|null>(null)
   const [page,setPage]=useState(0)
+  const [controls,setControls]=useState(true)
+  const [full,setFull]=useState(false)
+  const [fullError,setFullError]=useState('')
+  useEffect(()=>{const change=()=>setFull(Boolean(document.fullscreenElement));document.addEventListener('fullscreenchange',change);return()=>document.removeEventListener('fullscreenchange',change)},[])
+  useEffect(()=>{if(!deck)return;function navigate(e:KeyboardEvent){if(e.altKey||e.ctrlKey||e.metaKey||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement||e.target instanceof HTMLButtonElement||(e.target instanceof HTMLElement&&e.target.isContentEditable))return;if(e.key==='ArrowRight'||e.key==='PageDown'){e.preventDefault();setPage(n=>Math.min(n+1,deck!.slides.length-1))}else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();setPage(n=>Math.max(0,n-1))}else if(e.key==='Home'){e.preventDefault();setPage(0)}else if(e.key==='End'){e.preventDefault();setPage(deck!.slides.length-1)}}window.addEventListener('keydown',navigate);return()=>window.removeEventListener('keydown',navigate)},[deck])
+  async function toggleFull(){setFullError('');try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else setFullError('Full screen is not supported on this device.')}catch{setFullError('Full screen could not be opened.')}}
+  function closeDeck(){if(document.fullscreenElement)void document.exitFullscreen().catch(()=>{});setDeck(null);setPage(0);setControls(true);setFullError('')}
   useEffect(()=>{
     let active=true
     void supabase.auth.getUser().then(({data,error})=>{
@@ -46,15 +53,17 @@ function SlidesWorkspace(){
     return <main aria-label="In-class presentation" style={{position:'fixed',inset:0,zIndex:1200,overflowY:'auto',background:'#eaf0ed',padding:14,color:'#172f25'}}>
       <header style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap',maxWidth:1100,margin:'0 auto 12px'}}>
         <div><strong>{deck.title}</strong><div style={{fontSize:12,color:'#4b6659'}}>In class · on this device only · {page+1} / {deck.slides.length}</div></div>
-        <button type="button" style={button} onClick={()=>{setDeck(null);setPage(0)}}>Close presentation</button>
+        <button type="button" style={button} onClick={closeDeck}>Close presentation</button>
       </header>
       <div style={{maxWidth:1100,margin:'0 auto'}}>{slide&&<SlideCanvas slide={slide} number={page+1} total={deck.slides.length}/>}</div>
-      <nav aria-label="Presentation slides" style={{display:'flex',gap:8,justifyContent:'center',alignItems:'center',margin:'12px auto',flexWrap:'wrap'}}>
+      <div style={{display:'flex',justifyContent:'center',gap:8,marginTop:8}}><button type="button" style={button} onClick={()=>void toggleFull()}>{full?'Exit full screen':'Full screen'}</button><button type="button" style={button} aria-expanded={controls} onClick={()=>setControls(v=>!v)}>{controls?'Hide controls':'Show controls'}</button></div>
+      {fullError&&<p role="status" style={{textAlign:'center'}}>{fullError}</p>}
+      {controls&&<nav aria-label="Presentation slides" style={{display:'flex',gap:8,justifyContent:'center',alignItems:'center',margin:'12px auto',flexWrap:'wrap'}}>
         <button style={button} type="button" disabled={page===0} onClick={()=>setPage(n=>n-1)}>Previous</button>
         <span aria-live="polite" style={{fontSize:13}}>Slide {page+1} of {deck.slides.length}</span>
         <button style={button} type="button" disabled={page===deck.slides.length-1} onClick={()=>setPage(n=>n+1)}>Next</button>
-      </nav>
-      <p style={{fontSize:12,textAlign:'center',color:'#506b5e'}}>Presenter notes stay private in the editor. Nothing is broadcast to learners.</p>
+      </nav>}
+      {controls&&<p style={{fontSize:12,textAlign:'center',color:'#506b5e'}}>Use arrow keys to navigate. Presenter notes stay private in the editor. Nothing is broadcast to learners.</p>}
     </main>
   }
   return <main style={{maxWidth:1120,margin:'0 auto',padding:'16px',background:'#f7faf8',minHeight:'100vh',color:'#172f25'}}>
