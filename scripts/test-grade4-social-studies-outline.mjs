@@ -1,7 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {projectGrade4SocialStudiesOutline} from '../lib/learn/grade4SocialStudiesOutline.ts'
+import ts from 'typescript'
+const source=readFileSync(new URL('../lib/learn/grade4SocialStudiesOutline.ts',import.meta.url),'utf8')
+const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
+const {projectGrade4SocialStudiesOutline}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'))
 const m=JSON.parse(readFileSync(new URL('../docs/content/grade4-social-studies-textbook/manifest.json',import.meta.url),'utf8'))
 const canonical=m.units.map(u=>({id:u.unitId,name:'Strand '+u.code.split('.')[0],sub_strand:u.code+' Source unit'}))
 const old=Array.from({length:39},(_,i)=>({id:'historic-'+i,name:'Old',sub_strand:'Old '+i}))

@@ -9,7 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit --pretty false",
     "test:live-resources": "node --import ./scripts/register-typescript.mjs scripts/test-live-resource-presentation.mjs",
-    "test:reference-convergence": "node scripts/test-reference-convergence.mjs && node --import ./scripts/register-typescript.mjs --test scripts/test-grade4-social-studies-outline.mjs && node --test scripts/test-grade4-social-studies-premium-revision.mjs",
+    "test:reference-convergence": "node scripts/test-reference-convergence.mjs && node --test scripts/test-grade4-social-studies-outline.mjs && node --test scripts/test-grade4-social-studies-premium-revision.mjs",
     "test:canonical-references": "node scripts/test-canonical-reference-selectors.mjs",
     "test:seo-authority": "node scripts/seo-content-authority-contract-test.mjs",
     "test:vibetutor-services": "node --import ./scripts/register-typescript.mjs --test scripts/test-vibeme.mjs && node --import ./scripts/register-typescript.mjs --test scripts/test-vibetutor-tuition-services.mjs && node --test scripts/test-vibetutor-no-guardian-gate.mjs && node --test scripts/test-vibetutor-published-imported-requests.mjs && npm run test:vibechat",
