@@ -28,7 +28,7 @@ const chain = (value={error:null}) => {
   return result
 }
 
-async function attempt({existing=null,readError=null,insertError=null,level='professional',choice='CPA',bearer=true,enabled=true}={}) {
+async function attempt({existing=null,readError=null,insertError=null,level='professional',choice='CPA',bearer=true,enabled=true,ageBand='adult',identityAge='unconfirmed',dateOfBirth=null}={}) {
   const operations=[]
   const admin={
     auth:{getUser:async tokenValue=>{operations.push('verified-jwt');assert.equal(tokenValue,token);return {data:{user},error:null}}},
@@ -36,13 +36,13 @@ async function attempt({existing=null,readError=null,insertError=null,level='pro
       assert.notEqual(table,'learner_education_paths','service_role must not access the user-owned preference table')
       if(table==='profiles') return {
         select:()=>({eq:()=>({maybeSingle:async()=>({data:{
-          role:null,full_name:'Jane Doe',account_status:'active',is_anonymized:false,
+          role:null,full_name:'Jane Doe',account_status:'active',is_anonymized:false,date_of_birth:dateOfBirth,
         },error:null})})}),
         update:()=>chain(),
       }
       if(table==='independent_learner_identities') return {
         select:()=>({eq:()=>({maybeSingle:async()=>({data:{
-          account_state:'restricted',learner_email_verified_at:'2026-11-15T08:00:00Z',grade_label:null,
+          account_state:'restricted',learner_email_verified_at:'2026-11-15T08:00:00Z',grade_label:null,age_band:identityAge,
         },error:null})})}),
         update:()=>{operations.push('grade-saved');return chain()},
       }
@@ -98,7 +98,7 @@ async function attempt({existing=null,readError=null,insertError=null,level='pro
   })
   const request={
     headers:{get:name=>name==='authorization' && bearer?'Bearer '+token:null},
-    json:async()=>({level,choice,name:'Jane Doe'}),
+    json:async()=>({level,choice,name:'Jane Doe',ageBand}),
   }
   const response=await exports.POST(request)
   return {response,operations}
@@ -126,3 +126,15 @@ const noAuth=await attempt({bearer:false})
 assert.equal(noAuth.response.status,401)
 assert.equal(noAuth.operations.length,0)
 console.log('PASS: CPA signup uses only verified JWT + owner-scoped pathway RLS; rejects conflicts and partial writes')
+
+const minorChoice=await attempt({ageBand:'under_18'})
+assert.equal(minorChoice.response.status,403,'minor never provisions through the independent adult route')
+assert.equal(minorChoice.operations.length,0)
+const missingAge=await attempt({ageBand:null})
+assert.equal(missingAge.response.status,403)
+const previouslyKnownMinor=await attempt({identityAge:'under_18'})
+assert.equal(previouslyKnownMinor.response.status,403)
+assert.ok(!previouslyKnownMinor.operations.includes('student-provisioned'))
+const knownMinorBirth=await attempt({dateOfBirth:'2015-10-10'})
+assert.equal(knownMinorBirth.response.status,403)
+assert.ok(!knownMinorBirth.operations.includes('student-provisioned'))
