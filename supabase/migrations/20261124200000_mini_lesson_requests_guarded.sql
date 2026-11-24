@@ -137,6 +137,9 @@ begin
  else
    v_actor:=new.user_id; v_max:=30; v_table:='mini_request_supports';
  end if;
+ if v_actor is distinct from (select auth.uid()) then
+   raise exception 'Request identity mismatch' using errcode='42501';
+ end if;
  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_actor::text||':'||v_table,0));
  if tg_table_name='mini_requests' then
    select count(*) into v_total from public.mini_requests
