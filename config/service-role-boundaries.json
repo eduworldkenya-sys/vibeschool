@@ -188,6 +188,18 @@
         "MINI_GOOGLE_SAFETY_API_KEY",
         "Incomplete image safety analysis"
       ]
+    },
+    "app/api/identity/children/activate/route.ts": {
+      "authority": "authenticated_verified_guardian_with_owned_managed_identity_and_transactional_student_link",
+      "requiredEvidence": [
+        "validSameOriginMutation(request)",
+        "db.auth.getUser()",
+        "user?.email_confirmed_at",
+        "vs_list_my_identities",
+        "entry.status === 'managed'",
+        "vs_activate_managed_student",
+        "admin.auth.admin.deleteUser(newUserId)"
+      ]
     }
   }
 }
