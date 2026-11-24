@@ -8,6 +8,7 @@ import { getSupabaseClient } from '@/lib/supabase'
 import Enquiries from './Enquiries'
 import VibeChatAvatar from './VibeChatAvatar'
 import VibeChatContacts from './VibeChatContacts'
+import VibeChatUsernameSearch from './VibeChatUsernameSearch'
 import VibeChatSchool from './VibeChatSchool'
 import { useVibeChatTyping } from './useVibeChatTyping'
 import styles from './VibeChat.module.css'
@@ -343,10 +344,11 @@ export default function VibeChat() {
       {signedIn && tab==='chats' && <section className={styles.layout} aria-label="VibeChat conversations">
         <aside className={styles.sidebar}>
           <div className={styles.searchRow}>
-            <input className={styles.search} type="search" aria-label="Search conversations"
-              placeholder="Search chats" value={search} onChange={e=>setSearch(e.target.value)} />
+            <input className={styles.search} type="search" aria-label="Search chats or username"
+              placeholder="Search chats or username" value={search} onChange={e=>setSearch(e.target.value)} />
             <button type="button" className={styles.newChat} aria-label="Find a contact" title="New conversation" onClick={()=>setTab('contacts')}><SquarePen size={19} aria-hidden/></button>
           </div>
+          <VibeChatUsernameSearch query={search} role={role} />
           <div className={styles.filters} aria-label="Conversation filters">
             {(['all','school','tuition'] as const).map(filter=><button type="button" key={filter}
               aria-pressed={chatFilter===filter} className={styles.filter + (chatFilter===filter?' '+styles.filterActive:'')}
