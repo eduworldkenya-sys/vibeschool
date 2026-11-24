@@ -311,5 +311,9 @@ returns boolean language sql stable security definer set search_path='' as $allo
  )
 $allowed$;
 revoke all on function private.vibechat_push_allowed(uuid,uuid,text,uuid,uuid) from public,anon,authenticated;
+-- Preserve the existing production read contract on fresh reconstructions.
+-- Supabase defaults vary; authenticated inbox readers need explicit SELECT.
+-- Existing RLS plus the restrictive direct/group policies above remain mandatory.
+grant select on public.vc_threads,public.vc_participants,public.vc_messages to authenticated;
 notify pgrst,'reload schema';
 commit;
