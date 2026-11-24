@@ -42,6 +42,10 @@ begin
 end; $$;
 revoke all on function public.mini_safety_claim(text,uuid,uuid) from public,anon,authenticated;
 grant execute on function public.mini_safety_claim(text,uuid,uuid) to service_role;
+-- A trusted screening endpoint must be able to re-check eligibility and parent request
+-- without expanding ordinary creator roles or granting content approval to browsers.
+grant execute on function public.mini_creator_can_submit(uuid) to service_role;
+grant execute on function public.mini_request_available(uuid) to service_role;
 
 -- The scan log is an audit trail, not a queue for HQ approval.
 -- Existing author-submitted rows remain private until a server-side scan approves them.
