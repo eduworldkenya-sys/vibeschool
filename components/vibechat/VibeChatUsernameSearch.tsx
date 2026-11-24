@@ -8,12 +8,11 @@ import VibeChatAvatar from './VibeChatAvatar'
 
 type Match = { handle: string; display_name: string; account_role: string; avatar_url: string | null }
 
-export default function VibeChatUsernameSearch({query, role, onRequested}: {
-  query: string; role: string; onRequested?: () => void
+export default function VibeChatUsernameSearch({query, role, onRequested, onOpenThread}: {
+  query: string; role: string; onRequested?: () => void; onOpenThread?: (threadId: string) => void
 }) {
   const input = query.trim().toLowerCase().replace(/^@/, '')
-  const allowed = ['teacher', 'parent', 'admin'].includes(role)
-  const valid = allowed && /^[a-z0-9][a-z0-9.]{2,30}$/.test(input)
+  const valid = /^[a-z0-9][a-z0-9._]{2,30}$/.test(input)
   const [result, setResult] = useState<{input: string; rows: Match[]; error: boolean} | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [sent, setSent] = useState<string[]>([])
@@ -42,8 +41,9 @@ export default function VibeChatUsernameSearch({query, role, onRequested}: {
     setBusy(handle)
     setRequestError('')
     try {
-      const {error} = await getSupabaseClient().rpc('vibechat_request_contact', {p_handle: handle})
+      const {data, error} = await getSupabaseClient().rpc('vibechat_open_or_request_contact', {p_handle: handle})
       if (error) throw error
+      if (data) { onOpenThread?.(data); return }
       setSent(previous => [...previous, handle])
       onRequested?.()
     } catch {
@@ -64,7 +64,7 @@ export default function VibeChatUsernameSearch({query, role, onRequested}: {
           <strong>{row.display_name}</strong><div className={styles.subtitle}>{row.handle}</div>
         </div>
         <button type="button" className={styles.primary} disabled={!!busy || sent.includes(row.handle)}
-          onClick={()=>void connect(row.handle)}><UserPlus size={16} aria-hidden/> {sent.includes(row.handle)?'Requested':busy===row.handle?'Sending…':'Connect'}</button>
+          onClick={()=>void connect(row.handle)}><UserPlus size={16} aria-hidden/> {sent.includes(row.handle)?'Requested':busy===row.handle?'Sending…':'Chat'}</button>
       </div>)}
     {requestError && <small role="alert">{requestError}</small>}
   </section>
