@@ -89,7 +89,7 @@ declare
   v_request uuid;
 begin
   if v_user is null then raise exception 'Sign-in required' using errcode='28000'; end if;
-  if lower(trim(coalesce(p_handle,''))) !~ '^@[a-z0-9][a-z0-9.]{2,30} then
+  if lower(trim(coalesce(p_handle,''))) !~ '^@[a-z0-9][a-z0-9.]{2,30}$' then
     raise exception 'Invalid contact' using errcode='22023'; end if;
   select p.id into v_target from public.profiles p
     where lower(p.vc_id)=lower(trim(p_handle)) and p.id<>v_user
