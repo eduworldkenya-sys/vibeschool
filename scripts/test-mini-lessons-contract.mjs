@@ -111,7 +111,7 @@ assert.ok(explore.includes("NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true'"
 assert.ok(safetyApi.includes("MINI_LESSONS_OPEN_PUBLISHING_ENABLED") &&
   safetyApi.includes('getUser(bearer)') && safetyApi.includes('mini_safety_claim') &&
   safetyApi.includes("status:'pending'") === false && safetyApi.includes("'approved'") &&
-  safetyApi.includes("MINI_SAFETY_MODEL") &&
+  safetyApi.includes("MINI_GOOGLE_SAFETY_API_KEY") &&
   actions.includes("await publishMiniSafely('mini'") &&
   oldHq.includes('status:410'),
   'creator publishing must be automated, safety-gated and independent of HQ')
