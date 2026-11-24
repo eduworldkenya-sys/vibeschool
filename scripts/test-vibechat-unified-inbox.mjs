@@ -54,7 +54,7 @@ test('VibeChat shows existing account avatars instead of inventing a second prof
   assert.match(chat, /vibechat_my_tuition_peers/)
   assert.match(chat, /<VibeChatAvatar name=\{chat\.title\} avatarUrl=\{chat\.avatarUrl\}/)
   assert.match(chat, /<VibeChatAvatar name=\{selected\.title\} avatarUrl=\{selected\.avatarUrl\}/)
-  assert.match(contacts, /<VibeChatAvatar name=\{found\.display_name\} avatarUrl=\{found\.avatar_url\}/)
+  assert.match(read('components/vibechat/VibeChatUsernameSearch.tsx'), /<VibeChatAvatar name=\{row\.display_name\} avatarUrl=\{row\.avatar_url\}/)
   assert.match(contacts, /<VibeChatAvatar name=\{c\.name\} avatarUrl=\{c\.avatar_url\}/)
   assert.match(avatar, /NEXT_PUBLIC_SUPABASE_URL/)
   assert.match(avatar, /storage\/v1\/object\/public\/avatars/)
