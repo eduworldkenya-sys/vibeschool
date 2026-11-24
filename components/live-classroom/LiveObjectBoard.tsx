@@ -1,6 +1,7 @@
 'use client'
 import {useRef,useState,type PointerEvent} from 'react'
-import {TeachingDiagram, diagramLabel} from './LiveSlideCanvas'
+import {TeachingDiagram} from './LiveTeachingDiagram'
+import {diagramLabel} from './LiveSlideProtocol'
 import {BOARD_COLORS,BOARD_DIAGRAMS,BOARD_LIMIT,boardFromLegacy,encodeBoard,decodeBoard,type BoardDocument,type BoardObject,type BoardKind,type BoardColor} from './LiveBoardProtocol'
 import styles from './LiveClassroom.module.css'
 

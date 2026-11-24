@@ -1,3 +1,4 @@
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES,encodeAssessment,decodeAssessment,assessmentPrompt,encodePhotoSlide,decodePhotoSlide,updatePhoto} from '../components/live-classroom/LiveSlideProtocol.ts'
 // Install the pinned test-only engine outside the repo: npm install --prefix /tmp/live-test --no-audit --no-fund @electric-sql/pglite@0.3.14
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
@@ -8,7 +9,7 @@ assert.equal(liveSyncDelay(null,0),4000)
 assert.equal(liveSyncDelay('paused',0),4000)
 assert.equal(liveSyncDelay('ended',0),15000)
 assert.deepEqual([1,2,3,4,100].map(n=>liveSyncDelay('active',n)),[5000,10000,20000,30000,30000])
-import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide,visualSlideBody,visualSlidePayload} from '../components/live-classroom/LiveSlideProtocol.ts'
 import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS} from '../components/live-classroom/LiveBoardProtocol.ts'
 const shape={id:'fixture-rect',kind:'rectangle',x:20,y:25,w:90,h:60,angle:15,color:'#1865c0',stroke:3,locked:true}
 const drawnBoard={...emptyBoard(2,3),background:'grid',objects:[shape,{...shape,id:'fixture-note',kind:'text',text:'2 + 3 = 5'},{...shape,id:'fixture-diagram',kind:'diagram',diagram:'fraction-bars'},{...shape,id:'fixture-arrow',kind:'arrow',points:[0,0,1000,1000]}]}
@@ -23,6 +24,46 @@ assert.equal(boardFromLegacy('0,0;100,100;').objects.length,1)
 assert.deepEqual(BOARD_DIAGRAMS,SLIDE_DIAGRAMS.filter(d=>d!=='none'))
 console.log('PASS: native board object round trip, page metadata, object bounds, legacy conversion and malformed payloads')
 const privateSlide={title:'Fractions',body:'Two quarters make one half.',diagram:'fraction-circle',theme:'forest',layout:'wide',font:'large',notes:'Private answer and presenter reminder'}
+const visual={...privateSlide,body:visualSlideBody(objectBoard)}
+const visualEncoded=encodeSlide(visual,1,2)
+assert.ok(visualEncoded)
+assert.equal(visualSlidePayload('ordinary text'),null)
+assert.equal(visualSlidePayload(decodeSlide(visualEncoded).body),objectBoard)
+assert.deepEqual(decodeBoard(visualSlidePayload(decodeSlide(visualEncoded).body)),drawnBoard)
+assert.ok(!visualEncoded.includes(privateSlide.notes))
+assert.equal(adjacentSlide([visual,privateSlide],decodeSlide(visualEncoded),1),1)
+assert.equal(importDeck(exportDeck('Visual example',[visual])).slides[0].body,visual.body)
+for(const kind of Object.keys(DEMO_RANGES)){
+ const d=defaultDemo(kind),body=encodeDemo(d)
+ assert.deepEqual(decodeDemo(body),d)
+ assert.equal(decodeSlide(encodeSlide({title:'Demo',body},1,1)).body,body)
+ assert.equal(importDeck(exportDeck('Demo',[{title:'Demo',body}])).slides[0].body,body)
+}
+assert.equal(encodeDemo({kind:'clock',a:13,b:0}),'')
+assert.equal(encodeDemo({kind:'fraction-circle',a:5,b:4}),'')
+assert.deepEqual(changeDemo({kind:'fraction-circle',a:3,b:4},'b',2),{kind:'fraction-circle',a:2,b:2})
+const reveals=buildTextRevealSlides({title:'Steps',body:'First\nSecond\nThird',notes:'Private'},3)
+assert.deepEqual(reveals.map(s=>s.body),['First','First\nSecond','First\nSecond\nThird'])
+assert.equal(buildTextRevealSlides({title:'Steps',body:'First\nSecond'},1).length,0)
+assert.ok(!encodeSlide(reveals[0],1,3).includes('Private'))
+const activity={kind:'quiz',question:'What is one half?',options:['1/2','1/3']}
+const activityBody=encodeAssessment(activity)
+assert.deepEqual(decodeAssessment(activityBody),activity)
+assert.equal(assessmentPrompt(activity),'What is one half?\nA. 1/2\nB. 1/3')
+assert.equal(encodeAssessment({...activity,answerKey:'1/2'}),'')
+assert.equal(encodeAssessment({...activity,options:['One','one']}),'')
+assert.equal(decodeSlide(encodeSlide({title:'Quiz',body:activityBody,notes:'Private'},1,1)).body,activityBody)
+assert.equal(buildTextRevealSlides({title:'Quiz',body:activityBody},3).length,0)
+const photo={id:'11111111-1111-1111-1111-111111111111',x:0,y:0,w:60,h:60,fit:'contain'}
+const photoDoc={roomId:'22222222-2222-2222-2222-222222222222',photos:[photo]}
+const photoBody=encodePhotoSlide(photoDoc)
+assert.deepEqual(decodePhotoSlide(photoBody),photoDoc)
+assert.equal(encodePhotoSlide({...photoDoc,photos:[{...photo,x:80}]}),'')
+assert.equal(encodePhotoSlide({...photoDoc,photos:[photo,photo]}),'')
+assert.equal(encodePhotoSlide({...photoDoc,photos:[{...photo,url:'https://example.com'}]}),'')
+assert.deepEqual(updatePhoto(photo,{x:90}),{...photo,x:40})
+assert.equal(decodeSlide(encodeSlide({title:'Photo',body:photoBody},1,1)).body,photoBody)
+assert.throws(()=>exportDeck('Photo',[{title:'Photo',body:photoBody}]),/Room-specific photos/)
 const encodedSlide=encodeSlide(privateSlide,2,5)
 assert.ok(encodedSlide)
 assert.ok(!encodedSlide.includes(privateSlide.notes))
@@ -37,6 +78,18 @@ assert.equal(encodeSlide(privateSlide,1,31),'')
 assert.equal(validSlide({title:'a',body:'b',theme:'unsafe'}),false)
 for(const diagram of SLIDE_DIAGRAMS)assert.equal(decodeSlide(encodeSlide({...privateSlide,diagram},1,1)).diagram,diagram)
 console.log('PASS: bounded slide protocol, native diagram identifiers, privacy and malformed input rejection')
+const exported=exportDeck('Fractions',[privateSlide])
+assert.ok(!exported.includes(privateSlide.notes))
+assert.equal(importDeck(exported).slides[0].notes,undefined)
+assert.deepEqual(importDeck(exportDeck('Fractions',[privateSlide],true)).slides,[privateSlide])
+assert.throws(()=>importDeck('not json'),/Invalid/)
+assert.throws(()=>importDeck(JSON.stringify({format:'vibeschool-slides',version:2,title:'X',slides:[privateSlide]})),/Unsupported/)
+assert.throws(()=>importDeck(JSON.stringify({format:'vibeschool-slides',version:1,title:'X',slides:[{...privateSlide,extra:true}]})),/Invalid slide/)
+assert.throws(()=>exportDeck('X',Array(31).fill(privateSlide)),/1–30/)
+assert.throws(()=>importDeck('x'.repeat(MAX_DECK_FILE_BYTES+1)),/too large/)
+assert.throws(()=>exportDeck('X',[{title:'x',body:'"'.repeat(3878)}]),/too large/)
+assert.equal(importDeck(exportDeck('Blank',[{title:'',body:''}])).slides.length,1)
+console.log('PASS: portable presentation round trip, privacy, validation and size limits')
 // Dashboard shortcut must use existing scoped host routes and remain hidden until enabled.
 const teacherToday=readFileSync(new URL('../app/teacher/pulse/page.tsx',import.meta.url),'utf8')
 assert.ok(teacherToday.includes('process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === "true"'))

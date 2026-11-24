@@ -29,11 +29,12 @@ async function allowedSignature(file: File): Promise<boolean> {
   return false
 }
 
-export function LiveClassFiles({roomId,teacher,status,onPresentFile}:{
+export function LiveClassFiles({roomId,teacher,status,onPresentFile,onInsertPhoto}:{
   roomId: string
   teacher: boolean
   status: 'active'|'paused'|'ended'
   onPresentFile?: (encodedReference:string)=>void
+  onInsertPhoto?: (fileId:string)=>void
 }) {
   const [files,setFiles] = useState<LiveFile[]>([])
   const [error,setError] = useState('')
@@ -153,7 +154,7 @@ export function LiveClassFiles({roomId,teacher,status,onPresentFile}:{
         <div><strong>{file.title}</strong><small>{file.mime_type==='application/pdf'?'PDF':'Photo'} · {Math.ceil(file.byte_size/1024)} KB · {file.shared_at?'Shared':'Private draft'}</small></div>
         <div className={styles.actions}>
           <button type="button" disabled={busy} onClick={()=>void open(file)}>View</button>
-          {teacher&&(file.shared_at?<><button type="button" disabled={busy} onClick={()=>void changeShare(file,false)}>Unshare</button>{status==='active'&&onPresentFile&&<button type="button" disabled={busy} onClick={()=>{const ref=encodeLiveFileRef(file.id);if(ref)onPresentFile(ref)}}>Present</button>}</>:
+          {teacher&&(file.shared_at?<><button type="button" disabled={busy} onClick={()=>void changeShare(file,false)}>Unshare</button>{onInsertPhoto&&status==='active'&&file.mime_type.startsWith('image/')&&<button type="button" disabled={busy} onClick={()=>onInsertPhoto(file.id)}>Insert photo into slide</button>}{status==='active'&&onPresentFile&&<button type="button" disabled={busy} onClick={()=>{const ref=encodeLiveFileRef(file.id);if(ref)onPresentFile(ref)}}>Present</button>}</>:
           <><button type="button" disabled={busy||status==='ended'} onClick={()=>void changeShare(file,true)}>Share with class</button>
             <button type="button" disabled={busy} onClick={()=>void deleteDraft(file)}>Remove draft</button></>)}
         </div>

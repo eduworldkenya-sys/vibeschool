@@ -8,7 +8,7 @@ const prefix='VSLIDE1:'
 export function validSlide(s:unknown):s is LiveSlide {
  if(!s||typeof s!=='object')return false
  const x=s as LiveSlide
- return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878
+ return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878&&(!isDemoBody(x.body)||decodeDemo(x.body)!==null)&&(!isAssessmentBody(x.body)||decodeAssessment(x.body)!==null)&&(!isPhotoBody(x.body)||decodePhotoSlide(x.body)!==null)
  &&(x.diagram===undefined||SLIDE_DIAGRAMS.includes(x.diagram))&&(x.theme===undefined||SLIDE_THEMES.includes(x.theme))
  &&(x.layout===undefined||x.layout==='wide'||x.layout==='portrait')&&(x.font===undefined||x.font==='normal'||x.font==='large')
  &&(x.notes===undefined||(typeof x.notes==='string'&&x.notes.length<=2000))
@@ -47,4 +47,143 @@ export function adjacentSlide(deck: readonly LiveSlide[], current: PublishedSlid
   if(encodeSlide(deck[i],i+1,deck.length))return i
  }
  return null
+}
+
+
+export const MAX_DECK_FILE_BYTES=512_000
+export type PortableDeck={format:'vibeschool-slides';version:1;title:string;slides:LiveSlide[]}
+const allowed=new Set(['title','body','diagram','theme','layout','font','notes'])
+
+function projectSlide(s:LiveSlide,includeNotes:boolean):LiveSlide {
+ return {title:s.title,body:s.body,...(s.diagram!==undefined?{diagram:s.diagram}:{}),...(s.theme!==undefined?{theme:s.theme}:{}),...(s.layout!==undefined?{layout:s.layout}:{}),...(s.font!==undefined?{font:s.font}:{}),...(includeNotes&&s.notes!==undefined?{notes:s.notes}:{})}
+}
+function checkedDeck(title:unknown,slides:unknown,includeNotes:boolean):PortableDeck {
+ if(typeof title!=='string'||!title.trim()||title.length>120)throw Error('Presentation name must contain 1–120 characters.')
+ if(!Array.isArray(slides)||slides.length<1||slides.length>30)throw Error('A presentation must contain 1–30 slides.')
+ const cleaned=slides.map((slide:unknown,i:number)=>{
+  if(!validSlide(slide)||Object.keys(slide).some(k=>!allowed.has(k)))throw Error('Invalid slide '+(i+1)+'.')
+  if(isPhotoBody(slide.body))throw Error('Room-specific photos cannot be transferred to another presentation. Remove photo slides first.')
+  return projectSlide(slide,includeNotes)
+ })
+ // Match the server deck budget conservatively and reject content that
+ // cannot be broadcast within the existing public slide protocol.
+ if(new TextEncoder().encode(JSON.stringify(cleaned)).length>170_000)throw Error('Presentation is too large.')
+ for(const [i,s] of cleaned.entries()){
+  const blank=!s.title.trim()&&!s.body.trim()&&(!s.diagram||s.diagram==='none')
+  if(!blank&&!encodeSlide(s,i+1,cleaned.length))throw Error('Slide '+(i+1)+' is too large to present.')
+ }
+ return {format:'vibeschool-slides',version:1,title:title.trim(),slides:cleaned}
+}
+export function exportDeck(title:string,slides:LiveSlide[],includeNotes=false):string{
+ return JSON.stringify(checkedDeck(title,slides,includeNotes),null,2)
+}
+export function importDeck(source:string):PortableDeck{
+ if(new TextEncoder().encode(source).length>MAX_DECK_FILE_BYTES)throw Error('Presentation file is too large.')
+ let data:unknown
+ try{data=JSON.parse(source)}catch{throw Error('Invalid VibeSchool presentation file.')}
+ if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Invalid presentation.')
+ const record=data as Record<string,unknown>
+ if(record.format!=='vibeschool-slides'||record.version!==1||Object.keys(record).some(k=>!['format','version','title','slides'].includes(k)))throw Error('Unsupported presentation format.')
+ return checkedDeck(record.title,record.slides,true)
+}
+
+/** A visual slide is a versioned body variant, not a new database column.
+ * The embedded board uses the existing public drawing protocol. Existing
+ * text-only slides and private notes remain unchanged.
+ */
+const VISUAL_SLIDE_PREFIX='VSLIDEVIS1:'
+export function visualSlidePayload(body:string):string|null{
+ return body.startsWith(VISUAL_SLIDE_PREFIX)?body.slice(VISUAL_SLIDE_PREFIX.length):null
+}
+export function visualSlideBody(board:string):string{
+ return VISUAL_SLIDE_PREFIX+board
+}
+
+export type DemoKind='clock'|'fraction-circle'|'fraction-bars'|'number-line'|'ruler'|'coordinate-grid'|'protractor'
+export type SlideDemo={kind:DemoKind;a:number;b:number}
+const DEMO_PREFIX='VSLIDEDEMO1:'
+export const DEMO_RANGES:Record<DemoKind,{a:[number,number];b:[number,number];labels:[string,string];initial:[number,number]}>={
+ clock:{a:[1,12],b:[0,59],labels:['Hour','Minute'],initial:[3,30]},
+ 'fraction-circle':{a:[0,12],b:[1,12],labels:['Shaded parts','Total parts'],initial:[2,4]},
+ 'fraction-bars':{a:[0,12],b:[1,12],labels:['Shaded parts','Total parts'],initial:[2,4]},
+ 'number-line':{a:[-10,10],b:[-10,10],labels:['Start','End'],initial:[-3,4]},
+ ruler:{a:[0,10],b:[0,10],labels:['Start (cm)','End (cm)'],initial:[2,7]},
+ 'coordinate-grid':{a:[-4,4],b:[-4,4],labels:['x','y'],initial:[2,3]},
+ protractor:{a:[0,180],b:[0,0],labels:['Angle (degrees)','Unused'],initial:[60,0]}
+}
+export function validDemo(value:unknown):value is SlideDemo {
+ if(!value||typeof value!=='object'||Array.isArray(value))return false
+ const d=value as SlideDemo
+ if(!Object.prototype.hasOwnProperty.call(DEMO_RANGES,d.kind)||Object.keys(d).some(k=>!['kind','a','b'].includes(k)))return false
+ const r=DEMO_RANGES[d.kind]
+ return Number.isInteger(d.a)&&d.a>=r.a[0]&&d.a<=r.a[1]&&Number.isInteger(d.b)&&d.b>=r.b[0]&&d.b<=r.b[1]&&(!d.kind.startsWith('fraction-')||d.a<=d.b)
+}
+export function isDemoBody(body:string):boolean{return body.startsWith(DEMO_PREFIX)}
+export function decodeDemo(body:string):SlideDemo|null{
+ if(!isDemoBody(body)||body.length>200)return null
+ try{const d:unknown=JSON.parse(body.slice(DEMO_PREFIX.length));return validDemo(d)?{kind:d.kind,a:d.a,b:d.b}:null}catch{return null}
+}
+export function encodeDemo(d:SlideDemo):string{return validDemo(d)?DEMO_PREFIX+JSON.stringify({kind:d.kind,a:d.a,b:d.b}):''}
+export function defaultDemo(kind:DemoKind):SlideDemo{
+ const [a,b]=DEMO_RANGES[kind].initial;return {kind,a,b}
+}
+export function changeDemo(d:SlideDemo,field:'a'|'b',value:number):SlideDemo{
+ const range=DEMO_RANGES[d.kind][field]
+ if(!Number.isFinite(value))return d
+ const next={...d,[field]:Math.min(range[1],Math.max(range[0],Math.round(value)))}
+ if(next.kind.startsWith('fraction-'))next.a=Math.min(next.a,next.b)
+ return next
+}
+export function buildTextRevealSlides(slide:LiveSlide,available:number):LiveSlide[]{
+ if(isDemoBody(slide.body)||isAssessmentBody(slide.body)||isPhotoBody(slide.body)||visualSlidePayload(slide.body)!==null)return []
+ const lines=slide.body.split(/\r?\n/).map(line=>line.trim()).filter(Boolean)
+ if(lines.length<2||lines.length>available||lines.length>30)return []
+ const steps=lines.map((_,i)=>({...slide,body:lines.slice(0,i+1).join('\n')}))
+ return steps.every((s,i)=>Boolean(encodeSlide(s,i+1,steps.length)))?steps:[]
+}
+
+export type SlideAssessment={kind:'quiz'|'poll';question:string;options:string[]}
+const ASSESSMENT_PREFIX='VSLIDEASK1:'
+export function isAssessmentBody(body:string):boolean{return body.startsWith(ASSESSMENT_PREFIX)}
+export function validAssessment(value:unknown):value is SlideAssessment{
+ if(!value||typeof value!=='object'||Array.isArray(value))return false
+ const a=value as SlideAssessment
+ return Object.keys(a).every(k=>['kind','question','options'].includes(k))&&(a.kind==='quiz'||a.kind==='poll')&&typeof a.question==='string'&&!!a.question.trim()&&a.question.length<=500&&!/[\r\n]/.test(a.question)&&Array.isArray(a.options)&&a.options.length>=2&&a.options.length<=6&&a.options.every(o=>typeof o==='string'&&!!o.trim()&&o.length<=140&&!/[\r\n]/.test(o))&&new Set(a.options.map(o=>o.trim().toLowerCase())).size===a.options.length
+}
+export function decodeAssessment(body:string):SlideAssessment|null{
+ if(!isAssessmentBody(body)||body.length>2000)return null
+ try{const v:unknown=JSON.parse(body.slice(ASSESSMENT_PREFIX.length));return validAssessment(v)?{kind:v.kind,question:v.question,options:v.options}:null}catch{return null}
+}
+export function encodeAssessment(a:SlideAssessment):string{return validAssessment(a)?ASSESSMENT_PREFIX+JSON.stringify({kind:a.kind,question:a.question.trim(),options:a.options.map(o=>o.trim())}):''}
+export function assessmentPrompt(a:SlideAssessment):string{return a.question.trim()+'\n'+a.options.map((o,i)=>String.fromCharCode(65+i)+'. '+o.trim()).join('\n')}
+
+export type SlidePhoto={id:string;x:number;y:number;w:number;h:number;fit:'contain'|'cover'}
+export type PhotoSlide={roomId:string;photos:SlidePhoto[]}
+const PHOTO_PREFIX='VSLIDEPHOTO1:'
+const photoUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export function isPhotoBody(body:string):boolean{return body.startsWith(PHOTO_PREFIX)}
+function validPhoto(v:unknown):v is SlidePhoto{
+ if(!v||typeof v!=='object'||Array.isArray(v))return false
+ const o=v as SlidePhoto
+ return Object.keys(o).every(k=>['id','x','y','w','h','fit'].includes(k))&&typeof o.id==='string'&&photoUuid.test(o.id)&&[o.x,o.y,o.w,o.h].every(Number.isInteger)&&o.x>=0&&o.y>=0&&o.w>=20&&o.h>=20&&o.x+o.w<=100&&o.y+o.h<=100&&(o.fit==='contain'||o.fit==='cover')
+}
+function validPhotoSlide(v:unknown):v is PhotoSlide{
+ if(!v||typeof v!=='object'||Array.isArray(v))return false
+ const d=v as PhotoSlide
+ return Object.keys(d).every(k=>['roomId','photos'].includes(k))&&typeof d.roomId==='string'&&photoUuid.test(d.roomId)&&Array.isArray(d.photos)&&d.photos.length>=1&&d.photos.length<=4&&d.photos.every(validPhoto)&&new Set(d.photos.map(p=>p.id)).size===d.photos.length
+}
+export function decodePhotoSlide(body:string):PhotoSlide|null{
+ if(!isPhotoBody(body)||body.length>1500)return null
+ try{const d:unknown=JSON.parse(body.slice(PHOTO_PREFIX.length));return validPhotoSlide(d)?{roomId:d.roomId,photos:d.photos.map(p=>({id:p.id,x:p.x,y:p.y,w:p.w,h:p.h,fit:p.fit}))}:null}catch{return null}
+}
+export function encodePhotoSlide(d:PhotoSlide):string{
+ if(!validPhotoSlide(d))return ''
+ return PHOTO_PREFIX+JSON.stringify({roomId:d.roomId,photos:d.photos.map(p=>({id:p.id,x:p.x,y:p.y,w:p.w,h:p.h,fit:p.fit}))})
+}
+export function updatePhoto(p:SlidePhoto,patch:Partial<Pick<SlidePhoto,'x'|'y'|'w'|'h'|'fit'>>):SlidePhoto{
+ const n={...p,...patch}
+ const bound=(v:number,min:number,max:number,fallback:number)=>Number.isFinite(v)?Math.min(max,Math.max(min,Math.round(v))):fallback
+ n.w=bound(n.w,20,100,p.w);n.h=bound(n.h,20,100,p.h)
+ n.x=bound(n.x,0,100-n.w,p.x);n.y=bound(n.y,0,100-n.h,p.y)
+ return validPhoto(n)?n:p
 }
