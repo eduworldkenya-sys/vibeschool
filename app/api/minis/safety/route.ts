@@ -1,4 +1,6 @@
 import 'server-only'
+import { createHash } from 'node:crypto'
+import { validateMiniVoice } from '@/lib/minis/voice'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
@@ -10,7 +12,7 @@ const NO_STORE = { 'Cache-Control':'private, no-store', 'X-Content-Type-Options'
 type Target = 'mini' | 'request' | 'comment'
 type SafetyVerdict = { safe: boolean; reason: string }
 type PendingItem = { id:string; status:string; creator_id?:string; requester_id?:string; author_id?:string;
-  updated_at?:string; title?:string; body?:string; question?:string; cover_path?:string|null; tags?:string[]; request_id?:string|null;
+  updated_at?:string; title?:string; body?:string; question?:string; cover_path?:string|null; audio_path?:string|null; tags?:string[]; request_id?:string|null;
   quiz_question?:string|null; quiz_options?:string[]; quiz_explanation?:string|null }
 const tables:Record<Target,string> = { mini:'mini_lessons', request:'mini_requests',comment:'mini_comments' }
 const owners:Record<Target,string> = { mini:'creator_id', request:'requester_id',comment:'author_id' }
@@ -109,6 +111,33 @@ async function moderate(input:{target:Target;title:string;body:string;photo?:{da
   return {safe:true,reason:'Automated screening passed'}
 }
 
+// Speech recognition is an additional prerequisite, never a replacement for text/image screening.
+async function inspectVoice(db:SupabaseClient,path:string,actor:string):Promise<{text:string;hash:string}> {
+  if(!path.startsWith(actor+'/')||!UUID.test(path.slice(actor.length+1,-4))||!path.endsWith('.wav'))throw Error('Invalid voice path.')
+  const key=process.env.MINI_GOOGLE_SPEECH_API_KEY
+  if(!key)throw Error('Voice safety checks unavailable.')
+  const {data,error}=await db.storage.from('mini-voice').download(path)
+  if(error||!data||data.type!=='audio/wav'||data.size>1920044)throw Error('Voice unavailable.')
+  const bytes=Buffer.from(await data.arrayBuffer())
+  validateMiniVoice(bytes)
+  const response=await fetch('https://speech.googleapis.com/v1/speech:recognize',{
+    method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
+    cache:'no-store',signal:AbortSignal.timeout(20000),
+    body:JSON.stringify({config:{encoding:'LINEAR16',sampleRateHertz:16000,audioChannelCount:1,languageCode:'en-KE',alternativeLanguageCodes:['sw-KE'],enableAutomaticPunctuation:true,profanityFilter:false,maxAlternatives:1},audio:{content:bytes.toString('base64')}})
+  })
+  if(!response.ok)throw Error('Voice recognition unavailable.')
+  const result=await response.json() as {results?:{alternatives?:{transcript?:string;confidence?:number}[]}[]}
+  if(!Array.isArray(result.results)||!result.results.length)throw Error('No recognizable speech.')
+  const texts=result.results.map(r=>{
+    const best=r.alternatives?.[0]
+    if(typeof best?.transcript!=='string'||!best.transcript.trim()||typeof best.confidence!=='number'||!Number.isFinite(best.confidence)||best.confidence<0.75||best.confidence>1)throw Error('Voice recognition uncertain.')
+    return best.transcript.trim()
+  })
+  const text=texts.join(' ')
+  if(!text||text.length>5000)throw Error('Voice transcript unavailable.')
+  return {text,hash:createHash('sha256').update(bytes).digest('hex')}
+}
+
 export async function POST(request:NextRequest) {
   if(process.env.MINI_LESSONS_OPEN_PUBLISHING_ENABLED!=='true')
     return approved({error:'Publishing is not yet available.'},503)
@@ -162,6 +191,7 @@ export async function POST(request:NextRequest) {
     if(claimError||claimed!==true)return approved({error:'A safety check is already running or the scan limit is reached.'},409)
 
     let verdict:SafetyVerdict
+    let voiceHash:string|null=null
     try {
       let photo:{data:string;mimeType:string}|undefined
       if(target==='mini'&&item.cover_path){
@@ -176,6 +206,11 @@ export async function POST(request:NextRequest) {
       const body=target==='request'?item.question??'':item.body??''
       const text=[body,...(item.tags??[]),item.quiz_question??'',...(item.quiz_options??[]),item.quiz_explanation??''].join('\n')
       verdict=await moderate({target,title:item.title??'',body:text,photo})
+      if(verdict.safe&&target==='mini'&&item.audio_path){
+        const voice=await inspectVoice(db,item.audio_path,actor)
+        verdict=await moderate({target,title:'Voice narration',body:voice.text})
+        if(verdict.safe)voiceHash=voice.hash
+      }
     }catch {
       await db.from('mini_safety_scans').update({
         verdict:'unavailable',reason:'Safety service unavailable',lease_until:new Date().toISOString(),
@@ -189,6 +224,7 @@ export async function POST(request:NextRequest) {
     }
     if(target==='mini'){
       changes.published_at=verdict.safe?timestamp:null
+      if(item.audio_path)changes.audio_sha256=voiceHash
       changes.moderation_note=verdict.safe?null:'Automated safety filter declined publication'
     }else if(target==='request'){
       changes.moderation_note=verdict.safe?null:'Automated safety filter declined publication'
