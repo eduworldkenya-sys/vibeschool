@@ -26,7 +26,8 @@ begin
  replacement:=old||' wb vibe_live.workbook_entries%rowtype; wb_prompt uuid; wb_student uuid; wb_revision integer; wb_body text; wb_drawing text; wb_feedback text;';
  if (length(src)-length(replace(src,old,'')))/length(old)<>1 then raise exception 'Unexpected Live declaration'; end if;
  src:=replace(src,old,replacement);
- old:=$a
+ old:=$anchor$if p_action is null or p_action not in ('list',$anchor$;
+ replacement:=$anchor$if p_action is null or p_action not in ('workbook_list','workbook_save','workbook_submit','workbook_return','workbook_accept','list',$anchor$;
  if (length(src)-length(replace(src,old,'')))/length(old)<>1 then raise exception 'Unexpected Live whitelist'; end if;
  src:=replace(src,old,replacement);
  old:=$a$if p_action not in ('get','start','dm_list','dm_read') and$a$;
