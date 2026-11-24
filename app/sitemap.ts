@@ -1,4 +1,6 @@
 import type { MetadataRoute } from 'next'
+import { publicMiniSitemap } from '@/lib/minis/public-server'
+import { miniPublicPath } from '@/lib/minis/public-url'
 import { getSupabaseServerClient } from '@/lib/supabaseServer'
 import { listKnowledgeArticles } from '@/lib/educationKnowledge'
 import { isPublicBlogReady } from '@/lib/blogContent'
@@ -46,6 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
+  const miniRoutes: MetadataRoute.Sitemap = await publicMiniSitemap().then(rows=>rows.map(row=>({url:SITE_URL+miniPublicPath(row.id),lastModified:row.published_at,changeFrequency:'weekly' as const,priority:0.7}))).catch(()=>[])
   try {
     const supabase = getSupabaseServerClient()
     const { data: publications } = await supabase
@@ -62,8 +65,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: publication.format === 'vibetextbook' ? 0.9 : 0.8,
     }))
 
-    return [...staticRoutes, ...knowledgeRoutes, ...publicationRoutes]
+    return [...staticRoutes, ...knowledgeRoutes, ...publicationRoutes, ...miniRoutes]
   } catch {
-    return [...staticRoutes, ...knowledgeRoutes]
+    return [...staticRoutes, ...knowledgeRoutes, ...miniRoutes]
   }
 }

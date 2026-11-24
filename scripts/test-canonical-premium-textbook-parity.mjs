@@ -27,7 +27,7 @@ test('textbook activities and examples are editorial sections, not generic shade
 test('published access and reading progress remain on existing authority', () => {
   assert.match(publicServer, /get_public_vibetextbook_reader/)
   assert.match(reader, /active\.can_read/)
-  assert.match(reader, /record_reading_progress/)
+  assert.doesNotMatch(reader,/record_reading_progress/, 'Reader progress is written by the canonical continuity coordinator')
   assert.match(studio, /publishPublication\(/)
   assert.doesNotMatch(published, /dangerouslySetInnerHTML/)
 })

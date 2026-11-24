@@ -36,7 +36,7 @@ test('existing title, paragraphs, headings and six images remain on Learn reader
 test('same canonical published reader keeps access checks and learner continuity',()=>{
   assert.match(publicReader,/get_public_vibetextbook_reader/)
   assert.match(reader,/active\.can_read/)
-  assert.match(reader,/record_reading_progress/)
+  assert.doesNotMatch(reader,/record_reading_progress/, 'Reader progress is written by the canonical continuity coordinator')
   assert.match(reader,/ReaderLearningSheet/)
   assert.match(reader,/ReaderNarrationMiniPlayer/)
   assert.doesNotMatch(reader,/OfflineBookSaveButton|saveOfflineBook|offline\/books/)
