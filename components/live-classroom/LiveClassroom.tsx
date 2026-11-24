@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { Maximize, Minimize, Users, PanelTop, Pencil, HelpCircle, ClipboardList, BarChart3, MoreHorizontal, X, Video, Move, GripHorizontal, Hand, MessageSquare, NotebookPen, History, Wifi, WifiOff, BookOpen } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import styles from './LiveClassroom.module.css'
-import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt } from './LiveSlideProtocol'
+import { adjacentSlide, buildTextRevealSlides, decodeAssessment, assessmentPrompt, decodePhotoSlide } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
@@ -128,7 +128,7 @@ function SharedPrompt({prompt,roomId,learner=false,compact=false,onQuote}:{promp
  const sharedFile=prompt?.kind==='teach'?decodeLiveFileRef(prompt.body):null
  if(sharedFile)return roomId?<LiveFilePresentation roomId={roomId} fileId={sharedFile}/>:<p>Shared PDF or photo</p>
  const slide=prompt?.kind==='teach'?decodeSlide(prompt.body):null
- if(slide)return <SlideCanvas slide={slide} number={slide.number} total={slide.total} mini={compact} explore={learner&&!compact}/>
+ if(slide)return <SlideCanvas slide={slide} number={slide.number} total={slide.total} mini={compact} explore={learner&&!compact} roomId={roomId}/>
  return prompt?<><div className={styles.label}>{labels[prompt.kind]}</div>{prompt.kind==='clock'?(learner?<ClockExplorer value={prompt.body}/>:<ClockView value={prompt.body}/>):prompt.kind==='board'?<BoardView value={prompt.body}/>:prompt.kind==='teach'&&!compact?<LiveReadingSurface body={prompt.body} learner={learner} onQuote={onQuote}/>:<p className={styles.content}>{prompt.body}</p>}{prompt.revealed&&prompt.answerKey&&<div className={styles.solution}><strong>Answer</strong><p className={styles.content}>{prompt.answerKey}</p></div>}</>:<p className={styles.empty}>Choose a teaching tool to start.</p>
 }
 
@@ -922,6 +922,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
   function editSlide(patch:Partial<LiveSlide>){setSlides(items=>items.map((item,i)=>i===slideIndex?{...item,...patch}:item))}
   function presentSlide(index:number){
     const item=slides[index];if(!item||!canNavigateSlides)return
+    const photos=decodePhotoSlide(item.body);if(photos&&photos.roomId!==room?.id){setError('This photo slide belongs to a different classroom.');return}
     const slideText=encodeSlide(item,index+1,slides.length)
     if(slideText)void act('publish',null,{kind:'teach',body:slideText,answerKey:null})
   }
@@ -1014,12 +1015,12 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
         }}>
         {teacher&&panel==='resources'?<div className={styles.resourceWorkspace}><LiveResourcePicker classId={room.mode==='school'?classId:null} lessonPlanId={room.mode==='school'?linkedPlan?.id??null:null} schemeLessonId={room.mode==='school'?linkedPlan?.schemeId??null:null} canPresent={!busy&&online&&room.status==='active'} onPresent={body=>void act('publish',null,{kind:'teach',body,answerKey:null})} onClose={()=>setPanel(null)}/><LiveClassFiles roomId={room.id} teacher status={room.status} onPresentFile={reference=>{if(!busy&&online&&room.status==='active')void act('publish',null,{kind:'teach',body:reference,answerKey:null})}}/></div>:teacher&&panel==='library'?<div className={styles.slideWorkspace}><div className={styles.slideToolbar}><strong>My Presentations</strong><button onClick={openSlides}>Back to slides</button></div><TeachingLibrary command={call} currentDeck={slides} onUse={useMaterial}/></div>:teacher&&panel==='slides'&&slide?<div className={styles.slideWorkspace}>
           <div className={styles.slideToolbar}><strong>Slide editor</strong><span>{slideIndex+1} / {slides.length}</span><button type="button" onClick={()=>setPanel('library')}>My presentations</button><button type="button" onClick={()=>setPanel(null)}>Close</button></div>
-          <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length}/>
-          <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
+          <SlideCanvas slide={slide} number={slideIndex+1} total={slides.length} roomId={room.id}/>
+          <div className={styles.slideStrip} aria-label="Slide thumbnails">{slides.map((item,i)=><button type="button" key={i} aria-label={'Slide '+(i+1)+(item.title.trim()?': '+item.title:'')} aria-pressed={i===slideIndex} disabled={busy} onClick={()=>setSlideIndex(i)}><SlideCanvas slide={item} number={i+1} total={slides.length} mini roomId={room.id}/></button>)}<button type="button" aria-label="Add slide" disabled={slides.length>=30||busy} onClick={()=>addSlide()}>+ Add</button></div>
           <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous preview</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next preview</button><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>Present slide</button></div>
           <div className={styles.slideFields}>
             <label>Title<input value={slide.title} maxLength={120} disabled={busy} onChange={e=>editSlide({title:e.target.value})}/></label>
-            <SlideBodyEditor key={room.id+':'+slideIndex} slide={slide} disabled={busy} onChange={body=>editSlide({body})}/><button type="button" disabled={busy||buildTextRevealSlides(slide,31-slides.length).length===0} onClick={()=>{const steps=buildTextRevealSlides(slide,31-slides.length);if(steps.length&&window.confirm('Replace this slide with '+steps.length+' progressive teaching steps?'))setSlides(items=>[...items.slice(0,slideIndex),...steps,...items.slice(slideIndex+1)])}}>Build reveal steps</button>
+            <SlideBodyEditor key={room.id+':'+slideIndex} slide={slide} roomId={room.id} roomStatus={room.status} disabled={busy} onChange={body=>editSlide({body})}/><button type="button" disabled={busy||buildTextRevealSlides(slide,31-slides.length).length===0} onClick={()=>{const steps=buildTextRevealSlides(slide,31-slides.length);if(steps.length&&window.confirm('Replace this slide with '+steps.length+' progressive teaching steps?'))setSlides(items=>[...items.slice(0,slideIndex),...steps,...items.slice(slideIndex+1)])}}>Build reveal steps</button>
             <div className={styles.slideOptions}>
               <label>Diagram<select aria-label="Diagram" disabled={busy} value={slide.diagram??'none'} onChange={e=>editSlide({diagram:e.target.value as SlideDiagram})}>{SLIDE_DIAGRAMS.map(d=><option key={d} value={d}>{diagramLabel(d)}</option>)}</select></label>
               <label>Theme<select aria-label="Theme" disabled={busy} value={slide.theme??'paper'} onChange={e=>editSlide({theme:e.target.value as SlideTheme})}>{SLIDE_THEMES.map(t=><option key={t}>{t}</option>)}</select></label>

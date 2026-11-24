@@ -3,7 +3,7 @@ import {useEffect,useState,useRef} from 'react'
 import {SlideCanvas,validSlide,diagramLabel,SLIDE_DIAGRAMS,SLIDE_THEMES,type LiveSlide,type SlideDiagram,type SlideTheme} from './LiveSlideCanvas'
 import styles from './LiveClassroom.module.css'
 import {SlideBodyEditor} from './LiveSlideBodyEditor'
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides} from './LiveSlideProtocol'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,buildTextRevealSlides,isPhotoBody} from './LiveSlideProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
 type Material={id:string;title:string;revision:number;slides:LiveSlide[]}
 type Command=(action:string,id?:string|null,version?:number|null,payload?:Record<string,unknown>)=>Promise<unknown>
@@ -48,6 +48,7 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
  }
  function save(use=false){
   if(!edit||!edit.title.trim())return
+  if(edit.slides.some(s=>isPhotoBody(s.body))){setError('Remove room-specific photo slides before saving a reusable presentation.');return}
   void run(async()=>{const result=await command('materials_save',null,null,{id:edit.id,revision:edit.revision,title:edit.title,slides:edit.slides})
    if(!isMaterial(result))throw Error('Invalid save response')
    if(!alive.current)return

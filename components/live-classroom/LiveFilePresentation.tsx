@@ -5,7 +5,7 @@ import {supabase} from '@/lib/supabase'
 import styles from './LiveClassFiles.module.css'
 
 type SharedFile={id:string;title:string;mime_type:string;object_path:string;shared_at:string|null}
-export function LiveFilePresentation({roomId,fileId}:{roomId:string;fileId:string}){
+export function LiveFilePresentation({roomId,fileId,photoFit}:{roomId:string;fileId:string;photoFit?:'contain'|'cover'}){
   const [file,setFile]=useState<SharedFile|null>(null)
   const [url,setUrl]=useState('')
   const [error,setError]=useState('')
@@ -24,6 +24,7 @@ export function LiveFilePresentation({roomId,fileId}:{roomId:string;fileId:strin
           .eq('id',fileId).eq('session_id',roomId).not('shared_at','is',null).maybeSingle()
         if(result.error||!result.data)throw new Error('This shared file is unavailable or access was revoked.')
         const asset=result.data as SharedFile
+        if(photoFit&&!['image/jpeg','image/png','image/webp'].includes(asset.mime_type))throw Error('This file is not a classroom photo.')
         const link=await supabase.storage.from('vibe-live-private').createSignedUrl(asset.object_path,60)
         if(link.error||!link.data?.signedUrl)throw new Error('File access could not be verified.')
         if(alive){setFile(asset);setUrl(link.data.signedUrl)}
@@ -32,7 +33,8 @@ export function LiveFilePresentation({roomId,fileId}:{roomId:string;fileId:strin
     }
     void load()
     return ()=>{alive=false}
-  },[roomId,fileId,nonce])
+  },[roomId,fileId,nonce,Boolean(photoFit)])
+  if(photoFit)return <div style={{width:'100%',height:'100%',display:'grid',placeItems:'center',position:'relative',overflow:'hidden',background:'#fff',color:'#173c35'}}>{loading?<small role="status">Opening photo…</small>:error?<button type="button" onClick={renew} title={error}>Photo unavailable · Retry</button>:file&&url?<img src={url} alt={file.title} referrerPolicy="no-referrer" onError={()=>setError('Photo access expired.')} style={{width:'100%',height:'100%',objectFit:photoFit}}/>:null}</div>
   return <section aria-label="Shared classroom file" className={styles.preview}>
     {loading&&<p role="status">Opening shared classroom file…</p>}
     {error&&<p role="alert">{error}</p>}

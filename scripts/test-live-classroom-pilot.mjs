@@ -1,4 +1,4 @@
-import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES,encodeAssessment,decodeAssessment,assessmentPrompt} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {exportDeck,importDeck,MAX_DECK_FILE_BYTES,defaultDemo,decodeDemo,encodeDemo,changeDemo,buildTextRevealSlides,DEMO_RANGES,encodeAssessment,decodeAssessment,assessmentPrompt,encodePhotoSlide,decodePhotoSlide,updatePhoto} from '../components/live-classroom/LiveSlideProtocol.ts'
 // Install the pinned test-only engine outside the repo: npm install --prefix /tmp/live-test --no-audit --no-fund @electric-sql/pglite@0.3.14
 import {createLiveFixture} from './live-classroom-test-fixture.mjs'
 import {readFileSync} from 'node:fs'
@@ -54,6 +54,16 @@ assert.equal(encodeAssessment({...activity,answerKey:'1/2'}),'')
 assert.equal(encodeAssessment({...activity,options:['One','one']}),'')
 assert.equal(decodeSlide(encodeSlide({title:'Quiz',body:activityBody,notes:'Private'},1,1)).body,activityBody)
 assert.equal(buildTextRevealSlides({title:'Quiz',body:activityBody},3).length,0)
+const photo={id:'11111111-1111-1111-1111-111111111111',x:0,y:0,w:60,h:60,fit:'contain'}
+const photoDoc={roomId:'22222222-2222-2222-2222-222222222222',photos:[photo]}
+const photoBody=encodePhotoSlide(photoDoc)
+assert.deepEqual(decodePhotoSlide(photoBody),photoDoc)
+assert.equal(encodePhotoSlide({...photoDoc,photos:[{...photo,x:80}]}),'')
+assert.equal(encodePhotoSlide({...photoDoc,photos:[photo,photo]}),'')
+assert.equal(encodePhotoSlide({...photoDoc,photos:[{...photo,url:'https://example.com'}]}),'')
+assert.deepEqual(updatePhoto(photo,{x:90}),{...photo,x:40})
+assert.equal(decodeSlide(encodeSlide({title:'Photo',body:photoBody},1,1)).body,photoBody)
+assert.throws(()=>exportDeck('Photo',[{title:'Photo',body:photoBody}]),/Room-specific photos/)
 const encodedSlide=encodeSlide(privateSlide,2,5)
 assert.ok(encodedSlide)
 assert.ok(!encodedSlide.includes(privateSlide.notes))

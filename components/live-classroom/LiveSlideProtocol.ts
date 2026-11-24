@@ -8,7 +8,7 @@ const prefix='VSLIDE1:'
 export function validSlide(s:unknown):s is LiveSlide {
  if(!s||typeof s!=='object')return false
  const x=s as LiveSlide
- return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878&&(!isDemoBody(x.body)||decodeDemo(x.body)!==null)&&(!isAssessmentBody(x.body)||decodeAssessment(x.body)!==null)
+ return typeof x.title==='string'&&x.title.length<=120&&typeof x.body==='string'&&x.body.length<=3878&&(!isDemoBody(x.body)||decodeDemo(x.body)!==null)&&(!isAssessmentBody(x.body)||decodeAssessment(x.body)!==null)&&(!isPhotoBody(x.body)||decodePhotoSlide(x.body)!==null)
  &&(x.diagram===undefined||SLIDE_DIAGRAMS.includes(x.diagram))&&(x.theme===undefined||SLIDE_THEMES.includes(x.theme))
  &&(x.layout===undefined||x.layout==='wide'||x.layout==='portrait')&&(x.font===undefined||x.font==='normal'||x.font==='large')
  &&(x.notes===undefined||(typeof x.notes==='string'&&x.notes.length<=2000))
@@ -62,6 +62,7 @@ function checkedDeck(title:unknown,slides:unknown,includeNotes:boolean):Portable
  if(!Array.isArray(slides)||slides.length<1||slides.length>30)throw Error('A presentation must contain 1–30 slides.')
  const cleaned=slides.map((slide:unknown,i:number)=>{
   if(!validSlide(slide)||Object.keys(slide).some(k=>!allowed.has(k)))throw Error('Invalid slide '+(i+1)+'.')
+  if(isPhotoBody(slide.body))throw Error('Room-specific photos cannot be transferred to another presentation. Remove photo slides first.')
   return projectSlide(slide,includeNotes)
  })
  // Match the server deck budget conservatively and reject content that
@@ -134,7 +135,7 @@ export function changeDemo(d:SlideDemo,field:'a'|'b',value:number):SlideDemo{
  return next
 }
 export function buildTextRevealSlides(slide:LiveSlide,available:number):LiveSlide[]{
- if(isDemoBody(slide.body)||isAssessmentBody(slide.body)||visualSlidePayload(slide.body)!==null)return []
+ if(isDemoBody(slide.body)||isAssessmentBody(slide.body)||isPhotoBody(slide.body)||visualSlidePayload(slide.body)!==null)return []
  const lines=slide.body.split(/\r?\n/).map(line=>line.trim()).filter(Boolean)
  if(lines.length<2||lines.length>available||lines.length>30)return []
  const steps=lines.map((_,i)=>({...slide,body:lines.slice(0,i+1).join('\n')}))
@@ -147,7 +148,7 @@ export function isAssessmentBody(body:string):boolean{return body.startsWith(ASS
 export function validAssessment(value:unknown):value is SlideAssessment{
  if(!value||typeof value!=='object'||Array.isArray(value))return false
  const a=value as SlideAssessment
- return Object.keys(a).every(k=>['kind','question','options'].includes(k))&&(a.kind==='quiz'||a.kind==='poll')&&typeof a.question==='string'&&!!a.question.trim()&&a.question.length<=500&&Array.isArray(a.options)&&a.options.length>=2&&a.options.length<=6&&a.options.every(o=>typeof o==='string'&&!!o.trim()&&o.length<=140&&!/[\r\n]/.test(o))&&new Set(a.options.map(o=>o.trim().toLowerCase())).size===a.options.length
+ return Object.keys(a).every(k=>['kind','question','options'].includes(k))&&(a.kind==='quiz'||a.kind==='poll')&&typeof a.question==='string'&&!!a.question.trim()&&a.question.length<=500&&!/[\r\n]/.test(a.question)&&Array.isArray(a.options)&&a.options.length>=2&&a.options.length<=6&&a.options.every(o=>typeof o==='string'&&!!o.trim()&&o.length<=140&&!/[\r\n]/.test(o))&&new Set(a.options.map(o=>o.trim().toLowerCase())).size===a.options.length
 }
 export function decodeAssessment(body:string):SlideAssessment|null{
  if(!isAssessmentBody(body)||body.length>2000)return null
@@ -155,3 +156,34 @@ export function decodeAssessment(body:string):SlideAssessment|null{
 }
 export function encodeAssessment(a:SlideAssessment):string{return validAssessment(a)?ASSESSMENT_PREFIX+JSON.stringify({kind:a.kind,question:a.question.trim(),options:a.options.map(o=>o.trim())}):''}
 export function assessmentPrompt(a:SlideAssessment):string{return a.question.trim()+'\n'+a.options.map((o,i)=>String.fromCharCode(65+i)+'. '+o.trim()).join('\n')}
+
+export type SlidePhoto={id:string;x:number;y:number;w:number;h:number;fit:'contain'|'cover'}
+export type PhotoSlide={roomId:string;photos:SlidePhoto[]}
+const PHOTO_PREFIX='VSLIDEPHOTO1:'
+const photoUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export function isPhotoBody(body:string):boolean{return body.startsWith(PHOTO_PREFIX)}
+function validPhoto(v:unknown):v is SlidePhoto{
+ if(!v||typeof v!=='object'||Array.isArray(v))return false
+ const o=v as SlidePhoto
+ return Object.keys(o).every(k=>['id','x','y','w','h','fit'].includes(k))&&typeof o.id==='string'&&photoUuid.test(o.id)&&[o.x,o.y,o.w,o.h].every(Number.isInteger)&&o.x>=0&&o.y>=0&&o.w>=20&&o.h>=20&&o.x+o.w<=100&&o.y+o.h<=100&&(o.fit==='contain'||o.fit==='cover')
+}
+function validPhotoSlide(v:unknown):v is PhotoSlide{
+ if(!v||typeof v!=='object'||Array.isArray(v))return false
+ const d=v as PhotoSlide
+ return Object.keys(d).every(k=>['roomId','photos'].includes(k))&&typeof d.roomId==='string'&&photoUuid.test(d.roomId)&&Array.isArray(d.photos)&&d.photos.length>=1&&d.photos.length<=4&&d.photos.every(validPhoto)&&new Set(d.photos.map(p=>p.id)).size===d.photos.length
+}
+export function decodePhotoSlide(body:string):PhotoSlide|null{
+ if(!isPhotoBody(body)||body.length>1500)return null
+ try{const d:unknown=JSON.parse(body.slice(PHOTO_PREFIX.length));return validPhotoSlide(d)?{roomId:d.roomId,photos:d.photos.map(p=>({id:p.id,x:p.x,y:p.y,w:p.w,h:p.h,fit:p.fit}))}:null}catch{return null}
+}
+export function encodePhotoSlide(d:PhotoSlide):string{
+ if(!validPhotoSlide(d))return ''
+ return PHOTO_PREFIX+JSON.stringify({roomId:d.roomId,photos:d.photos.map(p=>({id:p.id,x:p.x,y:p.y,w:p.w,h:p.h,fit:p.fit}))})
+}
+export function updatePhoto(p:SlidePhoto,patch:Partial<Pick<SlidePhoto,'x'|'y'|'w'|'h'|'fit'>>):SlidePhoto{
+ const n={...p,...patch}
+ const bound=(v:number,min:number,max:number,fallback:number)=>Number.isFinite(v)?Math.min(max,Math.max(min,Math.round(v))):fallback
+ n.w=bound(n.w,20,100,p.w);n.h=bound(n.h,20,100,p.h)
+ n.x=bound(n.x,0,100-n.w,p.x);n.y=bound(n.y,0,100-n.h,p.y)
+ return validPhoto(n)?n:p
+}
