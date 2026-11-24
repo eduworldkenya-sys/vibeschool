@@ -25,7 +25,7 @@ begin
     gp.username::text
   from public.profiles p
   left join public.global_public_profiles gp on gp.profile_id=p.id and gp.is_public=true
-  where (lower(p.vc_id) like '@' || v_query || '%'
+  where (left(lower(p.vc_id),length(v_query)+1)='@'||v_query
          or left(lower(gp.username),length(v_query))=v_query)
     and p.role in ('teacher','admin')
     and p.account_status::text='active' and not coalesce(p.is_anonymized,false)
@@ -103,7 +103,11 @@ begin
       and private.vibechat_room_peer('vc',t.id)=v_target
     order by t.created_at desc limit 1;
   if v_thread is not null then return v_thread; end if;
+  if not exists(select 1 from public.profiles actor where actor.id=v_user and actor.account_status::text='active' and not coalesce(actor.is_anonymized,false)) then
+    raise exception 'Contact unavailable' using errcode='42501'; end if;
   v_request:=public.vibechat_request_contact(p_handle);
+  if exists(select 1 from public.vibechat_contact_requests r where r.id=v_request and r.status='declined') then
+    raise exception 'Contact unavailable' using errcode='42501'; end if;
   select r.thread_id into v_thread from public.vibechat_contact_requests r
     where r.id=v_request and r.status='accepted'
     and private.vc_user_is_thread_participant(r.thread_id);
