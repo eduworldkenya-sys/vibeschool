@@ -132,3 +132,5 @@
 .shell :is(a,button,input,summary):focus-visible{outline:3px solid var(--vs-accent,#166d49);outline-offset:2px}
 @media(max-width:620px){.shell .subjectGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.shell .subjectCard{min-height:103px;padding:11px 8px}.shell .subjectName{font-size:11px}.shell .subjectDescription,.shell .subjectAvailability{font-size:10px}}
 @media(max-width:360px){.shell .subjectGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.contentSearchSnippet{display:block;margin-top:6px;font-size:12px;line-height:1.5;overflow-wrap:anywhere;color:var(--vs-text,#19372a)}
