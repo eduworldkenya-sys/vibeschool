@@ -207,8 +207,8 @@ type LiveDatabase = Omit<Database, 'public'> & {
       vibechat_report_thread: { Args: { p_kind: string; p_room: string; p_reason: string }; Returns: string }
       vibechat_my_school_families: { Args: Record<never, never>; Returns: { student_id: string; student_name: string; parent_id: string; parent_name: string; avatar_url: string | null }[] }
       vibechat_start_teacher_parent_thread: { Args: { p_student_id: string; p_parent_id: string; p_context_tag?: string }; Returns: string }
-      vibechat_my_chat_peers: { Args: Record<never, never>; Returns: { thread_id: string; name: string; avatar_url: string | null }[] }
-      vibechat_my_tuition_peers: { Args: Record<never, never>; Returns: { invitation_id: string; name: string; avatar_url: string | null }[] }
+      vibechat_my_chat_peers: { Args: Record<never, never>; Returns: { thread_id: string; name: string; avatar_url: string | null; handle?: string | null }[] }
+      vibechat_my_tuition_peers: { Args: Record<never, never>; Returns: { invitation_id: string; name: string; avatar_url: string | null; handle?: string | null }[] }
       vibechat_respond_contact: { Args: { p_request: string; p_accept: boolean }; Returns: string | null }
       vibetutor_create_student_invite: { Args: Record<never, never>; Returns: string }
       vibetutor_claim_student_invite: { Args: { p_token: string }; Returns: "accepted" | "pending_guardian" }
