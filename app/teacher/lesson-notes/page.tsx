@@ -12,6 +12,8 @@ import ReflectionSheet from "@/components/teacher/ReflectionSheet";
 import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
 import LessonPreparationStudio from "@/components/teacher/LessonPreparationStudio";
 import TeachingKit from "@/components/teacher/TeachingKit";
+import LiveLessonHistory from "@/components/teacher/LiveLessonHistory";
+import { lessonToLiveHref } from "@/lib/teaching/liveLessonLinks";
 import TeachingWorkspaceNav from "@/components/teacher/TeachingWorkspaceNav";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 import JumpingSchemeContent from "@/components/teacher/JumpingSchemeContent";
@@ -375,7 +377,11 @@ function LessonNotesInner() {
   const linkedBook = resources.find(resource=>Boolean(resource.publicationId));
   const linkedChapter = exactChapters[0];
   const liveKitUrl = plan.class_id && process.env.NEXT_PUBLIC_VIBE_LIVE_ENABLED === 'true'
-    ? '/teacher/classhub/' + encodeURIComponent(plan.class_id) + '/live?' + kitQuery
+    ? lessonToLiveHref({
+        lessonPlanId:plan.id,classId:plan.class_id,subjectId:plan.subject_id,
+        timetableSlotId:plan.timetable_slot_id,occurrenceDate:plan.taught_date,
+        occurrenceId:occurrence?.id,
+      })
     : null;
 
   const visibleSections = sections
@@ -401,6 +407,7 @@ function LessonNotesInner() {
         exercises:plan.class_id&&plan.subject_id?()=>router.push('/teacher/assessment/new?'+kitQuery):undefined,
         board:()=>router.push('/teacher/teaching-board?'+kitQuery),
       }} onInClass={()=>setTeachMode(true)} onGoLive={liveKitUrl?()=>router.push(liveKitUrl):undefined} />}
+      {plan.class_id&&<LiveLessonHistory planId={plan.id} classId={plan.class_id}/>}
       {sections && <LessonPreparationStudio sections={sections} topic={plan.topic || plan.title || "Lesson notes"} resourceCount={resources.length} onTeach={() => setTeachMode(true)} onEdit={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(plan.class_id || contextClassId)}&subjectId=${encodeURIComponent(plan.subject_id || contextSubjectId)}&timetableSlotId=${encodeURIComponent(plan.timetable_slot_id || "")}&date=${encodeURIComponent(plan.taught_date || "")}`)} />}
       {plan.scheme_id && (
         <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",margin:"12px 0"}}>
