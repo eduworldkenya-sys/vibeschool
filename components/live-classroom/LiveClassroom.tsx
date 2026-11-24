@@ -8,6 +8,7 @@ import styles from './LiveClassroom.module.css'
 import { adjacentSlide } from './LiveSlideProtocol'
 import { SlideCanvas, encodeSlide, decodeSlide, validSlide, diagramLabel, SLIDE_DIAGRAMS, SLIDE_THEMES, type LiveSlide, type SlideDiagram, type SlideTheme } from './LiveSlideCanvas'
 import { ObjectBoard, SharedObjectBoard } from './LiveObjectBoard'
+import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import { TeachingLibrary } from './LiveTeachingLibrary'
 import { LiveResourcePicker } from './LiveResourcePicker'
 import { LiveClassFiles } from './LiveClassFiles'
@@ -1008,7 +1009,7 @@ export default function LiveClassroom({classId,teacher,back,hostModes=['tuition'
           <div className={styles.slideToolbar}><button type="button" disabled={busy||slideIndex===0} onClick={()=>setSlideIndex(i=>i-1)}>Previous preview</button><button type="button" disabled={busy||slideIndex===slides.length-1} onClick={()=>setSlideIndex(i=>i+1)}>Next preview</button><button className={styles.primary} disabled={busy||!online||room.status!=='active'||!slideText} onClick={()=>presentSlide(slideIndex)}>Present slide</button></div>
           <div className={styles.slideFields}>
             <label>Title<input value={slide.title} maxLength={120} disabled={busy} onChange={e=>editSlide({title:e.target.value})}/></label>
-            <label>Content<textarea value={slide.body} maxLength={3878} disabled={busy} onChange={e=>editSlide({body:e.target.value})}/></label>
+            <SlideBodyEditor key={room.id+':'+slideIndex} slide={slide} disabled={busy} onChange={body=>editSlide({body})}/>
             <div className={styles.slideOptions}>
               <label>Diagram<select aria-label="Diagram" disabled={busy} value={slide.diagram??'none'} onChange={e=>editSlide({diagram:e.target.value as SlideDiagram})}>{SLIDE_DIAGRAMS.map(d=><option key={d} value={d}>{diagramLabel(d)}</option>)}</select></label>
               <label>Theme<select aria-label="Theme" disabled={busy} value={slide.theme??'paper'} onChange={e=>editSlide({theme:e.target.value as SlideTheme})}>{SLIDE_THEMES.map(t=><option key={t}>{t}</option>)}</select></label>

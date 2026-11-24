@@ -2,6 +2,7 @@
 import {useEffect,useState,useRef} from 'react'
 import {SlideCanvas,validSlide,diagramLabel,SLIDE_DIAGRAMS,SLIDE_THEMES,type LiveSlide,type SlideDiagram,type SlideTheme} from './LiveSlideCanvas'
 import styles from './LiveClassroom.module.css'
+import {SlideBodyEditor} from './LiveSlideBodyEditor'
 import {exportDeck,importDeck,MAX_DECK_FILE_BYTES} from './LiveSlideProtocol'
 type Summary={id:string;title:string;revision:number;slideCount:number;updatedAt:string}
 type Material={id:string;title:string;revision:number;slides:LiveSlide[]}
@@ -77,7 +78,7 @@ export function TeachingLibrary({command,currentDeck,onUse}:{command:Command;cur
    <div className={styles.slideToolbar}><button disabled={busy||index===0} onClick={()=>setIndex(i=>i-1)}>Previous</button><span>{index+1} / {edit.slides.length}</span><button disabled={busy||index===edit.slides.length-1} onClick={()=>setIndex(i=>i+1)}>Next</button><button disabled={busy||edit.slides.length>=30} onClick={()=>{setEdit({...edit,slides:[...edit.slides,blank()]});setIndex(edit.slides.length);setDirty(true)}}>+ Slide</button><button disabled={busy||edit.slides.length<=1} onClick={()=>{setEdit({...edit,slides:edit.slides.filter((_,i)=>i!==index)});setIndex(i=>Math.max(0,i-1));setDirty(true)}}>Delete slide</button></div>
    <label>Quick template<select value="" disabled={busy} onChange={e=>{const value=e.target.value;if(!value)return;if((slide.title||slide.body)&&!window.confirm('Replace slide text with this template?'))return;const templates:Record<string,Partial<LiveSlide>>={goal:{title:'Learning goal',body:'By the end of this lesson, you will be able to…'},example:{title:'Worked example',body:'Problem:\nStep 1:\nStep 2:\nAnswer:'},question:{title:'Try it',body:'Question:\nThink about your answer.'},summary:{title:'Remember',body:'Key idea:\nExample:'}};patch(templates[value]??{})}}><option value="">Choose a template</option><option value="goal">Learning goal</option><option value="example">Worked example</option><option value="question">Question</option><option value="summary">Summary</option></select></label>
    <label>Slide title<input disabled={busy} value={slide.title} maxLength={120} onChange={e=>patch({title:e.target.value})}/></label>
-   <label>Content<textarea disabled={busy} value={slide.body} maxLength={3878} onChange={e=>patch({body:e.target.value})}/></label>
+   <SlideBodyEditor key={edit.id+':'+index} slide={slide} disabled={busy} onChange={body=>patch({body})}/>
    <div className={styles.slideOptions}>
     <label>Diagram<select aria-label="Diagram" disabled={busy} value={slide.diagram??'none'} onChange={e=>patch({diagram:e.target.value as SlideDiagram})}>{SLIDE_DIAGRAMS.map(d=><option key={d} value={d}>{diagramLabel(d)}</option>)}</select></label>
     <label>Theme<select aria-label="Theme" disabled={busy} value={slide.theme??'paper'} onChange={e=>patch({theme:e.target.value as SlideTheme})}>{SLIDE_THEMES.map(t=><option key={t}>{t}</option>)}</select></label>

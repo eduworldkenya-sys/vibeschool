@@ -85,3 +85,15 @@ export function importDeck(source:string):PortableDeck{
  if(record.format!=='vibeschool-slides'||record.version!==1||Object.keys(record).some(k=>!['format','version','title','slides'].includes(k)))throw Error('Unsupported presentation format.')
  return checkedDeck(record.title,record.slides,true)
 }
+
+/** A visual slide is a versioned body variant, not a new database column.
+ * The embedded board uses the existing public drawing protocol. Existing
+ * text-only slides and private notes remain unchanged.
+ */
+const VISUAL_SLIDE_PREFIX='VSLIDEVIS1:'
+export function visualSlidePayload(body:string):string|null{
+ return body.startsWith(VISUAL_SLIDE_PREFIX)?body.slice(VISUAL_SLIDE_PREFIX.length):null
+}
+export function visualSlideBody(board:string):string{
+ return VISUAL_SLIDE_PREFIX+board
+}

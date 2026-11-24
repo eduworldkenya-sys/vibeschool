@@ -9,7 +9,7 @@ assert.equal(liveSyncDelay(null,0),4000)
 assert.equal(liveSyncDelay('paused',0),4000)
 assert.equal(liveSyncDelay('ended',0),15000)
 assert.deepEqual([1,2,3,4,100].map(n=>liveSyncDelay('active',n)),[5000,10000,20000,30000,30000])
-import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide} from '../components/live-classroom/LiveSlideProtocol.ts'
+import {encodeSlide,decodeSlide,validSlide,SLIDE_DIAGRAMS,adjacentSlide,visualSlideBody,visualSlidePayload} from '../components/live-classroom/LiveSlideProtocol.ts'
 import {emptyBoard,encodeBoard,decodeBoard,boardFromLegacy,BOARD_DIAGRAMS} from '../components/live-classroom/LiveBoardProtocol.ts'
 const shape={id:'fixture-rect',kind:'rectangle',x:20,y:25,w:90,h:60,angle:15,color:'#1865c0',stroke:3,locked:true}
 const drawnBoard={...emptyBoard(2,3),background:'grid',objects:[shape,{...shape,id:'fixture-note',kind:'text',text:'2 + 3 = 5'},{...shape,id:'fixture-diagram',kind:'diagram',diagram:'fraction-bars'},{...shape,id:'fixture-arrow',kind:'arrow',points:[0,0,1000,1000]}]}
@@ -24,6 +24,15 @@ assert.equal(boardFromLegacy('0,0;100,100;').objects.length,1)
 assert.deepEqual(BOARD_DIAGRAMS,SLIDE_DIAGRAMS.filter(d=>d!=='none'))
 console.log('PASS: native board object round trip, page metadata, object bounds, legacy conversion and malformed payloads')
 const privateSlide={title:'Fractions',body:'Two quarters make one half.',diagram:'fraction-circle',theme:'forest',layout:'wide',font:'large',notes:'Private answer and presenter reminder'}
+const visual={...privateSlide,body:visualSlideBody(objectBoard)}
+const visualEncoded=encodeSlide(visual,1,2)
+assert.ok(visualEncoded)
+assert.equal(visualSlidePayload('ordinary text'),null)
+assert.equal(visualSlidePayload(decodeSlide(visualEncoded).body),objectBoard)
+assert.deepEqual(decodeBoard(visualSlidePayload(decodeSlide(visualEncoded).body)),drawnBoard)
+assert.ok(!visualEncoded.includes(privateSlide.notes))
+assert.equal(adjacentSlide([visual,privateSlide],decodeSlide(visualEncoded),1),1)
+assert.equal(importDeck(exportDeck('Visual example',[visual])).slides[0].body,visual.body)
 const encodedSlide=encodeSlide(privateSlide,2,5)
 assert.ok(encodedSlide)
 assert.ok(!encodedSlide.includes(privateSlide.notes))
