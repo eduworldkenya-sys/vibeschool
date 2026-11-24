@@ -100,30 +100,8 @@ function findBlockById(blockId: string): HTMLElement | null {
   );
 }
 
-function findNavigationSection(): HTMLElement | null {
-  return (
-    Array.from(
-      document.querySelectorAll<HTMLElement>("#vibetextbook-reading-content main section")
-    ).find((section) =>
-      Array.from(section.querySelectorAll<HTMLElement>("div")).some(
-        (node) => node.textContent?.trim() === "SEARCH AND NAVIGATION"
-      )
-    ) ?? null
-  );
-}
-
 function clickReaderNavigation(direction: "previous" | "next") {
-  const label = direction === "previous" ? "previous" : "next";
-  const buttons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>(
-      "#vibetextbook-reading-content button"
-    )
-  );
-  const target = buttons.find((button) => {
-    const text = button.textContent?.trim().toLocaleLowerCase("en") ?? "";
-    return text.startsWith(label);
-  });
-  target?.click();
+  window.dispatchEvent(new CustomEvent("vibe:reader-navigate", { detail: { direction } }));
 }
 
 function estimateMinutesLeft(progressPercent: number): number | null {
@@ -449,12 +427,7 @@ export function ReaderContinuityCoordinator() {
   if (!active) return null;
 
   function openContents() {
-    const section = findNavigationSection();
-    section?.scrollIntoView({ behavior: "smooth", block: "start" });
-    const input = section?.querySelector<HTMLInputElement>(
-      'input[aria-label="Search this textbook"]'
-    );
-    window.setTimeout(() => input?.focus(), 350);
+    window.dispatchEvent(new Event("vibe:reader-open-contents"));
   }
 
   return (
