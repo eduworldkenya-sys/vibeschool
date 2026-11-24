@@ -2,6 +2,7 @@ import fs from 'node:fs'
 
 const middleware = fs.readFileSync('middleware.ts', 'utf8')
 const home = fs.readFileSync('app/page.tsx', 'utf8')
+const explore = fs.readFileSync('app/explore/page.tsx', 'utf8')
 const welcome = fs.readFileSync('app/welcome/page.tsx', 'utf8')
 const sitemap = fs.readFileSync('app/sitemap.ts', 'utf8')
 const robots = fs.readFileSync('app/robots.ts', 'utf8')
@@ -16,7 +17,7 @@ const guardianConsent = fs.readFileSync('lib/learner/guardian-consent.ts', 'utf8
 
 const checks = [
   [middleware.includes("loginUrl.pathname = '/login'"), 'protected routes redirect signed-out users to /login'],
-  [!middleware.includes("welcomeUrl.pathname = '/welcome'") && home.includes('<PublicHeader') && home.includes('id="main-content"'), 'signed-out root renders the canonical public homepage directly'],
+  [!middleware.includes("welcomeUrl.pathname = '/welcome'") && home.includes("export { default } from './explore/page'") && explore.includes('<PublicHeader') && explore.includes('id="main-content"'), 'signed-out root renders the canonical public homepage directly'],
   [welcome.includes('href="/login"'), 'legacy public landing exposes generic sign in'],
   [welcome.includes('/signup/teacher'), 'teacher leads have a direct signup path'],
   [welcome.includes('/login/student') && welcome.includes('/login/parent'), 'learner and parent leads preserve role intent'],

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     : null
   const [{ data: identity, error: identityError }, { data: profile, error: profileError }, { data: school, error: schoolError }, { data: qaGrant, error: qaError }] = await Promise.all([
     admin.from('independent_learner_identities')
-      .select('account_state,learner_email_verified_at,grade_label')
+      .select('account_state,learner_email_verified_at,grade_label,age_band')
       .eq('user_id', user.id).maybeSingle(),
     admin.from('profiles').select('role,full_name,account_status,is_anonymized')
       .eq('id', user.id).maybeSingle(),
@@ -53,7 +53,13 @@ export async function GET(req: NextRequest) {
     (profile.role === 'student' || profile.role === null)
   if (!identity) return NextResponse.json({ kind: 'other', universalTest }, { headers })
   // A verified later school link takes the standard student/Twin path.
-  if (profile.role === 'student') return NextResponse.json({ kind: 'other', universalTest }, { headers })
+  if (profile.role === 'student') return NextResponse.json({
+    kind: 'other', universalTest,
+    // Only an un-enrolled, guardian-managed student needs this grade fallback.
+    // A later verified school enrollment remains authoritative.
+    grade: identity.age_band === 'under_18' && identity.account_state === 'restricted' &&
+      (school?.length ?? 0) === 1 && !school?.[0]?.class_id ? identity.grade_label : undefined,
+  }, { headers })
 
   // These checks mirror the canonical restricted independent identity boundary.
   // No school record is created, and no school-scoped Twin authority is granted.

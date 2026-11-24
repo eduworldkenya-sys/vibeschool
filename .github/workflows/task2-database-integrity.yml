@@ -103,6 +103,16 @@ jobs:
         shell: bash
         run: PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/teacher_employment_authorization.sql
 
+      - name: Exercise VibeChat authorization on the disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PGPASSWORD=postgres
+          DB='postgresql://postgres@127.0.0.1:54322/postgres'
+          for fixture in scripts/sql/vibechat_discovery_authorization.sql scripts/sql/vibechat_two_account_authorization.sql scripts/sql/vibechat_outbox_authorization.sql scripts/sql/vibechat_rich_authorization.sql scripts/sql/vibechat_conversation_tools_authorization.sql scripts/sql/vibechat_group_authorization.sql; do
+            psql "$DB" -v ON_ERROR_STOP=1 -f "$fixture" 2>&1 | tee ".task2-artifacts/$(basename "$fixture").log"
+          done
+
       - name: Verify repository and local migration ledgers agree
         shell: bash
         run: |

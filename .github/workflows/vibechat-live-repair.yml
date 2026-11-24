@@ -1,0 +1,131 @@
+name: VibeChat live search and inbox repair
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/vibechat-live-repair.yml'
+      - 'scripts/vibechat-live-repair-stage.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vibechat-live-repair.yml'
+      - 'scripts/vibechat-live-repair-stage.py'
+  workflow_dispatch:
+
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vibechat-production-production
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+
+jobs:
+  contract:
+    name: Validate exact VibeChat migration sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: |
+          python3 scripts/vibechat-live-repair-stage.py check
+          python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
+          python3 scripts/test-worker-engine-assert-dry-run-plan.py
+
+  production:
+    name: Apply and verify the allowlisted VibeChat migrations
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-migration-repair
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: supabase/setup-cli@v3.2.0
+        with:
+          version: 3.1.0
+      - name: Verify production target and capture migration ledger
+        run: |
+          set -euo pipefail
+          test "$SUPABASE_PROJECT_ID" = "$EXPECTED_PROJECT_REF"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+          mkdir -p .vibechat-live-repair
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+          cat > .vibechat-live-repair/preflight.sql <<'SQL'
+            select 1 / case when
+              to_regprocedure('public.get_my_auth_access_state()') is not null
+              and to_regprocedure('private.vibechat_room_peer(text,uuid)') is not null
+              and to_regprocedure('private.vibechat_contact_allowed(uuid,uuid)') is not null
+              and to_regprocedure('realtime.send(jsonb,text,text,boolean)') is not null
+              and to_regclass('public.global_public_profiles') is not null
+              and to_regclass('public.vibechat_contact_requests') is not null
+              and to_regclass('public.vc_messages') is not null
+              and to_regclass('public.vibetutor_lesson_messages') is not null
+              then 1 else 0 end as prerequisites_present;
+          SQL
+          supabase db query --remote --read-only -f .vibechat-live-repair/preflight.sql | tee .vibechat-live-repair/preflight.txt
+          supabase migration list --remote 2>&1 | tee .vibechat-live-repair/before.txt
+          python3 scripts/tbl013-live-ledger-audit.py \
+            --migrations-dir supabase/migrations --ledger .vibechat-live-repair/before.txt \
+            --report .vibechat-live-repair/audit.json --plan .vibechat-live-repair/ledger.md \
+            --project-ref "$EXPECTED_PROJECT_REF"
+          python3 scripts/vibechat-live-repair-stage.py prepare
+      - name: Validate exact dry run and apply
+        run: |
+          set -euo pipefail
+          if [ -s .vibechat-live-repair/expected.txt ]; then
+            cd .vibechat-live-repair-stage
+            supabase link --project-ref "$EXPECTED_PROJECT_REF"
+            test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+            supabase db push --remote --dry-run --include-all 2>&1 | tee ../.vibechat-live-repair/dry-run.txt
+            cd ..
+            python3 scripts/worker-engine-assert-dry-run-plan.py \
+              --expected .vibechat-live-repair/expected.txt --dry-run-output .vibechat-live-repair/dry-run.txt \
+              --report .vibechat-live-repair/dry-run-verified.txt
+            git fetch origin main
+            test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+            cd .vibechat-live-repair-stage
+            supabase db push --remote --include-all --yes 2>&1 | tee ../.vibechat-live-repair/applied.txt
+          fi
+      - name: Verify production ledger and access contracts
+        run: |
+          set -euo pipefail
+          supabase migration list --remote 2>&1 | tee .vibechat-live-repair/after.txt
+          python3 scripts/vibechat-live-repair-stage.py verify
+          cat > .vibechat-live-repair/verify.sql <<'SQL'
+            select 1 / case when
+              to_regclass('public.vs_identities') is not null
+              and to_regprocedure('public.vibechat_search_handles(text)') is not null
+              and to_regprocedure('public.vibechat_open_or_request_contact(text)') is not null
+              and to_regprocedure('public.vibechat_my_inbox_state()') is not null
+              and has_function_privilege('authenticated','public.vibechat_search_handles(text)','EXECUTE')
+              and not has_function_privilege('anon','public.vibechat_search_handles(text)','EXECUTE')
+              and not has_function_privilege('anon','public.vibechat_my_inbox_state()','EXECUTE')
+              and (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+                where n.nspname='private' and c.relname in ('vibechat_discovery_preferences','vibechat_receipts','vibechat_presence')
+                and c.relrowsecurity and not has_table_privilege('authenticated',c.oid,'SELECT') and not has_table_privilege('anon',c.oid,'SELECT'))=3
+              then 1 else 0 end as verified;
+          SQL
+          supabase db query --remote --read-only -f .vibechat-live-repair/verify.sql | tee .vibechat-live-repair/production-verification.txt
+      - name: Retain production release evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: vibechat-live-repair-production-${{ github.run_id }}
+          path: .vibechat-live-repair/
+          include-hidden-files: true
+          if-no-files-found: warn

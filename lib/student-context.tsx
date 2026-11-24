@@ -175,7 +175,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
             name:        fullName,
             firstName,
             admissionNo: student.admission_number ?? "",
-            className,
+            className: className || (schoolId === null ? (home.grade ?? '') : ''),
             schoolName,
           })
         }

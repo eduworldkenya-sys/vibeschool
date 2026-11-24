@@ -65,6 +65,7 @@ export async function signOutLearnerEmail() {
 }
 
 export async function saveIndependentEmailGrade(form: FormData) {
+  if (form.get('age_band') !== 'adult') return { error: 'An adult may study independently. For younger learners, use the age-appropriate account setup.' }
   const selection = resolveRegistrationLearningSelection(form.get('level'), form.get('choice'))
   if (!selection) return { error: 'Choose a valid learning level and programme.' }
   try {
@@ -75,10 +76,20 @@ export async function saveIndependentEmailGrade(form: FormData) {
     }
     const admin = pilotAdminClient()
     const { data: identity, error: identityError } = await admin.from('independent_learner_identities')
-      .select('grade_label').eq('user_id', user.id).maybeSingle()
+      .select('grade_label,age_band').eq('user_id', user.id).maybeSingle()
     const { data: existingPath, error: pathError } = await client.from('learner_education_paths')
       .select('education_stage,programme_family,qualification_code').eq('user_id', user.id).maybeSingle()
     if (identityError || !identity || pathError) return { error: 'Could not check your study pathway.' }
+    if (identity.age_band === 'under_18') return { error: 'This learner needs age-appropriate account setup.' }
+    const { data: profile, error: profileError } = await admin.from('profiles')
+      .select('date_of_birth').eq('id', user.id).maybeSingle()
+    if (profileError || !profile) return { error: 'Could not verify learner details.' }
+    if (profile.date_of_birth) {
+      const dob = new Date(profile.date_of_birth + 'T00:00:00Z')
+      const today = new Date()
+      const birthday = new Date(Date.UTC(today.getUTCFullYear()-18,today.getUTCMonth(),today.getUTCDate()))
+      if (Number.isNaN(dob.getTime()) || dob > birthday) return { error: 'This learner needs age-appropriate account setup.' }
+    }
     if (existingPath && (!selection.pathway || existingPath.education_stage !== 'post_secondary' ||
       existingPath.programme_family !== selection.pathway.programme_family ||
       existingPath.qualification_code !== selection.pathway.qualification_code)) {
@@ -86,11 +97,11 @@ export async function saveIndependentEmailGrade(form: FormData) {
     }
     const restoreGrade = async () => {
       await admin.from('independent_learner_identities')
-        .update({ grade_label: identity.grade_label, updated_at: new Date().toISOString() })
+        .update({ grade_label: identity.grade_label, age_band: identity.age_band, updated_at: new Date().toISOString() })
         .eq('user_id', user.id).eq('grade_label', selection.gradeLabel)
     }
     const { error: writeError } = await admin.from('independent_learner_identities')
-      .update({ grade_label: selection.gradeLabel, updated_at: new Date().toISOString() }).eq('user_id', user.id)
+      .update({ grade_label: selection.gradeLabel, age_band: 'adult', updated_at: new Date().toISOString() }).eq('user_id', user.id)
     if (writeError) return { error: 'Could not save your learning level.' }
     const { data: studentId, error: studentError } = await admin.rpc('ensure_independent_learner_student', { p_user_id: user.id })
     if (studentError || !studentId) {

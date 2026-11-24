@@ -5,6 +5,7 @@ import { findChapter, loadPublicReader, metadataForChapter } from "../readerServ
 
 type PageProps = {
   params: Promise<{ publicationId: string; chapterId: string }>;
+  searchParams: Promise<{ block?: string | string[] }>;
 };
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
@@ -35,12 +36,15 @@ export default async function ChapterPage(props: PageProps) {
 
   const chapter = findChapter(payload, params.chapterId);
   if (!chapter) notFound();
+  const search = await props.searchParams;
+  const initialBlockId = typeof search.block === 'string' && search.block.length <= 128 ? search.block : null;
 
   return (
     <ReaderClient
       publicationId={params.publicationId}
       initialPayload={payload}
       initialChapterId={chapter.id}
+      initialBlockId={initialBlockId}
     />
   );
 }

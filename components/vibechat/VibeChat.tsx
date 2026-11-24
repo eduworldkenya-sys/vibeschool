@@ -10,11 +10,15 @@ import VibeChatAvatar from './VibeChatAvatar'
 import VibeChatContacts from './VibeChatContacts'
 import VibeChatUsernameSearch from './VibeChatUsernameSearch'
 import VibeChatSchool from './VibeChatSchool'
+import VibeChatGroups from './VibeChatGroups'
 import { useVibeChatTyping } from './useVibeChatTyping'
 import { useVibeChatInboxUpdates } from './useVibeChatInboxUpdates'
+import { useVibeChatOutbox } from './useVibeChatOutbox'
+import { useVibeChatPreferences,useVibeChatOpenAppNotifications } from './useVibeChatPreferences'
+import { useVibeChatWebPush } from './useVibeChatWebPush'
 import styles from './VibeChat.module.css'
 
-type Tab = 'chats' | 'contacts' | 'enquiries' | 'notices' | 'school'
+type Tab = 'chats' | 'contacts' | 'enquiries' | 'notices' | 'school' | 'groups'
 type Chat = {
   key: string
   id: string
@@ -24,6 +28,10 @@ type Chat = {
   handle?: string | null
   unread?: boolean
   unreadCount?: number
+  latestIncomingId?: string | null
+  pinned?: boolean
+  archived?: boolean
+  muted?: boolean
   peerOnline?: boolean
   peerReadAt?: string | null
   peerDeliveredAt?: string | null
@@ -32,7 +40,8 @@ type Chat = {
   updated: string | null
   schoolId: string | null
 }
-type Message = { id: string; body: string; mine: boolean; created_at: string }
+type Message = { id: string; body: string; mine: boolean; created_at: string; deleted_at?: string | null; edited_at?: string | null; reply_to_id?: string | null; reply_excerpt?: string | null; reactions?: {reaction:string;mine:boolean}[] }
+const reactionLabels:Record<string,string>={like:'👍',love:'❤️',laugh:'😂',wow:'😮',thanks:'🙏'}
 type Notice = { id: string; recipientId: string; title: string; body: string; sentAt: string; requiresAck: boolean; acked: boolean }
 type TutorInvite = { id: string; status: string; student?: string | null; tutor?: string | null }
 type SchoolThread = { id: string; school_id: string | null; type: string; subject: string | null; context_tag: string | null; last_message_at: string | null; last_message_preview: string | null; created_at: string | null }
@@ -48,7 +57,7 @@ export default function VibeChat() {
   const params = useSearchParams()
   const requestedTab = params.get('tab')
   const requestedChat = validKey(params.get('thread'))
-  const [tab, setTab] = useState<Tab>(requestedTab === 'enquiries' || requestedTab === 'notices' || requestedTab === 'contacts' || requestedTab === 'school' ? requestedTab : 'chats')
+  const [tab, setTab] = useState<Tab>(requestedTab === 'enquiries' || requestedTab === 'notices' || requestedTab === 'contacts' || requestedTab === 'school' || requestedTab === 'groups' ? requestedTab : 'chats')
   const [uid, setUid] = useState('')
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
   const [role, setRole] = useState('')
@@ -57,9 +66,21 @@ export default function VibeChat() {
   const [notices, setNotices] = useState<Notice[]>([])
   const [active, setActive] = useState<string | null>(requestedChat)
   const [messages, setMessages] = useState<Message[]>([])
+  const [older,setOlder]=useState<Message[]>([])
+  const [historyDone,setHistoryDone]=useState(false)
+  const [historyBusy,setHistoryBusy]=useState(false)
+  const [messageSearch,setMessageSearch]=useState('')
+  const [searchResults,setSearchResults]=useState<{room:string;query:string;rows:Message[];done:boolean}|null>(null)
+  const historyToken=useRef(0)
+  const [roomMenu,setRoomMenu]=useState(false)
   const [body, setBody] = useState('')
+  const [reply,setReply]=useState<{room:string;message:Message}|null>(null)
+  const [edit,setEdit]=useState<{room:string;message:Message;body:string}|null>(null)
+  const [messageMenu,setMessageMenu]=useState<string|null>(null)
+  const [deleteTarget,setDeleteTarget]=useState<{room:string;message:Message}|null>(null)
+  const [changing,setChanging]=useState(false)
   const [search, setSearch] = useState('')
-  const [chatFilter, setChatFilter] = useState<'all' | 'school' | 'tuition'>('all')
+  const [chatFilter, setChatFilter] = useState<'all' | 'school' | 'tuition' | 'archived'>('all')
   const [moreOpen, setMoreOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [messagesLoading, setMessagesLoading] = useState(false)
@@ -89,7 +110,7 @@ export default function VibeChat() {
       const { data: auth, error: authError } = await db.auth.getUser()
       if (authError) throw authError
       const user = auth.user
-      if (!user) { setSignedIn(false); setChats([]); setNotices([]); return }
+      if (!user) { setUid('');setSignedIn(false);setChats([]);setNotices([]);setMessages([]);return }
       setUid(user.id)
       setSignedIn(true)
 
@@ -161,7 +182,7 @@ export default function VibeChat() {
       const inboxMap = new Map((inboxResult.data ?? []).map(item=>[item.kind+':'+item.room_id,item] as const))
       const next: Chat[] = [...schoolChats,...tuitionChats].map(chat=>{
         const state=inboxMap.get(chat.key)
-        return state ? {...chat,updated:state.updated??chat.updated,preview:state.preview??'',unread:state.unread>0,unreadCount:state.unread,peerOnline:state.peer_online,peerReadAt:state.peer_read_at,peerDeliveredAt:state.peer_delivered_at} : chat
+        return state ? {...chat,updated:state.updated??chat.updated,preview:state.preview??'',unread:state.unread>0,unreadCount:state.unread,latestIncomingId:state.latest_incoming_id,peerOnline:state.peer_online,peerReadAt:state.peer_read_at,peerDeliveredAt:state.peer_delivered_at} : chat
       })
       setChats(next.sort((a,b)=>(b.updated??'').localeCompare(a.updated??'')))
 
@@ -215,14 +236,58 @@ export default function VibeChat() {
     }catch{setError('Could not update online visibility. Retry.')}
     finally{setPresenceBusy(false)}
   }
-  const selected = tab==='chats' ? (chats.find(chat => chat.key === active) ?? null) : null
+  const preferences=useVibeChatPreferences(uid,refreshVersion)
+  const webPush=useVibeChatWebPush(uid,()=>setRefreshVersion(v=>v+1))
+  const decoratedChats=useMemo(()=>chats.map(chat=>{
+    const p=preferences.preferences.find(item=>item.room_id===chat.id&&item.kind===(chat.kind==='school'?'vc':'tuition'))
+    return {...chat,pinned:p?.pinned??false,archived:p?.archived??false,muted:p?.muted??false}
+  }),[chats,preferences.preferences])
+  const incoming=useMemo(()=>decoratedChats.map(chat=>({key:chat.key,unread:chat.unreadCount??0,latestIncomingId:chat.latestIncomingId,muted:chat.muted})),[decoratedChats])
+  useVibeChatOpenAppNotifications(uid,preferences.enabled&&!webPush.registered,incoming,preferences.ready)
+  const selected = tab==='chats' ? (decoratedChats.find(chat => chat.key === active) ?? null) : null
+  useEffect(()=>{
+    historyToken.current++
+    setOlder([]);setHistoryDone(false);setHistoryBusy(false);setMessageSearch('');setSearchResults(null);setRoomMenu(false)
+  },[selected?.key,uid])
+  const allMessages=useMemo(()=>[...new Map([...older,...messages].map(m=>[m.id,m])).values()].sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.id.localeCompare(b.id)),[older,messages])
+  const displayedMessages=searchResults&&searchResults.room===selected?.key?searchResults.rows:allMessages
+  async function loadPage(searching:boolean,more:boolean){
+    if(!selected||!uid||historyBusy)return
+    const chat=selected
+    const query=searching?messageSearch.trim():''
+    if(searching&&!query){setSearchResults(null);return}
+    const token=++historyToken.current
+    setHistoryBusy(true)
+    const existing=searching?(searchResults?.room===chat.key&&searchResults.query===query?searchResults.rows:[]):allMessages
+    const first=more?existing[0]:undefined
+    try{
+      const {data,error}=await getSupabaseClient().rpc('vibechat_message_page',{p_kind:chat.kind==='school'?'vc':'tuition',p_room:chat.id,p_before:first?.created_at??null,p_before_id:first?.id??null,p_query:query||null})
+      if(error||!Array.isArray(data))throw error
+      if(historyToken.current!==token||selectedRef.current!==chat.key)return
+      const rows=data as Message[]
+      if(searching)setSearchResults({room:chat.key,query,rows:[...new Map([...(more?existing:[]),...rows].map(m=>[m.id,m])).values()].sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.id.localeCompare(b.id)),done:rows.length<50})
+      else {setOlder(previous=>[...new Map([...previous,...rows].map(m=>[m.id,m])).values()]);setHistoryDone(rows.length<50)}
+    }catch{if(historyToken.current===token&&selectedRef.current===chat.key)setMessageError('Could not load message history. Retry.')}
+    finally{if(historyToken.current===token)setHistoryBusy(false)}
+  }
+  async function changePreference(setting:'pinned'|'archived'|'muted'){
+    if(!selected)return
+    const chat=selected
+    if(await preferences.update(chat.kind==='school'?'vc':'tuition',chat.id,setting,!chat[setting])){
+      setRoomMenu(false)
+      if(setting==='archived'){setChatFilter(chat.archived?'all':'archived');setActive(null)}
+    }
+  }
   const { otherTyping, sendTyping } = useVibeChatTyping(selected?.key ?? null)
   const loadMessages = useCallback(async (chat: Chat, ownerId: string) => {
     const db = getSupabaseClient()
     const read=++messageReadRef.current
     try {
       let rows: Message[]
-      if (chat.kind === 'tuition') {
+      const rich=await db.rpc('vibechat_rich_messages',{p_kind:chat.kind==='school'?'vc':'tuition',p_room:chat.id})
+      if(!rich.error && Array.isArray(rich.data)) rows=rich.data
+      else if(rich.error && rich.error.code!=='PGRST202' && rich.error.code!=='42883') throw rich.error
+      else if (chat.kind === 'tuition') {
         const { data, error: rpcError } = await db.rpc('vibetutor_my_lesson_messages', { p_invitation: chat.id })
         if (rpcError) throw rpcError
         rows = ((Array.isArray(data) ? data : []) as Message[]).map(m => ({
@@ -239,7 +304,7 @@ export default function VibeChat() {
       if (selectedRef.current !== chat.key || read!==messageReadRef.current) return
       setMessages(rows)
       setMessageError('')
-      const incoming=[...rows].reverse().find(message=>!message.mine)
+      const incoming=[...rows].reverse().find(message=>!message.mine&&!message.deleted_at)
       if(incoming){
         const visible=document.visibilityState==='visible' && document.hasFocus()
         const receipt=await db.rpc('vibechat_ack_message',{p_kind:chat.kind==='school'?'vc':'tuition',p_room:chat.id,p_message:incoming.id,p_read:visible})
@@ -332,30 +397,55 @@ export default function VibeChat() {
     } finally { setSafetyBusy(false) }
   }
 
+  const outbox=useVibeChatOutbox(uid,item=>{
+    if(item.owner!==uid)return
+    if(item.kind==='group'){setRefreshVersion(v=>v+1);return}
+    const chat=chats.find(c=>c.key===item.kind+':'+item.room)
+    if(chat&&selectedRef.current===chat.key)void loadMessages(chat,uid)
+    void load(true)
+  })
+  const replyMessage=reply&&reply.room===selected?.key?reply.message:null
+  const editing=edit&&edit.room===selected?.key?edit:null
+  const deleting=deleteTarget&&deleteTarget.room===selected?.key?deleteTarget:null
+  const pending=selected?outbox.items.filter(item=>item.room===selected.id&&item.kind===(selected.kind==='school'?'vc':'tuition')):[]
+
   async function sendMessage(event: React.FormEvent) {
     event.preventDefault()
     if (!selected || !uid || !safety || safety.blocked || sending || !body.trim() || body.trim().length > 1500) return
     setSending(true)
     sendTyping(false)
     setMessageError('')
-    const text = body.trim()
-    const db = getSupabaseClient()
     try {
-      if (selected.kind === 'tuition') {
-        const { error: rpcError } = await db.rpc('vibetutor_send_lesson_message', { p_invitation:selected.id, p_body:text })
-        if (rpcError) throw rpcError
-      } else {
-        const { error: insertError } = await db.from('vc_messages').insert({
-          thread_id:selected.id, school_id:selected.schoolId, sender_id:uid, body:text,
-        })
-        if (insertError) throw insertError
-        // Inbox metadata is derived from committed messages on the server.
+      if(!outbox.enqueue(selected.kind==='school'?'vc':'tuition',selected.id,body,replyMessage?.id??null)){
+        setMessageError('Could not queue this message. Your draft is preserved.')
+        return
       }
-      if(selectedRef.current===selected.key) {setBody('');await loadMessages(selected, uid)}
+      setBody('')
+      setReply(null)
+    }catch{
+      setMessageError('Could not queue this message. Your draft is preserved.')
+    }finally{setSending(false)}
+  }
+
+  async function changeMessage(message:Message,action:'edit'|'delete'|'react',value:string|null=null){
+    if(!selected||!uid||!safety||safety.blocked||changing||message.deleted_at)return
+    if((action==='edit'||action==='delete')&&!message.mine)return
+    const chat=selected
+    setChanging(true)
+    setMessageError('')
+    try{
+      const {data,error}=await getSupabaseClient().rpc('vibechat_change_message',{p_kind:chat.kind==='school'?'vc':'tuition',p_room:chat.id,p_message:message.id,p_action:action,p_value:value})
+      if(error||!data)throw error
+      if(selectedRef.current===chat.key){
+        setEdit(null);setDeleteTarget(null);setMessageMenu(null)
+        if(action==='delete')setReply(previous=>previous?.message.id===message.id?null:previous)
+        setOlder([]);setHistoryDone(false);setSearchResults(null)
+        await loadMessages(chat,uid)
+      }
       void load(true)
-    } catch {
-      setMessageError('Message not sent. Please retry.')
-    } finally { setSending(false) }
+    }catch{
+      if(selectedRef.current===chat.key)setMessageError('Could not update this message. It may no longer be available.')
+    }finally{setChanging(false)}
   }
 
   async function acknowledge(notice: Notice) {
@@ -368,7 +458,7 @@ export default function VibeChat() {
     setAcking(null)
   }
 
-  const filtered = useMemo(() => chats.filter(chat => (chatFilter === 'all' || chat.kind === chatFilter) && (chat.title + ' ' + chat.detail + ' ' + (chat.handle ?? '')).toLowerCase().includes(search.trim().toLowerCase().replace(/^@/, ''))), [chats,search,chatFilter])
+  const filtered=useMemo(()=>decoratedChats.filter(chat=>(chatFilter==='archived'?chat.archived:!chat.archived&&(chatFilter==='all'||chat.kind===chatFilter))&&(chat.title+' '+chat.detail+' '+(chat.handle??'')).toLowerCase().includes(search.trim().toLowerCase().replace(/^@/,''))).sort((a,b)=>Number(b.pinned)-Number(a.pinned)||(b.updated??'').localeCompare(a.updated??'')),[decoratedChats,search,chatFilter])
 
   return <main className={styles.shell}>
     <div className={styles.main}>
@@ -385,12 +475,15 @@ export default function VibeChat() {
       <nav className={styles.tabs} aria-label="VibeChat sections">
         <button type="button" className={styles.tab + (tab==='chats'?' '+styles.active:'')} onClick={()=>setTab('chats')}><MessageCircle size={16} aria-hidden/> Chats</button>
         <button type="button" className={styles.tab + (tab==='contacts'?' '+styles.active:'')} onClick={()=>setTab('contacts')}><UserPlus size={16} aria-hidden/> Contacts</button>
+        <button type="button" className={styles.tab+(tab==='groups'?' '+styles.active:'')} onClick={()=>setTab('groups')}><Users size={16} aria-hidden/> Groups</button>
         <div className={styles.moreWrap}>
           <button type="button" className={styles.tab + (['school','enquiries','notices'].includes(tab)?' '+styles.active:'')} aria-expanded={moreOpen} aria-haspopup="true" onClick={()=>setMoreOpen(v=>!v)}><MoreVertical size={16} aria-hidden/> More {notices.some(n=>n.requiresAck&&!n.acked)?'· New':''}</button>
           {moreOpen&&<div className={styles.moreMenu}>
             {role==='teacher'&&<button type="button" onClick={()=>{setTab('school');setMoreOpen(false)}}><Users size={16} aria-hidden/> School</button>}
             <button type="button" onClick={()=>{setTab('enquiries');setMoreOpen(false)}}><Users size={16} aria-hidden/> Enquiries</button>
             <button type="button" onClick={()=>{setTab('notices');setMoreOpen(false)}}><Bell size={16} aria-hidden/> Notices</button>
+            {preferences.ready&&<button type="button" aria-pressed={preferences.enabled} onClick={()=>void preferences.toggleNotifications()}>Message alerts: {preferences.enabled?'On':'Off'}</button>}
+            {preferences.ready&&webPush.configured&&<button type="button" aria-pressed={webPush.registered} disabled={webPush.busy} onClick={()=>void webPush.toggle()}>Background alerts on this device: {webPush.registered?'On':'Off'}</button>}
             {presence?.eligible && <button type="button" aria-pressed={presence.enabled} disabled={presenceBusy} onClick={()=>void togglePresence()}>Online visibility: {presence.enabled?'On':'Off'}</button>}
           </div>}
         </div>
@@ -405,6 +498,8 @@ export default function VibeChat() {
         </div>
       </section> : null}
       {signedIn===null && <p role="status">Checking your account…</p>}
+      {webPush.error&&signedIn&&<p className={styles.error} role="status">{webPush.error}</p>}
+      {preferences.error&&signedIn&&<p role="status" className={styles.error}>{preferences.error}</p>}
       {error && <div role="alert" className={styles.error}>{error} <button type="button" onClick={()=>void load()}><RefreshCw size={14} aria-hidden/> Retry</button></div>}
       {signedIn && tab==='chats' && <section className={styles.layout} aria-label="VibeChat conversations">
         <aside className={styles.sidebar}>
@@ -415,9 +510,9 @@ export default function VibeChat() {
           </div>
           <VibeChatUsernameSearch query={search} role={role} onOpenThread={threadId=>{setSearch('');setActive('vc:'+threadId);void load()}} />
           <div className={styles.filters} aria-label="Conversation filters">
-            {(['all','school','tuition'] as const).map(filter=><button type="button" key={filter}
+            {(['all','school','tuition','archived'] as const).map(filter=><button type="button" key={filter}
               aria-pressed={chatFilter===filter} className={styles.filter + (chatFilter===filter?' '+styles.filterActive:'')}
-              onClick={()=>setChatFilter(filter)}>{filter==='all'?'All':filter==='school'?'School':'Tuition'}</button>)}
+              onClick={()=>setChatFilter(filter)}>{filter==='all'?'All':filter==='school'?'School':filter==='tuition'?'Tuition':'Archived'}</button>)}
           </div>
           <div className={styles.actionRow}>
             {role==='teacher'&&schoolMessagingAvailable&&<button type="button" className={styles.back} onClick={()=>setTab('school')}>New school message</button>}
@@ -429,7 +524,7 @@ export default function VibeChat() {
             filtered.map(chat => <button type="button" className={styles.thread + (active===chat.key?' '+styles.selected:'')}
               key={chat.key} onClick={()=>{setActive(chat.key);setBody('')}} aria-pressed={active===chat.key}>
               <VibeChatAvatar name={chat.title} avatarUrl={chat.avatarUrl}/>
-              <span className={styles.threadText}><span className={styles.threadTop}><strong>{chat.title}{chat.unread && <span className={styles.unreadDot} aria-label={(chat.unreadCount??1)+' unread messages'}>{chat.unreadCount??1}</span>}</strong><time className={styles.threadDate}>{stamp(chat.updated)}</time></span>
+              <span className={styles.threadText}><span className={styles.threadTop}><strong>{chat.pinned?'Pinned · ':''}{chat.title}{chat.muted?' · Muted':''}{chat.unread && <span className={styles.unreadDot} aria-label={(chat.unreadCount??1)+' unread messages'}>{chat.unreadCount??1}</span>}</strong><time className={styles.threadDate}>{stamp(chat.updated)}</time></span>
                 <small>{chat.preview || chat.detail}</small><span className={styles.channel}>{chat.kind==='tuition'?'Tuition':'School'}</span>
               </span>
             </button>)
@@ -440,6 +535,7 @@ export default function VibeChat() {
             <div className={styles.conversationHeader}>
               <div className={styles.peerHeader}><VibeChatAvatar name={selected.title} avatarUrl={selected.avatarUrl} size="large"/><div><strong>{selected.title}</strong><div className={styles.subtitle}>{otherTyping ? 'Typing…' : selected.peerOnline ? 'Online' : selected.detail}</div></div></div>
               <div className={styles.contactRow}>
+                <button type="button" className={styles.back} aria-label="Conversation settings" aria-expanded={roomMenu} disabled={!preferences.ready} onClick={()=>setRoomMenu(v=>!v)}><MoreVertical size={17}/></button>
                 <button type="button" className={styles.back} disabled={!safety || safetyBusy || (safety.blocked && !safety.blocked_by_me)}
                   onClick={()=>void toggleBlock()}><Ban size={15} aria-hidden/> {safety?.blocked_by_me?'Unblock':'Block'}</button>
                 <button type="button" className={styles.back} disabled={!safety || safetyBusy}
@@ -447,13 +543,48 @@ export default function VibeChat() {
                 <button type="button" className={styles.back} onClick={()=>setActive(null)} aria-label="Back to conversations"><ArrowLeft size={17} aria-hidden/> Back</button>
               </div>
             </div>
+            {roomMenu&&<div className={styles.actionPanel}>
+              <button type="button" onClick={()=>void changePreference('pinned')}>{selected.pinned?'Unpin':'Pin'}</button>
+              <button type="button" onClick={()=>void changePreference('muted')}>{selected.muted?'Unmute':'Mute'}</button>
+              <button type="button" onClick={()=>void changePreference('archived')}>{selected.archived?'Unarchive':'Archive'}</button>
+            </div>}
+            <form className={styles.actionPanel} role="search" onSubmit={e=>{e.preventDefault();void loadPage(true,false)}}>
+              <input className={styles.search} type="search" aria-label="Search messages in this conversation" placeholder="Find in conversation" value={messageSearch} maxLength={100} onChange={e=>{historyToken.current++;setHistoryBusy(false);setMessageSearch(e.target.value);setSearchResults(null)}}/>
+              <button type="submit" disabled={historyBusy||!messageSearch.trim()}>Find</button>
+              {searchResults&&<button type="button" onClick={()=>{historyToken.current++;setHistoryBusy(false);setSearchResults(null);setMessageSearch('')}}>Close search</button>}
+            </form>
             <div className={styles.messages} aria-live="polite" aria-relevant="additions text">
+              {!searchResults&&!historyDone&&allMessages.length>0&&<button className={styles.back} type="button" disabled={historyBusy} onClick={()=>void loadPage(false,true)}>{historyBusy?'Loading…':'Load older messages'}</button>}
+              {searchResults&&!searchResults.done&&<button className={styles.back} type="button" disabled={historyBusy} onClick={()=>void loadPage(true,true)}>More results</button>}
+              {searchResults&&searchResults.rows.length===0&&<p className={styles.empty}>No matching messages.</p>}
               {messagesLoading&&<p className={styles.empty} role="status">Loading messages…</p>}
-              {!messagesLoading&&messages.length===0&&<p className={styles.empty}>No messages yet. Start the conversation.</p>}
-              {messages.map(m=><div key={m.id} className={styles.bubble+(m.mine?' '+styles.mine:'')}>
-                {m.body}<time className={styles.time} dateTime={m.created_at}>{stamp(m.created_at)}{m.mine && <span className={styles.receipt}> · {selected.peerReadAt && Date.parse(selected.peerReadAt)>=Date.parse(m.created_at)?'Read':selected.peerDeliveredAt && Date.parse(selected.peerDeliveredAt)>=Date.parse(m.created_at)?'Delivered':'Sent'}</span>}</time>
+              {!messagesLoading&&!searchResults&&allMessages.length===0&&pending.length===0&&<p className={styles.empty}>No messages yet. Start the conversation.</p>}
+              {displayedMessages.map(m=><div key={m.id} className={styles.bubble+(m.mine?' '+styles.mine:'')}>
+                {m.reply_excerpt&&!m.deleted_at&&<div className={styles.replyQuote}>{m.reply_excerpt}</div>}
+                <span className={m.deleted_at?styles.deletedMessage:undefined}>{m.body}</span>
+                <time className={styles.time} dateTime={m.created_at}>{stamp(m.created_at)}{m.edited_at&&!m.deleted_at?' · Edited':''}{m.mine&&!m.deleted_at && <span className={styles.receipt}> · {selected.peerReadAt && Date.parse(selected.peerReadAt)>=Date.parse(m.created_at)?'Read':selected.peerDeliveredAt && Date.parse(selected.peerDeliveredAt)>=Date.parse(m.created_at)?'Delivered':'Sent'}</span>}</time>
+                {!m.deleted_at&&<>
+                  {!!m.reactions?.length&&<div className={styles.reactions}>{m.reactions.map((rx,i)=><button key={i} type="button" aria-label={rx.mine?'Remove '+rx.reaction:rx.reaction} disabled={!rx.mine||!safety||safety.blocked||changing} onClick={()=>void changeMessage(m,'react',null)}>{reactionLabels[rx.reaction]??rx.reaction}</button>)}</div>}
+                  {safety&&!safety.blocked&&<button type="button" className={styles.messageOptions} aria-expanded={messageMenu===m.id} aria-label="Message actions" onClick={()=>setMessageMenu(previous=>previous===m.id?null:m.id)}><MoreVertical size={16}/></button>}
+                  {messageMenu===m.id&&safety&&!safety.blocked&&<div className={styles.messageActions}>
+                    <button type="button" onClick={()=>{setReply({room:selected.key,message:m});setMessageMenu(null);setEdit(null)}}>Reply</button>
+                    {m.mine&&Date.now()-Date.parse(m.created_at)<15*60*1000&&<button type="button" onClick={()=>{setEdit({room:selected.key,message:m,body:m.body});setMessageMenu(null)}}>Edit</button>}
+                    {m.mine&&<button type="button" onClick={()=>{setDeleteTarget({room:selected.key,message:m});setMessageMenu(null)}}>Delete</button>}
+                    <div className={styles.reactions}>{Object.entries(reactionLabels).map(([key,label])=><button type="button" key={key} aria-label={'React '+key} disabled={changing} aria-pressed={m.reactions?.some(rx=>rx.mine&&rx.reaction===key)??false} onClick={()=>void changeMessage(m,'react',m.reactions?.some(rx=>rx.mine&&rx.reaction===key)?null:key)}>{label}</button>)}</div>
+                  </div>}
+                </>}
+              </div>)}
+              {!searchResults&&pending.map(item=><div key={item.id} className={styles.bubble+' '+styles.mine}>
+                {item.replyTo&&<div className={styles.replyQuote}>Reply</div>}{item.body}
+                <time className={styles.time} dateTime={new Date(item.createdAt).toISOString()}>{stamp(new Date(item.createdAt).toISOString())} · {item.failed?'Needs attention':!outbox.online?'Queued offline':item.attempts>0?'Retrying…':'Sending…'}</time>
+                {item.failed&&<div className={styles.actionRow}>
+                  <button type="button" className={styles.back} disabled={!safety||safety.blocked} onClick={()=>outbox.retry(item.id)}>Retry</button>
+                  <button type="button" className={styles.back} onClick={()=>outbox.discard(item.id)}>Remove</button>
+                </div>}
               </div>)}
             </div>
+            {!outbox.online&&<p className={styles.subtitle} role="status">Offline · messages will send when you reconnect.</p>}
+            {!outbox.storageAvailable&&pending.length>0&&<p className={styles.error} role="alert">Messages are queued in memory only. Keep this tab open until they send.</p>}
             {otherTyping && !safety?.blocked && <p className={styles.typing} role="status" aria-live="polite"><span className={styles.typingDots} aria-hidden="true">● ● ●</span> Typing…</p>}
             {reportOpen && <div className={styles.actionRow}>
               <label htmlFor="vc-report-reason" className={styles.subtitle}>Why are you reporting this conversation?</label>
@@ -470,6 +601,12 @@ export default function VibeChat() {
             {!safety && <p role="status" className={styles.subtitle}>Checking messaging permissions…</p>}
             {safetyError && <p role="status" className={styles.error}>{safetyError}</p>}
             {messageError && <p className={styles.error} role="alert">{messageError}</p>}
+            {deleting&&<div className={styles.actionPanel} role="alert">Delete this message for everyone? <button type="button" disabled={changing} onClick={()=>void changeMessage(deleting.message,'delete')}>Delete</button><button type="button" onClick={()=>setDeleteTarget(null)}>Cancel</button></div>}
+            {editing&&<form className={styles.actionPanel} onSubmit={e=>{e.preventDefault();void changeMessage(editing.message,'edit',editing.body)}}>
+              <label htmlFor="vc-edit">Edit message</label><textarea id="vc-edit" value={editing.body} maxLength={1500} onChange={e=>setEdit(previous=>previous?{...previous,body:e.target.value}:previous)}/>
+              <button type="submit" disabled={changing||!editing.body.trim()||!safety||safety.blocked}>Save</button><button type="button" onClick={()=>setEdit(null)}>Cancel</button>
+            </form>}
+            {replyMessage&&<div className={styles.replyQuote}>Replying to: {replyMessage.body}<button type="button" onClick={()=>setReply(null)} aria-label="Cancel reply">×</button></div>}
             <form className={styles.compose} onSubmit={e=>void sendMessage(e)}>
               <label htmlFor="vc-message" className="sr-only">Message</label>
               <textarea id="vc-message" value={body} maxLength={1500} rows={2}
@@ -480,6 +617,7 @@ export default function VibeChat() {
           </> : <div className={styles.empty}>Select a conversation to read or send a message.</div>}
         </div>
       </section>}
+      {signedIn&&tab==='groups'&&<VibeChatGroups key={uid} owner={uid} refreshVersion={refreshVersion} refresh={()=>setRefreshVersion(v=>v+1)} outbox={outbox}/>}
       {signedIn&&tab==='school'&&role==='teacher'&&<VibeChatSchool onOpenThread={threadId=>{
         setTab('chats')
         setSearch('')

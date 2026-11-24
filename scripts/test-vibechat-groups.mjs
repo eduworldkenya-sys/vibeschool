@@ -1,0 +1,33 @@
+import {test} from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8')
+test('groups reuse canonical threads and require invitation consent and current membership',()=>{
+ const sql=read('supabase/migrations/20261124235600_vibechat_groups.sql')
+ assert.match(sql,/check\(type in \('direct','circular','group'\)\)/)
+ assert.match(sql,/private\.vibechat_presence_eligible\(auth\.uid\(\)\)/)
+ assert.match(sql,/private\.vibechat_group_contact\(actor,recipient\)/)
+ assert.match(sql,/x\.recipient_id=actor for update/)
+ assert.match(sql,/p_created>=private\.vibechat_group_joined\(p_room\)/)
+ assert.match(sql,/not private\.vibechat_pair_blocked\(auth\.uid\(\),p_sender\)/)
+ assert.match(sql,/vibechat_group_message_insert on public\.vc_messages as restrictive/)
+ assert.match(sql,/vibechat_group_participant_update on public\.vc_participants as restrictive/)
+ assert.match(sql,/vibechat_group_thread_update on public\.vc_threads as restrictive/)
+ assert.match(sql,/pg_advisory_xact_lock\(hashtextextended\('vibechat-send:'/)
+ assert.match(sql,/return old\.message_id/)
+ assert.match(sql,/update public\.vc_participants set left_at=now\(\)/)
+ assert.match(sql,/m\.created_at>=cp\.joined_at/)
+})
+test('group UI uses shared outbox and canonical VibeChat navigation',()=>{
+ const ui=read('components/vibechat/VibeChatGroups.tsx')
+ const chat=read('components/vibechat/VibeChat.tsx')
+ const queue=read('components/vibechat/useVibeChatOutbox.ts')
+ assert.match(ui,/vibechat_group_respond/)
+ assert.match(ui,/outbox\.enqueue\('group'/)
+ assert.match(ui,/vibechat_group_messages/)
+ assert.match(ui,/Load older messages/)
+ assert.match(ui,/vibechat_group_report/)
+ assert.match(chat,/<VibeChatGroups key=\{uid\}/)
+ assert.match(queue,/item\.kind==='group'\?db\.rpc\('vibechat_group_send'/)
+ assert.match(queue,/p_operation:item\.id/)
+})
