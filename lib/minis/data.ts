@@ -103,7 +103,7 @@ export async function loadMiniCovers(posts: MiniPost[]) {
     if (!error && data) {
       const byPath = new Map(data.filter(item=>item.path && item.signedUrl).map(item=>[item.path,item.signedUrl]))
       for (const post of batch) {
-        const url = byPath.get(post.cover_path)
+        const url = byPath.get(post.cover_path!)
         if (url) urls[post.id] = url
       }
     }
