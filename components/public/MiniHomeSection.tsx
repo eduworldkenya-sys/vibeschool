@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { MINI_EXAMPLES } from '@/lib/public/mini-examples'
 import { MiniCard } from './MiniCard'
 import styles from './MiniExplore.module.css'
+import { MiniLiveHome } from './MiniLiveHome'
 
 export function MiniHomeSection() {
+  if (process.env.NEXT_PUBLIC_MINI_LESSONS_BACKEND_ENABLED === 'true') return <MiniLiveHome />
   return <section aria-labelledby="mini-home-title" className={styles.homeSection}>
     <div className={styles.sectionHeader}>
       <div><span className={styles.eyebrow}>SHARE WHAT YOU KNOW</span><h2 id="mini-home-title">Discover something new.</h2>
